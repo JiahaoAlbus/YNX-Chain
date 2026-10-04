@@ -1,0 +1,1265 @@
+diff --git a/apps/creator-studio/app.js b/apps/creator-studio/app.js
+index cd6566292..74885d6c3 100644
+--- a/apps/creator-studio/app.js
++++ b/apps/creator-studio/app.js
+@@ -599,7 +599,7 @@ async function restoreChannelView(studio,revision){
+ 
+ function rightsFor(videoID){return(snapshot?.rights||[]).find(item=>get(item,"video_id","VideoID")===videoID)}
+ function openRights(video){const form=$("#rights-form");form.video_id.value=video.id;form.source_sha256.value=video.sha256||"";document.querySelector('nav button[data-panel="rights"]').click();status("Rights form prefilled with the persisted media source hash.")}
+-function renderContent(){const box=$("#videos"),videos=snapshot?.videos||[];box.replaceChildren();if(!videos.length){box.innerHTML='<p class="meta">No videos yet. Create a channel, then upload your first video.</p>';return}for(const video of videos){const row=document.createElement("div"),rights=rightsFor(video.id),rightsState=rights?get(rights,"state","State"):"missing",source=video.sha256?`${video.sha256.slice(0,16)}…`:"unavailable",workflow=get(video,"workflow_state","WorkflowState")||"draft",versions=get(video,"versions","Versions")||[];row.className="row lifecycle-row";const takedown=video.takedown?` · takedown ${video.takedown.state}`:"",scheduled=get(video,"scheduled_at","ScheduledAt"),history=versions.slice(-5).reverse().map(version=>`<li><b>v${esc(get(version,"sequence","Sequence"))}</b> ${esc(get(version,"kind","Kind"))} · ${esc(get(version,"recorded_at","RecordedAt"))}</li>`).join("");row.innerHTML=`<div><b>${esc(video.title)}</b><small>${esc(video.id)} · source ${esc(source)}</small><small>Workflow ${esc(workflow)} · version ${esc(get(video,"version","Version")||0)}${scheduled?` · scheduled ${esc(scheduled)}`:""}</small></div><span class="state">${esc(video.status)}${esc(takedown)}</span><span>${esc(video.visibility)} · rights ${esc(rightsState)}</span><div class="row-actions"><button data-action="edit">Edit</button><button data-action="rights">Rights</button>${["draft","rejected","unpublished"].includes(workflow)&&video.status==="ready"?'<button data-action="submit">Submit review</button>':""}${workflow==="in_review"?'<button data-action="review">Review</button>':""}${workflow==="approved"?'<button data-action="visibility">Publish now</button><button data-action="schedule">Schedule</button>':""}${workflow==="scheduled"?'<button data-action="due">Publish due</button>':""}${workflow==="published"?'<button data-action="unpublish" class="danger">Unpublish</button>':""}${video.status==="failed"?'<button data-action="retry">Retry</button>':""}</div><details><summary>Version history (${versions.length})</summary><ol>${history||"<li>No version evidence.</li>"}</ol></details>`;row.querySelector('[data-action="edit"]').onclick=()=>editVideo(video);row.querySelector('[data-action="rights"]').onclick=()=>openRights(video);row.querySelector('[data-action="submit"]')?.addEventListener("click",()=>submitReview(video));row.querySelector('[data-action="review"]')?.addEventListener("click",()=>reviewPublication(video));row.querySelector('[data-action="visibility"]')?.addEventListener("click",()=>publishVideo(video));row.querySelector('[data-action="schedule"]')?.addEventListener("click",()=>schedulePublication(video));row.querySelector('[data-action="due"]')?.addEventListener("click",()=>publishDue(video));row.querySelector('[data-action="unpublish"]')?.addEventListener("click",()=>unpublish(video));row.querySelector('[data-action="retry"]')?.addEventListener("click",()=>retryVideo(video));box.append(row)}}
++function renderContent(){const box=$("#videos"),videos=snapshot?.videos||[];box.replaceChildren();if(!videos.length){box.innerHTML='<p class="meta">No videos yet. Create a channel, then upload your first video.</p>';return}for(const video of videos){const row=document.createElement("div"),rights=rightsFor(video.id),rightsState=rights?get(rights,"state","State"):"missing",source=video.sha256?`${video.sha256.slice(0,16)}…`:"unavailable",workflow=get(video,"workflow_state","WorkflowState")||"draft",versions=get(video,"versions","Versions")||[];row.className="row lifecycle-row";const takedown=video.takedown?` · takedown ${video.takedown.state}`:"",scheduled=get(video,"scheduled_at","ScheduledAt"),history=versions.slice(-5).reverse().map(version=>`<li><b>v${esc(get(version,"sequence","Sequence"))}</b> ${esc(get(version,"kind","Kind"))} · ${esc(get(version,"recorded_at","RecordedAt"))}</li>`).join("");row.innerHTML=`<div><b>${esc(video.title)}</b><small>${esc(video.id)} · source ${esc(source)}</small><small>Workflow ${esc(workflow)} · version ${esc(get(video,"version","Version")||0)}${scheduled?` · scheduled ${esc(scheduled)}`:""}</small></div><span class="state">${esc(video.status)}${esc(takedown)}</span><span>${esc(video.visibility)} · rights ${esc(rightsState)}</span><div class="row-actions"><button data-action="edit">Edit</button><button data-action="rights">Rights</button>${["draft","rejected","unpublished"].includes(workflow)&&video.status==="ready"?'<button data-action="submit">Submit review</button>':""}${workflow==="in_review"?'<button data-action="review">Review</button>':""}${workflow==="approved"?'<button data-action="visibility">Publish now</button><button data-action="schedule">Schedule</button>':""}${workflow==="scheduled"?'<button data-action="due">Publish due</button>':""}${workflow==="published"?'<button data-action="unpublish" class="danger">Unpublish</button>':""}${["failed","scanning","transcoding"].includes(video.status)?'<button data-action="retry">Retry processing</button>':""}</div><details><summary>Version history (${versions.length})</summary><ol>${history||"<li>No version evidence.</li>"}</ol></details>`;row.querySelector('[data-action="edit"]').onclick=()=>editVideo(video);row.querySelector('[data-action="rights"]').onclick=()=>openRights(video);row.querySelector('[data-action="submit"]')?.addEventListener("click",()=>submitReview(video));row.querySelector('[data-action="review"]')?.addEventListener("click",()=>reviewPublication(video));row.querySelector('[data-action="visibility"]')?.addEventListener("click",()=>publishVideo(video));row.querySelector('[data-action="schedule"]')?.addEventListener("click",()=>schedulePublication(video));row.querySelector('[data-action="due"]')?.addEventListener("click",()=>publishDue(video));row.querySelector('[data-action="unpublish"]')?.addEventListener("click",()=>unpublish(video));row.querySelector('[data-action="retry"]')?.addEventListener("click",async event=>{const button=event.currentTarget;button.disabled=true;try{await retryVideo(video)}finally{button.disabled=false}});box.append(row)}}
+ async function editVideo(video){const title=prompt("Title",video.title);if(!title)return;const description=prompt("Description",video.description||"");if(description===null)return;try{await api(`/v1/videos/${video.id}/metadata`,json({title,description}));await refresh()}catch(error){status(error.message,true)}}
+ async function publishVideo(video){const visibility=prompt("Visibility: private, unlisted, or public",video.visibility);if(!visibility)return;try{await api(`/v1/videos/${video.id}/publish`,json({visibility}));status("Human-reviewed visibility persisted.");await refresh()}catch(error){status(error.message,true)}}
+ async function submitReview(video){try{await api(`/v1/videos/${video.id}/submit-review`,{method:"POST"});status("Publication review submitted. A different moderator must decide.");await refresh()}catch(error){status(error.message,true)}}
+@@ -647,7 +647,7 @@ $('#upload-form').onsubmit=async event=>{
+       recovered=(snapshot?.videos||[]).find(video=>video.sha256===submittedHash&&video.channel_id===submittedChannel&&video.id===error.details.video_id);
+     }
+     if(!currentCreatorSession(revision))return;
+-    if(recovered){document.querySelector('nav button[data-panel="content"]').click();status(recovered.status==='failed'?'Your uploaded file is saved. Retry processing from Content; you do not need to upload it again.':'A matching upload is in Content. Check its processing state before uploading again.',recovered.status==='failed');}
++    if(recovered){document.querySelector('nav button[data-panel="content"]').click();status(['failed','scanning','transcoding'].includes(recovered.status)?'Your uploaded file is saved. Retry processing from Content; you do not need to upload it again.':'A matching upload is in Content. Check its processing state before uploading again.',recovered.status==='failed');}
+     else status(operation.signal.aborted?'Upload stopped. Check Content before trying again; the service may already have received your video.':error.message,true);
+   }
+   finally{operation.finish();if(currentUpload===operation){currentUpload=null;$('#upload-cancel').hidden=true;if(submit)submit.disabled=false;}}
+diff --git a/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift b/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift
+index 1232d9615..c2b7fdb60 100644
+--- a/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift
++++ b/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift
+@@ -196,7 +196,7 @@ struct CreatorView: View {
+     }
+     @ViewBuilder private func videoActions(_ video:CreatorVideo) -> some View {
+         Button(model.text("rights")) {selectedVideo=video}
+-        if video.status=="failed" {Button(model.text("retryProcessing")) {model.submit("/v1/videos/"+video.id+"/retry-processing")}}
++        if ["failed","scanning","transcoding"].contains(video.status) {Button(model.text("retryProcessing")) {model.submit("/v1/videos/"+video.id+"/retry-processing")}}
+         if ["draft","rejected","unpublished"].contains(video.workflow_state) && video.status=="ready" {Button(model.text("submitReview")) {model.submit("/v1/videos/"+video.id+"/submit-review")}}
+         if video.workflow_state=="approved" {
+             Menu(model.text("publish")) {ForEach(["public","unlisted","private"],id:\.self) {visibility in Button(model.text(visibility)) {model.submit("/v1/videos/"+video.id+"/publish",body:["visibility":visibility])}}}
+diff --git a/apps/creator-studio/scripts/processing-resume-web-check.cjs b/apps/creator-studio/scripts/processing-resume-web-check.cjs
+new file mode 100644
+index 000000000..f4496fc83
+--- /dev/null
++++ b/apps/creator-studio/scripts/processing-resume-web-check.cjs
+@@ -0,0 +1,50 @@
++// Original Creator DOM with isolated session/service fixtures; no real Wallet or Host.
++const fs=require('fs/promises'),path=require('path'),assert=require('assert/strict');
++const {chromium}=require(require.resolve('playwright',{paths:['/Users/huangjiahao/.codex/worktrees/android-installed-gate-main-20261001/apps/finance']}));
++const root=path.resolve(__dirname,'..'),out=process.env.YNX_PROCESSING_RESUME_EVIDENCE||'/tmp/ynx-media-processing-resume-20261004';
++const origin='https://creator.ynxweb4.com';
++const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthorization=async()=>({});export const restoreProductSession=async()=>({status:'connected',session:{account:'fixture-owner-a',expiresAt:new Date(Date.now()+600000).toISOString()}});export const restoreNativeProductReturn=async()=>null;export const disconnectProductSession=async()=>({status:'disconnected'});export const subscribeProductSession=()=>()=>{};export const announceProductSession=()=>{};export const rememberProductReturn=()=>{};export const prepareProductSignIn=async()=>{throw Error('fixture sign-in is not Wallet approval')};export const finishProductReturn=async()=>{throw Error('not a real Wallet return')};export const dispatchPreparedProductRequest=async()=>{throw Error('not a real native launch')};`;
++(async()=>{
++ await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true});const cases=[];
++ try {
++  for(const phase of ['failed','scanning','transcoding']) for(const view of [{width:390,height:844,fontSize:16,dir:'ltr'},{width:320,height:740,fontSize:32,dir:'rtl'},{width:1280,height:900,fontSize:16,dir:'ltr'}]) {
++   const context=await browser.newContext({viewport:{width:view.width,height:view.height}}),page=await context.newPage();
++   let saved={id:'saved_original_'+phase,title:'Saved original',status:phase,visibility:'private',sha256:'a'.repeat(64),workflow_state:'draft'};
++   let releaseRetry;const retryRelease=new Promise(resolve=>{releaseRetry=resolve});const requests=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
++   await page.route(origin+'/**',async route=>{
++    const req=route.request(),url=new URL(req.url());
++    if(url.pathname==='/api/sso/account')return route.fulfill({status:200,contentType:'application/json',headers:{'Cache-Control':'no-store'},body:JSON.stringify({account:'fixture-owner-a',subject:'fixture-owner-a',signedIn:true,generation:1,expiresAt:new Date(Date.now()+600000).toISOString(),scopes:['identity:read'],privateWorkspaceAuthorized:false,csrfToken:'fixture_csrf_'.repeat(4)})});
++    if(url.pathname.startsWith('/video/api/')) {
++     if(req.method()!=='GET')requests.push({method:req.method(),path:url.pathname,body:req.postData()});
++     let result;
++     if(url.pathname==='/video/api/v1/studio')result={videos:[saved,{...saved,id:'already_ready',status:'ready'}],ai_jobs:[],team:[],rights:[],revenue:[],payout_intents:[],reports:[],appeals:[],disputes:[]};
++     else if(url.pathname==='/video/api/v1/ai/provider')result={configured:false};
++     else if(url.pathname==='/video/api/v1/videos/'+saved.id+'/retry-processing'&&req.method()==='POST'){await retryRelease;saved={...saved,status:'ready'};result=saved;}
++     else return route.fulfill({status:404,contentType:'application/json',body:'{}'});
++     return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(result)});
++    }
++    if(url.pathname==='/product-session.js')return route.fulfill({contentType:'text/javascript',body:sdk});
++    if(url.pathname.includes('ynx-wallet-transports'))return route.fulfill({contentType:'text/javascript',body:'export class WalletConnectDAppConnection {} export class QRCode {} export function createHostedWalletAdapter(){return {}}'});
++    let file=path.join(root,url.pathname==='/'?'index.html':url.pathname.slice(1));
++    if(url.pathname==='/i18n/catalog.json')file=path.resolve(root,'../video/i18n/catalog.json');
++    if(!file.startsWith(root)&&url.pathname!=='/i18n/catalog.json')return route.abort();
++    try {const body=await fs.readFile(file),ext=path.extname(file);return route.fulfill({contentType:['.js','.mjs'].includes(ext)?'text/javascript':ext==='.css'?'text/css':ext==='.json'?'application/json':ext==='.png'?'image/png':'text/html',body});}catch{return route.fulfill({status:404,body:'missing fixture source'});}
++   });
++   await page.goto(origin);await page.waitForFunction(()=>document.querySelectorAll('#videos .lifecycle-row').length===2);
++   await page.locator('nav button[data-panel="content"]').click();
++   await page.evaluate(view=>{document.documentElement.style.fontSize=view.fontSize+'px';document.documentElement.dir=view.dir},view);
++   const geometry=await page.locator('#refresh').evaluate(button=>{const rect=button.getBoundingClientRect(),css=getComputedStyle(button),canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=css.font;return {left:rect.left,right:rect.right,height:rect.height,width:rect.width,wordFits:rect.width-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)-2>=context.measureText(button.textContent.trim()).width,overflow:document.documentElement.scrollWidth>innerWidth}});
++   assert.equal(geometry.wordFits,true,'Refresh control must retain enough width to read its label');assert.equal(geometry.overflow,false);assert.ok(geometry.left>=0&&geometry.right<=view.width+1);assert.ok(geometry.height>=44);
++   assert.equal(requests.length,0);assert.equal(await page.locator('#videos [data-action="retry"]').count(),1);
++   await page.screenshot({path:path.join(out,'creator-resume-'+phase+'-'+view.width+'-'+view.dir+'.png'),fullPage:true});
++   await page.locator('#videos [data-action="retry"]').click();
++   await page.waitForFunction(()=>document.querySelector('#videos [data-action="retry"]').disabled);
++   await page.locator('#videos [data-action="retry"]').evaluate(button=>button.click());
++   releaseRetry();
++   await page.waitForFunction(()=>document.querySelectorAll('#videos [data-action="retry"]').length===0);
++   assert.deepEqual(requests,[{method:'POST',path:'/video/api/v1/videos/'+saved.id+'/retry-processing',body:null}]);
++   assert.deepEqual(errors,[]);cases.push({phase,view,geometry,originalID:saved.id,automaticMutations:0,explicitProcessingRequests:requests.length,reuploadRequests:0,pageErrors:errors});await context.close();
++  }
++  await fs.writeFile(path.join(out,'web-dom-receipt.json'),JSON.stringify({scope:'original Creator DOM; synthetic session and service responses only',realWallet:false,formalHost:false,actualCodec:false,cases},null,2)+'\n');console.log(JSON.stringify({passed:cases.length,automaticMutations:0,reuploadRequests:0}));
++ }finally{await browser.close();}
++})().catch(e=>{console.error(e);process.exitCode=1;});
+diff --git a/apps/creator-studio/styles.css b/apps/creator-studio/styles.css
+index 3da6303a7..aa6e38e24 100644
+--- a/apps/creator-studio/styles.css
++++ b/apps/creator-studio/styles.css
+@@ -72,7 +72,9 @@ input,textarea,select{display:block;width:100%;margin-top:6px;border:1px solid #
+ textarea{min-height:90px;resize:vertical}
+ .check{display:flex;align-items:flex-start;gap:9px;font-weight:500;line-height:1.45}
+ .check input{width:auto;margin:2px 0}
+-.bar{display:flex;justify-content:space-between;align-items:center;gap:16px}
++.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
++.bar>div{flex:1 1 16rem;min-width:0}
++.bar>button{flex:0 0 auto;max-width:100%;min-height:44px}
+ .table{padding:4px 18px}
+ .row{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(110px,1fr) minmax(100px,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);min-width:0}
+ .row>*{min-width:0;overflow-wrap:anywhere}
+diff --git a/internal/music/business_request.go b/internal/music/business_request.go
+index 51a40a472..30a70e3ec 100644
+--- a/internal/music/business_request.go
++++ b/internal/music/business_request.go
+@@ -87,7 +87,8 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
+ }
+ 
+ // Called under the ORIGINAL shared store lock on the candidate that contains
+-// the real business change. Failed validation/save cannot consume a nonce.
++// the real business change. Failed validation or unpublished saves cannot consume
++// a nonce; an already published but unconfirmed save retains its original nonce.
+ func (l *musicBusinessLease) commit(actor string, st *persistentState, clock func() time.Time) error {
+ 	now := clock().UTC()
+ 	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
+diff --git a/internal/music/server.go b/internal/music/server.go
+index 7a21a1f0d..5f449435a 100644
+--- a/internal/music/server.go
++++ b/internal/music/server.go
+@@ -624,7 +624,7 @@ func resultStatus(w http.ResponseWriter, v any, e error, status int) {
+ func writeErr(w http.ResponseWriter, e error) {
+ 	status := 500
+ 	switch {
+-	case errors.Is(e, ErrMusicAuthorityUnavailable):
++	case errors.Is(e, ErrMusicStatePublicationUnconfirmed), errors.Is(e, ErrMusicAuthorityUnavailable):
+ 		status = http.StatusServiceUnavailable
+ 	case errors.Is(e, ErrInvalid):
+ 		status = 400
+diff --git a/internal/music/service.go b/internal/music/service.go
+index 86fbe160a..9b4b5bab0 100644
+--- a/internal/music/service.go
++++ b/internal/music/service.go
+@@ -5,6 +5,7 @@ import (
+ 	"crypto/sha256"
+ 	"encoding/hex"
+ 	"encoding/json"
++	"errors"
+ 	"fmt"
+ 	"io"
+ 	"net/http"
+@@ -133,14 +134,18 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
+ 	a := AuditEvent{Sequence: uint64(len(next.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
+ 	a.Hash = hashJSON(a)
+ 	next.Audit = append(next.Audit, a)
+-	if err := saveState(s.cfg.StatePath, &next); err != nil {
+-		return err
++	var current func() error
++	if s.business != nil && s.business.grant.Current != nil {
++		current = func() error { return s.business.checkCurrent(s.cfg.Now) }
+ 	}
+-	s.state = next
+-	if s.business != nil {
+-		s.business.consumed = true
++	published, persistErr := saveStateCurrent(s.cfg.StatePath, &next, current)
++	if published {
++		s.state = next
++		if s.business != nil {
++			s.business.consumed = true
++		}
+ 	}
+-	return nil
++	return persistErr
+ }
+ 
+ func clonePersistentState(state persistentState) (persistentState, error) {
+@@ -362,8 +367,10 @@ func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
+ 		return nil
+ 	})
+ 	if err != nil {
+-		for _, p := range cleanup {
+-			os.Remove(p)
++		if !errors.Is(err, ErrMusicStatePublicationUnconfirmed) {
++			for _, p := range cleanup {
++				os.Remove(p)
++			}
+ 		}
+ 		if err == errIdempotentReplay {
+ 			return out, nil
+diff --git a/internal/music/store.go b/internal/music/store.go
+index 2b1edcf78..84ac21082 100644
+--- a/internal/music/store.go
++++ b/internal/music/store.go
+@@ -265,29 +265,53 @@ func verifyPrivateMedia(path, expectedHash string) error {
+ 	return nil
+ }
+ 
++var ErrMusicStatePublicationUnconfirmed = errors.New("Music state publication unconfirmed")
++
++// Legacy creation/migration/maintenance retains the original writer contract.
+ func saveState(path string, state *persistentState) error {
++	_, err := saveStateCurrent(path, state, nil)
++	return err
++}
++func saveStateCurrent(path string, state *persistentState, current func() error) (published bool, err error) {
++	defer func() {
++		if published && err != nil {
++			err = fmt.Errorf("%w: %w", ErrMusicStatePublicationUnconfirmed, err)
++		}
++	}()
++	check := func() error {
++		if current != nil {
++			return current()
++		}
++		return nil
++	}
++	if err = check(); err != nil {
++		return false, err
++	}
+ 	integrity, err := stateIntegrity(*state)
+ 	if err != nil {
+-		return err
++		return false, err
+ 	}
+ 	state.IntegrityHash = integrity
+ 	data, err := json.MarshalIndent(state, "", "  ")
+ 	if err != nil {
+-		return err
++		return false, err
++	}
++	if err = check(); err != nil {
++		return false, err
+ 	}
+ 	dir := filepath.Dir(path)
+-	if err := os.MkdirAll(dir, 0o700); err != nil {
+-		return err
++	if err = os.MkdirAll(dir, 0o700); err != nil {
++		return false, err
+ 	}
+ 	tmp, err := os.CreateTemp(dir, ".music-state-*")
+ 	if err != nil {
+-		return err
++		return false, err
+ 	}
+ 	name := tmp.Name()
+ 	defer os.Remove(name)
+-	if err := tmp.Chmod(0o600); err != nil {
+-		tmp.Close()
+-		return err
++	if err = tmp.Chmod(0o600); err != nil {
++		_ = tmp.Close()
++		return false, err
+ 	}
+ 	if _, err = tmp.Write(data); err == nil {
+ 		err = tmp.Sync()
+@@ -296,12 +320,45 @@ func saveState(path string, state *persistentState) error {
+ 		err = closeErr
+ 	}
+ 	if err != nil {
+-		return err
++		return false, err
++	}
++	// Same captured local Current, after the actual staged write/fsync and before
++	// publishing. The prepared temporary file is removed on every refusal.
++	if err = check(); err != nil {
++		return false, err
+ 	}
+ 	if err = os.Rename(name, path); err != nil {
+-		return err
++		return false, err
++	}
++	published = true
++	if err = check(); err != nil {
++		return true, err
++	}
++	if err = os.Chmod(path, 0o600); err != nil {
++		return true, err
++	}
++	directory, err := os.Open(dir)
++	if err != nil {
++		return true, err
++	}
++	err = directory.Sync()
++	if closeErr := directory.Close(); err == nil {
++		err = closeErr
++	}
++	if err != nil {
++		return true, err
++	}
++	confirmed, err := os.ReadFile(path)
++	if err != nil {
++		return true, err
++	}
++	if string(confirmed) != string(data) {
++		return true, errors.New("Music published state readback mismatch")
++	}
++	if err = check(); err != nil {
++		return true, err
+ 	}
+-	return os.Chmod(path, 0o600)
++	return true, nil
+ }
+ 
+ func stateIntegrity(state persistentState) (string, error) {
+diff --git a/internal/music/store_publication_test.go b/internal/music/store_publication_test.go
+new file mode 100644
+index 000000000..b40cf9dd3
+--- /dev/null
++++ b/internal/music/store_publication_test.go
+@@ -0,0 +1,115 @@
++package music
++
++import (
++	"bytes"
++	"context"
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++// Original local state writer and software Current only; no real grant/provider.
++func TestMusicStorePublicationCurrentBoundary(t *testing.T) {
++	for _, phase := range []string{"before-publish", "after-publish"} {
++		t.Run(phase, func(t *testing.T) {
++			s := testService(t)
++			actor := testAccount(t, 1)
++			if _, err := s.UpsertProfile(actor, Profile{DisplayName: "Retained"}); err != nil {
++				t.Fatal(err)
++			}
++			before, err := os.ReadFile(s.cfg.StatePath)
++			if err != nil {
++				t.Fatal(err)
++			}
++			observed := false
++			lease := testBusinessLease(actor, "publication_nonce_000001", s.cfg.Now)
++			lease.grant.Current = func(context.Context) error {
++				if phase == "before-publish" {
++					names, _ := filepath.Glob(filepath.Join(filepath.Dir(s.cfg.StatePath), ".music-state-*"))
++					for _, name := range names {
++						if i, e := os.Stat(name); e == nil && i.Size() > 0 {
++							observed = true
++							return ErrUnauthorized
++						}
++					}
++				}
++				if phase == "after-publish" {
++					if b, e := os.ReadFile(s.cfg.StatePath); e == nil && !bytes.Equal(b, before) {
++						observed = true
++						return ErrUnauthorized
++					}
++				}
++				return nil
++			}
++			scoped := s.requestService(lease)
++			_, err = scoped.UpsertProfile(actor, Profile{DisplayName: "Pending original"})
++			if err == nil || !observed {
++				t.Fatalf("actual %s writer boundary did not reject: observed=%v err=%v", phase, observed, err)
++			}
++			disk, e := os.ReadFile(s.cfg.StatePath)
++			if e != nil {
++				t.Fatal(e)
++			}
++			recovered, e := New(s.cfg)
++			if e != nil {
++				t.Fatal(e)
++			}
++			if phase == "after-publish" && !errors.Is(err, ErrMusicStatePublicationUnconfirmed) {
++				t.Fatalf("published failure was not UNKNOWN: %v", err)
++			}
++			if phase == "before-publish" {
++				if !bytes.Equal(before, disk) || lease.consumed || len(s.state.BusinessNonces) != 0 || s.state.Profiles[actor].DisplayName != "Retained" || recovered.state.Profiles[actor].DisplayName != "Retained" {
++					t.Fatal("unpublished candidate changed original state/nonce")
++				}
++				names, _ := filepath.Glob(filepath.Join(filepath.Dir(s.cfg.StatePath), ".music-state-*"))
++				if len(names) != 0 {
++					t.Fatal("refused staged writer was not cleaned")
++				}
++			} else {
++				if bytes.Equal(before, disk) || !lease.consumed || len(s.state.BusinessNonces) != 1 || s.state.Profiles[actor].DisplayName != "Pending original" || recovered.state.Profiles[actor].DisplayName != "Pending original" {
++					t.Fatal("published unknown rolled back memory/disk or nonce")
++				}
++				replay := recovered.requestService(testBusinessLease(actor, lease.grant.Nonce, recovered.cfg.Now))
++				if _, e = replay.UpsertProfile(actor, Profile{DisplayName: "Duplicate"}); e == nil {
++					t.Fatal("published unknown request replayed")
++				}
++			}
++		})
++	}
++}
++
++func TestMusicPublishedUnknownRetainsMedia(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 1)
++	if _, err := s.UpsertProfile(actor, Profile{DisplayName: "Original"}); err != nil {
++		t.Fatal(err)
++	}
++	if _, err := s.OnboardCreator(actor, "Original", "Original source"); err != nil {
++		t.Fatal(err)
++	}
++	before, _ := os.ReadFile(s.cfg.StatePath)
++	lease := testBusinessLease(actor, "media_publication_nonce_0001", s.cfg.Now)
++	lease.grant.Current = func(context.Context) error {
++		b, e := os.ReadFile(s.cfg.StatePath)
++		if e == nil && !bytes.Equal(b, before) {
++			return ErrUnauthorized
++		}
++		return nil
++	}
++	req := TrackUpload{RequestKey: "original_upload_001", Title: "Original", ArtistName: "Original", Audio: Upload{Reader: bytes.NewReader(toneWAV(1000))}, AudioProvenance: "generated QA tone", RightsBasis: "owned", Territories: []string{"TEST"}, EvidenceRef: "QA original"}
++	_, err := s.requestService(lease).UploadTrack(actor, req)
++	if !errors.Is(err, ErrMusicStatePublicationUnconfirmed) {
++		t.Fatalf("missing published UNKNOWN: %v", err)
++	}
++	if len(s.state.Tracks) != 1 {
++		t.Fatal("published original metadata lost")
++	}
++	recovered, e := New(s.cfg)
++	if e != nil {
++		t.Fatalf("published original media was cleaned: %v", e)
++	}
++	if len(recovered.state.Tracks) != 1 || !lease.consumed {
++		t.Fatal("original track/nonce not retained")
++	}
++}
+diff --git a/internal/video/business_request.go b/internal/video/business_request.go
+index 04ffab8ee..548dd2957 100644
+--- a/internal/video/business_request.go
++++ b/internal/video/business_request.go
+@@ -293,7 +293,7 @@ func (w *videoBusinessResponse) Flush() {
+ }
+ 
+ func videoBusinessErrorStatus(err error) int {
+-	if errors.Is(err, ErrVideoAuthorityUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
++	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) || errors.Is(err, ErrVideoAuthorityUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+ 		return http.StatusServiceUnavailable
+ 	}
+ 	return http.StatusUnauthorized
+diff --git a/internal/video/processing_resume_codec_test.go b/internal/video/processing_resume_codec_test.go
+new file mode 100644
+index 000000000..1cee85a27
+--- /dev/null
++++ b/internal/video/processing_resume_codec_test.go
+@@ -0,0 +1,139 @@
++package video
++
++import (
++	"bytes"
++	"context"
++	"crypto/sha256"
++	"encoding/hex"
++	"encoding/json"
++	"errors"
++	"os"
++	"os/exec"
++	"path/filepath"
++	"testing"
++)
++
++type resumeCodecProcessor struct {
++	FFmpegProcessor
++	calls int
++}
++
++func (p *resumeCodecProcessor) Transcode(ctx context.Context, input, output string) ([]MediaVariant, error) {
++	p.calls++
++	return p.FFmpegProcessor.Transcode(ctx, input, output)
++}
++
++// Real local codecs and repository-owned media; scanner and authority remain
++// disposable software fixtures. No installed renderer or real account is used.
++func TestVideoResumePublishedUnknownWithRealCodec(t *testing.T) {
++	const binary = "/opt/homebrew/bin/ffmpeg"
++	if _, err := os.Stat(binary); err != nil {
++		t.Skip("FFmpeg unavailable at the original integration-test path")
++	}
++	data, err := os.ReadFile("testdata/ynx-owned-test.mp4")
++	if err != nil {
++		t.Fatal(err)
++	}
++	digest := sha256.Sum256(data)
++	if hex.EncodeToString(digest[:]) != "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39" {
++		t.Fatal("repository-owned clip identity changed")
++	}
++	for _, phase := range []string{"scanning", "transcoding"} {
++		t.Run(phase, func(t *testing.T) {
++			processor := &resumeCodecProcessor{FFmpegProcessor: FFmpegProcessor{FFmpeg: binary}}
++			s, c := fixture(t, func(cfg *Config) {
++				cfg.Processor = processor
++				cfg.MaxObjectBytes = 1 << 20
++				cfg.AccountQuotaBytes = 2 << 20
++			})
++			g := videoTestGrant(s, c.Owner, "real_codec_unknown_upload_0001", nil)
++			g.Current = func(context.Context) error {
++				b, e := os.ReadFile(s.store.statePath)
++				var st State
++				if e == nil && json.Unmarshal(b, &st) == nil {
++					for _, v := range st.Videos {
++						if v.Status == phase {
++							return ErrUnauthorized
++						}
++					}
++				}
++				return nil
++			}
++			_, err := videoLease(t, s, context.Background(), g, false).Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Original codec recovery", "ynx-owned-test.mp4", "video/mp4", data))
++			if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || processor.calls != 0 {
++				t.Fatalf("unconfirmed source started encoding: calls=%d err=%v", processor.calls, err)
++			}
++			var original *Video
++			for _, v := range s.store.state.Videos {
++				original = cloneVideo(v)
++			}
++			if original == nil || original.Status != phase {
++				t.Fatal("interrupted original missing")
++			}
++			fresh := videoLease(t, s, context.Background(), videoTestGrant(s, c.Owner, "real_codec_explicit_resume_0001", nil), false)
++			ready, err := fresh.RetryProcessing(context.Background(), c.Owner, original.ID)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if ready.ID != original.ID || ready.ObjectKey != original.ObjectKey || ready.SHA256 != original.SHA256 || ready.Status != "ready" || processor.calls != 1 || len(ready.Variants) < 3 || ready.Probe == nil || ready.Probe.VideoCodec == "" || ready.Probe.AudioCodec == "" || ready.Probe.DurationSecond <= 0 {
++				t.Fatalf("original codec recovery incomplete: %+v calls=%d", ready, processor.calls)
++			}
++			cold, err := NewService(s.cfg)
++			if err != nil {
++				t.Fatal(err)
++			}
++			saved := cold.snapshotVideo(original.ID)
++			if saved.Status != "ready" || len(cold.store.state.Videos) != 1 || len(cold.store.state.BusinessNonces) != 2 {
++				t.Fatal("cold recovery duplicated or lost original state")
++			}
++			for _, asset := range saved.Variants {
++				path, e := s.cfg.Objects.Resolve(asset.ObjectKey)
++				if e != nil {
++					t.Fatal(e)
++				}
++				body, e := os.ReadFile(path)
++				hash := sha256.Sum256(body)
++				if e != nil || asset.Bytes != int64(len(body)) || asset.SHA256 != hex.EncodeToString(hash[:]) {
++					t.Fatalf("cold asset no longer matches its integrity record: %s %v", asset.ObjectKey, e)
++				}
++				if asset.ObjectKey == saved.ObjectKey {
++					if !bytes.Equal(body, data) || asset.Lineage != "original" {
++						t.Fatal("recovery replaced source bytes")
++					}
++				} else if asset.Lineage != "derivative" || asset.SourceObjectKey != saved.ObjectKey || asset.SourceSHA256 != saved.SHA256 {
++					t.Fatal("recovery lost derivative provenance")
++				}
++			}
++			stream := filepath.Join(s.cfg.Root, "objects", saved.ID, "stream.m3u8")
++			if output, e := exec.Command(binary, "-nostdin", "-v", "error", "-i", stream, "-t", "0.25", "-f", "null", "-").CombinedOutput(); e != nil {
++				t.Fatalf("actual HLS decode failed: %v: %s", e, output)
++			}
++			if evidence := os.Getenv("YNX_VIDEO_CODEC_RECOVERY_EVIDENCE"); evidence != "" {
++				dest := filepath.Join(evidence, phase)
++				if e := os.MkdirAll(dest, 0700); e != nil {
++					t.Fatal(e)
++				}
++				for _, asset := range saved.Variants {
++					path, e := s.cfg.Objects.Resolve(asset.ObjectKey)
++					if e != nil {
++						t.Fatal(e)
++					}
++					body, e := os.ReadFile(path)
++					if e != nil {
++						t.Fatal(e)
++					}
++					if e = os.WriteFile(filepath.Join(dest, filepath.Base(asset.ObjectKey)), body, 0600); e != nil {
++						t.Fatal(e)
++					}
++				}
++				body, e := json.MarshalIndent(saved, "", "  ")
++				if e != nil {
++					t.Fatal(e)
++				}
++				if e = os.WriteFile(filepath.Join(dest, "video.json"), append(body, '\n'), 0600); e != nil {
++					t.Fatal(e)
++				}
++			}
++		})
++	}
++}
+diff --git a/internal/video/processing_resume_test.go b/internal/video/processing_resume_test.go
+new file mode 100644
+index 000000000..662c6d752
+--- /dev/null
++++ b/internal/video/processing_resume_test.go
+@@ -0,0 +1,199 @@
++package video
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++// Disposable software grants and files exercise the original service only.
++// This does not establish registered producers, Wallet authorization or codecs.
++func TestVideoResumePublishedUnknownOriginal(t *testing.T) {
++	for _, phase := range []string{"scanning", "transcoding"} {
++		t.Run(phase, func(t *testing.T) {
++			s, c := fixture(t, nil)
++			calls := 0
++			s.cfg.Processor = publicationCountingProcessor{calls: &calls}
++			g := videoTestGrant(s, c.Owner, "resume_original_upload_0001", nil)
++			g.Current = func(context.Context) error {
++				b, e := os.ReadFile(s.store.statePath)
++				var st State
++				if e == nil && json.Unmarshal(b, &st) == nil {
++					for _, v := range st.Videos {
++						if v.Status == phase {
++							return ErrUnauthorized
++						}
++					}
++				}
++				return nil
++			}
++			_, err := videoLease(t, s, context.Background(), g, false).Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Resume original", "saved.mp4", "video/mp4", testMP4))
++			if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || calls != 0 {
++				t.Fatalf("expected stopped published original: %v calls=%d", err, calls)
++			}
++			var original *Video
++			for _, v := range s.store.state.Videos {
++				original = cloneVideo(v)
++			}
++			if original == nil || original.Status != phase {
++				t.Fatal("original interrupted record missing")
++			}
++			fresh := videoLease(t, s, context.Background(), videoTestGrant(s, c.Owner, "resume_original_processing_0001", nil), false)
++			resumed, err := fresh.RetryProcessing(context.Background(), c.Owner, original.ID)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if resumed.ID != original.ID || resumed.ObjectKey != original.ObjectKey || resumed.SHA256 != original.SHA256 || resumed.Status != "ready" || calls != 1 || len(s.store.state.Videos) != 1 || len(s.store.state.BusinessNonces) != 2 {
++				t.Fatal("resume duplicated or replaced original")
++			}
++			cold, err := NewService(s.cfg)
++			if err != nil {
++				t.Fatal(err)
++			}
++			saved := cold.snapshotVideo(original.ID)
++			path, err := s.cfg.Objects.Resolve(saved.ObjectKey)
++			if err != nil {
++				t.Fatal(err)
++			}
++			b, err := os.ReadFile(path)
++			if err != nil || !bytes.Equal(b, testMP4) || saved.Status != "ready" {
++				t.Fatalf("cold original changed: %v", err)
++			}
++		})
++	}
++}
++
++func TestVideoResumeRefusesChangedOriginalBeforeProcessing(t *testing.T) {
++	for _, phase := range []string{"failed", "scanning", "transcoding"} {
++		for _, damage := range []string{"missing", "changed"} {
++			t.Run(phase+"/"+damage, func(t *testing.T) {
++				s, c := fixture(t, nil)
++				v := uploadWithoutRights(t, s, c, "Keep original")
++				if err := s.setStatus(v.ID, phase, ""); err != nil {
++					t.Fatal(err)
++				}
++				path, err := s.cfg.Objects.Resolve(v.ObjectKey)
++				if err != nil {
++					t.Fatal(err)
++				}
++				if damage == "missing" {
++					err = os.Remove(path)
++				} else {
++					err = os.WriteFile(path, []byte("changed source"), 0600)
++				}
++				if err != nil {
++					t.Fatal(err)
++				}
++				before, err := os.ReadFile(s.store.statePath)
++				if err != nil {
++					t.Fatal(err)
++				}
++				derived := filepath.Join(filepath.Dir(path), "stream.m3u8")
++				derivedBefore, err := os.ReadFile(derived)
++				if err != nil {
++					t.Fatal(err)
++				}
++				scans, calls := 0, 0
++				s.cfg.Scanner = uploadRecoveryScanner(func(context.Context, string) error { scans++; return nil })
++				s.cfg.Processor = publicationCountingProcessor{calls: &calls}
++				if _, err = s.RetryProcessing(context.Background(), c.Owner, v.ID); err == nil {
++					t.Fatal("changed original accepted")
++				}
++				after, err := os.ReadFile(s.store.statePath)
++				if err != nil || !bytes.Equal(before, after) || scans != 0 || calls != 0 {
++					t.Fatalf("refused original changed state or started work: scans=%d calls=%d err=%v", scans, calls, err)
++				}
++				derivedAfter, err := os.ReadFile(derived)
++				if err != nil || !bytes.Equal(derivedBefore, derivedAfter) {
++					t.Fatal("refusal removed retained derivative")
++				}
++			})
++		}
++	}
++}
++
++func TestVideoResumeQueuedBehindActiveUploadDoesNotRepeatProcessing(t *testing.T) {
++	s, c := fixture(t, nil)
++	entered, release := make(chan struct{}), make(chan struct{})
++	s.cfg.Scanner = uploadRecoveryScanner(func(context.Context, string) error { close(entered); <-release; return nil })
++	calls := 0
++	s.cfg.Processor = publicationCountingProcessor{calls: &calls}
++	uploadDone := make(chan error, 1)
++	go func() {
++		_, err := s.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Active source", "active.mp4", "video/mp4", testMP4))
++		uploadDone <- err
++	}()
++	<-entered
++	var original *Video
++	if err := s.store.read(func(st State) error {
++		for _, v := range st.Videos {
++			original = cloneVideo(v)
++		}
++		return nil
++	}); err != nil {
++		t.Fatal(err)
++	}
++	retryStarted, retryDone := make(chan struct{}), make(chan error, 1)
++	go func() {
++		close(retryStarted)
++		_, err := s.RetryProcessing(context.Background(), c.Owner, original.ID)
++		retryDone <- err
++	}()
++	<-retryStarted
++	close(release)
++	if err := <-uploadDone; err != nil {
++		t.Fatal(err)
++	}
++	if err := <-retryDone; err == nil {
++		t.Fatal("queued retry repeated completed processing")
++	}
++	if calls != 1 || s.snapshotVideo(original.ID).Status != "ready" || len(s.store.state.Videos) != 1 {
++		t.Fatal("active original duplicated or damaged")
++	}
++}
++
++func TestVideoResumeRequiresCurrentAuthorizedActor(t *testing.T) {
++	for _, phase := range []string{"failed", "scanning", "transcoding"} {
++		for _, refusal := range []string{"other-actor", "revoked-current"} {
++			t.Run(phase+"/"+refusal, func(t *testing.T) {
++				s, c := fixture(t, nil)
++				v := uploadWithoutRights(t, s, c, "Owner source")
++				if err := s.setStatus(v.ID, phase, ""); err != nil {
++					t.Fatal(err)
++				}
++				before, err := os.ReadFile(s.store.statePath)
++				if err != nil {
++					t.Fatal(err)
++				}
++				scans, calls := 0, 0
++				s.cfg.Scanner = uploadRecoveryScanner(func(context.Context, string) error { scans++; return nil })
++				s.cfg.Processor = publicationCountingProcessor{calls: &calls}
++				scoped, actor, expected := s, testAttackerAccount, ErrForbidden
++				if refusal == "revoked-current" {
++					actor, expected = c.Owner, ErrUnauthorized
++					revoked := false
++					g := videoTestGrant(s, actor, "resume_refused_current_0001", nil)
++					g.Current = func(context.Context) error {
++						if revoked {
++							return ErrUnauthorized
++						}
++						return nil
++					}
++					scoped = videoLease(t, s, context.Background(), g, false)
++					revoked = true
++				}
++				if _, err = scoped.RetryProcessing(context.Background(), actor, v.ID); !errors.Is(err, expected) {
++					t.Fatalf("wrong refusal: %v", err)
++				}
++				after, err := os.ReadFile(s.store.statePath)
++				if err != nil || !bytes.Equal(before, after) || scans != 0 || calls != 0 {
++					t.Fatal("refused actor changed original or started processing")
++				}
++			})
++		}
++	}
++}
+diff --git a/internal/video/service.go b/internal/video/service.go
+index 28a5206b4..4d61cba84 100644
+--- a/internal/video/service.go
++++ b/internal/video/service.go
+@@ -184,6 +184,9 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
+ 		s.audit(st, actor, "captions.add", "video", videoID, language)
+ 		return nil
+ 	})
++	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++		committed = true
++	}
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -485,8 +488,17 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
+ 			return ErrForbidden
+ 		}
+ 		quotaOwner = v.Owner
+-		if v.Status != "failed" {
+-			return errors.New("only failed processing can be retried")
++		// Upload and explicit recovery share quotaMu, including scoped services.
++		// An active upload finishes before this status is checked again.
++		if v.Status != "failed" && v.Status != "scanning" && v.Status != "transcoding" {
++			return errors.New("only failed or interrupted processing can be retried")
++		}
++		if v.ID != videoID {
++			return errors.New("source media identity does not match video")
++		}
++		// Validate the retained original before changing state or removing outputs.
++		if _, integrityErr := s.finalizeMediaVariants(v, []MediaVariant{{Name: "original-fallback", ObjectKey: v.ObjectKey, MIME: v.ContentType}}); integrityErr != nil {
++			return integrityErr
+ 		}
+ 		v.Status = "scanning"
+ 		v.Failure = ""
+@@ -511,7 +523,9 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
+ 		s.failVideo(videoID, "probe_failed: "+err.Error())
+ 		return nil, err
+ 	}
+-	s.setStatus(videoID, "transcoding", "")
++	if err = s.setStatus(videoID, "transcoding", ""); err != nil {
++		return nil, err
++	}
+ 	if err = cleanProcessingOutputs(filepath.Dir(original)); err != nil {
+ 		s.failVideo(videoID, "processing cleanup failed: "+err.Error())
+ 		return nil, err
+@@ -626,6 +640,9 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
+ 		s.audit(st, actor, "thumbnail.set", "video", videoID, mime)
+ 		return nil
+ 	})
++	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++		committed = true
++	}
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -1225,7 +1242,12 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
+ 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
+ 		return nil
+ 	}); err != nil {
+-		_ = s.cfg.Objects.RemovePrefix(vid)
++		// Publication can precede a source/durability failure. The original
++		// record and nonce then exist; retain its only source and do not scan
++		// or process until an authorized recovery confirms the saved outcome.
++		if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++			_ = s.cfg.Objects.RemovePrefix(vid)
++		}
+ 		return nil, err
+ 	}
+ 	if err = s.cfg.Scanner.Scan(ctx, original); err != nil {
+@@ -1237,7 +1259,9 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
+ 		s.failVideo(vid, "probe_failed: "+err.Error())
+ 		return v, err
+ 	}
+-	s.setStatus(vid, "transcoding", "")
++	if err = s.setStatus(vid, "transcoding", ""); err != nil {
++		return v, err
++	}
+ 	variants, err := s.cfg.Processor.Transcode(ctx, original, objDir)
+ 	if err != nil {
+ 		s.failVideo(vid, "transcode_failed: "+err.Error())
+@@ -1409,8 +1433,8 @@ func (s *Service) usageForOwner(owner string) (int64, error) {
+ 	}
+ 	return total, nil
+ }
+-func (s *Service) setStatus(videoID, status, failure string) {
+-	_ = s.store.update(func(st *State) error {
++func (s *Service) setStatus(videoID, status, failure string) error {
++	return s.store.update(func(st *State) error {
+ 		if v := st.Videos[videoID]; v != nil {
+ 			v.Status = status
+ 			v.Failure = failure
+@@ -1431,7 +1455,7 @@ func (s *Service) snapshotVideo(videoID string) *Video {
+ 	return out
+ }
+ 
+-func (s *Service) failVideo(videoID, failure string) { s.setStatus(videoID, "failed", failure) }
++func (s *Service) failVideo(videoID, failure string) { _ = s.setStatus(videoID, "failed", failure) }
+ func activeTakedown(v *Video) bool {
+ 	return v != nil && v.Takedown != nil && v.Takedown.State == "active"
+ }
+@@ -1512,7 +1536,7 @@ func (s *Service) recoverInterrupted() error {
+ 		for _, v := range st.Videos {
+ 			if v.Status == "scanning" || v.Status == "transcoding" {
+ 				v.Status = "failed"
+-				v.Failure = "processing interrupted by restart; retry upload"
++				v.Failure = "processing interrupted by restart; retry processing of the saved original"
+ 				v.UpdatedAt = s.cfg.Now().UTC()
+ 				s.audit(st, "system", "video.processing.recovered", "video", v.ID, v.Failure)
+ 			}
+diff --git a/internal/video/store.go b/internal/video/store.go
+index d6e1fe081..a263c5c22 100644
+--- a/internal/video/store.go
++++ b/internal/video/store.go
+@@ -287,52 +287,108 @@ func (s *Store) update(fn func(*State) error) error {
+ 	candidate.Integrity = ""
+ 	previous := s.state
+ 	s.state = candidate
+-	if err = s.persistLocked(); err != nil {
+-		s.state = previous
+-		return err
++	var current func() error
++	if s.business != nil && s.business.grant.Current != nil {
++		current = s.business.checkCurrent
+ 	}
+-	if s.business != nil {
++	published, persistErr := s.persistLockedCurrent(current)
++	if !published {
++		s.state = previous
++	} else if s.business != nil {
+ 		s.business.consumed.Store(true)
+ 	}
+-	return nil
++	return persistErr
+ }
+ 
++// A rename is publication even when the subsequent source check or durability
++// confirmation fails. Callers must retain the published state and nonce, return
++// uncertainty, and never roll memory back to a pre-publication snapshot.
++var ErrVideoStatePublicationUnconfirmed = errors.New("Video state publication unconfirmed")
++
+ func (s *Store) persistLocked() error {
++	_, err := s.persistLockedCurrent(nil)
++	return err
++}
++func (s *Store) persistLockedCurrent(current func() error) (published bool, err error) {
++	defer func() {
++		if published && err != nil {
++			err = fmt.Errorf("%w: %w", ErrVideoStatePublicationUnconfirmed, err)
++		}
++	}()
++	check := func() error {
++		if current != nil {
++			return current()
++		}
++		return nil
++	}
++	if err = check(); err != nil {
++		return false, err
++	}
+ 	s.state.Integrity = ""
+ 	canonical, err := json.Marshal(s.state)
+ 	if err != nil {
+-		return err
++		return false, err
+ 	}
+ 	mac := hmac.New(sha256.New, s.integrityKey)
+ 	_, _ = mac.Write(canonical)
+ 	s.state.Integrity = hex.EncodeToString(mac.Sum(nil))
+ 	b, err := json.MarshalIndent(s.state, "", "  ")
+ 	if err != nil {
+-		return err
++		return false, err
++	}
++	if err = check(); err != nil {
++		return false, err
+ 	}
+ 	tmp := s.statePath + ".tmp"
+ 	if err = os.WriteFile(tmp, b, 0600); err != nil {
+-		return err
++		return false, err
+ 	}
++	defer os.Remove(tmp)
+ 	f, err := os.OpenFile(tmp, os.O_RDWR, 0600)
+ 	if err != nil {
+-		_ = os.Remove(tmp)
+-		return err
++		return false, err
+ 	}
+-	if err = f.Sync(); err != nil {
+-		_ = f.Close()
+-		_ = os.Remove(tmp)
+-		return err
++	err = f.Sync()
++	if closeErr := f.Close(); err == nil {
++		err = closeErr
+ 	}
+-	if err = f.Close(); err != nil {
+-		_ = os.Remove(tmp)
+-		return err
++	if err != nil {
++		return false, err
++	}
++	// The SAME captured local actor/source check after serialization/write/fsync,
++	// immediately before the real atomic rename. No remote reader under Store.mu.
++	if err = check(); err != nil {
++		return false, err
+ 	}
+ 	if err = os.Rename(tmp, s.statePath); err != nil {
+-		_ = os.Remove(tmp)
+-		return err
++		return false, err
+ 	}
+-	return nil
++	published = true
++	if err = check(); err != nil {
++		return true, err
++	}
++	dir, err := os.Open(filepath.Dir(s.statePath))
++	if err != nil {
++		return true, err
++	}
++	err = dir.Sync()
++	if closeErr := dir.Close(); err == nil {
++		err = closeErr
++	}
++	if err != nil {
++		return true, err
++	}
++	confirmed, err := os.ReadFile(s.statePath)
++	if err != nil {
++		return true, err
++	}
++	if !hmac.Equal(confirmed, b) {
++		return true, errors.New("Video published state readback mismatch")
++	}
++	if err = check(); err != nil {
++		return true, err
++	}
++	return true, nil
+ }
+ 
+ func migrateState(state *State, target int) (bool, error) {
+diff --git a/internal/video/store_publication_test.go b/internal/video/store_publication_test.go
+new file mode 100644
+index 000000000..6c4545caf
+--- /dev/null
++++ b/internal/video/store_publication_test.go
+@@ -0,0 +1,235 @@
++package video
++
++import (
++	"bytes"
++	"context"
++	"encoding/json"
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++)
++
++// Software Current callbacks observe actual disposable writer artifacts only;
++// these are not registered producers, Wallet grants or installed storage tests.
++func TestVideoStorePublicationCurrentBoundary(t *testing.T) {
++	for _, phase := range []string{"before-publish", "after-publish"} {
++		t.Run(phase, func(t *testing.T) {
++			s, _ := fixture(t, nil)
++			if _, err := s.CreatePlaylist("ynx1owner", "Retained"); err != nil {
++				t.Fatal(err)
++			}
++			before, err := os.ReadFile(s.store.statePath)
++			if err != nil {
++				t.Fatal(err)
++			}
++			observed := false
++			g := videoTestGrant(s, "ynx1owner", "publication_nonce_000001", nil)
++			g.Current = func(context.Context) error {
++				if phase == "before-publish" {
++					if info, e := os.Stat(s.store.statePath + ".tmp"); e == nil && info.Size() > 0 {
++						observed = true
++						return ErrUnauthorized
++					}
++				}
++				if phase == "after-publish" {
++					if b, e := os.ReadFile(s.store.statePath); e == nil && !bytes.Equal(b, before) {
++						observed = true
++						return ErrUnauthorized
++					}
++				}
++				return nil
++			}
++			scoped := videoLease(t, s, context.Background(), g, false)
++			_, err = scoped.CreatePlaylist(g.Actor, "Pending original")
++			if err == nil || !observed {
++				t.Fatalf("actual %s writer boundary did not reject: observed=%v err=%v", phase, observed, err)
++			}
++			disk, e := os.ReadFile(s.store.statePath)
++			if e != nil {
++				t.Fatal(e)
++			}
++			recovered, e := NewService(s.cfg)
++			if e != nil {
++				t.Fatal(e)
++			}
++			if phase == "after-publish" && !errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++				t.Fatalf("published failure was not UNKNOWN: %v", err)
++			}
++			if phase == "before-publish" {
++				if !bytes.Equal(before, disk) || scoped.store.business.consumed.Load() || len(s.store.state.BusinessNonces) != 0 || len(recovered.store.state.Playlists) != 1 {
++					t.Fatal("unpublished candidate consumed nonce or changed original disk/state")
++				}
++				if _, e = os.Stat(s.store.statePath + ".tmp"); !os.IsNotExist(e) {
++					t.Fatal("refused staged writer was not cleaned")
++				}
++			} else {
++				if bytes.Equal(before, disk) || !scoped.store.business.consumed.Load() || len(s.store.state.Playlists) != 2 || len(recovered.store.state.Playlists) != 2 || len(s.store.state.BusinessNonces) != 1 {
++					t.Fatal("published unknown rolled back memory/disk or nonce")
++				}
++				replay := videoLease(t, recovered, context.Background(), videoTestGrant(recovered, g.Actor, g.Nonce, nil), false)
++				if _, e = replay.CreatePlaylist(g.Actor, "Duplicate"); e == nil {
++					t.Fatal("published unknown request replayed")
++				}
++			}
++		})
++	}
++}
++
++func TestVideoPublishedUnknownRetainsMedia(t *testing.T) {
++	for _, kind := range []string{"caption", "thumbnail"} {
++		t.Run(kind, func(t *testing.T) {
++			s, c := fixture(t, nil)
++			v := uploadWithoutRights(t, s, c, "Publication source")
++			before, _ := os.ReadFile(s.store.statePath)
++			g := videoTestGrant(s, c.Owner, "media_publication_nonce_0001", nil)
++			g.Current = func(context.Context) error {
++				b, e := os.ReadFile(s.store.statePath)
++				if e == nil && !bytes.Equal(b, before) {
++					return ErrUnauthorized
++				}
++				return nil
++			}
++			scoped := videoLease(t, s, context.Background(), g, false)
++			var err error
++			if kind == "caption" {
++				b := []byte("WEBVTT\n\n00:00.000 --> 00:01.000\nOriginal\n")
++				_, err = scoped.AddCaptions(c.Owner, v.ID, "en", "Original", false, bytes.NewReader(b), int64(len(b)))
++			} else {
++				b := auditPNG()
++				err = scoped.SetThumbnail(c.Owner, v.ID, "image/png", bytes.NewReader(b), int64(len(b)))
++			}
++			if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++				t.Fatalf("missing published UNKNOWN: %v", err)
++			}
++			recovered, e := NewService(s.cfg)
++			if e != nil {
++				t.Fatal(e)
++			}
++			saved := recovered.store.state.Videos[v.ID]
++			key := saved.ThumbnailKey
++			if kind == "caption" {
++				if len(saved.Captions) != 1 {
++					t.Fatal("lost original caption")
++				}
++				key = saved.Captions[0].ObjectKey
++			}
++			path, e := s.cfg.Objects.Resolve(key)
++			if e != nil {
++				t.Fatal(e)
++			}
++			if _, e = os.Stat(path); e != nil {
++				t.Fatalf("published metadata lost original media %s: %v", kind, e)
++			}
++		})
++	}
++}
++
++type publicationCountingProcessor struct {
++	testProcessor
++	calls *int
++}
++
++func (p publicationCountingProcessor) Transcode(c context.Context, in, out string) ([]MediaVariant, error) {
++	*p.calls++
++	return p.testProcessor.Transcode(c, in, out)
++}
++func TestVideoPublishedUnknownStopsProcessing(t *testing.T) {
++	s, c := fixture(t, nil)
++	v := uploadWithoutRights(t, s, c, "Original processing")
++	s.setStatus(v.ID, "failed", "retry fixture")
++	before := storedAssetFiles(t, s, v.ID)
++	calls := 0
++	s.cfg.Processor = publicationCountingProcessor{calls: &calls}
++	g := videoTestGrant(s, c.Owner, "processing_publication_nonce_001", nil)
++	g.Current = func(context.Context) error {
++		b, e := os.ReadFile(s.store.statePath)
++		var st State
++		if e == nil && json.Unmarshal(b, &st) == nil && st.Videos[v.ID].Status == "transcoding" {
++			return ErrUnauthorized
++		}
++		return nil
++	}
++	_, err := videoLease(t, s, context.Background(), g, false).RetryProcessing(context.Background(), c.Owner, v.ID)
++	if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || calls != 0 {
++		t.Fatalf("unconfirmed status continued processing: calls=%d err=%v", calls, err)
++	}
++	after := storedAssetFiles(t, s, v.ID)
++	for name, body := range before {
++		if after[name] != body {
++			t.Fatalf("unconfirmed processing changed original asset %s", name)
++		}
++	}
++}
++
++func TestVideoFirstUploadPublicationRetainsOriginal(t *testing.T) {
++	for _, phase := range []string{"before-publish", "after-publish"} {
++		t.Run(phase, func(t *testing.T) {
++			s, c := fixture(t, nil)
++			old := uploadWithoutRights(t, s, c, "Retained source")
++			originalFiles := storedAssetFiles(t, s, old.ID)
++			scans, processing := 0, 0
++			s.cfg.Scanner = uploadRecoveryScanner(func(context.Context, string) error { scans++; return nil })
++			s.cfg.Processor = publicationCountingProcessor{calls: &processing}
++			g := videoTestGrant(s, c.Owner, "first_upload_publication_0001", nil)
++			g.Current = func(context.Context) error {
++				if phase == "before-publish" {
++					if i, e := os.Stat(s.store.statePath + ".tmp"); e == nil && i.Size() > 0 {
++						return ErrUnauthorized
++					}
++				}
++				if phase == "after-publish" {
++					b, e := os.ReadFile(s.store.statePath)
++					var st State
++					if e == nil && json.Unmarshal(b, &st) == nil && len(st.Videos) > 1 {
++						return ErrUnauthorized
++					}
++				}
++				return nil
++			}
++			scoped := videoLease(t, s, context.Background(), g, false)
++			_, err := scoped.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Unknown original", "original.mp4", "video/mp4", testMP4))
++			if err == nil || scans != 0 || processing != 0 {
++				t.Fatalf("unconfirmed upload continued work: scans=%d processing=%d err=%v", scans, processing, err)
++			}
++			for name, body := range originalFiles {
++				if storedAssetFiles(t, s, old.ID)[name] != body {
++					t.Fatalf("changed pre-existing media %s", name)
++				}
++			}
++			dirs, e := os.ReadDir(filepath.Join(s.cfg.Root, "objects"))
++			if e != nil {
++				t.Fatal(e)
++			}
++			if phase == "before-publish" {
++				if !errors.Is(err, ErrUnauthorized) || len(s.store.state.Videos) != 1 || len(dirs) != 1 || scoped.store.business.consumed.Load() {
++					t.Fatal("unpublished upload retained staged data or consumed nonce")
++				}
++			} else {
++				if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || len(s.store.state.Videos) != 2 || !scoped.store.business.consumed.Load() {
++					t.Fatal("published upload lost original state/nonce")
++				}
++				recovered, e := NewService(s.cfg)
++				if e != nil {
++					t.Fatal(e)
++				}
++				for id, v := range recovered.store.state.Videos {
++					if id != old.ID {
++						path, e := s.cfg.Objects.Resolve(v.ObjectKey)
++						if e != nil {
++							t.Fatal(e)
++						}
++						b, e := os.ReadFile(path)
++						if e != nil || !bytes.Equal(b, testMP4) {
++							t.Fatalf("published first upload source was removed: %v", e)
++						}
++					}
++				}
++				replay := videoLease(t, recovered, context.Background(), videoTestGrant(recovered, g.Actor, g.Nonce, nil), false)
++				if _, e = replay.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Duplicate", "duplicate.mp4", "video/mp4", testMP4)); e == nil {
++					t.Fatal("published first upload nonce replayed")
++				}
++			}
++		})
++	}
++}

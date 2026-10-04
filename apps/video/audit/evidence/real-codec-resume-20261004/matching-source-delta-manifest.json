@@ -1,0 +1,30 @@
+{
+  "sourceCommit": "9018e999b95e6e55ebeba09207709f7da5e568d6",
+  "fullCandidateManifestPath": "/tmp/ynx-media-real-codec-resume-20261004/matching-source-manifest.json",
+  "fullCandidateManifestSHA256": "a01b1ead545c7a491e7a617a83ff9754fd19618c87c600adcdd81c759440601e",
+  "fullFiles": 4478,
+  "originalAManifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+  "baseFullManifest": "apps/video/audit/evidence/processing-resume-20261004/matching-source-manifest.json",
+  "baseFullManifestSHA256": "baa40ab1cbd284b9941aedb529003d17000e3008600c9991d4554f8b9660473c",
+  "unchangedBaseFiles": 4475,
+  "changedOrAdded": [
+    {
+      "path": "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+      "bytes": 6742,
+      "sha256": "29bc37d5ae25e484bfdd7fc76f94b0c9612676251dcfe2acfe1fd58b51352497"
+    },
+    {
+      "path": "apps/creator-studio/styles.css",
+      "bytes": 15359,
+      "sha256": "50e51d66d5aca6163eb7dd288b568ccb442c88e1bc868bca888aece3247a5dfc"
+    },
+    {
+      "path": "internal/video/processing_resume_codec_test.go",
+      "bytes": 5100,
+      "sha256": "c0bcd784bda7baaa346ecad82624ee489d6ace44ad14f3c780ba580480e3a825"
+    }
+  ],
+  "removed": [],
+  "fullCandidateContentSHA256": "bf47ee7f0c1d1886bf148e58d22928e946cb82e16948b1c41a9adb7d86d66267",
+  "allOtherFrozenSourceExact": true
+}

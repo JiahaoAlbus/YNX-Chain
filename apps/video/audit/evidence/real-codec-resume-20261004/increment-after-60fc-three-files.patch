@@ -1,0 +1,196 @@
+diff --git a/apps/creator-studio/scripts/processing-resume-web-check.cjs b/apps/creator-studio/scripts/processing-resume-web-check.cjs
+index a6aaddd36..f4496fc83 100644
+--- a/apps/creator-studio/scripts/processing-resume-web-check.cjs
++++ b/apps/creator-studio/scripts/processing-resume-web-check.cjs
+@@ -7,8 +7,8 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
+ (async()=>{
+  await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true});const cases=[];
+  try {
+-  for(const phase of ['failed','scanning','transcoding']) {
+-   const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
++  for(const phase of ['failed','scanning','transcoding']) for(const view of [{width:390,height:844,fontSize:16,dir:'ltr'},{width:320,height:740,fontSize:32,dir:'rtl'},{width:1280,height:900,fontSize:16,dir:'ltr'}]) {
++   const context=await browser.newContext({viewport:{width:view.width,height:view.height}}),page=await context.newPage();
+    let saved={id:'saved_original_'+phase,title:'Saved original',status:phase,visibility:'private',sha256:'a'.repeat(64),workflow_state:'draft'};
+    let releaseRetry;const retryRelease=new Promise(resolve=>{releaseRetry=resolve});const requests=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
+    await page.route(origin+'/**',async route=>{
+@@ -32,15 +32,18 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
+    });
+    await page.goto(origin);await page.waitForFunction(()=>document.querySelectorAll('#videos .lifecycle-row').length===2);
+    await page.locator('nav button[data-panel="content"]').click();
++   await page.evaluate(view=>{document.documentElement.style.fontSize=view.fontSize+'px';document.documentElement.dir=view.dir},view);
++   const geometry=await page.locator('#refresh').evaluate(button=>{const rect=button.getBoundingClientRect(),css=getComputedStyle(button),canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=css.font;return {left:rect.left,right:rect.right,height:rect.height,width:rect.width,wordFits:rect.width-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)-2>=context.measureText(button.textContent.trim()).width,overflow:document.documentElement.scrollWidth>innerWidth}});
++   assert.equal(geometry.wordFits,true,'Refresh control must retain enough width to read its label');assert.equal(geometry.overflow,false);assert.ok(geometry.left>=0&&geometry.right<=view.width+1);assert.ok(geometry.height>=44);
+    assert.equal(requests.length,0);assert.equal(await page.locator('#videos [data-action="retry"]').count(),1);
+-   await page.screenshot({path:path.join(out,'creator-resume-'+phase+'.png'),fullPage:true});
++   await page.screenshot({path:path.join(out,'creator-resume-'+phase+'-'+view.width+'-'+view.dir+'.png'),fullPage:true});
+    await page.locator('#videos [data-action="retry"]').click();
+    await page.waitForFunction(()=>document.querySelector('#videos [data-action="retry"]').disabled);
+    await page.locator('#videos [data-action="retry"]').evaluate(button=>button.click());
+    releaseRetry();
+    await page.waitForFunction(()=>document.querySelectorAll('#videos [data-action="retry"]').length===0);
+    assert.deepEqual(requests,[{method:'POST',path:'/video/api/v1/videos/'+saved.id+'/retry-processing',body:null}]);
+-   assert.deepEqual(errors,[]);cases.push({phase,originalID:saved.id,automaticMutations:0,explicitProcessingRequests:requests.length,reuploadRequests:0,pageErrors:errors});await context.close();
++   assert.deepEqual(errors,[]);cases.push({phase,view,geometry,originalID:saved.id,automaticMutations:0,explicitProcessingRequests:requests.length,reuploadRequests:0,pageErrors:errors});await context.close();
+   }
+   await fs.writeFile(path.join(out,'web-dom-receipt.json'),JSON.stringify({scope:'original Creator DOM; synthetic session and service responses only',realWallet:false,formalHost:false,actualCodec:false,cases},null,2)+'\n');console.log(JSON.stringify({passed:cases.length,automaticMutations:0,reuploadRequests:0}));
+  }finally{await browser.close();}
+diff --git a/apps/creator-studio/styles.css b/apps/creator-studio/styles.css
+index 3da6303a7..aa6e38e24 100644
+--- a/apps/creator-studio/styles.css
++++ b/apps/creator-studio/styles.css
+@@ -72,7 +72,9 @@ input,textarea,select{display:block;width:100%;margin-top:6px;border:1px solid #
+ textarea{min-height:90px;resize:vertical}
+ .check{display:flex;align-items:flex-start;gap:9px;font-weight:500;line-height:1.45}
+ .check input{width:auto;margin:2px 0}
+-.bar{display:flex;justify-content:space-between;align-items:center;gap:16px}
++.bar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px}
++.bar>div{flex:1 1 16rem;min-width:0}
++.bar>button{flex:0 0 auto;max-width:100%;min-height:44px}
+ .table{padding:4px 18px}
+ .row{display:grid;grid-template-columns:minmax(180px,1.5fr) minmax(110px,1fr) minmax(100px,1fr) auto;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);min-width:0}
+ .row>*{min-width:0;overflow-wrap:anywhere}
+diff --git a/internal/video/processing_resume_codec_test.go b/internal/video/processing_resume_codec_test.go
+new file mode 100644
+index 000000000..1cee85a27
+--- /dev/null
++++ b/internal/video/processing_resume_codec_test.go
+@@ -0,0 +1,139 @@
++package video
++
++import (
++	"bytes"
++	"context"
++	"crypto/sha256"
++	"encoding/hex"
++	"encoding/json"
++	"errors"
++	"os"
++	"os/exec"
++	"path/filepath"
++	"testing"
++)
++
++type resumeCodecProcessor struct {
++	FFmpegProcessor
++	calls int
++}
++
++func (p *resumeCodecProcessor) Transcode(ctx context.Context, input, output string) ([]MediaVariant, error) {
++	p.calls++
++	return p.FFmpegProcessor.Transcode(ctx, input, output)
++}
++
++// Real local codecs and repository-owned media; scanner and authority remain
++// disposable software fixtures. No installed renderer or real account is used.
++func TestVideoResumePublishedUnknownWithRealCodec(t *testing.T) {
++	const binary = "/opt/homebrew/bin/ffmpeg"
++	if _, err := os.Stat(binary); err != nil {
++		t.Skip("FFmpeg unavailable at the original integration-test path")
++	}
++	data, err := os.ReadFile("testdata/ynx-owned-test.mp4")
++	if err != nil {
++		t.Fatal(err)
++	}
++	digest := sha256.Sum256(data)
++	if hex.EncodeToString(digest[:]) != "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39" {
++		t.Fatal("repository-owned clip identity changed")
++	}
++	for _, phase := range []string{"scanning", "transcoding"} {
++		t.Run(phase, func(t *testing.T) {
++			processor := &resumeCodecProcessor{FFmpegProcessor: FFmpegProcessor{FFmpeg: binary}}
++			s, c := fixture(t, func(cfg *Config) {
++				cfg.Processor = processor
++				cfg.MaxObjectBytes = 1 << 20
++				cfg.AccountQuotaBytes = 2 << 20
++			})
++			g := videoTestGrant(s, c.Owner, "real_codec_unknown_upload_0001", nil)
++			g.Current = func(context.Context) error {
++				b, e := os.ReadFile(s.store.statePath)
++				var st State
++				if e == nil && json.Unmarshal(b, &st) == nil {
++					for _, v := range st.Videos {
++						if v.Status == phase {
++							return ErrUnauthorized
++						}
++					}
++				}
++				return nil
++			}
++			_, err := videoLease(t, s, context.Background(), g, false).Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Original codec recovery", "ynx-owned-test.mp4", "video/mp4", data))
++			if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || processor.calls != 0 {
++				t.Fatalf("unconfirmed source started encoding: calls=%d err=%v", processor.calls, err)
++			}
++			var original *Video
++			for _, v := range s.store.state.Videos {
++				original = cloneVideo(v)
++			}
++			if original == nil || original.Status != phase {
++				t.Fatal("interrupted original missing")
++			}
++			fresh := videoLease(t, s, context.Background(), videoTestGrant(s, c.Owner, "real_codec_explicit_resume_0001", nil), false)
++			ready, err := fresh.RetryProcessing(context.Background(), c.Owner, original.ID)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if ready.ID != original.ID || ready.ObjectKey != original.ObjectKey || ready.SHA256 != original.SHA256 || ready.Status != "ready" || processor.calls != 1 || len(ready.Variants) < 3 || ready.Probe == nil || ready.Probe.VideoCodec == "" || ready.Probe.AudioCodec == "" || ready.Probe.DurationSecond <= 0 {
++				t.Fatalf("original codec recovery incomplete: %+v calls=%d", ready, processor.calls)
++			}
++			cold, err := NewService(s.cfg)
++			if err != nil {
++				t.Fatal(err)
++			}
++			saved := cold.snapshotVideo(original.ID)
++			if saved.Status != "ready" || len(cold.store.state.Videos) != 1 || len(cold.store.state.BusinessNonces) != 2 {
++				t.Fatal("cold recovery duplicated or lost original state")
++			}
++			for _, asset := range saved.Variants {
++				path, e := s.cfg.Objects.Resolve(asset.ObjectKey)
++				if e != nil {
++					t.Fatal(e)
++				}
++				body, e := os.ReadFile(path)
++				hash := sha256.Sum256(body)
++				if e != nil || asset.Bytes != int64(len(body)) || asset.SHA256 != hex.EncodeToString(hash[:]) {
++					t.Fatalf("cold asset no longer matches its integrity record: %s %v", asset.ObjectKey, e)
++				}
++				if asset.ObjectKey == saved.ObjectKey {
++					if !bytes.Equal(body, data) || asset.Lineage != "original" {
++						t.Fatal("recovery replaced source bytes")
++					}
++				} else if asset.Lineage != "derivative" || asset.SourceObjectKey != saved.ObjectKey || asset.SourceSHA256 != saved.SHA256 {
++					t.Fatal("recovery lost derivative provenance")
++				}
++			}
++			stream := filepath.Join(s.cfg.Root, "objects", saved.ID, "stream.m3u8")
++			if output, e := exec.Command(binary, "-nostdin", "-v", "error", "-i", stream, "-t", "0.25", "-f", "null", "-").CombinedOutput(); e != nil {
++				t.Fatalf("actual HLS decode failed: %v: %s", e, output)
++			}
++			if evidence := os.Getenv("YNX_VIDEO_CODEC_RECOVERY_EVIDENCE"); evidence != "" {
++				dest := filepath.Join(evidence, phase)
++				if e := os.MkdirAll(dest, 0700); e != nil {
++					t.Fatal(e)
++				}
++				for _, asset := range saved.Variants {
++					path, e := s.cfg.Objects.Resolve(asset.ObjectKey)
++					if e != nil {
++						t.Fatal(e)
++					}
++					body, e := os.ReadFile(path)
++					if e != nil {
++						t.Fatal(e)
++					}
++					if e = os.WriteFile(filepath.Join(dest, filepath.Base(asset.ObjectKey)), body, 0600); e != nil {
++						t.Fatal(e)
++					}
++				}
++				body, e := json.MarshalIndent(saved, "", "  ")
++				if e != nil {
++					t.Fatal(e)
++				}
++				if e = os.WriteFile(filepath.Join(dest, "video.json"), append(body, '\n'), 0600); e != nil {
++					t.Fatal(e)
++				}
++			}
++		})
++	}
++}

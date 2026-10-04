@@ -1,0 +1,82 @@
+{
+  "id": "vid_4afcd29bb37ef0f37fc9695f",
+  "owner": "ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43",
+  "channel_id": "chn_aac51b2ab2f9f1e1bd97880d",
+  "title": "Original codec recovery",
+  "description": "",
+  "owned_content_declaration": true,
+  "visibility": "private",
+  "status": "ready",
+  "workflow_state": "draft",
+  "version": 1,
+  "versions": [
+    {
+      "sequence": 1,
+      "actor": "ynx1zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg36avh43",
+      "kind": "workflow.create",
+      "previous_state": "",
+      "next_state": "draft",
+      "title": "Original codec recovery",
+      "description": "",
+      "visibility": "private",
+      "content_sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+      "metadata_sha256": "00cb7b7084fbdfbc5b2d0ab6cd74670454861c9a094e1285c0fd12f7d5e86b3f",
+      "recorded_at": "2026-07-15T12:00:00Z"
+    }
+  ],
+  "original_name": "ynx-owned-test.mp4",
+  "content_type": "video/mp4",
+  "bytes": 12525,
+  "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+  "rights": {
+    "basis": "owned",
+    "source": "test fixture creator attestation",
+    "license": "owner-controlled test fixture",
+    "territories": [
+      "WORLDWIDE"
+    ],
+    "evidence_sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+  },
+  "probe": {
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "duration_seconds": 1,
+    "width": 320,
+    "height": 180,
+    "frame_rate": 25
+  },
+  "object_key": "vid_4afcd29bb37ef0f37fc9695f/original",
+  "variants": [
+    {
+      "name": "adaptive-hls",
+      "object_key": "vid_4afcd29bb37ef0f37fc9695f/stream.m3u8",
+      "mime": "application/vnd.apple.mpegurl",
+      "bytes": 147,
+      "sha256": "509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6",
+      "lineage": "derivative",
+      "source_object_key": "vid_4afcd29bb37ef0f37fc9695f/original",
+      "source_sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "name": "hls-segment-0000",
+      "object_key": "vid_4afcd29bb37ef0f37fc9695f/segment-0000.ts",
+      "mime": "video/mp2t",
+      "bytes": 22560,
+      "sha256": "a58f2e088149f9ce354d303367e5174641298834fc71087648d9d2935300b876",
+      "lineage": "derivative",
+      "source_object_key": "vid_4afcd29bb37ef0f37fc9695f/original",
+      "source_sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "name": "original-fallback",
+      "object_key": "vid_4afcd29bb37ef0f37fc9695f/original",
+      "mime": "video/mp4",
+      "bytes": 12525,
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+      "lineage": "original"
+    }
+  ],
+  "created_at": "2026-07-15T12:00:00Z",
+  "updated_at": "2026-07-15T12:00:00Z"
+}

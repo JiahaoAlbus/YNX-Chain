@@ -1,0 +1,14 @@
+AssertionError [ERR_ASSERTION]: Refresh control must retain enough width to read its label
+
+false !== true
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/scripts/processing-resume-web-check.cjs:37:11
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at process.processImmediate (node:internal/timers:541:9) {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual',
+  diff: 'simple'
+}

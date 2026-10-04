@@ -1,0 +1,16 @@
+{"Time":"2026-10-04T14:18:02.119708+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T14:18:02.491115+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec"}
+{"Time":"2026-10-04T14:18:02.49158+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec","Output":"=== RUN   TestVideoResumePublishedUnknownWithRealCodec\n"}
+{"Time":"2026-10-04T14:18:02.491809+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/scanning"}
+{"Time":"2026-10-04T14:18:02.491852+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/scanning","Output":"=== RUN   TestVideoResumePublishedUnknownWithRealCodec/scanning\n"}
+{"Time":"2026-10-04T14:18:03.342616+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/scanning","Output":"--- PASS: TestVideoResumePublishedUnknownWithRealCodec/scanning (0.85s)\n"}
+{"Time":"2026-10-04T14:18:03.342638+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/scanning","Elapsed":0.85}
+{"Time":"2026-10-04T14:18:03.342663+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/transcoding"}
+{"Time":"2026-10-04T14:18:03.342668+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/transcoding","Output":"=== RUN   TestVideoResumePublishedUnknownWithRealCodec/transcoding\n"}
+{"Time":"2026-10-04T14:18:03.673355+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/transcoding","Output":"--- PASS: TestVideoResumePublishedUnknownWithRealCodec/transcoding (0.33s)\n"}
+{"Time":"2026-10-04T14:18:03.673383+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec/transcoding","Elapsed":0.33}
+{"Time":"2026-10-04T14:18:03.673472+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec","Output":"--- PASS: TestVideoResumePublishedUnknownWithRealCodec (1.18s)\n"}
+{"Time":"2026-10-04T14:18:03.67349+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestVideoResumePublishedUnknownWithRealCodec","Elapsed":1.18}
+{"Time":"2026-10-04T14:18:03.673517+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T14:18:04.679594+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t2.559s\n"}
+{"Time":"2026-10-04T14:18:04.680018+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":2.56}

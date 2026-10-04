@@ -1,0 +1,373 @@
+{
+  "schema": "ynx.media.real-codec-resume.v1",
+  "sourceCommit": "9018e999b95e6e55ebeba09207709f7da5e568d6",
+  "sourceTree": "744645b698824bf385e6ec7dd1505997af81250f",
+  "previousDeliveryCommit": "60fc6c134c3b1dc419d84afb169d20d3201b402f",
+  "previousCheckpointSHA256": "82052439c940e98bcab6845bf4f6446a0e93e460d267e726f10b8fb7008c9cf9",
+  "fullDeltaBaseCommit": "728a2a0d0ff0176362bb819b8ecb0037e11b5ca9",
+  "fullDeltaPaths": [
+    "apps/creator-studio/app.js",
+    "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+    "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+    "apps/creator-studio/styles.css",
+    "internal/music/business_request.go",
+    "internal/music/server.go",
+    "internal/music/service.go",
+    "internal/music/store.go",
+    "internal/music/store_publication_test.go",
+    "internal/video/business_request.go",
+    "internal/video/processing_resume_codec_test.go",
+    "internal/video/processing_resume_test.go",
+    "internal/video/service.go",
+    "internal/video/store.go",
+    "internal/video/store_publication_test.go"
+  ],
+  "incrementPaths": [
+    "apps/creator-studio/styles.css",
+    "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+    "internal/video/processing_resume_codec_test.go"
+  ],
+  "productRuntimeChange": "Creator content heading/actions wrap; Refresh retains intrinsic width and 44px touch height",
+  "VideoMusicProductionSource": "unchanged from8368bc83cef47aaf29ae08b236929249b46a6eea",
+  "priorGoBinaries": "retain prior8368 source identity; unchanged production source/dependencies, no relabel or rebuild",
+  "validation": {
+    "realCodec": {
+      "softwareAuthority": true,
+      "softwareScanner": true,
+      "actualFFmpegAndFFprobe": "7.1.1 darwin/arm64",
+      "repositoryOwnedMediaSHA256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+      "originalServiceGo": "1.25.7; 2 stages PASS no skips",
+      "matchingGraphGo": "1.25.13; canonical+combined, 2 stages PASS no skips",
+      "checks": [
+        "published UNKNOWN runs no encoding",
+        "explicit fresh retry encodes original exactly once",
+        "same ID/ObjectKey/source bytes/SHA retained",
+        "cold state retains two nonces and exactly one video",
+        "real HLS decode includes valid audio/video probe",
+        "all original and derivative assets match their saved SHA/length/lineage"
+      ]
+    },
+    "CreatorDOM": {
+      "cases": 9,
+      "widths": [
+        390,
+        320,
+        1280
+      ],
+      "largeTextRTL": true,
+      "automaticMutations": 0,
+      "reuploads": 0,
+      "geometry": "Refresh readable, inside viewport, >=44px; no document horizontal overflow"
+    },
+    "CreatorChecks": 75,
+    "GoVet": "PASS",
+    "WebBuild": {
+      "runtimeFiles": 27,
+      "sourceCommit": "9018e999b95e6e55ebeba09207709f7da5e568d6",
+      "sourceTree": "744645b698824bf385e6ec7dd1505997af81250f"
+    }
+  },
+  "assembly": {
+    "sourceCommit": "9018e999b95e6e55ebeba09207709f7da5e568d6",
+    "fullCandidateManifestPath": "/tmp/ynx-media-real-codec-resume-20261004/matching-source-manifest.json",
+    "fullCandidateManifestSHA256": "a01b1ead545c7a491e7a617a83ff9754fd19618c87c600adcdd81c759440601e",
+    "fullFiles": 4478,
+    "originalAManifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+    "baseFullManifest": "apps/video/audit/evidence/processing-resume-20261004/matching-source-manifest.json",
+    "baseFullManifestSHA256": "baa40ab1cbd284b9941aedb529003d17000e3008600c9991d4554f8b9660473c",
+    "unchangedBaseFiles": 4475,
+    "changedOrAdded": [
+      {
+        "path": "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+        "bytes": 6742,
+        "sha256": "29bc37d5ae25e484bfdd7fc76f94b0c9612676251dcfe2acfe1fd58b51352497"
+      },
+      {
+        "path": "apps/creator-studio/styles.css",
+        "bytes": 15359,
+        "sha256": "50e51d66d5aca6163eb7dd288b568ccb442c88e1bc868bca888aece3247a5dfc"
+      },
+      {
+        "path": "internal/video/processing_resume_codec_test.go",
+        "bytes": 5100,
+        "sha256": "c0bcd784bda7baaa346ecad82624ee489d6ace44ad14f3c780ba580480e3a825"
+      }
+    ],
+    "removed": [],
+    "fullCandidateContentSHA256": "bf47ee7f0c1d1886bf148e58d22928e946cb82e16948b1c41a9adb7d86d66267",
+    "allOtherFrozenSourceExact": true
+  },
+  "preservedFailures": {
+    "codecFixture": "2 initial failures from inherited tiny fixture limits (64-byte object, 96-byte quota) with a12525-byte clip; only test configuration corrected to original integration-test 1/2MiB bounds",
+    "layout": "original actual390px DOM Refresh label width assertion failed before CSS repair"
+  },
+  "limits": [
+    "localcodec is not installed renderer or deployed codec verification",
+    "no real registered producer/Wallet/actor/role or Host execution",
+    "original nil launch inputs and pending admission remain unchanged; not development permission gates",
+    "Music final Trust reconciliation still unavailable",
+    "prior release APK and old reviewHOLD remain intact"
+  ],
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/scanning/original",
+      "bytes": 12525,
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/scanning/segment-0000.ts",
+      "bytes": 22560,
+      "sha256": "a58f2e088149f9ce354d303367e5174641298834fc71087648d9d2935300b876"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/scanning/stream.m3u8",
+      "bytes": 147,
+      "sha256": "509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/scanning/video.json",
+      "bytes": 2826,
+      "sha256": "bf339d142ac4d0c57ac9446d9bed34e5300e5200fb41765c2966d17158d91642"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/transcoding/original",
+      "bytes": 12525,
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/transcoding/segment-0000.ts",
+      "bytes": 22560,
+      "sha256": "a58f2e088149f9ce354d303367e5174641298834fc71087648d9d2935300b876"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/transcoding/stream.m3u8",
+      "bytes": 147,
+      "sha256": "509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-assets/transcoding/video.json",
+      "bytes": 2826,
+      "sha256": "00297b1f4392c1dc8c088ed39766895711153c017e7d1929638ea0a21e22e2f4"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-race.jsonl",
+      "bytes": 3291,
+      "sha256": "21a4f293c9c37bfcfcaa187014c1dbfb5f3e627288a6a2077a457df64f23736e"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/codec-race.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/content-mobile-original.png",
+      "bytes": 109843,
+      "sha256": "06d05730df585855c74b5295d0ef1effb9ab3b305d40405aaa4281a098d5f3bf"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/creator-check.txt",
+      "bytes": 7058,
+      "sha256": "52d338684ccf708f7e35f8842983e42c985d24c1c36b7f251b064a3d7ad36675"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/creator-isolated-build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/creator-studio.manifest.json",
+      "bytes": 4685,
+      "sha256": "80ace29a12b9ea569b926b1667954602ce8353c00d4b7a0fc1bb7e1d7c30013c"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/creator-web-candidate.tar.gz",
+      "bytes": 638107,
+      "sha256": "e044b64e7e853e975c9bee6c056ca702cecf09b90ffb7b8bc06767c953ed9783"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/ffmpeg-version.txt",
+      "bytes": 1456,
+      "sha256": "79a60e49d52ba87ff39e5a4f0fd1b18542d72bc7f511bc600ec890b2245067fe"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/ffprobe-version.txt",
+      "bytes": 1457,
+      "sha256": "6b7c7bda5bd51e472062910a7c8b6d2a186f55bfadd7aeefa9d6ecf2df0fd7a6"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/fixture-original-red.jsonl",
+      "bytes": 3944,
+      "sha256": "2a3a6d029252f53c09680a873370b333aaed579b73ebd1e26371aa42f4aeb336"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/increment-after-60fc-three-files.patch",
+      "bytes": 10623,
+      "sha256": "2f47cccdb04e203826a50fad9ebd81ded2e17272cd5f03bc15096cd0b4893b1c"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/layout-final.txt",
+      "bytes": 57,
+      "sha256": "44d38fa9a11c4b69f158c4d45db695ce5a82900d4a245f405e016dc04c9a2090"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/layout-original-red.txt",
+      "bytes": 500,
+      "sha256": "fe2805aff6dee16a684f4311436d542b34253a8757e7459e3e74ba7316ea527f"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/matching-codec-race.jsonl",
+      "bytes": 3290,
+      "sha256": "f1e3e3a0b80ac1e8a9d61f0250ffa5c9ec70e9f09aefeb79223582845ef0a546"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/matching-codec-race.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/matching-source-delta-manifest.json",
+      "bytes": 1345,
+      "sha256": "d78d74800b6bec89801066a0f45d9542ced7c0c61b2b4d07970d61c478f33664"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/owned-fifteen-file-source.patch",
+      "bytes": 59350,
+      "sha256": "aba4b84db7980328c067eac839552916c35d7c9c7a591f49810b87b4cdeba992"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/owned-fifteen-file-source.tar.gz",
+      "bytes": 80719,
+      "sha256": "106458836ad4d5f3e99562b69ee5e9756992c52296362fd093fbd50af1ed7c87"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/apps/creator-studio/app.js",
+      "bytes": 70393,
+      "sha256": "631665d8eb92a2b68f8a3670d0979479839830b0d233f034b03f7a01d57a3214"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+      "bytes": 49092,
+      "sha256": "d08a95e68bf36352951fa3c7d9e38448940007fef90b238d9db97051490af296"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/apps/creator-studio/scripts/processing-resume-web-check.cjs",
+      "bytes": 6742,
+      "sha256": "29bc37d5ae25e484bfdd7fc76f94b0c9612676251dcfe2acfe1fd58b51352497"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/apps/creator-studio/styles.css",
+      "bytes": 15359,
+      "sha256": "50e51d66d5aca6163eb7dd288b568ccb442c88e1bc868bca888aece3247a5dfc"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/processing_resume_codec_test.go",
+      "bytes": 5100,
+      "sha256": "c0bcd784bda7baaa346ecad82624ee489d6ace44ad14f3c780ba580480e3a825"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/processing_resume_test.go",
+      "bytes": 6901,
+      "sha256": "a6bf23c5155cac925457f731bf99abf205d875d0ba1e1858c38b9833a6a760f9"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/service.go",
+      "bytes": 67980,
+      "sha256": "ef4e123cea410da3c462cb88fd7938ef42db29929f35754799c2bec7147eb2c8"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/source/internal/video/store_publication_test.go",
+      "bytes": 8456,
+      "sha256": "2ba3e456a47d86149066cf62ca154acb3b747ec925b7890f73e75f66d62891ce"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-failed-1280-ltr.png",
+      "bytes": 144537,
+      "sha256": "a022e3aa5368420b58e9dfc20ee885e0d89c4df691bb22200b37ab4a093ea146"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-failed-320-rtl.png",
+      "bytes": 259354,
+      "sha256": "ccd751d2835a92c28e1d11bbd5a9503b91bc3d5b00fc88f4785084a9595c1b32"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-failed-390-ltr.png",
+      "bytes": 109606,
+      "sha256": "21560e4cbc92bd009d0d0ea07c6169c11c26d81f9955cb860b57f6f48419dcb4"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-scanning-1280-ltr.png",
+      "bytes": 144951,
+      "sha256": "57049cf017457c83aebb2801ae7cec6c71e57860ffecdf9dba22642446cce44e"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-scanning-320-rtl.png",
+      "bytes": 260713,
+      "sha256": "72a0b51ef0cdea41d35e1327f9ce71e50ed04567eec099a1037547c915ecb61b"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-scanning-390-ltr.png",
+      "bytes": 110085,
+      "sha256": "98ac9eb1ceeed26d530e713a23c70021a9b1182a2bd3416f33e6582437596017"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-transcoding-1280-ltr.png",
+      "bytes": 145480,
+      "sha256": "159ed65b4402758d9a23e4af3fd483c56a988035c30a810f5bfc1e5149393d29"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-transcoding-320-rtl.png",
+      "bytes": 262275,
+      "sha256": "466b591d86e2294ea7cd363fd9055ff2bd5b921d2594546b91d295b212308a0c"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/creator-resume-transcoding-390-ltr.png",
+      "bytes": 110977,
+      "sha256": "b74fd8ba52e10a4c19e6c1a621fbd1c047b27870b959274f357ca5b1b0c8f51d"
+    },
+    {
+      "path": "apps/video/audit/evidence/real-codec-resume-20261004/web-dom/web-dom-receipt.json",
+      "bytes": 4722,
+      "sha256": "c9c4093e7aa47c0edb005f1abb16b559228276c7abfff0250dccc278bfe8ea0e"
+    }
+  ]
+}
