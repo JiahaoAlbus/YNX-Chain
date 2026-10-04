@@ -179,6 +179,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     assert.deepEqual(await page.evaluate(()=>latestResearchResult.equityCurve),engineCurve);
     assert.equal(await page.locator('#research-result-id').textContent(),firstReceipt.id);assert.equal(await page.locator('#research-result-name').textContent(),'Controlled lost-return research');
     assert.equal(posts,researchPostsBefore);assert.equal(await page.locator('#research-fee').textContent(),String(firstReceipt.assumptions.FeeBPS));
+    await page.selectOption('#locale','en');
     await page.locator('#research-run-details').evaluate(details=>{details.open=true});
     await page.screenshot({path:path.join(work,'saved-experiment-reopened-en.png'),fullPage:true});
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
