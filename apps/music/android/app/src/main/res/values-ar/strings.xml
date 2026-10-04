@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.</string>
     <string name="cancel_upload">إلغاء المسودة</string>
     <string name="trust_pending">تم حفظ الطلب. تأكيد Trust قيد الانتظار. أعد محاولة هذا الطلب.</string>
+    <string name="trust_pause">إيقاف المحاولات المحلية مؤقتًا</string>
+    <string name="trust_pause_confirm">هل تريد إيقاف المحاولات على هذا الجهاز؟ قد تكون القضية قد أُرسلت بالفعل. لن يتم سحبها. سيُحتفظ بالطلب الأصلي ويمكن استعادته.</string>
+    <string name="trust_paused">تُحفظ الطلبات المتوقفة. قد تكون حالة الخادم غير معروفة.</string>
+    <string name="trust_restore">استعادة الطلب الأصلي</string>
+    <string name="trust_owner_only">يمكن لمالك المقطع فقط بدء هذا الطلب.</string>
+    <string name="trust_report">إبلاغ</string>
+    <string name="trust_dispute">نزاع حول الحقوق</string>
+    <string name="trust_appeal">استئناف المالك</string>
 </resources>

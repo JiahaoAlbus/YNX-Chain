@@ -12,7 +12,7 @@ struct CaseRecord:Codable,Identifiable{let id,kind,status:String;var openedBy:St
 struct MusicCaseIntent:Codable,Equatable {
     let key,account,kind,trackID,reason,evidenceRef:String
     func body()throws->Data {
-        guard key.range(of:"^music-trust-[A-Fa-f0-9-]{36}$",options:.regularExpression) != nil,["report","takedown","dispute","appeal"].contains(kind),trackID.range(of:"^trk_[0-9a-f]{24}$",options:.regularExpression) != nil,reason.count>=5,reason==reason.trimmingCharacters(in:.whitespacesAndNewlines),evidenceRef==evidenceRef.trimmingCharacters(in:.whitespacesAndNewlines) else{throw URLError(.badURL)}
+        guard key.range(of:"^music-trust-[A-Fa-f0-9-]{36}$",options:.regularExpression) != nil,["report","takedown","dispute","appeal"].contains(kind),trackID.range(of:"^trk_[0-9a-f]{24}$",options:.regularExpression) != nil,reason.utf8.count>=5,reason==reason.trimmingCharacters(in:.whitespacesAndNewlines),evidenceRef==evidenceRef.trimmingCharacters(in:.whitespacesAndNewlines) else{throw URLError(.badURL)}
         let data=try JSONSerialization.data(withJSONObject:["kind":kind,"trackID":trackID,"reason":reason,"evidenceRef":evidenceRef],options:[.sortedKeys]);guard data.count<=16*1024 else{throw URLError(.dataLengthExceedsMaximum)};return data
     }
     func confirms(_ record:CaseRecord)->Bool {
@@ -26,7 +26,7 @@ struct Snapshot:Codable { var profile=Profile();var listener=Listener();var cata
 struct Usage:Codable,Identifiable{let id,trackId:String;let listenedMillis:Int}
 struct PlaylistCreation:Codable {let key:String;let name:String;let trackIds:[String]}
 struct MusicUploadIntent:Codable,Equatable { let key,title,artist,evidence,provenance,audioSHA256:String }
-struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation?;var uploadIntent:MusicUploadIntent?;var caseIntent:MusicCaseIntent? }
+struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation?;var uploadIntent:MusicUploadIntent?;var caseIntent:MusicCaseIntent?;var caseHistory:[MusicCaseIntent]? }
 
 
 struct MusicSessionContext:Equatable, Sendable {

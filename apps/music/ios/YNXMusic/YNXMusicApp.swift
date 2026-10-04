@@ -317,10 +317,31 @@ enum MusicSnapshotReadState:String {case unread,loading,ready,failed}
     }
     @Published private var caseGeneration:UUID?
     var submittingCase:Bool {caseGeneration==viewGeneration}
+    func ownsTrack(_ id:String)->Bool {
+        guard hasCurrentSnapshot,let operation=captureOperation(),snapshot.profile.account==operation.account.account else{return false}
+        return (snapshot.creatorTracks+snapshot.catalog).contains{$0.id==id && $0.owner==operation.account.account}
+    }
     func prepareCase(_ operation:MusicOperation,kind:String,track:String,reason:String,evidence:String)->Bool {
         guard isCurrent(operation),hasCurrentSnapshot,!submittingCase,state.caseIntent==nil else{return false}
         let intent=MusicCaseIntent(key:"music-trust-\(UUID().uuidString)",account:operation.account.account,kind:kind.trimmingCharacters(in:.whitespacesAndNewlines),trackID:track,reason:reason.trimmingCharacters(in:.whitespacesAndNewlines),evidenceRef:evidence.trimmingCharacters(in:.whitespacesAndNewlines))
-        do{_ = try intent.body();var candidate=state;candidate.caseIntent=intent;try store.save(candidate,for:operation.account);state=candidate;status="trust_pending";return true}catch{status="retry";return false}
+        do{
+            _ = try intent.body();var candidate=state
+            if let original=candidate.caseHistory?.first(where:{$0.account==intent.account && $0.kind==intent.kind && $0.trackID==intent.trackID && $0.reason==intent.reason && $0.evidenceRef==intent.evidenceRef}) {
+                _ = try original.body();candidate.caseIntent=original;candidate.caseHistory?.removeAll{$0==original}
+            }else{
+                guard !["appeal","takedown"].contains(intent.kind)||ownsTrack(intent.trackID) else{status="trust_owner_only";return false}
+                candidate.caseIntent=intent
+            }
+            try store.save(candidate,for:operation.account);state=candidate;status="trust_pending";return true
+        }catch{status="retry";return false}
+    }
+    func pauseCase(_ operation:MusicOperation,intent:MusicCaseIntent)->Bool {
+        guard isCurrent(operation),!submittingCase,state.caseIntent==intent,intent.account==operation.account.account else{return false}
+        do{_ = try intent.body();var candidate=state;var history=candidate.caseHistory ?? [];guard history.count<64 else{status="retry";return false};history.append(intent);candidate.caseHistory=history;candidate.caseIntent=nil;try store.save(candidate,for:operation.account);state=candidate;status="trust_paused";return true}catch{status="retry";return false}
+    }
+    func restoreCase(_ operation:MusicOperation,intent:MusicCaseIntent)->Bool {
+        guard isCurrent(operation),!submittingCase,state.caseIntent==nil,intent.account==operation.account.account,state.caseHistory?.contains(intent)==true else{return false}
+        do{_ = try intent.body();var candidate=state;candidate.caseIntent=intent;candidate.caseHistory?.removeAll{$0==intent};try store.save(candidate,for:operation.account);state=candidate;status="trust_pending";return true}catch{status="retry";return false}
     }
     func retryCase(_ operation:MusicOperation)async->Bool {
         guard isCurrent(operation),!submittingCase,let intent=state.caseIntent,intent.account==operation.account.account else{return false}
@@ -445,8 +466,29 @@ enum MusicSnapshotReadState:String {case unread,loading,ready,failed}
     }
 }
 
-struct TrackDetail:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;let t:Track;@State var reason="";@State var evidence="";var body:some View{Form{Section(t.title){Text(t.artistName);if let album=t.album,!album.isEmpty{Text(album)};Text("\(l.t("rights")): \(t.rights.basis) · \(t.rights.evidenceRef)");Text("\(l.t("provenance")): \(t.provenance["audio"] ?? "")")};TrustPendingSection();Section(l.t("rights")){TextField(l.t("rights_declaration"),text:$reason);TextField(l.t("rights_evidence"),text:$evidence);ForEach(["report","dispute","appeal"],id:\.self){kind in Button(kind.capitalized){guard let operation=m.captureOperation(),m.prepareCase(operation,kind:kind,track:t.id,reason:reason,evidence:evidence) else{return};Task{_ = await m.retryCase(operation)}}.disabled(reason.count<5||evidence.isEmpty||m.state.caseIntent != nil||m.submittingCase)}}}.navigationTitle(t.title)}}
-struct TrustPendingSection:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;var body:some View{if let intent=m.state.caseIntent{Section("YNX Trust"){Text(l.t("trust_pending"));Text(intent.reason);Button(l.t("retry")){guard let operation=m.captureOperation() else{return};Task{_ = await m.retryCase(operation)}}.disabled(m.submittingCase)}}}}
+struct TrackDetail:View{@EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n;let t:Track;@State var reason="";@State var evidence="";var body:some View{Form{Section(t.title){Text(t.artistName);if let album=t.album,!album.isEmpty{Text(album)};Text("\(l.t("rights")): \(t.rights.basis) · \(t.rights.evidenceRef)");Text("\(l.t("provenance")): \(t.provenance["audio"] ?? "")")};TrustPendingSection();Section(l.t("rights")){TextField(l.t("rights_declaration"),text:$reason);TextField(l.t("rights_evidence"),text:$evidence);ForEach(m.ownsTrack(t.id) ? ["report","dispute","appeal"] : ["report","dispute"],id:\.self){kind in Button(l.t("trust_"+kind)){guard let operation=m.captureOperation(),m.prepareCase(operation,kind:kind,track:t.id,reason:reason,evidence:evidence) else{return};Task{_ = await m.retryCase(operation)}}.disabled(reason.trimmingCharacters(in:.whitespacesAndNewlines).utf8.count<5||m.state.caseIntent != nil||m.submittingCase)}}}.navigationTitle(t.title)}}
+struct TrustPendingSection:View {
+    @EnvironmentObject var m:MusicModel;@EnvironmentObject var l:I18n
+    @State private var showPause=false;@State private var pauseIntent:MusicCaseIntent?
+    var body:some View {
+        if m.state.caseIntent != nil || !(m.state.caseHistory ?? []).isEmpty {
+            Section("YNX Trust") {
+                if let intent=m.state.caseIntent {
+                    Text(l.t("trust_pending"));Text(intent.reason)
+                    Button(l.t("retry")){guard let operation=m.captureOperation() else{return};Task{_ = await m.retryCase(operation)}}.disabled(m.submittingCase)
+                    Button(l.t("trust_pause")){pauseIntent=intent;showPause=true}.disabled(m.submittingCase)
+                }
+                if !(m.state.caseHistory ?? []).isEmpty {Text(l.t("trust_paused"))}
+                ForEach(m.state.caseHistory ?? [],id:\.key){intent in
+                    Button(l.t("trust_restore")+" · "+intent.reason){guard let operation=m.captureOperation() else{return};_ = m.restoreCase(operation,intent:intent)}.disabled(m.submittingCase||m.state.caseIntent != nil)
+                }
+            }.alert(l.t("trust_pause"),isPresented:$showPause){
+                Button(l.t("cancel"),role:.cancel){}
+                Button(l.t("trust_pause")){guard let operation=m.captureOperation(),let intent=pauseIntent else{return};_ = m.pauseCase(operation,intent:intent)}
+            }message:{Text(l.t("trust_pause_confirm"))}
+        }
+    }
+}
 struct TrackRow:View { @EnvironmentObject var m:MusicModel;let t:Track;@EnvironmentObject var l:I18n;var body:some View{VStack(alignment:.leading,spacing:8){NavigationLink{TrackDetail(t:t)}label:{VStack(alignment:.leading){Text(t.title).font(.headline);Text(t.artistName+(t.album.map{" · "+$0} ?? "")).font(.subheadline)}};Text("\(l.t("rights")): \(t.rights.basis) · \(l.t("provenance")): \(t.provenance["audio"] ?? "")").font(.caption).foregroundStyle(.secondary);HStack{Button(l.t("play")){m.play(t)};Button(l.t("favorite")){m.favorite(t.id)};Button(l.t("add_queue")){m.enqueue(t.id)};Button(l.t("download")){m.download(t.id)}}}.accessibilityElement(children:.contain).padding(.vertical,6)}}
 struct MusicSnapshotNotice:View {
     @EnvironmentObject var m:MusicModel

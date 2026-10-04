@@ -14,6 +14,7 @@ final class NativeSessionBridge {
     long epoch(){return revision;}
     void restore()throws Exception {revision++;JSONObject result=port("restore",new JSONObject());active=new NativeSessionIdentity(result.getJSONObject("session"),result.getJSONObject("context"));}
     void enableTrustFixture()throws Exception{port("trust",new JSONObject());}
+    JSONObject foreignTrackFixture()throws Exception{return port("foreign-track",new JSONObject());}
     JSONObject proof(String method,String path,String digest,long bytes,NativeSessionIdentity expected)throws Exception{
         if(expected==null||!expected.same(active))throw new IOException("Original Java context retired");
         return port("proof",new JSONObject().put("method",method).put("path",path).put("bodyDigest",digest).put("bodyBytes",bytes));

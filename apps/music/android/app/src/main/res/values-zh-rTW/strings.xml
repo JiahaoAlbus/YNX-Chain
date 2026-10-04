@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">取消此上傳草稿？伺服器已收到的音訊會保留。</string>
     <string name="cancel_upload">取消草稿</string>
     <string name="trust_pending">請求已儲存，尚待 Trust 確認。請重試此請求。</string>
+    <string name="trust_pause">暫停本機重試</string>
+    <string name="trust_pause_confirm">暫停此裝置上的重試？案件可能已提交，這不會撤回案件。原請求會保留，可隨時恢復。</string>
+    <string name="trust_paused">已暫停的原請求已保留，伺服器狀態可能尚未確認。</string>
+    <string name="trust_restore">恢復原請求</string>
+    <string name="trust_owner_only">只有作品作者可以發起此請求。</string>
+    <string name="trust_report">檢舉</string>
+    <string name="trust_dispute">權利爭議</string>
+    <string name="trust_appeal">作者申訴</string>
 </resources>

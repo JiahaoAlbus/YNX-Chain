@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。</string>
     <string name="cancel_upload">下書きを取り消す</string>
     <string name="trust_pending">リクエストは保存済みです。Trust の確認待ちです。このリクエストを再試行してください。</string>
+    <string name="trust_pause">この端末での再試行を停止</string>
+    <string name="trust_pause_confirm">この端末での再試行を停止しますか？案件は既に送信されている可能性があります。取り下げにはなりません。元のリクエストは保持され、復元できます。</string>
+    <string name="trust_paused">停止したリクエストは保持されています。サーバーの状態は未確認の場合があります。</string>
+    <string name="trust_restore">元のリクエストを復元</string>
+    <string name="trust_owner_only">このリクエストは楽曲の所有者のみ開始できます。</string>
+    <string name="trust_report">通報</string>
+    <string name="trust_dispute">権利に関する異議</string>
+    <string name="trust_appeal">所有者の申し立て</string>
 </resources>

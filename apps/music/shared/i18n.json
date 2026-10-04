@@ -87,7 +87,15 @@
       "new_playlist": "New playlist",
       "cancel_upload_draft": "Cancel this upload draft? Audio already received by the server will be retained.",
       "cancel_upload": "Cancel draft",
-      "trust_pending": "Saved request. Trust confirmation is pending. Retry this request."
+      "trust_pending": "Saved request. Trust confirmation is pending. Retry this request.",
+      "trust_pause": "Pause local retry",
+      "trust_pause_confirm": "Pause retries on this device? The case may already be submitted. This does not withdraw it. The original request is retained and can be restored.",
+      "trust_paused": "Paused requests are retained. Server status may be unknown.",
+      "trust_restore": "Restore original request",
+      "trust_owner_only": "Only the track owner can start this request.",
+      "trust_report": "Report",
+      "trust_dispute": "Rights dispute",
+      "trust_appeal": "Owner appeal"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -161,7 +169,15 @@
       "new_playlist": "新建歌单",
       "cancel_upload_draft": "取消此上传草稿？服务端已收到的音频会保留。",
       "cancel_upload": "取消草稿",
-      "trust_pending": "请求已保存，尚待 Trust 确认。请重试此请求。"
+      "trust_pending": "请求已保存，尚待 Trust 确认。请重试此请求。",
+      "trust_pause": "暂停本机重试",
+      "trust_pause_confirm": "暂停此设备上的重试？案件可能已提交，这不会撤回案件。原请求会保留，可随时恢复。",
+      "trust_paused": "已暂停的原请求已保留，服务端状态可能尚未确认。",
+      "trust_restore": "恢复原请求",
+      "trust_owner_only": "只有作品作者可以发起此请求。",
+      "trust_report": "举报",
+      "trust_dispute": "权利争议",
+      "trust_appeal": "作者申诉"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -235,7 +251,15 @@
       "new_playlist": "建立新歌單",
       "cancel_upload_draft": "取消此上傳草稿？伺服器已收到的音訊會保留。",
       "cancel_upload": "取消草稿",
-      "trust_pending": "請求已儲存，尚待 Trust 確認。請重試此請求。"
+      "trust_pending": "請求已儲存，尚待 Trust 確認。請重試此請求。",
+      "trust_pause": "暫停本機重試",
+      "trust_pause_confirm": "暫停此裝置上的重試？案件可能已提交，這不會撤回案件。原請求會保留，可隨時恢復。",
+      "trust_paused": "已暫停的原請求已保留，伺服器狀態可能尚未確認。",
+      "trust_restore": "恢復原請求",
+      "trust_owner_only": "只有作品作者可以發起此請求。",
+      "trust_report": "檢舉",
+      "trust_dispute": "權利爭議",
+      "trust_appeal": "作者申訴"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -309,7 +333,15 @@
       "new_playlist": "新規リスト",
       "cancel_upload_draft": "このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。",
       "cancel_upload": "下書きを取り消す",
-      "trust_pending": "リクエストは保存済みです。Trust の確認待ちです。このリクエストを再試行してください。"
+      "trust_pending": "リクエストは保存済みです。Trust の確認待ちです。このリクエストを再試行してください。",
+      "trust_pause": "この端末での再試行を停止",
+      "trust_pause_confirm": "この端末での再試行を停止しますか？案件は既に送信されている可能性があります。取り下げにはなりません。元のリクエストは保持され、復元できます。",
+      "trust_paused": "停止したリクエストは保持されています。サーバーの状態は未確認の場合があります。",
+      "trust_restore": "元のリクエストを復元",
+      "trust_owner_only": "このリクエストは楽曲の所有者のみ開始できます。",
+      "trust_report": "通報",
+      "trust_dispute": "権利に関する異議",
+      "trust_appeal": "所有者の申し立て"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -383,7 +415,15 @@
       "new_playlist": "새 재생 목록",
       "cancel_upload_draft": "업로드 초안을 취소할까요? 서버가 받은 오디오는 유지됩니다.",
       "cancel_upload": "초안 취소",
-      "trust_pending": "요청이 저장되었습니다. Trust 확인을 기다리고 있습니다. 이 요청을 다시 시도하세요."
+      "trust_pending": "요청이 저장되었습니다. Trust 확인을 기다리고 있습니다. 이 요청을 다시 시도하세요.",
+      "trust_pause": "이 기기의 재시도 일시 중지",
+      "trust_pause_confirm": "이 기기의 재시도를 중지할까요? 사건이 이미 제출되었을 수 있으며 철회되지 않습니다. 원래 요청은 보관되며 복원할 수 있습니다.",
+      "trust_paused": "중지한 요청이 보관됩니다. 서버 상태는 미확인일 수 있습니다.",
+      "trust_restore": "원래 요청 복원",
+      "trust_owner_only": "곡 소유자만 이 요청을 시작할 수 있습니다.",
+      "trust_report": "신고",
+      "trust_dispute": "권리 분쟁",
+      "trust_appeal": "소유자 이의 제기"
     },
     "es": {
       "app_name": "YNX Music",
@@ -457,7 +497,15 @@
       "new_playlist": "Nueva lista",
       "cancel_upload_draft": "¿Cancelar este borrador? El audio recibido por el servidor se conservará.",
       "cancel_upload": "Cancelar borrador",
-      "trust_pending": "Solicitud guardada. Pendiente de confirmación de Trust. Reintenta esta solicitud."
+      "trust_pending": "Solicitud guardada. Pendiente de confirmación de Trust. Reintenta esta solicitud.",
+      "trust_pause": "Pausar reintentos locales",
+      "trust_pause_confirm": "¿Pausar los reintentos en este dispositivo? El caso puede estar enviado. Esto no lo retira. La solicitud original se conserva y se puede restaurar.",
+      "trust_paused": "Las solicitudes pausadas se conservan. El estado del servidor puede ser desconocido.",
+      "trust_restore": "Restaurar solicitud original",
+      "trust_owner_only": "Solo el propietario de la pista puede iniciar esta solicitud.",
+      "trust_report": "Denunciar",
+      "trust_dispute": "Disputa de derechos",
+      "trust_appeal": "Apelación del propietario"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -531,7 +579,15 @@
       "new_playlist": "Nouvelle liste",
       "cancel_upload_draft": "Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.",
       "cancel_upload": "Annuler le brouillon",
-      "trust_pending": "Demande enregistrée. Confirmation Trust en attente. Réessayez cette demande."
+      "trust_pending": "Demande enregistrée. Confirmation Trust en attente. Réessayez cette demande.",
+      "trust_pause": "Suspendre les nouvelles tentatives",
+      "trust_pause_confirm": "Suspendre les tentatives sur cet appareil ? Le dossier peut déjà être envoyé. Il ne sera pas retiré. La demande originale reste conservée et peut être restaurée.",
+      "trust_paused": "Les demandes suspendues sont conservées. Le statut du serveur peut être inconnu.",
+      "trust_restore": "Restaurer la demande originale",
+      "trust_owner_only": "Seul le propriétaire du morceau peut lancer cette demande.",
+      "trust_report": "Signaler",
+      "trust_dispute": "Litige sur les droits",
+      "trust_appeal": "Recours du propriétaire"
     },
     "de": {
       "app_name": "YNX Music",
@@ -605,7 +661,15 @@
       "new_playlist": "Neue Liste",
       "cancel_upload_draft": "Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.",
       "cancel_upload": "Entwurf abbrechen",
-      "trust_pending": "Anfrage gespeichert. Trust-Bestätigung steht aus. Diese Anfrage erneut versuchen."
+      "trust_pending": "Anfrage gespeichert. Trust-Bestätigung steht aus. Diese Anfrage erneut versuchen.",
+      "trust_pause": "Lokale Wiederholungen pausieren",
+      "trust_pause_confirm": "Wiederholungen auf diesem Gerät pausieren? Der Fall wurde möglicherweise bereits eingereicht. Er wird nicht zurückgezogen. Die ursprüngliche Anfrage bleibt erhalten und kann wiederhergestellt werden.",
+      "trust_paused": "Pausierte Anfragen bleiben erhalten. Der Serverstatus ist möglicherweise unbekannt.",
+      "trust_restore": "Ursprüngliche Anfrage wiederherstellen",
+      "trust_owner_only": "Nur der Eigentümer des Titels kann diese Anfrage starten.",
+      "trust_report": "Melden",
+      "trust_dispute": "Rechtestreit",
+      "trust_appeal": "Einspruch des Eigentümers"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -679,7 +743,15 @@
       "new_playlist": "Nova lista",
       "cancel_upload_draft": "Cancelar este rascunho? O áudio recebido pelo servidor será mantido.",
       "cancel_upload": "Cancelar rascunho",
-      "trust_pending": "Pedido salvo. A confirmação do Trust está pendente. Tente este pedido novamente."
+      "trust_pending": "Pedido salvo. A confirmação do Trust está pendente. Tente este pedido novamente.",
+      "trust_pause": "Pausar novas tentativas locais",
+      "trust_pause_confirm": "Pausar as tentativas neste dispositivo? O caso pode já ter sido enviado. Isso não o retira. A solicitação original será preservada e poderá ser restaurada.",
+      "trust_paused": "Solicitações pausadas são preservadas. O estado no servidor pode ser desconhecido.",
+      "trust_restore": "Restaurar solicitação original",
+      "trust_owner_only": "Somente o proprietário da faixa pode iniciar esta solicitação.",
+      "trust_report": "Denunciar",
+      "trust_dispute": "Disputa de direitos",
+      "trust_appeal": "Recurso do proprietário"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -753,7 +825,15 @@
       "new_playlist": "Новый плейлист",
       "cancel_upload_draft": "Отменить черновик загрузки? Полученное сервером аудио будет сохранено.",
       "cancel_upload": "Отменить черновик",
-      "trust_pending": "Запрос сохранён. Ожидается подтверждение Trust. Повторите этот запрос."
+      "trust_pending": "Запрос сохранён. Ожидается подтверждение Trust. Повторите этот запрос.",
+      "trust_pause": "Приостановить повторы на устройстве",
+      "trust_pause_confirm": "Приостановить повторы на этом устройстве? Обращение могло быть уже отправлено. Оно не будет отозвано. Исходный запрос сохранится, и его можно восстановить.",
+      "trust_paused": "Приостановленные запросы сохранены. Статус на сервере может быть неизвестен.",
+      "trust_restore": "Восстановить исходный запрос",
+      "trust_owner_only": "Только владелец композиции может создать этот запрос.",
+      "trust_report": "Пожаловаться",
+      "trust_dispute": "Спор о правах",
+      "trust_appeal": "Апелляция владельца"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -827,7 +907,15 @@
       "new_playlist": "قائمة جديدة",
       "cancel_upload_draft": "هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.",
       "cancel_upload": "إلغاء المسودة",
-      "trust_pending": "تم حفظ الطلب. تأكيد Trust قيد الانتظار. أعد محاولة هذا الطلب."
+      "trust_pending": "تم حفظ الطلب. تأكيد Trust قيد الانتظار. أعد محاولة هذا الطلب.",
+      "trust_pause": "إيقاف المحاولات المحلية مؤقتًا",
+      "trust_pause_confirm": "هل تريد إيقاف المحاولات على هذا الجهاز؟ قد تكون القضية قد أُرسلت بالفعل. لن يتم سحبها. سيُحتفظ بالطلب الأصلي ويمكن استعادته.",
+      "trust_paused": "تُحفظ الطلبات المتوقفة. قد تكون حالة الخادم غير معروفة.",
+      "trust_restore": "استعادة الطلب الأصلي",
+      "trust_owner_only": "يمكن لمالك المقطع فقط بدء هذا الطلب.",
+      "trust_report": "إبلاغ",
+      "trust_dispute": "نزاع حول الحقوق",
+      "trust_appeal": "استئناف المالك"
     },
     "id": {
       "app_name": "YNX Music",
@@ -901,7 +989,15 @@
       "new_playlist": "Daftar baru",
       "cancel_upload_draft": "Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.",
       "cancel_upload": "Batalkan draf",
-      "trust_pending": "Permintaan tersimpan. Konfirmasi Trust masih tertunda. Coba lagi permintaan ini."
+      "trust_pending": "Permintaan tersimpan. Konfirmasi Trust masih tertunda. Coba lagi permintaan ini.",
+      "trust_pause": "Jeda percobaan ulang lokal",
+      "trust_pause_confirm": "Jeda percobaan ulang di perangkat ini? Kasus mungkin sudah dikirim. Tindakan ini tidak menariknya. Permintaan asli tetap disimpan dan dapat dipulihkan.",
+      "trust_paused": "Permintaan yang dijeda tetap disimpan. Status server mungkin belum diketahui.",
+      "trust_restore": "Pulihkan permintaan asli",
+      "trust_owner_only": "Hanya pemilik lagu yang dapat memulai permintaan ini.",
+      "trust_report": "Laporkan",
+      "trust_dispute": "Sengketa hak",
+      "trust_appeal": "Banding pemilik"
     }
   }
 }

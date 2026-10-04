@@ -13,7 +13,7 @@ final class MusicTrustCase {
         api.assertCurrent();store.requireAccount(api.account());
         JSONObject body=new JSONObject().put("kind",kind.trim()).put("trackID",track.trim()).put("reason",reason.trim()).put("evidenceRef",evidence.trim());validateBody(body);
         JSONObject intent=new JSONObject().put("key","music-trust-"+java.util.UUID.randomUUID()).put("account",api.account()).put("body",body);
-        return store.prepareCase(intent,api::assertCurrent);
+        store.prepareCase(intent,api::assertCurrent);return new JSONObject(intent.toString());
     }
     JSONObject retry()throws Exception {
         api.assertCurrent();store.requireAccount(api.account());JSONObject intent=store.load().getJSONObject("caseIntent");validateIntent(intent,api.account());
@@ -25,13 +25,7 @@ final class MusicTrustCase {
     }
     private static void validateBody(JSONObject body)throws Exception {
         String kind=body.getString("kind"),track=body.getString("trackID"),reason=body.getString("reason"),evidence=body.getString("evidenceRef");
-        if(body.length()!=4||!kind.matches("report|takedown|dispute|appeal")||!track.matches("trk_[0-9a-f]{24}")||reason.getBytes(StandardCharsets.UTF_8).length<5||!reason.equals(reason.trim())||!evidence.equals(evidence.trim())||body.toString().getBytes(StandardCharsets.UTF_8).length>16*1024)throw new IOException("Trust request metadata is invalid");
-    }
-    static boolean ownsTrack(JSONObject state,String account,String track){
-        JSONObject remote=state.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");
-        if(profile==null||!account.equals(profile.optString("account")))return false;
-        for(String field:new String[]{"creatorTracks","catalog"}){org.json.JSONArray rows=remote.optJSONArray(field);if(rows!=null)for(int i=0;i<rows.length();i++){JSONObject row=rows.optJSONObject(i);if(row!=null&&track.equals(row.optString("id"))&&account.equals(row.optString("owner")))return true;}}
-        return false;
+        if(body.length()!=4||!kind.matches("report|takedown|dispute|appeal")||!track.matches("trk_[0-9a-f]{24}")||reason.length()<5||!reason.equals(reason.trim())||!evidence.equals(evidence.trim())||body.toString().getBytes(StandardCharsets.UTF_8).length>16*1024)throw new IOException("Trust request metadata is invalid");
     }
     static void verifyReceipt(JSONObject record,JSONObject intent)throws Exception {
         validateIntent(intent,intent.getString("account"));JSONObject body=intent.getJSONObject("body");String central=record.optString("centralCaseId");

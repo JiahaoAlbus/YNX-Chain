@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Отменить черновик загрузки? Полученное сервером аудио будет сохранено.</string>
     <string name="cancel_upload">Отменить черновик</string>
     <string name="trust_pending">Запрос сохранён. Ожидается подтверждение Trust. Повторите этот запрос.</string>
+    <string name="trust_pause">Приостановить повторы на устройстве</string>
+    <string name="trust_pause_confirm">Приостановить повторы на этом устройстве? Обращение могло быть уже отправлено. Оно не будет отозвано. Исходный запрос сохранится, и его можно восстановить.</string>
+    <string name="trust_paused">Приостановленные запросы сохранены. Статус на сервере может быть неизвестен.</string>
+    <string name="trust_restore">Восстановить исходный запрос</string>
+    <string name="trust_owner_only">Только владелец композиции может создать этот запрос.</string>
+    <string name="trust_report">Пожаловаться</string>
+    <string name="trust_dispute">Спор о правах</string>
+    <string name="trust_appeal">Апелляция владельца</string>
 </resources>

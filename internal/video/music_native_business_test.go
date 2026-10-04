@@ -8,6 +8,7 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/binary"
 	"encoding/json"
 	"encoding/pem"
 	"net/http"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	musicapp "github.com/JiahaoAlbus/YNX-Chain/apps/music"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/music"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
@@ -57,7 +59,9 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			var bound bool
 			var originalConfig music.Config
 			var trustConfigured bool
+			var foreignFixture bool
 			var trustReceipts atomic.Int32
+			var ownerRefusals atomic.Int32
 			// Explicit isolated HTTPS receipt provider, not Central Trust.
 			// Original SDK authority, actor and production HTTPS/effect gates remain.
 			trustProvider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -101,6 +105,54 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			defer trustProvider.Close()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				mu.Lock()
+				if r.URL.Path == "/qa-foreign-track" {
+					defer mu.Unlock()
+					if r.Method != "POST" || !bound || owned == nil || actor.Account == "" || foreignFixture {
+						http.Error(w, "isolated foreign fixture denied", 409)
+						return
+					}
+					// Disposable content row, not a second Wallet/SDK identity grant.
+					foreign, e := accountaddress.Encode("0x" + strings.Repeat("b", 40))
+					if e != nil || foreign == actor.Account {
+						http.Error(w, "fixture actor invalid", 500)
+						return
+					}
+					_, e = owned.OnboardCreator(foreign, "Isolated fixture creator", "")
+					if e != nil {
+						http.Error(w, "fixture creator invalid", 500)
+						return
+					}
+					wav := make([]byte, 8044)
+					copy(wav, "RIFF")
+					binary.LittleEndian.PutUint32(wav[4:], 8036)
+					copy(wav[8:], "WAVEfmt ")
+					binary.LittleEndian.PutUint32(wav[16:], 16)
+					binary.LittleEndian.PutUint16(wav[20:], 1)
+					binary.LittleEndian.PutUint16(wav[22:], 1)
+					binary.LittleEndian.PutUint32(wav[24:], 16000)
+					binary.LittleEndian.PutUint32(wav[28:], 16000)
+					binary.LittleEndian.PutUint16(wav[32:], 1)
+					binary.LittleEndian.PutUint16(wav[34:], 8)
+					copy(wav[36:], "data")
+					binary.LittleEndian.PutUint32(wav[40:], 8000)
+					for i := 44; i < len(wav); i++ {
+						wav[i] = 128
+					}
+					track, e := owned.UploadTrack(foreign, music.TrackUpload{Title: "Isolated foreign-owned track", ArtistName: "Fixture creator", Audio: music.Upload{Reader: bytes.NewReader(wav)}, AudioProvenance: "Generated isolated PCM fixture", RightsBasis: "owned", Territories: []string{"TEST"}, EvidenceRef: "Isolated fixture"})
+					if e != nil {
+						http.Error(w, "fixture upload invalid", 500)
+						return
+					}
+					track, e = owned.SetRelease(foreign, track.ID, "published", "")
+					if e != nil {
+						http.Error(w, "fixture release invalid", 500)
+						return
+					}
+					foreignFixture = true
+					w.Header().Set("Content-Type", "application/json")
+					_ = json.NewEncoder(w).Encode(track)
+					return
+				}
 				if r.URL.Path == "/qa-enable-trust" {
 					defer mu.Unlock()
 					if r.Method != "POST" || !bound || trustConfigured || owned == nil || actor.Account == "" {
@@ -209,6 +261,14 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 					http.Error(w, "QA not bound", 503)
 					return
 				}
+				if r.Method == "POST" && r.URL.Path == "/api/cases" {
+					observed := &musicNativeQAStatusWriter{ResponseWriter: w}
+					h.ServeHTTP(observed, r)
+					if observed.status == 403 {
+						ownerRefusals.Add(1)
+					}
+					return
+				}
 				h.ServeHTTP(w, r)
 			}))
 			defer server.Close()
@@ -235,9 +295,13 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				ActualWalletConsent                     bool `json:"actualWalletConsent"`
 				OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
 				IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+				ForeignOwnerAppealRejectedWithoutLogout bool `json:"foreignOwnerAppealRejectedWithoutLogout"`
+				OriginalPausedCaseColdSameKeyRecovery   bool `json:"originalPausedCaseColdSameKeyRecovery"`
 				JavaUpload                              struct {
 					OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
 					IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+					ForeignOwnerAppealRejectedWithoutLogout bool `json:"foreignOwnerAppealRejectedWithoutLogout"`
+					OriginalPausedCaseColdSameKeyRecovery   bool `json:"originalPausedCaseColdSameKeyRecovery"`
 				} `json:"javaUpload"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
@@ -259,6 +323,9 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Fatal("missing deduplicated original upload readback")
 			}
 			if javaUpload || apple {
+				if !foreignFixture || ownerRefusals.Load() != 1 || javaUpload && (!receipt.JavaUpload.ForeignOwnerAppealRejectedWithoutLogout || !receipt.JavaUpload.OriginalPausedCaseColdSameKeyRecovery) || apple && (!receipt.ForeignOwnerAppealRejectedWithoutLogout || !receipt.OriginalPausedCaseColdSameKeyRecovery) {
+					t.Fatal("foreign appeal or original paused request recovery gate invalid")
+				}
 				if !trustConfigured || trustReceipts.Load() != 1 || javaUpload && (!receipt.JavaUpload.OriginalTrustConfirmedLostReplyRecovery || !receipt.JavaUpload.IsolatedTrustReceipt) || apple && (!receipt.OriginalTrustConfirmedLostReplyRecovery || !receipt.IsolatedTrustReceipt) {
 					t.Fatal("original Trust receipt/lost-reply recovery gate invalid")
 				}
@@ -275,4 +342,14 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})
 	}
+}
+
+type musicNativeQAStatusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (w *musicNativeQAStatusWriter) WriteHeader(status int) {
+	w.status = status
+	w.ResponseWriter.WriteHeader(status)
 }

@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">取消此上传草稿？服务端已收到的音频会保留。</string>
     <string name="cancel_upload">取消草稿</string>
     <string name="trust_pending">请求已保存，尚待 Trust 确认。请重试此请求。</string>
+    <string name="trust_pause">暂停本机重试</string>
+    <string name="trust_pause_confirm">暂停此设备上的重试？案件可能已提交，这不会撤回案件。原请求会保留，可随时恢复。</string>
+    <string name="trust_paused">已暂停的原请求已保留，服务端状态可能尚未确认。</string>
+    <string name="trust_restore">恢复原请求</string>
+    <string name="trust_owner_only">只有作品作者可以发起此请求。</string>
+    <string name="trust_report">举报</string>
+    <string name="trust_dispute">权利争议</string>
+    <string name="trust_appeal">作者申诉</string>
 </resources>

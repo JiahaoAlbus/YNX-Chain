@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Cancel this upload draft? Audio already received by the server will be retained.</string>
     <string name="cancel_upload">Cancel draft</string>
     <string name="trust_pending">Saved request. Trust confirmation is pending. Retry this request.</string>
+    <string name="trust_pause">Pause local retry</string>
+    <string name="trust_pause_confirm">Pause retries on this device? The case may already be submitted. This does not withdraw it. The original request is retained and can be restored.</string>
+    <string name="trust_paused">Paused requests are retained. Server status may be unknown.</string>
+    <string name="trust_restore">Restore original request</string>
+    <string name="trust_owner_only">Only the track owner can start this request.</string>
+    <string name="trust_report">Report</string>
+    <string name="trust_dispute">Rights dispute</string>
+    <string name="trust_appeal">Owner appeal</string>
 </resources>

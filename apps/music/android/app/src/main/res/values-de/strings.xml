@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.</string>
     <string name="cancel_upload">Entwurf abbrechen</string>
     <string name="trust_pending">Anfrage gespeichert. Trust-Bestätigung steht aus. Diese Anfrage erneut versuchen.</string>
+    <string name="trust_pause">Lokale Wiederholungen pausieren</string>
+    <string name="trust_pause_confirm">Wiederholungen auf diesem Gerät pausieren? Der Fall wurde möglicherweise bereits eingereicht. Er wird nicht zurückgezogen. Die ursprüngliche Anfrage bleibt erhalten und kann wiederhergestellt werden.</string>
+    <string name="trust_paused">Pausierte Anfragen bleiben erhalten. Der Serverstatus ist möglicherweise unbekannt.</string>
+    <string name="trust_restore">Ursprüngliche Anfrage wiederherstellen</string>
+    <string name="trust_owner_only">Nur der Eigentümer des Titels kann diese Anfrage starten.</string>
+    <string name="trust_report">Melden</string>
+    <string name="trust_dispute">Rechtestreit</string>
+    <string name="trust_appeal">Einspruch des Eigentümers</string>
 </resources>

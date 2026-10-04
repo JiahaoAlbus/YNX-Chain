@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">¿Cancelar este borrador? El audio recibido por el servidor se conservará.</string>
     <string name="cancel_upload">Cancelar borrador</string>
     <string name="trust_pending">Solicitud guardada. Pendiente de confirmación de Trust. Reintenta esta solicitud.</string>
+    <string name="trust_pause">Pausar reintentos locales</string>
+    <string name="trust_pause_confirm">¿Pausar los reintentos en este dispositivo? El caso puede estar enviado. Esto no lo retira. La solicitud original se conserva y se puede restaurar.</string>
+    <string name="trust_paused">Las solicitudes pausadas se conservan. El estado del servidor puede ser desconocido.</string>
+    <string name="trust_restore">Restaurar solicitud original</string>
+    <string name="trust_owner_only">Solo el propietario de la pista puede iniciar esta solicitud.</string>
+    <string name="trust_report">Denunciar</string>
+    <string name="trust_dispute">Disputa de derechos</string>
+    <string name="trust_appeal">Apelación del propietario</string>
 </resources>

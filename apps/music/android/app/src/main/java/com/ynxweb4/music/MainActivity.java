@@ -201,16 +201,23 @@ public final class MainActivity extends Activity {
     private void caseDialog(JSONObject track){
         if(!hasCurrentSnapshot())return;
         if(state.has("caseIntent")){status.setText(R.string.trust_pending);return;}
-        final long openedGeneration=authGeneration;LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);Spinner kind=new Spinner(this);kind.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,MusicIO.list("report","dispute","appeal")));EditText reason=new EditText(this);reason.setHint(R.string.rights_declaration);EditText evidence=new EditText(this);evidence.setHint(R.string.rights_evidence);form.addView(kind);form.addView(reason);form.addView(evidence);
+        final long openedGeneration=authGeneration;final String[] kinds=MusicTrustCase.ownsTrack(state,api.account(),track.optString("id"))?new String[]{"report","dispute","appeal"}:new String[]{"report","dispute"};
+        LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);Spinner kind=new Spinner(this);String[] labels=kinds.length==3?new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute),getString(R.string.trust_appeal)}:new String[]{getString(R.string.trust_report),getString(R.string.trust_dispute)};kind.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));EditText reason=new EditText(this);reason.setHint(R.string.rights_declaration);EditText evidence=new EditText(this);evidence.setHint(R.string.rights_evidence);form.addView(kind);form.addView(reason);form.addView(evidence);
         trackDialog(new AlertDialog.Builder(this).setTitle(R.string.rights).setView(form).setNegativeButton(R.string.cancel,null).setPositiveButton(R.string.upload,(d,w)->{
             if(openedGeneration!=authGeneration||!hasCurrentSnapshot()||caseBusyGeneration==openedGeneration)return;
-            try{new MusicTrustCase(api,store).stage(String.valueOf(kind.getSelectedItem()),track.optString("id"),reason.getText().toString(),evidence.getText().toString());state=store.load();retryCase(openedGeneration);}catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}
+            try{new MusicTrustCase(api,store).stage(kinds[kind.getSelectedItemPosition()],track.optString("id"),reason.getText().toString(),evidence.getText().toString());state=store.load();retryCase(openedGeneration);}catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}
         }).show());
     }
     private void renderPendingCase(){
-        JSONObject pending=state.optJSONObject("caseIntent");if(pending==null)return;
-        content.addView(text(getString(R.string.trust_pending),14));JSONObject body=pending.optJSONObject("body");if(body!=null)content.addView(text(body.optString("reason"),14));
-        final long generation=authGeneration;Button retry=button(getString(R.string.retry));retry.setEnabled(caseBusyGeneration!=generation);retry.setOnClickListener(v->retryCase(generation));content.addView(retry);
+        JSONObject pending=state.optJSONObject("caseIntent");final long generation=authGeneration;
+        if(pending!=null){
+            content.addView(text(getString(R.string.trust_pending),14));JSONObject body=pending.optJSONObject("body");if(body!=null)content.addView(text(body.optString("reason"),14));
+            Button retry=button(getString(R.string.retry));retry.setEnabled(caseBusyGeneration!=generation);retry.setOnClickListener(v->retryCase(generation));content.addView(retry);
+            Button pause=button(getString(R.string.trust_pause));pause.setEnabled(caseBusyGeneration!=generation);pause.setOnClickListener(v->trackDialog(new AlertDialog.Builder(this).setTitle(R.string.trust_pause).setMessage(R.string.trust_pause_confirm).setNegativeButton(R.string.cancel,null).setPositiveButton(android.R.string.ok,(d,w)->{
+                if(generation!=authGeneration||caseBusyGeneration==generation)return;try{state=store.pauseCase(pending,api::assertCurrent);status.setText(R.string.trust_paused);render();}catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}
+            }).show()));content.addView(pause);
+        }
+        JSONArray history=state.optJSONArray("caseHistory");if(history!=null&&history.length()>0){content.addView(text(getString(R.string.trust_paused),14));for(int i=0;i<history.length();i++){final JSONObject saved=history.optJSONObject(i);if(saved==null)continue;JSONObject body=saved.optJSONObject("body");Button restore=button(getString(R.string.trust_restore)+" · "+(body==null?"":body.optString("reason")));restore.setEnabled(pending==null&&caseBusyGeneration!=generation);restore.setOnClickListener(v->{if(generation!=authGeneration||caseBusyGeneration==generation)return;try{state=store.restoreCase(saved,api::assertCurrent);render();status.setText(R.string.trust_pending);}catch(Exception error){status.setText(getString(R.string.retry)+": "+error.getMessage());}});content.addView(restore);}}
     }
     private void retryCase(long generation){
         if(generation!=authGeneration||caseBusyGeneration==generation||!hasCurrentSnapshot())return;

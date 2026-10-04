@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.</string>
     <string name="cancel_upload">Batalkan draf</string>
     <string name="trust_pending">Permintaan tersimpan. Konfirmasi Trust masih tertunda. Coba lagi permintaan ini.</string>
+    <string name="trust_pause">Jeda percobaan ulang lokal</string>
+    <string name="trust_pause_confirm">Jeda percobaan ulang di perangkat ini? Kasus mungkin sudah dikirim. Tindakan ini tidak menariknya. Permintaan asli tetap disimpan dan dapat dipulihkan.</string>
+    <string name="trust_paused">Permintaan yang dijeda tetap disimpan. Status server mungkin belum diketahui.</string>
+    <string name="trust_restore">Pulihkan permintaan asli</string>
+    <string name="trust_owner_only">Hanya pemilik lagu yang dapat memulai permintaan ini.</string>
+    <string name="trust_report">Laporkan</string>
+    <string name="trust_dispute">Sengketa hak</string>
+    <string name="trust_appeal">Banding pemilik</string>
 </resources>

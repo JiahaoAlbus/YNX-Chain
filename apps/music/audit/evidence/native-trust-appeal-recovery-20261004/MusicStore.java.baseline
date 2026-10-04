@@ -126,26 +126,10 @@ final class MusicStore {
         else{if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original upload intent changed");current.remove("uploadIntent");}
         save(current);
     }}
-    JSONObject prepareCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+    void prepareCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
         guard.check();requireAccount(account);MusicTrustCase.validateIntent(intent,account);JSONObject current=load();
         if(current.has("caseIntent"))throw new IOException("Original pending Trust request must be retried first");
-        JSONArray history=current.optJSONArray("caseHistory");JSONObject original=intent;
-        if(history!=null)for(int i=0;i<history.length();i++){JSONObject saved=history.getJSONObject(i);MusicTrustCase.validateIntent(saved,account);if(NativeProductState.canonical(saved.getJSONObject("body")).equals(NativeProductState.canonical(intent.getJSONObject("body")))){original=saved;history.remove(i);break;}}
-        // Existing original-key recovery precedes the NEW request owner check,
-        // matching the service's idempotent replay rule. Server remains final.
-        if(original==intent){JSONObject body=intent.getJSONObject("body");if((body.getString("kind").equals("appeal")||body.getString("kind").equals("takedown"))&&!MusicTrustCase.ownsTrack(current,account,body.getString("trackID")))throw new IOException("Only the original track owner can start this request");}
-        current.put("caseIntent",new JSONObject(original.toString()));guard.check();save(current);return new JSONObject(original.toString());
-    }}
-    JSONObject pauseCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
-        guard.check();requireAccount(account);MusicTrustCase.validateIntent(intent,account);JSONObject current=load(),pending=current.optJSONObject("caseIntent");
-        if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original Trust intent changed");
-        JSONArray history=current.optJSONArray("caseHistory");if(history==null){history=new JSONArray();current.put("caseHistory",history);}if(history.length()>=64)throw new IOException("Retained Trust request history is full");
-        history.put(new JSONObject(pending.toString()));current.remove("caseIntent");if(current.toString().getBytes(StandardCharsets.UTF_8).length>8*1024*1024)throw new IOException("Retained Music state is too large");guard.check();save(current);return current;
-    }}
-    JSONObject restoreCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
-        guard.check();requireAccount(account);MusicTrustCase.validateIntent(intent,account);JSONObject current=load();if(current.has("caseIntent"))throw new IOException("Original pending Trust request already exists");
-        JSONArray history=current.optJSONArray("caseHistory");int found=-1;if(history!=null)for(int i=0;i<history.length();i++)if(NativeProductState.canonical(history.getJSONObject(i)).equals(NativeProductState.canonical(intent))){found=i;break;}
-        if(found<0)throw new IOException("Original retained Trust intent changed");current.put("caseIntent",new JSONObject(intent.toString()));history.remove(found);guard.check();save(current);return current;
+        current.put("caseIntent",new JSONObject(intent.toString()));guard.check();save(current);
     }}
     void acknowledgeCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
         guard.check();requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("caseIntent");

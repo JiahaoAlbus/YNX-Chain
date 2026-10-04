@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Cancelar este rascunho? O áudio recebido pelo servidor será mantido.</string>
     <string name="cancel_upload">Cancelar rascunho</string>
     <string name="trust_pending">Pedido salvo. A confirmação do Trust está pendente. Tente este pedido novamente.</string>
+    <string name="trust_pause">Pausar novas tentativas locais</string>
+    <string name="trust_pause_confirm">Pausar as tentativas neste dispositivo? O caso pode já ter sido enviado. Isso não o retira. A solicitação original será preservada e poderá ser restaurada.</string>
+    <string name="trust_paused">Solicitações pausadas são preservadas. O estado no servidor pode ser desconhecido.</string>
+    <string name="trust_restore">Restaurar solicitação original</string>
+    <string name="trust_owner_only">Somente o proprietário da faixa pode iniciar esta solicitação.</string>
+    <string name="trust_report">Denunciar</string>
+    <string name="trust_dispute">Disputa de direitos</string>
+    <string name="trust_appeal">Recurso do proprietário</string>
 </resources>

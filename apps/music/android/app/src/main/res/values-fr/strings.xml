@@ -17,4 +17,12 @@
     <string name="cancel_upload_draft">Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.</string>
     <string name="cancel_upload">Annuler le brouillon</string>
     <string name="trust_pending">Demande enregistrée. Confirmation Trust en attente. Réessayez cette demande.</string>
+    <string name="trust_pause">Suspendre les nouvelles tentatives</string>
+    <string name="trust_pause_confirm">Suspendre les tentatives sur cet appareil ? Le dossier peut déjà être envoyé. Il ne sera pas retiré. La demande originale reste conservée et peut être restaurée.</string>
+    <string name="trust_paused">Les demandes suspendues sont conservées. Le statut du serveur peut être inconnu.</string>
+    <string name="trust_restore">Restaurer la demande originale</string>
+    <string name="trust_owner_only">Seul le propriétaire du morceau peut lancer cette demande.</string>
+    <string name="trust_report">Signaler</string>
+    <string name="trust_dispute">Litige sur les droits</string>
+    <string name="trust_appeal">Recours du propriétaire</string>
 </resources>
