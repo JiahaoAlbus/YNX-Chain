@@ -1,0 +1,51 @@
+{
+  "schema": "ynx-original-effect-node-commitment-source-candidate/v1",
+  "originalBaseCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "originalBaseTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  "predecessorManifestSHA256": "0e63fde2a64b0911aab9b66c049636260a71255e4ca464780a5e8200333c41b0",
+  "changedSourcePaths": [
+    "internal/productsessionv2/original_effect_participant.go",
+    "internal/productsessionv2/original_effect_participant_test.go"
+  ],
+  "unchanged52InheritedSourceFiles": true,
+  "old70FreezeUnchanged": true,
+  "digestNamespaces": {
+    "WireDigest": "actual raw SHA256",
+    "ActionBodyDigest": "original Action.BodyDigest, equal actual WireDigest",
+    "NodeRequestDigest": "opaque original FULL commitment from fixed protected durable mapper, algorithm NOT_SUPPLIED",
+    "NodeOperationID": "opaque original Node ID from same mapper, no derived algorithm"
+  },
+  "finalCurrentFiniteFence": {
+    "afterCurrentAndClone": true,
+    "checksOriginalActionAndSessionExpiry": true,
+    "checksOriginalAndLocalContext": true
+  },
+  "affectedRace": {
+    "exit": 0,
+    "topLevel": 9,
+    "subtests": 38,
+    "old11Full13Repeated": false,
+    "testsAreCoordinationModels": true
+  },
+  "unchangedIndependentExpiryProbe": {
+    "sha256": "51059ada5056ed6e08878fcd10a47a472203eef75a384b5bcd5b315478092b2a",
+    "exit": 0,
+    "pass": 1,
+    "assertionChanged": false,
+    "oldRedPreserved": true
+  },
+  "archive": {
+    "members": 58,
+    "sourceFiles": 54,
+    "metadataFiles": 4,
+    "bytes": 108035,
+    "sha256": "6beec8686f805b4fb11b6421cee962d94fa5721b81504c43e4c38dfad755046b",
+    "doubleBuildIdentical": true
+  },
+  "fixedOriginalMapperProducer": "NOT_SUPPLIED",
+  "NodeGoTransportAndRecoveryProof": "NOT_IMPLEMENTED",
+  "durableProductSourceIntegration": "NOT_VERIFIED",
+  "distributedAtomicity": false,
+  "sourceAdmission": "PENDING_ROOT_REVIEW",
+  "HostNetworkNodeSDKKeysENV": false
+}

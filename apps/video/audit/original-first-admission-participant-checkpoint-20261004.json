@@ -1,0 +1,152 @@
+{
+  "sourceCommit": "ed1111b0498d59b0ca7b9a8e0f0a2d72d8bac5cf",
+  "sourceTree": "0d462674b754e3ed071e8313f6f08b03598f1362",
+  "parentDelivery": "adf7d6d6e2087a6f7b3c58f1318f3442cd6e49fa",
+  "ownedPaths": [
+    "internal/music/original_operation.go",
+    "internal/music/original_participant.go",
+    "internal/music/original_participant_test.go",
+    "internal/video/original_operation.go",
+    "internal/video/original_participant.go",
+    "internal/video/original_participant_test.go"
+  ],
+  "matchingFiles": 337,
+  "intake": {
+    "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/original-effect-node-commitment-successor-c5-20261004",
+    "manifestSHA256": "df0e45784ac97936bcc2ff7316d2f94434b6052a9b808dcb1eec1c076e7c5124",
+    "archiveSHA256": "6beec8686f805b4fb11b6421cee962d94fa5721b81504c43e4c38dfad755046b",
+    "verifiedFrozenFiles": 78,
+    "verifiedArchiveMembers": 58,
+    "selectedOnly": [
+      {
+        "path": "internal/productsessionv2/original_effect_participant.go",
+        "bytes": 19917,
+        "sha256": "5e9ea4439ccc8a1ee7a29c0a9dc641ea7058e70e1fbffb468fff4c4d72ccef16"
+      },
+      {
+        "path": "internal/productsessionv2/original_effect_participant_test.go",
+        "bytes": 23931,
+        "sha256": "adaa9196c1940341b3a333c32010f5fc82bde68322e52226fb48c12195039b40"
+      }
+    ],
+    "independentReport": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/original-effect-node-commitment-successor-independent-review/REPORT.md",
+    "independentReportSHA256": "3f8e1c545d90d4c4a0fb60e01d65d5a1b450f979da9510c4150a639aed3971f8",
+    "admission": "LIMITED_SOURCE_PASS; actual mapper/reservation/readback/enrollment not supplied",
+    "realProducer": false,
+    "wholeOldPackageNotOverlaid": true
+  },
+  "existing331OutsideSixOwnedPathsVerifiedUnchanged": true,
+  "newOwnedAPI": [
+    "PrepareOriginalVideoParticipant",
+    "PrepareOriginalMusicParticipant"
+  ],
+  "metadata": "optional OwnedOperationID preserves op.ID separately; prior OperationID remains actual NodeOperationID; NodeRequestDigest and ActionBodyDigest remain independent",
+  "firstAdmission": "adapter preserves marked context/full exact operation and original errors; no-callback existing UNKNOWN is typed unavailable; subsequent same-lease local phases use fresh coordinator capture without new reservation",
+  "validation": {
+    "ownedTaggedAffectedTargets": 16,
+    "videoTaggedRace": "PASS2.457s",
+    "musicTaggedRace": "PASS2.341s",
+    "ownedDefaultCompatibilityTargets": 12,
+    "videoDefaultRace": "PASS1.899s",
+    "musicDefaultRace": "PASS1.827s",
+    "twoOwnedTaggedVet": "exit0",
+    "twoOriginalBackendBuilds": "exit0 darwin-arm64 local/unknown",
+    "sharedInheritedSuiteNotRepeated": true,
+    "rootExpiryProbeNotRepeated": true,
+    "controlledModelsOnly": true,
+    "firstOperatorPrecedenceCompileFailureRetained": true
+  },
+  "candidates": {
+    "video-candidate": {
+      "bytes": 11075282,
+      "sha256": "b8a1e00d64f4a65909ebb65c3ae8c19c15e9cc4ee05638a90c4ee61cd91242f6"
+    },
+    "music-candidate": {
+      "bytes": 14332786,
+      "sha256": "fd971ec716d4c9371149a13d632fccaaac67fc20af559c5b1aacafd4ae9f8711"
+    }
+  },
+  "remaining": [
+    "real fixed protected mapper/reservation/readback producers absent",
+    "initial genuine association must precede first product commit; no self-bootstrap via absent Media journal/gate recursion/HTTP",
+    "actual Node writer transaction topology/enrollment/current/privategeneration/actor absent",
+    "authenticated provider final and expired-session original recovery contract not supplied",
+    "formal Host install/readback unresolved, old remote partial UNKNOWN retained",
+    "actual existing unlocked Wallet/native本人业务 not verified"
+  ],
+  "releaseComplete": false,
+  "artifacts": {
+    "intake.json": {
+      "bytes": 1285,
+      "sha256": "4ed83b6169832adc2ecc00b4566332e9b38b830e93277ce318cfe97d43fe64e6"
+    },
+    "matching-build-source.tar.gz": {
+      "bytes": 1326422,
+      "sha256": "7c89468ecbd6e3cc943195a7d1ec8595b9b553a7bc10f28693c8d695f74ce39e"
+    },
+    "matching-source-manifest.json": {
+      "bytes": 66034,
+      "sha256": "428de856c9159b734f3d42cf33369a8ccb737cd8e607009459f32bcafe5805d7"
+    },
+    "music-build.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "owned-affected-final-race.txt": {
+      "bytes": 120,
+      "sha256": "952c3d10a5b181c6042e2fcc94736f1a08467875908d3afd1dea7e8f3c5e3673"
+    },
+    "owned-after-adf.patch": {
+      "bytes": 28586,
+      "sha256": "8ef9c713c818b0335b3bc0860eb53e3054e5799451cad9989c3fcf09ffa61f2c"
+    },
+    "owned-default-compatibility-race.txt": {
+      "bytes": 120,
+      "sha256": "3996e8ecbb365186c472310aed2c687d3c28f4e1cec85eb3db633a14be17dd45"
+    },
+    "owned-first-admission-race-fixed.txt": {
+      "bytes": 120,
+      "sha256": "e337a0d79911c54fccbdda4612b489086af62c32daaed236168937754be07804"
+    },
+    "owned-first-admission-race.txt": {
+      "bytes": 570,
+      "sha256": "191751fd856e417516c6a32bf01735ee88f29ae75eb64fe3ae8df431a25dd851"
+    },
+    "owned-six-source.tar.gz": {
+      "bytes": 7886,
+      "sha256": "1f6f2e2a321d6267ba4302350909eea56a3c140b252927317ed8ff9f5d536fce"
+    },
+    "owned-source-manifest.json": {
+      "bytes": 1175,
+      "sha256": "46e0b685c18aabc138ba3db80d192d65a238c4e6b57d8aa6f7e2e85db3a38b0a"
+    },
+    "shared-HANDOFF.md": {
+      "bytes": 2746,
+      "sha256": "b63865948c4458e0b1d6748ead7863c334f18ca883e6eca1940059ede4264c2f"
+    },
+    "shared-ORIGINAL_EFFECT_NODE_COMMITMENT_CONTRACT.md": {
+      "bytes": 11640,
+      "sha256": "e8b88dd09b609a9878f27ab0f0ce5bcae12d185f19984eeafdc42979c226d7fa"
+    },
+    "shared-freeze-manifest.json": {
+      "bytes": 14647,
+      "sha256": "df0e45784ac97936bcc2ff7316d2f94434b6052a9b808dcb1eec1c076e7c5124"
+    },
+    "shared-independent-REPORT.md": {
+      "bytes": 10249,
+      "sha256": "3f8e1c545d90d4c4a0fb60e01d65d5a1b450f979da9510c4150a639aed3971f8"
+    },
+    "shared-receipt.json": {
+      "bytes": 1924,
+      "sha256": "46a79ea487be8c547d23b84214c4551e466dd4799c5881f702703b9643a768cd"
+    },
+    "vet.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "video-build.txt": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

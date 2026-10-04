@@ -1,0 +1,24 @@
+{
+  "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/original-effect-node-commitment-successor-c5-20261004",
+  "manifestSHA256": "df0e45784ac97936bcc2ff7316d2f94434b6052a9b808dcb1eec1c076e7c5124",
+  "archiveSHA256": "6beec8686f805b4fb11b6421cee962d94fa5721b81504c43e4c38dfad755046b",
+  "verifiedFrozenFiles": 78,
+  "verifiedArchiveMembers": 58,
+  "selectedOnly": [
+    {
+      "path": "internal/productsessionv2/original_effect_participant.go",
+      "bytes": 19917,
+      "sha256": "5e9ea4439ccc8a1ee7a29c0a9dc641ea7058e70e1fbffb468fff4c4d72ccef16"
+    },
+    {
+      "path": "internal/productsessionv2/original_effect_participant_test.go",
+      "bytes": 23931,
+      "sha256": "adaa9196c1940341b3a333c32010f5fc82bde68322e52226fb48c12195039b40"
+    }
+  ],
+  "independentReport": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/original-effect-node-commitment-successor-independent-review/REPORT.md",
+  "independentReportSHA256": "3f8e1c545d90d4c4a0fb60e01d65d5a1b450f979da9510c4150a639aed3971f8",
+  "admission": "LIMITED_SOURCE_PASS; actual mapper/reservation/readback/enrollment not supplied",
+  "realProducer": false,
+  "wholeOldPackageNotOverlaid": true
+}

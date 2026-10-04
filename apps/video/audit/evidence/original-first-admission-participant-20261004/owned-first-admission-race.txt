@@ -1,0 +1,7 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/music
+internal/music/original_participant.go:32:6: invalid operation: operator ! not defined on op.Session.ProductID (variable of type string)
+# github.com/JiahaoAlbus/YNX-Chain/internal/music [github.com/JiahaoAlbus/YNX-Chain/internal/music.test]
+internal/music/original_participant.go:32:6: invalid operation: operator ! not defined on op.Session.ProductID (variable of type string)
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video [build failed]
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/music [build failed]
+FAIL
