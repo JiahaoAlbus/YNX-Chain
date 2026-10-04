@@ -113,9 +113,46 @@ async function fixture(){
   const browser=await chromium.launch(await financeBrowserLaunchOptions()),context=await browser.newContext(),page=await context.newPage();
   const errors=[];let requests=0;page.on('pageerror',e=>errors.push(e.message));await page.route('**/*',route=>{requests++;return route.abort()});
   await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
-  await page.addScriptTag({content:`const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],financeText=k=>k,esc=v=>String(v??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');const state={context:1},formUncommittedDrafts=new WeakMap();let ownedFormAccount=null;const sources=[];function sourceStatus(...v){sources.push(v)}function rememberOwnedFormDrafts(){}function restoreOwnedFormDrafts(){}function refreshBrokerSnapshot(){}async function refreshBrokerWorkspace(){return null}async function restoreBrokerApproval(){}async function completeBrokerCallback(){}function notifyFailure(){}function route(){};${formatters}\n${views}\nwindow.overviewQA={render,sources};`});
+  await page.addScriptTag({content:`const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],financeText=k=>window.YNXFinanceLocale?.text(k)??k,esc=v=>String(v??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');const state={context:1},formUncommittedDrafts=new WeakMap();let ownedFormAccount=null;const sources=[];function sourceStatus(...v){sources.push(v)}function rememberOwnedFormDrafts(){}function restoreOwnedFormDrafts(){}function refreshBrokerSnapshot(){}async function refreshBrokerWorkspace(){return null}async function restoreBrokerApproval(){}async function completeBrokerCallback(){}function notifyFailure(){}function route(){};${formatters}\n${views}\nwindow.overviewQA={render,sources};`});
   return {browser,page,context,errors,requests:()=>requests};
 }
+test('statement returned records reconcile exact amounts and references without borrowing overview authority',async()=>{
+  const f=await fixture();try{
+    const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf('let statementOperation='));
+    await f.page.addScriptTag({content:controller+app.slice(app.indexOf('function validateStatementObservation('),app.indexOf('function loadStatement('))});
+    const hash='0x'+'c'.repeat(64),unsafe='<img src=x onerror=alert(1)>',value={schemaVersion:'finance-statement-v2',account:'owned-render-fixture',network:'YNX Testnet',symbol:'YNXT',from:'2026-09-01T00:00:00Z',toExclusive:'2026-10-01T00:00:00Z',coverageComplete:false,calculationStatus:'partial',totals:{incomingYnxt:null,outgoingYnxt:null,feesYnxt:null},observedTotals:{incomingYnxt:7,outgoingYnxt:2,feesYnxt:1},openingBalance:'unavailable',activity:[{id:hash,type:'transfer',direction:'incoming',amountYnxt:7,feeYnxt:0,timestamp:'2026-09-01T00:00:00Z',source:'ynx-explorerd:indexed-transaction'},{id:unsafe,type:unsafe,direction:'outgoing',amountYnxt:2,feeYnxt:1,timestamp:'2026-09-30T23:59:59Z'}]};
+    await f.page.evaluate(value=>{state.overview={portfolio:{explorerStatus:{available:true,source:'https://wrong-overview.invalid'}}};renderStatement(value)},value);
+    assert.equal(await f.page.locator('.statement-records .row').count(),2);
+    assert.deepEqual(await f.page.locator('.statement-records code').allTextContents(),[hash,unsafe]);
+    assert.deepEqual(await f.page.locator('.statement-records .row-value').allTextContents(),['+7 YNXTfeeLabel 0','-2 YNXTfeeLabel 1']);
+    assert.equal(await f.page.locator('.statement-records a,.statement-records img').count(),0);
+    value.sourceStatus={explorer:{available:true,source:'https://statement-explorer.invalid'}};
+    await f.page.evaluate(value=>renderStatement(value),value);
+    assert.equal(await f.page.locator('.statement-records a').getAttribute('href'),'https://statement-explorer.invalid/tx/'+hash);
+    await f.page.addStyleTag({content:await readFile(new URL('../web/styles.css',import.meta.url),'utf8')});
+    await f.page.setViewportSize({width:390,height:844});
+    await f.page.evaluate(()=>{document.querySelector('#workspace').classList.remove('hidden');document.querySelector('#statements').classList.add('active');document.querySelector('#statement .statement-records summary').click()});
+    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,'expanded full reference must fit mobile layout');
+    await f.page.addScriptTag({content:await readFile(new URL('../web/finance-locale.js',import.meta.url),'utf8')});
+    for(const locale of await f.page.evaluate(()=>YNXFinanceLocale.supported)){
+      await f.page.locator('#finance-language').selectOption(locale);await f.page.evaluate(value=>renderStatement(value),value);
+      assert.equal(await f.page.locator('.statement-records h3').textContent(),await f.page.evaluate(()=>YNXFinanceLocale.text('returnedRecords')));
+      assert.deepEqual(await f.page.locator('.statement-records code').allTextContents(),[hash,unsafe]);
+    }
+    await f.page.evaluate(value=>renderStatement({...value,calculationStatus:'unknown',observedTotals:null}),value);
+    assert.equal(await f.page.locator('.statement-records').count(),0,'unreconciled observations must not look verified');
+    await f.page.evaluate(value=>renderStatement({...value,activity:[],observedTotals:{incomingYnxt:0,outgoingYnxt:0,feesYnxt:0}}),value);
+    assert.equal(await f.page.locator('.statement-records .row').count(),0);
+    assert.equal(await f.page.locator('.statement-records .empty').count(),1);
+    const clear=app.slice(app.indexOf('function clearPrivateView('),app.indexOf('async function logout('));
+    await f.page.addScriptTag({content:`function hideBrokerApproval(){}function renderBrokerWorkspace(){}function renderBrokerSnapshot(){}function renderSignedOut(){}let brokerSnapshotState,brokerWorkspaceUnavailable;${clear}`});
+    await f.page.evaluate(value=>{state.statement=value;renderStatement(value);clearPrivateView({clearOpaquePending:false})},value);
+    assert.equal(await f.page.locator('#statement').textContent(),'—');
+    assert.equal(await f.page.locator('#statement code,#statement a').count(),0);
+    assert.equal(await f.page.evaluate(()=>state.statement),null);
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('actual complete overview handles unavailable source metadata and malformed alerts without losing planning or safe support',async()=>{
   const f=await fixture();try{
     const value=overview();value.profile.categories=[{id:'cat',name:'Owned category',color:'#002fa7'}];value.profile.budgets=[{id:'budget',name:'Owned budget',period:'monthly',limitYnxt:0}];value.support={helpUrl:'javascript:alert(1)'};
