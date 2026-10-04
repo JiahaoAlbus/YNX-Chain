@@ -1,0 +1,8 @@
+# Original Web Matrix SDK historical reader routing
+
+Original product base: d86de3b88b674a4e283f86d69504f9c86f55ab65.
+Original five source-caller probes: four failures and one pass. The former messages caller offered unsupported encrypted event types and algorithms to the original SDK decrypt call. Original red output is preserved. This controlled SDK fixture is not proof that the actual SDK would decrypt an unsupported algorithm or expose real plaintext.
+
+The actual production messages caller now checks SDK wire type/content before the old decrypt path. Only original m.room.encrypted Olm/Megolm events enter that path. New Veil versions, unknown algorithms and custom legacy XChaCha events remain intact and receive a blocked presentation; they are not forwarded to an inappropriate reader. This does not implement their admitted reader, decrypt custom historical content or enable the new engine. Existing legacy Matrix histories continue through the original SDK and its sender-verification checks. No store, ciphertext, protocol, context authority or key migration occurs.
+
+SDK getWireType/getWireContent declarations were located in the owner-installed matrix-js-sdk source. The existing sender-warning fixture gained those actual SDK wire methods, preserving its original assertions. Five new reader probes plus transport/session UI checks: 100 pass, zero fail. Isolated current-source web build passed with existing owner dependencies. No deployment, account authorization, signing, transaction, native admission, public private-flow or MONSTER acceptance was performed. Full Social/crypto goal remains NOT_COMPLETE.

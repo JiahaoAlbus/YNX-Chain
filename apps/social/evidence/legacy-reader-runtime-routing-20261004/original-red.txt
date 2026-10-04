@@ -1,0 +1,83 @@
+✖ new Veil v2 never enters the old SDK decrypt path or exposes plaintext (0.885ms)
+✖ unknown future Veil never enters the old SDK decrypt path or exposes plaintext (0.1355ms)
+✖ unknown legacy algorithm never enters the old SDK decrypt path or exposes plaintext (0.083541ms)
+✖ custom XChaCha is not a Matrix SDK reader never enters the old SDK decrypt path or exposes plaintext (0.077708ms)
+✔ original Olm and Megolm history is read through the original SDK without wire mutation (0.125417ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 167.299666
+
+✖ failing tests:
+
+test at apps/social/web/matrix/legacy-reader.test.mjs:13:3
+✖ new Veil v2 never enters the old SDK decrypt path or exposes plaintext (0.885ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/legacy-reader.test.mjs:15:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/web/matrix/legacy-reader.test.mjs:13:3
+✖ unknown future Veil never enters the old SDK decrypt path or exposes plaintext (0.1355ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/legacy-reader.test.mjs:15:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/web/matrix/legacy-reader.test.mjs:13:3
+✖ unknown legacy algorithm never enters the old SDK decrypt path or exposes plaintext (0.083541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/legacy-reader.test.mjs:15:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/web/matrix/legacy-reader.test.mjs:13:3
+✖ custom XChaCha is not a Matrix SDK reader never enters the old SDK decrypt path or exposes plaintext (0.077708ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/legacy-reader.test.mjs:15:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

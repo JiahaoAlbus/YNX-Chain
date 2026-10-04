@@ -7,6 +7,10 @@ import {createBoundedOperation,wipeBytes} from './bounded-operation.mjs';
 export const MATRIX_PROTOCOL = 'ynx-social-matrix/v1';
 export class MatrixPolicyError extends Error { constructor(code,message){super(message);this.code=code} }
 const fail=(code,message)=>{throw new MatrixPolicyError(code,message)};
+// Only the original Matrix SDK algorithms belong to this history reader.
+// Veil and custom legacy envelopes require their own admitted crypto reader;
+// never offer them to the SDK as a downgrade or rewrite their wire contents.
+const matrixLegacyAlgorithms=new Set(['m.olm.v1.curve25519-aes-sha2','m.megolm.v1.aes-sha2']);
 export function validateBinding(binding,account,{localQA=false,expectedUserId}={}){
   if(binding?.protocol!==MATRIX_PROTOCOL||binding.account!==account||!/^ynx1[0-9a-z]{38}$/.test(account))fail('MATRIX_ACCOUNT_MISMATCH','Verified YNX identity and transport binding differ');
   const url=new URL(binding.homeserver);if(url.username||url.password||url.pathname!=='/'||url.search||url.hash||!(url.protocol==='https:'||(localQA&&url.protocol==='http:'&&['127.0.0.1','localhost'].includes(url.hostname))))fail('MATRIX_UNSAFE_ORIGIN','A fixed secure homeserver is required');
@@ -90,7 +94,9 @@ export class MatrixSocialTransport {
     await this.assertTrusted(roomId,operation);this.guard(operation);const result=await operation.client.sendMessage(roomId,{msgtype:'m.file',body:name.slice(0,255),file:{...encrypted.info,url:uploaded.content_uri},info:{size:bytes.byteLength,mimetype:mimeType}});this.guard(operation);return result;
   }
   async messages(roomId){const operation=this.capture(),room=operation.client.getRoom(roomId);if(!room)return [];const events=room.getLiveTimeline().getEvents();const result=[];
-    for(const event of events){if(!event.isEncrypted())continue;await operation.client.decryptEventIfNeeded(event);this.guard(operation);if(event.isDecryptionFailure())continue;if(event.getType()!=='m.room.message')continue;const verification=await operation.client.getCrypto().getEncryptionInfoForEvent(event);this.guard(operation);if(!verification||verification.shieldColour!==0){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: sender authentication warning'},encrypted:true,verification});continue}
+    for(const event of events){this.guard(operation);const wireType=event.getWireType?.();if(!event.isEncrypted()&&!wireType?.startsWith('com.ynx.social.veil.encrypted'))continue;
+      if(wireType!=='m.room.encrypted'||!matrixLegacyAlgorithms.has(event.getWireContent?.()?.algorithm)){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: this version requires its original crypto reader'},encrypted:true,verification:null});continue}
+      await operation.client.decryptEventIfNeeded(event);this.guard(operation);if(event.isDecryptionFailure())continue;if(event.getType()!=='m.room.message')continue;const verification=await operation.client.getCrypto().getEncryptionInfoForEvent(event);this.guard(operation);if(!verification||verification.shieldColour!==0){result.push({id:event.getId(),sender:event.getSender(),content:{body:'Encrypted message blocked: sender authentication warning'},encrypted:true,verification});continue}
       const record={id:event.getId(),sender:event.getSender(),content:structuredClone(event.getContent()),encrypted:true,verification,remoteConfirmed:event.status===null&&/^\$[^\s\x00-\x1f]{1,254}$/.test(event.getId()),timestamp:event.getTs?.(),localStatus:event.status,
         readByPeer:(room.getUsersReadUpTo?.(event)??[]).some(user=>user!==operation.binding.userId)};
       // Own remote echoes only. Pending local echoes cannot settle delivery.
