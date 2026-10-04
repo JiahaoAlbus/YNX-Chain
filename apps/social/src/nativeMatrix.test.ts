@@ -31,6 +31,50 @@ function fixture() {
     originals: () => originalEntries, count: () => sendCount, emit(event: MatrixNativeEvent) { listener?.(event); } };
 }
 
+for (const failure of [false, true]) {
+  test(`old logout ${failure ? 'failure' : 'completion'} cannot lock a newer restored session`, async () => {
+    const f = fixture();
+    let finish!: () => void;
+    let fail!: (error: Error) => void;
+    let entered!: () => void;
+    const started = new Promise<void>(resolve => { entered = resolve; });
+    const pending = new Promise<void>((resolve, reject) => { finish = resolve; fail = reject; });
+    const seen: MatrixNativeEvent[] = [];
+    f.consumer.listen(event => seen.push(event));
+    f.bridge.logout = async generation => {
+      assert.equal(generation, 7);
+      entered();
+      await pending;
+    };
+    const original: MatrixPendingIntent = { intentId: `native-matrix-${'d'.repeat(32)}`,
+      roomId: room.roomId, kind: 'text', body: 'Original', state: 'unknown', eventId: null };
+    f.setOriginals([original]);
+    await f.consumer.restore();
+    const older = f.consumer.logout();
+    const outcome = failure ? assert.rejects(older, /OLD_LOGOUT_FAILED/) : older;
+    await started;
+    // Reused native generation numbers still require a distinct consumer epoch.
+    await f.consumer.restore();
+    await f.consumer.open(person);
+    const before = seen.length;
+    if (failure) fail(new Error('OLD_LOGOUT_FAILED')); else finish();
+    await outcome;
+    assert.equal(seen.length, before, 'old operation must not emit a new locked event');
+    assert.equal((await f.consumer.rooms()).length, 1);
+    assert.equal((await f.consumer.originals())[0]?.intentId, original.intentId);
+    assert.deepEqual(f.originals(), [original]);
+    f.consumer.lock();
+  });
+}
+
+test('current-session logout still locks even when the native operation fails', async () => {
+  const f = fixture();
+  f.bridge.logout = async () => { throw new Error('CURRENT_LOGOUT_FAILED'); };
+  await f.consumer.restore();
+  await assert.rejects(f.consumer.logout(), /CURRENT_LOGOUT_FAILED/);
+  await assert.rejects(f.consumer.rooms(), /SESSION_REQUIRED/);
+});
+
 test('binding rejects insecure HS, expired authority, callback URLs and invalid identity', () => {
   for (const value of [{ ...binding, homeserverUrl: 'http://hs.example.test' }, { ...binding, expiresAtMs: 0 },
     { ...binding, homeserverUrl: 'https://hs.example.test/callback' }, { ...binding, userId: 'wallet-address' }]) {

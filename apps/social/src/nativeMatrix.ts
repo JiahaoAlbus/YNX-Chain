@@ -412,6 +412,8 @@ export class NativeMatrixConsumer {
 
   async logout() {
     const { generation } = await this.authority();
-    try { await this.bridge.logout(generation); } finally { this.lock(); }
+    const epoch = this.epoch;
+    try { await this.bridge.logout(generation); }
+    finally { if (this.epoch === epoch && this.generation === generation) this.lock(); }
   }
 }
