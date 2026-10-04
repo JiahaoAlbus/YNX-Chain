@@ -1,0 +1,14 @@
+✔ wrapping failure wipes generated plaintext key and closes original database (0.929667ms)
+✔ metadata failure after key generation also wipes plaintext without inserting replacement (0.386667ms)
+✔ invalid decrypted key is wiped while original encrypted record is preserved (0.142ms)
+✔ valid recovered key stays usable while temporary generated plaintext is wiped (0.1375ms)
+✔ real WebCrypto preserves the original device and wrapped key across recovery (4.617333ms)
+✔ real WebCrypto rejects corrupted ciphertext without replacing the original record (0.537875ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49.320083

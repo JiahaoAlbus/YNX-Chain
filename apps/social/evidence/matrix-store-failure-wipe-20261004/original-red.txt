@@ -1,0 +1,65 @@
+✖ wrapping failure wipes generated plaintext key and closes original database (4.193208ms)
+✖ metadata failure after key generation also wipes plaintext without inserting replacement (0.239792ms)
+✖ invalid decrypted key is wiped while original encrypted record is preserved (0.177458ms)
+✔ valid recovered key stays usable while temporary generated plaintext is wiped (0.45875ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 1
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.119167
+
+✖ failing tests:
+
+test at apps/social/web/matrix/crypto-store.failure.test.mjs:21:1
+✖ wrapping failure wipes generated plaintext key and closes original database (4.193208ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(state.secret.every(byte=>byte===0))
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/crypto-store.failure.test.mjs:24:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at apps/social/web/matrix/crypto-store.failure.test.mjs:26:1
+✖ metadata failure after key generation also wipes plaintext without inserting replacement (0.239792ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(state.secret.every(byte=>byte===0))
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/crypto-store.failure.test.mjs:29:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at apps/social/web/matrix/crypto-store.failure.test.mjs:31:1
+✖ invalid decrypted key is wiped while original encrypted record is preserved (0.177458ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(state.decrypted.every(byte=>byte===0))
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/crypto-store.failure.test.mjs:35:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
