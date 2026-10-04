@@ -125,8 +125,24 @@ fi
 dmg_root="$root/dmg-root"
 dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 mkdir -p "$dmg_root"
-COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
+# APFS can stage an identical copy without duplicating all runtime blocks.
+# Other filesystems retain the existing regular-copy route.
+if ! COPYFILE_DISABLE=1 cp -cXR "$app" "$dmg_root/"; then
+  # Preserve a failed clone attempt; the fallback starts in a fresh directory.
+  dmg_root="$root/dmg-root-fallback"
+  mkdir "$dmg_root"
+  COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
+fi
 /usr/bin/hdiutil create -ov -format UDZO -volname "YNX Developer Testnet Preview" -srcfolder "$dmg_root" "$dmg" >/dev/null
 /usr/bin/shasum -a 256 "$dmg" | tee "$root/SHA256SUMS.txt"
+# Only a successful image's generated, holder-free staging duplicate is
+# disposable. Keep the original app, DMG and all failed/partial builds.
+holder_status=0
+/usr/sbin/lsof -nP +D "$dmg_root" > "$root/dmg-staging-holder.log" 2>&1 || holder_status=$?
+if [[ "$holder_status" -eq 1 && ! -s "$root/dmg-staging-holder.log" && -d "$dmg_root" && ! -L "$dmg_root" && ( "$dmg_root" == "$root/dmg-root" || "$dmg_root" == "$root/dmg-root-fallback" ) ]]; then
+  /usr/bin/find "$dmg_root" -print > "$root/dmg-staging-deleted-paths.txt"
+  rm -rf -- "$dmg_root"
+  printf '%s\n' 'Generated DMG staging duplicate deleted; original app, DMG, source provenance and package receipts retained.' > "$root/dmg-staging-cleanup.txt"
+fi
 echo "Embedded source commit $source_commit, source tree $source_tree and SBOM SHA-256 $sbom_sha."
 echo "Built unsigned macOS Testnet Preview DMG with an ad-hoc app signature, bundled portable runtime and no team identity. This is not a Developer ID signed or notarized production desktop release."

@@ -26,6 +26,7 @@ const { YnxKeybindingRegistry } = require('./keybinding-registry');
 const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget-manager');
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
+require('./token-cache-adapter').install();
 require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');

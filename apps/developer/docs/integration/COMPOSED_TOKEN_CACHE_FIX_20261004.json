@@ -1,0 +1,270 @@
+{
+  "schemaVersion": 1,
+  "workbenchVersion": "0.3.11",
+  "sourceHashes": {
+    "runtime/ynx-workbench/lib/token-cache-adapter.js": "dff90fc8128a84559360aa50f03076344913c7593834944dd10d82e117884d52",
+    "runtime/ynx-workbench/lib/frontend-module.js": "e4142231ee364402214fcc0d7ca25672548734c787cbcee62c8ff09c73866a52",
+    "runtime/ynx-workbench/package.json": "d2698065f6aa6b8be4968a595d385be08cee0676ce55b9d899f403fa63ef21ed",
+    "runtime/theia/package-lock.json": "0bbd98751c1c443cd0ca1355c09a3f376218a09a8ede122d29b6bc31e9dc9f84",
+    "runtime/theia/scripts/token-cache-adapter.test.mjs": "080d5c3206cf696e1823969460fe9fa50eebda8ed1ab2d650ddf7ef9ee05e5f7",
+    "runtime/theia/scripts/selection-typing.browser.mjs": "8b0c9d0a45236f11423762d22a6d5f8cabf1db7a2c0c587a1070d6636b99754c",
+    "scripts/package-local-macos.sh": "958dbe4a4d8f026f9ba63b472a230bdc21c70c2630c03064ca20d759cb13550b"
+  },
+  "runtimeCandidate": "apps/developer/.ynx-developer-candidates/ynx-composed-token-cache-space-recovered-20261004-mac-arm64",
+  "pin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "0bbd98751c1c443cd0ca1355c09a3f376218a09a8ede122d29b6bc31e9dc9f84",
+    "treeSha256": "a9e03945fd35d66300a0cce4e971b0c079395ba065c6276b5237959899d1f96f",
+    "manifestSha256": "3ae5119a2f1b5d37ccf6e945422217d615a810f18bc4e5eefd9b4b0dbeaf6924"
+  },
+  "ownedBuildReceipt": {
+    "workbenchTreeSha256": "ac150b2143ab30d083c67fb5f1ab0fc992c0dabb59bd6adc183d51867ed59efe",
+    "compiledTreeSha256": "6997897111568aa47df347d25fd96bb785215c096eb97d56fce10bcc43e5cb5d",
+    "packageSha256": "b66f42efd3d56ac8b6b690ff99fcc8035fa30c7497b13ccd9331366c4603a9d4",
+    "lockSha256": "0bbd98751c1c443cd0ca1355c09a3f376218a09a8ede122d29b6bc31e9dc9f84"
+  },
+  "rootCause": "Positive insertion retained EMPTY_LINE_TOKENS for a now nonempty line. Later selected cross-line deletion lost real suffix token coverage: cached length 3 vs actual UTF-16 text length 5. The owned adapter invalidates only that sentinel to upstream null state so existing accurate fallback and normal grammar refill apply. No suggestions, auto-closing, selection-surround or error reporting disabled.",
+  "unitTests": {
+    "exitCode": 0,
+    "passed": 2
+  },
+  "verification": {
+    "selection": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-4HP6Dx",
+      "exitCode": 0,
+      "checks": [
+        "The original unopened-schema completion, selected typing and JSON sort sequence renders and saves the expected surround-selection result without losing text.",
+        "Real JSON selection is surrounded with braces, remains selected, saves exact bytes, and Undo/Redo restore the exact document.",
+        "Typing a quote surrounds the real JSON selection, and subsequent normal text replaces only that selection, preserving its surrounding quotes.",
+        "Rapid and delayed typing over a selected JSON object and real formatting render the same standard surround-selection result and exact saved bytes.",
+        "A multiline Unicode/emoji selection is surrounded and undone without changing its original text or saved bytes.",
+        "Normal rapid JSON typing into an empty document overtypes automatic pairs and produces the exact intended valid saved JSON."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "8b0c9d0a45236f11423762d22a6d5f8cabf1db7a2c0c587a1070d6636b99754c",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-4HP6Dx",
+        "rootPid": 46453,
+        "verifiedGroupMembers": [
+          46453,
+          46482,
+          46487
+        ],
+        "ownedMetadata": "46453 46440 46453 Sun Oct  4 14:49:53 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n46482 46453 46453 Sun Oct  4 14:49:53 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n46487 46453 46453 Sun Oct  4 14:49:53 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n47647 46453 47647 Sun Oct  4 14:50:49 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "core": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-xhAFs9",
+      "exitCode": 0,
+      "checks": [
+        "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+        "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+        "actual editor save writes the selected project file, confirmed on disk",
+        "the inherited YNX logo and product name render in the actual framework workbench",
+        "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+        "closing and reopening the actual file restores saved disk content",
+        "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+        "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+        "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+        "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+        "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+        "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+        "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+        "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+        "continuing the actual debug session executes the target program, confirmed by its disk output",
+        "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+      ],
+      "pageErrors": [],
+      "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-xhAFs9",
+        "rootPid": 46492,
+        "verifiedGroupMembers": [
+          46492,
+          46493,
+          46494
+        ],
+        "ownedMetadata": "46492 46481 46492 Sun Oct  4 14:49:54 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n46493 46492 46492 Sun Oct  4 14:49:54 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n46494 46492 46492 Sun Oct  4 14:49:54 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n47648 46492 47648 Sun Oct  4 14:50:49 2026     /bin/bash\n47870 46492 47870 Sun Oct  4 14:50:54 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "json": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-aqIPMy",
+      "exitCode": 0,
+      "checks": [
+        "Actual JSON mode and stock language server complete a property from an unopened local schema, absent from the active document.",
+        "The contributed JSON Sort Document command activates the existing extension and uses its server to sort real saved properties.",
+        "Real JSON formatter expands the saved object; syntax tokens have distinct textmate colors and the disk object remains exact.",
+        "Normal character-by-character JSON typing from an empty document overtypes automatically paired quotes/braces and saves the exact intended bytes.",
+        "Stock JSON language diagnostics reject a schema-invalid enum even though the document is syntactically valid JSON.",
+        "The own profile shortcut file uses JSONC mode and completes command from the local YNX Tools schema, without a remote schema.",
+        "YNX policy status displays the effective local-schema-only configuration in the real JSON editor; the separate stock API probe proves the policy itself. Native extension automatic language-status delivery remains separate.",
+        "Switching to a real JavaScript editor removes the JSON policy status; returning to JSON restores it."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "1480db73f179138a1e42891c42a75d89eea2b3fda6d6772f0593e31b2b2fbf6b",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-aqIPMy",
+        "rootPid": 48384,
+        "verifiedGroupMembers": [
+          48384,
+          48385,
+          48386
+        ],
+        "ownedMetadata": "48384 48354 48384 Sun Oct  4 14:51:22 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n48385 48384 48384 Sun Oct  4 14:51:23 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n48386 48384 48384 Sun Oct  4 14:51:23 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n55413 48384 55413 Sun Oct  4 14:55:54 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "cpp": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-mQaq1y",
+      "exitCode": 0,
+      "checks": [
+        "Real .cpp files select C++ language mode and the installed upstream syntax contribution.",
+        "Actual installed Clangd and standard VS Code language client complete fields from an unopened header, absent from the active file.",
+        "F12 resolves the call to its actual definition in wallet.hpp through Clangd.",
+        "F2 and Save All apply the real cross-file semantic rename to both the header definition and source reference.",
+        "Normal Format Document uses Clangd and the project .clang-format, then saves the real source bytes.",
+        "Real language-server diagnostics mark the saved C++ error and show its exact identifier, without executing a build task."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "c9216877eecc799e506542a31b4f28ae88ddcce8aa732d3f6dbfa93d3ee1ef14",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-mQaq1y",
+        "rootPid": 56810,
+        "verifiedGroupMembers": [
+          56810,
+          56831,
+          56832
+        ],
+        "ownedMetadata": "56810 56705 56810 Sun Oct  4 14:56:25 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n56831 56810 56810 Sun Oct  4 14:56:26 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n56832 56810 56810 Sun Oct  4 14:56:26 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n57366 56810 57366 Sun Oct  4 14:56:53 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "unpatched-current": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-raCter",
+      "exitCode": 1,
+      "checks": [
+        "The original unopened-schema completion, selected typing and JSON sort sequence renders and saves the expected surround-selection result without losing text.",
+        "Real JSON selection is surrounded with braces, remains selected, saves exact bytes, and Undo/Redo restore the exact document.",
+        "Typing a quote surrounds the real JSON selection, and subsequent normal text replaces only that selection, preserving its surrounding quotes.",
+        "Rapid and delayed typing over a selected JSON object and real formatting render the same standard surround-selection result and exact saved bytes.",
+        "A multiline Unicode/emoji selection is surrounded and undone without changing its original text or saved bytes.",
+        "Normal rapid JSON typing into an empty document overtypes automatic pairs and produces the exact intended valid saved JSON.",
+        {
+          "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   {\n+     message: 'Token length and text length do not match!\\n' +\n+       '\\n' +\n+       'Error: Token length and text length do not match!',\n+     stack: 'Error: Token length and text length do not match!\\n' +\n+       '\\n' +\n+       'Error: Token length and text length do not match!\\n' +\n+       '    at new n (http://127.0.0.1:63258/bundle.js:1132:10610)\\n' +\n+       '    at n.getTokens (http://127.0.0.1:63258/bundle.js:1134:20959)\\n' +\n+       '    at wpt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:28556)\\n' +\n+       '    at Spt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:32496)\\n' +\n+       '    at Spt.getWordAtPosition (http://127.0.0.1:63258/bundle.js:1134:34334)\\n' +\n+       '    at Spt.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1134:35242)\\n' +\n+       '    at uR.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1144:13233)\\n' +\n+       '    at new gV (http://127.0.0.1:63258/bundle.js:1695:16801)\\n' +\n+       '    at IDi._refilterCompletionItems (http://127.0.0.1:63258/bundle.js:1695:22165)\\n' +\n+       '    at wve.value (http://127.0.0.1:63258/bundle.js:1695:18421)\\n' +\n+       '    at new n (http://127.0.0.1:63258/bundle.js:1132:10610)\\n' +\n+       '    at n.getTokens (http://127.0.0.1:63258/bundle.js:1134:20959)\\n' +\n+       '    at wpt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:28556)\\n' +\n+       '    at Spt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:32496)\\n' +\n+       '    at Spt.getWordAtPosition (http://127.0.0.1:63258/bundle.js:1134:34334)\\n' +\n+       '    at Spt.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1134:35242)\\n' +\n+       '    at uR.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1144:13233)\\n' +\n+       '    at new gV (http://127.0.0.1:63258/bundle.js:1695:16801)\\n' +\n+       '    at IDi._refilterCompletionItems (http://127.0.0.1:63258/bundle.js:1695:22165)\\n' +\n+       '    at wve.value (http://127.0.0.1:63258/bundle.js:1695:18421)\\n' +\n+       '    at http://127.0.0.1:63258/bundle.js:502:12',\n+     stage: 'original schema completion then selected typing and sort'\n+   }\n+ ]\n- []\n",
+          "stage": "empty document rapid typing",
+          "text": "YNX Developer\nFile\nEdit\nSelection\nView\nGo\nRun\nTerminal\nHelp\nselection-target.json\n selection-target.json\n …\n1\n{\"ecosystemBuildName\":\"owned-fixture\",\"networkMode\":\"testnet\"}\n0\n0\nLn 1, Col 63\nLF\nUTF-8\nSpaces: 4\nJSON\nLocal schemas\nNo suggestions."
+        }
+      ],
+      "pageErrors": [
+        {
+          "stage": "original schema completion then selected typing and sort",
+          "message": "Token length and text length do not match!\n\nError: Token length and text length do not match!",
+          "stack": "Error: Token length and text length do not match!\n\nError: Token length and text length do not match!\n    at new n (http://127.0.0.1:63258/bundle.js:1132:10610)\n    at n.getTokens (http://127.0.0.1:63258/bundle.js:1134:20959)\n    at wpt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:28556)\n    at Spt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:32496)\n    at Spt.getWordAtPosition (http://127.0.0.1:63258/bundle.js:1134:34334)\n    at Spt.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1134:35242)\n    at uR.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1144:13233)\n    at new gV (http://127.0.0.1:63258/bundle.js:1695:16801)\n    at IDi._refilterCompletionItems (http://127.0.0.1:63258/bundle.js:1695:22165)\n    at wve.value (http://127.0.0.1:63258/bundle.js:1695:18421)\n    at new n (http://127.0.0.1:63258/bundle.js:1132:10610)\n    at n.getTokens (http://127.0.0.1:63258/bundle.js:1134:20959)\n    at wpt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:28556)\n    at Spt.getLineTokens (http://127.0.0.1:63258/bundle.js:1134:32496)\n    at Spt.getWordAtPosition (http://127.0.0.1:63258/bundle.js:1134:34334)\n    at Spt.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1134:35242)\n    at uR.getWordUntilPosition (http://127.0.0.1:63258/bundle.js:1144:13233)\n    at new gV (http://127.0.0.1:63258/bundle.js:1695:16801)\n    at IDi._refilterCompletionItems (http://127.0.0.1:63258/bundle.js:1695:22165)\n    at wve.value (http://127.0.0.1:63258/bundle.js:1695:18421)\n    at http://127.0.0.1:63258/bundle.js:502:12"
+        }
+      ],
+      "runnerSha256": "8b0c9d0a45236f11423762d22a6d5f8cabf1db7a2c0c587a1070d6636b99754c",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-raCter",
+        "rootPid": 19646,
+        "verifiedGroupMembers": [
+          19646,
+          19647,
+          19648
+        ],
+        "ownedMetadata": "19646 19638 19646 Sun Oct  4 14:28:44 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n19647 19646 19646 Sun Oct  4 14:28:44 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n19648 19646 19646 Sun Oct  4 14:28:44 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n20988 19646 20988 Sun Oct  4 14:29:59 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "unpatched-old": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-NNrQEq",
+      "exitCode": 1,
+      "checks": [
+        "The original unopened-schema completion, selected typing and JSON sort sequence renders and saves the expected surround-selection result without losing text.",
+        "Real JSON selection is surrounded with braces, remains selected, saves exact bytes, and Undo/Redo restore the exact document.",
+        "Typing a quote surrounds the real JSON selection, and subsequent normal text replaces only that selection, preserving its surrounding quotes.",
+        "Rapid and delayed typing over a selected JSON object and real formatting render the same standard surround-selection result and exact saved bytes.",
+        "A multiline Unicode/emoji selection is surrounded and undone without changing its original text or saved bytes.",
+        "Normal rapid JSON typing into an empty document overtypes automatic pairs and produces the exact intended valid saved JSON.",
+        {
+          "failure": "AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:\n+ actual - expected\n\n+ [\n+   {\n+     message: 'Token length and text length do not match!\\n' +\n+       '\\n' +\n+       'Error: Token length and text length do not match!',\n+     stack: 'Error: Token length and text length do not match!\\n' +\n+       '\\n' +\n+       'Error: Token length and text length do not match!\\n' +\n+       '    at new n (http://127.0.0.1:63661/bundle.js:1132:10610)\\n' +\n+       '    at n.getTokens (http://127.0.0.1:63661/bundle.js:1134:20959)\\n' +\n+       '    at mpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:28556)\\n' +\n+       '    at bpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:32496)\\n' +\n+       '    at bpt.getWordAtPosition (http://127.0.0.1:63661/bundle.js:1134:34334)\\n' +\n+       '    at bpt.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1134:35242)\\n' +\n+       '    at lR.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1144:13233)\\n' +\n+       '    at new fV (http://127.0.0.1:63661/bundle.js:1695:16801)\\n' +\n+       '    at kDi._refilterCompletionItems (http://127.0.0.1:63661/bundle.js:1695:22165)\\n' +\n+       '    at vve.value (http://127.0.0.1:63661/bundle.js:1695:18421)\\n' +\n+       '    at new n (http://127.0.0.1:63661/bundle.js:1132:10610)\\n' +\n+       '    at n.getTokens (http://127.0.0.1:63661/bundle.js:1134:20959)\\n' +\n+       '    at mpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:28556)\\n' +\n+       '    at bpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:32496)\\n' +\n+       '    at bpt.getWordAtPosition (http://127.0.0.1:63661/bundle.js:1134:34334)\\n' +\n+       '    at bpt.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1134:35242)\\n' +\n+       '    at lR.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1144:13233)\\n' +\n+       '    at new fV (http://127.0.0.1:63661/bundle.js:1695:16801)\\n' +\n+       '    at kDi._refilterCompletionItems (http://127.0.0.1:63661/bundle.js:1695:22165)\\n' +\n+       '    at vve.value (http://127.0.0.1:63661/bundle.js:1695:18421)\\n' +\n+       '    at http://127.0.0.1:63661/bundle.js:502:12',\n+     stage: 'original schema completion then selected typing and sort'\n+   }\n+ ]\n- []\n",
+          "stage": "empty document rapid typing",
+          "text": "YNX Developer\nFile\nEdit\nSelection\nView\nGo\nRun\nTerminal\nHelp\nselection-target.json\n selection-target.json\n …\n1\n{\"ecosystemBuildName\":\"owned-fixture\",\"networkMode\":\"testnet\"}\n0\n0\nLn 1, Col 63\nLF\nUTF-8\nSpaces: 4\nJSON\nNo suggestions."
+        }
+      ],
+      "pageErrors": [
+        {
+          "stage": "original schema completion then selected typing and sort",
+          "message": "Token length and text length do not match!\n\nError: Token length and text length do not match!",
+          "stack": "Error: Token length and text length do not match!\n\nError: Token length and text length do not match!\n    at new n (http://127.0.0.1:63661/bundle.js:1132:10610)\n    at n.getTokens (http://127.0.0.1:63661/bundle.js:1134:20959)\n    at mpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:28556)\n    at bpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:32496)\n    at bpt.getWordAtPosition (http://127.0.0.1:63661/bundle.js:1134:34334)\n    at bpt.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1134:35242)\n    at lR.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1144:13233)\n    at new fV (http://127.0.0.1:63661/bundle.js:1695:16801)\n    at kDi._refilterCompletionItems (http://127.0.0.1:63661/bundle.js:1695:22165)\n    at vve.value (http://127.0.0.1:63661/bundle.js:1695:18421)\n    at new n (http://127.0.0.1:63661/bundle.js:1132:10610)\n    at n.getTokens (http://127.0.0.1:63661/bundle.js:1134:20959)\n    at mpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:28556)\n    at bpt.getLineTokens (http://127.0.0.1:63661/bundle.js:1134:32496)\n    at bpt.getWordAtPosition (http://127.0.0.1:63661/bundle.js:1134:34334)\n    at bpt.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1134:35242)\n    at lR.getWordUntilPosition (http://127.0.0.1:63661/bundle.js:1144:13233)\n    at new fV (http://127.0.0.1:63661/bundle.js:1695:16801)\n    at kDi._refilterCompletionItems (http://127.0.0.1:63661/bundle.js:1695:22165)\n    at vve.value (http://127.0.0.1:63661/bundle.js:1695:18421)\n    at http://127.0.0.1:63661/bundle.js:502:12"
+        }
+      ],
+      "runnerSha256": "8b0c9d0a45236f11423762d22a6d5f8cabf1db7a2c0c587a1070d6636b99754c",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-NNrQEq",
+        "rootPid": 20990,
+        "verifiedGroupMembers": [
+          20990,
+          20997,
+          20998
+        ],
+        "ownedMetadata": "20990 20979 20990 Sun Oct  4 14:29:59 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n20997 20990 20990 Sun Oct  4 14:30:00 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n20998 20990 20990 Sun Oct  4 14:30:00 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n21773 20990 21773 Sun Oct  4 14:30:41 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "initial-narrow": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CnuD68",
+      "exitCode": 0,
+      "checks": [
+        "Real JSON selection is surrounded with braces, remains selected, saves exact bytes, and Undo/Redo restore the exact document.",
+        "Typing a quote surrounds the real JSON selection, and subsequent normal text replaces only that selection, preserving its surrounding quotes.",
+        "Rapid and delayed real typing over a selected JSON object preserve the same standard surround-selection result and exact saved bytes.",
+        "A multiline Unicode/emoji selection is surrounded and undone without changing its original text or saved bytes.",
+        "Normal rapid JSON typing into an empty document overtypes automatic pairs and produces the exact intended valid saved JSON."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "5f7fb15df7f1f919fe85ac340b016a1951277ea4c41b7b3697a1ba28adb7b525",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-CnuD68",
+        "rootPid": 14882,
+        "verifiedGroupMembers": [
+          14882,
+          14883,
+          14884
+        ],
+        "ownedMetadata": "14882 14872 14882 Sun Oct  4 14:23:02 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n14883 14882 14882 Sun Oct  4 14:23:02 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n14884 14882 14882 Sun Oct  4 14:23:02 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n17483 14882 17483 Sun Oct  4 14:26:07 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    }
+  },
+  "currentCandidateUICheckCount": 36,
+  "evidence": {
+    "path": "apps/developer/.ynx-developer-candidates/token-cache-fix-evidence-20261004",
+    "indexSha256": "b9d0b7fb9b62a45d5c15f2fd244a7ae4b573e5282c93b5f792c6af830b4448dc"
+  },
+  "packagingIncident": {
+    "failedCandidate": "ynx-composed-token-cache-fixed-20261004-mac-arm64",
+    "exitCode": 1,
+    "reason": "ENOSPC",
+    "partialPreserved": true,
+    "notFrozen": true,
+    "recoveredCandidateIsNewDirectory": true,
+    "stagingReclaimRecord": "IDE_BUILD_STAGING_RECLAIM_20261004.json"
+  },
+  "macPackagingChange": "Try APFS clone for generated DMG staging; preserve failed clone directory and use a fresh regular-copy fallback. After successful DMG, remove only exact generated staging with empty lsof output/status 1, retain original App/DMG/receipts and deleted-path manifest. Actual Native build verification pending.",
+  "limits": [
+    "Controlled single-session macOS QA only; no canonical identity or public install acceptance.",
+    "JSON upstream language-status delivery and other platform behavior remain separate.",
+    "LLDB launch, wider extension compatibility, Chain/Wallet/AI canonical journeys and approved protected driver admission remain incomplete."
+  ]
+}
