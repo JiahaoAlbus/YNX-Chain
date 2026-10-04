@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
+  const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
   // The host context menu lives outside Monaco's scoped DOM context. Publish
   // our own selection state through the extension API so both hosts can render
@@ -13,12 +14,16 @@ function activate(context) {
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateSelectionContext),
     vscode.window.onDidChangeTextEditorSelection(updateSelectionContext));
   updateSelectionContext();
-  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Review selection with AI', 'ynx.reviewSelection'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
+  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Import compiler diagnostics', 'ynx.importSolidityDiagnostics'], ['Review selection with AI', 'ynx.reviewSelection'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
     getChildren: item => item ? [] : entries,
     getTreeItem: ([label, command]) => ({ label, command: { command, title: label } })
   }));
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(error.message); } }));
+  register('ynx.importSolidityDiagnostics', async () => {
+    const count = await compilerDiagnostics.importCopied();
+    void vscode.window.showInformationMessage(`${count} compiler diagnostic(s) imported. Open Problems to jump to their source locations.`);
+  });
   register('ynx.openTools', async () => {
     const id = process.env.YNX_CORE_SESSION_ID;
     if (!/^[a-f0-9-]{36}$/.test(id || '')) throw Error('This editor is not connected to a YNX project runtime.');

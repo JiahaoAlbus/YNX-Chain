@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { solidityDiagnosticsBundle, type CompilerDiagnostic } from './solidityDiagnostics';
 import { createRequestEpoch } from './requestEpoch';
 import { parseSoliditySnapshot, type SoliditySnapshot } from './soliditySnapshot';
 export type SolidityDraft = { name: string; source: string; snapshotText?: string };
-type Compilation = { ok: boolean; sourceSha256?: string; sourceDigests?: Record<string, string>; compiler?: { version: string; longVersion: string }; artifactHash?: string; contractName?: string; abi?: unknown[]; bytecode?: string; deployedBytecode?: string; diagnostics?: { severity: string; formattedMessage?: string; message: string }[]; deployability?: string };
+type Compilation = { ok: boolean; sourceSha256?: string; sourceDigests?: Record<string, string>; compiler?: { version: string; longVersion: string }; artifactHash?: string; contractName?: string; abi?: unknown[]; bytecode?: string; deployedBytecode?: string; diagnostics?: CompilerDiagnostic[]; deployability?: string };
 export function NativeSolidityTools({ draft, onDraft, request, run, busy }: {
   draft: SolidityDraft; onDraft: (value: SolidityDraft) => void;
   request: (path: string, options?: RequestInit) => Promise<any>;
@@ -11,6 +12,7 @@ export function NativeSolidityTools({ draft, onDraft, request, run, busy }: {
   const reviews = useRef(createRequestEpoch()).current;
   useEffect(() => () => { reviews.invalidate(); }, [reviews]);
   const [copiedProject, setCopiedProject] = useState(false);
+  const [copyStatus, setCopyStatus] = useState('');
   const [result, setResult] = useState<Compilation>();
   const [projectMode, setProjectMode] = useState(false), [snapshot, setSnapshot] = useState<SoliditySnapshot>();
   useEffect(() => { if (window.location.hash === '#compile') document.getElementById('compile')?.scrollIntoView(); }, []);
@@ -18,7 +20,7 @@ export function NativeSolidityTools({ draft, onDraft, request, run, busy }: {
   const valid = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/.test(draft.name) && (projectMode ? Boolean(snapshot) : draft.source.trim().length > 0 && sourceBytes <= 65536);
   function change(value: SolidityDraft) { onDraft(value); setResult(undefined); }
   async function compile() {
-    setResult(undefined);
+    setCopyStatus(''); setResult(undefined);
     const fresh = await request('context');
     try {
       setResult(await request('chain/compile', { method: 'POST', body: JSON.stringify({ csrf: fresh.csrf, name: draft.name, ...(projectMode ? { snapshot } : { source: draft.source }) }) }));
@@ -45,6 +47,13 @@ export function NativeSolidityTools({ draft, onDraft, request, run, busy }: {
     onDraft({ ...draft, snapshotText: JSON.stringify(value) });
     setProjectMode(true); setSnapshot(value); setCopiedProject(true); setResult(undefined);
   }
+  async function copyDiagnostics() {
+    if (!snapshot || !result?.diagnostics) return;
+    const captured = reviews.capture(), bundle = solidityDiagnosticsBundle(snapshot, result.diagnostics);
+    try { await navigator.clipboard.writeText(JSON.stringify(bundle)); }
+    catch { throw new Error('Clipboard access is unavailable. The compiler messages remain below.'); }
+    if (reviews.current(captured)) setCopyStatus(`${bundle.diagnostics.length} source diagnostic(s) copied. ${result.diagnostics.length - bundle.diagnostics.length} message(s) have no source location and remain here.`);
+  }
   function download() {
     if (!result?.ok) return;
     const url = URL.createObjectURL(new Blob([JSON.stringify({ ...result, ...(projectMode ? { snapshot } : { source: draft.source }) }, null, 2)], { type: 'application/json' }));
@@ -64,6 +73,7 @@ export function NativeSolidityTools({ draft, onDraft, request, run, busy }: {
     <button disabled={busy || !valid} onClick={() => void run(compile)}>Compile contract</button>
     {result && <article><h3>{result.ok ? 'Compiled artifact' : 'Compiler diagnostics'}</h3>
       {result.diagnostics?.length ? <ul>{result.diagnostics.map((item, index) => <li key={index}><strong>{item.severity}</strong><pre>{item.formattedMessage || item.message}</pre></li>)}</ul> : null}
+      {projectMode && snapshot && result.diagnostics && <aside><p>Copy source diagnostics, then run <strong>YNX: Import Solidity Compiler Diagnostics</strong> in the editor. Open Problems to jump to the source locations. Changed sources require a new compilation.</p><button disabled={busy} onClick={() => void run(copyDiagnostics)}>Copy diagnostics for editor</button>{copyStatus && <p role="status">{copyStatus}</p>}</aside>}
       {result.ok && <><p>{result.contractName} · Solidity {result.compiler?.longVersion || result.compiler?.version}</p>
         <p>Source digest</p><pre>{result.sourceSha256}</pre><p>Artifact digest</p><pre>{result.artifactHash}</pre>
         {result.sourceDigests && <details><summary>All source digests</summary><pre>{JSON.stringify(result.sourceDigests, null, 2)}</pre></details>}

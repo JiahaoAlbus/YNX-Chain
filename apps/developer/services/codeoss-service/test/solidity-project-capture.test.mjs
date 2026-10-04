@@ -30,6 +30,7 @@ test('runtime changes, foreign roots, and source symlink escapes never produce a
 });
 test('actual registered project command copies only after unchanged-source review and opens a source-free locator',async t=>{
  const h=await fixture(t),commands=new Map(),calls=[],errors=[];
+ h.vscode.languages={createDiagnosticCollection:()=>({set:()=>{},clear:()=>{},dispose:()=>{}})};h.vscode.workspace.onDidChangeTextDocument=()=>({});h.vscode.workspace.onDidChangeWorkspaceFolders=()=>({});
  h.vscode.window.onDidChangeActiveTextEditor=()=>({});h.vscode.window.onDidChangeTextEditorSelection=()=>({});
  h.vscode.commands={executeCommand:async()=>{},registerCommand:(name,action)=>{commands.set(name,action);return{};}};
  h.vscode.Uri={parse:value=>value};h.vscode.env={clipboard:{writeText:async value=>calls.push({kind:'copy',value})},openExternal:async value=>calls.push({kind:'open',value})};
