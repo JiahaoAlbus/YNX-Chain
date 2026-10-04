@@ -47,6 +47,7 @@ export const CardTextInput=React.forwardRef<NativeTextInput,TextInputProps>(func
 
 export function CardTextSizeSettings({locale}:{locale:Locale}){
   const {size,setSize,saveFailed}=useCardTypography(),copy=cardTypographyCopy(locale);
+  const [focused,setFocused]=useState<CardTextSize|null>(null);
   const id=useId(),titleId=`${id}-title`,hintId=`${id}-hint`;
   const options=['compact','standard','larger'] as const;
   const handleKey=(event:React.KeyboardEvent<HTMLElement>,index:number)=>{
@@ -62,8 +63,8 @@ export function CardTextSizeSettings({locale}:{locale:Locale}){
     event.currentTarget.parentElement?.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
   };
   return <View style={s.panel}><CardText nativeID={titleId} accessibilityRole="header" style={s.title}>{copy[0]}</CardText>
-    <View accessibilityRole="radiogroup" accessibilityLabel={copy[0]} {...(Platform.OS==='web'?{'aria-labelledby':titleId,'aria-describedby':hintId}:{})} style={s.options}>{options.map((value,index)=><Pressable key={value} accessibilityRole="radio" accessibilityLabel={copy[index+1]} accessibilityState={{checked:size===value}} {...(Platform.OS==='web'?{'aria-checked':size===value,tabIndex:size===value?0:-1,onKeyDown:(event:React.KeyboardEvent<HTMLElement>)=>handleKey(event,index)}:{})} onPress={()=>setSize(value)} style={[s.option,size===value&&s.selected]}><CardText style={s.optionText}>{copy[index+1]}</CardText></Pressable>)}</View>
+    <View accessibilityRole="radiogroup" accessibilityLabel={copy[0]} accessibilityHint={copy[4]} {...(Platform.OS==='web'?{'aria-labelledby':titleId,'aria-describedby':hintId}:{})} style={s.options}>{options.map((value,index)=><Pressable key={value} accessibilityRole="radio" accessibilityLabel={copy[index+1]} accessibilityHint={copy[4]} accessibilityState={{checked:size===value}} {...(Platform.OS==='web'?{'aria-checked':size===value,'aria-describedby':hintId,tabIndex:size===value?0:-1,onFocus:()=>setFocused(value),onBlur:()=>setFocused(current=>current===value?null:current),onKeyDown:(event:React.KeyboardEvent<HTMLElement>)=>handleKey(event,index)}:{})} onPress={()=>setSize(value)} style={[s.option,size===value&&s.selected,focused===value&&s.focused]}><CardText style={s.optionText}>{copy[index+1]}</CardText></Pressable>)}</View>
     <CardText nativeID={hintId} style={s.hint}>{copy[4]}</CardText>{saveFailed?<CardText accessibilityRole="alert" style={s.hint}>{copy[5]}</CardText>:null}
   </View>;
 }
-const s=StyleSheet.create({panel:{paddingHorizontal:20,paddingVertical:14,gap:10,borderBottomWidth:1,borderColor:'#DFE3EA'},title:{fontSize:16,fontWeight:'700',color:'#171A22'},options:{flexDirection:'row',flexWrap:'wrap',gap:8},option:{minHeight:44,paddingHorizontal:12,paddingVertical:10,borderWidth:1,borderColor:'#DFE3EA',borderRadius:8,justifyContent:'center'},selected:{borderColor:'#002FA7',backgroundColor:'#F4F7FF'},optionText:{fontSize:14,color:'#002FA7',fontWeight:'700'},hint:{fontSize:12,lineHeight:18,color:'#5B6270'}});
+const s=StyleSheet.create({panel:{paddingHorizontal:20,paddingVertical:14,gap:10,borderBottomWidth:1,borderColor:'#DFE3EA'},title:{fontSize:16,fontWeight:'700',color:'#171A22'},options:{flexDirection:'row',flexWrap:'wrap',gap:8},option:{minHeight:44,paddingHorizontal:12,paddingVertical:10,borderWidth:1,borderColor:'#DFE3EA',borderRadius:8,justifyContent:'center'},selected:{borderColor:'#002FA7',backgroundColor:'#F4F7FF'},focused:{outlineWidth:3,outlineStyle:'solid',outlineColor:'#002FA7',outlineOffset:3},optionText:{fontSize:14,color:'#002FA7',fontWeight:'700'},hint:{fontSize:12,lineHeight:18,color:'#5B6270'}});
