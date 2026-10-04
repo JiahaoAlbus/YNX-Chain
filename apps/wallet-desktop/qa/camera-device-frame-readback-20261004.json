@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "f626ad04aa63d55c5b6c52690e16ed6405519aee",
+  "scope": "QA-only extension joining real software getUserMedia acquisition to original captureRecipientFrame and nativeImage/decodeLocalQRText/jsQR; no product-source, SDK or release mutations",
+  "independentSourceReview": {
+    "commit": "db24f99d0dc21ed4cb140f8c21da5c590b695a32",
+    "reportSHA256": "2207f0336e7d921720f39352d38187b904ec4ff93e544d45400b00cd1efdacf8",
+    "verified": "Report read in full and hash matched; original P2 closed only at exact successor local source dispatch boundary.18 executions17unique; do not replace this with owner90 or software runtime."
+  },
+  "runtime": {
+    "electron": "42.8.0 darwin arm64, same previously pinned executable471784b680e10c411ac156eb2821525cff3ea22a2d9363ead0e0e87c90c17837",
+    "profile": "/tmp/ynx-wallet-camera-permission-20261004-dnyPdC",
+    "logSHA256": "0071220b921842d12e2b858ffc1961b365f173d558f62e6a6b080d7ac9cf104a",
+    "exitCode": 0,
+    "sandbox": true,
+    "visibleWindow": false,
+    "networkRequests": 0,
+    "permissionResults": "14/14 PASS, per-request exact native callback assertions retained",
+    "frames": "Both video-success cases encoded11319-byte PNG640x480, original decoder returned QR_DECODE_FAILED as expected; no parsed address, amount, approval or signing",
+    "cleanup": "All acquired video tracks stopped to ended; no audio stream granted",
+    "freshPins": "6 original source inputs and2 actual loaded CommonJS inputs (default_app.asar/package.json and jsQR) independently reread and hash matched"
+  },
+  "originalFailures": [
+    {"profile":"/tmp/ynx-wallet-camera-permission-20261004-qHXyqF","result":"exit1 timeout;1 denied row,0 frames; software video grant but GPU SharedImageInterface error prevented playback"},
+    {"profile":"/tmp/ynx-wallet-camera-permission-20261004-g6eHG0","result":"exit1 timeout;1 denied row,0 frames; speculative disable-features VideoCaptureUseGpuMemoryBuffer did not resolve delivery"}
+  ],
+  "qaOnlyAdaptation": "Actual pinned Electron Framework contains disable-video-capture-use-gpu-memory-buffer and disable-gpu-memory-buffer-video-frames switches. Both added only to isolated QA process, retaining CPU rendering, hidden offscreen window, sandbox and original permission callbacks. Final software frames succeeded; not a product fix, OS permission bypass or claim of physical-camera behavior.",
+  "evidenceRelationship": "Prior14 permission-only and3 synthetic Canvas-frame evidence remains frozen at its own source identity. This adds real software-device acquisition-to-pixels evidence, not real YNX recipient/checksum producer, full Wallet composition or installed camera acceptance.",
+  "notRun": ["Physical camera/microphone", "OS permission dialog", "Full Wallet Main/shared SDK boot", "Actual key/account/focus lifecycle", "Original address checksum producer", "Current-source signed installation/preserving upgrade", "Canonical Pay/signing/settlement", "MONSTER"],
+  "overallGoal": "NOT_COMPLETED"
+}

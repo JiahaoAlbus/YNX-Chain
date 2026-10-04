@@ -8,17 +8,22 @@ import path from "node:path";
 import {runInNewContext} from "node:vm";
 import {createRecipientCameraPermission} from "../src/recipient-camera-permission.mjs";
 import {assertWalletIPC} from "../src/wallet-ipc-policy.mjs";
-const require=createRequire(import.meta.url),{app,BrowserWindow,ipcMain}=require("electron");
+import {decodeLocalQRText} from "../src/walletconnect-qr-decoder.mjs";
+const require=createRequire(import.meta.url),{app,BrowserWindow,ipcMain,nativeImage}=require("electron");
 const profile=process.argv[2];
 if(!profile?.startsWith("/tmp/ynx-wallet-camera-permission-20261004-")||path.resolve(profile)!==profile||profile.includes(".."))throw Error("Fresh isolated profile required");
 app.enableSandbox();app.setPath("userData",profile);app.setPath("sessionData",profile);app.disableHardwareAcceleration();
 // No fake-ui switch: original permission check/request callbacks must execute.
 app.commandLine.appendSwitch("use-fake-device-for-media-stream");
+// Hidden CPU-rendered QA has no GPU SharedImageInterface. Keep capture buffers
+// on the CPU as well; this changes only the software-device QA process.
+app.commandLine.appendSwitch("disable-video-capture-use-gpu-memory-buffer");
+app.commandLine.appendSwitch("disable-gpu-memory-buffer-video-frames");
 if(process.platform==="darwin")app.setActivationPolicy("prohibited");
 const page=fileURLToPath(new URL("camera-permission-check.html",import.meta.url)),url=pathToFileURL(page).href;
 const context={focused:true,locked:false,authenticating:false,changing:false,account:"public-QA-context",revision:1};
 let window,gate,clock=0,serial=0,networkRequests=0,done=false;
-const callbacks=[],rows=[];
+const callbacks=[],rows=[],frames=[];
 function finish(error){if(done)return;done=true;
  const graph=Object.keys(require.cache).filter(name=>name.includes("/node_modules/")).map(name=>{
   try{return {path:name,sha256:createHash("sha256").update(readFileSync(name)).digest("hex")};}
@@ -26,8 +31,8 @@ function finish(error){if(done)return;done=true;
  });
  if(graph.some(row=>!row.sha256||row.path.includes("/wallet-auth/")))error??=Error("Unexpected or unreadable tool graph");
  console.log(JSON.stringify({electron:process.versions.electron,profile,mode:"CHROMIUM_SOFTWARE_DEVICE_ACTUAL_PERMISSION_CALLBACKS_CONTROLLED_CONTEXT",
-  visible:window?.isVisible()??false,networkRequests,callbacks,rows,graph,error:error?.message??null,
-  inputs:["../src/main.mjs","../src/recipient-camera-permission.mjs","../src/wallet-ipc-policy.mjs"].map(relative=>({relative,sha256:createHash("sha256").update(readFileSync(new URL(relative,import.meta.url))).digest("hex")})),
+  visible:window?.isVisible()??false,networkRequests,callbacks,rows,frames,graph,error:error?.message??null,
+  inputs:["../src/main.mjs","../src/recipient-camera-permission.mjs","../src/wallet-ipc-policy.mjs","../src/recipient-camera-ui.mjs","../src/walletconnect-qr-decoder.mjs","../src/qr-image-bounds.mjs"].map(relative=>({relative,sha256:createHash("sha256").update(readFileSync(new URL(relative,import.meta.url))).digest("hex")})),
   notRun:["Wallet Main or SDK boot","Actual key/focus lifecycle","OS permission dialog","Physical camera/microphone","Private signing","Installed release"]},null,2));
  window?.destroy();app.exit(error?1:0);
 }
@@ -49,9 +54,21 @@ ipcMain.handle("permission-qa:prepare",(event,mode)=>{
  if(mode==="retired-end"){const old=gate.begin();gate.begin();gate.end(old.id);}
  return {callbackOffset:callbacks.length};
 });
+ipcMain.handle("permission-qa:frame",(event,input)=>{
+ assertWalletIPC(event,window.webContents,url);
+ const bytes=Buffer.from(input.bytes),image=nativeImage.createFromBuffer(bytes),dimensions=image.getSize();
+ assert.ok(dimensions.width>0&&dimensions.width<=720&&dimensions.height>0&&dimensions.height<=720);
+ let observed;
+ try{decodeLocalQRText({bytes,mimeType:input.mimeType,createImage:buffer=>nativeImage.createFromBuffer(buffer)});}
+ catch(error){observed=error.code;}
+ assert.equal(observed,"QR_DECODE_FAILED","Software-device pattern must not become a recipient");
+ frames.push({mimeType:input.mimeType,encodedBytes:bytes.length,dimensions,observed,pass:true});
+ return {rejected:true,code:observed};
+});
 ipcMain.on("permission-qa:row",(event,row)=>{assertWalletIPC(event,window.webContents,url);rows.push(row);});
 ipcMain.on("permission-qa:done",(event,result)=>{assertWalletIPC(event,window.webContents,url);
  try{assert.equal(result.ok,true,result.error);assert.equal(rows.length,14);assert.ok(rows.every(row=>row.pass));assert.equal(networkRequests,0);assert.equal(window.isVisible(),false);
+  assert.equal(frames.length,2);assert.ok(frames.every(frame=>frame.pass));
   for(let i=0;i<rows.length;i++){
    const row=rows[i],end=rows[i+1]?.callbackOffset??callbacks.length;
    const requests=callbacks.slice(row.callbackOffset,end).filter(item=>item.phase==="request"&&item.permission==="media");
