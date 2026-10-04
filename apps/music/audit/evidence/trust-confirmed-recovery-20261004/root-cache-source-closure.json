@@ -1,0 +1,31 @@
+{
+  "disposition": "BOUNDED_OWNED_SOURCE_PASS",
+  "sourceCommit": "9105695d09f64d01c6e3e079de2875752d5d8603",
+  "fieldCommit": "5d94277515f2667234bcc30675a3dffa04da8427",
+  "closed": "MEDIA6288-LIBRARY-STALE-CACHE P2 source/cache boundary",
+  "originalProbe": {
+    "byteUnchanged": true,
+    "pass": 5,
+    "fail": 0
+  },
+  "independentAdditionalCacheBoundaries": {
+    "pass": 3,
+    "fail": 0
+  },
+  "priorReportFAIL": "UNCHANGED",
+  "TrustSDKAuthority": "NOT_RUN / separate gate",
+  "installedHostPublic": "NOT_VERIFIED",
+  "hashes": {
+    "SOURCE_REPORT.md": "d4d6c70afa4117e5cd5b4248495f3185ad3fc008bc60e796923703350d2547e8",
+    "custody.json": "b1820de53b5be3e7ce0ef2f9f88144d9501c262601cbcc99bed436a76c5f4106",
+    "composition-pin-custody.json": "3d5bfd38a2468fb0f823019a55bc2a0db8e3409df59c3cb476d3df8130a2328d",
+    "inheritance.json": "ac16d5339eeb9680528df2a54b9c3df0a09d56d9a39f4cff7ac32e5dea12f1a7",
+    "probes/com/ynxweb4/music/IndependentCacheCheck.java": "8f1bd15d2112e04dc549705e0637707e4ce7e6aa2e8528fd6ef776b1d7d7e4c5",
+    "original-4pass-1fail.log": "b5c80944a8e497b1b7dbd57ad4ff8196522083732cdfe38807ea4455067f85d7",
+    "independent-original-cache-check.log": "d3f3e8f05e8135209ed524388f7760f623b494dddd31574d07273dfaaf736c3b",
+    "independent-field-check.log": "03c7983b1baf0f1c78856546973feaf352d5aed130a34e7ced5e501ed124651b",
+    "probes/com/ynxweb4/music/IndependentFieldMergeCheck.java": "75ee1e552a18edbde35eac1cbe9cfcb649681153b9a0f1c8b86cb161839ee191",
+    "independent-field-boundary.log": "1d4012790008c910b4c9fcb2f101b1c49985883ced6379924700df938379e3c8",
+    "independent-build.json": "e6f67eef6129cbedf80c0b9d3b56e5ce893c8f8d4c13de798811f1add6ee7814"
+  }
+}

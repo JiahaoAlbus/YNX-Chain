@@ -1,0 +1,312 @@
+{
+  "schema": "ynx.music.trust-confirmed-recovery.checkpoint.v1",
+  "createdAt": "2026-10-04T00:58:48.767028+00:00",
+  "sourceCommit": "4d69a155b4c0e9ab93793625d2cc8117a73f233a",
+  "sourceTree": "d9b1e75f538049aec2767ef271f6dffaec12b4ec",
+  "sourceArchive": {
+    "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/media-owned-source.tar.gz",
+    "bytes": 4286476,
+    "sha256": "89e7b0fe3d429b954f0c5b8b9d95fc9cf5e029afff66ec9c68ca718cfc2093d8",
+    "fileCount": 630
+  },
+  "androidCandidate": {
+    "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusic-android-debug.apk",
+    "bytes": 710117,
+    "sha256": "6ba8d5f01b2fccbd98cf594ef2e29ecb0ccf8f09c762b8c25ba437f719663b7b",
+    "debugSigned": true,
+    "releaseSigned": false,
+    "installed": false,
+    "launched": false
+  },
+  "appleCandidates": [
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusic-unsigned.tar.gz",
+      "bytes": 1316314,
+      "sha256": "57add3c6a0b3de9307c95df8814712ca2a6b7c7eb3a8ec696ffdf19ec936b0bb",
+      "fileCount": 11,
+      "scheme": "YNXMusic",
+      "signed": false,
+      "installed": false,
+      "launched": false
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusicMac-unsigned.tar.gz",
+      "bytes": 817706,
+      "sha256": "7d0df6a2235fd8c9e311251276ac6fb6554fa4b97420cd5607bfe91256582161",
+      "fileCount": 11,
+      "scheme": "YNXMusicMac",
+      "signed": false,
+      "installed": false,
+      "launched": false
+    }
+  ],
+  "androidCandidateSourceCommit": "9105695d09f64d01c6e3e079de2875752d5d8603",
+  "appleCandidateSourceCommit": "e14c88af1503c24afb8af561e53a0ea5af2a4354",
+  "sourceHoldStatus": "CLOSED_FOR_MEDIA6288_CACHE_P2_ONLY",
+  "sourceReview": {
+    "cacheFieldMerge": "BOUNDED_OWNED_SOURCE_PASS",
+    "sourceCommit": "9105695d09f64d01c6e3e079de2875752d5d8603",
+    "trustSDKAuthority": "NOT_INDEPENDENTLY_ADMITTED",
+    "formalRelease": "NOT_VERIFIED"
+  },
+  "rootCounterexampleCheckpoint": "apps/music/audit/evidence/stale-ui-cache-counterexample-20261004/SOURCE_REPORT.md",
+  "nativeSourcePinsCurrentGitExact": true,
+  "compositionInputPins": 678,
+  "ownedCompositionPinsGitExact": true,
+  "checks": {
+    "fullGoRacePassEvents": 450,
+    "fullGoRaceFailures": 0,
+    "goVet": "PASS",
+    "androidBuildAndFullLint": "PASS",
+    "appleFullBuilds": "PASS",
+    "originalSameKeyTrustRetrySingleCase": true,
+    "unconfirmedTrustIntentRetained": true,
+    "originalTrustConfirmedLostReplyRecovery": true,
+    "isolatedHTTPSProviderDispatchesPerNativeActor": 1,
+    "originalCaseCountAfterConfirmedColdReplay": 1,
+    "webFreshPageOriginalIntentRecovery": true,
+    "webConfirmedReceipt": "ISOLATED_SYNTHETIC_UI_ONLY",
+    "actualCentralTrustAcceptance": false,
+    "originalAudioDraftPreserved": true,
+    "originalBrandPixelsExact": true,
+    "actualInstalledNativeUI": false,
+    "actualWalletConsent": false,
+    "ownerExactRootCacheProbe": "5PASS0FAIL_CACHE_ONLY",
+    "latestStoreFieldTransactions": true
+  },
+  "inheritedCheckpoint": {
+    "path": "apps/music/audit/field-merge-recovery-checkpoint-20261004.json",
+    "bytes": 12482,
+    "sha256": "d4d0f241251aba889384e4ced5ee116934070429936c5c48e1ffcdad01f1a76a"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified",
+    "Actual Central Trust receipt and user acceptance",
+    "Native non-owner appeal selection requires owned UX/intent audit; original owner gate remains authoritative"
+  ],
+  "publicReadback": [
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-0.json",
+      "bytes": 4939,
+      "sha256": "d4ea9478a8f23c9b26c47831b617811ec2a3be1b8730f22941ab5bef3b28141b"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-1.json",
+      "bytes": 4176,
+      "sha256": "297488a2735efd85547f222e6808db66ecf1ce1fdc0ae1b0c5ffb1e4cc7d5d66"
+    },
+    {
+      "path": "apps/music/audit/evidence/native-ordered-snapshot-20261004/public-readback-2.json",
+      "bytes": 530,
+      "sha256": "1a4da544a17033c850f91154354f7219cb0e35b6b371e00d490fb15ef4cbdbf4"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusic-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusic-build.txt",
+      "bytes": 133001,
+      "sha256": "2f04e99eb104ffa90e358f6e69fdfdab50e148e90ca6bacd6cf967c648bf1373"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusicMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/YNXMusicMac-build.txt",
+      "bytes": 76141,
+      "sha256": "4181a6ab4c801d8890003872be6c7eaea3ecff967d8bad011df258c053bb4b00"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/android-apk-badging.txt",
+      "bytes": 1605,
+      "sha256": "c82232cee01db96ddba11fecb60fd35ab89a761c9d97f7d150ee8c5f993cb987"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/android-apk-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/android-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/android-build-receipt.json",
+      "bytes": 12507,
+      "sha256": "883b1705dc4adde44c6f3055855cd53634f2af7830a7006531975c256d75b1be"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/android-gradle-build-lint.txt",
+      "bytes": 3361,
+      "sha256": "5dca61fa204346af8e765366869d91300309c31b5acb0ef833ec38153910d18d"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/apple-build-receipt.json",
+      "bytes": 9907,
+      "sha256": "37dca20c95d6ac705ac56b34ae1d230066a4e71441fb0aaee2c3d6f9927e4454"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 434759,
+      "sha256": "b332a5f14382d8a5b93e4f29e72c4d894c3257a384917267d1058b2f545e16e6"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/combined-source-receipt.json",
+      "bytes": 189442,
+      "sha256": "36f30da9a899234271f99d05cea5e14bdc10e78d721b73537b0fa273a6978936"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/compiled-java-source.json",
+      "bytes": 8229,
+      "sha256": "0331719279cfac95946164b17db8fb4325cfb37166249a796da27d1c98669343"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/compiled-swift-source.json",
+      "bytes": 2392,
+      "sha256": "fb9a104f4a69ad4ee89992e92a90ee996a5395cba79161e3dffd2b984e286ffa"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/followup.md",
+      "bytes": 3645,
+      "sha256": "76bc802a883217271e17fc6828e5052838fbcce0e10c71fab2bfa4fcd608696f"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/java-compile.txt",
+      "bytes": 90,
+      "sha256": "3cf5c7822d3ce0d694dbec36f2f3f2be97b2ac4d38ac4379c2fe804cd3f8aef6"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/java-first-compile-diagnostic.txt",
+      "bytes": 3777,
+      "sha256": "f84b6648f44d50c831f09b80ad5c2fe2dd6667031606b3e67c23b94a64ea16e9"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/owner-exact-root-probe-check.txt",
+      "bytes": 504,
+      "sha256": "d3f3e8f05e8135209ed524388f7760f623b494dddd31574d07273dfaaf736c3b"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/owner-field-cache-check.txt",
+      "bytes": 176,
+      "sha256": "03c7983b1baf0f1c78856546973feaf352d5aed130a34e7ced5e501ed124651b"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/prepare-checkpoint.py",
+      "bytes": 14552,
+      "sha256": "09372851325269c4a75532cb95f6bf6ca7de3a7dd347546aa6d40854fd8850cd"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-SOURCE_REPORT.md",
+      "bytes": 10400,
+      "sha256": "d4d6c70afa4117e5cd5b4248495f3185ad3fc008bc60e796923703350d2547e8"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-independent-build.json",
+      "bytes": 3649,
+      "sha256": "e6f67eef6129cbedf80c0b9d3b56e5ce893c8f8d4c13de798811f1add6ee7814"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-independent-field-boundary.txt",
+      "bytes": 317,
+      "sha256": "1d4012790008c910b4c9fcb2f101b1c49985883ced6379924700df938379e3c8"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-independent-field-check.txt",
+      "bytes": 176,
+      "sha256": "03c7983b1baf0f1c78856546973feaf352d5aed130a34e7ced5e501ed124651b"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-independent-original-cache-check.txt",
+      "bytes": 504,
+      "sha256": "d3f3e8f05e8135209ed524388f7760f623b494dddd31574d07273dfaaf736c3b"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/root-cache-source-closure.json",
+      "bytes": 1699,
+      "sha256": "2a1b049013c0a178c32e4ca8df5d943676756697971f0dce225e05c9cd3b2e1f"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/swift-compile.txt",
+      "bytes": 1131,
+      "sha256": "b65e6a1ea6c08f9591ee309243229893cfd05b9e2ced591d439e431142ee0f2b"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/swift-first-compile-diagnostic.txt",
+      "bytes": 3225,
+      "sha256": "397c1754d08b14fb1d1e43253c8d42e712af7572d4e186d68f964bb9f325c425"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/trust-confirmed-focused-combined-go-race.jsonl",
+      "bytes": 6016,
+      "sha256": "cba5f8d6f28ea789bd1a7565c5dc00aa009464f0bd961a6b61558420c2113cff"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/trust-confirmed-focused-combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/trust-confirmed-focused-combined-source-receipt.json",
+      "bytes": 189506,
+      "sha256": "5f017f5a57be4a91b854f9040c37cb08d6a1450b1319b77c023b8a9b4e088dd2"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/verify-checkpoint.py",
+      "bytes": 6062,
+      "sha256": "c11aa821580c636dd5008cd79cf6681f8ad4418f0bcff683d01416dc357a43de"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-earlier-r1.txt",
+      "bytes": 629,
+      "sha256": "fe9646702c0466dbdd5879d4c06de9bf822d8d4a49c0f7419baa2169b606dd69"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-earlier-r2.txt",
+      "bytes": 272,
+      "sha256": "884c7216c854f99160e2fb179eaed96f9faa4df4d14229bb8668ad119e54ce8e"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-earlier-r3.txt",
+      "bytes": 554,
+      "sha256": "3e2785bad674c5309ae036b7b929c183e3984caac4ba10d6fa0a5b6b421b9680"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-earlier-r4.txt",
+      "bytes": 1141,
+      "sha256": "1fecb4bb1faabe31b0252b4e8b30f0ad98f31158d9a421341a90f7885cb654dd"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-earlier-r5.txt",
+      "bytes": 621,
+      "sha256": "d8344559839f95e9311528f1c03572839d2050059c2566caaccaf20d202c68d3"
+    },
+    {
+      "path": "apps/music/audit/evidence/trust-confirmed-recovery-20261004/web-final.txt",
+      "bytes": 1160,
+      "sha256": "c3ece3e0ade58cbc0f7f6fc4991ae966fbfc61c45506e4ae357d189e688773ed"
+    }
+  ]
+}
