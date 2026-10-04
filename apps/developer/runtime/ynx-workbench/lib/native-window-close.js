@@ -4,18 +4,29 @@ class NativeWindowClose {
   constructor(windows, target = window, layout, storage) { Object.assign(this, { windows, target, layout, storage }); }
   onStart(application) {
     if (!this.target.webkit?.messageHandlers?.ynxLocalWorkbench) return;
+    this.initialized = false;
+    this.canStoreLayout = this.layout?.shouldStoreLayout !== false;
+    // Closing an editor during startup must not replace its saved layout with
+    // the still-empty shell. The framework also stores layout on shutdown.
+    if (this.layout) this.layout.shouldStoreLayout = false;
     const { StopReason } = require('@theia/core/lib/common/frontend-application-state');
     this.close = async requestId => {
       if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return;
       let accepted = false;
       try {
-        this.layout?.storeLayout(application); await this.storage?.flush?.();
+        if (this.initialized) this.layout?.storeLayout(application); await this.storage?.flush?.();
         accepted = await this.windows.isSafeToShutDown(StopReason.Close);
-        if (accepted) { this.layout?.storeLayout(application); await this.storage?.flush?.(); }
+        if (accepted) { if (this.initialized) this.layout?.storeLayout(application); await this.storage?.flush?.(); }
       } catch { accepted = false; }
       this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'close-result', requestId, accepted: accepted === true });
     };
     this.target.__ynxLocalWorkbenchClose = this.close;
+  }
+  onDidInitializeLayout() {
+    if (this.initialized === false) {
+      this.initialized = true;
+      if (this.layout) this.layout.shouldStoreLayout = this.canStoreLayout;
+    }
   }
   onStop() { if (this.target.__ynxLocalWorkbenchClose === this.close) delete this.target.__ynxLocalWorkbenchClose; }
 }

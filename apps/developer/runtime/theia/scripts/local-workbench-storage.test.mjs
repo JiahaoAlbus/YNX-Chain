@@ -34,3 +34,14 @@ test('frontend standard API flush waits UI writes; identity/nonlocal uses origin
  await adapter.setData('authentication-session',123);target.webkit=undefined;await adapter.setData('layout',{});assert.deepEqual(calls.filter(row=>row[0]==='browser-set').map(row=>row[1]),['authentication-session','layout']);
  const failure=new LocalWorkbenchStorage(fallback,{...api,async getData(){throw Error('damaged');}}, {async error(message){calls.push(['error',message]);}}, {webkit:{messageHandlers:{ynxLocalWorkbench:{}}}});await assert.rejects(failure.getData('layout'),/damaged/);await assert.rejects(failure.flush(),/damaged/);assert.equal(calls.filter(row=>row[0]==='error').length,1);
 });
+test('prelayout storage failure rejects immediately even when its toast never resolves; damaged bytes survive',async()=>fixture(async({store,profile})=>{
+ const path=join(profile,'ynx-workbench-ui-v1.json'), damaged='retained-before-layout';await writeFile(path,damaged,{mode:0o600});
+ let notifications=0;const adapter=new LocalWorkbenchStorage({async getData(){throw Error('local failure must not use browser fallback');}},store,{error(){notifications++;return new Promise(()=>{});}}, {webkit:{messageHandlers:{ynxLocalWorkbench:{}}}});
+ const promptly=async job=>{let timer;try{return await Promise.race([job,new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('storage waited for the toast')),250);})]);}finally{clearTimeout(timer);}};
+ await assert.rejects(promptly(adapter.getData('layout')),/damaged/);
+ await assert.rejects(promptly(adapter.flush()),/damaged/);
+ assert.equal(notifications,1);assert.equal(await readFile(path,'utf8'),damaged);
+ const rejectsNotification=new LocalWorkbenchStorage({},store,{error(){return Promise.reject(Error('notification unavailable'));}}, {webkit:{messageHandlers:{ynxLocalWorkbench:{}}}});
+ await assert.rejects(promptly(rejectsNotification.getData('layout')),/damaged/);
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(await readFile(path,'utf8'),damaged);
+}));

@@ -29,9 +29,19 @@ test('native close persists layout before shutdown and after saved editor change
   const storage={flush:async()=>events.push('flush')};
   const close=new NativeWindowClose({isSafeToShutDown:async()=>{events.push('shutdown');return true;}},target,{storeLayout:app=>{assert.equal(app,application);events.push('layout');}},storage);
   close.onStart(application);
+  close.onDidInitializeLayout();
   await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   assert.deepEqual(events,['layout','flush','shutdown','layout','flush']);assert.equal(messages[0].accepted,true);
   events.length=0;storage.flush=async()=>{throw Error('profile write failed');};
   await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   assert.deepEqual(events,['layout']);assert.equal(messages[1].accepted,false);
+});
+test('closing during native startup preserves the previously saved layout',async()=>{
+  const messages=[],target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>messages.push(value)}}}};
+  const layout={shouldStoreLayout:true,storeLayout:()=>assert.fail('startup shell must not overwrite saved layout')};
+  const close=new NativeWindowClose({isSafeToShutDown:async()=>true},target,layout,{flush:async()=>{}});
+  close.onStart({});assert.equal(layout.shouldStoreLayout,false);
+  await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  assert.equal(messages[0].accepted,true);assert.equal(layout.shouldStoreLayout,false);
+  close.onDidInitializeLayout();assert.equal(layout.shouldStoreLayout,true);
 });
