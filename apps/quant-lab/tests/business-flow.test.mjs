@@ -511,6 +511,34 @@ test('schedule configuration coalesces through rerender and binds the exact save
   assert.match(app.ids.get('toast').textContent,/execution is not yet proved/);assert.match(app.ids.get('strategy-rows').innerHTML,/Stop schedule/);assert.doesNotMatch(app.ids.get('strategy-rows').innerHTML,/aria-busy="true"/);assert.equal(app.proofs(),0);
 });
 
+test('schedule acknowledgement preserves already claimed and terminal enabled runs without another write',async()=>{
+  for(const status of ['running','completed','failed_invalid_or_cancelled_configuration','failed_market_data_unavailable']){
+    const strategy=savedResearchStrategy();let reads=0;
+    const app=harness({confirmAction:()=>true,apiResponse:(url,options)=>{
+      if(url.endsWith('/snapshot')){if(++reads===1)return {strategies:{saved:strategy}};throw Error('post-receipt outage')}
+      const body=JSON.parse(options.body);
+      return {...strategy,Runtime:{enabled:true,running:status==='running',intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:status,assumptions:Object.fromEntries(Object.entries(body.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]))}};
+    }});await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';
+    await app.schedule(strategy,true);
+    assert.equal(vm.runInContext('scheduleUnconfirmed.size',app.context),0,status);
+    assert.equal(vm.runInContext('snapshot.strategies.saved.Runtime.lastRunStatus',app.context),status);
+    assert.match(app.ids.get('strategy-rows').innerHTML,/Stop schedule/);
+    assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);
+    assert.equal(app.proofs(),0);
+  }
+});
+
+test('schedule acknowledgement rejects contradictory running or stopped states',async()=>{
+  for(const [status,running] of [['running',false],['completed',true],['scheduled',true],['stopped_by_user',false],['cancelled_before_execution',false]]){
+    const strategy=savedResearchStrategy();
+    const app=harness({confirmAction:()=>true,apiResponse:(url,options)=>url.endsWith('/snapshot')?{strategies:{saved:strategy}}:{...strategy,Runtime:{enabled:true,running,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:status,assumptions:Object.fromEntries(Object.entries(JSON.parse(options.body).assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]))}}});
+    await settle();app.ids.get('fee').value='10';app.ids.get('slippage').value='5';app.ids.get('seed').value='42';await app.schedule(strategy,true);
+    assert.equal(vm.runInContext('scheduleUnconfirmed.size',app.context),1,`${status}/${running}`);
+    assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,1);
+    assert.equal(app.proofs(),0);
+  }
+});
+
 test('stale workspace blocks new schedules before confirmation but preserves confirmed stop',async()=>{
   for(const enabled of [false,true]){
     let confirmations=0,unavailable=false;

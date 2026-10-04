@@ -510,6 +510,14 @@ function observedSchedule(strategy) {
   if (!runtime.enabled && runtime.running) return null;
   return runtime;
 }
+function scheduleAcknowledgesConfiguration(runtime, enabled) {
+  if (!runtime || runtime.enabled !== enabled) return false;
+  if (!enabled) return !runtime.running && runtime.lastRunStatus === "stopped_by_user";
+  // A durable identical PUT can observe the worker after it has claimed or
+  // finished the run. Confirm configuration, not a fabricated queued phase.
+  const status = runtime.lastRunStatus;
+  return ["scheduled", "running", "completed", "failed_invalid_or_cancelled_configuration", "failed_market_data_unavailable"].includes(status) && runtime.running === (status === "running");
+}
 function scheduleTime(value) { return auditTimeValid(value) && !value.startsWith("0001-") ? localDate(value) : "—"; }
 
 function verifiedPaperRecord(record) {
@@ -1008,7 +1016,7 @@ $("#strategy-rows").addEventListener("click", async event => {
     scheduleWrites.add(id); snapshotRevision++; render(); sent = true;
     const receipt = await api(`/v1/strategies/${encodeURIComponent(id)}/schedule`, {method: "PUT", body: JSON.stringify({enabled, intervalSeconds: enabled ? 60 : 0, assumptions})});
     const confirmed = observedSchedule(receipt);
-    if (receipt?.ID !== id || receipt.StrategyHash !== strategy.StrategyHash || receipt.Stage !== strategy.Stage || !confirmed || confirmed.enabled !== enabled || confirmed.running || confirmed.lastRunStatus !== (enabled ? "scheduled" : "stopped_by_user") || enabled && (confirmed.intervalSeconds !== 60 || Object.entries(assumptions).some(([key,value]) => confirmed.assumptions?.[key[0].toUpperCase()+key.slice(1)] !== value))) throw Error(t("scheduleUnknown"));
+    if (receipt?.ID !== id || receipt.StrategyHash !== strategy.StrategyHash || receipt.Stage !== strategy.Stage || !scheduleAcknowledgesConfiguration(confirmed, enabled) || enabled && (confirmed.intervalSeconds !== 60 || Object.entries(assumptions).some(([key,value]) => confirmed.assumptions?.[key[0].toUpperCase()+key.slice(1)] !== value))) throw Error(t("scheduleUnknown"));
     const savedKey = Object.keys(snapshot.strategies).find(key => snapshot.strategies[key]?.ID === id && snapshot.strategies[key]?.StrategyHash === strategy.StrategyHash);
     if (!savedKey) throw Error(t("scheduleUnknown"));
     snapshotRevision++;
