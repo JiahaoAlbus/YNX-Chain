@@ -1,0 +1,21 @@
+package com.ynxweb4.video;
+import android.content.Context;
+import org.json.*;
+import java.io.*;
+import java.net.*;
+public final class OriginalPlaylistCheck {
+ static void check(boolean value,String message){if(!value)throw new AssertionError(message);}
+ public static void main(String[]args)throws Exception{
+  JSONObject input=new JSONObject(args[0]);String phase=input.getString("phase"),action=input.getString("action"),video=input.getString("videoID");Context context=new Context(new File(input.getString("ordinaryDirectory")));
+  NativeSessionBridge bridge=new NativeSessionBridge(input.getJSONObject("session"),input.getJSONObject("context"));VideoRequestBoundary boundary=new VideoRequestBoundary();long generation=boundary.advance();VideoApi.Connections transport=path->(HttpURLConnection)new URL(System.getProperty("ynx.video.originalQAOrigin")+path).openConnection();VideoApi api=new VideoApi(bridge,boundary,generation,transport);VideoViewerState viewer=new VideoViewerState(context,api);
+  JSONArray rows=api.ownedPlaylists();JSONObject target=null;for(int i=0;i<rows.length();i++)if(rows.getJSONObject(i).getString("Name").equals("Protected Java original recovery"))target=rows.getJSONObject(i);
+  if("stage".equals(phase)){
+   if(target==null){check("add".equals(action)&&rows.length()==1,"Original QA target missing");JSONObject draft=viewer.reservePlaylist("Protected Java original recovery");target=api.json("/v1/playlists","POST",new JSONObject().put("Name",draft.getString("name")),draft.getString("key"));check(target.getString("Owner").equals(api.identity.account)&&target.getString("Name").equals(draft.getString("name")),"Original created owner/name changed");JSONArray created=api.ownedPlaylists();check(created.length()==2,"Original created list readback missing");viewer.finishPlaylist(draft);}
+   check(viewer.playlistOperation()==null,"Prior operation not confirmed");boolean lost=false;try{api.changePlaylist(viewer,action,target.getString("ID"),"delete".equals(action)?null:video);}catch(JSONException expected){lost=true;}check(lost,"Original successful mutation reply was not lost");JSONObject original=viewer.playlistOperation();check(original!=null&&original.getString("action").equals(action),"Original successful-lost-reply metadata missing");bridge.restore();boolean retired=false;try{api.json("/v1/playlists","GET",null);}catch(SecurityException expected){retired=true;}check(retired,"Old Java SDK epoch reached network");VideoApi next=new VideoApi(bridge,boundary,generation,transport);VideoViewerState reopened=new VideoViewerState(context,next);check(NativeProductState.canonical(reopened.playlistOperation()).equals(NativeProductState.canonical(original)),"SDK restore erased original ordinary operation");System.out.println(new JSONObject().put("phase",phase).put("pending",original).put("originalJavaEpochRetired",true));
+  }else{
+   check("finish".equals(phase),"Original phase required");JSONObject original=input.getJSONObject("original");check(NativeProductState.canonical(viewer.playlistOperation()).equals(NativeProductState.canonical(original)),"New JVM changed original key/body");api.retryPlaylist(viewer);check(viewer.playlistOperation()==null,"Original desired readback not confirmed");JSONArray after=api.ownedPlaylists();JSONObject updated=null;for(int i=0;i<after.length();i++)if(after.getJSONObject(i).getString("ID").equals(original.getString("playlistID")))updated=after.getJSONObject(i);
+   if("delete".equals(action))check(updated==null&&after.length()==1&&after.getJSONObject(0).getString("Name").equals("Protected Native original library"),"Original list deletion/readback mismatch");else{check(updated!=null&&after.length()==2,"Original owned list missing");JSONArray members=updated.optJSONArray("VideoIDs");check("add".equals(action)?members!=null&&members.length()==1&&members.getString(0).equals(video):members==null||members.length()==0,"Original desired membership mismatch");}
+   check(viewer.playlistDraft()==null,"Operation borrowed create draft");System.out.println(new JSONObject().put("phase",phase).put("original",original).put("actualOriginalBusinessReadback",true).put("pendingCleared",true));
+  }
+ }
+}

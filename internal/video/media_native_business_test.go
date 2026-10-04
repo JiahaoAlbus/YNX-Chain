@@ -253,6 +253,14 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Log("original Creator opt-in stage trace:\n" + diagnostic.String())
 			}
 			var receipt struct {
+				ActualJavaVideoPlaylists bool `json:"actualJavaVideoPlaylists"`
+				JavaPlaylists            struct {
+					ActualOriginalSDKProof            bool  `json:"actualOriginalSDKProof"`
+					ActualOriginalGoBusinessReadback  bool  `json:"actualOriginalGoBusinessReadback"`
+					ActualColdJVMOrdinaryFileRecovery bool  `json:"actualColdJVMOrdinaryFileRecovery"`
+					ActualOriginalJavaEpochRetirement bool  `json:"actualOriginalJavaEpochRetirement"`
+					CompletedMutationDispatches       []int `json:"completedMutationDispatches"`
+				} `json:"javaPlaylists"`
 				PlaybackID                    string `json:"playbackID"`
 				ActualBusinessServerReadback  bool   `json:"actualBusinessServerReadback"`
 				ActualAppleSwiftWebKitEngine  bool   `json:"actualAppleSwiftWebKitEngine"`
@@ -279,6 +287,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.QAProtectedPorts || (apple || creatorApple) && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("native consumer receipt gates invalid")
+			}
+			if product == "video" && platform == "android" && os.Getenv("YNX_QA_ANDROID_VIDEO_PLAYLIST_CLASSES") != "" {
+				j := receipt.JavaPlaylists
+				if !receipt.ActualJavaVideoPlaylists || !j.ActualOriginalSDKProof || !j.ActualOriginalGoBusinessReadback || !j.ActualColdJVMOrdinaryFileRecovery || !j.ActualOriginalJavaEpochRetirement || len(j.CompletedMutationDispatches) != 3 || j.CompletedMutationDispatches[0] != 1 || j.CompletedMutationDispatches[1] != 1 || j.CompletedMutationDispatches[2] != 1 {
+					t.Fatal("actual original Java Video playlist recovery gates missing")
+				}
 			}
 			if creatorApple && (!receipt.ActualTwoOriginalSwiftActors || !receipt.ActualIndependentReview || !receipt.ActualPublicationRecovery || !receipt.ActualRevokedTeamDenied || !receipt.ActualAppealColdRecovery || !receipt.ActualAppealFreshReview || !receipt.ActualAssetColdRecovery || !receipt.ActualAssetOriginalReadback || !receipt.ActualAIStreamRecovery || !receipt.ActualAICancelBoundary || !receipt.ActualRightsFullFields || !receipt.ActualDelegatedFinance || !receipt.ActualCapturedButtonAuthority || !receipt.ActualNativeHistoryExpiry || !receipt.ActualNativeUploadExpiry || !receipt.ActualRepeatedOriginalRestore || !receipt.ActualStudioReadiness) {
 				t.Fatal("missing original Creator two-actor review, publication recovery, or revoked-team evidence")
