@@ -1,0 +1,21 @@
+✔ declined attempts reach the throttle even with insufficient funds (1.137042ms)
+✔ attempt windows exclude other cards and expire at exactly five minutes (0.124584ms)
+✔ freeze and closed lifecycle take precedence over throttling (0.118084ms)
+✔ balances remain exact bigint amounts and decline max single transactions (0.060833ms)
+✔ all existing merchant and channel controls remain enforced (0.115125ms)
+✔ UTC daily and monthly approved budgets do not count declines or foreign cards (0.082208ms)
+✔ risk classification never mutates balances, merchant history or controls (0.050709ms)
+✔ optional merchant allowlist is enforced and explicit deny always wins (0.071792ms)
+✔ emergency block precedes spend and attempt budgets but cannot unfreeze a card (0.0805ms)
+✔ invalid amounts and controls fail closed instead of producing approval or throwing (0.135916ms)
+✔ malformed processor history and future authorizations cannot bypass budgets (0.0915ms)
+✔ merchant schema rejects unrecognized channels and noncanonical categories before approval (0.067ms)
+✔ uint256 boundary remains exact and invalid other-card history cannot spend this card budget (0.069958ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 155.563083

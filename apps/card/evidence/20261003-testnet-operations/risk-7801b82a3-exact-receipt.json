@@ -1,0 +1,60 @@
+{
+  "recordedAt": "2026-10-04T09:16:05.829Z",
+  "scope": "Card-owned Testnet risk policy only",
+  "sourceCommit": "7801b82a30ef3880e8d2d0d1588218ef20369b29",
+  "sourceTree": "db972af332c4d9264f3b032f325c1aa3b1c4ccc6",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "tests": {
+    "focused": {
+      "passed": 13,
+      "total": 13
+    },
+    "backend": {
+      "passed": 145,
+      "total": 145
+    },
+    "typecheck": true,
+    "backendBuild": true,
+    "frontendRerun": false
+  },
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/risk-7801b82a3-focused-tests.txt",
+      "bytes": 1300,
+      "sha256": "4690f0878d977e492ce72c7cf628cf5a0819d10bae9e2c45a26d9a51c2312dca"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/risk-7801b82a3-backend-tests.txt",
+      "bytes": 13957,
+      "sha256": "4518808832e3bde0846278b0d16223a20488dc6bb84e906ed02cfb97c38f7643"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/risk-7801b82a3-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/risk-7801b82a3-backend-build.txt",
+      "bytes": 97,
+      "sha256": "5a0b857742ad71e67032c847f9bbc0e1d4951d656aacf30d49a2021eaa0ea74e"
+    }
+  ],
+  "backendBundle": {
+    "path": "/private/tmp/card-risk-exact-20261004/backend.mjs",
+    "bytes": 287121,
+    "sha256": "5dbbdf5a3c2ca9d434f56be5581d11884fe14568d6dfea389240f8457a8b18a2"
+  },
+  "boundaries": {
+    "newSourcePubliclyDeployed": false,
+    "protectedRuntimeAdmission": false,
+    "realWalletApproval": false,
+    "realSignature": false,
+    "realFundingTransaction": false,
+    "cardCredit": false,
+    "dataFabricReceiverAcceptance": false,
+    "migratedV2": false,
+    "computerControl": false,
+    "productionRealPayments": false
+  },
+  "note": "No provider/account/sign/transaction action performed. Public source identity was not refreshed by this backend-only checkpoint. Three pre-existing untracked evidence files were not modified or staged."
+}
