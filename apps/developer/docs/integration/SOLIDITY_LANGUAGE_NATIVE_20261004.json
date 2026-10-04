@@ -1,0 +1,96 @@
+{
+  "checkpoint": "Native macOS local candidate bundles current cold-definition-ready core and real reviewed Solidity language worker assets",
+  "sourceCommit": "87ef2b4ffcf3f013295279f8822a9bc6afefe397",
+  "sourceTree": "d758458d628d346cdd875591eb06d9d748e988d7",
+  "sourceDeltaBase": "dd985c732",
+  "sourceArchive": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-startup-native-evidence-20261004/source-delta.tar.gz",
+    "sha256": "70d9a7cbd02fd1654a82c6f1cf6f5a11d1a02f37ceb36da4280d6e02d8a0260b",
+    "allGitBlobsReadBack": true
+  },
+  "native": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-solidity-language-startup-native-package-20261004-mac-arm64",
+    "app": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-solidity-language-startup-native-package-20261004-mac-arm64/YNX Developer Testnet Preview.app",
+    "dmg": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-solidity-language-startup-native-package-20261004-mac-arm64/ynx-developer-testnet-preview-macos-arm64-unsigned.dmg",
+    "dmgSha256": "14f814ffe81ad4a1834fa1b8aa0c93b05705e4f394bc3863c81a8f84526c031b",
+    "packageExitCode": 0,
+    "dmgVerifyExitCode": 0,
+    "codesignStrictDeepValidOnDisk": true,
+    "signing": "adhoc-no-team-id",
+    "minimumMacOS": "13.5",
+    "provenance": {
+      "schemaVersion": 1,
+      "productId": "ynx-developer-v1",
+      "version": "0.2.0",
+      "artifactClass": "unsigned-testnet-preview",
+      "platform": "macos-arm64",
+      "signingClass": "adhoc-no-team-id",
+      "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+      "sourceCommit": "87ef2b4ffcf3f013295279f8822a9bc6afefe397",
+      "sourceTree": "d758458d628d346cdd875591eb06d9d748e988d7",
+      "sourceCommitDate": "2026-10-04T22:14:54+08:00",
+      "runtimeCheckpoint": "87ef2b4ffcf3f013295279f8822a9bc6afefe397",
+      "sourceDirty": false,
+      "minimumOS": "13.5",
+      "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+      "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+      "sbomPath": "Contents/Resources/sbom.cdx.json",
+      "sbomSha256": "d3c9d01f6d89c1b73642205d9f92bc22ca8bb140e005224012335afcff1e88a7",
+      "composedCoreDistribution": {
+        "schemaVersion": 1,
+        "runtimeArtifact": {
+          "kind": "ynx-theia",
+          "version": "1.76.0",
+          "architecture": "darwin-arm64",
+          "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+          "treeSha256": "e517c13f66f5b3fdd8252ace2c7909a39839aa9367db4d891ebb300d263a850e",
+          "manifestSha256": "f8e37d3b80cb088b4bdf7ad39696ed864b065e85de3fcd85649f2d1c6dcb02e7"
+        },
+        "requiredNodeVersion": "v26.7.0",
+        "archive": "workbench.tar",
+        "archiveSha256": "8d91f5f72a4424e5092f2f2d489ff4ec5a1160a1d0efcb552215e24cedcc67b2",
+        "roundTripTreeVerified": true,
+        "upstreamNotices": "component-notices/index.json inside archive",
+        "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+        "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+      }
+    },
+    "nativeSourceInputsAndWorkerHelpersByteIdentical": true,
+    "cloneOnlyMode": true,
+    "successfulGeneratedDmgStageHolderFreeCleanup": true,
+    "oldPackagesAndAllFailedCandidatesPreserved": true
+  },
+  "core": {
+    "pin": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+      "treeSha256": "e517c13f66f5b3fdd8252ace2c7909a39839aa9367db4d891ebb300d263a850e",
+      "manifestSha256": "f8e37d3b80cb088b4bdf7ad39696ed864b065e85de3fcd85649f2d1c6dcb02e7"
+    },
+    "archiveSha256": "8d91f5f72a4424e5092f2f2d489ff4ec5a1160a1d0efcb552215e24cedcc67b2",
+    "archiveAfterOuterSigningMatchesDistribution": true,
+    "requiredNodeVersion": "v26.7.0",
+    "outerGatewayNodeVersion": "v24.21.0",
+    "outerNodeIsNotReplacementForAdmittedCoreRuntime": true
+  },
+  "checksPassed": {
+    "actualPackagedServerBootstrapPreparer": 3,
+    "actualPackagedNode24CompilerAssetsStandardProviderFixture": 1,
+    "skipped": 0
+  },
+  "scope": "Actual local candidate Node/server/frontend/worker assets/filesystem preparer and readonly package verification. Prior matching composed core cold first-key6 and file-switch2 UI evidence is separate. No Cocoa launch, user install, canonical admission, real Wallet/model/Chain execution or public release.",
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-startup-native-evidence-20261004",
+  "evidenceIndexSha256": "36c1f6c5ce9298a76db4dd9e2332640ca4d182d150eac1ac3b380bbce6180dfd",
+  "freshAvailableKiB": 622544,
+  "canonical": false,
+  "public": false,
+  "installed": false,
+  "realWallet": false,
+  "remaining": [
+    "Extend and test immutable project-input review for newly added language helper and compiler assets before formal publication.",
+    "Semantic completion/rename, partial-source editing, automatic diagnostics and formatting remain open.",
+    "Full C++ debug, canonical shared identity/Host, actual AI/Wallet/Chain operations, other-platform packaging, signing/notarization, install/user acceptance remain unverified."
+  ]
+}
