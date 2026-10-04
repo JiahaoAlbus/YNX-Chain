@@ -1,6 +1,28 @@
 # Composed workbench: normal-entry consumer contract
 
-Latest owned runtime checkpoint: workbench **0.3.3**, candidate
+Latest owned runtime checkpoint: workbench **0.3.5**, candidate
+`ynx-composed-gcc-diagnostics-20261004-mac-arm64`. Exact pin and **26 actual
+controlled browser checks** (core 16, lifecycle 3, same-profile cold recovery 4,
+standard C++ compiler tasks 3) are in `COMPOSED_GCC_DIAGNOSTICS_20261004.json`.
+Lock `3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c`,
+tree `2329f6debe46588e6c46b24136cdb61459960468b1845bc812884d3b5cfea197`,
+manifest `771552fefe79d2eb656b6cda22b2f33213ecdebad17965ddcfab2b86b18975c2`.
+Standard `$gcc` tasks now run the installed compiler and map absolute diagnostics
+onto their actual editor file. Existing relative/custom matchers and URI providers
+retain their upstream behavior. Full diagnostic test uses Clang's explicit
+`-fmessage-length=0`; wrapped continuation diagnostics and C++ semantic language
+extensions remain open. The controlled QA compiler change permits only exact
+ancestor metadata for existing approved tool roots, without extra content or
+network access; actual terminal isolation regression still passes.
+
+The parent Tools lifecycle successor separately passes 28 actual service HTTP
+tests, four new React/Chromium scenarios and six related browser suites; see
+`NATIVE_TOOLS_LIFECYCLE_20261004.json`. Controlled providers/model/routes do not
+establish real canonical Wallet/Chain/AI acceptance. This source successor has
+not yet been packaged or installed. The existing native distribution below
+continues to embed its original d341/0.3.3 source and core.
+
+Previous owned runtime checkpoint: workbench **0.3.3**, candidate
 `ynx-composed-cold-recovery-20261004-mac-arm64`; exact pin and 32 actual current
 browser checks plus eight filesystem/native tests are in
 `COMPOSED_COLD_RECOVERY_20261004.json`. Lock
@@ -157,6 +179,19 @@ and passes that broker to `createNativeToolsService`. The extension's
 and delegates to existing Chain, Wallet readiness or the model router, with
 one-use review and identity rechecks. Do not substitute a fixture identity,
 new model provider, direct RPC credential or extension-authorized request.
+
+The parent Tools successor records controlled source/browser checks in
+`NATIVE_TOOLS_LIFECYCLE_20261004.json`. Existing `GET context` now reports both
+`expiresAt` (one-use review deadline, at most 60 seconds) and `sessionExpiresAt`
+(the actual already-admitted workspace deadline). Passive foreground checks use
+the same route with `checkOnly=1`: canonical authorization still runs, while no
+CSRF review token is minted or returned. These reads cannot authorize a POST.
+The client retires old results/reviews/listeners on a changed account/project,
+failed foreground verification or expired workspace; it retains unsent input
+for explicit refresh and new review. Review expiry alone does not end the
+longer-lived workspace. No Shared SDK, new identity grant or protected driver
+is introduced. This successor host code is newer than the original d341 native
+package above and must be paired accurately by the release producer.
 
 The single remaining A integration input is an **actual registered composed
 driver session** reachable through `/projects` and `/sso/core-open`, with the

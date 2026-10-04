@@ -76,7 +76,10 @@ if (dapRoot && !previous) {
 const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/opt/homebrew', '/Library/Developer/CommandLineTools', root, plugins, qa, ...dapRoot ? [dapRoot] : []];
 const ancestors = new Set();
-for (const path of [root, plugins, qa]) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
+// Canonical discovery of an already allowed tool (e.g. clang++ -> clang)
+// needs metadata on its parents. Permit only those exact directories, never
+// their contents or unrelated project/profile trees.
+for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
 const profileText = ['(version 1)', '(allow default)', '(deny network*)', '(deny file-read*)', '(deny file-write*)',
   // macOS dyld enumerates the volume root before loading Node. Permit only
   // that directory, not a recursive read of the volume or another profile.

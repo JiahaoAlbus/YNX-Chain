@@ -1,0 +1,415 @@
+{
+  "schema": "ynx-native-tools-lifecycle/v1",
+  "sourceBase": "c1eee65e0a334ec34503a57d0cf98db902ae666b",
+  "implementation": "Owned parent Tools frontend/service only. No core runtime/SDK/Host/authority migration.",
+  "changes": [
+    "Canonical context now separates one-use review expiry from actual workspace-session expiry",
+    "Read-only context?checkOnly=1 still performs canonical authorization and returns no CSRF ticket; foreground checks do not consume the eight-ticket review budget",
+    "Passive foreground mismatch or verification failure retires private tool results/reviews/listeners and late requests; explicit refresh retains unsent inputs",
+    "Workspace lifetime retires current data independently of review expiry; an expired review requires a fresh preview while a valid workspace remains available",
+    "Synchronous operation lock prevents duplicate user launches during the React busy-state render gap"
+  ],
+  "checks": {
+    "actualToolsHTTPTests": 28,
+    "newActualReactChromiumLifecycleScenarios": 4,
+    "relatedActualReactChromiumSuites": 6,
+    "typecheckExit": 0,
+    "productionBuildExit": 0,
+    "public": false,
+    "realWallet": false,
+    "realModel": false
+  },
+  "results": [
+    {
+      "name": "browser",
+      "result": {
+        "checks": [
+          "Foreground account/project mismatch retires old contract/results and preserves only unsent user input for explicit refreshed review.",
+          "Actual session deadline retires the tool tree and late contract response without resurrecting private results.",
+          "Expired review is removed without ending the longer-lived workspace session or sending AI context.",
+          "Failed foreground verification closes tools; explicit refresh recovers the unchanged unsent draft without model dispatch."
+        ],
+        "errors": [],
+        "calls": [
+          {
+            "mode": "foreground-change",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "foreground-change",
+            "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "foreground-change",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": "1",
+            "body": null
+          },
+          {
+            "mode": "foreground-change",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "session-expiry",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "session-expiry",
+            "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "review-expiry",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "review-expiry",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "review-expiry",
+            "path": "/runtime/native-tools/proposals",
+            "checkOnly": null,
+            "body": {
+              "csrf": "review",
+              "prompt": "Keep my unsent request",
+              "context": "Keep my unsent selected text"
+            }
+          },
+          {
+            "mode": "foreground-offline",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          },
+          {
+            "mode": "foreground-offline",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": "1",
+            "body": null
+          },
+          {
+            "mode": "foreground-offline",
+            "path": "/runtime/native-tools/context",
+            "checkOnly": null,
+            "body": null
+          }
+        ],
+        "runnerSha256": "7b341e2e1aed15e645ac3b59848dd2dd3c563851d6ace3e0c289bbba7afb46d9",
+        "actualReact": true,
+        "actualChromium": true,
+        "backend": "controlled browser routes",
+        "realWallet": false,
+        "realModel": false,
+        "public": false
+      }
+    },
+    {
+      "name": "tools",
+      "result": {
+        "checks": [
+          "401 retires old Tools identity, private result and approval; sign-in returns; no hidden model retry"
+        ],
+        "errors": [],
+        "modelCalls": 1,
+        "actualChromium": true,
+        "actualReactTools": true,
+        "backend": "controlled HTTP routes",
+        "public": false
+      }
+    },
+    {
+      "name": "ai-history",
+      "result": {
+        "passed": true,
+        "modelCalls": 1,
+        "errors": [],
+        "actualReact": true,
+        "actualChromium": true,
+        "backend": "controlled routes; actual SQLite verified separately",
+        "realModel": false,
+        "public": false
+      }
+    },
+    {
+      "name": "ai-cancel",
+      "result": {
+        "passed": true,
+        "actualReact": true,
+        "actualChromium": true,
+        "backend": "controlled browser routes",
+        "errors": [],
+        "calls": [
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/proposals",
+            "body": {
+              "csrf": "fresh",
+              "prompt": "Suggest a plan",
+              "context": "draft"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/approve",
+            "body": {
+              "csrf": "approval",
+              "proposalId": "review-3",
+              "approval": "send-reviewed-context-once"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/proposals",
+            "body": {
+              "csrf": "fresh",
+              "prompt": "Suggest a plan",
+              "context": "draft"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/approve",
+            "body": {
+              "csrf": "approval",
+              "proposalId": "review-6",
+              "approval": "send-reviewed-context-once"
+            }
+          }
+        ],
+        "realModel": false,
+        "public": false
+      }
+    },
+    {
+      "name": "selected-edit",
+      "result": {
+        "passed": true,
+        "checks": [
+          "Explicit selected-edit preview and one-use send produce exact copied and downloaded version/digest/session-bound replacement; no apply",
+          "Saved selected edit reopens with review bundle and no model replay",
+          "Retired native identity removes generated and saved private edit bundles"
+        ],
+        "errors": [],
+        "calls": [
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/proposals",
+            "body": {
+              "csrf": "fresh",
+              "prompt": "Improve selection",
+              "context": "{\"uri\":\"file:///project/a.ts\",\"version\":4,\"fullTextDigest\":\"2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0\",\"selectedText\":\"selected passage\",\"sessionId\":\"12345678-1234-1234-1234-123456789012\"}",
+              "mode": "selected-edit"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/approve",
+            "body": {
+              "csrf": "review",
+              "proposalId": "selection-1",
+              "approval": "send-reviewed-context-once"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/ai/conversations",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/ai/conversations/00000000-0000-4000-8000-000000000001",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/wallet/readiness",
+            "body": null
+          }
+        ],
+        "actualReact": true,
+        "actualChromium": true,
+        "backend": "controlled browser HTTP fixtures",
+        "public": false,
+        "nativeEditorJourney": "NOT_RUN"
+      }
+    },
+    {
+      "name": "contract",
+      "result": {
+        "actualReact": true,
+        "actualChromium": true,
+        "backend": "controlled browser routes",
+        "calls": [
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/chain/contracts/call",
+            "body": {
+              "csrf": "review",
+              "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "function": "count"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/context",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/chain/contracts/call",
+            "body": {
+              "csrf": "review",
+              "address": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "function": "count"
+            }
+          },
+          {
+            "path": "/runtime/native-tools/chain/contracts/0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "body": null
+          },
+          {
+            "path": "/runtime/native-tools/chain/contracts/0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "body": null
+          }
+        ],
+        "errors": [],
+        "passed": true,
+        "public": false,
+        "realContractCall": false
+      }
+    },
+    {
+      "name": "wallet",
+      "result": {
+        "passed": true,
+        "checks": [
+          "accountsChanged retires the approved account, removes listeners and rechecks the core without new approval",
+          "chainChanged retires the approved account, removes listeners and rechecks the core without new approval",
+          "disconnect retires the approved account, removes listeners and rechecks the core without new approval",
+          "late passive account result cannot restore an approval retired by a provider event",
+          "focus passively detects a missing provider event without requesting accounts",
+          "core identity rejection retires the private page and its Wallet listeners"
+        ],
+        "errors": [],
+        "traces": [
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          },
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          },
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          },
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          },
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          },
+          {
+            "calls": [
+              "wallet_switchEthereumChain",
+              "eth_requestAccounts",
+              "eth_chainId",
+              "eth_accounts",
+              "eth_chainId"
+            ],
+            "listeners": 0
+          }
+        ],
+        "actualReact": true,
+        "actualChromium": true,
+        "wallet": "controlled injected EIP-1193 provider",
+        "backend": "controlled routes",
+        "signed": false,
+        "submitted": false,
+        "public": false
+      }
+    }
+  ],
+  "preparationFailures": [
+    "Initial React useRef typing rejected undefined; corrected explicit optional type, original log retained",
+    "Initial fixture entry used a non-hoisted vite path; corrected to existing hoisted package, original log retained"
+  ],
+  "evidence": "apps/developer/.ynx-developer-candidates/tools-lifecycle-final-evidence-20261004",
+  "evidenceIndexSha256": "e649693b5bb91992b2ec7febf3e6f01e27d63fd04f448b309491fd1f199890eb",
+  "core": "Separate owned runtime successor 0.3.5 is recorded in COMPOSED_GCC_DIAGNOSTICS_20261004.json; controlled Tools routes do not establish canonical user acceptance.",
+  "nativePackage": "Previous d341 App/DMG remains intact and accurately source-pinned; this host-tools successor has not yet been packaged or installed.",
+  "remaining": [
+    "A protected composed driver/canonical parent with normal projects/core-open/native-tools path",
+    "Actual Wallet/Chain/approved existing hosted-model journey after formal release",
+    "Native/platform installation, capacity and formal signing/notarization"
+  ]
+}

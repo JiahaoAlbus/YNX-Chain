@@ -28,10 +28,26 @@ async function harness(t, { realChain = false, generationHook, modelWork } = {})
   const service = createNativeToolsService({ coreService, aiStore, admittedOwners, now: () => now, chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); t.after(() => new Promise(resolve => server.close(resolve)));
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
-    const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + '?sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
+    const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + (path.includes('?') ? '&' : '?') + 'sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
   });
   return { send, calls, server, aiStore, changeReference: () => identityReference += '-new', admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
 }
+
+test('passive foreground checks require identity, report session lifetime and mint no review tickets', async t => {
+  const h = await harness(t);
+  for (let i = 0; i < 20; i++) {
+    const checked = await h.send('context?checkOnly=1');
+    assert.equal(checked.status, 200); assert.equal(checked.value.sessionExpiresAt, 100000);
+    assert.equal(checked.value.expiresAt, 60100); assert.equal(Object.hasOwn(checked.value, 'csrf'), false);
+  }
+  const fresh = await h.send('context');
+  assert.equal(fresh.status, 200); assert.equal(fresh.value.sessionExpiresAt, 100000);
+  const preview = await h.send('proposals', { csrf: fresh.value.csrf, prompt: 'Suggest a plan', context: 'reviewed text' });
+  assert.equal(preview.status, 200); assert.equal(h.calls.length, 0);
+  assert.equal((await h.send('context?checkOnly=1', undefined, { cookie: 'wallet=B' })).status, 401);
+  h.revoke(); assert.equal((await h.send('context?checkOnly=1')).status, 401);
+  assert.equal(h.calls.length, 0);
+});
 
 test('approved AI request is saved under the actual owner/project; reopening sends no model request', async t => {
   const h = await harness(t), c = await h.send('context');

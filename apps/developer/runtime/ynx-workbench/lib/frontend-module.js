@@ -11,9 +11,22 @@ const { EditorManager } = require('@theia/editor/lib/browser');
 const { MessageService } = require('@theia/core/lib/common/message-service');
 const { FrontendApplicationStateService } = require('@theia/core/lib/browser/frontend-application-state');
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
+const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => ({
+    async onStart() {
+      const registry = context.container.get(ProblemMatcherRegistry);
+      await registry.onReady();
+      // Standard VS Code GCC/Clang tasks refer to $gcc. The composed framework
+      // lacks this matcher, so otherwise valid tasks fail schema validation.
+      if (!registry.get('gcc')) registry.register({ name: 'gcc', label: 'GCC / Clang', owner: 'cpp', source: 'gcc',
+        fileLocation: ['relative', '${workspaceFolder}'],
+        pattern: { regexp: '^(.+):(\\d+):(\\d+):\\s+(warning|error|fatal error):\\s+(.*)$', file: 1, line: 2, column: 3, severity: 4, message: 5 },
+      });
+    },
+  })).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new DraftRecoveryContribution(
     context.container.get(EditorManager), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-draft-recovery'),
     context.container.get(MessageService), context.container.get(FrontendApplicationStateService),

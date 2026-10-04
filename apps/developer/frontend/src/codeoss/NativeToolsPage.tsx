@@ -3,14 +3,15 @@ import './native-tools.css';
 import { connectDeveloperWebWallet, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from '../wallet/safe-authorize-launcher';
 import { NativeContractTools } from './NativeContractTools';
 import { createRequestEpoch } from './requestEpoch';
-type Identity = { csrf: string; account: string; projectId: string; expiresAt: number };
+type Identity = { csrf: string; account: string; projectId: string; expiresAt: number; sessionExpiresAt?: number };
 type EditReview = { summary: string; bundle: unknown };
-type Proposal = { csrf: string; proposalId: string; prompt: string; context: string; contextBytes: number; wirePrompt?: string; requestBytes?: number; model: string; mode?: string };
+type Proposal = { csrf: string; proposalId: string; prompt: string; context: string; contextBytes: number; wirePrompt?: string; requestBytes?: number; model: string; mode?: string; expiresAt?: number };
 type SavedRequest = { id: string; status: string; createdAt: string; updatedAt: string; model: string; prompt?: string; context?: string; text?: string; edit?: EditReview; editRequiresRecapture?: boolean };
 export function NativeToolsPage() {
   const sessionId = new URLSearchParams(window.location.search).get('sessionId') || '';
   const requests = useRef(createRequestEpoch()).current, generation = useRef<AbortController | null>(null);
   const walletRequests = useRef(createRequestEpoch()).current, walletCleanup = useRef<(() => void) | null>(null);
+  const activeIdentity = useRef<Identity | undefined>(undefined), working = useRef(false), foregroundCheck = useRef(false);
   const [generating, setGenerating] = useState(false);
   const [selectedEdit, setSelectedEdit] = useState(false), [editReview, setEditReview] = useState<EditReview>();
   const [saved, setSaved] = useState(false), [savedRequests, setSavedRequests] = useState<SavedRequest[]>(), [openedRequest, setOpenedRequest] = useState<SavedRequest>();
@@ -19,31 +20,75 @@ export function NativeToolsPage() {
     walletRequests.invalidate(); walletCleanup.current?.(); walletCleanup.current = null;
     setConnection(message);
   }
-  async function request(path: string, options?: RequestInit) {
+  function retire(message: string) {
+    requests.invalidate(); activeIdentity.current = undefined; working.current = false;
+    generation.current?.abort(); generation.current = null;
+    setGenerating(false); setBusy(false); retireWallet();
+    setIdentity(undefined); setProposal(undefined); setResult(''); setWallet(undefined);
+    setEditReview(undefined); setStatus(undefined); setCompiler(undefined); setRpcResult(undefined);
+    setSaved(false); setSavedRequests(undefined); setOpenedRequest(undefined); setError(message);
+    // Unsent prompt/context remain the user's draft. A retired answer or review
+    // cannot silently become a new project's request.
+  }
+  function acceptIdentity(value: Identity, verification = false) {
+    const deadline = value.sessionExpiresAt ?? value.expiresAt, previous = activeIdentity.current;
+    if ((!verification && !value.csrf) || (verification && !previous) || typeof value.account !== 'string' || !value.account || typeof value.projectId !== 'string' || !value.projectId ||
+        !Number.isFinite(value.expiresAt) || !Number.isFinite(deadline) || deadline <= Date.now()) {
+      retire('The workspace connection could not be verified. Your unsent input is preserved.');
+      throw new Error('The workspace connection could not be verified.');
+    }
+    if (previous && (previous.account !== value.account || previous.projectId !== value.projectId)) {
+      retire('The Wallet project changed. Reopen its tools before reviewing another request. Your unsent input is preserved.');
+      throw new Error('The Wallet project changed.');
+    }
+    const accepted = verification ? { ...value, csrf: previous!.csrf } : value;
+    activeIdentity.current = accepted; setIdentity(accepted);
+  }
+  async function request(path: string, options?: RequestInit, verification = false) {
     const captured = requests.capture();
-    const response = await fetch(`/runtime/native-tools/${path}?sessionId=${encodeURIComponent(sessionId)}`, { ...options, credentials: 'same-origin', cache: 'no-store', headers: { 'content-type': 'application/json' } });
+    const response = await fetch(`/runtime/native-tools/${path}?sessionId=${encodeURIComponent(sessionId)}${verification ? '&checkOnly=1' : ''}`, { ...options, credentials: 'same-origin', cache: 'no-store', headers: { 'content-type': 'application/json' } });
     const value = await response.json();
     if (!requests.current(captured)) throw new Error('This request was retired.');
     if (!response.ok) {
       if (response.status === 401) {
         // Retire data and one-use reviews from the disconnected workspace.
         // Keep only the user's unsent draft for explicit review after sign-in.
-        requests.invalidate(); generation.current?.abort(); generation.current = null;
-        setGenerating(false); setBusy(false); retireWallet();
-        setIdentity(undefined); setProposal(undefined); setResult(''); setWallet(undefined);
-        setEditReview(undefined);
-        setStatus(undefined); setCompiler(undefined); setRpcResult(undefined);
-        setSaved(false); setSavedRequests(undefined); setOpenedRequest(undefined);
-        setError(value.error || 'The Wallet project session ended.');
+        retire(value.error || 'The Wallet project session ended.');
       }
       throw new Error(value.error || 'The tool is unavailable.');
     }
+    if (path === 'context') acceptIdentity(value, verification);
     return value;
   }
   useEffect(() => { const captured = requests.invalidate(); request('context').then(value => { if (requests.current(captured)) setIdentity(value); }).catch(cause => { if (requests.current(captured)) setError(cause.message); }); return () => { requests.invalidate(); walletRequests.invalidate(); walletCleanup.current?.(); walletCleanup.current = null; generation.current?.abort(); generation.current = null; }; }, [sessionId, requests, walletRequests]);
-  async function run(task: () => Promise<void>) { const captured = requests.capture(); setBusy(true); setError(''); try { await task(); } catch (cause) { if (requests.current(captured)) setError(cause instanceof Error ? cause.message : String(cause)); } finally { if (requests.current(captured)) setBusy(false); } }
+  useEffect(() => {
+    if (!identity) return;
+    const deadline = identity.sessionExpiresAt ?? identity.expiresAt;
+    let timer: number;
+    const expire = () => {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) retire('The Wallet project session ended. Your unsent input is preserved.');
+      else timer = window.setTimeout(expire, Math.min(remaining, 2147483647));
+    };
+    expire();
+    const check = () => {
+      if (document.visibilityState === 'hidden' || foregroundCheck.current || !activeIdentity.current) return;
+      foregroundCheck.current = true; const captured = requests.capture();
+      void request('context', undefined, true).catch(cause => {
+        if (requests.current(captured)) retire(cause instanceof Error ? cause.message : 'The workspace connection could not be verified.');
+      }).finally(() => { foregroundCheck.current = false; });
+    };
+    window.addEventListener('focus', check); document.addEventListener('visibilitychange', check);
+    return () => { window.clearTimeout(timer); window.removeEventListener('focus', check); document.removeEventListener('visibilitychange', check); };
+  }, [identity, requests]);
+  useEffect(() => {
+    if (!proposal?.expiresAt) return;
+    const timer = window.setTimeout(() => { setProposal(undefined); setError('This request review expired. Preview it again before sending.'); }, Math.max(0, proposal.expiresAt - Date.now()));
+    return () => window.clearTimeout(timer);
+  }, [proposal]);
+  async function run(task: () => Promise<void>) { if (working.current) return; working.current = true; const captured = requests.capture(); setBusy(true); setError(''); try { await task(); } catch (cause) { if (requests.current(captured)) setError(cause instanceof Error ? cause.message : String(cause)); } finally { if (requests.current(captured)) { working.current = false; setBusy(false); } } }
   async function preview() {
-    const fresh = await request('context'); setIdentity(fresh);
+    const fresh = await request('context');
     setProposal(await request('proposals', { method: 'POST', body: JSON.stringify({ csrf: fresh.csrf, prompt, context, ...(selectedEdit ? { mode: 'selected-edit' } : {}) }) })); setResult(''); setEditReview(undefined); setSaved(false);
   }
   async function approve() {
@@ -56,6 +101,7 @@ export function NativeToolsPage() {
   }
   function stopWaiting() {
     requests.invalidate(); generation.current?.abort(); generation.current = null;
+    working.current = false;
     setGenerating(false); setBusy(false); setProposal(undefined);
     setError('Stopped waiting. Context already sent cannot be recalled. No changes were applied; sending again requires a new review.');
   }
@@ -76,7 +122,7 @@ export function NativeToolsPage() {
     if (value.status !== 'connected' || !value.providerKind || !value.account) { setConnection(value.detail); return; }
     const account = value.account.toLowerCase(), providerKind = value.providerKind;
     const recheckCore = async () => {
-      const latest = await request('context');
+      const latest = await request('context', undefined, true);
       if (latest.account !== core.account || latest.projectId !== core.projectId)
         throw new Error('The Wallet project changed. Reopen its tools before connecting.');
     };
@@ -110,8 +156,8 @@ export function NativeToolsPage() {
       if (await restore()) setConnection(`Wallet approved account ${value.account} on Chain 6423. This connection does not authorize signing or deployment.`);
     } catch (cause) { if (current()) retireWallet(); throw cause; }
   }
-  return <main className="ynx-tools-page"><header><img src="/brand/ynx-logo.png" alt="YNX" /><div><h1>YNX Tools</h1><p>Testnet development · Chain 6423</p></div>{identity && identity.expiresAt > Date.now() && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(sessionId) && <a href={`/sso/core-open?sessionId=${sessionId}`}>Return to editor</a>}<a href="/projects">Projects</a></header>
-    {!identity ? <section><p>Open these tools from an active Wallet project.</p><a href="/sso/start">Sign in with YNX Wallet</a></section> : <>
+  return <main className="ynx-tools-page"><header><img src="/brand/ynx-logo.png" alt="YNX" /><div><h1>YNX Tools</h1><p>Testnet development · Chain 6423</p></div>{identity && (identity.sessionExpiresAt ?? identity.expiresAt) > Date.now() && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(sessionId) && <a href={`/sso/core-open?sessionId=${sessionId}`}>Return to editor</a>}<a href="/projects">Projects</a></header>
+    {!identity ? <section><p>Open these tools from an active Wallet project.</p><button disabled={busy} onClick={() => void run(async () => { await request('context'); })}>Refresh workspace connection</button><a href="/sso/start">Sign in with YNX Wallet</a></section> : <>
       <p className="tools-account">{identity.account} · {identity.projectId}</p>
       {generating && <p role="status">Generating your reviewed plan… <button onClick={stopWaiting}>Stop waiting for AI</button></p>}
       <NativeContractTools request={request} run={run} busy={busy} />

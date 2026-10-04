@@ -6,6 +6,7 @@ const { join } = require('node:path');
 const { PluginHostEnvironmentVariable } = require('@theia/plugin-ext/lib/common/plugin-protocol');
 const { ConnectionHandler, RpcConnectionHandler } = require('@theia/core/lib/common');
 const { DraftRecoveryStore } = require('./draft-store');
+require('./gcc-resource-adapter').install();
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged
 // native helper which accepts only descendants of this backend, verifies PID

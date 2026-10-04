@@ -24,8 +24,11 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
       const admission = await coreService.authorizeConnection(request, sessionId), bound = binding(admission);
       prune(); const expires = Math.min(admission.expiresAt, now() + 60_000);
       if (request.method === 'GET' && url.pathname === '/runtime/native-tools/context') {
-        const csrf = token(tickets, { bound, expires });
-        json(response, 200, { csrf, account: admission.identity.account, projectId: admission.context.projectId, expiresAt: expires, model: 'qwen3:4b', signingAvailable: false }); return true;
+        // Foreground/passive verification still uses canonical admission but
+        // cannot mint approvals or exhaust the one-use review ticket budget.
+        const csrf = url.searchParams.get('checkOnly') === '1' ? undefined : token(tickets, { bound, expires });
+        json(response, 200, { csrf, account: admission.identity.account, projectId: admission.context.projectId,
+          expiresAt: expires, sessionExpiresAt: admission.expiresAt, model: 'qwen3:4b', signingAvailable: false }); return true;
       }
       if (request.method === 'GET' && url.pathname.startsWith('/runtime/native-tools/ai/conversations')) {
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
