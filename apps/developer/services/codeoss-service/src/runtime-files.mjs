@@ -1,7 +1,56 @@
-import { cp, lstat, mkdir, open, readFile } from "node:fs/promises";
+import { cp, lstat, mkdir, open, readFile, readdir, realpath } from "node:fs/promises";
+import { constants } from "node:fs";
+import { createHash } from "node:crypto";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { fault } from "./central-identity.mjs";
+
+// These are immutable shipped extension inputs, not project source. Reviewing
+// only a fixed helper list misses newly added modules and compiler assets.
+async function extensionTree(root) {
+  if (!(await lstat(root)).isDirectory() || (await lstat(root)).isSymbolicLink()) throw Error('Extension root is not regular.');
+  const canonical = await realpath(root), entries = new Map();
+  let bytes = 0, count = 0;
+  async function visit(directory, relative, depth) {
+    if (depth > 32 || ++count > 1024 || await realpath(directory) !== directory) throw Error('Extension directory is unsafe.');
+    const stat = await lstat(directory);
+    if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('Extension directory is not regular.');
+    const names = (await readdir(directory)).sort();
+    for (const name of names) {
+      const path = join(directory, name), key = relative ? relative + '/' + name : name, current = await lstat(path);
+      if (current.isSymbolicLink()) throw Error('Extension link is unsafe.');
+      if (current.isDirectory()) { entries.set(key + '/', 'directory'); await visit(path, key, depth + 1); }
+      else {
+        if (!current.isFile() || ++count > 1024 || (bytes += current.size) > 32 * 1024 * 1024) throw Error('Extension input exceeds its regular-file budget.');
+        const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+        try {
+          const before = await file.stat();
+          if (!before.isFile() || before.ino !== current.ino || before.dev !== current.dev || before.size !== current.size) throw Error('Extension input changed.');
+          const digest = createHash('sha256'), buffer = Buffer.alloc(Math.min(1024 * 1024, Math.max(1, before.size)));
+          for (let offset = 0; offset < before.size;) {
+            const { bytesRead } = await file.read(buffer, 0, Math.min(buffer.length, before.size - offset), offset);
+            if (!bytesRead) throw Error('Extension input changed.');
+            digest.update(buffer.subarray(0, bytesRead)); offset += bytesRead;
+          }
+          entries.set(key, digest.digest('hex'));
+          const after = await file.stat(), located = await lstat(path);
+          if (after.size !== before.size || after.mtimeMs !== before.mtimeMs || located.isSymbolicLink() || located.ino !== before.ino || await realpath(path) !== path) throw Error('Extension input changed.');
+        } finally { await file.close(); }
+      }
+    }
+    const after = await lstat(directory);
+    if (after.isSymbolicLink() || after.ino !== stat.ino || JSON.stringify((await readdir(directory)).sort()) !== JSON.stringify(names)) throw Error('Extension directory changed.');
+  }
+  await visit(canonical, '', 0); return entries;
+}
+export async function verifyCoreExtensionInputs(expectedRoot, targetRoot, code = 'core_tools_review_required') {
+  try {
+    const expected = await extensionTree(expectedRoot), target = await extensionTree(targetRoot);
+    if (expected.size !== target.size || [...expected].some(([name, digest]) => target.get(name) !== digest)) throw Error('Extension input differs.');
+  } catch {
+    throw fault('Bundled extension inputs changed. Review before replacing user files.', code, 409);
+  }
+}
 
 export async function writePrivateReceipt(path, value) {
   const file = await open(path, "wx", 0o600);
@@ -19,11 +68,7 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
   const target = join(context.projectDirectory, "extensions", `ynx.ynx-developer-brand-${branding.version}`);
   try { if (!(await lstat(target)).isDirectory() || (await lstat(target)).isSymbolicLink()) throw fault("YNX branding directory changed.", "core_brand_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(brandingRoot, target, { recursive: true, errorOnExist: true, force: false }); }
-  for (const file of ["package.json", "klein-light.json", "ynx-logo.png", "LICENSE.txt"]) {
-    const current = join(target, file), stat = await lstat(current);
-    if (!stat.isFile() || stat.isSymbolicLink() || !(await readFile(join(brandingRoot, file))).equals(await readFile(current)))
-      throw fault("YNX branding changed. Review it before replacing user files.", "core_brand_review_required", 409);
-  }
+  await verifyCoreExtensionInputs(brandingRoot, target, 'core_brand_review_required');
   const toolsRoot = fileURLToPath(new URL("../../../native/ynx-tools", import.meta.url));
   const tools = JSON.parse(await readFile(join(toolsRoot, 'package.json'), 'utf8'));
   if (tools.publisher !== 'ynx' || tools.name !== 'ynx-tools' || !/^(?:0|[1-9][0-9]{0,3})\.(?:0|[1-9][0-9]{0,3})\.(?:0|[1-9][0-9]{0,3})$/.test(tools.version || ''))
@@ -31,11 +76,7 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
   const toolsTarget = join(context.projectDirectory, "extensions", `ynx.ynx-tools-${tools.version}`);
   try { const stat = await lstat(toolsTarget); if (!stat.isDirectory() || stat.isSymbolicLink()) throw fault("YNX Tools directory changed.", "core_tools_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(toolsRoot, toolsTarget, { recursive: true, errorOnExist: true, force: false }); }
-  for (const file of ["package.json", "activity.svg", "ynx-logo.png", "LICENSE.txt", "src/extension.cjs", "src/guards.cjs", "src/template.cjs", "src/solidity-project.cjs", "src/review-preview.cjs"]) {
-    if ((await lstat(join(toolsTarget, "src"))).isSymbolicLink()) throw fault("YNX Tools source directory changed.", "core_tools_review_required", 409);
-    const current = join(toolsTarget, file), stat = await lstat(current);
-    if (!stat.isFile() || stat.isSymbolicLink() || !(await readFile(join(toolsRoot, file))).equals(await readFile(current))) throw fault("YNX Tools changed. Review before replacing user files.", "core_tools_review_required", 409);
-  }
+  await verifyCoreExtensionInputs(toolsRoot, toolsTarget);
   const directory = join(context.projectDirectory, "user-data", "User"); await mkdir(directory, { recursive: true, mode: 0o700 });
   if ((await lstat(directory)).isSymbolicLink()) throw fault("Native settings directory is a link.", "core_state_unsafe", 409);
   try { await writePrivateReceipt(join(directory, "settings.json"), {

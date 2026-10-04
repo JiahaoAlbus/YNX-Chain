@@ -148,7 +148,7 @@ test('packaged project preparer stages exact owned extensions and preserves user
     await prepareCoreProject({ projectDirectory });
     const inputs = {
       'ynx-brand': ['package.json', 'klein-light.json', 'ynx-logo.png', 'LICENSE.txt'],
-      'ynx-tools': ['package.json', 'activity.svg', 'ynx-logo.png', 'LICENSE.txt', 'src/extension.cjs', 'src/guards.cjs', 'src/template.cjs', 'src/solidity-project.cjs', 'src/review-preview.cjs'],
+      'ynx-tools': ['package.json', 'activity.svg', 'ynx-logo.png', 'LICENSE.txt', 'src/extension.cjs', 'src/guards.cjs', 'src/template.cjs', 'src/solidity-project.cjs', 'src/review-preview.cjs', 'src/solidity-language.cjs', 'src/solidity-diagnostics.cjs'],
     };
     let toolsTarget;
     for (const [name, files] of Object.entries(inputs)) {
@@ -172,5 +172,32 @@ test('packaged project preparer stages exact owned extensions and preserves user
     assert.equal(await readFile(changed, 'utf8'), changedBytes);
     assert.equal(await readFile(settings, 'utf8'), originalSettings);
     checks.push('Changed extension input refuses preparation without overwriting its bytes or user settings.');
+  } catch (error) { failure = { code: error.code, message: error.message }; throw error; }
+});
+
+test('actual packaged preparer rejects changes to language and compiler inputs without replacing user files', async t => {
+  if (!process.env.YNX_QA_NATIVE_PACKAGE) return t.skip('Supply an existing owned native candidate.');
+  const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..'), candidate = await realpath(process.env.YNX_QA_NATIVE_PACKAGE);
+  assert.ok(candidate.startsWith(join(appRoot, '.ynx-developer-candidates') + '/'));
+  const code = join(candidate, 'YNX Developer Testnet Preview.app/Contents/Resources/code/apps/developer');
+  const { prepareCoreProject } = await import(pathToFileURL(join(code, 'services/codeoss-service/src/runtime-files.mjs')));
+  const manifest = JSON.parse(await readFile(join(code, 'native/ynx-tools/package.json')));
+  const qa = await mkdtemp('/private/tmp/ynx-packaged-language-input-review-'), checks = []; let failure;
+  t.after(async () => {
+    await writeFile(join(qa, 'receipt.json'), JSON.stringify({ candidate, qa, checks, failure, scope: 'Actual immutable packaged preparer; own synthetic project settings/extensions. No driver activation, identity, user install or network.' }, null, 2), { flag: 'wx' });
+    t.diagnostic(`Preserved packaged language-input review: ${qa}/receipt.json`);
+  });
+  try {
+    for (const [index, file] of ['src/solidity-language.cjs', 'src/solidity-diagnostics.cjs', 'compiler/compiler-worker.mjs', 'compiler/node_modules/solc/soljson.js', 'compiler/node_modules/js-sha3/src/sha3.js'].entries()) {
+      const projectDirectory = join(qa, `project-${index}`), settings = join(projectDirectory, 'user-data/User/settings.json');
+      await mkdir(dirname(settings), { recursive: true }); await writeFile(settings, '{"editor.fontSize":19}\n', { flag: 'wx' });
+      await prepareCoreProject({ projectDirectory }); await prepareCoreProject({ projectDirectory });
+      const target = join(projectDirectory, 'extensions', `ynx.ynx-tools-${manifest.version}`, file);
+      assert.deepEqual(await readFile(target), await readFile(join(code, 'native/ynx-tools', file)));
+      await appendFile(target, '\n// preserve user mutation\n'); const mutation = await readFile(target);
+      await assert.rejects(prepareCoreProject({ projectDirectory }), { code: 'core_tools_review_required' });
+      assert.deepEqual(await readFile(target), mutation); assert.equal(await readFile(settings, 'utf8'), '{"editor.fontSize":19}\n');
+      checks.push(`Packaged ${file} stages byte-identically, then changed bytes refuse and survive with settings unchanged.`);
+    }
   } catch (error) { failure = { code: error.code, message: error.message }; throw error; }
 });
