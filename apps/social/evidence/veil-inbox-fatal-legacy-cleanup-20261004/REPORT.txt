@@ -1,0 +1,17 @@
+Status: OWNED_INBOX_CLEANUP_FIXED_ACTUAL_SDK_FULL_V2_REGRESSION_PASS
+Base source: 305bfc8a5a7f2af518d5ed8dd8c19509b4113bc4
+Base tree: 747992fef4433f5c194d0b6586f608a23582f966
+Production file: apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java
+Changes: legacy receipt/message existence probes now zero borrowed record copies on every exit; both retained-message branches close candidate plaintext on Exception or Error before propagating the original failure.
+QA fixture: existing controlled atomic-memory port now rolls back Error as well as Exception; tracks generated legacy read copies and retained replay access only for inspection, no production authority instrumentation.
+Actual compile: all current owned Java crypto sources plus updated VeilEnvelopeCheck and original VeilEnvelopeBoundaryCheck, Zulu Java24 javac --release17, exit0.
+Exact dependency provenance: original official libsignal0.104.0 jar; original current-source-composition jar from 305bfc8a5 supplies freshly compiled native Kotlin ABI. Current Java classes precede dependency classes at execution. inputs.sha256 freezes every source and dependency. No SDK stub, no older prototype API or suppressed compiler failure.
+Actual VeilEnvelopeCheck: exit0, full direct V2 JNI batch including new legacy receipt/message borrowed-copy wipe with original rows unchanged; fatal late retained authority failure returns no plaintext to caller and leaves original rows unchanged; explicit normal retry recovers original body and original operation.
+Existing full-V2 paths also exercised: cross-room rejection, independent local receiver operation, immutable sender retry without ratchet advancement, authenticated duplicate mapping, content/device/identity/generation/epoch attacks, malformed payload refusal, bounded64KiB body, original snapshots, unknown sender/receive outcome recovery, late commit revoke, no production authority fail-closed and orphan recovery.
+Actual codec boundaries: exit0, 1059 assertions; structured mutations canonical473/refused259; incomplete prefixes, trailing bytes, strict UTF8/control/device/byte bounds.
+Runtime native-access warnings retained. Artifact is dormant-current-java-inbox-regression.jar with exact output.sha256; includes QA classes, not a production installer or complete dependency bundle.
+All identities, directory/admission and transaction rollback are generated synthetic QA fixtures. No Android SQLite/Keystore crash run, independent production enrollment/current/route proof, real Matrix relay, real private keys or MONSTER invocation.
+No account request, signing, transaction, network, installation or deployment.
+activationApproved=false
+activated=false
+MONSTER=NOT_RUN

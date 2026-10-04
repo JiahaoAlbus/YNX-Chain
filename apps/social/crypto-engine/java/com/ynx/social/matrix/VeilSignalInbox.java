@@ -58,8 +58,8 @@ final class VeilSignalInbox {
     byte[] ciphertext = supplied.clone(), envelope = null;
     try {
       VeilContextAuthority.Grant grant = authority.resolve(tx, handle, own, local, peer);
-      if (tx.read(VeilRecordKind.INBOX_RECEIPT, "signal:" + operation) != null ||
-          tx.read(VeilRecordKind.INBOX_MESSAGE, "signal:" + operation) != null)
+      if (recordExists(tx, VeilRecordKind.INBOX_RECEIPT, "signal:" + operation) ||
+          recordExists(tx, VeilRecordKind.INBOX_MESSAGE, "signal:" + operation))
         throw VeilAuthenticatedEnvelope.fail("VEIL_NATIVE_RECOVERY_REQUIRED");
       byte[] cipherDigest = VeilAuthenticatedEnvelope.digest(ByteBuffer.allocate(4).putInt(type).array(), ciphertext);
       String operationKey = "v2-op:" + operation;
@@ -73,7 +73,7 @@ final class VeilSignalInbox {
       if (known != null) {
         ReceivedMessage result = retained(tx, grant.context, known, cipherDigest);
         try { alias(tx, operationKey, known); grant.recheck.run(); tx.checkLive(); return result; }
-        catch (Exception error) { result.close(); throw error; }
+        catch (Exception | Error error) { result.close(); throw error; }
       }
       grant.recheck.run(); tx.checkLive();
       SessionCipher cipher = new SessionCipher(new VeilSignalProtocolStore(tx, own), local, peer);
@@ -92,7 +92,7 @@ final class VeilSignalInbox {
           // A different cipher for the same authenticated message never gets a new row.
           ReceivedMessage result = retained(tx, grant.context, replay, cipherDigest);
           try { alias(tx, operationKey, replay); alias(tx, cipherKey, replay); grant.recheck.run(); return result; }
-          catch (Exception error) { result.close(); throw error; }
+          catch (Exception | Error error) { result.close(); throw error; }
         }
         byte[] frameDigest = VeilAuthenticatedEnvelope.digest(envelope);
         byte[] record = ByteBuffer.allocate(REPLAY_SIZE).putInt(REPLAY_MAGIC)
@@ -107,6 +107,11 @@ final class VeilSignalInbox {
         finally { Arrays.fill(content, (byte) 0); }
       }
     } finally { Arrays.fill(ciphertext, (byte) 0); if (envelope != null) Arrays.fill(envelope, (byte) 0); }
+  }
+  private static boolean recordExists(VeilRecordTransaction tx, VeilRecordKind kind, String key) {
+    byte[] bytes = tx.read(kind, key);
+    try { tx.checkLive(); return bytes != null; }
+    finally { if (bytes != null) Arrays.fill(bytes, (byte) 0); }
   }
   private static String replayKey(VeilApplicationContext context, UUID id) {
     VeilApplicationContext.Device sender = context.peer;

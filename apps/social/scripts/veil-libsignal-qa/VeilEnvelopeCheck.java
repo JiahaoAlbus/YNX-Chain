@@ -30,11 +30,19 @@ public final class VeilEnvelopeCheck {
     final List<Runnable> guards = new ArrayList<>();
     Runnable beforeCommit;
     boolean unknownCommitted;
+    boolean replayRead;
+    final List<byte[]> legacyReadCopies = new ArrayList<>();
     int reads, commits;
     static String key(VeilRecordKind kind, String id) { return kind.name() + "/" + id; }
     public void checkLive() {}
     public void guardCommit(Runnable guard) { guards.add(guard); }
-    public byte[] read(VeilRecordKind kind, String id) { reads++; byte[] b = rows.get(key(kind, id)); return b == null ? null : b.clone(); }
+    public byte[] read(VeilRecordKind kind, String id) {
+      reads++; byte[] b = rows.get(key(kind, id)); byte[] copy = b == null ? null : b.clone();
+      if (kind == VeilRecordKind.AUTHENTICATED_REPLAY) replayRead = true;
+      if (copy != null && id.startsWith("signal:") &&
+          (kind == VeilRecordKind.INBOX_RECEIPT || kind == VeilRecordKind.INBOX_MESSAGE)) legacyReadCopies.add(copy);
+      return copy;
+    }
     public void write(VeilRecordKind kind, String id, byte[] bytes) { rows.put(key(kind, id), bytes.clone()); }
     public void remove(VeilRecordKind kind, String id) { rows.remove(key(kind, id)); }
     public List<String> ids(VeilRecordKind kind) {
@@ -49,7 +57,7 @@ public final class VeilEnvelopeCheck {
         for (Runnable check : guards) check.run(); commits++; committed = true;
         if (unknownCommitted) { unknownCommitted = false; throw new IllegalStateException("VEIL_NATIVE_RECOVERY_REQUIRED"); }
         return result;
-      } catch (Exception error) {
+      } catch (Exception | Error error) {
         if (!committed) rows = before;
         if (result instanceof AutoCloseable closeable) closeable.close();
         throw error;
@@ -251,6 +259,42 @@ public final class VeilEnvelopeCheck {
     rejects(() -> VeilSignalOutbox.encryptInTransaction(fixture.sender, fixture.aliceKey.getPublicKey(), fixture.alice,
         UUID.randomUUID(), "ui-room-A", fixture.bob, body), "VEIL_APPLICATION_CONTEXT_UNAVAILABLE");
     check(readsBefore == fixture.sender.reads, "missing production independent context does not borrow request metadata or private store values");
+    for (VeilRecordKind kind : new VeilRecordKind[] {VeilRecordKind.INBOX_RECEIPT, VeilRecordKind.INBOX_MESSAGE}) {
+      UUID legacyOperation = UUID.randomUUID(); String legacyKey = "signal:" + legacyOperation;
+      fixture.receiver.write(kind, legacyKey, new byte[] {7, 8, 9});
+      Map<String, byte[]> original = fixture.receiver.snapshot();
+      fixture.receiver.legacyReadCopies.clear();
+      try {
+        rejects(() -> fixture.receive(legacyOperation, "ui-room-A", first), "VEIL_NATIVE_RECOVERY_REQUIRED");
+        boolean wiped = !fixture.receiver.legacyReadCopies.isEmpty();
+        for (byte[] copy : fixture.receiver.legacyReadCopies)
+          for (byte value : copy) if (value != 0) wiped = false;
+        check(wiped && same(original, fixture.receiver.rows),
+            "legacy " + kind + " probe wipes borrowed copy without deleting original or consuming cipher");
+      } finally {
+        fixture.receiver.remove(kind, legacyKey); fixture.receiver.legacyReadCopies.clear();
+      }
+    }
+    AssertionError fatal = new AssertionError("synthetic retained authority error");
+    VeilContextAuthority fatalAuthority = new VeilContextAuthority((tx, handle) ->
+        new VeilContextAuthority.Grant(fixture.incoming, () -> {
+          if (fixture.receiver.replayRead) throw fatal;
+        }));
+    fixture.receiver.replayRead = false;
+    Map<String, byte[]> beforeFatal = fixture.receiver.snapshot();
+    VeilSignalInbox.ReceivedMessage[] escaped = new VeilSignalInbox.ReceivedMessage[1];
+    AssertionError observedFatal = null;
+    try {
+      escaped[0] = fixture.receiver.atomic(() -> VeilSignalInbox.decryptInTransaction(fixture.receiver,
+          fatalAuthority, fixture.bobKey.getPublicKey(), fixture.bob, receiverOp, "ui-room-A", fixture.alice,
+          first.type, first.serialize()));
+    } catch (AssertionError expectedError) { observedFatal = expectedError; }
+    check(observedFatal == fatal && escaped[0] == null && same(beforeFatal, fixture.receiver.rows),
+        "fatal late authority recheck releases no retained plaintext and preserves original record set");
+    try (VeilSignalInbox.ReceivedMessage recovered = fixture.receive(receiverOp, "ui-room-A", first)) {
+      check(Arrays.equals(body, recovered.bytes()) && recovered.originalOperation.equals(receiverOp),
+          "normal explicit retry recovers original message after fatal authority failure");
+    }
     String messageKey = fixture.receiver.ids(VeilRecordKind.INBOX_MESSAGE).get(0);
     fixture.receiver.remove(VeilRecordKind.INBOX_MESSAGE, messageKey);
     Map<String, byte[]> orphaned = fixture.receiver.snapshot();
