@@ -5,13 +5,13 @@ const copy={
 Object.assign(copy.en,{
  compareDisplays:'Compare on both devices:',compareDevice:'Compare this device with the other person:',
  displaysMatch:'Both displays match',displaysDiffer:'Do not match',acceptVerification:'Accept request',
- startSas:'Start SAS comparison',rejectVerification:'Reject',conversations:'Your conversations',
+ startSas:'Start SAS comparison',rejectVerification:'Reject',conversations:'Your conversations',encryptedMessages:'Encrypted messages',
  signInCancelled:'Sign-in cancelled. Open private chat again when you are ready. Your encrypted history is retained.'
 });
 Object.assign(copy.zh,{
  compareDisplays:'请在两台设备上比较：',compareDevice:'请与对方核对此设备：',
  displaysMatch:'双方显示一致',displaysDiffer:'显示不一致',acceptVerification:'接受验证请求',
- startSas:'开始 SAS 比较',rejectVerification:'拒绝',conversations:'你的对话',
+ startSas:'开始 SAS 比较',rejectVerification:'拒绝',conversations:'你的对话',encryptedMessages:'加密消息',
  signInCancelled:'登录已取消。准备好后可再次打开私密聊天，原有加密历史已保留。'
 });
 export function createChatCopy(document=globalThis.document){

@@ -5,6 +5,7 @@ import {createSocialPrivateSession,SOCIAL_CHAT_SCOPES,SOCIAL_AUDIENCE_SCOPES} fr
 import {createSsoReauthController} from './sso-reauth.mjs';
 import {createChatConfirmation} from './chat-confirmation.mjs';
 import {createChatCopy} from './chat-copy.mjs';
+import {mountChatChromeCopy} from './chat-chrome-copy.mjs';
 import {createRestrictedMomentsUI} from './restricted-moments-ui.mjs';
 import {createSocialAudienceHTTPClient} from './audience-client.mjs';
 import {openProtectedMomentDrafts} from './protected-drafts.mjs';
@@ -19,10 +20,10 @@ const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
  const status=root.querySelector('[data-status]'),requests=root.querySelector('[data-verification]'),devices=root.querySelector('[data-devices]'),messages=root.querySelector('[data-messages]');
  const copy=createChatCopy(document),confirmation=createChatConfirmation({container:root,text:copy.text});
- for(const node of root.querySelectorAll('[data-chat-copy]'))if(node.dataset.chatCopy)node.textContent=copy.text(node.dataset.chatCopy);
  const label=text=>{status.textContent=copy.message(text)},client=createSocialPrivateSession({scopes:SOCIAL_CHAT_SCOPES});let account=null,roomId=null,activeWork=null,reauth,login,pageEpoch=0,renderRunning=false,renderQueued=false,checkingIdentity=false,sendReady=false;
  let momentComposer=null,momentFeed=null;
  const roomList=root.querySelector('[data-room-list]'),drafts=new Map();let reviewedPreview=null;
+ const chatChrome=mountChatChromeCopy({root,copy,document,hasRoom:()=>roomId!==null});
  const appearance=root.ownerDocument?.defaultView?mountChatAppearance(root):null;
  const contentFilter=root.ownerDocument?.defaultView?mountLocalContentFilter({root,settingsContainer:document.getElementById('profile-form'),onChanged:()=>{
   messages.replaceChildren();reviewedPreview=null;momentFeed?.lock();momentFeed?.destroy();momentFeed=null;
@@ -36,7 +37,7 @@ if(root&&!loginCallback){
  root.querySelector('[data-chat-device-menu]').onclick=()=>{const panel=root.querySelector('.chat-device-section');panel.hidden=!panel.hidden};
  root.querySelector('[name=matrixText]').onkeydown=event=>{if(shouldSubmitChatKey(event)){event.preventDefault();root.querySelector('[data-send-form]').requestSubmit()}};
  function controls(){root.querySelector('[data-send-form] button').disabled=!sendReady||!!activeWork;root.querySelector('[data-attachment]').disabled=!sendReady||!!activeWork;appearance?.refreshControls();momentComposer?.refresh()}
- function phase(value,text){status.dataset.phase=value;root.dataset.chatPhase=value;root.querySelector('[data-connection-label]').textContent=copy.text('state'+value[0].toUpperCase()+value.slice(1));label(text??copy.text(value));controls()}
+ function phase(value,text){status.dataset.phase=value;root.dataset.chatPhase=value;if(value==='locked')chatChrome.refresh();root.querySelector('[data-connection-label]').textContent=copy.text('state'+value[0].toUpperCase()+value.slice(1));label(text??copy.text(value));controls()}
  function diagnostic(error){const code=typeof error?.code==='string'&&/^[A-Z][A-Z0-9_]{2,63}$/.test(error.code)?error.code:'ACTION_UNAVAILABLE';root.querySelector('[data-diagnostic-code]').textContent=code}
  const transport=new MatrixSocialTransport({reauthenticateDevice:input=>reauth.request(input),publish:event=>{if(event.type==='sync'){sendReady=false;phase(["PREPARED","SYNCING"].includes(event.state)?'connected':'offline');if(roomId&&["PREPARED","SYNCING"].includes(event.state))void renderMessages()}if(event.type==='devices-changed'){sendReady=false;phase('verifying');}if(event.type==='encrypted-event'&&roomId)void renderMessages()},onVerification:event=>{if(!event.id)return;const view=captureView();guardView(view);let section=[...requests.children].find(node=>node.dataset.id===event.id);if(!section){section=document.createElement('div');section.dataset.id=event.id;requests.append(section)}section.replaceChildren();const text=document.createElement('p');text.textContent=event.sas?.decimal?`${copy.text('compareDisplays')} ${event.sas.decimal.join(' / ')}`:`${copy.text('compareDevice')} ${event.userId??''} ${event.deviceId??''}`;section.append(text);const button=(title,action)=>{const node=document.createElement('button');node.type='button';node.textContent=copy.message(title);node.onclick=()=>void work(async()=>{guardView(view);await identity(view);guardView(view);await action();guardView(view)});section.append(node)};if(event.needsConfirmation){button('Both displays match',()=>transport.confirmVerification(event.id,true));button('Do not match',()=>transport.confirmVerification(event.id,false))}else{button('Accept request',()=>transport.acceptVerification(event.id));button('Start SAS comparison',()=>transport.startVerification(event.id))}button('Reject',()=>transport.rejectVerification(event.id))}});
  const uiError=(code,message)=>Object.assign(new Error(message),{code});
