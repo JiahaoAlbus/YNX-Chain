@@ -1,0 +1,22 @@
+{
+  "sourceCommit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "sourceTree": "35c54f0a17e8f01807c38e3f1e99ff5beaec95e3",
+  "authority": "https://wallet-auth.ynxweb4.com",
+  "artifacts": [
+    {
+      "path": "product-session-browser.mjs",
+      "bytes": 238902,
+      "sha256": "c765eca415a6e9605d36ec0b1a1b7cdbfa8da723a635796b5df4fb8e9ba97f74"
+    },
+    {
+      "path": "product-session-registry.json",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    }
+  ],
+  "exports": [
+    "ProductSessionGatewayFetchAdapter",
+    "createBrowserProductSessionClient"
+  ],
+  "publicRuntimeVerified": false
+}

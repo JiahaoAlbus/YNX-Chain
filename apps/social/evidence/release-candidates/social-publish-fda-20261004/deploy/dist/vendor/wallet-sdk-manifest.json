@@ -1,0 +1,12 @@
+{
+  "sourceCommit": "9555b01e47519a5df882bb0092d2d20e1d7ce6e2",
+  "sourceTree": "35c54f0a17e8f01807c38e3f1e99ff5beaec95e3",
+  "artifact": "standard-wallet-browser.mjs",
+  "bytes": 23341,
+  "sha256": "2eb63acdfc973020ed2deac89eb9ff01d457385861ef03915f4446d7074d9e23",
+  "exports": [
+    "StandardWalletConnection",
+    "discoverWalletProviders"
+  ],
+  "publicRuntimeVerified": false
+}

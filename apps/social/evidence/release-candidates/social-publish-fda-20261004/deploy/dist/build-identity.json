@@ -1,0 +1,13 @@
+{
+  "product": "YNX Social",
+  "releaseKind": "compatible-current-web-preview",
+  "webSource": "fda7a4e4a06ea17bc5f4e7bee2a78a75a1d293dc",
+  "webTree": "ec7aeaf9e5ea394d85a55a6c9bd04ab9ea5a25ae",
+  "ownerSource": "5fcfd21ab432447782c24a009ba3321247520eb0",
+  "ownerTree": "d5dc0e1ba33b1d266f840b1db6043d4acab70175",
+  "baseArchiveSha256": "eb74f5bc83f8a3f55eca8dffd054f7a0a2e0c3e89acb49a73fe2dcae3656ae11",
+  "deploymentConfigSha256": "baa4281fc998c4e5c685f38b6a720c1a86724c0ae21e1e14f015de01b7838351",
+  "activationApproved": false,
+  "activated": false,
+  "realPrivateBusinessVerified": false
+}
