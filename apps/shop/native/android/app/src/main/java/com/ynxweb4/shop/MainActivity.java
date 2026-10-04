@@ -124,7 +124,7 @@ public final class MainActivity extends Activity {
         String path="/products"+(query.isBlank()?"":"?q="+Uri.encode(query));
         api.request("GET",path,null,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(isOnline()?message(error):getString(R.string.offline));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->loadCatalog(query,results));results.addView(retry);return;}
-            products=value.optJSONArray("products");if(products==null)products=new JSONArray();status.setText(products.length()==0?getString(R.string.empty_catalog):getResources().getQuantityString(R.plurals.orders_count,products.length(),products.length()).replace(getString(R.string.nav_orders).toLowerCase(Locale.ROOT),getString(R.string.nav_catalog).toLowerCase(Locale.ROOT)));
+            products=value.optJSONArray("products");if(products==null)products=new JSONArray();status.setText(products.length()==0?getString(R.string.empty_catalog):getResources().getQuantityString(R.plurals.catalog_count,products.length(),products.length()));
             for(int i=0;i<products.length();i++)try{results.addView(productCard(products.getJSONObject(i)));}catch(Exception e){status.setText(getString(R.string.security_error));}
         }));
     }
@@ -137,7 +137,10 @@ public final class MainActivity extends Activity {
         JSONArray variants=product.getJSONArray("Variants");Spinner picker=new Spinner(this);List<String> labels=new ArrayList<>();List<JSONObject> available=new ArrayList<>();
         for(int j=0;j<variants.length();j++){JSONObject v=variants.getJSONObject(j);long left=v.getLong("Inventory")-v.getLong("Reserved");if(left>=0){labels.add(v.getString("Name")+" · "+formatYNXT(v.getLong("PriceYNXT"))+" · "+left+" "+getString(R.string.inventory));available.add(v);}}
         picker.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));picker.setContentDescription(product.getString("Title")+" "+getString(R.string.inventory));card.addView(picker);
-        Button add=primary(getString(R.string.add_cart));add.setEnabled(!available.isEmpty());add.setOnClickListener(v->{try{JSONObject variant=available.get(picker.getSelectedItemPosition());addCart(product,variant);}catch(Exception error){status.setText(message(error));}});card.addView(add);
+        Button add=primary(getString(R.string.add_cart));
+        Runnable refreshAvailability=()->{int position=picker.getSelectedItemPosition();add.setEnabled(position>=0&&position<available.size()&&canAddVariant(available.get(position)));};
+        picker.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?> parent,View view,int position,long id){refreshAvailability.run();}public void onNothingSelected(AdapterView<?> parent){add.setEnabled(false);}});
+        refreshAvailability.run();add.setOnClickListener(v->{try{JSONObject variant=available.get(picker.getSelectedItemPosition());addCart(product,variant);}catch(Exception error){status.setText(message(error));}});card.addView(add);
         LinearLayout.LayoutParams params=new LinearLayout.LayoutParams(-1,-2);params.setMargins(0,dp(10),0,dp(10));card.setLayoutParams(params);return card;
     }
 
@@ -145,7 +148,9 @@ public final class MainActivity extends Activity {
         JSONArray next=new JSONArray(source.toString());for(int i=0;i<next.length();i++){JSONObject item=next.getJSONObject(i);if(item.getString("ProductID").equals(product.getString("ID"))&&item.getString("VariantID").equals(variant.getString("ID"))){if(item.getInt("Quantity")>=20)throw new IllegalStateException("Maximum quantity is 20");item.put("Quantity",item.getInt("Quantity")+1);return next;}}
         next.put(new JSONObject().put("ProductID",product.getString("ID")).put("VariantID",variant.getString("ID")).put("Quantity",1));return next;
     }
+    private boolean canAddVariant(JSONObject variant){try{long inventory=variant.getLong("Inventory"),reserved=variant.getLong("Reserved");return reserved>=0&&inventory>reserved;}catch(Exception invalid){return false;}}
     private void addCart(JSONObject product,JSONObject variant)throws Exception{
+        if(!canAddVariant(variant))throw new IllegalStateException(getString(R.string.unavailable));
         if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();ProductSession session=api.session();JSONArray next=addedCart(cart,product,variant);if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();status.setText(getString(R.string.cart_sync_local));}return;}
         runCartTask((sender,session,generation)->{NativeCart.refresh(secure,sender,session,generation);synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");String raw=secure.get("cart:"+session.account);NativeCart.edit(secure,session.account,addedCart(raw.isEmpty()?new JSONArray():new JSONArray(raw),product,variant));}NativeCart.sync(secure,sender,session,generation);},()->status.setText(getString(R.string.add_cart)));
     }
@@ -407,7 +412,7 @@ public final class MainActivity extends Activity {
     private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);return l;}
     private android.graphics.drawable.GradientDrawable border(){android.graphics.drawable.GradientDrawable d=new android.graphics.drawable.GradientDrawable();d.setColor(Color.WHITE);d.setStroke(dp(1),LINE);d.setCornerRadius(dp(12));return d;}
     private int dp(int v){return Math.round(v*getResources().getDisplayMetrics().density);}
-    private Spinner localeSpinner(String selected){Spinner s=new Spinner(this);List<String> tags=Arrays.asList(LocaleController.TAGS);s.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,tags));s.setSelection(Math.max(0,tags.indexOf(selected)));return s;}
+    private Spinner localeSpinner(String selected){Spinner s=new Spinner(this);List<String> tags=Arrays.asList(LocaleController.TAGS),labels=new ArrayList<>();for(String tag:tags){Locale locale=Locale.forLanguageTag(tag);labels.add(tag.equals("system")?getString(R.string.language_follow_system):tag.equals("zh-CN")?"简体中文":tag.equals("zh-TW")?"繁體中文":locale.getDisplayName(locale));}s.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,labels));s.setSelection(Math.max(0,tags.indexOf(selected)));return s;}
     private interface TagAction{void run(String tag);}
     private AdapterView.OnItemSelectedListener selection(TagAction action){return new AdapterView.OnItemSelectedListener(){public void onItemSelected(AdapterView<?>p,View v,int position,long id){action.run(LocaleController.TAGS[position]);}public void onNothingSelected(AdapterView<?>p){}};}
 }

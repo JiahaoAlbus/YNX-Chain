@@ -34,4 +34,6 @@
     <string name="seller_console">賣家控制台</string>
     <string name="merchant_invoices">商戶發票</string>
     <string name="invoice_reference_unconfirmed">原發票尚未確認。請重新整理此訂單，不會建立新發票。</string>
+    <plurals name="catalog_count"><item quantity="other">%d 件商品</item></plurals>
+    <string name="language_follow_system">跟隨系統</string>
 </resources>

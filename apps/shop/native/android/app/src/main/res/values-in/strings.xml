@@ -30,4 +30,6 @@
     <string name="seller_console">Konsol penjual</string>
     <string name="merchant_invoices">Faktur merchant</string>
     <string name="invoice_reference_unconfirmed">Faktur asli belum dikonfirmasi. Segarkan pesanan ini; faktur baru tidak akan dibuat.</string>
+    <plurals name="catalog_count"><item quantity="other">%d produk</item></plurals>
+    <string name="language_follow_system">Ikuti sistem</string>
 </resources>

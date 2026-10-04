@@ -30,4 +30,6 @@
     <string name="seller_console">Console do vendedor</string>
     <string name="merchant_invoices">Faturas do comerciante</string>
     <string name="invoice_reference_unconfirmed">A fatura original ainda não foi confirmada. Atualize este pedido; nenhuma nova fatura será criada.</string>
+    <plurals name="catalog_count"><item quantity="one">%d produto</item><item quantity="other">%d produtos</item></plurals>
+    <string name="language_follow_system">Usar configuração do sistema</string>
 </resources>

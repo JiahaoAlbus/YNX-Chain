@@ -37,4 +37,6 @@
     <string name="seller_console">卖家控制台</string>
     <string name="merchant_invoices">商户发票</string>
     <string name="invoice_reference_unconfirmed">原发票尚未确认。请刷新此订单，不会创建新的发票。</string>
+    <plurals name="catalog_count"><item quantity="other">%d 件商品</item></plurals>
+    <string name="language_follow_system">跟随系统</string>
 </resources>

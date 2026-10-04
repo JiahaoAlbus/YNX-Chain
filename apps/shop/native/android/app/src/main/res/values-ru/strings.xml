@@ -30,4 +30,6 @@
     <string name="seller_console">Консоль продавца</string>
     <string name="merchant_invoices">Счета продавца</string>
     <string name="invoice_reference_unconfirmed">Исходный счёт ещё не подтверждён. Обновите этот заказ; новый счёт не будет создан.</string>
+    <plurals name="catalog_count"><item quantity="one">%d товар</item><item quantity="few">%d товара</item><item quantity="many">%d товаров</item><item quantity="other">%d товара</item></plurals>
+    <string name="language_follow_system">Как в системе</string>
 </resources>

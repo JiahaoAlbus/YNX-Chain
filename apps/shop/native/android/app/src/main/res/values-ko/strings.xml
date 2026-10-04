@@ -30,4 +30,6 @@
     <string name="seller_console">판매자 콘솔</string>
     <string name="merchant_invoices">가맹점 청구서</string>
     <string name="invoice_reference_unconfirmed">원래 청구서는 아직 확인되지 않았습니다. 이 주문을 새로고침하세요. 새 청구서는 생성되지 않습니다.</string>
+    <plurals name="catalog_count"><item quantity="other">상품 %d개</item></plurals>
+    <string name="language_follow_system">시스템 설정 사용</string>
 </resources>

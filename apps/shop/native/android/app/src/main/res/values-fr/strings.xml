@@ -30,4 +30,6 @@
     <string name="seller_console">Console vendeur</string>
     <string name="merchant_invoices">Factures marchand</string>
     <string name="invoice_reference_unconfirmed">La facture initiale reste à confirmer. Actualisez cette commande ; aucune nouvelle facture ne sera créée.</string>
+    <plurals name="catalog_count"><item quantity="one">%d produit</item><item quantity="other">%d produits</item></plurals>
+    <string name="language_follow_system">Suivre le système</string>
 </resources>

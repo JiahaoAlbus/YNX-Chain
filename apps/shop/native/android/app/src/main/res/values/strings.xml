@@ -69,4 +69,6 @@
     <string name="seller_console">Seller Console</string>
     <string name="merchant_invoices">Merchant invoices</string>
     <string name="invoice_reference_unconfirmed">The original invoice is not confirmed yet. Refresh this order; a new invoice will not be created.</string>
+    <plurals name="catalog_count"><item quantity="one">%d product</item><item quantity="other">%d products</item></plurals>
+    <string name="language_follow_system">Follow system</string>
 </resources>

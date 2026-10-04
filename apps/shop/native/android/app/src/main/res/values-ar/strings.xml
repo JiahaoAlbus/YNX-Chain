@@ -68,4 +68,6 @@
     <string name="seller_console">لوحة البائع</string>
     <string name="merchant_invoices">فواتير التاجر</string>
     <string name="invoice_reference_unconfirmed">لم يتم تأكيد الفاتورة الأصلية بعد. حدّث هذا الطلب؛ لن يتم إنشاء فاتورة جديدة.</string>
+    <plurals name="catalog_count"><item quantity="zero">لا منتجات</item><item quantity="one">منتج واحد</item><item quantity="two">منتجان</item><item quantity="few">%d منتجات</item><item quantity="many">%d منتجًا</item><item quantity="other">%d منتج</item></plurals>
+    <string name="language_follow_system">اتباع إعدادات النظام</string>
 </resources>

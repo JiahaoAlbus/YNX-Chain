@@ -30,4 +30,6 @@
     <string name="seller_console">出店者コンソール</string>
     <string name="merchant_invoices">加盟店請求書</string>
     <string name="invoice_reference_unconfirmed">元の請求書はまだ確認されていません。この注文を更新してください。新しい請求書は作成しません。</string>
+    <plurals name="catalog_count"><item quantity="other">商品 %d 件</item></plurals>
+    <string name="language_follow_system">システム設定に従う</string>
 </resources>
