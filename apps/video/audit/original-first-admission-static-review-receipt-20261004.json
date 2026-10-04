@@ -1,0 +1,33 @@
+{
+  "sourceCommit": "ed1111b0498d59b0ca7b9a8e0f0a2d72d8bac5cf",
+  "sourceTree": "0d462674b754e3ed071e8313f6f08b03598f1362",
+  "originalAuditDelivery": "ed99f7b161949643b2880b81ddf0fe8502fdc037",
+  "gate": "LIMITED_STATIC_SOURCE_PASS",
+  "reportPath": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media-first-admission-participant-independent-review/REPORT.md",
+  "reportSHA256": "12622a5d1e96ac1fe60667f4c654761a67a361f3db68ffcfb61896d06eea33a3",
+  "independentRuntime": "NOT_RUN Go/Auth/SDK/Node/Host/network/keys/DB/state",
+  "archives": {
+    "matching-build-source.tar.gz": {
+      "bytes": 1326422,
+      "sha256": "7c89468ecbd6e3cc943195a7d1ec8595b9b553a7bc10f28693c8d695f74ce39e",
+      "regularMembers": 337,
+      "paxPathHeaders": 47
+    },
+    "owned-six-source.tar.gz": {
+      "bytes": 7886,
+      "sha256": "1f6f2e2a321d6267ba4302350909eea56a3c140b252927317ed8ff9f5d536fce",
+      "regularMembers": 6,
+      "paxPathHeaders": 0
+    }
+  },
+  "matchingArchiveMetadata": "47 long-path PAX path headers retained; effective safe paths match exact manifest; not metadata-free",
+  "unchangedInheritance": "329 prior matching files unchanged; 2 metadata leaves changed; 4 owned and 2 Shared leaves added",
+  "currentProductDevelopment": "no new independent executable work; preserve candidate/data/checkpoint and continue on actual A production source/version",
+  "remaining": [
+    "genuine prepared grant/capture factory and full original Node mapping/reservation/current/enrollment/privategeneration source",
+    "registered authenticated recovery/readback and actual provider final/reconcile",
+    "participating cross-process publication topology",
+    "formal Host install/reconciliation/readback",
+    "real existing Wallet login/personal business save/reload/UNKNOWN recovery/account switching"
+  ]
+}
