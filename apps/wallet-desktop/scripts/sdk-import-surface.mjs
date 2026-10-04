@@ -7,15 +7,17 @@ const root=fileURLToPath(new URL("../../../",import.meta.url));
 const toolRequire=createRequire(path.join(root,"apps/wallet/package.json")),parserEntry=toolRequire.resolve("@babel/parser"),parser=toolRequire("@babel/parser");
 const digest=bytes=>createHash("sha256").update(bytes).digest("hex");
 const parse=text=>parser.parse(text,{sourceType:"module",plugins:["typescript","jsx"]}).program.body;
-/** Direct runtime ESM declarations only, not dependency admission. Includes
- * barrel edges; ignores body strings without evaluating any source. Dynamic
- * imports, require(), resolution and full transitive closure are out of scope. */
+/** Direct potentially-runtime ESM declarations, not dependency admission.
+ * Declaration-level import/export type is erased. Specifier-only type edges
+ * remain: verbatimModuleSyntax can emit empty import/export-from declarations
+ * that load the module. Compiler-dependent overapproximation is intentional.
+ * Includes barrel edges; ignores body strings without evaluating source.
+ * Dynamic imports, require(), resolution and transitive closure are out of scope. */
 export function staticModuleSpecifiers(text){
   return parse(text).flatMap(node=>{
     if(!node.source||!["ImportDeclaration","ExportAllDeclaration","ExportNamedDeclaration"].includes(node.type))return[];
     const kind=node.type==="ImportDeclaration"?"import":"reexport";
     if(node.importKind==="type"||node.exportKind==="type")return[];
-    if(node.specifiers?.length&&node.specifiers.every(item=>item.importKind==="type"||item.exportKind==="type"))return[];
     return[{kind,specifier:node.source.value,line:node.loc.start.line}];
   });
 }

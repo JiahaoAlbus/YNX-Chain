@@ -3,6 +3,11 @@ import assert from "node:assert/strict";
 import {sdkImports,exportSyntax,sourceExportSurface} from "../scripts/sdk-import-surface.mjs";
 import {fileURLToPath} from "node:url";
 import * as surface from "../scripts/sdk-import-surface.mjs";
+test("specifier-only type edges remain potentially executable under verbatim module emission",()=>{
+  assert.deepEqual(surface.staticModuleSpecifiers('import {type T} from "./specifier-only.js"; export {type U} from "./export-only.js";'),[
+    {kind:"import",specifier:"./specifier-only.js",line:1},{kind:"reexport",specifier:"./export-only.js",line:1},
+  ]);
+});
 test("direct ESM dependencies recognize compact and multiline imports without body-string false positives",()=>{
   assert.equal(typeof surface.staticModuleSpecifiers,"function");
   const source=["import{exactFields,WalletAuthError}from'./canonical.js';","import {"," other","} from './other.js';",'const text="from comma-space"; throw Error("never execute");'].join("\n");
@@ -15,9 +20,9 @@ test("direct ESM dependencies include side effects and both reexport forms in so
     {kind:"import",specifier:"./side.js",line:1},{kind:"reexport",specifier:"./star.js",line:1},{kind:"reexport",specifier:"./named.js",line:1},{kind:"reexport",specifier:"./namespace.js",line:1},
   ]);
 });
-test("direct ESM dependencies exclude type-only edges but retain mixed imports and reexports",()=>{
+test("direct ESM dependencies exclude declaration-level types but retain compiler-dependent specifier edges",()=>{
   assert.deepEqual(surface.staticModuleSpecifiers('import type {T} from "types"; import {type U} from "specifier-types"; export type {V} from "export-types"; export {type W} from "export-specifier-types"; import {type X,value} from "mixed"; export {type Y,actual} from "mixed-export";'),[
-    {kind:"import",specifier:"mixed",line:1},{kind:"reexport",specifier:"mixed-export",line:1},
+    {kind:"import",specifier:"specifier-types",line:1},{kind:"reexport",specifier:"export-specifier-types",line:1},{kind:"import",specifier:"mixed",line:1},{kind:"reexport",specifier:"mixed-export",line:1},
   ]);
 });
 test("runtime SDK imports exclude both declaration and specifier type imports and retain alias identity",()=>{assert.deepEqual(sdkImports('import type {OnlyType} from "@ynx-chain/wallet-auth"; import {actual as local,type Shape} from "@ynx-chain/wallet-auth";'),[{name:"actual",local:"local",line:1}]);});
