@@ -1,21 +1,31 @@
 # Composed workbench: normal-entry consumer contract
 
-Current owned runtime checkpoint is **0.3.13**, Tools **0.2.8**, candidate
-`ynx-composed-solidity-dialog-accept-20261004-mac-arm64`.
-Exact core pin and actual Core16/Lifecycle3/Native project-capture3 evidence are
-in `SOLIDITY_PROJECT_CAPTURE_20261004.json`. The complete offline compiler and
-Mac candidate `ynx-solidity-sealed-native-package-20261004-mac-arm64` are sealed
-in `SOLIDITY_SEALED_NATIVE_20261004.json`, embedding source
+Current owned runtime checkpoint is **0.3.14**, Tools **0.2.9**, candidate
+`ynx-composed-immutable-review-20261004-mac-arm64`, source
+`8a439710effcd1ce116967b6ffa2ff60738d594c`, tree
+`8237ea5a882822704890fdd81df8030d152854a2`.
+Exact core pin, original editable-preview negatives, immutable suggested-change
+review7 and current real Core16 evidence are in
+`IMMUTABLE_REVIEW_PREVIEW_20261004.json`; services51 pass. The review uses a
+controlled answer through the production parser, with the real native editor;
+it does not prove hosted AI or canonical admission. Previous failures,
+profiles and packages remain retained. Native0.3.14 has not been packaged
+because current disk availability is below1GiB.
+
+Latest sealed Mac candidate remains workbench **0.3.13**, Tools **0.2.8**,
+`ynx-solidity-sealed-native-package-20261004-mac-arm64`, embedding source
 `3238d1cc4bc83556ce2d6c0feec38272df891c90`, tree
-`2182570faad2ce2d6333587717ae1fef9014d18a`. Its real packaged Node/server/React
-and refusal checks are in `PACKAGED_SERVER_BOUNDARIES_20261004.json`.
-Current local user-extension install/disable/enable/uninstall and controlled
-backend restart evidence is in `CURRENT_EXTENSION_LIFECYCLE_20261004.json`.
-That fixture deliberately omits built-in TS service and installs the cached
-reviewed VSIX; it does not replace the full release plugin input. The five
-existing canonical bindings remain unchanged. Formal protected admission,
-installed Wallet/AI/Chain user acceptance and full platform release remain open.
-Earlier checkpoint sections below are preserved historical evidence.
+`2182570faad2ce2d6333587717ae1fef9014d18a`.
+Its complete offline compiler and package pins are in
+`SOLIDITY_SEALED_NATIVE_20261004.json`; packaged Node/server/React checks are in
+`PACKAGED_SERVER_BOUNDARIES_20261004.json`. It does not include the current
+immutable-preview fix. Historical0.3.13 project capture and local extension
+install/disable/enable/uninstall/backend restart evidence remain in
+`SOLIDITY_PROJECT_CAPTURE_20261004.json` and
+`CURRENT_EXTENSION_LIFECYCLE_20261004.json`; they are not relabeled0.3.14.
+The five existing canonical bindings remain unchanged. Formal protected
+admission, installed Wallet/AI/Chain user acceptance and full platform release
+remain open. Earlier checkpoint sections below preserve historical evidence.
 
 Previous owned runtime checkpoint was **0.3.12**, candidate
 `ynx-composed-workspace-keybindings-location-guard-20261004-mac-arm64`.
