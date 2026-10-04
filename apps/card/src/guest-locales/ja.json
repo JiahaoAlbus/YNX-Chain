@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "YNX Wallet ID と Card の入金権限は別のものです。",
     "Your guest workspace remains available.": "ゲスト用ワークスペースは引き続き利用できます。",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "YNX テストネット"
+    "YNX TESTNET": "YNX テストネット",
+    "LOCAL DEMO": "ローカルデモ"
   },
   "templates": {
     "walletConnected": "標準ウォレットに接続済み：{address}",

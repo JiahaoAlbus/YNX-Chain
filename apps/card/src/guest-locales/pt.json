@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "Sua identidade da YNX Wallet e as permissões de recarga Card são separadas.",
     "Your guest workspace remains available.": "Seu espaço de visitante continua disponível.",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "Rede de testes YNX"
+    "YNX TESTNET": "Rede de testes YNX",
+    "LOCAL DEMO": "DEMO LOCAL"
   },
   "templates": {
     "walletConnected": "Wallet padrão conectada: {address}",

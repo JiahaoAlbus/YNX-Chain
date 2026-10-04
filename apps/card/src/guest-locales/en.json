@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "Your YNX Wallet identity and Card funding permissions are separate.",
     "Your guest workspace remains available.": "Your guest workspace remains available.",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "YNX TESTNET"
+    "YNX TESTNET": "YNX TESTNET",
+    "LOCAL DEMO": "LOCAL DEMO"
   },
   "templates": {
     "walletConnected": "Standard wallet connected: {address}",

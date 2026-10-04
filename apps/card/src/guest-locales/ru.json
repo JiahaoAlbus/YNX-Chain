@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "Ваша идентичность YNX Wallet и разрешения на пополнение Card отделены друг от друга.",
     "Your guest workspace remains available.": "Гостевое пространство остаётся доступным.",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "Тестовая сеть YNX"
+    "YNX TESTNET": "Тестовая сеть YNX",
+    "LOCAL DEMO": "ЛОКАЛЬНАЯ ДЕМОНСТРАЦИЯ"
   },
   "templates": {
     "walletConnected": "Стандартный кошелёк подключён: {address}",

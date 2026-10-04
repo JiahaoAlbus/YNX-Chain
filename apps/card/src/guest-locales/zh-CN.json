@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "你的 YNX Wallet 身份与 Card 充值权限相互独立。",
     "Your guest workspace remains available.": "访客工作区仍可使用。",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "YNX 测试网"
+    "YNX TESTNET": "YNX 测试网",
+    "LOCAL DEMO": "本地演示"
   },
   "templates": {
     "walletConnected": "标准钱包已连接：{address}",

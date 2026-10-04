@@ -9,7 +9,7 @@ import {guestResources,guestCopySourceInventory,guestInvariantText,guestInvarian
 const placeholders=(value:string)=>[...value.matchAll(/\{(\w+)\}/g)].map(match=>match[1]).sort();
 test("twelve explicit resources exactly cover every fixed key and template without inherited English",()=>{
   assert.equal(locales.length,12);
-  assert.equal(guestCopySourceInventory.length,145);
+  assert.equal(guestCopySourceInventory.length,146);
   for(const locale of locales){
     const resource=guestResources[locale];
     for(const section of ["text","templates"] as const){

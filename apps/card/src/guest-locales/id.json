@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "Identitas YNX Wallet dan izin pendanaan Card Anda merupakan dua hal terpisah.",
     "Your guest workspace remains available.": "Ruang kerja tamu Anda tetap dapat digunakan.",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "Jaringan uji YNX"
+    "YNX TESTNET": "Jaringan uji YNX",
+    "LOCAL DEMO": "DEMO LOKAL"
   },
   "templates": {
     "walletConnected": "Dompet standar terhubung: {address}",

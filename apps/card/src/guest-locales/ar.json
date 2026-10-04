@@ -144,7 +144,8 @@
     "Your YNX Wallet identity and Card funding permissions are separate.": "هويتك في YNX Wallet وأذونات تمويل Card منفصلة عن بعضها.",
     "Your guest workspace remains available.": "تظل مساحة عمل الضيف متاحة.",
     "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
-    "YNX TESTNET": "شبكة YNX التجريبية"
+    "YNX TESTNET": "شبكة YNX التجريبية",
+    "LOCAL DEMO": "عرض محلي"
   },
   "templates": {
     "walletConnected": "المحفظة القياسية متصلة: {address}",
