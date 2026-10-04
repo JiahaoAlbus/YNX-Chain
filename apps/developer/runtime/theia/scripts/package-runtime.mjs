@@ -38,6 +38,7 @@ for (const input of inputs) {
   const archive = await readFile(join(plugins, `${name}.vsix`));
   if (createHash('sha256').update(archive).digest('hex') !== input.sha256) throw Error('Extension input archive changed.');
   await assertRegularTree(join(plugins, name));
+  if (input.payloadTreeSha256 && await composedTreeDigest(join(plugins, name)) !== input.payloadTreeSha256) throw Error('Pinned extension payload changed.');
   await cp(join(plugins, name), join(destination, 'plugins', name), { recursive: true, errorOnExist: true, force: false });
 }
 const tools = join(developer, 'native/ynx-tools');
@@ -62,6 +63,12 @@ await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringi
 const lock = JSON.parse(await readFile(join(application, 'package-lock.json'), 'utf8'));
 const notices = [];
 await mkdir(join(destination, 'component-notices'), { mode: 0o700 });
+for (const input of inputs) {
+  const name = `${input.namespace}.${input.name}-${input.version}`, source = join(destination, 'plugins', name);
+  const metadata = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'));
+  notices.push({ name: `${metadata.publisher}.${metadata.name}`, version: metadata.version, license: metadata.license,
+    files: (await readdir(source)).filter(n => /^(licen[sc]e|notice|copying)(\.|$)/i.test(n)).map(n => `../plugins/${name}/${n}`) });
+}
 let index = 0;
 for (const path of Object.keys(lock.packages).filter(path => path.startsWith('node_modules/'))) {
   const source = join(application, path);
