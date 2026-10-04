@@ -2,6 +2,7 @@ package exchangeproduct
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -17,7 +18,7 @@ func (s *Server) marketSnapshot(w http.ResponseWriter, _ *http.Request) {
 // Guest SSE is read-only and re-reads durable state on every reconciliation.
 // It bypasses the ordinary status recorder so Flush reaches the real writer.
 func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
+	_, ok := w.(http.Flusher)
 	if !ok {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming response writer unavailable"})
 		return
@@ -38,17 +39,23 @@ func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 	controller := http.NewResponseController(w)
+	writeFrame := func(frame string) error {
+		// Some in-process writers do not implement deadlines. A real transport
+		// failure, however, must retire this subscriber and release its slot.
+		if err := controller.SetWriteDeadline(time.Now().Add(10 * time.Second)); err != nil && !errors.Is(err, http.ErrNotSupported) {
+			return err
+		}
+		if _, err := fmt.Fprint(w, frame); err != nil {
+			return err
+		}
+		return controller.Flush()
+	}
 	emit := func(event string, value MarketDataSnapshot, id string) error {
-		_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
 		payload, err := json.Marshal(value)
 		if err != nil {
 			return err
 		}
-		if _, err := fmt.Fprintf(w, "id: state-%s\nevent: %s\ndata: %s\n\n", id, event, payload); err != nil {
-			return err
-		}
-		flusher.Flush()
-		return nil
+		return writeFrame(fmt.Sprintf("id: state-%s\nevent: %s\ndata: %s\n\n", id, event, payload))
 	}
 	if err := emit("snapshot", snapshot, fingerprint); err != nil {
 		return
@@ -63,8 +70,7 @@ func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
 		case <-ticker.C:
 			snapshot, fingerprint, err := load()
 			if err != nil {
-				_, _ = fmt.Fprint(w, "event: source-unavailable\ndata: {\"code\":\"FIN_SOURCE_UNAVAILABLE\",\"retryable\":true}\n\n")
-				flusher.Flush()
+				_ = writeFrame("event: source-unavailable\ndata: {\"code\":\"FIN_SOURCE_UNAVAILABLE\",\"retryable\":true}\n\n")
 				return
 			}
 			if fingerprint != previous {
@@ -74,11 +80,9 @@ func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
 				previous = fingerprint
 				continue
 			}
-			_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
-			if _, err := fmt.Fprintf(w, "event: heartbeat\ndata: {\"revision\":%d}\n\n", snapshot.Revision); err != nil {
+			if err := writeFrame(fmt.Sprintf("event: heartbeat\ndata: {\"revision\":%d}\n\n", snapshot.Revision)); err != nil {
 				return
 			}
-			flusher.Flush()
 		}
 	}
 }
