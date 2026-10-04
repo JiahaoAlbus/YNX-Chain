@@ -5,7 +5,7 @@ import {EXCHANGE_RUNTIME_WEB_ASSETS,verifyExchangeVersionedAssets} from '../web/
 const root=new URL('../web/',import.meta.url);
 const staged=new Map(EXCHANGE_RUNTIME_WEB_ASSETS.map(name=>[name,readFileSync(new URL(name,root))]));
 test('complete runtime graph validates every packaged asset',()=>{
-  assert.equal(staged.size,12);
+  assert.equal(staged.size,14);
   assert.deepEqual(verifyExchangeVersionedAssets(staged.get('index.html').toString(),staged.get('app.js').toString(),name=>staged.get(name)),{status:'pass',pageAssets:4,moduleAssets:7});
   for(const missing of EXCHANGE_RUNTIME_WEB_ASSETS.filter(name=>name!=='index.html')){
     assert.throws(()=>verifyExchangeVersionedAssets(staged.get('index.html').toString(),staged.get('app.js').toString(),name=>name===missing?Buffer.from('missing'):staged.get(name)),/HASH_MISMATCH/);

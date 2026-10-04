@@ -5,7 +5,8 @@ import path from 'node:path';
 
 const PAGE_ASSETS=Object.freeze(['styles.css','wallet-connect.js','app.js','ui-preferences.js']);
 const MODULE_ASSETS=Object.freeze(['market-data.js','order-preview.js','private-session.js','locale.js','command-review.js','command-copy.js','venue-config.js']);
-export const EXCHANGE_RUNTIME_WEB_ASSETS=Object.freeze(['index.html',...new Set([...PAGE_ASSETS,...MODULE_ASSETS])]);
+const IMAGE_ASSETS=Object.freeze(['ynx-logo.png','ynx-favicon.png']);
+export const EXCHANGE_RUNTIME_WEB_ASSETS=Object.freeze(['index.html',...new Set([...PAGE_ASSETS,...MODULE_ASSETS,...IMAGE_ASSETS])]);
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 export function verifyExchangeVersionedAssets(html,app,readAsset){
@@ -20,6 +21,17 @@ export function verifyExchangeVersionedAssets(html,app,readAsset){
     pageReferences.set(name,(pageReferences.get(name)??0)+1);
   }
   for(const name of PAGE_ASSETS)if(pageReferences.get(name)!==1)throw new Error(`EXCHANGE_PAGE_ASSET_MISSING_OR_DUPLICATE:${name}`);
+  const imageReferences=new Map();
+  for(const match of html.matchAll(/\b(?:src|href)="(\/[^" ]+)"/gu)){
+    const url=new URL(match[1],'https://exchange.ynxweb4.com'),name=url.pathname.slice(1);
+    if(!/\.(?:png|svg|ico|webp|jpg|jpeg)$/u.test(name))continue;
+    if(!IMAGE_ASSETS.includes(name))throw new Error(`EXCHANGE_UNTRACKED_IMAGE:${name}`);
+    const bytes=readAsset(name);
+    if(url.search!==`?v=${sha256(bytes)}`||url.hash)throw new Error(`EXCHANGE_IMAGE_HASH_MISMATCH:${name}`);
+    if(!Buffer.from(bytes).subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])))throw new Error(`EXCHANGE_IMAGE_FORMAT_INVALID:${name}`);
+    imageReferences.set(name,(imageReferences.get(name)??0)+1);
+  }
+  for(const name of IMAGE_ASSETS)if(imageReferences.get(name)!==1)throw new Error(`EXCHANGE_IMAGE_MISSING_OR_DUPLICATE:${name}`);
   const moduleReferences=new Map();
   if(/\bimport\s*\(/u.test(app))throw new Error('EXCHANGE_DYNAMIC_MODULE_UNTRACKED');
   for(const match of app.matchAll(/\bfrom\s+['"](\.\/[^'"]+)['"]/gu)){

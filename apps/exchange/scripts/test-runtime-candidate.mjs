@@ -9,7 +9,7 @@ const root=path.resolve(import.meta.dirname,'../../..');
 const archive=readFileSync(archivePath),tar=gunzipSync(archive);
 const readSource=name=>execFileSync('git',['show',`${commit}:${name}`],{cwd:root});
 const verify=bytes=>verifyRuntimeCandidate(bytes,commit,readSource);
-assert.equal(verify(archive).entryCount,15);
+assert.equal(verify(archive).entryCount,17);
 let cases=1;
 const reject=(mutate,pattern)=>{const bytes=Buffer.from(tar);mutate(bytes);assert.throws(()=>verify(gzipSync(bytes)),pattern);cases++};
 const offsets=[];
