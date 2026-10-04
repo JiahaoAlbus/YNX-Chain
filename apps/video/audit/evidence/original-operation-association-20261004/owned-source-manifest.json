@@ -1,0 +1,101 @@
+{
+  "commit": "e678a6319c978ca165176001a4a14b88aa946dc1",
+  "tree": "b3594dbd2b0b80b8170874ab106011f94c68def8",
+  "files": [
+    {
+      "path": "internal/music/authority_readback.go",
+      "bytes": 2616,
+      "sha256": "9f544e55425770142979b1e8d044f261e003bdafdedb26e1a440924253aa9eb2"
+    },
+    {
+      "path": "internal/music/business_ai_stream.go",
+      "bytes": 8925,
+      "sha256": "e7c2a6c8e812a6113f7c32188fc046685b6b841adf32cc1cdeae0cfc068cf98a"
+    },
+    {
+      "path": "internal/music/business_effect.go",
+      "bytes": 8172,
+      "sha256": "482cf33108c046df0cd9c17a1650335973684506453a80b82cdef6101da486d9"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 13040,
+      "sha256": "ae3bd43630589f0db593315b6c4ae9f2af4fc0de6e4d920bd32c4f4708ee25cc"
+    },
+    {
+      "path": "internal/music/business_sdk.go",
+      "bytes": 4461,
+      "sha256": "178e9e47a52eaee5a81947d1f1e474c41cc198cd85c1cb4bf30ac7075295edce"
+    },
+    {
+      "path": "internal/music/original_operation.go",
+      "bytes": 8789,
+      "sha256": "bbd813d113619d2abefd9e2f0163930c00f345012fc2701265071eb2109e494f"
+    },
+    {
+      "path": "internal/music/original_operation_test.go",
+      "bytes": 8365,
+      "sha256": "f65e784ec2b2f6e581a08225d577b8bc8d04841701da42bddec731e2d8150c94"
+    },
+    {
+      "path": "internal/music/service.go",
+      "bytes": 40530,
+      "sha256": "69610d137fba1b33b95f3a4704f4f0449843807215ecc3ad492f261d5fd9a035"
+    },
+    {
+      "path": "internal/music/store.go",
+      "bytes": 15243,
+      "sha256": "51211d2d6fa60094d6b19e0205e52ed73bdf6bc9c77f256b978ffefbf5a79cd8"
+    },
+    {
+      "path": "internal/music/types.go",
+      "bytes": 8063,
+      "sha256": "8aab68fee3441aa9d732280b78426097991eab283b11045afbba34fb073b550b"
+    },
+    {
+      "path": "internal/video/business_lease.go",
+      "bytes": 8813,
+      "sha256": "6c0b7a1beec7f7df44002e30f7a45dc2693b085b60335f5fe19fe42bbfa44759"
+    },
+    {
+      "path": "internal/video/integrations.go",
+      "bytes": 7465,
+      "sha256": "bf0196ed027a99d9b7b10ab8a3fc8e421090d307ca26ad71719d6444b35f25b6"
+    },
+    {
+      "path": "internal/video/original_operation.go",
+      "bytes": 11045,
+      "sha256": "1f12c166166fd01345992ba8c12f181ec05251b5f9de8202965a755fe0e7bf31"
+    },
+    {
+      "path": "internal/video/original_operation_test.go",
+      "bytes": 5884,
+      "sha256": "b9ffd05e4c3031b50e13655dad764500955f9d4be0a6b8a08c26117ee2dba97e"
+    },
+    {
+      "path": "internal/video/original_provider_commitment.go",
+      "bytes": 3070,
+      "sha256": "fa0d435f448fad75cf604a51e53d16d8adb9807f6ed6801e08e282763a538f33"
+    },
+    {
+      "path": "internal/video/original_provider_commitment_test.go",
+      "bytes": 6398,
+      "sha256": "96881f277c3bae5541edc60bd12a9cfa95c74e763b3f93f0f1fbef76cb9c94b1"
+    },
+    {
+      "path": "internal/video/service.go",
+      "bytes": 69185,
+      "sha256": "450813c95835afe96aae09145c713435aa2d7f9c7a4bc4a8974de92356987e02"
+    },
+    {
+      "path": "internal/video/store.go",
+      "bytes": 12996,
+      "sha256": "5838a5d79ac61d6fdb5bba38996b3d43d80cfa7e963c9b987364f2bc3e9bd546"
+    },
+    {
+      "path": "internal/video/types.go",
+      "bytes": 14953,
+      "sha256": "86a7ea745cd407bc6f0027f813f9d1832ab9a32843451cc105ac37460203afc3"
+    }
+  ]
+}

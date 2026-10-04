@@ -1,0 +1,2 @@
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/video	19.932s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/music	(cached)

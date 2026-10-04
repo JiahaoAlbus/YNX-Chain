@@ -1,0 +1,1636 @@
+diff --git a/internal/music/authority_readback.go b/internal/music/authority_readback.go
+index bea820636..b2762552a 100644
+--- a/internal/music/authority_readback.go
++++ b/internal/music/authority_readback.go
+@@ -27,6 +27,9 @@ func (s *Service) originalConfirmedFileStateLocked(ctx context.Context) (persist
+ 	if err != nil || integrity != disk.IntegrityHash {
+ 		return persistentState{}, ErrMusicStatePublicationUnconfirmed
+ 	}
++	if err = validateMusicOriginalOperations(disk); err != nil {
++		return persistentState{}, err
++	}
+ 	if err = verifyAuditChain(disk.Audit); err != nil {
+ 		return persistentState{}, err
+ 	}
+diff --git a/internal/music/business_ai_stream.go b/internal/music/business_ai_stream.go
+index c10c50d77..baf402ffd 100644
+--- a/internal/music/business_ai_stream.go
++++ b/internal/music/business_ai_stream.go
+@@ -203,6 +203,9 @@ func (s *Server) aiBusinessStream(w http.ResponseWriter, r *http.Request, actor
+ 			return err
+ 		}
+ 		if e, ok := st.BusinessEffects[journalKey]; ok {
++			if err := service.business.checkOriginalEffectAssociation(e); err != nil {
++				return err
++			}
+ 			if e.Actor != actor || e.WireDigest != wire || e.EndpointDigest != endpointHash {
+ 				return ErrConflict
+ 			}
+diff --git a/internal/music/business_effect.go b/internal/music/business_effect.go
+index 5f6d8bcc8..2b06471ef 100644
+--- a/internal/music/business_effect.go
++++ b/internal/music/business_effect.go
+@@ -19,14 +19,15 @@ import (
+ // A dispatch admission is never a success receipt. Unknown transport outcomes
+ // stay durable and are never automatically resent, including after restart.
+ type MusicBusinessEffect struct {
+-	Actor          string          `json:"actor"`
+-	Kind           string          `json:"kind"`
+-	ObjectID       string          `json:"objectId"`
+-	WireDigest     string          `json:"wireDigest"`
+-	EndpointDigest string          `json:"endpointDigest"`
+-	Status         string          `json:"status"`
+-	AdmittedAt     time.Time       `json:"admittedAt"`
+-	Receipt        json.RawMessage `json:"receipt,omitempty"`
++	Actor          string                          `json:"actor"`
++	Kind           string                          `json:"kind"`
++	ObjectID       string                          `json:"objectId"`
++	WireDigest     string                          `json:"wireDigest"`
++	EndpointDigest string                          `json:"endpointDigest"`
++	Status         string                          `json:"status"`
++	AdmittedAt     time.Time                       `json:"admittedAt"`
++	Receipt        json.RawMessage                 `json:"receipt,omitempty"`
++	Operation      *MusicOriginalOperationIdentity `json:"operation,omitempty"`
+ }
+ 
+ var errEffectExisting = errors.New("music effect already admitted")
+@@ -110,6 +111,9 @@ func (s *Service) centralBusinessEffect(ctx context.Context, actor, kind, id, en
+ 			return err
+ 		}
+ 		if e, ok := st.BusinessEffects[journalKey]; ok {
++			if err := s.business.checkOriginalEffectAssociation(e); err != nil {
++				return err
++			}
+ 			if e.Actor != actor || e.Kind != kind || e.ObjectID != id || e.WireDigest != wire || e.EndpointDigest != endpointHash {
+ 				return ErrConflict
+ 			}
+diff --git a/internal/music/business_request.go b/internal/music/business_request.go
+index aae54c107..e6182be0d 100644
+--- a/internal/music/business_request.go
++++ b/internal/music/business_request.go
+@@ -30,6 +30,7 @@ type MusicLocalTransaction interface {
+ 
+ type MusicBusinessGrant struct {
+ 	Actor, SessionBinding, Nonce, BodyDigest string
++	ProductID, Scope                         string
+ 	ExpiresAt                                time.Time
+ 	Revalidate                               func(context.Context) error
+ 	// Current is a local original actor/device/generation guard, without remote
+@@ -38,11 +39,15 @@ type MusicBusinessGrant struct {
+ 	// Capture each local persistence phase separately. Remote dispatch is outside
+ 	// the authority gate; an UNKNOWN original dispatch is never resent here.
+ 	CaptureTransaction func(context.Context) (MusicLocalTransaction, error)
++	// Trusted internal producer only; never decoded from HTTP.
++	Operation                   *MusicOriginalOperationMetadata
++	RequireOperationAssociation bool
+ }
+ type MusicBusinessNonce struct {
+-	BodyDigest string    `json:"bodyDigest"`
+-	Actor      string    `json:"actor"`
+-	ExpiresAt  time.Time `json:"expiresAt"`
++	BodyDigest string                          `json:"bodyDigest"`
++	Actor      string                          `json:"actor"`
++	ExpiresAt  time.Time                       `json:"expiresAt"`
++	Operation  *MusicOriginalOperationMetadata `json:"operation,omitempty"`
+ }
+ type musicBusinessLease struct {
+ 	ctx      context.Context
+@@ -53,6 +58,9 @@ type musicBusinessLease struct {
+ var musicProofNonce = regexp.MustCompile(`^[A-Za-z0-9_-]{16,128}$`)
+ 
+ func (l *musicBusinessLease) check(clock func() time.Time) error {
++	if err := l.checkOperationSource(); err != nil {
++		return err
++	}
+ 	if l == nil || l.ctx == nil || l.ctx.Err() != nil || l.grant.Revalidate == nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+ 		return ErrUnauthorized
+ 	}
+@@ -83,6 +91,9 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
+ 	return l.checkCurrentContext(l.ctx, clock)
+ }
+ func (l *musicBusinessLease) checkCurrentContext(ctx context.Context, clock func() time.Time) error {
++	if err := l.checkOperationSource(); err != nil {
++		return err
++	}
+ 	if ctx == nil || ctx.Err() != nil {
+ 		return ErrUnauthorized
+ 	}
+@@ -127,7 +138,7 @@ func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st
+ 	}
+ 	key := l.grant.SessionBinding + ":" + l.grant.Nonce
+ 	if previous, ok := st.BusinessNonces[key]; ok {
+-		if !l.consumed || previous.Actor != actor || previous.BodyDigest != l.grant.BodyDigest {
++		if !l.consumed || previous.Actor != actor || previous.BodyDigest != l.grant.BodyDigest || !sameMusicOperation(previous.Operation, l.grant.Operation) {
+ 			return ErrUnauthorized
+ 		}
+ 	} else {
+@@ -147,13 +158,18 @@ func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st
+ 		if len(st.BusinessNonces) >= 4096 {
+ 			return fmt.Errorf("%w: Music replay capacity reached", ErrConflict)
+ 		}
+-		st.BusinessNonces[key] = MusicBusinessNonce{Actor: actor, BodyDigest: l.grant.BodyDigest, ExpiresAt: l.grant.ExpiresAt}
++		st.BusinessNonces[key] = MusicBusinessNonce{Actor: actor, BodyDigest: l.grant.BodyDigest, ExpiresAt: l.grant.ExpiresAt, Operation: cloneMusicOperationMetadata(l.grant.Operation)}
+ 	}
+ 	floor := now.UTC()
+ 	st.BusinessClock = &floor
+ 	return nil
+ }
+ func (s *Service) requestService(lease *musicBusinessLease) *Service {
++	if lease.grant.Operation != nil {
++		copyLease := *lease
++		copyLease.grant.Operation = cloneMusicOperationMetadata(lease.grant.Operation)
++		lease = &copyLease
++	}
+ 	return &Service{cfg: s.cfg, musicStateStore: s.musicStateStore, business: lease}
+ }
+ 
+diff --git a/internal/music/business_sdk.go b/internal/music/business_sdk.go
+index fdb58bee4..0a9bcede6 100644
+--- a/internal/music/business_sdk.go
++++ b/internal/music/business_sdk.go
+@@ -113,5 +113,5 @@ func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Req
+ 		}
+ 		return nil
+ 	}
+-	return MusicBusinessGrant{Actor: session.Account, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
++	return MusicBusinessGrant{ProductID: session.ProductID, Scope: scope, Actor: session.Account, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
+ }
+diff --git a/internal/music/original_operation.go b/internal/music/original_operation.go
+new file mode 100644
+index 000000000..0d1b7efcb
+--- /dev/null
++++ b/internal/music/original_operation.go
+@@ -0,0 +1,233 @@
++package music
++
++import (
++	"context"
++	"sort"
++	"strings"
++)
++
++// OriginalOperationMetadata is supplied by the fixed trusted producer after
++// original Session/action/route verification and durable Node reservation.
++// These fields authenticate nobody and are never read from an HTTP payload.
++// NodeRequestDigest is the original Node effect commitment. Its algorithm
++// is independent of ActionBodyDigest (SHA256 of original product body bytes).
++// Neither is the recovery-read request body digest. Never infer one from the other.
++type MusicOriginalOperationMetadata struct {
++	OperationID       string `json:"operationId"`
++	SessionBinding    string `json:"sessionBinding"`
++	NodeRequestDigest string `json:"nodeRequestDigest"`
++	ActionBodyDigest  string `json:"actionBodyDigest"`
++	Method            string `json:"method"`
++	Path              string `json:"path"`
++}
++type MusicOriginalOperationIdentity struct {
++	Operation   MusicOriginalOperationMetadata `json:"operation"`
++	Actor       string                         `json:"actor"`
++	ProductID   string                         `json:"productId"`
++	Scope       string                         `json:"scope,omitempty"`
++	Nonce       string                         `json:"nonce"`
++	BodyDigest  string                         `json:"bodyDigest"`
++	BusinessKey string                         `json:"businessKey"`
++}
++
++// The original audit step links the product's actual object/kind/result key.
++// It describes LOCAL publication; it supplies no provider final decision.
++type MusicOriginalOperationStep struct {
++	Sequence  uint64 `json:"sequence"`
++	AuditHash string `json:"auditHash"`
++	Kind      string `json:"kind"`
++	ObjectID  string `json:"objectId"`
++}
++type MusicOriginalOperationRecord struct {
++	Identity MusicOriginalOperationIdentity `json:"identity"`
++	Steps    []MusicOriginalOperationStep   `json:"steps"`
++}
++
++func cloneMusicOperationMetadata(p *MusicOriginalOperationMetadata) *MusicOriginalOperationMetadata {
++	if p == nil {
++		return nil
++	}
++	v := *p
++	return &v
++}
++func sameMusicOperation(a, b *MusicOriginalOperationMetadata) bool {
++	if a == nil || b == nil {
++		return a == b
++	}
++	return *a == *b
++}
++func validMusicOperation(p MusicOriginalOperationMetadata) bool {
++	return validMusicDigest(p.OperationID) && validMusicDigest(p.SessionBinding) && validMusicDigest(p.NodeRequestDigest) && validMusicDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
++}
++
++func validMusicDigest(s string) bool { return validSHA256Hex(s) }
++func (l *musicBusinessLease) checkOperationSource() error {
++	if l == nil {
++		return ErrUnauthorized
++	}
++	p := l.grant.Operation
++	if l.grant.RequireOperationAssociation || p != nil {
++		if p == nil || l.grant.Current == nil || l.grant.CaptureTransaction == nil {
++			return ErrMusicAuthorityUnavailable
++		}
++		if !validMusicOperation(*p) || p.SessionBinding != l.grant.SessionBinding || p.ActionBodyDigest != l.grant.BodyDigest || l.grant.ProductID == "" {
++			return ErrUnauthorized
++		}
++	}
++	return nil
++}
++func (l *musicBusinessLease) recordOriginalOperation(next *persistentState, before persistentState) error {
++	p := l.grant.Operation
++	if p == nil {
++		return nil
++	}
++	i := MusicOriginalOperationIdentity{Operation: *p, Actor: l.grant.Actor, ProductID: l.grant.ProductID, Scope: l.grant.Scope, Nonce: l.grant.Nonce, BodyDigest: l.grant.BodyDigest, BusinessKey: l.grant.SessionBinding + ":" + l.grant.Nonce}
++	r, exists := next.OriginalOperations[p.OperationID]
++	if exists && (!l.consumed || r.Identity != i) {
++		return ErrUnauthorized
++	}
++	if !exists {
++		if l.consumed {
++			return ErrMusicAuthorityUnavailable
++		}
++		if len(next.OriginalOperations) >= 4096 {
++			return ErrConflict
++		}
++		r.Identity = i
++	}
++	for _, a := range next.Audit[len(before.Audit):] {
++		r.Steps = append(r.Steps, MusicOriginalOperationStep{Sequence: a.Sequence, AuditHash: a.Hash, Kind: a.Type, ObjectID: a.ObjectID})
++	}
++	if next.OriginalOperations == nil {
++		next.OriginalOperations = map[string]MusicOriginalOperationRecord{}
++	}
++	next.OriginalOperations[p.OperationID] = r
++	// Attach only NEW original provider admissions. An older UNKNOWN/ACK is
++	// never rebound to a fresh operation/nonce; its original key is retained.
++	for key, e := range next.BusinessEffects {
++		if _, old := before.BusinessEffects[key]; !old {
++			copyID := i
++			e.Operation = &copyID
++			next.BusinessEffects[key] = e
++		}
++	}
++	return validateMusicOriginalOperations(*next)
++}
++func validateMusicOriginalOperations(st persistentState) error {
++	if len(st.OriginalOperations) > 4096 {
++		return ErrUnauthorized
++	}
++	for key, r := range st.OriginalOperations {
++		i := r.Identity
++		p := i.Operation
++		if key != p.OperationID || !validMusicOperation(p) || i.Actor == "" || i.ProductID == "" || i.BodyDigest != p.ActionBodyDigest || i.BusinessKey != p.SessionBinding+":"+i.Nonce || !musicProofNonce.MatchString(i.Nonce) {
++			return ErrUnauthorized
++		}
++		var previousSequence uint64
++		for _, step := range r.Steps {
++			if step.Sequence <= previousSequence || step.Sequence > uint64(len(st.Audit)) {
++				return ErrUnauthorized
++			}
++			previousSequence = step.Sequence
++			a := st.Audit[step.Sequence-1]
++			if a.Hash != step.AuditHash || a.Actor != i.Actor || a.Type != step.Kind || a.ObjectID != step.ObjectID {
++				return ErrUnauthorized
++			}
++		}
++		if n, ok := st.BusinessNonces[i.BusinessKey]; ok {
++			if n.Actor != i.Actor || n.BodyDigest != i.BodyDigest || !sameMusicOperation(n.Operation, &p) {
++				return ErrUnauthorized
++			}
++		}
++	}
++	for _, n := range st.BusinessNonces {
++		if n.Operation != nil {
++			r, ok := st.OriginalOperations[n.Operation.OperationID]
++			if !ok || r.Identity.Actor != n.Actor || r.Identity.BodyDigest != n.BodyDigest || !sameMusicOperation(&r.Identity.Operation, n.Operation) {
++				return ErrUnauthorized
++			}
++		}
++	}
++	for key, e := range st.BusinessEffects {
++		if e.Operation != nil {
++			r, ok := st.OriginalOperations[e.Operation.Operation.OperationID]
++			if !ok || r.Identity != *e.Operation || e.Actor != r.Identity.Actor || key != effectKey(e.Actor, e.Kind, e.ObjectID) || !validSHA256Hex(e.WireDigest) || !validSHA256Hex(e.EndpointDigest) {
++				return ErrUnauthorized
++			}
++		}
++	}
++	return nil
++}
++
++// Only local association and original submission journal are returned. No
++// TERMINAL/providerfinal label exists: Trust ACK {id} is submission-only.
++type MusicOriginalEffectReadback struct {
++	EffectKey string
++	Effect    MusicBusinessEffect
++}
++
++type MusicOriginalOperationReadback struct {
++	Record  MusicOriginalOperationRecord
++	Effects []MusicOriginalEffectReadback
++}
++
++func (s *Service) ReadOriginalBusinessOperation(ctx context.Context, expected MusicOriginalOperationIdentity) (MusicOriginalOperationReadback, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return MusicOriginalOperationReadback{}, err
++	}
++	r, ok := disk.OriginalOperations[expected.Operation.OperationID]
++	if !ok {
++		return MusicOriginalOperationReadback{}, ErrMusicAuthorityUnavailable
++	}
++	if r.Identity != expected {
++		return MusicOriginalOperationReadback{}, ErrUnauthorized
++	}
++	r.Steps = append([]MusicOriginalOperationStep(nil), r.Steps...)
++	out := MusicOriginalOperationReadback{Record: r}
++	keys := make([]string, 0, len(disk.BusinessEffects))
++	for key := range disk.BusinessEffects {
++		keys = append(keys, key)
++	}
++	sort.Strings(keys)
++	for _, key := range keys {
++		e := disk.BusinessEffects[key]
++		if e.Operation != nil && *e.Operation == expected {
++			copyID := *e.Operation
++			e.Operation = &copyID
++			e.Receipt = append([]byte(nil), e.Receipt...)
++			out.Effects = append(out.Effects, MusicOriginalEffectReadback{EffectKey: key, Effect: e})
++		}
++	}
++	return out, nil
++}
++
++func (l *musicBusinessLease) checkOriginalOperationState(st persistentState) error {
++	p := l.grant.Operation
++	if p == nil {
++		return nil
++	}
++	r, exists := st.OriginalOperations[p.OperationID]
++	if exists && (!l.consumed || r.Identity.Operation != *p || r.Identity.Actor != l.grant.Actor || r.Identity.Nonce != l.grant.Nonce || r.Identity.ProductID != l.grant.ProductID || r.Identity.Scope != l.grant.Scope) {
++		return ErrUnauthorized
++	}
++	if l.consumed && !exists {
++		return ErrMusicAuthorityUnavailable
++	}
++	return nil
++}
++func (l *musicBusinessLease) checkOriginalEffectAssociation(e MusicBusinessEffect) error {
++	if l.grant.Operation == nil {
++		return nil
++	}
++	if e.Operation == nil {
++		return ErrMusicAuthorityUnavailable
++	}
++	i := e.Operation
++	if i.Operation != *l.grant.Operation || i.Actor != l.grant.Actor || i.Nonce != l.grant.Nonce || i.ProductID != l.grant.ProductID || i.Scope != l.grant.Scope {
++		return ErrUnauthorized
++	}
++	return nil
++}
+diff --git a/internal/music/original_operation_test.go b/internal/music/original_operation_test.go
+new file mode 100644
+index 000000000..b4cf4d1af
+--- /dev/null
++++ b/internal/music/original_operation_test.go
+@@ -0,0 +1,212 @@
++package music
++
++import (
++	"bytes"
++	"context"
++	"errors"
++	"net/http"
++	"net/http/httptest"
++	"os"
++	"strings"
++	"sync/atomic"
++	"testing"
++)
++
++func operationMusicLease(actor string, s *Service) *musicBusinessLease {
++	l := testBusinessLease(actor, "original_operation_nonce_001", s.cfg.Now)
++	l.grant.ProductID = "music"
++	l.grant.Scope = "music.write"
++	l.grant.RequireOperationAssociation = true
++	l.grant.Operation = &MusicOriginalOperationMetadata{OperationID: strings.Repeat("c", 64), SessionBinding: l.grant.SessionBinding, NodeRequestDigest: strings.Repeat("f", 64), ActionBodyDigest: l.grant.BodyDigest, Method: "POST", Path: "/api/profile"}
++	l.grant.Current = func(context.Context) error { return nil }
++	l.grant.CaptureTransaction = func(context.Context) (MusicLocalTransaction, error) {
++		return musicLocalTestTransaction(func(c context.Context, f func(context.Context) error) error { return f(c) }), nil
++	}
++	return l
++}
++func TestMusicOriginalOperationDurableDetachedAndCollision(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 24)
++	l := operationMusicLease(actor, s)
++	sc := s.requestService(l)
++	original := *l.grant.Operation
++	l.grant.Operation.OperationID = strings.Repeat("d", 64)
++	if _, err := sc.UpsertProfile(actor, Profile{DisplayName: "mapped"}); err != nil {
++		t.Fatal(err)
++	}
++	n, err := s.ReadOriginalBusinessNonce(context.Background(), l.grant.SessionBinding, l.grant.Nonce)
++	if err != nil || n.Operation == nil || *n.Operation != original || n.Operation.NodeRequestDigest == n.BodyDigest || n.Operation.ActionBodyDigest != n.BodyDigest {
++		t.Fatal(n, err)
++	}
++	i := s.state.OriginalOperations[original.OperationID].Identity
++	r, err := s.ReadOriginalBusinessOperation(context.Background(), i)
++	if err != nil || len(r.Record.Steps) != 1 {
++		t.Fatal(r, err)
++	}
++	r.Record.Steps[0].ObjectID = "foreign"
++	recovered, err := New(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	r, err = recovered.ReadOriginalBusinessOperation(context.Background(), i)
++	if err != nil || r.Record.Steps[0].ObjectID == "foreign" {
++		t.Fatal(r, err)
++	}
++	foreign := i
++	foreign.BodyDigest = strings.Repeat("f", 64)
++	if _, err = recovered.ReadOriginalBusinessOperation(context.Background(), foreign); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal(err)
++	}
++	if err = recovered.mutate(actor, "test_expired_marker", actor, nil, func(st *persistentState) error { delete(st.BusinessNonces, i.BusinessKey); return nil }); err != nil {
++		t.Fatal(err)
++	}
++	if _, err = recovered.requestService(operationMusicLease(actor, recovered)).UpsertProfile(actor, Profile{DisplayName: "redispatch"}); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal("same operation repeated", err)
++	}
++}
++func TestMusicOriginalOperationProviderSubmissionAndUnknown(t *testing.T) {
++	for _, status := range []int{200, 503} {
++		t.Run(http.StatusText(status), func(t *testing.T) {
++			s, actor, v, input := effectFixture(t)
++			var calls atomic.Int32
++			central := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++				calls.Add(1)
++				w.Header().Set("Content-Type", "application/json")
++				w.WriteHeader(status)
++				w.Write([]byte(`{"id":"original-submission-only"}`))
++			}))
++			defer central.Close()
++			s.cfg.HTTPClient = central.Client()
++			s.cfg.TrustGatewayURL = central.URL
++			s.cfg.TrustGatewayKey = "controlled-key"
++			l := operationMusicLease(actor, s)
++			l.grant.Operation.Path = "/api/cases"
++			sc := s.requestService(l)
++			err := runTrustEffect(sc, actor, v, input)
++			if (status == 200) != (err == nil) {
++				t.Fatal(err)
++			}
++			i := s.state.OriginalOperations[l.grant.Operation.OperationID].Identity
++			rb, err := s.ReadOriginalBusinessOperation(context.Background(), i)
++			if err != nil || len(rb.Effects) != 1 {
++				t.Fatal(rb, err)
++			}
++			e := rb.Effects[0]
++			if e.EffectKey != effectKey(actor, "trust", v.ID) || e.Effect.Operation == nil || *e.Effect.Operation != i || e.Effect.WireDigest == "" || e.Effect.EndpointDigest == "" {
++				t.Fatal(e)
++			}
++			expected := "dispatch_admitted"
++			if status == 200 {
++				expected = "receipt"
++			}
++			if e.Effect.Status != expected {
++				t.Fatal(e)
++			}
++			e.Effect.Operation.Actor = "foreign"
++			if len(e.Effect.Receipt) > 0 {
++				e.Effect.Receipt[0] = 'x'
++			}
++			recovered, err := New(s.cfg)
++			if err != nil {
++				t.Fatal(err)
++			}
++			rb, err = recovered.ReadOriginalBusinessOperation(context.Background(), i)
++			if err != nil || rb.Effects[0].Effect.Operation.Actor != actor {
++				t.Fatal(rb, err)
++			}
++			fresh := operationMusicLease(actor, recovered)
++			fresh.grant.Operation.OperationID = strings.Repeat("e", 64)
++			fresh.grant.Nonce = "fresh_readback_nonce_01"
++			runTrustEffect(recovered.requestService(fresh), actor, v, input)
++			if calls.Load() != 1 || len(recovered.state.OriginalOperations) != 1 {
++				t.Fatal("fresh request rebound/resubmitted original effect", calls.Load())
++			}
++		})
++	}
++}
++func TestMusicOriginalOperationMissingAndLegacyUnavailable(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 25)
++	l := operationMusicLease(actor, s)
++	l.grant.Operation = nil
++	if _, err := s.requestService(l).UpsertProfile(actor, Profile{DisplayName: "denied"}); !errors.Is(err, ErrMusicAuthorityUnavailable) || len(s.state.OriginalOperations) != 0 || len(s.state.BusinessNonces) != 0 {
++		t.Fatal(err)
++	}
++	if _, err := s.ReadOriginalBusinessOperation(context.Background(), MusicOriginalOperationIdentity{}); !errors.Is(err, ErrMusicAuthorityUnavailable) {
++		t.Fatal(err)
++	}
++	if _, err := s.requestService(testBusinessLease(actor, "legacy_nonce_mapping01", s.cfg.Now)).UpsertProfile(actor, Profile{DisplayName: "legacy"}); err != nil {
++		t.Fatal(err)
++	}
++	recovered, err := New(s.cfg)
++	if err != nil || len(recovered.state.Profiles) != 1 || len(recovered.state.OriginalOperations) != 0 {
++		t.Fatal(err)
++	}
++}
++
++func TestMusicOriginalOperationPublishedUncertaintyPreservesAssociation(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 26)
++	if _, err := s.UpsertProfile(actor, Profile{DisplayName: "before"}); err != nil {
++		t.Fatal(err)
++	}
++	before, err := os.ReadFile(s.cfg.StatePath)
++	if err != nil {
++		t.Fatal(err)
++	}
++	l := operationMusicLease(actor, s)
++	l.grant.Current = func(context.Context) error {
++		b, e := os.ReadFile(s.cfg.StatePath)
++		if e == nil && !bytes.Equal(b, before) {
++			return ErrUnauthorized
++		}
++		return nil
++	}
++	if _, err = s.requestService(l).UpsertProfile(actor, Profile{DisplayName: "published unknown"}); !errors.Is(err, ErrMusicStatePublicationUnconfirmed) {
++		t.Fatal(err)
++	}
++	recovered, err := New(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	i := recovered.state.OriginalOperations[l.grant.Operation.OperationID].Identity
++	r, err := recovered.ReadOriginalBusinessOperation(context.Background(), i)
++	if err != nil || len(r.Record.Steps) != 1 {
++		t.Fatal(r, err)
++	}
++	if _, err = recovered.requestService(operationMusicLease(actor, recovered)).UpsertProfile(actor, Profile{DisplayName: "replay"}); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal(err)
++	}
++}
++
++func TestMusicOriginalOperationLegacyProviderNotRebound(t *testing.T) {
++	for _, status := range []int{200, 503} {
++		t.Run(http.StatusText(status), func(t *testing.T) {
++			s, actor, v, input := effectFixture(t)
++			var calls atomic.Int32
++			central := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++				calls.Add(1)
++				w.Header().Set("Content-Type", "application/json")
++				w.WriteHeader(status)
++				w.Write([]byte(`{"id":"retained-legacy-ACK"}`))
++			}))
++			defer central.Close()
++			s.cfg.HTTPClient = central.Client()
++			s.cfg.TrustGatewayURL = central.URL
++			s.cfg.TrustGatewayKey = "controlled-key"
++			runTrustEffect(s.requestService(testBusinessLease(actor, "legacy_provider_nonce01", s.cfg.Now)), actor, v, input)
++			before, err := s.ReadOriginalBusinessEffect(context.Background(), actor, "trust", v.ID)
++			if err != nil || before.Operation != nil {
++				t.Fatal(before, err)
++			}
++			err = runTrustEffect(s.requestService(operationMusicLease(actor, s)), actor, v, input)
++			if !errors.Is(err, ErrMusicAuthorityUnavailable) {
++				t.Fatal(err)
++			}
++			after, err := s.ReadOriginalBusinessEffect(context.Background(), actor, "trust", v.ID)
++			if err != nil || after.Operation != nil || after.Status != before.Status || !bytes.Equal(after.Receipt, before.Receipt) || calls.Load() != 1 || len(s.state.OriginalOperations) != 0 {
++				t.Fatal("legacy effect was rebound", after, err)
++			}
++		})
++	}
++}
+diff --git a/internal/music/service.go b/internal/music/service.go
+index 61b5318a8..b9881d12d 100644
+--- a/internal/music/service.go
++++ b/internal/music/service.go
+@@ -136,6 +136,11 @@ func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string
+ 	if err != nil {
+ 		return err
+ 	}
++	if s.business != nil {
++		if err := s.business.checkOriginalOperationState(next); err != nil {
++			return err
++		}
++	}
+ 	if err := fn(&next); err != nil {
+ 		return err
+ 	}
+@@ -152,6 +157,11 @@ func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string
+ 	a := AuditEvent{Sequence: uint64(len(next.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
+ 	a.Hash = hashJSON(a)
+ 	next.Audit = append(next.Audit, a)
++	if s.business != nil {
++		if err = s.business.recordOriginalOperation(&next, s.state); err != nil {
++			return err
++		}
++	}
+ 	var current func() error
+ 	if s.business != nil && s.business.grant.Current != nil {
+ 		current = func() error { return s.business.checkCurrentContext(ctx, s.cfg.Now) }
+diff --git a/internal/music/store.go b/internal/music/store.go
+index 84ac21082..965f77b87 100644
+--- a/internal/music/store.go
++++ b/internal/music/store.go
+@@ -63,6 +63,9 @@ func loadStateMode(path, mediaDir string, persistMigration bool) (persistentStat
+ 	if err := verifyAuditChain(state.Audit); err != nil {
+ 		return persistentState{}, false, err
+ 	}
++	if err := validateMusicOriginalOperations(state); err != nil {
++		return persistentState{}, false, err
++	}
+ 	if len(state.BusinessNonces) > 4096 || len(state.BusinessNonces) > 0 && (state.BusinessClock == nil || state.BusinessClock.IsZero()) {
+ 		return persistentState{}, false, errors.New("music business replay metadata is invalid")
+ 	}
+diff --git a/internal/music/types.go b/internal/music/types.go
+index a8317f527..b47ce2863 100644
+--- a/internal/music/types.go
++++ b/internal/music/types.go
+@@ -185,20 +185,21 @@ type AuditEvent struct {
+ }
+ 
+ type persistentState struct {
+-	BusinessEffects map[string]MusicBusinessEffect `json:"businessEffects,omitempty"`
+-	BusinessNonces  map[string]MusicBusinessNonce  `json:"businessNonces,omitempty"`
+-	BusinessClock   *time.Time                     `json:"businessClock,omitempty"`
+-	SchemaVersion   int                            `json:"schemaVersion"`
+-	Profiles        map[string]Profile             `json:"profiles"`
+-	Tracks          map[string]Track               `json:"tracks"`
+-	Playlists       map[string]Playlist            `json:"playlists"`
+-	Listeners       map[string]ListenerState       `json:"listeners"`
+-	Usage           map[string]UsageRecord         `json:"usage"`
+-	Allocations     map[string]RevenueAllocation   `json:"allocations"`
+-	Settlements     map[string]SettlementIntent    `json:"settlements"`
+-	Cases           map[string]Case                `json:"cases"`
+-	AIProposals     map[string]AIProposal          `json:"aiProposals"`
+-	Idempotency     map[string]string              `json:"idempotency"`
+-	Audit           []AuditEvent                   `json:"audit"`
+-	IntegrityHash   string                         `json:"integrityHash"`
++	BusinessEffects    map[string]MusicBusinessEffect          `json:"businessEffects,omitempty"`
++	BusinessNonces     map[string]MusicBusinessNonce           `json:"businessNonces,omitempty"`
++	BusinessClock      *time.Time                              `json:"businessClock,omitempty"`
++	SchemaVersion      int                                     `json:"schemaVersion"`
++	Profiles           map[string]Profile                      `json:"profiles"`
++	Tracks             map[string]Track                        `json:"tracks"`
++	Playlists          map[string]Playlist                     `json:"playlists"`
++	Listeners          map[string]ListenerState                `json:"listeners"`
++	Usage              map[string]UsageRecord                  `json:"usage"`
++	Allocations        map[string]RevenueAllocation            `json:"allocations"`
++	Settlements        map[string]SettlementIntent             `json:"settlements"`
++	Cases              map[string]Case                         `json:"cases"`
++	AIProposals        map[string]AIProposal                   `json:"aiProposals"`
++	Idempotency        map[string]string                       `json:"idempotency"`
++	Audit              []AuditEvent                            `json:"audit"`
++	IntegrityHash      string                                  `json:"integrityHash"`
++	OriginalOperations map[string]MusicOriginalOperationRecord `json:"originalOperations,omitempty"`
+ }
+diff --git a/internal/video/business_lease.go b/internal/video/business_lease.go
+index dcbebc1e0..4420ef80f 100644
+--- a/internal/video/business_lease.go
++++ b/internal/video/business_lease.go
+@@ -32,14 +32,18 @@ type VideoBusinessGrant struct {
+ 	// Membership-changing commands require an original writer transaction, not
+ 	// a normal effect lease. No producer is installed by this optional seam.
+ 	CaptureTransaction func(context.Context) (VideoLocalTransaction, error)
++	// Trusted internal producer only; never decoded from HTTP.
++	Operation                   *VideoOriginalOperationMetadata
++	RequireOperationAssociation bool
+ }
+ type VideoBusinessNonce struct {
+-	Nonce          string    `json:"nonce,omitempty"`
+-	Actor          string    `json:"actor"`
+-	BodyDigest     string    `json:"body_digest"`
+-	SessionBinding string    `json:"session_binding"`
+-	ExpiresAt      time.Time `json:"expires_at"`
+-	ConsumedAt     time.Time `json:"consumed_at"`
++	Nonce          string                          `json:"nonce,omitempty"`
++	Actor          string                          `json:"actor"`
++	BodyDigest     string                          `json:"body_digest"`
++	SessionBinding string                          `json:"session_binding"`
++	ExpiresAt      time.Time                       `json:"expires_at"`
++	ConsumedAt     time.Time                       `json:"consumed_at"`
++	Operation      *VideoOriginalOperationMetadata `json:"operation,omitempty"`
+ }
+ type videoBusinessLease struct {
+ 	grant    VideoBusinessGrant
+@@ -56,6 +60,7 @@ func (s *Service) withBusinessGrant(ctx context.Context, grant VideoBusinessGran
+ 	if _, err := hex.DecodeString(grant.BodyDigest); err != nil || grant.BodyDigest != strings.ToLower(grant.BodyDigest) {
+ 		return nil, ErrUnauthorized
+ 	}
++	grant.Operation = cloneVideoOperationMetadata(grant.Operation)
+ 	lease := &videoBusinessLease{grant: grant, ctx: ctx, now: s.cfg.Now, readOnly: readOnly}
+ 	if err := lease.check(); err != nil {
+ 		return nil, err
+@@ -63,6 +68,9 @@ func (s *Service) withBusinessGrant(ctx context.Context, grant VideoBusinessGran
+ 	return &Service{cfg: s.cfg, videoServiceControls: s.videoServiceControls, store: &Store{videoStateStore: s.store.videoStateStore, business: lease}}, nil
+ }
+ func (b *videoBusinessLease) check() error {
++	if err := b.checkOperationSource(); err != nil {
++		return err
++	}
+ 	if b.grant.Current != nil {
+ 		if err := b.checkCurrent(); err != nil {
+ 			return err
+@@ -99,6 +107,9 @@ func (b *videoBusinessLease) check() error {
+ }
+ func (b *videoBusinessLease) checkCurrent() error { return b.checkCurrentContext(b.ctx) }
+ func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
++	if err := b.checkOperationSource(); err != nil {
++		return err
++	}
+ 	if ctx == nil {
+ 		return ErrUnauthorized
+ 	}
+@@ -134,11 +145,14 @@ func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
+ 	return nil
+ }
+ func (b *videoBusinessLease) checkState(st State) error {
++	if err := b.checkOriginalOperationState(st); err != nil {
++		return err
++	}
+ 	if b.now().UTC().Before(st.BusinessClockFloor) {
+ 		return ErrUnauthorized
+ 	}
+ 	if n, exists := st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)]; exists {
+-		if !b.consumed.Load() || n.Nonce != b.grant.Nonce || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) {
++		if !b.consumed.Load() || n.Nonce != b.grant.Nonce || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) || !sameVideoOperation(n.Operation, b.grant.Operation) {
+ 			return ErrUnauthorized
+ 		}
+ 	} else if b.consumed.Load() {
+@@ -167,13 +181,16 @@ func (b *videoBusinessLease) admitContext(st *State, ctx context.Context) error
+ 		if len(st.BusinessNonces) >= 4096 {
+ 			return errors.New("Video business replay protection is full")
+ 		}
+-		st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)] = VideoBusinessNonce{Nonce: b.grant.Nonce, Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now}
++		st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)] = VideoBusinessNonce{Nonce: b.grant.Nonce, Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now, Operation: cloneVideoOperationMetadata(b.grant.Operation)}
+ 	}
+ 	st.BusinessClockFloor = now
+ 	return nil
+ }
+ 
+ func validateVideoBusinessState(st State) error {
++	if err := validateVideoOriginalOperations(st); err != nil {
++		return err
++	}
+ 	if len(st.BusinessNonces) > 4096 {
+ 		return ErrUnauthorized
+ 	}
+diff --git a/internal/video/integrations.go b/internal/video/integrations.go
+index 74022ba49..f66a9ecd9 100644
+--- a/internal/video/integrations.go
++++ b/internal/video/integrations.go
+@@ -190,7 +190,10 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount
+ 	if p.Endpoint == "" || p.Token == "" {
+ 		return "", errors.New("Pay service is not configured")
+ 	}
+-	body, _ := json.Marshal(map[string]any{"merchant": "ynx-video", "payoutAddress": owner, "amount": amount, "idempotencyKey": ref})
++	body, err := originalVideoPayoutBody(owner, amount, ref)
++	if err != nil {
++		return "", err
++	}
+ 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.Endpoint, "/")+"/pay/intents", bytes.NewReader(body))
+ 	if err != nil {
+ 		return "", err
+diff --git a/internal/video/original_operation.go b/internal/video/original_operation.go
+new file mode 100644
+index 000000000..b8648685d
+--- /dev/null
++++ b/internal/video/original_operation.go
+@@ -0,0 +1,287 @@
++package video
++
++import (
++	"context"
++	"encoding/hex"
++	"errors"
++	"strings"
++)
++
++// OriginalOperationMetadata is supplied by the fixed trusted producer after
++// original Session/action/route verification and durable Node reservation.
++// These fields authenticate nobody and are never read from an HTTP payload.
++// NodeRequestDigest is the original Node effect commitment. Its algorithm
++// is independent of ActionBodyDigest (SHA256 of original product body bytes).
++// Neither is the recovery-read request body digest. Never infer one from the other.
++type VideoOriginalOperationMetadata struct {
++	OperationID       string `json:"operationId"`
++	SessionBinding    string `json:"sessionBinding"`
++	NodeRequestDigest string `json:"nodeRequestDigest"`
++	ActionBodyDigest  string `json:"actionBodyDigest"`
++	Method            string `json:"method"`
++	Path              string `json:"path"`
++}
++type VideoOriginalOperationIdentity struct {
++	Operation   VideoOriginalOperationMetadata `json:"operation"`
++	Actor       string                         `json:"actor"`
++	ProductID   string                         `json:"productId"`
++	Scope       string                         `json:"scope,omitempty"`
++	Nonce       string                         `json:"nonce"`
++	BodyDigest  string                         `json:"bodyDigest"`
++	BusinessKey string                         `json:"businessKey"`
++}
++
++// The original audit step links the product's actual object/kind/result key.
++// It describes LOCAL publication; it supplies no provider final decision.
++type VideoOriginalOperationStep struct {
++	Sequence  uint64 `json:"sequence"`
++	AuditHash string `json:"auditHash"`
++	Kind      string `json:"kind"`
++	ObjectID  string `json:"objectId"`
++}
++type VideoOriginalProviderAssociation struct {
++	Kind       string                          `json:"kind"`
++	ObjectID   string                          `json:"objectId"`
++	Commitment VideoOriginalProviderCommitment `json:"commitment"`
++}
++
++type VideoOriginalOperationRecord struct {
++	Providers []VideoOriginalProviderAssociation `json:"providers,omitempty"`
++	Identity  VideoOriginalOperationIdentity     `json:"identity"`
++	Steps     []VideoOriginalOperationStep       `json:"steps"`
++}
++
++func cloneVideoOperationMetadata(p *VideoOriginalOperationMetadata) *VideoOriginalOperationMetadata {
++	if p == nil {
++		return nil
++	}
++	v := *p
++	return &v
++}
++func sameVideoOperation(a, b *VideoOriginalOperationMetadata) bool {
++	if a == nil || b == nil {
++		return a == b
++	}
++	return *a == *b
++}
++func validVideoOperation(p VideoOriginalOperationMetadata) bool {
++	return validVideoDigest(p.OperationID) && validVideoDigest(p.SessionBinding) && validVideoDigest(p.NodeRequestDigest) && validVideoDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
++}
++
++func validVideoDigest(s string) bool {
++	b, e := hex.DecodeString(s)
++	return e == nil && len(b) == 32 && s == strings.ToLower(s)
++}
++func (b *videoBusinessLease) checkOperationSource() error {
++	p := b.grant.Operation
++	if b.grant.RequireOperationAssociation || p != nil {
++		if p == nil || b.grant.Current == nil || b.grant.CaptureTransaction == nil {
++			return ErrVideoTransactionUnavailable
++		}
++		if !validVideoOperation(*p) || p.SessionBinding != b.grant.SessionBinding || p.ActionBodyDigest != b.grant.BodyDigest || b.grant.ProductID == "" {
++			return ErrUnauthorized
++		}
++	}
++	return nil
++}
++func (b *videoBusinessLease) recordOriginalOperation(next *State, before State) error {
++	p := b.grant.Operation
++	if p == nil {
++		return nil
++	}
++	identity := VideoOriginalOperationIdentity{Operation: *p, Actor: b.grant.Actor, ProductID: b.grant.ProductID, Scope: b.grant.Scope, Nonce: b.grant.Nonce, BodyDigest: b.grant.BodyDigest, BusinessKey: videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)}
++	r, exists := next.OriginalOperations[p.OperationID]
++	if exists && (!b.consumed.Load() || r.Identity != identity) {
++		return ErrUnauthorized
++	}
++	if !exists {
++		if b.consumed.Load() {
++			return ErrVideoTransactionUnavailable
++		}
++		if len(next.OriginalOperations) >= 4096 {
++			return errors.New("Video original operation capacity reached")
++		}
++		r.Identity = identity
++	}
++	for _, a := range next.Audit[len(before.Audit):] {
++		var commitment *VideoOriginalProviderCommitment
++		if a.ObjectType == "payout" {
++			if p := next.PayoutIntents[a.ObjectID]; p != nil {
++				commitment = p.originalProviderCommitment
++			}
++		}
++		if a.ObjectType == "ai_job" {
++			if j := next.AIJobs[a.ObjectID]; j != nil {
++				commitment = j.originalProviderCommitment
++			}
++		}
++		if commitment != nil {
++			ref := VideoOriginalProviderAssociation{Kind: a.ObjectType, ObjectID: a.ObjectID, Commitment: *commitment}
++			found := false
++			for _, old := range r.Providers {
++				if old.Kind == ref.Kind && old.ObjectID == ref.ObjectID {
++					if old != ref {
++						return ErrUnauthorized
++					}
++					found = true
++				}
++			}
++			if !found {
++				r.Providers = append(r.Providers, ref)
++			}
++		}
++		r.Steps = append(r.Steps, VideoOriginalOperationStep{Sequence: a.Sequence, AuditHash: a.Hash, Kind: a.ObjectType, ObjectID: a.ObjectID})
++	}
++	if next.OriginalOperations == nil {
++		next.OriginalOperations = map[string]VideoOriginalOperationRecord{}
++	}
++	next.OriginalOperations[p.OperationID] = r
++	return validateVideoOriginalOperations(*next)
++}
++func validateVideoOriginalOperations(st State) error {
++	if len(st.OriginalOperations) > 4096 {
++		return ErrUnauthorized
++	}
++	for key, r := range st.OriginalOperations {
++		i := r.Identity
++		p := i.Operation
++		if key != p.OperationID || !validVideoOperation(p) || i.Actor == "" || i.ProductID == "" || i.BodyDigest != p.ActionBodyDigest || i.BusinessKey != videoBusinessNonceKey(p.SessionBinding, i.Nonce) || len(i.Nonce) < 16 {
++			return ErrUnauthorized
++		}
++		var previousSequence uint64
++		for _, ref := range r.Providers {
++			if !validVideoProviderCommitment(&ref.Commitment) || (ref.Kind != "payout" && ref.Kind != "ai_job") || ref.Kind == "payout" && ref.Commitment.ProviderRequestKey != ref.ObjectID || ref.Kind == "ai_job" && ref.Commitment.ProviderRequestKey != "" {
++				return ErrUnauthorized
++			}
++			found := false
++			for _, step := range r.Steps {
++				if step.Kind == ref.Kind && step.ObjectID == ref.ObjectID {
++					found = true
++				}
++			}
++			if !found {
++				return ErrUnauthorized
++			}
++		}
++		for _, step := range r.Steps {
++			if step.Sequence <= previousSequence || step.Sequence > uint64(len(st.Audit)) {
++				return ErrUnauthorized
++			}
++			previousSequence = step.Sequence
++			a := st.Audit[step.Sequence-1]
++			if a.Hash != step.AuditHash || a.Actor != i.Actor || a.ObjectType != step.Kind || a.ObjectID != step.ObjectID {
++				return ErrUnauthorized
++			}
++		}
++		if n, ok := st.BusinessNonces[i.BusinessKey]; ok {
++			if n.Actor != i.Actor || n.Nonce != i.Nonce || n.BodyDigest != i.BodyDigest || !sameVideoOperation(n.Operation, &p) {
++				return ErrUnauthorized
++			}
++		}
++	}
++	for _, n := range st.BusinessNonces {
++		if n.Operation != nil {
++			r, ok := st.OriginalOperations[n.Operation.OperationID]
++			if !ok || r.Identity.Actor != n.Actor || r.Identity.Nonce != n.Nonce || !sameVideoOperation(&r.Identity.Operation, n.Operation) {
++				return ErrUnauthorized
++			}
++		}
++	}
++	return nil
++}
++
++// Exact internal getter over the SAME original Store. Absent old association
++// is unavailable, never not_executed. This does not resolve a prior uncertain
++// fsync or attest external payout/AI finality; those original records stay intact.
++func (s *Store) ReadOriginalBusinessOperation(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationRecord, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return VideoOriginalOperationRecord{}, err
++	}
++	r, ok := disk.OriginalOperations[expected.Operation.OperationID]
++	if !ok {
++		return VideoOriginalOperationRecord{}, ErrVideoTransactionUnavailable
++	}
++	if r.Identity != expected {
++		return VideoOriginalOperationRecord{}, ErrUnauthorized
++	}
++	r.Steps = append([]VideoOriginalOperationStep(nil), r.Steps...)
++	r.Providers = append([]VideoOriginalProviderAssociation(nil), r.Providers...)
++	return r, nil
++}
++func (s *Service) ReadOriginalBusinessOperation(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationRecord, error) {
++	return s.store.ReadOriginalBusinessOperation(ctx, expected)
++}
++
++func (b *videoBusinessLease) checkOriginalOperationState(st State) error {
++	p := b.grant.Operation
++	if p == nil {
++		return nil
++	}
++	r, exists := st.OriginalOperations[p.OperationID]
++	if exists && (!b.consumed.Load() || r.Identity.Operation != *p || r.Identity.Actor != b.grant.Actor || r.Identity.Nonce != b.grant.Nonce || r.Identity.ProductID != b.grant.ProductID || r.Identity.Scope != b.grant.Scope) {
++		return ErrUnauthorized
++	}
++	if b.consumed.Load() && !exists {
++		return ErrVideoTransactionUnavailable
++	}
++	return nil
++}
++
++// Exact original local results from the SAME integrity-checked read. Payout
++// awaiting_wallet_confirmation and AI results retain their original semantics;
++// no provider-final label or negative/retry evidence is manufactured here.
++type VideoOriginalOperationResultReadback struct {
++	Record  VideoOriginalOperationRecord
++	Payouts []PayoutIntent
++	AIJobs  []AIJob
++}
++
++func (s *Store) ReadOriginalBusinessOperationResults(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationResultReadback, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return VideoOriginalOperationResultReadback{}, err
++	}
++	r, ok := disk.OriginalOperations[expected.Operation.OperationID]
++	if !ok {
++		return VideoOriginalOperationResultReadback{}, ErrVideoTransactionUnavailable
++	}
++	if r.Identity != expected {
++		return VideoOriginalOperationResultReadback{}, ErrUnauthorized
++	}
++	r.Steps = append([]VideoOriginalOperationStep(nil), r.Steps...)
++	r.Providers = append([]VideoOriginalProviderAssociation(nil), r.Providers...)
++	out := VideoOriginalOperationResultReadback{Record: r}
++	seen := map[string]bool{}
++	for _, step := range r.Steps {
++		k := step.Kind + ":" + step.ObjectID
++		if seen[k] {
++			continue
++		}
++		seen[k] = true
++		if step.Kind == "payout" {
++			if p := disk.PayoutIntents[step.ObjectID]; p != nil && p.Owner == expected.Actor {
++				v := *p
++				v.UsageEventIDs = append([]string(nil), p.UsageEventIDs...)
++
++				out.Payouts = append(out.Payouts, v)
++			}
++		}
++		if step.Kind == "ai_job" {
++			if j := disk.AIJobs[step.ObjectID]; j != nil && j.Owner == expected.Actor {
++				v := *j
++				v.ContextClasses = append([]string(nil), j.ContextClasses...)
++
++				out.AIJobs = append(out.AIJobs, v)
++			}
++		}
++	}
++	return out, nil
++}
++func (s *Service) ReadOriginalBusinessOperationResults(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationResultReadback, error) {
++	return s.store.ReadOriginalBusinessOperationResults(ctx, expected)
++}
+diff --git a/internal/video/original_operation_test.go b/internal/video/original_operation_test.go
+new file mode 100644
+index 000000000..fbdeed815
+--- /dev/null
++++ b/internal/video/original_operation_test.go
+@@ -0,0 +1,133 @@
++package video
++
++import (
++	"bytes"
++	"context"
++	"errors"
++	"os"
++	"strings"
++	"testing"
++)
++
++func operationVideoGrant(s *Service) VideoBusinessGrant {
++	g := videoTestGrant(s, "ynx1owner", "original_operation_nonce_001", nil)
++	g.SessionBinding = strings.Repeat("b", 64)
++	g.ProductID = "video"
++	g.Scope = "video.write"
++	g.Operation = &VideoOriginalOperationMetadata{OperationID: strings.Repeat("c", 64), SessionBinding: g.SessionBinding, NodeRequestDigest: strings.Repeat("f", 64), ActionBodyDigest: g.BodyDigest, Method: "POST", Path: "/api/playlists"}
++	g.RequireOperationAssociation = true
++	g.Current = func(context.Context) error { return nil }
++	g.CaptureTransaction = func(context.Context) (VideoLocalTransaction, error) {
++		return videoLocalTestTransaction(func(c context.Context, f func(context.Context) error) error { return f(c) }), nil
++	}
++	return g
++}
++func TestVideoOriginalOperationDurableDetachedAndCollision(t *testing.T) {
++	s, _ := fixture(t, nil)
++	g := operationVideoGrant(s)
++	scoped := videoLease(t, s, context.Background(), g, false)
++	original := *g.Operation
++	g.Operation.OperationID = strings.Repeat("d", 64)
++	p, err := scoped.CreatePlaylist(g.Actor, "original mapped playlist")
++	if err != nil {
++		t.Fatal(err)
++	}
++	n, err := s.ReadOriginalBusinessNonce(context.Background(), g.SessionBinding, g.Nonce)
++	if err != nil || n.Operation == nil || *n.Operation != original || n.Operation.NodeRequestDigest == n.BodyDigest || n.Operation.ActionBodyDigest != n.BodyDigest {
++		t.Fatal(n, err)
++	}
++	identity := VideoOriginalOperationIdentity{Operation: original, Actor: g.Actor, ProductID: g.ProductID, Scope: g.Scope, Nonce: g.Nonce, BodyDigest: g.BodyDigest, BusinessKey: videoBusinessNonceKey(g.SessionBinding, g.Nonce)}
++	r, err := s.ReadOriginalBusinessOperation(context.Background(), identity)
++	if err != nil || len(r.Steps) != 1 || r.Steps[0].ObjectID != p.ID {
++		t.Fatal(r, err)
++	}
++	r.Steps[0].ObjectID = "foreign"
++	n.Operation.OperationID = "foreign"
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	r, err = recovered.ReadOriginalBusinessOperation(context.Background(), identity)
++	if err != nil || r.Steps[0].ObjectID != p.ID {
++		t.Fatal(r, err)
++	}
++	foreign := identity
++	foreign.Actor = "ynx1foreign"
++	if _, err = recovered.ReadOriginalBusinessOperation(context.Background(), foreign); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal(err)
++	}
++	// An expired replay marker may be collected, but the operation association
++	// must still prevent executing the same ID with a fresh local lease.
++	if err = recovered.store.update(func(st *State) error { delete(st.BusinessNonces, identity.BusinessKey); return nil }); err != nil {
++		t.Fatal(err)
++	}
++	retry := operationVideoGrant(recovered)
++	if _, err = videoLease(t, recovered, context.Background(), retry, false).CreatePlaylist(retry.Actor, "redispatch"); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal("same operation repeated", err)
++	}
++	retry.Operation.OperationID = strings.Repeat("e", 64)
++	retry.Nonce = "new_mapping_nonce_0001"
++	retry.Operation = nil
++	before := len(recovered.store.state.Playlists)
++	sc := &Service{cfg: recovered.cfg, videoServiceControls: recovered.videoServiceControls, store: &Store{videoStateStore: recovered.store.videoStateStore, business: &videoBusinessLease{grant: retry, ctx: context.Background(), now: recovered.cfg.Now}}}
++	if _, err = sc.CreatePlaylist(retry.Actor, "missing"); !errors.Is(err, ErrVideoTransactionUnavailable) || len(recovered.store.state.Playlists) != before {
++		t.Fatal(err)
++	}
++}
++func TestVideoOriginalOperationFailureNoAssociationAndLegacyUnavailable(t *testing.T) {
++	s, _ := fixture(t, nil)
++	g := operationVideoGrant(s)
++	sc := videoLease(t, s, context.Background(), g, false)
++	if err := sc.store.update(func(*State) error { return errors.New("controlled validation failure") }); err == nil || len(s.store.state.OriginalOperations) != 0 || len(s.store.state.BusinessNonces) != 0 {
++		t.Fatal("failed write published association", err)
++	}
++	if _, err := s.ReadOriginalBusinessOperation(context.Background(), VideoOriginalOperationIdentity{Operation: *g.Operation}); !errors.Is(err, ErrVideoTransactionUnavailable) {
++		t.Fatal(err)
++	}
++	old := videoTestGrant(s, g.Actor, "legacy_mapping_nonce_001", nil)
++	if _, err := videoLease(t, s, context.Background(), old, false).CreatePlaylist(old.Actor, "legacy"); err != nil {
++		t.Fatal(err)
++	}
++	n, err := s.ReadOriginalBusinessNonce(context.Background(), old.SessionBinding, old.Nonce)
++	if err != nil || n.Operation != nil {
++		t.Fatal("legacy metadata fabricated", n, err)
++	}
++	recovered, err := NewService(s.cfg)
++	if err != nil || len(recovered.store.state.Playlists) != 1 {
++		t.Fatal(err)
++	}
++}
++
++func TestVideoOriginalOperationPublishedUncertaintyPreservesAssociation(t *testing.T) {
++	s, _ := fixture(t, nil)
++	before, err := os.ReadFile(s.store.statePath)
++	if err != nil {
++		t.Fatal(err)
++	}
++	g := operationVideoGrant(s)
++	g.Current = func(context.Context) error {
++		b, e := os.ReadFile(s.store.statePath)
++		if e == nil && !bytes.Equal(b, before) {
++			return ErrUnauthorized
++		}
++		return nil
++	}
++	sc := videoLease(t, s, context.Background(), g, false)
++	if _, err = sc.CreatePlaylist(g.Actor, "published unknown"); !errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
++		t.Fatal(err)
++	}
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	identity := recovered.store.state.OriginalOperations[g.Operation.OperationID].Identity
++	r, err := recovered.ReadOriginalBusinessOperation(context.Background(), identity)
++	if err != nil || len(r.Steps) != 1 {
++		t.Fatal(r, err)
++	}
++	// Reading matching bytes cannot turn the retained original uncertainty error
++	// above into confirmed fsync/providerfinal or a permission to replay.
++	if _, err = videoLease(t, recovered, context.Background(), operationVideoGrant(recovered), false).CreatePlaylist(g.Actor, "replay"); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal(err)
++	}
++}
+diff --git a/internal/video/original_provider_commitment.go b/internal/video/original_provider_commitment.go
+new file mode 100644
+index 000000000..8d5b721d2
+--- /dev/null
++++ b/internal/video/original_provider_commitment.go
+@@ -0,0 +1,68 @@
++package video
++
++import (
++	"crypto/sha256"
++	"encoding/hex"
++	"encoding/json"
++	"net/url"
++	"strings"
++)
++
++// Computed by the ORIGINAL configured provider from its exact outbound bytes.
++// This is a commitment, never an ACK, final outcome, auth or permission.
++// ProviderRequestKey is empty when the original AI wire has no such field.
++type VideoOriginalProviderCommitment struct {
++	Method             string `json:"method"`
++	WireDigest         string `json:"wireDigest"`
++	EndpointDigest     string `json:"endpointDigest"`
++	ProviderRequestKey string `json:"providerRequestKey,omitempty"`
++}
++
++// Trusted local descriptors must be synchronous, pure, without Store/network
++// access. A provider lacking its exact original descriptor stays unavailable in
++// the coordinated mode; legacy records are not retroactively assigned hashes.
++type VideoOriginalPayoutCommitmentSource interface {
++	OriginalPayoutCommitment(string, int64, string) (VideoOriginalProviderCommitment, error)
++}
++type VideoOriginalAICommitmentSource interface {
++	OriginalAICommitment(AIRequest, bool) (VideoOriginalProviderCommitment, error)
++}
++
++func videoOriginalDigest(b []byte) string { sum := sha256.Sum256(b); return hex.EncodeToString(sum[:]) }
++func originalVideoPayoutBody(owner string, amount int64, ref string) ([]byte, error) {
++	return json.Marshal(map[string]any{"merchant": "ynx-video", "payoutAddress": owner, "amount": amount, "idempotencyKey": ref})
++}
++func videoProviderCommitment(endpoint string, raw []byte, key string) (VideoOriginalProviderCommitment, error) {
++	u, err := url.Parse(endpoint)
++	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" {
++		return VideoOriginalProviderCommitment{}, ErrVideoTransactionUnavailable
++	}
++	return VideoOriginalProviderCommitment{Method: "POST", WireDigest: videoOriginalDigest(raw), EndpointDigest: videoOriginalDigest([]byte(endpoint)), ProviderRequestKey: key}, nil
++}
++func (p PayClient) OriginalPayoutCommitment(owner string, amount int64, ref string) (VideoOriginalProviderCommitment, error) {
++	if p.Token == "" {
++		return VideoOriginalProviderCommitment{}, ErrVideoTransactionUnavailable
++	}
++	raw, err := originalVideoPayoutBody(owner, amount, ref)
++	if err != nil {
++		return VideoOriginalProviderCommitment{}, err
++	}
++	return videoProviderCommitment(strings.TrimRight(p.Endpoint, "/")+"/pay/intents", raw, ref)
++}
++func (g GatewayAI) OriginalAICommitment(in AIRequest, stream bool) (VideoOriginalProviderCommitment, error) {
++	if g.Token == "" {
++		return VideoOriginalProviderCommitment{}, ErrVideoTransactionUnavailable
++	}
++	raw, err := json.Marshal(in)
++	if err != nil {
++		return VideoOriginalProviderCommitment{}, err
++	}
++	path := "/v1/video/generate"
++	if stream {
++		path = "/v1/video/stream"
++	}
++	return videoProviderCommitment(strings.TrimRight(g.Endpoint, "/")+path, raw, "")
++}
++func validVideoProviderCommitment(p *VideoOriginalProviderCommitment) bool {
++	return p != nil && p.Method == "POST" && validVideoDigest(p.WireDigest) && validVideoDigest(p.EndpointDigest) && len(p.ProviderRequestKey) <= 256
++}
+diff --git a/internal/video/original_provider_commitment_test.go b/internal/video/original_provider_commitment_test.go
+new file mode 100644
+index 000000000..dd66b8689
+--- /dev/null
++++ b/internal/video/original_provider_commitment_test.go
+@@ -0,0 +1,154 @@
++package video
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"io"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"sync/atomic"
++	"testing"
++)
++
++// Disposable TLS original clients, never actual Pay/AI permissions or finality.
++func TestVideoOriginalOperationPayoutProviderWireDurable(t *testing.T) {
++	s, owner := payoutFixture(t)
++	var calls atomic.Int32
++	var wire, endpoint, key string
++	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		calls.Add(1)
++		b, _ := io.ReadAll(r.Body)
++		wire = videoOriginalDigest(b)
++		endpoint = videoOriginalDigest([]byte("https://" + r.Host + r.URL.Path))
++		var v struct {
++			IdempotencyKey string `json:"idempotencyKey"`
++		}
++		json.Unmarshal(b, &v)
++		key = v.IdempotencyKey
++		w.WriteHeader(503)
++	}))
++	defer server.Close()
++	s.cfg.Pay = PayClient{Endpoint: server.URL, Token: "controlled-token", Client: server.Client()}
++	g := operationVideoGrant(s)
++	g.Actor = owner
++	g.Operation.Path = "/api/payouts"
++	sc := videoLease(t, s, context.Background(), g, false)
++	if _, err := sc.CreatePayoutIntent(context.Background(), owner, 5); err == nil {
++		t.Fatal("unknown provider completed")
++	}
++	i := s.store.state.OriginalOperations[g.Operation.OperationID].Identity
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	rb, err := recovered.ReadOriginalBusinessOperationResults(context.Background(), i)
++	if err != nil || len(rb.Record.Providers) != 1 || len(rb.Payouts) != 1 {
++		t.Fatal(rb, err)
++	}
++	p := rb.Record.Providers[0]
++	if p.Kind != "payout" || p.ObjectID != key || p.Commitment.WireDigest != wire || p.Commitment.EndpointDigest != endpoint || p.Commitment.ProviderRequestKey != key || calls.Load() != 1 {
++		t.Fatal(p)
++	}
++	public, _ := json.Marshal(rb.Payouts[0])
++	if strings.Contains(string(public), "wireDigest") || strings.Contains(string(public), "controlled-token") {
++		t.Fatal("private descriptor escaped original HTTP object")
++	}
++	rb.Record.Providers[0].Commitment.WireDigest = "foreign"
++	fresh, err := recovered.ReadOriginalBusinessOperationResults(context.Background(), i)
++	if err != nil || fresh.Record.Providers[0].Commitment.WireDigest != wire {
++		t.Fatal(fresh, err)
++	}
++	if _, err = videoLease(t, recovered, context.Background(), g, false).CreatePayoutIntent(context.Background(), owner, 5); err == nil || calls.Load() != 1 {
++		t.Fatal("unknown was resent", err)
++	}
++}
++func TestVideoOriginalOperationAIDescriptorMatchesOriginalWire(t *testing.T) {
++	for _, stream := range []bool{false, true} {
++		t.Run(map[bool]string{false: "generate", true: "stream"}[stream], func(t *testing.T) {
++			var raw []byte
++			var path string
++			server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++				raw, _ = io.ReadAll(r.Body)
++				path = r.URL.Path
++				w.Header().Set("Content-Type", "application/json")
++				if stream {
++					w.Write([]byte("{\"Delta\":\"original\",\"Provider\":\"fixture\",\"Model\":\"fixture\",\"Units\":1,\"Done\":true}\n"))
++				} else {
++					w.Write([]byte(`{"Provider":"fixture","Model":"fixture","Text":"original","Units":1}`))
++				}
++			}))
++			defer server.Close()
++			g := GatewayAI{Endpoint: server.URL, Token: "controlled-token", Client: server.Client()}
++			in := AIRequest{Kind: "summary", VideoID: "original-video", ContextClasses: []string{"public-metadata"}, ContextPreview: "original"}
++			c, err := g.OriginalAICommitment(in, stream)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if stream {
++				_, err = g.Stream(context.Background(), in, func(string) error { return nil })
++			} else {
++				_, err = g.Generate(context.Background(), in)
++			}
++			if err != nil || c.WireDigest != videoOriginalDigest(raw) || c.EndpointDigest != videoOriginalDigest([]byte(server.URL+path)) || c.ProviderRequestKey != "" {
++				t.Fatal(c, err)
++			}
++		})
++	}
++}
++func TestVideoOriginalOperationMissingProviderDescriptorClosed(t *testing.T) {
++	s, owner := payoutFixture(t)
++	var calls atomic.Int32
++	s.cfg.Pay = videoPayFixture(func(context.Context, string, int64, string) (string, error) { calls.Add(1); return "fake-ACK", nil })
++	g := operationVideoGrant(s)
++	g.Actor = owner
++	if _, err := videoLease(t, s, context.Background(), g, false).CreatePayoutIntent(context.Background(), owner, 5); !errors.Is(err, ErrVideoTransactionUnavailable) || calls.Load() != 0 || len(s.store.state.OriginalOperations) != 0 || len(s.store.state.PayoutIntents) != 0 {
++		t.Fatal(err)
++	}
++}
++
++func TestVideoOriginalOperationAIProviderAdmissionAndColdReadback(t *testing.T) {
++	s, c := fixture(t, nil)
++	v := upload(t, s, c, "original AI metadata")
++	job, err := s.PrepareAI(c.Owner, v.ID, "summary", []string{"metadata"})
++	if err != nil {
++		t.Fatal(err)
++	}
++	type observed struct{ wire, endpoint string }
++	observation := make(chan observed, 1)
++	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		b, _ := io.ReadAll(r.Body)
++		observation <- observed{videoOriginalDigest(b), videoOriginalDigest([]byte("https://" + r.Host + r.URL.Path))}
++		w.Header().Set("Content-Type", "application/x-ndjson")
++		w.Write([]byte("{\"Delta\":\"original local result\",\"Provider\":\"fixture\",\"Model\":\"fixture\",\"Units\":1,\"Done\":true}\n"))
++	}))
++	defer server.Close()
++	s.cfg.AI = GatewayAI{Endpoint: server.URL, Token: "controlled-token", Client: server.Client()}
++	g := operationVideoGrant(s)
++	g.Actor = c.Owner
++	g.Operation.Path = "/api/ai/" + job.ID + "/run"
++	result, err := videoLease(t, s, context.Background(), g, false).RunAI(context.Background(), c.Owner, job.ID)
++	if err != nil {
++		t.Fatal(err)
++	}
++	observedWire := <-observation
++	i := s.store.state.OriginalOperations[g.Operation.OperationID].Identity
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	rb, err := recovered.ReadOriginalBusinessOperationResults(context.Background(), i)
++	if err != nil || len(rb.Record.Providers) != 1 || len(rb.AIJobs) != 1 || rb.AIJobs[0].Result != result.Result {
++		t.Fatal(rb, err)
++	}
++	p := rb.Record.Providers[0]
++	if p.Kind != "ai_job" || p.ObjectID != job.ID || p.Commitment.WireDigest != observedWire.wire || p.Commitment.EndpointDigest != observedWire.endpoint || p.Commitment.ProviderRequestKey != "" {
++		t.Fatal(p)
++	}
++	rb.AIJobs[0].ContextClasses[0] = "foreign"
++	fresh, err := recovered.ReadOriginalBusinessOperationResults(context.Background(), i)
++	if err != nil || fresh.AIJobs[0].ContextClasses[0] != "metadata" {
++		t.Fatal(fresh, err)
++	}
++}
+diff --git a/internal/video/service.go b/internal/video/service.go
+index 4d61cba84..7705cca6d 100644
+--- a/internal/video/service.go
++++ b/internal/video/service.go
+@@ -883,6 +883,21 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
+ 		return nil, errors.New("positive payout amount required")
+ 	}
+ 	localID := id("payout")
++	var commitment *VideoOriginalProviderCommitment
++	if s.store.business != nil && s.store.business.grant.Operation != nil {
++		source, ok := s.cfg.Pay.(VideoOriginalPayoutCommitmentSource)
++		if !ok {
++			return nil, ErrVideoTransactionUnavailable
++		}
++		v, e := source.OriginalPayoutCommitment(owner, amount, localID)
++		if e != nil {
++			return nil, e
++		}
++		if !validVideoProviderCommitment(&v) || v.ProviderRequestKey != localID {
++			return nil, ErrVideoTransactionUnavailable
++		}
++		commitment = &v
++	}
+ 	var p *PayoutIntent
+ 	err := s.store.update(func(st *State) error {
+ 		if err := ctx.Err(); err != nil {
+@@ -918,7 +933,7 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
+ 		if reserved > audited || amount > audited-reserved {
+ 			return errors.New("insufficient audited revenue")
+ 		}
+-		p = &PayoutIntent{ID: localID, Owner: owner, State: "dispatching", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
++		p = &PayoutIntent{originalProviderCommitment: commitment, ID: localID, Owner: owner, State: "dispatching", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
+ 		st.PayoutIntents[localID] = p
+ 		s.audit(st, owner, "payout.intent.reserve", "payout", localID, "")
+ 		return nil
+@@ -2020,6 +2035,22 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
+ 		if j.State != "awaiting_permission" {
+ 			return errors.New("AI job cannot run")
+ 		}
++		if s.store.business != nil && s.store.business.grant.Operation != nil {
++			source, ok := s.cfg.AI.(VideoOriginalAICommitmentSource)
++			if !ok {
++				return ErrVideoTransactionUnavailable
++			}
++			_, stream := s.cfg.AI.(AIStreamer)
++			request := AIRequest{Kind: j.Kind, VideoID: j.VideoID, ContextPreview: j.ContextPreview, ContextClasses: append([]string(nil), j.ContextClasses...), OutputLanguage: j.OutputLanguage}
++			v, e := source.OriginalAICommitment(request, stream)
++			if e != nil {
++				return e
++			}
++			if !validVideoProviderCommitment(&v) || v.ProviderRequestKey != "" {
++				return ErrVideoTransactionUnavailable
++			}
++			j.originalProviderCommitment = &v
++		}
+ 		j.State = "running"
+ 		j.PermissionAt = s.cfg.Now().UTC()
+ 		snapshot = *j
+diff --git a/internal/video/store.go b/internal/video/store.go
+index c8e345032..15ffe73ef 100644
+--- a/internal/video/store.go
++++ b/internal/video/store.go
+@@ -42,14 +42,14 @@ var stateMigrations = []stateMigration{
+ 		state.SchemaVersion = 5
+ 		return nil
+ 	}, down: func(state *State) error {
+-		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
++		if len(state.OriginalOperations) != 0 || len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+ 			return errors.New("cannot discard Video session-bound replay protection")
+ 		}
+ 		state.SchemaVersion = 4
+ 		return nil
+ 	}},
+ 	{from: 3, to: 4, up: func(state *State) error { state.SchemaVersion = 4; return nil }, down: func(state *State) error {
+-		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
++		if len(state.OriginalOperations) != 0 || len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+ 			return errors.New("cannot discard Video business replay protection")
+ 		}
+ 		state.BusinessNonces = nil
+@@ -302,6 +302,11 @@ func (s *Store) updateLocal(ctx context.Context, fn func(*State) error) error {
+ 			return err
+ 		}
+ 	}
++	if s.business != nil {
++		if err = s.business.recordOriginalOperation(&candidate, s.state); err != nil {
++			return err
++		}
++	}
+ 	candidate.Integrity = ""
+ 	previous := s.state
+ 	s.state = candidate
+diff --git a/internal/video/types.go b/internal/video/types.go
+index 8b796e6e5..85cf395ab 100644
+--- a/internal/video/types.go
++++ b/internal/video/types.go
+@@ -230,6 +230,7 @@ type Monetization struct {
+ 	RequestedAt, ReviewedAt       *time.Time
+ }
+ type PayoutIntent struct {
++	originalProviderCommitment    *VideoOriginalProviderCommitment
+ 	ID, Owner, PayIntentID, State string
+ 	AmountYNXT                    int64
+ 	UsageEventIDs                 []string
+@@ -247,6 +248,7 @@ type Dispute struct {
+ }
+ 
+ type AIJob struct {
++	originalProviderCommitment                                                *VideoOriginalProviderCommitment
+ 	ID, Owner, VideoID, Kind, State, Provider, Model, Failure, OutputLanguage string
+ 	ContextClasses                                                            []string
+ 	ContextPreview                                                            string
+@@ -295,29 +297,30 @@ type GatewayNonce struct {
+ }
+ 
+ type State struct {
+-	SchemaVersion      int                           `json:"schema_version,omitempty"`
+-	Videos             map[string]*Video             `json:"videos"`
+-	Channels           map[string]*Channel           `json:"channels"`
+-	Subscriptions      map[string]Subscription       `json:"subscriptions"`
+-	Playlists          map[string]*Playlist          `json:"playlists"`
+-	Comments           map[string]*Comment           `json:"comments"`
+-	WatchEvents        map[string]WatchEvent         `json:"watch_events"`
+-	Reports            map[string]*Report            `json:"reports"`
+-	Appeals            map[string]*Appeal            `json:"appeals"`
+-	Monetization       map[string]*Monetization      `json:"monetization"`
+-	PayoutIntents      map[string]*PayoutIntent      `json:"payout_intents"`
+-	Revenue            map[string]*RevenueRecord     `json:"revenue"`
+-	Disputes           map[string]*Dispute           `json:"disputes"`
+-	AIJobs             map[string]*AIJob             `json:"ai_jobs"`
+-	Audit              []AuditEvent                  `json:"audit"`
+-	GatewayNonces      map[string]GatewayNonce       `json:"gateway_nonces"`
+-	Idempotency        map[string]IdempotencyRecord  `json:"idempotency"`
+-	TeamInvites        map[string]*TeamInvite        `json:"team_invites,omitempty"`
+-	TeamMembers        map[string]*TeamMember        `json:"team_members,omitempty"`
+-	Rights             map[string]*RightsDeclaration `json:"rights,omitempty"`
+-	Integrity          string                        `json:"integrity,omitempty"`
+-	BusinessNonces     map[string]VideoBusinessNonce `json:"business_nonces,omitempty"`
+-	BusinessClockFloor time.Time                     `json:"business_clock_floor,omitzero"`
++	SchemaVersion      int                                     `json:"schema_version,omitempty"`
++	Videos             map[string]*Video                       `json:"videos"`
++	Channels           map[string]*Channel                     `json:"channels"`
++	Subscriptions      map[string]Subscription                 `json:"subscriptions"`
++	Playlists          map[string]*Playlist                    `json:"playlists"`
++	Comments           map[string]*Comment                     `json:"comments"`
++	WatchEvents        map[string]WatchEvent                   `json:"watch_events"`
++	Reports            map[string]*Report                      `json:"reports"`
++	Appeals            map[string]*Appeal                      `json:"appeals"`
++	Monetization       map[string]*Monetization                `json:"monetization"`
++	PayoutIntents      map[string]*PayoutIntent                `json:"payout_intents"`
++	Revenue            map[string]*RevenueRecord               `json:"revenue"`
++	Disputes           map[string]*Dispute                     `json:"disputes"`
++	AIJobs             map[string]*AIJob                       `json:"ai_jobs"`
++	Audit              []AuditEvent                            `json:"audit"`
++	GatewayNonces      map[string]GatewayNonce                 `json:"gateway_nonces"`
++	Idempotency        map[string]IdempotencyRecord            `json:"idempotency"`
++	TeamInvites        map[string]*TeamInvite                  `json:"team_invites,omitempty"`
++	TeamMembers        map[string]*TeamMember                  `json:"team_members,omitempty"`
++	Rights             map[string]*RightsDeclaration           `json:"rights,omitempty"`
++	Integrity          string                                  `json:"integrity,omitempty"`
++	BusinessNonces     map[string]VideoBusinessNonce           `json:"business_nonces,omitempty"`
++	BusinessClockFloor time.Time                               `json:"business_clock_floor,omitzero"`
++	OriginalOperations map[string]VideoOriginalOperationRecord `json:"original_operations,omitempty"`
+ }
+ 
+ type Analytics struct {

@@ -1,0 +1,5 @@
+--- FAIL: TestVideoOriginalOperationPayoutProviderWireDurable (0.04s)
+    original_provider_commitment_test.go:47: {{[] {{     }      } []} [] []} original Video transaction unavailable
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	0.784s
+FAIL

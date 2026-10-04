@@ -1,0 +1,19 @@
+{
+  "source": "e678a6319c978ca165176001a4a14b88aa946dc1",
+  "fullRaceDefault": "go test -mod=readonly -race ./internal/video ./internal/music",
+  "fullRaceTagged": "go1.25.13 test -mod=readonly -race -tags 'ynx_canonical_media ynx_media_combined_authority' ./internal/video ./internal/music",
+  "vetAndBuildExitCode": 0,
+  "buildTargets": [
+    "./internal/video/cmd",
+    "./apps/music/cmd/ynx-musicd"
+  ],
+  "setupFailuresPreserved": [
+    "first focused Video test compile used undefined ErrInvalid; fixed only fixture",
+    "first tagged compile used routeScope instead of Music scope; fixed actual owned adapter",
+    "initial build selected nonexistent internal/video/cmd/ynx-videod; actual original main target corrected",
+    "first original payout fixture actor differed from actual original owner; fixed fixture, unchanged ownership guard"
+  ],
+  "excludedInheritedRun": "tagged-full-race.txt accidentally ran prior325 source; excluded from current verification. actual-* files use verified331 source",
+  "historicalSharedContract": "0e63 RequestDigest equality not adopted; NodeRequestDigest is separate from ActionBodyDigest",
+  "networkFixtures": "disposable TLS original clients, no live provider/keys/registration/Host"
+}

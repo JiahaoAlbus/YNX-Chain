@@ -1,0 +1,7 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/music
+internal/music/business_sdk.go:116:65: undefined: routeScope
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video [build failed]
+# github.com/JiahaoAlbus/YNX-Chain/internal/music [github.com/JiahaoAlbus/YNX-Chain/internal/music.test]
+internal/music/business_sdk.go:116:65: undefined: routeScope
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/music [build failed]
+FAIL

@@ -1,0 +1,2 @@
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/video	18.537s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/music	10.683s

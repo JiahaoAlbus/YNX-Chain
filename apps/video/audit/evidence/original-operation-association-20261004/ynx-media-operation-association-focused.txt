@@ -1,0 +1,5 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/video [github.com/JiahaoAlbus/YNX-Chain/internal/video.test]
+internal/video/original_operation_test.go:79:56: undefined: ErrInvalid
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video [build failed]
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/music	2.121s
+FAIL
