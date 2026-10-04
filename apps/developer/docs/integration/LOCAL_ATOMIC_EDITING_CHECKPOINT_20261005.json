@@ -1,0 +1,73 @@
+{
+  "schema": "ynx-local-atomic-editing-checkpoint/v1",
+  "sourceCommit": "4298b6eba17d661832e1728bc21b5cb58c65e3d9",
+  "sourceTree": "ea42111676c8926e14cbe9afb636ae722009dd4f",
+  "sourceDirty": false,
+  "versions": {
+    "workbench": "0.3.15",
+    "brand": "0.1.5",
+    "tools": "0.2.21",
+    "theia": "1.76.0"
+  },
+  "coreTreeSha256": "d200996d768b3451719a6fd728caa2c9e3d5e72fecf20f0e5f638d0d6b1bea78",
+  "scope": "Actual sealed extension host component in IAB; not native Cocoa GUI acceptance",
+  "sourceChecks": {
+    "relatedRegression": {
+      "pass": 36,
+      "fail": 0,
+      "skip": 0
+    },
+    "rootRealMonacoRetest": {
+      "pass": 11,
+      "fail": 0,
+      "skip": 0
+    },
+    "frontendBuild": "exit0; browser/node0errors; final source/cache/compiled/package/lock independently verified"
+  },
+  "actualFlows": {
+    "F2SaveAll": "PASS all4 disk files",
+    "undoFromDefinitionSaveAll": "PASS all4 disk files",
+    "redoFromDefinitionSaveAll": "PASS all4 disk files",
+    "closedCallerUndoFromMainSaveAll": "PASS all4 disk files",
+    "compileAfterRedo": "PASS saved Main.redo.build.json",
+    "compileAfterClosedCallerUndo": "PASS saved Main.undo.build.json"
+  },
+  "compileBytecodeBytes": 211,
+  "evidence": {
+    "root": "/private/tmp/ynx-atomic-editing-workbench-FJw2OR",
+    "observation": "/private/tmp/ynx-atomic-editing-workbench-FJw2OR/actual-workspace-editing-observation.json",
+    "screenshot": "/private/tmp/ynx-klein-atomic-default-theme-20261005.png",
+    "buildHandoff": "apps/developer/docs/integration/LOCAL_ATOMIC_EDITING_BUILD_HANDOFF_20261005.md",
+    "oldUndoFailureRetained": "/private/tmp/ynx-project-editing-workbench-Em2RmL/actual-project-editing-observation.json",
+    "snapshotGapObservation": "/private/tmp/ynx-workspace-initial-snapshot-observation-20261005.log"
+  },
+  "runtimeStopped": {
+    "session": 41530,
+    "exitCode": 0,
+    "ownPidsVerifiedAbsent": [
+      63451,
+      63484,
+      63486,
+      63629,
+      63724,
+      63630
+    ]
+  },
+  "remaining": {
+    "mixedFileOperationsAndSnippets": false,
+    "failureInitialSnapshotCompleteRollback": false,
+    "nativeCocoaAtomicEditingAcceptance": false,
+    "canonicalIdentityAdmission": false,
+    "actualOnlineAI": false,
+    "testnetBusinessFlow": false,
+    "windowsNativeProduct": false,
+    "linuxNativeProduct": false,
+    "developerIDAndNotarization": false,
+    "installedPublishedUserAccepted": false
+  },
+  "pausedScopes": [
+    "network/package-egress/LXD",
+    "shared A/Auth/SDK/Host"
+  ],
+  "releaseComplete": false
+}
