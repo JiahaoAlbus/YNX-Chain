@@ -1,0 +1,16 @@
+{
+  "kind": "CURRENT_IOS_RELEASE_SIMULATOR_ENGINEERING_BUILD",
+  "baseComposition": "bb4fdee5dd64aa17ae5fefc8a62051024fbd7247",
+  "recordedGeneratedCompositionAfterBuild": "d3b241601d40aaa7cbd68d30fa7203954e4e904a",
+  "generatedIntegration": ["Xcode project Pods linkage", "Podfile.lock", "generated privacy manifest", "workspace contents"],
+  "compositionNote": "Generated files were recorded after the terminal successful build. No embedded Git source identity or clean base-composition claim is made for this iOS application.",
+  "build": {"exit": 0, "configuration": "Release", "platform": "iPhoneSimulator", "architecture": "arm64", "xcode": "27.0", "jobs": 2, "signingAllowed": false, "derivedData": "/tmp/ynx-wallet-matching-ios-build-20261004-d21hza/DerivedData"},
+  "originalDependencyRecovery": {"pods": 108, "podGraphEntries": 176, "completePodsGraphExactToRetainedBaseline": true, "hermesGit": "40b4c8d4e22ed2b9af46aba81aec3ca8aa5e169c", "hermesVersion": "250829098.0.14", "hermesSourceBuild": true, "lockSha256": "c2537107e67e6c6c78b7cbbbb79d00806085bb20407c0400d738baeae543bdc6"},
+  "preservedPreparations": ["strict deployment rejected moved local Pod paths", "normal regeneration temporarily selected Hermes Pre-built and was not used for Xcode", "plain HERMES_COMMIT install did not refresh cached spec and was not used", "explicit hermes-only refresh finally restored exact original source commit and full Pods graph"],
+  "resourceControl": {"cmakeWrapperSha256": "11815bb852576e52c4eedeeef877c4858662933df029a7112b6790a7f026f026", "actualHermesSubprocessJ2Observed": true, "vendorScriptsOrSourceRewritten": false},
+  "application": {"bundleId": "com.ynxweb4.wallet", "version": "1.0.15", "build": "22", "minOS": "16.4", "filesInReadback": 40, "hermesBytes": 10327354, "hermesSha256": "fa12940e8a5a0f6562b051539561cc029a8435c1dc26f8f498c9265022189212", "sourceMap": "NOT_GENERATED", "sourceMappingProofEquivalentToAndroid": false},
+  "warningsPreserved": ["Metro third-party exports fallback warnings", "Hermes undeclared-global diagnostics", "native compiler and API deprecations"],
+  "safety": {"installed": false, "launched": false, "formalSignedOrPublished": false, "deviceOrPrivateUserDataTouched": false, "liveAppTsxStartupAssetsSharedSdkChanged": false},
+  "remaining": ["independent complete source and artifact review", "formal provisioning signing and device distribution", "A genuine canonical provider and business ports", "normal retained-account upgrade", "all16 installed real-user journeys", "MONSTER"],
+  "overall": "IOS_SIMULATOR_ENGINEERING_BUILD_VERIFIED_PRODUCT_NOT_COMPLETED"
+}
