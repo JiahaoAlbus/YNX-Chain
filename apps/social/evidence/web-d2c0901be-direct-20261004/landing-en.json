@@ -1,0 +1,83 @@
+{
+  "images": [
+    {
+      "height": 24,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 46
+    },
+    {
+      "height": 0,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "objectFit": "contain",
+      "src": null,
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 150,
+      "naturalWidth": 156,
+      "objectFit": "contain",
+      "src": "./assets/metamask.svg",
+      "width": 0
+    },
+    {
+      "height": 0,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "objectFit": "fill",
+      "src": null,
+      "width": 0
+    }
+  ],
+  "lang": "en",
+  "overflow": false,
+  "scripts": [
+    "./product-shell.js"
+  ],
+  "url": "http://127.0.0.1:52519/",
+  "width": 1280
+}

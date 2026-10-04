@@ -1,0 +1,56 @@
+{
+  "attachments": [
+    {
+      "disabled": true,
+      "visible": false
+    },
+    {
+      "disabled": true,
+      "visible": false
+    },
+    {
+      "disabled": false,
+      "visible": false
+    }
+  ],
+  "lang": "zh-CN",
+  "lockedText": true,
+  "overflow": false,
+  "sendButtons": [
+    {
+      "disabled": false,
+      "text": "发送加密消息",
+      "visible": false
+    },
+    {
+      "disabled": true,
+      "text": "发送消息",
+      "visible": false
+    },
+    {
+      "disabled": true,
+      "text": "核验原始发布，不重新发送",
+      "visible": false
+    }
+  ],
+  "textareas": [
+    {
+      "disabled": false,
+      "visible": false
+    },
+    {
+      "disabled": false,
+      "visible": false
+    },
+    {
+      "disabled": false,
+      "visible": false
+    },
+    {
+      "disabled": true,
+      "visible": false
+    }
+  ],
+  "url": "http://127.0.0.1:52519/#matrix-social-workspace",
+  "width": 390
+}

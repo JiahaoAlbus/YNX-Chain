@@ -1,0 +1,10 @@
+{
+  "heading": "让对话更亲近。让掌控更清晰。",
+  "lang": "zh-CN",
+  "overflow": false,
+  "scripts": [
+    "./product-shell.js"
+  ],
+  "url": "http://127.0.0.1:52519/",
+  "width": 390
+}

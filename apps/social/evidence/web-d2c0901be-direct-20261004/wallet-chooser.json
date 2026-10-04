@@ -1,0 +1,98 @@
+{
+  "buttons": [
+    {
+      "disabled": false,
+      "id": "close-wallet-dialog",
+      "text": "×"
+    },
+    {
+      "disabled": false,
+      "id": "connect-mobile",
+      "text": "YNX Mobile Wallet扫码或在此手机上打开应用连接"
+    },
+    {
+      "disabled": false,
+      "id": "connect-hosted",
+      "text": "YNX Web Wallet在新窗口中安全打开钱包连接"
+    },
+    {
+      "disabled": false,
+      "id": "connect-ynx",
+      "text": "YNX Wallet使用已安装的 YNX 钱包扩展连接"
+    },
+    {
+      "disabled": false,
+      "id": "connect-metamask",
+      "text": "MetaMask连接你的 MetaMask 账户连接"
+    },
+    {
+      "disabled": false,
+      "id": "back-wallet-selection",
+      "text": "选择其他钱包"
+    },
+    {
+      "disabled": false,
+      "id": "retry-wallet-connection",
+      "text": "重试连接"
+    },
+    {
+      "disabled": false,
+      "id": "cancel-wallet-pair",
+      "text": "取消连接"
+    },
+    {
+      "disabled": false,
+      "id": "retry-wallet-discovery",
+      "text": "重试检测钱包"
+    }
+  ],
+  "images": [
+    {
+      "alt": "YNX Wallet",
+      "height": 44,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 44
+    },
+    {
+      "alt": "YNX Wallet",
+      "height": 44,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 44
+    },
+    {
+      "alt": "YNX Wallet logo",
+      "height": 44,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "src": "./assets/ynx-logo.png",
+      "width": 44
+    },
+    {
+      "alt": "MetaMask logo",
+      "height": 44,
+      "naturalHeight": 150,
+      "naturalWidth": 156,
+      "objectFit": "contain",
+      "src": "./assets/metamask.svg",
+      "width": 44
+    },
+    {
+      "alt": "使用 YNX 钱包扫描此连接码",
+      "height": 0,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "objectFit": "fill",
+      "src": null,
+      "width": 0
+    }
+  ],
+  "lang": "zh-CN",
+  "url": "http://127.0.0.1:52519/#matrix-social-workspace"
+}

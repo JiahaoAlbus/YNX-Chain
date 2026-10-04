@@ -1,0 +1,17 @@
+Status: CURRENT_IMMUTABLE_WEB_CANDIDATE_LOCAL_DIRECT_BROWSER_PASS_NOT_PUBLIC_ACCEPTANCE
+Product source: d2c0901bebef47ad6d958e21fe98f6b0d0bfc77b
+Product tree: 0eccf2524dc43971028bc0d97c997e49aeddfe88
+Candidate carrier: ea3d6ba5d
+Exact site.tar.gz: 3571692B / SHA256 e1bca00efa251fa6266b48d201a7af42dfa11cff6839e02305ea1e1fec5b8c14
+Browser served exact candidate build output, http://127.0.0.1:52519, not a fixture or API stub. No product code or dist bytes changed.
+Direct browser: Codex IAB tab28. Default1280 desktop -> 390x844 responsive check. Same tab throughout root -> explicit guest moments -> messages -> chooser open/close -> About/root -> reload -> history back/private locked -> forward/root. Own origin inventory one tab; no blank page observed. Browser viewport reset and temporary tab closed after checks.
+Initial root: document.lang=en, only product-shell.js as document script; no automatic account/private session action. Explicit language selector switches to zh-CN; root reload and browser history retain Chinese. Captured scripts refer only to current document DOM, not an exhaustive network/evaluation trace.
+Branding: original YNX PNG intrinsic798x420, desktop46x24/contain, wallet44x44 contain; official MetaMask SVG intrinsic156x150/44x44 contain. Distinct labels and source assets observed. No installed provider/rdns/approve/reject/lifecycle proof inferred from logos.
+Guest private UI: visible private chat stays locked, no visible composer or private messages. Current Matrix send and file controls disabled and hidden. Inherited hidden legacy templates also remain invisible; some hidden controls have disabled=false, so this evidence does NOT claim all document form controls disabled.
+Mobile: no horizontal overflow measured on locked private page, root refresh and history return. Public microsite, guest app, private locked page and chooser screenshots retained.
+Console: captured tab logs up to100, empty list. No authenticated/current producer/backend outage or real send/receive exercised.
+Human actions tested only non-sensitive navigation/language/chooser open-close. Never selected wallet/provider, requested accounts, signed, sent transaction, opened hosted/mobile wallet, created profile or granted private session.
+HTTP request log contains pathnames only. Root first load then explicit guest loads app/Matrix/private UI modules; no backend query/session secrets included. Own Node HTTP server terminated exit130.
+Initial Python HTTP command was immediately terminal exit137/no output and never served this proof; actual Node file-only HTTP server session69138 served all checks. No policy bypass, network download or shared service altered.
+Current public canonical remains separately observed old-index mismatch in candidate carrier; this local proof cannot be called public/installed completion.
+Native activationApproved=false/activated=false. Full C01-C07/V01-V17/crypto gates and actual MONSTER NOT_RUN remain incomplete.
