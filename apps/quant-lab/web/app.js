@@ -631,6 +631,13 @@ function verifiedPaperCosts(record) {
 }
 function renderPaperRecords(paper) {
   const records = paper.Orders;
+  // The existing service admits at most 100 Paper orders per workspace.
+  // An oversized response is not a valid history; do not render seemingly
+  // confirmed individual fills or build unbounded DOM from that response.
+  if(Array.isArray(records)&&records.length>100){
+    $('#paper-record-status').textContent=t('paperRecordsUnknown');
+    $('#paper-record-rows').innerHTML='';return;
+  }
   const ids = new Set();
   const duplicates = new Set();
   if (Array.isArray(records)) for (const record of records) {

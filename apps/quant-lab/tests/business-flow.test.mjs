@@ -486,6 +486,27 @@ test('Paper records reject normalized impossible dates and non-RFC timestamps',a
     assert.ok(app.ids.get('paper-record-rows').innerHTML.includes(CreatedAt));
   }
 });
+test('oversized Paper history fails closed before row validation/rendering and preserves the observed snapshot',async()=>{
+  const Orders=Array.from({length:101},(_,i)=>paperRecord({ID:`paper-${i}`}));
+  const app=harness({snapshot:{paper:{Orders}}});await settle();
+  assert.equal(vm.runInContext('snapshot.paper.Orders.length',app.context),101);
+  assert.doesNotMatch(app.ids.get('paper-record-rows').innerHTML,/paper-0|partially_filled|9007199254740991/);
+  assert.equal(app.ids.get('paper-record-status').textContent,vm.runInContext('t("paperRecordsUnknown")',app.context));
+  const before=app.calls.length;
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    assert.equal(app.ids.get('paper-record-status').textContent,vm.runInContext('t("paperRecordsUnknown")',app.context));
+  }
+  assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+  app.context.oversizedRows=new Proxy(new Array(101),{get(target,key){if(key==='length')return 101;throw Error('Oversized rows must not be traversed');}});
+  vm.runInContext('renderPaperRecords({Orders:oversizedRows})',app.context);
+  assert.equal(app.ids.get('paper-record-rows').innerHTML,'');
+  app.context.boundaryRows=Orders.slice(0,100);
+  vm.runInContext('renderPaperRecords({Orders:boundaryRows})',app.context);
+  assert.equal(app.ids.get('paper-record-status').textContent,'');
+  assert.equal((app.ids.get('paper-record-rows').innerHTML.match(/<tr>/g)||[]).length,100);
+});
+
 test('Paper record missing, empty, duplicate and malformed receipts cannot become confirmed fills',async()=>{
   for(const Orders of [undefined,[],[paperRecord({Filled:2000001})],[paperRecord({Status:'filled'})],[paperRecord({Source:'<script>fabricated</script>'})],[paperRecord(),paperRecord()],Array.from({length:101},(_,i)=>paperRecord({ID:`paper-${i}`})),[null], [paperRecord({Price:9007199254740992})]]){
     const app=harness({snapshot:{paper:{Orders}}});await settle();
