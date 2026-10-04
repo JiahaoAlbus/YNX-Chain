@@ -68,7 +68,7 @@ struct CartItem: Codable, Identifiable {
     let productID: String
     let variantID: String
     var quantity: Int
-    var id: String { productID + variantID }
+    var id: String { "\(productID.utf8.count):\(productID)\(variantID.utf8.count):\(variantID)" }
 
     enum CodingKeys: String, CodingKey {
         case productID = "ProductID"

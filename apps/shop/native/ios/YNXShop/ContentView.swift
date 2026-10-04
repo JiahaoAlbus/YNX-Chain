@@ -47,16 +47,24 @@ struct ProductImage:View {
     private var placeholder:some View{Rectangle().fill(Color.gray.opacity(0.08)).overlay{Image(systemName:"photo").font(.largeTitle).foregroundStyle(.secondary).accessibilityHidden(true)}}
 }
 struct ProductView:View {let product:Product;@EnvironmentObject var model:ShopModel
-    var body:some View{List{ProductImage(product:product,height:280).listRowInsets(EdgeInsets());Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT");Text("\(v.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(v.available<1)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
+    var body:some View{List{ProductImage(product:product,height:280).listRowInsets(EdgeInsets());Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT");Text("\(v.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(v.available<1 || (model.cart.first(where:{$0.productID==product.productID && $0.variantID==v.variantID})?.quantity ?? 0)>=20)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
 }
 struct CartView:View {@EnvironmentObject var model:ShopModel
     @State var recipient=""
     @State var address=""
     @State var city=""
     @State var country=""
-    var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){item in HStack{Text("\(item.quantity) × \(item.variantID)");Spacer();Button("cart_remove"){model.removeCart(item)}}}}
+    var body:some View{Form{if model.cart.isEmpty{ContentUnavailableView("cart_empty",systemImage:"cart")}else{ForEach(model.cart){item in CartItemView(item:item,revision:model.privacyRevision)}}
         Section{Button("cart_sync_button"){model.syncCart()};Button("cart_recover_checkout"){model.recoverCheckout()}}
         Section("order_review"){TextField("recipient",text:$recipient);TextField("address",text:$address);TextField("city",text:$city);TextField("country",text:$country);Text("payment_boundary").font(.caption);Button("checkout"){model.checkout(recipient:recipient,address:address,city:city,country:country)}.disabled(model.cart.isEmpty || model.mutationBusy)}}.navigationTitle("nav_cart").shopInlineTitle()}
+}
+struct CartItemView:View {
+    let item:CartItem
+    let revision:Int
+    @EnvironmentObject var model:ShopModel
+    private var product:Product?{let matches=model.products.filter{$0.productID==item.productID};return matches.count==1 ? matches[0]:nil}
+    private var variant:Variant?{let matches=product?.variants.filter{$0.variantID==item.variantID} ?? [];return matches.count==1 ? matches[0]:nil}
+    var body:some View{VStack(alignment:.leading,spacing:10){Text(product?.name ?? item.productID).font(.headline);Stepper(value:Binding(get:{item.quantity},set:{model.setCartQuantity(item,quantity:$0,revision:revision)}),in:1...20){Text("\(item.quantity) × \(variant?.name ?? item.variantID)")};Button("cart_remove",role:.destructive){model.removeCart(item,revision:revision)}}.disabled(model.mutationBusy).padding(.vertical,6)}
 }
 struct OrdersView:View {
     @EnvironmentObject var model:ShopModel
