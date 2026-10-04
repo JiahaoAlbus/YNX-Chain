@@ -39,9 +39,16 @@ type VideoOriginalOperationStep struct {
 	Kind      string `json:"kind"`
 	ObjectID  string `json:"objectId"`
 }
+type VideoOriginalProviderAssociation struct {
+	Kind       string                          `json:"kind"`
+	ObjectID   string                          `json:"objectId"`
+	Commitment VideoOriginalProviderCommitment `json:"commitment"`
+}
+
 type VideoOriginalOperationRecord struct {
-	Identity VideoOriginalOperationIdentity `json:"identity"`
-	Steps    []VideoOriginalOperationStep   `json:"steps"`
+	Providers []VideoOriginalProviderAssociation `json:"providers,omitempty"`
+	Identity  VideoOriginalOperationIdentity     `json:"identity"`
+	Steps     []VideoOriginalOperationStep       `json:"steps"`
 }
 
 func cloneVideoOperationMetadata(p *VideoOriginalOperationMetadata) *VideoOriginalOperationMetadata {
@@ -97,6 +104,32 @@ func (b *videoBusinessLease) recordOriginalOperation(next *State, before State) 
 		r.Identity = identity
 	}
 	for _, a := range next.Audit[len(before.Audit):] {
+		var commitment *VideoOriginalProviderCommitment
+		if a.ObjectType == "payout" {
+			if p := next.PayoutIntents[a.ObjectID]; p != nil {
+				commitment = p.originalProviderCommitment
+			}
+		}
+		if a.ObjectType == "ai_job" {
+			if j := next.AIJobs[a.ObjectID]; j != nil {
+				commitment = j.originalProviderCommitment
+			}
+		}
+		if commitment != nil {
+			ref := VideoOriginalProviderAssociation{Kind: a.ObjectType, ObjectID: a.ObjectID, Commitment: *commitment}
+			found := false
+			for _, old := range r.Providers {
+				if old.Kind == ref.Kind && old.ObjectID == ref.ObjectID {
+					if old != ref {
+						return ErrUnauthorized
+					}
+					found = true
+				}
+			}
+			if !found {
+				r.Providers = append(r.Providers, ref)
+			}
+		}
 		r.Steps = append(r.Steps, VideoOriginalOperationStep{Sequence: a.Sequence, AuditHash: a.Hash, Kind: a.ObjectType, ObjectID: a.ObjectID})
 	}
 	if next.OriginalOperations == nil {
@@ -116,6 +149,20 @@ func validateVideoOriginalOperations(st State) error {
 			return ErrUnauthorized
 		}
 		var previousSequence uint64
+		for _, ref := range r.Providers {
+			if !validVideoProviderCommitment(&ref.Commitment) || (ref.Kind != "payout" && ref.Kind != "ai_job") || ref.Kind == "payout" && ref.Commitment.ProviderRequestKey != ref.ObjectID || ref.Kind == "ai_job" && ref.Commitment.ProviderRequestKey != "" {
+				return ErrUnauthorized
+			}
+			found := false
+			for _, step := range r.Steps {
+				if step.Kind == ref.Kind && step.ObjectID == ref.ObjectID {
+					found = true
+				}
+			}
+			if !found {
+				return ErrUnauthorized
+			}
+		}
 		for _, step := range r.Steps {
 			if step.Sequence <= previousSequence || step.Sequence > uint64(len(st.Audit)) {
 				return ErrUnauthorized
@@ -161,6 +208,7 @@ func (s *Store) ReadOriginalBusinessOperation(ctx context.Context, expected Vide
 		return VideoOriginalOperationRecord{}, ErrUnauthorized
 	}
 	r.Steps = append([]VideoOriginalOperationStep(nil), r.Steps...)
+	r.Providers = append([]VideoOriginalProviderAssociation(nil), r.Providers...)
 	return r, nil
 }
 func (s *Service) ReadOriginalBusinessOperation(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationRecord, error) {
@@ -180,4 +228,60 @@ func (b *videoBusinessLease) checkOriginalOperationState(st State) error {
 		return ErrVideoTransactionUnavailable
 	}
 	return nil
+}
+
+// Exact original local results from the SAME integrity-checked read. Payout
+// awaiting_wallet_confirmation and AI results retain their original semantics;
+// no provider-final label or negative/retry evidence is manufactured here.
+type VideoOriginalOperationResultReadback struct {
+	Record  VideoOriginalOperationRecord
+	Payouts []PayoutIntent
+	AIJobs  []AIJob
+}
+
+func (s *Store) ReadOriginalBusinessOperationResults(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationResultReadback, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	disk, err := s.originalConfirmedFileStateLocked(ctx)
+	if err != nil {
+		return VideoOriginalOperationResultReadback{}, err
+	}
+	r, ok := disk.OriginalOperations[expected.Operation.OperationID]
+	if !ok {
+		return VideoOriginalOperationResultReadback{}, ErrVideoTransactionUnavailable
+	}
+	if r.Identity != expected {
+		return VideoOriginalOperationResultReadback{}, ErrUnauthorized
+	}
+	r.Steps = append([]VideoOriginalOperationStep(nil), r.Steps...)
+	r.Providers = append([]VideoOriginalProviderAssociation(nil), r.Providers...)
+	out := VideoOriginalOperationResultReadback{Record: r}
+	seen := map[string]bool{}
+	for _, step := range r.Steps {
+		k := step.Kind + ":" + step.ObjectID
+		if seen[k] {
+			continue
+		}
+		seen[k] = true
+		if step.Kind == "payout" {
+			if p := disk.PayoutIntents[step.ObjectID]; p != nil && p.Owner == expected.Actor {
+				v := *p
+				v.UsageEventIDs = append([]string(nil), p.UsageEventIDs...)
+
+				out.Payouts = append(out.Payouts, v)
+			}
+		}
+		if step.Kind == "ai_job" {
+			if j := disk.AIJobs[step.ObjectID]; j != nil && j.Owner == expected.Actor {
+				v := *j
+				v.ContextClasses = append([]string(nil), j.ContextClasses...)
+
+				out.AIJobs = append(out.AIJobs, v)
+			}
+		}
+	}
+	return out, nil
+}
+func (s *Service) ReadOriginalBusinessOperationResults(ctx context.Context, expected VideoOriginalOperationIdentity) (VideoOriginalOperationResultReadback, error) {
+	return s.store.ReadOriginalBusinessOperationResults(ctx, expected)
 }

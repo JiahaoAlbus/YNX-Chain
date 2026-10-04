@@ -230,6 +230,7 @@ type Monetization struct {
 	RequestedAt, ReviewedAt       *time.Time
 }
 type PayoutIntent struct {
+	originalProviderCommitment    *VideoOriginalProviderCommitment
 	ID, Owner, PayIntentID, State string
 	AmountYNXT                    int64
 	UsageEventIDs                 []string
@@ -247,6 +248,7 @@ type Dispute struct {
 }
 
 type AIJob struct {
+	originalProviderCommitment                                                *VideoOriginalProviderCommitment
 	ID, Owner, VideoID, Kind, State, Provider, Model, Failure, OutputLanguage string
 	ContextClasses                                                            []string
 	ContextPreview                                                            string

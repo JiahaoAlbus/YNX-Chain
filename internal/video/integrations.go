@@ -190,7 +190,10 @@ func (p PayClient) CreatePayoutIntent(ctx context.Context, owner string, amount 
 	if p.Endpoint == "" || p.Token == "" {
 		return "", errors.New("Pay service is not configured")
 	}
-	body, _ := json.Marshal(map[string]any{"merchant": "ynx-video", "payoutAddress": owner, "amount": amount, "idempotencyKey": ref})
+	body, err := originalVideoPayoutBody(owner, amount, ref)
+	if err != nil {
+		return "", err
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, strings.TrimRight(p.Endpoint, "/")+"/pay/intents", bytes.NewReader(body))
 	if err != nil {
 		return "", err

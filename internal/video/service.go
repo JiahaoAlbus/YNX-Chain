@@ -883,6 +883,21 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
 		return nil, errors.New("positive payout amount required")
 	}
 	localID := id("payout")
+	var commitment *VideoOriginalProviderCommitment
+	if s.store.business != nil && s.store.business.grant.Operation != nil {
+		source, ok := s.cfg.Pay.(VideoOriginalPayoutCommitmentSource)
+		if !ok {
+			return nil, ErrVideoTransactionUnavailable
+		}
+		v, e := source.OriginalPayoutCommitment(owner, amount, localID)
+		if e != nil {
+			return nil, e
+		}
+		if !validVideoProviderCommitment(&v) || v.ProviderRequestKey != localID {
+			return nil, ErrVideoTransactionUnavailable
+		}
+		commitment = &v
+	}
 	var p *PayoutIntent
 	err := s.store.update(func(st *State) error {
 		if err := ctx.Err(); err != nil {
@@ -918,7 +933,7 @@ func (s *Service) CreatePayoutIntent(ctx context.Context, owner string, amount i
 		if reserved > audited || amount > audited-reserved {
 			return errors.New("insufficient audited revenue")
 		}
-		p = &PayoutIntent{ID: localID, Owner: owner, State: "dispatching", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
+		p = &PayoutIntent{originalProviderCommitment: commitment, ID: localID, Owner: owner, State: "dispatching", AmountYNXT: amount, CreatedAt: s.cfg.Now().UTC()}
 		st.PayoutIntents[localID] = p
 		s.audit(st, owner, "payout.intent.reserve", "payout", localID, "")
 		return nil
@@ -2019,6 +2034,22 @@ func (s *Service) RunAI(ctx context.Context, actor, jobID string) (*AIJob, error
 		}
 		if j.State != "awaiting_permission" {
 			return errors.New("AI job cannot run")
+		}
+		if s.store.business != nil && s.store.business.grant.Operation != nil {
+			source, ok := s.cfg.AI.(VideoOriginalAICommitmentSource)
+			if !ok {
+				return ErrVideoTransactionUnavailable
+			}
+			_, stream := s.cfg.AI.(AIStreamer)
+			request := AIRequest{Kind: j.Kind, VideoID: j.VideoID, ContextPreview: j.ContextPreview, ContextClasses: append([]string(nil), j.ContextClasses...), OutputLanguage: j.OutputLanguage}
+			v, e := source.OriginalAICommitment(request, stream)
+			if e != nil {
+				return e
+			}
+			if !validVideoProviderCommitment(&v) || v.ProviderRequestKey != "" {
+				return ErrVideoTransactionUnavailable
+			}
+			j.originalProviderCommitment = &v
 		}
 		j.State = "running"
 		j.PermissionAt = s.cfg.Now().UTC()
