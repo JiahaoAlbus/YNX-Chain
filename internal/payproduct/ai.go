@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 )
@@ -24,6 +25,13 @@ type AIRunInput struct {
 var aiOutputLanguages = map[string]string{"en": "English", "zh-Hans": "Simplified Chinese", "zh-Hant": "Traditional Chinese", "ja": "Japanese", "ko": "Korean", "es": "Spanish", "fr": "French", "de": "German", "pt": "Portuguese", "ru": "Russian", "ar": "Arabic", "id": "Bahasa Indonesia"}
 
 func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInput) (AIRun, error) {
+	if ctx == nil {
+		return AIRun{}, errors.New("AI request context is required")
+	}
+	if err := ctx.Err(); err != nil {
+		return AIRun{}, err
+	}
+	input.ContextIDs = slices.Clone(input.ContextIDs)
 	classes, ok := aiWorkflows[input.Workflow]
 	if !ok {
 		return AIRun{}, errors.New("unsupported Pay AI workflow")
@@ -38,9 +46,30 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 	if len(input.ContextIDs) == 0 || len(input.ContextIDs) > 20 {
 		return AIRun{}, errors.New("AI context must contain 1 to 20 authorized record IDs")
 	}
+	seen := make(map[string]bool, len(input.ContextIDs))
+	for _, id := range input.ContextIDs {
+		if id == "" || strings.TrimSpace(id) != id || seen[id] {
+			return AIRun{}, errors.New("AI context requires distinct original record IDs")
+		}
+		seen[id] = true
+	}
 	records := []any{}
 	err := s.store.View(func(data Snapshot) error {
 		for _, id := range input.ContextIDs {
+			class := ""
+			switch {
+			case strings.HasPrefix(id, "inv_"):
+				class = "invoice"
+			case strings.HasPrefix(id, "rfr_"):
+				class = "refund"
+			case strings.HasPrefix(id, "dsp_"):
+				class = "dispute"
+			case strings.HasPrefix(id, "whd_"):
+				class = "webhook"
+			}
+			if !slices.Contains(classes, class) {
+				return errors.New("AI context type is not allowed for this workflow")
+			}
 			switch {
 			case strings.HasPrefix(id, "inv_"):
 				v, ok := data.Invoices[id]
@@ -77,28 +106,58 @@ func (s *Service) StartAI(ctx context.Context, merchant Merchant, input AIRunInp
 	}
 	now := s.now()
 	run := AIRun{ID: "air_" + randomToken(12), MerchantID: merchant.ID, Workflow: input.Workflow, ContextIDs: append([]string(nil), input.ContextIDs...), ContextClasses: classes, Provider: "YNX AI Gateway", Status: "running", Permission: "allow-once", EstimatedUnits: int64(len(records)) * 250, OutputLanguage: input.OutputLanguage, CreatedAt: now, UpdatedAt: now}
-	_ = s.store.Update(func(data *Snapshot) error {
+	err = s.store.Update(func(data *Snapshot) error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		data.AIRuns[run.ID] = run
 		appendAudit(data, merchant.ID, merchant.ID, "ai."+input.Workflow, run.ID, "authorized", "bounded records only", now)
 		return nil
 	})
+	if err != nil {
+		return AIRun{}, err
+	}
 	if s.ai == nil {
 		run.Status = "provider_unavailable"
 		run.UpdatedAt = s.now()
-		_ = s.saveAIRun(run, "provider_unavailable")
-		return run, nil
+		return run, s.saveAIRun(run, "provider_unavailable")
 	}
 	recordJSON, _ := json.Marshal(records)
 	prompt := fmt.Sprintf("You are the YNX Pay %s workflow. Analyze only the supplied authorized JSON records. Never sign, pay, refund, redirect funds, approve disputes, or modify secrets. Return a factual draft in %s with record IDs and uncertainty. Records: %s", input.Workflow, language, recordJSON)
 	providerContext, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	worker := s
+	if s.merchantAction != nil {
+		// The response ends its HTTP context. Keep the original admission and
+		// finite authority, but revalidate under the worker's bounded context.
+		// Never copy data into a second Store or bypass its authorization fence.
+		base := *s
+		base.store = s.store.parent
+		worker = base.merchantScope(providerContext, s.merchantAction, "ai-run")
+	}
 	s.aiMu.Lock()
 	s.aiCancels[run.ID] = cancel
 	s.aiMu.Unlock()
-	go s.completeAI(providerContext, run, prompt)
+	go func() {
+		defer cancel()
+		worker.completeAI(providerContext, run, prompt)
+	}()
 	return run, nil
 }
 func (s *Service) completeAI(ctx context.Context, run AIRun, prompt string) {
-	defer func() { s.aiMu.Lock(); delete(s.aiCancels, run.ID); s.aiMu.Unlock() }()
+	defer func() {
+		s.aiMu.Lock()
+		delete(s.aiCancels, run.ID)
+		s.aiMu.Unlock()
+	}()
+	if err := s.store.View(func(data Snapshot) error {
+		current, ok := data.AIRuns[run.ID]
+		if !ok || current.Status != "running" || current.MerchantID != run.MerchantID || current.Workflow != run.Workflow || !slices.Equal(current.ContextIDs, run.ContextIDs) {
+			return errors.New("original AI run is no longer active")
+		}
+		return ctx.Err()
+	}); err != nil {
+		return
+	}
 	provider, model, result, units, err := s.ai.Complete(ctx, run.ID, prompt)
 	run.Provider, run.Model, run.Result, run.EstimatedUnits, run.UpdatedAt = provider, model, result, units, s.now()
 	if err != nil {
@@ -112,7 +171,7 @@ func (s *Service) completeAI(ctx context.Context, run AIRun, prompt string) {
 	}
 	_ = s.store.Update(func(data *Snapshot) error {
 		current, ok := data.AIRuns[run.ID]
-		if !ok || current.Status == "cancelled" {
+		if !ok || current.Status != "running" || current.MerchantID != run.MerchantID || current.Workflow != run.Workflow || !slices.Equal(current.ContextIDs, run.ContextIDs) {
 			return nil
 		}
 		data.AIRuns[run.ID] = run
@@ -123,14 +182,6 @@ func (s *Service) completeAI(ctx context.Context, run AIRun, prompt string) {
 func (s *Service) ReviewAI(merchant Merchant, id, decision string) (AIRun, error) {
 	if decision != "applied" && decision != "rejected" && decision != "cancelled" {
 		return AIRun{}, errors.New("AI decision must be applied, rejected, or cancelled")
-	}
-	if decision == "cancelled" {
-		s.aiMu.Lock()
-		cancel := s.aiCancels[id]
-		s.aiMu.Unlock()
-		if cancel != nil {
-			cancel()
-		}
 	}
 	var run AIRun
 	err := s.store.Update(func(data *Snapshot) error {
@@ -149,6 +200,14 @@ func (s *Service) ReviewAI(merchant Merchant, id, decision string) (AIRun, error
 		appendAudit(data, merchant.ID, merchant.ID, "ai.review", id, decision, "result does not execute financial action", s.now())
 		return nil
 	})
+	if err == nil && decision == "cancelled" {
+		s.aiMu.Lock()
+		cancel := s.aiCancels[id]
+		s.aiMu.Unlock()
+		if cancel != nil {
+			cancel()
+		}
+	}
 	return run, err
 }
 func (s *Service) saveAIRun(run AIRun, outcome string) error {

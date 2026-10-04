@@ -31,10 +31,11 @@ type commerceV2Consumer struct {
 	live   *v2.Revalidator
 }
 type commerceV2Verifier struct {
-	consumers   []commerceV2Consumer
-	bind        CommerceV2ActorBinder
-	browser     *v2.BrowserSSO
-	bindBrowser CommerceBrowserActorBinder
+	consumers     []commerceV2Consumer
+	bind          CommerceV2ActorBinder
+	browser       *v2.BrowserSSO
+	bindBrowser   CommerceBrowserActorBinder
+	currentPolicy func(context.Context, string) error
 }
 
 // This source must compose with A's reviewed shared package using commerce_v2.
@@ -123,6 +124,16 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	}
 	// A hint can select only among router-fixed commitments. Shared Authorize
 	// still verifies canonical proof, exact policy, signature and live authority.
+	browserForConsumer := consumer.policy.Platform == "web" && g.browser != nil
+	assertConsumerCurrent := func(ctx context.Context) error {
+		if g.currentPolicy == nil {
+			return ctx.Err()
+		}
+		return g.currentPolicy(ctx, consumer.policy.Platform)
+	}
+	if err := assertConsumerCurrent(r.Context()); err != nil {
+		return nil, err
+	}
 	role := ""
 	var scopes []string
 	for candidate, required := range route.scopes {
@@ -143,7 +154,7 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	}
 	var sealedBinding string
 	var browserGrant v2.BrowserGrant
-	if g.browser != nil {
+	if browserForConsumer {
 		var err error
 		sealedBinding, browserGrant, err = g.browser.Binding(r)
 		if err != nil {
@@ -159,6 +170,9 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 	original, err := consumer.client.Authorize(r.Context(), r, scopes)
 	if err != nil {
 		return nil, commerceV2Error(err)
+	}
+	if err := assertConsumerCurrent(r.Context()); err != nil {
+		return nil, err
 	}
 	expected := ShopScopes
 	if role == "seller" {
@@ -181,7 +195,7 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		return nil, ErrUnauthorized
 	}
 	var fence func() error
-	if g.browser != nil {
+	if browserForConsumer {
 		if browserGrant.Identity.Account != original.Account || g.bindBrowser == nil {
 			return nil, ErrUnauthorized
 		}
@@ -196,13 +210,13 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		return nil, ErrUnauthorized
 	}
 	browserDigest := ""
-	if g.browser != nil {
+	if browserForConsumer {
 		raw, _ := json.Marshal(browserGrant)
 		digest := sha256.Sum256(raw)
 		browserDigest = hex.EncodeToString(digest[:])
 	}
 	validUntil := expires
-	if g.browser != nil {
+	if browserForConsumer {
 		if browserGrant.ExpiresAt.Before(validUntil) {
 			validUntil = browserGrant.ExpiresAt
 		}
@@ -218,7 +232,10 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 		return originalFence()
 	}
 	return &verifiedBusinessRequest{browserBindingDigest: browserDigest, walletAccount: original.Account, principal: Principal{Account: canonicalAccount, Role: role, ProductClientID: original.ClientID, BundleID: ShopBundleID, SessionBinding: original.SessionBinding, Scopes: slices.Clone(original.Scopes), ExpiresAt: expires}, proof: businessActionAuthorization{action.SessionBinding, action.Nonce, action.ExpiresAt}, fence: fence, revalidate: func(ctx context.Context) error {
-		if g.browser != nil {
+		if err := assertConsumerCurrent(ctx); err != nil {
+			return err
+		}
+		if browserForConsumer {
 			verified, grant, err := consumer.live.RevalidateBrowser(ctx, original, g.browser, sealedBinding, scopes)
 			if err != nil {
 				return commerceV2Error(err)
@@ -226,9 +243,12 @@ func (g *commerceV2Verifier) verify(r *http.Request, body []byte, route business
 			if !reflect.DeepEqual(verified, original) || !reflect.DeepEqual(grant, browserGrant) {
 				return ErrUnauthorized
 			}
-			return nil
+			return assertConsumerCurrent(ctx)
 		}
 		_, err := consumer.live.Revalidate(ctx, original, scopes)
-		return commerceV2Error(err)
+		if err != nil {
+			return commerceV2Error(err)
+		}
+		return assertConsumerCurrent(ctx)
 	}}, nil
 }
