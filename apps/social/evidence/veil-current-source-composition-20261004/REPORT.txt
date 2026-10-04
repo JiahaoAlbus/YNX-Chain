@@ -1,0 +1,18 @@
+Status: CURRENT_NATIVE_JAVA_MATRIX_COMPOSITION_COMPILED_AND_CONTROLLED_CHECKS_PASS
+Exact product source: 55283c5339532d90f808c800fc416a32db44faba
+Exact product tree: 2bf807194dc5e783a51fbb96149eca34171b164e
+Fresh source composition: 3 Android native authority/store/transaction Kotlin files, 13 Java crypto bridge files, 4 Kotlin Matrix transport files. All current source hashes and original dependency hashes in inputs.sha256.
+Toolchain: Zulu Java 24; javac --release 17; Kotlin compiler 2.1.20, -no-stdlib -no-reflect -jvm-target 17.
+Dependencies: original official libsignal-client 0.104.0; original cached Matrix Rust SDK Android 26.09.28 classes.jar from pinned AAR; Android 36; pinned Kotlin stdlib/reflect/script-runtime, annotations, trove4j and coroutines 1.10.2 as hashed.
+Phase 1: current owned VeilNativeAuthority/VeilNativeStore/VeilRecordTransaction Kotlin sources compiled against Android API and Kotlin stdlib, exit 0.
+Phase 2: ALL current owned Java crypto sources and four reviewed check entrypoints compiled against phase 1 fresh classes plus original official SDK, exit 0. No retained old native model or adapter jar used.
+Phase 3: ALL current Kotlin Matrix pipeline sources compiled against phases 1/2 fresh classes, original Matrix AAR/SDK/API; native output supplied as Kotlin friend path, exit 0.
+Controlled actual executions: stored-address 27 assertions; JNI callback/lease 10 checks; snapshot 14 checks; bounded stream 44 assertions. All exit 0, original runtime native-access warnings retained.
+First package attempt failed on duplicate META-INF/main.kotlin_module; initial-package-failure-summary.txt records observed failure. Pipeline recompiled with -module-name veil_current_matrix_pipeline, preserving both metadata files. Package creation then exit 0.
+Output: dormant-current-source-composition.jar, 163495 bytes, SHA256 ec185b41d6368adf2e4b2f0032f90316c680ba7a59981558196194e25d622eda.
+Output includes the reviewed synthetic QA entrypoints; it is a dormant research/source composition, NOT a production installation artifact, signed APK, complete dependency bundle or activated bridge.
+Actual desktop JVM JNI tests use generated QA identities and synthetic memory ports. Android SQLite/Keystore persistence was compiled only, NOT executed on Android.
+No production source changed this checkpoint. No JS/stopped SDK graphs, network, real private keys, account requests, signing, transactions, installation or deployment.
+Independent production admission/current/route generation, enrolled Keystore/checkpoint protector, atomic restore/crash recovery, actual public Matrix transport and MONSTER remain NOT_VERIFIED/NOT_RUN.
+activationApproved=false
+activated=false

@@ -1,0 +1,20 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.signal.libsignal.internal.Native in an unnamed module (file:/private/tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+PASS all record kinds and evolved actual SDK session retained
+PASS actual SDK import staging preserves complete opaque image
+PASS native output is an independent copy
+PASS foreign externally supplied own pin rejects staging
+PASS unknown schema version rejects
+PASS truncated and trailing images reject
+PASS late native current failure rejects staging
+PASS stale transaction cannot export
+PASS duplicate store identifiers reject rather than overwrite
+PASS SDK prekey ID substitution rejects
+PASS missing enrolled identity rejects without automatic genesis
+PASS aggregate eight MiB cap rejects before image creation
+PASS successful capture never changes the original record set
+PASS closed image has no readable output
+PASS snapshot checks=14; actual SDK/JNI; synthetic memory/trust; no atomic restore, OS, activation or real user evidence

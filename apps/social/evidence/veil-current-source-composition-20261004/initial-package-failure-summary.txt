@@ -1,0 +1,4 @@
+Observed actual jar create failure, exit 1:
+java.util.zip.ZipException: duplicate entry: META-INF/main.kotlin_module
+Both Kotlin compilation phases used the default module name. No source compile or checks failed.
+Recovery: recompile pipeline with -module-name veil_current_matrix_pipeline; preserve both Kotlin metadata files, no metadata deletion.
