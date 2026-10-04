@@ -1,0 +1,63 @@
+{
+  "recordedAt": "2026-10-04T09:34:14.939Z",
+  "sourceCommit": "f2ea66d9a312062b3d2682291d68becdce1a0efb",
+  "sourceTree": "31f388c33fc31ebf69daa90b0edbfbed0962bb58",
+  "scope": "Separate demo Card account creation from Standard Wallet connection",
+  "focusedPassed": 55,
+  "frontendPassed": 438,
+  "typecheck": true,
+  "webBuild": true,
+  "backendBuild": true,
+  "backendTestsRerun": false,
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-focused.txt",
+      "bytes": 10043,
+      "sha256": "cc2f326077fd51bb2ea16b9980a2c796b464a91e9801cd53b4f1937e37867727"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-full.txt",
+      "bytes": 62553,
+      "sha256": "3ab9afe967ef9e0bba9e17c7c86c7fafa87014770e523aeca05ccf4e75829eb9"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-types.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-web.txt",
+      "bytes": 1628,
+      "sha256": "7a92eb66acc40e941278cb64d69c1f586f352048dc3347fe4b49c4b72e12413e"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-envelope.txt",
+      "bytes": 265,
+      "sha256": "84ce67ac256fe6c33761116ff0dc64ba7c484667e938a1553c09830f1abf5bf8"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-backend-build.txt",
+      "bytes": 98,
+      "sha256": "0eabe0976361d6e7093d8244622770bb3e04752d795fb5575cf38c49299b0416"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/preview-f2ea66d9a-initial-inventory-failure.txt",
+      "bytes": 10832,
+      "sha256": "8aa7b887f1cdcf1e0778a49d464561e5e935968cac1ba0403d7fc242adb51841"
+    }
+  ],
+  "backendBundle": {
+    "path": "/private/tmp/card-preview-distinction-backend-20261004.mjs",
+    "bytes": 288517,
+    "sha256": "3515fcc3f1e41b481d0dbceb422314ebc42a451502f33affe21919f5e2eaee99"
+  },
+  "localeCoverage": 12,
+  "connectionStateCases": 24,
+  "initialFailure": "Old fixed localization count146; updated to148 for two new keys, all existing translation gates retained",
+  "releaseChannel": "qa",
+  "publicDeployment": false,
+  "realNewAccountApproval": false,
+  "realSignature": false,
+  "realFunding": false,
+  "productionRealPayments": false
+}

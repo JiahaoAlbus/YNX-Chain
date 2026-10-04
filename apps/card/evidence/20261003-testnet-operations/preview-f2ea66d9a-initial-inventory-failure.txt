@@ -1,0 +1,135 @@
+✖ twelve explicit resources exactly cover every fixed key and template without inherited English (1.925333ms)
+✔ the original 147-item audit is accounted for, including replaced interpolation fragments (0.200667ms)
+✔ actual JSX fixed text and action labels are registered, including future additions (18.025917ms)
+✔ missing copy and incorrect template variables fail visibly instead of using English (0.664834ms)
+✔ funding, native identity, simulation and download keep separate truthful meanings (0.189416ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: demo card account creation is independent of standard wallet connection (false) (191.259916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: demo card account creation is independent of standard wallet connection (true) (80.607583ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: demo card account creation is independent of standard wallet connection (false) (47.715708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: demo card account creation is independent of standard wallet connection (true) (44.704875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: demo card account creation is independent of standard wallet connection (false) (34.537416ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: demo card account creation is independent of standard wallet connection (true) (35.466667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: demo card account creation is independent of standard wallet connection (false) (34.33375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: demo card account creation is independent of standard wallet connection (true) (31.220375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: demo card account creation is independent of standard wallet connection (false) (30.255417ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: demo card account creation is independent of standard wallet connection (true) (31.386542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: demo card account creation is independent of standard wallet connection (false) (29.439833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: demo card account creation is independent of standard wallet connection (true) (30.643333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: demo card account creation is independent of standard wallet connection (false) (28.296542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: demo card account creation is independent of standard wallet connection (true) (28.050042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: demo card account creation is independent of standard wallet connection (false) (28.664666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: demo card account creation is independent of standard wallet connection (true) (28.519292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: demo card account creation is independent of standard wallet connection (false) (41.306542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: demo card account creation is independent of standard wallet connection (true) (27.8055ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: demo card account creation is independent of standard wallet connection (false) (27.869542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: demo card account creation is independent of standard wallet connection (true) (30.115667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: demo card account creation is independent of standard wallet connection (false) (28.006709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: demo card account creation is independent of standard wallet connection (true) (28.0405ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: demo card account creation is independent of standard wallet connection (false) (26.689708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: demo card account creation is independent of standard wallet connection (true) (27.859625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: every guest connection entry calls only native YNX authorization (34.542292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: every guest connection entry calls only native YNX authorization (35.746541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ web keeps its separate standard-wallet chooser and explicit MetaMask action (28.10975ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: all six native sections render localized fixed text and local demo notices (42.658042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: all six native sections render localized fixed text and local demo notices (45.370667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: all six native sections render localized fixed text and local demo notices (44.010625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: all six native sections render localized fixed text and local demo notices (45.142167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: all six native sections render localized fixed text and local demo notices (43.233125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: all six native sections render localized fixed text and local demo notices (33.113417ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: all six native sections render localized fixed text and local demo notices (33.406458ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: all six native sections render localized fixed text and local demo notices (31.303708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: all six native sections render localized fixed text and local demo notices (32.142084ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: all six native sections render localized fixed text and local demo notices (31.864333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: all six native sections render localized fixed text and local demo notices (32.807209ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: all six native sections render localized fixed text and local demo notices (31.845667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Arabic compact header retains column layout without limiting text scaling (52.25125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact Arabic shares one scroll viewport for chrome, six tabs, safety boundary and real content (26.526916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact navigation measures current content then returns to the section start, including Help and repeated tabs (28.310583ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ locale change with no onLayout still navigates using a fresh synchronous host measurement (29.0965ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late measurement callbacks cannot override newer locale, navigation or onLayout requests (35.144959ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silent: missing or failed measure callbacks never block a fresh tab request (31.155959ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ throwMeasure: missing or failed measure callbacks never block a fresh tab request (31.640292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fail: missing or failed measure callbacks never block a fresh tab request (42.678666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ invalid measured positions and late callbacks after unmount never scroll (32.81825ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ desktop keeps chrome outside its content viewport and navigation starts at content zero (29.679709ms)
+✔ crossing the compact breakpoint preserves the current owner's unsaved registration form (38.81575ms)
+ℹ tests 55
+ℹ suites 0
+ℹ pass 54
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2272.360708
+
+✖ failing tests:
+
+test at src/guestCopy.test.ts:2:1636
+✖ twelve explicit resources exactly cover every fixed key and template without inherited English (1.925333ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  148 !== 146
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestCopy.test.ts:12:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 148,
+    expected: 146,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
