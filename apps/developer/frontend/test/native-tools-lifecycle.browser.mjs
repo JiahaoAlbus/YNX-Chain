@@ -10,7 +10,7 @@ assert.equal(new URL(target).hostname, '127.0.0.1');
 const browser = await chromium.launch({ headless: true }), checks = [], errors = [], calls = [];
 let release;
 try {
-  for (const mode of ['foreground-change', 'session-expiry', 'review-expiry', 'foreground-offline']) {
+  for (const mode of ['foreground-change', 'session-expiry', 'review-expiry', 'foreground-offline', 'empty-401', 'html-401', 'html-503', 'late-html-401']) {
     const context = await browser.newContext();
     const page = await context.newPage(); page.setDefaultTimeout(10000); page.on('pageerror', error => errors.push(error.message));
     let changed = false, heldRequest = false;
@@ -20,6 +20,11 @@ try {
       if (url.origin !== origin) return route.abort();
       if (!url.pathname.startsWith('/runtime/native-tools/')) return route.continue();
       calls.push({ mode, path: url.pathname, checkOnly: url.searchParams.get('checkOnly'), body: route.request().postDataJSON() });
+      if (mode === 'late-html-401' && url.pathname.endsWith('/chain/status')) {
+        heldRequest = true; await held;
+        return route.fulfill({ status: 401, contentType: 'text/html', body: '<html>Old session expired</html>' }).catch(() => {});
+      }
+      if (changed && url.pathname.endsWith('/chain/status') && ['empty-401', 'html-401', 'html-503'].includes(mode)) return route.fulfill({ status: mode === 'html-503' ? 503 : 401, contentType: 'text/html', body: mode === 'empty-401' ? '' : '<html>Gateway unavailable</html>' });
       if (changed && mode === 'foreground-offline') return route.abort('failed');
       let value;
       if (url.pathname.endsWith('/context')) value = { ...(url.searchParams.has('checkOnly') ? {} : { csrf: 'review' }), account: changed ? 'account-B' : 'account-A', projectId: changed ? 'project-B' : 'project-A', expiresAt: Date.now() + 300, sessionExpiresAt: Date.now() + (mode === 'session-expiry' ? 1500 : 60000) };
@@ -52,6 +57,43 @@ try {
       assert.equal(await page.getByText('OLD_PROJECT_ARTIFACT', { exact: false }).count(), 0);
       assert.equal(await page.getByRole('button', { name: 'Inspect contract' }).count(), 0);
       checks.push('Actual session deadline retires the tool tree and late contract response without resurrecting private results.');
+    } else if (mode === 'late-html-401') {
+      await page.getByRole('button', { name: 'Check Testnet', exact: true }).click();
+      for (let i = 0; i < 100 && !heldRequest; i++) await page.waitForTimeout(10);
+      assert.equal(heldRequest, true);
+      changed = true; await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+      await page.getByRole('button', { name: 'Refresh workspace connection' }).waitFor();
+      changed = false; await page.getByRole('button', { name: 'Refresh workspace connection' }).click();
+      await page.getByRole('button', { name: 'Check Testnet' }).waitFor();
+      release(); await page.waitForTimeout(150);
+      assert.equal(await page.getByRole('button', { name: 'Refresh workspace connection' }).count(), 0);
+      assert.equal(await page.getByRole('button', { name: 'Preview request' }).isEnabled(), true);
+      assert.equal(await page.getByLabel('Request', { exact: true }).inputValue(), 'Keep my unsent request');
+      checks.push('A late unreadable 401 from the retired request cannot clear the explicitly refreshed workspace.');
+    } else if (['empty-401', 'html-401', 'html-503'].includes(mode)) {
+      await page.getByLabel('Contract address', { exact: true }).fill('0x' + 'a'.repeat(40));
+      await page.getByRole('button', { name: 'Inspect contract', exact: true }).click();
+      await page.getByText('Artifact: OLD_PROJECT_ARTIFACT', { exact: false }).waitFor();
+      await page.getByRole('button', { name: 'Preview request', exact: true }).click();
+      await page.getByRole('heading', { name: 'Approve this request' }).waitFor();
+      changed = true;
+      await page.getByRole('button', { name: 'Check Testnet', exact: true }).click();
+      if (mode === 'html-503') {
+        await page.getByRole('alert').filter({ hasText: 'The workspace connection is unavailable' }).waitFor();
+        assert.equal(await page.getByRole('button', { name: 'Check Testnet' }).isEnabled(), true);
+        assert.equal(await page.getByRole('button', { name: 'Refresh workspace connection' }).count(), 0);
+        checks.push('An unreadable 503 shows a usable error and releases the operation lock without inventing session expiry.');
+      } else {
+        await page.getByRole('button', { name: 'Refresh workspace connection' }).waitFor();
+        assert.equal(await page.getByText('Artifact: OLD_PROJECT_ARTIFACT', { exact: false }).count(), 0);
+        assert.equal(await page.getByRole('heading', { name: 'Approve this request' }).count(), 0);
+        assert.equal(await page.getByRole('button', { name: 'Send reviewed context once' }).count(), 0);
+        changed = false;
+        await page.getByRole('button', { name: 'Refresh workspace connection' }).click();
+        assert.equal(await page.getByLabel('Request', { exact: true }).inputValue(), 'Keep my unsent request');
+        assert.equal(await page.getByLabel('Selected context', { exact: true }).inputValue(), 'Keep my unsent selected text');
+        checks.push(`${mode}: an ordinary tool request retires the private artifact and AI review, then explicit refresh restores only the unsent draft.`);
+      }
     } else {
       if (mode === 'foreground-change') {
         await page.getByLabel('Contract address', { exact: true }).fill('0x' + 'a'.repeat(40));

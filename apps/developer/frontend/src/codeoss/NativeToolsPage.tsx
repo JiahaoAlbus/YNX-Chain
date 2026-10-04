@@ -3,6 +3,7 @@ import './native-tools.css';
 import { connectDeveloperWebWallet, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from '../wallet/safe-authorize-launcher';
 import { NativeContractTools } from './NativeContractTools';
 import { createRequestEpoch } from './requestEpoch';
+import { readWorkspaceResponse } from './workspaceResponse';
 type Identity = { csrf: string; account: string; projectId: string; expiresAt: number; sessionExpiresAt?: number };
 type EditReview = { summary: string; bundle: unknown };
 type Proposal = { csrf: string; proposalId: string; prompt: string; context: string; contextBytes: number; wirePrompt?: string; requestBytes?: number; model: string; mode?: string; expiresAt?: number };
@@ -47,7 +48,15 @@ export function NativeToolsPage() {
   async function request(path: string, options?: RequestInit, verification = false) {
     const captured = requests.capture();
     const response = await fetch(`/runtime/native-tools/${path}?sessionId=${encodeURIComponent(sessionId)}${verification ? '&checkOnly=1' : ''}`, { ...options, credentials: 'same-origin', cache: 'no-store', headers: { 'content-type': 'application/json' } });
-    const value = await response.json();
+    let value;
+    try { value = await readWorkspaceResponse(response); }
+    catch (cause) {
+      // A retired response must not clear a newly admitted workspace, including
+      // when the proxy body cannot be decoded. HTTP 401 still ends this session.
+      if (!requests.current(captured)) throw new Error('This request was retired.');
+      if (response.status === 401) retire('The Wallet project session ended. Your unsent input is preserved.');
+      throw cause;
+    }
     if (!requests.current(captured)) throw new Error('This request was retired.');
     if (!response.ok) {
       if (response.status === 401) {
