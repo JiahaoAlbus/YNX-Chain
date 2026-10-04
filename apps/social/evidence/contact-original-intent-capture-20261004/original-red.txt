@@ -1,0 +1,59 @@
+✖ returned operation uses its original intent despite caller edits during storage read (0.671ms)
+✖ validated intent is a detached immutable snapshot without freezing caller input (3.996083ms)
+✖ prepared and loaded recovery snapshots cannot be edited into a different request (0.319208ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 0
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 139.729417
+
+✖ failing tests:
+
+test at ../../../../../../../private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:2:1726
+✖ returned operation uses its original intent despite caller edits during storage read (0.671ms)
+  Error: Original contact request changed; recovery intent retained
+      at NativeContactIntents.returned (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeContactIntent.ts:44:74)
+      at async TestContext.<anonymous> (/private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:20:16)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at ../../../../../../../private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:2:2565
+✖ validated intent is a detached immutable snapshot without freezing caller input (3.996083ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Object.isFrozen(captured))
+  
+      at TestContext.<anonymous> (/private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:28:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:2:3100
+✖ prepared and loaded recovery snapshots cannot be edited into a different request (0.319208ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Object.isFrozen(prepared))
+  
+      at TestContext.<anonymous> (/private/tmp/social-contact-capture-20261004.uqXzXr/contact-original-capture.test.ts:34:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

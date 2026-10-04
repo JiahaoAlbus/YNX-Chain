@@ -1,5 +1,5 @@
 import type {ContactReview} from './contactRequestFlow';
-export type NativeContactIntent={schemaVersion:1;account:string;source:ContactReview['source'];value:string;personId:string;idempotencyKey:string;message:string;operationReturned?:true};
+export type NativeContactIntent=Readonly<{schemaVersion:1;account:string;source:ContactReview['source'];value:string;personId:string;idempotencyKey:string;message:string;operationReturned?:true}>;
 export interface NativeContactStorage{read(key:string):Promise<string|null>;write(key:string,value:string):Promise<void>}
 const activeAccounts=new Set<string>();
 function key(account:string){if(!/^ynx1[0-9a-z]{38}$/.test(account))throw new Error('Original Social account is required');return `ynx.social.contact.intent.v1.${account}`}
@@ -7,7 +7,7 @@ export function checkedNativeContactIntent(value:unknown,account:string):NativeC
  key(account);const record=value as NativeContactIntent;
  const fields=record?.operationReturned===undefined?'account,idempotencyKey,message,personId,schemaVersion,source,value':'account,idempotencyKey,message,operationReturned,personId,schemaVersion,source,value';
  if(!record||Object.keys(record).sort().join(',')!==fields||record.schemaVersion!==1||record.account!==account||!['handle','qr','invite','contacts','recommendation'].includes(record.source)||typeof record.value!=='string'||!record.value||record.value.length>2048||typeof record.personId!=='string'||!/^sp_[A-Za-z0-9_-]{32}$/.test(record.personId)||typeof record.idempotencyKey!=='string'||!/^native-contact-[A-Za-z0-9_-]{16,64}$/.test(record.idempotencyKey)||typeof record.message!=='string'||record.message!==record.message.trim()||Array.from(record.message).length>200||record.operationReturned!==undefined&&record.operationReturned!==true)throw new Error('Original contact intent requires recovery; nothing was replaced');
- return {...record};
+ return Object.freeze({...record});
 }
 // One active recovery intent per original account. Unknown delivery blocks
 // replacing that intent; a returned API operation is not recipient acceptance.
@@ -35,8 +35,9 @@ export class NativeContactIntents{
    if(!current())throw new Error('Contact review changed; original intent retained');return candidate;
   }finally{release()}
  }
- async returned(intent:NativeContactIntent,current:()=>boolean):Promise<boolean>{
+ async returned(supplied:NativeContactIntent,current:()=>boolean):Promise<boolean>{
   if(!current())return false;
+  const intent=checkedNativeContactIntent(supplied,supplied.account);
   const release=this.enter(intent.account);
   try{
    const original=await this.readStored(intent.account);
