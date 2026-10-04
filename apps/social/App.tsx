@@ -521,7 +521,7 @@ function SocialApp() {
     );
   if (!session || !api)
     return <GuestWorkspace error={error} discoveryPending={Boolean(discovery)}
-      language={<LanguagePicker compact />} signIn={<NativeSessionPanel onChatReady={connectScoped} />} />;
+      language={<View><LanguagePicker compact />{api?<LocalDeletionRecovery api={api}/>:null}</View>} signIn={<NativeSessionPanel onChatReady={connectScoped} />} />;
   return (
     <SafeAreaView
       style={[styles.safe, { direction: isRTL ? "rtl" : "ltr" }]}
@@ -593,6 +593,44 @@ function SocialApp() {
       </View>
     </SafeAreaView>
   );
+}
+
+function LocalDeletionRecovery({api,account}:{api:SocialAPI;account?:string}){
+  const mounted=useRef(true),activeAccount=useRef(account),scope=useRef<{account:string;current:()=>boolean}|null>(null);
+  activeAccount.current=account;
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false}},[]);
+  const [open,setOpen]=useState(false),[state,setState]=useState<'confirmed'|'unknown'|'none'>('none'),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
+  const review=async()=>{
+    const generation=api.authorizationGuard();setOpen(true);setBusy(true);setError(null);scope.current=null;setState('none');
+    try{
+      const cached=account?null:await SecureStore.getItemAsync(SESSION_KEY);
+      if(!mounted.current||!generation())return;
+      const selected=account??(cached?JSON.parse(cached).session?.account:undefined);
+      if(typeof selected!=='string'||!/^ynx1[0-9a-z]{38}$/.test(selected))throw new Error('No retained original account reference. Local erasure is not confirmed.');
+      // A cached session is only a lookup reference, never restored authority.
+      const current=()=>mounted.current&&generation()&&(!activeAccount.current||activeAccount.current===selected)&&(api.currentProductAccount===null||api.currentProductAccount===selected);
+      if(!current())throw new Error('Account changed; review recovery again');
+      const recovery=await accountIntentIndex.reviewDeletionRecovery(selected,current);
+      if(!current())return;scope.current={account:selected,current};setState(recovery?.state??'none');
+    }catch(caught){if(mounted.current&&generation())setError(message(caught))}finally{if(mounted.current&&generation())setBusy(false)}
+  };
+  const resume=async()=>{
+    const original=scope.current;if(!original||!original.current())return;setBusy(true);setError(null);
+    try{
+      await accountIntentIndex.resumeCleanup(original.account,original.current);
+      if(!original.current())return;
+      messageOutbox.clearAccount(original.account,original.current);
+      if(original.current())setError('Indexed local records cleared. Legacy keys and unindexed records remain preserved; complete local erasure is not confirmed.');
+    }catch(caught){if(original.current())setError(message(caught))}finally{if(original.current())setBusy(false)}
+  };
+  return <View><Pressable accessibilityLabel="Review interrupted local deletion" style={styles.secondary} onPress={()=>void review()}><Text style={styles.secondaryText}>Local deletion recovery</Text></Pressable>
+    <Modal visible={open} transparent animationType="slide" onRequestClose={()=>setOpen(false)}><View style={styles.backdrop}><View style={styles.sheet}>
+      <Text style={styles.profileName}>Local deletion recovery</Text>
+      <Text style={styles.securityNote}>{state==='confirmed'?'A retained server deletion confirmation exists for the original account. Continue indexed local cleanup only. No server DELETE will be sent.':state==='unknown'?'The original server deletion outcome is unknown and may have partially applied. Local records are retained. Review server state before any new destructive operation.':'No retained deletion confirmation was found. No data will be erased.'}</Text>
+      {error?<Text style={styles.securityNote}>{error}</Text>:null}
+      {busy?<ActivityIndicator color={BLUE}/>:state==='confirmed'?<Pressable accessibilityLabel="Continue local cleanup only" style={styles.secondary} onPress={()=>void resume()}><Text style={styles.secondaryText}>Continue local cleanup only</Text></Pressable>:null}
+      <Pressable style={styles.secondary} onPress={()=>setOpen(false)}><Text style={styles.secondaryText}>Close</Text></Pressable>
+    </View></View></Modal></View>;
 }
 
 function LanguagePicker({ compact = false }: { compact?: boolean }) {
@@ -2629,7 +2667,11 @@ function Profile({
     const originalCurrent=api.authorizationGuard();
     let receipt:Awaited<ReturnType<SocialAPI['deleteAccountReceipt']>>|undefined;
     try {
-      receipt=await api.deleteAccountReceipt(session.session.account);
+      const originalAccount=session.session.account;
+      if(api.currentProductAccount!==originalAccount)throw new Error('Verified original account binding is unavailable; local records were retained');
+      await accountIntentIndex.beginDeletion(originalAccount,originalCurrent);
+      if(!originalCurrent())return;
+      receipt=await api.deleteAccountReceipt(originalAccount,current=>accountIntentIndex.recordConfirmedDeletion(originalAccount,current));
       await accountIntentIndex.cleanupConfirmed(receipt.account,receipt.current);
       if(!receipt.current())return;
       messageOutbox.clearAccount(receipt.account,receipt.current);
@@ -2730,6 +2772,7 @@ function Profile({
         >
           <Text style={styles.secondaryText}>Export my Social data</Text>
         </Pressable>
+        <LocalDeletionRecovery api={api} account={session.session.account}/>
         <Pressable
           accessibilityLabel="Delete my Social account"
           onPress={() =>

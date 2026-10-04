@@ -1,0 +1,13 @@
+# Normal local deletion recovery UI candidate
+
+Base: 818608737a68bb09fb3c385f18ac8a803f56b376. Earlier 154560 SOURCE_HOLD and original schema red evidence remain preserved.
+
+App now mounts LocalDeletionRecovery in Settings and in the guest workspace, so the source UI entry survives Profile/session invalidation. Read-only review selects the current account or uses the existing cached session account solely as an index lookup reference, never as restored authority. Captured API generation, active account, component lifetime and current Product Session account constrain each step. Confirmed fences expose an explicit Continue local cleanup only action; unknown attempts expose a warning and no erase/server retry action. Legacy/global records remain preserved and the UI says complete local erasure is not confirmed.
+
+Before issuing a Settings DELETE, beginDeletion writes an account-scoped unknown-attempt marker and refuses an existing attempt or confirmed fence. An exact validated server success invokes recordConfirmedDeletion before token invalidation; it persists the original account fence using the pre-invalidation current guard. If confirmation storage fails, only the still-original authorization is invalidated; a switched account is not cleared. No failure is interpreted as proof of zero backend effects. A server failure after committing state but failing media cleanup remains unknown, and the attempt prevents repeated server deletion.
+
+resumeCleanup requires an already retained confirmed fence. It does not create one, invoke an API or issue DELETE. Index references, other accounts and legacy carriers are retained under existing recovery semantics. Local queues/markers are not cross-process CAS, protected canonical receipts or production identity proof.
+
+New controlled regressions cover fence persistence before invalidation, cold local-only continuation without a second DELETE, backend partial-failure uncertainty and retry refusal, refusal to promote a missing fence, and account switching while confirmation is persisted. Full npm test 405 PASS, zero FAIL/SKIP. TypeScript exit 0; actual Expo Android/iOS exports exit 0, isolated /tmp/social-local-deletion-recovery-20261004.c3n7zs.
+
+Actual rendered normal-UI mount/unmount/error/return and installed OS storage lifecycle are NOT_RUN. The source callback lifecycle test is not a UI test. No device lease or dedicated real backend deletion QA flow was available in this run. Root must coordinate the existing platform window and normal destructive confirmation. No real account data was deleted, no deployment or sensitive Wallet operation occurred. No unknown APK/cache/model/stage artifacts were included. Full Social v2, crypto649, runtime/public/installed/MONSTER remain incomplete.
