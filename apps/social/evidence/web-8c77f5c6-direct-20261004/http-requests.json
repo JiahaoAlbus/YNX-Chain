@@ -1,0 +1,71 @@
+[
+  {
+    "path": "/"
+  },
+  {
+    "path": "/workspace.css"
+  },
+  {
+    "path": "/product-shell.css"
+  },
+  {
+    "path": "/styles.css"
+  },
+  {
+    "path": "/product-shell.js"
+  },
+  {
+    "path": "/assets/metamask.svg"
+  },
+  {
+    "path": "/assets/ynx-logo.png"
+  },
+  {
+    "path": "/assets/ynx-favicon.svg"
+  },
+  {
+    "path": "/app.js"
+  },
+  {
+    "path": "/wallet-provider.js"
+  },
+  {
+    "path": "/wallet-transports.js"
+  },
+  {
+    "path": "/vendor/standard-wallet-browser.mjs"
+  },
+  {
+    "path": "/vendor/ynx-wallet-transports-b38f74d3b.mjs"
+  },
+  {
+    "path": "/private-session-ui.js"
+  },
+  {
+    "path": "/matrix-session-ui.js"
+  },
+  {
+    "path": "/"
+  },
+  {
+    "path": "/workspace.css"
+  },
+  {
+    "path": "/product-shell.css"
+  },
+  {
+    "path": "/styles.css"
+  },
+  {
+    "path": "/product-shell.js"
+  },
+  {
+    "path": "/assets/metamask.svg"
+  },
+  {
+    "path": "/assets/ynx-logo.png"
+  },
+  {
+    "path": "/assets/ynx-favicon.svg"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "lang": "zh-CN",
+  "scripts": [
+    "./product-shell.js"
+  ],
+  "scrollWidth": 375,
+  "url": "http://127.0.0.1:52510/",
+  "width": 390
+}
