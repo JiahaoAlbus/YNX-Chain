@@ -5,6 +5,7 @@ import path from 'node:path';
 
 const PAGE_ASSETS=Object.freeze(['styles.css','wallet-connect.js','app.js','ui-preferences.js']);
 const MODULE_ASSETS=Object.freeze(['market-data.js','order-preview.js','private-session.js','locale.js','command-review.js','command-copy.js','venue-config.js']);
+export const EXCHANGE_RUNTIME_WEB_ASSETS=Object.freeze(['index.html',...new Set([...PAGE_ASSETS,...MODULE_ASSETS])]);
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 export function verifyExchangeVersionedAssets(html,app,readAsset){

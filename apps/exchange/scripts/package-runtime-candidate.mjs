@@ -1,35 +1,35 @@
 import {createHash} from "node:crypto";
-import {mkdir,readFile,readdir,stat,writeFile,mkdtemp} from "node:fs/promises";
+import {mkdir,readFile,lstat,writeFile,mkdtemp} from "node:fs/promises";
 import {execFileSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {gzipSync} from "node:zlib";
 import path from "node:path";
-import {verifyExchangeVersionedAssets} from "../web/verify-versioned-assets.mjs";
+import {verifyExchangeVersionedAssets,EXCHANGE_RUNTIME_WEB_ASSETS} from "../web/verify-versioned-assets.mjs";
 
 const root=path.resolve(import.meta.dirname,"../../..");
 const args=parseArgs(process.argv.slice(2));
 const commit=args.commit;
 if(!/^[0-9a-f]{40}$/.test(commit)||!args.output)throw new Error("usage: package-runtime-candidate.mjs --commit <exact-source-commit> --output <archive>");
 if(git(["rev-parse","HEAD"])!==commit)throw new Error("runtime package must be built from the requested exact source commit");
+if(git(["status","--porcelain","--untracked-files=normal"]))throw new Error("runtime package requires a clean source worktree");
 const sourceTree=git(["rev-parse",`${commit}^{tree}`]);
 const sourceTime=git(["show","-s","--format=%aI",commit]);
 const release=`ynx-exchange-${commit.slice(0,12)}`;
 const work=await mkdtemp(path.join(tmpdir(),"ynx-exchange-runtime-"));
 const binary=path.join(work,"ynx-exchanged");
-const walletBundle=path.join(work,"wallet-connect.js");
-const privateBundle=path.join(work,"private-session.js");
 const ldflags=`-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct.BuildCommit=${commit}`;
 run("go",["build","-trimpath","-buildvcs=false","-ldflags",ldflags,"-o",binary,"./apps/exchange/server"],root,{...process.env,GOOS:"linux",GOARCH:"amd64",CGO_ENABLED:"0"});
-run(path.join(root,"apps/exchange/web/node_modules/esbuild/bin/esbuild"),["wallet-connect-entry.js","--bundle","--minify","--platform=browser","--target=es2022",`--outfile=${walletBundle}`],path.join(root,"apps/exchange/web"));
-run(path.join(root,"apps/exchange/web/node_modules/esbuild/bin/esbuild"),["private-session-entry.js","--bundle","--minify","--format=esm","--platform=browser","--target=es2022",`--outfile=${privateBundle}`],path.join(root,"apps/exchange/web"));
 const files=[];
 const sha256=value=>createHash("sha256").update(value).digest("hex");
-const add=async(absolute,relative,mode)=>{const info=await stat(absolute);if(!info.isFile()||info.isSymbolicLink())throw new Error(`required regular file missing: ${relative}`);files.push({relative,data:await readFile(absolute),mode});};
+const add=async(absolute,relative,mode)=>{const info=await lstat(absolute);if(!info.isFile()||info.isSymbolicLink())throw new Error(`required regular file missing: ${relative}`);files.push({relative,data:await readFile(absolute),mode});};
 await add(binary,`${release}/ynx-exchanged`,0o755);
 assertLinuxAmd64(files[0].data);
-for(const name of ["app.js","market-data.js","order-preview.js","index.html","styles.css"])await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
-await add(walletBundle,`${release}/apps/exchange/web/wallet-connect.js`,0o644);
-await add(privateBundle,`${release}/apps/exchange/web/private-session.js`,0o644);
+// Preserve reviewed bundles; packaging is not a shared Wallet/Auth rebuild.
+for(const name of EXCHANGE_RUNTIME_WEB_ASSETS){
+  await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
+  const expected=execFileSync("git",["show",`${commit}:apps/exchange/web/${name}`],{cwd:root});
+  if(!files.at(-1).data.equals(expected))throw new Error(`source asset drift: ${name}`);
+}
 const packedAsset=name=>files.find(file=>file.relative===`${release}/apps/exchange/web/${name}`)?.data;
 verifyExchangeVersionedAssets(packedAsset("index.html")?.toString("utf8"),packedAsset("app.js")?.toString("utf8"),name=>packedAsset(name));
 files.sort((a,b)=>a.relative.localeCompare(b.relative));
@@ -39,7 +39,8 @@ files.push({relative:`${release}/SHA256SUMS`,data:Buffer.from(files.map(file=>`$
 files.sort((a,b)=>a.relative.localeCompare(b.relative));
 const archive=gzipTar(files);
 await mkdir(path.dirname(path.resolve(args.output)),{recursive:true});
-await writeFile(args.output,archive,{mode:0o644});
+if(git(["rev-parse","HEAD"])!==commit||git(["status","--porcelain","--untracked-files=normal"]))throw new Error("source changed during runtime packaging");
+await writeFile(args.output,archive,{mode:0o644,flag:"wx"});
 process.stdout.write(`${JSON.stringify({release,sourceCommit:commit,sourceTree,archive:{path:args.output,bytes:archive.length,sha256:sha256(archive)},entries:files.map(file=>({path:file.relative,bytes:file.data.length,sha256:sha256(file.data),mode:file.mode.toString(8)}))},null,2)}\n`);
 
 function parseArgs(argv){const result={commit:null,output:null};for(let i=0;i<argv.length;i+=2){const key=argv[i],value=argv[i+1];if((key!=="--commit"&&key!=="--output")||!value||result[key.slice(2)]!==null)throw new Error("usage: package-runtime-candidate.mjs --commit <exact-source-commit> --output <archive>");result[key.slice(2)]=value;}return result;}
