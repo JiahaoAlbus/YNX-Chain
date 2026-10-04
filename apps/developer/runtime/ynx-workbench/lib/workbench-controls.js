@@ -1,6 +1,7 @@
 'use strict';
 // Native views and commands stay authoritative. These are discovery controls,
 // never runners for arbitrary editor text or shell commands.
+const RUN_MENU = Object.freeze(['ynx-workbench-run']);
 const RUN_ACTIONS = Object.freeze([
   { id: 'workbench.action.debug.selectandstart', label: 'Run and Debug…' },
   { id: 'workbench.action.debug.run', label: 'Run Without Debugging' },
@@ -46,8 +47,8 @@ class WorkbenchControlsContribution {
   // views: {key: native AbstractViewContribution}; terminal is found by widget
   // predicate since each PTY has its own widget. Supply EditorManager so toolbar
   // visibility uses actual EditorWidgets, not URI guesses.
-  constructor({ commands, shell, editors, views, messages, translate = (key, text) => text }) {
-    Object.assign(this, { commands, shell, editors, views: views || {}, messages });
+  constructor({ commands, shell, editors, views, messages, contextMenus, translate = (key, text) => text }) {
+    Object.assign(this, { commands, shell, editors, views: views || {}, messages, contextMenus });
     this.translate = (key, text) => {
       const translated = translate(key, text);
       return typeof translated === 'string' && translated.trim() ? translated : text;
@@ -93,29 +94,35 @@ class WorkbenchControlsContribution {
     throw new Error('Native view contribution is unavailable');
   }
   report(error) { if (this.messages) this.messages.error(error.message || String(error)); }
+  registerMenus(menus) {
+    RUN_ACTIONS.forEach((action, index) => this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'actions'], {
+      commandId: action.id,
+      label: this.translate(['runAndDebug', 'runWithoutDebugging', 'runBuildTask', 'runTask'][index], action.label),
+      order: String(index),
+    })));
+  }
+  openRunMenu(button, widget) {
+    if (!this.contextMenus) throw new Error(this.translate('unavailableRuntime', 'Unavailable in this runtime'));
+    if (this.popup) this.popup.dispose();
+    const rect = button.getBoundingClientRect();
+    this.popup = this.contextMenus.render({ menuPath: RUN_MENU, anchor: { x: rect.left, y: rect.bottom },
+      context: widget && widget.node || button, args: [], includeAnchorArg: false,
+      onHide: () => { this.popup = undefined; },
+    });
+  }
   registerToolbarItems(toolbar) {
     const React = require('react');
     this.disposables.push(toolbar.registerItem({
       id: 'ynx.workbench.run-menu', group: 'navigation', priority: 90, onDidChange: this.changed.event,
       isVisible: widget => this.editors.all.includes(widget),
-      render: () => React.createElement('details', { className: 'ynx-run-controls', open: !!this.runMenuOpen,
-        onToggle: event => { this.runMenuOpen = event.currentTarget.open; }, onKeyDown: event => {
-        if (event.key === 'Escape') { this.runMenuOpen = false; event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); }
-      } },
-        React.createElement('summary', { title: this.translate('runToolbar', 'Run and Debug'), 'aria-label': this.translate('runActionsAria', 'Run and Debug actions') },
-          React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true }),
-          React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true })),
-        React.createElement('div', { className: 'ynx-run-menu' }, ...RUN_ACTIONS.map(action => {
-          const state = this.state(action.id);
-          const label = this.translate(['runAndDebug', 'runWithoutDebugging', 'runBuildTask', 'runTask'][RUN_ACTIONS.indexOf(action)], action.label);
-          return React.createElement('button', { key: action.id, type: 'button', disabled: !state.enabled,
-            'aria-label': label, title: state.reason || label,
-            onMouseDown: event => event.preventDefault(), onClick: event => {
-              this.runMenuOpen = false;
-              event.currentTarget.closest('details').open = false;
-              this.run(action.id).catch(error => this.report(error));
-            } }, label);
-        })) ),
+      render: widget => React.createElement('button', { type: 'button', className: 'ynx-run-controls',
+        title: this.translate('runToolbar', 'Run and Debug'),
+        'aria-label': this.translate('runActionsAria', 'Run and Debug actions'), 'aria-haspopup': 'menu',
+        disabled: !this.contextMenus,
+        onMouseDown: event => event.preventDefault(),
+        onClick: event => { try { this.openRunMenu(event.currentTarget, widget); } catch (error) { this.report(error); } },
+      }, React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true }),
+         React.createElement('span', { className: 'codicon codicon-chevron-down', 'aria-hidden': true })),
     }));
   }
   onStart() {
@@ -173,10 +180,10 @@ class WorkbenchControlsContribution {
   }
   onStop() { this.dispose(); }
   dispose() {
-    this.stopped = true; clearInterval(this.timer); if (this.observer) this.observer.disconnect();
+    this.stopped = true; if (this.popup) { this.popup.dispose(); this.popup = undefined; } clearInterval(this.timer); if (this.observer) this.observer.disconnect();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
     for (const widget of this.widgets.splice(0)) widget.dispose();
     this.nodes.length = 0; this.changed.dispose();
   }
 }
-module.exports = { WorkbenchControlsContribution, RUN_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };
+module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };

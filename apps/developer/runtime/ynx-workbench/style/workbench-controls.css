@@ -1,15 +1,11 @@
-.ynx-run-controls { position: relative; color: var(--theia-editorForeground); }
-/* Only the toolbar hosting an open YNX run menu may let its popup extend
-   beyond the editor tab strip. Other toolbars keep their native clipping. */
-.lm-TabBar-toolbar:has(.ynx-run-controls[open]) { overflow: visible !important; }
-.ynx-run-controls > summary { display: flex; align-items: center; cursor: pointer; list-style: none; padding: 3px 5px; }
-.ynx-run-controls > summary::-webkit-details-marker { display: none; }
-.ynx-run-menu { position: absolute; z-index: 100; right: 0; top: 100%; min-width: 210px; padding: 4px; background: var(--theia-menu-background); border: 1px solid var(--theia-menu-border); box-shadow: 0 2px 8px var(--theia-widget-shadow); }
-.ynx-run-controls .ynx-run-menu button { display: block; width: 100%; min-height: 30px; text-align: left; font-size: 13px; line-height: 20px; white-space: nowrap; text-indent: 0; overflow: visible; }
-.ynx-run-menu button, .ynx-workbench-discovery button { border: 0; background: transparent; color: var(--theia-foreground); padding: 6px 8px; cursor: pointer; font: inherit; }
-.ynx-run-menu button:hover, .ynx-workbench-discovery button:hover { background: var(--theia-toolbar-hoverBackground); }
-.ynx-run-menu button:disabled, .ynx-workbench-discovery button:disabled { opacity: .45; cursor: default; }
-.ynx-run-menu button:focus-visible, .ynx-workbench-discovery button:focus-visible, .ynx-run-controls summary:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
+.ynx-run-controls { display: flex; align-items: center; border: 0; background: transparent; color: var(--theia-foreground); cursor: pointer; padding: 3px 5px; }
+.ynx-run-controls:hover { background: var(--theia-toolbar-hoverBackground); }
+.ynx-run-controls:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
+.ynx-run-controls:disabled { opacity: .45; cursor: default; }
+.ynx-workbench-discovery button { border: 0; background: transparent; color: var(--theia-foreground); padding: 6px 8px; cursor: pointer; font: inherit; }
+.ynx-workbench-discovery button:hover { background: var(--theia-toolbar-hoverBackground); }
+.ynx-workbench-discovery button:disabled { opacity: .45; cursor: default; }
+.ynx-workbench-discovery button:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
 .ynx-workbench-discovery { z-index: 20; background: var(--theia-panel-background); }
 .ynx-workbench-discovery[hidden] { display: none; }
 .ynx-workbench-discovery-left { display: flex; flex-direction: column; width: 40px; min-width: 40px; max-width: 40px; }

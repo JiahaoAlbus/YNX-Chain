@@ -9,7 +9,7 @@ const { CommandRegistry } = require('@theia/core/lib/common/command');
 const source = readFileSync(new URL('../../ynx-workbench/lib/workbench-controls.js', import.meta.url), 'utf8');
 const module = { exports: {} };
 vm.runInNewContext(source, { module, require, setInterval, clearInterval });
-const { WorkbenchControlsContribution, RUN_ACTIONS, VIEWS, nativeEntryVisible } = module.exports;
+const { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, VIEWS, nativeEntryVisible } = module.exports;
 function fixture() {
   const commands = new CommandRegistry(), calls = [], views = {}, editor = {};
   for (const action of RUN_ACTIONS) commands.registerCommand({ id: action.id }, { execute: (...args) => calls.push([action.id, args]) });
@@ -56,18 +56,7 @@ test('native tab present and actually visible suppresses duplicate discovery; hi
   assert.equal(nativeEntryVisible(f.shell, widget), false);
   bar.titles = []; assert.equal(nativeEntryVisible(f.shell, widget), false);
 });
-test('real React toolbar contribution limits dropdown to EditorManager widgets; disabled actions shown honestly', () => {
-  const f = fixture(); let item;
-  f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  assert.equal(item.isVisible(f.editor), true); assert.equal(item.isVisible({}), false);
-  f.commands.unregisterCommand(RUN_ACTIONS[0].id);
-  const rendered = item.render();
-  assert.equal(rendered.type, 'details');
-  const buttons = rendered.props.children[1].props.children;
-  assert.equal(buttons.length, 4); assert.equal(buttons[0].props.disabled, true);
-  assert.equal(buttons[0].props.title, 'Unavailable in this runtime');
-  f.controls.dispose();
-});
+
 test('existing terminal is activated through native shell instead of toggling it closed', async () => {
   const f = fixture(), terminal = { id: 'terminal-actual-widget' };
   f.shell.getWidgets = () => [terminal]; f.shell.activateWidget = id => f.calls.push(['activate', id]);
@@ -85,21 +74,36 @@ test('visible native activity bar suppresses entire extra rail even when child w
   f.shell.leftPanelHandler.tabBar.node.getBoundingClientRect = () => ({ width: 0, height: 0 });
   assert.equal(f.controls.missingViews('left').length, 5);
 });
-test('toolbar gives every action a nonempty accessible and visible label, retains open state across native rerender', async () => {
-  const f = fixture(); f.controls.translate = (key, text) => text; let item;
-  f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  let rendered = item.render(); rendered.props.onToggle({ currentTarget: { open: true } });
-  rendered = item.render(); assert.equal(rendered.props.open, true);
-  const buttons = rendered.props.children[1].props.children;
-  assert.deepEqual(buttons.map(button => button.props['aria-label']), Array.from(RUN_ACTIONS, action => action.label));
-  assert.ok(buttons.every(button => button.props.children === button.props['aria-label'] && button.props.children.trim()));
-  let prevented = false; buttons[1].props.onMouseDown({ preventDefault: () => { prevented = true; } }); assert.equal(prevented, true);
-  const details = { open: true }; buttons[1].props.onClick({ currentTarget: { closest: () => details } });
-  await new Promise(resolve => setImmediate(resolve)); assert.equal(details.open, false); assert.equal(f.controls.runMenuOpen, false);
-  assert.equal(f.calls[0][0], 'workbench.action.debug.run'); f.controls.dispose();
+
+test('actual MenuModelRegistry resolves four native actions with meaningful labels and real dispatch/enablement', async () => {
+  const f = fixture();
+  const { MenuModelRegistry, GroupImpl, ActionMenuNode } = require('@theia/core/lib/common/menu');
+  const factory = { createGroup: (id, order, when) => new GroupImpl(id, order, when), createCommandMenu: action => new ActionMenuNode(action, f.commands, { getKeybindingsForCommand: () => [] }, { match: () => true }) };
+  const menus = new MenuModelRegistry({ getContributions: () => [] }, f.commands, factory);
+  f.controls.registerMenus(menus);
+  const actions = menus.getMenu(RUN_MENU).children[0].children;
+  assert.deepEqual(actions.map(action => action.label), Array.from(RUN_ACTIONS, action => action.label));
+  for (const action of actions) { assert.equal(action.isEnabled(RUN_MENU), true); await action.run(RUN_MENU); }
+  assert.deepEqual(f.calls.map(call => call[0]), Array.from(RUN_ACTIONS, action => action.id));
+  assert.ok(f.calls.every(call => call[1].length === 0));
+  f.commands.unregisterCommand(RUN_ACTIONS[0].id); assert.equal(actions[0].isEnabled(RUN_MENU), false);
+  f.controls.dispose(); assert.equal(menus.getMenu(RUN_MENU).children[0].children.length, 0);
 });
-test('empty localization response cannot erase toolbar names', () => {
-  const f = fixture(); const controls = new WorkbenchControlsContribution({ commands: f.commands, shell: f.shell, editors: { all: [f.editor] }, translate: () => undefined });
-  let item; controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
-  assert.ok(item.render().props.children[1].props.children.every(button => button.props['aria-label'].trim())); controls.dispose();
+test('toolbar opens native context-menu overlay at button coordinates and disposes access, without inline details', () => {
+  const f = fixture(); let item, options, disposed = 0;
+  f.controls.contextMenus = { render: value => { options = value; return { dispose: () => { disposed++; value.onHide(); } }; } };
+  f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
+  const rendered = item.render(f.editor); assert.equal(rendered.type, 'button'); assert.equal(rendered.props['aria-haspopup'], 'menu'); assert.ok(rendered.props['aria-label']);
+  const button = { getBoundingClientRect: () => ({ left: 100, bottom: 60 }) };
+  rendered.props.onClick({ currentTarget: button });
+  assert.deepEqual(Array.from(options.menuPath), Array.from(RUN_MENU)); assert.equal(options.anchor.x, 100); assert.equal(options.anchor.y, 60);
+  assert.equal(options.context, button); assert.equal(options.includeAnchorArg, false); assert.equal(options.args.length, 0);
+  rendered.props.onClick({ currentTarget: button }); assert.equal(disposed, 1);
+  f.controls.dispose(); assert.equal(disposed, 2);
+});
+test('missing native popup renderer is explicitly unavailable and empty translation retains toolbar label', () => {
+  const f = fixture(); const controls = new WorkbenchControlsContribution({ commands: f.commands, shell: f.shell, editors: { all: [f.editor] }, translate: () => undefined }); let item;
+  controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
+  const rendered = item.render(f.editor); assert.equal(rendered.props.disabled, true); assert.ok(rendered.props['aria-label'].trim());
+  assert.throws(() => controls.openRunMenu({}), /Unavailable in this runtime/); controls.dispose();
 });

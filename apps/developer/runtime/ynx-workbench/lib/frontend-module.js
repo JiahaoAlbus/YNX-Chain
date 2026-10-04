@@ -18,6 +18,7 @@ const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
 const { nls } = require('@theia/core/lib/common/nls');
 const { MenuContribution } = require('@theia/core/lib/common/menu');
+const { ContextMenuRenderer } = require('@theia/core/lib/browser/context-menu-renderer');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
 const { WorkspaceKeybindingsContribution, ShortcutSettings } = require('./workspace-keybindings');
@@ -84,7 +85,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(WorkbenchControlsContribution).toDynamicValue(context => new WorkbenchControlsContribution({
     commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
     editors: context.container.get(EditorManager), messages: context.container.get(MessageService),
-    translate: translateWorkbench,
+    translate: translateWorkbench, contextMenus: context.container.get(ContextMenuRenderer),
     views: { explorer: context.container.get(FileNavigatorContribution), search: context.container.get(SearchInWorkspaceFrontendContribution),
       scm: context.container.get(ScmContribution), debug: context.container.get(DebugFrontendApplicationContribution),
       extensions: context.container.get(VSXExtensionsContribution), problems: context.container.get(ProblemContribution),
@@ -92,6 +93,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   })).inSingletonScope();
   bind(FrontendApplicationContribution).toService(WorkbenchControlsContribution);
   bind(TabBarToolbarContribution).toService(WorkbenchControlsContribution);
+  bind(MenuContribution).toService(WorkbenchControlsContribution);
   bind(LocalWorkspaceContext).toDynamicValue(context => new LocalWorkspaceContext(
     context.container.get(WorkspaceService), context.container.get(LocalWorkspaceContextApi),
     context.container.get(CommandRegistry), context.container.get(MessageService), window, translateWorkbench,
