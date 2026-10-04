@@ -127,6 +127,46 @@ async function fixture(){
   await page.addScriptTag({content:`const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],financeText=k=>window.YNXFinanceLocale?.text(k)??k,esc=v=>String(v??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');const state={context:1},formUncommittedDrafts=new WeakMap();let ownedFormAccount=null;const sources=[];function sourceStatus(...v){sources.push(v)}function rememberOwnedFormDrafts(){}function restoreOwnedFormDrafts(){}function refreshBrokerSnapshot(){}async function refreshBrokerWorkspace(){return null}async function restoreBrokerApproval(){}async function completeBrokerCallback(){}function notifyFailure(){}function route(){};${formatters}\n${views}\nwindow.overviewQA={render,sources};`});
   return {browser,page,context,errors,requests:()=>requests};
 }
+test('duplicate activity identities are unavailable and cannot become ambiguous AI selections while distinct neighbors survive',async()=>{
+  const f=await fixture();try{
+    await f.page.addScriptTag({content:await readFile(new URL('../web/finance-locale.js',import.meta.url),'utf8')});
+    const value=overview(),hash='0x'+'d'.repeat(64),neighbor='0x'+'e'.repeat(64);
+    const row={id:hash,type:'transfer',direction:'incoming',amountYnxt:7,feeYnxt:1,timestamp:value.portfolio.asOf,source:'ynx-explorerd:indexed-transaction'};
+    value.portfolio.explorerStatus={available:true,source:'https://explorer.example.invalid'};
+    value.portfolio.activity=[row,{...row,id:neighbor}];
+    await f.page.evaluate(value=>overviewQA.render(value),value);
+    await f.page.locator('#ai-records input').nth(0).check();await f.page.locator('#ai-records input').nth(1).check();
+    const accountRender=app.slice(app.indexOf('function renderAccountSession('),app.indexOf('async function consumeCallback('));
+    await f.page.addScriptTag({content:`let walletIdentityBusy=false,walletIdentityState='identityUnverified';function renderWalletIdentity(){}window.YNXFinanceEVMRead={state:()=>window.controlledRead};${accountRender}\nwindow.accountDisplayQA=renderAccountSession;`});
+    value.portfolio.activity=[row,{...row,direction:'outgoing',amountYnxt:2},{...row,id:neighbor}];
+    for(const locale of await f.page.evaluate(()=>YNXFinanceLocale.supported)){
+      await f.page.locator('#finance-language').selectOption(locale);
+      await f.page.evaluate(value=>{overviewQA.render(value);window.controlledRead={status:'ready',active:true,account:value.portfolio.account,serverConfirmed:true,expiresAt:new Date(Date.now()+60000).toISOString(),data:{account:value.portfolio.account,portfolio:value.portfolio}};accountDisplayQA()},value);
+      const unavailable=await f.page.evaluate(()=>YNXFinanceLocale.text('unavailable'));
+      assert.equal(await f.page.locator('#ai-records input').count(),1,'duplicate references cannot be selected');
+      assert.deepEqual(await f.page.locator('#ai-records input:checked').evaluateAll(inputs=>inputs.map(input=>input.value)),[neighbor]);
+      assert.equal(await f.page.locator('#recent-activity .row').count(),1);
+      assert.equal(await f.page.locator('#account-session-activity .row').count(),1,'separate account display rejects duplicate identities too');
+      assert.equal(await f.page.locator('#activity-body tr td[colspan="6"]').count(),2);
+      assert.equal(await f.page.locator('#activity-body tr td[colspan="6"]').first().textContent(),unavailable);
+      assert.deepEqual(await f.page.locator('#activity-body code').allTextContents(),[neighbor]);
+      assert.equal(await f.page.locator('#balance').textContent(),await f.page.evaluate(()=>fmt(0)+' YNXT'));
+    }
+    value.portfolio.activity=[row,{...row},{...row,id:neighbor}];await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.equal(await f.page.locator('#ai-records input').count(),1,'byte-equivalent duplicate references are still ambiguous, not two operations');
+    assert.equal(await f.page.locator('#recent-activity .row').count(),1);
+    value.portfolio.activity=[row,...Array.from({length:4},(_,index)=>({...row,id:'distinct-neighbor-'+index})),{...row}];
+    assert.equal(await f.page.evaluate(value=>{const before=JSON.stringify(value);overviewQA.render(value);return JSON.stringify(value)===before},value),true,'rendering never deduplicates or modifies source records');
+    assert.equal(await f.page.locator('#recent-activity .row').count(),4,'a duplicate beyond the five-row summary still invalidates the first reference');
+    assert.equal(await f.page.locator('#activity-body tr td[colspan="6"]').count(),2);
+    assert.equal(await f.page.locator('#ai-records input').count(),4);
+    value.portfolio.activity=[row,{...row,id:neighbor}];await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.equal(await f.page.locator('#ai-records input').count(),2);
+    assert.deepEqual(await f.page.locator('#ai-records input:checked').evaluateAll(inputs=>inputs.map(input=>input.value)),[],'retired or no-longer-listed selection is not silently restored');
+    assert.equal(await f.page.locator('#recent-activity .row').count(),2,'distinct same-amount records remain separate');
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('statement returned records reconcile exact amounts and references without borrowing overview authority',async()=>{
   const f=await fixture();try{
     const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf('let statementOperation='));
