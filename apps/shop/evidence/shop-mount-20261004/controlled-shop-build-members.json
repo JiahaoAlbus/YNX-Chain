@@ -1,0 +1,117 @@
+[
+  {
+    "path": "ai-stream.js",
+    "bytes": 1367,
+    "sha256": "67cb1a7818ad0674b8dd490e35646a22f97174dfc98945dd07ce24ccfca5b38c"
+  },
+  {
+    "path": "app.js",
+    "bytes": 291060,
+    "sha256": "a853a9b567d43c4cba44136f5b0fc50968632ec7a3e8ed9a978da8754add5b90"
+  },
+  {
+    "path": "assets/brand/ynx-logo.png",
+    "bytes": 104171,
+    "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+  },
+  {
+    "path": "assets/catalog/developer-console-kit.png",
+    "bytes": 2097347,
+    "sha256": "b1b3aa2c4a977727ad6e7fe20ad8537149a90cfb1860f7d530b4011830582c43"
+  },
+  {
+    "path": "assets/catalog/modular-desk-light.png",
+    "bytes": 1609037,
+    "sha256": "62efbc964148045c985b19b287bf9a984847a95976cc385281f057c8c8f25783"
+  },
+  {
+    "path": "assets/catalog/solar-power-kit.png",
+    "bytes": 2430045,
+    "sha256": "31a58f1fbf0e1499b7704b53ec2ed60228aaff66889f00a69442f6d363f56455"
+  },
+  {
+    "path": "browser-business.js",
+    "bytes": 2446,
+    "sha256": "1fce58c5c18f1260d7a87da053c70b3c5a620bcfcefc633c9265029e10e19bf6"
+  },
+  {
+    "path": "checkout-recovery.js",
+    "bytes": 5247,
+    "sha256": "b97e2a52e3da78430c6adedc4d9eda2011778d73a46eb27ad1523ca530d3db40"
+  },
+  {
+    "path": "display-settings.js",
+    "bytes": 2359,
+    "sha256": "c2894be391220ef70765a02a6f2b57131a6028baef146740ca3a916bd905a4ba"
+  },
+  {
+    "path": "i18n.js",
+    "bytes": 13330,
+    "sha256": "32861a12ce91dcf7b28137caf8f1844637513ef204fa1380f5baf225a314446a"
+  },
+  {
+    "path": "icon-1024.png",
+    "bytes": 865746,
+    "sha256": "2220432a345cab27964536016642f939ce8970685bcea8f168e6757b281c2bf0"
+  },
+  {
+    "path": "icon-192.png",
+    "bytes": 37156,
+    "sha256": "ac78e88c37d17b59d2a82abf134e31e3e92b91b6f817799db91d345fe8a2405b"
+  },
+  {
+    "path": "icon-512.png",
+    "bytes": 246022,
+    "sha256": "594dd35f0294412446515445556b33cc33b2e569d37147c4cd04daf1fe51ba5a"
+  },
+  {
+    "path": "index.html",
+    "bytes": 9061,
+    "sha256": "4ecd2b8e3bd341137102465c57ff5a78f372d674a7c3b4e109d6fb2a2976166c"
+  },
+  {
+    "path": "invoice-recovery.js",
+    "bytes": 6013,
+    "sha256": "051f1576a958cb28fbafa9081eecd638bf5841eb7c3e854d291ca0dbb1ea7d40"
+  },
+  {
+    "path": "manifest.webmanifest",
+    "bytes": 451,
+    "sha256": "3d8160d07c5108d3f78d92683fa74408d85496121c447f620bacd8cca207e61e"
+  },
+  {
+    "path": "privacy-i18n.js",
+    "bytes": 12669,
+    "sha256": "7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03"
+  },
+  {
+    "path": "request-context.js",
+    "bytes": 1843,
+    "sha256": "e4c2df2da3ca984c52e69726640a7f4f09b2fb98aff6d8858b1882f5085e1b02"
+  },
+  {
+    "path": "styles.css",
+    "bytes": 12034,
+    "sha256": "4a3e0941ea50e5c1d00d0ad33f6c087862df47e3fe6e317535738af6dac1bdae"
+  },
+  {
+    "path": "sw.js",
+    "bytes": 1433,
+    "sha256": "8617302ba1ff722609f68a1086eccadef96a1e2cb3c7b302dd586e4cd980e941"
+  },
+  {
+    "path": "wallet-auth.js",
+    "bytes": 11936,
+    "sha256": "f9932db61661d42cd1a58cb52db40c91736c656dd43bce43c6f61064bf539dc8"
+  },
+  {
+    "path": "wallet-provider-discovery.js",
+    "bytes": 293,
+    "sha256": "d8949474394b861233cedb0aba1cce609ef0537406b4860d4dbf4f468b6e1742"
+  },
+  {
+    "path": "workflow.css",
+    "bytes": 1484,
+    "sha256": "2b1c75ae4fc736115d674fc3f3a9f1412e5d2a9068061da27f1ee153f4f375e5"
+  }
+]

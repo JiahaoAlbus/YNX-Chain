@@ -1,0 +1,16 @@
+
+Running 9 tests using 1 worker
+
+(node:12429) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:4:1 › closing checkout during fresh proof keeps an unsent key; explicit same-input retry sends once (1.9s)
+  ✓  2 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:5:1 › closing profile during proof prevents update and reopening has a distinct presentation (1.7s)
+  ✓  3 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:6:1 › late profile read cannot overwrite fields in a reopened profile (1.6s)
+  ✓  4 [chromium] › test/browser/checkout-recovery.spec.mjs:5:1 › confirmed order survives cart refresh failure and no cleanup PUT is issued (1.4s)
+  ✓  5 [chromium] › test/browser/checkout-recovery.spec.mjs:11:1 › lost response keeps exact key, changed address cannot create replacement, explicit recovery returns receipt (1.7s)
+  ✓  6 [chromium] › test/browser/checkout-recovery.spec.mjs:18:1 › failed cart removal preserves visible original cart and concurrent clicks send one update (1.5s)
+  ✓  7 [chromium] › test/browser/checkout-recovery.spec.mjs:22:1 › reload and new approval recover the persisted key without saving an address (2.7s)
+  ✓  8 [chromium] › test/browser/checkout-recovery.spec.mjs:31:1 › two tabs prepare one durable checkout and deletion cannot overtake it (1.4s)
+  ✓  9 [chromium] › test/browser/checkout-recovery.spec.mjs:37:1 › a mismatched receipt never clears durable checkout evidence (1.3s)
+
+  9 passed (15.7s)

@@ -1,0 +1,29 @@
+{
+  "observedAt": "2026-10-04T01:39:45.884Z",
+  "results": [
+    {
+      "url": "https://shop.ynxweb4.com/app.js",
+      "finalURL": "https://shop.ynxweb4.com/app.js",
+      "status": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "classification": "PUBLIC_READ_ONLY; callback has no approval arguments, no session operation"
+    },
+    {
+      "url": "https://shop.ynxweb4.com/wallet-auth/callback",
+      "finalURL": "https://shop.ynxweb4.com/wallet-auth/callback",
+      "status": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "classification": "PUBLIC_READ_ONLY; callback has no approval arguments, no session operation"
+    },
+    {
+      "url": "https://shop.ynxweb4.com/shop/wallet-auth/callback",
+      "finalURL": "https://shop.ynxweb4.com/shop/wallet-auth/callback",
+      "status": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "classification": "PUBLIC_READ_ONLY; callback has no approval arguments, no session operation"
+    }
+  ]
+}

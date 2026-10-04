@@ -1,0 +1,73 @@
+{
+  "observedAt": "2026-10-04T01:38:48.169Z",
+  "ownedRuntimeSource": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+  "observations": [
+    {
+      "product": "buyer",
+      "url": "https://shop.ynxweb4.com/",
+      "finalURL": "https://shop.ynxweb4.com/shop/",
+      "status": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 7689,
+      "sha256": "2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15",
+      "assets": [
+        {
+          "url": "https://shop.ynxweb4.com/shop/app.js",
+          "finalURL": "https://shop.ynxweb4.com/shop/app.js",
+          "status": 200,
+          "contentType": "text/javascript; charset=utf-8",
+          "bytes": 20706,
+          "sha256": "40b5696a1cb10861422e69a9c40f4c0da25b1e7bb05d1aed240ec0eec8417fc9",
+          "candidateAppSHA": "a853a9b567d43c4cba44136f5b0fc50968632ec7a3e8ed9a978da8754add5b90",
+          "matchesOwnedCandidate": false
+        }
+      ],
+      "finalUserJourney": "NOT_VERIFIED",
+      "candidateQualification": "controlled local build, formal A package pending"
+    },
+    {
+      "product": "seller",
+      "url": "https://shop.ynxweb4.com/seller/",
+      "finalURL": "https://shop.ynxweb4.com/seller/",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "assets": [],
+      "finalUserJourney": "NOT_VERIFIED",
+      "candidateQualification": "controlled local build, formal A package pending"
+    },
+    {
+      "product": "merchant",
+      "url": "https://pay.ynxweb4.com/merchant/",
+      "finalURL": "https://pay.ynxweb4.com/merchant/",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "assets": [],
+      "finalUserJourney": "NOT_VERIFIED",
+      "candidateQualification": "controlled local build, formal A package pending"
+    },
+    {
+      "url": "https://shop.ynxweb4.com/api/capabilities",
+      "finalURL": "https://shop.ynxweb4.com/api/capabilities",
+      "status": 200,
+      "contentType": "application/json",
+      "bytes": 568,
+      "sha256": "07ad3112993899a998760d09cd9506cd8fb8fa3c330b64ecae683691cbe793a1",
+      "body": "{\"aiProvider\":\"available\",\"logistics\":\"unavailable\",\"paySettlement\":\"available\",\"privacyData\":\"export_and_delete\",\"protectedAIActions\":[\"publish_product\",\"change_price\",\"purchase\",\"refund\",\"change_seller_policy\"],\"providerHealthIsStoreScoped\":true,\"providerKinds\":[\"address\",\"email\",\"pay\",\"shipping\",\"storage\",\"tax\",\"trust\",\"webhook\"],\"providerRegistry\":\"available_local_authority\",\"sellerStoreAuthorizationRevocation\":\"candidate_configured\",\"tax\":\"unavailable\",\"trustEvidence\":\"available\",\"walletAuth\":\"central_gateway\",\"walletProtocol\":\"wallet-auth-v1+p256-sha256\"}\n",
+      "classification": "public read-only capability routing, not private authority proof"
+    },
+    {
+      "url": "https://pay.ynxweb4.com/v1/capabilities",
+      "finalURL": "https://pay.ynxweb4.com/v1/capabilities",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "body": "404 page not found\n",
+      "classification": "public read-only capability routing, not private authority proof"
+    }
+  ]
+}

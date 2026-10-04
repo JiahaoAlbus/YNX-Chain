@@ -1,0 +1,108 @@
+{
+  "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+  "sourceTree": "57fbe14ef61b57d38ed95fbb5cbd93801fe4b88b",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    },
+    {
+      "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+      "path": "apps/shop/evidence/seller-normal-flow-20261004/commerce-owned-delta-11b514910.tar",
+      "members": 8,
+      "bytes": 94208,
+      "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+    },
+    {
+      "sourceCommit": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+      "path": "apps/shop/evidence/view-lifecycle-20261004/commerce-owned-delta-c2e17e441.tar",
+      "members": 8,
+      "bytes": 122880,
+      "sha256": "ffd99d4a1027571bf392b3b67c27a11526e0601acd1d98e6b928694560982b9c"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-7d1128595.tar",
+    "members": 1,
+    "bytes": 20480,
+    "sha256": "901a1b74e5700a1d9cd6dc5f21b328192c245f2e2aa3b67dbb1a975010dba3dc"
+  },
+  "composedOwnedMembers": 441,
+  "composition": "PASS actual five immutable layers; all441 owned member byte/hash matches",
+  "indexSourceAndBuiltHash": "4ecd2b8e3bd341137102465c57ff5a78f372d674a7c3b4e109d6fb2a2976166c",
+  "candidate": {
+    "path": "controlled-shop-web-7d1128595.tar",
+    "members": 23,
+    "bytes": 7837696,
+    "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
+    "qualification": "CONTROLLED_BUILD_ONLY full cached dependency stage and controlled Browser SDK; A formal qualification/signing/deployment still required"
+  },
+  "rawRecords": [
+    {
+      "path": "raw/buyer-entry.html",
+      "bytes": 7689,
+      "sha256": "2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15"
+    },
+    {
+      "path": "raw/mount-routing.json",
+      "bytes": 1149,
+      "sha256": "2f101d5c8e7b6993d30895776fcbd8d294a1b25cb5b7e7585d783e1b87930624"
+    },
+    {
+      "path": "raw/observations.json",
+      "bytes": 3485,
+      "sha256": "085937c7f49612fecfcc400342aea0678763d4bdda517dacf7c3c9cb1df9589a"
+    },
+    {
+      "path": "raw/shop-mount-browser.log",
+      "bytes": 1666,
+      "sha256": "c9901c403b8d1318ec6988616b122341996d7dfe9619826aad9842c6131217ca"
+    },
+    {
+      "path": "raw/shop-mount-build.log",
+      "bytes": 226,
+      "sha256": "f4c730ceb6930b0bacd2373147aa0f8d002731ba93f2e89800e5632587a6b3a9"
+    },
+    {
+      "path": "raw/shop-mount-stage-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    }
+  ],
+  "validation": {
+    "shopBuild": "PASS",
+    "actualChromiumBuyer": 9
+  },
+  "preserved": [
+    "original Buyer root callback/profile",
+    "Buyer3 original scopes",
+    "Seller2 authority",
+    "Merchant independent profile",
+    "all prior unresolved evidence",
+    "Native source and build receipts"
+  ],
+  "publicObservation": {
+    "buyer": "old source, controlled current bundle does not match",
+    "seller": "404",
+    "merchant": "404",
+    "rootAppJS": "404",
+    "originalBuyerCallback": "404"
+  },
+  "formalIntegrationRequired": [
+    "A maps original /wallet-auth/callback to this Buyer index without changing profile",
+    "accepted SDK/profile and source-bound backend/mount",
+    "formal Web and Native package/deployment identities",
+    "actual final-entry private/own-user journey readback"
+  ],
+  "goal": "NOT_COMPLETE"
+}
