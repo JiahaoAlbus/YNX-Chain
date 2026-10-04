@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -33,10 +34,20 @@ const Context = createContext<I18nValue>({
 });
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setCurrent] = useState<Locale>(detectedLocale());
+  const preferenceRevision = useRef(0);
+  const persistence = useRef<Promise<void>>(Promise.resolve());
+  const mounted = useRef(true);
   useEffect(() => {
-    void SecureStore.getItemAsync(STORAGE_KEY).then((value) =>
-      setCurrent(locales.find((item) => item === value) ?? detectedLocale()),
-    );
+    mounted.current = true;
+    const revision = preferenceRevision.current;
+    let active = true;
+    void SecureStore.getItemAsync(STORAGE_KEY).then((value) => {
+      if (active && mounted.current && preferenceRevision.current === revision)
+        setCurrent(locales.find((item) => item === value) ?? detectedLocale());
+    }).catch(() => {
+      // Keep the detected or explicitly chosen language when storage is unavailable.
+    });
+    return () => { active = false; mounted.current = false; };
   }, []);
   useEffect(() => {
     setActiveLocale(locale);
@@ -45,9 +56,15 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     if (I18nManager.isRTL !== rtl) I18nManager.forceRTL(rtl);
   }, [locale]);
   const setLocale = async (value: Locale | null) => {
-    if (value) await SecureStore.setItemAsync(STORAGE_KEY, value);
-    else await SecureStore.deleteItemAsync(STORAGE_KEY);
-    setCurrent(value ?? detectedLocale());
+    const revision = ++preferenceRevision.current;
+    const write = persistence.current.catch(() => {}).then(async () => {
+      if (value) await SecureStore.setItemAsync(STORAGE_KEY, value);
+      else await SecureStore.deleteItemAsync(STORAGE_KEY);
+    });
+    persistence.current = write;
+    await write;
+    if (mounted.current && preferenceRevision.current === revision)
+      setCurrent(value ?? detectedLocale());
   };
   const context = useMemo(
     () => ({
