@@ -725,19 +725,19 @@ function renderPaperPendingState(){
   paperRestoreButton.hidden=pendingPaperInvalid||!intent;
   paperRestoreButton.disabled=paperSubmitting||!workspaceStorageAvailable||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent?.StrategyHash);
   paperRestoreButton.textContent=t('paperRestore');
-  paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting;paperForgetButton.textContent=t('paperForget');
+  paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting||!workspaceStorageAvailable;paperForgetButton.textContent=t('paperForget');
 }
 paperRestoreButton.onclick=()=>{
   if(paperSubmitting||!workspaceStorageAvailable)return;
   reloadPaperJournal();const intent=pendingPaperIntent;
-  if(pendingPaperInvalid||!intent||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent.StrategyHash)){renderPaperSubmitControl();return;}
+  if(!workspaceStorageAvailable||pendingPaperInvalid||!intent||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent.StrategyHash)){renderPaperSubmitControl();return;}
   $('#paper-strategy').value=intent.StrategyHash;$('#side').value=intent.Side;$('#paper-amount').value=String(intent.Amount);
   $('#paper-cost-model').value=intent.ExecutionCosts?'v1':'legacy';
   if(intent.ExecutionCosts){$('#paper-cost-fee').value=String(intent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(intent.ExecutionCosts.SlippageBPS);}
   renderPaperCosts();renderPaperSubmitControl();toast(t('paperRestored'),'paperRestored');
 };
 paperForgetButton.onclick=()=>{
-  if(paperSubmitting||!pendingPaperInvalid)return;
+  if(paperSubmitting||!workspaceStorageAvailable||!pendingPaperInvalid)return;
   try{
     const forgottenBytes=pendingPaperUnreadableBytes;
     if(typeof forgottenBytes!=='string'||localStorage.getItem(paperPendingKey)!==forgottenBytes){reloadPaperJournal();renderPaperSubmitControl();return;}
@@ -763,7 +763,7 @@ researchForgetButton.onclick=()=>{
     if(localStorage.getItem(researchPendingKey)!==null) throw Error('STORAGE_READBACK_MISMATCH');
     pendingResearchIntent=null;pendingResearchInvalid=false;pendingResearchUnreadableBytes=null;
     toast(t('researchForgotten'),'researchForgotten');renderResearchRequestState();
-  } catch { workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable'); }
+  } catch { workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable');renderResearchRequestState();renderPaperSubmitControl();renderRiskControls(); }
 };
 researchResultStatus.id = "research-result-status";
 researchResultStatus.role = "status";
@@ -1444,7 +1444,7 @@ function renderResearchRequestState() {
   $('#research-request-status').hidden = !researchSubmitting && !pendingResearchIntent && !pendingResearchInvalid;
   $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : pendingResearchIntent || pendingResearchInvalid ? t('researchRequestUnconfirmed') : '';
   researchForgetButton.hidden=!pendingResearchIntent&&!pendingResearchInvalid;
-  researchForgetButton.disabled=researchSubmitting;
+  researchForgetButton.disabled=researchSubmitting||!workspaceStorageAvailable;
   researchForgetButton.textContent=t('researchForget');
 }
 $("#paper-order").onsubmit = async (e) => {

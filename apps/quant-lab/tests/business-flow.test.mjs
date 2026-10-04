@@ -817,6 +817,17 @@ test('Paper journal read failure preserves current intent and fails closed witho
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
 });
 
+test('Paper Forget remains closed after storage read recovery without renewed write capability',async()=>{
+  const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant,raw='{';let deny=false,confirms=0;
+  const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,raw]],confirmAction:()=>{confirms++;return true},storageBoundary(operation,k){if(deny&&operation==='get'&&k===key)throw Error('Read unavailable')}});await settle();
+  deny=true;vm.runInContext('reloadPaperJournal();renderPaperSubmitControl()',app.context);
+  assert.equal(vm.runInContext('paperForgetButton.disabled',app.context),true);
+  deny=false;vm.runInContext('paperForgetButton.onclick()',app.context);
+  assert.equal(app.storage.get(key),raw);assert.equal(confirms,0);
+  assert.equal(vm.runInContext('workspaceStorageAvailable',app.context),false);assert.equal(vm.runInContext('pendingPaperUnreadableBytes',app.context),raw);
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+});
+
 test('failed explicit Paper forgetting preserves unknown intent and disables further workspace writes',async()=>{
   const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
   const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,'{']],confirmAction:()=>true,storageBoundary(operation){if(operation==='remove')throw Error('Storage unavailable')}});await settle();
