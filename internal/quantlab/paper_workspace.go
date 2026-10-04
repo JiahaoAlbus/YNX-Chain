@@ -159,13 +159,14 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 		write(w, 200, map[string]any{"account": session.Account, "sessionBinding": session.SessionBinding, "strategies": source["strategies"], "experiments": source["experiments"], "paper": source["paper"], "audit": audit, "access": map[string]bool{"statefulPreview": false, "paperWorkspaceAuthorized": true, "nativeExecutionEnabled": false, "scheduleAuthorized": false}})
 	case "/v1/wallet/paper/backtests/from-market":
 		var input struct {
-			Strategy    StrategySpec `json:"strategy"`
-			Assumptions Assumptions  `json:"assumptions"`
+			Strategy       StrategySpec `json:"strategy"`
+			Assumptions    Assumptions  `json:"assumptions"`
+			IdempotencyKey string       `json:"idempotencyKey"`
 		}
 		if !decode(w, r, &input) {
 			return
 		}
-		result, err := workspace.RunBacktestFromMarket(input.Strategy, input.Assumptions)
+		result, err := workspace.RunBacktestFromMarketOnceContext(r.Context(), input.Strategy, input.Assumptions, input.IdempotencyKey)
 		if err != nil {
 			respond(w, r, nil, err, 201)
 			return

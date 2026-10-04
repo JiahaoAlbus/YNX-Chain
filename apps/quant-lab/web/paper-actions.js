@@ -2,11 +2,13 @@ import {getPaperSessionState,getPaperWorkspaceSnapshot,paperWorkspaceRequest} fr
 import {createPaperIntentController} from './paper-intents.js';
 import {paperActionCopy,paperRiskCopy} from './paper-session-copy.js';
 import {createPaperRiskController} from './paper-risk-intents.js';
+import {createPaperBacktestController} from './paper-backtest-intents.js';
 
 export function mountPaperActions(){
   const find=id=>document.getElementById(id),dialog=find('paper-owned-preview');if(!dialog)return;
   const controller=createPaperIntentController({session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const risk=createPaperRiskController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
+  const research=createPaperBacktestController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const riskPanel=document.createElement('section');
   for(const [id,key,type] of [['paper-native-reason','reason','text'],['paper-native-cash','cash','text'],['paper-native-position','position','text']]){
     const label=document.createElement('label'),title=document.createElement('span'),input=document.createElement('input');title.dataset.paperRisk=key;input.id=id;input.type=type;input.maxLength=id==='paper-native-reason'?500:24;label.append(title,input);riskPanel.append(label);
@@ -15,7 +17,7 @@ export function mountPaperActions(){
   const boundary=document.createElement('p');boundary.dataset.paperRisk='boundary';riskPanel.append(boundary);find('paper-owned-form').after(riskPanel);
   let review=null,working=false,renderedOwner=null;
   const copy=()=>paperActionCopy(localStorage.getItem('ynx.quant.locale')||'en');
-  function invalidate(){review=null;controller.invalidate();risk.invalidate();if(dialog.open)dialog.close();}
+  function invalidate(){review=null;controller.invalidate();risk.invalidate();research.invalidate();if(dialog.open)dialog.close();}
   function render(){
     const current=getPaperSessionState(),snapshot=getPaperWorkspaceSnapshot(),text=copy();
     for(const element of document.querySelectorAll('[data-paper-action]'))element.textContent=text[element.dataset.paperAction];
@@ -40,7 +42,7 @@ export function mountPaperActions(){
   for(const action of ['kill','reconcile'])find('paper-native-'+action).addEventListener('click',()=>{try{invalidate();show('risk',risk.preview(action,action==='kill'?{reason:find('paper-native-reason').value}:{cash:integer('paper-native-cash'),position:integer('paper-native-position')}));}catch(error){find('paper-owned-result').textContent=copy().unavailable+' '+error.code;}});
   riskPanel.addEventListener('input',invalidate);
   find('paper-owned-form').addEventListener('submit',event=>{event.preventDefault();try{show('signal',controller.preview({strategyHash:find('paper-owned-strategy').value,side:find('paper-owned-side').value,amount:Number(find('paper-owned-amount').value)}));}catch(error){find('paper-owned-result').textContent=copy().unavailable+' '+error.code;}});
-  find('paper-owned-backtest').addEventListener('click',()=>{try{invalidate();const value=window.YNXQuantBacktestDraft();value.strategy.id='native-paper-'+crypto.randomUUID();show('backtest',JSON.parse(JSON.stringify(value)));}catch{find('paper-owned-result').textContent=copy().unavailable;}});
+  find('paper-owned-backtest').addEventListener('click',()=>{try{invalidate();const retained=research.pending();const value=retained||window.YNXQuantBacktestDraft();if(!retained)value.strategy.id='native-paper-'+crypto.randomUUID();show('backtest',research.preview(value));}catch{find('paper-owned-result').textContent=copy().unavailable;}});
   for(const id of ['paper-owned-strategy','paper-owned-side','paper-owned-amount'])find(id).addEventListener('input',invalidate);
   document.getElementById('backtest')?.addEventListener('input',invalidate);
   find('paper-owned-cancel').addEventListener('click',invalidate);
@@ -54,7 +56,7 @@ export function mountPaperActions(){
     }
     working=true;render();
     try{
-      const result=submitted.kind==='risk'?await risk.confirm(submitted.value):submitted.kind==='signal'?await controller.confirm(submitted.value):await paperWorkspaceRequest('/v1/wallet/paper/backtests/from-market',{method:'POST',body:JSON.stringify(submitted.value)});
+      const result=submitted.kind==='risk'?await risk.confirm(submitted.value):submitted.kind==='signal'?await controller.confirm(submitted.value):await research.confirm(submitted.value);
       const after=getPaperSessionState();if(after.account!==submitted.account||after.epoch!==submitted.epoch)throw Object.assign(new Error(),{code:'PRIVATE_OPERATION_SUPERSEDED'});
       find('paper-owned-result').textContent=JSON.stringify(result,null,2);invalidate();
       await paperWorkspaceRequest('/v1/wallet/paper/snapshot');

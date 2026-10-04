@@ -127,13 +127,29 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 		t.Fatal("concurrent approval allocated two workspaces")
 	}
 	q := request()
-	backtest, _ := json.Marshal(map[string]any{"strategy": q.Strategy, "assumptions": q.Assumptions})
+	backtest, _ := json.Marshal(map[string]any{"strategy": q.Strategy, "assumptions": q.Assumptions, "idempotencyKey": "quant-research-11111111-1111-4111-8111-111111111111"})
 	response := call("POST", "/v1/wallet/paper/backtests/from-market", "a", string(backtest), strings.Repeat("c", 64))
 	if response.Code != 201 {
 		t.Fatalf("own backtest %d", response.Code)
 	}
 	var experiment Experiment
 	_ = json.Unmarshal(response.Body.Bytes(), &experiment)
+	repeated := call("POST", "/v1/wallet/paper/backtests/from-market", "a", string(backtest), strings.Repeat("f", 64))
+	var replayExperiment Experiment
+	_ = json.Unmarshal(repeated.Body.Bytes(), &replayExperiment)
+	if repeated.Code != 201 || replayExperiment.ID != experiment.ID {
+		t.Fatal("native backtest replay did not return original durable experiment")
+	}
+	changed := q.Strategy
+	changed.Name = "Changed reviewed strategy"
+	changedBody, _ := json.Marshal(map[string]any{"strategy": changed, "assumptions": q.Assumptions, "idempotencyKey": "quant-research-11111111-1111-4111-8111-111111111111"})
+	if conflict := call("POST", "/v1/wallet/paper/backtests/from-market", "a", string(changedBody), strings.Repeat("c", 64)); conflict.Code != 409 {
+		t.Fatalf("native backtest changed body must conflict: %d", conflict.Code)
+	}
+	missingKey, _ := json.Marshal(map[string]any{"strategy": q.Strategy, "assumptions": q.Assumptions})
+	if rejected := call("POST", "/v1/wallet/paper/backtests/from-market", "a", string(missingKey), strings.Repeat("c", 64)); rejected.Code != 400 {
+		t.Fatalf("native backtest missing durable key must fail closed: %d", rejected.Code)
+	}
 	orderBody, _ := json.Marshal(map[string]any{"strategyHash": experiment.Strategy.StrategyHash, "side": "buy", "amount": 1_000_000, "idempotencyKey": "isolated-native-paper-intent"})
 	first := call("POST", "/v1/wallet/paper/orders", "a", string(orderBody), strings.Repeat("c", 64))
 	if first.Code != 201 {
