@@ -1,0 +1,579 @@
+
+> @ynx-chain/card@1.0.0 test
+> tsx --test src/**/*.test.ts && node --test test/card-hosted-app.test.cjs test/card-native-callback.test.cjs test/card-web-private-ui-race.test.cjs test/provider-experience-race.test.cjs && node --import tsx --test test/card-guest-controls-journey.test.cjs test/card-core-application.test.cjs test/card-typography-accessibility.test.cjs test/card-secure-recovery.test.cjs test/card-testnet-operations.test.cjs test/card-api-operations-integration.test.cjs && npm run native-patch:test
+
+✔ Card API accepts only safe provider references (0.60125ms)
+✔ Card API rejects PAN, CVV, PIN and identity material at any depth (0.75625ms)
+✔ Card API refuses unlabelled or non-sandbox cards (0.125583ms)
+✔ Card API accepts only exact YNX Testnet funding intents (0.147583ms)
+✔ constructing a Card client does not contact a wallet or service (1.493584ms)
+✔ Card state uses fixed same-origin API, exact V2 proof and read scope (33.036875ms)
+✔ network retry creates a new proof but retains the explicit business idempotency key (1.460125ms)
+✔ missing identity, invalid resource and missing mutation key fail before proof minting (0.333458ms)
+✔ account change during proof creation cannot send an old-owner request (0.340542ms)
+✔ session rotation during a response cannot publish old private account state (0.520292ms)
+✔ explicit invalidation aborts a pending API call without changing the Standard Wallet (0.232292ms)
+✔ stalled SDK proof creation has a bounded timeout and never contacts Card (4.907041ms)
+✔ unbound source, foreign session and non-Testnet envelopes are rejected (2.267ms)
+✔ HTML fallback, sensitive fields and unvalidated ACTIVE state never become Card data (1.361375ms)
+✔ Card API error codes remain separate and remote human text is never surfaced (0.292208ms)
+✔ pending funding response cannot be presented as a credited balance (0.454833ms)
+✔ accepted Wallet expiry and rejection codes survive private proof failures (0.245834ms)
+✔ read-only statement and reconciliation use existing routes and new read proofs (0.674167ms)
+✔ original operation result is fixed-origin read-only and binds exact original request identity (0.541375ms)
+✔ confirmed original operation refreshes authority rather than exposing historical result as current card (0.223916ms)
+✔ simulated authorization endpoint requires private simulation scope and rejects incomplete receipt without retries (0.196917ms)
+✔ capture reversal and refund never accept malformed card receipts or silently replay settlement (0.3455ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest cannot fetch personal records using only Standard Wallet connectivity (566.979042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ approved private identity loads existing records and refreshes without mutation (130.876042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ empty API state never becomes an automatically issued card or balance (114.29575ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ private read failure preserves guest and uses safe localized copy, not remote text (78.732334ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ identity switch hides old records synchronously and late responses cannot restore them (102.770167ms)
+✔ private degraded message follows explicit locale changes without replaying remote English text (118.597083ms)
+✔ business transport uses explicit default web selection without inventing Origin (30.935333ms)
+✔ business transport uses explicit web selection without inventing Origin (0.737416ms)
+✔ business transport uses explicit ios selection without inventing Origin (0.294542ms)
+✔ business transport uses explicit android selection without inventing Origin (0.314875ms)
+✔ unknown platform fails before any proof or network request (0.403667ms)
+✔ YNXT amounts preserve exact 18 decimal places without floats (1.133542ms)
+✔ journal canonicalization binds immutable nested input and rejects unsafe values (33.812208ms)
+✔ pending operations are isolated by owner and require exact resource/key/digest shape (1.229209ms)
+✔ all operation labels have locale parity and English default contains no CJK (0.437209ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ each locale declares the scoped shell copy explicitly, with only valid brands and same-spelling words shared (33.356166ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: actual Language page exposes localized title, Done action and all twelve named radio choices (174.622667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: actual Language page exposes localized title, Done action and all twelve named radio choices (43.32325ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: actual Language page exposes localized title, Done action and all twelve named radio choices (170.735959ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: actual Language page exposes localized title, Done action and all twelve named radio choices (74.544041ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: actual Language page exposes localized title, Done action and all twelve named radio choices (68.696ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: actual Language page exposes localized title, Done action and all twelve named radio choices (73.939875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: actual Language page exposes localized title, Done action and all twelve named radio choices (44.979625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: actual Language page exposes localized title, Done action and all twelve named radio choices (14.596ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: actual Language page exposes localized title, Done action and all twelve named radio choices (18.501916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: actual Language page exposes localized title, Done action and all twelve named radio choices (17.630041ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: actual Language page exposes localized title, Done action and all twelve named radio choices (55.243083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: actual Language page exposes localized title, Done action and all twelve named radio choices (25.801625ms)
+✔ actual language selection updates the page title, Done name and checked radio together (15.271458ms)
+✔ unknown create persists original key/body before POST and no cold auto-retry (2.440084ms)
+✔ explicit exact retry reads back, reuses original key/body, produces one backend object (1.080375ms)
+✔ edited/new intent cannot silently replace unknown create; old journal remains (0.813375ms)
+✔ renewed private session uses fresh context but cannot infer receipt from matching state (0.47075ms)
+✔ other owner cannot read or retry the old request (0.221791ms)
+✔ durable preparation readback failure sends no create request (0.173959ms)
+✔ synthetic funding never emits completed Data Fabric funding evidence (10.148667ms)
+✔ simulated authorization, capture, reversal and partial refunds remain usable (1.935625ms)
+✔ outbox rejects manually constructed funded events atomically (0.990792ms)
+✔ outbox deduplicates and retries the same non-funding event identity (0.308ms)
+✔ Guest audit counts and pagination labels are explicit and localized (1.075292ms)
+✔ twelve explicit resources exactly cover every fixed key and template without inherited English (93.285291ms)
+✔ the original 147-item audit is accounted for, including replaced interpolation fragments (4.17275ms)
+✔ actual JSX fixed text and action labels are registered, including future additions (148.289959ms)
+✔ missing copy and incorrect template variables fail visibly instead of using English (1.695666ms)
+✔ funding, native identity, simulation and download keep separate truthful meanings (0.465125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: every guest connection entry calls only native YNX authorization (722.502125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: every guest connection entry calls only native YNX authorization (152.673542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ web keeps its separate standard-wallet chooser and explicit MetaMask action (91.655167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: all six native sections render localized fixed text and local demo notices (125.839708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: all six native sections render localized fixed text and local demo notices (161.569125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: all six native sections render localized fixed text and local demo notices (145.2245ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: all six native sections render localized fixed text and local demo notices (131.916833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: all six native sections render localized fixed text and local demo notices (89.823416ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: all six native sections render localized fixed text and local demo notices (66.074708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: all six native sections render localized fixed text and local demo notices (55.835917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: all six native sections render localized fixed text and local demo notices (49.159125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: all six native sections render localized fixed text and local demo notices (50.483625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: all six native sections render localized fixed text and local demo notices (51.541667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: all six native sections render localized fixed text and local demo notices (53.287ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: all six native sections render localized fixed text and local demo notices (56.492084ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Arabic compact header retains column layout without limiting text scaling (75.428041ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact Arabic shares one scroll viewport for chrome, six tabs, safety boundary and real content (35.061458ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact navigation measures current content then returns to the section start, including Help and repeated tabs (47.062291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ locale change with no onLayout still navigates using a fresh synchronous host measurement (36.067167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late measurement callbacks cannot override newer locale, navigation or onLayout requests (34.447917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silent: missing or failed measure callbacks never block a fresh tab request (30.737834ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ throwMeasure: missing or failed measure callbacks never block a fresh tab request (33.289666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fail: missing or failed measure callbacks never block a fresh tab request (32.957666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ invalid measured positions and late callbacks after unmount never scroll (32.472375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ desktop keeps chrome outside its content viewport and navigation starts at content zero (29.362167ms)
+✔ crossing the compact breakpoint preserves the current owner's unsaved registration form (32.862208ms)
+✔ browser journal restores only explicitly local demo controls and whitelist audit events (3.514583ms)
+✔ malformed or foreign storage remains byte-for-byte preserved without an overwrite (0.147916ms)
+✔ same-browser concurrent writer does not overwrite a newer saved demo history (0.084459ms)
+✔ unavailable, denied or unconfirmed storage never claims saved recovery (0.419541ms)
+✔ untrusted extra fields, arbitrary audit content, duplicate IDs and excessive history are refused (3.831375ms)
+✔ storage feedback is localized and never suggests an account or chain operation succeeded (0.477709ms)
+✔ exact SDK mirror pin, no Card signing implementation (4.693125ms)
+✔ missing negotiated transport fails before challenge (0.867958ms)
+✔ reserve precedes backend/persistence and canonical public QA proof verifies (16.984625ms)
+✔ unsigned exact USER_REJECTED cannot authorize submit (5.065708ms)
+✔ wrong carrier version fails closed (1.775375ms)
+✔ reload recovery has no Wallet call or automatic submit (31.214834ms)
+✔ changed backend details fence explicit submit (6.974209ms)
+✔ private session/device and per-user isolation (2.82775ms)
+✔ expired saved proof is not replayed (3.163209ms)
+✔ storage failure sends no approval RPC (0.46625ms)
+✔ late changed-context result leaves old pending fenced (0.4085ms)
+✔ callback is bound to exact original pending application (4.996625ms)
+✔ V1 YNXT application consumes an exact approval separately from Provider V2 (35.656584ms)
+✔ new private session requires explicit fresh review and retains the old context without reusing approval (6.8305ms)
+✔ wrong selected Hosted account cannot prepare a challenge or dispatch approval (0.133125ms)
+✔ connected/hinted adapter without negotiated capability cannot request Card review (2.216083ms)
+✔ review reservation is synchronous and uses exact SDK RPC, never browser navigation (0.444042ms)
+✔ old lease cannot dispatch after disconnect or account mutation (0.246584ms)
+✔ private Card RPC failure does not revoke Standard Connection (0.146333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: actual Card Guest chooser and errors use localized Hosted Wallet copy (477.43325ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: actual Card Guest chooser and errors use localized Hosted Wallet copy (87.263167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: actual Card Guest chooser and errors use localized Hosted Wallet copy (150.360833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: actual Card Guest chooser and errors use localized Hosted Wallet copy (122.016833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: actual Card Guest chooser and errors use localized Hosted Wallet copy (65.231709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: actual Card Guest chooser and errors use localized Hosted Wallet copy (106.156083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: actual Card Guest chooser and errors use localized Hosted Wallet copy (76.806125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: actual Card Guest chooser and errors use localized Hosted Wallet copy (90.085ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: actual Card Guest chooser and errors use localized Hosted Wallet copy (56.874375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: actual Card Guest chooser and errors use localized Hosted Wallet copy (53.802166ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: actual Card Guest chooser and errors use localized Hosted Wallet copy (45.737583ms)
+✔ id: actual Card Guest chooser and errors use localized Hosted Wallet copy (36.372833ms)
+✔ all twelve Card locales render distinct Hosted Wallet choice and async errors without English fallback (1.050292ms)
+✔ actual Card Guest UI uses current-locale Hosted copy and keeps private session separate (0.997667ms)
+✔ selected Hosted private transport requires approval and forwards only the existing private method (2.411959ms)
+✔ selected Hosted request discards old-account completion and preserves unsupported method errors (12.092208ms)
+✔ Card vendors the byte-identical accepted Wallet-owned adapter, not a Card signer (0.396166ms)
+✔ official popup opens synchronously in the click stack; only approval and exact chain admit an account (0.170333ms)
+✔ rejection after adapter empty-account event stays rejection and cannot connect (0.180333ms)
+✔ blocked and closed popups fail without account; a fresh explicit Retry opens once (0.274666ms)
+✔ disconnect cancels pending approval immediately and discards late success (14.480792ms)
+✔ old cancelled popup and watchdog cannot clear or invalidate a new pending popup (1.038708ms)
+✔ account, chain and provider changes invalidate the approved subject (0.761917ms)
+✔ switch-account opens a new Wallet-owned popup synchronously and never reuses approval (0.451083ms)
+✔ refresh creates no hosted account from local state, and exact YNX cache never selects MetaMask (1.116125ms)
+✔ all twelve Card locales are complete and nonblank (1.060208ms)
+✔ Arabic RTL and locale formatting are deterministic (20.076ms)
+✔ safety and authority language remains explicit (0.303875ms)
+✔ Card native identity maps every Product Session storage key through the installed Expo SecureStore 57 boundary (0.614417ms)
+✔ Card native controller is single-flight, serializes SDK mutations, and cancels stale callbacks (0.948792ms)
+✔ Card nested deployment envelope preserves a fixed dist-web Output Directory without source rebuild (1.45975ms)
+✔ Card Wallet callback rewrites once to the root SPA while retaining the callback URL and query for protocol parsing (0.864208ms)
+✔ private service errors render from current locale and never repeat remote messages (0.658125ms)
+✔ source recovery guidance preserves records and never asks for a second wallet approval (0.097167ms)
+✔ one owner/chain/hash credit survives new keys, case changes, and a second card (4.552333ms)
+✔ idempotency binds every field and operation, including previously declined requests (0.650458ms)
+✔ control and state retries return the original immutable response without overwriting later state (0.537916ms)
+✔ an owner-bound processor cannot create or read another owner's cards (0.212208ms)
+✔ all input amount boundaries reject without a non-finite or unsafe ledger event (0.697917ms)
+✔ total balance capacity counts available, pending, and posted funds before credit (0.1935ms)
+✔ controls validate at creation and update and own their deeply frozen arrays (0.52425ms)
+✔ unsupported request values and reserved system keys fail before any ledger mutation (0.343541ms)
+✔ expired partial holds release before a capture, exactly once, at the expiry boundary (0.241459ms)
+✔ closed is terminal, pending holds prevent close, and refunds remain possible (0.30925ms)
+✔ canonical monotonic time prevents backdated limit and expiry bypass (0.855958ms)
+✔ two cards cannot capture or refund each other's events (0.346042ms)
+✔ interleaved partial settlements conserve funds and reject an over-refund (3.547667ms)
+✔ Testnet processor models partial capture, reversal, refund, and immutable balances (3.736375ms)
+✔ Testnet processor makes authorization idempotent and enforces controls (1.0705ms)
+✔ Testnet processor declines insufficient balance and releases expired authorizations during recovery (0.390458ms)
+✔ Card composes the accepted v2 adapter, client and coordinator at the fixed Auth origin without auto-recovery (2.012041ms)
+✔ Card opens only a complete payload-bound native authorization request with account read scope (27.563292ms)
+✔ Card coalesces simultaneous native Begin actions into one canonical request (3.768583ms)
+✔ Card serializes duplicate callback handling through the accepted v2 coordinator (3.533125ms)
+✔ Card factory exposes absent, reject, timeout, network-loss and Retry as private states (10009.578833ms)
+✔ Finance sharing is requested only after the explicit extra permission action (2.179292ms)
+✔ Card rejects a dropped pending write without replacing the prior record and then isolates native storage (1.467ms)
+✔ Card rejects a dropped remove, retains the pending record, and isolates native storage (0.26925ms)
+✔ Card confirms a revoke marker by exact readback and serializes concurrent secure mutations (0.123417ms)
+✔ Card shares native storage serialization across controllers and rejects stale lease mutations after the new pending record commits (0.228959ms)
+✔ Card never classifies an arbitrary storage error code as an owner cancellation (0.071792ms)
+✔ TEST actions and cancellation review have distinct complete strings in all twelve locales (0.582208ms)
+✔ provider precision is explicit and retains large amounts and refund signs (0.469417ms)
+✔ user-facing limit converts exactly once to minor units without rounding (0.268792ms)
+✔ missing block state cannot be displayed as an unfrozen card (0.059834ms)
+✔ account change while the response body arrives never publishes old account records (93.867125ms)
+✔ provider application client uses only fixed same-origin v2, fresh proof and exact read/write scopes (1.411542ms)
+✔ missing session and invalid resource fail before proof or network; no automatic mutation retry (0.3045ms)
+✔ wrong source/owner, HTML fallback, sensitive card fields and hostile hosted URL fail closed (1.381625ms)
+✔ provider lifecycle and Finance consent use exact v2 routes and separate fresh scopes (1.249917ms)
+✔ invalid expiry and binding are unauthorized before SDK proof or API (0.143834ms)
+✔ proof and response-body wait are bounded without extending permission or replaying writes (19.741917ms)
+✔ in-place session mutation after proof begins cannot relabel the original request (0.516541ms)
+✔ local invalidation settles a stalled read without remote revoke or deleting records (0.598167ms)
+✔ refresh preserves exact submit and callback operation IDs independently for each application (1.110917ms)
+✔ another owner or corrupt continuation cannot restore an operation (0.654375ms)
+✔ application callback is preserved for the application verifier, not the login verifier (0.923917ms)
+✔ mixed and repeated callback discriminators are rejected (0.232292ms)
+✔ accepted historical dual source and compiled candidate pair retain exact backend response identity (111.747ms)
+✔ unknown backend, frontend, tree, version, environment or compatibility binding fails closed (30.275375ms)
+✔ Card builder binds source commit/tree into both Metro environment and runtime identity (0.455625ms)
+✔ observed public 7f9 frontend/e95 API pair is accepted only by its pinned historical consumer, never by a mismatched new JS identity (38.565167ms)
+✔ source diagnostics identify the failing boundary without disclosing remote content or creating a client (7.497375ms)
+✔ unavailable, malformed, oversized and network version responses never expose remote errors or construct private clients (63.682166ms)
+✔ the admitted public 661265 successor pair requires its compiled identity and exact compatibility, not the historical baseline JS (19.350166ms)
+✔ every static application label and recovery explanation is covered in twelve locales (1.483083ms)
+✔ known transaction labels localize without promoting unknown transactions (0.157583ms)
+✔ provider states are TEST-labelled and unknown states never become verified or active (0.085ms)
+✔ selected Hosted approval and Retry reuse that transport without injected fallback (70.2555ms)
+✔ selected Hosted unsupported method cannot silently select injected YNX or revoke a grant (20.041542ms)
+✔ local context cancellation drops late Hosted approval without SDK revocation (13.3655ms)
+✔ Finance scope mode restores its own namespace without a new request (12.6565ms)
+✔ legacy local-only intent stays paused with SDK records retained; trusted corrupt mode is rejected (29.719083ms)
+✔ exact YNX Provider transports the pending request as data and same SDK handles approval (34.271625ms)
+✔ signed rejection reaches SDK and never becomes a connection (11.800333ms)
+✔ no exact YNX Provider and MetaMask-only browser keep Card visible (27.979834ms)
+✔ malformed return, user rejection and account switch never reach SDK completion (80.58025ms)
+✔ watchdog follows extension review deadline and discards approval after timeout (8.043333ms)
+✔ Retry creates a fresh SDK nonce instead of replaying detected pending data (27.704417ms)
+✔ disconnect drops a late Provider return without granting a Session (5.294292ms)
+✔ scope switch waits for in-flight Gateway return and revocation before new namespace (8.021458ms)
+✔ account-change pause survives a cold reload without revoking or erasing the SDK namespace (12.446166ms)
+✔ pause survives failed or silent local writes through a verified tab tombstone (26.229333ms)
+✔ unwritable pause explicitly fails and blocks same-runtime proof without deleting grant (12.626875ms)
+✔ unsupported sharing cannot revoke the approved base session or silently expand its scope (5.189084ms)
+✔ local pause still allows an explicit SDK revocation and only returns its confirmed result (10.482417ms)
+✔ failed explicit SDK revocation is not reported as revoked and cannot automatically restore (9.444584ms)
+✔ cached ACTIVE and SUBMITTED require backend readback while retaining original fields/key/receipt (2.251875ms)
+✔ malformed stored application controls/audit cannot enter a user journey (0.249208ms)
+✔ wallet-bound registration transitions only with an explicit sandbox receipt (0.257667ms)
+✔ registration is idempotent, recoverable and isolated per wallet (0.62175ms)
+✔ registration has 12 explicit complete resources, 32 text keys, 7 statuses and 2 templates (3.52925ms)
+✔ Registration JSX cannot add unregistered fixed text, placeholders or accessibility labels (34.240667ms)
+✔ registration errors and statuses retain specific meanings and unknown errors stay private (0.81125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ en: real registration accepts sequential fields, prepares only after validation and safely degrades (366.846791ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-CN: real registration accepts sequential fields, prepares only after validation and safely degrades (79.627666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ zh-TW: real registration accepts sequential fields, prepares only after validation and safely degrades (61.128209ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ja: real registration accepts sequential fields, prepares only after validation and safely degrades (48.667791ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ko: real registration accepts sequential fields, prepares only after validation and safely degrades (43.070375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ es: real registration accepts sequential fields, prepares only after validation and safely degrades (46.586208ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fr: real registration accepts sequential fields, prepares only after validation and safely degrades (40.157875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ de: real registration accepts sequential fields, prepares only after validation and safely degrades (37.763125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ pt: real registration accepts sequential fields, prepares only after validation and safely degrades (37.93675ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ru: real registration accepts sequential fields, prepares only after validation and safely degrades (38.4965ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ar: real registration accepts sequential fields, prepares only after validation and safely degrades (37.054084ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ id: real registration accepts sequential fields, prepares only after validation and safely degrades (37.02425ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: real registration never reads or writes storage or offers web application actions (32.200292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: real registration never reads or writes storage or offers web application actions (32.304083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration read rejection shows safe localized failure and blocks actions (30.835875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ writeError: persistence failure retains the last confirmed draft without success or advancement (33.017458ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silentWriteFailure: persistence failure retains the last confirmed draft without success or advancement (32.508291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ failed draft creation does not display a draft or success (31.055125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late save completion cannot replace a newly selected wallet's form, record or notice (34.453958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late load completion after wallet switch cannot expose the prior wallet's application (43.777542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late save completion after unmount stops before persistence readback (30.443916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration UI preserves the protocol's minimum 1 YNXT and UTF-16 length validation (37.781083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration removes old-owner fields in the first committed tree on wallet switch (34.619375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ registration removes old-owner fields in the first committed tree on disconnect (29.725625ms)
+✔ changing locale preserves the current owner's unsaved registration form (31.121ms)
+✔ Card static build emits a deterministic source-bound Testnet runtime identity (2.315334ms)
+✔ Card consumes the shared standard-wallet reducer and closes its chooser only after account plus 0x1917 (1.30175ms)
+✔ Card consumes the shared EIP-6963 discovery and keeps MetaMask identity exact (4.640292ms)
+✔ Card consumes shared discovery without a browser RPC fetch prerequisite (0.924625ms)
+✔ Card renders distinct provider identities and a complete connection lifecycle without blank tabs (0.415083ms)
+✔ simulation replay detection keeps one canonical record for same idempotency key (2.049959ms)
+✔ recoverLastFailed preserves failed outcomes without authoritative evidence (0.265083ms)
+✔ same-millisecond events remain distinct and unsafe minor amounts reject (0.264ms)
+✔ failed same-key retry cannot turn into a recovered outcome (0.165042ms)
+✔ Card consumes the exact self-contained Wallet Owner artifact (1.0505ms)
+✔ late EIP-6963 announcement and injected providers preserve distinct identities without account requests (6.616208ms)
+✔ shared discovery rejects ambiguous MetaMask and a dual-brand provider (0.555ms)
+✔ both selected providers restore without prompts and deliver SDK account/chain/disconnect events (3.538458ms)
+✔ permission revoke needs empty-account readback and is not a local-only success (0.752667ms)
+✔ a rejected connection retains the exact provider error and creates no account (0.796459ms)
+✔ Card static deployment envelope satisfies the existing Vercel build command without rebuilding source (0.96ms)
+✔ Card binds the only accepted YNX Testnet identities (0.445667ms)
+✔ Card uses exact canonical Wallet registry identity (37.811375ms)
+✔ canonical Wallet callback verifies every Card binding (35.703792ms)
+✔ Card root callback parser binds an approval or rejection to the same persisted request (4.228708ms)
+✔ Card submits an exact intent-bound YNXT wallet transaction and verifies confirmations (0.484709ms)
+✔ Card rejects failed, redirected, or under-confirmed Testnet top-ups (0.280334ms)
+✔ Card consumes the Standard Wallet SDK and retains CONNECTED state when private service degrades (0.792667ms)
+✔ Card discovers only MetaMask through EIP-6963 or an exact injected MetaMask provider (3.949584ms)
+✔ Card MetaMask requests accounts then switches or adds only YNX Testnet (0.490375ms)
+✔ Card MetaMask restores only verified accounts and reacts to account, chain, and disconnect events (0.39875ms)
+✔ Card restores and watches the explicitly selected YNX provider without MetaMask substitution (0.226542ms)
+✔ Card disconnects with truthful revoke verification and switches accounts only from an explicit action (0.437333ms)
+✔ Card MetaMask mobile and desktop links are official and isolated from YNX Wallet authorization (0.262625ms)
+✔ legacy Card private routes remain blocked and are not v2 evidence (2.162ms)
+✔ Card preserves provider identity and fails closed on unknown Wallet errors (0.191459ms)
+✔ Card prewarms shared provider discovery without selecting an account or network (1.206292ms)
+✔ Card makes an ambiguous read-only Wallet restore chooser-driven without requesting accounts (1.223792ms)
+✔ Card Web root is English and disables browser translation until a user selects another locale (1.414334ms)
+✔ Card release source never directly opens a bare YNX Wallet authorization route (0.791959ms)
+✔ Web custom-scheme launcher is disabled (0.8175ms)
+✔ Card Web source has no custom-scheme launcher and keeps visible fallback paths (1.518958ms)
+✔ Card discovers only an explicit YNX EIP-6963 or injected provider (4.5005ms)
+✔ Web YNX button selects exact injected YNX before synchronous Hosted fallback, never custom scheme (0.909958ms)
+ℹ tests 296
+ℹ suites 0
+ℹ pass 296
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 11583.444
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual Card Web YNX action opens Hosted synchronously and publishes only approved account (231.702167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual Card Web rejection and explicit disconnect never become approval (202.041292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual Card Web account switch requests a new popup in the same action and drops old subject (72.664542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ failed MetaMask choice after Hosted closes old subject instead of retaining a fake Card account (88.161125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late Hosted approval after explicit MetaMask choice cannot resurrect the old YNX subject (71.765833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ standard identity switch stops old private proof use without claiming remote revocation (59.866167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Hosted popup loss and Standard disconnect preserve approved Card grant; explicit revoke removes it (67.19475ms)
+✔ App replaces provider client on approved private account change and cancels old reads (58.20925ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ cold Card application callback restores existing identity without sending it to login verification or opening Wallet (271.284ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ closing Card during business callback identity restore prevents late login publication (150.888334ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ cold initial URL enters existing-only verification without automatically beginning (65.319875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Close then new Begin: older cold factory cannot replace new pending state (97.238542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ overlapping cold factories: old error cannot overwrite newer callback outcome (76.630083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ published controller retains actual serial ordering for overlapping callbacks (74.746417ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ saved locale/session rerender does not clean up the callback listener (63.957167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual unmount removes the listener and blocks late factory delivery (68.900917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ old handler success after Close does not clear new busy (52.496333ms)
+✔ old handler error after Close does not clear new busy (60.77625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ old private approval failure cannot overwrite a later Web disconnect (279.174958ms)
+✔ old base-scope failure cannot overwrite later Finance-scope approval (132.807875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ A late status and funding cannot replace B under the B heading (161.212834ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ A to B to A rejects the first A generation and keeps the second A readback (157.32325ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ manual A status readback cannot replace B after selection (116.572375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ manual A funding readback cannot replace B after selection (52.713083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late A history cannot replace B or clear B loading state (70.623625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ old A error cannot appear under B or stop a pending B request (54.552625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ an A load-more page cannot append into B or change B pagination cursor (59.429875ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ a late A freeze response cannot announce or read back A under B (65.202542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ unmount prevents pending status and funding from writing state (54.202541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ owner switch hides prior applications and consent until exact new-owner records arrive (42.762125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ same-owner session rotation clears old private view and logout performs no new reads (43.765958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web application review never opens a custom scheme or prepares a new approval mutation (35.375625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ TEST cancellation requires a separate review and exact local-only receipt (44.691042ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ unconfirmed cancellation is an error and repeated confirmation reuses its idempotency key (38.382541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ changing owner drops pending cancellation review without submitting it (32.036375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ approved applications never offer local cancellation as upstream revocation (28.224666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ dialog can scroll at large text size, exposes disabled semantics and restores Web focus (30.039541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Arabic cancellation review is RTL and changing locale retranslates an existing failure (27.496334ms)
+✔ provider disclosure stays byte-for-byte original while wrappers and record states localize (23.702541ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1352.031375
+✔ actual backend fixture receipts pass client authorization/partial capture/reverse/refund validators and survive cold reopen (42.226625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual private form has no auto-create, PAN/CVV, fake active account or balance (227.668917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ explicit terms/create/challenge/review failure never submits a card (31.287334ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Chinese private form changes UI copy without replaying actions (15.98275ms)
+✔ actual form keeps unknown create and retries the original body/key rather than edited fields (25.162916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web navigation exposes one selected section before and after local controls change (260.168334ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Native sections retain native selection attributes without Web-only aria props (60.769958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest control changes stay in Controls and preserve their actual local state (52.592083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ local controls audit remains visible through explicit Activity navigation (41.860667ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (36.687708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web guest controls and audit survive a real component cold remount without Wallet authority (73.197291ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ damaged guest storage remains untouched and the rendered UI warns that new changes were not saved (33.007292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ source mismatch task dialog preserves guest access and does not request any Wallet permission (39.432917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ page reload is an explicit two-step recovery action, not a private authorization retry (33.508916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ native source recovery never pretends it can reload or authorize a standard Web wallet (31.939917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ every source dialog locale uses local safe error copy and scalable 48px actions (329.816292ms)
+✔ all saved DEMO audit entries are reachable after cold remount without modifying history or contacting a wallet (30.280875ms)
+✔ malformed original records survive load and automatic rewrite is blocked (53.199625ms)
+✔ stored ACTIVE is historical only and raw receipt/details are preserved (20.430792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ actual operation UI writes journal before explicit API action and never auto-mutates on mount (94.156ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ timeout recovery makes no automatic write and explicit retry preserves original body/key (64.968583ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ malformed journal remains untouched and disables mutation (15.840333ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ funding intent and transaction verification each require explicit confirmation with exact wei/hash (33.195958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ authorization is explicitly simulated and settlements require current-card event references (31.542417ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ foreign settlement reference never reaches mutation endpoint and keeps original unknown request (16.532125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ switching owner never consumes previous owner pending journal or silently retries it (23.66825ms)
+✔ Chinese operation failure stays in selected locale and disabled controls expose accessibility state (14.291709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ named Web radiogroup describes three explicit checked states and a single tab stop (104.242708ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ direction/Home/End keys move selection and focus without changing native semantics (15.049791ms)
+✔ native radio group retains native checked state without DOM keyboard props (13.099917ms)
+ℹ tests 30
+ℹ suites 0
+ℹ pass 30
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1390.898833
+
+> @ynx-chain/card@1.0.0 native-patch:test
+> node --test scripts/secure-store-native-patch.test.mjs
+
+✔ pristine reviewed package applies, re-applies identically and verifies without mutation (14.023584ms)
+✔ unreviewed Kotlin is refused before installing a helper or overwriting source (4.18775ms)
+✔ helper tampering is refused before patching pristine module (4.42525ms)
+✔ partial helper-only installation can resume; incomplete module-only build cannot pass (7.904375ms)
+✔ version cannot silently substitute an unpatched native dependency (3.691208ms)
+✔ integrity cannot silently substitute an unpatched native dependency (4.882ms)
+✔ registry cannot silently substitute an unpatched native dependency (5.422625ms)
+✔ prebuilt-aar cannot silently substitute an unpatched native dependency (3.208916ms)
+✔ installed-version cannot silently substitute an unpatched native dependency (3.959875ms)
+✔ source symlink cannot redirect patch writes (4.255625ms)
+✔ checked-in and generated Android build gates use the same fail-closed source verification (45.573541ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147.9095

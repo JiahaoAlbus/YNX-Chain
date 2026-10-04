@@ -131,3 +131,22 @@ test('every source dialog locale uses local safe error copy and scalable 48px ac
   }finally{await app.unmount()}
  }
 });
+
+test('all saved DEMO audit entries are reachable after cold remount without modifying history or contacting a wallet',async()=>{
+ const {GuestSandboxJournal}=require('../src/guestSandboxJournal.ts');
+ const {textOf}=require('./guest-experience-fixture.cjs');
+ const records=new Map(),guestStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value)};
+ const journal=new GuestSandboxJournal(guestStorage);
+ assert.equal(journal.save({...journal.snapshot,events:Array.from({length:12},(_,index)=>({id:12-index,label:'Simulate authorization',detail:'Authorization decision prepared locally'}))}),true);
+ const original=[...records.values()][0];
+ const app=await mountGuest({platform:'web',fontScale:2,guestStorage});
+ try{
+  await app.tab('Activity');
+  const rows=()=>app.renderer.root.findAll(n=>n.type==='Text'&&textOf(n)==='Simulate authorization').length;
+  assert.equal(rows(),5);assert.match(app.text(),/Viewing 5 of 12 local DEMO events/);
+  await app.press(app.buttons('Show more DEMO events')[0]);assert.equal(rows(),10);
+  await app.press(app.buttons('Show more DEMO events')[0]);assert.equal(rows(),12);
+  assert.match(app.text(),/Viewing 12 of 12 local DEMO events/);assert.equal(app.buttons('Show more DEMO events').length,0);
+  assert.equal([...records.values()][0],original);assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
+ }finally{await app.unmount()}
+});
