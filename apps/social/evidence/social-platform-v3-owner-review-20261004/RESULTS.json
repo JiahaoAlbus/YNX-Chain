@@ -1,0 +1,46 @@
+{
+  "observedAt": "2026-10-04T06:04:42.395Z",
+  "candidate": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/social-e9bf-platform-publisher-source-v3-20261004",
+  "manifestSha": "c389c26e1078fdb03b2b90e9c1267c541eee1e12ff077fff55656550ff383e88",
+  "manifestPinMatches": true,
+  "results": [
+    {
+      "name": "exact",
+      "expectedAccept": true,
+      "exitCode": 0,
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "compact",
+      "expectedAccept": true,
+      "exitCode": 0,
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "arbitrary-output",
+      "expectedAccept": false,
+      "exitCode": 1,
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "empty-build",
+      "expectedAccept": false,
+      "exitCode": 1,
+      "pass": true,
+      "error": null
+    },
+    {
+      "name": "missing-build",
+      "expectedAccept": false,
+      "exitCode": 1,
+      "pass": true,
+      "error": null
+    }
+  ],
+  "scope": "Five isolated actual build-verifier cases only. Not publisher acceptance, lease, public deployment, SDK execution, installed or Social completion.",
+  "deployed": false,
+  "walletRequests": false
+}
