@@ -1,0 +1,81 @@
+{
+  "schema": "ynx-composed-debug-alias-native-distribution/v1",
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-native-package-20261004-mac-arm64",
+  "workbenchVersion": "0.3.6",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "c3f72829c200fd3c490f70edb4feb0cc7c84722c",
+    "sourceTree": "33af540a9967a3af0318b231b16229ba00b5baef",
+    "sourceCommitDate": "2026-10-04T11:34:50+08:00",
+    "runtimeCheckpoint": "c3f72829c200fd3c490f70edb4feb0cc7c84722c",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "9ca50acf62c184342852d8b07a7a76cf52eddf954b30a97f03f457eb13d9d2b8",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "79bd28e2cd46633fc4978973e293e96d933d1de7b02fe6554fdf3f36c3eb71e0",
+        "treeSha256": "5a260424f4729d1bb5da29b80104d44424d6ee3112878a3badd2ae13da82836f",
+        "manifestSha256": "493d61a10bee24220896231fe422666409a1a593ba3092a5bd99038a56a183cb"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "cb1ac418e8a3c3fcbad04f50bd1ab8dfb6eaa168c68dfebd1ca7871aab0b999d",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "79bd28e2cd46633fc4978973e293e96d933d1de7b02fe6554fdf3f36c3eb71e0",
+      "treeSha256": "5a260424f4729d1bb5da29b80104d44424d6ee3112878a3badd2ae13da82836f",
+      "manifestSha256": "493d61a10bee24220896231fe422666409a1a593ba3092a5bd99038a56a183cb"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "cb1ac418e8a3c3fcbad04f50bd1ab8dfb6eaa168c68dfebd1ca7871aab0b999d",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "ba6448683cabaf8ea6aacaaa5d90ad74e95696076d27e12a9e42ce64a6d3fd5c",
+  "checks": {
+    "packagingExit": 0,
+    "deepStrictSignatureExit": 0,
+    "diskImageVerificationExit": 0,
+    "coreArchiveUnchangedAfterSeal": true,
+    "installed": false,
+    "launched": false,
+    "canonicalUserAcceptance": false,
+    "notarized": false
+  },
+  "currentFunctionalEvidence": "COMPOSED_DEBUG_SELECTION_20261004.json: 4 API/selection checks and 16 core regressions. Prior C/C++/cold/lifecycle evidence is not relabeled as current checks.",
+  "evidence": "apps/developer/.ynx-developer-candidates/debug-alias-native-evidence-20261004",
+  "evidenceIndexSha256": "fd381e99faf221f67196c6bea67593162d5fc4d329256fab4e53f5aea459988b",
+  "remaining": [
+    "Original protected canonical parent and registered execution driver; local /etc/ynx-developer/adapters still absent at packaging verification.",
+    "Compatible admitted Node 26.7.0 for composed workbench; portable outer gateway Node 24.21.0 is not a replacement for that driver runtime.",
+    "Real installed Wallet/Chain/approved hosted-model journey and user acceptance.",
+    "C++ native LLDB task_for_pid attachment, broader extensions/languages, formal signing/notarization, other platforms and capacity."
+  ],
+  "scope": "Exact ad-hoc Mac ARM Testnet Preview build and static distribution verification only. No application installation/launch or new Host/read/network/package permission. Original packages retained."
+}
