@@ -1,0 +1,7 @@
+PASS: Apple persistent failure reserve-create, volatile update blocked, durable original cold recovery; injected storage only
+PASS: Apple persistent failure reserve-operation, volatile update blocked, durable original cold recovery; injected storage only
+PASS: Apple persistent failure queue-watch, volatile update blocked, durable original cold recovery; injected storage only
+PASS: Apple persistent failure ack-create, volatile update blocked, durable original cold recovery; injected storage only
+PASS: Apple persistent failure ack-operation, volatile update blocked, durable original cold recovery; injected storage only
+PASS: Apple persistent failure ack-watch, volatile update blocked, durable original cold recovery; injected storage only
+Apple viewer original resume/pending/playlist/cold/account/ACK/poison/clock PASS; injected storage only
