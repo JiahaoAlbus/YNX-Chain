@@ -7,6 +7,8 @@ Command: `node apps/quant-lab/scripts/test-postgres-isolated.mjs --postgres-bin-
 
 Final retained root: `/private/tmp/ynx-quant-postgres-it-uRFuif`; PostgreSQL 17.11, loopback port 59054, database `ynx_quant_qa`. Runner reports testsPassed=true, serverStopped=true, productionDatabaseUsed=false, required integration executions=22 (11 gates twice), full regression top-level PASS=155, databaseRestartVerified=true and final state/nonce counts=`0|0`.
 
+Required integration skips: zero (30.674s). Full regression: quantlab 20.716s, readintegration 1.100s. Two non-required skips remain explicit: the child-only process helper is skipped in its parent invocation, and LocalNodeHost browser bridge lacks its QA Gateway; neither is public acceptance. Final own `data/postmaster.pid` is absent.
+
 The original HTTP process test now executes both legacy and explicit-cost cases. Two independent OS service processes handle 16 concurrent requests from two tenants using the same request key. Each tenant retains its own strategy, amount and fee/slippage policy. Independent fixed expected v1 receipts: A execution price 1200600, notional 1200600, fee 1201, marked loss 1801; B price 1201200, notional 2402400, fee 3604, marked loss 6004. A third offline process retrieves exact receipts after restart without another charge. Changed fee, changed amount, cross-tenant strategy and killed/offline new execution refuse; replay leaves SQL revision and payload bytes unchanged. All prices and funds here are explicitly controlled local Paper inputs.
 
 Logs retained at the final root:
