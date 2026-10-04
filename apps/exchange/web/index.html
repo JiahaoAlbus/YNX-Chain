@@ -69,6 +69,12 @@
   </main>
 
   <dialog id="wallet-dialog"><form method="dialog"><button class="close" aria-label="Close">×</button><p class="eyebrow">STANDARD WALLET</p><h2>Choose a Wallet</h2><p id="wallet-state" class="state-box">Exchange uses a selected EIP-6963/EIP-1193 provider or the Wallet-owned Hosted approval page. Product Session, order and withdrawal permissions remain separate.</p><div id="wallet-choices"><button id="connect-ynx-wallet" type="button">Installed YNX Wallet</button><button id="connect-hosted-ynx" type="button">YNX Wallet Web</button><button id="connect-metamask" type="button">MetaMask</button><button id="wallet-retry" type="button" class="secondary">Reconnect selected wallet</button></div><div id="wallet-details" hidden><p><strong>Provider:</strong> <span id="wallet-provider">—</span></p><p><strong>Account:</strong> <span id="wallet-account">—</span></p><p><strong>Network:</strong> <span id="wallet-chain">—</span></p><button id="wallet-disconnect" type="button">Disconnect locally</button><button id="wallet-revoke" type="button">Revoke account permission…</button><p>Local disconnect does not revoke permissions. Revocation requires Wallet acknowledgement and empty account readback; neither changes token approvals or venue orders.</p><button id="wallet-switch" type="button">Switch wallet</button></div><p id="wallet-fallback" hidden><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Download YNX Wallet</a> · <a href="https://metamask.io/download/" rel="noreferrer">Use MetaMask</a></p></form></dialog>
+  <dialog id="advanced-record-dialog" aria-labelledby="advanced-record-title">
+    <form method="dialog"><button class="close" aria-label="Close task details" data-exchange-locale="Close task details">Close task details</button></form>
+    <h2 id="advanced-record-title">Task details</h2>
+    <p data-exchange-locale="Activation is not a fill.">Activation is not a fill.</p>
+    <div id="advanced-record-details"></div>
+  </dialog>
   <dialog id="order-preview-dialog" aria-labelledby="order-preview-title">
     <form method="dialog"><button class="close" aria-label="Close preview">×</button><p class="eyebrow">READ-ONLY PREVIEW · TESTNET</p><h2 id="order-preview-title">Review a limit order</h2>
       <dl class="review" id="order-preview-values"></dl>

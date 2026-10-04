@@ -348,9 +348,25 @@ const advancedRows={
  ar:['الأوامر المتقدمة','تفاصيل المهمة','أمر مشروط','مجموعة OCO','مهمة TWAP','أمر متدرج','لم تُقدم السجلات؛ غير متحقق منها.','محجوز','المحفز','التفعيل لا يعني التنفيذ.','مجدول','الكمية المجدولة ليست الكمية المنفذة.','منفذ'],
  id:['Order lanjutan','Detail tugas','Order bersyarat','Grup OCO','Tugas TWAP','Order bertingkat','Koleksi tidak dilaporkan; belum diverifikasi.','Dicadangkan','Pemicu','Aktivasi bukan eksekusi.','Dijadwalkan','Jumlah terjadwal bukan jumlah terisi.','Terisi']
 };
+const taskDetailKeys=['Related orders','Related trades','No related records in this snapshot.','Close task details','Display amount'];
+const taskDetailRows={
+ en:taskDetailKeys,
+ 'zh-Hans':['关联订单','关联成交','当前快照没有关联记录。','关闭任务详情','显示数量'],
+ 'zh-Hant':['關聯訂單','關聯成交','目前快照沒有關聯紀錄。','關閉任務詳情','顯示數量'],
+ ja:['関連注文','関連約定','このスナップショットに関連記録はありません。','タスク詳細を閉じる','表示数量'],
+ ko:['관련 주문','관련 체결','현재 스냅샷에 관련 기록이 없습니다.','작업 세부 정보 닫기','표시 수량'],
+ es:['Órdenes relacionadas','Operaciones relacionadas','No hay registros relacionados en esta instantánea.','Cerrar detalles de tarea','Cantidad mostrada'],
+ fr:['Ordres associés','Transactions associées','Aucun enregistrement associé dans cet instantané.','Fermer les détails','Quantité affichée'],
+ de:['Zugehörige Aufträge','Zugehörige Abschlüsse','Keine zugehörigen Einträge in diesem Snapshot.','Aufgabendetails schließen','Anzeigemenge'],
+ pt:['Ordens relacionadas','Negociações relacionadas','Não há registros relacionados neste snapshot.','Fechar detalhes da tarefa','Quantidade exibida'],
+ ru:['Связанные ордера','Связанные сделки','В этом снимке нет связанных записей.','Закрыть данные задачи','Отображаемый объём'],
+ ar:['الأوامر المرتبطة','الصفقات المرتبطة','لا توجد سجلات مرتبطة في هذه اللقطة.','إغلاق تفاصيل المهمة','الكمية المعروضة'],
+ id:['Order terkait','Transaksi terkait','Tidak ada catatan terkait dalam snapshot ini.','Tutup detail tugas','Jumlah tampilan']
+};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys,...candleKeys,...matchTimeKeys,...advancedKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale],...candleRows[locale],...matchTimeRows[locale],...advancedRows[locale]];
   if(advancedRows[locale].length!==advancedKeys.length)throw new Error('EXCHANGE_ADVANCED_CATALOG_INCOMPLETE');
+  if(taskDetailRows[locale].length!==taskDetailKeys.length)throw new Error('EXCHANGE_TASK_DETAIL_CATALOG_INCOMPLETE');
   if(matchTimeRows[locale].length!==matchTimeKeys.length)throw new Error('EXCHANGE_MATCH_TIME_CATALOG_INCOMPLETE');
   if(candleRows[locale].length!==candleKeys.length)throw new Error('EXCHANGE_CANDLE_CATALOG_INCOMPLETE');
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
@@ -373,7 +389,7 @@ export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
   if(aiUIRows[locale].length!==aiUIKeys.length)throw new Error('EXCHANGE_AI_UI_CATALOG_INCOMPLETE');
   if(assetUIRows[locale].length!==assetUIKeys.length)throw new Error('EXCHANGE_ASSET_UI_CATALOG_INCOMPLETE');
   if(finalHelpRows[locale].length!==finalHelpKeys.length)throw new Error('EXCHANGE_FINAL_HELP_CATALOG_INCOMPLETE');
-  return [locale,Object.freeze({...Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])),...Object.fromEntries(quoteBoundaryKeys.map((key,i)=>[key,quoteBoundaryRows[locale][i]])),...Object.fromEntries(helpKeys.map((key,i)=>[key,helpRows[locale][i]])),...Object.fromEntries(privateUIKeys.map((key,i)=>[key,privateUIRows[locale][i]])),...Object.fromEntries(controlsStateKeys.map((key,i)=>[key,controlsStateRows[locale][i]])),...Object.fromEntries(publicChartKeys.map((key,i)=>[key,publicChartRows[locale][i]])),...Object.fromEntries(marketUIKeys.map((key,i)=>[key,marketUIRows[locale][i]])),...Object.fromEntries(controlsUIKeys.map((key,i)=>[key,controlsUIRows[locale][i]])),...Object.fromEntries(aiUIKeys.map((key,i)=>[key,aiUIRows[locale][i]])),...Object.fromEntries(assetUIKeys.map((key,i)=>[key,assetUIRows[locale][i]])),...Object.fromEntries(finalHelpKeys.map((key,i)=>[key,finalHelpRows[locale][i]]))})];
+return [locale,Object.freeze({...Object.fromEntries(taskDetailKeys.map((key,i)=>[key,taskDetailRows[locale][i]])),...Object.fromEntries(allKeys.map((key,i)=>[key,values[i]])),...Object.fromEntries(quoteBoundaryKeys.map((key,i)=>[key,quoteBoundaryRows[locale][i]])),...Object.fromEntries(helpKeys.map((key,i)=>[key,helpRows[locale][i]])),...Object.fromEntries(privateUIKeys.map((key,i)=>[key,privateUIRows[locale][i]])),...Object.fromEntries(controlsStateKeys.map((key,i)=>[key,controlsStateRows[locale][i]])),...Object.fromEntries(publicChartKeys.map((key,i)=>[key,publicChartRows[locale][i]])),...Object.fromEntries(marketUIKeys.map((key,i)=>[key,marketUIRows[locale][i]])),...Object.fromEntries(controlsUIKeys.map((key,i)=>[key,controlsUIRows[locale][i]])),...Object.fromEntries(aiUIKeys.map((key,i)=>[key,aiUIRows[locale][i]])),...Object.fromEntries(assetUIKeys.map((key,i)=>[key,assetUIRows[locale][i]])),...Object.fromEntries(finalHelpKeys.map((key,i)=>[key,finalHelpRows[locale][i]]))})];
 })));
 export const normalizeLocale=value=>locales.includes(value)?value:'en';
 export const translate=(locale,key)=>catalogs[normalizeLocale(locale)][key]??key;
@@ -394,6 +410,7 @@ export function installExchangeLocale({document,storage,onChange=()=>{}}){
   function apply(){
     document.documentElement.lang=locale;document.documentElement.dir=locale==='ar'?'rtl':'ltr';
     for(const element of document.querySelectorAll('[data-exchange-locale]'))element.textContent=translate(locale,element.dataset.exchangeLocale);
+    document.querySelector('#advanced-record-dialog .close')?.setAttribute('aria-label',translate(locale,'Close task details'));
     const helpLabels={'#assets > .section-title > p:last-child':'unsupported-route-help','#deposit-state':'deposit-policy-help','#withdraw-form + .source-note':'withdraw-broadcast-help','#activity > .section-title > p:last-child':'activity-record-help','#controls > .section-title > p:last-child':'local-controls-help'};
     for(const [selector,key] of Object.entries(helpLabels)){const element=document.querySelector(selector);if(element)element.textContent=translate(locale,key)}
     const activityLabels={trades:'Trade history',orders:'Order history',advanced:'Advanced orders',ledger:'Asset ledger',deposits:'Deposits',withdrawals:'Withdrawals',fees:'Fee history',audit:'Audit'};

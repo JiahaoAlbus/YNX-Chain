@@ -158,6 +158,7 @@ function renderPrivateAccount(value){
   }
   if(state.account!==value.account)rememberSupportDraft(state.account,value.account);
   state.privatePhase=value.phase;state.account=value.account;state.snapshot=value.snapshot;
+  if(state.advancedDetail)renderAdvancedDetails();
   const messages={guest:'Guest mode. Private venue data is hidden; standard Wallet and public markets are independent.',loading:'Verifying the Exchange private account…',connected:'Read-only Exchange account verified by the private authority and Product API. No order or withdrawal permission.', 'approval-pending':'Request saved. Click Open YNX Wallet to review read-only access. Native installation is unverified; returning here alone is not approval.',degraded:'Private account unavailable. Retry can recover its protected state; your standard Wallet remains unchanged.','authorization-required':'Private account authorization expired or was rejected. Retry or start a new explicit approval.',closed:'Private account is closed.'};
   $('#private-status').textContent=`${value.phase==='approval-pending'&&value.installation==='selected-provider'?'Review Exchange read-only access in the selected Wallet. No venue data is available until its approved return is verified.':messages[value.phase]||messages.degraded}${value.code?' ('+value.code+')':''}`;
   window.YNXExchangeLocale?.write($('#private-status'),value.phase==='approval-pending'&&value.installation==='selected-provider'?'selected-pending':Object.hasOwn(messages,value.phase)?value.phase:'degraded',value.code?' ('+value.code+')':'');
@@ -215,6 +216,7 @@ function ownedRecordOrder(a,b){return (ownedRecordInstant(b.createdAt)??-Infinit
 function ownedRecordTime(value,timeOnly=false){const instant=ownedRecordInstant(value);if(instant===null)return '—';const date=new Date(instant),locale=document.documentElement.lang||'en';return timeOnly?date.toLocaleTimeString(locale):date.toLocaleString(locale)}
 function renderBalances(){const root=$('#balances');root.replaceChildren();(state.snapshot.balances||[]).forEach(b=>{const div=document.createElement('div');div.className='balance-card';const title=document.createElement('strong');title.textContent=b.asset;const dl=document.createElement('dl');for(const [key,value] of [['Available',b.availableMicro],['Reserved',b.reservedMicro]]){const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=window.YNXExchangeLocale?.text(key)??key;dd.textContent=display(value);row.append(dt,dd);dl.append(row)}div.append(title,dl);root.append(div)})}
 function renderActivity(){
+  if(state.advancedDetail)renderAdvancedDetails();
   const head=$('#activity-head'),body=$('#activity-body');head.replaceChildren();body.replaceChildren();
   if(!state.snapshot)return;
   const owned=key=>(state.snapshot[key]||[]).filter(row=>key==='trades'?row.buyer===state.account||row.seller===state.account:row.account===state.account)
@@ -225,18 +227,25 @@ function renderActivity(){
     columns=['Time','Order ID','Market','Side / type','Price','Amount / Filled','Status','Reason'];
     rows=owned('orders').map(o=>[time(o.createdAt),o.id,o.market,`${o.side} / ${o.type}`,display(o.priceMicro),`${display(o.amountMicro)} / ${display(o.filledMicro)}`,window.YNXExchangeLocale?.record('order',o.status)??o.status,o.rejectReason||'—']);
   }else if(state.activity==='advanced'){
-    columns=['Time','Reference','Market','Side / type','Price','Amount','Task details','Status','Reason'];
+    columns=['Time','Reference','Market','Side / type','Price','Amount','Task details','Status','Reason','Action'];
     const text=key=>window.YNXExchangeLocale?.text(key)??key;
     const groups=[['conditionalOrders','Conditional order'],['ocoGroups','OCO group'],['twapOrders','TWAP task'],['scaleOrders','Scale order']];
     rows=groups.flatMap(([key,label])=>{
-      if(!Object.hasOwn(state.snapshot,key))return [['—','—','—',text(label),'—','—',text('Collection not reported; not verified.'),'—','—']];
+      if(!Object.hasOwn(state.snapshot,key))return [['—','—','—',text(label),'—','—',text('Collection not reported; not verified.'),'—','—','—']];
       return owned(key).map(o=>{
         let price='—',amount=display(o.amountMicro??o.totalAmountMicro),details=`${text('Reserved')}: ${display(o.reservedMicro)}`;
         if(key==='conditionalOrders'){price=`${text('Trigger')}: ${display(o.triggerPriceMicro)} / ${text('Limit price')}: ${display(o.limitPriceMicro)}`;details+=` · ${text('Activation is not a fill.')}${o.activatedOrderId?' · '+o.activatedOrderId:''}`;}
         if(key==='ocoGroups')details+=` · ${o.stopConditionalId||'—'} / ${o.takeProfitConditionalId||'—'} · ${text('Activation is not a fill.')}${o.activatedOrderId?' · '+o.activatedOrderId:''}`;
         if(key==='twapOrders'){price=display(o.limitPriceMicro);amount=display(o.totalAmountMicro);details+=` · ${text('Scheduled')}: ${display(o.scheduledMicro)} · ${o.slicesExecuted} / ${o.slices} · ${text('Scheduled quantity is not filled quantity.')} · ${o.childOrderIds.join(', ')||'—'}`;}
         if(key==='scaleOrders'){price=`${display(o.startPriceMicro)} / ${display(o.endPriceMicro)}`;amount=display(o.totalAmountMicro);details+=` · ${text('Filled')}: ${display(o.filledMicro)} · ${o.levels} · ${o.childOrderIds.join(', ')||'—'}`;}
-        return [time(o.createdAt),o.id,o.market,`${o.side} / ${text(label)}`,price,amount,details,o.status,o.rejectReason||'—'];
+        const button=document.createElement('button'),snapshot=state.snapshot,account=state.account;
+        button.type='button';button.className='text-button';button.dataset.recordDetail=o.id;button.textContent=text('Task details');
+        button.addEventListener('click',()=>{
+          if(state.account!==account||state.snapshot!==snapshot||!snapshot[key].includes(o))return;
+          state.advancedDetail={key,id:o.id,account};renderAdvancedDetails();
+          const dialog=$('#advanced-record-dialog');if(state.advancedDetail&&!dialog.open)dialog.showModal();
+        });
+        return [time(o.createdAt),o.id,o.market,`${o.side} / ${text(label)}`,price,amount,details,o.status,o.rejectReason||'—',button];
       });
     });
   }else if(state.activity==='ledger'){
@@ -262,7 +271,47 @@ function renderActivity(){
   const heading=document.createElement('tr');
   for(const label of columns){const th=document.createElement('th');th.scope='col';if(window.YNXExchangeLocale)window.YNXExchangeLocale.write(th,label);else th.textContent=label;heading.append(th)}head.append(heading);
   if(!rows.length){const tr=document.createElement('tr'),td=document.createElement('td');td.colSpan=columns.length;td.className='empty-cell';if(window.YNXExchangeLocale)window.YNXExchangeLocale.write(td,'No owned records yet.');else td.textContent='No owned records yet.';tr.append(td);body.append(tr);return}
-  for(const row of rows){const tr=document.createElement('tr');for(const value of row){const td=document.createElement('td');td.textContent=value;tr.append(td)}body.append(tr)}
+  for(const row of rows){const tr=document.createElement('tr');for(const value of row){const td=document.createElement('td');if(value instanceof HTMLElement)td.append(value);else td.textContent=value;tr.append(td)}body.append(tr)}
+}
+function renderAdvancedDetails(){
+  const dialog=$('#advanced-record-dialog'),root=$('#advanced-record-details'),selection=state.advancedDetail;
+  if(!dialog||!root)return;
+  root.replaceChildren();
+  const record=selection&&selection.account===state.account&&state.snapshot?.[selection.key]?.find(row=>row.id===selection.id&&row.account===state.account);
+  if(!record){
+    state.advancedDetail=null;$('#advanced-record-title').textContent='';if(dialog.open)dialog.close();return;
+  }
+  dialog.onclose=()=>{
+    if(dialog.open)return;
+    state.advancedDetail=null;root.replaceChildren();$('#advanced-record-title').textContent='';
+    if(state.account===selection.account)[...document.querySelectorAll('[data-record-detail]')].find(button=>button.dataset.recordDetail===selection.id)?.focus({preventScroll:true});
+  };
+  const text=key=>window.YNXExchangeLocale?.text(key)??key;
+  $('#advanced-record-title').textContent=`${text('Task details')} · ${record.id}`;
+  const fields=[['Reference',record.id],['Market',record.market],['Status',record.status],['Time',ownedRecordTime(record.createdAt)],['Reason',record.rejectReason||'—']];
+  for(const key of ['triggerPriceMicro','trailOffsetMicro','watermarkMicro','limitPriceMicro','amountMicro','totalAmountMicro','scheduledMicro','filledMicro','reservedMicro','startPriceMicro','endPriceMicro']){
+    if(Object.hasOwn(record,key))fields.push([key,`${String(record[key])} · ${text('Display amount')}: ${display(record[key])}`]);
+  }
+  // Keep native source field names alongside exact values; do not guess units
+  // or treat task activation/scheduling as matching or chain settlement.
+  for(const key of ['kind','groupId','stopConditionalId','takeProfitConditionalId','triggeredConditionalId','activatedOrderId','triggeredByTradeId','slices','slicesExecuted','intervalSeconds','levels','postOnly']){
+    if(Object.hasOwn(record,key))fields.push([key,String(record[key])]);
+  }
+  for(const key of ['nextRunAt','updatedAt'])if(Object.hasOwn(record,key))fields.push([key,ownedRecordTime(record[key])]);
+  const dl=document.createElement('dl');for(const [key,value]of fields){const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=text(key);dd.textContent=value;dl.append(dt,dd)}root.append(dl);
+  const refs=new Set([record.activatedOrderId,...(record.childOrderIds||[])].filter(id=>typeof id==='string'&&id));
+  const orders=(state.snapshot.orders||[]).filter(row=>row.account===state.account&&refs.has(row.id));
+  const trades=(state.snapshot.trades||[]).filter(row=>row.buyer===state.account&&refs.has(row.buyOrderId)||row.seller===state.account&&refs.has(row.sellOrderId));
+  for(const [label,items]of [['Related orders',orders],['Related trades',trades]]){
+    const heading=document.createElement('h3');heading.textContent=text(label);root.append(heading);
+    if(!items.length){const note=document.createElement('p');note.textContent=text('No related records in this snapshot.');root.append(note);continue}
+    for(const item of items.slice().sort(ownedRecordOrder)){
+      const p=document.createElement('p');
+      p.textContent=label==='Related orders'?`${item.id} · ${item.status} · ${display(item.amountMicro)} / ${display(item.filledMicro)}`:
+        `${item.id} · ${ownedRecordTime(item.createdAt)} · ${display(item.priceMicro)} × ${display(item.amountMicro)} · ${text('Fee')}: ${display(item.buyer===state.account?item.buyerFeeMicro:item.sellerFeeMicro)} · ${item.sourceDigest||'—'}`;
+      root.append(p);
+    }
+  }
 }
 function renderPublicMarket(){
   const candles=aggregateRetainedCandles(state.publicTrades,Number($('#chart-interval').value));
