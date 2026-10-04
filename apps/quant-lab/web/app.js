@@ -30,12 +30,15 @@ function persistWorkspaceValue(key, value) {
   try { localStorage.setItem(key, value); if (localStorage.getItem(key) !== value) throw new Error('STORAGE_READBACK_MISMATCH'); }
   catch { workspaceStorageAvailable = false; statefulPreview = false; throw new Error(t('workspaceStorageUnavailable')); }
 }
-function clearPendingPaperIntent() {
+function clearPendingPaperIntent(expectedBytes) {
   try {
+    if (!expectedBytes || localStorage.getItem(paperPendingKey) !== expectedBytes || JSON.stringify(pendingPaperIntent) !== expectedBytes) return false;
     localStorage.removeItem(paperPendingKey);
     if (localStorage.getItem(paperPendingKey) !== null) throw new Error('STORAGE_READBACK_MISMATCH');
     pendingPaperIntent = null;
+    return true;
   } catch { workspaceStorageAvailable = false; statefulPreview = false; }
+  return false;
 }
 try {
   tenantId = localStorage.getItem(tenantKey);
@@ -63,6 +66,22 @@ function readPendingResearchIntent() {
   } catch { pendingResearchInvalid = true; return null; }
 }
 let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperIntent = readPendingPaperIntent();
+let paperSubmissionLane = null;
+function paperSubmissionViewMatches(lane) {
+  return paperSubmissionLane === lane && $('#paper-strategy').value === lane.intent.StrategyHash && $('#side').value === lane.intent.Side &&
+    +$('#paper-amount').value === lane.intent.Amount && samePaperCosts(selectedPaperCosts(), lane.intent.ExecutionCosts);
+}
+function currentPaperSubmission(lane) {
+  if (paperSubmissionLane !== lane || !lane?.bytes) return false;
+  try {
+    return localStorage.getItem(paperPendingKey) === lane.bytes && JSON.stringify(pendingPaperIntent) === lane.bytes && paperSubmissionViewMatches(lane);
+  } catch { return false; }
+}
+function reloadPaperJournal() {
+  if (!workspaceStorageAvailable) return;
+  pendingPaperInvalid = false;
+  pendingPaperIntent = readPendingPaperIntent();
+}
 // A pending exact-key replay may retrieve an already committed receipt even
 // after a kill. The service still rejects new execution under the kill switch.
 function paperFreshIntentBlockKey() { return riskWrites.size>0 || riskOutcomeUnconfirmed ? 'riskReceiptUnconfirmed' : pendingPaperInvalid ? 'paperPendingUnreadable' : pendingPaperIntent ? null : workspaceReadUnavailable ? 'workspaceReadUnavailable' : snapshot.paper?.KillSwitch === true ? 'killActive' : null; }
@@ -659,8 +678,11 @@ function renderPaperPendingState(){
   paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting;paperForgetButton.textContent=t('paperForget');
 }
 paperForgetButton.onclick=()=>{
-  if(paperSubmitting||!pendingPaperInvalid||!confirm(t('paperForgetConfirm')))return;
+  if(paperSubmitting||!pendingPaperInvalid)return;
   try{
+    const forgottenBytes=localStorage.getItem(paperPendingKey);
+    if(!confirm(t('paperForgetConfirm')))return;
+    if(localStorage.getItem(paperPendingKey)!==forgottenBytes){reloadPaperJournal();renderPaperSubmitControl();return;}
     localStorage.removeItem(paperPendingKey);
     if(localStorage.getItem(paperPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
     pendingPaperInvalid=false;pendingPaperIntent=null;toast(t('paperForgotten'),'paperForgotten');renderPaperSubmitControl();
@@ -1359,7 +1381,12 @@ function renderResearchRequestState() {
 $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
   if (paperSubmitting || !statefulPreview) return;
+  let lane = null;
   try {
+    // Another same-workspace view may have replaced the durable intent without
+    // this view receiving a storage event. Never overwrite it from stale memory.
+    reloadPaperJournal();
+    const journalBytes = localStorage.getItem(paperPendingKey);
     if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
     const strategyHash = $("#paper-strategy").value;
     if (!Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
@@ -1374,6 +1401,7 @@ $("#paper-order").onsubmit = async (e) => {
     if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${boundary}`)) return;
     if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
     if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !samePaperCosts(costs,selectedPaperCosts()) || !Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
+    if (localStorage.getItem(paperPendingKey) !== journalBytes) { reloadPaperJournal(); throw new Error(t('paperPendingMismatch')); }
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
       if(costs)pendingPaperIntent.ExecutionCosts=costs;
@@ -1382,23 +1410,31 @@ $("#paper-order").onsubmit = async (e) => {
     paperSubmitting = true;
     $("#paper-submit").disabled = true;
     const submitted = pendingPaperIntent;
+    lane = {intent: submitted, bytes: JSON.stringify(submitted)};
+    paperSubmissionLane = lane;
     const order = await api("/v1/paper/orders", {
       method: "POST",
       body: JSON.stringify(submitted),
     });
     const receiptCosts=order?.CostPolicy?{Policy:order.CostPolicy,FeeBPS:order.FeeBPS===undefined?0:order.FeeBPS,SlippageBPS:order.SlippageBPS===undefined?0:order.SlippageBPS}:undefined;
     if (!verifiedPaperRecord(order) || !samePaperCosts(submitted.ExecutionCosts,receiptCosts) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
-    clearPendingPaperIntent();
+    if (!currentPaperSubmission(lane) || !clearPendingPaperIntent(lane.bytes)) return;
     toast(t("paperRecorded"), "paperRecorded");
     await refresh();
   } catch (e) {
+    if (lane && !currentPaperSubmission(lane)) return;
+    let cleared = false;
     if (e.code !== 'QUANT_API_REJECTED' && e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
-      clearPendingPaperIntent();
+      if (lane) cleared = clearPendingPaperIntent(lane.bytes);
     }
     if(e.code === 'paper_daily_loss_limit') { try { await refresh(); } catch { /* Keep the precise rejection; no automatic order retry. */ } }
+    if (lane && !currentPaperSubmission(lane) && !(cleared && paperSubmissionViewMatches(lane) && pendingPaperIntent === null && readPreference(paperPendingKey) === null)) return;
     toast(e.message,e.localeKey ?? null);
   } finally {
+    if (lane && paperSubmissionLane !== lane) return;
+    paperSubmissionLane = null;
     paperSubmitting = false;
+    reloadPaperJournal();
     $('#workspace-storage-boundary').hidden = workspaceStorageAvailable;
     $('#workspace-storage-boundary').textContent = t('workspaceStorageUnavailable');
     renderRiskControls();

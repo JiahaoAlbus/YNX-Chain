@@ -1533,6 +1533,16 @@ test('typed Paper daily-loss rejection clears the rejected intent, refreshes ris
   assert.equal(posts,1);assert.equal(app.proofs(),0);
 });
 
+test('Paper rejection follow-up read cannot label a newer pending view with the old rejection',async()=>{
+  const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}},late=deferred();let posts=0;
+  const app=harness({snapshot,confirmAction:()=>true,apiStatus:url=>url.endsWith('/paper/orders')?403:200,apiResponse:url=>{
+    if(url.endsWith('/paper/orders')){posts++;return {error:'paper_daily_loss_limit'}}
+    return posts?late.promise:snapshot;
+  }});await settle();app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='100';
+  const pending=app.submit('paper-order');await settle();const key=vm.runInContext('paperPendingKey',app.context),newer={StrategyHash:hash,Side:'buy',Amount:200,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111'},raw=JSON.stringify(newer),before=app.ids.get('toast').textContent;
+  app.storage.set(key,raw);late.resolve(snapshot);await pending;
+  assert.equal(app.storage.get(key),raw);assert.equal(app.ids.get('toast').textContent,before);assert.equal(vm.runInContext('JSON.stringify(pendingPaperIntent)',app.context),raw);assert.equal(posts,1);
+});
 test('cancelled retry preserves the original durable uncertain intent without a new request',async()=>{
   const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
   const original=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();original.ids.get('paper-strategy').value=hash;original.ids.get('side').value='buy';original.ids.get('paper-amount').value='100';await original.submit('paper-order');
@@ -1540,6 +1550,43 @@ test('cancelled retry preserves the original durable uncertain intent without a 
   const restored=harness({snapshot,savedStorage:original.storage,confirmAction:()=>false});await settle();await restored.submit('paper-order');assert.equal(restored.storage.get(key),pending);assert.equal(restored.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(restored.proofs(),0);
 });
 
+test('late Paper success, definitive rejection and network loss cannot erase or complete a newer durable intent', async () => {
+  for(const costs of [false,true])for(const outcome of ['success','rejection','network']){
+    const hash='d'.repeat(64),late=deferred(),workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}},paper:{KillSwitch:false}};
+    const app=harness({snapshot:workspace,confirmAction:()=>true,apiStatus:url=>url.endsWith('/paper/orders')&&outcome==='rejection'?400:200,apiResponse:url=>url.endsWith('/snapshot')?workspace:late.promise});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';if(costs)setPaperCosts(app);
+    const pending=app.submit('paper-order');await settle();
+    const sent=JSON.parse(app.calls.find(c=>c.url.endsWith('/paper/orders')).options.body),key=[...app.storage.keys()].find(k=>k.startsWith('ynx.quant.paper.pending.v1:'));
+    const newer={...sent,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111',Amount:2000000},raw=JSON.stringify(newer);
+    app.storage.set(key,raw);const before=app.ids.get('toast').textContent,reads=app.calls.filter(c=>c.url.endsWith('/snapshot')).length;
+    if(outcome==='network')late.reject(Error('controlled late connection loss'));
+    else late.resolve(outcome==='rejection'?{error:'invalid_request'}:costs?costReceipt(sent):paperRecord({StrategyHash:sent.StrategyHash,Side:sent.Side,Amount:sent.Amount,IdempotencyKey:sent.IdempotencyKey}));
+    await pending;
+    assert.equal(app.storage.get(key),raw);assert.equal(vm.runInContext('JSON.stringify(pendingPaperIntent)',app.context),raw);
+    assert.equal(app.ids.get('toast').textContent,before,'old response cannot label the new operation completed or failed');
+    assert.equal(app.calls.filter(c=>c.url.endsWith('/snapshot')).length,reads);assert.equal(vm.runInContext('paperSubmitting',app.context),false);assert.equal(app.proofs(),0);
+    app.ids.get('paper-amount').value='2000000';await app.submit('paper-order');
+    assert.equal(JSON.parse(app.calls.filter(c=>c.url.endsWith('/paper/orders'))[1].options.body).IdempotencyKey,newer.IdempotencyKey);
+  }
+});
+test('late Paper response preserves an edited current view and cannot overwrite another view before dispatch',async()=>{
+  const hash='d'.repeat(64),late=deferred(),workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+  const app=harness({snapshot:workspace,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?workspace:late.promise});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';setPaperCosts(app);
+  const pending=app.submit('paper-order');await settle();const sent=JSON.parse(app.calls.find(c=>c.url.endsWith('/paper/orders')).options.body),key=[...app.storage.keys()].find(k=>k.startsWith('ynx.quant.paper.pending.v1:')),raw=app.storage.get(key),before=app.ids.get('toast').textContent;
+  app.ids.get('paper-cost-fee').value='11';late.resolve(costReceipt(sent));await pending;
+  assert.equal(app.storage.get(key),raw);assert.equal(app.ids.get('paper-cost-fee').value,'11');assert.equal(app.ids.get('toast').textContent,before);
+  const newer={...sent,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111',Amount:2000000};app.storage.set(key,JSON.stringify(newer));
+  app.ids.get('paper-cost-fee').value='10';await app.submit('paper-order');assert.equal(app.calls.filter(c=>c.url.endsWith('/paper/orders')).length,1);assert.equal(app.storage.get(key),JSON.stringify(newer));
+});
+test('Paper confirmation cannot overwrite a journal created by another view while the dialog is open',async()=>{
+  const hash='d'.repeat(64),workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}}},newer={StrategyHash:hash,Side:'buy',Amount:2000000,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111'};
+  let app;
+  app=harness({snapshot:workspace,confirmAction:()=>{app.storage.set(vm.runInContext('paperPendingKey',app.context),JSON.stringify(newer));return true;}});await settle();
+  app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';await app.submit('paper-order');
+  assert.equal(app.calls.filter(c=>c.options.method==='POST').length,0);assert.equal(app.storage.get(vm.runInContext('paperPendingKey',app.context)),JSON.stringify(newer));
+  assert.equal(vm.runInContext('JSON.stringify(pendingPaperIntent)',app.context),JSON.stringify(newer));assert.equal(app.proofs(),0);
+});
 test('Paper submits the selected saved strategy, preserves selection on refresh and rejects a stale/foreign hash', async () => {
   const hash = 'd'.repeat(64), app = harness({confirmAction:()=>true,snapshot: {strategies: {one: {Name: 'Saved strategy', StrategyHash: hash}}}}); await settle();
   app.ids.get('paper-strategy').value = hash; app.ids.get('paper-strategy').onchange();
