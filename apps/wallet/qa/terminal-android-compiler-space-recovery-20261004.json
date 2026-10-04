@@ -1,0 +1,26 @@
+{
+  "kind": "OWN_TERMINAL_ANDROID_COMPILER_LEAF_RECLAMATION_COMPLETED",
+  "at": "2026-10-04T12:44:33.630Z",
+  "freeze": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native-android-compiler-space-recovery-20261004-ri1IxN",
+  "sourceComposition": "d3b241601d40aaa7cbd68d30fa7203954e4e904a",
+  "candidate": "/private/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "removedLeaves": ["apps/wallet/android/app/build/intermediates/cxx", "apps/wallet/android/app/build/intermediates/merged_native_libs", "apps/wallet/android/app/build/intermediates/stripped_native_libs"],
+  "inventoryRegularFiles": 169,
+  "inventoryRegularLogicalBytes": 520550341,
+  "holders": "Fresh recursive lsof exit 1 with empty stdout/stderr before deletion",
+  "deletion": "Plain /bin/rm -r -- three explicit validated paths, actual exit 0; no force or alternate removal API",
+  "readback": {
+    "protectedFilesExact": 965,
+    "rawLogsExact": 46,
+    "apkSha256": "43641b35fc6d828048ca31b86d5b3b2b910b6c33fedae53666fd595663f08771",
+    "dmgSha256": "b1635e863e589ebddd8edc2b8545cee672159f10c5a7f0abd83f273579fd4b55",
+    "iosRawApp40FilesExact": true,
+    "sourceTrackedClean": true,
+    "outputsSourcemapsCxxConfigurationPodsPreserved": true
+  },
+  "availableKiBAfter": 534748,
+  "spaceCaveat": "Concurrent work can change df; not all df delta is attributable to this deletion. Still inadequate for large Native build.",
+  "recovery": "Regenerate from retained source, dependencies, locks and canonical NDK 27.1.12297006 using original arm64 release recipe; not Trash recovery and no byte-identical compiler-output guarantee. No build started.",
+  "excluded": "OqwR00 Products and 5LLc9a simulator data preserved. rxWwZl cleanup deferred: no Git/source binding, stale release metadata and missing old SDK alias despite retained same-version canonical NDK.",
+  "productStatus": "Resource recovery only. Pay/crypto production integration, compatible formal release, installed real business journeys and MONSTER remain unverified. No keys, accounts, outbox, UNKNOWN, shared source or global SDK changed."
+}
