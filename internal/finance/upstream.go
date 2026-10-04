@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -197,7 +198,7 @@ func (u *Upstreams) get(ctx context.Context, endpoint, payKey string, out any) e
 	if payKey != "" {
 		req.Header.Set("X-YNX-Pay-Key", payKey)
 	}
-	resp, err := u.client.Do(req)
+	resp, err := financeReadClient(u.client).Do(req)
 	if err != nil {
 		return fmt.Errorf("upstream unavailable: %w", err)
 	}
@@ -205,11 +206,32 @@ func (u *Upstreams) get(ctx context.Context, endpoint, payKey string, out any) e
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("upstream returned HTTP %d", resp.StatusCode)
 	}
-	dec := json.NewDecoder(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxReadSourceEnvelopeBytes+1))
+	if err != nil || len(body) > maxReadSourceEnvelopeBytes {
+		return errors.New("upstream response exceeds or fails the Finance evidence limit")
+	}
+	if trimmed := bytes.TrimSpace(body); len(trimmed) == 0 || trimmed[0] != '{' {
+		return errors.New("upstream evidence must be a JSON object")
+	}
+	dec := json.NewDecoder(bytes.NewReader(body))
 	if err := dec.Decode(out); err != nil {
 		return fmt.Errorf("invalid upstream response: %w", err)
 	}
+	if err := dec.Decode(&struct{}{}); err != io.EOF {
+		return errors.New("upstream response must contain one JSON document")
+	}
 	return nil
+}
+
+// Keep authenticated evidence at its configured origin/path. Clone rather
+// than mutating an injected client shared with other product consumers.
+func financeReadClient(supplied *http.Client) *http.Client {
+	client := http.Client{Timeout: 8 * time.Second}
+	if supplied != nil {
+		client = *supplied
+	}
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error { return http.ErrUseLastResponse }
+	return &client
 }
 
 func eventOwnedBy(event map[string]any, account string) bool {
@@ -280,8 +302,8 @@ func firstTime(m map[string]any, keys ...string) time.Time {
 
 func requireHTTPURL(value string) (*url.URL, error) {
 	parsed, err := url.Parse(value)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" {
-		return nil, errors.New("absolute http(s) URL required")
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+		return nil, errors.New("absolute http(s) base URL without credentials, query or fragment required")
 	}
 	return parsed, nil
 }

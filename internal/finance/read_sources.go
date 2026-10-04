@@ -349,10 +349,7 @@ func (u *Upstreams) readSourceForAccount(ctx context.Context, account string, ob
 		descriptor.Status.Error = err.Error()
 		return descriptor
 	}
-	client := u.client
-	if client == nil {
-		client = &http.Client{Timeout: 8 * time.Second}
-	}
+	client := financeReadClient(u.client)
 	response, err := client.Do(request)
 	if err != nil {
 		descriptor.Status.Source = endpoint
