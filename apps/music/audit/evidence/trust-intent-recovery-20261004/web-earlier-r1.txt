@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Canonical Wallet sign-in is required/. Input:
+
+'This web surface does not store a Wallet session. Use the installed app for the canonical device-bound sign-in.'
+
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/business-web-check.cjs:11:85 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: 'This web surface does not store a Wallet session. Use the installed app for the canonical device-bound sign-in.',
+  expected: /Canonical Wallet sign-in is required/,
+  operator: 'match',
+  diff: 'simple'
+}

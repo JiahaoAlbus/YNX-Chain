@@ -1,0 +1,26 @@
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift:15:396: error: type 'URLError.Code' has no member 'cannotEncodeContentData'
+ 13 |     let key,account,kind,trackID,reason,evidenceRef:String
+ 14 |     func body()throws->Data {
+ 15 |         guard key.range(of:"^music-trust-[A-Fa-f0-9-]{36}$",options:.regularExpression) != nil,["report","takedown","dispute","appeal"].contains(kind),trackID.range(of:"^trk_[0-9a-f]{24}$",options:.regularExpression) != nil,reason.count>=5,reason==reason.trimmingCharacters(in:.whitespacesAndNewlines),evidenceRef==evidenceRef.trimmingCharacters(in:.whitespacesAndNewlines) else{throw URLError(.cannotEncodeContentData)}
+    |                                                                                                                                                                                                                                                                                                                                                                                                            `- error: type 'URLError.Code' has no member 'cannotEncodeContentData'
+ 16 |         let data=try JSONSerialization.data(withJSONObject:["kind":kind,"trackID":trackID,"reason":reason,"evidenceRef":evidenceRef],options:[.sortedKeys]);guard data.count<=16*1024 else{throw URLError(.dataLengthExceedsMaximum)};return data
+ 17 |     }
+node:internal/errors:999
+  const err = new Error(message);
+              ^
+
+Error: Command failed: xcrun swiftc -module-cache-path /tmp/ynx-music-trust-intent-swift-20261004/modules /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeEngine.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeState.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeCustody.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeTransport.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicDeviceSigner.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicCredentials.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAPI.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift /tmp/ynx-music-trust-intent-swift-20261004/OriginalMusicModel.swift /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/scripts/apple-native-engine-check.swift -o /tmp/ynx-music-trust-intent-swift-20261004/apple-music-engine-check
+    at genericNodeError (node:internal/errors:999:15)
+    at wrappedFn (node:internal/errors:544:14)
+    at checkExecSyncError (node:child_process:942:11)
+    at execFileSync (node:child_process:978:15)
+    at file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/music/scripts/compile-apple-native-engine-check.mjs:5:54 {
+  status: 1,
+  signal: null,
+  output: [ null, null, null ],
+  pid: 44597,
+  stdout: null,
+  stderr: null
+}
+
+Node.js v26.7.0
