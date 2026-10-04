@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "observedDateUTC": "2026-10-04",
+  "ownedSourceCommit": "815ea34d012bf29f78143bf89f2cd81e838c2fd8",
+  "purpose": "Refresh actual official download delivery gates without installing, mounting or executing packages or shared SDK.",
+  "evidenceDirectory": "/tmp/ynx-wallet-public-gates-20261004-h8DC4s",
+  "website": {
+    "requestedURL": "https://www.ynxweb4.com/wallet",
+    "effectiveURL": "https://www.ynxweb4.com/dapp/wallet",
+    "http": 200,
+    "dynamicCatalogURL": "https://www.ynxweb4.com/assets/ecosystemCatalog-DgrhXrIF.js",
+    "staticEvidenceURL": "https://www.ynxweb4.com/releases/wallet/d58ce00dc/product-release.json",
+    "staticEvidenceSourceCommit": "d58ce00dc4e83f4c24747dfef7e0b59395d6b789",
+    "staticEvidenceVersionCode": 25,
+    "finding": "Static release-evidence link is historical code25 while the current lazy download catalog advertises code34. Do not confuse the old evidence link with the current selected APK."
+  },
+  "artifacts": [
+    {
+      "platform": "android",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-78c7221821add4cba78ece2069fea05a98b7c15cc3ba3e93a25fc0b0214f8509/ynx-wallet-1.0.28-a9fff0d84-local-test-signed.apk",
+      "http": 200,
+      "bytes": 117057650,
+      "sha256": "78c7221821add4cba78ece2069fea05a98b7c15cc3ba3e93a25fc0b0214f8509",
+      "completeDownloadHashMatchesCatalog": true,
+      "catalogSourceCommit": "a9fff0d84fe0e4b67a520136ab9c8d4721f6c23e",
+      "manifestReadback": {"applicationId": "com.ynxweb4.wallet", "versionName": "1.0.28-testnet-preview", "versionCode": 34},
+      "apkSignatureVerifyExit": 0,
+      "certificateDN": "C=US, O=Android, CN=Android Debug",
+      "certificateSHA256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+      "productionSigned": false,
+      "installedThisAudit": false
+    },
+    {
+      "platform": "macos",
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f/ynx-wallet-macos-0.6.8-universal.dmg",
+      "http": 200,
+      "bytes": 258681947,
+      "sha256": "f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",
+      "completeDownloadHashMatchesCatalog": true,
+      "catalogSourceCommit": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+      "catalogVersion": "0.6.8",
+      "hdiutilContainerChecksumVerifyExit": 0,
+      "containerChecksum": "VALID; does not verify the app signature or installed behavior",
+      "mountedOrInstalledThisAudit": false,
+      "applicationSignatureAndNotarization": "NOT_VERIFIED"
+    },
+    {
+      "platform": "web-pwa-archive",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-aa25d535817c3a954a550615ad250836431ecf2211c1607ce9949546337c4f6d/ynx-wallet-web-pwa-0.1.19.zip",
+      "http": 200,
+      "bytes": 899794,
+      "sha256": "aa25d535817c3a954a550615ad250836431ecf2211c1607ce9949546337c4f6d",
+      "completeDownloadHashMatchesCatalog": true,
+      "archiveBuildIdentitySourceCommit": "c38502f2c4c1be7a3450d12538191b32a4500563",
+      "liveOrigin": "https://wallet.ynxweb4.com/",
+      "liveIndexMatchesArchive": true,
+      "indexSHA256": "5996d683bc64f9722d065495287ec6dc1751274d7910901e3c53d80740463461",
+      "liveWalletCoreMatchesArchive": true,
+      "walletCoreSHA256": "bf7fa59d9f0fd062a7cb92dd76b2e98c3aa66148ce9cd3360d98c664efe4dded",
+      "allLiveAssetsVerified": false,
+      "executedThisAudit": false
+    }
+  ],
+  "independentReviewReadback": {
+    "sourceCommit": "15859f2966fc8aa7165e0e776e6dd4a3967b8548",
+    "reviewDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native15859-protection-review-independent-review",
+    "reviewSHA256": "58f3f5412ead448d359e00aa2230dcae9a1b83dc48beba4ade001e84fd2ab395",
+    "receiptSHA256": "920e8176d75af916469c2449ae1248fba9231db8004a85d82d55d02134dce017",
+    "admittedPureSourceTests": "33/33 PASS; overlaps preserved, not 33 unique new behaviors",
+    "repositoryRuntime": "NOT_RUN by independent reviewer",
+    "nativeOSAndPublicRuntime": "NOT_RUN"
+  },
+  "nextOwnerAction": "A must compose the current owned source with its exact complete admitted shared graph and publish a preserving-upgrade candidate; align static release evidence with the actual selected artifact while retaining historical releases.",
+  "notVerified": ["Current owned-source final installer", "Complete three-platform capability parity", "Original account/key/UNKNOWN preserving upgrade", "Real camera scan", "Strong OS authentication and secure persistence", "Canonical Pay authorization/sign/settlement", "Real original contract read", "Full installed user journey", "User acceptance"],
+  "MONSTER": "NOT_RUN",
+  "overallGoal": "NOT_COMPLETED",
+  "limits": "Hashes establish delivered file identity only. Catalog source identities are publisher declarations, not full packaged source inspection. No real account, secret, signing, shared SDK execution, UI foreground, registry, deployment, install or runtime mutation. Web tool retrieval failed; direct HTTPS readback succeeded."
+}

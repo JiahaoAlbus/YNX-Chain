@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist-android/
+dist-ios/
+proof/*.xml
+android/app/build/
+android/build/
+ios/Pods/
+*.xcworkspace/

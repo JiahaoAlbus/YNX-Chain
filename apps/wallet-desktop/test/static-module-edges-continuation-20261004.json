@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "baseline": "fb35396d16e5c305492b79d3c72efcd66d0d5295",
+  "purpose": "Supply syntax-based direct ESM dependency diagnostics for original SDK composition without changing shared SDK or product startup.",
+  "observedExternalDefects": [
+    "Original source map falsely included comma-space body text as a module specifier.",
+    "Successor anchored import scan omitted compact import{...}from'./canonical.js' in pay-invoice-trust.js.",
+    "Import-only fields do not include index.js reexport dependencies."
+  ],
+  "change": "Export staticModuleSpecifiers from the existing owner AST tool; preserve runtime import/reexport order and line identity; exclude type-only declarations/specifiers.",
+  "originalRed": {"tests": 9, "pass": 6, "fail": 3, "reason": "New scanner API absent; original six tests retained."},
+  "finalGreen": {"tests": 9, "pass": 9, "fail": 0, "skip": 0},
+  "originalSourceReadback": {
+    "head": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "fourSourceHashesMatchedMap": true,
+    "indexReexportEdges": 57,
+    "payPaymentImportEdges": 6,
+    "payInvoiceTrustImportEdges": 1,
+    "walletConnectProtocolImportEdges": 5
+  },
+  "evidenceDirectory": "/tmp/ynx-wallet-static-module-edges-20261004-Zmfc2C",
+  "currentLocalSDK": {"status": "SOURCE_IMPORT_MISMATCH", "missingDistinctNames": 13, "missingUses": 25},
+  "limits": [
+    "Only direct runtime ESM declarations; dynamic imports, require(), resolution, star-export ambiguity and full dependency closure are not admitted.",
+    "No original SDK JavaScript evaluation, package copying, alias, shared-source edit or stopped-graph adoption.",
+    "App.tsx, startup, Main, private accounts, custody, UNKNOWN journals, signing and installer state unchanged.",
+    "Initial patch preparation had a JavaScript quoting error before apply_patch ran; corrected tool invocation did not change tests or product fallback.",
+    "Owner engineering checks, not independent review or full installed acceptance."
+  ],
+  "MONSTER": "NOT_RUN",
+  "overallGoal": "NOT_COMPLETED"
+}

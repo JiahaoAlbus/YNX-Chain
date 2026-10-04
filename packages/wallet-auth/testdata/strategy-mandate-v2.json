@@ -1,0 +1,203 @@
+{
+  "vectorVersion": 1,
+  "protocol": {
+    "strategyMandateSchemaVersion": 2,
+    "strategyActionSchemaVersion": 1,
+    "nonceDomain": "ynx:strategy:<account>:<productClientId>:<mandateId>",
+    "generatedAt": "2026-07-15T12:00:00.000Z"
+  },
+  "mandate": {
+    "schemaVersion": 2,
+    "mandateId": "shared-dex-vector-v2",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "productClientId": "ynx-quant-v1",
+    "sessionBinding": "7171717171717171717171717171717171717171717171717171717171717171",
+    "strategyName": "Shared bounded DEX vector",
+    "strategyHash": "7272727272727272727272727272727272727272727272727272727272727272",
+    "strategyVersion": "2.0.0",
+    "engineCommit": "7373737373737373737373737373737373737373",
+    "engineRelease": "quant-shared-vector-2.0.0-testnet",
+    "executionKind": "dex-strategy-vault",
+    "executionAccount": "0x8888888888888888888888888888888888888888",
+    "nonceDomain": "ynx:strategy:ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80:ynx-quant-v1:shared-dex-vector-v2",
+    "allowedVenues": [
+      "ynx-dex"
+    ],
+    "allowedAssets": [
+      "USDC",
+      "YNXT"
+    ],
+    "allowedMarkets": [
+      "YNXT/USDC"
+    ],
+    "allowedMethods": [
+      "0x12345678",
+      "0x87654321"
+    ],
+    "allowedContracts": [
+      "0x8888888888888888888888888888888888888888",
+      "0x9999999999999999999999999999999999999999"
+    ],
+    "allowedTargets": [
+      {
+        "address": "0x8888888888888888888888888888888888888888",
+        "role": "vault",
+        "methods": [
+          "0x12345678"
+        ]
+      },
+      {
+        "address": "0x9999999999999999999999999999999999999999",
+        "role": "router",
+        "methods": [
+          "0x87654321"
+        ]
+      }
+    ],
+    "maxCapital": 100000,
+    "maxPosition": 50000,
+    "maxLeverageBps": 10000,
+    "maxOrder": 10000,
+    "maxSlippageBps": 100,
+    "maxGas": 500000,
+    "maxFrequencyPerHour": 12,
+    "dailyLossLimit": 5000,
+    "drawdownLimit": 10000,
+    "noWithdraw": true,
+    "ownerChangeAllowed": false,
+    "arbitraryTransferAllowed": false,
+    "unlimitedApprovalAllowed": false,
+    "computeDataFee": 100,
+    "subscriptionFee": 0,
+    "managementFeeBps": 0,
+    "performanceFeeBps": 1000,
+    "highWaterMark": true,
+    "lossCarryForward": true,
+    "killSwitch": "https://gateway.ynxweb4.com/mandates/shared-dex-vector-v2/kill",
+    "revoke": "https://gateway.ynxweb4.com/mandates/shared-dex-vector-v2/revoke",
+    "emergencyExit": "https://gateway.ynxweb4.com/mandates/shared-dex-vector-v2/exit",
+    "userRiskAccepted": true,
+    "testnetNoValue": true,
+    "issuedAt": "2026-07-15T11:59:00.000Z",
+    "expiresAt": "2026-07-15T12:03:00.000Z",
+    "source": "https://gateway.ynxweb4.com/mandates/shared-dex-vector-v2",
+    "asOf": "2026-07-15T11:59:00.000Z",
+    "version": "2"
+  },
+  "mandateDigest": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+  "action": {
+    "schemaVersion": 1,
+    "mandateId": "shared-dex-vector-v2",
+    "mandateDigest": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "productClientId": "ynx-quant-v1",
+    "sessionBinding": "7171717171717171717171717171717171717171717171717171717171717171",
+    "nonceDomain": "ynx:strategy:ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80:ynx-quant-v1:shared-dex-vector-v2",
+    "nonce": "shared-strategy-action-00000001",
+    "venue": "ynx-dex",
+    "asset": "YNXT",
+    "market": "YNXT/USDC",
+    "target": "0x8888888888888888888888888888888888888888",
+    "method": "0x12345678",
+    "capital": 80000,
+    "position": 40000,
+    "leverageBps": 10000,
+    "order": 5000,
+    "slippageBps": 80,
+    "gas": 300000,
+    "executionsInCurrentHour": 3,
+    "dailyLoss": 100,
+    "drawdown": 200,
+    "at": "2026-07-15T12:00:00.000Z"
+  },
+  "authorization": {
+    "authorized": true,
+    "mandateId": "shared-dex-vector-v2",
+    "mandateDigest": "132998c0e7c074f3e4fa2b12668a37a185e17cc57a823ff39e55a346de09d270",
+    "actionDigest": "ba22184ba59fb7195df56128c832f26b582e9da0600f04687f234d83b31a8e45",
+    "nonceDomain": "ynx:strategy:ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80:ynx-quant-v1:shared-dex-vector-v2",
+    "nonce": "shared-strategy-action-00000001",
+    "at": "2026-07-15T12:00:00.000Z"
+  },
+  "actionNonceKey": "1d01253d409b8e4ca16085cbd5aa7893e15e778e4659b218629235b0c8dda479",
+  "negativeCases": [
+    {
+      "name": "scope-widening-asset",
+      "target": "action",
+      "patch": {
+        "asset": "BTC"
+      },
+      "expectedCode": "SCOPE_EXPANSION"
+    },
+    {
+      "name": "wrong-dex-target-method",
+      "target": "action",
+      "patch": {
+        "target": "0x9999999999999999999999999999999999999999"
+      },
+      "expectedCode": "WRONG_DEX_TARGET"
+    },
+    {
+      "name": "order-limit-exceeded",
+      "target": "action",
+      "patch": {
+        "order": 10001
+      },
+      "expectedCode": "LIMIT_EXCEEDED"
+    },
+    {
+      "name": "nonce-domain-substitution",
+      "target": "action",
+      "patch": {
+        "nonceDomain": "ynx:strategy:ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80:ynx-quant-v1:shared-dex-vector-v2:other"
+      },
+      "expectedCode": "MANDATE_BINDING_MISMATCH"
+    },
+    {
+      "name": "future-action",
+      "target": "action",
+      "patch": {
+        "at": "2026-07-15T12:00:31.000Z"
+      },
+      "expectedCode": "FUTURE_ACTION"
+    },
+    {
+      "name": "owner-change-capability",
+      "target": "mandate",
+      "patch": {
+        "ownerChangeAllowed": true
+      },
+      "expectedCode": "UNSAFE_MANDATE"
+    },
+    {
+      "name": "dangerous-transfer-method",
+      "target": "mandate",
+      "patch": {
+        "allowedMethods": [
+          "0xa9059cbb"
+        ],
+        "allowedContracts": [
+          "0x8888888888888888888888888888888888888888"
+        ],
+        "allowedTargets": [
+          {
+            "address": "0x8888888888888888888888888888888888888888",
+            "role": "vault",
+            "methods": [
+              "0xa9059cbb"
+            ]
+          }
+        ]
+      },
+      "expectedCode": "PROHIBITED_METHOD"
+    },
+    {
+      "name": "unknown-mandate-field",
+      "target": "mandate",
+      "patch": {
+        "unexpected": true
+      },
+      "expectedCode": "UNKNOWN_OR_MISSING_FIELD"
+    }
+  ]
+}

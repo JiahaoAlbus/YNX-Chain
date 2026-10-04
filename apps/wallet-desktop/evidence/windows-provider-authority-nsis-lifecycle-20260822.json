@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "capturedAt": "2026-08-22T05:15:49Z",
+  "releaseChannel": "testnet-preview",
+  "authority": {
+    "sharedProviderSourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "desktopImplementationCommit": "9df04c15a3ebd64a25344c700856390c268ea5f3",
+    "chain": {
+      "cosmosChainId": "ynx_6423-1",
+      "evmChainIdDecimal": 6423,
+      "evmChainIdHex": "0x1917",
+      "nativeSymbol": "YNXT"
+    }
+  },
+  "artifacts": [
+    {
+      "filename": "ynx-wallet-desktop-0.2.0-x64.exe",
+      "format": "nsis-exe",
+      "architecture": "x64",
+      "bytes": 114184390,
+      "sha256": "faa257177ebd7419134300e476c915072b182e1d938a33426ca43d88fef9d8a3",
+      "minimumOS": "Windows Server 2025 x64 runner directly tested; consumer Windows minimum not separately evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "sourceCommit": "82dbe5878ff3f0cc2705de6969dd764545602d8c",
+      "workflowRunId": 32553621631,
+      "workflowRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32553621631",
+      "artifactId": 9470817896,
+      "artifactArchiveBytes": 114192315,
+      "artifactArchiveDigest": "sha256:c25fc9ca8911eb84a80059664afa76b4970074f6d925d783fdaf284bc504db5f",
+      "evidenceOnlyArtifactId": 9470818153,
+      "evidenceOnlyArtifactBytes": 2109,
+      "evidenceOnlyArtifactDigest": "sha256:a3945ecf6d33d73cd0521ce80b5042291c9c981feee05b2c01c448f4f5fb160e",
+      "nativeLifecycle": {
+        "installed": true,
+        "upgraded": true,
+        "preflightVersion": "0.0.9.0",
+        "currentVersion": "0.2.0.0",
+        "coldLaunch": true,
+        "secondLaunch": true,
+        "visibleWindow": true,
+        "windowTitle": "YNX Wallet",
+        "providerAuthorityAccount": "0xc1e20cdac13f0d096641e2f124e65ae36b5662a7",
+        "osEncryptedCustodyVisible": true,
+        "accountRestoredOnSecondLaunch": true,
+        "ethChainId": "0x1917",
+        "rpcFailureClosed": true,
+        "walletConnectConfigured": false,
+        "walletConnectFailClosedVisible": true,
+        "uninstalled": true
+      }
+    },
+    {
+      "filename": "ynx-wallet-desktop-0.2.0-arm64.exe",
+      "format": "nsis-exe",
+      "architecture": "arm64",
+      "bytes": 113337093,
+      "sha256": "30b7795981d7796717a130072209664839db75f02b1c00288ba4ed13059f78da",
+      "minimumOS": "Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "authenticodeStatus": "NotSigned",
+      "sourceCommit": "f684129d773ac9962fa654a19727ccda39cc18b6",
+      "workflowRunId": 32553502028,
+      "workflowRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32553502028",
+      "artifactId": 9470804916,
+      "artifactArchiveBytes": 113345809,
+      "artifactArchiveDigest": "sha256:f2c8748c3a9af90cfd425d5c7c90958e048d8b2a622dad0fe61a00069317efc6",
+      "downloadVerificationArtifactId": 9470810023,
+      "downloadVerificationArtifactBytes": 406,
+      "downloadVerificationArtifactDigest": "sha256:ce3e87ed1ecf6d05ac527c0a58300c927de0758f7ac5e22bc457bbbcbec4f1fe",
+      "downloadVerification": {
+        "manifestPresent": true,
+        "lifecyclePresent": true,
+        "sha256Verified": true,
+        "bytesVerified": true
+      },
+      "nativeLifecycle": {
+        "installed": true,
+        "upgraded": true,
+        "coldLaunch": true,
+        "secondLaunch": true,
+        "visibleProcessAndWindowEvidence": true,
+        "providerAuthorityAccountCreated": true,
+        "osEncryptedCustodyVisible": true,
+        "accountRestoredOnSecondLaunch": true,
+        "ethChainId": "0x1917",
+        "rpcFailureClosed": true,
+        "walletConnectConfigured": false,
+        "walletConnectFailClosedVisible": true,
+        "uninstalled": true
+      }
+    }
+  ],
+  "releaseTruth": {
+    "windowsX64NativeLifecycleProved": true,
+    "windowsArm64NativeLifecycleProved": true,
+    "windowsArm64UploadedArtifactReverified": true,
+    "windowsX64EvidenceArtifactDownloaded": true,
+    "walletConnectConfigured": false,
+    "walletConnectSessionPaired": false,
+    "firstPartyDappConnected": false,
+    "externalDappConnected": false,
+    "canonicalAuthorizeSuccessProved": false,
+    "accountSwitchProved": false,
+    "disconnectProved": false,
+    "transactionBroadcastProved": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "blocked": [
+    "No repository or Actions secret named YNX_WALLETCONNECT_PROJECT_ID is available; real WalletConnect relay pairing remains fail closed.",
+    "The Windows 0.2.0 EXEs exist as GitHub Actions artifacts but have not been published on an official YNX domain.",
+    "The local GitHub large-artifact path sustained about 32 KB/s and was bounded; x64 exact inner metadata was recovered from a separate evidence-only artifact instead."
+  ]
+}

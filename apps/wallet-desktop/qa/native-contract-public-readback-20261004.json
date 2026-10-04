@@ -1,0 +1,22 @@
+{
+ "schemaVersion":1,
+ "baselineCommit":"d8937c4ef6ec7014f9f1896f2d94d16356a8a1e4",
+ "scope":"QA/public read-only evidence only. Product NativeContractClient/service/UI remain unchanged; no Native App/startup/shared SDK/authority/release mutations",
+ "sourceCapabilities":"Original client exposes explicitly separate BFT pinned-artifact bounded static reads versus legacy pure/view analyzer or pinned bytecode subsets. Neither path is full EVM or deploy/write/transfer. Service receives no signer/vault. BFT lookup validates exact original pinned source/bytecode/audit/address, read binds response/runtime/step bounds and rechecks artifact plus chain.",
+ "ownedRegression":{"tests":29,"pass":29,"fail":0,"skip":0,"exitCode":0,"targets":["native-contract.test.mjs","native-contract-service.test.mjs","native-contract-ui.test.mjs","native-contract-mounted.test.mjs"],"boundary":"Controlled original public Go fixtures/transports/DOM plus actual ethers ABI/hash code; no full Wallet Main/SDK boot, actual chain authority or installed UI"},
+ "liveReadback":{
+  "observedAt":"2026-10-04T04:01:13.185Z",
+  "origin":"https://rpc-testnet.ynxweb4.com",
+  "originalChainVerifier":"Actual eth_chainId through original NativeContractClient succeeded at expected0x1917, HTTP200; not a deployment/source/runtime identity proof",
+  "survey":"Actual GET /txs?page=1&limit=100 returned only transactions key,100 entries92faucet8transfer; no page/limit/total/nextPage metadata. No contract_deploy candidate present in this returned list.",
+  "initialDiagnostic":"Initial pages1,2,3 returned exact identical115847-byte body SHA491a7b7b64552370a192319a1a80d598696be3e5bb9a93e2f9537c2089611a23. All original observations retained; subsequent QA stops on unverified pagination rather than claiming300 distinct records.",
+  "result":"PAGINATION_NOT_VERIFIED;0 candidate contract lookups/reads; successfulExistingContractRead=false. Cannot infer no contracts exist across chain or that the deployment is a specific legacy/BFT source version.",
+  "diagnosticExit":"exit0 means diagnostic artifact produced, not actual existing contract read success",
+  "profiles":["/tmp/ynx-wallet-contract-public-20261004-2qvIjW","/tmp/ynx-wallet-contract-public-20261004-xISWoU"],
+  "networkBoundary":"Read-only allowlist: public GET list/pinned address lookup, eth_chainId only, and known zero-argument view call. No faucet, deploy, execute, sendTransaction, estimateGas, signing, key, amount or funding action. List bodies hashed then discarded, no memo/replayable raw transaction bytes printed or persisted."
+ },
+ "verification":"node --check public QA and git diff --check exit0. Current source input SHA pins recorded in final diagnostic.",
+ "notRun":["Actual existing deployed contract lookup/read","Full Wallet Main/shared SDK exact graph","Installed contract UI and real user account","Contract write/deploy or transfer","Private signing/Pay/settlement","Preserving installation/upgrade/final release","MONSTER"],
+ "next":"Root/A/Core locate source-bound public contract/runtime deployment and authoritative public contract discovery/read evidence. Do not invent deployed addresses from synthetic Go fixtures or deploy/fund a substitute. Native continues owned implementation and installation readiness while this real public contract gate remains open.",
+ "overallGoal":"NOT_COMPLETED"
+}

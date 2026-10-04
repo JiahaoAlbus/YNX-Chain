@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "SOURCE_TEST_CANDIDATE_NOT_COMPLETE_WALLET",
+  "parent": "801cdd901fd05732c0c78487716079276a7c5ae5",
+  "parentTree": "e52a12857d4d441bc380c07946c881b7f90f68b3",
+  "ownedPaths": ["apps/wallet/", "apps/wallet-desktop/"],
+  "frozenAppSHA256": "c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+  "implemented": [
+    "Desktop Provider callback projection binds account/view/security/key revision and exact real ApprovalReviewQueue item. It cannot finish a newer reused-ID item. Original transaction journal readback still runs after an old result.",
+    "Expired Provider notices affect only the actually shown matching request.",
+    "Native WalletConnect view operations reuse WalletOperationLifecycle/Lease for single-flight and account/background/close cancellation. This view-only scope never grants funding-key authorization or replaces runtime reviewed-request and Root key-access guards.",
+    "Native pair, cancel, relay retry, disconnect, proposal approval/rejection, request decisions and original-broadcast check/retry/ack callbacks cannot overwrite a newer account view.",
+    "Native request preparation and explicit approval read original WalletConnect broadcast and Native Send/Pay outbox records first. Unresolved original transfers or failed reads prevent new transfer key access/signing/POST. No automatic retry, replacement or journal deletion.",
+    "Real serialized local session save/reconciliation receives a current-view guard before mutation and after read/write. Session publication follows guarded save; failed original approval cleans its original SDK topic.",
+    "Native WalletConnect uses the existing lifecycle-safe, localized WalletScanner. Only walletconnect results can populate pairing input; scan never pairs, approves or signs.",
+    "AI installed picker runner input is source-bound to GGeV7i, not to the old 299 graph. Archive and source-manifest complete-byte hashes verified; no install or source admission claimed."
+  ],
+  "evidenceRoot": "/tmp/ynx-wallet-desktop-ui-20261004-wjXlEW",
+  "evidence": [
+    {"file": "provider-approval-original.log", "pass": 9, "fail": 3, "sha256": "b8ea48255d3e6167edef701b53f2a1cf94c58013519cc4a00964765dd9b59e4c"},
+    {"file": "native-connect-reentry-original-final-bounded.log", "pass": 2, "fail": 17, "sha256": "f21f3d989bd242ef716f4ae958bd6bc73834bb704e688cb6285f4b0cc549e71a"},
+    {"file": "provider-approval-final-related-v2.log", "pass": 86, "fail": 0, "sha256": "e8380653ff48e65bac4e5f97524f2700907688a6b87eeb7257fd66be09c6b99a"},
+    {"file": "native-provider-reentry-final-related-v2.log", "pass": 274, "fail": 0, "sha256": "067ba5a0301e94d4ed1476b16cd9d0e356fe92099bd9a7d84a2293bcb86508e9"},
+    {"file": "native-provider-reentry-final-typecheck-v2.log", "exit": 0}
+  ],
+  "testScope": "Actual renderer and Native callback source extracted/transpiled, real view lifecycle and real review queue; existing real runtime binding, pending/replay/security stores, authority, original journal, repository, Root key-access and scanner tests included. Synthetic secrets/SDK responses are not real device or funds evidence.",
+  "intermediateFailuresPreserved": [
+    "Native original 1 pass / 12 fail retained before source fix.",
+    "Expanded original fixture rejection waited on an unresolved synthetic reply. Only exact owned test PIDs were terminated; bounded rejection fixture corrected and final 2 pass / 17 actual failures retained.",
+    "Typecheck caught current missing in restore-effect guard; exact scoped current capture added, final ordinary tsc exit0.",
+    "First broad related run 273 pass / 1 fail because existing real approval-handler fixture omitted the newly wired view helper. Fixture now extracts the actual helper and instantiates real WalletConnectViewOperations; original authentication/replay assertions were retained, not weakened.",
+    "Late SDK-response fixture now asserts that the actual response branch was reached before replacing the reviewed event; no vacuous stale-path claim."
+  ],
+  "unchanged": ["App.tsx", "main.mjs", "Desktop vault/transport/journal producers", "Native transfer/outbox/crypto producers", "shared SDK/Auth/registry/Host source", "release versions and signing", "old AI 299 immutable candidate", "all retained accounts, secrets, records and earlier failure evidence"],
+  "deviceGate": "No owned booted emulator/simulator. Existing Social emulator-5584 and another Wallet QA emulator-5586 were identified read-only and not taken over. Mac lock was not repeatedly retried or bypassed. Exact AI source graph/artifact and real backend configuration remain required before installation.",
+  "notVerified": ["independent source admission", "complete Wallet", "actual native installed UX/layout/camera", "real biometrics/system approval", "real Product Session/Pay/MONSTER", "signed release/public installers/website", "user acceptance", "new crypto policy or activation"],
+  "nextOwnedWork": "Continue remaining Native connection UI/accessibility/error and user-journey integration using original leases and actual readbacks. Use A's exact new protected factory closure only when supplied/admitted; do not fake unavailable ports. Installed AI picker acceptance is PREPARED_NOT_RUN under the separate exact runner input."
+}

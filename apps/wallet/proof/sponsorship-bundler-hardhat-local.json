@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "00815a0d90de1361528e072e1135cf497870f1c0",
+  "recordedAt": "2026-07-22T23:55:00+08:00",
+  "environment": {"runtime":"Node.js v24.5.0","os":"Darwin 25.0.0 arm64","contractChain":"Hardhat EDR in-process local chain","bundlerTransport":"isolated loopback ERC-7769 fixture","solc":"0.8.28","entryPointPackage":"@account-abstraction/contracts@0.8.0"},
+  "commands": ["npm run hardhat:test:wallet", "node --test packages/wallet-auth/test/bundler.test.mjs"],
+  "assertions": {
+    "zeroBalanceSponsoredUserOperation": true,
+    "firstActionOnce": true,
+    "merchantAllowlist": true,
+    "developerAndProductSponsorship": true,
+    "callDataAndPaymasterGasTamperRejected": true,
+    "authorizationReplayRejected": true,
+    "productAndGlobalDisable": true,
+    "riskOfficerCannotReenable": true,
+    "productAndSubjectBudgetsBounded": true,
+    "postOpCostObserved": true,
+    "bundlerPreservesSignedOperation": true,
+    "bundlerTimeoutRpcErrorResponseLimitAndRateLimit": true
+  },
+  "sponsorBenchmark": {"samples":25,"failures":0,"throughputPerSecond":266.6,"p50Ms":3.738,"p95Ms":4.182,"p99Ms":4.284,"exclusions":["external Bundler","public RPC","durable persistence","network latency","YNX Testnet"]},
+  "bundlerBenchmark": {"samples":100,"failures":0,"throughputPerSecond":790.95,"p50Ms":0.829,"p95Ms":2.668,"p99Ms":4.949,"exclusions":["external provider","internet latency","provider queue","public receipt"]},
+  "paymasterArtifact": {"creationBytes":12780,"runtimeBytes":11199,"runtimeSha256":"9b9e27bb1c7985a1f07ff020d5c13928e2d6a87fc391253654ce55d1bc902d67"},
+  "sourceSha256": {"paymasterSol":"02fda6bd6d242dc79c4364184cc33e0430569bf201a63406c263313caca123da","bundlerClient":"885eccffc1cf37cc0d45669fa3434155e44693bfe85114ff05ce1e2da61b57cc","bundlerTest":"6a1826f1fea889c9f773efc1aa1f93dfb7ddb9a3c0f3ee9cec1b75abc3d70f8f","entryPointTest":"50d4e60a3cf0bb17af15b991d0189f2b7da42ef774b666c66deb3ec22b25817f"},
+  "states": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"publicBundlerVerified":false,"publicSponsoredReceipt":false}
+}

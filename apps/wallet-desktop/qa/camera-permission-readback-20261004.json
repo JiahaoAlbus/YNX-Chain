@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "db24f99d0dc21ed4cb140f8c21da5c590b695a32",
+  "scope": "QA additions only; product Main, permission gate, camera controller, Native App and shared SDK unchanged",
+  "runtime": {
+    "electron": "42.8.0 darwin arm64",
+    "executable": "/tmp/ynx-wallet-published-inheritance-test-20261003-weuJ6Z/apps/wallet-desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+    "executableSHA256": "471784b680e10c411ac156eb2821525cff3ea22a2d9363ead0e0e87c90c17837",
+    "profile": "/tmp/ynx-wallet-camera-permission-20261004-czkdEu",
+    "logSHA256": "fcb49ab613fab15a9db0ed4718e3b5e31ed8c7d76fc941b04295ef4f4002ba82",
+    "exitCode": 0,
+    "mode": "Actual Chromium getUserMedia software devices through original Main callback expressions and original gate with controlled public context; no fake-ui permission bypass",
+    "sandbox": true,
+    "visibleWindow": false,
+    "networkRequests": 0,
+    "tracks": "Both successful requests returned exactly one video track; all stopped to ended; denied audio and mixed requests returned no stream"
+  },
+  "results": {
+    "final": "14/14 PASS; each row independently matched one actual request callback, exact main-frame URL, expected mediaTypes and allow/deny result",
+    "allow": ["Current valid public video permit", "Old permit end cannot revoke a replacement permit"],
+    "deny": ["No permit", "Audio only", "Audio plus video", "Expired", "Account changed", "Key revision changed", "Locked", "Unfocused", "Authenticating", "Account changing", "Explicit current permit end", "Explicit invalidate"],
+    "freshPins": "3 original source files and1 loaded default_app.asar package input verified fresh; no wallet-auth import. Binary fingerprint matches prior verified Electron executable.",
+    "previousRuns": ["GJVr82: initial10/10 runtime cases, no per-row callback assertions", "Sysbr9:10/10 with callback and track-kind assertions plus loaded-tool pins"],
+    "warnings": "Sandbox extension Operation not permitted and video Bind context provider failed warnings preserved; sandbox remained enabled and all cases passed. These are not evidence of physical-camera permission denial.",
+    "checkCallbackObservation": "Bootstrap checks had empty requestingUrl; later checks omitted mediaType. Original strict gate denied those checks. Actual request callbacks supplied exact requestingUrl and mediaTypes and video requests succeeded. No permissive fallback added.",
+    "syntaxAndWhitespace": "node --check QA Main/renderer and git diff --check exit0"
+  },
+  "notRun": ["Full original Wallet Main/shared SDK boot", "Actual wallet account/key/focus lifecycle", "OS camera permission dialog", "Physical camera or microphone", "Original checksum producer runtime", "Installed current-source release", "Preserving upgrade", "Private Pay/signing/settlement", "MONSTER"],
+  "independentP2Status": "db24f99 camera serialization successor sent for independent review; runtime software permission cases do not substitute for that review",
+  "overallGoal": "NOT_COMPLETED"
+}

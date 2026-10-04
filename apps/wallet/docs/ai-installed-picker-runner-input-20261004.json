@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "status": "PREPARED_NOT_RUN",
+  "scope": "Read-only device inventory and source-bound installed acceptance inputs; no installation or system approval performed",
+  "source": {
+    "capsule": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261003/ai/owned-reviewed-context-successor-20261004-GGeV7i",
+    "sourceFiles": 324,
+    "sourceDigest": "e2bad3338b1373b4a3d6d116ace19bfa89922f55551cdfb826231ffcdc27ab20",
+    "sourceManifestSHA256": "e4474e63b505ced9f64d3503d1577efbed0d4d5a8a2ea0ef3ea1090134e1aef4",
+    "archiveSHA256": "67b66ca0337881c0de3e7ccf4c4c9a7ea3191764e1db7d70b8a04412832661b2",
+    "verifiedHere": ["SOURCE_MANIFEST complete bytes SHA256", "owned-source-artifacts.tar complete bytes SHA256", "FREEZE_RECEIPT and RECOVERY", "mobile/app.json", "actual picker and preview UI source"],
+    "sourceAdmission": "NOT_CLAIMED",
+    "sharedGraph": "REQUIRES_A_EXACT_SOURCE_AND_DEPENDENCY_CLOSURE",
+    "old299Candidate": "UNCHANGED"
+  },
+  "application": {
+    "androidPackage": "com.ynxweb4.ai",
+    "iosBundleIdentifier": "com.ynxweb4.ai",
+    "scheme": "ynxai",
+    "sourceDefaultAPIBase": "http://10.0.2.2:8096",
+    "installedRealBusinessAPI": "NOT_VERIFIED",
+    "warning": "The source default is a development endpoint, not evidence of admitted public service configuration. Never label a local fixture login as real Wallet authentication."
+  },
+  "deviceInventory": {
+    "androidObserved": [
+      {"serial": "emulator-5584", "avd": "YNX_SOCIAL_20260912_QA", "action": "READ_ONLY_IDENTITY_ONLY_NOT_TAKEN_OVER"},
+      {"serial": "emulator-5586", "avd": "YNX_WALLET_C287_LAYOUT_QA_20261003", "action": "READ_ONLY_IDENTITY_ONLY_OTHER_EXISTING_QA_NOT_TAKEN_OVER"}
+    ],
+    "ownAndroidAVD": "wallet-native-owned-20261003",
+    "ownAndroidSerial": "emulator-5596",
+    "ownAndroidRunning": false,
+    "ownIOSDeviceSet": "/tmp/ynx-wallet-ios-qa-20261004-5LLc9a/devices",
+    "ownIOSUDID": "E3BBB290-0455-46E5-A3BF-E9E60F309A15",
+    "ownIOSBooted": false,
+    "defaultIOSBootedDevices": [],
+    "macGUI": "LAST_OBSERVED_LOCKED_NOT_REPEATED_OR_BYPASSED",
+    "selectedDevice": null
+  },
+  "requiredRunnerInputs": [
+    "A-admitted source closure including this exact AI successor and permitted shared dependencies",
+    "Exact signed or clearly labeled QA native artifact, file SHA256, embedded source/build identity and installed dependency graph",
+    "Dedicated owned available device, original retained app data, normal unlock if actually locked",
+    "Configured real product backend identity and source-compatible session/profile; public account/device IDs only in logs",
+    "Normal user-operated Wallet and required genuine system approval when reached; never inject a token or fake provider"
+  ],
+  "publicFixture": {
+    "suggestedName": "ynx-installed-attachment-qa.txt",
+    "mimeType": "text/plain",
+    "content": "YNX installed attachment QA. Public test text only. No keys or account data.\n",
+    "createdOrCopiedToDevice": false
+  },
+  "acceptanceCases": [
+    {"id": "picker-cancel", "steps": ["Open normal attachment picker in the original conversation", "Cancel through the OS picker", "Read the same conversation and attachments"], "expected": ["No attachment upload POST", "No added attachment", "Original draft and conversation unchanged"]},
+    {"id": "preview-refuse", "steps": ["Select the public text fixture", "Inspect Review and authorize upload / 预览并授权上传", "Press the rendered Cancel control"], "expected": ["Preview matches fixture", "No upload POST", "No implicit model context or generation"]},
+    {"id": "preview-confirm", "steps": ["Select the same public text fixture", "Press Confirm upload / 确认上传 once", "Read the original conversation from the real backend", "Refresh attachments"], "expected": ["Exactly one explicit upload to the original owner/device/conversation", "Saved attachment is read back", "No automatic model generation or secret/context upload"]},
+    {"id": "switch-before-picker-return", "steps": ["Open picker in conversation A", "Switch or close through available normal UI", "Return an old chooser selection if the OS permits it"], "expected": ["Old selection cannot upload to conversation B", "Current draft and notice remain owned by B"]},
+    {"id": "logout-cold-restore", "steps": ["Use normal logout", "Close and reopen the installed app without deleting data", "Use normal real Wallet re-entry when required", "Read original history and attachments"], "expected": ["No stale authorization or silent account reuse", "Old callback cannot replace the current session", "Original owner/device history persists", "No auto-resend, upload or generation"]}
+  ],
+  "evidenceRules": [
+    "Use current UI tree node bounds for input; never guess coordinates",
+    "Capture each actual transition, redacted app logs and independent original backend readback",
+    "Do not clear logcat, uninstall, clear app storage, reset emulators, guess PIN or borrow another owner's window",
+    "No user secret, private key, token, seed phrase or symKey QR in evidence",
+    "Source tests, JS export and HTTP 200 alone are not installed or real-business acceptance"
+  ],
+  "results": {"installedPicker": "NOT_RUN", "realWallet": "NOT_VERIFIED", "realModel": "NOT_VERIFIED", "publicBackend": "NOT_VERIFIED", "MONSTER": "NOT_RUN"}
+}

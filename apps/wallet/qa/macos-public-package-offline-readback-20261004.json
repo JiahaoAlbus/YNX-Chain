@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "parentEvidenceCommit": "0468c1f8d444eae4790a894cdaa282a365c3c500",
+  "downloadSHA256": "f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f",
+  "rawAndNormalizedASARSHA256": "c5693825a4c620453fd5fcd8f922b09a26a02c0c769cbb345ee291be2192d969",
+  "evidenceDirectory": "/tmp/ynx-wallet-public-gates-20261004-h8DC4s",
+  "rawExtractedBundle": "/tmp/ynx-wallet-macos-offline-20261004-1NEo1P/YNX Wallet.app",
+  "normalizedExtractedBundle": "/tmp/ynx-wallet-macos-offline-normalized-20261004-71tDS0/YNX Wallet.app",
+  "mode": "Offline public artifact inspection; no app execution, mount, install, SDK execution or account access",
+  "archivePreflight": {"bundleEntries": 602, "canonicalPaths": true, "relativeSymlinksConfinedToBundle": true, "externalApplicationsLinkExcluded": true},
+  "bundle": {"identifier": "com.ynxweb4.wallet.macos", "version": "0.6.8", "architecture": "Mach-O universal x86_64 arm64"},
+  "embeddedBuildIdentity": {
+    "sourceCommit": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+    "walletTree": "ddea231afb96614f4210c14fb8381062ac6b6bce",
+    "walletAuthTree": "d467932471386de71b0abb86bc9cf66cb44e7323",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "historicalRuntimeSourceComparison": {
+    "method": "Read ASAR via tool library; compare each historical Git runtime file as bytes; never import packaged product modules",
+    "paths": ["apps/wallet-desktop/src", "packages/wallet-auth/src", "packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json"],
+    "matchedRuntimeFiles": 92,
+    "excludedTypeDeclarations": 5,
+    "failures": [],
+    "scope": "Files present in the original historical commit only; not all npm dependencies, current mandatory assets or current shared graph admission"
+  },
+  "signing": {
+    "dmgSigned": false,
+    "dmgStapledTicket": false,
+    "staplerValidateExit": 65,
+    "appSignature": "adhoc",
+    "teamIdentifier": "not set",
+    "appCDHash": "d244477285d1dcbd56a9caeeeaa4cf7b16195fd4",
+    "rawDeepVerify": "FAIL: 7zz emitted APFS attribute streams as extra colon-named files; original failure retained",
+    "normalizedExtractionCommand": "7zz x -y -o/tmp/ynx-wallet-macos-offline-normalized-20261004-71tDS0 '-xr!*:*' /tmp/ynx-wallet-public-gates-20261004-h8DC4s/macos.dmg 'YNX Wallet.app/*'",
+    "normalizedDeepStrictVerify": "PASS: valid on disk; satisfies its Designated Requirement",
+    "normalizedVerifyCommand": "codesign --verify --deep --strict --verbose=2 /tmp/ynx-wallet-macos-offline-normalized-20261004-71tDS0/YNX Wallet.app",
+    "limits": "Ad-hoc sealed-code validity is not Developer ID, notarization, Gatekeeper approval, user-device launch or production signing. No repair/resigning/deletion of original package or initial extraction."
+  },
+  "currentOwnedSourceGap": [
+    {"path": "src/main.mjs", "packedSHA256": "d7890db4bf6d9cab1e38219ec16f6c69bab1f5b59bf6b456ed333d7486d41e62", "matchesCurrent": false},
+    {"path": "src/renderer.js", "packedSHA256": "dd7866da6ca3d7beb4f9a9fbacb285369fd134799d83a06901aa88615192e2d0", "matchesCurrent": false},
+    {"path": "src/receive-code-ui.mjs", "packedSHA256": "c3c054a666c6f2eff7a205498e36d7a76ee0bdfd0890ba35ca8e5160f906b3d3", "matchesCurrent": false},
+    {"path": "src/transaction-history-ui.mjs", "packed": "MISSING"},
+    {"path": "src/key-lifecycle-ui.mjs", "packed": "MISSING"}
+  ],
+  "nextAction": "A must provide the actual current source-bound shared graph and preserving-upgrade formal candidate, then original owner can verify installed migration/lock/Receive/Scan/Pay/history. Do not install the old public package as if it contained current fixes.",
+  "notRun": ["Mounted image/native filesystem metadata equivalence", "Gatekeeper assessment", "Application launch", "Preserving upgrade", "Account passwords/biometrics/keychain/vault", "Signing or settlement", "Camera input", "Current Android/macOS/Web full journey", "MONSTER"],
+  "overallGoal": "NOT_COMPLETED"
+}

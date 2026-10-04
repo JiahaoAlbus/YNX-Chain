@@ -1,0 +1,23 @@
+// !$*UTF8*$!
+{
+ archiveVersion = 1;
+ classes = {};
+ objectVersion = 56;
+ objects = {
+  A10000000000000000000001 = {isa = PBXBuildFile; fileRef = A10000000000000000000002; };
+  A10000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletInstalledUITests.swift; sourceTree = "<group>"; };
+  A10000000000000000000003 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = YNXWalletInstalledQA.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+  A10000000000000000000004 = {isa = PBXGroup; children = (A10000000000000000000002, A10000000000000000000005); sourceTree = "<group>"; };
+  A10000000000000000000005 = {isa = PBXGroup; children = (A10000000000000000000003); name = Products; sourceTree = "<group>"; };
+  A10000000000000000000006 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001); runOnlyForDeploymentPostprocessing = 0; };
+  A10000000000000000000007 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  A10000000000000000000008 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+  A10000000000000000000009 = {isa = PBXNativeTarget; buildConfigurationList = A10000000000000000000012; buildPhases = (A10000000000000000000006, A10000000000000000000007, A10000000000000000000008); buildRules = (); dependencies = (); name = YNXWalletInstalledQA; productName = YNXWalletInstalledQA; productReference = A10000000000000000000003; productType = "com.apple.product-type.bundle.ui-testing"; };
+  A10000000000000000000010 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = YES; LastUpgradeCheck = 2630; }; buildConfigurationList = A10000000000000000000011; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; knownRegions = (en, Base); mainGroup = A10000000000000000000004; productRefGroup = A10000000000000000000005; projectDirPath = ""; projectRoot = ""; targets = (A10000000000000000000009); };
+  A10000000000000000000011 = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000013); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  A10000000000000000000012 = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000014); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+  A10000000000000000000013 = {isa = XCBuildConfiguration; name = Release; buildSettings = {CLANG_ENABLE_MODULES = YES; SDKROOT = iphonesimulator; IPHONEOS_DEPLOYMENT_TARGET = 16.4; SWIFT_VERSION = 5.0; }; };
+  A10000000000000000000014 = {isa = XCBuildConfiguration; name = Release; buildSettings = {ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES; CODE_SIGNING_ALLOWED = NO; ENABLE_TESTING_SEARCH_PATHS = YES; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "YNX Wallet Installed QA"; LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@loader_path/Frameworks"); ONLY_ACTIVE_ARCH = YES; PRODUCT_BUNDLE_IDENTIFIER = com.ynxweb4.wallet.installed-qa; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = iphonesimulator; SWIFT_OPTIMIZATION_LEVEL = "-Onone"; TARGETED_DEVICE_FAMILY = "1,2"; USES_XCTRUNNER = YES; }; };
+ };
+ rootObject = A10000000000000000000010;
+}

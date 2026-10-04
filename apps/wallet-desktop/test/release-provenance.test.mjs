@@ -1,0 +1,143 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { desktopReleaseIdentity, verifyDesktopPackage } from "../scripts/release-provenance.mjs";
+
+const actualProject = fileURLToPath(new URL("..", import.meta.url));
+const asarCLI = createRequire(path.join(actualProject, "package.json")).resolve("@electron/asar/bin/asar.js");
+
+test("electron-builder preserves dependency manifests for byte-exact provenance", async () => {
+  const metadata = JSON.parse(await readFile(path.join(actualProject, "package.json"), "utf8"));
+  assert.equal(metadata.build.removePackageScripts, false);
+});
+
+async function fixture(t, { includeRegistry = true, runtimeMetadata = {} } = {}) {
+  const root = await mkdtemp(path.join(tmpdir(), "ynx-desktop-provenance-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const project = path.join(root, "apps/wallet-desktop"), stage = path.join(root, "package"), resources = path.join(root, "resources");
+  const files = { "apps/wallet-desktop/package.json": JSON.stringify({name:"fixture",version:"0.6.4",...runtimeMetadata}),
+    "apps/wallet-desktop/src/main.mjs": "export const fixture = true;\n",
+    "packages/wallet-auth/package.json": '{"name":"@ynx-chain/wallet-auth","version":"1.1.0"}',
+    "packages/wallet-auth/src/index.js": "export const fixture = 1;\n",
+    "packages/wallet-auth/product-session-registry.json": '{"fixture":"registered-products"}\n',
+    "packages/wallet-auth/src/runtime.json": '{"fixture":true}\n',
+    "packages/wallet-auth/src/index.d.ts": "export declare const fixture: number;\n" };
+  if (!includeRegistry) delete files["packages/wallet-auth/product-session-registry.json"];
+  for (const [name, content] of Object.entries(files)) { await mkdir(path.dirname(path.join(root, name)), { recursive: true }); await writeFile(path.join(root, name), content); }
+  const git = args => execFileSync("git", args, { cwd: root, stdio: "pipe" });
+  git(["init"]); git(["add", "apps", "packages"]); git(["-c", "user.name=YNX synthetic test", "-c", "user.email=fixture@example.invalid", "commit", "-m", "synthetic fixture"]);
+  await symlink(path.join(actualProject, "node_modules"), path.join(project, "node_modules"), process.platform === "win32" ? "junction" : "dir");
+  await mkdir(resources);
+  for (const [name, content] of Object.entries(files)) {
+    if (name.endsWith(".d.ts")) continue; // Match electron-builder's actual package filter.
+    const packed = name.startsWith("apps/wallet-desktop/") ? name.slice("apps/wallet-desktop/".length) : `node_modules/@ynx-chain/wallet-auth/${name.slice("packages/wallet-auth/".length)}`;
+    await mkdir(path.dirname(path.join(stage, packed)), { recursive: true }); await writeFile(path.join(stage, packed), content);
+  }
+  const savedSHA = process.env.GITHUB_SHA;
+  process.env.GITHUB_SHA = git(["rev-parse", "HEAD"]).toString().trim();
+  t.after(() => { if (savedSHA === undefined) delete process.env.GITHUB_SHA; else process.env.GITHUB_SHA = savedSHA; });
+  const identity = desktopReleaseIdentity(project, "0.6.4");
+  await writeFile(path.join(resources, "ynx-wallet-build-identity.json"), JSON.stringify(identity));
+  // This pinned ASAR version resolves createPackage before its write stream's
+  // final flush. Waiting for the packaging process to exit matches release use
+  // and prevents a concurrent test from reading a half-written archive.
+  const pack = () => execFileSync(process.execPath, [asarCLI, "pack", stage, path.join(resources, "app.asar")], { stdio: "pipe" });
+  await pack(); return { root, project, stage, resources, identity, pack };
+}
+
+for(const field of ["imports","exports"]){
+  for(const nested of [false,true])test(`conditional resolution rejects reordered ${field} ${nested?"nested":"direct"} conditions`,async t=>{
+    const conditions={node:"./src/main.mjs",default:"./src/fallback.mjs"};
+    const wrap=value=>field==="imports"?{"#entry":nested?{import:value,default:"./src/fallback.mjs"}:value}:nested?{".":{import:value,default:"./src/fallback.mjs"}}:value;
+    const f=await fixture(t,{runtimeMetadata:{[field]:wrap(conditions)}}),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+    metadata[field]=wrap({default:conditions.default,node:conditions.node});await writeFile(file,JSON.stringify(metadata));await f.pack();
+    assert.throws(()=>verifyDesktopPackage(f.resources,f.project),new RegExp(`Packaged runtime metadata differs: ${field}`));
+  });
+}
+test("conditional resolution preserves matching recursive mapping and release version",async t=>{
+  const f=await fixture(t,{runtimeMetadata:{imports:{"#entry":{node:{import:["./src/main.mjs","./src/fallback.mjs"],default:"./src/main.mjs"},default:null}},exports:{".":{node:"./src/main.mjs",default:"./src/fallback.mjs"}}}});
+  assert.equal(verifyDesktopPackage(f.resources,f.project).runtimePackageMetadataVerified,true);
+});
+test("conditional resolution does not impose execution order on dependency names",async t=>{
+  const f=await fixture(t,{runtimeMetadata:{dependencies:{first:"1.0.0",second:"2.0.0"}}}),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  metadata.dependencies={second:"2.0.0",first:"1.0.0"};await writeFile(file,JSON.stringify(metadata));await f.pack();
+  assert.equal(verifyDesktopPackage(f.resources,f.project).runtimePackageMetadataVerified,true);
+});
+
+test("every runtime Wallet and SDK byte matches the exact commit, with excluded declarations explicit", async t => {
+  const f = await fixture(t), result = verifyDesktopPackage(f.resources, f.project);
+  assert.equal(result.files.length, 5); assert.equal(result.packagedSourceVerified, true);
+  assert.deepEqual(result.excludedTypeDeclarations, ["packages/wallet-auth/src/index.d.ts"]);
+  assert.equal(result.sourceVerificationScope, "every runtime Wallet and SDK source");
+  assert.equal(result.sourceCommit, f.identity.sourceCommit); assert.equal(result.installedRuntimeVerified, false);
+  assert.equal(result.productionSigned, false); assert.equal(result.storeReleased, false);
+  assert.equal(result.runtimePackageMetadataVerified,true);
+  assert.deepEqual(result.verifiedRuntimePackageFields,["name","main","type","imports","exports","dependencies","optionalDependencies","engines","os","cpu"]);
+  assert.equal(desktopReleaseIdentity(f.project, "0.0.9").sourceVersion, "0.6.4"); // Existing upgrade-preflight stays truthful.
+});
+
+test("a missing runtime JSON remains a hard verification failure", async t => {
+  const f = await fixture(t);
+  await rm(path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/src/runtime.json")); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /was not found in this archive/);
+});
+
+test("changed packaged SDK or forged identity fails verification", async t => {
+  const f = await fixture(t), file = path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/src/index.js"), original = await readFile(file);
+  await writeFile(file, "export const fixture = 'altered';\n"); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Packaged source differs/);
+  await writeFile(file, original); await f.pack();
+  await writeFile(path.join(f.resources, "ynx-wallet-build-identity.json"), JSON.stringify({ ...f.identity, sourceCommit: "a".repeat(40) }));
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Embedded build identity/);
+});
+
+test("dirty tracked source and a different CI commit cannot acquire release identity", async t => {
+  const f = await fixture(t);
+  process.env.GITHUB_SHA = "a".repeat(40);
+  assert.throws(() => desktopReleaseIdentity(f.project, "0.6.4"), /CI source and checkout differ/);
+  process.env.GITHUB_SHA = f.identity.sourceCommit;
+  await writeFile(path.join(f.project, "src/main.mjs"), "export const changed = true;\n");
+  assert.throws(() => desktopReleaseIdentity(f.project, "0.6.4"));
+});
+
+for(const patch of [{main:"injected-entry.mjs"},{type:"commonjs"},{imports:{"#authority":"./injected-entry.mjs"}},{dependencies:{"@ynx-chain/wallet-auth":"file:../unreviewed-sdk"}},{name:"different-product"},{exports:{".":"./injected-entry.mjs"}},{optionalDependencies:{"unreviewed-extra":"1.0.0"}},{engines:{node:">=999"}}]){
+  test(`runtime package metadata cannot substitute source-bound execution ${Object.keys(patch).join(",")}`,async t=>{
+    const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+    await writeFile(file,JSON.stringify({...metadata,...patch}));await f.pack();
+    assert.throws(()=>verifyDesktopPackage(f.resources,f.project),/Packaged runtime metadata differs/);
+  });
+}
+test("required runtime metadata cannot be omitted from otherwise matching source",async t=>{
+  const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  delete metadata.name;await writeFile(file,JSON.stringify(metadata));await f.pack();
+  assert.throws(()=>verifyDesktopPackage(f.resources,f.project),/Packaged runtime metadata differs: name/);
+});
+test("explicit release version change remains compatible with unchanged source runtime fields",async t=>{
+  const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  metadata.version="0.6.5";await writeFile(file,JSON.stringify(metadata));await f.pack();
+  const identity=desktopReleaseIdentity(f.project,"0.6.5");await writeFile(path.join(f.resources,"ynx-wallet-build-identity.json"),JSON.stringify(identity));
+  const result=verifyDesktopPackage(f.resources,f.project);assert.equal(result.version,"0.6.5");assert.equal(result.sourceVersion,"0.6.4");assert.equal(result.runtimePackageMetadataVerified,true);assert.equal(result.productionSigned,false);
+});
+
+
+test("SDK root registry is mandatory in the packaged archive", async t => {
+  const f = await fixture(t);
+  await rm(path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/product-session-registry.json")); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /was not found in this archive/);
+});
+
+test("SDK root registry tampering is rejected even when src bytes match", async t => {
+  const f = await fixture(t);
+  await writeFile(path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/product-session-registry.json"), '{"fixture":"other-products"}\n'); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Packaged source differs: packages\/wallet-auth\/product-session-registry\.json/);
+});
+
+test("SDK root registry must exist in the selected source commit", async t => {
+  const f = await fixture(t, { includeRegistry: false });
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Required runtime asset is missing from the selected commit: packages\/wallet-auth\/product-session-registry\.json/);
+});

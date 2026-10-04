@@ -1,0 +1,29 @@
+# Finance EVM private subject and per-order approval v1
+
+This package defines a candidate protocol for a MetaMask or YNX EVM account on YNX testnet chain 6423. It does not deploy a Finance backend, connect a live broker, or prove a real WalletConnect device flow. The existing EVM Product Session v1 remains a separate, read-only public account session; it does not authorize private Finance records or orders.
+
+## A. Private subject
+
+The server issues a fresh challenge with the exact fields accepted by parseFinanceEvmSubjectChallenge. The origin and callback are fixed to https://finance.ynxweb4.com and /wallet-auth/callback; productId is finance, subjectNamespace is evm, scope is finance.evm.private.read, and chainId is the integer 6423. The account is a lowercase 20-byte 0x address and accountType is eoa or contract. Nonce, state, request ID, device key, issuance, and expiry are signed.
+
+The EVM wallet signs the UTF-8 bytes of domain YNX_FINANCE_EVM_SUBJECT_LOGIN_V1, newline, and canonicalJSON(challenge) with EIP-191 personal_sign; financeEvmSubjectSigningRequest returns the exact hex payload. The independently held P-256 device key signs domain YNX_FINANCE_EVM_SUBJECT_DEVICE_V1, newline, and the same canonical challenge. EOA signatures recover to the challenged address. Contract signatures require an authoritative EIP-1271 verifier on chain 6423, including contract deployment and chain checks. A provider label or browser-selected account is never server authority.
+
+issueFinanceEvmSubjectSession verifies both signatures and calls commit. That callback **must atomically** consume the challenge and create or look up a durable, unique (6423, EVM address) Finance subject and persist its session. The server assigns subjectId; it is never derived from ynx1, and nativeAccount is exactly null. The session expires no later than the challenge and within five minutes. Any optional native/EVM account link requires a separate dual-signed flow and cannot be inferred from address similarity.
+
+Each private GET uses a P-256 proof over domain YNX_FINANCE_EVM_SUBJECT_HTTP_PROOF_V1, newline, and its exact canonical method, raw target and query, body SHA-256 digest, session, subject, nonce, and time. The server supplies a fixed route allowlist. verifyAndConsumeFinanceEvmSubjectRead calls consumeActiveProof, which **must in one database transaction** recheck the stored session is active, that its subject still owns the (chainId, account) mapping, and that (sessionId, nonce) has never been used; it then marks the nonce consumed. Return no private records on a false result. Do not use client-reported accountsChanged, chainChanged, or connected flags as server authority. Those events clear browser state and trigger best-effort POST /api/evm-subject/revoke; the server atomically marks the session revoked while consuming the revoke proof. A provider change without successful revocation leaves residual access until the short server expiry.
+
+Browser callers use the With variants for login, GET, and revoke. They pass a platform signer holding a nonextractable P-256 key; the helper sends base64url-encoded message bytes and accepts WebCrypto 64-byte compact or DER output, normalizes to DER, and verifies against the bound public key before returning a proof. No browser private key export is required.
+
+## C. Order approval
+
+Finance must load the authenticated EVM subject, session, and its Broker account mapping from its own store before issuing an order challenge. The challenge binds alpaca_broker, sandbox, testnet, the exact parseFinanceOrder value and financeOrderHash, subject, EVM account and type, Broker account ID, session binding, request/challenge IDs, nonce, callback state hash, and expiry. It never derives a Broker owner or native ynx1 identity from a 0x address.
+
+The wallet signs domain YNX_FINANCE_EVM_ORDER_APPROVAL_V1, newline, and the canonical challenge with EIP-191. The device separately signs domain YNX_FINANCE_EVM_ORDER_DEVICE_V1, newline, and the challenge. verifyAndConsumeFinanceEvmOrderApproval verifies both and hands the complete verified order to a server commit. That callback **must transactionally** recheck live subject/session ownership, unused/unrevoked challenge, exact Broker mapping, and provider idempotency; at most one logical provider order may result. For EIP-1271 accounts, recheck on-chain signature validity immediately before order submission because validity may change after initial verification. A successful callback must persist an idempotency key before external order dispatch and reconcile provider retries. Login and GET proofs cannot authorize an order.
+
+Rejection is a device-signed YNX_FINANCE_EVM_ORDER_REJECT_V1 decision. Revocation of an unused approval is a fresh EVM-signed YNX_FINANCE_EVM_ORDER_REVOKE_UNUSED_V1 decision. Each must atomically race challenge/order consumption. Revocation cannot cancel an already submitted broker order.
+
+Browser order approval and rejection likewise use createFinanceEvmOrderApprovalWith and createFinanceEvmOrderRejectWith with a nonextractable P-256 platform signer.
+
+The browser callback carries only an opaque, one-time correlation code and state. Keep signatures, complete orders, Broker IDs, and private records out of query strings, browser history, and general request logs. The server stores the proof against that code, consumes it once, checks exact request/state/subject/session, and discards any late callback from an older request or account. The older native order transport uses a different callback format and must not be reused for this EVM flow.
+
+This package is a protocol and verification library. Finance's backend must implement the documented durable transactions, real Broker authorization and idempotency, confidential callback exchange, account-link policy, and real provider/device acceptance. Those integration outcomes remain **NOT_VERIFIED** here.

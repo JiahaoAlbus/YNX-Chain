@@ -1,0 +1,9 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.INTERNET" />
+  <application android:label="YNX Faucet runtime QA" android:allowBackup="false"
+    android:networkSecurityConfig="@xml/runtime_test_network_security" />
+  <instrumentation
+    android:name="com.ynxweb4.faucettransport.BoundedHttpRuntimeInstrumentation"
+    android:targetPackage="com.ynxweb4.faucettransport.runtimeqa"
+    android:functionalTest="true" />
+</manifest>

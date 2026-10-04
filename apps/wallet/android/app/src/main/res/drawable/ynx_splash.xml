@@ -1,0 +1,6 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+  <item android:drawable="@color/splashscreen_background"/>
+  <item android:width="128dp" android:height="128dp" android:gravity="center">
+    <bitmap android:src="@drawable/ynx_brand_logo" android:gravity="fill" android:filter="true"/>
+  </item>
+</layer-list>

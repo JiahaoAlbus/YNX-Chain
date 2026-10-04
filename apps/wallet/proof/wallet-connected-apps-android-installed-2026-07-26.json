@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b88a40ed37eaf3fd50d6accc5fdc3b7693c82cf5",
+  "observedAt": "2026-07-26T12:17:01Z",
+  "surface": "android",
+  "environment": {
+    "apiLevel": 36,
+    "os": "Android 16",
+    "model": "sdk_gphone64_arm64",
+    "buildFingerprint": "google/sdk_gphone64_arm64/emu64a:16/BP22.250325.006/13344233:user/release-keys",
+    "applicationId": "com.ynxweb4.wallet",
+    "versionName": "1.0.0",
+    "versionCode": 1,
+    "minSdk": 24,
+    "targetSdk": 36
+  },
+  "artifact": {
+    "buildTask": ":app:assembleRelease --offline --no-daemon",
+    "buildJdk": "OpenJDK 17.0.17",
+    "unsignedSha256": "b22efb45cd71b1b5aea9cb58c76a2c535f7b7fd705d5d33b150579e2d260608c",
+    "unsignedBytes": 78190718,
+    "installedTestSignedSha256": "ef8be5a1597da6a35ef14ab57a0b5cffc42f34ad35cbc4a0ef32ad75c4f85d34",
+    "installedTestSignedBytes": 78289381,
+    "signingClass": "local-android-debug-test-signed",
+    "signerCertificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e",
+    "signatureSchemes": ["v2", "v3"],
+    "hosted": false,
+    "productionSigned": false
+  },
+  "installation": {
+    "adbInstallReplace": "success",
+    "firstColdLaunch": {"status": "ok", "launchState": "COLD", "totalTimeMs": 11603, "waitTimeMs": 11628},
+    "secondColdLaunch": {"status": "ok", "launchState": "COLD", "totalTimeMs": 6489, "waitTimeMs": 6524},
+    "focusedActivity": "com.ynxweb4.wallet/.MainActivity",
+    "fatalExceptionObserved": false
+  },
+  "verifiedSourceCapabilities": [
+    "canonical-session-inventory-client",
+    "account-binding",
+    "freshness-bound",
+    "fail-closed-response-parser",
+    "connected-apps-loading-empty-failure-ready-ui"
+  ],
+  "explicitlyUnproven": [
+    "current-source-deep-link-ui",
+    "current-source-rtl-interaction",
+    "current-source-dark-mode-interaction",
+    "current-source-large-text-interaction",
+    "hosted-current-apk",
+    "production-signing",
+    "physical-device-install",
+    "store-release",
+    "central-gateway-connectivity"
+  ]
+}

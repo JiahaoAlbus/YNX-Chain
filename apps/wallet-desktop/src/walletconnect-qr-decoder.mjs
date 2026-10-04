@@ -1,0 +1,41 @@
+import jsQR from "jsqr";
+import {readQRImageBounds,assertQRImageDimensions} from "./qr-image-bounds.mjs";
+
+const ACCEPTED_MIME_TYPES = new Set(["image/png", "image/jpeg", "image/webp"]);
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+
+export function decodeWalletConnectQR({ bytes, mimeType, createImage, decode = jsQR }) {
+  const uri = decodeLocalQRText({ bytes, mimeType, createImage, decode }).trim();
+  if (!/^wc:[0-9a-f-]+@2\?/.test(uri)) throw qrError("INVALID_WALLETCONNECT_QR", "A WalletConnect v2 QR code is required");
+  return Object.freeze({ uri, format: "qr_code", decodedLocally: true, uploaded: false });
+}
+
+/** Shared local pixel decoder. Consumers validate their own exact URI protocol. */
+export function decodeLocalQRText({ bytes, mimeType, createImage, decode = jsQR }) {
+  if (!Buffer.isBuffer(bytes) || bytes.length < 1 || bytes.length > MAX_IMAGE_BYTES || !ACCEPTED_MIME_TYPES.has(mimeType)) throw qrError("INVALID_QR_IMAGE", "Choose a PNG, JPEG or WebP image up to 10 MB");
+  const expected = readQRImageBounds(bytes, mimeType);
+  const image = createImage(bytes);
+  if (!image || image.isEmpty()) throw qrError("QR_DECODE_FAILED", "The image could not be decoded locally");
+  const { width, height } = image.getSize();
+  assertQRImageDimensions(width,height);
+  if (width !== expected.width || height !== expected.height) throw qrError("INVALID_QR_DIMENSIONS", "Decoded QR image dimensions did not match its container");
+  const bgra = image.toBitmap();
+  if (!Buffer.isBuffer(bgra) || bgra.length !== width * height * 4) throw qrError("QR_DECODE_FAILED", "Decoded image pixels were invalid");
+  const rgba = new Uint8ClampedArray(bgra.length);
+  for (let index = 0; index < bgra.length; index += 4) {
+    // Electron 42 nativeImage.toBitmap returns N32 premultiplied pixels.
+    // Composite onto white before jsQR, which reads RGB but ignores alpha.
+    // Otherwise a black QR on transparent pixels becomes an all-black image.
+    const white = 255 - bgra[index + 3];
+    rgba[index] = bgra[index + 2] + white;
+    rgba[index + 1] = bgra[index + 1] + white;
+    rgba[index + 2] = bgra[index] + white;
+    rgba[index + 3] = 255;
+  }
+  const decoded = decode(rgba, width, height, { inversionAttempts: "attemptBoth" });
+  const text = decoded?.data;
+  if (typeof text !== "string" || text.length < 1 || text.length > 8192) throw qrError("QR_DECODE_FAILED", "No usable QR code was found in the image");
+  return text;
+}
+
+function qrError(code, message) { return Object.assign(new Error(message), { code }); }

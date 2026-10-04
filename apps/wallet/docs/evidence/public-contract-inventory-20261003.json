@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "fe914490418b3a590f1d01d483feefa583e23d8e",
+  "observedAt": "2026-10-03T13:23:47.034Z",
+  "scope": "public-node-reported-inventory-only",
+  "calls": [
+    {
+      "method": "GET",
+      "url": "https://rpc-testnet.ynxweb4.com/status",
+      "httpStatus": 200,
+      "nodeHeight": 1794159,
+      "latestBlockTime": "2026-10-03T13:23:40.307635185Z",
+      "truthfulStatus": "ynx-testnet-node",
+      "buildCommit": "65efa82e0615",
+      "mainnetReady": false
+    },
+    {
+      "method": "GET",
+      "url": "https://rpc-testnet.ynxweb4.com/explorer/summary",
+      "httpStatus": 200,
+      "nodeHeight": 1794159,
+      "latestBlockTime": "2026-10-03T13:23:40.307635185Z",
+      "truthfulStatus": "ynx-testnet-node",
+      "contractCount": 0
+    }
+  ],
+  "contractReadVerified": false,
+  "publicDeploymentPerformed": false,
+  "signingPerformed": false,
+  "profileTouched": false
+}

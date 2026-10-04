@@ -1,0 +1,84 @@
+# Wallet evidence index
+
+## Runtime images
+
+- `proof/ynx-wallet-locked-current.png`: latest API 36 phone cold launch, English/light/empty onboarding.
+- `proof/ynx-wallet-arabic-main.png`: Arabic security copy and mirrored RTL header/layout.
+- `proof/ynx-wallet-arabic-rtl.png`: complete twelve-language selector in RTL mode.
+- `proof/ynx-wallet-dark-large-text-rtl.png`: dark appearance, Arabic RTL and device font scale 1.3.
+- `proof/ynx-wallet-fold-large-screen.png`: 2076×2152 unfolded/foldable large-screen layout.
+- `proof/ynx-wallet-authorization.png`: historical pre-normalization Wallet review (`com.ynxweb4.social`); not a current canonical identity claim.
+- `proof/ynx-social-product-session.png`: historical pre-normalization installed Social session; not a current canonical identity claim.
+- `proof/ynx-social-replay-rejected.png`: historical pre-normalization installed replay rejection; not a current canonical identity claim.
+- `proof/ios-simulator-deep-link-rejection.png`: Xcode 26.3 iPhone Simulator after installed cold launch and a malformed canonical deep link; Wallet stays fail closed and renders the rejection.
+
+SHA-256 and byte sizes are recorded in `artifact-manifest.json`. The latest Android install used `com.ynxweb4.wallet/.MainActivity` on API 36 and returned `LaunchState: COLD`, `TotalTime: 2140 ms`, `WaitTime: 2274 ms`; a second cold launch returned 477/513 ms with Wallet as the focused activity. The foldable cold launch returned 15082/15742 ms at physical size 2076×2152.
+
+## Protocol and chain evidence
+
+- `packages/wallet-auth/testdata/signer-v1.json`: deterministic Wallet approval vector.
+- `packages/wallet-auth/testdata/gateway-p256-v1.json`: P-256 product-device challenge vector.
+- `packages/wallet-auth/testdata/central-lifecycle-v1.json`: restart and revocation lifecycle vector.
+- `packages/wallet-auth/testdata/mobile-native-transfer-v1.json`: exact JS/Go native-transfer vector.
+- Public-testnet transfer hash `0x7bdf19361936215c8bc753696ce61d78ed089f755eac2d8af5cbfbcb1fdc94b2`: scalar-1 test-vector account, amount 1, fee 1, nonce 2. The authoritative account response subsequently reported balance 87 and nonce 2. This is test-vector/testnet activity, not production funds.
+
+## Local account lifecycle and privacy evidence
+
+- Source commit `5aa780f58c4c0c3142116f6340d57b7c5ab5a65c`: real Wallet runtime UI for rename and strong-biometric recovery-key viewing; persisted rename/restart test; global screenshot fail-closed gate; recovery-state erasure; and bounded public-address clipboard expiry.
+- Verification commands: `npm run typecheck`, `npm test` (32/32), `npm run product-check`, `npm run bundle`, and repository `git diff --check`. Android/iOS Hermes exports are local bundle evidence only; current installed APK/Simulator and hosted-artifact states remain false for this source commit.
+- `src/security/clipboardPrivacy.test.ts` proves expiration clears only the unchanged Wallet value, preserves a later user copy, supports cancellation, and rejects retention outside 1–120 seconds.
+
+## Local EVM compatibility and simulation evidence
+
+- Source commit `ec8bdc6c7ae61479ed257cff26c41dbbc1366dba`: explicit derived 0x compatibility view plus strict read-only EVM simulation. Code and `eth_call` use the same exact block tag; chain mismatch, empty code, malformed/unknown JSON-RPC fields, noncanonical quantities, provider errors and oversized responses fail closed.
+- `src/chain/evmSimulation.test.ts`: four grouped tests covering the complete method sequence, exact request binding, fixed-block behavior, no-code/wrong-chain rejection, input widening, provider errors and response bounds. The current full Wallet test run passes 39/39.
+- Android and iOS Hermes exports pass for this source commit. They are local bundle evidence only; no current installed app, hosted artifact, public RPC capability or transaction execution claim is made.
+
+## Canonical Gateway HTTP integration evidence
+
+- Source commit `d89ec9da11a3ec0e4bcec12edae09ec7a2e4fe2e`: `packages/wallet-auth/src/gateway-http.js` exports the mountable HTTP kernel around Gateway adapter snapshot v2. It freezes Registry v2, rejects alternate/noncanonical business bodies, keeps P-256 proof transport outside the body digest, enforces twelve exact routes and a 1 MiB request bound, returns `Cache-Control: no-store`, and emits `YNX_CANONICAL_GATEWAY_HTTP_STATE_V1` state digests.
+- `packages/wallet-auth/test/gateway-http.test.mjs`: completion/restart, exact body proof binding, replay, immutable registry, canonical request shape, bounded responses, redacted internal errors, request-level rollback, self-scoped approval/device revoke, canonical Wallet-only all-device logout and restart-safe revocation rejection. `strategy-gateway-adapter.test.mjs` additionally proves a failed duplicate mandate transition does not consume a fresh Product Session proof.
+- Current verification: Wallet/Auth 94/94, Browser SDK 7/7 after `npm ci --ignore-scripts` from its independent lockfile, JS SDK 5/5, `npm pack --dry-run`, repository `git diff --check` and `umask 0022; go test ./...` passed. The first Browser SDK attempt without its local install resolved the root tooling dependency and failed; it is not recorded as a product defect.
+- Source commit `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6` adds the loopback canonical Gateway host observability boundary: truthful health/readiness/version, exact remote build identity, Prometheus metrics with bounded route/error labels, request/trace/error IDs and redacted canonical JSON events. `gateway-node-host.test.mjs` passes 8/8; a real CLI process returned all four administrative interfaces, and remote classification without exact source/release/build-time identity was rejected.
+- `proof/gateway-observability-local-2026-07-27.json` binds source hashes, tests, runtime smoke and the explicit false central/staging/public/Monitor states. Events exclude request body, Product Session proof, authorization headers, custody material, signatures, provider secrets and state paths; event-sink failure is isolated and counted.
+- `proof/gateway-backup-restore-local-2026-07-29.json` binds verification source `a5c99e4e26e150aa6cf4138f4ecf8ac6d1ea8b2f`, 100/100 package tests, 6/6 focused recovery tests and a 20-sample source-bound drill. It proves AES-256-GCM integrity, exact non-empty restore, replay-state preservation, rollback/age/no-overwrite controls, validated legacy timestamp normalization and rejection of unsupported future state schemas. Central durable storage, KMS/HSM, cross-region and production RTO/RPO remain false.
+- `packages/wallet-auth/integration/gateway-integration.manifest.json`, `gateway-state.schema.json`, `GATEWAY_PATCH.md`, `release/integration/wallet-auth-contract.json` and `docs/integration/*` carry the exact merge contract. No central merge, durable production store, staging/public endpoint or shared Testnet execution is claimed.
+
+## iOS Simulator evidence
+
+GitHub Actions run [29646381701](https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/29646381701) executed `.github/workflows/wallet-ios.yml` on macOS 15 with Xcode 26.3. It installed dependencies and pods, passed the SDK and Wallet checks, built the unsigned Release `YNXWallet.app`, booted an available iPhone Simulator from shutdown, installed the app, cold-launched `com.ynxweb4.wallet`, resolved `ynxwallet://authorize?request=invalid`, captured the fail-closed rejection screen and uploaded the app plus command evidence. The exact unsigned Simulator bundle is hosted as an engineering-only release asset; this does not claim production signing, an archive, device installation or App Store release.
+
+## Hosted engineering artifacts
+
+- [Android API 24+ test-signed APK](https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk)
+- [Unsigned iOS Simulator app zip](https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip)
+
+Both assets correspond to source commit `da82c8b07b72b615ccb24b86a2a7ac66ee85b4d8`. SHA-256 and byte sizes are recorded in `artifact-manifest.json`.
+
+## Smart Account, mandate and Credential evidence
+
+- `contracts/wallet/YNXSmartAccount.sol` and `YNXEntryPoint.sol`: official ERC-4337 v0.8 EntryPoint integration, owner and UV-required WebAuthn validation, exact-target/selector session keys, per-call/daily native-value limits, batch calls inherited from BaseAccount, emergency epoch revoke and delayed guardian recovery.
+- `scripts/contracts/test-smart-account-hardhat.js`: real local EntryPoint `handleOps` for owner, WebAuthn, session-key and counterfactual factory operations; missing-UV, wrong-target, over-limit and post-recovery rejection; 50-operation session soak and local latency benchmark. It explicitly excludes Bundler/RPC/durable-storage/public-chain latency.
+- `scripts/contracts/deploy-wallet-smart-account.js`: chainId-6423-only deployment path for a verified existing EntryPoint or the pinned official EntryPoint plus factory. It requires an exact source commit and emits mined transaction references, code hashes and byte counts; it leaves Paymaster/Bundler/sponsored receipt null rather than claiming success.
+- `proof/smart-account-hardhat-local.json`: source-commit-bound assertions, source/artifact hashes, byte sizes and the 50-operation local EDR benchmark. All public-network exclusions and false deployment states are machine-readable.
+- `contracts/wallet/YNXSponsorPaymaster.sol`: default-disabled EIP-712 sponsorship with conservative max-cost reservation, product/subject/per-operation/first-action budgets, merchant allowlist, authorization replay protection, observed postOp cost and disable-only Risk Officer authority.
+- `packages/wallet-auth/src/bundler.js` and `test/bundler.test.mjs`: strict ERC-7769 client for health, estimate, submit, lookup and receipt; exact signed operation preservation, chain/EntryPoint checks, timeouts, response limits, local rate limiting, fuzz/fault cases and 100-request isolated-fixture soak.
+- `packages/wallet-auth/integration/smart-account-testnet.manifest.json`: machine-readable contract, policy, test and false deployment-state handoff.
+- `proof/sponsorship-bundler-hardhat-local.json`: source-commit-bound Paymaster/Bundler assertions, source and bytecode hashes, local p50/p95/p99 and explicit exclusions; public deployment/Bundler/receipt states remain false.
+- `proof/public-evm-read-probe-2026-07-22.json`: direct public chainId/block read plus the exact `eth_getCode` `-32601` contradiction and TLS timeout boundary.
+- `packages/wallet-auth/integration/chain-erc4337-requirements.json` and `CHAIN_ERC4337_HANDOFF.md`: exact Chain Core runtime/RPC/Bundler merge contract. Wallet does not claim central acceptance or deployment.
+- `packages/wallet-auth/test/smart-account.test.mjs`: operation/policy binding, first-action and anti-Sybil budget properties, malformed-input fuzz, provider/policy faults, 10,000-iteration soak and 20,000-evaluation benchmark.
+- `packages/wallet-auth/test/mandate-credential.test.mjs`: no-withdraw/subaccount/DEX allowlist invariants, fee boundaries, capital non-guarantee and minimal Credential disclosure/expiry/status tests, including a 5,000-iteration Credential soak.
+- `src/control/controlSurface.ts`, `controlCopy.ts` and `controlSurface.test.ts`: twelve-locale native Smart Account/Capital sheet, complete current capital registry, strict runtime evidence parser, stale/missing visibility, old-client bridge-route compatibility, AI explain-only copy, malformed/future/duplicate fault rejection, 1,000-input fuzz and 5,000-snapshot soak/benchmark. The local 2026-07-22 benchmark was 728.28 ms and excludes rendering, network, provider and device latency.
+- `proof/wallet-control-surface-local.json`: exact source commit and source-file hashes, local Android/iOS Hermes bundle hashes and byte counts, test/benchmark results, and explicit false public-runtime, installed-device, hosted-artifact, position, sponsorship and Explorer claims.
+- `proof/ynx-wallet-control-android-current.png` and `proof/wallet-control-android-installed-2026-07-22.json`: API 36 / Android 16 installed debug shell with current JavaScript delivered by local Metro, true cold launch, strong simulated fingerprint unlock, focused MainActivity, accessibility-observed control labels, normalized capital names and honest unavailable state. The machine evidence binds exact source, native shell APK and screenshot hashes. It is not a standalone, hosted, production-signed or public-runtime artifact.
+- `packages/wallet-auth/test/intent.test.mjs`: secp256k1 Signed Intent bound to Product Session, action and parameter digest; Evidence/Trust, human approval, AI explain-only, canonical export, tamper/expiry/revoke and 2,000-verification soak/benchmark.
+- `packages/wallet-auth/test/gateway-adapter.test.mjs` and `testdata/product-session-http-proof-v1.json`: server-selected approved registry, P-256 sender-constrained HTTP proof, exact method/path/body binding, replay persistence, revoke-after-restart and 2,000-proof soak.
+- `proof/gateway-benchmark-local.json`: 1,000 complete in-process proof/introspection samples, zero errors, p50 2.931 ms, p95 3.318 ms, p99 4.208 ms and 333.48 operations/second. Its coverage field explicitly excludes network and durable-storage latency.
+- `packages/wallet-auth/src/mandate.js`, `mandate-lifecycle.js` and `gateway-adapter.js`: StrategyMandate v2, StrategyAction v1, persistent replay/revoke/kill/emergency-exit state and Product Session P-256 Gateway authorization.
+- `packages/wallet-auth/testdata/strategy-mandate-v2.json`: shared cross-product vector with fixed mandate/action/nonces and eight canonical negative cases. It is regenerated by `npm run vector:strategy` and verified by `test/strategy-vector.test.mjs`.
+- `packages/wallet-auth/test/strategy-gateway-adapter.test.mjs`: Quant Authorization Request → Wallet Approval → P-256 Product Session → mandate activation/action/revoke/kill/emergency-exit, including wrong body, missing scope and cross-session substitution rejection.
+- `release/integration/wallet-auth-contract.json` and `docs/integration/*`: protocol versions, owner boundaries, shared vectors, dependency acceptance and nine-level release state. Central/Testnet/Public states remain false.
+- `sbom.cdx.json`, `scripts/sbom-check.mjs` and `proof/wallet-sbom-release-grade-2026-07-29.json`: pinned CycloneDX npm 6.0.0 produces a deterministic CycloneDX 1.6 runtime graph with 431 components, 504 dependency nodes, complete license metadata and SHA-256 `4b1c905a01ce7fc9f923973c9a97a2de3662a515251d387ba3a7ecdcc087dd85`; generation and verification reject npm tree errors, stale output, duplicate references and missing licenses. `release/evidence/wallet-auth-source-candidate-2026-07-29.json` records the six-asset source-only prerelease and complete download-backread digest match.
+- `scripts/release-content-check.mjs` scans 22 Wallet runtime/config/public-metadata files without external binaries and rejects disallowed filler claims and common literal secret signatures. `docs/integration/SECURITY_GATE_CONFLICT.md` records that the repository-level `rg`-based placeholder/secret scripts emitted false success when `rg` was missing; those central invocations are not counted as evidence.
+- `.ai-bridge/full-goal-coverage.json` and `scripts/full-goal-coverage-check.mjs`: 40 unique Wallet/Auth requirements with allowed statuses, exact source commits, valid evidence paths, concrete external blockers and self-consistent summary counts, including the explicit `huangjeo.com` ownership boundary.

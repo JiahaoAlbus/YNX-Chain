@@ -1,0 +1,32 @@
+YNX Wallet return-work Android install and cold-launch evidence
+Date: 2026-07-17 Asia/Shanghai
+Emulator: emulator-5554, API 36, sdk_gphone64_arm64
+Package: com.ynxweb4.wallet
+Activity: com.ynxweb4.wallet/.MainActivity
+APK bytes: 77983526
+APK SHA-256: 74444a519d81d426986e7cdf0f80dc0d1f5fb35fffd73da0655a0c7d64509da6
+
+Install command result:
+Performing Streamed Install
+Success
+
+Cold-launch command result after am force-stop:
+Stopping: com.ynxweb4.wallet
+Starting: Intent { cmp=com.ynxweb4.wallet/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.ynxweb4.wallet/.MainActivity
+TotalTime: 27602
+WaitTime: 28807
+Complete
+
+Post-launch activity state:
+topResumedActivity=ActivityRecord{... u0 com.ynxweb4.wallet/.MainActivity ...}
+
+The accompanying ynx-wallet-cold-launch.png is the clean native-splash evidence
+captured from the same return-work source line. This exact install reached the
+Wallet MainActivity, but the overloaded emulator then raised unrelated Digital
+Wellbeing and System UI ANR dialogs, so no clean post-launch screenshot or
+refreshed cross-App interaction is claimed from this run. The separately committed
+authorization, product-session and replay-rejected evidence remains the latest
+clean cross-App interaction proof.

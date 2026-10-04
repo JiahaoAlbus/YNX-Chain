@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "scope": "Desktop Preferences and runtime branding; original profiles preserved",
+  "sourceCheckpointBeforeChanges": "e1e6f33f6d70d61e849a8bdb6ac4c27005aba4f8",
+  "qa": {
+    "packageVersion": "0.6.8",
+    "source": "/tmp/ynx-wallet-desktop-locale-wip-20261003-ZWYQ1w/apps/wallet-desktop",
+    "profile": "/tmp/ynx-wallet-desktop-locale-profile-20261003-PUanxk",
+    "originalPid": 676,
+    "restartedPid": 52159,
+    "cdpPort": 51106,
+    "protectedOtherPidNotOperated": 26147,
+    "protectedOtherPortNotOperated": 51072,
+    "formalRelease": false,
+    "baselineScreenshot": "/tmp/ynx-wallet-preferences-qa-20261003-e8Cw4S/01-before-zh-larger.png"
+  },
+  "steps": [
+    {"step": 1, "description": "Open existing Chinese larger-text Preferences in locked empty-account QA", "health": "Captured before changes; original native select is full-row width and dialog controls are oversized"},
+    {"step": 2, "description": "Restart only independent locale QA using its original profile and changed source", "health": "Process restarted; native menu, Dock icon, About, keyboard and close-focus UI confirmation blocked by macOS lock"},
+    {"step": 3, "description": "Chinese / English / Arabic RTL / larger / keyboard / close-return retest", "health": "NOT_VERIFIED; manual Mac unlock required; no security bypass"}
+  ],
+  "implementedSource": ["Native language select bounded to 18rem", "Preferences bounded to 440px with responsive scrolling", "Accessible original native radio group uses compact three-column layout with narrow-screen single column", "Close restores focus to opener", "Original icon used for Dock and window", "YNX Wallet application/menu/About names", "Unpackaged title explicitly YNX Wallet QA; source and actual package version only in About"],
+  "publicBaseline": {
+    "url": "https://ynxweb4.com/releases/wallet/d58ce00dc/product-release.json",
+    "observedSha256": "5404b832e546e45e0e4c9f8a88ed48dd9cbf98907d6b9db8577e85709b8a89a5",
+    "sourceCommit": "d58ce00dc4e83f4c24747dfef7e0b59395d6b789",
+    "release": "1.0.19-testnet-preview-d58ce00dc",
+    "androidVersionCode": 25,
+    "platformsInThisManifest": ["android APK", "android AAB"],
+    "apkSha256": "437973258f40e4f7b3a2d3d603bbf67e932d1fca8082ed8eb9e8ff7b84514730",
+    "localAndroidVersionCode": 22,
+    "localAndroidVersionName": "1.0.15-testnet-preview",
+    "publicSourceIsAncestorOfCurrentCheckpoint": false,
+    "releaseBlocker": "P0: source inheritance and version floor are NOT aligned. A must integrate verified published capabilities and exact source/version/artifact provenance; never bump version to hide missing integration.",
+    "otherPlatformReleaseBaseline": "NOT_VERIFIED: the observed manifest contains no macOS/Windows/iOS installer. A must supply exact current per-platform source and artifact baselines. Android and Desktop version numbers are not evidence of equivalent functionality."
+  },
+  "limits": ["496 passing controlled Desktop tests are source evidence only", "Native chain adapter is not yet wired into normal Desktop Pay dispatch/recovery/settlement UI", "No real OS authentication, public Pay session, live transfer, installer, Finder or taskbar acceptance", "No MONSTER run", "Source symbol presence is not proof of preserved end-to-end published behavior"]
+}

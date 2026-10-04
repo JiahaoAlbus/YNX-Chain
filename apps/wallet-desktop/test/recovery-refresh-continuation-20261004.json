@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "69be1064cc19079ea500750347ff9df03e186d2c",
+  "scope": "Owned Desktop complete pending-inventory recovery entry and twelve-language UI. Existing check/retry/journal/receipt authority, shared SDK, Native App and Main unchanged.",
+  "originalGap": "Startup inventory read failure displayed a recovery error with no control to re-read pending inventory. History refresh only read completed history; balance refresh only read assets. Recovery required another account event or restart.",
+  "originalTests": "Mounted46 cases40 PASS6 new FAIL: real HTML control absent, failed startup retry, duplicate-click coalescing, old read/new context busy fencing, locked public refresh and detached no-account control.",
+  "implementation": "Dedicated Refresh pending transactions control in original recovery panel. Initially/cleared disabled; enabled only after current account inventory request settles. Click performs public list read only, clears obsolete status display, never retries or signs. Duplicate clicks and no-account dispatch rejected; old completion cannot enable newer pending request. Existing exact-retry lock and all DTO/account/revision guards preserved.",
+  "verification": {
+    "first": "56 PASS0 FAIL across original mounted and locale catalog tests",
+    "final": "119 PASS0 FAIL0 SKIP across eight source-level files: transaction-recovery-locale-mounted, transaction-resolution-display, transaction-resolution-mounted, transaction-history-ui, transaction-history-producer-ui, history-container-boundary, transaction-history-locale-mounted and wallet-locale",
+    "mountedTwelveLanguages": "Actual original renderer recovery functions plus original locale controller and display validators mounted to controlled DOM. Static refresh, check/retry and original hash/account/amount facts survive all twelve locales without extra reads/actions. Original startup throw recovers by refresh while keys stay locked; no signing/retry/asset mutation occurs.",
+    "executionBoundary": "Original producer tests use ethers and public controlled snapshots only. No shared WalletAuth import, real private journal, live RPC, installed runtime or OS-auth flow executed.",
+    "syntax": "renderer node --check and git diff --check exit0",
+    "evidenceDirectory": "/tmp/ynx-wallet-recovery-refresh-20261004-7zmqH3"
+  },
+  "remaining": ["Whole current independent source review and A adoption", "Never-settling journal IPC still holds its busy refresh button until context invalidation; no fake cancellation or forced transaction interpretation added", "Current complete SDK/factory admission", "Current formal installer/signing/notarization and matching website download", "Retained real-account upgrade and UNKNOWN/history recovery across platforms", "Actual camera/contracts/private Pay and user acceptance", "MONSTER NOT_RUN"],
+  "overallGoal": "NOT_COMPLETED"
+}

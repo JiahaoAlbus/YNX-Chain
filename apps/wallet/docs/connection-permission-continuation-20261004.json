@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "ynx-native-connection-permission-presentation/v1",
+  "parent": "6404a94c085aac152a614a1d809c479a3feba7f4",
+  "scope": "Owned permission/review-warning presentation only, no authority or protocol changes",
+  "change": "Actual component permissionLabel delegates to complete12locale public-account/network/message/structured/transfer/product/central-app labels, with original per-request approval warnings. Three actual review callsites use localized connectionOnly/messageWarning/structuredWarning. Unknown wire names stay exact literal diagnostics, cannot gain a known capability via prototype lookup or replacement tokens.",
+  "original": {
+    "tests": 14,
+    "pass": 3,
+    "fail": 11,
+    "log": "original-permissions.log",
+    "sha256": "8fae3605e22968bb4043c2c2bf9c900191ef463cf0a8f0159c4e242e18a4575a"
+  },
+  "related": {
+    "tests": 139,
+    "pass": 139,
+    "fail": 0,
+    "log": "connect-regression.log",
+    "sha256": "a8cea4300c9bc1ea050de9a1ea86790ad7d7ef21517915378538ea88298ed62d"
+  },
+  "full": {
+    "tests": 1023,
+    "pass": 1023,
+    "fail": 0,
+    "skip": 0,
+    "log": "full-regression.log",
+    "sha256": "384247132ac6fc0685943664a7d387303d8f7f4edcfa1641d2aa7c34c78c9c75"
+  },
+  "typecheck": {
+    "exitCode": 0,
+    "log": "typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "androidHermes": {
+    "exitCode": 0,
+    "log": "android-export.log",
+    "sha256": "529f09d706722d21ea38d16454e3a41758b00f7d1d951753d518bddf22341556",
+    "bundle": "dist-android/_expo/static/js/android/index-948dfc06704bcf472068fe66a1ae1fde.hbc"
+  },
+  "iosHermes": {
+    "exitCode": 0,
+    "log": "ios-export.log",
+    "sha256": "b17cf929b8c2b1f109e5923c1fc5924218c9555092ea3efe4b8cca94434d0c30",
+    "bundle": "_expo/static/js/ios/index-47aced3c977420a9d20b70f8c26a2280.hbc"
+  },
+  "evidenceDirectory": "/tmp/ynx-wallet-connect-permissions-20261004-kmgTnk/",
+  "verificationScope": "Actual helper extracted from component, controlled exact method names and selectedlocale assertions; all owned Native source tests and Hermes compatibility in retained candidate. Not installed UI or native language review.",
+  "sourceBinding": "181/181 Native src/App/index/AppDelegate files byte-compared against current checkout, no missing/different. Same retained supplied dependency environment; whole package/general SDK/runtime graph admission remains limited as passive-view-dependency-boundary-20261004.json, not asserted from tests.",
+  "unchanged": [
+    "Frozen App.tsx c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+    "WalletConnect handlers, operation and request leases, signing/session/replay/outbox/UNKNOWN policy",
+    "shared SDK/Auth/registry/factory/version/signing/real accounts"
+  ],
+  "remaining": [
+    "Other WalletConnect headings/errors/buttons still have prior bilingual/English copy; do not call whole component12locale-complete",
+    "Installed font/RTL/accessibility rendering and actual camera/authentication journeys",
+    "A matching protected factory/37ports/hybrid NativeBinding and final shared graph",
+    "Formal installers/website download/real business/user acceptance",
+    "MONSTER NOT_RUN"
+  ]
+}
