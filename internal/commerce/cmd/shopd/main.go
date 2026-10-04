@@ -14,8 +14,8 @@ import (
 func main() {
 	addr := flag.String("http", "127.0.0.1:8095", "HTTP listen address")
 	state := flag.String("state", "tmp/shop/state.json", "persistent state path")
-	buyer := flag.String("buyer-assets", "apps/shop", "buyer web assets")
-	seller := flag.String("seller-assets", "apps/seller-console", "seller web assets")
+	buyer := flag.String("buyer-assets", "apps/shop/dist", "built buyer public assets; use a dedicated immutable build root")
+	seller := flag.String("seller-assets", "apps/seller-console/dist", "built seller public assets; use a dedicated immutable build root")
 	restoreBackup := flag.Bool("restore-backup", false, "restore the last verified state backup before starting")
 	exportRollback := flag.String("export-rollback", "", "write a new bounded rollback snapshot and exit; never overwrites an existing file")
 	rollbackVersion := flag.Int("rollback-version", 5, "rollback snapshot target version: 3, 4, 5, 6 or 7; refused when retired intent protection cannot be represented")

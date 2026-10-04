@@ -125,11 +125,7 @@ func (s *Server) security(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		policy := "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'"
-		if s.cfg.browserGatewayOrigin != "" {
-			policy += " " + s.cfg.browserGatewayOrigin
-		}
-		w.Header().Set("Content-Security-Policy", policy+"; img-src 'self' data: https:")
+		w.Header().Set("Content-Security-Policy", s.OriginalCommerceDocumentPolicy())
 		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet && !s.store.Allow(clientSubject(r), "http.mutation", 240, time.Minute) {
 			fail(w, http.StatusTooManyRequests, errors.New("mutation rate limit exceeded"))
@@ -1164,4 +1160,14 @@ func (s *Server) deleteAI(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	write(w, 200, map[string]string{"status": "deleted"})
+}
+
+// OriginalCommerceDocumentPolicy exposes only the original immutable owned CSP.
+// Only the existing combined Web constructor can set browserGatewayOrigin.
+func (s *Server) OriginalCommerceDocumentPolicy() string {
+	policy := "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'"
+	if s.cfg.browserGatewayOrigin != "" {
+		policy += " " + s.cfg.browserGatewayOrigin
+	}
+	return policy + "; img-src 'self' data: https:"
 }
