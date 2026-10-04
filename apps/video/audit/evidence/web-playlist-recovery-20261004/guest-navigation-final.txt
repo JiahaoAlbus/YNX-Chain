@@ -1,0 +1,26 @@
+✔ opening a video deep link also loads the catalog so closing returns to usable content (3.162542ms)
+✔ a late translation apply cannot replace the actual channel heading with Discover (0.500459ms)
+✔ deep-link playback starts while the catalog is pending and closing recovers when it arrives (0.407042ms)
+✔ channel navigation ends its own loading state and ignores an older catalog response (0.384042ms)
+✔ a failed channel request clears loading without letting a late error replace a newer view (0.58725ms)
+✔ two tabs showing Subscribe both set the desired state instead of undoing each other (1.097459ms)
+✔ an older subscription read cannot replace the result of a newer explicit action (0.381334ms)
+✔ sign-out immediately hides private library while revoke is pending, and a late restore cannot reconnect (0.710083ms)
+✔ a late private playlist response cannot reopen its picker after sign-out (0.603208ms)
+✔ restored pending logout has only explicit retry and never starts new approval (0.364667ms)
+✔ a sign-in racing initial restore still exposes SDK pending logout retry (0.386875ms)
+✔ a browser launch route is an unsigned guest request, not proof that the native Wallet is absent (0.34725ms)
+✔ a confirmed sign-out and subsequent browser restore keep retry and sign-out controls hidden (0.2735ms)
+✔ actual network failures and revocation intents retain explicit retry even beside a native detection route (0.486292ms)
+✔ a recoverable sign-in error opens the chooser and the selected native request has its own launch link (0.2515ms)
+✔ original BrowserSSO hash landing resumes only an existing Video page (0.248417ms)
+✔ site account login waits for original private retirement and rejects duplicate account actions (0.264083ms)
+✔ unconfirmed original Video retirement blocks site login and site logout (0.563334ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 56.535042

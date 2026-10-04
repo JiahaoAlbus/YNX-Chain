@@ -1,0 +1,250 @@
+{
+  "schema": "ynx.video.web-playlist-recovery.checkpoint.v1",
+  "createdAt": "2026-10-04T02:59:27.402751+00:00",
+  "sourceCommit": "37c24687f1a5b143903859a3c6d079b964276362",
+  "sourceTree": "eed63dec1fffdba19a4115cef471e5e3ae6c620a",
+  "inheritedCheckpoint": {
+    "path": "apps/video/audit/playlist-pause-recovery-checkpoint-20261004.json",
+    "bytes": 12608,
+    "sha256": "a4fde6126568624216d6a563ba24082c587a92dac51411b8b84265993991ab93"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/media-owned-source.tar.gz",
+    "bytes": 4317926,
+    "sha256": "193f0b539d17f370ac978b5c17c4712d828aa16a737c4b1a317cf712b7f8f84c",
+    "fileCount": 636
+  },
+  "webRuntime": {
+    "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/video-web-runtime.tar.gz",
+    "bytes": 636032,
+    "sha256": "b06d1ea6de97785dfdf0b674800974e621a6cf82d1b46b6f5e09973044aba923"
+  },
+  "unchangedNativeBuildPins": [
+    {
+      "platform": "android",
+      "receipt": {
+        "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-build-receipt.json",
+        "bytes": 8044,
+        "sha256": "2e46e1f83dfbba39353d4382a6c6b153aa86ed63ef9c3352b2826ae6746e6340"
+      },
+      "currentSourcePinsGitExact": true,
+      "sourcePins": 31,
+      "recompiledThisBatch": false
+    },
+    {
+      "platform": "apple",
+      "receipt": {
+        "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-build-receipt.json",
+        "bytes": 10115,
+        "sha256": "b4fcfe6e0864f639490040bbb888b7fa3b683f3d1e0267c838f99a3cbaf7db68"
+      },
+      "currentSourcePinsGitExact": true,
+      "sourcePins": 23,
+      "recompiledThisBatch": false
+    }
+  ],
+  "checks": {
+    "fullGoRacePassEvents": 450,
+    "fullGoRaceFailures": 0,
+    "vet": "PASS",
+    "compositionInputs": 681,
+    "webChecks": 171,
+    "syntheticVisualStates": 144,
+    "syntheticVisualScope": "Shipped DOM/font/brand/callback stress only; not actual Wallet/private business or every translated label",
+    "actualChromiumIndexedDBGates": 15,
+    "originalLibraryCreateColdKeyRecovery": true,
+    "originalWatchingPickerCreateColdKeyRecovery": true,
+    "originalRequestDispatchesEach": 2,
+    "noDuplicatePlaylistAfterColdRetry": true,
+    "nativeBuildsUnchanged": true,
+    "mobileNavigationWidthGate": "PASS <250px per destination at390",
+    "renderedControlledWebWidths": [
+      390,
+      1440
+    ],
+    "actualWalletConsent": false,
+    "actualFormalHostCurrentActor": false,
+    "productionPublished": false,
+    "earlierCreatorTimeoutCause": "NOT_CONFIRMED"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified",
+    "Actual Central Trust receipt and user acceptance",
+    "New native owner-appeal and pause/recovery repair independent source review pending",
+    "Earlier Creator iOS 120-second full-run timeout cause NOT_CONFIRMED; later green is recovery evidence only",
+    "Native four-kind rights record/UI independent source review pending",
+    "Actual protected shared Trust decision/read/reconciliation producer contract required before final-outcome handling",
+    "Formal Video same-own business and exact release tuple remain unverified",
+    "Independent native playlist source review pending",
+    "Independent current Web playlist and inherited native source graph review pending",
+    "Formal Video own-account login/business/cold recovery through unique A matching Host/client still unverified"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-creator-studio-normal-product-390.png",
+      "bytes": 80992,
+      "sha256": "4af9cabf80e590210ed5bbb5e14febca1d2b12025a24e1b5667308179e810812"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-video-normal-product-390.png",
+      "bytes": 53229,
+      "sha256": "3ba6a96f2865912bde81b14bf32ebe45a78b32e17f0842cd416ee360f48d1694"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-video-web-original-create-paused-successor-390.png",
+      "bytes": 81773,
+      "sha256": "76466086e83508c8375460160d7c54c87f2eb6e1f35a23177e8f491542eebb71"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-video-web-original-create-pending-390.png",
+      "bytes": 56095,
+      "sha256": "7d4519962138613cdf11fe9dd66730b7a7b4242cf797b27ae2b56dfd09225394"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-video-web-original-playlists-complete-1440.png",
+      "bytes": 102204,
+      "sha256": "7210212b6e4a3e6f76ada0579ffb11facd0036a2182f853aaa682827853e1b17"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/before-mobile-nav-qa-video-web-picker-create-pending-390.png",
+      "bytes": 39511,
+      "sha256": "ce2e2ed91202b72357920da52c54de15f4b7bed72726c7da2202e7a3b0159f9f"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/chromium-indexeddb-15.txt",
+      "bytes": 878,
+      "sha256": "9b8250cfada8b61674a6cced9fa45bf7ec87a9e864d8bd07baee3d62cd7513e3"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 1079715,
+      "sha256": "ece446abcf58bbe6dea1e905efdd354795ebe1063f72d65f72145122a24a5fcb"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/combined-source-receipt.json",
+      "bytes": 190147,
+      "sha256": "df11bc595189431a96c7bc6bd1429d343adbd5a141bdef5352e25e59f5125525"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/display-first-invocation-failure.txt",
+      "bytes": 999,
+      "sha256": "cff2b50731730b1265330ef84bc13c4f26543262b424992f4a7f6e5f6acf338f"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/display-widths-final.txt",
+      "bytes": 94,
+      "sha256": "b35b7c2f72ef6b2e17d6ba894894d1237a858863ecaea5e8ad5213eece2ddfdd"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/first-picker-assertion-failure-combined-go-race.jsonl",
+      "bytes": 14483,
+      "sha256": "2ec2ef6a7949c9f04aef3927c4c8eda67696a406b6d9030616839bfe2a334f21"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/first-picker-assertion-failure-combined-source-receipt.json",
+      "bytes": 189977,
+      "sha256": "a1100b817cf88698e6d295635e3785fb93fbbae2cffbcde09b72074a1cce4242"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/focused-combined-go-race.jsonl",
+      "bytes": 5030,
+      "sha256": "ccae5f46df6e92a2b5828e804a2dd92f5ca449b05e1c5b1282b44cafef2c1a85"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/focused-combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/focused-combined-source-receipt.json",
+      "bytes": 190221,
+      "sha256": "28783fc7ff23b9b3e464c30fbd9c78b5643fb212623e073c27f8953df3403b57"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/followup.md",
+      "bytes": 3524,
+      "sha256": "e8556c8352e6583b1e06439d8482771b3fc977723af8fc876af232c136b8f10c"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/guest-navigation-final.txt",
+      "bytes": 1972,
+      "sha256": "38abee56ca9357dcd398dc91d2879519cfb100877e155a219924b46d8249e924"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/media-owned-source.tar.gz",
+      "bytes": 4317926,
+      "sha256": "193f0b539d17f370ac978b5c17c4712d828aa16a737c4b1a317cf712b7f8f84c"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/prepare-checkpoint.py",
+      "bytes": 10671,
+      "sha256": "9431e94d41015a72bc1b3f666e8df2efe78a1760661d9ec6c2b1642e0d204b74"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-creator-studio-normal-product-390.png",
+      "bytes": 79971,
+      "sha256": "9a6cf61aeb62a1253477a95e16aa673515061e95c16d0c4437ab0955822e8e58"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-video-normal-product-390.png",
+      "bytes": 55597,
+      "sha256": "5e40d74940c60bd40167f8b381d76acb2c1346f80f547ef693d1fc36d3a54683"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-video-web-original-create-paused-successor-390.png",
+      "bytes": 85786,
+      "sha256": "c3636f0c0699d4cee4a7294548f384b7fa417ad34805870565db1b15e3d27b54"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-video-web-original-create-pending-390.png",
+      "bytes": 60162,
+      "sha256": "d36a54f95146ef271c0cf2735db2f75368f0ae92281fcacc1887dcfd22945390"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-video-web-original-playlists-complete-1440.png",
+      "bytes": 102208,
+      "sha256": "b70bc6515a172708dc3eb0509f72c21b91894a718fda02410fd347e4709f7467"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/qa-video-web-picker-create-pending-390.png",
+      "bytes": 39398,
+      "sha256": "6b0b1af41b788c177cc0a02d970987be9cf15f296ada2508b892f509b93c9422"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/verify-checkpoint.py",
+      "bytes": 5041,
+      "sha256": "2207ea62d2de908e56d2dbe783303dc5be2663768bf3549421d76307127db9d1"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/video-web-runtime.tar.gz",
+      "bytes": 636032,
+      "sha256": "b06d1ea6de97785dfdf0b674800974e621a6cf82d1b46b6f5e09973044aba923"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/web-final-171.txt",
+      "bytes": 18831,
+      "sha256": "0110f884708a07ebeb5d404e2538f08f2357c8237204daf52d822f8bf02070f4"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/web-first-navigation-fixture-failure.txt",
+      "bytes": 37683,
+      "sha256": "1bf8b21592eeb7b8643e872592639ac59d4c0b913832176a5377980547f6fa61"
+    },
+    {
+      "path": "apps/video/audit/evidence/web-playlist-recovery-20261004/web-runtime-build-receipt.json",
+      "bytes": 5778,
+      "sha256": "34b2847e4e8396f3e800d00ad0e477d931eba621a6e9184a689de2f3989b2fab"
+    }
+  ]
+}

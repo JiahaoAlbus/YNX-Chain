@@ -1,0 +1,15 @@
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:4
+const repo=path.resolve(__dirname,'../../..'),out=process.argv[2];if(!out)throw Error('Provide owned QA output directory');fs.mkdirSync(out,{recursive:true});
+                                                                          ^
+
+Error: Provide owned QA output directory
+    at Object.<anonymous> (/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-display-web-check.cjs:4:81)
+    at Module._compile (node:internal/modules/cjs/loader:1934:14)
+    at Object..js (node:internal/modules/cjs/loader:2074:10)
+    at Module.load (node:internal/modules/cjs/loader:1656:32)
+    at Module._load (node:internal/modules/cjs/loader:1448:12)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+    at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+    at node:internal/main/run_main_module:33:47
+
+Node.js v26.7.0
