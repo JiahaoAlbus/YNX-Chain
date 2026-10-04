@@ -27,17 +27,18 @@ import (
 )
 
 type Server struct {
-	service       *Service
-	quant         *QuantExecutionAdapter
-	mux           *http.ServeMux
-	requests      atomic.Uint64
-	errors        atomic.Uint64
-	inFlight      atomic.Int64
-	durationNanos atomic.Uint64
-	concurrency   chan struct{}
-	rateMu        sync.Mutex
-	rateByPeer    map[string]rateWindow
-	financeRead   *readintegration.Verifier
+	service           *Service
+	quant             *QuantExecutionAdapter
+	mux               *http.ServeMux
+	requests          atomic.Uint64
+	errors            atomic.Uint64
+	inFlight          atomic.Int64
+	durationNanos     atomic.Uint64
+	concurrency       chan struct{}
+	streamConcurrency chan struct{}
+	rateMu            sync.Mutex
+	rateByPeer        map[string]rateWindow
+	financeRead       *readintegration.Verifier
 }
 
 type rateWindow struct {
@@ -46,7 +47,7 @@ type rateWindow struct {
 }
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, quant: NewQuantExecutionAdapter(service), mux: http.NewServeMux(), concurrency: make(chan struct{}, 128), rateByPeer: map[string]rateWindow{}}
+	s := &Server{service: service, quant: NewQuantExecutionAdapter(service), mux: http.NewServeMux(), concurrency: make(chan struct{}, 128), streamConcurrency: make(chan struct{}, 64), rateByPeer: map[string]rateWindow{}}
 	if service.cfg.FinanceReadKey != "" {
 		s.financeRead, _ = readintegration.NewVerifier(service.cfg.FinanceReadKey, "finance", "exchange", service.cfg.Now)
 	}
@@ -159,6 +160,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("exchange_http_rejected", "request_id", requestID, "error_id", w.Header().Get("X-Error-ID"), "reason", "rate_limited", "status", http.StatusTooManyRequests)
 		return
 	}
+	streamRequest := strings.HasPrefix(r.URL.Path, "/v1/ws/") || (r.Method == http.MethodGet && r.URL.Path == "/v1/market-data/stream")
+	// Streams retain request slots for their lifetime. Bound them separately
+	// so guests cannot consume all capacity needed for ordinary reads/writes.
+	// They still consume the shared semaphore below; total capacity is unchanged.
+	if streamRequest {
+		select {
+		case s.streamConcurrency <- struct{}{}:
+			defer func() { <-s.streamConcurrency }()
+		default:
+			w.Header().Set("Retry-After", "1")
+			writeError(w, http.StatusServiceUnavailable, "stream_capacity_exhausted", "stream capacity exhausted")
+			s.requests.Add(1)
+			s.errors.Add(1)
+			slog.Warn("exchange_http_rejected", "request_id", requestID, "error_id", w.Header().Get("X-Error-ID"), "reason", "stream_capacity_exhausted", "status", http.StatusServiceUnavailable)
+			return
+		}
+	}
 	select {
 	case s.concurrency <- struct{}{}:
 		defer func() { <-s.concurrency }()
@@ -170,7 +188,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.Warn("exchange_http_rejected", "request_id", requestID, "error_id", w.Header().Get("X-Error-ID"), "reason", "capacity_exhausted", "status", http.StatusServiceUnavailable)
 		return
 	}
-	if strings.HasPrefix(r.URL.Path, "/v1/ws/") || (r.Method == http.MethodGet && r.URL.Path == "/v1/market-data/stream") {
+	if streamRequest {
 		if len(r.Header.Values("X-YNX-Product-Session-Proof-V2")) != 0 {
 			writeError(w, http.StatusForbidden, "v2_route_unavailable", "Product Session v2 does not authorize this stream")
 			return
@@ -327,6 +345,8 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "# TYPE ynx_exchange_http_requests_total counter\nynx_exchange_http_requests_total %d\n", requests)
 	fmt.Fprintf(w, "# TYPE ynx_exchange_http_errors_total counter\nynx_exchange_http_errors_total %d\n", s.errors.Load())
 	fmt.Fprintf(w, "# TYPE ynx_exchange_http_in_flight gauge\nynx_exchange_http_in_flight %d\n", s.inFlight.Load())
+	fmt.Fprintf(w, "# TYPE ynx_exchange_streams_in_flight gauge\nynx_exchange_streams_in_flight %d\n", len(s.streamConcurrency))
+	fmt.Fprintf(w, "# TYPE ynx_exchange_stream_capacity gauge\nynx_exchange_stream_capacity %d\n", cap(s.streamConcurrency))
 	fmt.Fprintf(w, "# TYPE ynx_exchange_http_duration_seconds_total counter\nynx_exchange_http_duration_seconds_total %.9f\n", float64(s.durationNanos.Load())/float64(time.Second))
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
