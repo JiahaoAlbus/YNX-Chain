@@ -23,3 +23,11 @@ These are controlled local engineering proofs, not real Wallet approval/signatur
 ## Still incomplete
 
 Data capacity remained **178 MiB available / 100% full** at this continuation start. No new Go compile/link/package was launched. The prior empty-query/fragment Go regression remains NOT_EXECUTED; full Finance Go race remains blocked by ENOSPC, not PASS. Shared actual operation proof/publishing and source-bound public/installed product lifecycles are still unproven. Do not promote any of those gates from these local results. Report only to `接续测试网生态审计工作`.
+
+## Subsequent fresh resource input and rejected compile guard
+
+After the AI source commit `67c7ce2a75b2cb435acfb95f4c2da7a30fc477f0` / tree `00cdd73297ab0e714d2b5242f12b070d5a867792` was pushed, Root supplied a new task-owned Native intermediate-leaf recovery result. Local `df -k` then observed 526,988 KiB free. This did not authorize a large package, and no cache/data cleanup was performed by this task.
+
+Read-only `go test -n -race -p 1 -ldflags='-s -w'` planning on the actual current checkout found: full affected Finance set 13 compile commands / 6 link commands, 502 referenced cached archives totaling 295,976,596 bytes; focused empty-delimiter set 2 compile commands / 1 link command, 295,976,068 referenced archive bytes, largest 14,649,972 bytes. These are dry-run/cache measurements, not executed tests, a measured peak, or a claim that the source compiles.
+
+A second fresh capacity read immediately after the focused plan was **325,460 KiB available** (about 318 MiB), below the conservative 524,288 KiB minimum selected for even a single stripped-debug race link plus compiler/intermediate/reserve allowance. The full set also accumulates additional test outputs; no full budget is asserted. Therefore the focused/full compile guard was rejected and neither was started. No changed TMP path, parallel build, retry, package, cleanup, or assumption about the cause of the external capacity change was used. The pending Go cases remain NOT_EXECUTED and earlier full ENOSPC evidence remains unchanged.
