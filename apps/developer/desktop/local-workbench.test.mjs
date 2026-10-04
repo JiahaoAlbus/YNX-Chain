@@ -1,13 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, realpath, lstat, chmod, link } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
-import { localProjectContext, prepareLocalRuntime } from './local-workbench.mjs';
+import { createServer } from 'node:net';
+import { localProjectContext, prepareLocalRuntime, findTrustedLocalGit, inspectTrustedLocalGit, prepareLocalGitConfig, localWorkbenchSandboxPolicy, localWorkbenchEnvironment } from './local-workbench.mjs';
 import { composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 async function fixture(task) {
@@ -35,6 +36,59 @@ test('real sealed tar extracts, verifies immutable cache and rejects later cache
     await writeFile(metadata, JSON.stringify({ ...original, localWorkspace }));
     await assert.rejects(prepareLocalRuntime(input), /distribution is invalid/);
   }
+}));
+test('local Git selector refuses arbitrary tool roots and never executes a project Git substitute', async () => fixture(async root => {
+  const marker = join(root, 'executed');
+  await mkdir(join(root, 'usr/bin'), { recursive: true });
+  await writeFile(join(root, 'usr/bin/git'), `#!/bin/sh\ntouch '${marker}'\n`, { mode: 0o700 });
+  for (const candidate of [root, '/usr', '/Applications', '/Library/Developer/CommandLineTools/../CommandLineTools', null]) assert.equal(await inspectTrustedLocalGit(candidate), null);
+  await assert.rejects(lstat(marker), { code: 'ENOENT' });
+}));
+test('private per-project Git configuration persists and damaged files are retained and refused', async () => fixture(async root => {
+  const profile = join(root, 'profile'); await mkdir(profile, { mode: 0o700 });
+  const context = { profile }, path = await prepareLocalGitConfig(context);
+  assert.equal((await lstat(path)).mode & 0o777, 0o600);
+  await writeFile(path, '[user]\n name = Local Author\n');
+  assert.equal(await prepareLocalGitConfig(context), path); assert.match(await readFile(path, 'utf8'), /Local Author/);
+  await chmod(path, 0o644); await assert.rejects(prepareLocalGitConfig(context), /private regular/); assert.match(await readFile(path, 'utf8'), /Local Author/);
+  await chmod(path, 0o600); await link(path, join(profile, 'other-link')); await assert.rejects(prepareLocalGitConfig(context), /private regular/);
+  const aliasProfile = join(root, 'alias-profile'); await mkdir(aliasProfile, { mode: 0o700 }); await symlink(path, join(aliasProfile, 'gitconfig'));
+  await assert.rejects(prepareLocalGitConfig({ profile: aliasProfile }), /canonical regular/); assert.match(await readFile(path, 'utf8'), /Local Author/);
+}));
+test('actual production sandbox discovers real Git and preserves local-only repository/configuration flows', async () => fixture(async root => {
+  const git = await findTrustedLocalGit(); assert.ok(git, 'A verified installed OS Git is required for this actual macOS check'); assert.notEqual(git.executable, '/usr/bin/git');
+  const workspace = join(root, 'project'), other = join(root, 'other-project'); await mkdir(workspace); await mkdir(other);
+  const context = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: workspace });
+  const second = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: other });
+  const gitConfig = await prepareLocalGitConfig(context), otherConfig = await prepareLocalGitConfig(second);
+  const runtime = { root: join(root, 'runtime') }; await mkdir(runtime.root);
+  const node = '/usr/bin/true', lockHelper = '/usr/bin/true', port = 43119;
+  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
+  const env = localWorkbenchEnvironment({ node, runtime, context, plugins: runtime.root, git, gitConfig });
+  assert.equal(env.GIT_CONFIG_GLOBAL, gitConfig); assert.equal(env.GIT_CONFIG_NOSYSTEM, '1'); assert.equal(env.PATH.split(':')[0], git.directory);
+  assert.ok(!policy.includes('(subpath "/Applications")') && !policy.includes('(subpath "/Users")')); assert.match(policy, /\(deny network\*\)/);
+  const run = (args, executable = git.executable) => spawnSync('/usr/bin/sandbox-exec', ['-p', policy, executable, ...args], { cwd: workspace, env, encoding: 'utf8', timeout: 5000 });
+  const ok = args => { const result = run(args); assert.equal(result.status, 0, result.stderr); return result.stdout; };
+  assert.match(ok(['--version']), /^git version /); const discovery = run(['git', '--version'], '/usr/bin/env'); assert.equal(discovery.status, 0, discovery.stderr); assert.match(discovery.stdout, /^git version /);
+  const unavailablePolicy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git: null });
+  const unavailableEnv = localWorkbenchEnvironment({ node, runtime, context, plugins: runtime.root, git: null, gitConfig });
+  const unavailable = spawnSync('/usr/bin/sandbox-exec', ['-p', unavailablePolicy, '/usr/bin/env', 'git', '--version'], { cwd: workspace, env: unavailableEnv, encoding: 'utf8', timeout: 5000 });
+  assert.notEqual(unavailable.status, 0); assert.match(unavailable.stderr, /Operation not permitted/); assert.doesNotMatch(unavailable.stderr, /requesting install|xcode-select/);
+  assert.match(run(['-c', 'user.name=Local Test', '-c', 'user.email=local@example.invalid', 'init']).stdout, /Initialized/);
+  await writeFile(join(workspace, 'hello.txt'), 'local content\n'); ok(['add', 'hello.txt']); ok(['-c', 'user.name=Local Test', '-c', 'user.email=local@example.invalid', 'commit', '-m', 'Local sandbox verification']);
+  assert.equal(ok(['status', '--porcelain']), ''); assert.match(ok(['show', 'HEAD:hello.txt']), /local content/);
+  ok(['config', '--global', 'user.name', 'Persistent Local Author']); ok(['config', '--global', 'user.email', 'persistent@example.invalid']);
+  assert.equal((await lstat(gitConfig)).mode & 0o777, 0o600); assert.equal(await prepareLocalGitConfig(context), gitConfig); assert.match(ok(['config', '--global', '--get', 'user.name']), /Persistent Local Author/); assert.equal(await readFile(otherConfig, 'utf8'), '');
+  await writeFile(join(workspace, 'hello.txt'), 'changed\n'); assert.match(ok(['status', '--porcelain']), /M hello.txt/);
+  await writeFile(join(other, 'outside-secret'), 'private other project'); const readOutside = run([join(other, 'outside-secret')], '/bin/cat'); assert.notEqual(readOutside.status, 0); assert.match(readOutside.stderr, /Operation not permitted/);
+  const sockets = new Set();
+  const listening = createServer(socket => { sockets.add(socket); socket.once('close', () => sockets.delete(socket)); socket.resume(); socket.end('HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK'); });
+  await new Promise((ok, fail) => { listening.once('error', fail); listening.listen(0, '127.0.0.1', ok); });
+  try {
+    const url = `http://127.0.0.1:${listening.address().port}`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(2000) }); assert.equal(response.status, 200); assert.equal(await response.text(), 'OK'); // prove destination is live before testing refusal
+    const egress = run(['--connect-timeout', '1', '--max-time', '2', url], '/usr/bin/curl'); assert.notEqual(egress.status, 0); assert.notEqual(egress.stdout, 'OK'); assert.match(egress.stderr, /Operation not permitted|Failed to connect/);
+  } finally { for (const socket of sockets) socket.destroy(); await new Promise(ok => listening.close(ok)); }
 }));
 test('archive digest mismatch and archive symlinks refuse execution inputs', async () => fixture(async root => {
   const out = await payload(root, true); await assert.rejects(prepareLocalRuntime({ payload: out, supportRoot: join(root, 'support') }), /unsupported paths/);

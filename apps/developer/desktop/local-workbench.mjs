@@ -19,6 +19,65 @@ async function privateDirectory(path) {
 }
 async function hashFile(path) { const hash = createHash('sha256'); for await (const part of createReadStream(path)) hash.update(part); return hash.digest('hex'); }
 
+// Never invoke /usr/bin/git: it is an xcode-select shim and can request an
+// installation from inside the sandbox. Only already installed OS tools qualify.
+const localGitRoots = ['/Library/Developer/CommandLineTools', '/Applications/Xcode.app/Contents/Developer'];
+async function trustedSystemPath(path, directory = false) {
+  if (!exact(path) || await realpath(path) !== path) return false;
+  const stat = await lstat(path);
+  if (stat.uid !== 0 || (stat.mode & 0o022) || stat.isSymbolicLink() || (directory ? !stat.isDirectory() : !stat.isFile() || !(stat.mode & 0o111))) return false;
+  for (let parent = dirname(path);; parent = dirname(parent)) {
+    const entry = await lstat(parent);
+    if (!entry.isDirectory() || entry.isSymbolicLink() || entry.uid !== 0 || (entry.mode & 0o022) || await realpath(parent) !== parent) return false;
+    if (parent === '/') break;
+  }
+  return true;
+}
+export async function inspectTrustedLocalGit(root) {
+    if (!localGitRoots.includes(root)) return null;
+    const executable = join(root, 'usr/bin/git'), helpers = join(root, 'usr/libexec/git-core');
+    try {
+      if (!await trustedSystemPath(executable) || !await trustedSystemPath(helpers, true)) return null;
+      const env = { PATH: '/usr/bin:/bin', GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' };
+      const version = (await exec(executable, ['--version'], { env, timeout: 5000 })).stdout.trim();
+      if (!/^git version \d+\.\d+(?:\.\d+)?(?:[\w .()-]*)$/.test(version)) return null;
+      if ((await exec(executable, ['--exec-path'], { env, timeout: 5000 })).stdout.trim() !== helpers) return null;
+      return { executable, directory: dirname(executable), helpers, version, readPaths: [dirname(executable), helpers] };
+    } catch { /* Unsupported or unavailable OS tools remain unavailable. */ }
+  return null;
+}
+export async function findTrustedLocalGit() {
+  for (const root of localGitRoots) {
+    const git = await inspectTrustedLocalGit(root);
+    if (git) return git;
+  }
+  return null;
+}
+export async function prepareLocalGitConfig(context) {
+  await privateDirectory(context.profile);
+  const path = join(context.profile, 'gitconfig');
+  try { await writeFile(path, '', { flag: 'wx', mode: 0o600 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
+  const stat = await regular(path);
+  if (stat.uid !== process.getuid() || stat.nlink !== 1 || (stat.mode & 0o777) !== 0o600) throw Error('Local Git configuration is not a private regular file. Existing configuration was retained.');
+  return path;
+}
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig }) {
+  return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: context.temporary, OPENSSL_CONF: '/dev/null',
+    GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
+    NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile };
+}
+export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git }) {
+  const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
+  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary];
+  const ancestors = new Set(); for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
+  return ['(version 1)', '(allow default)', '(deny network*)', '(deny process-exec (literal "/usr/bin/git"))', '(deny file-read*)', '(deny file-write*)', '(allow file-read* (literal "/"))',
+    ...reads.map(path => `(allow file-read* (subpath "${escape(path)}"))`),
+    ...[...ancestors].map(path => `(allow file-read-metadata (literal "${escape(path)}"))`),
+    ...[context.workspace, context.profile, context.temporary, '/dev'].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
+    `(allow network-bind (local ip "localhost:${port}"))`, `(allow network-inbound (local ip "localhost:${port}"))`].join('\n');
+}
+
 // Only producer-sealed distribution bytes select executable content. Failed
 // extractions remain available for recovery; an existing cache is never replaced.
 export async function prepareLocalRuntime({ payload, supportRoot }) {
@@ -98,20 +157,14 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const context = await localProjectContext({ supportRoot, projectDirectory });
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
-  const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary];
-  const ancestors = new Set(); for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
-  const policy = ['(version 1)', '(allow default)', '(deny network*)', '(deny file-read*)', '(deny file-write*)', '(allow file-read* (literal "/"))',
-    ...reads.map(path => `(allow file-read* (subpath "${escape(path)}"))`),
-    ...[...ancestors].map(path => `(allow file-read-metadata (literal "${escape(path)}"))`),
-    ...[context.workspace, context.profile, context.temporary, '/dev'].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
-    `(allow network-bind (local ip "localhost:${port}"))`, `(allow network-inbound (local ip "localhost:${port}"))`].join('\n');
+  const git = await findTrustedLocalGit();
+  if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
+  const gitConfig = await prepareLocalGitConfig(context);
+  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
   const plugins = join(runtime.root, 'plugins');
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: { PATH: `${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: context.temporary, OPENSSL_CONF: '/dev/null',
-      NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-      YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile },
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
