@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "a40356f130e4cfec3dc553f048a786dba83e6667",
+  "scope": "Whole owned Native/Desktop direct root SDK runtime-import source seam, read-only AST diagnostic; not complete import graph, entrypoint reachability, SDK execution or admission",
+  "currentReadback": {
+    "status": "SOURCE_IMPORT_MISMATCH",
+    "sourceModules": 182,
+    "runtimeImportOccurrences": 181,
+    "localSDKExportBarrelFiles": 47,
+    "unresolvedExportSources": 0,
+    "missingImportOccurrences": 25,
+    "testSupportOccurrencesWithinMissing": 2,
+    "distinctMissingNames": 13,
+    "bothResolvedSDKs": "/Users/huangjiahao/.codex/worktrees/d386/YNX Chain/packages/wallet-auth",
+    "sdkVersion": "1.1.0",
+    "sdkPackageSHA256": "7c8f3f8eb40c18b9c01f9981626d6509feb0940ec3df85401b1d3ed66bbeffa4",
+    "readbackStable": true,
+    "diagnosticExit": 2
+  },
+  "missingNames": ["WalletConnectRequestReplayStore", "createPayInvoiceSignerPolicy", "createSignedPayPaymentResult", "createWalletConnectRequestReview", "createWalletConnectSessionApproval", "finalizeWalletConnectRequestReview", "parsePayPaymentIntent", "parseWalletConnectPairingUri", "parseWalletConnectRuntimeConfig", "payPaymentIntentDigest", "reviewWalletConnectSessionProposal", "verifyPayPaymentResult", "walletConnectRejection"],
+  "meaning": "All selected local re-export barrels resolved. Even the export-name upper bound lacks these names, so this inspected local SDK cannot satisfy corresponding named imports. Default Native private factory is unavailable; some source modules/test-support helpers are not necessarily launched. Presence would not prove semantics, unambiguous ESM binding, factory/grant/custody or installer readiness. Earlier actual Desktop transitive load failed on parsePayPaymentIntent; original failure stays retained.",
+  "implementation": "Owned QA-only parser reads syntax and hashes, excludes type-only imports and .test/.d.ts source modules, tags retained src fixture helpers, resolves local star/named export graph to fixed point, reports unknown external stars rather than loading them, and rechecks all consumed source hashes. No SDK dynamic import/evaluation, aliases, source patch, account, journal, signer, IPC, network or installation.",
+  "verification": {
+    "final": "6 PASS0 FAIL0 SKIP: mixed type/runtime aliases, default/namespace, declaration/named/star export syntax, throwing static fixtures remain unevaluated, cyclic barrels fixed point and unknown external star retained",
+    "tooling": "Existing @babel/parser library used as syntax tooling, not WalletAuth runtime; actual entry SHA256201724d1415df7749087d9d6e88af50f2bcafe2eb68dfbe9347f49d3361ff426",
+    "initialHelperFailure": "First3 tests2 PASS1 FAIL: fixture copy used URL.pathname containing percent-encoded space, so cp could not locate source. Preserved log; final fixture reads fileURLToPath directly without copying or executing modules. Not a product/Sdk failure.",
+    "evidenceDirectory": "/tmp/ynx-wallet-sdk-surface-20261004-HsqFAf"
+  },
+  "independentReviewReadback": {
+    "576ReportSHA256": "233818bba254b2fb6565e40c2c03032adeee5d84342ae013d610c072bc4d3f29",
+    "576": "Complete REPORT.md read and fresh hash matched:24 distinct confined checks PASS,8package+16mounted. Whole source656 fixed; no fullSDK/privatejournal/installed graph admission.",
+    "69ReportSHA256": "7aaa0d97417f85162b2e90846bf49daae6f628c3308fd95224680d676e24e0c1",
+    "69": "Complete REPORT.md read and fresh hash matched:14 confined original mounted targets PASS,657 fixed owned sources. No producer/SDK/realjournal/install execution. Prior failures retained.",
+    "a403": "Exact recovery refresh successor review pending, not borrowed from prior69"
+  },
+  "requiredIssuerNextStep": "A through Root supplies exact current compatible complete SDK/dependency/factory and real NativeBinding/custody/profile/network-policy input under existing owner contract; owns source integration, versions/signatures and formal final artifacts. Wallet must not fake missing exports/ports, bootstrap old packages or weaken original authority as a substitute.",
+  "overallGoal": "NOT_COMPLETED; actual camera/contracts/retained upgrade/UNKNOWN/private Pay/user acceptance and MONSTER remain NOT_RUN/NOT_VERIFIED as previously scoped"
+}
