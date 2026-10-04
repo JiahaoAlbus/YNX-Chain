@@ -36,6 +36,25 @@ function harness(locale:WalletLocale="en"){
 test("actual settings review/cancel never opens the deletion journal or authenticates",()=>{
   const h=harness();assert.deepEqual(h.events,[]);h.review();assert.deepEqual(h.events,[]);assert.equal(h.state.busy,true);assert.deepEqual(h.dialogs[0]!.options,{cancelable:false});h.cancel();assert.equal(h.state.busy,false);assert.equal(h.controller.active(),false);assert.deepEqual(h.events,[]);
 });
+test("native alert construction failure retires only its own review and releases busy/root scope",()=>{
+  const h=harness();h.context.Alert.alert=()=>{throw Error("Controlled native alert construction failure")};h.review();
+  assert.equal(h.controller.active(),false);assert.equal(h.state.busy,false);assert.match(h.state.error!,/alert construction failure/);assert.deepEqual(h.events,[]);
+  const lease=h.rootScope.begin({requireUnlocked:false});lease.finish();
+});
+test("review copy preparation failure also releases the captured lease before any native alert or authentication",()=>{
+  const h=harness();h.context.locale="unknown" as WalletLocale;h.review();assert.equal(h.controller.active(),false);assert.equal(h.state.busy,false);assert.match(h.state.error!,/Unsupported Wallet locale/);assert.deepEqual(h.events,[]);assert.equal(h.dialogs.length,0);
+  const lease=h.rootScope.begin({requireUnlocked:false});lease.finish();
+});
+test("late alert construction failure cannot cancel or overwrite a replacement review",()=>{
+  const h=harness(),normal=h.context.Alert.alert;
+  h.context.Alert.alert=()=>{h.controller.cancel();h.context.Alert.alert=normal;h.review();throw Error("Obsolete alert construction failure")};h.review();
+  assert.equal(h.controller.active(),true);assert.equal(h.state.busy,true);assert.equal(h.state.error,null);assert.equal(h.dialogs.length,1);assert.deepEqual(h.events,[]);h.cancel();
+});
+test("construction failure after synchronous confirm dispatch cannot cancel active original authentication",async()=>{
+  const h=harness(),wait=deferred<void>();h.authorize(()=>wait.promise);
+  h.context.Alert.alert=(_title,_body,buttons)=>{buttons[1].onPress();throw Error("Alert construction failed after confirm dispatch")};h.review();
+  assert.equal(h.controller.active(),true);assert.equal(h.state.busy,true);assert.equal(h.state.error,null);assert.deepEqual(h.events,["authenticate"]);wait.resolve();await flush();assert.deepEqual(h.events,["authenticate","retry","publish"]);
+});
 test("actual confirmed entry publishes only after original authentication and guarded repository result",async()=>{
   const h=harness(),result=Object.freeze({schemaVersion:2,selectedAccountId:"original",accounts:[]});h.read(async guard=>{guard();return result});h.review();h.confirm();await flush();
   assert.deepEqual(h.events,["authenticate","retry","publish"]);assert.equal(h.state.manifest,result);assert.equal(h.state.notice,pendingRemovalCopy("en").finished);assert.equal(h.state.busy,false);assert.equal(h.state.settings,false);assert.equal(h.controller.active(),false);

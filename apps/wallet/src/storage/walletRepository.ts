@@ -331,8 +331,12 @@ export class WalletRepository {
 
   private async saveProtection(value: SecretProtection, assertCurrent?: OperationGuard): Promise<void> {
     assertCurrent?.();
-    await this.storage.setItem(protectionKey(value.account),JSON.stringify(value));
+    const key=protectionKey(value.account),encoded=JSON.stringify(value);
+    await this.storage.setItem(key,encoded);
     assertCurrent?.();
+    const readback=await this.storage.getItem(key);
+    assertCurrent?.();
+    if(readback!==encoded)throw new Error("Wallet key protection write readback did not match the reviewed account state");
   }
 
   private async writeProtectedSecret(expected: Pick<WalletAccount,"account"|"accountPublicKey">, secret: string, source: SecretProtection["source"], assertCurrent?: OperationGuard, requireStored = false, recovering = false): Promise<void> {

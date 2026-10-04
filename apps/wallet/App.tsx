@@ -235,8 +235,10 @@ function WalletApp(){
   const select=async(account:string)=>{operations.invalidate();rootScope.cancel();cancelAuthorization();let lease:WalletOperationLease|undefined;try{lease=rootScope.begin();const next=await lease.step(()=>repository.selectAccount(account));updateManifest(next);dispatchLock({type:"switch",account})}catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{lease?.finish()}};
   const reviewPendingRemovals=()=>{
     if(busy||appearanceBusy||corruptReset.active()||pendingRemovalRetry.active()||!readyRef.current)return;
+    let preparedReview:ReturnType<typeof pendingRemovalRetry.prepare>|undefined,confirming=false;
     try{
-      const review=pendingRemovalRetry.prepare(),copy=pendingRemovalCopy(locale);let confirming=false;setBusy(true);setError(null);
+      const review=pendingRemovalRetry.prepare();preparedReview=review;
+      const copy=pendingRemovalCopy(locale);setBusy(true);setError(null);
       const cancel=()=>{if(pendingRemovalRetry.ownsReview(review))setBusy(false);pendingRemovalRetry.finish(review)};
       const confirm=async()=>{
         if(confirming)return;
@@ -247,7 +249,12 @@ function WalletApp(){
         finally{cancel()}
       };
       Alert.alert(copy.title,copy.body,[{text:translate(locale,"close"),style:"cancel",onPress:cancel},{text:copy.confirm,onPress:()=>void confirm()}],{cancelable:false});
-    }catch(caught){setError(localizeError(locale,caught))}
+    }catch(caught){
+      if(!preparedReview)setError(localizeError(locale,caught));
+      else if(!confirming&&pendingRemovalRetry.ownsReview(preparedReview)){
+        pendingRemovalRetry.finish(preparedReview);setBusy(false);setError(localizeError(locale,caught));
+      }
+    }
   };
   const reviewReset=async()=>{
     if(busy||corruptReset.active())return;const generation=operations.capture();setBusy(true);

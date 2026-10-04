@@ -464,6 +464,50 @@ test("offline recovery reconstructs only the native account and never restores p
 
 const legacySecretKey = (account:string) => `ynx.wallet.account.v2.${account}`;
 const protectionKey = (account:string) => `ynx.wallet.protection.v1.${account}`;
+
+for(const phase of ["pending","protected","complete"] as const){
+  for(const mode of ["lost","substituted","read-denied","cancelled-read"] as const)test(`${phase} protection marker ${mode} cannot report a completed migration`,async()=>{
+    const {storage,repository}=await legacyV2Account();
+    const manifest=storage.values.get(MANIFEST_KEY),legacy=storage.values.get(legacySecretKey(accountOne)),other=storage.values.get(secretKey(accountTwo));
+    const unknownKey=`ynx.wallet.native-outbox.v1.${accountOne}`;storage.values.set(unknownKey,"controlled retained UNKNOWN bytes");
+    let written=false,current=true,prior:string|undefined;
+    storage.beforeSet=key=>{if(key===protectionKey(accountOne))prior=storage.values.get(key)};
+    storage.afterSet=key=>{
+      if(key!==protectionKey(accountOne)||JSON.parse(storage.values.get(key)!).state!==phase)return;
+      written=true;
+      if(mode==="lost"){if(prior===undefined)storage.values.delete(key);else storage.values.set(key,prior)}
+      if(mode==="substituted")storage.values.set(key,JSON.stringify({schemaVersion:1,account:accountTwo,accountPublicKey:walletIdentity(SECRET_TWO).accountPublicKey,source:"created",state:phase}));
+    };
+    storage.beforeGet=async key=>{if(key!==protectionKey(accountOne)||!written)return;if(mode==="read-denied")throw Error("protection read unavailable");if(mode==="cancelled-read")current=false};
+    await assert.rejects(repository.accountSecret(accountOne,()=>{if(!current)throw Error("Operation cancelled")},migrationAuthorization),mode==="read-denied"?/unavailable/:mode==="cancelled-read"?/cancelled/:/protection.*readback/i);
+    assert.equal(storage.values.get(MANIFEST_KEY)===manifest,true);assert.equal(storage.values.get(secretKey(accountTwo))===other,true);assert.equal(storage.values.get(unknownKey),"controlled retained UNKNOWN bytes");
+    if(phase!=="complete"){assert.equal(storage.values.get(legacySecretKey(accountOne))===legacy,true);assert.equal(storage.deletions.includes(legacySecretKey(accountOne)),false)}
+    // Complete-marker failure can occur after original legacy cleanup started.
+    // Preserve that irreversible result and protected bytes; do not pretend to
+    // restore a deleted old copy or silently return the recovery secret.
+    if(phase==="pending")assert.equal(storage.values.has(secretKey(accountOne)),false);
+    else assert.equal(storage.values.has(secretKey(accountOne)),true);
+  });
+}
+test("unconfirmed recovery-pending marker stops before replacing protected material and preserves original key protection",async()=>{
+  const {storage,repository}=await twoAccounts(),marker=storage.values.get(protectionKey(accountOne))!,secret=storage.values.get(secretKey(accountOne));
+  storage.afterSet=key=>{if(key===protectionKey(accountOne)&&JSON.parse(storage.values.get(key)!).state==="recovery-pending")storage.values.set(key,marker)};
+  const writes=storage.writes.length;
+  await assert.rejects(repository.restoreAccountSecret(accountOne,SECRET_ONE),/protection.*readback/i);
+  assert.equal(storage.values.get(protectionKey(accountOne))===marker,true);assert.equal(storage.values.get(secretKey(accountOne))===secret,true);assert.equal(storage.writes.slice(writes).includes(secretKey(accountOne)),false);assert.equal(storage.deletions.length,0);
+});
+test("creation without exact completed protection readback cannot publish an account manifest",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  storage.afterSet=key=>{if(key===protectionKey(accountOne)&&JSON.parse(storage.values.get(key)!).state==="complete")storage.values.set(key,JSON.stringify({schemaVersion:1,account:accountOne,accountPublicKey:walletIdentity(SECRET_ONE).accountPublicKey,source:"created",state:"pending"}))};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Synthetic",createdAt:"2026-10-04T00:00:00.000Z",backupConfirmed:true}),/protection.*readback/i);
+  assert.equal(storage.values.has(MANIFEST_KEY),false);assert.equal(storage.values.has(secretKey(accountOne)),true);assert.equal(storage.deletions.length,0);
+});
+test("v1 migration preserves the original recovery record and refuses manifest publication on lost protected marker",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  const legacy=JSON.stringify({schemaVersion:1,account:accountOne,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)});storage.values.set(LEGACY_IDENTITY_KEY,legacy);let pending:string|undefined;
+  storage.afterSet=key=>{if(key!==protectionKey(accountOne))return;const state=JSON.parse(storage.values.get(key)!).state;if(state==="pending")pending=storage.values.get(key);if(state==="protected")storage.values.set(key,pending!)};
+  await assert.rejects(repository.migrateLegacyIdentity(),/protection.*readback/i);assert.equal(storage.values.get(LEGACY_IDENTITY_KEY)===legacy,true);assert.equal(storage.values.has(MANIFEST_KEY),false);assert.equal(storage.values.has(secretKey(accountOne)),true);assert.equal(storage.deletions.length,0);
+});
 const migrationAuthorization = {allowLegacyMigration:true} as const;
 async function legacyV2Account() {
   const {storage,repository}=await twoAccounts();
