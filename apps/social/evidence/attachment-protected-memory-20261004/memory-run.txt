@@ -1,0 +1,1 @@
+PASS attachment protected-memory checks=56 libsodium=1.0.22; injected allocation/lock denial and real crypto; no platform proof

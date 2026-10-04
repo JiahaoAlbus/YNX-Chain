@@ -1,0 +1,5 @@
+09661edf1c7ec76d3e0a446c151d7422a46f30334e396d9a9ef6cc1c432bea3a  apps/social/crypto-engine/sodium/veil_attachment.c
+33a6c1bd3ef806310a723d11f974c546778c161e488bd0af3a948d4a4ef07939  apps/social/crypto-engine/sodium/veil_attachment.h
+6089f70515ba5c47b577688973ce1b7013facacd7ab9e6450dcf72eff0454b27  apps/social/crypto-engine/sodium/veil_attachment_check.c
+eaf1cf5456efadbba0680b2638098a4a0254238d677ce12a0b940eb13cbbfde0  apps/social/crypto-engine/sodium/veil_attachment_memory_check.c
+ec29931ed4a0227930f2564c2025b00cca8ccf3dac8d7b5106f43b38b0686873  apps/social/evidence/sodium-1.0.22-exact-20261004/local-libsodium-1.0.22.a

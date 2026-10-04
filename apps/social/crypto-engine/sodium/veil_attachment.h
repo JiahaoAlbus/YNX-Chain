@@ -33,7 +33,8 @@ enum {
   VEIL_ATTACHMENT_OK = 0,
   VEIL_ATTACHMENT_INVALID = -1,
   VEIL_ATTACHMENT_RESOURCE = -2,
-  VEIL_ATTACHMENT_AUTHENTICATION = -3
+  VEIL_ATTACHMENT_AUTHENTICATION = -3,
+  VEIL_ATTACHMENT_MEMORY_LOCK_DENIED = -4
 };
 
 int veil_attachment_seal(const unsigned char key[crypto_secretstream_xchacha20poly1305_KEYBYTES],
