@@ -25,6 +25,17 @@ test('real locale event retains source-bound Explorer links and full references 
       }
       assert.deepEqual(await f.page.evaluate(()=>state.overview),value);
     }
+    for(const status of [null,[],{}, {available:'true'},{available:1}]){
+      value.portfolio.explorerStatus=status;
+      await f.page.evaluate(value=>{state.overview=value;overviewQA.render(value)},value);
+      for(const locale of await f.page.evaluate(()=>YNXFinanceLocale.supported)){
+        await f.page.locator('#finance-language').selectOption(locale);
+        const unavailable=await f.page.evaluate(()=>YNXFinanceLocale.text('unavailable'));
+        assert.equal(await f.page.locator('#balance').textContent(),unavailable);assert.equal(await f.page.locator('#staked').textContent(),unavailable);
+        assert.equal(await f.page.locator('#activity-body a,#recent-activity a').count(),0);
+        assert.deepEqual(await f.page.evaluate(()=>state.overview),value,'locale changes must not rewrite source authority');
+      }
+    }
     assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
   }finally{await f.browser.close()}
 });
