@@ -1,0 +1,7 @@
+Created exact static envelope with 16 files at /private/tmp/ynx-card-paired-candidate-20261004.0FYT51/envelope-b4ccd17d6
+
+> build:web
+> node build-static.mjs
+
+CARD_EXACT_STATIC_ENVELOPE_PASS 16
+Verified nested static deployment envelope with 13 files.
