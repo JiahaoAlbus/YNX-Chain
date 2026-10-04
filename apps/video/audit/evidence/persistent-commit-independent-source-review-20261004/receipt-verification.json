@@ -1,0 +1,201 @@
+{
+  "sourcePins": [
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/scripts/android-playlist-fixture/android/content/Context.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/scripts/android-playlist-fixture/com/ynxweb4/video/NativeSessionBridge.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "java-build-receipt.json",
+      "path": "apps/video/scripts/android-playlist-fixture/com/ynxweb4/video/OriginalPlaylistCheck.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/.gitignore",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/build.gradle",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/AndroidManifest.xml",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/client.mjs",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/index.html",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/media-native-consumer.mjs",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/registry.json",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/source.json",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/assets/native-session/wallet-auth-native-consumer.mjs",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/DisplayPreferences.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProtectedRuntime.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionBridge.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeStateCustody.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoMediaSource.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoPlaybackView.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/res/drawable/ic_launcher.xml",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/res/values/strings.xml",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/res/values/styles.xml",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/main/res/xml/network_security_config.xml",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/app/src/test/java/com/ynxweb4/video/NativeProductStateTest.java",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/build.gradle",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/gradle.properties",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/android/settings.gradle",
+      "status": "exactGit"
+    },
+    {
+      "receipt": "android-build-receipt.json",
+      "path": "apps/video/i18n/catalog.json",
+      "status": "exactGit"
+    }
+  ],
+  "classPins": 15,
+  "oldSourceIsAncestor": true
+}

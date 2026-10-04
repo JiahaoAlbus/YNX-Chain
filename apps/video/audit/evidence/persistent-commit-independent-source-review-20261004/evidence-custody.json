@@ -1,0 +1,192 @@
+[
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/YNXVideo-android-debug.apk",
+    "size": 348151,
+    "sha256": "d36b1efa70c7c9ed63e730c1cd9852b35eb0b3ba0fa7262c5a7afde4ac62a745"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/android-badging.txt",
+    "size": 961,
+    "sha256": "407eca615e5db206774102ba99c12e64d111e2c3f5b2d6b369adadc451e2d078"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/android-build-lint.txt",
+    "size": 3507,
+    "sha256": "0dec08ff1b39e6724298c3399d37f1041a74f59322dbd8b739f754254696c8fe"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/android-build-receipt.json",
+    "size": 8046,
+    "sha256": "286e9e58577b047a75b4dbcfd5079912ec7c6eeae5662d46c75761b3c4145b9b"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/android-signature.txt",
+    "size": 955,
+    "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/combined-go-race.jsonl",
+    "size": 1071715,
+    "sha256": "f064eb0d21372ad2ce3be9be7233356989a1af3418737b6ac302cc25d574d4ac"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/combined-go-vet.txt",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/combined-source-receipt.json",
+    "size": 195551,
+    "sha256": "b6a67f4514ccbbb085086f9a15fe8ffdc5aafe4ee3131008a888b815d84ee965"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/followup.md",
+    "size": 3254,
+    "sha256": "b8716d6f319369d99bfe5af7daafd839804f1f43f8308270899f8a4841893db8"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/host-final.txt",
+    "size": 1140,
+    "sha256": "e22ba29c88b8a1574839f5bbc6cd9a8bbfdd6dea8874b5522864ae8d6be0b292"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/i18n-final.txt",
+    "size": 73,
+    "sha256": "245efbd43a5d26a2a8f669e831ee1b9aa712acd1c6ad95e6163932b7707e3219"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/initial-postfix-focused-combined-go-race.jsonl",
+    "size": 3620,
+    "sha256": "bb3eb15bac11d7840de9c12b53d744f4316254a938cc8dd4e22e977caa083feb"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/initial-postfix-focused-combined-go-vet.txt",
+    "size": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/initial-postfix-focused-combined-source-receipt.json",
+    "size": 195638,
+    "sha256": "d2b54a23116b388a51795aef7dccee2825c5c917ff70097ddfabf9dd144ab0a2"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/java-build-receipt.json",
+    "size": 4814,
+    "sha256": "8e6c7ced66eb4454f96bd21dc7e0f327f1763bc1d1811d9dacce8beb4b9767f8"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/java-compile-output.txt",
+    "size": 103,
+    "sha256": "48924e0da5c256d11bdb5e85070515dd8b7e2b1dfd69148f56cbfd47085e37f5"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/java-compiled-classes.tar.gz",
+    "size": 27803,
+    "sha256": "05ed6a80a63147e901f1c5689fe186b848c7f15693018b94e9ebb97217b76c77"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/json-dependency.jar",
+    "size": 78332,
+    "sha256": "3cf6cd6892e32e2b4c1c39e0f52f5248a2f5b37646fdfbb79a66b46b618414ed"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/media-owned-source.tar.gz",
+    "size": 4333846,
+    "sha256": "4f90d54678626724a8688ced6600393c4e13cff0416c1abd29bdfc2a1289ffa2"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/original-java-recovery-trace.json",
+    "size": 5026,
+    "sha256": "e625eed28c5a2928c849c6647df04da47da3555c4c9ada14528a65603994b843"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/prepare-checkpoint.py",
+    "size": 12598,
+    "sha256": "5b329871b6f1cabd151e9f4e89e270b35f70eb0c2a0efe48247c420c28f943b4"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-creator-studio-normal-product-390.png",
+    "size": 80173,
+    "sha256": "e6121b24172cf4895f57c70fc94d294addc555f0c7f957c03e718e5ddfa41585"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-normal-product-390.png",
+    "size": 59737,
+    "sha256": "199e38b8d3bd063f7bbf104e01f501af16f582cb81950f535193716bbd2a8699"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-delete-lost-success-390.png",
+    "size": 94600,
+    "sha256": "8f40bd9cbcd881c08ced0fa43f604fbfeca0ef086b368d132ad28ba99d6884b0"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-original-create-paused-successor-390.png",
+    "size": 85945,
+    "sha256": "4bc2ecd7acd61712d9d3e7b8c6856261f0a7a24e0fe4aaa55fa5af1f23764c65"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-original-create-pending-390.png",
+    "size": 64212,
+    "sha256": "51f15d66b92e897b142d8ac7202850594afa5c80b18b48f3edc0744eed891314"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-original-playlists-complete-1440.png",
+    "size": 97059,
+    "sha256": "53caa0ee71d989b4d16e0c4404c3c3095f7491dd238927af08ffc24551e59378"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-picker-create-pending-390.png",
+    "size": 39397,
+    "sha256": "0a957252a758d5f209927e5cf2c0a4268b78c31fa15977239dcdb03a66b90ff7"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/qa-video-web-remove-lost-success-390.png",
+    "size": 65640,
+    "sha256": "07a5ef959e749ad84e0e340f66acba4d57dbfc3a9df08165f777fdb3cc52db44"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-recovery-20261004/verify-checkpoint.py",
+    "size": 8547,
+    "sha256": "3ef03e753c1e4cfbd429ae2035e785d273ffb8c2948860e88874c69dd52a1b55"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/first-probe-aborted-on-accepted-create.txt",
+    "size": 2057,
+    "sha256": "8244c5a11582bd7e3c1d1f49600585fd342dab2ce10d65efb67c43638ae26349"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-MainActivity.java",
+    "size": 38861,
+    "sha256": "2fde9edf7dfcc0b2c15a5a675f4e6817e30ff9ac60c47fa0c39f7cba7d239179"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-VideoApi.java",
+    "size": 9894,
+    "sha256": "96870acbc7c9cc9aac7aedf3364783924a9b642f5171975adacc736968005fc3"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-VideoViewerState.java",
+    "size": 12038,
+    "sha256": "f4304d25eaf6229f28e7ccdb05023a93fd75b1a583a2521f214899252390c5c0"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-counterexample.java",
+    "size": 3759,
+    "sha256": "1338c72471f51d010d49420e98380576e7bd99dae216148d94e38ccc0004fbb8"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-source.json",
+    "size": 1252,
+    "sha256": "266cac5d0b1261a05529dea2a37eeb5413de2fe9df2566ffd1340fb3379f9f02"
+  },
+  {
+    "path": "apps/video/audit/evidence/persistent-commit-red-20261004/original-three-path-red.txt",
+    "size": 2334,
+    "sha256": "2dc7c6f3a7b497e374cd7bab8867f3f367a22e75efb7e63b0a7faab7c70bc8c2"
+  },
+  {
+    "path": "apps/video/audit/original-java-playlist-recovery-checkpoint-20261004.json",
+    "size": 11410,
+    "sha256": "a7e3650fdc932ecad9e9890f37b1d8a4ed2dfde25dfe0a1f502a9f999c01d6d7"
+  }
+]
