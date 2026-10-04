@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "framework": null,
+  "installCommand": "true",
+  "buildCommand": "node verify-build.cjs",
+  "outputDirectory": "dist"
+}

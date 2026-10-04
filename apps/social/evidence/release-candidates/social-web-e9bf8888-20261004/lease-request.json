@@ -1,0 +1,63 @@
+{
+  "schema": "ynx-social-single-use-release-request/v1",
+  "status": "CARRIER_FROZEN_NO_GO_PENDING_CENTRAL_LEASE_INPUTS",
+  "target": "https://social.ynxweb4.com/",
+  "source": {
+    "commit": "e9bf8888c3903e63c8d5207a499060e5a62c466b",
+    "tree": "e54b5131367f4e2bb9ff8c2ff4242555cd92b110",
+    "parent": "27e4b3924d9e68fd8d3fd1df4615d517a7128d38"
+  },
+  "artifact": {
+    "file": "social-web-deploy.tgz",
+    "bytes": 3344070,
+    "sha256": "9ebdc1e6a6705ad851e17152292d908ef955c8de20f8cc964da1aee8d06b0f41",
+    "root": "archive root",
+    "buildCommand": "node verify-build.cjs",
+    "outputDirectory": "dist",
+    "sourceBuildCommand": "node apps/social/web/build.mjs",
+    "sourceBuildResult": "PASS",
+    "coldContract": "PASS",
+    "archiveReadbackContract": "PASS"
+  },
+  "requestedExecutor": {
+    "threadId": "01a0f351-8f50-7632-8a7e-faba5dac6030",
+    "role": "original A wallet_release_owner",
+    "authorized": false
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "validForMinutesAfterCentralIssuance": 15,
+    "lease": null
+  },
+  "centralRequired": {
+    "currentDeploymentId": null,
+    "currentDeploymentArtifact": null,
+    "executorCommandAndProjectId": null,
+    "rollbackDeploymentId": null,
+    "rollbackArtifact": null,
+    "rollbackProcedure": null
+  },
+  "currentObservedIdentityFile": "current-public-identity.json",
+  "currentIdentityLimit": "anonymous public HTTP asset SHA only, not deployed source or Vercel deployment identity",
+  "publicBuildIdentityPath": "/.well-known/ynx-social-build.json",
+  "plannedPostReleaseChecks": [
+    "exact source/asset readback against frozen hashes",
+    "original YNX header and YNX Wallet logo plus official MetaMask identity/logo",
+    "English guest and chooser close",
+    "stable URL and one tab/no blank",
+    "captured console warnings/errors, interval scoped",
+    "late/no-provider via original approved test harness only"
+  ],
+  "prohibited": [
+    "deployment without separate Central single-use lease",
+    "eth_requestAccounts",
+    "sign",
+    "EIP712",
+    "transaction",
+    "private identity injection",
+    "SDK activation",
+    "modifying another owner or replacing runtime"
+  ],
+  "newCryptoCoreActivated": false,
+  "wholeSocialComplete": false
+}
