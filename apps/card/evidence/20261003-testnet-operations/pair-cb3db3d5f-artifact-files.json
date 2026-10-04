@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "ynx.card.static-envelope.v2",
+  "sourceCommit": "cb3db3d5f128cc578e4a6c58c81c36d602cc900c",
+  "sourceTree": "f965c96f0ace7dc667ca247e1edca89b8ffcddd4",
+  "backendSourceCommit": "cb3db3d5f128cc578e4a6c58c81c36d602cc900c",
+  "configCanonicalSha256": "88ce31dabe6c3a82c4dc7185d5541a90b78fdfddc8392341511ce4b3212a333a",
+  "files": [
+    {
+      "path": "build-static.mjs",
+      "bytes": 3040,
+      "sha256": "10210795de69bb1beeda619906ccf4f140be329f141afb5dff650ccee8cc61a2"
+    },
+    {
+      "path": "dist-web/_expo/static/js/web/index-c691caa4cc2799b72cac589c058fe89b.js",
+      "bytes": 4538328,
+      "sha256": "639eab5204fce598cc88ca478ffea5f2a8e7e853e0e1ddd60021198a1b1df93e"
+    },
+    {
+      "path": "dist-web/about/about.css",
+      "bytes": 5168,
+      "sha256": "7e2ed3f385f4e3d59219978d1f7c7b9c0ca44f338b981eb86cde4eb07a539e6f"
+    },
+    {
+      "path": "dist-web/about/about.mjs",
+      "bytes": 4953,
+      "sha256": "1f1d3be914673545d5c65f0feec708fe68bffdf43a720e805a379e5947996d95"
+    },
+    {
+      "path": "dist-web/about/card-testnet-identity.svg",
+      "bytes": 2514,
+      "sha256": "4e689957655b9599b543b10a447dc723c94b2e1d78ec7cf51923836a26f1726a"
+    },
+    {
+      "path": "dist-web/about/index.html",
+      "bytes": 6906,
+      "sha256": "227d54f17e1c35accf0cb07cb863eefe9bdd29c574af43d80527a052f80977b0"
+    },
+    {
+      "path": "dist-web/about/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+      "bytes": 3682,
+      "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+    },
+    {
+      "path": "dist-web/assets/assets/ynx-logo.886ac0507f3889d6fb7acf8c78bfa78c.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "dist-web/card-testnet-icon.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "dist-web/favicon.ico",
+      "bytes": 14510,
+      "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+    },
+    {
+      "path": "dist-web/index.html",
+      "bytes": 2518,
+      "sha256": "e72118d25cf91dd0b0ac9b468f6573bc0ec0a58001f0750efea5400bf429e62d"
+    },
+    {
+      "path": "dist-web/manifest.webmanifest",
+      "bytes": 460,
+      "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+    },
+    {
+      "path": "dist-web/metadata.json",
+      "bytes": 49,
+      "sha256": "aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"
+    },
+    {
+      "path": "dist-web/package.json",
+      "bytes": 74,
+      "sha256": "b4973b4a419ac0bcab4e76ffe0a0a02f55938986d162b853429e1115086bbe75"
+    },
+    {
+      "path": "dist-web/pwa-register.js",
+      "bytes": 201,
+      "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+    },
+    {
+      "path": "dist-web/runtime-identity.json",
+      "bytes": 803,
+      "sha256": "820520a5987ab169c9f3656f28a2dcd03767af72f90d4dad98c7a1444c45cd53"
+    },
+    {
+      "path": "dist-web/sw.js",
+      "bytes": 364,
+      "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+    },
+    {
+      "path": "package.json",
+      "bytes": 83,
+      "sha256": "272f57205d44cf347719b013fda538dae2d93a359f291654b0bffcff5d3282a0"
+    },
+    {
+      "path": "vercel.json",
+      "bytes": 1256,
+      "sha256": "f0013603ad517909c79688adf05d1df72bfbfeefe668a6bd17699c08939c7bab"
+    }
+  ]
+}

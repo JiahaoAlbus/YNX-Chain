@@ -1,0 +1,68 @@
+{
+  "recordedAt": "2026-10-04T09:24:37.862Z",
+  "sourceCommit": "cb3db3d5f128cc578e4a6c58c81c36d602cc900c",
+  "sourceTree": "f965c96f0ace7dc667ca247e1edca89b8ffcddd4",
+  "branch": "codex/card-test-service-recovery-20261002",
+  "releaseChannel": "qa",
+  "frontendTests": {
+    "passed": 414,
+    "total": 414
+  },
+  "backendTests": {
+    "passed": 149,
+    "total": 149
+  },
+  "typecheck": true,
+  "webBuild": true,
+  "envelopeFiles": 21,
+  "staticParityFiles": 18,
+  "backend": {
+    "path": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/backend-cb3db3d5f.mjs",
+    "bytes": 288277,
+    "sha256": "f3b6c98b9a7aa7fd8ab2b183cb8fe5a3c189cbf4d12877383f64917b3c863ff8"
+  },
+  "envelopePath": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/envelope-cb3db3d5f",
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-frontend.txt",
+      "bytes": 58087,
+      "sha256": "e667dd40ab07537e7974eaadb775f6ff7cf2739b67d154f1b230672c2dd898f2"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-backend.txt",
+      "bytes": 14301,
+      "sha256": "0ae38a5bdc6ed5fa69ff76722bb5315eea7e0b3b38d88d002ea6e9fe8b13f45c"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-web.txt",
+      "bytes": 452,
+      "sha256": "2f8b4b96bf735e306abcbac4e8b8a3a8183be74fefc689a5653504c0e370ae35"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-envelope.txt",
+      "bytes": 246,
+      "sha256": "09f16eed73c0794a8545147187cdb6e0d85511c03d74de65259d2bda7a2d12b5"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/pair-cb3db3d5f-backend-build.txt",
+      "bytes": 60,
+      "sha256": "f2f4f88e3cec1db4edf9ef38e588a290b23dba19ecd3ab9f2968c0ae1ce10940"
+    }
+  ],
+  "buildDependencyMode": "existing Card dependency runtime symlink; not a new clean dependency install",
+  "frontendAndBackendMetadataSameSource": true,
+  "protectedRuntimeAuthority": false,
+  "publicDeployment": false,
+  "realWalletApproval": false,
+  "realApplicationAcceptance": false,
+  "realFunding": false,
+  "realCardCredit": false,
+  "dataFabricReceiverAcceptance": false,
+  "migratedV2": false,
+  "productionRealPayments": false
+}
