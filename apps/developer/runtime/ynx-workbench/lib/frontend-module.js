@@ -59,6 +59,7 @@ require('./dialog-accept-adapter').install();
 require('./review-preview-adapter').install();
 const workspaceTextEdits = require('./workspace-text-edit-adapter');
 workspaceTextEdits.install();
+require('./search-replace-transaction').install();
 require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 require('../style/workbench-controls.css');

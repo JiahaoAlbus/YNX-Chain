@@ -77,3 +77,9 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 - 原用户 63649 实例保留。线上扩展、统一 Wallet 身份、模型、签名部署、跨平台正式发布依然未完成；原被拒网络/包出站与共享所有权范围保持停止。
 
 - 默认主题修复：FrontendConfigPreferenceContribution 先注册 defaultTheme、再注册 preferences；当前框架重复 override 的查找会取先注册项。改为唯一 defaultTheme=YNX Klein，移除重复的 workbench.colorTheme 默认项；用户显式主题偏好仍由原生 PreferenceService 优先处理。新 profile 视觉验证待完成，不能把默认值源码当作已展示证据。
+
+## 跨文件搜索替换修复（2026-10-05）
+
+在 c984 组件中发现：项目搜索的全部替换逐文件执行并保存，Undo 只恢复当前文件。新增 owned search-replace-transaction 适配器，将多文件搜索替换提交为同一个带 document version 的 MonacoWorkspace bulk edit，继承现有整体撤销逻辑。确认后校验搜索词、替换词与每个匹配的实际文本；异步加载期间的版本变化拒绝执行。失败保留搜索结果，保存仍是独立操作，不声称跨文件磁盘写入原子性。单文件和单个匹配仍使用框架路径。
+
+新增回归 9 项通过；工作台 browser/node 构建零错误。新封存组件 core tree 9a6f2177f1359bef41717ec9e74cf96b0b5acbf53fbdfd96af527cfc41c33c1d，在隔离测试工程 Main.sol/Second.sol 用正常键盘输入 value→total；两份文件磁盘回读通过。一次 Edit→Undo 后 File→Save All，两份磁盘均恢复 value；一次 Redo 后 Save All，两份均恢复 total。该组件来自当前修复源码、保留的 5ecd Node/lock-helper，不是最新 Cocoa 安装器验收。原用户 63649 实例未修改。
