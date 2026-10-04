@@ -1,6 +1,21 @@
 # Composed workbench: normal-entry consumer contract
 
-Current owned runtime checkpoint is **0.3.14**, Tools **0.2.9**, candidate
+Current owned source is **b6b6749acfcbe71b0961141f16609294a7cf0e38**, tree
+**b20ce4f3bae6027be4bd974fc94b66ac67736225**, workbench **0.3.14**, Tools **0.2.10**.
+`COPIED_REVIEW_HANDOFF_20261004.json` records compiled Tools Copy → real editor
+clipboard import → immutable diff → explicit approval → normal Save, plus saved
+review paste compatibility. Current actual checks: native handoff9, core16,
+compiled React3; services55 and packaged server3. Controlled answers do not
+prove hosted AI or canonical user admission. No prior checks are added to these
+counts. The current exact runtime is
+`ynx-composed-copied-review-20261004-mac-arm64`; current sealed local Mac candidate
+is `ynx-copied-review-native-package-20261004-mac-arm64`, embedding the same
+source/tree. Signature is ad-hoc with no Team ID; installed/notarized/platform
+and normal Wallet/AI/Chain acceptance remain open. The existing five canonical
+bindings and refused egress/LXD branches remain unchanged.
+Earlier checkpoints below preserve their original source, pins and scope.
+
+Previous immutable-preview runtime checkpoint was **0.3.14**, Tools **0.2.9**, candidate
 `ynx-composed-immutable-review-20261004-mac-arm64`, source
 `8a439710effcd1ce116967b6ffa2ff60738d594c`, tree
 `8237ea5a882822704890fdd81df8030d152854a2`.
@@ -11,7 +26,7 @@ controlled answer through the production parser, with the real native editor;
 it does not prove hosted AI or canonical admission. Previous failures,
 profiles and packages remain retained.
 
-Latest sealed Mac candidate now embeds workbench **0.3.14**, Tools **0.2.9**,
+Its historical sealed Mac candidate embeds workbench **0.3.14**, Tools **0.2.9**,
 `ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64`, source
 `8c2183d1d9c69c0f955c500e29ea1dc69212955e`, tree
 `37f097ab471b8102980315f37ee27094704ae122`.
