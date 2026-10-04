@@ -1,0 +1,12 @@
+✔ background lock during picker prevents a stale confirmation (25.210834ms)
+✔ lock after confirmation prevents late staged image send (2.183084ms)
+✔ unmount during nonce creation prevents send (1.958541ms)
+✔ unchanged lifetime sends only the confirmed original staged image (2.0025ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 84.577625

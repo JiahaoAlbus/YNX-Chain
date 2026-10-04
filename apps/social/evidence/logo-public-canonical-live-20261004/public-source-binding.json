@@ -1,0 +1,26 @@
+{
+  "checkedAt": "2026-10-04T06:51:43.422Z",
+  "publicURL": "https://social.ynxweb4.com/",
+  "deployment": "dpl_684PnXZhxfmoJGyfvy7no5Epyv46",
+  "project": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+  "sourceManifestSHA256": "4b8252f451ccf944dbde4bbf32459ac3a705d8208ee802ef437ded5b9eb3da84",
+  "sourceManifestExpected": "4b8252f451ccf944dbde4bbf32459ac3a705d8208ee802ef437ded5b9eb3da84",
+  "assets": [
+    {
+      "path": "assets/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "exact": false
+    },
+    {
+      "path": "assets/metamask.svg",
+      "bytes": 2635,
+      "sha256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f",
+      "exact": false
+    }
+  ],
+  "accountsRequested": false,
+  "signaturesRequested": false,
+  "transactionsRequested": false,
+  "bindingExact": true
+}

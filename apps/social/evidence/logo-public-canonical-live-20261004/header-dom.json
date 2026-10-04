@@ -1,0 +1,71 @@
+{
+  "brand": "<a class=\"brand\" href=\"/\" aria-label=\"YNX Social home\"><img class=\"brand-logo\" src=\"./assets/ynx-logo.png\" alt=\"YNX\" width=\"76\" height=\"40\"><span>YNX Social</span></a>",
+  "images": [
+    {
+      "alt": "YNX",
+      "complete": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "Your YNX Social personal discovery QR code",
+      "complete": true,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": ""
+    },
+    {
+      "alt": "",
+      "complete": true,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": ""
+    },
+    {
+      "alt": "YNX",
+      "complete": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "YNX Wallet",
+      "complete": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "YNX Wallet",
+      "complete": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "YNX Wallet logo",
+      "complete": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "MetaMask logo",
+      "complete": true,
+      "naturalHeight": 150,
+      "naturalWidth": 156,
+      "src": "https://social.ynxweb4.com/assets/metamask.svg"
+    },
+    {
+      "alt": "Scan this connection code with YNX Wallet",
+      "complete": true,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": ""
+    }
+  ],
+  "lang": "en",
+  "title": "YNX Social — Private by design",
+  "url": "https://social.ynxweb4.com/"
+}

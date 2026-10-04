@@ -20,7 +20,6 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
   const [originals, setOriginals] = useState<readonly MatrixPendingIntent[]>([]);
   const [verificationPhase, setVerificationPhase] = useState<'idle' | 'requesting' | 'outgoing' | 'requested' | 'accepted' | 'comparing' | 'finished' | 'cancelled' | 'failed'>('idle');
   const mounted = useRef(true);
-  const viewRevision = useRef(0);
   const appearanceScope = client.appearanceContext();
   const chatAppearance = useNativeChatAppearance(appearanceScope?.account ?? null, appearanceScope?.roomId ?? null);
   const intent = useRef<{ id: string; body: string } | undefined>(undefined);
@@ -32,7 +31,6 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
     const stop = client.listen(event => {
       if (!mounted.current) return;
       if (event.type === 'locked') {
-        viewRevision.current += 1;
         setReady(false); setEvents([]); setSas(undefined); setOriginals([]); setDraft('');
         intent.current = undefined; setVerificationPhase('idle');
         setStatus('Session locked. Restore the original session to continue.');
@@ -52,7 +50,7 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
       if (event.type === 'native-journal-error') { setReady(false); setStatus('Original send journal needs recovery. Do not send a replacement.'); }
     });
     const background = AppState.addEventListener('change', state => { if (state !== 'active') client.lock(); });
-    return () => { viewRevision.current += 1; mounted.current = false; stop(); background.remove(); client.lock(); };
+    return () => { mounted.current = false; stop(); background.remove(); client.lock(); };
   }, [client]);
 
   const restore = async () => {
@@ -80,29 +78,22 @@ export function NativeMatrixWorkspace({ client, personId, onClose }: {
     } catch (error) { showError(error); await refreshOriginals().catch(() => {}); } finally { if (mounted.current) setBusy(false); }
   };
   const file = async () => {
-    const revision = viewRevision.current;
-    const current = () => mounted.current && revision === viewRevision.current;
     setBusy(true);
     try {
       const selected = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 1 });
-      if (!current()) return;
       const asset = !selected.canceled ? selected.assets[0] : undefined;
       if (!asset) return;
       const confirmed = await new Promise<boolean>(resolve => Alert.alert('Send this image?', 'Upload the selected image through the native Matrix SDK to this accepted contact.', [
         { text: 'Cancel', style: 'cancel', onPress: () => resolve(false) },
         { text: 'Send image', onPress: () => resolve(true) }
       ], { cancelable: true, onDismiss: () => resolve(false) }));
-      if (!confirmed || !current()) return;
+      if (!confirmed || !mounted.current) return;
       const uri = await client.stageFile(asset.uri);
-      if (!current()) return;
       const id = 'native-matrix-' + Array.from(await Crypto.getRandomBytesAsync(16), b => b.toString(16).padStart(2, '0')).join('');
-      if (!current()) return;
       await client.file(id, uri, asset.mimeType ?? 'application/octet-stream', '');
-      if (!current()) return;
       await refreshOriginals();
-      if (current()) setStatus('SDK attachment operation returned. Not proof of delivery.');
-    } catch (error) { if (current()) { showError(error); await refreshOriginals().catch(() => {}); } }
-    finally { if (mounted.current) setBusy(false); }
+      if (mounted.current) setStatus('SDK attachment operation returned. Not proof of delivery.');
+    } catch (error) { showError(error); await refreshOriginals().catch(() => {}); } finally { if (mounted.current) setBusy(false); }
   };
   const verify = async () => {
     setBusy(true); setVerificationPhase('requesting');

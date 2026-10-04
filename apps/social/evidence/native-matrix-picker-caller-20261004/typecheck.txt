@@ -1,0 +1,5 @@
+evidence/native-matrix-picker-caller-20261004/original-workspace.tsx(5,56): error TS2307: Cannot find module './nativeMatrix' or its corresponding type declarations.
+evidence/native-matrix-picker-caller-20261004/original-workspace.tsx(6,48): error TS2307: Cannot find module './NativeMatrixReceivedAttachment' or its corresponding type declarations.
+evidence/native-matrix-picker-caller-20261004/original-workspace.tsx(7,86): error TS2307: Cannot find module './ChatAppearanceSettings' or its corresponding type declarations.
+evidence/native-matrix-picker-caller-20261004/original-workspace.tsx(31,32): error TS7006: Parameter 'event' implicitly has an 'any' type.
+evidence/native-matrix-picker-caller-20261004/original-workspace.tsx(190,42): error TS2307: Cannot find module './nativeMatrixRecovery' or its corresponding type declarations.

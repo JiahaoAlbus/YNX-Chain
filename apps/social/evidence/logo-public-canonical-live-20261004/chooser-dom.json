@@ -1,0 +1,61 @@
+{
+  "dialog": "<dialog id=\"wallet-dialog\" class=\"wallet-dialog\" open=\"\">\n      <div class=\"dialog-head\"><div><span class=\"eyebrow\">Standard wallet connection</span><h2>Choose a wallet</h2></div><button id=\"close-wallet-dialog\" class=\"icon-button\" type=\"button\" aria-label=\"Close\">×</button></div>\n      <p>Select the wallet you intend to use. YNX Social will not silently substitute another provider.</p>\n      <div id=\"wallet-list\" class=\"wallet-list\"><button id=\"connect-mobile\" class=\"wallet-option\" type=\"button\"><img class=\"wallet-logo\" src=\"./assets/ynx-logo.png\" alt=\"YNX Wallet\"><span class=\"wallet-copy\"><strong>YNX Mobile Wallet</strong><small>Scan a code or open the app on this phone</small></span><b>Connect</b></button><button id=\"connect-hosted\" class=\"wallet-option\" type=\"button\"><img class=\"wallet-logo\" src=\"./assets/ynx-logo.png\" alt=\"YNX Wallet\"><span class=\"wallet-copy\"><strong>YNX Web Wallet</strong><small>Open Wallet securely in a new window</small></span><b>Connect</b></button><button id=\"connect-ynx\" class=\"wallet-option\" type=\"button\"><img class=\"wallet-logo\" src=\"./assets/ynx-logo.png\" alt=\"YNX Wallet logo\"><span class=\"wallet-copy\"><strong>YNX Wallet</strong><small>Use your installed YNX Wallet extension</small></span><b>Connect</b></button><button id=\"connect-metamask\" class=\"wallet-option\" type=\"button\"><img class=\"wallet-logo\" src=\"./assets/metamask.svg\" alt=\"MetaMask logo\"><span class=\"wallet-copy\"><strong>MetaMask</strong><small>Connect your MetaMask account</small></span><b>Connect</b></button></div>\n      <section id=\"wallet-selected-step\" hidden=\"\"><p id=\"selected-wallet-name\"></p><button id=\"back-wallet-selection\" type=\"button\">Choose another wallet</button><button id=\"retry-wallet-connection\" type=\"button\" hidden=\"\">Retry connection</button><button id=\"cancel-wallet-pair\" type=\"button\">Cancel connection</button></section><section id=\"mobile-pair-panel\" hidden=\"\"><img id=\"wallet-pair-qr\" width=\"240\" height=\"240\" alt=\"Scan this connection code with YNX Wallet\"><a id=\"wallet-pair-open\">Open YNX Wallet</a></section><div id=\"wallet-status\" class=\"wallet-status\" data-tone=\"neutral\" role=\"status\">No account request is sent until you choose a wallet.</div>\n      <a id=\"install-wallet\" class=\"install-link\" href=\"#\" rel=\"noreferrer\" hidden=\"\">Install wallet</a>\n      <button id=\"retry-wallet-discovery\" class=\"install-link\" type=\"button\" hidden=\"\">Retry wallet detection</button>\n    </dialog>",
+  "images": [
+    {
+      "alt": "YNX Wallet",
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "rect": {
+        "height": 48,
+        "width": 48
+      },
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "YNX Wallet",
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "rect": {
+        "height": 48,
+        "width": 48
+      },
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "YNX Wallet logo",
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "objectFit": "contain",
+      "rect": {
+        "height": 48,
+        "width": 48
+      },
+      "src": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "alt": "MetaMask logo",
+      "naturalHeight": 150,
+      "naturalWidth": 156,
+      "objectFit": "contain",
+      "rect": {
+        "height": 48,
+        "width": 48
+      },
+      "src": "https://social.ynxweb4.com/assets/metamask.svg"
+    },
+    {
+      "alt": "Scan this connection code with YNX Wallet",
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "objectFit": "fill",
+      "rect": {
+        "height": 0,
+        "width": 0
+      },
+      "src": ""
+    }
+  ],
+  "url": "https://social.ynxweb4.com/"
+}

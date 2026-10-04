@@ -1,0 +1,35 @@
+{
+  "status": "PUBLIC_BRANDING_VERIFIED",
+  "deployment": "dpl_684PnXZhxfmoJGyfvy7no5Epyv46",
+  "sourceManifestSHA256": "4b8252f451ccf944dbde4bbf32459ac3a705d8208ee802ef437ded5b9eb3da84",
+  "correction": "Original evidence lookup used deploy/assets instead of manifest deploy/dist/assets, so original exact=false was a missing-pin lookup, not a content mismatch. Original evidence preserved; no repeated HTTP capture.",
+  "assets": [
+    {
+      "manifestPath": "deploy/dist/assets/ynx-logo.png",
+      "publicBytes": 104171,
+      "manifestBytes": 104171,
+      "publicSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "manifestSHA256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "exact": true
+    },
+    {
+      "manifestPath": "deploy/dist/assets/metamask.svg",
+      "publicBytes": 2635,
+      "manifestBytes": 2635,
+      "publicSHA256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f",
+      "manifestSHA256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f",
+      "exact": true
+    }
+  ],
+  "observations": {
+    "headerOriginalYNX": true,
+    "chooserOriginalYNX": true,
+    "chooserOfficialMetaMask": true,
+    "englishDefault": true,
+    "urlStable": true,
+    "chooserOpenedAndClosed": true,
+    "observedConsoleWarningsOrErrors": 0,
+    "sensitiveRequests": false
+  },
+  "limits": "Only public branding and anonymous chooser observation. No installed provider/account/sign/tx/private service or whole Social acceptance."
+}
