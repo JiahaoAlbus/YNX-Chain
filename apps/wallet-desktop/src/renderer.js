@@ -688,6 +688,7 @@ document.querySelector("#refresh-transaction-history").addEventListener("click",
 document.querySelector("#older-transaction-history").addEventListener("click", () => void transactionHistoryUI.older());
 function clearTransactionResolution() {
   ++transactionRevision; ++transactionActionRevision;
+  document.querySelector("#refresh-pending-transactions").disabled = true;
   document.querySelector("#pending-transactions").replaceChildren();
   document.querySelector("#transaction-resolution").hidden = true;
   document.querySelector("#transaction-resolution-result").textContent = "";
@@ -698,6 +699,8 @@ async function refreshTransactions() {
   const panel = document.querySelector("#transaction-resolution"), list = document.querySelector("#pending-transactions");
   if (!account) { clearTransactionResolution(); return; }
   const current = () => revision === transactionRevision && account === activeAccount;
+  const refresh = document.querySelector("#refresh-pending-transactions");
+  refresh.disabled = true;
   try {
     const result = await window.ynxWallet.pendingTransactions();
     if (!current()) return;
@@ -743,7 +746,13 @@ async function refreshTransactions() {
       list.append(row);
     }
   } catch { if (current()) { list.replaceChildren(); panel.hidden = false; copyUI(document.querySelector("#transaction-resolution-result"),"The local transaction journal is unavailable. New transfers remain blocked."); } }
+  finally { if (current()) refresh.disabled = false; }
 }
+document.querySelector("#refresh-pending-transactions").addEventListener("click", () => {
+  if (!activeAccount || document.querySelector("#refresh-pending-transactions").disabled) return;
+  document.querySelector("#transaction-resolution-result").textContent = "";
+  return refreshTransactions();
+});
 function clearAssetBalance() {
   ++balanceRevision;
   document.querySelector("#balance-value").textContent = "—";

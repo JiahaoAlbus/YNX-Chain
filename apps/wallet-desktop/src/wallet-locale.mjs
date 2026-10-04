@@ -84,6 +84,7 @@ export const WALLET_STATIC_COPY=Object.freeze({
   "#protected-pay-sheet details > p":"Read locally, never uploaded. Scanning fills only the reference and never approves a payment.",
   "#protected-pay-sheet > p.muted":"A submission acknowledgement is not a mined payment or settled receipt. Native local checkpoint evidence is not consensus finality. Closing this dialog cancels its live approval but never deletes a saved original.",
   "#transaction-resolution > h2":"Transaction needs confirmation",
+  "#refresh-pending-transactions":"Refresh pending transactions",
   "#transaction-resolution > p:first-of-type":"A recorded transaction must be resolved before creating another transfer from this account. A missing receipt does not mean it was never submitted.",
   "#transaction-history > p.muted":"Verified completed transfers saved on this device. Local snapshot confirmation is not consensus finality. Unresolved transactions remain in their recovery panel.",
   "#transaction-history-title":"Transfer history","#refresh-transaction-history":"Refresh history","#older-transaction-history":"Older transfers",
