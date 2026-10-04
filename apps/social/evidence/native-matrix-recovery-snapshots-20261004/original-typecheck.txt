@@ -1,0 +1,1 @@
+src/nativeMatrixRecovery.test.ts(71,16): error TS2532: Object is possibly 'undefined'.

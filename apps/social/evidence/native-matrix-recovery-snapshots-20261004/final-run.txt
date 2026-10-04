@@ -1,0 +1,27 @@
+✔ binding rejects insecure HS, expired authority, callback URLs and invalid identity (0.572709ms)
+✔ real consumer gate differentiates queue acceptance from delivery (1.367625ms)
+✔ same original intent never generates a new SDK queue transaction (0.534667ms)
+✔ fresh accepted-peer readback is required before send (0.19325ms)
+✔ authority changes during native restoration fence the late result (3.143458ms)
+✔ unencrypted or widened room is refused before SDK sending (0.136375ms)
+✔ lock fences old native plaintext callbacks and clears visible view (0.138125ms)
+✔ restored original journal prevents a changed body or replacement nonce (0.358458ms)
+✔ an SDK observation does not settle or delete the original journal (0.346375ms)
+✔ an older restore completion cannot invalidate a newer successful restoration (0.644041ms)
+✔ authority expiry clears the view without deleting native original entries (100.937917ms)
+✔ verification rechecks the accepted person before approving SDK trust (0.438291ms)
+✔ SAS requires matching peer, current SDK revision and one human approval attempt (0.617459ms)
+✔ another peer cannot feed comparison values into the reviewed verification flow (0.499334ms)
+✔ validated original observation retains detached original and event snapshots (0.409125ms)
+✔ observation snapshots are frozen without freezing or reusing producer objects (0.095208ms)
+✔ original observation remains only an SDK observation, not delivery or private server proof (0.048459ms)
+✔ readback conflicts still reject rather than retaining an unverified snapshot (0.216959ms)
+✔ checked original list remains detached, immutable and room scoped (0.200583ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 211.684542

@@ -1,0 +1,13 @@
+✔ validated original observation retains detached original and event snapshots (0.540709ms)
+✔ observation snapshots are frozen without freezing or reusing producer objects (0.111875ms)
+✔ original observation remains only an SDK observation, not delivery or private server proof (0.064916ms)
+✔ readback conflicts still reject rather than retaining an unverified snapshot (0.249209ms)
+✔ checked original list remains detached, immutable and room scoped (0.215542ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 108.210209

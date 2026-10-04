@@ -1,0 +1,64 @@
+✖ validated original observation retains detached original and event snapshots (1.257291ms)
+✖ observation snapshots are frozen without freezing or reusing producer objects (0.170167ms)
+✔ original observation remains only an SDK observation, not delivery or private server proof (0.07225ms)
+✔ readback conflicts still reject rather than retaining an unverified snapshot (0.188583ms)
+✔ checked original list remains detached, immutable and room scoped (0.205625ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 3
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 152.00675
+
+✖ failing tests:
+
+test at src/nativeMatrixRecovery.test.ts:2:1537
+✖ validated original observation retains detached original and event snapshots (1.257291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'changed after check'
+  - 'original retained content'
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrixRecovery.test.ts:29:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.start (node:internal/test_runner/test:1257:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'changed after check',
+    expected: 'original retained content',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/nativeMatrixRecovery.test.ts:2:2633
+✖ observation snapshots are frozen without freezing or reusing producer objects (0.170167ms)
+  AssertionError [ERR_ASSERTION]: Expected "actual" not to be reference-equal to "expected":
+  
+  {
+    body: 'original retained content',
+    eventId: '$original',
+    intentId: 'native-matrix-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    kind: 'text',
+    roomId: '!room:example.test',
+    state: 'sdk-sent-needs-readback'
+  }
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrixRecovery.test.ts:42:10)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { intentId: 'native-matrix-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', roomId: '!room:example.test', kind: 'text', body: 'original retained content', state: 'sdk-sent-needs-readback', eventId: '$original' },
+    expected: { intentId: 'native-matrix-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', roomId: '!room:example.test', kind: 'text', body: 'original retained content', state: 'sdk-sent-needs-readback', eventId: '$original' },
+    operator: 'notStrictEqual',
+    diff: 'simple'
+  }

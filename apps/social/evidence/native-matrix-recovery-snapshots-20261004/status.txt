@@ -1,0 +1,6 @@
+originalExit=1
+finalExit=0
+typecheckExit=2
+fixtureTypefixTestsExit=0
+finalTypecheckExit=0
+webBuildExit=0

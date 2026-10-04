@@ -1,0 +1,11 @@
+38477b2d87c0e7cf52beccabaecd5b75446eac2ef32e4e212f373e8e1090ae0a  ./source-inputs.sha256
+3ddebcfd9b385d97629faa5a2d5ae0d5a7071aeb26a194492b0e1feaff0e7ecd  ./README.md
+7a34ec2e327b4826070222ba949314b51d7d4e444914a4e4fec83f4345f8d0a9  ./original-typecheck.txt
+8fb9926edd8843b62490424993bdeb9afe4ceaca7fc74d4e5d48604679ad8be5  ./final-run.txt
+a4d3858c22036124791aa6081a3cd44ddced7cb544c07b0e10f29d5853316e37  ./fixture-typefix-run.txt
+deeb60562a4c3ddf9ba1cb9f21e718a3eb648085c03c5f9673a079e3e1d9ad06  ./web-stage-path.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./final-typecheck.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./web-build.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./web-committed-delta-since-base.txt
+f780e31a3e1c7c303d56972edf2462b5eb6b76b48d1234384e40d817cacadffd  ./status.txt
+fea75f0072b3d461b4bb53b2216b8186294e0dbf6d6adadfcb65b7f40d35216d  ./original-run.txt

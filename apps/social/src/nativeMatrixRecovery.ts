@@ -20,7 +20,11 @@ export function checkedOriginals(entries: readonly MatrixPendingIntent[], roomId
   }));
 }
 
-export function checkedOriginalObservation(original: MatrixPendingIntent, event: MatrixEvent, self: string) {
+export function checkedOriginalObservation(suppliedOriginal: MatrixPendingIntent, suppliedEvent: MatrixEvent, self: string) {
+  // Keep the checked scalar fields stable without freezing the native producer's
+  // objects or retaining references that it can mutate after readback returns.
+  const original = Object.freeze({ ...suppliedOriginal });
+  const event = Object.freeze({ ...suppliedEvent });
   if (!original.eventId || event.eventId !== original.eventId || event.intentId !== original.intentId
     || !event.own || !event.remote || event.sender !== self || event.kind !== 'message'
     || (original.kind === 'text' && event.body !== original.body)) throw new Error('MATRIX_ORIGINAL_EVENT_CONFLICT');
