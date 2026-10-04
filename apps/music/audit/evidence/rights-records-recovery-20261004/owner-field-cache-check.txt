@@ -1,0 +1,1 @@
+{"cacheOnly":true,"originalPendingSelectorsPreserved":true,"fieldAcknowledgementRejectsSuccessor":true,"actualSDKAuthority":false,"staleUIFieldMergePreservesNewestStore":true}

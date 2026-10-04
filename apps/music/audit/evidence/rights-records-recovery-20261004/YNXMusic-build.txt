@@ -1,0 +1,818 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -project apps/music/ios/YNXMusic.xcodeproj -scheme YNXMusic -configuration Debug -sdk iphonesimulator -derivedDataPath /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic CODE_SIGNING_ALLOWED=NO -destination "generic/platform=iOS Simulator" build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+    SDKROOT = iphonesimulator27.0
+
+2026-10-04 09:55:24.227 xcodebuild[32587:7336023] [MT] IDERunDestination: Supported platforms for the buildables in the current scheme is empty.
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'YNXMusic' in project 'YNXMusic' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: ed57817d7ab4c666f204e789ab0a0487
+Build description path: /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/XCBuildData/ed57817d7ab4c666f204e789ab0a0487.xcbuilddata
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/CompilationCache.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/CompilationCache.noindex
+
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/PrecompiledHeaders
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/PrecompiledHeaders
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/ExplicitPrecompiledModules
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic-611bce7c1ae9b9e3e87f91a5319b72cf-VFS-iphonesimulator/all-product-headers.yaml
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic-611bce7c1ae9b9e3e87f91a5319b72cf-VFS-iphonesimulator/all-product-headers.yaml
+
+CreateBuildDirectory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic.xcodeproj
+    builtin-create-build-directory /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-non-framework-target-headers.hmap (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-non-framework-target-headers.hmap
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_const_extract_protocols.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.LinkFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyStaticMetadataFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyMetadataFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyMetadataFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftConstValuesFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-OutputFileMap.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-OutputFileMap.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftConstValuesFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_const_extract_protocols.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_const_extract_protocols.json
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.LinkFileList (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.LinkFileList
+
+WriteAuxiliaryFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-OutputFileMap.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    write-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-OutputFileMap.json
+
+MkDir /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /bin/mkdir -p /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app
+
+ProcessInfoPlistFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Info.plist /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/Info.plist (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-infoPlistUtility /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/Info.plist -producttype com.apple.product-type.application -genpkginfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Info.plist
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/native-session /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/native-session (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/native-session /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app
+
+CpResource /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/i18n.json /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/shared/i18n.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/shared/i18n.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app
+
+CopyPNGFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/ynx-brand-original.png /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/ynx-brand-original.png (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/usr/bin/copypng -compress -strip-PNG-text /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/ynx-brand-original.png /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/ynx-brand-original.png
+
+SwiftDriver YNXMusic normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver YNXMusic normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdarg-3KQ2FKH58HGLHRUGBJLWPQFM0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdbool-CI5LBC64ZPE330OKU13NHQG0K.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_AvailabilityInternal-KFGMWJCHLTH2CWRC93NK450Z.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ptrauth-EXVIGO93X1S782SB073JYNOP1.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftShims-9PNKUIQPZBPZ55CVSYF9OSZXS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stddef-D2RA3BS7FR8QUHPWJ0AZODG0A.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-4ES349KUDDLKZDUM3RRAW0RAB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdbool-D11FFRVXXC2OQDCT50V6OPTMN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ptrauth-1O2SSV5RRD7TNTTVJATNJYMP8.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/DeveloperToolsSupport-2SXMTE0IJ5VLQYO51H0S152NL.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ptrcheck-55LSWHKU3BV1UY6CKLEX5X64I.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftShims-3378F8X3A03EXAAUX0DQ0LWDN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_SwiftConcurrencyShims-28FQKJSEF8L417THZMBVVFSZF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_float-BAJYV3NI3R70KA125K3N3MTC2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/DeveloperToolsSupport-5J1J95M9BBVR48CUYNUTCS7JD.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ptrcheck-D0LHJWKWFAY69N37Y570AMBTC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_AvailabilityInternal-DOBK0MQ4EXT5JMUZV091CW4HZ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdarg-CBOIP1DET9G2CWDGST4DUXZPI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stddef-7WHLVO0GXUTJQGT7X6ESPW7S0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_float-DJX3EKBSY7AONDS8YLKLJZSZ2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation1-6JI6Y628WUWZXPTPUMJ552SOW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation1-DIUKILEZB6BXUILDZPMVNCMTO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation2-545EILOV9HH3N26JSVQ36MI9I.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_limits-8O71RRDDEEI7YVRSZ9W1P8WE3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation2-3UCMKC1JPJ4O4PZOAGK6SY7FC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_limits-BZC0GF6UTZR9KVLD2HLUJ7RZI.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdint-F4WJT77AJ39LNGANHZDUEKS18.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_tgmath-34Y6Z05JWT3E50WDGBNLMB489.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/string_h-EDPBUWOSB76GM6GAKQKJ1I44D.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/sys_types-615WP19CSBG50CWB2T488J9LO.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/string_h-984U727URIRCFRG1TVP09Z6D4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_tgmath-DY3VE2YLCQYWVTWWIX03DVSCH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/sys_types-29UUDF5KZ53XFSKXG4C7TWZMF.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdint-1HW0KOSPAMDPINX34C3MCH876.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation3-DBBJPPWPQJQEEUL73MS5B88CY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdatomic-7C2F5MYWPUXG0YX3XFITECD0Y.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_DarwinFoundation3-S30J6FPFMFSK6EBLZUG6E4AE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_intrinsics-B5LRXS3W784JHRYZ78P6KDX9Q.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_stdatomic-48WDZBCTSBRGDYRC02TNEHYTL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_inttypes-3KDXNARQ4MDAHI131A3JJ5FQI.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_intrinsics-EP4OJ1HJQGZPM6CAP0Q32H0Q2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_Builtin_inttypes-4MAFTRAFURTO5D8JVW4VJIA7C.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Darwin-E4NCGKOUVTWTL6TGM9EWVE1OC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Darwin-9E0Q3L3S7WCDXZ06W38LMGK60.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/simd-1YI8EA2EE50JPR7OEWL4777U1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MachO-C0FM7KZMWHRM1IBN7UWU7K25U.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ObjectiveC-9XR4VEOD1CECHYPU4Z5UAXYXN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ObjectiveC-D8OIJTO4AA7R812VSQQGPRPX3.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MachO-25WIP0EXYSOR3HIMAXMDLFOP4.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os_object-2LNQT0VC7J3OQZ2EHNW3E9HI0.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os_object-779RMLAC710RHE05OZIU932BX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os_workgroup-81EFNIRZQNVOI0U0BEU7RAF51.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/simd-5C1DTGGCD19SFK3TMNDN08OJX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os_workgroup-C4QG51ARJGQHW9R3SVK4PAHLB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Dispatch-B5N95319WD6436DTODCC9PH7L.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Dispatch-E060Z204V2SKZ9UR9W8E256MD.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreFoundation-56CROFHFKL8A8UTD4V716ONTB.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/XPC-96XVOG3OMDB5O0NXVSV0EPDIK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/dnssd-3N7DDWV18C6LBYKXRPERFUTYE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/dnssd-4X3YHDHMVB5JQU6FCILNM3XVY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/XPC-4Q1X4JTPA9ZH5FAFTNS6Q8W6A.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreFoundation-9JVZU3BH1REI35O9YSFG9PVJW.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os-58X2BBOSS1G6OGK0IC4EUCN11.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/os-8GL4S7D8ZE5T3CRBKGG652IMX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreGraphics-6HBGRFE3SAMONFUUJY79KUABT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Security-4HYE8GKP801RTLGLO06DIW0EK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreAudioTypes-14O2IA67VNWGR8AZ7L5DX4H4J.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CFNetwork-4NI0ITUVODCVLB83510N2W0LR.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreGraphics-U2F29YD2GFAE3Z8L49YUDO0D.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreAudioTypes-4FV7O0NLCYU1NHZP97ZGU3FA2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CFNetwork-BEGIRO777XCEQQ0VFGNIQR5GL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Security-97ETS4IEU0K18AD96ZO96RLZU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreAudio-5M9YM5R2BCPDHGBSI3IHAO2D3.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreAudio-213UYZF57BV4OWBY8V5876PGK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Spatial-1Q7YGP0IRVDJE3SWTPQLSQ6QT.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ImageIO-CHXPM2DIGAWCXFL0U9FTT9ZIJ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreText-DR8J4LN0S2NRM1MM72UDXKLD.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Foundation-4VG67F3BGI97AMXCAF0YAGD6W.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Foundation-4SRVZ2ZKNCWE2QPG4LE61BIOH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreText-7XH1W3WWQHETZDAF009033SSE.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/ImageIO-EYO43XTN964VMSWIQTCL4PKLB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Spatial-76L5HJ2CODVH4PVIB62KJNI3A.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreTransferable-7GH08398YVEYT60LX7L1PUUH2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/OpenGLES-CKDCJCXFAHMZWI7VXJGQK56CC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreData-8DSONUGWHC8M5ZMK0B7PS2M6U.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UserNotifications-15Z5QBXRRJ5IZ04NKWS8HLAOS.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_LocationEssentials-A8AEX8UNODSZK1DK8Q1ROEHGR.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Accessibility-3NBVB61MOXJDHW92AX0BXBAOC.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/OSLog-372U76MGPLQ0ZEJS6YIGMFACA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Symbols-64JCKGSL24JYD473DA6AC906X.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/DataDetection-7OIN26HVTFGEGG18U9QVXN4NX.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/IOSurface-3DM5EMW5BR2IUMLFP3305K013.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/OpenGLES-BD3UE31LUMNUPEUFDMSVRKRLU.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Symbols-8H6NBKEURN0GC9ACR7BPO1KSE.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UserNotifications-E7QLUQQEV90GJNE27WBXL4JE8.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-1KTTVOS6NMEW9SWL9LARHYJVF.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMIDI-6VI9YVKJY8TREJ6V85Z67XEVV.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreTransferable-3HPDGEWWQKTQ2626N6GE99LSG.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/LocalAuthentication-CR25352F1QC02OJ67GOGJKBS1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/FileProvider-4IETTNE094M4LMAMJBIQJ5B0X.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/OSLog-EC1LRFKL5IN8DDZCRY3TYXWLY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/FileProvider-27IIYDYOS8Y09EUCLT3FHEJHA.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Metal-BL4F283TXJG94EV1OAYQEUVRA.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMIDI-A10OTUIXQMLHPFTDIR2G3QPIU.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/LocalAuthentication-6H20BMBIWFGRNKNFUS87JLL8H.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Accessibility-CA63T8OHCZNJW3NS43ZEZ6VYK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Network-DQYD2XEVTD9XIIYW60L478ZTT.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreLocation-2RLTVPLLFP7PISTO5LFR15AAK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UIUtilities-D4RJA7AIMFBAHMOEWSPFPYQMK.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/_LocationEssentials-4Z8FUZ1GHBBRVKUNAM9PV3GQL.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/DataDetection-EW8PTNBZOFPDLNRU2CKK1O246.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AudioToolbox-EGJLRXILOC9MO89GMNA323G0J.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreData-BDZR0LJYP45RDHQC187ZJ6K4J.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMotion-7VKNV7N3ISAVUZL5KIZDX1N16.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/IOSurface-9K4W1LGDAPOV3GR3LQ8UZ1MJM.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AudioToolbox-1IEYTZ0EENBOBWKVQLTNNMWM3.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UniformTypeIdentifiers-A48RHV4AFRQSBL9NLT0A8U1HO.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Network-8X8Z76D6F50SGSDZ13796D6U5.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UIUtilities-4I94R8L3V0CKIC19ZGBWA7FNP.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreLocation-1COA4H3P7EIJC3AYT90X5DZ18.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/Metal-91U5B9G88O80YHC7T7BZYT5LK.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVRouting-3PSN4P2KWZ441BJERPP6QJX2.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMotion-7L4WL4T956KLU7AC02AKECUVY.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreVideo-5XEUMJUQIEBUGDTJ0G87QGVOS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVRouting-94Y9R8EFYI6M76FNYBXECECIM.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreImage-754EQ33IHHSBQGI017J9QSRKQ.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/QuartzCore-5UUCVWPY2873GWVKKJCSRCANI.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMedia-A6JLAJ0QO5U0Y52PG4C9SR56U.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreVideo-DSOMDS5ZDSFBFWLZC736VA9AD.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftUICore-7JVLS3WVCYKPUOE889226JSF1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreImage-4JNVWFZM5MRP4F0RCUYICMDN.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/CoreMedia-73YT21YIH0FPR5E21VJTWOPH1.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/QuartzCore-1F3X7XJ6YW4UI9P96ZOL6K0X7.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UIKit-6KF9V1JBHKOIB3Q7NZIX96JMN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVFAudio-E9S1E666CAM2073WGHSOBPJMV.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/VideoToolbox-EI8KA4FZEN5BXNI59LV5BO2RB.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MediaToolbox-8FF8RVV4PSACHU3JDZ05XHHWI.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftUICore-CPI2QMUM62B93NJGVGBFGM65Y.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/UIKit-BN4BTWMINCSJELBLZCJ0WGFHY.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MediaToolbox-DBYS13TAGQARCBHOXC7HSN2XH.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVFAudio-D6RLHCA962FPC4GAEDCP5Q3P9.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/VideoToolbox-E2DJQMRAGX1UK1IZBFRY66Q5.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVFoundation-2OZ30Z2VE2G3W092SFA8FJXFX.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/AVFoundation-8WBN9YXWGY4EAYDFGXXBP8EJU.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/WebKit-80V7EW1M8T8IVG79DAI7SMGSS.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftUI-4NN1FHBJZ4YCHPLI1L2RH7FPN.pcm
+
+SwiftExplicitDependencyGeneratePcm x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MediaPlayer-7BFR3I5XM8RAMAKRCAW4N13M0.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/MediaPlayer-4X273V05Z1AN1CYD5GPT6KAI6.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/WebKit-38S29ESE9IS3XEVNZ18YE2UU2.pcm
+
+SwiftExplicitDependencyGeneratePcm arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules/SwiftUI-DMS1UKORX6U6HSRDQRODK1UWQ.pcm
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ YNXMusic (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    
+
+SwiftCompile normal x86_64 Compiling\ MusicAccountState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicAccountState.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicCredentials.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicCredentials.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicDeviceSigner.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicDeviceSigner.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeCustody.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeTransport.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeEngine.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicAPI.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicAPI.swift
+
+SwiftCompile normal x86_64 Compiling\ MusicNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeState.swift
+
+SwiftCompile normal x86_64 Compiling\ YNXMusicApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal x86_64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile YNXMusicApp.swift
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:516:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+514 |                 Button(l.t("trust_pause")){guard let operation=m.captureOperation(),let intent=pauseIntent else{return};_ = m.pauseCase(operation,intent:intent)}
+515 |             }message:{Text(l.t("trust_pause_confirm"))}
+516 |             .onChange(of:m.viewGeneration){_ in showPause=false;pauseIntent=nil}
+    |              `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+517 |         }
+518 |     }
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:596:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+594 |             if let operation {MusicPlaylistEditor(initial:playlist,operation:operation)}
+595 |         }
+596 |         .onChange(of:m.viewGeneration){_ in editing=nil;operation=nil;playlistName="";discardCreation=false;discardOperation=nil}
+    |          `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+597 |     }
+598 | }
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:642:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+640 |             }
+641 |         }.interactiveDismissDisabled(saving)
+642 |         .onChange(of:m.viewGeneration){_ in dismiss()}
+    |          `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+643 |     }
+644 |     private func save(){
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:664:32: warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+662 | 
+663 | private func musicDisplayLabels(_ tag:String)->[String] {
+664 |  switch Locale(identifier:tag).languageCode ?? "en" {
+    |                                |- warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+    |                                `- note: use 'language.languageCode.identifier' instead
+665 |  case "zh":return tag.contains("Hant") || tag.contains("TW") ? ["顯示與字級","緊湊","標準","較大"]:["显示与字号","紧凑","标准","较大"]
+666 |  case "ja":return ["表示と文字サイズ","小さめ","標準","大きめ"]
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftEmitModule normal arm64 Emitting\ module\ for\ YNXMusic (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 Compiling\ MusicDeviceSigner.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicDeviceSigner.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 Compiling\ MusicAccountState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicAccountState.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicDeviceSigner.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 Compiling\ MusicNativeEngine.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeEngine.swift
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for YNXMusic (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriver\ Compilation\ Requirements YNXMusic normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftCompile normal arm64 Compiling\ MusicNativeCustody.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeCustody.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftdoc (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.abi.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftsourceinfo (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ YNXMusicApp.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile YNXMusicApp.swift
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:516:14: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+514 |                 Button(l.t("trust_pause")){guard let operation=m.captureOperation(),let intent=pauseIntent else{return};_ = m.pauseCase(operation,intent:intent)}
+515 |             }message:{Text(l.t("trust_pause_confirm"))}
+516 |             .onChange(of:m.viewGeneration){_ in showPause=false;pauseIntent=nil}
+    |              `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+517 |         }
+518 |     }
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:596:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+594 |             if let operation {MusicPlaylistEditor(initial:playlist,operation:operation)}
+595 |         }
+596 |         .onChange(of:m.viewGeneration){_ in editing=nil;operation=nil;playlistName="";discardCreation=false;discardOperation=nil}
+    |          `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+597 |     }
+598 | }
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:642:10: warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+640 |             }
+641 |         }.interactiveDismissDisabled(saving)
+642 |         .onChange(of:m.viewGeneration){_ in dismiss()}
+    |          `- warning: 'onChange(of:perform:)' was deprecated in iOS 17.0: Use `onChange` with a two or zero parameter action closure instead. [#DeprecatedDeclaration]
+643 |     }
+644 |     private func save(){
+
+/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/ios/YNXMusic/YNXMusicApp.swift:664:32: warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+662 | 
+663 | private func musicDisplayLabels(_ tag:String)->[String] {
+664 |  switch Locale(identifier:tag).languageCode ?? "en" {
+    |                                |- warning: 'languageCode' was deprecated in iOS 16: renamed to 'language.languageCode.identifier' [#DeprecatedDeclaration]
+    |                                `- note: use 'language.languageCode.identifier' instead
+665 |  case "zh":return tag.contains("Hant") || tag.contains("TW") ? ["顯示與字級","緊湊","標準","較大"]:["显示与字号","紧凑","标准","较大"]
+666 |  case "ja":return ["表示と文字サイズ","小さめ","標準","大きめ"]
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+SwiftCompile normal arm64 Compiling\ MusicNativeTransport.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeTransport.swift
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for YNXMusic (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriver\ Compilation\ Requirements YNXMusic normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicNativeTransport.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 Compiling\ MusicCredentials.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicCredentials.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicNativeCustody.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftMergeGeneratedHeaders /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/YNXMusic-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-Swift.h /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-Swift.h (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-swiftHeaderTool -arch arm64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-Swift.h -arch x86_64 /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-Swift.h -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/YNXMusic-Swift.h
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftdoc (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftdoc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.abi.json (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.abi.json /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftsourceinfo (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -strip-unsigned-binaries -strip-deterministic -strip-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/strip -resolve-src-symlinks -rename /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftsourceinfo /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+SwiftCompile normal arm64 Compiling\ MusicNativeState.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicNativeState.swift
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 Compiling\ MusicAPI.swift /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftCompile normal arm64 /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios/YNXMusic/MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-SwiftPerFileCompile MusicAPI.swift
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicCredentials.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicAPI.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicAccountState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicNativeState.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal arm64 Compiling MusicNativeEngine.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriver\ Compilation YNXMusic normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/x86_64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/Binary/YNXMusic normal x86_64 (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/Binary/YNXMusic
+
+SwiftDriverJobDiscovery normal arm64 Compiling YNXMusicApp.swift (in target 'YNXMusic' from project 'YNXMusic')
+
+SwiftDriver\ Compilation YNXMusic normal arm64 com.apple.xcode.tools.swift.compiler (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-Swift-Compilation -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name YNXMusic -O @/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -Xfrontend -serialize-debugging-options -swift-version 5 -I /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -emit-localized-strings -emit-localized-strings-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64 -c -j10 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKStatCaches.noindex/iphonesimulator27.0-24A430-8dc58220667be655e1bcc261a7455254.sdkstatcache -output-file-map /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-OutputFileMap.json -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex -sdk-module-cache-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules -emit-dependencies -emit-module -emit-module-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule -serialize-diagnostics -dependency-scan-serialize-diagnostics-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-dependency-scan.dia -validate-clang-modules-once -clang-build-session-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/ModuleCache.noindex/Session.modulevalidation -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -emit-const-values -const-gather-protocols-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_const_extract_protocols.json -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-generated-files.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-own-target-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-all-target-headers.hmap -Xcc -iquote -Xcc /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic-project-headers.hmap -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/include -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources-normal/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources/arm64 -Xcc -I/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/DerivedSources -emit-objc-header -emit-objc-header-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic-Swift.h -working-directory /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios -experimental-emit-module-separately -disable-cmo
+
+Ld /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/Binary/YNXMusic normal arm64 (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk -Os -Xlinker -no_warn_duplicate_libraries -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator -filelist /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.LinkFileList -Xlinker -rpath -Xlinker /usr/lib/swift -Xlinker -dead_strip -Xlinker -object_path_lto -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_lto.o -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.swiftmodule -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/Binary/YNXMusic
+
+CreateUniversalBinary /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic normal arm64\ x86_64 (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/Binary/YNXMusic /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/Binary/YNXMusic -output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic
+
+CopySwiftLibs /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Frameworks --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/PlugIns --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/SystemExtensions --scan-folder /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os --back-deploy-swift-span
+Ignoring --strip-bitcode because --sign was not passed
+
+ExtractAppIntentsMetadata (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name YNXMusic --sdk-root /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator27.0.sdk --xcode-version 27A266a --platform-family iOS --deployment-target 17.0 --bundle-identifier com.ynxweb4.music --output /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app --target-triple arm64-apple-ios17.0-simulator --target-triple x86_64-apple-ios17.0-simulator --binary-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic_dependency_info.dat --dependency-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic_dependency_info.dat --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftFileList --source-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftFileList --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyMetadataFileList --static-metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyStaticMetadataFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/arm64/YNXMusic.SwiftConstValuesFileList --swift-const-vals-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/Objects-normal/x86_64/YNXMusic.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --no-app-shortcuts-localization
+2026-10-04 09:55:48.634 appintentsmetadataprocessor[33393:7341349] Starting appintentsmetadataprocessor export
+2026-10-04 09:55:48.640 appintentsmetadataprocessor[33393:7341349] warning: Metadata extraction skipped, no AppIntents.framework dependency found
+
+GenerateDSYMFile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app.dSYM /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    export PATH\=/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Resources:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/usr/local/bin:/Library/Frameworks/Python.framework/Versions/3.12/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/Applications/VMware\ Fusion.app/Contents/Public:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/huangjiahao/.codex/tmp/arg0/codex-arg0qOFuoN:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/huangjiahao/.local/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.Y0lvlfLNGh/bin:/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/tmp.3asHvwPZcx/bin:/tmp/ynx-cli-bin-27120:/tmp/ynx-cli-bin-7036:/Users/huangjiahao/google-cloud-sdk/bin:/opt/homebrew/opt/openjdk@17/bin:/opt/homebrew/opt/openjdk@21/bin:/Applications/Webots.app/Contents/MacOS:/Applications/Blender.app/Contents/MacOS:/opt/homebrew/anaconda3/condabin:/Users/huangjiahao/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/dsymutil /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/YNXMusic -o /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app.dSYM
+
+AppIntentsSSUTraining (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Info.plist --temp-dir-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/ssu --bundle-id com.ynxweb4.music --product-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app --extracted-metadata-path /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Metadata.appintents --metadata-file-list /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/YNXMusic.build/Debug-iphonesimulator/YNXMusic.build/YNXMusic.DependencyMetadataFileList --source-file /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app/Info.plist --archive-ssu-assets
+2026-10-04 09:55:48.667 appintentsnltrainingprocessor[33395:7341353] Parsing options for appintentsnltrainingprocessor
+2026-10-04 09:55:48.667 appintentsnltrainingprocessor[33395:7341353] Starting AppIntents SSU YAML Generation
+2026-10-04 09:55:48.669 appintentsnltrainingprocessor[33395:7341353] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-RegisterExecutionPolicyException /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app
+
+Validate /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    builtin-validationUtility /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app -shallow-bundle -infoplist-subpath Info.plist
+
+Touch /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app (in target 'YNXMusic' from project 'YNXMusic')
+    cd /Users/huangjiahao/Desktop/YNX\ Audit\ Worktrees/20260906-video/apps/music/ios
+    /usr/bin/touch -c /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Products/Debug-iphonesimulator/YNXMusic.app
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/ExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules
+
+PruneExplicitPrecompiledModules /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-music-apple-native-LX0dIm/YNXMusic/SDKExplicitPrecompiledModules
+
+** BUILD SUCCEEDED **
+

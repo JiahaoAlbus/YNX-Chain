@@ -1,0 +1,1 @@
+{"results": [{"command": ["go", "test", "-race", "-count=1", "-tags=ynx_canonical_media,ynx_media_combined_authority", "-run=TestMusicNativeConsumerAndOriginalBusiness", "-json", "./internal/video", "./internal/music"], "exitCode": 1, "log": "combined-go-race.jsonl"}], "inputs": 678}

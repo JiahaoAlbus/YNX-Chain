@@ -1,0 +1,4 @@
+PASS concurrent normal field transactions preserve complete library/upload/playback tuple
+PASS retired guard aborts before disk replacement and leaves original selector intact
+PASS playlist body/key mismatch and old discard cannot consume replacement or alter upload
+RESULT pass=3 fail=0 AUTH/SDK/HTTP/DEVICE=NOT_RUN

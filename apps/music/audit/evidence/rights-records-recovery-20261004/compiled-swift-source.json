@@ -1,0 +1,67 @@
+{
+  "schema": "ynx.music.apple-native-engine.software-qa.v1",
+  "binary": "/tmp/ynx-music-rights-records-swift-r3-20261004/apple-music-engine-check",
+  "bytes": 1783528,
+  "sha256": "983518bb621d8287c86702cd1d60d17748c48bbe1cae5cfc88f93976f22aeca9",
+  "sourcePins": [
+    {
+      "path": "apps/music/ios/YNXMusic/MusicNativeEngine.swift",
+      "bytes": 24025,
+      "sha256": "1a831011bce5b4943427bc2928424a23bca85533b31c5243f597907374294f7a"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicNativeState.swift",
+      "bytes": 18494,
+      "sha256": "936f99217d546f58a6416d143140d1d82bf529af406400b0cc3129b5adcea8bf"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicNativeCustody.swift",
+      "bytes": 2949,
+      "sha256": "b4017900f2cba313c62fa4c66a51314d1fdde3db835a6923a79834d0658dbf86"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicNativeTransport.swift",
+      "bytes": 1557,
+      "sha256": "f0b01274437efc433a0241632fda3cdda66b0354d640cc3c5b2d4d501d571a6b"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicDeviceSigner.swift",
+      "bytes": 1119,
+      "sha256": "e02aaa346096478ecc47dd4a54d1b00e6c8c7c22f9070c7cc6c8ac3e4d17db8d"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicCredentials.swift",
+      "bytes": 5092,
+      "sha256": "635079cb4a0a5d26e58aa6ccf53fc8222f1316558e3bceec4b01833f87ea69ba"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAPI.swift",
+      "bytes": 10908,
+      "sha256": "fb3408345c4f19278980afa267bd58e3f3fe330f5b28105e0395e4ec1bd7d5a9"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/MusicAccountState.swift",
+      "bytes": 11297,
+      "sha256": "600db92eb38b5dced74d2a61cb1af138e3a08d488aa6c0e49568db09721d9751"
+    },
+    {
+      "path": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+      "bytes": 55677,
+      "sha256": "3eb64a085121c993d842ef9e9f69c2d6c6c44e883e5cbfe1f4eebbc0c4bc2ff5"
+    },
+    {
+      "path": "apps/music/scripts/apple-native-engine-check.swift",
+      "bytes": 18271,
+      "sha256": "2c4e1802e953c7d479e5f1f61c09b75c2adf86ebb19c3c2fc5a37a671c2d89d8"
+    }
+  ],
+  "modelPrefix": {
+    "source": "apps/music/ios/YNXMusic/YNXMusicApp.swift",
+    "bytes": 33143,
+    "sha256": "cd7614e2fba499cccd575dc9b02de4170b152e0a5a59f8095c9d24fbef4cc6f2"
+  },
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "systemMediaControlsEnabled": false,
+  "installed": false
+}
