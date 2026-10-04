@@ -1,0 +1,29 @@
+✖ saved-original processing sends once when the transport loses its result (11.137583ms)
+✔ Creator reads can still retry a transient network failure with fresh approval (0.639167ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 1
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66.782625
+
+✖ failing tests:
+
+test at apps/creator-studio/signout.test.mjs:108:1
+✖ saved-original processing sends once when the transport loses its result (11.137583ms)
+  AssertionError [ERR_ASSERTION]: unknown processing must wait for explicit recovery, not a second dispatch
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/Desktop/YNX%20Audit%20Worktrees/20260906-video/apps/creator-studio/signout.test.mjs:113:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

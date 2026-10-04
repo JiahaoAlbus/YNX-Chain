@@ -1,0 +1,206 @@
+{
+  "scope": "original Creator DOM; synthetic session and service responses only",
+  "realWallet": false,
+  "formalHost": false,
+  "actualCodec": false,
+  "cases": [
+    {
+      "phase": "failed",
+      "view": {
+        "width": 390,
+        "height": 844,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 293.3125,
+        "right": 374,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_failed",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "failed",
+      "view": {
+        "width": 320,
+        "height": 740,
+        "fontSize": 32,
+        "dir": "rtl"
+      },
+      "geometry": {
+        "left": 176.765625,
+        "right": 304,
+        "height": 65,
+        "width": 127.234375,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_failed",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "failed",
+      "view": {
+        "width": 1280,
+        "height": 900,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 1148.125,
+        "right": 1228.8125,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_failed",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "scanning",
+      "view": {
+        "width": 390,
+        "height": 844,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 293.3125,
+        "right": 374,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_scanning",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "scanning",
+      "view": {
+        "width": 320,
+        "height": 740,
+        "fontSize": 32,
+        "dir": "rtl"
+      },
+      "geometry": {
+        "left": 176.765625,
+        "right": 304,
+        "height": 65,
+        "width": 127.234375,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_scanning",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "scanning",
+      "view": {
+        "width": 1280,
+        "height": 900,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 1148.125,
+        "right": 1228.8125,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_scanning",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "transcoding",
+      "view": {
+        "width": 390,
+        "height": 844,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 293.3125,
+        "right": 374,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_transcoding",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "transcoding",
+      "view": {
+        "width": 320,
+        "height": 740,
+        "fontSize": 32,
+        "dir": "rtl"
+      },
+      "geometry": {
+        "left": 176.765625,
+        "right": 304,
+        "height": 65,
+        "width": 127.234375,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_transcoding",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "transcoding",
+      "view": {
+        "width": 1280,
+        "height": 900,
+        "fontSize": 16,
+        "dir": "ltr"
+      },
+      "geometry": {
+        "left": 1148.125,
+        "right": 1228.8125,
+        "height": 44,
+        "width": 80.6875,
+        "wordFits": true,
+        "overflow": false
+      },
+      "originalID": "saved_original_transcoding",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    }
+  ]
+}

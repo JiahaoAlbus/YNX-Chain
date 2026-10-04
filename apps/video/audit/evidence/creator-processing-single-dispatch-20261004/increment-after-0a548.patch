@@ -1,0 +1,43 @@
+diff --git a/apps/creator-studio/app.js b/apps/creator-studio/app.js
+index 74885d6c3..8bcf6a9c3 100644
+--- a/apps/creator-studio/app.js
++++ b/apps/creator-studio/app.js
+@@ -84,7 +84,7 @@ async function api(path,opt={}){
+       const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
+       assertCreatorSession(revision);operation.signal.throwIfAborted();
+       try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
+-      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
++      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(processing||opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
+     }
+     const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
+     assertCreatorSession(revision);
+diff --git a/apps/creator-studio/signout.test.mjs b/apps/creator-studio/signout.test.mjs
+index e8804acf3..6f4da8a73 100644
+--- a/apps/creator-studio/signout.test.mjs
++++ b/apps/creator-studio/signout.test.mjs
+@@ -105,6 +105,25 @@ test('multipart upload is sent once when its network result is unknown', async (
+   assert.equal(calls,1,'a fresh multipart boundary must not replay the same idempotency key');
+ });
+ 
++test('saved-original processing sends once when the transport loses its result', async () => {
++  const calls=[];let approvals=0;
++  const controller=await app({productAuthorization:async()=>{approvals++;return {};},fetch:async(url,input)=>{calls.push({url,method:input.method,body:input.body,key:input.headers['Idempotency-Key']});throw new TypeError('Processing result disconnected');}});
++  controller.renderProductState(connected('owner-a'));
++  await assert.rejects(controller.api('/v1/videos/saved_original/retry-processing',{method:'POST'}),/Processing result disconnected/);
++  assert.equal(calls.length,1,'unknown processing must wait for explicit recovery, not a second dispatch');
++  assert.equal(approvals,1);
++  assert.equal(calls[0].method,'POST');assert.equal(calls[0].body,undefined);
++  assert.ok(calls[0].key);assert.match(calls[0].url,/\/saved_original\/retry-processing$/);
++});
++
++test('Creator reads can still retry a transient network failure with fresh approval', async () => {
++  let calls=0,approvals=0;
++  const controller=await app({productAuthorization:async()=>{approvals++;return {};},fetch:async()=>{if(++calls===1)throw new TypeError('Read disconnected');return response({videos:[]});}});
++  controller.renderProductState(connected('owner-a'));
++  assert.deepEqual(await controller.api('/v1/studio'),{videos:[]});
++  assert.equal(calls,2);assert.equal(approvals,2);
++});
++
+ test('caller cancellation aborts the request and cannot trigger automatic retry', async () => {
+   let calls=0,observedSignal;const walletEvents=[];
+   const controller=await app({fetch:async(_url,input)=>{calls++;observedSignal=input.signal;return new Promise(()=>{});},reduceStandardWalletConnectState:(state,event)=>{walletEvents.push(event.type);return state;}});

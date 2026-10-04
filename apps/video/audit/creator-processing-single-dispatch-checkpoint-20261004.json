@@ -1,0 +1,78 @@
+{
+  "schema": "ynx.media.creator-processing-single-dispatch.v1",
+  "sourceCommit": "10b4470f12d8c78de2a85728d8556c88888e9a20",
+  "sourceTree": "173ede327adefd1e8e47ec8fde5d0db9e7099c85",
+  "priorDelivery": "0a548149bb14548c2d32f2f743e9593ea2a89fd5",
+  "change": "Creator upload and retry-processing transport failure stops after one dispatch; ordinary reads retain bounded retry. Original saved source and server idempotency are preserved.",
+  "validation": {
+    "originalRegression": "processing dispatched twice; read retry passed",
+    "creatorCheck": {
+      "passed": 77,
+      "failed": 0
+    },
+    "originalDOM": {
+      "passed": 9,
+      "automaticMutations": 0,
+      "reuploads": 0
+    },
+    "candidate": {
+      "sourceCommit": "10b4470f12d8c78de2a85728d8556c88888e9a20",
+      "sourceTree": "173ede327adefd1e8e47ec8fde5d0db9e7099c85",
+      "runtimeFilesVerified": 27,
+      "archive": "/tmp/ynx-creator-processing-single-dispatch-20261004/creator-studio-candidate.tar.gz",
+      "bytes": 639095,
+      "sha256": "e3cd6eb2c66e26936f1ee5b3a184f774faca65b4b0c83e8512121effe367be32",
+      "formalHost": false,
+      "realWallet": false
+    }
+  },
+  "limits": {
+    "realWallet": false,
+    "formalHost": false,
+    "sharedSourceWritten": false,
+    "backendBinaries": "Retained source312 candidates unchanged; not relabelled with this Web source.",
+    "missingProductionInputs": "Video registered sets, sealed SSO, trusted binders; Music Registered/Bind; real actor/current source; final Music Trust contract remain external."
+  },
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/build-receipt.json",
+      "bytes": 401,
+      "sha256": "fd61f7e333762da2073b0cd772206ee9d3e123d4cefe1c5e85b144cb5876b717"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/creator-check.txt",
+      "bytes": 7251,
+      "sha256": "a757107072ddbe34a414b437245226c044b74b15e027f8fd1c3526dd0ac3e53f"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/creator-studio-candidate.tar.gz",
+      "bytes": 639095,
+      "sha256": "e3cd6eb2c66e26936f1ee5b3a184f774faca65b4b0c83e8512121effe367be32"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/dom-check.txt",
+      "bytes": 57,
+      "sha256": "44d38fa9a11c4b69f158c4d45db695ce5a82900d4a245f405e016dc04c9a2090"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/increment-after-0a548.patch",
+      "bytes": 3309,
+      "sha256": "57b3c472261f6e84d0ffdb4ecde73c26a32c242111eef10388a960e5da4854cb"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/original-red.txt",
+      "bytes": 1029,
+      "sha256": "74bd7cc62984b91924d023c3631c3184c077544ebb7c155964c25a6d1da298b9"
+    },
+    {
+      "path": "apps/video/audit/evidence/creator-processing-single-dispatch-20261004/web-dom-receipt.json",
+      "bytes": 4722,
+      "sha256": "c9c4093e7aa47c0edb005f1abb16b559228276c7abfff0250dccc278bfe8ea0e"
+    }
+  ]
+}
