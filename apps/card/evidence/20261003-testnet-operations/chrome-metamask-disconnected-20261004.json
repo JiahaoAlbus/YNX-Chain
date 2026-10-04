@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "ynx.card.public-wallet-observation.v1",
+  "observedAt": "2026-10-04T01:20:45.707Z",
+  "url": "https://card.ynxweb4.com/?verify=card-test-account-20261004",
+  "tabId": "694448569",
+  "publicSourceLastVerified": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "previousState": "Connecting...",
+  "visibleState": "NOT CONNECTED",
+  "visibleError": "Wallet: MetaMask disconnected. Reconnect to continue.",
+  "connectButtonEnabled": true,
+  "guestVisible": true,
+  "applicationEntryVisible": true,
+  "accountApprovedVerified": false,
+  "rejectionVerified": false,
+  "chainVerified": false,
+  "causeVerified": false,
+  "repeatedAccountRequest": false,
+  "signature": false,
+  "transaction": false,
+  "privateAuthorization": false,
+  "activeCard": false,
+  "topUpVerified": false,
+  "screenshot": {
+    "path": "chrome-metamask-disconnected-20261004.jpg",
+    "bytes": 145026,
+    "sha256": "18c41b5f9dbf86d3c3829ffa22595a5e3c1d39ac91f56711b3b450b2d3a0337a"
+  }
+}
