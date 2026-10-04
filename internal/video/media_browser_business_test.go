@@ -46,7 +46,16 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				origin = "https://creator.ynxweb4.com"
 				scopes = []string{"creator:account", "creator:publish", "creator:revenue"}
 			}
-			owned, _ := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
+			owned, qaChannel := fixture(t, func(cfg *Config) { cfg.Now = time.Now })
+			browserVideoID := ""
+			if product == "video" {
+				published := upload(t, owned, qaChannel, "Original browser playlist public fixture")
+				approveTestPublication(t, owned, qaChannel.Owner, published.ID)
+				if e := owned.Publish(qaChannel.Owner, published.ID, VisibilityPublic); e != nil {
+					t.Fatal(e)
+				}
+				browserVideoID = published.ID
+			}
 			var mu sync.Mutex
 			var handler http.Handler
 			var browser *productsessionv2.BrowserSSO
@@ -165,7 +174,7 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancel()
 			cmd := exec.CommandContext(ctx, "node", "../../apps/video/scripts/media-browser-authority-check.cjs", source, product)
-			cmd.Env = append(os.Environ(), "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
+			cmd.Env = append(os.Environ(), "YNX_QA_BROWSER_VIDEO_ID="+browserVideoID, "YNX_QA_ORIGINAL_MEDIA_URL="+server.URL, "YNX_QA_PUBLIC_KEY="+string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})))
 			var output, diagnostic bytes.Buffer
 			cmd.Stdout = &output
 			cmd.Stderr = &diagnostic
@@ -173,6 +182,10 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual protected browser/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
+				ActualOriginalWebPlaylistColdRecovery      bool `json:"actualOriginalWebPlaylistColdRecovery"`
+				ActualOriginalWebPickerColdRecovery        bool `json:"actualOriginalWebPickerColdRecovery"`
+				OriginalCreateDispatches                   int  `json:"originalCreateDispatches"`
+				PickerCreateDispatches                     int  `json:"pickerCreateDispatches"`
 				ActualBusinessServerReadback               bool `json:"actualBusinessServerReadback"`
 				ActualOldPrivateRetirementBeforeSiteSignIn bool `json:"actualOldPrivateRetirementBeforeSiteSignIn"`
 				ActualOriginalBrowserIdentity              bool `json:"actualOriginalBrowserIdentity"`
@@ -185,6 +198,9 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved || !receipt.ActualOldPrivateRetirementBeforeSiteSignIn || !receipt.ActualOriginalBrowserIdentity || !receipt.ActualCombinedDecision || !receipt.ActualSiteLogout || !receipt.ActualGoStartAndCallback303 || !receipt.RedirectNavigationSoftwareAdapter {
 				t.Fatal("browser receipt gates invalid")
+			}
+			if product == "video" && (!receipt.ActualOriginalWebPlaylistColdRecovery || !receipt.ActualOriginalWebPickerColdRecovery || receipt.OriginalCreateDispatches != 2 || receipt.PickerCreateDispatches != 2) {
+				t.Fatal("original Web playlist cold recovery gates missing")
 			}
 			mu.Lock()
 			defer mu.Unlock()

@@ -98,6 +98,7 @@ with tempfile.TemporaryDirectory(prefix='ynx-media-frozen-sdk-') as directory:
                 pins.append(dict(owner='Media', path=str(relative), bytes=len(data), sha256=hashlib.sha256(data).hexdigest()))
     if fixture_package_receipt is not None and successor:
         browser_inputs = [owned / 'apps/music/scripts/packaged-native-engine-fixture.mjs'] + [owned / name for name in sorted(visible_owned_paths) if name.startswith(('apps/music/android/','apps/video/android/')) and not any(part in ['build','.gradle'] for part in pathlib.PurePosixPath(name).parts)] + list((owned / 'apps/music/web').rglob('*')) + list((owned / 'apps/music').glob('*.go')) + [owned / 'apps/music/scripts/canonical-browser-authority-check.cjs', owned / 'apps/video/scripts/media-browser-authority-check.cjs', owned / 'apps/video/scripts/media-native-authority-check.mjs', owned / 'apps/video/scripts/media-apple-authority-check.mjs']
+        browser_inputs.append(owned / 'apps/video/scripts/video-playlist-original-browser-check.cjs')
         browser_inputs.append(owned / 'apps/music/scripts/apple-native-authority-check.mjs')
         browser_inputs.append(owned / 'apps/music/scripts/android-upload-original-business-check.mjs')
         browser_inputs.append(owned / 'apps/creator-studio/scripts/apple-native-authority-check.mjs')

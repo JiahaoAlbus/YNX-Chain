@@ -8,6 +8,8 @@ import {videoProductSession, dispatchPreparedProductRequest} from "./product-ses
 import {createVideoAPI} from "./video-api.js";
 import {createWatchProgress} from "./watch-progress.js";
 import {createVideoBusinessIdentity} from "./business-identity.js";
+import {createPlaylistJournal} from "./playlist-journal.js";
+import {createRecoveredPlaylist} from "./playlist-recovery.js";
 
 const API = `${location.origin}/video/api`;
 const $ = selector => document.querySelector(selector);
@@ -160,6 +162,23 @@ const privateAPI = async (path, options = {}) => {
   if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This response was discarded.");
   return result;
 };
+
+const playlistJournal=createPlaylistJournal();
+function playlistScope(extra=()=>{}) {
+  const account=productState.session?.account,revision=productRevision;
+  const current=()=>{if(revision!==productRevision||!productConnected()||productSignOutPending||productState.session?.account!==account)throw new DOMException("Video account changed.","AbortError");extra();};
+  current();const matches=()=>{try{current();return true;}catch{return false;}};return {account,current,matches};
+}
+async function createOriginalPlaylist(name,scope=playlistScope()) {
+  return createRecoveredPlaylist({journal:playlistJournal,...scope,api:privateAPI,name});
+}
+async function renderPlaylistRecovery(form,box,scope) {
+  const saved=await playlistJournal.read(scope.account,scope.current);scope.current();const input=form.elements.name,submit=form.querySelector('button[type="submit"]');
+  input.value=saved.pending?.body.Name??"";input.disabled=!!saved.pending;submit.textContent=t(saved.pending?"retry":"createPlaylist");
+  form.querySelector('[data-pause-playlist]')?.remove();box.replaceChildren();
+  if(saved.pending){const original=saved.pending,pause=document.createElement("button");pause.type="button";pause.className="outline";pause.dataset.pausePlaylist="";pause.textContent=t("pauseDraft");pause.onclick=async()=>{try{scope.current();if(!confirm(t("pauseDraftNotice")))return;scope.current();await playlistJournal.pause(scope.account,original,scope.current);await renderPlaylistRecovery(form,box,scope);}catch(error){if(error.name!=="AbortError")notice(error.message,true);}};form.append(pause);}
+  if(saved.history.length){const title=document.createElement("h3");title.textContent=t("savedDrafts");box.append(title);for(const original of saved.history){const row=document.createElement("div");row.className="library-row";const label=document.createElement("span");label.textContent=original.body.Name;const restore=document.createElement("button");restore.type="button";restore.textContent=t("restoreDraft");restore.disabled=!!saved.pending;restore.onclick=async()=>{try{scope.current();await playlistJournal.restore(scope.account,original,scope.current);await renderPlaylistRecovery(form,box,scope);}catch(error){if(error.name!=="AbortError")notice(error.message,true);}};row.append(label,restore);box.append(row);}}
+}
 
 const json = body => ({method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
 
@@ -781,14 +800,17 @@ async function showPlaylists(button) {
     const lists = await privateAPI("/v1/playlists");
     if (epoch !== libraryEpoch) return;
     const box = $("#content"); box.replaceChildren();
+    const scope=playlistScope(()=>{if(epoch!==libraryEpoch)throw new DOMException("Video view changed.","AbortError");});
     const form = document.createElement("form"); form.className = "library-create";
-    form.innerHTML = '<label for="new-playlist-name">Create a playlist</label><div><input id="new-playlist-name" name="name" maxlength="80" required placeholder="Playlist name"><button>Create</button></div>';
+    form.innerHTML = '<label for="new-playlist-name">Create a playlist</label><div><input id="new-playlist-name" name="name" maxlength="80" required placeholder="Playlist name"><button type="submit">Create</button></div>';
+    const recovery=document.createElement("section");recovery.className="playlist-recovery";
     form.onsubmit = async event => {
-      event.preventDefault(); const button = form.querySelector("button"); button.disabled = true;
-      try {await privateAPI("/v1/playlists", json({name:form.elements.name.value.trim()})); await showPlaylists(document.querySelector('[data-view="playlists"]'));}
-      catch (error) {button.disabled = false; notice(error.message, true);}
+      event.preventDefault(); const button=form.querySelector('button[type="submit"]');button.disabled=true;
+      try {scope.current();await createOriginalPlaylist(form.elements.name.value,scope);scope.current();await showPlaylists(document.querySelector('[data-view="playlists"]'));}
+      catch(error){if(error.name!=="AbortError"){try{await renderPlaylistRecovery(form,recovery,scope);}catch{}notice(error.message,true);}}
+      finally{if(epoch===libraryEpoch)button.disabled=false;}
     };
-    box.append(form);
+    box.append(form,recovery);await renderPlaylistRecovery(form,recovery,scope);scope.current();
     if (!lists.length) {const p = document.createElement("p"); p.className="meta"; p.textContent="No playlists yet. Create one here or save a video while watching."; box.append(p);}
     for (const list of lists) {
       const id = field(list,"id","ID"), ids = field(list,"video_ids","VideoIDs") || [];
@@ -873,10 +895,12 @@ function showSettings() {
     if(!confirm("Delete your Video history, subscriptions, playlists and comment text? This cannot be undone. Original videos are not deleted."))return;
     const button=event.currentTarget;button.disabled=true;
     try{
+      const scope=playlistScope();
       $("#video").pause();
-      await flushWatch(false);
+      await flushWatch(false);scope.current();
       watchProgress?.discard();
-      await privateAPI("/v1/privacy/account-data",{method:"DELETE"});
+      await privateAPI("/v1/privacy/account-data",{method:"DELETE"});scope.current();
+      await playlistJournal.clear(scope.account,scope.current);scope.current();
       if(currentVideo)startWatchProgress(currentVideo);
       currentPlaylist=null;notice("Your saved Video data was deleted.");await refreshSubscriptionButton();
     }
@@ -947,29 +971,33 @@ $("#subscribe").onclick = async event => {
 };
 $("#playlist").onclick = async()=>{
   if(!currentVideo||!requireAccount())return;
-  playlistTarget=currentVideo;
+  playlistTarget=currentVideo;const target=playlistTarget;
+  const scope=playlistScope(()=>{if(playlistTarget!==target)throw new DOMException("Video playlist choice changed.","AbortError");});
   try{
-    const lists=await privateAPI("/v1/playlists"), select=$("#playlist-choice");select.replaceChildren();
+    const lists=await privateAPI("/v1/playlists");scope.current();const select=$("#playlist-choice");select.replaceChildren();
     select.append(new Option("Create a new playlist", ""));
     for(const list of lists)select.append(new Option(field(list,"name","Name"),field(list,"id","ID")));
     if(lists.length)select.value=field(lists[0],"id","ID");
-    $("#playlist-name").value="";
-    $("#playlist-picker-status").textContent="";
+    const saved=await playlistJournal.read(scope.account,scope.current);scope.current();
+    $("#playlist-name").value=saved.pending?.body.Name??"";$("#playlist-name").disabled=!!saved.pending;
+    $("#playlist-picker-status").textContent="";$("#playlist-save").disabled=false;
     $("#playlist-picker").showModal();
-  }catch(error){notice(error.message,true);}
+  }catch(error){if(error.name!=="AbortError")notice(error.message,true);}
 };
-$("#playlist-picker-close").onclick=()=>$("#playlist-picker").close();
+$("#playlist-picker-close").onclick=()=>{$("#playlist-picker").close();playlistTarget=null;};
+$("#playlist-picker").addEventListener("cancel",()=>{playlistTarget=null;});
 $("#playlist-save-form").onsubmit=async event=>{
   event.preventDefault();if(!playlistTarget||!requireAccount())return;
   const button=$("#playlist-save"),target=playlistTarget;button.disabled=true;
+  const scope=playlistScope(()=>{if(playlistTarget!==target)throw new DOMException("Video playlist choice changed.","AbortError");});
   try{
     const name=$("#playlist-name").value.trim();let id=$("#playlist-choice").value;
-    if(name){const created=await privateAPI("/v1/playlists",json({name}));id=field(created,"id","ID");$("#playlist-choice").append(new Option(name,id));$("#playlist-choice").value=id;$("#playlist-name").value="";}
+    if(name){const created=await createOriginalPlaylist(name,scope);scope.current();id=created.ID;$("#playlist-choice").append(new Option(created.Name,id));$("#playlist-choice").value=id;$("#playlist-name").value="";$("#playlist-name").disabled=false;}
     if(!id)throw new Error("Choose a playlist or enter a new playlist name.");
-    await privateAPI('/v1/playlists/'+encodeURIComponent(id)+'/videos',json({video_id:target.id}));
-    $("#playlist-picker").close();notice("Video saved to your playlist.");
-  }catch(error){$("#playlist-picker-status").textContent=error.message;}
-  finally{button.disabled=false;}
+    scope.current();await privateAPI('/v1/playlists/'+encodeURIComponent(id)+'/videos',json({video_id:target.id}));scope.current();
+    $("#playlist-picker").close();playlistTarget=null;notice("Video saved to your playlist.");
+  }catch(error){if(error.name!=="AbortError"&&scope.matches()){try{const saved=await playlistJournal.read(scope.account,scope.current);scope.current();$("#playlist-name").value=saved.pending?.body.Name??$("#playlist-name").value;$("#playlist-name").disabled=!!saved.pending;}catch{}if(scope.matches())$("#playlist-picker-status").textContent=error.message;}}
+  finally{if(scope.matches())button.disabled=false;}
 };
 
 $("#report").onclick = async () => {
