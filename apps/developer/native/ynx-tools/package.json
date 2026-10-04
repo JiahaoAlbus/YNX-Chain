@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -10,7 +10,9 @@
   "icon": "ynx-logo.png",
   "main": "./src/extension.cjs",
   "activationEvents": [
-    "onView:ynx.tools"
+    "onView:ynx.tools",
+    "onCommand:ynx.reviewSelection",
+    "onStartupFinished"
   ],
   "contributes": {
     "viewsContainers": {
@@ -50,6 +52,10 @@
       {
         "command": "ynx.applyReviewedDiff",
         "title": "YNX: Apply Reviewed Text Changes"
+      },
+      {
+        "command": "ynx.reviewSelection",
+        "title": "YNX: Review Selection with AI"
       }
     ],
     "jsonValidation": [
@@ -58,6 +64,33 @@
           "**/keybindings.json"
         ],
         "url": "./schemas/keybindings.schema.json"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ynx.reviewSelection",
+          "when": "ynx.hasSelection && resourceScheme == file",
+          "group": "ynx@1"
+        },
+        {
+          "command": "ynx.copySolidityProject",
+          "when": "resourceScheme == file && resourceExtname == .sol",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.applyReviewedDiff",
+          "when": "resourceScheme == file",
+          "group": "ynx@3"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ynx.reviewSelection",
+        "key": "ctrl+k ctrl+y",
+        "mac": "cmd+k cmd+y",
+        "when": "editorTextFocus && editorHasSelection && resourceScheme == file"
       }
     ]
   },

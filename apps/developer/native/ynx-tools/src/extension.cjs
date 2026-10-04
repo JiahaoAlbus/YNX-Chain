@@ -2,7 +2,18 @@ const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
-  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Copy selected context', 'ynx.copyContext'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
+  // The host context menu lives outside Monaco's scoped DOM context. Publish
+  // our own selection state through the extension API so both hosts can render
+  // the same conditional menu without changing the upstream context service.
+  const updateSelectionContext = () => {
+    const editor = vscode.window.activeTextEditor;
+    void vscode.commands.executeCommand('setContext', 'ynx.hasSelection',
+      !!editor && editor.document.uri.scheme === 'file' && !editor.selection.isEmpty).catch(() => {});
+  };
+  context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateSelectionContext),
+    vscode.window.onDidChangeTextEditorSelection(updateSelectionContext));
+  updateSelectionContext();
+  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Review selection with AI', 'ynx.reviewSelection'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
     getChildren: item => item ? [] : entries,
     getTreeItem: ([label, command]) => ({ label, command: { command, title: label } })
@@ -14,7 +25,7 @@ function activate(context) {
     // Only an opaque session locator. No context or credentials in the URL.
     await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(id)}`));
   });
-  register('ynx.copyContext', async () => {
+  const copyContext = async () => {
     const editor = vscode.window.activeTextEditor; if (!editor || editor.selection.isEmpty) throw Error('Select the text you want to review first.');
     const sessionId = process.env.YNX_CORE_SESSION_ID, workspace = process.env.YNX_CORE_WORKSPACE;
     if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace) throw Error('Open this selection from an active YNX project runtime.');
@@ -36,6 +47,16 @@ function activate(context) {
       throw Error('The selected file or workspace path changed. Select and review again.');
     assertSelection();
     await vscode.env.clipboard.writeText(JSON.stringify(selected, null, 2));
+    assertSelection();
+    return selected;
+  };
+  register('ynx.copyContext', copyContext);
+  register('ynx.reviewSelection', async () => {
+    const selected = await copyContext();
+    if (!selected) return;
+    // The explicit copy approval precedes opening Tools. No selected text,
+    // document path or credentials enter the URL, and opening never sends AI.
+    await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(selected.sessionId)}#ai`));
   });
   register('ynx.copySolidityProject', async () => {
     const reviewed = await require('./solidity-project.cjs').captureSolidityProject(vscode, process.env);

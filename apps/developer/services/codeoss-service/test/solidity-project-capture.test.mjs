@@ -12,7 +12,7 @@ async function fixture(t){
  const uri=path=>({scheme:'file',fsPath:path,toString:()=>`file://${path}`});
  const documents=[];for(const name of ['PinCheck.sol','lib/Math.sol']){const path=join(root,name);await writeFile(path,'saved source differs');documents.push({uri:uri(path),version:3,isClosed:false,text:`unsaved ${name}`,getText(){return this.text;}});}
  const environment={YNX_CORE_SESSION_ID:'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',YNX_CORE_WORKSPACE:root};
- const vscode={window:{activeTextEditor:{document:documents[0]}},workspace:{workspaceFolders:[{uri:uri(root)}],textDocuments:documents,async findFiles(pattern,exclude,max){assert.equal(pattern,'**/*.sol');assert.match(exclude,/node_modules/);assert.equal(max,33);return documents.map(doc=>doc.uri);},async openTextDocument(uri){return documents.find(doc=>doc.uri.toString()===uri.toString());}}};
+ const vscode={window:{activeTextEditor:{document:documents[0],selection:{isEmpty:true}}},workspace:{workspaceFolders:[{uri:uri(root)}],textDocuments:documents,async findFiles(pattern,exclude,max){assert.equal(pattern,'**/*.sol');assert.match(exclude,/node_modules/);assert.equal(max,33);return documents.map(doc=>doc.uri);},async openTextDocument(uri){return documents.find(doc=>doc.uri.toString()===uri.toString());}}};
  return{root,documents,environment,vscode};
 }
 test('captures unsaved buffers under canonical project root and rechecks every version before copying',async t=>{
@@ -30,7 +30,8 @@ test('runtime changes, foreign roots, and source symlink escapes never produce a
 });
 test('actual registered project command copies only after unchanged-source review and opens a source-free locator',async t=>{
  const h=await fixture(t),commands=new Map(),calls=[],errors=[];
- h.vscode.commands={registerCommand:(name,action)=>{commands.set(name,action);return{};}};
+ h.vscode.window.onDidChangeActiveTextEditor=()=>({});h.vscode.window.onDidChangeTextEditorSelection=()=>({});
+ h.vscode.commands={executeCommand:async()=>{},registerCommand:(name,action)=>{commands.set(name,action);return{};}};
  h.vscode.Uri={parse:value=>value};h.vscode.env={clipboard:{writeText:async value=>calls.push({kind:'copy',value})},openExternal:async value=>calls.push({kind:'open',value})};
  h.vscode.workspace.registerTextDocumentContentProvider=()=>({});h.vscode.workspace.onDidCloseTextDocument=()=>({});
  h.vscode.window.registerTreeDataProvider=()=>({});h.vscode.window.showErrorMessage=message=>errors.push(message);

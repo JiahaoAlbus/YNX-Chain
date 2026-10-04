@@ -6,17 +6,17 @@ import {join} from 'node:path';import {tmpdir} from 'node:os';
 import { createRequire } from 'node:module';
 const localRequire = createRequire(import.meta.url), source = await readFile(new URL('../../../native/ynx-tools/src/extension.cjs', import.meta.url), 'utf8');
 const { digest } = localRequire('../../../native/ynx-tools/src/guards.cjs');
-function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
+function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, onClipboardWrite, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
   const commands = new Map(), errors = [], calls = [], id = '12345678-1234-1234-1234-123456789012';
   class FileSystemError extends Error { constructor() { super('absent'); this.code = 'FileNotFound'; } }
   let text = 'saved draft', version = 1; const runtimeEnv = { YNX_CORE_SESSION_ID: id, YNX_CORE_WORKSPACE: workspace };
-  const uri = { fsPath: filePath, toString: () => 'file://' + filePath }, doc = { uri, languageId: 'typescript', get version() { return version; }, getText: () => text, positionAt: offset => offset };
+  const uri = { scheme: 'file', fsPath: filePath, toString: () => 'file://' + filePath }, doc = { uri, languageId: 'typescript', get version() { return version; }, getText: () => text, positionAt: offset => offset };
   const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), ...(selectionEdit ? {replacements:[{find:'saved draft',replace:'suggested'}]} : {text:'suggested'}) }] });
   class WorkspaceEdit { constructor() { this.operations = []; } createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } replace(uri, range, text) { this.operations.push({ type: 'replace', uri, text }); } }
   const vscode = { FileSystemError, WorkspaceEdit, Position: class {}, Range: class {}, Uri: { parse: value => value, joinPath: (root, name) => ({fsPath:join(root.fsPath,name),toString:()=> 'file://'+join(root.fsPath,name)}) },
-    env: { clipboard: { writeText: async value => calls.push({ type: 'clipboard', value }), readText: async () => { calls.push({ type: 'clipboard-read' }); await onClipboardRead?.(runtimeEnv); return clipboardText ?? bundle; } }, openExternal: async url => calls.push({ type: 'open', url }) },
-    commands: { registerCommand: (name, fn) => { commands.set(name, fn); return {}; }, executeCommand: async (...args) => calls.push({ type: 'preview', args }) },
-    window: { activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle, showQuickPick: async items => items.find(item => item.source === reviewSource),
+    env: { clipboard: { writeText: async value => { calls.push({ type: 'clipboard', value }); await onClipboardWrite?.(runtimeEnv,doc); }, readText: async () => { calls.push({ type: 'clipboard-read' }); await onClipboardRead?.(runtimeEnv); return clipboardText ?? bundle; } }, openExternal: async url => calls.push({ type: 'open', url }) },
+    commands: { registerCommand: (name, fn) => { commands.set(name, fn); return {}; }, executeCommand: async (...args) => { if(args[0] !== 'setContext') calls.push({ type: 'preview', args }); } },
+    window: { onDidChangeActiveTextEditor: () => ({}), onDidChangeTextEditorSelection: () => ({}), activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle, showQuickPick: async items => items.find(item => item.source === reviewSource),
       showInformationMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; }, showWarningMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; } },
     workspace: { registerTextDocumentContentProvider: () => ({}), onDidCloseTextDocument: () => ({}), workspaceFolders: [{ uri: {fsPath:folderPath,toString:()=> 'file://'+folderPath} }], textDocuments: [doc], fs: { stat: async () => { if (!exists) throw new FileSystemError(); return {}; } }, openTextDocument: async () => ({ uri: 'untitled:preview' }), applyEdit: async edit => { calls.push({ type: 'edit', operations: edit.operations }); return true; } }
   };
@@ -173,4 +173,21 @@ test('runtime switch while reading a copied suggestion cannot open or apply it',
   const h = harness({ reviewSource: 'clipboard', onClipboardRead: env => { env.YNX_CORE_SESSION_ID = 'changed'; } });
   await h.commands.get('ynx.applyReviewedDiff')();
   assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']); assert.match(h.errors[0], /runtime changed/);
+});
+
+test('review selection opens Tools only after an approved unchanged capture, with no code or path in its URL', async () => {
+  const approved = harness({answer:'Copy selection'}); await approved.commands.get('ynx.reviewSelection')();
+  assert.deepEqual(approved.errors,[]); assert.deepEqual(approved.calls.map(call=>call.type),['clipboard','open']);
+  const capture=JSON.parse(approved.calls[0].value),url=new URL(approved.calls[1].url);
+  assert.equal(url.origin,'https://developer.ynxweb4.com'); assert.equal(url.pathname,'/native-tools');
+  assert.deepEqual([...url.searchParams.keys()],['sessionId']); assert.equal(url.searchParams.get('sessionId'),capture.sessionId); assert.equal(url.hash,'#ai');
+  assert.ok(!url.href.includes('saved')&&!url.href.includes('a.ts'));
+  const cancelled=harness(); await cancelled.commands.get('ynx.reviewSelection')(); assert.deepEqual(cancelled.calls,[]);
+  const changed=harness({answer:'Copy selection',onModal:change=>change()}); await changed.commands.get('ynx.reviewSelection')(); assert.deepEqual(changed.calls,[]); assert.match(changed.errors[0],/changed/);
+});
+test('review selection cannot open Tools after runtime or source changes during clipboard handoff', async () => {
+  for(const onClipboardWrite of [(env)=>{env.YNX_CORE_SESSION_ID='retired';},(_,doc)=>{doc.getText=()=> 'concurrent unsaved code';}]) {
+    const h=harness({answer:'Copy selection',onClipboardWrite}); await h.commands.get('ynx.reviewSelection')();
+    assert.deepEqual(h.calls.map(call=>call.type),['clipboard']); assert.match(h.errors[0],/changed/);
+  }
 });
