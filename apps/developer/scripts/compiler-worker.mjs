@@ -1,10 +1,13 @@
 import { parentPort, workerData } from "node:worker_threads";
 import { createHash } from "node:crypto";
-import solc from "solc";
+import { assertCompilerPin, COMPILER_VERSION } from './compiler-pin.mjs';
 
 const sha256 = (value) => `0x${createHash("sha256").update(value).digest("hex")}`;
 
 try {
+  const pin = assertCompilerPin();
+  const { default: solc } = await import('solc');
+  if (!solc.version().startsWith(`${COMPILER_VERSION}+commit.e11b9ed9.`)) throw Object.assign(new Error('Solidity compiler runtime version does not match the reviewed artifact.'), { status: 503, code: 'compiler_pin_mismatch' });
   const { name, source } = workerData;
   const sourceName = `${name || "Contract"}.sol`;
   const input = {
@@ -30,7 +33,7 @@ try {
     const artifactCore = { contractName, sourceName, abi: contract.abi || [], bytecode, deployedBytecode, metadata: contract.metadata || null };
     parentPort.postMessage({
       ok: true,
-      compiler: { name: "solc", version: "0.8.24", longVersion: solc.version(), optimizer: { enabled: true, runs: 200 }, execution: "worker-isolated-standard-json" },
+      compiler: { name: "solc", version: COMPILER_VERSION, longVersion: solc.version(), artifactSha256: pin.artifactSha256, optimizer: { enabled: true, runs: 200 }, execution: "worker-isolated-standard-json" },
       ...artifactCore,
       bytecodeHash: sha256(bytecode),
       deployedBytecodeHash: sha256(deployedBytecode),
@@ -40,5 +43,5 @@ try {
     });
   }
 } catch (error) {
-  parentPort.postMessage({ ok: false, status: 500, error: error instanceof Error ? error.message : String(error), diagnostics: [] });
+  parentPort.postMessage({ ok: false, status: error.status || 500, ...(error.code ? { code: error.code } : {}), ...(error.compiler ? { compiler: error.compiler } : {}), error: error instanceof Error ? error.message : String(error), diagnostics: [] });
 }

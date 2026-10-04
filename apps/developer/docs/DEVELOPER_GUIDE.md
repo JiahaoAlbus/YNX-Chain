@@ -12,8 +12,14 @@ YNX daemons. AI generation is a bounded POST-body SSE request. Browser headers
 are not forwarded wholesale; only the three explicit AI broker headers can
 cross the desktop proxy.
 
-The public service runs real `solc` 0.8.24 work in worker threads with four
-active workers and a queue of 64. The hosted open model uses a separate queue of
+The compiler service requires the reviewed `solc` 0.8.24 package and the exact
+`soljson.js` SHA-256 recorded in `THIRD_PARTY_NOTICES.md`. Both the readiness
+endpoint and worker verify that local input; a missing or mismatched compiler
+returns HTTP 503 without claiming a pinned version or generating an artifact.
+There is no download or fallback to another compiler. When admitted, compilation
+runs in worker threads with four active workers and a queue of 64. These source
+checks do not establish public deployment or YNX execution compatibility.
+The hosted open model uses a separate queue of
 two active requests and 32 waiting requests. Desktop test/check/package work has
 its own two-active/16-waiting queue and a per-user hashed workspace. Package
 installation uses the bundled npm CLI with `--ignore-scripts`, exact package

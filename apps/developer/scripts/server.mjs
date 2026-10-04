@@ -4,6 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Readable } from "node:stream";
 import { Worker } from "node:worker_threads";
+import { compilerReadiness, assertCompilerPin } from './compiler-pin.mjs';
 
 const root = fileURLToPath(new URL(process.env.NODE_ENV === "production" ? "../dist/" : "../", import.meta.url));
 const clientRoot = fileURLToPath(new URL("../../../packages/developer-client/src/", import.meta.url));
@@ -69,7 +70,8 @@ createServer(async (request, response) => {
     return;
   }
   if (request.method === "GET" && pathname === "/compiler/compiler") {
-    json(response, 200, { id: "solidity-0.8.24", compiler: "solc", version: "0.8.24", optimizerEnabled: true, optimizerRuns: 200, pinned: true, productionCompilerEnabled: true, execution: "worker-isolated-standard-json", maxSourceBytes: 524288, maxConcurrentCompilers: MAX_ACTIVE_COMPILERS, maxQueuedCompilers: MAX_QUEUED_COMPILERS, activeCompilers, queuedCompilers: compilerQueue.length });
+    const readiness = compilerReadiness();
+    json(response, readiness.available ? 200 : 503, { id: "solidity-0.8.24", compiler: "solc", ...(readiness.available ? { version: "0.8.24" } : {}), ...readiness, optimizerEnabled: true, optimizerRuns: 200, productionCompilerEnabled: readiness.available, execution: "worker-isolated-standard-json", maxSourceBytes: 524288, maxConcurrentCompilers: MAX_ACTIVE_COMPILERS, maxQueuedCompilers: MAX_QUEUED_COMPILERS, activeCompilers, queuedCompilers: compilerQueue.length });
     return;
   }
   if (request.method === "POST" && pathname === "/compiler/compile") {
@@ -78,9 +80,10 @@ createServer(async (request, response) => {
     catch (error) { json(response, error.status || 400, { ok: false, error: error.message || "Invalid compiler request." }); return; }
     if (typeof body.source !== "string" || body.source.length === 0 || Buffer.byteLength(body.source) > 512 * 1024 || !/pragma\s+solidity\s+(?:=\s*)?0\.8\.24\s*;/u.test(body.source)) { json(response, 400, { ok: false, error: "Compile requires source up to 512 KiB with exact pragma Solidity 0.8.24." }); return; }
     try {
+      assertCompilerPin();
       const result = await scheduleCompiler({ name: typeof body.name === "string" ? body.name.slice(0, 128) : "Contract", source: body.source });
       json(response, result.status || (result.ok ? 200 : 500), result);
-    } catch (error) { json(response, error.status || 500, { ok: false, error: error.message || "Compiler worker failed." }, error.status === 503 ? { "retry-after": "2" } : {}); }
+    } catch (error) { json(response, error.status || 500, { ok: false, ...(error.code ? { code: error.code } : {}), ...(error.compiler ? { compiler: error.compiler } : {}), error: error.message || "Compiler worker failed." }, error.status === 503 ? { "retry-after": "2" } : {}); }
     return;
   }
   if (pathname === "/ai-build/health" && request.method === "GET") {
