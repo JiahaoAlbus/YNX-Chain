@@ -1423,6 +1423,24 @@ function researchDraftInputs() {
   if (!name.trim() || name.length > 80 || values.fast < 2 || values.slow <= values.fast || values.fee < 0 || values.slippage < 0) throw Error(t("researchInputInvalid"));
   return {name,...values};
 }
+// Read-only preview for the native account workspace. This does not submit,
+// persist a research intent, or borrow the browser-preview tenant's authority.
+window.YNXQuantBacktestDraft = () => {
+  const draft = researchDraftInputs();
+  return {
+    strategy: {
+      id: "ma-" + crypto.randomUUID(), name: draft.name,
+      family: "transparent", source: "quant://user/ma", sourceCommit: "local",
+      license: "Apache-2.0", seed: draft.seed,
+      params: {fast: draft.fast, slow: draft.slow}, limitations: t("historyWarning"),
+    },
+    assumptions: {
+      feeBPS: draft.fee, slippageBPS: draft.slippage, latencyBars: 1,
+      participationBPS: 1000, seed: draft.seed,
+      trainEnd: RESEARCH_TRAIN_END, walkForwardWindows: 3,
+    },
+  };
+};
 $("#backtest").onsubmit = async (e) => {
   e.preventDefault();
   if (researchSubmitting) return;

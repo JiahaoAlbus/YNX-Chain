@@ -5,6 +5,7 @@ import {createHostedWalletAdapter} from '../../../packages/wallet-auth/src/vendo
 import {mountPrivateSession,beginPrivateSession,retryPrivateSession,revokePrivateSession,handlePrivateReturn,getPrivateSessionState,privateAccount,requireNativeExecutionProof} from './private-session.js';
 import {mountRecordsSession,beginRecordsSession,readPrivateRecords,revokeRecordsSession} from './records-session.js';
 import {mountPaperSession} from './paper-session.js';
+import {mountPaperActions} from './paper-actions.js';
 import {mountBrowserSSO} from './browser-sso.js';
 
 const INSTALL_URL='https://www.ynxweb4.com/dapp/download',METAMASK_URL='https://metamask.io/download/';
@@ -16,6 +17,7 @@ window.addEventListener('DOMContentLoaded',boot,{once:true});
 window.addEventListener('DOMContentLoaded',mountPrivateSession,{once:true});
 window.addEventListener('DOMContentLoaded',mountRecordsSession,{once:true});
 window.addEventListener('DOMContentLoaded',mountPaperSession,{once:true});
+window.addEventListener('DOMContentLoaded',mountPaperActions,{once:true});
 window.addEventListener('DOMContentLoaded',mountBrowserSSO,{once:true});
 window.addEventListener('DOMContentLoaded',()=>document.querySelector('#wallet-revoke')?.addEventListener('click',()=>revokeStandardWallet().catch(showError)),{once:true});
 window.addEventListener('pagehide',()=>{walletIntent++;walletRevision++;walletBusy=false;detachProvider();});
