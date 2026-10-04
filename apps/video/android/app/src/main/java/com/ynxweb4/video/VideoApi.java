@@ -40,6 +40,25 @@ final class VideoApi {
    String raw=new String(bytes,StandardCharsets.UTF_8).trim();if(raw.startsWith("["))return new JSONObject().put("array",new JSONArray(raw));return raw.isEmpty()?new JSONObject():new JSONObject(raw);
   }finally{connection.disconnect();}
  }
+ JSONArray ownedPlaylists()throws Exception{
+  JSONArray rows=json("/v1/playlists","GET",null).getJSONArray("array");java.util.Set<String> ids=new java.util.HashSet<>();
+  for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);String id=row.getString("ID");if(!identity.account.equals(row.getString("Owner"))||!id.matches("pl_[A-Za-z0-9_-]{1,157}")||!ids.add(id)||!(row.get("Name") instanceof String))throw new SecurityException("Original own playlists required");if(row.has("VideoIDs")&&!row.isNull("VideoIDs")){JSONArray videos=row.getJSONArray("VideoIDs");for(int j=0;j<videos.length();j++)if(!(videos.get(j) instanceof String)||!videos.getString(j).matches("vid_[A-Za-z0-9_-]{1,156}"))throw new SecurityException("Original playlist membership required");}}
+  requireCurrent();return rows;
+ }
+ private static JSONObject playlist(JSONArray rows,String id)throws Exception{for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(id.equals(row.getString("ID")))return row;}return null;}
+ private static boolean playlistDone(JSONArray rows,JSONObject original)throws Exception{JSONObject row=playlist(rows,original.getString("playlistID"));String action=original.getString("action");if("delete".equals(action))return row==null;if(row==null)return false;boolean member=false;JSONArray ids=row.optJSONArray("VideoIDs");if(ids!=null)for(int i=0;i<ids.length();i++)if(original.getString("videoID").equals(ids.getString(i)))member=true;return member=="add".equals(action);}
+ JSONObject changePlaylist(VideoViewerState viewer,String action,String playlistID,String videoID)throws Exception{
+  requireCurrent();viewer.requireOriginalApi(this);if(!java.util.Arrays.asList("add","remove","delete").contains(action)||!playlistID.matches("pl_[A-Za-z0-9_-]{1,157}")||("delete".equals(action)?videoID!=null:videoID==null||!videoID.matches("vid_[A-Za-z0-9_-]{1,156}")))throw new IllegalArgumentException("Original playlist change required");
+  JSONObject pending=viewer.playlistOperation();if(pending!=null&&(!action.equals(pending.getString("action"))||!playlistID.equals(pending.getString("playlistID"))||!(videoID==null?pending.isNull("videoID"):videoID.equals(pending.getString("videoID")))))throw new IllegalStateException("Retry original playlist change first");
+  JSONArray before=ownedPlaylists();JSONObject target=playlist(before,playlistID);if(pending==null&&target==null)throw new SecurityException("Original owned playlist unavailable");
+  JSONObject original=viewer.reservePlaylistOperation(action,playlistID,videoID,pending==null?target.getString("Name"):pending.getString("name"));requireCurrent();
+  if(!playlistDone(before,original)){
+   String path="/v1/playlists/"+playlistID+("delete".equals(action)?"":"/videos"+("remove".equals(action)?"/"+videoID:""));JSONObject result=json(path,"add".equals(action)?"POST":"DELETE","add".equals(action)?new JSONObject().put("video_id",videoID):null,original.getString("key"));
+   if(result.length()!=1||!Boolean.TRUE.equals(result.opt("ok")))throw new SecurityException("Original playlist change reply required");if(!playlistDone(ownedPlaylists(),original))throw new SecurityException("Original playlist change readback required");
+  }
+  requireCurrent();viewer.finishPlaylistOperation(original);requireCurrent();return original;
+ }
+ void retryPlaylist(VideoViewerState viewer)throws Exception{JSONObject original=viewer.playlistOperation();if(original!=null)changePlaylist(viewer,original.getString("action"),original.getString("playlistID"),original.isNull("videoID")?null:original.getString("videoID"));}
  byte[] range(String path,long offset,int count,long total)throws Exception{
   requireCurrent();if(offset<0||count<1||count>262144||total<=offset||total>2L*1024*1024*1024)throw new IllegalArgumentException("Bounded original media range required");
   int expected=(int)Math.min(count,total-offset);long end=offset+expected-1;HttpURLConnection connection=connections.open(path);
