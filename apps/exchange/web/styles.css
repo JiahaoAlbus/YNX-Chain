@@ -12,3 +12,30 @@ dialog{border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
 @media(max-width:700px){button,select,input,summary,.language-controls select,.candle-interval select,.ui-preferences summary,.text-button,.market-details summary,.order-notes summary{min-height:44px}}
 /* Keep the hidden skip link outside document screenshots and scroll layers. */
 .skip{position:absolute}.skip:focus{position:fixed}
+/* Compact account overview and a soft blue Wallet surface. Keep every action
+   and permission disclosure in the existing application flow. */
+.private-account{padding:16px 20px;margin-bottom:20px;border-color:transparent;box-shadow:0 4px 20px #002fa708}
+.private-account header{margin-bottom:6px}.private-account header h2{font-size:.9375rem}
+.private-account header span{font-size:.75rem}
+.private-account .state-box{padding:10px 12px;margin-bottom:10px;border:0;border-radius:8px;background:#f2f5fc;font-size:.8125rem;line-height:1.5}
+.private-account .private-actions button,.private-account .private-actions a{font-size:.8125rem;padding:8px 12px}
+.private-account .secondary{border-color:transparent;background:#eef3ff}
+.private-account .secondary:hover{background:#e1eaff}
+.account-management{margin-top:6px}.account-management summary{font-size:.8125rem;min-height:40px}
+#browser-identity{margin-top:8px;padding-top:10px;border-top-color:#edf1f8}
+#browser-identity button,#browser-identity a{font-size:.8125rem;border-color:transparent;background:#f3f6fc;padding:8px 12px}
+#browser-identity-status{font-size:.75rem;line-height:1.5;color:var(--muted)}
+#wallet-dialog{border:0;padding:28px;background:linear-gradient(160deg,#f5f8ff 0,#fff 38%);box-shadow:0 24px 80px #001f7033}
+#wallet-dialog h2{font-size:1.375rem;color:var(--ink)}
+#wallet-state{padding:12px 14px;border:0;border-radius:12px;background:#edf2fc;line-height:1.6}
+.wallet-provider{border-color:transparent;background:#fff;box-shadow:0 2px 12px #002fa70b}
+.wallet-provider:hover,.wallet-provider:focus-visible{background:#edf3ff;border-color:#c7d7ff;box-shadow:0 4px 16px #002fa712}
+.wallet-provider::before{background-color:#edf2ff}
+.wallet-recovery button{border:0;background:#edf2ff;color:var(--blue)}
+#wallet-details{border:0;background:#f4f7fd;padding:16px;border-radius:12px}
+#wallet-details p{line-height:1.6;font-size:.8125rem;color:var(--muted)}
+#wallet-details strong{color:var(--ink);font-weight:600}
+#wallet-account{display:block;margin-top:4px;color:var(--blue);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.8125rem}
+#wallet-details button{border-color:transparent;background:#fff;font-size:.8125rem;box-shadow:0 2px 8px #002fa708}
+#wallet-switch{color:var(--blue)}
+@media(max-width:700px){.private-account{padding:14px}.private-account header{gap:4px}.private-account header span{width:100%}.private-account .private-actions>*{flex:1 1 130px}.account-management summary{min-height:44px}#wallet-dialog{padding:22px 18px}#wallet-details{padding:12px}#wallet-details button{width:100%;margin:4px 0}}
