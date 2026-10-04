@@ -1,0 +1,1 @@
+{"command": "git apply --check owned-eight-file-source-intake.patch", "exitCode": 0, "stdout": "", "stderr": ""}

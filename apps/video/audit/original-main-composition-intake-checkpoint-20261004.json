@@ -1,0 +1,180 @@
+{
+  "schema": "ynx.media.original-main-composition-source-intake.v1",
+  "baselineOwnedCommit": "48c02f184a3268cc5f0ae7dda0b9f14d3ff45669",
+  "originalRepairDeliveryCommit": "2f3f94366f09203ccd840f6cddf98940c654b93d",
+  "sourceInputPath": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media48c-original-main-composition-source-20261004",
+  "sourceManifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+  "sourceContentRoot": "7d4a986203d7c5f507009270175d711606ede3026e91a7ce7a36bdcd57cd4fb8",
+  "manifestFileVerification": {
+    "files": 4484,
+    "mismatches": 0
+  },
+  "ownedSourceReconciliation": {
+    "originalFiles": 2644,
+    "missing": 0,
+    "changed": [
+      "apps/music/cmd/ynx-musicd/main.go",
+      "internal/video/cmd/main.go"
+    ],
+    "new": [
+      "apps/music/cmd/ynx-musicd/protected_runtime.go",
+      "apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+      "internal/video/business_platform_sdk_test.go",
+      "internal/video/business_platform_sdk.go",
+      "internal/video/cmd/protected_runtime.go",
+      "internal/video/cmd/protected_runtime_disabled.go"
+    ]
+  },
+  "sourcePins": [
+    {
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "kind": "modified",
+      "bytes": 3857,
+      "sha256": "41e71efb393fd3f6441dd4bb73e2488c9f354a6f14d0b1c27c67836b8827b272",
+      "baselineSHA256": "87012d6d82d83c988e3c895279774bfa3d47716c6ff8571dfa92fc8838427035"
+    },
+    {
+      "path": "internal/video/cmd/main.go",
+      "kind": "modified",
+      "bytes": 3812,
+      "sha256": "5adb75d50eb10f34d7c2c165b79b09fdc3e047921e7826820ec1b43d60c7d8f8",
+      "baselineSHA256": "bc20371f61a77b8da9086c46398984e133734c7879029681b6e990cccc55c843"
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/protected_runtime.go",
+      "kind": "new",
+      "bytes": 758,
+      "sha256": "23d46086a836707efa3b748dba1a44cca729e32018842b8c66860b29b7f080c2",
+      "baselineSHA256": null
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+      "kind": "new",
+      "bytes": 322,
+      "sha256": "cf02aee36414e6f8768b8c2f69e58b108f917036e803688ddef3583902abcd8d",
+      "baselineSHA256": null
+    },
+    {
+      "path": "internal/video/business_platform_sdk_test.go",
+      "kind": "new",
+      "bytes": 2356,
+      "sha256": "b3d655f0a08d99372b0667ace5fd2d967d8e59e6905908eda45e452f3b2b99f0",
+      "baselineSHA256": null
+    },
+    {
+      "path": "internal/video/business_platform_sdk.go",
+      "kind": "new",
+      "bytes": 1466,
+      "sha256": "dc01eb881dbe87665ced12c26fb26920c6e4c0e88b4d39ed7bb8de2d4a28795d",
+      "baselineSHA256": null
+    },
+    {
+      "path": "internal/video/cmd/protected_runtime.go",
+      "kind": "new",
+      "bytes": 758,
+      "sha256": "75aee2748872225be6c7eba81e5f0d63c24499a4462f81e8621600d3379c8194",
+      "baselineSHA256": null
+    },
+    {
+      "path": "internal/video/cmd/protected_runtime_disabled.go",
+      "kind": "new",
+      "bytes": 322,
+      "sha256": "84ea92622aa0e216bb2c12727f4aa67f268c9e3d92eef7ae19f038c1f875a8b7",
+      "baselineSHA256": null
+    }
+  ],
+  "patchApplyCheck": "PASS: no mutation; current exact baseline",
+  "liveOwnedProductSourceChanged": false,
+  "sharedSourceCopiedIntoProduct": false,
+  "SourceAdmission": "PENDING",
+  "HostExecutionApproved": false,
+  "actualLauncherInputs": "nil; no registered producer/currentActor/OS or sealed BrowserSSO supplied",
+  "independentSourceReview": "in progress; no final report observed",
+  "runtimeExecution": "NOT_RUN",
+  "actualWalletOrBusiness": "NOT_VERIFIED",
+  "formalSourceCallsiteStatus": "prepared source candidate supplies original authority before state/service and rechecks before listener; not activated",
+  "MusicTrustFinalResult": "still unavailable; unchanged original contract",
+  "nextAction": "reconcile complete independent shared/source gate and original real production inputs before activating eight-file source intake and formal journeys",
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/CONSUMER_CONTRACT.md",
+      "bytes": 2463,
+      "sha256": "5cba42600e07936ffcf942f4b976ae6a5eeb3d5263ba65b313c92ffa6b4fd728"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/HANDOFF.md",
+      "bytes": 3125,
+      "sha256": "581413bd2a81eb7cb682c7524686469782d33fdc7b61376c4be3c60f3afb50dc"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/MANIFEST.json",
+      "bytes": 933117,
+      "sha256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/SOURCE_DELTA.patch",
+      "bytes": 20240,
+      "sha256": "d511aa07e9f40797a555e1d46f0ae98bfab8268c56ba001a85cad199ab3c923c"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/apply-check.txt",
+      "bytes": 113,
+      "sha256": "e9890cbca7fdcb44280179e5e92ff08aea2e6fda19f792d73eb8cf706c7a7b63"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/owned-eight-file-source-intake.patch",
+      "bytes": 12079,
+      "sha256": "a36e785dc51b770c8daf7fa47343b85ace7e558542339995c58d6f2b979c125f"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/shared-dependency/internal/mediacomposition/original_runtime.go",
+      "bytes": 6227,
+      "sha256": "f31a9f764418ce1a5de170bfbbff99ae58cd4f560666fb927099f897fba89b05"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/shared-dependency/internal/mediacomposition/original_runtime_test.go",
+      "bytes": 1915,
+      "sha256": "c0522d65fb36c6052113c49fb9c300ea21be3d445d0883d8048adbc7a1c9cea2"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3857,
+      "sha256": "41e71efb393fd3f6441dd4bb73e2488c9f354a6f14d0b1c27c67836b8827b272"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/apps/music/cmd/ynx-musicd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "23d46086a836707efa3b748dba1a44cca729e32018842b8c66860b29b7f080c2"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "cf02aee36414e6f8768b8c2f69e58b108f917036e803688ddef3583902abcd8d"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/internal/video/business_platform_sdk.go",
+      "bytes": 1466,
+      "sha256": "dc01eb881dbe87665ced12c26fb26920c6e4c0e88b4d39ed7bb8de2d4a28795d"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/internal/video/business_platform_sdk_test.go",
+      "bytes": 2356,
+      "sha256": "b3d655f0a08d99372b0667ace5fd2d967d8e59e6905908eda45e452f3b2b99f0"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/internal/video/cmd/main.go",
+      "bytes": 3812,
+      "sha256": "5adb75d50eb10f34d7c2c165b79b09fdc3e047921e7826820ec1b43d60c7d8f8"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/internal/video/cmd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "75aee2748872225be6c7eba81e5f0d63c24499a4462f81e8621600d3379c8194"
+    },
+    {
+      "path": "apps/video/audit/evidence/original-main-composition-intake-20261004/source/internal/video/cmd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "84ea92622aa0e216bb2c12727f4aa67f268c9e3d92eef7ae19f038c1f875a8b7"
+    }
+  ]
+}
