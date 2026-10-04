@@ -214,7 +214,7 @@ func createScale(t *testing.T, s *Service, a testAccount, side string, start, en
 }
 func confirmDeposit(t *testing.T, s *Service, chain *fakeChain, a testAccount, hash string, amount int64) {
 	t.Helper()
-	chain.set(hash, ChainTransfer{Hash: hash, From: bob, To: bob, AmountMicro: amount, Confirmations: 3, Committed: true})
+	chain.set(hash, ChainTransfer{Hash: hash, From: a.account, To: bob, AmountMicro: amount, Confirmations: 3, Committed: true})
 	intent, err := s.CreateDepositIntent(a.session, "intent-"+hash)
 	if err != nil {
 		t.Fatal(err)
@@ -1190,7 +1190,7 @@ func TestDepositConfirmationRestartReplayAndTamper(t *testing.T) {
 	s, chain, path := newTestService(t)
 	a := accountSession(t, s, alice, "deposit", "exchange:read", "exchange:trade")
 	hash := "cccccccccccccccc"
-	chain.set(hash, ChainTransfer{Hash: hash, From: bob, To: bob, AmountMicro: 5 * AmountScale, Confirmations: 1, Committed: true})
+	chain.set(hash, ChainTransfer{Hash: hash, From: a.account, To: bob, AmountMicro: 5 * AmountScale, Confirmations: 1, Committed: true})
 	intent, err := s.CreateDepositIntent(a.session, "intent-observe-01")
 	if err != nil {
 		t.Fatal(err)
@@ -1203,7 +1203,7 @@ func TestDepositConfirmationRestartReplayAndTamper(t *testing.T) {
 	if err != nil || replay.ID != d.ID {
 		t.Fatalf("replay=%+v err=%v", replay, err)
 	}
-	chain.set(hash, ChainTransfer{Hash: hash, From: bob, To: bob, AmountMicro: 5 * AmountScale, Confirmations: 3, Committed: true})
+	chain.set(hash, ChainTransfer{Hash: hash, From: a.account, To: bob, AmountMicro: 5 * AmountScale, Confirmations: 3, Committed: true})
 	d, err = s.RefreshDeposit(a.session, d.ID)
 	if err != nil || d.Status != "confirmed" {
 		t.Fatalf("refresh=%+v err=%v", d, err)
@@ -1366,7 +1366,7 @@ func TestDepositIntentLedgerAuditChainAndRiskControls(t *testing.T) {
 		t.Fatalf("intent=%+v err=%v", intent, err)
 	}
 	hash := "eeeeeeeeeeeeeeee"
-	chain.set(hash, ChainTransfer{Hash: hash, From: bob, To: bob, AmountMicro: 3 * AmountScale, Confirmations: 3, Committed: true})
+	chain.set(hash, ChainTransfer{Hash: hash, From: a.account, To: bob, AmountMicro: 3 * AmountScale, Confirmations: 3, Committed: true})
 	deposit, err := s.ObserveDeposit(a.session, intent.ID, hash, "trace-deposit-01")
 	if err != nil || deposit.SourceType != "ynx_indexer_transfer" || deposit.SourceDigest == "" {
 		t.Fatalf("deposit=%+v err=%v", deposit, err)

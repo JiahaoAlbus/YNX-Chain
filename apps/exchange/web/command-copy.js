@@ -14,4 +14,18 @@ const rows={
  id:['Tinjau permintaan','Periksa izin · tanpa kirim','ID niat deposit yang ada','Belum dikirim. Diperlukan rute perintah yang disetujui terpisah. Pembatalan dan penarikan juga memerlukan tanda tangan native tepat. Deposit perlu konfirmasi terindeks; tinjauan penarikan bukan siaran; persetujuan AI bukan pembuatan atau eksekusi.','Kolom tidak valid. Periksa jumlah, batas byte, pemilik catatan dan biaya.']
 };
 export const commandLocales=Object.freeze(Object.keys(rows));
-export function commandText(locale,key){return (rows[locale]??rows.en)[keys.indexOf(key)]??key;}
+const senderPolicy={
+ en:'Only transfers sent by your approved native account can be attributed to you. Third-party transfers have no verified beneficiary binding and cannot be claimed here.',
+ 'zh-Hans':'只有经批准的原生账户发送的转入才能归属于你。第三方转入没有已验证的受益人绑定，不能在此认领。',
+ 'zh-Hant':'只有經批准的原生帳戶發送的轉入才能歸屬於你。第三方轉入沒有已驗證的受益人綁定，不能在此認領。',
+ ja:'承認済みネイティブ口座からの送金のみ本人に帰属します。第三者送金には検証済み受益者の紐付けがなく、ここでは申請できません。',
+ ko:'승인된 네이티브 계정이 보낸 전송만 본인에게 귀속됩니다. 제삼자 전송에는 검증된 수익자 연결이 없어 여기서 청구할 수 없습니다.',
+ es:'Solo se atribuyen transferencias enviadas por tu cuenta nativa aprobada. Las de terceros no tienen beneficiario verificado y no pueden reclamarse aquí.',
+ fr:'Seuls les transferts de votre compte natif approuvé vous sont attribués. Ceux de tiers n’ont pas de bénéficiaire vérifié et ne peuvent être réclamés ici.',
+ de:'Nur Übertragungen vom genehmigten nativen Konto werden Ihnen zugeordnet. Drittübertragungen haben keine verifizierte Empfängerbindung und können hier nicht beansprucht werden.',
+ pt:'Só transferências da sua conta nativa aprovada podem ser atribuídas a você. Transferências de terceiros não têm beneficiário verificado e não podem ser reivindicadas aqui.',
+ ru:'Вам зачисляются только переводы с вашего одобренного нативного счёта. Для переводов третьих лиц нет проверенной привязки получателя; здесь их заявить нельзя.',
+ ar:'تُنسب إليك فقط التحويلات المرسلة من حسابك الأصلي المعتمد. تحويلات الغير لا تملك ارتباط مستفيد موثقاً ولا يمكن المطالبة بها هنا.',
+ id:'Hanya transfer dari akun native Anda yang disetujui dapat diatribusikan kepada Anda. Transfer pihak ketiga tidak memiliki penerima terverifikasi dan tidak dapat diklaim di sini.'
+};
+export function commandText(locale,key){return key==='depositSender'?(senderPolicy[locale]??senderPolicy.en):(rows[locale]??rows.en)[keys.indexOf(key)]??key;}

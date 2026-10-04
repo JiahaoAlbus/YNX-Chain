@@ -509,6 +509,13 @@ func (s *Service) ObserveDeposit(session WalletSession, intentID, txHash, key st
 	if !transfer.Committed || transfer.To != s.state.CustodyAddress || transfer.AmountMicro <= 0 {
 		return Deposit{}, ErrInvalid
 	}
+	// Every account observes the same custody address and public transaction
+	// hashes. An off-chain intent alone cannot assign somebody else's transfer.
+	// Until a separately verified on-chain beneficiary binding exists, only
+	// the proven native sender may claim it; this is not a new Auth grant.
+	if session.Account == "" || transfer.From != session.Account {
+		return Deposit{}, ErrForbidden
+	}
 	d := digest(struct{ Account, Tx string }{session.Account, txHash})
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -574,6 +581,9 @@ func (s *Service) RefreshDeposit(session WalletSession, id string) (Deposit, err
 	t, err := s.cfg.Chain.Transfer(dep.TxHash)
 	if err != nil {
 		return Deposit{}, ErrUnavailable
+	}
+	if session.Account == "" || t.From != session.Account {
+		return Deposit{}, ErrForbidden
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

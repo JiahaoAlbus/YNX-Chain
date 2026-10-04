@@ -3,7 +3,7 @@ import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
 import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
 import {buildCommandReview} from './command-review.js?v=f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e';
-import {commandText} from './command-copy.js?v=c9f190b2f0cc2040707fe43288ff9246625afb3e7617e574afe43672123b2b86';
+import {commandText} from './command-copy.js?v=a008ce04065ae1ea734c597b744b855490c8ca1caddee92a540f56284ea4d095';
 import {createVenueConfigReader} from './venue-config.js?v=1e10bb20aa713dffe505321a5fc03c9109f651c965c3ae5a0edfff6504d90b61';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
@@ -157,6 +157,7 @@ function estimate(){
 }
 function bindVenueConfig(){
   const status=document.createElement('p');status.id='venue-config-state';status.className='source-note';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const sender=document.createElement('p');sender.id='deposit-sender-policy';sender.className='source-note';sender.textContent=commandText(document.documentElement.lang,'depositSender');$('#deposit-form').after(sender);
   const retry=document.createElement('button');retry.id='venue-config-retry';retry.type='button';retry.className='secondary';retry.textContent='Refresh';window.YNXExchangeLocale?.write(retry,'Refresh');retry.addEventListener('click',()=>venueConfig.refresh());$('#deposit-form').after(status,retry);
 }
 function withdrawEstimate(){const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;$('#withdraw-receive').textContent='—';if(!Number.isSafeInteger(fee)||fee<0)return;try{const amount=parseMicro($('#withdraw-amount').value);if(amount>BigInt(fee))$('#withdraw-receive').textContent=`${display(amount-BigInt(fee))} YNXT`}catch{}}
@@ -405,7 +406,7 @@ function checkCommandRequirements(){
   const status=$('#command-review-state');window.YNXExchangeLocale?.forget(status);
   const error=productApiUnavailable();status.textContent=error.message;window.YNXExchangeLocale?.error(status,error);
 }
-function renderCommandCopy(){for(const [id,key] of [['command-review-title','title'],['command-review-check','check'],['deposit-intent-label','intent'],['command-review-risk','risk']]){const element=$('#'+id);if(element)element.textContent=commandText(document.documentElement.lang,key)}}
+function renderCommandCopy(){for(const [id,key] of [['command-review-title','title'],['command-review-check','check'],['deposit-intent-label','intent'],['command-review-risk','risk'],['deposit-sender-policy','depositSender']]){const element=$('#'+id);if(element)element.textContent=commandText(document.documentElement.lang,key)}}
 function reviewCommand(kind,input){
   try{
     const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;
