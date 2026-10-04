@@ -80,10 +80,12 @@ async function nativeUi(t, options={}) {
     edit(value){buffer=value;version++;},async choose(value){action=value;await ui.open(false);},get sourceText(){return h.text;}};
 }
 test('native menu status and multiline untitled editor drive diff and one unsaved source transaction',async t=>{
-  const h=await nativeUi(t);await h.ui.open(false);assert.match(h.notices[0],/not connected/);assert.equal(h.replacementEditors.length,0);
+  const h=await nativeUi(t);h.vscode.window.activeTextEditor.viewColumn=3;await h.ui.open(false);assert.match(h.notices[0],/not connected/);assert.equal(h.replacementEditors.length,0);
   await h.ui.open(true);assert.equal(h.document.getText(),'same');assert.equal(h.replacementEditors[0].options.preview,false);assert.equal(h.document.uri.scheme,'untitled');
   h.edit('manual\nmultiline');await h.choose('preview');assert.equal(h.previews.length,1);assert.equal(h.transactions.length,0);
   await h.choose('apply');assert.equal(h.sourceText,'same manual\nmultiline');assert.equal(h.transactions.length,1);assert.equal(await readFile(h.file,'utf8'),h.disk);assert.match(h.notices.at(-1),/Save separately/);
+  assert.equal(h.vscode.window.activeTextEditor.document,h.vscode.workspace.textDocuments[0]);
+  assert.deepEqual(h.replacementEditors.at(-1).options,{viewColumn:3,preview:false,preserveFocus:false});
   h.undo();assert.equal(h.sourceText,h.disk);assert.equal(h.errors.length,0);
 });
 test('changed, closed or saved replacement documents cannot reuse a preview approval',async t=>{
@@ -110,4 +112,11 @@ test('native edit accepts exactly 32 KiB and refuses one more byte before diff',
 test('native UI disposal retires in-flight menu results and never creates a webview',async t=>{
   const h=await nativeUi(t);let resolve;h.vscode.window.createWebviewPanel=()=>{throw Error('webview forbidden');};
   h.vscode.window.showQuickPick=()=>new Promise(done=>resolve=done);const pending=h.ui.open(false);h.ui.dispose();resolve({action:'capture'});await pending;assert.equal(h.replacementEditors.length,0);assert.equal(h.transactions.length,0);assert.equal(h.errors.length,0);
+});
+
+test('cancelled native approval leaves replacement focused and does not claim an applied change',async t=>{
+  const h=await nativeUi(t,{cancel:true});await h.ui.open(true);h.edit('cancelled replacement');await h.choose('preview');
+  const shown=h.replacementEditors.length;await h.choose('apply');
+  assert.equal(h.transactions.length,0);assert.equal(h.sourceText,h.disk);assert.equal(h.replacementEditors.length,shown);
+  assert.equal(h.vscode.window.activeTextEditor.document,h.document);assert.equal(h.notices.length,0);assert.equal(h.errors.length,0);
 });

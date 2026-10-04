@@ -12,7 +12,7 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
     return answer;
   };
   const review = createLocalReview(Object.assign(Object.create(vscode), { window: guardedWindow }), environment, previewChange);
-  let replacementDocument, stagedDocument, stagedVersion, busy = false, disposed = false;
+  let replacementDocument, stagedDocument, stagedVersion, sourceColumn, busy = false, disposed = false;
   const currentReplacement = () => {
     if (!replacementDocument || replacementDocument.isClosed || replacementDocument.uri.scheme !== 'untitled')
       throw Error(t('Open the unsaved replacement document again before reviewing.'));
@@ -29,8 +29,10 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
     await vscode.window.showTextDocument(replacementDocument, { viewColumn: vscode.ViewColumn.Beside, preview: false });
   }
   async function capture() {
-    replacementDocument = undefined; stagedDocument = undefined; stagedVersion = undefined;
+    replacementDocument = undefined; stagedDocument = undefined; stagedVersion = undefined; sourceColumn = undefined;
+    const column = vscode.window.activeTextEditor?.viewColumn;
     await review.captureSelection();
+    sourceColumn = column;
     if (!disposed) await editReplacement();
   }
   async function preview() {
@@ -47,9 +49,17 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
     const state = review.state(), text = currentReplacement();
     if (replacementDocument !== stagedDocument || replacementDocument.version !== stagedVersion || !state.proposal?.previewed || state.proposal.replacement !== text)
       throw Error(t('The replacement document changed. Open its diff again.'));
+    const sourceDocument = vscode.workspace.textDocuments.find(document => document.uri.toString() === state.source?.uri);
     await review.apply(state.revision);
     if (!disposed && !review.state().source) {
       stagedDocument = undefined; stagedVersion = undefined;
+      // Return Save/Undo to the edited source, never the scratch or diff editor.
+      if (sourceDocument && !sourceDocument.isClosed) {
+        await vscode.window.showTextDocument(sourceDocument, {
+          ...(sourceColumn === undefined ? {} : { viewColumn: sourceColumn }), preview: false, preserveFocus: false,
+        });
+      }
+      if (disposed) return;
       void vscode.window.showInformationMessage(t('Local change applied to the editor buffer. Save separately; Undo remains available.'));
     }
   }

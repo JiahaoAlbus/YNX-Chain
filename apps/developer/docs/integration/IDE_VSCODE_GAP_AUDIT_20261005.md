@@ -8,7 +8,7 @@
 
 用户随后提供同一隔离项目的扩展面板截图：搜索 chinese 与 chatgpt 均显示 `Error fetching extensions. fetch failed`。这是请求失败，而不是成功搜索后没有匹配项。当前 `desktop/local-workbench.mjs:74` 为整个本地工作台进程树设置 `(deny network*)`，只允许指定 loopback 监听/入站；扩展 registry 请求在后端执行，默认地址为 `https://open-vsx.org`。该隔离策略与在线市场功能冲突。原先被拒绝的网络/包出站范围尚未重新接通，因此此报告不声称在线市场已经修复，也不通过代理绕过原限制。
 
-本次隔离项目实际打开封存候选的完整工作台组件，点击 Terminal → New Terminal，输入 node --version，返回 v26.7.0。候选源码 4298b6eba，Workbench 0.3.15；这次组件检查不等于用户安装的 Cocoa 窗口验收。后续源码 0.3.17 仍有未构建的变更。
+本次隔离项目实际打开封存候选的完整工作台组件，点击 Terminal → New Terminal，输入 node --version，返回 v26.7.0。候选源码 4298b6eba，Workbench 0.3.15；这次组件检查不等于用户安装的 Cocoa 窗口验收。该段为初始基线；新版构建与组件实测见文末。
 
 以下历史记录均重新读取并核对来源，属于已有功能验证记录，不作为本次界面体验截图。
 
@@ -53,7 +53,7 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 1. **终端（组件内正常）**：Terminal → New Terminal → `node --version` 返回 `v26.7.0`。截图：[终端](/private/tmp/ynx-terminal-gap-audit-20261005.jpg)。未把组件检查换算成新原生软件验收。
 2. **文件创建保存（绑定目录内正常）**：File → New File → 输入 `ynx-file-create-proof.txt` → Create File → 输入文本 → Cmd+S。真实磁盘回读为 `YNX create-save disk proof`，26 bytes。截图：[创建与保存](/private/tmp/ynx-file-create-save-proof-20261005.jpg)。
 3. **切换项目（旧版本体验不合格）**：用户把 fragment 改为 `/Users/huangjiahao` 后无法创建，返回受信 launcher 已绑定的临时项目后正常。新增本地上下文 RPC、错误项目提示、返回已打开项目按钮及原生 Open Folder OS 选择器接线；原生选择后启动新的实际工作区实例，不以更改 fragment 获得文件权限。
-4. **运行入口（源码已接线、GUI 待验证）**：编辑器 Run/Debug 下拉连接实际调试及任务命令；左侧与底部缺失入口由真实视图贡献创建并激活，已有可见标签不重复。原生 51 个命令菜单与真实 CommandRegistry 连接。
+4. **运行入口（新版组件 GUI 已验证，Cocoa 待验证）**：编辑器 Run/Debug 下拉连接实际调试及任务命令；左侧与底部缺失入口由真实视图贡献创建并激活，已有可见标签不重复。原生 51 个命令菜单与真实 CommandRegistry 连接。
 5. **主题（源码已加入、GUI 待验证）**：14 个主题，包括克莱因蓝明暗、粉色明暗、红色明暗、Graphite、Snow、Arctic、Solarized 明暗、Midnight、Violet、Forest。编辑器、终端、主按钮、状态栏文字与背景的对比度均至少 4.5:1；视觉美观仍需真实界面逐项检查。
 6. **语言包（组件内安装识别、切换及重载已验证）**：保留本机官方 MIT 简体中文包原始身份及资源，正常 host language-pack 注册机制；新增 YNX 自有工作区、运行入口及 Tools 文案翻译，原生菜单跟随 en/zh-cn。没有把自有少量词条声称完整语言包。
 7. **Chain（组件内模板创建、保存与编译已验证）**：Tools 0.2.22 的项目/网络/Wallet 与 AI 分组、实际 Counter.sol 模板和编译入口；网络是已配置的测试网信息，明确未实时检查。Wallet、在线 AI、签名部署尚未接通，不显示虚假账号、余额或结果。
@@ -65,7 +65,15 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 - 7f87da6e2 完整组件已通过正常语言选择器切换中文并重载；核心菜单、命令面板、YNX 树条目显示中文。已用正常颜色主题选择器切换 YNX Klein Light。全 14 个主题已注册，逐个视觉验收仍未完成。
 - 同一组件正常创建 Counter.sol、Cmd+S 后回读磁盘 332 bytes；通过 YNX 编译命令生成真实 solc 0.8.24 的 ok=true、ABI/bytecode 输出。测试工程原有的预设语法错误先产生真实诊断，再经编辑器修正并保存后通过编译。
 - 3ff34fb17 组件实际打开本地修改审阅 QuickPick，明确显示身份/AI 未连接，不再生成被阻止的 webview。capture/edit/diff/apply 的源代码回归通过，完整原生输入链路仍待验。
-- 实际运行发现工具栏的 inline overflow:hidden 裁切运行菜单；已增加仅展开 YNX 菜单时的 scoped 覆盖。另发现无绑定项复用旧 aria/hover 提示；已用 owned adapter 清理，不改实际快捷键映射。
+- 编辑器运行入口改用工作台原生 ContextMenuRenderer/MenuModelRegistry，移除被裁切的 inline popup 和 overflow 覆盖；四项动作正常显示，点击 Run Task 进入真实任务选择器。命令面板过滤 YNX 后，无绑定项的旧 aria/hover 提示已清理，Review Selected Text 的真实 CmdK CmdY 仍保留。
 - 首个终端绕过 profile 的默认 login args 产生初始化文件拒绝提示；修复只改变 local 模式 Default scope 参数，显式用户设置仍优先，未改变 sandbox。
 - 带原 Logo 的 ICNS、安装器封面和 DMG mounted-assets 检查通过；当前为 ad-hoc Testnet Preview，Developer ID、公证、正式安装发布尚未完成。电脑锁屏使 Cocoa 菜单/文件夹选择与 Finder GUI 检查暂停。
 - 在线扩展搜索/下载、通用隔离 webview、Wallet 身份、真实模型与签名部署仍未完成。未绕过被停止的网络/package-egress 范围。
+
+## 最新精确候选与审阅修复
+
+- 864d8cfd45aa54e79ba4a2a870d1ea2213c32d94 的完整 macOS 候选已封存。DMG SHA256：068a36516fb1adf272ee06197f0e4222464376f466334fea2359b71f89d59b40；Core tree：855d92c1d57a6bc789001d4bc144d4e9669ca6704ad29d038d2c34753371fe49。所有代码、composed-core、Node 与 lock-helper 均直接取自该包，隔离项目启动、新建文本页、四项运行原生菜单、真实终端 node --version=v26.7.0 已通过组件 GUI。截图：[最终包内工作台](/private/tmp/ynx-exact-package-terminal-864d8cfd4-20261005.png)。该证据不替代锁屏中的 Cocoa/Finder 操作验收。
+- 当前源码补充：本地改动审阅应用成功后回到原文件与原编辑器列，使后续 Save/Undo 针对真实源缓冲区；取消批准保持替换文档和源文件不变。回归使用真实临时磁盘文件与 VSCode API 边界 harness，不等于完整 GUI 输入链路验收。后续源码不混报为上述 864d8cfd4 候选内容。
+- 原用户 63649 实例保留。线上扩展、统一 Wallet 身份、模型、签名部署、跨平台正式发布依然未完成；原被拒网络/包出站与共享所有权范围保持停止。
+
+- 默认主题修复：FrontendConfigPreferenceContribution 先注册 defaultTheme、再注册 preferences；当前框架重复 override 的查找会取先注册项。改为唯一 defaultTheme=YNX Klein，移除重复的 workbench.colorTheme 默认项；用户显式主题偏好仍由原生 PreferenceService 优先处理。新 profile 视觉验证待完成，不能把默认值源码当作已展示证据。
