@@ -36,13 +36,22 @@ function nativeEntryVisible(shell, widget) {
   return rect.width > 0 && rect.height > 0 && rect.left >= bounds.left && rect.right <= bounds.right
     && rect.top >= bounds.top && rect.bottom <= bounds.bottom;
 }
+function nativeLeftBarVisible(shell) {
+  const bar = shell.leftPanelHandler && shell.leftPanelHandler.tabBar;
+  if (!bar || !bar.isVisible || !bar.node) return false;
+  const rect = bar.node.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
 class WorkbenchControlsContribution {
   // views: {key: native AbstractViewContribution}; terminal is found by widget
   // predicate since each PTY has its own widget. Supply EditorManager so toolbar
   // visibility uses actual EditorWidgets, not URI guesses.
   constructor({ commands, shell, editors, views, messages, translate = (key, text) => text }) {
     Object.assign(this, { commands, shell, editors, views: views || {}, messages });
-    this.translate = translate;
+    this.translate = (key, text) => {
+      const translated = translate(key, text);
+      return typeof translated === 'string' && translated.trim() ? translated : text;
+    };
     this.disposables = []; this.nodes = []; this.widgets = []; this.stopped = false;
     const { Emitter } = require('@theia/core/lib/common/event');
     this.changed = new Emitter();
@@ -61,7 +70,13 @@ class WorkbenchControlsContribution {
     const native = this.views[view.key];
     return native && native.tryGetWidget();
   }
-  missingViews(area) { return VIEWS.filter(v => v.area === area && !nativeEntryVisible(this.shell, this.viewWidget(v))); }
+  missingViews(area) {
+    // Native activity bars contain view containers, whereas tryGetWidget may
+    // return a child view. Do not create another rail beside a visible native
+    // activity bar merely because those identities differ.
+    if (area === 'left' && nativeLeftBarVisible(this.shell)) return [];
+    return VIEWS.filter(v => v.area === area && !nativeEntryVisible(this.shell, this.viewWidget(v)));
+  }
   async openView(key) {
     const view = VIEWS.find(v => v.key === key);
     if (!view) throw new Error('Unknown workbench view');
@@ -83,8 +98,9 @@ class WorkbenchControlsContribution {
     this.disposables.push(toolbar.registerItem({
       id: 'ynx.workbench.run-menu', group: 'navigation', priority: 90, onDidChange: this.changed.event,
       isVisible: widget => this.editors.all.includes(widget),
-      render: () => React.createElement('details', { className: 'ynx-run-controls', onKeyDown: event => {
-        if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); }
+      render: () => React.createElement('details', { className: 'ynx-run-controls', open: !!this.runMenuOpen,
+        onToggle: event => { this.runMenuOpen = event.currentTarget.open; }, onKeyDown: event => {
+        if (event.key === 'Escape') { this.runMenuOpen = false; event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus(); }
       } },
         React.createElement('summary', { title: this.translate('runToolbar', 'Run and Debug'), 'aria-label': this.translate('runActionsAria', 'Run and Debug actions') },
           React.createElement('span', { className: 'codicon codicon-play', 'aria-hidden': true }),
@@ -93,7 +109,9 @@ class WorkbenchControlsContribution {
           const state = this.state(action.id);
           const label = this.translate(['runAndDebug', 'runWithoutDebugging', 'runBuildTask', 'runTask'][RUN_ACTIONS.indexOf(action)], action.label);
           return React.createElement('button', { key: action.id, type: 'button', disabled: !state.enabled,
-            title: state.reason || label, onClick: event => {
+            'aria-label': label, title: state.reason || label,
+            onMouseDown: event => event.preventDefault(), onClick: event => {
+              this.runMenuOpen = false;
               event.currentTarget.closest('details').open = false;
               this.run(action.id).catch(error => this.report(error));
             } }, label);
@@ -161,4 +179,4 @@ class WorkbenchControlsContribution {
     this.nodes.length = 0; this.changed.dispose();
   }
 }
-module.exports = { WorkbenchControlsContribution, RUN_ACTIONS, VIEWS, commandState, nativeEntryVisible };
+module.exports = { WorkbenchControlsContribution, RUN_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };

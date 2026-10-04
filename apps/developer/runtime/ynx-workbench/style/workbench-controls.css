@@ -2,7 +2,7 @@
 .ynx-run-controls > summary { display: flex; align-items: center; cursor: pointer; list-style: none; padding: 3px 5px; }
 .ynx-run-controls > summary::-webkit-details-marker { display: none; }
 .ynx-run-menu { position: absolute; z-index: 100; right: 0; top: 100%; min-width: 210px; padding: 4px; background: var(--theia-menu-background); border: 1px solid var(--theia-menu-border); box-shadow: 0 2px 8px var(--theia-widget-shadow); }
-.ynx-run-menu button { display: block; width: 100%; text-align: left; }
+.ynx-run-controls .ynx-run-menu button { display: block; width: 100%; min-height: 30px; text-align: left; font-size: 13px; line-height: 20px; white-space: nowrap; text-indent: 0; overflow: visible; }
 .ynx-run-menu button, .ynx-workbench-discovery button { border: 0; background: transparent; color: var(--theia-foreground); padding: 6px 8px; cursor: pointer; font: inherit; }
 .ynx-run-menu button:hover, .ynx-workbench-discovery button:hover { background: var(--theia-toolbar-hoverBackground); }
 .ynx-run-menu button:disabled, .ynx-workbench-discovery button:disabled { opacity: .45; cursor: default; }

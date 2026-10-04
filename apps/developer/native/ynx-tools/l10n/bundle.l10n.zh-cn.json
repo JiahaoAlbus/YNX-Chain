@@ -87,5 +87,15 @@
   "Manually entered replacement (maximum 32 KiB)": "手动输入的替换内容（最多 32 KiB）",
   "Review replacement": "审阅替换内容",
   "Open diff": "打开差异",
-  "Apply reviewed change": "应用已审阅的修改"
+  "Apply reviewed change": "应用已审阅的修改",
+  "Open the unsaved replacement document again before reviewing.": "请先重新打开未保存的替换文档再审阅。",
+  "The replacement document changed. Open its diff again.": "替换文档已变化，请重新打开差异。",
+  "Local change applied to the editor buffer. Save separately; Undo remains available.": "本地修改已应用到编辑器缓冲区。请单独保存，仍可撤销。",
+  "Identity and AI are not connected": "身份与 AI 未连接",
+  "Nothing is sent. Replacements are manually entered.": "不会发送内容，替换内容由手动输入。",
+  "Edit replacement document": "编辑替换文档",
+  "Unsaved text; maximum 32 KiB": "未保存文本，最多 32 KiB",
+  "Review the current replacement before applying": "应用前审阅当前替换内容",
+  "Changes the source buffer; does not save": "修改源缓冲区，不保存文件",
+  "Reviewing {0}": "正在审阅 {0}"
 }

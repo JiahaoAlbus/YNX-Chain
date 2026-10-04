@@ -74,3 +74,32 @@ test('existing terminal is activated through native shell instead of toggling it
   await f.controls.openView('terminal');
   assert.deepEqual(f.calls, [['activate', terminal.id]]);
 });
+test('visible native activity bar suppresses entire extra rail even when child widget identities differ', () => {
+  const f = fixture();
+  f.shell.leftPanelHandler = { tabBar: { isVisible: true, node: { getBoundingClientRect: () => ({ width: 40, height: 600 }) } } };
+  assert.equal(f.controls.missingViews('left').length, 0);
+  assert.equal(f.controls.missingViews('bottom').length, 4);
+  f.shell.leftPanelHandler.tabBar.isVisible = false;
+  assert.equal(f.controls.missingViews('left').length, 5);
+  f.shell.leftPanelHandler.tabBar.isVisible = true;
+  f.shell.leftPanelHandler.tabBar.node.getBoundingClientRect = () => ({ width: 0, height: 0 });
+  assert.equal(f.controls.missingViews('left').length, 5);
+});
+test('toolbar gives every action a nonempty accessible and visible label, retains open state across native rerender', async () => {
+  const f = fixture(); f.controls.translate = (key, text) => text; let item;
+  f.controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
+  let rendered = item.render(); rendered.props.onToggle({ currentTarget: { open: true } });
+  rendered = item.render(); assert.equal(rendered.props.open, true);
+  const buttons = rendered.props.children[1].props.children;
+  assert.deepEqual(buttons.map(button => button.props['aria-label']), Array.from(RUN_ACTIONS, action => action.label));
+  assert.ok(buttons.every(button => button.props.children === button.props['aria-label'] && button.props.children.trim()));
+  let prevented = false; buttons[1].props.onMouseDown({ preventDefault: () => { prevented = true; } }); assert.equal(prevented, true);
+  const details = { open: true }; buttons[1].props.onClick({ currentTarget: { closest: () => details } });
+  await new Promise(resolve => setImmediate(resolve)); assert.equal(details.open, false); assert.equal(f.controls.runMenuOpen, false);
+  assert.equal(f.calls[0][0], 'workbench.action.debug.run'); f.controls.dispose();
+});
+test('empty localization response cannot erase toolbar names', () => {
+  const f = fixture(); const controls = new WorkbenchControlsContribution({ commands: f.commands, shell: f.shell, editors: { all: [f.editor] }, translate: () => undefined });
+  let item; controls.registerToolbarItems({ registerItem: value => { item = value; return { dispose() {} }; } });
+  assert.ok(item.render().props.children[1].props.children.every(button => button.props['aria-label'].trim())); controls.dispose();
+});
