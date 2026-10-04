@@ -71,12 +71,12 @@ export function decideVeilApplicationWrite(context: VeilWriteContext): VeilWrite
       core.sourceCommit !== VEIL_LIBSIGNAL_PIN.commit) return hold("DEPENDENCY_PIN_MISMATCH");
   const expectedBridge = context.platform === "android" ? "jni" :
     context.platform === "ios" ? "swift" : context.platform === "browser" ? "browser" : "node";
-  if (!core.bridgeVerified || core.bridge !== expectedBridge) return hold("BRIDGE_NOT_VERIFIED");
-  if (!core.licenseApproved) return hold("LICENSE_NOT_APPROVED");
+  if (core.bridgeVerified !== true || core.bridge !== expectedBridge) return hold("BRIDGE_NOT_VERIFIED");
+  if (core.licenseApproved !== true) return hold("LICENSE_NOT_APPROVED");
   if (!validBinding(context.requestedBinding) || !validBinding(context.sessionBinding)) return hold("BINDING_INVALID");
   if (bindingKeys.some(key => context.requestedBinding[key] !== context.sessionBinding[key])) return hold("BINDING_MISMATCH");
   if (context.protocol !== "veil-v2") return hold("LEGACY_WRITE_FORBIDDEN");
-  if (!context.identityVerified) return hold("IDENTITY_NOT_VERIFIED");
+  if (context.identityVerified !== true) return hold("IDENTITY_NOT_VERIFIED");
   if (context.deviceStatus !== "approved" ||
       (context.deviceProof !== "trusted-device" && context.deviceProof !== "user-recovery")) return hold("DEVICE_NOT_AUTHORIZED");
   if (!Number.isSafeInteger(context.nowMs) || context.nowMs < 0 ||
@@ -84,7 +84,7 @@ export function decideVeilApplicationWrite(context: VeilWriteContext): VeilWrite
   if (context.pqxdh !== "confirmed") return hold("PQXDH_NOT_CONFIRMED");
   if (context.spqr !== "key-mixed") return hold("SPQR_NOT_KEY_MIXED");
   if (context.migration !== "confirmed") return hold("MIGRATION_NOT_CONFIRMED");
-  if (!context.activationApproved) return hold("ACTIVATION_NOT_APPROVED");
+  if (context.activationApproved !== true) return hold("ACTIVATION_NOT_APPROVED");
   return allowed;
 }
 

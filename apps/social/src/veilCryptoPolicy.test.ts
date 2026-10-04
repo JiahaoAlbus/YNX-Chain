@@ -22,6 +22,23 @@ test("fully confirmed metadata permits only the subsequent native write operatio
   assert.equal(result.activePqIdentityAuthentication, "not-reviewed");
   assert.equal(Object.isFrozen(result), true);
 });
+
+for (const [field, blocker] of [
+  ["bridgeVerified", "BRIDGE_NOT_VERIFIED"],
+  ["licenseApproved", "LICENSE_NOT_APPROVED"],
+  ["identityVerified", "IDENTITY_NOT_VERIFIED"],
+  ["activationApproved", "ACTIVATION_NOT_APPROVED"],
+] as const) {
+  test(`${field} requires an explicit primitive boolean approval`, () => {
+    for (const malformed of ["true", "false", 1, -1, {}, [], new Boolean(true), null, undefined]) {
+      const value = fixture();
+      const target = field === "bridgeVerified" || field === "licenseApproved" ? value.core! : value;
+      assert.equal(Reflect.set(target, field, malformed), true);
+      assert.equal(decideVeilApplicationWrite(value).blocker, blocker);
+      assert.equal(decideVeilRecipientSet([value]).canWrite, false);
+    }
+  });
+}
 const rejected: readonly [string, (value: VeilWriteContext) => VeilWriteContext, VeilWriteBlocker][] = [
   ["missing core", value => ({ ...value, core: null }), "CORE_UNAVAILABLE"],
   ["wrong version", value => ({ ...value, core: { ...value.core!, version: "old" } }), "DEPENDENCY_PIN_MISMATCH"],
