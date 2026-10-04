@@ -79,6 +79,29 @@ static NSString *YNXLocalHTMLEscape(NSString *text) {
 static NSString *YNXLocalStatusPage(NSString *title,NSString *message) {
     return [NSString stringWithFormat:@"<!doctype html><meta charset=utf-8><meta name=color-scheme content=dark><style>html{background:#10131C;color:#E8ECF5}body{font:16px -apple-system;margin:0;padding:48px;line-height:1.6}h1{font-size:24px;color:#E8ECF5;border-left:4px solid #002FA7;padding-left:16px}p{max-width:760px;overflow-wrap:anywhere}a,:focus-visible{color:#7399FF}</style><h1>%@</h1><p>%@</p>",YNXLocalHTMLEscape(title),YNXLocalHTMLEscape(message)];
 }
+static NSDictionary *YNXLocalAppearancePayload(id value) {
+    if(![value isKindOfClass:NSDictionary.class])return nil;
+    NSDictionary *body=value;
+    if(body.count!=3||![body[@"action"] isEqual:@"appearance"]||![body[@"mode"] isKindOfClass:NSString.class]||![@[@"dark",@"light"] containsObject:body[@"mode"]]||![body[@"background"] isKindOfClass:NSString.class])return nil;
+    NSString *color=body[@"background"];
+    if(color.length!=7||![color hasPrefix:@"#"]||[[color substringFromIndex:1] rangeOfCharacterFromSet:[[NSCharacterSet characterSetWithCharactersInString:@"0123456789abcdefABCDEF"] invertedSet]].location!=NSNotFound)return nil;
+    NSData *bytes=[NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
+    return bytes&&bytes.length<=128?body:nil;
+}
+static NSColor *YNXLocalBackgroundColor(NSString *hex) {
+    unsigned value=0;[[NSScanner scannerWithString:[hex substringFromIndex:1]] scanHexInt:&value];
+    return [NSColor colorWithSRGBRed:((value>>16)&255)/255.0 green:((value>>8)&255)/255.0 blue:(value&255)/255.0 alpha:1];
+}
+static NSString *YNXLocalAppearanceScript(void) {
+    // Observe only actual theme styles, never a blank page's default white body.
+    // The observer is document-scoped and releases itself on navigation away.
+    return @"(()=>{if(location.pathname!=='/')return;"
+    @"const color=value=>{value=value.trim();let m=/^#([0-9a-f]{6})$/i.exec(value);if(m)return m[1].match(/../g).map(x=>parseInt(x,16));m=/^rgba?\\(\\s*(\\d+)\\s*,\\s*(\\d+)\\s*,\\s*(\\d+)(?:\\s*,\\s*(1(?:\\.0+)?))?\\s*\\)$/i.exec(value);if(!m)return null;const rgb=m.slice(1,4).map(Number);return rgb.every(x=>x<=255)?rgb:null;};"
+    @"const luminance=rgb=>rgb.map(x=>{x/=255;return x<=.04045?x/12.92:((x+.055)/1.055)**2.4;}).reduce((n,x,i)=>n+x*[.2126,.7152,.0722][i],0);"
+    @"let last='',scheduled=false,stopped=false;const report=()=>{scheduled=false;if(stopped||!document.body)return;const css=getComputedStyle(document.body),bg=color(css.getPropertyValue('--theia-editor-background')),fg=color(css.getPropertyValue('--theia-editor-foreground'));if(!bg||!fg)return;const b=luminance(bg),f=luminance(fg);if(Math.abs(b-f)<.05)return;const mode=b<f?'dark':'light',background='#'+bg.map(x=>x.toString(16).padStart(2,'0')).join(''),key=mode+background;if(key===last)return;last=key;window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'appearance',mode,background});};"
+    @"const schedule=()=>{if(!stopped&&!scheduled){scheduled=true;queueMicrotask(report);}};const observer=new MutationObserver(schedule);const start=()=>{if(stopped)return;if(document.head)observer.observe(document.head,{childList:true,subtree:true,characterData:true,attributes:true,attributeFilter:['class','style']});if(document.body)observer.observe(document.body,{attributes:true,attributeFilter:['class','style']});observer.observe(document.documentElement,{attributes:true,attributeFilter:['class','style']});schedule();};"
+    @"if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start,{once:true});else start();window.addEventListener('pagehide',()=>{stopped=true;observer.disconnect();document.removeEventListener('DOMContentLoaded',start);},{once:true});})();";
+}
 
 static NSString *YNXJSON(id value) {
     NSData *data = [NSJSONSerialization dataWithJSONObject:value options:NSJSONWritingFragmentsAllowed error:nil];
@@ -525,10 +548,14 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // message handlers. Its backend owns the selected OS-user workspace.
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalAppearanceScript(),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     _webView=[[WKWebView alloc]initWithFrame:NSMakeRect(0,0,1440,900) configuration:configuration];
+    _webView.underPageBackgroundColor=YNXLocalBackgroundColor(@"#10131C");
     _webView.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;
     _webView.UIDelegate=self;_webView.navigationDelegate=self;
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
+    _window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+    _window.backgroundColor=YNXLocalBackgroundColor(@"#10131C");
     NSString *project=_localWorkspace;
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
@@ -780,8 +807,14 @@ static NSString *YNXDesktopTitle(NSString *label) {
     return NSTerminateLater;
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
-    if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port)||!_localCloseRequest)return;
+    if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"appearance"]){
+        if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalAppearancePayload(body))return;
+        _window.appearance=[NSAppearance appearanceNamed:[body[@"mode"] isEqual:@"light"]?NSAppearanceNameAqua:NSAppearanceNameDarkAqua];
+        NSColor *background=YNXLocalBackgroundColor(body[@"background"]);_window.backgroundColor=background;_webView.underPageBackgroundColor=background;return;
+    }
+    if(!_localCloseRequest)return;
     if(body.count!=3||![body[@"action"] isEqual:@"close-result"]||![body[@"requestId"] isEqual:_localCloseRequest]||![body[@"accepted"] isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)body[@"accepted"])!=CFBooleanGetTypeID())return;
     BOOL accepted=[body[@"accepted"] boolValue];_localCloseRequest=nil;[NSApp replyToApplicationShouldTerminate:accepted];
 }

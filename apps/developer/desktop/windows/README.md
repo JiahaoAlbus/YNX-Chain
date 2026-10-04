@@ -1,5 +1,11 @@
 # Windows hosted workspace client
 
+New local-workbench lifecycle components are described in
+`LOCAL_WORKBENCH_LIFECYCLE.md`. They are uncompiled Windows source and are not
+connected to this hosted entry. A Job Object owns process lifetime; it does not
+isolate project files/network or grant account access. No local Windows product
+activation is claimed until real sealed inputs and the complete host path exist.
+
 Current source starts ordinary use at /projects. View → Wallet projects, Guest workspace, Back, Forward and Reload connect the hosted journey in one retained WebView2 profile. Only the exact reviewed guest documents expose native v1 File/Edit commands; ordinary HTTPS/SSO/Tools/core pages remain unprivileged. Explicit Wallet Pair links from the canonical authorization document have a narrow OS-launch predicate. See docs/integration/IDE_HOSTED_DESKTOP_JOURNEY_20261003.md for source-bound checks and the remaining actual Windows/Wallet/core gates. Acceptance mode continues to enter the original root guest route.
 
 Ordinary installations accept later hosted source commits while the mounted workspace keeps the `ynx-desktop-host/v1` contract and a valid source identity. Each native file command also verifies its response contract. The strict embedded source checkpoint is an acceptance requirement, so routine compatible website updates do not disable installed File/Edit commands. Unknown command contracts still require a compatible installer.
