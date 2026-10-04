@@ -5,6 +5,9 @@ await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
 for (const file of [
   'index.html',
+  'about.html',
+  'about.css',
+  'about.js',
   'styles.css',
   'display-settings.js',
   'workflow.css',

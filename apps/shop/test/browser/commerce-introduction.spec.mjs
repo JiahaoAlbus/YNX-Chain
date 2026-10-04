@@ -1,0 +1,33 @@
+import {test,expect,installPrivateShop} from './shop-fixture.mjs';
+import {readFile,mkdir} from 'node:fs/promises';
+import {resolve,extname} from 'node:path';
+const intro='https://shop.ynxweb4.com/shop/about.html';
+async function publicIntroduction(page){
+ const requests=[],errors=[];page.on('request',r=>requests.push(r.url()));page.on('pageerror',e=>errors.push(e.message));
+ await page.context().route('**/*',r=>r.abort());
+ await page.context().route('https://shop.ynxweb4.com/shop/**',async route=>{const name=new URL(route.request().url()).pathname.slice('/shop/'.length),root=resolve('dist'),file=resolve(root,name);if(!file.startsWith(root+'/'))return route.abort();await route.fulfill({body:await readFile(file),contentType:{'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png'}[extname(file)],headers:{'Content-Security-Policy':"default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data: https:"}});});
+ await page.addInitScript(()=>{globalThis.walletRequests=[];globalThis.ethereum={request:async p=>{walletRequests.push(p);throw Error('Wallet requested from introduction');}};navigator.mediaDevices.getUserMedia=()=>{throw Error('Device permissions requested');};});
+ return{requests,errors};
+}
+for(const width of [1280,390,320])for(const lang of ['zh','en'])test(`public Commerce ${width}px ${lang}: layout, keyboard, language, no authority requests`,async({page})=>{
+ await page.setViewportSize({width,height:900});const f=await publicIntroduction(page);await page.goto(intro+'?lang='+lang);await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-CN');
+ await expect(page.locator('h1')).toBeVisible();await expect(page.locator('.product-preview img')).toHaveCount(3);expect(await page.locator('img').evaluateAll(imgs=>imgs.every(i=>i.complete&&i.naturalWidth>0))).toBe(true);
+ await mkdir('test-results/introduction',{recursive:true});await page.screenshot({path:`test-results/introduction/commerce-${width}-${lang}.png`,fullPage:true});await page.screenshot({path:`test-results/introduction/hero-${width}-${lang}.png`});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.keyboard.press('Tab');await expect(page.locator('.skip')).toBeFocused();await page.keyboard.press('Enter');await expect(page).toHaveURL(/#main$/);
+ await page.locator('#language').focus();await page.keyboard.press('Enter');await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'zh-CN':'en');await page.reload();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'zh-CN':'en');
+ await page.locator('a[href="#help"]').click();await page.locator('summary').first().focus();await page.keyboard.press('Enter');await expect(page.locator('details').first()).toHaveAttribute('open','');
+ await page.locator('a.brand').first().click();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'zh-CN':'en');
+ expect(f.requests.filter(u=>!/^https:\/\/shop\.ynxweb4\.com\/shop\/(about\.(html|css|js)|assets\/)/.test(u))).toEqual([]);expect(f.errors).toEqual([]);expect(await page.evaluate(()=>walletRequests)).toEqual([]);
+});
+test('explicit Shop CTA enters original app; back, refresh and app return retain language',async({page})=>{
+ await installPrivateShop(page,{prepareApproval:false});await page.goto(intro+'?lang=en');await page.getByRole('link',{name:'Open Shop',exact:true}).click();await expect(page).toHaveURL('https://shop.ynxweb4.com/shop/');await expect(page.locator('#products')).toContainText('QA product');await expect(page.locator('html')).toHaveAttribute('lang','en');await page.reload();await expect(page.locator('#products')).toContainText('QA product');
+ await page.goBack();await expect(page.locator('h1')).toContainText('discovering');await page.reload();await expect(page.locator('h1')).toContainText('discovering');await page.goForward();await expect(page.locator('#products')).toContainText('QA product');await page.getByRole('link',{name:'About Commerce',exact:true}).click();await expect(page.locator('h1')).toContainText('discovering');
+ await expect(page.getByRole('link',{name:'Open Seller →'})).toHaveAttribute('href','/seller/');await expect(page.getByRole('link',{name:'Open Merchant →'})).toHaveAttribute('href','https://pay.ynxweb4.com/merchant/?lang=en');await expect(page.getByRole('link',{name:'Official download catalogue'})).toHaveAttribute('href','https://www.ynxweb4.com/dapp/download');
+});
+for(const lang of ['en','zh'])test(`explicit Seller and Merchant CTAs (${lang}) load original apps and retain language without starting authorisation`,async({page})=>{
+ const f=await installPrivateShop(page,{prepareApproval:false});
+ await page.context().route('https://pay.ynxweb4.com/merchant/**',async route=>{const name=new URL(route.request().url()).pathname.slice('/merchant/'.length)||'index.html',root=resolve('../merchant-console/dist'),file=resolve(root,name);if(!file.startsWith(root+'/'))return route.abort();await route.fulfill({body:await readFile(file),contentType:{'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webmanifest':'application/manifest+json'}[extname(file)]});});
+ await page.goto(intro+'?lang='+lang);await page.locator('a[href="/seller/"]').click();await expect(page).toHaveURL('https://shop.ynxweb4.com/seller/');await expect(page.locator('#wallet')).toBeVisible();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-CN');await page.getByRole('link',{name:'About Commerce',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-CN');
+ await page.locator('a[href^="https://pay.ynxweb4.com/merchant/"]').click();await expect(page).toHaveURL('https://pay.ynxweb4.com/merchant/');await expect(page.locator('.auth-panel h1')).toBeVisible();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-Hans');await page.reload();await expect(page.locator('.auth-panel h1')).toBeVisible();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-Hans');await page.locator('[data-locale]').selectOption(lang==='en'?'zh-Hans':'en');await page.reload();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'zh-Hans':'en');await page.locator('[data-locale]').selectOption(lang==='en'?'en':'zh-Hans');await page.getByRole('link',{name:'About Commerce',exact:true}).click();await expect(page.locator('html')).toHaveAttribute('lang',lang==='en'?'en':'zh-CN');expect(f.requests.filter(r=>r.method!=='GET')).toEqual([]);expect(f.gatewayRequests.filter(r=>r.method!=='GET'||r.path!=='/v2/product-sessions/time')).toEqual([]);
+});
