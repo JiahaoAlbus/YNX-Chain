@@ -458,6 +458,22 @@ test('Paper records preserve exact service quantities and do not depend on the s
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
 });
 
+test('Paper market attribution preserves escaped source and exact observation independently of execution time',async()=>{
+  const fields={MarketSource:'fixture://market/<script>x</script>',MarketPriceMicro:9007199254740991,MarketVolumeMicro:20000000,MarketObservedAt:'2026-10-02T23:59:59.123456789+02:00'};
+  const app=harness({snapshot:{paper:{Orders:[paperRecord(fields)]}}});await settle();
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const rendered=app.ids.get('paper-record-rows').innerHTML;
+    assert.ok(rendered.includes(fields.MarketObservedAt));assert.match(rendered,/fixture:\/\/market\/&lt;script&gt;x&lt;\/script&gt;/);assert.doesNotMatch(rendered,/<script>|href=/);
+    assert.ok(rendered.includes(vm.runInContext('t("observed")',app.context)));assert.equal(app.ids.get('paper-record-status').textContent,'');
+  }
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  for(const changes of [{MarketObservedAt:''},{MarketObservedAt:'2026-02-30T00:00:00Z'},{MarketPriceMicro:1},{MarketVolumeMicro:0},{MarketSource:''}]){
+    const invalid=harness({snapshot:{paper:{Orders:[paperRecord({...fields,...changes})]}}});await settle();
+    assert.match(invalid.ids.get('paper-record-rows').innerHTML,/Observed: —/);assert.equal(invalid.ids.get('paper-record-status').textContent,'');
+  }
+});
+
 test('Paper records reject normalized impossible dates and non-RFC timestamps',async()=>{
   for(const CreatedAt of ['0','2026-02-30T00:00:00Z','2026-10-03','2026-10-03T00:00:00','0000-01-01T00:00:00Z']){
     const app=harness({snapshot:{paper:{Orders:[paperRecord({CreatedAt})]}}});await settle();

@@ -293,6 +293,11 @@ type PaperOrder struct {
 	CreatedAt                              time.Time
 	// Omit legacy empty keys so existing persisted orders keep their integrity hash.
 	IdempotencyKey string `json:"IdempotencyKey,omitempty"`
+	// Additive market attribution; absent legacy receipts preserve integrity.
+	MarketSource      string `json:"MarketSource,omitempty"`
+	MarketObservedAt  string `json:"MarketObservedAt,omitempty"`
+	MarketPriceMicro  int64  `json:"MarketPriceMicro,omitempty"`
+	MarketVolumeMicro int64  `json:"MarketVolumeMicro,omitempty"`
 }
 type PaperState struct {
 	Cash, Position, RealizedPnL int64
@@ -1469,6 +1474,10 @@ func (s *Service) RunDueSchedulesContext(ctx context.Context) ([]ScheduledRunRec
 }
 
 func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, volume int64) (PaperOrder, error) {
+	return s.applyPaperSignalObserved(strategyHash, side, price, amount, volume, nil)
+}
+
+func (s *Service) applyPaperSignalObserved(strategyHash, side string, price, amount, volume int64, observation *MarketTick) (PaperOrder, error) {
 	decoded, digestErr := hex.DecodeString(strategyHash)
 	if digestErr != nil || len(decoded) != sha256.Size || (side != "buy" && side != "sell") || price <= 0 || amount <= 0 || volume < 0 {
 		return PaperOrder{}, ErrInvalid
@@ -1480,11 +1489,11 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, lockErr
 	}
 	defer release()
-	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "")
+	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "", observation)
 }
 
 // applyPaperSignalLocked runs with both the service and durable state locks held.
-func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string) (PaperOrder, error) {
+func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string, observation *MarketTick) (PaperOrder, error) {
 	if s.state.Paper.KillSwitch {
 		return PaperOrder{}, ErrForbidden
 	}
@@ -1534,6 +1543,12 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	s.state.Paper.DailyRisk = dailyRisk
 	s.state.Sequence++
 	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}
+	if observation != nil {
+		o.MarketSource, o.MarketPriceMicro, o.MarketVolumeMicro = observation.Source, observation.Price, observation.Volume
+		if !observation.At.IsZero() {
+			o.MarketObservedAt = observation.At.Format(time.RFC3339Nano)
+		}
+	}
 	if fill == amount {
 		o.Status = "filled"
 	} else if fill > 0 {
@@ -1591,7 +1606,7 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 	if err != nil || tick.Price <= 0 || tick.Volume <= 0 || tick.Source == "" {
 		return PaperOrder{}, ErrUnavailable
 	}
-	return s.ApplyPaperSignal(strategyHash, side, tick.Price, amount, tick.Volume)
+	return s.applyPaperSignalObserved(strategyHash, side, tick.Price, amount, tick.Volume, &tick)
 }
 
 // SubmitPaperSignalFromMarket is the browser-local Paper HTTP boundary. Unlike
@@ -1641,7 +1656,7 @@ func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount 
 	if order, found, err := s.paperSubmissionLocked(strategyHash, side, amount, key); found || err != nil {
 		return order, err
 	}
-	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key)
+	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key, &tick)
 }
 
 func (s *Service) paperSubmissionLocked(strategyHash, side string, amount int64, key string) (PaperOrder, bool, error) {

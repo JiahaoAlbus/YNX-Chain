@@ -547,7 +547,10 @@ function renderPaperRecords(paper) {
   const value = input => safe(typeof input === "string" || Number.isSafeInteger(input) ? String(input) : "—");
   $("#paper-record-rows").innerHTML = Array.isArray(records) ? records.map(record => {
     const row = record && typeof record === "object" ? record : {};
-    return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}</td><td>${value(row.Source)}</td></tr>`;
+    const attributed = valid(row) && typeof row.MarketSource === "string" && row.MarketSource.trim() !== "" && Number.isSafeInteger(row.MarketPriceMicro) && row.MarketPriceMicro === row.Price && Number.isSafeInteger(row.MarketVolumeMicro) && row.MarketVolumeMicro > 0;
+    const marketSource = attributed ? row.MarketSource : "—";
+    const marketTime = attributed && auditTimeValid(row.MarketObservedAt) ? row.MarketObservedAt : "—";
+    return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}</td><td>${value(row.Source)}<small>${safe(t("source"))}: ${value(marketSource)}</small><small>${safe(t("observed"))}: ${value(marketTime)}</small></td></tr>`;
   }).join("") : "";
 }
 const localDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value)) : "—";
