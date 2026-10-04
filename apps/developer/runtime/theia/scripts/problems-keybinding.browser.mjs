@@ -6,6 +6,8 @@ const require = createRequire(import.meta.url);
 const { registerDefaultKeybindings } = require('../../ynx-workbench/lib/default-keybindings.js');
 const { chromium } = await import(process.env.YNX_QA_PLAYWRIGHT_MODULE || 'playwright');
 const runtime = JSON.parse(await readFile(process.argv[2], 'utf8'));
+const sourceFixture = process.argv[3] === '--source-fixture';
+assert.ok(!process.argv[3] || sourceFixture);
 assert.match(runtime.qa, /^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+$/);
 const original = await readFile(runtime.workspace + '/debug.js', 'utf8');
 const checks = [], errors = [];
@@ -42,15 +44,19 @@ try {
     window.__ynxKeybindingRegistry = c.get(id);
     return window.__ynxKeybindingRegistry.getKeybindingsForCommand('problemsView:toggle');
   });
-  assert.equal(baseline.length, 0);
-  await toggle('Meta+Shift+M', false);
-  checks.push('Pinned compiled runtime has no Problems toggle binding; real focused-editor shortcut cannot open it.');
-  // Resource-bounded source integration fixture: run the exact owned function
-  // against the real default registry. This is not a rebuilt runtime claim.
-  await page.evaluate(source => {
-    const register = (0, eval)('(' + source + ')');
-    register(window.__ynxKeybindingRegistry, 'core.close.tab');
-  }, registerDefaultKeybindings.toString());
+  if (sourceFixture) {
+    assert.equal(baseline.length, 0);
+    await toggle('Meta+Shift+M', false);
+    checks.push('Pinned compiled runtime has no Problems toggle binding; real focused-editor shortcut cannot open it.');
+    // Resource-bounded source fixture; not a rebuilt runtime claim.
+    await page.evaluate(source => {
+      const register = (0, eval)('(' + source + ')');
+      register(window.__ynxKeybindingRegistry, 'core.close.tab');
+    }, registerDefaultKeybindings.toString());
+  } else {
+    assert.ok(baseline.some(row => row.keybinding === 'ctrlcmd+shift+m'));
+    checks.push('Exact rebuilt workbench registers the Problems default without source injection or temporary keybindings.');
+  }
   await toggle('Meta+Shift+M', true); await toggle('Meta+Shift+M', false);
   await toggle('Meta+Shift+m', true);
   checks.push('Exact owned default registration opens, closes and reopens actual Problems from the real editor with both simulated key spellings.');
@@ -78,7 +84,7 @@ try {
 } finally {
   await browser.close();
   const source = await readFile(new URL('../../ynx-workbench/lib/default-keybindings.js', import.meta.url));
-  await writeFile(runtime.qa + '/problems-keybinding-source-ui.json', JSON.stringify({ passed, checks, errors, baseline, sourceSha256: createHash('sha256').update(source).digest('hex'), actualRegistry: true, actualEditorAndProblems: true, sourceFunctionFixture: true, rebuiltRuntime: false, canonical: false, public: false }, null, 2), { flag: 'wx' });
+  await writeFile(runtime.qa + '/problems-keybinding-source-ui.json', JSON.stringify({ passed, checks, errors, baseline, sourceSha256: createHash('sha256').update(source).digest('hex'), actualRegistry: true, actualEditorAndProblems: true, sourceFunctionFixture: sourceFixture, rebuiltRuntime: !sourceFixture, canonical: false, public: false }, null, 2), { flag: 'wx' });
   console.log(JSON.stringify({ passed, checks: checks.length, errors }));
   if (!passed) process.exitCode = 1;
 }

@@ -2,7 +2,7 @@
   "name": "ynx-developer-brand",
   "displayName": "YNX Developer",
   "publisher": "ynx",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "engines": {
     "vscode": "^1.109.0"
   },

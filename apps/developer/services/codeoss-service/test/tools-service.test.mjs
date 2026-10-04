@@ -339,7 +339,7 @@ test('versioned Tools upgrade preserves legacy extension files and installs the 
  const priorBrand=join(root,'extensions','ynx.ynx-developer-brand-0.1.1');await fs.mkdir(priorBrand,{recursive:true});await writeFile(join(priorBrand,'ynx-logo.png'),'preserved previous brand');
  await prepareCoreProject({projectDirectory:root});
  assert.equal(await readFile(join(priorBrand,'ynx-logo.png'),'utf8'),'preserved previous brand');
- assert.equal(JSON.parse(await readFile(join(root,'extensions','ynx.ynx-developer-brand-0.1.2','package.json'),'utf8')).version,'0.1.2');
+ assert.equal(JSON.parse(await readFile(join(root,'extensions','ynx.ynx-developer-brand-0.1.3','package.json'),'utf8')).version,'0.1.3');
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(previous,'guards.cjs'),'utf8'),'previous candidate preserved');
  const current=join(root,'extensions','ynx.ynx-tools-0.2.14');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.14');

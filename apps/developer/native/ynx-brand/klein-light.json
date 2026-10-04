@@ -1,14 +1,91 @@
 {
-  "name": "YNX Klein Light", "type": "light",
+  "name": "YNX Klein Light",
+  "type": "light",
   "colors": {
-    "activityBar.background": "#FFFFFF", "activityBar.foreground": "#002FA7", "activityBar.activeBorder": "#002FA7",
-    "sideBar.background": "#F7F9FD", "sideBar.foreground": "#17223A",
-    "editor.background": "#FFFFFF", "editor.foreground": "#17223A", "editor.selectionBackground": "#D8E4FF",
-    "titleBar.activeBackground": "#FFFFFF", "titleBar.activeForeground": "#002FA7",
-    "statusBar.background": "#002FA7", "statusBar.foreground": "#FFFFFF",
-    "button.background": "#002FA7", "button.foreground": "#FFFFFF", "button.hoverBackground": "#003DC4",
-    "focusBorder": "#002FA7", "tab.activeBorderTop": "#002FA7",
-    "panel.background": "#FFFFFF", "terminal.background": "#FFFFFF", "terminal.foreground": "#17223A"
+    "activityBar.background": "#FFFFFF",
+    "activityBar.foreground": "#002FA7",
+    "activityBar.activeBorder": "#002FA7",
+    "sideBar.background": "#F7F9FD",
+    "sideBar.foreground": "#17223A",
+    "editor.background": "#FFFFFF",
+    "editor.foreground": "#17223A",
+    "editor.selectionBackground": "#D8E4FF",
+    "titleBar.activeBackground": "#FFFFFF",
+    "titleBar.activeForeground": "#002FA7",
+    "statusBar.background": "#002FA7",
+    "statusBar.foreground": "#FFFFFF",
+    "button.background": "#002FA7",
+    "button.foreground": "#FFFFFF",
+    "button.hoverBackground": "#003DC4",
+    "focusBorder": "#002FA7",
+    "tab.activeBorderTop": "#002FA7",
+    "panel.background": "#FFFFFF",
+    "terminal.background": "#FFFFFF",
+    "terminal.foreground": "#17223A"
   },
-  "tokenColors": []
+  "tokenColors": [
+    {
+      "scope": [
+        "comment"
+      ],
+      "settings": {
+        "foreground": "#536C62",
+        "fontStyle": "italic"
+      }
+    },
+    {
+      "scope": [
+        "keyword",
+        "storage.type",
+        "storage.modifier"
+      ],
+      "settings": {
+        "foreground": "#002FA7"
+      }
+    },
+    {
+      "scope": [
+        "string"
+      ],
+      "settings": {
+        "foreground": "#9A3412"
+      }
+    },
+    {
+      "scope": [
+        "constant.numeric",
+        "constant.language"
+      ],
+      "settings": {
+        "foreground": "#6D28A8"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.function",
+        "support.function"
+      ],
+      "settings": {
+        "foreground": "#795600"
+      }
+    },
+    {
+      "scope": [
+        "entity.name.type",
+        "support.type"
+      ],
+      "settings": {
+        "foreground": "#006B78"
+      }
+    },
+    {
+      "scope": [
+        "variable.parameter"
+      ],
+      "settings": {
+        "foreground": "#374D70"
+      }
+    }
+  ],
+  "semanticHighlighting": true
 }
