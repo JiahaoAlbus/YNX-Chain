@@ -156,8 +156,25 @@ $packageRecord = [ordered]@{
 # certificate. It is deliberately not an Authenticode production signature.
 $assets = Join-Path $stage "Assets"
 New-Item $assets -ItemType Directory -Force | Out-Null
-$transparentPng = [Convert]::FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLQXwAAAABJRU5ErkJggg==")
-foreach ($name in @("Square44x44Logo.png", "Square150x150Logo.png", "StoreLogo.png")) { [System.IO.File]::WriteAllBytes((Join-Path $assets $name), $transparentPng) }
+$brandSource = Join-Path $app "native/ynx-brand/ynx-icon-512.png"
+if ((Get-FileHash $brandSource -Algorithm SHA256).Hash.ToLowerInvariant() -ne "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7") { throw "Original YNX package logo provenance changed" }
+Add-Type -AssemblyName System.Drawing
+$brandImage = [System.Drawing.Image]::FromFile($brandSource)
+$brandAssets = [ordered]@{}
+try {
+  foreach ($tile in @(@{ Name = "Square44x44Logo.png"; Size = 44 }, @{ Name = "Square150x150Logo.png"; Size = 150 }, @{ Name = "StoreLogo.png"; Size = 50 })) {
+    $bitmap = [System.Drawing.Bitmap]::new($tile.Size, $tile.Size, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+    $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+    try {
+      $graphics.Clear([System.Drawing.Color]::Transparent)
+      $graphics.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
+      $graphics.PixelOffsetMode = [System.Drawing.Drawing2D.PixelOffsetMode]::HighQuality
+      $graphics.DrawImage($brandImage, [System.Drawing.Rectangle]::new(0, 0, $tile.Size, $tile.Size))
+      $bitmap.Save((Join-Path $assets $tile.Name), [System.Drawing.Imaging.ImageFormat]::Png)
+      $brandAssets[$tile.Name] = [ordered]@{ width = $tile.Size; height = $tile.Size; sha256 = (Get-FileHash (Join-Path $assets $tile.Name) -Algorithm SHA256).Hash.ToLowerInvariant() }
+    } finally { $graphics.Dispose(); $bitmap.Dispose() }
+  }
+} finally { $brandImage.Dispose() }
 $manifest = @"
 <?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" IgnorableNamespaces="uap rescap">
@@ -210,6 +227,7 @@ $installerRecord = [ordered]@{
   sourceDirty = $false
   internalZipEvidence = (Split-Path $zip -Leaf)
   internalZipSha256 = $hash
+  branding = [ordered]@{ source = "native/ynx-brand/ynx-icon-512.png"; sourceSha256 = "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"; assets = $brandAssets; applicationIcon = "native/ynx-brand/ynx-developer.ico"; applicationIconSha256 = (Get-FileHash (Join-Path $app "native/ynx-brand/ynx-developer.ico") -Algorithm SHA256).Hash.ToLowerInvariant() }
   productionSigned = $false
   hosted = $false
 }

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "scope": "Windows source wiring and original-logo ICO verification. Windows build/install/UI not executed on this macOS host.",
+  "sourceLogo": "apps/developer/native/ynx-brand/ynx-icon-192.png",
+  "sourceLogoSha256": "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af",
+  "icoSha256": "158162e80a1fc015f333bc3389b64324a86e2c07ddf8a9dfab0c2e7badde17bf",
+  "implemented": [
+    "WPF executable ApplicationIcon references original-logo ICO.",
+    "WPF window resource references original YNX 512px logo.",
+    "MSIX 44px, 150px and 50px assets resize the verified original logo and replace transparent placeholders.",
+    "Installer evidence records original logo and generated asset hashes."
+  ],
+  "verified": [
+    "XML parses for project and window.",
+    "ICO embeds byte-identical original PNG with valid directory offsets."
+  ],
+  "windowsCompiled": false,
+  "windowsInstalled": false,
+  "windowsGUIVerified": false
+}
