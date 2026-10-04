@@ -1,0 +1,124 @@
+✖ retired composer load releases only its own spinner without writing old feed (0.967792ms)
+✖ older load cannot clear a still-pending newer load spinner (0.11175ms)
+✖ older late success cannot replace a newer completed feed (0.110125ms)
+✖ retired composer error releases its spinner without replacing the new notice (0.080125ms)
+✖ old error cannot replace a newer error or spinner ownership (0.106959ms)
+✔ current success and error recover through an explicit new load (0.073875ms)
+✖ authority loss suppresses data while releasing only this load spinner (0.07675ms)
+✔ unmounted completion does not update React state (0.047959ms)
+✔ retired owner at entry cannot start a request or steal spinner ownership (0.0685ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 3
+ℹ fail 6
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 203.789
+
+✖ failing tests:
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:10:1
+✖ retired composer load releases only its own spinner without writing old feed (0.967792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:10:311)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:11:1
+✖ older load cannot clear a still-pending newer load spinner (0.11175ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:11:183)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:12:1
+✖ older late success cannot replace a newer completed feed (0.110125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'old' !== 'new'
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:12:236)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'old',
+    expected: 'new',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:13:1
+✖ retired composer error releases its spinner without replacing the new notice (0.080125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:13:326)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:14:1
+✖ old error cannot replace a newer error or spinner ownership (0.106959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Error: Old failure'
+  - 'Error: New failure'
+            ^
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:14:237)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Error: Old failure',
+    expected: 'Error: New failure',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:16:1
+✖ authority loss suppresses data while releasing only this load spinner (0.07675ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///private/tmp/social-feed-owner-original-20261004.lYXxlW/apps/social/tests/moment-feed-loading-owner.test.mjs:16:250)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

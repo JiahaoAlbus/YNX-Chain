@@ -1,0 +1,67 @@
+✔ late restore cannot overwrite a newly opened same-account composer (0.676167ms)
+✔ late restore cannot close a newly opened same-account composer (0.173917ms)
+✔ closing or editing retires an outstanding restore without reopening or overwriting (0.221625ms)
+✔ retired restore error does not replace the newer view error (0.10125ms)
+✔ current restore retains original fields and supplies independently editable media (0.382166ms)
+✔ picker permission completion after close never starts the picker or upload (0.143375ms)
+✔ late image upload does not attach to a newer composer (1.982666ms)
+✔ late picker failure cannot write the new composer error (0.163708ms)
+✔ retired publish review never sends the original payload (0.192833ms)
+✔ late publish completion cannot close or clear a newly opened composer (0.544875ms)
+✔ retired composer load releases only its own spinner without writing old feed (1.122667ms)
+✔ older load cannot clear a still-pending newer load spinner (0.123917ms)
+✔ older late success cannot replace a newer completed feed (0.075584ms)
+✔ retired composer error releases its spinner without replacing the new notice (0.074875ms)
+✖ old error cannot replace a newer error or spinner ownership (0.523583ms)
+✖ current success and error recover through an explicit new load (0.119291ms)
+✔ authority loss suppresses data while releasing only this load spinner (0.078458ms)
+✔ unmounted completion does not update React state (0.068708ms)
+✔ retired owner at entry cannot start a request or steal spinner ownership (0.075417ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 17
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 201.316917
+
+✖ failing tests:
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:14:1
+✖ old error cannot replace a newer error or spinner ownership (0.523583ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Error: New failure'
+  - 'New failure'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:14:237)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Error: New failure',
+    expected: 'New failure',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:15:1
+✖ current success and error recover through an explicit new load (0.119291ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Error: Network unavailable'
+  - 'Network unavailable'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:15:215)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Error: Network unavailable',
+    expected: 'Network unavailable',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

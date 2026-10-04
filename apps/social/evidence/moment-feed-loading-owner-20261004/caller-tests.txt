@@ -1,0 +1,27 @@
+✔ late restore cannot overwrite a newly opened same-account composer (0.6735ms)
+✔ late restore cannot close a newly opened same-account composer (0.098167ms)
+✔ closing or editing retires an outstanding restore without reopening or overwriting (0.184584ms)
+✔ retired restore error does not replace the newer view error (0.088333ms)
+✔ current restore retains original fields and supplies independently editable media (0.34025ms)
+✔ picker permission completion after close never starts the picker or upload (0.135125ms)
+✔ late image upload does not attach to a newer composer (1.928791ms)
+✔ late picker failure cannot write the new composer error (0.1575ms)
+✔ retired publish review never sends the original payload (0.19825ms)
+✔ late publish completion cannot close or clear a newly opened composer (0.377166ms)
+✔ retired composer load releases only its own spinner without writing old feed (0.880792ms)
+✔ older load cannot clear a still-pending newer load spinner (0.097208ms)
+✔ older late success cannot replace a newer completed feed (0.07ms)
+✔ retired composer error releases its spinner without replacing the new notice (0.064875ms)
+✔ old error cannot replace a newer error or spinner ownership (0.080708ms)
+✔ current success and error recover through an explicit new load (0.07625ms)
+✔ authority loss suppresses data while releasing only this load spinner (0.062667ms)
+✔ unmounted completion does not update React state (0.055666ms)
+✔ retired owner at entry cannot start a request or steal spinner ownership (0.067583ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 192.947667

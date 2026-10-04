@@ -1,0 +1,142 @@
+✖ retired composer load releases only its own spinner without writing old feed (0.952541ms)
+✖ older load cannot clear a still-pending newer load spinner (0.13825ms)
+✖ older late success cannot replace a newer completed feed (0.1025ms)
+✖ retired composer error releases its spinner without replacing the new notice (0.074792ms)
+✖ old error cannot replace a newer error or spinner ownership (0.113083ms)
+✖ current success and error recover through an explicit new load (0.075ms)
+✖ authority loss suppresses data while releasing only this load spinner (0.073833ms)
+✔ unmounted completion does not update React state (0.065458ms)
+✔ retired owner at entry cannot start a request or steal spinner ownership (0.057542ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 2
+ℹ fail 7
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 189.725541
+
+✖ failing tests:
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:10:1
+✖ retired composer load releases only its own spinner without writing old feed (0.952541ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:10:311)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:11:1
+✖ older load cannot clear a still-pending newer load spinner (0.13825ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:11:183)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:12:1
+✖ older late success cannot replace a newer completed feed (0.1025ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'old' !== 'new'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:12:236)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'old',
+    expected: 'new',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:13:1
+✖ retired composer error releases its spinner without replacing the new notice (0.074792ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:13:326)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:14:1
+✖ old error cannot replace a newer error or spinner ownership (0.113083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Error: Old failure'
+  - 'New failure'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:14:237)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Error: Old failure',
+    expected: 'New failure',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:15:1
+✖ current success and error recover through an explicit new load (0.075ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 'Error: Network unavailable'
+  - 'Network unavailable'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:15:215)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Error: Network unavailable',
+    expected: 'Network unavailable',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/tests/moment-feed-loading-owner.test.mjs:16:1
+✖ authority loss suppresses data while releasing only this load spinner (0.073833ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/tests/moment-feed-loading-owner.test.mjs:16:250)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

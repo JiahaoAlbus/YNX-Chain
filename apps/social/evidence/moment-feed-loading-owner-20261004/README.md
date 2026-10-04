@@ -1,0 +1,11 @@
+# Moments feed loading ownership successor
+
+Base: 92111b605da5fad3eead6a1f7664f47a4802a944, preserving 3003/727 and the original Root reviewer probes.
+
+Root independently demonstrated that load(currentComposer) set loading=true but could not release its own spinner after Create/close/edit retired that composer. The original Root counterexample and earlier restore red/green logs are not rewritten.
+
+The actual App Moments load now uses a separate per-request symbol token. Data/error effects require both original view/authority and current loading ownership. Finally releases only the same captured loading token and updates the non-sensitive spinner only while mounted; it does not require the retired composer to remain current. An older request cannot clear a newer loading owner or overwrite its result/notice. Retired-at-entry work cannot steal ownership. No stored intent, account lane, key, private identity, publication, native journal or automatic retry behavior is changed.
+
+Preserved first owner probe: 2 pass/7 fail. It included a fixture mismatch: injected String(Error) retains an Error: prefix, whereas two assertions expected error.message formatting. Only those expected values were adapted to the injected formatter, without changing product behavior or removing assertions. Preserved first successor run: 17 pass/2 formatter failures. Corrected same probes against frozen original 92111 source: 3 pass/6 fail. Successor feed+composer caller tests: 19 pass/0 fail. Typecheck exit 0. Actual owner Android JavaScript export exit 0, using existing dependencies and a distinct temporary output directory. Export is compiler evidence only, not a signed APK, installation or native SDK lifecycle result.
+
+Tests execute actual App load/composer function bodies with controlled API/setter ports. They cover concurrent completion/error, retired composer and authority, unmount, original recovery, picker and publication callbacks. They do not prove mounted React/OS/private UI, server delivery, actual authorization or MONSTER acceptance. No deployment, account request, signing, transaction, key migration or crypto activation occurred. Brand publication proceeds separately from this native source successor. Full Social goal remains NOT_COMPLETE.

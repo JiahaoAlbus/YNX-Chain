@@ -1885,6 +1885,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
   const momentSending=useRef(false),momentMounted=useRef(true),momentCancellation=useRef<AbortController|null>(null);
   const momentNewPublication=useRef(false);
   const momentComposerRevision=useRef(0);
+  const momentFeedLoadingOwner=useRef<symbol|null>(null);
   const invalidateMomentComposer=()=>{momentComposerRevision.current++;momentCancellation.current?.abort()};
   const startMomentComposer=()=>{invalidateMomentComposer();momentNewPublication.current=true;setCompose(true)};
   const closeMomentComposer=()=>{invalidateMomentComposer();setCompose(false)};
@@ -1909,8 +1910,10 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     [explainReport, setExplainReport] = useState<SocialReport | null>(null),
     [appeal, setAppeal] = useState("");
   const load = async (owner:()=>boolean=()=>true) => {
-    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&owner();
-    if(!current())return;
+    const authority=api.authorizationGuard(),viewCurrent=()=>momentMounted.current&&authority()&&owner();
+    if(!viewCurrent())return;
+    const loadingOwner=Symbol('moment-feed-load');momentFeedLoadingOwner.current=loadingOwner;
+    const current=()=>viewCurrent()&&momentFeedLoadingOwner.current===loadingOwner;
     setLoading(true);
     try {
       const result=await api.feed();if(!current())return;setItems(result.posts);
@@ -1918,7 +1921,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     } catch (caught) {
       if(current())setError(message(caught));
     } finally {
-      if(current())setLoading(false);
+      if(momentFeedLoadingOwner.current===loadingOwner){momentFeedLoadingOwner.current=null;if(momentMounted.current)setLoading(false)};
     }
   };
   useEffect(() => {
