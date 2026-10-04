@@ -64,6 +64,12 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     await page.locator('#toast').filter({hasText:'Request outcome is unconfirmed'}).waitFor();assert.equal(posts,1);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(await page.locator('#research-submit').isEnabled(),true);
     assert.match(firstReceipt.researchRequestKey,/^quant-research-/);assert.equal(firstReceipt.status,'completed_oos');assert.equal(firstReceipt.assumptions.FeeBPS,17);
     await page.locator('#fee').fill('18');await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'Restore its original inputs'}).waitFor();assert.equal(posts,1);
+    const originalResearchJournal=await page.evaluate(()=>localStorage.getItem(researchPendingKey));
+    await page.locator('#research-restore-pending').click();assert.equal(posts,1);assert.equal(await page.locator('#fee').inputValue(),'17');
+    assert.equal(await page.evaluate(()=>localStorage.getItem(researchPendingKey)),originalResearchJournal);
+    assert.ok((await page.locator('#research-request-status').textContent()).includes(firstReceipt.researchRequestKey));
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+    await page.screenshot({path:path.join(work,'saved-research-restored-pending-en.png'),fullPage:true});
     // A second normal browser profile uses its own generated local-preview
     // binding. Do not inject an identity, tenant header or saved result.
     const otherContext=await browser.newContext({viewport:{width:1280,height:800}}),otherPage=await otherContext.newPage();
@@ -442,6 +448,10 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
         assert.equal(await tabA.evaluate(()=>localStorage.getItem(researchPendingKey)),newResearchJournal);
         assert.equal(await tabA.evaluate(()=>JSON.stringify(pendingResearchIntent)),newResearchJournal);
         assert.equal(await tabA.locator('#toast').textContent(),oldResearchToast);assert.equal(await tabB.evaluate(()=>researchSubmitting),true);
+        assert.equal(await tabB.locator('#research-restore-pending').isDisabled(),true);
+        const newResearchBody=JSON.parse(newResearchJournal);assert.ok((await tabA.locator('#research-request-status').textContent()).includes(newResearchBody.idempotencyKey));
+        await tabA.locator('#research-restore-pending').click();assert.equal(researchOverlapPosts,3);
+        assert.equal(await tabA.locator('#strategy').inputValue(),'New held saved research');assert.equal(await tabA.evaluate(()=>localStorage.getItem(researchPendingKey)),newResearchJournal);
         let forgetResearchDialogs=0;const noStaleResearchDialog=async dialog=>{forgetResearchDialogs++;await dialog.dismiss()};tabA.on('dialog',noStaleResearchDialog);
         // The view now explicitly shows the replacement after lane retirement;
         // its Forget may review that current record, but cancellation cannot delete it.
@@ -465,7 +475,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
-  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png','paper-receipt-320-en.png','paper-receipt-390-ar.png','paper-receipt-1440-zh-CN.png','same-workspace-late-old-response-en.png','same-workspace-new-request-pending-en.png','same-workspace-two-orders-reloaded-en.png','stale-forget-preserved-new-request-en.png']){
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','saved-research-restored-pending-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png','paper-receipt-320-en.png','paper-receipt-390-ar.png','paper-receipt-1440-zh-CN.png','same-workspace-late-old-response-en.png','same-workspace-new-request-pending-en.png','same-workspace-two-orders-reloaded-en.png','stale-forget-preserved-new-request-en.png']){
     const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
   }
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:3,sameWorkspaceTabs:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));

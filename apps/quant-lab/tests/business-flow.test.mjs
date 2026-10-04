@@ -941,6 +941,27 @@ test('saved research read and removal failures retain exact unknown intent witho
   }
 });
 
+test('saved research parameter review and Restore are exact localized read-only actions',async()=>{
+  const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();
+  app.ids.get('strategy').value='Exact original <research>';app.ids.get('seed').value='11';app.ids.get('fast').value='4';app.ids.get('slow').value='9';app.ids.get('fee').value='17';app.ids.get('slippage').value='8';await app.submit('backtest');
+  const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending')),raw=app.storage.get(key),intent=JSON.parse(raw),before=app.calls.length;
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const review=app.ids.get('research-request-status').textContent;assert.ok(review.includes(intent.idempotencyKey));assert.ok(review.includes(intent.strategy.name));assert.ok(review.includes(vm.runInContext('t("runFee")',app.context)+': 17'));
+    assert.equal(vm.runInContext('researchRestoreButton.textContent',app.context),vm.runInContext('t("researchRestore")',app.context));
+    app.ids.get('strategy').value='Changed next draft';app.ids.get('fee').value='99';vm.runInContext('researchRestoreButton.onclick()',app.context);
+    for(const [id,value] of Object.entries({strategy:intent.strategy.name,seed:11,fast:4,slow:9,fee:17,slippage:8}))assert.equal(app.ids.get(id).value,String(value));
+    assert.equal(app.storage.get(key),raw);assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+    assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("researchRestored")',app.context));
+  }
+  const replacement={...intent,idempotencyKey:'quant-research-11111111-1111-1111-1111-111111111111',strategy:{...intent.strategy,name:'New current research'}};app.storage.set(key,JSON.stringify(replacement));
+  vm.runInContext('researchRestoreButton.onclick()',app.context);assert.equal(app.ids.get('strategy').value,replacement.strategy.name);assert.equal(app.calls.length,before);
+  vm.runInContext('researchSubmitting=true;renderResearchRequestState()',app.context);assert.equal(vm.runInContext('researchRestoreButton.disabled',app.context),true);
+  app.ids.get('strategy').value='Busy next draft';vm.runInContext('researchRestoreButton.onclick()',app.context);assert.equal(app.ids.get('strategy').value,'Busy next draft');
+  vm.runInContext('researchSubmitting=false',app.context);app.storage.set(key,'{');vm.runInContext('researchRestoreButton.onclick()',app.context);
+  assert.equal(app.ids.get('strategy').value,'Busy next draft');assert.equal(app.storage.get(key),'{');assert.equal(vm.runInContext('researchRestoreButton.hidden',app.context),true);
+});
+
 test('unbound saved research key never clears an unknown request; explicit local forgetting does not change service records',async()=>{
   const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:{...researchFixture('wrong-key'),researchRequestKey:'quant-research-ffffffff-ffff-ffff-ffff-ffffffffffff'}});await settle();
   await app.submit('backtest');assert.equal(app.ids.get('latest-result').hidden,true);assert.equal(app.ids.get('research-request-status').hidden,false);

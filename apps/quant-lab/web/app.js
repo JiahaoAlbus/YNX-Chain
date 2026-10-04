@@ -748,9 +748,19 @@ paperForgetButton.onclick=()=>{
     pendingPaperInvalid=false;pendingPaperUnreadableBytes=null;pendingPaperIntent=null;toast(t('paperForgotten'),'paperForgotten');renderPaperSubmitControl();
   }catch{workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable');renderPaperSubmitControl();}
 };
-const researchForgetButton = document.createElement('button');
+const researchForgetButton = document.createElement('button'),researchRestoreButton=document.createElement('button');
 researchForgetButton.type='button';researchForgetButton.id='research-forget-pending';
-$('#backtest').append(researchForgetButton);
+researchRestoreButton.type='button';researchRestoreButton.id='research-restore-pending';
+$('#backtest').append(researchRestoreButton,researchForgetButton);
+function restoreResearchInputs(previous) {
+  for(const [id,value] of Object.entries({strategy:previous.strategy.name,seed:previous.strategy.seed,fast:previous.strategy.params.fast,slow:previous.strategy.params.slow,fee:previous.assumptions.feeBPS,slippage:previous.assumptions.slippageBPS}))$('#'+id).value=String(value);
+}
+researchRestoreButton.onclick=()=>{
+  if(researchSubmitting||!workspaceStorageAvailable)return;
+  reloadResearchJournal();
+  if(!workspaceStorageAvailable||pendingResearchInvalid||!pendingResearchIntent){renderResearchRequestState();return;}
+  restoreResearchInputs(pendingResearchIntent);renderResearchRequestState();toast(t('researchRestored'),'researchRestored');
+};
 researchForgetButton.onclick=()=>{
   if(researchSubmitting||!workspaceStorageAvailable||!pendingResearchIntent&&!pendingResearchInvalid)return;
   try {
@@ -1352,6 +1362,21 @@ const researchRecoveryCopy = {
   id:['Hasil belum terkonfirmasi. Segarkan riwayat dan ulangi masukan tersimpan yang sama tanpa membuat permintaan baru.','Permintaan riset sebelumnya belum terkonfirmasi. Pulihkan masukan awal sebelum mencoba lagi.','Lupakan permintaan hanya lokal','Lupakan permintaan di browser ini? Layanan mungkin telah menyimpannya. Riset server tidak dibatalkan atau dihapus; pengiriman berikutnya adalah proses terpisah.','Permintaan dilupakan secara lokal. Catatan server tidak berubah.'],
 };
 for(const [language,[researchRequestUnconfirmed,researchPendingMismatch,researchForget,researchForgetConfirm,researchForgotten]] of Object.entries(researchRecoveryCopy))Object.assign(businessCopy[language],{researchRequestUnconfirmed,researchPendingMismatch,researchForget,researchForgetConfirm,researchForgotten});
+const researchRestoreCopy={
+  en:['Restore saved research inputs','Original inputs restored. No backtest was submitted. Review and explicitly run again to retrieve the original result.'],
+  'zh-CN':['恢复已保存的回测输入','已恢复原输入，未提交回测。请审阅并明确再次运行以取回原结果。'],
+  'zh-TW':['還原已儲存的回測輸入','已還原原輸入，未提交回測。請檢視並明確再次執行以取回原結果。'],
+  ja:['保存した研究入力を復元','元の入力を復元しました。バックテストは送信していません。確認して明示的に再実行し、元の結果を取得してください。'],
+  ko:['저장된 연구 입력 복원','원래 입력을 복원했습니다. 백테스트를 제출하지 않았습니다. 검토한 뒤 명시적으로 다시 실행하여 원래 결과를 가져오세요.'],
+  es:['Restaurar entradas de investigación','Entradas originales restauradas. No se envió ningún backtest. Revisa y ejecuta explícitamente para recuperar el resultado original.'],
+  fr:['Restaurer les paramètres de recherche','Paramètres originaux restaurés. Aucun backtest envoyé. Vérifiez puis relancez explicitement pour récupérer le résultat original.'],
+  de:['Gespeicherte Forschungseingaben wiederherstellen','Ursprüngliche Eingaben wiederhergestellt. Kein Backtest gesendet. Prüfen und ausdrücklich erneut ausführen, um das ursprüngliche Ergebnis abzurufen.'],
+  pt:['Restaurar entradas da pesquisa','Entradas originais restauradas. Nenhum backtest enviado. Revise e execute explicitamente para recuperar o resultado original.'],
+  ru:['Восстановить данные исследования','Исходные данные восстановлены. Бэктест не отправлен. Проверьте и явно запустите повторно для получения исходного результата.'],
+  ar:['استعادة مدخلات البحث المحفوظة','استعيدت المدخلات الأصلية. لم يرسل اختبار تاريخي. راجعها ثم شغّل صراحةً لاسترجاع النتيجة الأصلية.'],
+  id:['Pulihkan masukan riset tersimpan','Masukan awal dipulihkan. Tidak ada backtest dikirim. Tinjau lalu jalankan ulang secara eksplisit untuk mengambil hasil awal.'],
+};
+for(const [language,[researchRestore,researchRestored]] of Object.entries(researchRestoreCopy))Object.assign(businessCopy[language],{researchRestore,researchRestored});
 function researchIntegerInput(id) {
   const raw = $("#" + id).value;
   if (typeof raw !== "string" || !raw.trim() || !Number.isSafeInteger(Number(raw))) throw Error(t("researchInputInvalid"));
@@ -1442,7 +1467,11 @@ function renderResearchRequestState() {
   $('#research-submit').disabled = researchSubmitting;
   $('#backtest').ariaBusy = String(researchSubmitting);
   $('#research-request-status').hidden = !researchSubmitting && !pendingResearchIntent && !pendingResearchInvalid;
-  $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : pendingResearchIntent || pendingResearchInvalid ? t('researchRequestUnconfirmed') : '';
+  const intent=pendingResearchIntent;
+  $('#research-request-status').textContent = researchSubmitting ? t('researchRequestPending') : pendingResearchInvalid ? t('researchRequestUnconfirmed') : intent ? `${t('researchRequestUnconfirmed')}\n${t('paperRequestKey')}: ${intent.idempotencyKey}\n${t('researchName')}: ${intent.strategy.name}\n${t('runSeed')}: ${intent.strategy.seed}\n${t('fastWindow')}: ${intent.strategy.params.fast} · ${t('slowWindow')}: ${intent.strategy.params.slow}\n${t('runFee')}: ${intent.assumptions.feeBPS} · ${t('runSlippage')}: ${intent.assumptions.slippageBPS}` : '';
+  researchRestoreButton.hidden=pendingResearchInvalid||!intent;
+  researchRestoreButton.disabled=researchSubmitting||!workspaceStorageAvailable;
+  researchRestoreButton.textContent=t('researchRestore');
   researchForgetButton.hidden=!pendingResearchIntent&&!pendingResearchInvalid;
   researchForgetButton.disabled=researchSubmitting||!workspaceStorageAvailable;
   researchForgetButton.textContent=t('researchForget');
@@ -1768,8 +1797,7 @@ $("#kill").onclick = async () => {
   }
 };
 if(pendingResearchIntent){
-  const previous=pendingResearchIntent;
-  for(const [id,value] of Object.entries({strategy:previous.strategy.name,seed:previous.strategy.seed,fast:previous.strategy.params.fast,slow:previous.strategy.params.slow,fee:previous.assumptions.feeBPS,slippage:previous.assumptions.slippageBPS}))$('#'+id).value=String(value);
+  restoreResearchInputs(pendingResearchIntent);
 }
 applyLocale();
 // A return URL only reveals the existing account controls. The private-session
