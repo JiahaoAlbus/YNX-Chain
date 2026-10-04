@@ -79,3 +79,4 @@ input[type="password"]{unicode-bidi:plaintext}
 @media(max-width:620px){#protected-pay-sheet .network-facts{grid-template-columns:1fr;gap:4px}#protected-pay-sheet .network-facts dd{margin-block-end:12px}}
 #transfer-summary dd{unicode-bidi:isolate}
 @media(max-width:620px){:root[dir="rtl"] .sidebar{border-left:0;border-bottom:1px solid var(--line)}}
+ #recipient-camera-video{display:block;width:100%;max-height:320px;object-fit:contain;background:#000;border-radius:12px;margin:12px 0}#recipient-camera-video[hidden]{display:none}

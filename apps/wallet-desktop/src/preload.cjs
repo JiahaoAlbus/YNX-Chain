@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   receiveCode: account => ipcRenderer.invoke("wallet:receive-code", account),
   paymentRecipient: input => ipcRenderer.invoke("wallet:payment-recipient", input),
   paymentQR: input => ipcRenderer.invoke("wallet:payment-qr", input),
+  beginRecipientCamera: () => ipcRenderer.invoke("wallet:camera-begin"),
+  endRecipientCamera: id => ipcRenderer.invoke("wallet:camera-end", id),
   createAccount: () => ipcRenderer.invoke("wallet:create-account"),
   importAccount: input => ipcRenderer.invoke("wallet:import-account", input),
   balance: () => ipcRenderer.invoke("wallet:balance"),

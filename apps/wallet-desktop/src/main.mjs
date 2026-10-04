@@ -1,7 +1,8 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import {createRecipientCameraPermission} from "./recipient-camera-permission.mjs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -66,8 +67,17 @@ let walletAuthority;
 let nativeWallet;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
+const recipientCameraPermission = createRecipientCameraPermission({
+  getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
+  getContents: () => mainWindow?.webContents,
+  expectedURL: pathToFileURL(path.join(directory, "index.html")).href,
+  id: randomUUID,
+});
+handleWalletIPC("wallet:camera-begin", () => safeIPC(() => recipientCameraPermission.begin()));
+handleWalletIPC("wallet:camera-end", (_event, id) => safeIPC(() => {recipientCameraPermission.end(id); return null;}));
 let lastReviewAccount = null;
 keyAccess.subscribe(state => {
+  recipientCameraPermission.invalidate();
   if (state.account !== lastReviewAccount) {
     lastReviewAccount = state.account;
     authorizationController?.cancel();
@@ -484,6 +494,12 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     }
   });
   mainWindow = window;
+  // Preserve non-capture permissions; video capture requires a current explicit
+  // local-window permit. Microphone/display capture are never part of scanning.
+  window.webContents.session.setPermissionCheckHandler((contents, permission, _origin, details) =>
+    permission === "media" ? recipientCameraPermission.allows(contents, permission, details, true) : true);
+  window.webContents.session.setPermissionRequestHandler((contents, permission, callback, details) =>
+    callback(permission === "media" ? recipientCameraPermission.allows(contents, permission, details) : permission !== "display-capture"));
   window.on("blur", () => keyAccess.setFocused(false));
   window.on("focus", () => keyAccess.setFocused(true));
   window.on("minimize", () => keyAccess.lock());

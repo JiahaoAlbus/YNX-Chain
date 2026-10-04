@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "61cfad85c74b4ed60b7db5709f4fcac9a1f56813",
+  "scope": "Owned Desktop Send camera product path; Native App, shared SDK/Auth/factory/registry and release versions/signing identity unchanged",
+  "implemented": [
+    "Explicit Start/Stop camera controls alongside existing QR image and paste entry",
+    "Video-only getUserMedia, no microphone, no device inventory, no frame upload or disk storage",
+    "Original local PNG/paymentQR decoder and original recipient parser; only native recipient string forwarded, no amount or approval",
+    "Exact local main-frame Main acquisition permit bound to actual account, key revision, focus, lock, changing/authenticating state and 60-second expiry",
+    "Both Electron media check and request handlers enforce video-only permit; display capture denied, other permissions retain prior behavior",
+    "Main key-state emissions invalidate the acquisition permit; renderer blur/pagehide/visibility, Send close/cancel, account/key/draft invalidation, image chooser, Stop, hardware ended and timeout stop owned tracks",
+    "Serial bounded PNG frames at most 720 pixels on longest side, no overlapping decodes",
+    "Late permit/stream/capture/decode cannot affect retired or replacement input",
+    "Camera UI copy covers original 12 locales, including RTL; macOS NSCameraUsageDescription added without changing version/signing"
+  ],
+  "controlledVerification": {
+    "initialNewImplementation": "23 tests, 22 PASS / 1 FAIL; scheduler delay omission with injected scheduler. Not an original product red counterexample.",
+    "finalSelected": "77/77 PASS, fail0 skip0 exit0",
+    "testFiles": ["recipient-camera.test.mjs", "recipient-camera-entry.test.mjs", "recipient-scan-ui.test.mjs", "receive-code-ui-boundary.test.mjs", "receive-share-ui.test.mjs", "wallet-locale.test.mjs", "wallet-ipc-policy.test.mjs", "startup-sandbox.test.mjs", "qr-file-input.test.mjs"],
+    "actualEntryCoverage": "Original renderer camera composition and original Main session callback expressions executed in VM with controlled DOM/media/IPC ports; original SDK-free input controller used. This is not actual Electron boot or original checksum producer execution.",
+    "syntax": "node --check Main/renderer/camera UI/permission modules PASS",
+    "whitespace": "git diff --check PASS"
+  },
+  "evidenceDirectory": "/tmp/ynx-wallet-desktop-camera-20261004-aPZDBW",
+  "notRun": ["Actual Electron app/complete shared SDK boot", "System camera permission dialog", "Physical camera frames", "Original address checksum producer runtime", "Installed macOS/Android/Web parity", "Formal signing/notarization/package/publication", "Preserving upgrade", "Canonical Pay/private authority/signing/settlement", "MONSTER"],
+  "limits": "Source implementation only. OS permission dialog/persistent camera grant cannot be cancelled or revoked by this controller; timeout retires its input intent and stops an eventual stream. Track stopping depends on original renderer callbacks executing, not a new OS-wide camera revocation protocol. The Main permit is an acquisition constraint, never identity/payment authority. No human secrets, enrolled account, key, UNKNOWN journal or funding operation was touched.",
+  "nextAction": "Root independently review original permission/context/lifecycle and mounted source counterexamples, then A compose all current owned source plus exact admitted graph and camera metadata into the preserving-upgrade candidate. Only real permission/device/installed readback can pass the camera gate.",
+  "overallGoal": "NOT_COMPLETED"
+}

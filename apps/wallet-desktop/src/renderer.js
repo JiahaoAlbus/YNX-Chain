@@ -10,6 +10,7 @@ import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
 import {mountDesktopPayUI} from "./wallet-pay-ui.mjs";
 import { setWalletCopy } from "./wallet-locale.mjs";
 import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
+import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-ui.mjs";
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 
@@ -96,11 +97,12 @@ for (const id of ["contract-address", "contract-mode"]) document.getElementById(
 contractSheet.addEventListener("close", () => contractUI.clear());
 contractSheet.addEventListener("cancel", () => contractUI.clear());
 let paymentDraftRevision = 0;
+let recipientCameraUI;
 const paymentRecipientUI = createPaymentRecipientUI({
   getContext: () => ({ open: document.querySelector("#send-sheet").open, account: accountState?.account, locked: keyState.locked, keyRevision: keyState.revision }),
   parse: input => window.ynxWallet.paymentRecipient(input),
   decode: input => window.ynxWallet.paymentQR(input),
-  onStart: () => { paymentDraftRevision++; },
+  onStart: () => { paymentDraftRevision++; recipientCameraUI?.stop(); },
   apply: address => {
     paymentDraftRevision++;
     document.querySelector("#transfer-to").value = address;
@@ -110,7 +112,24 @@ const paymentRecipientUI = createPaymentRecipientUI({
   },
   report: message => { copyUI(document.querySelector("#recipient-status"),message); },
 });
-const recipientScanUI=createRecipientScanUI({document,getContext:()=>({open:document.querySelector("#send-sheet").open,account:accountState?.account,locked:keyState.locked,keyRevision:keyState.revision,draftRevision:paymentDraftRevision}),image:file=>paymentRecipientUI.image(file)});
+const recipientScanContext=()=>({open:document.querySelector("#send-sheet").open,account:accountState?.account,locked:keyState.locked||keyState.authenticating,keyRevision:keyState.revision,draftRevision:paymentDraftRevision});
+const recipientVideo=document.querySelector("#recipient-camera-video"),recipientFrame=document.createElement("canvas");
+recipientCameraUI=createRecipientCameraUI({
+  getContext:()=>({...recipientScanContext(),focused:document.hasFocus()&&document.visibilityState==="visible"}),
+  begin:()=>window.ynxWallet.beginRecipientCamera(),end:id=>window.ynxWallet.endRecipientCamera(id),
+  openStream:()=>navigator.mediaDevices.getUserMedia({video:{width:{ideal:720},height:{ideal:720}},audio:false}),
+  attach:async stream=>{recipientVideo.srcObject=stream;recipientVideo.hidden=false;await recipientVideo.play();},
+  detach:()=>{recipientVideo.pause();recipientVideo.srcObject=null;recipientVideo.hidden=true;recipientFrame.width=recipientFrame.height=1;},
+  capture:()=>captureRecipientFrame(recipientVideo,recipientFrame),
+  decode:input=>window.ynxWallet.paymentQR(input),apply:address=>paymentRecipientUI.text(address),
+  report:value=>copyUI(document.querySelector("#recipient-status"),value),
+});
+const recipientScanUI=createRecipientScanUI({document,getContext:recipientScanContext,image:file=>paymentRecipientUI.image(file),onChoose:()=>recipientCameraUI.stop(),onInvalidate:()=>recipientCameraUI.stop()});
+document.querySelector("#start-recipient-camera").addEventListener("click",()=>void recipientCameraUI.start());
+document.querySelector("#stop-recipient-camera").addEventListener("click",()=>{recipientCameraUI.stop();copyUI(document.querySelector("#recipient-status"),"Camera stopped.");});
+window.addEventListener("blur",()=>recipientCameraUI.stop());
+window.addEventListener("pagehide",()=>recipientCameraUI.stop());
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState!=="visible")recipientCameraUI.stop();});
 function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); recipientScanUI.invalidate(); document.querySelector("#prepare-transfer").disabled=keyState.locked||keyState.authenticating; }
 // Public metadata was identity-checked by the main-process vault. Protocol keys remain EVM addresses.
 const nativeAccountLabel = account => accountState?.accounts?.find(item => item.account === account)?.ynxAccount ?? account;
