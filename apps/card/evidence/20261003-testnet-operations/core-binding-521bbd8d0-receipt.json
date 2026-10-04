@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-10-04T09:17:59.300Z",
+  "sourceCommit": "521bbd8d079c29613352583b44db030d8d60c07e",
+  "sourceTree": "b3cd4d95708102a9e3af46af63163e0a3b3650cd",
+  "scope": "Card Testnet chain verification binding",
+  "focusedPassed": 11,
+  "backendPassed": 147,
+  "typecheck": true,
+  "backendBuild": true,
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/core-binding-521bbd8d0-focused.txt",
+      "bytes": 998,
+      "sha256": "7c1b6bc8d1ae0fb7007c29dbb19fd899555c30e60e0708aea4f9ae2036aea709"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/core-binding-521bbd8d0-backend.txt",
+      "bytes": 14114,
+      "sha256": "3ff11d4c91da6bb6732daa5cbac45de9e3c7f58031136c32bd5d265dfb4f8757"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/core-binding-521bbd8d0-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/core-binding-521bbd8d0-build.txt",
+      "bytes": 98,
+      "sha256": "75f7af24acf0f08601e6e4d54ad81cac065c464b0f81f84223aafcd548260615"
+    }
+  ],
+  "bundle": {
+    "bytes": 287945,
+    "sha256": "cbd654669dfd55906486b5352974583604a1520de44e57e4d16396c973ffe7bd"
+  },
+  "testsUseSyntheticRpc": true,
+  "realRpcVerification": false,
+  "publicDeployment": false,
+  "realTransaction": false,
+  "cardFundingCredit": false,
+  "protectedRuntimeAdmission": false,
+  "productionRealPayments": false,
+  "notes": "Intent is snapshotted before asynchronous reads; invalid chain, status, confirmations, dates, canonical amount and addresses reject before RPC. Existing untracked files untouched. No wallet access, signature or transaction requested."
+}

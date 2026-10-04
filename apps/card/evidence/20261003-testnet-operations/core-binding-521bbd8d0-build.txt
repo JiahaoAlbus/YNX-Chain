@@ -1,0 +1,4 @@
+
+  ..../../../../../private/tmp/card-core-binding-backend-20261004.mjs  281.2kb
+
+⚡ Done in 12ms

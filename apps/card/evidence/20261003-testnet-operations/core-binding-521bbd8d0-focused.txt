@@ -1,0 +1,19 @@
+✔ Core adapter verifies exact wei, canonical block and confirmation readback without sending transactions (12.768208ms)
+✔ Core transport does not follow authority redirects (0.774375ms)
+✔ wrong chain is rejected before transaction inspection (0.363292ms)
+✔ missing and failed receipts cannot be credited (0.35475ms)
+✔ wrong sender, recipient and exact amount are rejected (0.391375ms)
+✔ insufficient confirmations and changed canonical block reject (0.473125ms)
+✔ reorg during verification cannot be accepted (0.471083ms)
+✔ transaction outside the accepted intent time is rejected (0.216875ms)
+✔ Core endpoint rejects credentials, query, fragment and non-HTTPS configuration (0.120708ms)
+✔ invalid funding intent cannot reach RPC or permit zero-confirmation credit (0.437958ms)
+✔ in-flight caller mutation cannot replace original funding binding (0.251583ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 155.863292
