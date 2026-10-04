@@ -1,0 +1,32 @@
+UI evidence: /tmp/ynx-social-ig-candidate-20261004
+✔ existing locale contract: English default, explicit Chinese, storage rejection and reversible copy (0.475041ms)
+✔ landing and inherited hash routes are explicit (0.108167ms)
+✔ all inherited DOM IDs, permission roots and provider assets remain (12.443166ms)
+✖ actual guest DOM at desktop/mobile from standard dist or scoped builds; no external authorization (1052.579542ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1115.215542
+
+✖ failing tests:
+
+test at apps/social/web/product-shell.ui.test.mjs:48:1
+✖ actual guest DOM at desktop/mobile from standard dist or scoped builds; no external authorization (1052.579542ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/product-shell.ui.test.mjs:125:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

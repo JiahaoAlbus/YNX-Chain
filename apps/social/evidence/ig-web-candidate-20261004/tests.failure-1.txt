@@ -1,0 +1,29 @@
+UI evidence: /tmp/ynx-social-ig-candidate-20261004
+✔ existing locale contract: English default, explicit Chinese, storage rejection and reversible copy (0.381041ms)
+✔ landing and inherited hash routes are explicit (0.058542ms)
+✔ all inherited DOM IDs, permission roots and provider assets remain (12.465917ms)
+✖ scoped browser builds and actual guest DOM at desktop/mobile; no external authorization (1485.4265ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1553.66325
+
+✖ failing tests:
+
+test at apps/social/web/product-shell.ui.test.mjs:45:1
+✖ scoped browser builds and actual guest DOM at desktop/mobile; no external authorization (1485.4265ms)
+  AssertionError [ERR_ASSERTION]: overflow {"locale":"en","hash":"","width":320,"scrollWidth":334,"page":"landing","logo":{"width":32,"height":16.828125,"fit":"contain"}}
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/product-shell.ui.test.mjs:128:13)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

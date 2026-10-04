@@ -1,0 +1,24 @@
+(node:88098) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/wallet-provider.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ browser pagehide dispatches the registered transport suspension hook (1.545917ms)
+✔ network control: switch, without account authorization (0.787917ms)
+✔ network control: add, without account authorization (0.372292ms)
+✔ network control: reject, without account authorization (0.308333ms)
+✔ network control: bad-readback, without account authorization (0.371416ms)
+✔ late network readback after disconnect cannot restore the panel (0.388083ms)
+✔ network action has explicit markup and visible status outside the chooser (2.185333ms)
+✔ older connect must not overwrite a later explicit wallet choice (0.610458ms)
+✔ manual disconnect persists on reload until explicit Connect (0.6225ms)
+✔ late startup restore cannot undo a manual disconnect (0.331042ms)
+✔ unsupported revoke shows manual guidance and keeps local connection (0.323541ms)
+✔ actual SDK revoke events cannot hide confirmed UI outcome (1.635ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 72.056042

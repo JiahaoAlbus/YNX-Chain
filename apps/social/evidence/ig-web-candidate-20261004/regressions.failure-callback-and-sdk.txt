@@ -1,0 +1,96 @@
+✔ review names the exact account/site/device, uses real logo and defaults focus to Cancel (1.663875ms)
+✔ approval is single-use; retained detached approval cannot approve a newer request (0.140958ms)
+✔ cancel closes the branded review with no approval (0.08575ms)
+✔ escape closes the branded review with no approval (0.080333ms)
+✔ abort closes the branded review with no approval (0.119458ms)
+✔ account/view changes are rechecked at the approval click, not just when shown (0.218375ms)
+✔ already-aborted intent cannot show a dialog (0.067542ms)
+✔ double requests are rejected without replacing the original review (0.111667ms)
+✔ unsupported dialog presentation fails closed and does not fall back to native confirm (0.228291ms)
+✔ progress is non-modal so standard upstream UIA controls remain interactive; no success is synthesized (0.246792ms)
+✔ explicit current document language is inherited without locale storage and remains dynamic (0.089167ms)
+✔ context is rendered as text nodes, never interpreted as HTML or a new URL (0.4755ms)
+✔ real SDK metadata is used without fabricated names, times or unread badges (0.710584ms)
+✔ unreviewed, local, sender-warning or attachment plaintext never enters previews (0.169625ms)
+✔ local echoes and server acceptance cannot be labeled delivered or read (0.075417ms)
+✔ explicit Ctrl/Cmd Enter only, never composition, Shift or normal Enter (0.486917ms)
+✔ already-scrubbed bootstrap snapshot is delivered once with the exact Social origin (1.077709ms)
+✔ invalid synthetic callback is scrubbed without delivery:  (0.114542ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce (0.075667ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?loginToken=fixture (0.071792ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=invalid&loginToken=fixture (0.182084ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&state=nonce&loginToken=fixture (0.076ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&loginToken=fixture&loginToken=duplicate (0.147625ms)
+✔ orphan callback keeps branded retry page and never delivers credentials (0.133291ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://other.example.test/matrix/login/callback (0.15425ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://social.ynxweb4.com/other (0.116916ms)
+✔ delivery exception is sanitized and cannot replay the credential (0.444708ms)
+✔ missing snapshot produces only a safe retry message (0.203417ms)
+✔ callback inherits explicit same-origin Social language without locale storage or query flags (0.264625ms)
+✔ foreign opener language does not override the English default or token origin (0.172125ms)
+✖ actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture) (4.51975ms)
+✔ bootstrap scrub failure navigates to a fixed clean URL without importing or delivering (0.796667ms)
+✔ bootstrap module failure shows a branded sanitized retry without delivery (0.623208ms)
+✔ callback-only build closes over two small owned modules without SDK/vendor/WASM in isolated output (11.148667ms)
+(node:81671) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/wallet-provider.js is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ browser pagehide dispatches the registered transport suspension hook (1.40375ms)
+✔ network control: switch, without account authorization (0.562083ms)
+✔ network control: add, without account authorization (0.33525ms)
+✔ network control: reject, without account authorization (0.297792ms)
+✔ network control: bad-readback, without account authorization (0.315292ms)
+✔ late network readback after disconnect cannot restore the panel (0.395416ms)
+✔ network action has explicit markup and visible status outside the chooser (1.642ms)
+✔ older connect must not overwrite a later explicit wallet choice (0.556083ms)
+✔ manual disconnect persists on reload until explicit Connect (0.668917ms)
+✔ late startup restore cannot undo a manual disconnect (0.599042ms)
+✔ unsupported revoke shows manual guidance and keeps local connection (0.425834ms)
+✖ actual SDK revoke events cannot hide confirmed UI outcome (2.42125ms)
+ℹ tests 46
+ℹ suites 0
+ℹ pass 44
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 80.073958
+
+✖ failing tests:
+
+test at apps/social/web/matrix/login-callback.test.mjs:68:1
+✖ actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture) (4.51975ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + undefined
+  - '/matrix/login-callback-entry.mjs'
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:75:42)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: '/matrix/login-callback-entry.mjs',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at apps/social/web/network-controls.test.mjs:153:1
+✖ actual SDK revoke events cannot hide confirmed UI outcome (2.42125ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  false !== true
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/network-controls.test.mjs:174:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
