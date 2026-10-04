@@ -1,7 +1,19 @@
 {
   "schemaVersion": 1,
   "status": "EXECUTABLE_MANUAL_ACCEPTANCE_CARDS; ALL_FINAL_PUBLIC_PRIVATE_JOURNEYS_NOT_VERIFIED",
-  "sourceBasis": "1647c58f0 plus current Seller input validation successor",
+  "sourceBasis": {
+    "ownedRuntimeSource": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+    "ownedRuntimeTree": "842b74986623a971a951dfd999b21d66d3272dab",
+    "immutableOwnedMembers": 444,
+    "sourceReceipt": "apps/shop/evidence/browser-gateway-20261004/receipt.json",
+    "unchangedControlledStaticBuild": {
+      "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+      "artifact": "apps/shop/evidence/shop-mount-20261004/controlled-shop-web-7d1128595.tar",
+      "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
+      "qualification": "CONTROLLED_ONLY; A formal SDK/profile/backend/runtime qualification still required"
+    },
+    "cardSuccessor": "Acceptance requirements updated after the frozen runtime; these cards do not change runtime authority."
+  },
   "owner": "Commerce product source; shared qualification/signing/publishing by unique A via Root",
   "products": {
     "buyer": {
@@ -51,7 +63,9 @@
     "Protected Commerce/Pay-product mounts including original transition lookup with Buyer three scopes",
     "Final exact entry URL, static bundle/source digest and deployed backend identity",
     "Exact Native platform/app/callback authority and formally signed package/install digest",
-    "User-controlled real Wallet approval then owned server readback"
+    "User-controlled real Wallet approval then owned server readback",
+    "Actual combined-Web response CSP, original issuer https://wallet-auth.ynxweb4.com and matching formal frontend SDK/runtime endpoint; actual original callback serves current Buyer index with /shop/ assets",
+    "Independent Android and macOS signed installed package/OS/SDK/backend identity and complete own-user journeys; a platform may not inherit another platform result"
   ],
   "buildInputs": {
     "preserveOriginalWorktree": true,
@@ -98,7 +112,9 @@
       ],
       "accept": [
         "All three exact entries resolve to A current source identity, with no old /shop alias source or 404.",
-        "Guest view contains no private records or invented balances/orders."
+        "Guest view contains no private records or invented balances/orders.",
+        "The actual original /wallet-auth/callback serves the current Buyer shell and resolves all scripts/styles/icons below /shop/; missing root /app.js is not treated as an alternative source.",
+        "Actual formal runtime endpoint, original combined backend issuer and delivered CSP agree before private authority is exercised."
       ]
     },
     {
@@ -121,7 +137,37 @@
       ],
       "accept": [
         "Standard connection alone reveals no private orders/profile/cart.",
-        "Current Browser/Buyer account and proof agree; sign-out cannot adopt an old response."
+        "Current Browser/Buyer account and proof agree; sign-out cannot adopt an old response.",
+        "Current combined Web CSP allows only the original fixed issuer in addition to self; runtime/proofs/profile match A qualified issuer and the current source-bound backend."
+      ]
+    },
+    {
+      "id": "buyer-profile-restore",
+      "role": "buyer",
+      "entry": "https://shop.ynxweb4.com/",
+      "controls": [
+        "#profileButton",
+        "#profileDialog",
+        "#profileForm",
+        "#closeProfile",
+        "#checkout"
+      ],
+      "services": [
+        "GET /api/profile",
+        "PUT /api/profile",
+        "GET /api/cart"
+      ],
+      "steps": [
+        "Approve the actual original Buyer three-scope request and verify the current Browser/Buyer account.",
+        "Open Profile, enter actual display name/address, cancel once, then reopen and explicitly save.",
+        "Close, reopen and cold launch under the same account; inspect actual server profile and shipping field restoration.",
+        "Leave while an original request is pending, reopen a new presentation, then change accounts and verify separate actual profiles."
+      ],
+      "accept": [
+        "Only the actual current own server profile/address are restored; an acknowledgement message alone is insufficient.",
+        "Cancelled presentations cannot dispatch after proof or overwrite reopened fields with a late result.",
+        "Switching accounts clears private fields; no earlier private profile/address/result appears in the new workspace.",
+        "Private address/body/session/proof are not stored in opaque acceptance or recovery journals."
       ]
     },
     {
@@ -141,12 +187,16 @@
       "steps": [
         "Choose retained real product and variant, add actual quantity, and reopen cart.",
         "Review actual shipping fields and explicitly submit the original checkout.",
-        "Cold reopen and explicitly recover the same unresolved key if the result was lost."
+        "Cold reopen and explicitly recover the same unresolved key if the result was lost.",
+        "For newly prepared never-sent work, close during proof preparation, reopen and restore the exact original cart/address, then explicitly Submit; compare original key and authoritative order readback.",
+        "For dispatched, unknown, legacy or missing phase, use original readback only; changed input, cold reopen or a not-found result cannot cause a replacement POST."
       ],
       "accept": [
         "Own cart and exact revision persist.",
         "Matching owned order and backend CartConsumption determine success; no cleanup PUT races the checkout.",
-        "Changed input/actor never creates a replacement unknown checkout."
+        "Changed input/actor never creates a replacement unknown checkout.",
+        "A separate opaque dispatch phase does not change the original three-field checkout record. Prepared permits only exact same-input/key explicit dispatch after fresh proof; dispatching/unknown/legacy never replay.",
+        "Closing/reopening/background/account change cannot admit an old proof or acknowledge a late order. Corrupt/orphan dispatch evidence blocks new checkout and privacy deletion."
       ]
     },
     {
@@ -305,12 +355,15 @@
       "steps": [
         "Approve the original independent Merchant scope tuple and original merchantId/member binding.",
         "Choose an existing own active catalog item or actual custom whole amount/tip; explicitly create.",
-        "Reopen View invoice, cancel and cold reopen original records; recover only the exact original mutation."
+        "Reopen View invoice, cancel and cold reopen original records; recover only the exact original mutation.",
+        "Navigate from Invoices to another actual task while proof or readback is pending, then reopen Invoices; repeat background/return and account/merchant change."
       ],
       "accept": [
         "Current account/merchant/member/role and current state agree.",
         "Signed invoice is not payment; no invented Wallet URL/QR or fabricated Pay state.",
-        "Exact original amounts/network/fee/signature metadata/expiry remain bound."
+        "Exact original amounts/network/fee/signature metadata/expiry remain bound.",
+        "Leaving a task ends its presentation and UI busy state while preserving actual in-memory drafts and original opaque mutation evidence.",
+        "A pending old proof cannot dispatch after navigation; an already dispatched unknown invoice remains original-readback-only and cannot enter another view/account/merchant."
       ]
     },
     {
@@ -352,7 +405,7 @@
         "restore_pending"
       ],
       "services": [
-        "Existing same Buyer routes and Native proof adapter"
+        "Original Buyer routes using A qualified actual Native proof producer and current backend, independently per platform"
       ],
       "steps": [
         "Install A exact signed package and use its normal launch/return handling.",
@@ -364,7 +417,104 @@
         "Current exact Native product/app/platform/account proof tuple; no fixture/guest authority.",
         "Prepared permits only explicit same-body/key dispatch after current proof; dispatching/unknown/legacy only lookup.",
         "No private callback adoption after leaving/cold reopening/switching accounts.",
-        "Source Debug success alone is not installed real Wallet/public acceptance."
+        "Source Debug success alone is not installed real Wallet/public acceptance.",
+        "Each Android/macOS run separately proves actual package install and original app/platform/callback/account authority; no static profile or fixture adapter stands in for the real Native proof producer."
+      ]
+    }
+  ],
+  "evidencePolicy": {
+    "default": "NOT_VERIFIED",
+    "independentPer": "product/role/platform/account/store-or-merchant/installed-or-public-source",
+    "requiredForEveryRun": [
+      "exact A source/tree and artifact hash",
+      "final URL or installed package/version/hash",
+      "accepted SDK/profile/runtime endpoint and deployed backend identity",
+      "current original account and store/merchant membership readback",
+      "explicit human Wallet approval when required",
+      "each operation original key/body digest/status and actual server readback",
+      "leave/reopen/restart/account-isolation outcomes"
+    ],
+    "privacy": "Retain only necessary redacted IDs/digests/status and source identities; never write keys, approvals, proofs, tokens, passwords or shipping bodies into acceptance evidence.",
+    "noInference": [
+      "controlled software approval is not human Wallet approval",
+      "Debug build is not signed package/install",
+      "HTML200 is not private service or source identity",
+      "one platform/role cannot qualify another",
+      "a pending transaction may not be automatically resent or cleared",
+      "queued integration is not deployment"
+    ]
+  },
+  "platformRuns": [
+    {
+      "id": "web-buyer",
+      "platform": "web",
+      "role": "buyer",
+      "journeys": [
+        "buyer-private",
+        "buyer-profile-restore",
+        "buyer-cart-checkout",
+        "buyer-wallet-review",
+        "buyer-resolution"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "web-seller",
+      "platform": "web",
+      "role": "seller",
+      "journeys": [
+        "seller-catalog",
+        "seller-fulfillment",
+        "seller-resolution"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "web-merchant",
+      "platform": "web",
+      "role": "merchant",
+      "journeys": [
+        "merchant-invoice",
+        "merchant-cases"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "android-buyer",
+      "platform": "android",
+      "role": "buyer",
+      "journeys": [
+        "native-buyer"
+      ],
+      "status": "NOT_VERIFIED",
+      "required": [
+        "catalog/product/variant/cart",
+        "profile save/reopen/cold restore",
+        "explicit checkout/original order readback",
+        "original invoice and human Wallet review",
+        "refund/return/dispute/review in actually allowed status",
+        "prepared same-input/key explicit retry versus unknown original lookup",
+        "leave/background/restart/account-isolation",
+        "original Seller/Merchant Web navigation with separate actual Web authority"
+      ]
+    },
+    {
+      "id": "macos-buyer",
+      "platform": "macos",
+      "role": "buyer",
+      "journeys": [
+        "native-buyer"
+      ],
+      "status": "NOT_VERIFIED",
+      "required": [
+        "catalog/product/variant/cart",
+        "profile save/reopen/cold restore",
+        "explicit checkout/original order readback",
+        "original invoice and human Wallet review",
+        "refund/return/dispute/review in actually allowed status",
+        "prepared same-input/key explicit retry versus unknown original lookup",
+        "leave/background/restart/account-isolation",
+        "original Seller/Merchant Web navigation with separate actual Web authority"
       ]
     }
   ]
