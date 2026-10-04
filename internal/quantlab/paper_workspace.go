@@ -22,7 +22,7 @@ type paperWorkspaceBinding struct {
 }
 
 func privatePaperRequest(r *http.Request) bool {
-	return r.Method == http.MethodGet && (r.URL.Path == "/v1/wallet/paper/snapshot" || r.URL.Path == "/v1/wallet/paper/experiment") || r.Method == http.MethodPost && (r.URL.Path == "/v1/wallet/paper/backtests/from-market" || r.URL.Path == "/v1/wallet/paper/orders" || r.URL.Path == "/v1/wallet/paper/risk/kill" || r.URL.Path == "/v1/wallet/paper/risk/reconcile")
+	return r.Method == http.MethodGet && (r.URL.Path == "/v1/wallet/paper/snapshot" || r.URL.Path == "/v1/wallet/paper/experiment" || r.URL.Path == "/v1/wallet/paper/order-receipt") || r.Method == http.MethodPost && (r.URL.Path == "/v1/wallet/paper/backtests/from-market" || r.URL.Path == "/v1/wallet/paper/orders" || r.URL.Path == "/v1/wallet/paper/risk/kill" || r.URL.Path == "/v1/wallet/paper/risk/reconcile")
 }
 
 func (s *TenantServer) paperWorkspace(account string) (*Service, error) {
@@ -143,6 +143,15 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Cache-Control", "no-store")
+	if r.Method == http.MethodGet && r.URL.Path == "/v1/wallet/paper/order-receipt" {
+		result, readErr := workspace.savedPaperOrderReceipt(r)
+		if readErr != nil {
+			respond(w, r, nil, readErr, 200)
+			return
+		}
+		paperOwnedResult(w, r, session, result, 200)
+		return
+	}
 	if r.Method == http.MethodGet && (r.URL.Path == "/v1/wallet/paper/experiment" || r.URL.RawQuery != "") {
 		result, readErr := workspace.boundedPaperHistory(r)
 		if readErr != nil {

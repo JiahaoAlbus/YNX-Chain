@@ -1,5 +1,6 @@
 // Owned consumer only. The original server chooses workspace, market price,
 // volume/risk and commits the idempotent receipt; this is not another engine.
+import {nativePaperHistory} from './paper-history-model.js';
 export function createPaperIntentController({session,snapshot,request,storage,uuid}){
   let draft=null,flight=null,revision=0;
   const fail=code=>{throw Object.assign(new Error(code),{code});};
@@ -21,6 +22,31 @@ export function createPaperIntentController({session,snapshot,request,storage,uu
     draft=Object.freeze({account:current.account,epoch:current.epoch,body:Object.freeze({...body,...(body.executionCosts?{executionCosts:Object.freeze({...body.executionCosts})}:{})}),revision:++revision,retry:!!saved});return draft;
   }
   function invalidate(){revision++;draft=null;}
+  function verifyReceipt(result,submitted){
+    if(!/^paper-[0-9]+$/.test(result.ID)||result.IdempotencyKey!==submitted.idempotencyKey||result.StrategyHash!==submitted.strategyHash||result.Side!==submitted.side||result.Amount!==submitted.amount)fail('PAPER_RECEIPT_MISMATCH');
+    if(submitted.executionCosts){const costs=submitted.executionCosts;if(result.CostPolicy!==costs.policy||(result.FeeBPS??0)!==costs.feeBPS||(result.SlippageBPS??0)!==costs.slippageBPS||!Number.isSafeInteger(result.ExecutionPriceMicro)||result.ExecutionPriceMicro<=0||!Number.isSafeInteger(result.ExecutedNotionalMicro??0)||(result.ExecutedNotionalMicro??0)<0||!Number.isSafeInteger(result.FeeMicro??0)||(result.FeeMicro??0)<0)fail('PAPER_RECEIPT_MISMATCH');}
+  }
+  function retireReceipt(account,submitted){
+    const retained=pending(account);if(!retained||retained.idempotencyKey!==submitted.idempotencyKey||!same(retained,submitted))fail('PAPER_PENDING_MISMATCH');
+    storage.removeItem(key(account));if(storage.getItem(key(account))!==null)fail('PAPER_PENDING_INVALID');invalidate();
+  }
+  function resolve(){
+    if(flight)return flight;
+    const current=owner(),submitted=pending(current.account);if(!submitted)fail('PAPER_PENDING_REQUIRED');
+    if(snapshot()?.account!==current.account)fail('PAPER_WORKSPACE_UNAVAILABLE');
+    const raw=JSON.stringify(submitted);invalidate();
+    const own=Promise.resolve().then(()=>{
+      const before=owner();if(before.account!==current.account||before.epoch!==current.epoch||storage.getItem(key(current.account))!==raw)fail('PRIVATE_OPERATION_SUPERSEDED');
+      return request('/v1/wallet/paper/order-receipt?key='+encodeURIComponent(submitted.idempotencyKey));
+    }).then(result=>{
+      const after=owner();if(after.account!==current.account||after.epoch!==current.epoch)fail('PRIVATE_OPERATION_SUPERSEDED');
+      if(result.account!==current.account)fail('PAPER_RECEIPT_MISMATCH');verifyReceipt(result,submitted);
+      // Readback must be a coherent saved order, not a fabricated key-only ack.
+      const observation=nativePaperHistory(after,{account:current.account,paper:{Orders:[result]},experiments:{},audit:[]});
+      if(observation.status!=='ready'||observation.invalid||observation.orders.length!==1||(!submitted.executionCosts&&result.CostPolicy))fail('PAPER_RECEIPT_MISMATCH');
+      if(storage.getItem(key(current.account))!==raw)fail('PAPER_PENDING_MISMATCH');retireReceipt(current.account,submitted);return result;
+    }).finally(()=>{if(flight===own)flight=null;});flight=own;return own;
+  }
   function confirm(expected){
     if(flight)return flight;
     const current=owner();if(!draft||expected!==draft||expected.revision!==revision||expected.account!==current.account||expected.epoch!==current.epoch)fail('PAPER_PREVIEW_REQUIRED');
@@ -33,11 +59,8 @@ export function createPaperIntentController({session,snapshot,request,storage,uu
     if(storage.getItem(key(current.account))!==body)fail('PAPER_PENDING_INVALID');
     const own=Promise.resolve().then(()=>{const before=session();if(before.account!==expected.account||before.epoch!==expected.epoch||before.status!=='connected')fail('PRIVATE_OPERATION_SUPERSEDED');return request('/v1/wallet/paper/orders',{method:'POST',body});}).then(result=>{
       const after=session();if(after.account!==expected.account||after.epoch!==expected.epoch)fail('PRIVATE_OPERATION_SUPERSEDED');
-      if(!/^paper-[0-9]+$/.test(result.ID)||result.IdempotencyKey!==submitted.idempotencyKey||result.StrategyHash!==submitted.strategyHash||result.Side!==submitted.side||result.Amount!==submitted.amount)fail('PAPER_RECEIPT_MISMATCH');
-      if(submitted.executionCosts){const costs=submitted.executionCosts;if(result.CostPolicy!==costs.policy||(result.FeeBPS??0)!==costs.feeBPS||(result.SlippageBPS??0)!==costs.slippageBPS||!Number.isSafeInteger(result.ExecutionPriceMicro)||result.ExecutionPriceMicro<=0||!Number.isSafeInteger(result.ExecutedNotionalMicro??0)||(result.ExecutedNotionalMicro??0)<0||!Number.isSafeInteger(result.FeeMicro??0)||(result.FeeMicro??0)<0)fail('PAPER_RECEIPT_MISMATCH');}
-      const retained=pending(expected.account);if(retained?.idempotencyKey===submitted.idempotencyKey){if(!same(retained,submitted))fail('PAPER_PENDING_MISMATCH');storage.removeItem(key(expected.account));if(storage.getItem(key(expected.account))!==null)fail('PAPER_PENDING_INVALID');}
-      invalidate();return result;
+      verifyReceipt(result,submitted);retireReceipt(expected.account,submitted);return result;
     }).finally(()=>{if(flight===own)flight=null;});flight=own;return own;
   }
-  return Object.freeze({preview,confirm,invalidate,pending:()=>{const current=session();return current.account?pending(current.account):null;},busy:()=>!!flight});
+  return Object.freeze({preview,confirm,resolve,invalidate,pending:()=>{const current=session();return current.account?pending(current.account):null;},busy:()=>!!flight});
 }

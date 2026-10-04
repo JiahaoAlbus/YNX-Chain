@@ -66,6 +66,7 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("POST /v1/wallet/private-records", v.privateRecords)
 	v.mux.HandleFunc("GET /v1/wallet/paper/snapshot", v.privatePaper)
 	v.mux.HandleFunc("GET /v1/wallet/paper/experiment", v.privatePaper)
+	v.mux.HandleFunc("GET /v1/wallet/paper/order-receipt", v.privatePaper)
 	v.mux.HandleFunc("POST /v1/wallet/paper/backtests/from-market", v.privatePaper)
 	v.mux.HandleFunc("POST /v1/wallet/paper/orders", v.privatePaper)
 	v.mux.HandleFunc("POST /v1/wallet/paper/risk/kill", v.privatePaper)

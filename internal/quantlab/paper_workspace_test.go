@@ -314,8 +314,9 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 	if len(currentHash) != 64 {
 		t.Fatal("current owner has no saved strategy")
 	}
+	receiptKey := "quant-native-paper-11111111-1111-4111-8111-111111111111"
 	costBody := func(model string) string {
-		return fmt.Sprintf(`{"strategyHash":%q,"side":"sell","amount":1000000,"idempotencyKey":"native-cost-http-key","executionCosts":%s}`, currentHash, model)
+		return fmt.Sprintf(`{"strategyHash":%q,"side":"sell","amount":1000000,"idempotencyKey":%q,"executionCosts":%s}`, currentHash, receiptKey, model)
 	}
 	for _, model := range []string{`null`, `{}`, `[]`, `{"policy":"unknown","feeBPS":10,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":null,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":-1,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"slippageBPS":10000}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"slippageBPS":5,"extra":1}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"feeBPS":11,"slippageBPS":5}`} {
 		if bad := call("POST", "/v1/wallet/paper/orders", "a", costBody(model), ""); bad.Code != 400 {
@@ -362,6 +363,20 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 		}
 	}
 	unchanged := call("GET", "/v1/wallet/paper/snapshot", "c", "", "")
+	receiptPath := "/v1/wallet/paper/order-receipt?key=" + receiptKey
+	readback := call("GET", receiptPath, "a", "", strings.Repeat("c", 64))
+	var savedCostReceipt PaperOrder
+	if readback.Code != 200 || json.Unmarshal(readback.Body.Bytes(), &savedCostReceipt) != nil || !reflect.DeepEqual(savedCostReceipt, costOrder) {
+		t.Fatal("native read-only halted receipt mismatch", readback.Code)
+	}
+	if foreign := call("GET", receiptPath, "c", "", strings.Repeat("a", 64)); foreign.Code == 200 {
+		t.Fatal("foreign owner read saved order")
+	}
+	for _, label := range []string{"", "d", "e"} {
+		if denied := call("GET", receiptPath, label, "", ""); denied.Code != 401 && denied.Code != 403 {
+			t.Fatal("native receipt scope escape", label, denied.Code)
+		}
+	}
 	var unchangedB struct {
 		Paper PaperState `json:"paper"`
 	}
