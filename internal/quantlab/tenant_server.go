@@ -61,6 +61,7 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 	base.cfg.browserBindings = base
 	base.cfg.ownedRecords = server.financePayload
 	base.cfg.paperWorkspace = server.paperWorkspace
+	base.cfg.paperReceiptWorkspace = server.existingPaperReceiptWorkspace
 	if strings.TrimSpace(config.FinanceReadKey) != "" {
 		server.financeRead, err = readintegration.NewVerifier(strings.TrimSpace(config.FinanceReadKey), "finance", "quant", config.Now)
 		if err != nil {

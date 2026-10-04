@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -13,6 +14,34 @@ import (
 )
 
 const quantPaperWorkspaceScope = "quant:paper:workspace"
+
+// Receipt recovery only observes already persisted binding and tenant snapshots.
+// In particular it never calls enrollment, New/openStateStore, tenant(), save
+// or a filesystem writer lock. Atomic snapshots/DB SELECT supply each read.
+func (s *TenantServer) existingPaperReceiptWorkspace(account string) (*Service, error) {
+	var mappingStore stateStore = fileStateStore{path: s.config.StatePath + ".paper-workspaces"}
+	if base, ok := s.baseService.store.(*postgresStateStore); ok {
+		mappingStore = &postgresStateStore{db: base.db, key: s.config.StateNamespace + ":paper-workspaces:v1"}
+	}
+	mapping, found, err := mappingStore.load()
+	if err != nil || !found {
+		return nil, ErrUnavailable
+	}
+	binding, found := mapping.PaperWorkspaceBindings[hashBytes([]byte("YNX Quant Paper workspace v1\x00"+account))]
+	if !found || binding.Account != account || !tenantIDPattern.MatchString(binding.TenantID) || binding.CreatedAt.IsZero() {
+		return nil, ErrUnavailable
+	}
+	config := s.config
+	var store stateStore = fileStateStore{path: filepath.Join(s.root, binding.TenantID+".json")}
+	if base, ok := s.baseService.store.(*postgresStateStore); ok {
+		store = &postgresStateStore{db: base.db, key: s.config.StateNamespace + ":tenant:" + binding.TenantID}
+	}
+	snapshot, found, err := store.load()
+	if err != nil || !found {
+		return nil, ErrUnavailable
+	}
+	return &Service{cfg: config, state: snapshot, store: store, durableStateObserved: true}, nil
+}
 
 // Durable data ownership, not a bearer tenant capability or identity issuer.
 type paperWorkspaceBinding struct {
@@ -137,7 +166,20 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 		writeProblem(w, r, status, "browser_identity_binding_unavailable")
 		return
 	}
-	workspace, err := s.service.cfg.paperWorkspace(session.Account)
+	receiptRead := r.Method == http.MethodGet && r.URL.Path == "/v1/wallet/paper/order-receipt"
+	lookup := s.service.cfg.paperWorkspace
+	if receiptRead {
+		if _, err := paperReceiptSelector(r); err != nil {
+			respond(w, r, nil, err, 200)
+			return
+		}
+		lookup = s.service.cfg.paperReceiptWorkspace
+		if lookup == nil {
+			writeProblem(w, r, 503, "paper_workspace_unavailable")
+			return
+		}
+	}
+	workspace, err := lookup(session.Account)
 	if err != nil {
 		writeProblem(w, r, 503, "paper_workspace_unavailable")
 		return

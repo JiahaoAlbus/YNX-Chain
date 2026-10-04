@@ -278,7 +278,10 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       assert.equal(await page.evaluate(()=>snapshot.paper.KillSwitch),false);
     }
     const killDialog=page.waitForEvent('dialog'),killClick=page.locator('#kill').click();await (await killDialog).accept();await killClick;
-    await page.waitForFunction(()=>snapshot.paper?.KillSwitch===true);
+    // A confirmed receipt becomes observable before its refresh/finally
+    // releases the risk lane. Observe the completed UI transition, not that
+    // intermediate state where the submit label correctly remains unconfirmed.
+    await page.waitForFunction(()=>snapshot.paper?.KillSwitch===true&&riskWrites.size===0&&!riskOutcomeUnconfirmed);
     assert.equal(await page.locator('#paper-strategy-status').textContent(),await page.evaluate(()=>t('killActive')));
     assert.equal(killRequests,1,'fresh explicit confirmation reaches the local simulation engine exactly once');
     const killedBefore=await page.evaluate(()=>snapshot.paper);

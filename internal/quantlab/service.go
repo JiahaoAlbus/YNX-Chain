@@ -50,21 +50,22 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath        string
-	DatabaseURL      string
-	StateNamespace   string
-	sharedDatabase   *sql.DB
-	Now              func() time.Time
-	MandateVerifier  MandateVerifier
-	TestnetBroker    TestnetBroker
-	SessionCompleter WalletSessionCompleter
-	PrivateSession   ProductSessionAuthorizer
-	BrowserSSO       *productsessionv2.BrowserSSO
-	browserBindings  *Service
-	ownedRecords     func(string) (financeQuantPayload, error)
-	paperWorkspace   func(string) (*Service, error)
-	FinanceReadKey   string
-	MarketData       MarketData
+	StatePath             string
+	DatabaseURL           string
+	StateNamespace        string
+	sharedDatabase        *sql.DB
+	Now                   func() time.Time
+	MandateVerifier       MandateVerifier
+	TestnetBroker         TestnetBroker
+	SessionCompleter      WalletSessionCompleter
+	PrivateSession        ProductSessionAuthorizer
+	BrowserSSO            *productsessionv2.BrowserSSO
+	browserBindings       *Service
+	ownedRecords          func(string) (financeQuantPayload, error)
+	paperWorkspace        func(string) (*Service, error)
+	paperReceiptWorkspace func(string) (*Service, error)
+	FinanceReadKey        string
+	MarketData            MarketData
 }
 
 type MandateVerifier interface {

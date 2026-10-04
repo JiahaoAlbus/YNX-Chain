@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFile} from 'node:fs/promises';
+import {nativeHistoryPage} from '../web/paper-history-model.js';
 
 // Execute the owned draft itself. SDK/session/provider facades are controlled
 // fixtures, not real approval, public deployment or engine execution evidence.
@@ -11,13 +12,14 @@ function setup(){
   let proofHook=async()=>({proofHeader:'fixture-only'}),responseHook=async()=>new Response(JSON.stringify(payload()),{headers:{'content-type':'application/json'}});
   const context={provider:{},account:'0x'+'1'.repeat(40),chainId:'0x1917',providerKind:'ynx-wallet',revision:0,status:'connected'};
   const current={status:'connected',session:{account:'ynx-fixture-owner',sessionBinding:'fixture-binding'}};
-  function payload(){return {account:current.session.account,sessionBinding:current.session.sessionBinding,paper:{},strategies:{},experiments:{},audit:[],access:{paperWorkspaceAuthorized:true,statefulPreview:false,nativeExecutionEnabled:false,scheduleAuthorized:false}};}
+  function payload(){return {account:current.session.account,sessionBinding:current.session.sessionBinding,paper:{Orders:[]},strategies:{},experiments:{},audit:[],history:{version:'bounded_v2',revision:'fixture-revision',offset:0,pageSize:20,hasNext:false,counts:{orders:0,experiments:0,audit:0,strategies:0}},access:{paperWorkspaceAuthorized:true,statefulPreview:false,nativeExecutionEnabled:false,scheduleAuthorized:false}};}
   const client={current,restore:async()=>current,disconnect:async()=>({status:'disconnected',revocationConfirmed:true})};
   const elements=new Map(['paper-authorize','paper-refresh','paper-revoke','paper-session-status','locale'].map(id=>[id,{dataset:{},addEventListener(){}}]));
   const window={YNXQuantWallet:{getPrivateWalletContext:()=>({...context})},addEventListener:(name,fn)=>{const list=events.get(name)||[];list.push(fn);events.set(name,list);},dispatchEvent:event=>{for(const fn of events.get(event.type)||[])fn(event);}};
   const realm=vm.createContext({window,document:{getElementById:id=>elements.get(id),querySelectorAll:()=>[]},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},navigator:{onLine:true},registry:{},privateSessionCopy:()=>({pending:'pending',connected:'connected',guest:'guest',unavailable:'unavailable'}),paperSessionCopy:()=>({authorize:'authorize',refresh:'refresh',revoke:'revoke',boundary:'simulation only'}),ProductSessionGatewayFetchAdapter:class{},createBrowserProductSessionClient:async()=>({client,close(){},createIntrospectionProof:()=>proofHook()}),fetch:async(...args)=>{calls.push(args);return responseHook(...args);},Response,TextDecoder,TextEncoder,Uint8Array,AbortController,setTimeout,clearTimeout,queueMicrotask,CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}},console});
   storage.set('ynx.quant.paper-workspace-session.v1.started','true');
   realm.URL=URL;
+  realm.nativeHistoryPage=nativeHistoryPage;
   vm.runInContext(source.replace(/^import .*;\n/gm,'').replace(/export /g,'')+'\nglobalThis.qa={mountPaperSession,paperWorkspaceRequest,revokePaperSession,getPaperSessionState,getPaperWorkspaceSnapshot};',realm);
   realm.qa.mountPaperSession();
   return {qa:realm.qa,calls,context,payload,window,proof:fn=>{proofHook=fn;},response:fn=>{responseHook=fn;},ready:async()=>{for(let i=0;i<20&&realm.qa.getPaperSessionState().status!=='connected';i++)await new Promise(resolve=>setTimeout(resolve,0));assert.equal(realm.qa.getPaperSessionState().status,'connected');}};
@@ -70,4 +72,24 @@ test('native receipt read has one key only, binds its returned key and never rep
  const f=setup();await f.ready();const key='quant-native-paper-11111111-1111-4111-8111-111111111111';for(const path of ['/v1/wallet/paper/order-receipt','/v1/wallet/paper/order-receipt?key=invalid','/v1/wallet/paper/order-receipt?key='+key+'&key='+key,'/v1/wallet/paper/order-receipt?key='+key+'&account=foreign'])await assert.rejects(f.qa.paperWorkspaceRequest(path),{code:'PAPER_OPERATION_NOT_AUTHORIZED'});assert.equal(f.calls.length,0);
  await f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot');const previous=f.qa.getPaperWorkspaceSnapshot();f.response(async()=>new Response(JSON.stringify({account:previous.account,sessionBinding:previous.sessionBinding,IdempotencyKey:key}),{headers:{'content-type':'application/json'}}));await f.qa.paperWorkspaceRequest('/v1/wallet/paper/order-receipt?key='+key);assert.equal(f.qa.getPaperWorkspaceSnapshot(),previous);
  f.response(async()=>new Response(JSON.stringify({account:previous.account,sessionBinding:previous.sessionBinding,IdempotencyKey:'foreign-key'}),{headers:{'content-type':'application/json'}}));await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/order-receipt?key='+key),{code:'PAPER_BINDING_MISMATCH'});assert.equal(f.context.status,'connected');
+});
+test('snapshot pages bind exact requested version, offset, revision and every returned record count',async()=>{
+ const f=setup();await f.ready();
+ for(const edit of [v=>delete v.history,v=>v.history.version='bounded_v1',v=>v.history.offset=20,v=>v.history.counts.orders=1,v=>v.history.counts.experiments=1,v=>v.history.counts.audit=1,v=>v.history.counts.strategies=1]){
+  const value=f.payload();edit(value);f.response(async()=>new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}}));
+  await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot'),{code:'PAPER_BINDING_MISMATCH'});
+  assert.equal(f.qa.getPaperWorkspaceSnapshot(),null);assert.equal(f.context.status,'connected');
+ }
+ f.response(async()=>new Response(JSON.stringify({...f.payload(),history:{...f.payload().history,offset:20,revision:'wrong'}}),{headers:{'content-type':'application/json'}}));
+ await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot?history=bounded_v2&offset=20&revision=expected'),{code:'PAPER_BINDING_MISMATCH'});
+ const count=f.calls.length;await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot?history=bounded_v2&offset=20'),{code:'PAPER_OPERATION_NOT_AUTHORIZED'});assert.equal(f.calls.length,count);
+});
+test('late old-page response cannot replace or clear the latest owner-bound snapshot',async()=>{
+ const f=setup();await f.ready();let release,arrived=false;
+ f.response(async()=>{arrived=true;return new Promise(resolve=>{release=()=>resolve(new Response(JSON.stringify(f.payload()),{headers:{'content-type':'application/json'}}));});});
+ const old=f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot');const rejected=assert.rejects(old,{code:'PRIVATE_OPERATION_SUPERSEDED'});
+ while(!arrived)await new Promise(resolve=>setTimeout(resolve,0));
+ f.response(async()=>new Response(JSON.stringify({...f.payload(),history:{...f.payload().history,revision:'new-durable-revision'}}),{headers:{'content-type':'application/json'}}));
+ await f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot');const latest=f.qa.getPaperWorkspaceSnapshot();release();await rejected;
+ assert.equal(f.qa.getPaperWorkspaceSnapshot(),latest);assert.equal(latest.history.revision,'new-durable-revision');assert.equal(f.qa.getPaperSessionState().ready,true);
 });

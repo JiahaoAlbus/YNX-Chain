@@ -22,7 +22,10 @@ export function mountPaperActions(){
   }
   for(const key of ['kill','reconcile']){const button=document.createElement('button');button.id='paper-native-'+key;button.type='button';button.dataset.paperRisk=key;riskPanel.append(button);}
   const boundary=document.createElement('p');boundary.dataset.paperRisk='boundary';riskPanel.append(boundary);find('paper-owned-form').after(riskPanel);
-  let review=null,working=false,renderedOwner=null;
+  let review=null,working=false,renderedOwner=null,operation=null;
+  const startOperation=kind=>{const current=getPaperSessionState();operation={kind,account:current.account,epoch:current.epoch,source:getPaperWorkspaceSnapshot(),result:find('paper-owned-result'),form:find('paper-owned-form')};working=true;return operation;};
+  const sameOperation=value=>{const current=getPaperSessionState();return operation===value&&current.account===value.account&&current.epoch===value.epoch&&find('paper-owned-result')===value.result&&find('paper-owned-form')===value.form&&value.result.isConnected&&value.form.isConnected&&(value.kind!=='receipt'||getPaperWorkspaceSnapshot()===value.source);};
+  function retireOperation(){operation=null;working=false;}
   const copy=()=>paperActionCopy(localStorage.getItem('ynx.quant.locale')||'en');
   function invalidate(){review=null;controller.invalidate();risk.invalidate();research.invalidate();if(dialog.open)dialog.close();}
   function render(){
@@ -49,7 +52,7 @@ export function mountPaperActions(){
     find('paper-owned-confirm').disabled=working;find('paper-owned-cancel').disabled=working;
   }
   function show(kind,value){review={kind,value,account:getPaperSessionState().account,epoch:getPaperSessionState().epoch};find('paper-owned-preview-text').textContent=JSON.stringify(value.body||value,null,2);const language=localStorage.getItem('ynx.quant.locale')||'en';find('paper-owned-model').textContent=kind==='risk'?paperRiskCopy(language).boundary:kind==='backtest'?paperNativeBacktestBoundary(language):value.body.executionCosts?paperNativeCostCopy(language).boundary:copy().model;dialog.showModal();}
-  receiptButton.addEventListener('click',async()=>{if(working)return;const before=getPaperSessionState();invalidate();working=true;render();try{const result=await controller.resolve(),after=getPaperSessionState();if(after.account!==before.account||after.epoch!==before.epoch)throw new Error('PRIVATE_OPERATION_SUPERSEDED');find('paper-owned-result').textContent=JSON.stringify(result,null,2);}catch{find('paper-owned-result').textContent=paperReceiptCopy(localStorage.getItem('ynx.quant.locale')||'en').unresolved;}finally{working=false;render();}});
+  receiptButton.addEventListener('click',async()=>{if(working)return;invalidate();const active=startOperation('receipt');render();try{const result=await controller.resolve();if(sameOperation(active))active.result.textContent=JSON.stringify(result,null,2);}catch{if(sameOperation(active))active.result.textContent=paperReceiptCopy(localStorage.getItem('ynx.quant.locale')||'en').unresolved;}finally{if(sameOperation(active)){retireOperation();render();}}});
   const integer=id=>{const raw=find(id).value;if(!raw.trim()||!Number.isSafeInteger(Number(raw)))throw Object.assign(new Error(),{code:'PAPER_DRAFT_INVALID'});return Number(raw);};
   for(const action of ['kill','reconcile'])find('paper-native-'+action).addEventListener('click',()=>{try{invalidate();show('risk',risk.preview(action,action==='kill'?{reason:find('paper-native-reason').value}:{cash:integer('paper-native-cash'),position:integer('paper-native-position')}));}catch(error){find('paper-owned-result').textContent=copy().unavailable+' '+error.code;}});
   riskPanel.addEventListener('input',invalidate);
@@ -67,15 +70,15 @@ export function mountPaperActions(){
     if(submitted.kind==='risk'){
       try{const body=submitted.value.body;if(submitted.value.action==='kill'?find('paper-native-reason').value!==body.reason:integer('paper-native-cash')!==body.cash||integer('paper-native-position')!==body.position){invalidate();return;}}catch{invalidate();return;}
     }
-    working=true;render();
+    const active=startOperation('confirm');render();
     try{
       const result=submitted.kind==='risk'?await risk.confirm(submitted.value):submitted.kind==='signal'?await controller.confirm(submitted.value):await research.confirm(submitted.value);
-      const after=getPaperSessionState();if(after.account!==submitted.account||after.epoch!==submitted.epoch)throw Object.assign(new Error(),{code:'PRIVATE_OPERATION_SUPERSEDED'});
+      if(!sameOperation(active))return;
       find('paper-owned-result').textContent=JSON.stringify(result,null,2);invalidate();
       await paperWorkspaceRequest('/v1/wallet/paper/snapshot');
-    }catch(error){find('paper-owned-result').textContent=copy().unavailable+' '+(error.code||'PAPER_SERVICE_UNAVAILABLE');invalidate();}
-    finally{working=false;render();}
+    }catch(error){if(sameOperation(active)){active.result.textContent=copy().unavailable+' '+(error.code||'PAPER_SERVICE_UNAVAILABLE');invalidate();}}
+    finally{if(sameOperation(active)){retireOperation();render();}}
   });
-  window.addEventListener('ynx:quant-paper-session',()=>{invalidate();render();});
+  window.addEventListener('ynx:quant-paper-session',()=>{if(operation&&!sameOperation(operation))retireOperation();invalidate();render();});
   find('locale')?.addEventListener('change',()=>queueMicrotask(()=>{invalidate();render();}));render();
 }

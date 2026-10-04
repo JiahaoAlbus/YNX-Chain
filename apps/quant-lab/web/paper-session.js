@@ -2,10 +2,11 @@ import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} fro
 import registry from '../../../packages/wallet-auth/product-session-registry.json';
 import {privateSessionCopy} from './private-session-copy.js';
 import {paperSessionCopy} from './paper-session-copy.js';
+import {nativeHistoryPage} from './paper-history-model.js';
 
 const SCOPES=Object.freeze(['quant:paper:workspace']);
 const STARTED='ynx.quant.paper-workspace-session.v1.started';
-let adapter=null,initializing=null,pending=null,retiring=null,cancelPending=null,epoch=0,closed=false,binding=null;
+let adapter=null,initializing=null,pending=null,retiring=null,cancelPending=null,epoch=0,closed=false,binding=null,snapshotReadSequence=0;
 let state={status:'guest',account:null},data=null;
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 function render(){
@@ -68,32 +69,38 @@ export async function paperWorkspaceRequest(path,options={}){
   for(const key of url.searchParams.keys())if(!selectors.includes(key)||url.searchParams.getAll(key).length!==1||!url.searchParams.get(key))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(snapshotRead&&(!['bounded_v1','bounded_v2'].includes(url.searchParams.get('history'))||(url.searchParams.has('offset')&&(!/^(0|[1-9][0-9]{0,15})$/.test(url.searchParams.get('offset'))||!Number.isSafeInteger(Number(url.searchParams.get('offset')))||Number(url.searchParams.get('offset'))>Number.MAX_SAFE_INTEGER-20||Number(url.searchParams.get('offset'))%20!==0))))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(detailRead&&(!url.searchParams.get('id')||!url.searchParams.get('revision')))fail('PAPER_OPERATION_NOT_AUTHORIZED');
+  if(snapshotRead&&Number(url.searchParams.get('offset')||0)>0&&!url.searchParams.get('revision'))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(receiptRead&&!/^quant-native-paper-[0-9a-f-]{36}$/.test(url.searchParams.get('key')||''))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   path=url.pathname+url.search;
   const body=method==='POST'?options.body:undefined;
   if(method==='POST'&&(typeof body!=='string'||new TextEncoder().encode(body).byteLength>262144))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(pending||state.status!=='connected')fail('PRIVATE_SIGN_IN_REQUIRED');
+  const readSequence=snapshotRead?++snapshotReadSequence:null;
   const revision=epoch,context=window.YNXQuantWallet.getPrivateWalletContext(),selected=await client();
   const authorization=await selected.createIntrospectionProof(SCOPES),before=selected.client.current.session;
-  if(!before||closed||revision!==epoch||!sameContext(context))fail('PRIVATE_OPERATION_SUPERSEDED');
+  if(!before||closed||revision!==epoch||!sameContext(context)||(snapshotRead&&readSequence!==snapshotReadSequence))fail('PRIVATE_OPERATION_SUPERSEDED');
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
   try{
     const response=await fetch('/api'+path,{method,body,credentials:'same-origin',cache:'no-store',redirect:'error',signal:controller.signal,headers:{'content-type':'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
     if(!response.ok)throw Object.assign(new Error(response.status===401||response.status===403?'PRIVATE_AUTHORIZATION_REJECTED':'PAPER_SERVICE_UNAVAILABLE'),{code:response.status===401||response.status===403?'PRIVATE_AUTHORIZATION_REJECTED':'PAPER_SERVICE_UNAVAILABLE',status:response.status});
     if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||''))fail('PAPER_BINDING_MISMATCH');
     const result=await readPaperDocument(response),after=selected.client.current.session;
-    if(closed||revision!==epoch||!sameContext(context))fail('PRIVATE_OPERATION_SUPERSEDED');
+    if(closed||revision!==epoch||!sameContext(context)||(snapshotRead&&readSequence!==snapshotReadSequence))fail('PRIVATE_OPERATION_SUPERSEDED');
     if(!after||before.account!==after.account||before.sessionBinding!==after.sessionBinding||result.account!==after.account||result.sessionBinding!==after.sessionBinding)fail('PAPER_BINDING_MISMATCH');
     if(snapshotRead){
       const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
       if(result.access?.paperWorkspaceAuthorized!==true||result.access.statefulPreview!==false||result.access.nativeExecutionEnabled!==false||result.access.scheduleAuthorized!==false||!record(result.paper)||!record(result.strategies)||!record(result.experiments)||!Array.isArray(result.audit))fail('PAPER_BINDING_MISMATCH');
+      const page=nativeHistoryPage(result);
+      if(!page||page.version!==url.searchParams.get('history')||page.offset!==Number(url.searchParams.get('offset')||0)||(url.searchParams.has('revision')&&page.revision!==url.searchParams.get('revision')))fail('PAPER_BINDING_MISMATCH');
+      if(!Array.isArray(result.paper.Orders)&&result.paper.Orders!==null)fail('PAPER_BINDING_MISMATCH');
+      for(const [key,length] of [['orders',result.paper.Orders?.length||0],['experiments',Object.keys(result.experiments).length],['audit',result.audit.length]])if(length!==Math.min(20,Math.max(0,page.counts[key]-page.offset)))fail('PAPER_BINDING_MISMATCH');
       data=result;if(context.status==='connected')binding=context;render();notify();
     }else if(detailRead){
       if(result.revision!==url.searchParams.get('revision')||result.experiment?.id!==url.searchParams.get('id'))fail('PAPER_BINDING_MISMATCH');
     }else if(receiptRead){
       if(result.IdempotencyKey!==url.searchParams.get('key'))fail('PAPER_BINDING_MISMATCH');
     }return result;
-  }catch(error){if(revision===epoch){data=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();notify();}throw error;}
+  }catch(error){if(revision===epoch&&(!snapshotRead||readSequence===snapshotReadSequence)){data=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();notify();}throw error;}
   finally{clearTimeout(timer);}
 }
 export function mountPaperSession(){

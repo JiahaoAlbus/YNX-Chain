@@ -74,3 +74,66 @@ func TestSavedPaperReceiptReadIsDurableHaltSafeAndNeverMutatesState(t *testing.T
 		t.Fatal("ambiguous receipt accepted", err)
 	}
 }
+
+func TestExistingReceiptLookupNeverAllocatesMissingTenantOrMapping(t *testing.T) {
+	cfg := Config{StatePath: filepath.Join(t.TempDir(), "root.json")}
+	server, err := NewTenantServer(cfg, "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer server.Close()
+	if _, err = server.existingPaperReceiptWorkspace("owner-a"); err != ErrUnavailable {
+		t.Fatal("missing mapping accepted")
+	}
+	if server.paperMappings != nil || len(server.servers) != 0 {
+		t.Fatal("lookup initialized mappings/cache")
+	}
+	mapping, err := server.paperMappingStore()
+	if err != nil {
+		t.Fatal(err)
+	}
+	account := "owner-a"
+	id := hash(account)
+	mapping.state.PaperWorkspaceBindings = map[string]paperWorkspaceBinding{}
+	mapping.state.PaperWorkspaceBindings[hashBytes([]byte("YNX Quant Paper workspace v1\x00"+account))] = paperWorkspaceBinding{Account: account, TenantID: id, CreatedAt: mapping.cfg.Now()}
+	if err = mapping.save(); err != nil {
+		t.Fatal(err)
+	}
+	before, _ := os.ReadFile(cfg.StatePath + ".paper-workspaces")
+	for range 3 {
+		if _, err = server.existingPaperReceiptWorkspace(account); err != ErrUnavailable {
+			t.Fatal("missing tenant allocated")
+		}
+	}
+	after, _ := os.ReadFile(cfg.StatePath + ".paper-workspaces")
+	if !bytes.Equal(before, after) {
+		t.Fatal("lookup changed mapping audit/state")
+	}
+	files, err := os.ReadDir(server.root)
+	if err != nil || len(files) != 0 || len(server.servers) != 0 {
+		t.Fatal("lookup created tenant")
+	}
+	tenant, err := New(Config{StatePath: filepath.Join(server.root, id+".json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	tenant.state.Paper.Orders = []PaperOrder{{ID: "paper-1", IdempotencyKey: "quant-native-paper-11111111-1111-4111-8111-111111111111"}}
+	if err = tenant.save(); err != nil {
+		t.Fatal(err)
+	}
+	original, _ := os.ReadFile(tenant.cfg.StatePath)
+	observed, err := server.existingPaperReceiptWorkspace(account)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = observed.savedPaperOrderReceipt(httptest.NewRequest("GET", "/v1/wallet/paper/order-receipt?key="+tenant.state.Paper.Orders[0].IdempotencyKey, nil)); err != nil {
+		t.Fatal(err)
+	}
+	result, _ := os.ReadFile(tenant.cfg.StatePath)
+	if !bytes.Equal(original, result) || len(server.servers) != 0 {
+		t.Fatal("read changed tenant")
+	}
+	if _, err = server.existingPaperReceiptWorkspace("owner-b"); err != ErrUnavailable {
+		t.Fatal("foreign receipt accepted")
+	}
+}

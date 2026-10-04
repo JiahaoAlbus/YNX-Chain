@@ -107,6 +107,22 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 	if service.paperMappings != nil {
 		t.Fatal("insufficient scope allocated workspace")
 	}
+	for _, path := range []string{"/v1/wallet/paper/order-receipt?key=invalid", "/v1/wallet/paper/order-receipt?key=quant-native-paper-11111111-1111-4111-8111-111111111111"} {
+		result := call("GET", path, "a", "", "")
+		if result.Code != 400 && result.Code != 503 {
+			t.Fatal("unbound receipt should be invalid/unavailable", result.Code)
+		}
+		if service.paperMappings != nil || len(service.servers) != 0 {
+			t.Fatal("receipt enrolled an owner/tenant")
+		}
+		if _, err := os.Stat(cfg.StatePath + ".paper-workspaces"); !os.IsNotExist(err) {
+			t.Fatal("receipt wrote mapping state")
+		}
+		entries, err := os.ReadDir(service.root)
+		if err != nil || len(entries) != 0 {
+			t.Fatal("receipt created tenant artifacts")
+		}
+	}
 	results := make(chan int, 2)
 	var wait sync.WaitGroup
 	for range 2 {
