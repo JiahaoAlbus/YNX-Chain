@@ -1266,6 +1266,9 @@ func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSec
 		return StrategySpec{}, ErrInvalid
 	}
 	if !enabled {
+		if !strategy.Runtime.Enabled && !strategy.Runtime.Running && strategy.Runtime.NextRunAt.IsZero() && strategy.Runtime.LastRunStatus == "stopped_by_user" {
+			return copyStrategyObservation(strategy), nil
+		}
 		strategy.Runtime.Enabled = false
 		strategy.Runtime.Running = false
 		strategy.Runtime.NextRunAt = time.Time{}
@@ -1279,6 +1282,11 @@ func (s *Service) ConfigureStrategySchedule(id string, enabled bool, intervalSec
 	}
 	if s.cfg.MarketData == nil || strategy.Stage != StageBacktest || intervalSeconds < 60 || intervalSeconds > 86400 || assumptions.LatencyBars < 0 || assumptions.LatencyBars > 50 || assumptions.ParticipationBPS <= 0 || assumptions.ParticipationBPS > 10000 || assumptions.TrainEnd < 10 || assumptions.WalkForwardWindows < 1 || assumptions.WalkForwardWindows > 20 {
 		return StrategySpec{}, ErrInvalid
+	}
+	// PUT sets configuration, not a new scheduler run. An identical retry must
+	// preserve the durable claim/history and due time, including across services.
+	if strategy.Runtime.Enabled && strategy.Runtime.IntervalSeconds == intervalSeconds && strategy.Runtime.Assumptions == assumptions {
+		return copyStrategyObservation(strategy), nil
 	}
 	strategy.Runtime = StrategyRuntime{Enabled: true, IntervalSeconds: intervalSeconds, Assumptions: assumptions, NextRunAt: s.cfg.Now().Add(time.Duration(intervalSeconds) * time.Second), LastRunStatus: "scheduled"}
 	s.state.Strategies[id] = strategy

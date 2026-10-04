@@ -471,7 +471,7 @@ const scheduleCopy = {
 };
 for (const [language, values] of Object.entries(scheduleCopy)) Object.assign(businessCopy[language], Object.fromEntries(["scheduleLead","scheduleStart","scheduleStop","schedulePending","scheduleUnknown","scheduleConfirmStart","scheduleConfirmStop","scheduleInvalid","scheduleConfigured","scheduleStopped","scheduleInactive"].map((key,index)=>[key,values[index]])));
 for (const [language,scheduleObservation] of Object.entries({en:"Next / last run / experiment","zh-CN":"下次 / 上次运行 / 实验","zh-TW":"下次 / 上次執行 / 實驗",ja:"次回 / 最終実行 / 実験",ko:"다음 / 마지막 실행 / 실험",es:"Próxima / última ejecución / experimento",fr:"Prochaine / dernière exécution / expérience",de:"Nächster / letzter Lauf / Experiment",pt:"Próxima / última execução / experimento",ru:"Следующий / последний запуск / эксперимент",ar:"التالي / آخر تشغيل / التجربة",id:"Berikutnya / terakhir / eksperimen"})) Object.assign(businessCopy[language],{scheduleObservation});
-const scheduleStatusKeys = {scheduled:'scheduleQueued',running:'scheduleClaimed',completed:'scheduleCompleted',stopped_by_user:'scheduleStopped',cancelled_before_execution:'scheduleCancelled',failed_invalid_or_cancelled_configuration:'scheduleConfigurationFailed',failed_market_data_unavailable:'scheduleMarketFailed'};
+const scheduleStatusKeys = {scheduled:'scheduleQueued',running:'scheduleClaimed',completed:'scheduleCompleted',stopped_by_user:'scheduleStopped',stopped_stage_advanced:'scheduleStageAdvanced',cancelled_before_execution:'scheduleCancelled',failed_invalid_or_cancelled_configuration:'scheduleConfigurationFailed',failed_market_data_unavailable:'scheduleMarketFailed'};
 const scheduleStatusCopy = {
   en:['Waiting for the next research run','Run claimed — completion not yet verified','Research run completed','Cancelled before execution','Configuration changed or invalid; review the strategy','Market data unavailable; retry at the next scheduled run'],
   'zh-CN':['等待下一次研究','任务已认领，完成尚未验证','研究运行完成','执行前已取消','配置已变化或无效，请检查策略','行情不可用，将在下一到期时间重试'],
@@ -487,6 +487,20 @@ const scheduleStatusCopy = {
   id:['Menunggu riset berikutnya','Proses dicadangkan — selesai belum terverifikasi','Riset selesai','Dibatalkan sebelum eksekusi','Konfigurasi berubah atau tidak valid; tinjau strategi','Data pasar tidak tersedia; coba lagi pada jadwal berikutnya']
 };
 for (const [language, values] of Object.entries(scheduleStatusCopy)) Object.assign(businessCopy[language],Object.fromEntries(['scheduleQueued','scheduleClaimed','scheduleCompleted','scheduleCancelled','scheduleConfigurationFailed','scheduleMarketFailed'].map((key,index)=>[key,values[index]])));
+for (const [language, copy] of Object.entries({
+  en:'Schedule stopped because the strategy advanced beyond Backtest',
+  'zh-CN':'策略已离开回测阶段，研究排程已停止',
+  'zh-TW':'策略已離開回測階段，研究排程已停止',
+  ja:'戦略がバックテスト段階を進んだため、研究スケジュールを停止しました',
+  ko:'전략이 백테스트 단계를 벗어나 연구 일정이 중지되었습니다',
+  es:'Programación detenida: la estrategia avanzó más allá del backtest',
+  fr:'Planification arrêtée : la stratégie a dépassé le stade du backtest',
+  de:'Zeitplan gestoppt: Die Strategie hat die Backtest-Phase verlassen',
+  pt:'Agendamento interrompido: a estratégia avançou além do backtest',
+  ru:'Расписание остановлено: стратегия вышла из этапа бэктеста',
+  ar:'توقفت الجدولة لأن الاستراتيجية تجاوزت مرحلة الاختبار التاريخي',
+  id:'Jadwal dihentikan karena strategi telah melewati tahap backtest'
+})) Object.assign(businessCopy[language], {scheduleStageAdvanced:copy});
 function scheduleStatusText(runtime) { return t(Object.hasOwn(scheduleStatusKeys,runtime?.lastRunStatus) ? scheduleStatusKeys[runtime.lastRunStatus] : runtime?.lastRunStatus ? 'scheduleUnknown' : 'scheduleInactive'); }
 function observedSchedule(strategy) {
   const runtime = strategy?.Runtime;

@@ -131,6 +131,22 @@ test('schedule observations reject normalized invalid dates without inventing a 
   assert.equal(app.calls.filter(call=>call.options.method==='PUT'||call.options.method==='POST').length,0);
 });
 
+test('lifecycle advancement reports its real stopped schedule in every language without offering restart',async()=>{
+  const strategy=savedResearchStrategy({Stage:'Walk-forward',Runtime:{enabled:false,running:false,intervalSeconds:60,lastRunStatus:'stopped_stage_advanced',nextRunAt:'0001-01-01T00:00:00Z'}});
+  const app=harness({snapshot:{strategies:{saved:strategy}}});await settle();
+  app.context.advancedStrategy=strategy;
+  assert.ok(vm.runInContext('observedSchedule(advancedStrategy)',app.context));
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const copy=vm.runInContext('t("scheduleStageAdvanced")',app.context);
+    assert.notEqual(copy,'scheduleStageAdvanced');
+    assert.ok(app.ids.get('strategy-rows').innerHTML.includes(vm.runInContext('safe(t("scheduleStageAdvanced"))',app.context)));
+    assert.ok(!app.ids.get('strategy-rows').innerHTML.includes(vm.runInContext('safe(t("scheduleUnknown"))',app.context)));
+    assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);
+  }
+  assert.equal(app.calls.filter(c=>['PUT','POST'].includes(c.options.method)).length,0);assert.equal(app.proofs(),0);
+});
+
 test('idle cash amount stays source-bound and only known sampling policy receives localized explanation',async()=>{
   const result=researchFixture('idle-cash-receipt');result.attribution={currency:'YUSD_TEST_MICRO',averageIdleCapital:99998989487,idleCapitalSamplingPolicy:'observed_bar_cash_mean_truncate_micro_v1'};
   const app=harness({apiResponse:url=>url.endsWith('/snapshot')?{}:result});await settle();await app.submit('backtest');
