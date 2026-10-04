@@ -1,0 +1,18 @@
+{"Time":"2026-10-04T08:05:18.148791+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T08:05:18.148917+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music"}
+{"Time":"2026-10-04T08:05:18.537571+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"testing: warning: no tests to run\n"}
+{"Time":"2026-10-04T08:05:18.537658+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"PASS\n"}
+{"Time":"2026-10-04T08:05:18.595477+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness"}
+{"Time":"2026-10-04T08:05:18.595531+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness\n"}
+{"Time":"2026-10-04T08:05:18.595608+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android"}
+{"Time":"2026-10-04T08:05:18.595622+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"=== RUN   TestMusicNativeConsumerAndOriginalBusiness/android\n"}
+{"Time":"2026-10-04T08:05:19.54304+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/music\t1.394s [no tests to run]\n"}
+{"Time":"2026-10-04T08:05:19.543097+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/music","Elapsed":1.3940000000000001}
+{"Time":"2026-10-04T08:05:24.134869+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"    music_native_business_test.go:185: actual Native SDK -\u003e own native Music consumer -\u003e original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified\n"}
+{"Time":"2026-10-04T08:05:24.135451+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Output":"--- PASS: TestMusicNativeConsumerAndOriginalBusiness/android (5.54s)\n"}
+{"Time":"2026-10-04T08:05:24.135471+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness/android","Elapsed":5.54}
+{"Time":"2026-10-04T08:05:24.135579+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Output":"--- PASS: TestMusicNativeConsumerAndOriginalBusiness (5.54s)\n"}
+{"Time":"2026-10-04T08:05:24.135596+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestMusicNativeConsumerAndOriginalBusiness","Elapsed":5.54}
+{"Time":"2026-10-04T08:05:24.135803+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T08:05:25.148815+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t7.000s\n"}
+{"Time":"2026-10-04T08:05:25.148875+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":7}

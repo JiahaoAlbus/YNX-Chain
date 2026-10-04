@@ -16,4 +16,5 @@
     <string name="new_playlist">새 재생 목록</string>
     <string name="cancel_upload_draft">업로드 초안을 취소할까요? 서버가 받은 오디오는 유지됩니다.</string>
     <string name="cancel_upload">초안 취소</string>
+    <string name="trust_pending">요청이 저장되었습니다. Trust 확인을 기다리고 있습니다. 이 요청을 다시 시도하세요.</string>
 </resources>

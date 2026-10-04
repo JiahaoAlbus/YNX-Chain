@@ -97,6 +97,16 @@ final class MusicStore {
         else{if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original upload intent changed");current.remove("uploadIntent");if(snapshot!=null)current.put("remote",snapshot);}
         save(current);
     }}
+    void prepareCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);MusicTrustCase.validateIntent(intent,account);JSONObject current=load();
+        if(current.has("caseIntent"))throw new IOException("Original pending Trust request must be retried first");
+        current.put("caseIntent",new JSONObject(intent.toString()));guard.check();save(current);
+    }}
+    void acknowledgeCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("caseIntent");
+        if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original Trust intent changed");
+        current.remove("caseIntent");guard.check();save(current);
+    }}
     File uploadFile(String key)throws IOException {
         requireAccount(account);if(!key.matches("music-upload-[A-Fa-f0-9-]{36}"))throw new IOException("Invalid original upload key");return new File(directory,"upload-drafts/"+key+".wav");
     }

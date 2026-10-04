@@ -16,4 +16,5 @@
     <string name="new_playlist">قائمة جديدة</string>
     <string name="cancel_upload_draft">هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.</string>
     <string name="cancel_upload">إلغاء المسودة</string>
+    <string name="trust_pending">تم حفظ الطلب. تأكيد Trust قيد الانتظار. أعد محاولة هذا الطلب.</string>
 </resources>

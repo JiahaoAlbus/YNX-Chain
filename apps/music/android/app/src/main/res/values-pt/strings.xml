@@ -16,4 +16,5 @@
     <string name="new_playlist">Nova lista</string>
     <string name="cancel_upload_draft">Cancelar este rascunho? O áudio recebido pelo servidor será mantido.</string>
     <string name="cancel_upload">Cancelar rascunho</string>
+    <string name="trust_pending">Pedido salvo. A confirmação do Trust está pendente. Tente este pedido novamente.</string>
 </resources>

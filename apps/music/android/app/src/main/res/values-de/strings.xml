@@ -16,4 +16,5 @@
     <string name="new_playlist">Neue Liste</string>
     <string name="cancel_upload_draft">Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.</string>
     <string name="cancel_upload">Entwurf abbrechen</string>
+    <string name="trust_pending">Anfrage gespeichert. Trust-Bestätigung steht aus. Diese Anfrage erneut versuchen.</string>
 </resources>

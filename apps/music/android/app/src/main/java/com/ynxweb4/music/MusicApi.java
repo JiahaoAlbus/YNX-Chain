@@ -28,7 +28,7 @@ final class MusicApi {
     JSONObject reviewAI(String id,String action,String name)throws Exception{return post("/api/ai/proposals/"+id+"/review",new JSONObject().put("action",action).put("name",name));}
     JSONObject onboard(String displayName)throws Exception{return post("/api/creator/onboarding",new JSONObject().put("displayName",displayName).put("bio","Creator of owned or licensed Music uploads"));}
     JSONObject release(String id,String state,String reason)throws Exception{return post("/api/creator/tracks/"+id+"/release",new JSONObject().put("state",state).put("reason",reason));}
-    JSONObject openCase(String kind,String trackId,String reason,String evidence)throws Exception{return json("POST","/api/cases",new JSONObject().put("kind",kind).put("trackID",trackId).put("reason",reason).put("evidenceRef",evidence),"music-trust-"+java.util.UUID.randomUUID());}
+    JSONObject openCase(JSONObject body,String key)throws Exception{if(!key.matches("music-trust-[A-Fa-f0-9-]{36}"))throw new IOException("Invalid original Trust key");return json("POST","/api/cases",new JSONObject(body.toString()),key);}
     JSONObject settlement(String allocationId,String payTo)throws Exception{return json("POST","/api/creator/settlements",new JSONObject().put("allocationID",allocationId).put("payTo",payTo),"music-pay-"+allocationId);}
     JSONObject updateProfile(JSONObject profile)throws Exception{return put("/api/profile",profile);}
     JSONObject reportPosition(String trackId,String sessionRef,int position,boolean completed)throws Exception{return post("/api/playback/"+trackId+"/position",new JSONObject().put("sessionRef",sessionRef).put("positionMillis",position).put("completed",completed));}

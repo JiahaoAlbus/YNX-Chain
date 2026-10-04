@@ -16,4 +16,5 @@
     <string name="new_playlist">Nueva lista</string>
     <string name="cancel_upload_draft">¿Cancelar este borrador? El audio recibido por el servidor se conservará.</string>
     <string name="cancel_upload">Cancelar borrador</string>
+    <string name="trust_pending">Solicitud guardada. Pendiente de confirmación de Trust. Reintenta esta solicitud.</string>
 </resources>

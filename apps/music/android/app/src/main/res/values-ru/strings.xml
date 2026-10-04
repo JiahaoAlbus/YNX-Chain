@@ -16,4 +16,5 @@
     <string name="new_playlist">Новый плейлист</string>
     <string name="cancel_upload_draft">Отменить черновик загрузки? Полученное сервером аудио будет сохранено.</string>
     <string name="cancel_upload">Отменить черновик</string>
+    <string name="trust_pending">Запрос сохранён. Ожидается подтверждение Trust. Повторите этот запрос.</string>
 </resources>

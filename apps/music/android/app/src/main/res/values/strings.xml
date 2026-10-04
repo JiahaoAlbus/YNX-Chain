@@ -16,4 +16,5 @@
     <string name="new_playlist">New playlist</string>
     <string name="cancel_upload_draft">Cancel this upload draft? Audio already received by the server will be retained.</string>
     <string name="cancel_upload">Cancel draft</string>
+    <string name="trust_pending">Saved request. Trust confirmation is pending. Retry this request.</string>
 </resources>

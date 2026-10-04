@@ -16,4 +16,5 @@
     <string name="new_playlist">新建歌单</string>
     <string name="cancel_upload_draft">取消此上传草稿？服务端已收到的音频会保留。</string>
     <string name="cancel_upload">取消草稿</string>
+    <string name="trust_pending">请求已保存，尚待 Trust 确认。请重试此请求。</string>
 </resources>

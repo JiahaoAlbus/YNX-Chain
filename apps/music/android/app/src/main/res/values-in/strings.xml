@@ -16,4 +16,5 @@
     <string name="new_playlist">Daftar baru</string>
     <string name="cancel_upload_draft">Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.</string>
     <string name="cancel_upload">Batalkan draf</string>
+    <string name="trust_pending">Permintaan tersimpan. Konfirmasi Trust masih tertunda. Coba lagi permintaan ini.</string>
 </resources>

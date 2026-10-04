@@ -16,4 +16,5 @@
     <string name="new_playlist">Nouvelle liste</string>
     <string name="cancel_upload_draft">Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.</string>
     <string name="cancel_upload">Annuler le brouillon</string>
+    <string name="trust_pending">Demande enregistrée. Confirmation Trust en attente. Réessayez cette demande.</string>
 </resources>

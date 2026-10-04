@@ -16,4 +16,5 @@
     <string name="new_playlist">新規リスト</string>
     <string name="cancel_upload_draft">このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。</string>
     <string name="cancel_upload">下書きを取り消す</string>
+    <string name="trust_pending">リクエストは保存済みです。Trust の確認待ちです。このリクエストを再試行してください。</string>
 </resources>
