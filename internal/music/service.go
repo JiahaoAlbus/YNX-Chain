@@ -136,6 +136,11 @@ func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string
 	if err != nil {
 		return err
 	}
+	if s.business != nil {
+		if err := s.business.checkOriginalOperationState(next); err != nil {
+			return err
+		}
+	}
 	if err := fn(&next); err != nil {
 		return err
 	}
@@ -152,6 +157,11 @@ func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string
 	a := AuditEvent{Sequence: uint64(len(next.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
 	a.Hash = hashJSON(a)
 	next.Audit = append(next.Audit, a)
+	if s.business != nil {
+		if err = s.business.recordOriginalOperation(&next, s.state); err != nil {
+			return err
+		}
+	}
 	var current func() error
 	if s.business != nil && s.business.grant.Current != nil {
 		current = func() error { return s.business.checkCurrentContext(ctx, s.cfg.Now) }

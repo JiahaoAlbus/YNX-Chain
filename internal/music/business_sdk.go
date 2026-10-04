@@ -113,5 +113,5 @@ func (a *musicSDKAuthority) VerifyMusicBusiness(ctx context.Context, r *http.Req
 		}
 		return nil
 	}
-	return MusicBusinessGrant{Actor: session.Account, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
+	return MusicBusinessGrant{ProductID: session.ProductID, Scope: scope, Actor: session.Account, Nonce: action.Nonce, BodyDigest: action.BodyDigest, SessionBinding: session.SessionBinding, ExpiresAt: action.ExpiresAt, Revalidate: revalidate, Current: guard}, nil
 }

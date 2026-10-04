@@ -63,6 +63,9 @@ func loadStateMode(path, mediaDir string, persistMigration bool) (persistentStat
 	if err := verifyAuditChain(state.Audit); err != nil {
 		return persistentState{}, false, err
 	}
+	if err := validateMusicOriginalOperations(state); err != nil {
+		return persistentState{}, false, err
+	}
 	if len(state.BusinessNonces) > 4096 || len(state.BusinessNonces) > 0 && (state.BusinessClock == nil || state.BusinessClock.IsZero()) {
 		return persistentState{}, false, errors.New("music business replay metadata is invalid")
 	}

@@ -42,14 +42,14 @@ var stateMigrations = []stateMigration{
 		state.SchemaVersion = 5
 		return nil
 	}, down: func(state *State) error {
-		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+		if len(state.OriginalOperations) != 0 || len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
 			return errors.New("cannot discard Video session-bound replay protection")
 		}
 		state.SchemaVersion = 4
 		return nil
 	}},
 	{from: 3, to: 4, up: func(state *State) error { state.SchemaVersion = 4; return nil }, down: func(state *State) error {
-		if len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
+		if len(state.OriginalOperations) != 0 || len(state.BusinessNonces) != 0 || !state.BusinessClockFloor.IsZero() {
 			return errors.New("cannot discard Video business replay protection")
 		}
 		state.BusinessNonces = nil
@@ -299,6 +299,11 @@ func (s *Store) updateLocal(ctx context.Context, fn func(*State) error) error {
 			}
 		}
 		if err = s.business.checkCurrentContext(ctx); err != nil {
+			return err
+		}
+	}
+	if s.business != nil {
+		if err = s.business.recordOriginalOperation(&candidate, s.state); err != nil {
 			return err
 		}
 	}

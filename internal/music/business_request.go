@@ -30,6 +30,7 @@ type MusicLocalTransaction interface {
 
 type MusicBusinessGrant struct {
 	Actor, SessionBinding, Nonce, BodyDigest string
+	ProductID, Scope                         string
 	ExpiresAt                                time.Time
 	Revalidate                               func(context.Context) error
 	// Current is a local original actor/device/generation guard, without remote
@@ -38,11 +39,15 @@ type MusicBusinessGrant struct {
 	// Capture each local persistence phase separately. Remote dispatch is outside
 	// the authority gate; an UNKNOWN original dispatch is never resent here.
 	CaptureTransaction func(context.Context) (MusicLocalTransaction, error)
+	// Trusted internal producer only; never decoded from HTTP.
+	Operation                   *MusicOriginalOperationMetadata
+	RequireOperationAssociation bool
 }
 type MusicBusinessNonce struct {
-	BodyDigest string    `json:"bodyDigest"`
-	Actor      string    `json:"actor"`
-	ExpiresAt  time.Time `json:"expiresAt"`
+	BodyDigest string                          `json:"bodyDigest"`
+	Actor      string                          `json:"actor"`
+	ExpiresAt  time.Time                       `json:"expiresAt"`
+	Operation  *MusicOriginalOperationMetadata `json:"operation,omitempty"`
 }
 type musicBusinessLease struct {
 	ctx      context.Context
@@ -53,6 +58,9 @@ type musicBusinessLease struct {
 var musicProofNonce = regexp.MustCompile(`^[A-Za-z0-9_-]{16,128}$`)
 
 func (l *musicBusinessLease) check(clock func() time.Time) error {
+	if err := l.checkOperationSource(); err != nil {
+		return err
+	}
 	if l == nil || l.ctx == nil || l.ctx.Err() != nil || l.grant.Revalidate == nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
 	}
@@ -83,6 +91,9 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
 	return l.checkCurrentContext(l.ctx, clock)
 }
 func (l *musicBusinessLease) checkCurrentContext(ctx context.Context, clock func() time.Time) error {
+	if err := l.checkOperationSource(); err != nil {
+		return err
+	}
 	if ctx == nil || ctx.Err() != nil {
 		return ErrUnauthorized
 	}
@@ -127,7 +138,7 @@ func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st
 	}
 	key := l.grant.SessionBinding + ":" + l.grant.Nonce
 	if previous, ok := st.BusinessNonces[key]; ok {
-		if !l.consumed || previous.Actor != actor || previous.BodyDigest != l.grant.BodyDigest {
+		if !l.consumed || previous.Actor != actor || previous.BodyDigest != l.grant.BodyDigest || !sameMusicOperation(previous.Operation, l.grant.Operation) {
 			return ErrUnauthorized
 		}
 	} else {
@@ -147,13 +158,18 @@ func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st
 		if len(st.BusinessNonces) >= 4096 {
 			return fmt.Errorf("%w: Music replay capacity reached", ErrConflict)
 		}
-		st.BusinessNonces[key] = MusicBusinessNonce{Actor: actor, BodyDigest: l.grant.BodyDigest, ExpiresAt: l.grant.ExpiresAt}
+		st.BusinessNonces[key] = MusicBusinessNonce{Actor: actor, BodyDigest: l.grant.BodyDigest, ExpiresAt: l.grant.ExpiresAt, Operation: cloneMusicOperationMetadata(l.grant.Operation)}
 	}
 	floor := now.UTC()
 	st.BusinessClock = &floor
 	return nil
 }
 func (s *Service) requestService(lease *musicBusinessLease) *Service {
+	if lease.grant.Operation != nil {
+		copyLease := *lease
+		copyLease.grant.Operation = cloneMusicOperationMetadata(lease.grant.Operation)
+		lease = &copyLease
+	}
 	return &Service{cfg: s.cfg, musicStateStore: s.musicStateStore, business: lease}
 }
 

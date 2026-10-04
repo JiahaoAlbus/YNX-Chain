@@ -32,14 +32,18 @@ type VideoBusinessGrant struct {
 	// Membership-changing commands require an original writer transaction, not
 	// a normal effect lease. No producer is installed by this optional seam.
 	CaptureTransaction func(context.Context) (VideoLocalTransaction, error)
+	// Trusted internal producer only; never decoded from HTTP.
+	Operation                   *VideoOriginalOperationMetadata
+	RequireOperationAssociation bool
 }
 type VideoBusinessNonce struct {
-	Nonce          string    `json:"nonce,omitempty"`
-	Actor          string    `json:"actor"`
-	BodyDigest     string    `json:"body_digest"`
-	SessionBinding string    `json:"session_binding"`
-	ExpiresAt      time.Time `json:"expires_at"`
-	ConsumedAt     time.Time `json:"consumed_at"`
+	Nonce          string                          `json:"nonce,omitempty"`
+	Actor          string                          `json:"actor"`
+	BodyDigest     string                          `json:"body_digest"`
+	SessionBinding string                          `json:"session_binding"`
+	ExpiresAt      time.Time                       `json:"expires_at"`
+	ConsumedAt     time.Time                       `json:"consumed_at"`
+	Operation      *VideoOriginalOperationMetadata `json:"operation,omitempty"`
 }
 type videoBusinessLease struct {
 	grant    VideoBusinessGrant
@@ -56,6 +60,7 @@ func (s *Service) withBusinessGrant(ctx context.Context, grant VideoBusinessGran
 	if _, err := hex.DecodeString(grant.BodyDigest); err != nil || grant.BodyDigest != strings.ToLower(grant.BodyDigest) {
 		return nil, ErrUnauthorized
 	}
+	grant.Operation = cloneVideoOperationMetadata(grant.Operation)
 	lease := &videoBusinessLease{grant: grant, ctx: ctx, now: s.cfg.Now, readOnly: readOnly}
 	if err := lease.check(); err != nil {
 		return nil, err
@@ -63,6 +68,9 @@ func (s *Service) withBusinessGrant(ctx context.Context, grant VideoBusinessGran
 	return &Service{cfg: s.cfg, videoServiceControls: s.videoServiceControls, store: &Store{videoStateStore: s.store.videoStateStore, business: lease}}, nil
 }
 func (b *videoBusinessLease) check() error {
+	if err := b.checkOperationSource(); err != nil {
+		return err
+	}
 	if b.grant.Current != nil {
 		if err := b.checkCurrent(); err != nil {
 			return err
@@ -99,6 +107,9 @@ func (b *videoBusinessLease) check() error {
 }
 func (b *videoBusinessLease) checkCurrent() error { return b.checkCurrentContext(b.ctx) }
 func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
+	if err := b.checkOperationSource(); err != nil {
+		return err
+	}
 	if ctx == nil {
 		return ErrUnauthorized
 	}
@@ -134,11 +145,14 @@ func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
 	return nil
 }
 func (b *videoBusinessLease) checkState(st State) error {
+	if err := b.checkOriginalOperationState(st); err != nil {
+		return err
+	}
 	if b.now().UTC().Before(st.BusinessClockFloor) {
 		return ErrUnauthorized
 	}
 	if n, exists := st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)]; exists {
-		if !b.consumed.Load() || n.Nonce != b.grant.Nonce || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) {
+		if !b.consumed.Load() || n.Nonce != b.grant.Nonce || n.Actor != b.grant.Actor || n.BodyDigest != b.grant.BodyDigest || n.SessionBinding != b.grant.SessionBinding || !n.ExpiresAt.Equal(b.grant.ExpiresAt) || !sameVideoOperation(n.Operation, b.grant.Operation) {
 			return ErrUnauthorized
 		}
 	} else if b.consumed.Load() {
@@ -167,13 +181,16 @@ func (b *videoBusinessLease) admitContext(st *State, ctx context.Context) error 
 		if len(st.BusinessNonces) >= 4096 {
 			return errors.New("Video business replay protection is full")
 		}
-		st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)] = VideoBusinessNonce{Nonce: b.grant.Nonce, Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now}
+		st.BusinessNonces[videoBusinessNonceKey(b.grant.SessionBinding, b.grant.Nonce)] = VideoBusinessNonce{Nonce: b.grant.Nonce, Actor: b.grant.Actor, BodyDigest: b.grant.BodyDigest, SessionBinding: b.grant.SessionBinding, ExpiresAt: b.grant.ExpiresAt, ConsumedAt: now, Operation: cloneVideoOperationMetadata(b.grant.Operation)}
 	}
 	st.BusinessClockFloor = now
 	return nil
 }
 
 func validateVideoBusinessState(st State) error {
+	if err := validateVideoOriginalOperations(st); err != nil {
+		return err
+	}
 	if len(st.BusinessNonces) > 4096 {
 		return ErrUnauthorized
 	}

@@ -19,14 +19,15 @@ import (
 // A dispatch admission is never a success receipt. Unknown transport outcomes
 // stay durable and are never automatically resent, including after restart.
 type MusicBusinessEffect struct {
-	Actor          string          `json:"actor"`
-	Kind           string          `json:"kind"`
-	ObjectID       string          `json:"objectId"`
-	WireDigest     string          `json:"wireDigest"`
-	EndpointDigest string          `json:"endpointDigest"`
-	Status         string          `json:"status"`
-	AdmittedAt     time.Time       `json:"admittedAt"`
-	Receipt        json.RawMessage `json:"receipt,omitempty"`
+	Actor          string                          `json:"actor"`
+	Kind           string                          `json:"kind"`
+	ObjectID       string                          `json:"objectId"`
+	WireDigest     string                          `json:"wireDigest"`
+	EndpointDigest string                          `json:"endpointDigest"`
+	Status         string                          `json:"status"`
+	AdmittedAt     time.Time                       `json:"admittedAt"`
+	Receipt        json.RawMessage                 `json:"receipt,omitempty"`
+	Operation      *MusicOriginalOperationIdentity `json:"operation,omitempty"`
 }
 
 var errEffectExisting = errors.New("music effect already admitted")
@@ -110,6 +111,9 @@ func (s *Service) centralBusinessEffect(ctx context.Context, actor, kind, id, en
 			return err
 		}
 		if e, ok := st.BusinessEffects[journalKey]; ok {
+			if err := s.business.checkOriginalEffectAssociation(e); err != nil {
+				return err
+			}
 			if e.Actor != actor || e.Kind != kind || e.ObjectID != id || e.WireDigest != wire || e.EndpointDigest != endpointHash {
 				return ErrConflict
 			}

@@ -203,6 +203,9 @@ func (s *Server) aiBusinessStream(w http.ResponseWriter, r *http.Request, actor 
 			return err
 		}
 		if e, ok := st.BusinessEffects[journalKey]; ok {
+			if err := service.business.checkOriginalEffectAssociation(e); err != nil {
+				return err
+			}
 			if e.Actor != actor || e.WireDigest != wire || e.EndpointDigest != endpointHash {
 				return ErrConflict
 			}

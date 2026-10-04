@@ -295,29 +295,30 @@ type GatewayNonce struct {
 }
 
 type State struct {
-	SchemaVersion      int                           `json:"schema_version,omitempty"`
-	Videos             map[string]*Video             `json:"videos"`
-	Channels           map[string]*Channel           `json:"channels"`
-	Subscriptions      map[string]Subscription       `json:"subscriptions"`
-	Playlists          map[string]*Playlist          `json:"playlists"`
-	Comments           map[string]*Comment           `json:"comments"`
-	WatchEvents        map[string]WatchEvent         `json:"watch_events"`
-	Reports            map[string]*Report            `json:"reports"`
-	Appeals            map[string]*Appeal            `json:"appeals"`
-	Monetization       map[string]*Monetization      `json:"monetization"`
-	PayoutIntents      map[string]*PayoutIntent      `json:"payout_intents"`
-	Revenue            map[string]*RevenueRecord     `json:"revenue"`
-	Disputes           map[string]*Dispute           `json:"disputes"`
-	AIJobs             map[string]*AIJob             `json:"ai_jobs"`
-	Audit              []AuditEvent                  `json:"audit"`
-	GatewayNonces      map[string]GatewayNonce       `json:"gateway_nonces"`
-	Idempotency        map[string]IdempotencyRecord  `json:"idempotency"`
-	TeamInvites        map[string]*TeamInvite        `json:"team_invites,omitempty"`
-	TeamMembers        map[string]*TeamMember        `json:"team_members,omitempty"`
-	Rights             map[string]*RightsDeclaration `json:"rights,omitempty"`
-	Integrity          string                        `json:"integrity,omitempty"`
-	BusinessNonces     map[string]VideoBusinessNonce `json:"business_nonces,omitempty"`
-	BusinessClockFloor time.Time                     `json:"business_clock_floor,omitzero"`
+	SchemaVersion      int                                     `json:"schema_version,omitempty"`
+	Videos             map[string]*Video                       `json:"videos"`
+	Channels           map[string]*Channel                     `json:"channels"`
+	Subscriptions      map[string]Subscription                 `json:"subscriptions"`
+	Playlists          map[string]*Playlist                    `json:"playlists"`
+	Comments           map[string]*Comment                     `json:"comments"`
+	WatchEvents        map[string]WatchEvent                   `json:"watch_events"`
+	Reports            map[string]*Report                      `json:"reports"`
+	Appeals            map[string]*Appeal                      `json:"appeals"`
+	Monetization       map[string]*Monetization                `json:"monetization"`
+	PayoutIntents      map[string]*PayoutIntent                `json:"payout_intents"`
+	Revenue            map[string]*RevenueRecord               `json:"revenue"`
+	Disputes           map[string]*Dispute                     `json:"disputes"`
+	AIJobs             map[string]*AIJob                       `json:"ai_jobs"`
+	Audit              []AuditEvent                            `json:"audit"`
+	GatewayNonces      map[string]GatewayNonce                 `json:"gateway_nonces"`
+	Idempotency        map[string]IdempotencyRecord            `json:"idempotency"`
+	TeamInvites        map[string]*TeamInvite                  `json:"team_invites,omitempty"`
+	TeamMembers        map[string]*TeamMember                  `json:"team_members,omitempty"`
+	Rights             map[string]*RightsDeclaration           `json:"rights,omitempty"`
+	Integrity          string                                  `json:"integrity,omitempty"`
+	BusinessNonces     map[string]VideoBusinessNonce           `json:"business_nonces,omitempty"`
+	BusinessClockFloor time.Time                               `json:"business_clock_floor,omitzero"`
+	OriginalOperations map[string]VideoOriginalOperationRecord `json:"original_operations,omitempty"`
 }
 
 type Analytics struct {

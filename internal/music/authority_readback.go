@@ -27,6 +27,9 @@ func (s *Service) originalConfirmedFileStateLocked(ctx context.Context) (persist
 	if err != nil || integrity != disk.IntegrityHash {
 		return persistentState{}, ErrMusicStatePublicationUnconfirmed
 	}
+	if err = validateMusicOriginalOperations(disk); err != nil {
+		return persistentState{}, err
+	}
 	if err = verifyAuditChain(disk.Audit); err != nil {
 		return persistentState{}, err
 	}
