@@ -1,0 +1,25 @@
+{
+  "name": "ynx-cpp",
+  "displayName": "YNX C/C++",
+  "publisher": "ynx",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": { "vscode": "^1.82.0" },
+  "main": "./src/extension.cjs",
+  "activationEvents": ["onLanguage:c", "onLanguage:cpp"],
+  "extensionKind": ["workspace"],
+  "capabilities": { "untrustedWorkspaces": { "supported": false } },
+  "dependencies": { "vscode-languageclient": "9.0.1" },
+  "contributes": {
+    "languages": [
+      { "id": "c", "extensions": [".c", ".i"], "aliases": ["C", "c"], "configuration": "./language-configuration.json" },
+      { "id": "cpp", "extensions": [".cpp", ".cc", ".cxx", ".hpp", ".hh", ".hxx", ".h", ".inl", ".ipp", ".tpp", ".cppm", ".ixx"], "aliases": ["C++", "Cpp", "cpp"], "configuration": "./language-configuration.json" }
+    ],
+    "grammars": [
+      { "language": "c", "scopeName": "source.c", "path": "./syntaxes/c.tmLanguage.json" },
+      { "language": "cpp", "scopeName": "source.cpp", "path": "./syntaxes/cpp.tmLanguage.json" },
+      { "scopeName": "source.cpp.embedded.macro", "path": "./syntaxes/cpp.embedded.macro.tmLanguage.json" },
+      { "scopeName": "source.c.platform", "path": "./syntaxes/platform.tmLanguage.json" }
+    ]
+  }
+}

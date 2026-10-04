@@ -5,6 +5,8 @@ import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 const { chromium } = await import(process.env.YNX_QA_PLAYWRIGHT_MODULE || 'playwright');
 const receiptPath = process.argv[2], prefix = process.argv[3] || 'crash-cold';
+const withCpp = process.argv[4] === '--with-cpp';
+if (process.argv[4] && !withCpp) throw Error('Unknown cold recovery option.');
 assert.match(prefix, /^[a-z-]+$/);
 const runtime = JSON.parse(await readFile(receiptPath, 'utf8'));
 assert.match(runtime.qa, /^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+$/);
@@ -22,6 +24,7 @@ const marker = '// YNX_CRASH_UNSAVED_DRAFT_20261004';
 const draft = original + '\n' + marker + '\n';
 const phases = [], errors = [];
 let ownedChildren = [];
+let observedClangd = [];
 function processRows() {
   return execFileSync('/bin/ps', ['-ax', '-o', 'pid=,ppid=,pgid=,lstart='], { encoding: 'utf8' }).split('\n').flatMap(line => {
     const match = line.trim().match(/^(\d+)\s+(\d+)\s+(\d+)\s+(.+)$/);
@@ -56,6 +59,21 @@ try {
   } else await page.getByText('Disabled', { exact: true }).filter({ visible: true }).first().waitFor();
   const disabled = await readFile(`${runtime.profile}/backend-settings.json`, 'utf8');
   assert.match(disabled, /ynx\.ynx-tools/);
+  if (withCpp) {
+    await page.keyboard.press('Meta+p'); await page.locator('input[placeholder^="Search files by name"]').fill('wallet-main.cpp');
+    await page.locator('.quick-input-list').getByText('wallet-main.cpp', { exact: true }).first().click();
+    await page.locator('#theia-statusBar').filter({ hasText: 'C++' }).waitFor();
+    for (let attempt = 0; attempt < 200 && !observedClangd.length; attempt++) {
+      const rows = processRows(), family = new Set([runtime.pid]);
+      for (let depth = 0; depth < 128; depth++) { const added = rows.filter(row => family.has(row.parent) && !family.has(row.pid)); if (!added.length) break; added.forEach(row => family.add(row.pid)); }
+      for (const row of rows.filter(row => row.pid !== runtime.pid && family.has(row.pid))) {
+        let command; try { command = execFileSync('/bin/ps', ['-p', String(row.pid), '-o', 'command='], { encoding: 'utf8' }).trim(); } catch { continue; }
+        if (command.startsWith('/Library/Developer/CommandLineTools/usr/bin/clangd --background-index=false')) observedClangd.push({ ...row, command });
+      }
+      if (!observedClangd.length) await page.waitForTimeout(100);
+    }
+    assert.ok(observedClangd.length, 'A real owned Clangd must be live before the crash.');
+  }
   await command('Terminal: Create New Terminal (In Active Workspace)');
   const terminal = page.locator('.xterm-helper-textarea').last(); await terminal.waitFor({ state: 'attached' }); await terminal.focus();
   await terminal.pressSequentially('node -e "require(\'node:fs\').writeFileSync(\'crash-before-pty.txt\',\'YNX before crash\')"'); await terminal.press('Enter');
@@ -84,6 +102,10 @@ try {
     await new Promise(ok => setTimeout(ok, 50));
   }
   phases.push({ check: 'Previously observed owned backend descendants exit after the crash, including detached children; no live killed-session execution is reported.', passed: remaining.length === 0, observedChildren: ownedChildren, remaining });
+  if (withCpp) {
+    const rows = processRows();
+    phases.push({ check: 'The actual Clangd observed under this live editor exits after hard backend termination.', passed: observedClangd.every(child => !rows.some(row => row.pid === child.pid && row.started === child.started)), observedClangd });
+  }
   await context.close(); context = undefined;
   resumed = spawn(process.execPath, [fileURLToPath(new URL('./start-isolated-qa.mjs', import.meta.url)), runtime.plugins, runtime.dapRoot || '', runtime.root, receiptPath], { stdio: ['ignore', 'pipe', 'pipe'] });
   resumed.stdout.pipe(process.stdout); resumed.stderr.pipe(process.stderr);
@@ -101,6 +123,22 @@ try {
   assert.equal(await readFile(`${runtime.profile}/settings.json`, 'utf8'), preferences);
   assert.equal(await readFile(`${runtime.profile}/backend-settings.json`, 'utf8'), disabled);
   phases.push({ check: 'Original saved file, user/language preferences and disabled extension state survive hard backend termination.', passed: true });
+  if (withCpp) {
+    const savedCpp = await readFile(`${runtime.workspace}/wallet-main.cpp`, 'utf8');
+    await page.keyboard.press('Meta+p'); await page.locator('input[placeholder^="Search files by name"]').fill('wallet-main.cpp');
+    await page.locator('.quick-input-list').getByText('wallet-main.cpp', { exact: true }).first().click();
+    await page.locator('.monaco-editor .view-lines').filter({ visible: true }).last().click(); await page.keyboard.press('Meta+a');
+    await page.keyboard.insertText('#include "wallet.hpp"\nint main() { WalletBalance wallet; wallet.');
+    let suggestions = '', deadline = Date.now() + 30000;
+    while (Date.now() < deadline) { await page.keyboard.press('Escape'); await page.keyboard.press('Control+Space'); await page.waitForTimeout(350); const widget = page.locator('.suggest-widget.visible'); suggestions = await widget.count() ? await widget.innerText() : ''; if (suggestions.includes('confirmedBalance') && suggestions.includes('pendingBalance')) break; }
+    assert.match(suggestions, /confirmedBalance/); assert.match(suggestions, /pendingBalance/);
+    await page.keyboard.press('Escape'); await page.keyboard.press('Meta+w');
+    await page.getByRole('button', { name: /Don.t Save/, exact: true }).click();
+    await page.getByRole('button', { name: /Don.t Save/, exact: true }).waitFor({ state: 'hidden' });
+    await page.locator('.monaco-editor .view-lines').filter({ visible: true }).last().click();
+    assert.equal(await readFile(`${runtime.workspace}/wallet-main.cpp`, 'utf8'), savedCpp);
+    phases.push({ check: 'Clangd semantic cross-header completion works after cold reopen in the same project/profile; temporary probe text is explicitly discarded without replacing saved C++ source.', passed: true });
+  }
   await command('Terminal: Create New Terminal (In Active Workspace)');
   const afterTerminal = page.locator('.xterm-helper-textarea').last(); await afterTerminal.waitFor({ state: 'attached' }); await afterTerminal.focus();
   await afterTerminal.pressSequentially('node -e "require(\'node:fs\').writeFileSync(\'crash-after-pty.txt\',\'YNX after crash\')"'); await afterTerminal.press('Enter');

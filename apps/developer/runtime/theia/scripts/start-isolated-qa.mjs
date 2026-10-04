@@ -103,6 +103,10 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   env: { PATH: `${dirname(node)}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
     THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, YNX_CORE_WORKSPACE: workspace, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    // Existing approved local compiler tools, not another authority binding or
+    // a download. Formal runtimes obtain these paths from their operator.
+    YNX_IDE_CLANGD_ENTRY: '/Library/Developer/CommandLineTools/usr/bin/clangd',
+    YNX_IDE_CPP_SYSROOT: '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',
     ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);

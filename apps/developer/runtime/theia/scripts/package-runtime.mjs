@@ -6,6 +6,7 @@ import { composedTreeDigest, verifyComposedRuntime } from '../../../services/cod
 const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
+const cppInput = process.argv[4];
 const candidateRoot = join(developer, '.ynx-developer-candidates') + '/';
 if (!destination?.startsWith(candidateRoot) || resolve(destination) !== destination || !pluginsInput?.startsWith(candidateRoot))
   throw Error('Use new owned absolute candidate paths.');
@@ -45,6 +46,16 @@ await cp(tools, join(destination, 'plugins/ynx.ynx-tools'), { recursive: true, e
 const brand = join(developer, 'native/ynx-brand');
 await assertRegularTree(brand);
 await cp(brand, join(destination, 'plugins/ynx.ynx-developer-brand'), { recursive: true, errorOnExist: true, force: false });
+let cppReceipt;
+if (cppInput) {
+  const cpp = await realpath(cppInput);
+  if (!cpp.startsWith(candidateRoot) || cpp !== cppInput) throw Error('C/C++ input must be an exact owned candidate.');
+  cppReceipt = JSON.parse(await readFile(join(cpp, 'receipt.json'), 'utf8'));
+  const extension = join(cpp, 'ynx.ynx-cpp');
+  await assertRegularTree(extension);
+  if (cppReceipt.schema !== 'ynx-cpp-offline-input/v1' || await composedTreeDigest(extension) !== cppReceipt.extensionTreeSha256) throw Error('C/C++ extension input changed.');
+  await cp(extension, join(destination, 'plugins/ynx.ynx-cpp'), { recursive: true, errorOnExist: true, force: false });
+}
 await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringify(inputs, null, 2));
 // Keep component license declarations and available upstream legal notices.
 // Missing notice files are recorded for release review, never silently waived.
@@ -74,6 +85,8 @@ for (const path of Object.keys(lock.packages).filter(path => path.startsWith('no
 }
 await cp(join(developer, 'runtime/ynx-workbench/NOTICE'), join(destination, 'component-notices/YNX-VIEW-CONTAINER-NOTICE.txt'), { errorOnExist: true, force: false });
 notices.push({ name: '@ynx/developer-workbench/view-container', license: 'EPL-2.0 OR GPL-2.0-only WITH Classpath-exception-2.0', files: ['YNX-VIEW-CONTAINER-NOTICE.txt'] });
+if (cppReceipt) notices.push({ name: 'ynx.ynx-cpp', version: cppReceipt.version, license: 'MIT', components: cppReceipt.components,
+  files: ['../plugins/ynx.ynx-cpp/NOTICE.txt', '../plugins/ynx.ynx-cpp/MICROSOFT-MIT-NOTICE.txt', '../plugins/ynx.ynx-cpp/ThirdPartyNotices.txt'] });
 await writeFile(join(destination, 'component-notices/index.json'), JSON.stringify(notices, null, 2));
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
   nodeVersion: process.version, nodeOptions: ['--no-experimental-global-navigator', '--max-old-space-size=1024'],
@@ -81,6 +94,7 @@ const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${proces
   lockSha256: createHash('sha256').update(await readFile(join(destination, 'package-lock.json'))).digest('hex'),
   activitySourceSha256: createHash('sha256').update(helper).digest('hex'),
   ynxToolsVersion: JSON.parse(await readFile(join(tools, 'package.json'), 'utf8')).version,
+  ...cppReceipt ? { ynxCppInput: cppReceipt } : {},
   acceptance: 'owned composed runtime candidate; formal Host, isolation and release admission remain separate',
   treeSha256: await composedTreeDigest(destination) };
 const bytes = JSON.stringify(manifest, null, 2) + '\n';

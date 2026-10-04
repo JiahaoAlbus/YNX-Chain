@@ -1,6 +1,34 @@
 # Composed workbench: normal-entry consumer contract
 
-Latest owned runtime checkpoint: workbench **0.3.5**, candidate
+Latest owned runtime checkpoint: workbench **0.3.5** with **YNX C/C++ 0.1.0**,
+candidate `ynx-composed-cpp-glob-20261004-mac-arm64`; exact pin and **33 actual
+controlled checks** are in `COMPOSED_CPP_LANGUAGE_20261004.json` (core 16,
+lifecycle 3, C++ semantic 6, C semantic 2, cold recovery with active Clangd 6).
+Lock `3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c`,
+tree `44fec4c14bef4f9c72fd6cc2b8f128942c567ed30bf7ffcb4498ee8507ef6cdf`,
+manifest `3284261992a3e9b61f8671d8d74a2f35bbd3c1815a46dcac574bca5b70568b47`.
+The extension composes existing cached MIT/ISC VS Code language-client 9.0.1
+dependencies, local MIT-declared syntax and an existing installed Clangd. It
+does not redistribute the proprietary C/C++ extension or compiler binary.
+Exact dependency/source hashes and original notices accompany the input.
+`stage-cpp-extension.mjs` performs only local copying and exact tree checks;
+`package-runtime.mjs` accepts the resulting immutable owned input as its fourth
+argument and verifies the complete extension tree before packaging.
+
+The existing five parent/identity/workspace/profile bindings stay unchanged.
+The operator may additionally provide `YNX_IDE_CLANGD_ENTRY` (approved absolute
+executable) and `YNX_IDE_CPP_SYSROOT` (optional approved absolute SDK directory)
+inside the existing admitted execution domain. These are tool locations, not
+new authorization. Missing configuration exposes syntax plus a typed warning;
+there is no download or fallback execution outside the admitted domain. The
+client starts only for a trusted single file workspace whose canonical path
+matches `YNX_CORE_WORKSPACE`. Escaped project string globs retain project scope
+while avoiding the framework's broken RelativePattern transport. No new read
+roots, network rules, Host or credentials are added. Tests use the already
+approved installed macOS Command Line Tools and SDK; other platforms/toolchains
+and the normal canonical installed journey remain unverified.
+
+Previous compiler-task checkpoint: workbench **0.3.5**, candidate
 `ynx-composed-gcc-diagnostics-20261004-mac-arm64`. Exact pin and **26 actual
 controlled browser checks** (core 16, lifecycle 3, same-profile cold recovery 4,
 standard C++ compiler tasks 3) are in `COMPOSED_GCC_DIAGNOSTICS_20261004.json`.
