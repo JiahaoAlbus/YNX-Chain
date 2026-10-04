@@ -25,6 +25,11 @@ export function soliditySemanticIndex(output, sources) {
     const id = Number.isSafeInteger(node.id) && node.id >= 0 ? node.id : undefined;
     const definition = kinds.has(node.nodeType) && typeof node.name === 'string' && node.name.length ? location(node.nameLocation || node.src) : undefined;
     if (definition && id !== undefined) declarations.push({ id, name: node.name, kind: node.nodeType, location: definition, ...(parentId !== undefined ? { parentId } : {}), ...(Number.isSafeInteger(node.scope) && node.scope >= 0 ? { scopeId: node.scope } : scopeId !== undefined ? { scopeId } : {}), ...(typeof node.typeDescriptions?.typeString === 'string' ? { type: node.typeDescriptions.typeString } : {}), ...(typeof node.typeName?.pathNode?.name === 'string' || typeof node.typeName?.name === 'string' ? { typeName: node.typeName.pathNode?.name || node.typeName.name } : {}), ...(typeof node.visibility === 'string' ? { visibility: node.visibility } : {}), ...(typeof node.contractKind === 'string' ? { contractKind: node.contractKind } : {}) });
+    if (definition && id !== undefined && node.nodeType === 'ContractDefinition') {
+      const row = declarations[declarations.length - 1];
+      row.baseContracts = (node.baseContracts || []).map(base => ({ name: base.baseName?.name || base.baseName?.pathNode?.name, ...(Number.isSafeInteger(base.baseName?.referencedDeclaration) ? { id: base.baseName.referencedDeclaration } : {}) })).filter(base => typeof base.name === 'string');
+      if (Array.isArray(node.linearizedBaseContracts)) row.linearizedBaseContracts = node.linearizedBaseContracts.filter(Number.isSafeInteger);
+    }
     const scoped = scopeKinds.has(node.nodeType) && id !== undefined && location(node.src);
     if (scoped) scopes.push({ id, kind: node.nodeType, location: scoped, ...(scopeId !== undefined ? { parentId: scopeId } : {}) });
     if (node.nodeType === 'ImportDirective' && location(node.src)) imports.push({ file: location(node.src).file, source: node.absolutePath || node.file, symbols: (node.symbolAliases || []).map(row => ({ name: row.foreign?.name, local: row.local || row.foreign?.name })), ...(node.unitAlias ? { namespace: node.unitAlias } : {}) });

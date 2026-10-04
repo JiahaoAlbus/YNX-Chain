@@ -1,7 +1,10 @@
 const path = require('node:path');
 const { digest, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 async function captureSolidityProject(vscode, environment, targetDocument) {
-  const sessionId = environment.YNX_CORE_SESSION_ID, workspace = environment.YNX_CORE_WORKSPACE;
+  const local = environment.YNX_WORKSPACE_MODE === 'local';
+  const sessionId = local ? environment.YNX_LOCAL_PROJECT_ID : environment.YNX_CORE_SESSION_ID;
+  const workspace = local ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;
+  if (local && (environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE)) throw Error('Local editing cannot use a canonical project session.');
   const folders = vscode.workspace.workspaceFolders, editor = targetDocument ? { document: targetDocument } : vscode.window.activeTextEditor;
   if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace || folders?.length !== 1 || !editor || editor.document.uri.scheme !== 'file' || !editor.document.uri.fsPath.endsWith('.sol'))
     throw Error('Open a Solidity file in one active YNX project before capturing its sources.');
@@ -11,7 +14,7 @@ async function captureSolidityProject(vscode, environment, targetDocument) {
   const directory = await assertWorkspaceDirectory(root.fsPath, workspace);
   if (directory.realDirectory !== rootPath.realWorkspace) throw Error('Open the admitted project root before capturing Solidity sources.');
   const assertRuntime = () => {
-    if (environment.YNX_CORE_SESSION_ID !== sessionId || environment.YNX_CORE_WORKSPACE !== workspace || vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0].uri.toString() !== rootKey)
+    if ((environment.YNX_WORKSPACE_MODE === 'local') !== local || (local ? environment.YNX_LOCAL_PROJECT_ID : environment.YNX_CORE_SESSION_ID) !== sessionId || (local ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE) !== workspace || local && (environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE) || vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0].uri.toString() !== rootKey)
       throw Error('The project runtime changed. Capture its Solidity sources again.');
   };
   // A string glob avoids the framework's RelativePattern transport problem.
@@ -32,7 +35,7 @@ async function captureSolidityProject(vscode, environment, targetDocument) {
     Object.defineProperty(sources, key, { value: row, enumerable: true });
     documents.push({ document, uri, location, row });
   }
-  const snapshot = { protocol: 'ynx-solidity-project/v1', sessionId, entryPath: relative(editor.document.uri), sources };
+  const snapshot = { protocol: local ? 'ynx-solidity-local-project/v1' : 'ynx-solidity-project/v1', ...(local ? { projectId: sessionId } : { sessionId }), entryPath: relative(editor.document.uri), sources };
   async function verify() {
     assertRuntime();
     for (const { document, uri, location, row } of documents) {

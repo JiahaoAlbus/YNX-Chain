@@ -28,6 +28,14 @@ test('runtime changes, foreign roots, and source symlink escapes never produce a
  await assert.rejects(captureSolidityProject(h.vscode,h.environment),/outside this project/);
  h.vscode.workspace.workspaceFolders.push({uri:h.documents[0].uri});await assert.rejects(captureSolidityProject(h.vscode,h.environment),/one active YNX project/);
 });
+test('local desktop capture has a distinct project protocol and cannot become an online session',async t=>{
+ const h=await fixture(t);delete h.environment.YNX_CORE_SESSION_ID;delete h.environment.YNX_CORE_WORKSPACE;
+ Object.assign(h.environment,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:h.root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'});
+ const captured=await captureSolidityProject(h.vscode,h.environment);
+ assert.equal(captured.snapshot.protocol,'ynx-solidity-local-project/v1');assert.equal(captured.snapshot.projectId,h.environment.YNX_LOCAL_PROJECT_ID);assert.equal(captured.snapshot.sessionId,undefined);await captured.verify();
+ h.environment.YNX_CORE_SESSION_ID='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';await assert.rejects(captured.verify(),/runtime changed/);await assert.rejects(captureSolidityProject(h.vscode,h.environment),/cannot use a canonical/);
+ delete h.environment.YNX_CORE_SESSION_ID;h.environment.YNX_WORKSPACE_MODE='online';await assert.rejects(captured.verify(),/runtime changed/);
+});
 test('actual registered project command copies only after unchanged-source review and opens a source-free locator',async t=>{
  const h=await fixture(t),commands=new Map(),calls=[],errors=[];
  h.vscode.languages={createDiagnosticCollection:()=>({set:()=>{},clear:()=>{},dispose:()=>{}})};h.vscode.workspace.onDidChangeTextDocument=()=>({});h.vscode.workspace.onDidChangeWorkspaceFolders=()=>({});

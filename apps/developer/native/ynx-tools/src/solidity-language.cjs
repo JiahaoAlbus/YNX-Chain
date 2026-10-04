@@ -55,7 +55,7 @@ function createSolidityLanguage(vscode, context, environment) {
     phase = 'capture';
     const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document);
     if (capturedEpoch !== epoch || cancelled(token)) return undefined;
-    const fingerprint = digest(JSON.stringify({ sessionId: reviewed.snapshot.sessionId, workspace: environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
+    const fingerprint = digest(JSON.stringify({ protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
     if (cache?.fingerprint === fingerprint) { await reviewed.verify(); return cache; }
     // One worker per extension project, including all simultaneous provider
     // requests. A changed snapshot retires it; hold the slot until termination.

@@ -9,14 +9,21 @@ const fault = (code, message) => Object.assign(Error(message), { code });
 // Profile-local data only. The registered driver supplies these two nonsecret
 // roots; this service creates no identity, admission, subprocess or connection.
 class DraftRecoveryStore {
-  constructor({ workspace = process.env.YNX_CORE_WORKSPACE, profile = process.env.THEIA_CONFIG_DIR } = {}) {
-    this.inputs = { workspace, profile }; this.serial = Promise.resolve();
+  constructor({ workspace = process.env.YNX_WORKSPACE_MODE === 'local' ? process.env.YNX_LOCAL_WORKSPACE : process.env.YNX_CORE_WORKSPACE, profile = process.env.THEIA_CONFIG_DIR, localProjectId = process.env.YNX_WORKSPACE_MODE === 'local' ? process.env.YNX_LOCAL_PROJECT_ID : undefined } = {}) {
+    this.inputs = { workspace, profile, localProjectId }; this.serial = Promise.resolve();
   }
   async scope() {
     if (!this.scopePromise) this.scopePromise = (async () => {
-      const { workspace, profile } = this.inputs;
+      const { workspace, profile, localProjectId } = this.inputs;
       for (const path of [workspace, profile]) if (typeof path !== 'string' || !isAbsolute(path) || resolve(path) !== path || await fs.realpath(path) !== path) throw fault('RECOVERY_UNBOUND', 'Draft recovery profile is unavailable.');
-      if (workspace === profile || dirname(workspace) !== dirname(profile)) throw fault('RECOVERY_UNBOUND', 'Draft recovery profile must belong to this project.');
+      if (workspace === profile) throw fault('RECOVERY_UNBOUND', 'Draft recovery profile must belong to this project.');
+      if (localProjectId !== undefined) {
+        if (!/^[a-f0-9-]{36}$/.test(localProjectId)) throw fault('RECOVERY_UNBOUND', 'Local project binding is invalid.');
+        const bindingFile = join(profile, 'ynx-local-project.json');
+        if (!(await fs.lstat(bindingFile)).isFile() || await fs.realpath(bindingFile) !== bindingFile || (await fs.stat(bindingFile)).size > 16384) throw fault('RECOVERY_UNBOUND', 'Local project binding is unavailable.');
+        const binding = JSON.parse(await fs.readFile(bindingFile, 'utf8'));
+        if (binding.schemaVersion !== 1 || binding.projectId !== localProjectId || binding.workspace !== workspace || binding.profile !== profile) throw fault('RECOVERY_UNBOUND', 'Draft recovery profile belongs to a different local project.');
+      } else if (dirname(workspace) !== dirname(profile)) throw fault('RECOVERY_UNBOUND', 'Draft recovery profile must belong to this project.');
       const directory = join(profile, 'ynx-draft-recovery-v1');
       await fs.mkdir(directory, { mode: 0o700 }).catch(error => { if (error.code !== 'EEXIST') throw error; });
       if (!(await fs.lstat(directory)).isDirectory() || await fs.realpath(directory) !== directory) throw fault('RECOVERY_SCOPE', 'Draft recovery directory changed.');
@@ -24,6 +31,12 @@ class DraftRecoveryStore {
     })();
     const scope = await this.scopePromise;
     if (await fs.realpath(this.inputs.profile) !== this.inputs.profile || await fs.realpath(scope.directory) !== scope.directory) throw fault('RECOVERY_SCOPE', 'Draft recovery directory changed.');
+    if (this.inputs.localProjectId !== undefined) {
+      const file = join(scope.profile, 'ynx-local-project.json');
+      if (!(await fs.lstat(file)).isFile() || await fs.realpath(file) !== file || (await fs.stat(file)).size > 16384) throw fault('RECOVERY_SCOPE', 'Local project binding changed.');
+      const binding = JSON.parse(await fs.readFile(file, 'utf8'));
+      if (binding.schemaVersion !== 1 || binding.projectId !== this.inputs.localProjectId || binding.workspace !== scope.workspace || binding.profile !== scope.profile) throw fault('RECOVERY_SCOPE', 'Local project binding changed.');
+    }
     return scope;
   }
   async path(uri, checkTarget = false) {

@@ -18,6 +18,19 @@ async function fixture() {
   const baseHash = (await store.getBaseline(uri, original)).hash;
   return { root, workspace, profile, other, path, uri, original, baseHash, store, archive: join(profile, 'ynx-draft-recovery-v1') };
 }
+test('a real external local folder recovers only under its exact persistent profile binding', async () => {
+  const f = await fixture(), profile = join(f.other, 'local-profile'); await mkdir(profile, { mode: 0o700 });
+  const projectId = 'cccccccc-cccc-cccc-cccc-cccccccccccc', file = join(profile, 'ynx-local-project.json');
+  await writeFile(file, JSON.stringify({schemaVersion:1,projectId,workspace:f.workspace,profile}), {mode:0o600});
+  const store = new DraftRecoveryStore({workspace:f.workspace,profile,localProjectId:projectId});
+  await store.upsert({uri:f.uri,baseHash:f.baseHash,text:'local unsaved draft'});
+  const reopened = new DraftRecoveryStore({workspace:f.workspace,profile,localProjectId:projectId});
+  assert.equal((await reopened.list()).entries[0].text,'local unsaved draft');
+  assert.equal(await readFile(f.path,'utf8'),f.original);
+  await writeFile(file,JSON.stringify({schemaVersion:1,projectId,workspace:f.other,profile}));
+  await assert.rejects(store.upsert({uri:f.uri,baseHash:f.baseHash,text:'wrong binding'}),{code:'RECOVERY_SCOPE'});
+  await assert.rejects(new DraftRecoveryStore({workspace:f.workspace,profile,localProjectId:projectId}).scope(),{code:'RECOVERY_UNBOUND'});
+});
 test('new store instance recovers latest fsynced draft without touching saved Unicode file', async () => {
   const f = await fixture();
   await f.store.upsert({ uri: f.uri, baseHash: f.baseHash, text: 'draft one' });
