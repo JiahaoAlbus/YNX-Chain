@@ -1,0 +1,24 @@
+{
+  "kind": "REPRODUCIBLE_EXPLICIT_CONTAINED_SDK_STAGING",
+  "parentOwnedHead": "cb195ba756891f127423c072b0276cb8ff9c4b1a",
+  "script": "scripts/stage-contained-sdk.mjs",
+  "scriptSha256": "dde78c6c4fb423d312ea88553a629568361e2c6ac56c568bb9611554fe7465f4",
+  "testSha256": "51e5ee7ede4808249389ebe9d857659c37be2be4c9e844418f4968d721b3890d",
+  "tests": {"pass": 11, "fail": 0, "exit": 0, "logSha256": "08816a61bf8f130e5cb006b8ab2928e95a0752748914b1deb89e57e9ecdb0218"},
+  "actualRun": {
+    "command": "node apps/wallet-desktop/scripts/stage-contained-sdk.mjs /tmp/ynx-wallet-sdk-original-cli-consumer-20261004-7NNLSw/node_modules/@ynx-chain/wallet-auth /tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk/packages/wallet-auth/node_modules /tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk/desktop-contained-sdk-and-locked-software-canonical-readback.json 87bfbdaced14d1e1d60ca8de66fcde7e7f4735b9e3496f0cc5ad5c2726472d53 /tmp/ynx-wallet-sdk-automated-stage-20261004-emOO01",
+    "exit": 0,
+    "stage": "/private/tmp/ynx-wallet-sdk-automated-stage-20261004-emOO01/ynx-contained-sdk-9SWvqu",
+    "packageFiles": 132,
+    "softwareRecords": 8972,
+    "sourceAndSoftwareByteExact": true,
+    "canonicalLinksContained": true,
+    "originalInputsRecheckedAfterCopy": true
+  },
+  "usage": "Explicit command creates a unique new package directory and stage-receipt.json. It does not replace any app dependency. The release owner selects the contained package in an isolated build and must still verify packaged source, formal identity, signing and retained-account upgrade.",
+  "guards": ["explicit manifest SHA256", "complete inventories including no extras", "no traversal or duplicate paths", "no source symlinks", "only relative contained software symlinks", "no overlapping trees", "exclusive new file writes", "executable modes preserved", "input recheck after copy", "failed partial preserved with its exact path"],
+  "safety": {"SDKOrSoftwareEvaluated": false, "networkInstall": false, "applicationLinkChanged": false, "defaultPackagingHookChanged": false, "SDKSourceLockOrSharedHostChanged": false, "accountsKeysUnknownIntentsChanged": false},
+  "scope": "Owned build preparation, not authority admission or full release verification. This run did not rebuild, install, launch or publish an app; prior verified engineering DMG keeps its original composition identity.",
+  "remaining": ["release-owner isolated package selection and build", "actual37 and private business ports", "formal higher-version release signing", "retained-account normal upgrade", "all16 actual user journeys", "MONSTER"],
+  "overall": "STAGING_VERIFIED_PRODUCT_NOT_COMPLETED"
+}
