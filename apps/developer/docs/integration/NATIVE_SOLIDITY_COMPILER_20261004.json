@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "ef8ee867084c5d41af5319df0a66a25c7ab00d02",
+  "sourceTree": "fcfa8350ea436b74a88b6040c0adef9473a603b6",
+  "route": "POST /runtime/native-tools/chain/compile",
+  "compilerInput": "SOLIDITY_OFFLINE_INPUT_RECOVERY_20261004.json",
+  "checks": {
+    "services": 38,
+    "realCompilerBrowserScenarios": 4,
+    "sameCompiledLifecycleScenarios": 8,
+    "pageErrors": [],
+    "typecheckAndBuildExit": 0,
+    "browserIdentity": "controlled admission fixture; actual HTTP and compiler",
+    "cleanup": "Both owned preview services stopped; test HTTP servers and workers stopped"
+  },
+  "compiledFrontend": {
+    "path": "apps/developer/.ynx-developer-candidates/native-solidity-evidence-20261004/frontend-dist-byte-exact.tar.gz",
+    "sha256": "e47a6263d656873377b7ff1fb91759afb4ec02546da45d31581ad4e2c8b241e5",
+    "manifestSha256": "c1973b1bd7ade74408eeaad7eb65f2c457d25f63abd7a219228b4085c29d3ba1",
+    "roundTripFiles": 232
+  },
+  "sourceDelta": {
+    "base": "d08892f823b4c19db8147dd6fe7b442d99a9de77",
+    "files": 16,
+    "archiveSha256": "3bc72cb7b52402ccc8818e15a8e4df0fb223b8de71da2789fd7f1712b26fe5a5",
+    "manifestSha256": "9304baf931a810223cf89757ab4e961f7cd0d22ed8caa2230231eb32bf5a5d14"
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/native-solidity-evidence-20261004",
+  "evidenceIndexSha256": "997cdc7d5aa0e716c23353e0676951971f372d223c5100307a12a28e3767b1f6",
+  "remaining": [
+    "Direct admitted editor-file source capture and multi-file imports",
+    "Full transitive compiler distribution sealing and new Native package composition",
+    "Real installed canonical identity and operator activation",
+    "Wallet deployment review plus authoritative Testnet execution compatibility"
+  ],
+  "scope": "Owned tool service/frontend only. No shared Host/Auth/driver writes, network/package-egress/LXD, real Wallet/model or formal-public release. Previous 0.3.12 Native and frozen public microsite inputs remain unchanged."
+}
