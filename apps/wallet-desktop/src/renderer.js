@@ -4,7 +4,7 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
-import { projectTransactionResolution } from "./transaction-resolution-display.mjs";
+import { projectTransactionResolution, projectPendingTransactions } from "./transaction-resolution-display.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
@@ -701,9 +701,11 @@ async function refreshTransactions() {
   try {
     const result = await window.ynxWallet.pendingTransactions();
     if (!current()) return;
-    list.replaceChildren(); panel.hidden = result.ok && result.value.length === 0 && !document.querySelector("#transaction-resolution-result").textContent;
-    if (!result.ok) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
-    for (const record of result.value) {
+    const records=projectPendingTransactions(result,account);
+    if (!current()) return;
+    list.replaceChildren(); panel.hidden = records!==null && records.length === 0 && !document.querySelector("#transaction-resolution-result").textContent;
+    if (records===null) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
+    for (const record of records) {
       const row = document.createElement("div"), description = document.createElement("p");
       copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);
       for (const retry of [false, ...(record.canRetryExact ? [true] : [])]) {
@@ -740,7 +742,7 @@ async function refreshTransactions() {
       if (!record.canRetryExact) { const note = document.createElement("p"); copyUI(note,"This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."); row.append(note); }
       list.append(row);
     }
-  } catch { if (current()) { panel.hidden = false; copyUI(document.querySelector("#transaction-resolution-result"),"The local transaction journal is unavailable. New transfers remain blocked."); } }
+  } catch { if (current()) { list.replaceChildren(); panel.hidden = false; copyUI(document.querySelector("#transaction-resolution-result"),"The local transaction journal is unavailable. New transfers remain blocked."); } }
 }
 function clearAssetBalance() {
   ++balanceRevision;

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
-import {projectTransactionResolution} from "../src/transaction-resolution-display.mjs";
+import {projectTransactionResolution,projectPendingTransactions} from "../src/transaction-resolution-display.mjs";
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
 const account="0x"+"1".repeat(40),hash="0x"+"2".repeat(64);
@@ -12,13 +12,13 @@ function harness(){
   const ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1])),nodes=new Map(),reads=[],actions=[];
   function element(){return {textContent:"",children:[],hidden:false,disabled:false,dataset:{},append(...items){this.children.push(...items)},replaceChildren(){this.children=[]},addEventListener(type,fn){this[type]=fn}}}
   const get=selector=>{assert.ok(ids.has(selector.slice(1)),selector);if(!nodes.has(selector))nodes.set(selector,element());return nodes.get(selector)};
-  const context={projectTransactionResolution,document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
+  const context={projectTransactionResolution,projectPendingTransactions,document:{querySelector:get,createElement:element},activeAccount:account,keyState:{locked:false,revision:1},transactionRevision:0,transactionActionRevision:0,errorText:result=>result.error.message,assetRefreshes:0,historyRefreshes:0,
     refreshAssets(){context.assetRefreshes++},transactionHistoryUI:{refresh(){context.historyRefreshes++}},window:{ynxWallet:{pendingTransactions:()=>new Promise((resolve,reject)=>reads.push({resolve,reject})),transactionStatus:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:false,resolve,reject})),retryTransaction:h=>new Promise((resolve,reject)=>actions.push({hash:h,retry:true,resolve,reject}))}}};
   const start=source.indexOf("function clearTransactionResolution()"),fallback=source.indexOf("async function refreshTransactions()"),end=source.indexOf("function clearAssetBalance()",fallback);
   const copyHelper=source.match(/function copyUI\([^\n]+/)[0];
   assert.ok(fallback>=0&&end>fallback);runInNewContext(copyHelper+"\n"+source.slice(start>=0?start:fallback,end),context);
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
-  return {context,get,reads,actions,async load(){const pending=context.refreshTransactions();reads.at(-1)?.resolve({ok:true,value:[record]});await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
+  return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
 test("account event clears stale resolution entry and original journal remains untouched",()=>{assert.ok(/function renderAccount\(payload\) \{\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);/.test(source));const h=harness();h.get("#transaction-resolution-result").textContent="old";h.context.clearTransactionResolution();assert.equal(h.get("#transaction-resolution-result").textContent,"");assert.equal(h.get("#transaction-resolution").hidden,true);assert.equal(h.actions.length,0);});
 test("missing account never requests a transaction journal",async()=>{const h=harness();h.context.activeAccount=null;const pending=h.context.refreshTransactions();h.reads[0]?.resolve({ok:true,value:[]});await pending;assert.equal(h.reads.length,0);});
@@ -58,3 +58,19 @@ test("mounted recovery rejects truthy IPC success",async()=>{const h=harness(),[
 test("mounted original exact retry remains unresolved until receipt verification",async()=>{const h=harness(),[,retry]=await h.load(),pending=retry.click();h.actions[0].resolve({ok:true,value:{hash,account,status:"submitted",confirmed:false,retriedExactBytes:true}});await pending;assert.equal(h.context.assetRefreshes,0);assert.match(h.get("#transaction-resolution-result").textContent,/still unavailable/);assert.equal(h.actions.length,1);assert.equal(h.actions[0].retry,true);assert.equal(h.actions[0].hash,hash);});
 test("mounted original durable pending result does not claim completion",async()=>{const h=harness(),[check]=await h.load(),pending=check.click();h.actions[0].resolve({ok:true,value:{...unresolved(),status:"pending_durable",durabilityStatus:"pending_durable"}});await pending;assert.equal(h.context.assetRefreshes,0);assert.match(h.get("#transaction-resolution-result").textContent,/has not been mined/);});
 test("mounted completed original retry refreshes without rebroadcasting from UI",async()=>{const h=harness(),[,retry]=await h.load(),pending=retry.click();h.actions[0].resolve({ok:true,value:completed()});await pending;assert.equal(h.context.assetRefreshes,1);assert.equal(h.actions.length,1);assert.match(h.get("#transaction-resolution-result").textContent,/Consensus finality is not established/);});
+for(const [name,change] of [
+  ["foreign account",value=>({...value,account:"0x"+"4".repeat(40)})],
+  ["invalid hash",value=>({...value,hash:"not-a-hash"})],
+  ["truthy retry flag",value=>({...value,canRetryExact:"false"})],
+  ["raw bytes",value=>({...value,raw:"not-public"})],
+  ["zero amount",value=>({...value,amount:"0.0"})],
+  ["self recipient",value=>({...value,to:account})],
+  ["unknown status",value=>({...value,status:"invented"})],
+])test(`pending inventory rejects ${name} before rendering action buttons`,async()=>{const h=harness();await h.load({ok:true,value:[change({...record})]});assert.equal(h.get("#pending-transactions").children.length,0);assert.match(h.get("#transaction-resolution-result").textContent,/journal is unavailable/);assert.equal(h.actions.length,0);});
+test("pending inventory never runs a custom iterator",async()=>{const h=harness();let calls=0;const rows=[record];rows[Symbol.iterator]=function*(){calls++;yield record};await h.load({ok:true,value:rows});assert.equal(calls,0);assert.equal(h.get("#pending-transactions").children.length,0);});
+test("pending inventory never runs indexed accessors",async()=>{const h=harness();let calls=0;const rows=[record];Object.defineProperty(rows,0,{get(){calls++;return record}});await h.load({ok:true,value:rows});assert.equal(calls,0);assert.equal(h.get("#pending-transactions").children.length,0);});
+test("pending inventory cannot retain actions for rows rejected after a valid first row",async()=>{const h=harness();await h.load({ok:true,value:[record,{...record,account:"other"}]});assert.equal(h.get("#pending-transactions").children.length,0);});
+test("pending inventory cannot execute record getters",async()=>{const h=harness();let calls=0;const value={...record};Object.defineProperty(value,"hash",{get(){calls++;return hash}});await h.load({ok:true,value:[value]});assert.equal(calls,0);assert.equal(h.get("#pending-transactions").children.length,0);});
+test("mutating source inventory after mount cannot retarget check or exact retry",async()=>{for(const index of [0,1]){const h=harness(),value={...record},buttons=await h.load({ok:true,value:[value]});value.hash="other";value.account="other";const pending=buttons[index].click();assert.equal(h.actions.at(-1).hash,hash);assert.equal(h.actions.at(-1).retry,index===1);h.actions.at(-1).resolve({ok:true,value:unresolved()});await pending;assert.equal(h.actions.length,1);}});
+test("legacy original inventory shows check-only note without recreating signature",async()=>{const h=harness(),buttons=await h.load({ok:true,value:[{...record,canRetryExact:false}]});assert.equal(buttons.length,1);assert.match(h.get("#pending-transactions").children[0].children.at(-1).textContent,/no original signed bytes/);assert.equal(h.actions.length,0);});
+test("malformed replacement inventory retires old visible actions",async()=>{const h=harness(),[oldCheck]=await h.load();await h.load({ok:true,value:[{...record,amount:"invalid"}]});assert.equal(h.get("#pending-transactions").children.length,0);await oldCheck.click();assert.equal(h.actions.length,0);});

@@ -7,6 +7,28 @@ function values(value,fields){
   if(keys.length!==fields.length||keys.some(key=>!fields.includes(key)||!Object.hasOwn(descriptors[key],"value")))throw Error("Invalid transaction display");
   return Object.fromEntries(fields.map(key=>[key,descriptors[key].value]));
 }
+export function projectPendingTransactions(response,account){
+  const ok=Object.getOwnPropertyDescriptor(response??{},"ok");
+  if(!ok||!Object.hasOwn(ok,"value"))throw Error("Invalid pending display");
+  if(ok.value===false){values(response,["ok","error"]);return null;}
+  const envelope=values(response,["ok","value"]);
+  if(envelope.ok!==true||typeof account!=="string"||!ACCOUNT.test(account))throw Error("Invalid pending display");
+  const rows=envelope.value;
+  if(!Array.isArray(rows)||Object.getPrototypeOf(rows)!==Array.prototype)throw Error("Invalid pending rows");
+  const descriptors=Object.getOwnPropertyDescriptors(rows),length=descriptors.length?.value;
+  // The original validated journal permits at most one unresolved intent per
+  // account. Its list(account) is not a paginated or arbitrary iterable feed.
+  if(!Number.isSafeInteger(length)||length<0||length>1||Reflect.ownKeys(descriptors).length!==length+1)throw Error("Invalid pending rows");
+  const records=[];
+  for(let index=0;index<length;index++){
+    if(!descriptors[index]||!Object.hasOwn(descriptors[index],"value"))throw Error("Invalid pending row");
+    const record=values(descriptors[index].value,["hash","account","status","canRetryExact","to","amount"]);
+    if(record.account!==account||typeof record.hash!=="string"||!HASH.test(record.hash)||typeof record.to!=="string"||!ACCOUNT.test(record.to)||record.to===account||typeof record.canRetryExact!=="boolean"||
+      !["broadcasting","submitted","uncertain","confirmed","failed"].includes(record.status)||typeof record.amount!=="string"||!/^[1-9][0-9]{0,18}\.0$/.test(record.amount)||BigInt(record.amount.slice(0,-2))>9223372036854775807n)throw Error("Unbound pending row");
+    records.push(Object.freeze(record));
+  }
+  return Object.freeze(records);
+}
 // Presentation of the existing TransactionSubmissions DTO only. This neither
 // proves a receipt nor authorizes retry, signing, or clearing the private journal.
 export function projectTransactionResolution(response,{account,hash,retry=false}){
