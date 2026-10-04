@@ -1,4 +1,18 @@
 import type {Locale} from './i18n';
+export const cardFundingPlatformCopy:Record<Locale,string>={
+  en:'Sending is unavailable on this platform. Use a supported secure browser with transaction recovery locking. No transaction has been requested.',
+  'zh-CN':'当前平台暂不支持发送。请使用支持交易恢复锁的安全浏览器。未请求任何交易。',
+  'zh-TW':'目前平台暫不支援發送。請使用支援交易復原鎖的安全瀏覽器。未請求任何交易。',
+  ja:'この環境では送信できません。取引復旧ロック対応の安全なブラウザーを使用してください。取引は要求されていません。',
+  ko:'이 환경에서는 전송할 수 없습니다. 거래 복구 잠금을 지원하는 보안 브라우저를 사용하세요. 거래는 요청되지 않았습니다.',
+  es:'El envío no está disponible en esta plataforma. Usa un navegador seguro compatible con bloqueo de recuperación. No se ha solicitado ninguna transacción.',
+  fr:'Envoi indisponible sur cette plateforme. Utilisez un navigateur sécurisé avec verrouillage de récupération. Aucune transaction demandée.',
+  de:'Senden ist auf dieser Plattform nicht verfügbar. Verwenden Sie einen sicheren Browser mit Wiederherstellungssperre. Keine Transaktion angefordert.',
+  pt:'Envio indisponível nesta plataforma. Use um navegador seguro com bloqueio de recuperação. Nenhuma transação foi solicitada.',
+  ru:'Отправка недоступна на этой платформе. Используйте безопасный браузер с блокировкой восстановления. Транзакция не запрошена.',
+  ar:'الإرسال غير متاح على هذه المنصة. استخدم متصفحاً آمناً يدعم قفل استعادة المعاملات. لم يتم طلب أي معاملة.',
+  id:'Pengiriman tidak tersedia di platform ini. Gunakan browser aman yang mendukung kunci pemulihan. Tidak ada transaksi yang diminta.',
+};
 export const cardFundingSendCopy:Record<Locale,readonly [string,string,string,string,string,string,string]>={
   en:['Send this exact YNXT Testnet intent','Use approved YNX Wallet','Use approved MetaMask','Review then approve in wallet','Transaction returned. No Card credit yet.','Verify with Card API','Unavailable or unknown outcome. Connect the correct wallet; do not resend this intent.'],
   'zh-CN':['发送此精确 YNXT 测试网意向','使用已批准的 YNX 钱包','使用已批准的 MetaMask','核对后在钱包中批准','交易哈希已返回，Card 尚未入账。','通过 Card API 核验','暂不可用或结果未知。连接正确钱包；不要重发此意向。'],

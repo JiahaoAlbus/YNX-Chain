@@ -5,7 +5,7 @@ import type {Locale} from './i18n';
 import type {CardBusinessClient,CardPrivateIdentity,CardFundingView} from './cardBusinessClient';
 import {discoverWalletProviders,standardWalletConnection} from './standardWalletSdk';
 import {parseFundingSendRecord,sendExactCardFunding,type FundingSendRecord,type FundingSendWallet,type FundingSendStorage} from './cardFundingSend';
-import {cardFundingSendCopy} from './cardFundingSendCopy';
+import {cardFundingSendCopy,cardFundingPlatformCopy} from './cardFundingSendCopy';
 type Props={client:CardBusinessClient;identity:CardPrivateIdentity;intent:CardFundingView;locale:Locale;onVerified:()=>void};
 /** Protected owner intent only. No automatic connection, account prompt or send. */
 export function CardFundingSendExperience({client,identity,intent,locale,onVerified}:Props){
@@ -15,17 +15,18 @@ export function CardFundingSendExperience({client,identity,intent,locale,onVerif
   const valid=()=>current.current.alive&&current.current.client===client&&current.current.binding===binding&&intent.owner===identity.owner&&Date.parse(identity.expiresAt)>Date.now()&&Date.parse(intent.expiresAt)>Date.now();
   const context={...identity,sourceCommit:client.sourceCommit};
   const key=`ynx-card.funding-send.v1.${identity.owner}.${intent.id}`;
+  const sendAvailable=Platform.OS==='web'&&typeof navigator!=='undefined'&&!!navigator.locks;
   const storage=():FundingSendStorage=>{
     if(Platform.OS!=='web'||typeof navigator==='undefined'||!navigator.locks)throw Error('CARD_FUNDING_LOCK_UNAVAILABLE');
     return {read:async()=>window.localStorage.getItem(key),write:async raw=>window.localStorage.setItem(key,raw),exclusive:operation=>navigator.locks.request(key,{mode:'exclusive',ifAvailable:true},lock=>{if(!lock)throw Error('CARD_FUNDING_BUSY');return operation()})};
   };
   useEffect(()=>{setWallet(null);setBusy(false);setFailure(false);setSaved(null);try{if(Platform.OS==='web'){const raw=window.localStorage.getItem(key);if(raw)setSaved({binding,record:parseFundingSendRecord(raw,intent,context)})}}catch{setFailure(true)}return()=>{current.current.alive=false}},[client,binding]);
   const choose=async(kind:'ynx-wallet'|'metamask')=>{
-    if(!valid()||busy||Platform.OS!=='web')return;setBusy(true);setFailure(false);
+    if(!valid()||busy||!sendAvailable)return;setBusy(true);setFailure(false);
     try{const discovery=await discoverWalletProviders(window);if(!valid())return;const candidate=kind==='ynx-wallet'?discovery.ynx:discovery.metamask;if(!candidate||discovery.ambiguities.includes(kind))throw Error('CARD_FUNDING_PROVIDER_UNAVAILABLE');const connection=standardWalletConnection(candidate.provider);if(!await connection.restore())throw Error('CARD_FUNDING_APPROVED_ACCOUNT_REQUIRED');if(valid())setWallet(connection)}catch{if(valid())setFailure(true)}finally{if(valid())setBusy(false)};
   };
   const send=async()=>{
-    if(!wallet||!valid()||busy||saved?.binding===binding)return;setBusy(true);setFailure(false);
+    if(!sendAvailable||!wallet||!valid()||busy||saved?.binding===binding)return;setBusy(true);setFailure(false);
     try{const record=await sendExactCardFunding({intent,context,wallet,storage:storage(),isCurrent:valid});if(valid())setSaved({binding,record})}
     catch{if(valid()){setFailure(true);try{const raw=await storage().read();if(raw)setSaved({binding,record:parseFundingSendRecord(raw,intent,context)})}catch{}}}
     finally{if(valid())setBusy(false)};
@@ -40,9 +41,10 @@ export function CardFundingSendExperience({client,identity,intent,locale,onVerif
   const button=(text:string,action:()=>void,disabled:boolean)=><Pressable accessibilityRole="button" accessibilityLabel={text} accessibilityState={{disabled,busy}} disabled={disabled} onPress={action} style={[styles.button,disabled&&styles.disabled]}><Text style={styles.buttonText}>{text}</Text></Pressable>;
   return <View testID="card-exact-funding-send" style={styles.panel}>
     <Text accessibilityRole="header">{copy[0]}</Text><Text selectable>{intent.sender} → {intent.recipient}</Text><Text selectable>{intent.amountWei} wei · 0x1917 · {intent.expiresAt}</Text>
+    {!sendAvailable?<Text accessibilityLiveRegion="polite">{cardFundingPlatformCopy[locale]}</Text>:null}
     {record?<><Text>{record.status==='RETURNED'?copy[4]:copy[6]}</Text>{record.txHash?<Text selectable>{record.txHash}</Text>:null}</>:<>
-      {button(copy[1],()=>void choose('ynx-wallet'),busy||!valid())}{button(copy[2],()=>void choose('metamask'),busy||!valid())}
-      {button(copy[3],()=>void send(),busy||!wallet||!valid())}
+      {button(copy[1],()=>void choose('ynx-wallet'),!sendAvailable||busy||!valid())}{button(copy[2],()=>void choose('metamask'),!sendAvailable||busy||!valid())}
+      {button(copy[3],()=>void send(),!sendAvailable||busy||!wallet||!valid())}
     </>}
     {record?.status==='RETURNED'?button(copy[5],()=>void verify(),busy||!valid()):null}
     {failure?<Text accessibilityRole="alert" accessibilityLiveRegion="polite">{copy[6]}</Text>:null}
