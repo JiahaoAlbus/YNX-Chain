@@ -34,13 +34,19 @@ function projectRecord(value,account){
   uint64(record.blockNumber,{positive:true});
   return Object.freeze(record);
 }
-/** Account-bound public history. Refresh invalidates an old page before await. */
+/** Account-bound public history. Refresh retires pending reads, not already
+ * verified rows for this same account. A retained snapshot is not a fresh read. */
 export function createTransactionHistoryUI({ getAccount, request, render }) {
-  let revision = 0, records = Object.freeze([]), cursor = null, busy = false;
-  function clear() { revision++; records = Object.freeze([]); cursor = null; busy = false; render({ records, nextCursor: null, busy: false, loaded: false, error: null }); }
+  let revision = 0, records = Object.freeze([]), recordsAccount = null, cursor = null, busy = false;
+  function clear() { revision++; records = Object.freeze([]); recordsAccount = null; cursor = null; busy = false; render({ records, nextCursor: null, busy: false, loaded: false, error: null }); }
   async function load(more = false) {
+    const selected = getAccount();
+    if (recordsAccount !== null && recordsAccount !== selected) { clear(); if (more) return; }
     if (more && (busy || cursor === null)) return;
-    if (!more) clear();
+    if (!more) {
+      if (recordsAccount === null) clear();
+      else { revision++; busy = false; }
+    }
     const account = getAccount(), current = revision, requestedCursor = more ? cursor : null;
     if (!account) return;
     busy = true; render({ records, nextCursor: cursor, busy, loaded: false, error: null });
@@ -60,7 +66,7 @@ export function createTransactionHistoryUI({ getAccount, request, render }) {
       if (new Set(combined.map(record => record.hash)).size !== combined.length) throw new Error("Repeated history");
       if(next!==null&&combined.some(record=>record.hash===next))throw Error("Repeated history cursor");
       if(current!==revision||getAccount()!==account)return;
-      records = Object.freeze(combined); cursor = next; busy = false;
+      records = Object.freeze(combined); recordsAccount = account; cursor = next; busy = false;
       render({ records, nextCursor: cursor, busy, loaded: true, error: null });
     } catch {
       if (current !== revision || getAccount() !== account) return;

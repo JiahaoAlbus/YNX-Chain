@@ -1,0 +1,60 @@
+{
+  "kind": "MATCHING_SOURCE_MACOS_ARM64_ENGINEERING_PACKAGE",
+  "observedAt": "2026-10-04T07:30:07Z",
+  "ownedInputHead": "cba204ab609ee0b8d2327f4127d2e56612d85d52",
+  "candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "composition": {
+    "head": "92be5b262500da850402cc8ac22f7d1c39a17025",
+    "tree": "4be9607a097a782f9c2ee6553be2014bfe36a49c",
+    "trackedFiles": 907,
+    "ownedFiles": 677,
+    "originalSdkGitFiles": 223,
+    "sdkGit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "additionalCliOriginalGit": "5f15133e4ba02fdbeb1d677669aa7a9d746f1c0d",
+    "unchangedRootFiles": 6,
+    "trackedSourceCleanAfterBuild": true
+  },
+  "softwareStaging": {
+    "sdkFilesExact": 132,
+    "lockedSdkSoftwareRecordsExact": 8972,
+    "canonicalLinksContained": true,
+    "readback": "desktop-contained-sdk-and-locked-software-canonical-readback.json",
+    "readbackSha256": "87bfbdaced14d1e1d60ca8de66fcde7e7f4735b9e3496f0cc5ad5c2726472d53",
+    "method": "Replace only isolated candidate app SDK symlink with exact installed SDK package and exact SDK locked software; no source or lockfile rewrite",
+    "automatedPackagingLayoutRepair": false
+  },
+  "package": {
+    "command": "CSC_IDENTITY_AUTO_DISCOVERY=false node node_modules/electron-builder/cli.js --mac --dir --arm64 --publish never --config.npmRebuild=false --config.mac.identity=null",
+    "exit": 0,
+    "electron": "42.8.0",
+    "electronBuilder": "26.15.3",
+    "version": "0.6.8",
+    "appId": "com.ynxweb4.wallet.macos",
+    "architecture": "arm64",
+    "runtimeFilesVerified": 181,
+    "runtimeMetadataVerified": true,
+    "compileTimeDeclarationsExcluded": true,
+    "asarSha256": "cce3f86d3909ba1384b3f2b8754e61a3c3c66fd1375bbbe80a4d043eb85c3907",
+    "directSdkDependencies": {"@noble/curves": "2.2.0", "@noble/hashes": "2.2.0", "@walletconnect/sign-client": "2.23.10", "qrcode": "1.5.4"},
+    "cliByteVerifiedOnly": true,
+    "cliOrMigrationExecuted": false
+  },
+  "dmg": {
+    "name": "ynx-wallet-macos-0.6.8-arm64-matching-source-engineering.dmg",
+    "bytes": 153965298,
+    "sha256": "4749b61d1c3473d0fe7317be84384c6f96768074c15dfaa8346c2b7a3f214212",
+    "createExit": 0,
+    "hdiutilVerifyExit": 0,
+    "releaseProvenanceVerifyExit": 0
+  },
+  "retainedFailures": [
+    "Two external SDK-link packaging attempts exit1: builder unsafe/external copy protection preserved",
+    "Offline no-save SDK install exit1 ENOTCACHED jsqr registry metadata",
+    "Official-registry no-save SDK install exit1 ETARGET defu@^6.1.6; no dependency downgrade",
+    "First software-link readback failed /tmp versus /private/tmp canonical comparison; empty stdout retained; separately named canonical rerun passed"
+  ],
+  "safety": {"accountsKeysUnknownIntentsChanged": false, "sharedSdkOrHostChanged": false, "published": false, "installedOrLaunched": false, "formalSignedOrNotarized": false, "retainedAccountUpgradeVerified": false},
+  "signingObservation": "Inherited executable has ad-hoc linker signature without TeamIdentifier or sealed application resources; not formal application signing",
+  "notVerified": ["formal higher-version release", "actual37 provider and private business ports", "installed OS camera and key approval", "retained-account normal upgrade", "all16 actual user journeys", "independent successor review", "MONSTER"],
+  "overall": "ENGINEERING_ARTIFACT_VERIFIED_PRODUCT_NOT_COMPLETED"
+}

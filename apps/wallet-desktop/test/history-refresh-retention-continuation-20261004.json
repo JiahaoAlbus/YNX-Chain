@@ -1,0 +1,19 @@
+{
+  "kind": "VERIFIED_ACCOUNT_HISTORY_REFRESH_RETENTION",
+  "testedOwnedHead": "eb73ceac81d4850b1c32a1dcb68f207cda65ac69",
+  "sourceSha256": "0b5a3d4621799d45b1978ee87ec81362f1fc6590af76e51ddf71481af0561d37",
+  "behavior": ["same-account pending refresh retains immutable verified rows", "failed or malformed refresh retains original rows and older-page cursor", "retained snapshot never claims a fresh successful read", "account switch clears rows and cannot dispatch the previous account cursor", "refresh retires late older-page results", "successful fresh read replaces the displayed first page"],
+  "tests": {
+    "originalSourceWithNewAssertions": {"pass": 12, "fail": 3, "exit": 1, "logSha256": "561a9bfaf4ac1189303a6bd5e0244810414534997c0c1e059ad1081fc7e7a663"},
+    "historyRecoveryAndMountedLocaleComposition": {"pass": 68, "fail": 0, "exit": 0, "logSha256": "e59935ed936cdcde0979c95ab09b825e974f09f248d2deab5e1641d36127edab"},
+    "nativeOriginalHistoryModalParity": {"pass": 25, "fail": 0, "exit": 0, "logSha256": "81437489a1a9a8b90047706c7608ffd0ed24b6c30e1c8500c3a91cebb025226f"},
+    "completeDesktopStableSource": {"pass": 1125, "fail": 0, "skipped": 0, "exit": 0, "logSha256": "3ef472bf784eb698c3612bd9486f606a39f00545c1ba64325c979547934ad631"}
+  },
+  "matchingInputs": {"candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk", "ownedFilesBeforeAndAfter": 682, "allBytesExactAndUnchanged": true, "beforeAndAfterReadbackSha256": "8bffa380341549f8378f8d1f13da0a1eddf9ab44c24ed9b0012404bc90968d77", "sdk": "Original c5 1.2.0 plus exact historical declared CLI; previously verified contained software unchanged"},
+  "preparationFailurePreserved": "First relative-path copy used candidate Desktop cwd and failed ENOENT. Shell nevertheless started a 1114-test run while corrected files were copied; that mixed-input run is retained but excluded as successor proof. A separate 1125-test run started only after all682 absolute-source files were copied and pinned; before/after byte checks passed.",
+  "nativeAppTsxSha256Unchanged": "2d0a7e397d27f1387e25b111e48d8d9532f0971c3f3090959de460d06238a763",
+  "safety": {"nativeEntryOrSharedSdkChanged": false, "privateSigningSettlementOrJournalChanged": false, "accountsKeysOriginalUnknownChanged": false, "newPaymentOrResigning": false, "formalArtifactBuiltInstalledOrPublished": false},
+  "runtimeScope": "Controlled source and mounted renderer tests only; not actual OS, public installer, Relay or backend business acceptance. Prior engineering DMG remains bound to its original composition and does not include this new source change.",
+  "remaining": ["A actual provider and authenticated Pay ports", "formal source-matching higher-version signed upgrade", "original accounts and UNKNOWN retained in normal OS upgrade", "all16 installed user journeys", "MONSTER"],
+  "overall": "SOURCE_REGRESSION_VERIFIED_PRODUCT_NOT_COMPLETED"
+}
