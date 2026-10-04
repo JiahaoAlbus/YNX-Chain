@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Entwurf speichern",
+    "draftSaved": "Entwurf lokal gespeichert. Keine Wallet-Freigabe, kein Konto und kein Guthaben erstellt.",
+    "saveDraftHint": "Speichern Sie Änderungen vor dem Verlassen. Das Speichern fordert keine Wallet-Freigabe an.",
     "title": "Testnet-Card-Antrag erstellen",
     "disclaimer": "Eine Card wird niemals als bereits erstellt vorausgesetzt. Dieser an die Wallet gebundene Ablauf gilt nur für das Testnet und kann keine echte Karte, PAN, CVV, Guthaben, Fiat-Einzahlung oder Händlerzahlung bereitstellen.",
     "nativeUnavailable": "Card-Anträge in der nativen App sind noch nicht verfügbar",

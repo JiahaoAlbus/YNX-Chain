@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Guardar borrador",
+    "draftSaved": "Borrador guardado localmente. No se creó ninguna autorización, cuenta ni saldo.",
+    "saveDraftHint": "Guarda los cambios antes de salir. Guardar el borrador no solicita aprobación de la cartera.",
     "title": "Crear una solicitud de Card de Testnet",
     "disclaimer": "Una Card nunca se da por creada. Este flujo vinculado a la billetera es exclusivo de Testnet y no puede emitir una tarjeta real, PAN, CVV, saldo, financiación en moneda fiduciaria ni pagos a comercios.",
     "nativeUnavailable": "Las solicitudes de Card en la aplicación nativa aún no están disponibles",

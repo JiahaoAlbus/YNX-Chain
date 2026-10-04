@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Simpan draf",
+    "draftSaved": "Draf disimpan secara lokal. Tidak ada persetujuan dompet, akun, atau saldo yang dibuat.",
+    "saveDraftHint": "Simpan perubahan sebelum keluar. Menyimpan draf tidak meminta persetujuan dompet.",
     "title": "Buat pengajuan Card Testnet",
     "disclaimer": "Card tidak dibuat secara otomatis. Alur yang terikat pada dompet ini hanya untuk Testnet dan tidak dapat menerbitkan kartu nyata, PAN, CVV, saldo, isi ulang fiat, atau pembayaran pedagang.",
     "nativeUnavailable": "Pengajuan Card di aplikasi native belum tersedia",

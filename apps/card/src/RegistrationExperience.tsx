@@ -4,7 +4,7 @@ import type{Eip1193WalletSession}from"./wallet";
 import{CardText as Text,CardTextInput as TextInput}from"./cardTypography";
 import{isRTL,type Locale}from"./i18n";
 import{loadCardRegistration,saveCardRegistration}from"./secureState";
-import{cancel,createDraft,degrade,requestApproval,restoreForWallet,submitForBackend,updateDraft,type CardRegistration}from"./registration";
+import{cancel,createDraft,degrade,requestApproval,restoreForWallet,saveDraftFields,submitForBackend,updateDraft,type CardRegistration}from"./registration";
 import{registrationErrorKey,registrationStatus,registrationTemplate,registrationText,type RegistrationCopyKey}from"./registrationCopy";
 const BLUE="#002FA7",INK="#171A22",LINE="#DFE3EA",MUTED="#5B6270";
 type Form=Pick<CardRegistration,"nickname"|"useCase"|"spendingLimitYnxt"|"riskAccepted">;
@@ -46,6 +46,7 @@ function RegistrationState({walletSession,locale}:RegistrationProps){
   };
   const draft=()=>run(async()=>{if(!walletSession){setNotice("connectRequired");return}if(loadedOwner!==walletSession.address)return;await persist(createDraft(walletSession.address),"draftCreated")},"invalidApplication");
   const approve=()=>run(async()=>{if(!record||record.owner!==walletSession?.address.toLowerCase())return;const edited=updateDraft(record,{...form,controls:record.controls});await persist(requestApproval(edited,`approval-${record.id}`),"approvalPrepared")},"cannotApprove");
+  const saveDraftApplication=()=>run(async()=>{if(!record||record.owner!==walletSession?.address.toLowerCase())return;await persist(saveDraftFields(record,form),"draftSaved")},"invalidApplication");
   const submit=()=>run(async()=>{if(!record||record.owner!==walletSession?.address.toLowerCase())return;const submitted=submitForBackend(record,`submit-${record.id}`);await persist(degrade(submitted,"No accepted Card registration backend receipt is available. No signature, account, ACTIVE card, balance, or top-up intent was created.",`degraded-${record.id}`),"backendDegraded")},"cannotSubmit");
   const cancelApplication=()=>run(async()=>{if(record&&record.owner===walletSession?.address.toLowerCase())await persist(cancel(record,`cancel-${record.id}`))},"cannotCancel");
   const textStyle=rtl?s.rtlText:undefined;
@@ -61,6 +62,8 @@ function RegistrationState({walletSession,locale}:RegistrationProps){
         <TextInput accessibilityLabel={copy("limit")} editable={!disabled} value={form.spendingLimitYnxt} onChangeText={spendingLimitYnxt=>setForm(previous=>({...previous,spendingLimitYnxt}))} placeholder={copy("limitPlaceholder")} keyboardType="decimal-pad" style={[s.input,textStyle]}/>
         <View style={[s.control,rtl&&s.rowRTL]}><Text style={[s.controlBody,textStyle]}>{copy("risk")}</Text><Switch accessibilityLabel={copy("acceptTerms")} disabled={disabled} value={form.riskAccepted} onValueChange={riskAccepted=>setForm(previous=>({...previous,riskAccepted}))} trackColor={{true:BLUE}}/></View>
         <Pressable accessibilityRole="button" disabled={disabled} onPress={()=>void approve()} style={s.primary}><Text style={[s.primaryText,textStyle]}>{copy("prepareApproval")}</Text></Pressable>
+        <Text style={[s.body,textStyle]}>{copy("saveDraftHint")}</Text>
+        <Pressable accessibilityRole="button" disabled={disabled} onPress={()=>void saveDraftApplication()} style={s.secondary}><Text style={[s.secondaryText,textStyle]}>{copy("saveDraft")}</Text></Pressable>
       </>:null}
       {record.status==="APPROVAL_REQUIRED"?<Pressable accessibilityRole="button" disabled={disabled} onPress={()=>void submit()} style={s.primary}><Text style={[s.primaryText,textStyle]}>{copy("submit")}</Text></Pressable>:null}
       {record.status!=="ACTIVE"&&record.status!=="CANCELLED"?<Pressable accessibilityRole="button" disabled={disabled} onPress={()=>void cancelApplication()} style={s.secondary}><Text style={[s.secondaryText,textStyle]}>{copy("cancel")}</Text></Pressable>:null}

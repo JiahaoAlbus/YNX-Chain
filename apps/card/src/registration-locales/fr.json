@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Enregistrer le brouillon",
+    "draftSaved": "Brouillon enregistré localement. Aucune autorisation, aucun compte ni solde créé.",
+    "saveDraftHint": "Enregistrez vos modifications avant de quitter. Le brouillon ne demande aucune approbation du portefeuille.",
     "title": "Créer une demande de Card sur le réseau de test",
     "disclaimer": "La création d’une Card n’est jamais présumée. Ce parcours lié au portefeuille est réservé au réseau de test et ne peut fournir de carte réelle, PAN, CVV, solde, financement en monnaie fiduciaire ou paiement marchand.",
     "nativeUnavailable": "Les demandes de Card dans l’application native ne sont pas encore disponibles",

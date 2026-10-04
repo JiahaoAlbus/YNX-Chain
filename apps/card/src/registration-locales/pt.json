@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Salvar rascunho",
+    "draftSaved": "Rascunho salvo localmente. Nenhuma autorização, conta ou saldo foi criado.",
+    "saveDraftHint": "Salve as alterações antes de sair. Salvar o rascunho não solicita aprovação da carteira.",
     "title": "Criar uma solicitação de Card na Testnet",
     "disclaimer": "Uma Card nunca é considerada criada automaticamente. Este fluxo vinculado à carteira é exclusivo da Testnet e não pode emitir um cartão real, PAN, CVV, saldo, financiamento em moeda fiduciária ou pagamento a comerciantes.",
     "nativeUnavailable": "As solicitações de Card no aplicativo nativo ainda não estão disponíveis",

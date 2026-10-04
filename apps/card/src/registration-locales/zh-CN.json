@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "保存草稿",
+    "draftSaved": "草稿已在本地保存。未创建钱包授权、账户或余额。",
+    "saveDraftHint": "离开前请保存修改。保存草稿不会请求钱包授权。",
     "title": "创建测试网 Card 申请",
     "disclaimer": "此流程不会默认创建卡片。申请与钱包绑定，仅用于测试网，不能发行真实卡片、PAN、CVV、余额、法币充值或商户付款。",
     "nativeUnavailable": "原生 Card 申请暂未开放",

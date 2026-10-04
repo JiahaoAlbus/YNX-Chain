@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "儲存草稿",
+    "draftSaved": "草稿已在本機儲存。未建立錢包授權、帳戶或餘額。",
+    "saveDraftHint": "離開前請儲存修改。儲存草稿不會要求錢包授權。",
     "title": "建立測試網 Card 申請",
     "disclaimer": "此流程不會預設建立卡片。申請與錢包綁定，僅用於測試網，不能發行真實卡片、PAN、CVV、餘額、法幣儲值或商戶付款。",
     "nativeUnavailable": "原生 Card 申請暫未開放",

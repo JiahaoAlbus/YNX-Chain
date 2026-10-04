@@ -1,5 +1,8 @@
 {
   "text": {
+    "saveDraft": "Save draft",
+    "draftSaved": "Draft saved locally. No wallet approval, account or balance was created.",
+    "saveDraftHint": "Save your changes before leaving. Saving a draft does not request wallet approval.",
     "title": "Create a Testnet Card application",
     "disclaimer": "A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.",
     "nativeUnavailable": "Native Card applications are not available yet",
