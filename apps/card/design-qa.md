@@ -22,4 +22,13 @@ Interaction evidence: CTA same tab to existing root app, visible six-nav/registr
 
 Comparison history: first candidate only; no post-QA visual fix in this checkpoint.
 
-final result: blocked
+## Follow-up comparison: 1089b32c6
+
+- Earlier P2 localized-label gap: fixed all three named introduction labels (brand, navigation, Testnet boundary). Chinese DOM readback shows 产品介绍 / 介绍页导航 / 测试网边界; reload retained Chinese. English switching restores their original labels.
+- Earlier P2 return-entry gap: existing App now renders an explicit localized same-tab /about/ link on Web. Actual mobile browser opened the app in Chinese and clicked 了解 YNX Card back to the introduction; no account/sign/send action. Native renderer tests confirm no marketing replacement or Web link.
+- Source reference was opened together with revised complete desktop screenshot `evidence/20261003-testnet-operations/introduction-return-1089b32c6-intro-1440-en-full.png` in one comparison input. Original 2354x1690 reference is directional Social UI, not a pixel-identical Card spec. Revised image is 1425x2632, covering 1440 CSS width minus scrollbar. Body/fonts/spacing/colors/TEST artwork/content keep the previously reviewed direction. Card-specific content and wider original artwork are intentional. No actionable P0/P1/P2 visual difference found in this scoped introduction comparison; P3 heading-weight preference remains.
+- Focused mobile return region: `evidence/20261003-testnet-operations/introduction-return-1089b32c6-app-390-zh.png`, 390x844, opened at readable scale. Link and existing Guest/navigation remain visible. Chinese introduction mobile screenshot retained separately. English desktop screenshot captured with fullPage=false was cropped by the IAB side panel; it is retained as an invalid capture and NOT used as desktop-layout evidence. The complete replacement above is authoritative.
+- Browser sequence: explicit Chinese toggle → existing app/root source1089b32c6 → localized return link → /about/ → reload → Chinese retained → English restored. Introduction/app console errors0; actual desktop innerWidth1440 and document scrollWidth1425 (no horizontal overflow). Viewport override reset. Previous 320px layout remains unchanged; this follow-up did not repeat a 320px capture.
+- Unit gates5/5, front/server types, exact Web build and envelope21/static parity18 passed. This is local UI QA, not formal Host, private Card business or Testnet funding acceptance.
+
+final result: passed

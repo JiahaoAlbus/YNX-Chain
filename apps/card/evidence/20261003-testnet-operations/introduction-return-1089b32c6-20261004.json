@@ -1,0 +1,116 @@
+{
+  "schema": "ynx-card-introduction-return-qa-v1",
+  "source": "1089b32c6fdacaadfa9aec5dfb90e408025588ce",
+  "tree": "459364d5a69b3691b1dda7a6b3c2520455174ec6",
+  "observedAt": "2026-10-04T07:46:45.674Z",
+  "preview": "http://127.0.0.1:8797/about/",
+  "app": "http://127.0.0.1:8797/",
+  "tests": {
+    "introductionAndReturn": "5/5",
+    "frontendAndBackendTypes": "passed",
+    "webBuild": "passed",
+    "envelopeExact": 21,
+    "staticParity": 18
+  },
+  "browser": {
+    "provider": "Codex in-app browser",
+    "locale": "explicit zh-CN then en",
+    "chineseAuxiliaryLabelsTranslated": true,
+    "sameTabAppEntry": true,
+    "existingAppSourceVisible": "1089b32c6fdacaadfa9aec5dfb90e408025588ce",
+    "explicitLocalizedAppReturn": true,
+    "chineseReloadRestored": true,
+    "englishRestore": true,
+    "guestAndSixNavVisible": true,
+    "consoleErrors": 0,
+    "desktop": {
+      "innerWidth": 1440,
+      "scrollWidth": 1425,
+      "height": 1000
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844
+    }
+  },
+  "screenshots": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-return-1089b32c6-app-390-zh.png",
+      "bytes": 42409,
+      "sha256": "838d7301bfd02f6b7f41fa2c336dfda2a11ba38f9ee5aa52bce96c3d75afd687",
+      "valid": true,
+      "note": "Browser-rendered capture"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-return-1089b32c6-intro-390-zh.png",
+      "bytes": 38842,
+      "sha256": "31b99af0aa52ddc88194929ebf3bf8a906d3473475f0336642953f6eb503e9f0",
+      "valid": true,
+      "note": "Browser-rendered capture"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-return-1089b32c6-intro-1440-en.png",
+      "bytes": 36295,
+      "sha256": "0e8386a2b2590f1885b89d08944330384edea9f694fdc5091a639b687334735f",
+      "valid": false,
+      "note": "IAB side-panel crop; not authoritative for desktop QA"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-return-1089b32c6-intro-1440-en-full.png",
+      "bytes": 285030,
+      "sha256": "a85c7b417fb99be0d03c3b2d7c7d4c1bd8f53f53c8201c13a3d4ea554c81bea7",
+      "valid": true,
+      "note": "Browser-rendered capture"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "about/index.html",
+      "bytes": 6906,
+      "sha256": "227d54f17e1c35accf0cb07cb863eefe9bdd29c574af43d80527a052f80977b0"
+    },
+    {
+      "path": "about/about.css",
+      "bytes": 5168,
+      "sha256": "7e2ed3f385f4e3d59219978d1f7c7b9c0ca44f338b981eb86cde4eb07a539e6f"
+    },
+    {
+      "path": "about/about.mjs",
+      "bytes": 4953,
+      "sha256": "1f1d3be914673545d5c65f0feec708fe68bffdf43a720e805a379e5947996d95"
+    },
+    {
+      "path": "about/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "about/card-testnet-identity.svg",
+      "bytes": 2514,
+      "sha256": "4e689957655b9599b543b10a447dc723c94b2e1d78ec7cf51923836a26f1726a"
+    },
+    {
+      "path": "card-runtime-identity.json",
+      "missing": true
+    }
+  ],
+  "designQA": "passed-local-introduction-only",
+  "gates": {
+    "publicDeployment": false,
+    "walletApprove": false,
+    "walletSignature": false,
+    "cardActive": false,
+    "realYNXTFunding": false,
+    "cardCredit": false,
+    "dataFabricDelivery": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false,
+    "computerControl": false
+  },
+  "remaining": [
+    "Formal Host deploy/source binding and website proposal acceptance",
+    "Actual current/role/actor producer plus private backend acceptance",
+    "Direct wallet-approved Testnet registration/funding and complete ledger lifecycle/Data Fabric evidence"
+  ]
+}
