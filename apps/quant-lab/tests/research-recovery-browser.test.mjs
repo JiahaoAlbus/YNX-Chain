@@ -14,7 +14,7 @@ import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-op
 
 // Controlled local tape -> actual Go research engine -> actual browser. This is
 // intentionally not a public market, real account, Relay or transaction proof.
-test('actual Go two-browser saved research stays isolated through lost-return and restart',{timeout:45000},async t=>{
+test('actual Go two-browser research and confirmed schedules stay isolated through lost-return and restart',{timeout:45000},async t=>{
   const root=fileURLToPath(new URL('../../../',import.meta.url)),work=await mkdtemp(path.join(os.tmpdir(),'ynx-quant-research-recovery-'));
   const binary=path.join(work,'ynx-quant');
   await promisify(execFile)('go',['build','-o',binary,'./apps/quant-lab/server'],{cwd:root,timeout:20000});
@@ -116,6 +116,21 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     await otherPage.selectOption('#locale','en');
     await otherPage.locator('nav button[data-view="research"]').click();
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
+    // Use the normal existing saved-strategy button and browser confirmation,
+    // not a fabricated runtime, injected clock or scheduler endpoint.
+    let schedulePuts=0;
+    otherPage.on('request',request=>{if(request.method()==='PUT'&&new URL(request.url()).pathname.endsWith('/schedule'))schedulePuts++});
+    await otherPage.locator('nav button[data-view="strategies"]').click();
+    const cancelScheduleDialog=otherPage.waitForEvent('dialog'),cancelScheduleClick=otherPage.locator('#strategy-rows .schedule-toggle').click();
+    const cancelledSchedule=await cancelScheduleDialog;assert.match(cancelledSchedule.message(),/29/);await cancelledSchedule.dismiss();await cancelScheduleClick;
+    assert.equal(schedulePuts,0,'cancelled schedule confirmation must not reach the original Go service');
+    const scheduleDialog=otherPage.waitForEvent('dialog'),scheduleClick=otherPage.locator('#strategy-rows .schedule-toggle').click();
+    const scheduleConfirmation=await scheduleDialog;assert.match(scheduleConfirmation.message(),/29/);await scheduleConfirmation.accept();await scheduleClick;
+    await otherPage.waitForFunction(()=>Object.values(snapshot.strategies).length===1&&Object.values(snapshot.strategies)[0].Runtime.enabled===true&&scheduleWrites.size===0);
+    const configuredSchedule=await otherPage.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime);
+    assert.equal(schedulePuts,1);assert.equal(configuredSchedule.lastRunStatus,'scheduled');assert.equal(configuredSchedule.running,false);assert.equal(configuredSchedule.intervalSeconds,60);assert.equal(configuredSchedule.assumptions.FeeBPS,29);
+    assert.match(await otherPage.locator('#strategy-rows').textContent(),/Waiting for the next research run/);
+    await page.evaluate(()=>refresh());assert.equal(await page.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime.enabled),false,'other browser schedule cannot enable this strategy');
     const otherBefore=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));
     assert.equal(otherBefore.experiments[0].strategy.Name,'Independent browser research');assert.equal(otherBefore.experiments[0].assumptions.FeeBPS,29);
     assert.notEqual(otherBefore.tenant,await page.evaluate(()=>localStorage.getItem('ynx.quant.tenant.v1')));
@@ -126,6 +141,13 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
     const otherAfter=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));
     assert.deepEqual(otherAfter,otherBefore,'second browser reads only its exact persisted experiment and strategy after restart');
+    await otherPage.locator('nav button[data-view="strategies"]').click();
+    assert.match(await otherPage.locator('#strategy-rows').textContent(),/Stop schedule/);
+    const stopScheduleDialog=otherPage.waitForEvent('dialog'),stopScheduleClick=otherPage.locator('#strategy-rows .schedule-toggle').click();
+    await (await stopScheduleDialog).accept();await stopScheduleClick;
+    await otherPage.waitForFunction(()=>Object.values(snapshot.strategies)[0].Runtime.lastRunStatus==='stopped_by_user'&&scheduleWrites.size===0);
+    const stoppedSchedule=await otherPage.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime);
+    assert.equal(schedulePuts,2);assert.equal(stoppedSchedule.enabled,false);assert.equal(stoppedSchedule.running,false);assert.match(stoppedSchedule.nextRunAt,/^0001-/);
     assert.equal(await page.locator('#strategy').inputValue(),'Controlled lost-return research');assert.equal(await page.locator('#fee').inputValue(),'17');assert.equal(await page.locator('#research-request-status').isVisible(),true);
     await page.selectOption('#locale','ar');await page.locator('#research-submit').click();await page.waitForFunction(()=>document.getElementById('latest-result').hidden===false&&document.getElementById('backtest').ariaBusy==='false');
     assert.equal(posts,2);assert.equal(bodies[1],bodies[0]);assert.equal(await page.locator('#research-request-status').isVisible(),false);assert.equal(context.pages().length,1);
@@ -183,6 +205,8 @@ test('actual Go two-browser saved research stays isolated through lost-return an
     await stop();await start();await page.reload({waitUntil:'networkidle'});await otherPage.reload({waitUntil:'networkidle'});
     assert.deepEqual(await page.evaluate(()=>snapshot.paper),killedBefore,'Paper fill and kill latch survive another complete service stop/start');
     assert.deepEqual(await otherPage.evaluate(()=>snapshot.paper),otherPaperBefore,'one tenant Paper risk/fill cannot leak into the second browser');
+    assert.deepEqual(await otherPage.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime),stoppedSchedule,'explicit stop survives another service restart without restarting or erasing history');
+    assert.equal(schedulePuts,2,'reload/refresh cannot repeat schedule writes');
     // Corrupt only the local displayed readback copy, not server storage or
     // authority: an unconfirmed completion must not turn into return history.
     for(const status of [null,'running','failed']){

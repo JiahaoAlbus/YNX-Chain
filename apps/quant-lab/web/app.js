@@ -502,12 +502,17 @@ for (const [language, copy] of Object.entries({
   id:'Jadwal dihentikan karena strategi telah melewati tahap backtest'
 })) Object.assign(businessCopy[language], {scheduleStageAdvanced:copy});
 function scheduleStatusText(runtime) { return t(Object.hasOwn(scheduleStatusKeys,runtime?.lastRunStatus) ? scheduleStatusKeys[runtime.lastRunStatus] : runtime?.lastRunStatus ? 'scheduleUnknown' : 'scheduleInactive'); }
+function enabledScheduleState(runtime) {
+  return ["scheduled", "running", "completed", "failed_invalid_or_cancelled_configuration", "failed_market_data_unavailable"].includes(runtime.lastRunStatus) && runtime.running === (runtime.lastRunStatus === "running");
+}
 function observedSchedule(strategy) {
   const runtime = strategy?.Runtime;
   if (!runtime || typeof runtime.enabled !== "boolean" || typeof runtime.running !== "boolean" || !Number.isSafeInteger(runtime.intervalSeconds) || runtime.intervalSeconds < 0) return null;
+  if (runtime.lastRunStatus !== undefined && typeof runtime.lastRunStatus !== "string") return null;
   if (runtime.lastRunStatus && !Object.hasOwn(scheduleStatusKeys,runtime.lastRunStatus)) return null;
   if (runtime.enabled && (runtime.intervalSeconds < 60 || runtime.intervalSeconds > 86400 || typeof runtime.lastRunStatus !== "string" || !runtime.lastRunStatus || !auditTimeValid(runtime.nextRunAt) || runtime.nextRunAt.startsWith("0001-"))) return null;
-  if (!runtime.enabled && runtime.running) return null;
+  if (runtime.enabled && !enabledScheduleState(runtime)) return null;
+  if (!runtime.enabled && (runtime.running || runtime.lastRunStatus && !["stopped_by_user", "stopped_stage_advanced", "cancelled_before_execution"].includes(runtime.lastRunStatus))) return null;
   return runtime;
 }
 function scheduleAcknowledgesConfiguration(runtime, enabled) {
@@ -515,8 +520,7 @@ function scheduleAcknowledgesConfiguration(runtime, enabled) {
   if (!enabled) return !runtime.running && runtime.lastRunStatus === "stopped_by_user";
   // A durable identical PUT can observe the worker after it has claimed or
   // finished the run. Confirm configuration, not a fabricated queued phase.
-  const status = runtime.lastRunStatus;
-  return ["scheduled", "running", "completed", "failed_invalid_or_cancelled_configuration", "failed_market_data_unavailable"].includes(status) && runtime.running === (status === "running");
+  return enabledScheduleState(runtime);
 }
 function scheduleTime(value) { return auditTimeValid(value) && !value.startsWith("0001-") ? localDate(value) : "—"; }
 

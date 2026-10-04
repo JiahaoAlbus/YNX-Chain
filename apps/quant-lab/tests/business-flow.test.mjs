@@ -484,6 +484,16 @@ test('saved research schedules render source failures and disable unknown or ine
   const strategy=savedResearchStrategy({ID:'saved"><img src=x>',Runtime:{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunAt:'2026-10-03T01:00:00Z',lastRunStatus:'failed_market_data_unavailable',lastExperiment:''}}),app=harness({snapshot:{strategies:{saved:strategy}}});await settle();const rows=app.ids.get('strategy-rows').innerHTML;assert.match(rows,/Market data unavailable/);assert.doesNotMatch(rows,/failed_market_data_unavailable|<img src=x>/);assert.match(rows,/Stop schedule/);
 });
 
+test('contradictory schedule snapshots cannot claim a run state or enable a schedule write',async()=>{
+  for(const [enabled,running,lastRunStatus] of [[true,false,'running'],[true,true,'completed'],[true,true,'scheduled'],[true,false,'stopped_by_user'],[true,false,'cancelled_before_execution'],[false,false,'running'],[false,false,'completed'],[false,false,0],[false,false,null]]){
+    const strategy=savedResearchStrategy({Runtime:{enabled,running,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus}});
+    const app=harness({snapshot:{strategies:{saved:strategy}},confirmAction:()=>true});await settle();
+    assert.match(app.ids.get('strategy-rows').innerHTML,/Schedule unverified/);
+    assert.match(app.ids.get('strategy-rows').innerHTML,/disabled/);
+    await app.schedule(strategy,!enabled);assert.equal(app.calls.filter(call=>call.options.method==='PUT').length,0);
+  }
+});
+
 test('schedule source states remain distinct and localize on language change without inventing completion',async()=>{
   const statuses=['scheduled','running','completed','stopped_by_user','cancelled_before_execution','failed_invalid_or_cancelled_configuration','failed_market_data_unavailable'];
   for(const status of statuses){
