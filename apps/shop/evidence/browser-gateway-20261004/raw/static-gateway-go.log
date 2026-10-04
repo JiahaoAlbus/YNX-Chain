@@ -1,0 +1,10 @@
+=== RUN   TestCommerceBuyerStaticGatewayPolicy
+=== RUN   TestCommerceBuyerStaticGatewayPolicy/combined-web
+=== RUN   TestCommerceBuyerStaticGatewayPolicy/legacy
+=== RUN   TestCommerceBuyerStaticGatewayPolicy/native
+--- PASS: TestCommerceBuyerStaticGatewayPolicy (0.02s)
+    --- PASS: TestCommerceBuyerStaticGatewayPolicy/combined-web (0.01s)
+    --- PASS: TestCommerceBuyerStaticGatewayPolicy/legacy (0.00s)
+    --- PASS: TestCommerceBuyerStaticGatewayPolicy/native (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	1.488s

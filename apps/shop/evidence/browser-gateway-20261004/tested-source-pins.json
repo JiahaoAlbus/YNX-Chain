@@ -1,0 +1,592 @@
+[
+  {
+    "path": "apps/shop/COMMERCE_V2_INTEGRATION_CONTRACT_20261003.json",
+    "sha256": "64099ddad911db5c2203b13667cb96fb6d29538c36e8dbadcf9b5682a73ab81e",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/COMMERCE_V2_INTEGRATION_CONTRACT_20261003.json"
+  },
+  {
+    "path": "apps/shop/ai-stream.js",
+    "sha256": "67cb1a7818ad0674b8dd490e35646a22f97174dfc98945dd07ce24ccfca5b38c",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/ai-stream.js"
+  },
+  {
+    "path": "apps/shop/app.js",
+    "sha256": "debd2d0beadb3f0f7f786a78460f23d1e82ee350c1af370e282ef1216bf12327",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/app.js"
+  },
+  {
+    "path": "apps/shop/browser-business.js",
+    "sha256": "1fce58c5c18f1260d7a87da053c70b3c5a620bcfcefc633c9265029e10e19bf6",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/browser-business.js"
+  },
+  {
+    "path": "apps/shop/checkout-recovery.js",
+    "sha256": "b97e2a52e3da78430c6adedc4d9eda2011778d73a46eb27ad1523ca530d3db40",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/checkout-recovery.js"
+  },
+  {
+    "path": "apps/shop/display-settings.js",
+    "sha256": "c2894be391220ef70765a02a6f2b57131a6028baef146740ca3a916bd905a4ba",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/display-settings.js"
+  },
+  {
+    "path": "apps/shop/i18n.js",
+    "sha256": "32861a12ce91dcf7b28137caf8f1844637513ef204fa1380f5baf225a314446a",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/i18n.js"
+  },
+  {
+    "path": "apps/shop/index.html",
+    "sha256": "4ecd2b8e3bd341137102465c57ff5a78f372d674a7c3b4e109d6fb2a2976166c",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/index.html"
+  },
+  {
+    "path": "apps/shop/invoice-recovery.js",
+    "sha256": "051f1576a958cb28fbafa9081eecd638bf5841eb7c3e854d291ca0dbb1ea7d40",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/invoice-recovery.js"
+  },
+  {
+    "path": "apps/shop/order-action-copy.js",
+    "sha256": "ad10dff265c8cd861071fb548e655cc7ca40da040336fa63a83d1c178614b342",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/order-action-copy.js"
+  },
+  {
+    "path": "apps/shop/order-action.js",
+    "sha256": "280e559eb4865f603463814525eada10139060cf896e77dd5fde596c928c2558",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/order-action.js"
+  },
+  {
+    "path": "apps/shop/package-lock.json",
+    "sha256": "2bf91a1a93e51a3aab0ea8f96e9f1198487fc81643d20c08d08fbeae643d0dc8",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/package-lock.json"
+  },
+  {
+    "path": "apps/shop/package.json",
+    "sha256": "95106177de8e4762a58984f8959c5292823c2aab6424107a78df1b1ddcb7f1b7",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/package.json"
+  },
+  {
+    "path": "apps/shop/playwright.config.mjs",
+    "sha256": "82dac214704f1bc8818e73179b066dbb3692f9621d4040d25fcb3afc4f725262",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/playwright.config.mjs"
+  },
+  {
+    "path": "apps/shop/privacy-i18n.js",
+    "sha256": "7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/privacy-i18n.js"
+  },
+  {
+    "path": "apps/shop/product-release.json",
+    "sha256": "180b5dd9955c49d5f8fe97a27b5191d160511496a2c7c95cc3437af9eff29dbc",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/product-release.json"
+  },
+  {
+    "path": "apps/shop/request-context.js",
+    "sha256": "e4c2df2da3ca984c52e69726640a7f4f09b2fb98aff6d8858b1882f5085e1b02",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/request-context.js"
+  },
+  {
+    "path": "apps/shop/scripts/build.mjs",
+    "sha256": "d621093fb292cda7887110cd4a28af0947a5688d1692b8560d488ac7b65c6393",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/scripts/build.mjs"
+  },
+  {
+    "path": "apps/shop/scripts/smoke.mjs",
+    "sha256": "7c353da5d607d884ca9e93cf26e30e3b67bcb0acc00b1082942bcab8cb67e2c5",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/scripts/smoke.mjs"
+  },
+  {
+    "path": "apps/shop/styles.css",
+    "sha256": "4a3e0941ea50e5c1d00d0ad33f6c087862df47e3fe6e317535738af6dac1bdae",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/styles.css"
+  },
+  {
+    "path": "apps/shop/sw.js",
+    "sha256": "8617302ba1ff722609f68a1086eccadef96a1e2cb3c7b302dd586e4cd980e941",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/sw.js"
+  },
+  {
+    "path": "apps/shop/test/ai-stream.test.mjs",
+    "sha256": "15e12f547b331fd14dc536401075dfc506fd758a4efc18bf066b6814a15edac4",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/ai-stream.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser-business.test.mjs",
+    "sha256": "a518805b54523bfb65ce123d380b4ba5a115e1ee3acaa30269310572283cb116",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser-business.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/browser-identity-fixture.mjs",
+    "sha256": "098b80c7dd82f4a78ab871907e8755dd8c255e97c21965b62fe9395da147ae84",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/browser-identity-fixture.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/browser-identity-required.spec.mjs",
+    "sha256": "21c0e6675c82ec7a223098e8315d55d5fa4b6fc9fa5841a31ee013780c3e8e7b",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/browser-identity-required.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/buyer-form-lifecycle.spec.mjs",
+    "sha256": "e2d5f39b32b5576176ef215ac5c811dd8e6b058de82c983aade85d9a23898921",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/buyer-form-lifecycle.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/canonical-layout.spec.mjs",
+    "sha256": "855a0a5c0e64a4d6d0449f8579978e527d95d2859c4976d43f858a03f729b966",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/canonical-layout.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/checkout-recovery.spec.mjs",
+    "sha256": "0aaf0b721dfac4b27244e8c9cba486f47b19e5f6800fac28c4790ba8eb658d12",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/checkout-recovery.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/invoice-recovery.spec.mjs",
+    "sha256": "52402528807339b3f0c442cc554a0e661d30855e3aa535be64a181983096e6a4",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/invoice-recovery.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/order-action-recovery.spec.mjs",
+    "sha256": "c80d18ca9deb97871b3f7097f2960c3cc35ee57576640b99482b4615399357e4",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/order-action-recovery.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/registered-gateway-policy.spec.mjs",
+    "sha256": "c0b67852806f9bdf6d10f0dd4d092f84dbebcb7f67f311785d56b0e15ac659c6",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/registered-gateway-policy.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/role-callback.spec.mjs",
+    "sha256": "b22728b03e7df1ca48047a2a8fe260743bb17d06eb66e734369d3f0db1ff5558",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/role-callback.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/session-ai.spec.mjs",
+    "sha256": "ace637a522d25943b6abee0bde164b8e520a580a7c95c35b07fa53f488f4dde0",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/session-ai.spec.mjs"
+  },
+  {
+    "path": "apps/shop/test/browser/shop-fixture.mjs",
+    "sha256": "2c920a226a6309f5ad046fef0e3bcae68a55eed35dd0178f7dc8944ac107f72f",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/browser/shop-fixture.mjs"
+  },
+  {
+    "path": "apps/shop/test/checkout-recovery.test.mjs",
+    "sha256": "8cab0cae44b21d6187834f69b4ceee59bd81dc1d233dd8ecd1b432b650b068e0",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/checkout-recovery.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/invoice-recovery.test.mjs",
+    "sha256": "6220cf7f34f272c170fbe1150ef91a3f3db7fdaa625e52fbbe120b19255da80c",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/invoice-recovery.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/offline-boundary.test.mjs",
+    "sha256": "265d1f31ecc86763bf3646a63a19afc0cb0ffe9d5c81a11c33f50f9fbb8a77ff",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/offline-boundary.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/order-action.test.mjs",
+    "sha256": "d700e46af4a1b4ebfa82490ef0e0f8ba9ddf8f75b87d4a376d1b582ce40c639f",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/order-action.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/privacy_i18n.test.mjs",
+    "sha256": "9bd55815c5c4d61f449bf219ca9f678f9b895f7407de29ea45aeea209ceb0c8d",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/privacy_i18n.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/request-context.test.mjs",
+    "sha256": "094ff0c820bb3dd0d6a30775a6167a9938873d450da04d492335b74712d90ab3",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/request-context.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/security_i18n.test.mjs",
+    "sha256": "33d4705e36ccecd7b90536e46f41a0b6c570b070912a5dba35b65933ffc04402",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/security_i18n.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/ui.test.mjs",
+    "sha256": "d63310980557c84a4ac5bcb4ec8e722e2ee00ddc80dd5c1712800f2bbc5b5541",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/ui.test.mjs"
+  },
+  {
+    "path": "apps/shop/test/wallet-connect.test.mjs",
+    "sha256": "222fc24a83035d87f6b273903a90736a0953a12dc892bd446d27df328390b172",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/test/wallet-connect.test.mjs"
+  },
+  {
+    "path": "apps/shop/wallet-auth.js",
+    "sha256": "f9932db61661d42cd1a58cb52db40c91736c656dd43bce43c6f61064bf539dc8",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/wallet-auth.js"
+  },
+  {
+    "path": "apps/shop/wallet-provider-discovery.js",
+    "sha256": "d8949474394b861233cedb0aba1cce609ef0537406b4860d4dbf4f468b6e1742",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/wallet-provider-discovery.js"
+  },
+  {
+    "path": "apps/shop/workflow.css",
+    "sha256": "2b1c75ae4fc736115d674fc3f3a9f1412e5d2a9068061da27f1ee153f4f375e5",
+    "tested": "/tmp/ynx-commerce-buyer-transition-20261004/apps/shop/workflow.css"
+  },
+  {
+    "path": "internal/commerce/accounts.go",
+    "sha256": "dde7d8ecca279b0471c2206b978aa246bbd7bf453694f9b50c6ebc3be7acab1b",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/accounts.go"
+  },
+  {
+    "path": "internal/commerce/ai_completion_boundary_test.go",
+    "sha256": "2ff48373a243ca2b9af5e16dd951c51e284f083d9a30735b5b815309b0eb3ff0",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/ai_completion_boundary_test.go"
+  },
+  {
+    "path": "internal/commerce/auth.go",
+    "sha256": "58fddd62d78a638c7bd6de66b6f129dbdeca5d20cb1fc47319df631774c3438e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth.go"
+  },
+  {
+    "path": "internal/commerce/auth_browser_v2.go",
+    "sha256": "2c156b383247a3d4bda52e073897bf45dd64dc98285806962eb22d0067026fd2",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_browser_v2.go"
+  },
+  {
+    "path": "internal/commerce/auth_browser_v2_test.go",
+    "sha256": "89b0c54864995b747a914e6880bd2583e568f85c5e4afa34f96e2470e644a449",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_browser_v2_test.go"
+  },
+  {
+    "path": "internal/commerce/auth_gateway_test.go",
+    "sha256": "b4c0f5e2c62e6d7d3e4d1652a7cdc09d82a3584690756268572e3326ea1a16b1",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_gateway_test.go"
+  },
+  {
+    "path": "internal/commerce/auth_native_buyer_v2_test.go",
+    "sha256": "0814a764a509a92d08c5a3d25c080893f7851a427fdcd89ffae81d8b7f767ec4",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_native_buyer_v2_test.go"
+  },
+  {
+    "path": "internal/commerce/auth_v2.go",
+    "sha256": "62df802b2f0407244c5b4a10878b7ea784ea42af1b64e8f3f734f05dedc90849",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_v2.go"
+  },
+  {
+    "path": "internal/commerce/auth_v2_test.go",
+    "sha256": "2d1e61d797a405c79eee1ae9c87e3ac57713b2cdff7f7c49c35791156ddec85e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/auth_v2_test.go"
+  },
+  {
+    "path": "internal/commerce/browser_assets_v2_test.go",
+    "sha256": "4275f6dceb992851d3a4a5ef4169e72550102e77df93f2ab6d5628a0aed54a99",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/browser_assets_v2_test.go"
+  },
+  {
+    "path": "internal/commerce/browser_binding_test.go",
+    "sha256": "d04eab39ae55f1f2f773f4607cd542873e6bef7cccf64036260657d058bc6b6f",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/browser_binding_test.go"
+  },
+  {
+    "path": "internal/commerce/business_actor.go",
+    "sha256": "624be61e0108cb3887b3be2261fe6a5d8d72e927ecafae74de39aa4ca98590f3",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_actor.go"
+  },
+  {
+    "path": "internal/commerce/business_actor_test.go",
+    "sha256": "584fafe182b8f220f8e3e86a2fb3dba5d3faa44260254a9ea56f35c9d450095f",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_actor_test.go"
+  },
+  {
+    "path": "internal/commerce/business_buyer_wire.go",
+    "sha256": "6bf7d2ee39a20f3df69a46cd0d5560aa9fa0fba001ee807b1556bd3a72ae9705",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_buyer_wire.go"
+  },
+  {
+    "path": "internal/commerce/business_buyer_wire_test.go",
+    "sha256": "5c0f3add84e55d7a09da39fb785fbfd60c352406695e7f8298e6fc3a8c2a4eea",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_buyer_wire_test.go"
+  },
+  {
+    "path": "internal/commerce/business_effect.go",
+    "sha256": "2b957cbe397eb5f55ab1969186202c114f7b95e0bf50a841a8011d5071545ace",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_effect.go"
+  },
+  {
+    "path": "internal/commerce/business_effect_http.go",
+    "sha256": "9f89e3f30d79eb34cf38050f7178e2177fb9ac47d77e2df41b3b1ec28facbc44",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_effect_http.go"
+  },
+  {
+    "path": "internal/commerce/business_effect_plans.go",
+    "sha256": "ba3409c88cbe1be2eca55d50f8b97c4e757a9a4dfc838e1aaa0764023bf5e335",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_effect_plans.go"
+  },
+  {
+    "path": "internal/commerce/business_effect_test.go",
+    "sha256": "f8f29351757550a9354e5ee86b3dd5a6c7f6fa0dc6f9e105a70cb420b763c1f9",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_effect_test.go"
+  },
+  {
+    "path": "internal/commerce/business_http.go",
+    "sha256": "2b4bd9509517c914de0a0e7c541378fae8b15d293b2bb98a3782e46a82266643",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_http.go"
+  },
+  {
+    "path": "internal/commerce/business_http_test.go",
+    "sha256": "543259f722771be2e54487edb8df8a5433f97bdb229b4b7125d4f1f9b416c0e9",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_http_test.go"
+  },
+  {
+    "path": "internal/commerce/business_invoice_recovery.go",
+    "sha256": "ba4a8ed370a67abbfcd70738e916dee0badf62c6cf5c64b4f4c9cbf6455ce948",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_invoice_recovery.go"
+  },
+  {
+    "path": "internal/commerce/business_invoice_recovery_test.go",
+    "sha256": "96efed9e21241233f79b9de5da1adb062e4519913fb2864a9b5d84853b74490e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_invoice_recovery_test.go"
+  },
+  {
+    "path": "internal/commerce/business_order_transition.go",
+    "sha256": "6639e7e0ec241fd081a74914444345939596b1a21d99ed5bd192e57892ae164a",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_order_transition.go"
+  },
+  {
+    "path": "internal/commerce/business_order_transition_test.go",
+    "sha256": "d9ab305ac12452a75af2c2d95909c9c2aadad0766211a6803308eacb3fc0e6a9",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_order_transition_test.go"
+  },
+  {
+    "path": "internal/commerce/business_routes.go",
+    "sha256": "7edd0e0a9f2dfaa0b1720df9cb979749407605a3f8123de0bd1d714f7f99c22e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_routes.go"
+  },
+  {
+    "path": "internal/commerce/business_settlement.go",
+    "sha256": "d3dd582b248b8f8e0846cf6db25cf0c9657d3eff6f3d5b80bc03bb078c18202e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_settlement.go"
+  },
+  {
+    "path": "internal/commerce/business_settlement_amount_test.go",
+    "sha256": "03b87bd4b457794fad6cb8ab9a7688eee0af5fae0429a56e216acb34778846cd",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_settlement_amount_test.go"
+  },
+  {
+    "path": "internal/commerce/business_settlement_test.go",
+    "sha256": "e4b09ad9bdf213b26ef3c25ce0b036df9d3264c51274f5d4c599f4f452dfd828",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_settlement_test.go"
+  },
+  {
+    "path": "internal/commerce/business_transaction.go",
+    "sha256": "d7e2cce705ce974cf9922061dc689c41c15fc9618fcc3fc4b25bf575bdd7f334",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_transaction.go"
+  },
+  {
+    "path": "internal/commerce/business_transaction_test.go",
+    "sha256": "1bd23b77126852325675e63684ecfd9b07164da8c9bac6f7f92ca15dc665d8a7",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_transaction_test.go"
+  },
+  {
+    "path": "internal/commerce/business_trust.go",
+    "sha256": "011199f29225ac8ed9087fcf31276f44b7e76204c0201eba425b655d84927797",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_trust.go"
+  },
+  {
+    "path": "internal/commerce/business_trust_test.go",
+    "sha256": "001952d472369dbbdd36e8e62000b934f3f6b438e58a775156a300c4626e84a5",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/business_trust_test.go"
+  },
+  {
+    "path": "internal/commerce/buyer_boundary_test.go",
+    "sha256": "77478853c6e0a294acc15b5529c4ec96234d40c1af13ef2544861e186e408840",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/buyer_boundary_test.go"
+  },
+  {
+    "path": "internal/commerce/buyer_transition_lookup.go",
+    "sha256": "80c29a68b99d2580b37225ff68a5b747b226da35ef2de9f17b2f14ed8364e699",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/buyer_transition_lookup.go"
+  },
+  {
+    "path": "internal/commerce/buyer_transition_lookup_test.go",
+    "sha256": "09468d2ea07184a25f61610094d38555a5247b9d6b1d0023256a8c728c1e2f4e",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/buyer_transition_lookup_test.go"
+  },
+  {
+    "path": "internal/commerce/cart_intent_test.go",
+    "sha256": "08ba3bfeb0956b10c8f23f5744eeec6402c33d8a5846f205cdaa1883971479bb",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/cart_intent_test.go"
+  },
+  {
+    "path": "internal/commerce/checkout_cart.go",
+    "sha256": "a619df32067c277111483817c4a3946d341a705e52fbadbb1bcfb74a7cf5f3ec",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/checkout_cart.go"
+  },
+  {
+    "path": "internal/commerce/checkout_cart_test.go",
+    "sha256": "ab224c5330ece75b256c6d1742d3a3c113fa213afbba4b099b31f0509fcdb6b3",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/checkout_cart_test.go"
+  },
+  {
+    "path": "internal/commerce/client_subject_test.go",
+    "sha256": "5ced3997f048ce805757633d16a31e4e3a960362485d1311962f1b738da03dfb",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/client_subject_test.go"
+  },
+  {
+    "path": "internal/commerce/cmd/seed/main.go",
+    "sha256": "5df17430c199baf099116603ea8617cfc98017a25e1223972dd4ad0e3d412bd2",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/cmd/seed/main.go"
+  },
+  {
+    "path": "internal/commerce/cmd/shopd/main.go",
+    "sha256": "ad3519b3ebdd4142932449b3c5cf1c58fab7825b27ec22d7110170182ee12d60",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/cmd/shopd/main.go"
+  },
+  {
+    "path": "internal/commerce/commerce_test.go",
+    "sha256": "45c9206b3e562fc3dcf57b31fbed7654ad195311c4d3ec3e694593e8b4d7317b",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/commerce_test.go"
+  },
+  {
+    "path": "internal/commerce/data_lifecycle.go",
+    "sha256": "1150d83209fbf2a9e1eb13187408ae480ee19348d68b0060da23de0863c05f83",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/data_lifecycle.go"
+  },
+  {
+    "path": "internal/commerce/data_lifecycle_test.go",
+    "sha256": "dbddad8e28227466dde0aec102e011c2c524267b309300fe96c70a57f67ae806",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/data_lifecycle_test.go"
+  },
+  {
+    "path": "internal/commerce/integrations.go",
+    "sha256": "e622b0059a84bdb01f20dc6b96c40f26f1a9ca6bbfdcde605b0413b92bcf4f11",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/integrations.go"
+  },
+  {
+    "path": "internal/commerce/model.go",
+    "sha256": "ccd5f64656fa10a5dfb0a34608eb80d9019b1b7b858dd8cd3daa1e7a0a97e513",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/model.go"
+  },
+  {
+    "path": "internal/commerce/observability.go",
+    "sha256": "075e5b9c91329d8be691fe6e55f74d0b2f449a5fb1aa60eea765f9730e22dd53",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/observability.go"
+  },
+  {
+    "path": "internal/commerce/observability_test.go",
+    "sha256": "a05645ab6c6501066c3947f3372ee69fb8795d7647ddba7f3842a8c3552bb2ba",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/observability_test.go"
+  },
+  {
+    "path": "internal/commerce/order_boundary_test.go",
+    "sha256": "66b32b6e9e78bd7f8348bbeabb10c4de5ff9b1d85caac2057dc4acc500644b53",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/order_boundary_test.go"
+  },
+  {
+    "path": "internal/commerce/privacy_replay_test.go",
+    "sha256": "988aa10ac0c4ac826d772fcab5403df850dc8062b00d33107c921e0711a64e17",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/privacy_replay_test.go"
+  },
+  {
+    "path": "internal/commerce/privacy_test.go",
+    "sha256": "e758130bb2a71e64f18122eaba4b1125313dad4dbd31bbe3c1b0d4121b342d3a",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/privacy_test.go"
+  },
+  {
+    "path": "internal/commerce/provider_registry.go",
+    "sha256": "ec74c6ce9a9e58529b9b450f85ae39172d3f1329fec3c46662a2db56b0a75d53",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/provider_registry.go"
+  },
+  {
+    "path": "internal/commerce/provider_registry_test.go",
+    "sha256": "9f59893303d8fb4544a39f5987d876b4e01622e9e59f979c6a0c9c8d67c3e6e0",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/provider_registry_test.go"
+  },
+  {
+    "path": "internal/commerce/role_revocation_server_test.go",
+    "sha256": "467c5d48cc77b4c340e666ce9843edceaa55426f0b1d16359acd4731066c73ac",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/role_revocation_server_test.go"
+  },
+  {
+    "path": "internal/commerce/roles.go",
+    "sha256": "18b57d799dd4f1387a3ed09da5e25352e25931de2adb1228486471d08f1bed2a",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/roles.go"
+  },
+  {
+    "path": "internal/commerce/roles_test.go",
+    "sha256": "90f093e1b6e2ade108e29b34b6ca2827ea66eca550264f6fd6b73dc0e0991a49",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/roles_test.go"
+  },
+  {
+    "path": "internal/commerce/seller_mutation_lookup.go",
+    "sha256": "4d8bd6853e6e118dfae62a8bd15f41ee74d6213c50c02b2e84a92510956eaeaa",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/seller_mutation_lookup.go"
+  },
+  {
+    "path": "internal/commerce/seller_mutation_lookup_test.go",
+    "sha256": "85b4e44efd63ce93cee60ece14e1b3c2bbbbf05b05270593628d7fb2a1565efa",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/seller_mutation_lookup_test.go"
+  },
+  {
+    "path": "internal/commerce/seller_test_helpers_test.go",
+    "sha256": "e86bc134a1c2649a780fce1926e8ffab93bab9ba227edf127b50e261e1dbf24d",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/seller_test_helpers_test.go"
+  },
+  {
+    "path": "internal/commerce/server.go",
+    "sha256": "74a27f9ced397d8e7d1cf23f678371cd1b2d83cf39e55249c20c6617cabba455",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/server.go"
+  },
+  {
+    "path": "internal/commerce/server_workflow_test.go",
+    "sha256": "67201d31e47130b1323fe712f1674e494125bafb5b125f16b2532bd17d7cb258",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/server_workflow_test.go"
+  },
+  {
+    "path": "internal/commerce/service.go",
+    "sha256": "4965d4af4500f285dbaf38c9b958af1f12ea164b2fd0bef296d2ab7ebaee04f2",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/service.go"
+  },
+  {
+    "path": "internal/commerce/snapshot_rollback_test.go",
+    "sha256": "149d7b3188727b7bcb4e689aaab3830b435b9c60db22c512ebc46c2ab014530a",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/snapshot_rollback_test.go"
+  },
+  {
+    "path": "internal/commerce/store.go",
+    "sha256": "1c5a200a1c0d1c6b6bf6b6c9507552deb4d0339b871d1fb1d478f747112cacf0",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/store.go"
+  },
+  {
+    "path": "internal/commerce/team_invitation_server_test.go",
+    "sha256": "f254972a101360355a18f19abf37b7034c870b8f7535c98bd7684e26db7891a9",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/team_invitation_server_test.go"
+  },
+  {
+    "path": "internal/commerce/team_invitation_test.go",
+    "sha256": "223fea1ebd9fbbaab6278be9879c2b7384c0d8be1ca318f7b6b87e41ed86c739",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/team_invitation_test.go"
+  },
+  {
+    "path": "internal/commerce/testdata/browser-business-node.mjs",
+    "sha256": "53bb4872b5cd63c424120bcce9dcbe2ff6e336b22a1222e4ba9f1d0de7ea2df5",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/testdata/browser-business-node.mjs"
+  },
+  {
+    "path": "internal/commerce/testdata/native-buyer-business-node.mjs",
+    "sha256": "ee16c108d867c67f47a28e496df2610a61134b29d67457d47ab6fc6396e190b1",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/testdata/native-buyer-business-node.mjs"
+  },
+  {
+    "path": "internal/commerce/testdata/v2-business-node.mjs",
+    "sha256": "8ebc3417bcd9e2801adad378a05c8390c31228c72bd73947fb2520299e8eaf8f",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/testdata/v2-business-node.mjs"
+  },
+  {
+    "path": "internal/commerce/trust.go",
+    "sha256": "e287f2bb6d2cd7a891591e1706edd060b86c4671d62439981375213fc0f1637a",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/trust.go"
+  },
+  {
+    "path": "internal/commerce/trust_test.go",
+    "sha256": "cf6e083d0c6c1861def8d2e92da5d071bbf423e6c915010c93ce895f26d71789",
+    "tested": "/tmp/ynx-commerce-owned-recovery-20261003/internal/commerce/trust_test.go"
+  }
+]

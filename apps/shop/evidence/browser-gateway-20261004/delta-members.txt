@@ -1,0 +1,6 @@
+apps/shop/COMBINED_WEB_GATEWAY_POLICY_20261004.md
+apps/shop/test/browser/registered-gateway-policy.spec.mjs
+apps/shop/test/browser/shop-fixture.mjs
+internal/commerce/auth_browser_v2.go
+internal/commerce/browser_assets_v2_test.go
+internal/commerce/server.go

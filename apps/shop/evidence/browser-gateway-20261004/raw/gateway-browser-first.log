@@ -1,0 +1,12 @@
+
+Running 5 tests using 1 worker
+
+(node:29815) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:4:1 › closing checkout during fresh proof keeps an unsent key; explicit same-input retry sends once (2.4s)
+  ✓  2 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:5:1 › closing profile during proof prevents update and reopening has a distinct presentation (1.7s)
+  ✓  3 [chromium] › test/browser/buyer-form-lifecycle.spec.mjs:6:1 › late profile read cannot overwrite fields in a reopened profile (1.6s)
+  ✓  4 [chromium] › test/browser/registered-gateway-policy.spec.mjs:6:1 › actual combined Web response policy admits the original issuer and fresh proof for owned profile save (1.7s)
+  ✓  5 [chromium] › test/browser/registered-gateway-policy.spec.mjs:7:1 › actual legacy same-origin policy reproduces issuer blockage and creates no private business authority (458ms)
+
+  5 passed (8.8s)

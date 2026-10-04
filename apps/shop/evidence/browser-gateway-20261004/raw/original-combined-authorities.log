@@ -1,0 +1,14 @@
+=== RUN   TestCommerceCombinedBrowserActualAuthorities
+=== RUN   TestCommerceCombinedBrowserActualAuthorities/browser-revoke
+=== RUN   TestCommerceCombinedBrowserActualAuthorities/private-revoke
+=== RUN   TestCommerceCombinedBrowserActualAuthorities/generation
+=== RUN   TestCommerceCombinedBrowserActualAuthorities/actor
+=== RUN   TestCommerceCombinedBrowserActualAuthorities/replacement
+--- PASS: TestCommerceCombinedBrowserActualAuthorities (4.28s)
+    --- PASS: TestCommerceCombinedBrowserActualAuthorities/browser-revoke (0.92s)
+    --- PASS: TestCommerceCombinedBrowserActualAuthorities/private-revoke (0.72s)
+    --- PASS: TestCommerceCombinedBrowserActualAuthorities/generation (0.72s)
+    --- PASS: TestCommerceCombinedBrowserActualAuthorities/actor (0.94s)
+    --- PASS: TestCommerceCombinedBrowserActualAuthorities/replacement (0.97s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/commerce	5.947s

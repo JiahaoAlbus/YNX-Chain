@@ -1,0 +1,111 @@
+{
+  "sourceCommit": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+  "sourceTree": "842b74986623a971a951dfd999b21d66d3272dab",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    },
+    {
+      "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+      "path": "apps/shop/evidence/seller-normal-flow-20261004/commerce-owned-delta-11b514910.tar",
+      "members": 8,
+      "bytes": 94208,
+      "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+    },
+    {
+      "sourceCommit": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+      "path": "apps/shop/evidence/view-lifecycle-20261004/commerce-owned-delta-c2e17e441.tar",
+      "members": 8,
+      "bytes": 122880,
+      "sha256": "ffd99d4a1027571bf392b3b67c27a11526e0601acd1d98e6b928694560982b9c"
+    },
+    {
+      "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+      "path": "apps/shop/evidence/shop-mount-20261004/commerce-owned-delta-7d1128595.tar",
+      "members": 1,
+      "bytes": 20480,
+      "sha256": "901a1b74e5700a1d9cd6dc5f21b328192c245f2e2aa3b67dbb1a975010dba3dc"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-2662eb638.tar",
+    "members": 6,
+    "bytes": 71680,
+    "sha256": "dc25de9830a3bf544061d5e0ea79a86eeaa044cf063da245fbd5ba064c32424f"
+  },
+  "composedOwnedMembers": 444,
+  "composition": "PASS actual six immutable layers; every current owned member byte/hash matches",
+  "testedSourcePins": 118,
+  "rawRecords": [
+    {
+      "path": "raw/actual-go-policies.json",
+      "bytes": 387,
+      "sha256": "f68018ad16cd01ab0dd9fb462a642f2bc35743bb7d98c1ed6d8f452c5ae4803b"
+    },
+    {
+      "path": "raw/gateway-browser-first.log",
+      "bytes": 1086,
+      "sha256": "e9bc2d75750ddfac1f177b71622f05ebc87bb25b7b930be4adfbc690521c3ea6"
+    },
+    {
+      "path": "raw/original-combined-authorities.log",
+      "bytes": 914,
+      "sha256": "c904990db069051d1654050df3ee2910ef42efaeea2f228c0a29f52218e96878"
+    },
+    {
+      "path": "raw/static-gateway-go-readback.log",
+      "bytes": 542,
+      "sha256": "1c7b8f8495a3a787fd6875aae161b695cfddc4a2c543e85d0f23b9ec4e5810cc"
+    },
+    {
+      "path": "raw/static-gateway-go.log",
+      "bytes": 542,
+      "sha256": "2b3485bb868a3e842495fea049ca9de950394d8d68b43b1f75e6e5c56048a04e"
+    }
+  ],
+  "validation": {
+    "actualGoHandlerRaceBranches": 3,
+    "actualChromiumPolicySDK": 2,
+    "buyerLifecycleRegression": 3,
+    "actualGoCombinedAuthorityRaceRegression": 5
+  },
+  "qualification": "CONTROLLED_ONLY actual Go headers and actual SDK/software approval; fixture business replies; no public/real Wallet/user acceptance",
+  "policy": {
+    "issuer": "https://wallet-auth.ynxweb4.com",
+    "source": "original combined Web constructor issuer only",
+    "legacyNative": "unchanged",
+    "authority": "unchanged private profiles/scopes/actor/nonce/body guards"
+  },
+  "unchangedWebCandidate": {
+    "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+    "path": "apps/shop/evidence/shop-mount-20261004/controlled-shop-web-7d1128595.tar",
+    "members": 23,
+    "bytes": 7837696,
+    "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
+    "qualification": "CONTROLLED_BUILD_ONLY full cached dependency stage and controlled Browser SDK; A formal qualification/signing/deployment still required"
+  },
+  "native": "source unchanged; retained Android46 Apple61/full build qualification only",
+  "deployment": {
+    "authorizedByUser": true,
+    "status": "NOT_VERIFIED",
+    "owner": "unique A via Root",
+    "requires": [
+      "formal runtime endpoint/SDK matching original issuer",
+      "current owned backend source/build",
+      "three public entries and original root callback mapping",
+      "signed Native package/install",
+      "actual final-entry private/own-server business readback"
+    ]
+  }
+}
