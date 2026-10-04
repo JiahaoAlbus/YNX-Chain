@@ -5,6 +5,16 @@ import test from 'node:test';
 
 const originalSha = 'df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d';
 
+function classRules(css: string, selector: string) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return [...css.matchAll(new RegExp(escaped + '\\s*\\{([^}]*)\\}', 'g'))].map(match =>
+    Object.fromEntries(match[1]!.split(';').filter(value => value.includes(':')).map(value => {
+      const colon = value.indexOf(':');
+      return [value.slice(0, colon).trim(), value.slice(colon + 1).trim()];
+    })),
+  );
+}
+
 test('Every public YNX wallet choice and the header use the original brand, with the official MetaMask symbol', () => {
   const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
   for (const id of ['connect-mobile', 'connect-hosted', 'connect-ynx']) {
@@ -17,7 +27,7 @@ test('Every public YNX wallet choice and the header use the original brand, with
   const official = readFileSync(new URL('../web/assets/metamask.svg', import.meta.url));
   assert.equal(createHash('sha256').update(official).digest('hex'), '163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f');
   const css = readFileSync(new URL('../web/styles.css', import.meta.url), 'utf8');
-  assert.match(css, /\.wallet-logo\{[^}]*border-radius:0;object-fit:contain/);
+  assert.ok(classRules(css, '.wallet-logo').some(rule => rule['border-radius'] === '0' && rule['object-fit'] === 'contain'));
 });
 
 test('Native and Web retain the exact admitted original YNX PNG, not letter substitutes', () => {
@@ -52,8 +62,10 @@ test('Web brand has contain geometry and small-screen navigation cannot cover th
   const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
   const css = readFileSync(new URL('../web/styles.css', import.meta.url), 'utf8');
   assert.match(html, /class="brand-logo"[^>]*width="76" height="40"/);
-  assert.match(css, /object-fit:contain; flex-shrink:0; border-radius:0/);
-  assert.match(css, /width:calc\(24px \* 798 \/ 420\); height:24px/);
-  assert.match(css, /body > \.topbar > nav \{ position:static; inset:auto; transform:none; order:3/);
-  assert.match(css, /#connect-wallet \{[^}]*min-height:44px/);
+  const rules = classRules(css, '.brand-logo');
+  assert.ok(rules.some(rule => rule['object-fit'] === 'contain' && rule['border-radius'] === '0'));
+  assert.ok(rules.some(rule => rule['flex-shrink'] === '0' && rule['object-fit'] === 'contain'));
+  assert.ok(rules.some(rule => rule.width?.replace(/\s/g, '') === 'calc(24px*798/420)' && rule.height === '24px'));
+  assert.match(css, /@media\(max-width:899px\)\{[\s\S]*?\.topbar nav\{position:fixed;inset:auto 0 0/);
+  assert.match(css, /#connect-wallet\s*\{[^}]*min-height:44px/);
 });

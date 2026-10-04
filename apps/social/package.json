@@ -10,7 +10,7 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test src/**/*.test.ts src/*.test.cjs",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run typecheck && npm test && npm run bundle-check",
     "smoke": "tsx scripts/smoke.ts"

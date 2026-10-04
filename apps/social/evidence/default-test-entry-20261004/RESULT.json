@@ -1,0 +1,24 @@
+{
+  "command": "npm test",
+  "runtime": "v26.7.0",
+  "tests": 477,
+  "pass": 477,
+  "fail": 0,
+  "skip": 0,
+  "typecheck": {
+    "command": "tsc --noEmit",
+    "exitCode": 0
+  },
+  "addedDefaultCoverage": [
+    "src/nativeMatrixPickerCaller.test.cjs",
+    "src/i18nProvider.lifecycle.test.cjs"
+  ],
+  "originalFailedTestsRetained": true,
+  "initialFailureCount": 3,
+  "repair": "CSS declaration semantics instead of obsolete order/layout; AST permits hidden=false only for explicit public loader status/retry elements in loadApplication; original private roots, sensitive-call prohibition, logo bytes and route tests retained",
+  "productionChanges": false,
+  "staticCandidateChanged": false,
+  "publicAcceptance": false,
+  "installedAcceptance": false,
+  "cryptoActivated": false
+}
