@@ -1,0 +1,24 @@
+{
+  "kind": "OWN_TERMINAL_HERMES_OBJECT_RECLAMATION_COMPLETED",
+  "at": "2026-10-04T13:26:46.754Z",
+  "freeze": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native-hermes-object-space-recovery-20261004-on9iwI",
+  "sourceComposition": "d3b241601d40aaa7cbd68d30fa7203954e4e904a",
+  "targetBoundary": "/private/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk/apps/wallet/ios/Pods/hermes-engine/build/iphonesimulator/**/*.o",
+  "actualTargets": "383 explicit regular object files in before.json; no glob deletion",
+  "removedLogicalBytes": 622962600,
+  "holders": "Fresh recursive candidate lsof exit1 empty stdout/stderr before inventory and again before removal",
+  "deletion": "8 plain /bin/rm -- exact 50-or-fewer file batches, all exit0; no force, recursive whole-directory removal or alternative filesystem API",
+  "readback": {
+    "preservedExactRecords": 17171,
+    "iosRawApp40Exact": true,
+    "original46RawLogsExact": true,
+    "apk43641AndDmgB163Exact": true,
+    "trackedSourceClean": true,
+    "hermesSourcesConfigsLibrariesFrameworksAndBuildLogsPreserved": true,
+    "exclusiveTinyOpenWriteFsyncReadback": "PASS",
+    "tinyProbeRetained": true
+  },
+  "availableKiBAfter": 846604,
+  "recovery": "Recompile retained original Hermes source with retained CMakeCache and exact successful arm64 iphonesimulator16.4 MinSizeRel CMake recipe, Xcode compiler and bounded wrapper. Not Trash recovery; byte-identical compiler output not promised. No rebuild started.",
+  "limits": "Point-in-time owned tiny-write proof only; concurrent df is volatile, other owner directories and stable build budgets unverified. Older 1Z/rxW source-binding gaps retained without deletion. Products, simulator data, libraries, raw apps/installers/logs, sources, dependency locks, keys, accounts, outbox, UNKNOWN and original services preserved. Not product release or user acceptance."
+}
