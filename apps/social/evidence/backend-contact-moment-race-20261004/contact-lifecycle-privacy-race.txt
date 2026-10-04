@@ -1,0 +1,60 @@
+=== RUN   TestContactDiscoverySourceSpecificPrivacy
+--- PASS: TestContactDiscoverySourceSpecificPrivacy (0.17s)
+=== RUN   TestSocialV2ContactIdempotencyCannotChangeTarget
+--- PASS: TestSocialV2ContactIdempotencyCannotChangeTarget (0.02s)
+=== RUN   TestSocialV2ContactOppositeRequestsCoalesceWithoutAutoConsent
+--- PASS: TestSocialV2ContactOppositeRequestsCoalesceWithoutAutoConsent (0.04s)
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/accept
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/reject
+=== RUN   TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/withdraw
+--- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend (0.14s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/accept (0.09s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/reject (0.03s)
+    --- PASS: TestSocialV2ContactTerminalRetryAndReopenNeverRestoresDeletedFriend/withdraw (0.03s)
+=== RUN   TestSocialV2ContactAcceptWithdrawRaceHasOnePersistentWinner
+--- PASS: TestSocialV2ContactAcceptWithdrawRaceHasOnePersistentWinner (0.03s)
+=== RUN   TestSocialV2ContactRequestExpiresWithoutChangingLegacyPending
+--- PASS: TestSocialV2ContactRequestExpiresWithoutChangingLegacyPending (0.03s)
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/new
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/exact_key
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/new_key
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/opposite
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/export
+=== RUN   TestPublicContactRequestResultsCannotMutateStoredTimes/list
+--- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes (0.12s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/new (0.02s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/exact_key (0.02s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/new_key (0.02s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/opposite (0.02s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/export (0.02s)
+    --- PASS: TestPublicContactRequestResultsCannotMutateStoredTimes/list (0.02s)
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/transition
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/terminal_replay
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/export
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/transition
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/terminal_replay
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/export
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/transition
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/terminal_replay
+=== RUN   TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/export
+--- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes (0.23s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/transition (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/terminal_replay (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/export (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/transition (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/terminal_replay (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/export (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/transition (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/terminal_replay (0.03s)
+    --- PASS: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/export (0.03s)
+=== RUN   TestContactRequestViewCannotMutateOriginalDeadline
+--- PASS: TestContactRequestViewCannotMutateOriginalDeadline (0.00s)
+=== RUN   TestExpiredContactViewRetainsIndependentDeadlineAndClosedAt
+--- PASS: TestExpiredContactViewRetainsIndependentDeadlineAndClosedAt (0.00s)
+=== RUN   TestClosedContactViewAndLegacyNoDeadlineRemainCompatible
+--- PASS: TestClosedContactViewAndLegacyNoDeadlineRemainCompatible (0.00s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.704s

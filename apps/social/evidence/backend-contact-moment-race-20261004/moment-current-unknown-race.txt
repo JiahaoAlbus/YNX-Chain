@@ -1,0 +1,30 @@
+=== RUN   TestMountedMomentListPreservesCurrentAuthorityError
+--- PASS: TestMountedMomentListPreservesCurrentAuthorityError (0.13s)
+=== RUN   TestOriginalProductBindingCannotBeReplacedAfterCurrentRead
+--- PASS: TestOriginalProductBindingCannotBeReplacedAfterCurrentRead (0.04s)
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-private
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-public
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/delete
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comment
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comments-read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/reaction
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report-read
+=== RUN   TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/appeal
+--- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState (0.73s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-private (0.09s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/create-public (0.14s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/delete (0.07s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/read (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comment (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/comments-read (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/reaction (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report (0.06s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/report-read (0.07s)
+    --- PASS: TestMomentBusinessCurrentReaderUnavailableLeavesOriginalState/appeal (0.07s)
+=== RUN   TestPublicMomentUnknownEffectRetainsOriginalIntentForExplicitRetry
+--- PASS: TestPublicMomentUnknownEffectRetainsOriginalIntentForExplicitRetry (0.05s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	2.237s

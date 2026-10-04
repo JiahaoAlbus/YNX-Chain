@@ -1,0 +1,64 @@
+{
+  "status": "CONTROLLED_PURE_GO_BUSINESS_REGRESSIONS_PASS_NOT_REAL_USER_ACCEPTANCE",
+  "source": {
+    "socialCommit": "3a578dc5c6cf9347f1158d4b72a1491d35f7b1da",
+    "socialTree": "d6d93133f629001d7b144af4f6686f3935ffd66d",
+    "sharedCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "sharedTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+    "inputManifestSha256": "9df1676571774784c5a3a39308f93a8b928fd02b5769a023ba3382d266a550de",
+    "compositionEvidence": "apps/social/evidence/backend-c5-matching-build-20261004"
+  },
+  "execution": {
+    "toolchain": "go1.25.13 darwin/arm64",
+    "GOTOOLCHAIN": "local",
+    "GOPROXY": "off",
+    "GOSUMDB": "off",
+    "raceDetector": true,
+    "explicitReviewedTargetsOnly": true,
+    "nodeTargetsExecuted": false,
+    "stoppedSDKTargetsExecuted": false,
+    "fixtureActors": true,
+    "temporaryFixtureStores": true,
+    "productionDaemonStarted": false,
+    "liveWalletAccountSignTransaction": false,
+    "productionSourceChanges": false
+  },
+  "coverage": [
+    "contact target idempotency",
+    "opposite requests do not auto-consent",
+    "accept/reject/withdraw terminal retry and restart",
+    "accept/withdraw concurrent single durable winner",
+    "expiry retains legacy pending requests",
+    "source-specific discovery privacy",
+    "returned result timestamps do not alias stored state",
+    "unavailable current authority before moment/read/comment/reaction/report/appeal",
+    "replaced product binding cannot rescue original request",
+    "unknown public write retains original intent and explicit retry without duplicate Square effect"
+  ],
+  "results": [
+    {
+      "path": "contact-lifecycle-privacy-race.txt",
+      "bytes": 4744,
+      "sha256": "4cf4b9b01a3f82b5c474891306b5a0fe7e9b3ee1543fb1ccc8e6e6865b2e2e3a",
+      "topLevelPass": 11,
+      "subtestPass": 18,
+      "raceReports": 0
+    },
+    {
+      "path": "moment-current-unknown-race.txt",
+      "bytes": 2414,
+      "sha256": "acee068687cc0f15fb3b5a9c0125e0a72fb6ebbc50d0b614155866f5f4282daa",
+      "topLevelPass": 4,
+      "subtestPass": 10,
+      "raceReports": 0
+    }
+  ],
+  "realUserAcceptance": false,
+  "publicAcceptance": false,
+  "installedAcceptance": false,
+  "crypto649Activated": false,
+  "MONSTER": {
+    "status": "NOT_RUN",
+    "reason": "No actual ordinary-user validation channel was invoked; available pet appearance tools are not validation proof."
+  }
+}
