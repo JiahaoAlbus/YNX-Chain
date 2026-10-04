@@ -1,0 +1,7 @@
+PASS profile and verified download preserve latest unrelated fields
+PASS same original library tuple cold readback acknowledges without dispatch
+PASS mismatched snapshot and old intent cannot consume successor
+PASS changed account refuses original cache commit
+MODEL newer upload=false, position=0, playlist=original playlist, staged audio retained=true
+FAIL P2 library edit must preserve upload intent persisted after Activity snapshot capture: java.lang.AssertionError: new prepareLibrary replaced full stale Activity snapshot and deleted original pending upload selector
+RESULT pass=4 fail=1 SDK/auth/network/device=NOT_RUN
