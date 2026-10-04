@@ -80,7 +80,7 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
   const directory = join(context.projectDirectory, "user-data", "User"); await mkdir(directory, { recursive: true, mode: 0o700 });
   if ((await lstat(directory)).isSymbolicLink()) throw fault("Native settings directory is a link.", "core_state_unsafe", 409);
   try { await writePrivateReceipt(join(directory, "settings.json"), {
-    "workbench.colorTheme": "YNX Klein Light", "window.title": "YNX Developer — ${activeEditorShort}${separator}${folderName}",
+    "workbench.colorTheme": "YNX Klein", "window.title": "YNX Developer — ${activeEditorShort}${separator}${folderName}",
     "telemetry.telemetryLevel": "off", "extensions.autoUpdate": false,
     ...(context.egressProxy ? { "http.proxy": context.egressProxy, "http.proxySupport": "override" } : {}),
   }); } catch (error) { if (error.code !== "EEXIST") throw error; }

@@ -17,3 +17,6 @@
   font-weight: 600;
   letter-spacing: .1px;
 }
+.theia-dark .ynx-workbench-brand img {
+  filter: brightness(0) invert(1);
+}

@@ -32,6 +32,10 @@ const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { WindowService } = require('@theia/core/lib/browser/window/window-service');
 const { NativeWindowClose } = require('./native-window-close');
+const { LocalStorageService } = require('@theia/core/lib/browser/storage-service');
+const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-layout-restorer');
+const { LocalWorkbenchStorage } = require('./local-workbench-storage');
+const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
 require('./dialog-accept-adapter').install();
@@ -40,7 +44,13 @@ require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
-  bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(context.container.get(WindowService))).inSingletonScope();
+  bind(OriginalBrowserStorage).to(LocalStorageService).inSingletonScope();
+  rebind(LocalStorageService).toDynamicValue(context => new LocalWorkbenchStorage(
+    context.container.get(OriginalBrowserStorage), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-storage'), context.container.get(MessageService),
+  )).inSingletonScope();
+  bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(
+    context.container.get(WindowService), window, context.container.get(ShellLayoutRestorer), context.container.get(LocalStorageService),
+  )).inSingletonScope();
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => new LanguageCommandReadiness(
     context.container.get(EditorManager), context.container.get(HostedPluginSupport), context.container.get(MonacoCommandService),

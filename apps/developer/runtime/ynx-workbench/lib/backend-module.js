@@ -6,6 +6,7 @@ const { join } = require('node:path');
 const { PluginHostEnvironmentVariable } = require('@theia/plugin-ext/lib/common/plugin-protocol');
 const { ConnectionHandler, RpcConnectionHandler } = require('@theia/core/lib/common');
 const { DraftRecoveryStore } = require('./draft-store');
+const { LocalWorkbenchStorageStore } = require('./local-workbench-storage-store');
 require('./gcc-resource-adapter').install();
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged
@@ -27,6 +28,11 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
     upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-draft-recovery', () => draftApi));
+  if (process.env.YNX_WORKSPACE_MODE === 'local') {
+    const storage = new LocalWorkbenchStorageStore();
+    const api = Object.freeze({ getData: key => storage.getData(key), setData: (key, value, remove) => storage.setData(key, value, remove), flush: () => storage.flush() });
+    bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-local-workbench-storage', () => api));
+  }
   if (process.platform === 'darwin') rebind(ProcessUtils).to(YnxProcessUtils).inSingletonScope();
   bind(PluginHostEnvironmentVariable).toConstantValue({
     process(env) {

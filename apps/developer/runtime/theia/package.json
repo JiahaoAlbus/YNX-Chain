@@ -38,7 +38,7 @@
     "frontend": {
       "config": {
         "applicationName": "YNX Developer",
-        "defaultTheme": "light",
+        "defaultTheme": "dark",
         "defaultIconTheme": "theia-file-icons",
         "preferences": {
           "telemetry.telemetryLevel": "off",
@@ -47,7 +47,7 @@
           "typescript.tsserver.useSyntaxServer": "never",
           "javascript.validate.enable": true,
           "typescript.validate.enable": true,
-          "workbench.colorTheme": "YNX Klein Light",
+          "workbench.colorTheme": "YNX Klein",
           "terminal.integrated.defaultProfile.osx": "YNX Bash",
           "terminal.integrated.profiles.osx": {
             "YNX Bash": {

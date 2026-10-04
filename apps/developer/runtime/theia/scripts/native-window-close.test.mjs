@@ -12,6 +12,7 @@ test('native close waits for standard shutdown and rejects cancellation or failu
   let resolve,reason;const windows={isSafeToShutDown:value=>{reason=value;return new Promise(done=>resolve=done);}};
   const close=new NativeWindowClose(windows,target);close.onStart();
   const requestId='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',pending=target.__ynxLocalWorkbenchClose(requestId);
+  await Promise.resolve();
   assert.equal(reason,require('@theia/core/lib/common/frontend-application-state').StopReason.Close);assert.equal(messages.length,0);
   resolve(false);await pending;assert.equal(messages[0].accepted,false);assert.equal(messages[0].requestId,requestId);
   windows.isSafeToShutDown=async()=>{throw Error('save failed');};await target.__ynxLocalWorkbenchClose(requestId);assert.equal(messages[1].accepted,false);
@@ -21,4 +22,16 @@ test('native close waits for standard shutdown and rejects cancellation or failu
 });
 test('ordinary browser workbench exposes no native close hook',()=>{
   const target={};new NativeWindowClose({},target).onStart();assert.equal(target.__ynxLocalWorkbenchClose,undefined);
+});
+test('native close persists layout before shutdown and after saved editor changes',async()=>{
+  const events=[],messages=[],application={};
+  const target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>messages.push(value)}}}};
+  const storage={flush:async()=>events.push('flush')};
+  const close=new NativeWindowClose({isSafeToShutDown:async()=>{events.push('shutdown');return true;}},target,{storeLayout:app=>{assert.equal(app,application);events.push('layout');}},storage);
+  close.onStart(application);
+  await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  assert.deepEqual(events,['layout','flush','shutdown','layout','flush']);assert.equal(messages[0].accepted,true);
+  events.length=0;storage.flush=async()=>{throw Error('profile write failed');};
+  await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
+  assert.deepEqual(events,['layout']);assert.equal(messages[1].accepted,false);
 });

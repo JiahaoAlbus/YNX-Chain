@@ -3,6 +3,9 @@
 #import <WebKit/WebKit.h>
 #import <sys/socket.h>
 #import <netinet/in.h>
+#import <fcntl.h>
+#import <unistd.h>
+#import <sys/stat.h>
 
 static NSString *YNXJSON(id value) {
     NSData *data = [NSJSONSerialization dataWithJSONObject:value options:NSJSONWritingFragmentsAllowed error:nil];
@@ -410,6 +413,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,strong) NSAlert *workspaceRestoreAlert;
 @property(nonatomic) BOOL localWorkbenchMode;
 @property(nonatomic,copy) NSString *localCloseRequest;
+@property(nonatomic,strong) NSURL *serverLogURL;
 @end
 
 @implementation YNXAppDelegate
@@ -440,11 +444,13 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration];
     _webView.UIDelegate=self;_webView.navigationDelegate=self;
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
-    _window.title=YNXDesktopTitle(@"Local Workbench");_window.contentView=_webView;_window.delegate=self;
+    NSString *project=NSProcessInfo.processInfo.environment[@"YNX_LOCAL_WORKSPACE"];
+    NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
+    _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
     if(![_window setFrameUsingName:@"YNXDeveloperLocalWorkbenchMainWindow"])[_window center];
     [_window setFrameAutosaveName:@"YNXDeveloperLocalWorkbenchMainWindow"];[_window makeKeyAndOrderFront:nil];
     [_webView loadHTMLString:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px}h1{color:#002FA7}</style><h1>Opening YNX Developer…</h1><p>Your local workspace is being opened.</p>" baseURL:nil];
-    if([self launchServer])[self loadWhenReady:0];else[self showFailure:@"The bundled local workbench could not start."];
+    if([self launchServer])[self loadWhenReady:0];else[self showFailure:[NSString stringWithFormat:@"The bundled local workbench could not start. Log: %@",_serverLogURL.path?:@"unavailable"]];
 }
 - (void)installLocalMenus {
     NSMenu *main=[NSMenu new];NSApp.mainMenu=main;
@@ -506,10 +512,27 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (BOOL)launchServer {
     if(![NSFileManager.defaultManager isExecutableFileAtPath:self.nodeURL.path]) return NO;
-    NSURL *logs=[NSFileManager.defaultManager URLForDirectory:NSLibraryDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil]; logs=[[logs URLByAppendingPathComponent:@"Logs/YNXDeveloper" isDirectory:YES] URLByAppendingPathComponent:@"desktop-server.log"]; [NSFileManager.defaultManager createDirectoryAtURL:logs.URLByDeletingLastPathComponent withIntermediateDirectories:YES attributes:nil error:nil]; [@"" writeToURL:logs atomically:YES encoding:NSUTF8StringEncoding error:nil]; _serverLog=[NSFileHandle fileHandleForWritingToURL:logs error:nil];
-    _server=[NSTask new]; _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode)environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench"; _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{[weakSelf showFailure:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus]];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
+    NSURL *library=[NSFileManager.defaultManager URLForDirectory:NSLibraryDirectory inDomain:NSUserDomainMask appropriateForURL:nil create:YES error:nil];
+    NSURL *directory=[library URLByAppendingPathComponent:@"Logs/YNXDeveloper" isDirectory:YES];
+    if(_localWorkbenchMode){
+        if(!directory||![NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil])return NO;
+        NSString *name=[NSString stringWithFormat:@"desktop-local-%d-%@.log",NSProcessInfo.processInfo.processIdentifier,NSUUID.UUID.UUIDString.lowercaseString];
+        _serverLogURL=[directory URLByAppendingPathComponent:name];
+        int fd=open(_serverLogURL.fileSystemRepresentation,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+        if(fd<0)return NO;
+        struct stat status;
+        if(fstat(fd,&status)!=0||!S_ISREG(status.st_mode)||status.st_uid!=getuid()||status.st_nlink!=1||fchmod(fd,0600)!=0){close(fd);return NO;}
+        _serverLog=[[NSFileHandle alloc]initWithFileDescriptor:fd closeOnDealloc:YES];
+        NSString *metadata=[NSString stringWithFormat:@"YNX Developer local desktop; packaged source %@; port %ld\n",YNXPackagedSource(),(long)_port];
+        [_serverLog writeData:[metadata dataUsingEncoding:NSUTF8StringEncoding]];
+    }else{
+        _serverLogURL=[directory URLByAppendingPathComponent:@"desktop-server.log"];
+        [NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:nil];
+        [@"" writeToURL:_serverLogURL atomically:YES encoding:NSUTF8StringEncoding error:nil];_serverLog=[NSFileHandle fileHandleForWritingToURL:_serverLogURL error:nil];
+    }
+    _server=[NSTask new]; _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode)environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench"; _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{NSString *message=weakSelf.localWorkbenchMode?[NSString stringWithFormat:@"Local server exited with code %d. Log: %@",task.terminationStatus,weakSelf.serverLogURL.path?:@"unavailable"]:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus];[weakSelf showFailure:message];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
 }
-- (void)loadWhenReady:(NSInteger)attempt { if(attempt>=60){[self showFailure:@"Local server did not become ready. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log"];return;} NSURL *url=[NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port]]; NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1]; [[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){dispatch_async(dispatch_get_main_queue(),^{if([(NSHTTPURLResponse*)response statusCode]==200)[self.webView loadRequest:[NSURLRequest requestWithURL:url]];else dispatch_after(dispatch_time(DISPATCH_TIME_NOW,150*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self loadWhenReady:attempt+1];});});}]resume]; }
+- (void)loadWhenReady:(NSInteger)attempt { if(attempt>=60){[self showFailure:_localWorkbenchMode?[NSString stringWithFormat:@"Local server did not become ready. Log: %@",_serverLogURL.path?:@"unavailable"]:@"Local server did not become ready. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log"];return;} NSURL *url=[NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port]]; NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1]; [[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){dispatch_async(dispatch_get_main_queue(),^{if([(NSHTTPURLResponse*)response statusCode]==200)[self.webView loadRequest:[NSURLRequest requestWithURL:url]];else dispatch_after(dispatch_time(DISPATCH_TIME_NOW,150*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self loadWhenReady:attempt+1];});});}]resume]; }
 - (void)showFailure:(NSString *)message { NSString *html=[NSString stringWithFormat:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}button{padding:10px}</style><h1>YNX Developer Testnet Preview</h1><p>%@</p><p>No project, Wallet key, or deployment was changed.</p>",message]; [_webView loadHTMLString:html baseURL:nil]; }
 - (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"]);} }
 - (void)click:(NSString *)selector { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector]); }

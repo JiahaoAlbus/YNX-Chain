@@ -2,7 +2,7 @@
   "name": "ynx-developer-brand",
   "displayName": "YNX Developer",
   "publisher": "ynx",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -10,6 +10,11 @@
   "icon": "ynx-logo.png",
   "contributes": {
     "themes": [
+      {
+        "label": "YNX Klein",
+        "uiTheme": "vs-dark",
+        "path": "./klein-dark.json"
+      },
       {
         "label": "YNX Klein Light",
         "uiTheme": "vs",
