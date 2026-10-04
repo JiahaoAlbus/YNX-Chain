@@ -1543,6 +1543,29 @@ test('Paper rejection follow-up read cannot label a newer pending view with the 
   app.storage.set(key,raw);late.resolve(snapshot);await pending;
   assert.equal(app.storage.get(key),raw);assert.equal(app.ids.get('toast').textContent,before);assert.equal(vm.runInContext('JSON.stringify(pendingPaperIntent)',app.context),raw);assert.equal(posts,1);
 });
+test('saved Paper parameter restoration is read-only, exact, localized and retains legacy compatibility',async()=>{
+  for(const costs of [false,true]){
+    const hash='d'.repeat(64),workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+    const app=harness({snapshot:workspace,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?workspace:Promise.reject(Error('controlled lost return'))});await settle();
+    app.ids.get('paper-strategy').value=hash;app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';if(costs)setPaperCosts(app);
+    await app.submit('paper-order');const key=vm.runInContext('paperPendingKey',app.context),raw=app.storage.get(key),calls=app.calls.length;
+    const restore=app.ids.get('paper-order').children.find(element=>element.id==='paper-restore-pending'),review=app.ids.get('paper-order').children.find(element=>element.id==='paper-pending-status');
+    for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+      app.ids.get('locale').onchange({target:{value:language}});app.ids.get('paper-amount').value='2000000';app.ids.get('side').value='sell';app.ids.get('paper-cost-model').value=costs?'legacy':'v1';app.ids.get('paper-cost-fee').value='99';
+      restore.onclick();
+      assert.equal(app.ids.get('paper-amount').value,'1000000');assert.equal(app.ids.get('side').value,'buy');assert.equal(app.ids.get('paper-cost-model').value,costs?'v1':'legacy');
+      if(costs){assert.equal(app.ids.get('paper-cost-fee').value,'10');assert.equal(app.ids.get('paper-cost-slippage').value,'5');}
+      assert.equal(app.storage.get(key),raw);assert.equal(app.calls.length,calls);assert.equal(app.proofs(),0);
+      assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("paperRestored")',app.context));
+      assert.ok(review.textContent.includes(JSON.parse(raw).IdempotencyKey));assert.ok(review.textContent.includes(vm.runInContext('t("paperPendingReview")',app.context)));
+      assert.equal(restore.textContent,vm.runInContext('t("paperRestore")',app.context));
+    }
+    const before=app.ids.get('paper-amount').value;
+    for(const invalid of ['{"unexpected":true}',JSON.stringify({...JSON.parse(raw),StrategyHash:'f'.repeat(64)})]){
+      app.storage.set(key,invalid);restore.onclick();assert.equal(app.storage.get(key),invalid);assert.equal(app.ids.get('paper-amount').value,before);assert.equal(app.calls.length,calls);
+    }
+  }
+});
 test('cancelled retry preserves the original durable uncertain intent without a new request',async()=>{
   const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
   const original=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();original.ids.get('paper-strategy').value=hash;original.ids.get('side').value='buy';original.ids.get('paper-amount').value='100';await original.submit('paper-order');

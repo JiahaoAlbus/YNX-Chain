@@ -330,8 +330,13 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       assert.equal(await tabA.evaluate(()=>JSON.stringify(pendingPaperIntent)),newJournal);
       assert.equal(await tabA.locator('#toast').textContent(),beforeOldResponse,'old receipt cannot complete the new operation');
       assert.equal(await tabA.locator('#paper-amount').inputValue(),'1000000');assert.equal(await tabB.evaluate(()=>paperSubmitting),true);
+      assert.equal(await tabA.locator('#paper-restore-pending').isEnabled(),true);assert.equal(await tabB.locator('#paper-restore-pending').isDisabled(),true);
+      assert.ok((await tabA.locator('#paper-pending-status').textContent()).includes(JSON.parse(newJournal).IdempotencyKey));
       await tabA.screenshot({path:path.join(work,'same-workspace-late-old-response-en.png'),fullPage:true});
       await tabB.screenshot({path:path.join(work,'same-workspace-new-request-pending-en.png'),fullPage:true});
+      await tabA.locator('#paper-restore-pending').click();assert.equal(overlapPosts,3,'restoring parameters must not dispatch a request');
+      assert.equal(await tabA.locator('#paper-amount').inputValue(),'2000000');assert.equal(await tabA.locator('#paper-cost-fee').inputValue(),'20');assert.equal(await tabA.locator('#paper-cost-slippage').inputValue(),'10');
+      assert.equal(await tabA.evaluate(()=>localStorage.getItem(paperPendingKey)),newJournal);
       releaseNext();await tabB.waitForFunction(()=>pendingPaperIntent===null&&!paperSubmitting&&snapshot.paper?.Orders?.length===2);
       const overlapPaper=await tabB.evaluate(()=>snapshot.paper);
       assert.notEqual(JSON.parse(overlapBodies[0]).IdempotencyKey,JSON.parse(overlapBodies[2]).IdempotencyKey);

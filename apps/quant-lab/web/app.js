@@ -669,14 +669,45 @@ const paperRecoveryCopy={
   id:['Permintaan simulasi tersimpan tidak terbaca; hasilnya mungkin belum diketahui. Muat ulang riwayat sebelum melupakannya secara eksplisit. Permintaan baru diblokir.','Lupakan permintaan simulasi lokal','Lupakan permintaan browser ini? Order layanan tidak dibatalkan atau dihapus. Pengiriman berikutnya terpisah dan dapat menduplikasi maksud sebelumnya.','Permintaan lokal dilupakan; catatan layanan tetap.']
 };
 for(const [language,values] of Object.entries(paperRecoveryCopy))Object.assign(businessCopy[language],Object.fromEntries(['paperPendingUnreadable','paperForget','paperForgetConfirm','paperForgotten'].map((key,index)=>[key,values[index]])));
-const paperPendingStatus=document.createElement('p'),paperForgetButton=document.createElement('button');
+const paperRestoreCopy={
+  en:['Saved request; outcome is not yet confirmed. Restore its exact parameters, then review and explicitly submit to retrieve the original receipt. Restoring sends nothing.','Restore saved Paper parameters','Saved parameters restored. No order was sent.','Request key'],
+  'zh-CN':['已保存请求，结果尚未确认。恢复原参数后，请审阅并明确提交以取回原回执。恢复本身不发送订单。','恢复已保存的模拟参数','已恢复原参数；未发送订单。','请求标识'],
+  'zh-TW':['已儲存請求，結果尚未確認。恢復原參數後，請審閱並明確提交以取回原回執。恢復本身不發送訂單。','恢復已儲存的模擬參數','已恢復原參數；未發送訂單。','請求識別碼'],
+  ja:['保存済み要求の結果は未確認です。元のパラメーターを復元し、確認して明示的に送信すると元の受領記録を取得できます。復元だけでは送信しません。','保存済みペーパー設定を復元','設定を復元しました。注文は送信していません。','要求キー'],
+  ko:['저장된 요청의 결과는 미확인입니다. 원래 매개변수를 복원하고 검토 후 명시적으로 제출하여 기존 영수증을 조회하세요. 복원만으로 주문은 전송되지 않습니다.','저장된 모의 매개변수 복원','매개변수를 복원했습니다. 주문은 전송하지 않았습니다.','요청 키'],
+  es:['Solicitud guardada; resultado sin confirmar. Restaure los parámetros exactos, revíselos y confirme el envío para recuperar el recibo original. Restaurar no envía órdenes.','Restaurar parámetros simulados','Parámetros restaurados. No se envió ninguna orden.','Clave de solicitud'],
+  fr:['Demande enregistrée ; résultat non confirmé. Restaurez les paramètres exacts, vérifiez-les puis confirmez l’envoi pour récupérer le reçu original. Restaurer n’envoie rien.','Restaurer les paramètres simulés','Paramètres restaurés. Aucun ordre envoyé.','Clé de demande'],
+  de:['Gespeicherte Anfrage; Ergebnis unbestätigt. Exakte Parameter wiederherstellen, prüfen und ausdrücklich senden, um den ursprünglichen Beleg abzurufen. Wiederherstellen sendet nichts.','Gespeicherte Paper-Parameter laden','Parameter geladen. Kein Auftrag gesendet.','Anfrageschlüssel'],
+  pt:['Solicitação guardada; resultado não confirmado. Restaure os parâmetros exatos, revise e confirme o envio para recuperar o recibo original. Restaurar não envia ordens.','Restaurar parâmetros simulados','Parâmetros restaurados. Nenhuma ordem enviada.','Chave da solicitação'],
+  ru:['Запрос сохранён, результат не подтверждён. Восстановите точные параметры, проверьте и явно отправьте запрос для получения исходной квитанции. Восстановление ничего не отправляет.','Восстановить параметры симуляции','Параметры восстановлены. Ордер не отправлен.','Ключ запроса'],
+  ar:['الطلب محفوظ ونتيجته غير مؤكدة. استعد المعلمات الدقيقة وراجعها ثم أكد الإرسال لاسترجاع الإيصال الأصلي. الاستعادة لا ترسل أمرًا.','استعادة معلمات المحاكاة المحفوظة','استعيدت المعلمات. لم يرسل أي أمر.','مفتاح الطلب'],
+  id:['Permintaan tersimpan; hasil belum terkonfirmasi. Pulihkan parameter persis, tinjau dan kirim secara eksplisit untuk mengambil tanda terima asli. Pemulihan tidak mengirim order.','Pulihkan parameter simulasi','Parameter dipulihkan. Tidak ada order dikirim.','Kunci permintaan'],
+};
+for(const [language,values] of Object.entries(paperRestoreCopy))Object.assign(businessCopy[language],Object.fromEntries(['paperPendingReview','paperRestore','paperRestored','paperRequestKey'].map((key,index)=>[key,values[index]])));
+const paperPendingStatus=document.createElement('p'),paperForgetButton=document.createElement('button'),paperRestoreButton=document.createElement('button');
 paperPendingStatus.id='paper-pending-status';paperPendingStatus.role='status';
+paperPendingStatus.className='notice paper-recovery';
 paperForgetButton.id='paper-forget-pending';paperForgetButton.type='button';
-$('#paper-order').append(paperPendingStatus,paperForgetButton);
+paperRestoreButton.id='paper-restore-pending';paperRestoreButton.type='button';
+$('#paper-order').append(paperPendingStatus,paperRestoreButton,paperForgetButton);
 function renderPaperPendingState(){
-  paperPendingStatus.hidden=!pendingPaperInvalid;paperPendingStatus.textContent=pendingPaperInvalid?t('paperPendingUnreadable'):'';
+  paperPendingStatus.hidden=!pendingPaperInvalid&&!pendingPaperIntent;
+  const intent=pendingPaperIntent,costs=intent?.ExecutionCosts;
+  paperPendingStatus.textContent=pendingPaperInvalid?t('paperPendingUnreadable'):intent?`${t('paperPendingReview')}\n${t('paperRequestKey')}: ${intent.IdempotencyKey}\n${t('strategy')}: ${intent.StrategyHash}\n${t('paperRecordAmounts')}: ${intent.Amount}\n${t('paperRecordStatus')}: ${intent.Side}\n${costs?`${t('paperCostV1')} · ${t('paperCostFee')}: ${costs.FeeBPS} · ${t('paperCostSlippage')}: ${costs.SlippageBPS}`:t('paperCostLegacy')}`:'';
+  paperRestoreButton.hidden=pendingPaperInvalid||!intent;
+  paperRestoreButton.disabled=paperSubmitting||!workspaceStorageAvailable||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent?.StrategyHash);
+  paperRestoreButton.textContent=t('paperRestore');
   paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting;paperForgetButton.textContent=t('paperForget');
 }
+paperRestoreButton.onclick=()=>{
+  if(paperSubmitting||!workspaceStorageAvailable)return;
+  reloadPaperJournal();const intent=pendingPaperIntent;
+  if(pendingPaperInvalid||!intent||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent.StrategyHash)){renderPaperSubmitControl();return;}
+  $('#paper-strategy').value=intent.StrategyHash;$('#side').value=intent.Side;$('#paper-amount').value=String(intent.Amount);
+  $('#paper-cost-model').value=intent.ExecutionCosts?'v1':'legacy';
+  if(intent.ExecutionCosts){$('#paper-cost-fee').value=String(intent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(intent.ExecutionCosts.SlippageBPS);}
+  renderPaperCosts();renderPaperSubmitControl();toast(t('paperRestored'),'paperRestored');
+};
 paperForgetButton.onclick=()=>{
   if(paperSubmitting||!pendingPaperInvalid)return;
   try{
@@ -1396,7 +1427,7 @@ $("#paper-order").onsubmit = async (e) => {
     const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount && samePaperCosts(pendingPaperIntent.ExecutionCosts,costs);
     if (pendingPaperIntent && !sameIntent) throw new Error(t("paperPendingMismatch"));
     paperSubmitting = true;
-    $("#paper-submit").disabled = true;
+    renderPaperSubmitControl();
     const boundary=costs?`${t('paperCostV1')}\n${t('paperCostFee')}: ${costs.FeeBPS}\n${t('paperCostSlippage')}: ${costs.SlippageBPS}\n${t('paperCostBoundary')}`:t('paperExecutionBoundary');
     if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${boundary}`)) return;
     if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
@@ -1408,7 +1439,7 @@ $("#paper-order").onsubmit = async (e) => {
     }
     persistWorkspaceValue(paperPendingKey, JSON.stringify(pendingPaperIntent));
     paperSubmitting = true;
-    $("#paper-submit").disabled = true;
+    renderPaperSubmitControl();
     const submitted = pendingPaperIntent;
     lane = {intent: submitted, bytes: JSON.stringify(submitted)};
     paperSubmissionLane = lane;
