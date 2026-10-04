@@ -1,0 +1,68 @@
+Browser tab: 18, Title: "YNX Social — Private by design", URL: "https://social.ynxweb4.com/".
+0 AXWebArea YNX Social — Private by design, URL: social.ynxweb4.com/
+	1 container
+		2 link Description: YNX Social home, Value: social.ynxweb4.com/
+		3 container Primary
+			4 link Description: Experience, Value: social.ynxweb4.com/#experience
+			5 link Description: Privacy, Value: social.ynxweb4.com/#privacy
+			6 link Description: Apps, Value: social.ynxweb4.com/#downloads
+		7 button Connect wallet, ID: connect-wallet
+	8 container
+		9 text PRIVATE SOCIAL SERVICE DEGRADED — GUEST PREVIEW IS STILL AVAILABLE
+		10 heading Close conversations. Clear control., Value: 1
+			11 text Close conversations.
+			12 text Clear control.
+		13 text Explore YNX Social without an account. Connect a standard EVM wallet only when you are ready to link a profile or approve a private session.
+		14 button Connect wallet, ID: hero-connect-wallet
+		15 link Description: Explore as guest, Value: social.ynxweb4.com/#experience
+		16 text Guest access never creates a profile, wallet approval, Product Session, signature, or transaction.
+		17 container Product preview
+			18 text Social Private
+			19 container
+				20 text Design Circle Community preview A calm place for people, projects and conversations you choose.
+		21 container experience
+			22 text GUEST PREVIEW
+			23 heading See the product before you connect., Value: 2
+				24 text See the product before you connect.
+			25 text Public information remains readable while identity, contacts, messages and private actions stay locked.
+			26 container
+				27 text 01
+				28 heading Moments, Value: 3
+					29 text Moments
+				30 text Share thoughtful updates with public, contacts-only or private visibility controls.
+			31 container
+				32 text 02
+				33 heading Encrypted chat, Value: 3
+					34 text Encrypted chat
+				35 text Device-bound conversation keys, verified recovery states and explicit device rotation.
+			36 container
+				37 text 03
+				38 heading People you choose, Value: 3
+					39 text People you choose
+				40 text Discover by handle, invite or QR without exposing a wallet address as a public identity.
+		41 container privacy
+			42 text PRIVACY BOUNDARY
+			43 heading Your wallet is a key, not your public profile., Value: 2
+				44 text Your wallet is a key, not your public profile.
+			45 content list
+				46 container
+					47 AXListMarker • 
+					48 text Standard wallet connection stays available if private YNX services are degraded.
+				49 container
+					50 AXListMarker • 
+					51 text No recovery phrase or private key is requested or received.
+				52 container
+					53 AXListMarker • 
+					54 text Private Social access requires a separate, explicit Product Session approval.
+				55 container
+					56 AXListMarker • 
+					57 text Rejected or failed approval creates no local or canned session.
+		58 container downloads
+			59 text GET THE APP
+			60 heading Continue on mobile., Value: 2
+				61 text Continue on mobile.
+			62 text The public Web surface is for discovery and standard wallet connection. Private conversations remain in the installed Social client.
+			63 link Description: Download YNX apps, Value: ynxweb4.com/dapp/download
+			64 text Android Testnet preview · other platforms require verified releases
+
+The focused UI element is 7 button Connect wallet, ID: connect-wallet

@@ -1,0 +1,14 @@
+[
+  {
+    "alt": "YNX Wallet logo",
+    "naturalHeight": 150,
+    "naturalWidth": 150,
+    "src": "./assets/ynx-wallet.svg"
+  },
+  {
+    "alt": "MetaMask logo",
+    "naturalHeight": 150,
+    "naturalWidth": 150,
+    "src": "./assets/metamask.svg"
+  }
+]
