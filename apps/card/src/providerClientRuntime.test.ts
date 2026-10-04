@@ -8,12 +8,12 @@ import compatibility from '../card-source-compatibility.json';
 const candidate='a'.repeat(40),tree='b'.repeat(40);
 const version={service:compatibility.backendService,schemaVersion:1,sourceCommit:compatibility.backendSourceCommit,environment:compatibility.environment,productionRealPayments:false};
 function build(commit=compatibility.frontendSourceBase){return {schemaVersion:'ynx.card.runtime-identity.v1',productId:'ynx-card',sourceCommit:commit,sourceTree:tree,environment:'testnet',evmChainId:6423,evmChainHex:'0x1917',paymentNetwork:'simulation',productionRealPayments:false,cardApiCompatibility:{schemaVersion:compatibility.schemaVersion,frontendSourceBase:compatibility.frontendSourceBase,frontendSourceCommit:commit,frontendSourceTree:tree,backendSourceCommit:compatibility.backendSourceCommit,backendVersionSchema:1}};}
-function load(frontend?:string){
+function load(frontend?:string,response?:()=>Response|Promise<Response>){
   const output:Record<string,any>={},created:Record<string,unknown>[]=[];
   const source=ts.transpileModule(fs.readFileSync(new URL('./providerClientRuntime.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   class Client{constructor(input:Record<string,unknown>){created.push(input)}}
   const requests:string[]=[];
-  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
+  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return response?await response():new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
   return {api:output,created,requests};
 }
 test('accepted historical dual source and compiled candidate pair retain exact backend response identity',async()=>{
@@ -26,7 +26,7 @@ test('accepted historical dual source and compiled candidate pair retain exact b
 });
 test('unknown backend, frontend, tree, version, environment or compatibility binding fails closed',()=>{
   const h=load(candidate);
-  for(const changed of [{sourceCommit:'c'.repeat(40)},{schemaVersion:2},{service:'other'},{environment:'mainnet'},{productionRealPayments:true}])assert.throws(()=>h.api.validateCardSourcePair({...version,...changed},build(candidate)),/CARD_API_SOURCE_UNAVAILABLE/);
+  for(const changed of [{sourceCommit:'c'.repeat(40)},{schemaVersion:2},{service:'other'},{environment:'mainnet'},{productionRealPayments:true}])assert.throws(()=>h.api.validateCardSourcePair({...version,...changed},build(candidate)),/CARD_API_SOURCE_MISMATCH/);
   for(const changed of [{sourceCommit:'c'.repeat(40)},{sourceTree:'c'.repeat(40)},{evmChainHex:'0x1'},{productId:'other'},{paymentNetwork:'real'},{environment:'mainnet'},{productionRealPayments:true},{cardApiCompatibility:null},{cardApiCompatibility:{...build(candidate).cardApiCompatibility,backendSourceCommit:'c'.repeat(40)}}])assert.throws(()=>h.api.validateCardSourcePair(version,{...build(candidate),...changed}),/CARD_API_SOURCE_MISMATCH/);
   assert.throws(()=>load().api.validateCardSourcePair(version,build(candidate)),/CARD_API_SOURCE_MISMATCH/);
 });
@@ -40,4 +40,40 @@ test('observed public 7f9 frontend/e95 API pair is accepted only by its pinned h
  const observed={schemaVersion:'ynx.card.runtime-identity.v1',productId:'ynx-card',sourceCommit:'7f9ea9af369c61fcb358c9e80500fdd30c66cbbb',sourceTree:'c3dde69331a8b0e87fd91ee80415ec4b83ecb3bb',environment:'testnet',evmChainId:6423,evmChainHex:'0x1917',paymentNetwork:'simulation',productionRealPayments:false};
  assert.equal(load().api.validateCardSourcePair(version,observed),'e95fcf443228d0db97c139dfa5e8ad6fbb7aa675');
  assert.throws(()=>load(candidate).api.validateCardSourcePair(version,observed),/CARD_API_SOURCE_MISMATCH/);
+});
+
+test('source diagnostics identify the failing boundary without disclosing remote content or creating a client',()=>{
+ const h=load(candidate);
+ for(const [v,b,stage] of [
+  [{...version,sourceCommit:'c'.repeat(40)},build(candidate),'backend-identity'],
+  [version,{...build(candidate),sourceTree:'c'.repeat(40)},'frontend-identity'],
+  [version,{...build(candidate),cardApiCompatibility:null},'source-binding'],
+ ] as const){
+  assert.throws(()=>h.api.validateCardSourcePair(v,b),(error:any)=>error.code==='CARD_API_SOURCE_MISMATCH'&&error.stage===stage&&error.message==='CARD_API_SOURCE_MISMATCH');
+ }
+ assert.equal(h.created.length,0);
+});
+
+test('unavailable, malformed, oversized and network version responses never expose remote errors or construct private clients',async()=>{
+ const replies=[
+  ()=>new Response('private server detail',{status:503}),
+  ()=>new Response('<html>login</html>',{headers:{'content-type':'text/html'}}),
+  ()=>new Response('not JSON',{headers:{'content-type':'application/json'}}),
+  ()=>new Response('null',{headers:{'content-type':'application/json'}}),
+  ()=>new Response('[]',{headers:{'content-type':'application/json'}}),
+  ()=>new Response(JSON.stringify({extra:'x'.repeat(16_384)}),{headers:{'content-type':'application/json'}}),
+  ()=>{throw Error('private transport detail')},
+ ];
+ for(const reply of replies){
+  const h=load(candidate,reply);
+  await assert.rejects(h.api.createRuntimeCardBusinessClient({identity:()=>null,createIntrospectionProof:async()=>{throw Error('must not request approval')}}),(error:any)=>error.code==='CARD_API_SOURCE_UNAVAILABLE'&&error.stage==='version-transport'&&error.message==='CARD_API_SOURCE_UNAVAILABLE');
+  assert.equal(h.created.length,0);assert.equal(h.requests.length,1);
+ }
+});
+
+test('the admitted public 661265 successor pair requires its compiled identity and exact compatibility, not the historical baseline JS',()=>{
+ const commit='66126513738ecbd77a372d2ab7f5ac34076c2208';
+ const admitted=build(commit);
+ assert.equal(load(commit).api.validateCardSourcePair(version,admitted),compatibility.backendSourceCommit);
+ assert.throws(()=>load().api.validateCardSourcePair(version,admitted),/CARD_API_SOURCE_MISMATCH/);
 });
