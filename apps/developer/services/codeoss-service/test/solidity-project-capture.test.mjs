@@ -29,9 +29,12 @@ test('runtime changes, foreign roots, and source symlink escapes never produce a
  h.vscode.workspace.workspaceFolders.push({uri:h.documents[0].uri});await assert.rejects(captureSolidityProject(h.vscode,h.environment),/one active YNX project/);
 });
 test('local desktop capture has a distinct project protocol and cannot become an online session',async t=>{
+ if(!process.env.YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT)return t.skip('Supply reviewed compiler extension for local import parsing.');
  const h=await fixture(t);delete h.environment.YNX_CORE_SESSION_ID;delete h.environment.YNX_CORE_WORKSPACE;
+ h.vscode.Uri={file:path=>({scheme:'file',fsPath:path,toString:()=>`file://${path}`})};
+ h.documents[0].text='pragma solidity 0.8.24; import "./lib/Math.sol"; contract PinCheck {}';h.documents[1].text='pragma solidity 0.8.24; library Math {}';
  Object.assign(h.environment,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:h.root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'});
- const captured=await captureSolidityProject(h.vscode,h.environment);
+ const captured=await captureSolidityProject(h.vscode,h.environment,undefined,{compiler:join(process.env.YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT,'compiler')});
  assert.equal(captured.snapshot.protocol,'ynx-solidity-local-project/v1');assert.equal(captured.snapshot.projectId,h.environment.YNX_LOCAL_PROJECT_ID);assert.equal(captured.snapshot.sessionId,undefined);await captured.verify();
  h.environment.YNX_CORE_SESSION_ID='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';await assert.rejects(captured.verify(),/runtime changed/);await assert.rejects(captureSolidityProject(h.vscode,h.environment),/cannot use a canonical/);
  delete h.environment.YNX_CORE_SESSION_ID;h.environment.YNX_WORKSPACE_MODE='online';await assert.rejects(captured.verify(),/runtime changed/);

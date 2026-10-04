@@ -53,7 +53,7 @@ function createSolidityLanguage(vscode, context, environment) {
     if (vscode.workspace.isTrusted === false) { phase = 'workspace_untrusted'; return undefined; }
     if (!existsSync(path.join(compiler, 'distribution.json'))) { phase = 'compiler_unavailable'; return undefined; }
     phase = 'capture';
-    const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document);
+    const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document, { compiler });
     if (capturedEpoch !== epoch || cancelled(token)) return undefined;
     const fingerprint = digest(JSON.stringify({ protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
     if (cache?.fingerprint === fingerprint) { await reviewed.verify(); return cache; }
@@ -70,7 +70,7 @@ function createSolidityLanguage(vscode, context, environment) {
         await reviewed.verify();
         if (capturedEpoch !== epoch || disposed) return undefined;
         const workspace = environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;
-        const documents = new Map(Object.keys(reviewed.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(workspace, ...name.split('/')))]));
+        const documents = reviewed.documents || new Map(Object.keys(reviewed.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(workspace, ...name.split('/')))]));
         if ([...documents.values()].some(doc => !doc || doc.isClosed)) return undefined;
         if (diagnostics) {
           const rows = new Map([...documents.values()].map(doc => [doc, []]));
@@ -118,7 +118,7 @@ function createSolidityLanguage(vscode, context, environment) {
     context.subscriptions.push(vscode.languages.registerCompletionItemProvider(selector, {
       provideCompletionItems: guarded(async (document, position, token) => {
         if (cancelled(token) || vscode.workspace.isTrusted === false || !existsSync(path.join(compiler, 'distribution.json'))) return undefined;
-        const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document);
+        const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document, { compiler });
         if (capturedEpoch !== epoch || cancelled(token)) return undefined;
         const content = document.getText(), cursor = document.offsetAt(position);
         // Do not propose source identifiers inside comments or string literals.
@@ -268,7 +268,7 @@ function createSolidityLanguage(vscode, context, environment) {
     // A save notification can retire the language-query cache even though the
     // current text is unchanged. Builds capture and verify their own buffers,
     // so Save followed immediately by Compile does not cancel a valid build.
-    const state = await captureSolidityProject(vscode, environment, document), file = state.snapshot.entryPath;
+    const state = await captureSolidityProject(vscode, environment, document, { compiler }), file = state.snapshot.entryPath;
     if (compileAbort) throw Error('A Solidity build is already running.');
     const abort = new AbortController(); compileAbort = abort;
     const task = async (_progress, token) => {

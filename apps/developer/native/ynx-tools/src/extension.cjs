@@ -68,6 +68,7 @@ function activate(context) {
   });
   register('ynx.compileSolidity', () => solidityLanguage.compileProject());
   register('ynx.copySolidityProject', async () => {
+    if (process.env.YNX_WORKSPACE_MODE === 'local') throw Error('Use Compile Solidity Project for local builds. Online Tools requires a connected YNX project.');
     const reviewed = await require('./solidity-project.cjs').captureSolidityProject(vscode, process.env);
     if (reviewed.snapshot.protocol !== 'ynx-solidity-project/v1') throw Error('Use Compile Solidity Project for local builds. Online Tools requires a connected YNX project.');
     const count = Object.keys(reviewed.snapshot.sources).length;

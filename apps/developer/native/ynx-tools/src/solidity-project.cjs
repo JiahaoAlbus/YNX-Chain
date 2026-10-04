@@ -1,6 +1,7 @@
 const path = require('node:path');
 const { digest, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
-async function captureSolidityProject(vscode, environment, targetDocument) {
+async function captureSolidityProject(vscode, environment, targetDocument, options = {}) {
+  if (environment.YNX_WORKSPACE_MODE === 'local') return require('./solidity-local-project.cjs').captureLocalSolidityProject(vscode, environment, targetDocument || vscode.window?.activeTextEditor?.document, options.compiler);
   const local = environment.YNX_WORKSPACE_MODE === 'local';
   const sessionId = local ? environment.YNX_LOCAL_PROJECT_ID : environment.YNX_CORE_SESSION_ID;
   const workspace = local ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;

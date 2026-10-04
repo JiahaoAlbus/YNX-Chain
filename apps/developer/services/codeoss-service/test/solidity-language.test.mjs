@@ -100,7 +100,9 @@ test('real bundled compiler serves navigation and rename providers, retires inva
   assert.equal(language.status().cached, false); assert.equal(language.status().active, 0);
   documents[0].text = documents[0].text.replace('Math.value()', 'Math.fresh()'); documents[0].version++;
   events.change({ document: documents[0] });
-  assert.equal((await providers.Definition.provideDefinition(documents[0], position)).uri.fsPath, documents[1].uri.fsPath);
+  const restoredDefinition = await providers.Definition.provideDefinition(documents[0], position);
+  assert.ok(restoredDefinition, JSON.stringify(language.status()));
+  assert.equal(restoredDefinition.uri.fsPath, documents[1].uri.fsPath);
   assert.equal(liveDiagnostics.rows.some(([, items]) => items.some(item => item.severity === vscode.DiagnosticSeverity.Error)), false);
   const openSource = vscode.workspace.openTextDocument, openedArtifacts = [];
   vscode.workspace.openTextDocument = async input => {
@@ -115,6 +117,7 @@ test('real bundled compiler serves navigation and rename providers, retires inva
   assert.equal(JSON.parse(openedArtifacts[0].content).contractName, 'Use');
   delete environment.YNX_CORE_SESSION_ID;delete environment.YNX_CORE_WORKSPACE;
   Object.assign(environment,{YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'});
+  vscode.Uri = { file: uri };
   events.change({document:documents[0]});
   assert.equal((await providers.Definition.provideDefinition(documents[0],position)).uri.fsPath,documents[1].uri.fsPath);
   assert.equal((await providers.Rename.prepareRename(documents[0],position)).placeholder,'fresh');
