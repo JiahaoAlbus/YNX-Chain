@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "ynx-ordinary-consumer-inputs-v1",
+  "productId": "exchange",
+  "classification": "ORDINARY_HUNKS_NOT_FORMAL_RUNTIME",
+  "sourceCommit": "dce7005ccd73c4717c0d0eb1d3d855576adc2bd8",
+  "sourceTree": "02db9275fc65ce8034c82a42e08166ad908b2c22",
+  "reviewedBaseCommit": "b2e753780b33ce24f51821e37a30faa2dc6f474c",
+  "runtimeConsumerCheckpoint": "97a259368d533d97e1fcc5396e04663df19e7a12",
+  "integrationMode": "ORDINARY_HUNKS_ONLY",
+  "releaseAuthority": "wallet_release_owner",
+  "preserveSharedGraph": true,
+  "publisherMustRebuildFinalAssetPins": true,
+  "objects": [
+    {"path":"apps/exchange/web/app.js","blob":"6812ffbccde0c20c5e075bc24ba6ede881d0effb","bytes":52778,"sha256":"da54021fe2f177463320ed6411c5238113ec8156198a2291ad45a42f26bad1af"},
+    {"path":"apps/exchange/web/index.html","blob":"52553da2ba152584f890b0d77c18d87f6ea2c97a","bytes":21586,"sha256":"02fbf56c345ebf67ba484adbf397ecee09bc59a1e04e577dfb93c4f68bfcc22d"},
+    {"path":"apps/exchange/tests/preview-market-lifecycle-browser.test.mjs","blob":"69910182747701007b2eb348b3fda8acf134adda","bytes":3530,"sha256":"26caefddb8618dbd3f4cead7c89ac0ad2953e2a9bcae7626b7680b893356fab7"},
+    {"path":"apps/exchange/tests/cache-version-browser.test.mjs","blob":"b89e206d22b771f4e8edce56cbb834bf82f6ca58","bytes":4626,"sha256":"2b672143096d9d770b4d2f018a1e8f073920ea589d1a2c627d903c0f3adc5e62"},
+    {"path":"apps/exchange/tests/locale-browser.test.mjs","blob":"4ad74b9d070eb73c352331bd275d4d466d5a6ca0","bytes":69353,"sha256":"9f7692b95cfd90f76a29319dfa172f64a504e3cf273852fe75db122db04cf09a"},
+    {"path":"apps/exchange/tests/candles-browser.test.mjs","blob":"0fff1aa6c6f7f08802a885eed38a0a237ef145c3","bytes":23635,"sha256":"0f994c365017d612bee677a168532354036dc6a1e3baec845e1c981c926267c3"},
+    {"path":"apps/exchange/evidence/preview-market-lifecycle-20261004.md","blob":"a7de20c91dfe3f25dbdf49d793e585ab8fe04862","bytes":2132,"sha256":"4c7d96bf527d993519fe7b9218cd6bb50da46e45f5e8097fec1132394bb8a64a"},
+    {"path":"apps/exchange/evidence/normal-cache-consumer-public-gap-20261004.md","blob":"fc7ebba1553becdbbdad433fe87a276cb8199a79","bytes":2847,"sha256":"b97a85e6d66b3466ddb0f37371c6025db2ac88fa0d122d2d84fb298709429855"}
+  ],
+  "readOnlyDiffArgv": ["git","diff","b2e753780b33ce24f51821e37a30faa2dc6f474c","dce7005ccd73c4717c0d0eb1d3d855576adc2bd8","--","apps/exchange/web/app.js","apps/exchange/web/index.html","apps/exchange/tests/preview-market-lifecycle-browser.test.mjs","apps/exchange/tests/cache-version-browser.test.mjs","apps/exchange/tests/locale-browser.test.mjs","apps/exchange/tests/candles-browser.test.mjs","apps/exchange/evidence/preview-market-lifecycle-20261004.md","apps/exchange/evidence/normal-cache-consumer-public-gap-20261004.md"],
+  "forbiddenReplacementPaths": ["packages/wallet-auth","apps/exchange/web/wallet-connect.js","apps/exchange/web/wallet-connect-entry.js","apps/exchange/web/private-session.js","apps/exchange/server","internal/exchangeproduct","go.mod","go.sum"],
+  "releaseBlockers": ["SOURCE_BOUND_PUBLIC_PUBLISHER_AND_ROLLBACK_NOT_DELIVERED","PUBLIC_VERSION_AND_HEALTH_RETURN_HTML_FALLBACK"],
+  "rollback": "Ordinary hunks revert only; actual release rollback must be bound by release owner",
+  "truth": {"formalResourceGatePassed":false,"runtimeBuilt":false,"deployed":false,"installed":false,"actualProviderApproved":false,"privateSessionVerified":false,"transactionsVerified":false,"productComplete":false}
+}

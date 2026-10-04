@@ -1,0 +1,9 @@
+# Ordinary consumer custody for release-owner composition
+
+Finance handoff committed separately at 663712cf3 (runtime consumer source b8d79f5a9 / tree 1717b73901d890559afabec9f9efec4119619c6e). Its four frozen objects are ordinary app, HTML, activity regression and evidence. Finance-only custody tests: 2 pass, 207.473417 ms. Formal resource/Hosted failures remain recorded, not promoted.
+
+Exchange handoff uses source dce7005ccd73c4717c0d0eb1d3d855576adc2bd8 / tree 02db9275fc65ce8034c82a42e08166ad908b2c22, independently reviewed original UI ancestor b2e753780b33ce24f51821e37a30faa2dc6f474c and exact runtime consumer checkpoint 97a259368d533d97e1fcc5396e04663df19e7a12. App/HTML blobs must equal the runtime checkpoint; dce's test-only update is not a new runtime. Eight objects freeze complete directly changed consumer/test/evidence inputs, not an installer or executable package.
+
+`node --test apps/exchange/tests/market-consumer-inputs.test.mjs apps/finance/tests/activity-consumer-inputs.test.mjs`: 4 pass, 0 fail/cancel/skip, 555.619583 ms. Checks bind ancestry, source trees, Git blobs, bytes, SHA256, regular working files, ordinary app pins, exact allowlisted object sets and read-only diff argv. Negative cases reject changed bytes/size/tree, duplicate object, shared path, command replacement, removed shared preservation and promotion of release gates. Syntax/diff checks pass. No tests apply patches, contact servers or request Wallet/account authority.
+
+Integration remains ORDINARY_HUNKS_ONLY: unique wallet_release_owner composes with its authoritative shared graph and recomputes final pins. These manifests neither overwrite whole checkouts nor authorize shared source, Host, registry or deployment changes. Actual runtime rollback belongs to the final release owner. Source validation does not close missing publisher/cutover, public JSON identity/health, account approval, private service, installation, trading or user-acceptance gates.
