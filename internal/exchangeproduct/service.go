@@ -455,6 +455,9 @@ func (s *Service) CreditTestQuote(apiKey, account string, amount int64, key stri
 	}
 	before := cloneState(s.state)
 	b := s.balanceLocked(account, QuoteAsset)
+	if !depositCreditFits(b, amount) {
+		return Balance{}, ErrConflict
+	}
 	b.AvailableMicro += amount
 	s.state.Balances[balanceKey(account, QuoteAsset)] = b
 	s.ledgerLocked(account, QuoteAsset, amount, 0, "test_credit", key, d)
@@ -667,6 +670,11 @@ func (s *Service) ReviewWithdrawal(session WalletSession, req WithdrawalReviewRe
 		return s.state.Withdrawals[prev.ObjectID], nil
 	}
 	b := s.balanceLocked(session.Account, NativeAsset)
+	// Moving available capital to reserved must preserve a valid, bounded
+	// total ledger. Never repair malformed historical balances implicitly.
+	if b.AvailableMicro < 0 || b.ReservedMicro < 0 || b.AvailableMicro > math.MaxInt64-b.ReservedMicro {
+		return Withdrawal{}, ErrConflict
+	}
 	if b.AvailableMicro < req.AmountMicro {
 		return Withdrawal{}, ErrInsufficient
 	}
