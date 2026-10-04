@@ -1,0 +1,127 @@
+{
+  "sourceCommit": "af78699a1d27e7a440794227b71735cfc4863c1e",
+  "sourceTree": "fef20f7b3b3657a4b933f945bdf91f1df744aca2",
+  "sourceDeltaFiles": [
+    "apps/developer/frontend/src/codeoss/NativeToolsPage.tsx",
+    "apps/developer/native/ynx-tools/package.json",
+    "apps/developer/native/ynx-tools/src/extension.cjs",
+    "apps/developer/runtime/theia/scripts/editor-actions.browser.mjs",
+    "apps/developer/services/codeoss-service/test/solidity-project-capture.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-extension.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-service.test.mjs"
+  ],
+  "frontendFiles": 232,
+  "sourceAndFrontendRoundTrip": true,
+  "archives": {
+    "source-delta.tar": "028cbe62d775f3a00811f2901933ca30f71b1b85df1954ff467222c1c87499c0",
+    "frontend.tar": "c26c7c24c81e0a49c3670af71072365a7c0d225286b3068674effbacf4852839"
+  },
+  "checkpoint": "Actual editor menu and keyboard integration, 2026-10-04",
+  "toolsVersion": "0.2.12",
+  "workbenchVersion": "0.3.14",
+  "changes": [
+    "Selection-only editor context menu and Cmd+K Cmd+Y / Ctrl+K Ctrl+Y review action; explicit copy before Tools navigation, cancellation does not open or send.",
+    "Solidity-file context menu calls existing exact project snapshot review; no implicit compile, signing or deployment.",
+    "Startup activation and extension-owned ynx.hasSelection state bridge the host menu outside Monaco scoped context without changing third-party sources.",
+    "After clipboard write, current runtime and document are rechecked before opening Tools. AI URL uses only opaque session locator and #ai anchor; no code or file path.",
+    "Frontend selected-edit help and AI anchor match this entry."
+  ],
+  "checksPassed": {
+    "servicesAndParser": 65,
+    "actualEditorMenuAndChord": 5,
+    "frontendBuildExit": 0,
+    "runtimePackageExit": 0
+  },
+  "actualEditor": {
+    "checks": [
+      "The real editor menu hides selection review without a selection and Solidity compile on a TypeScript file.",
+      "Right-click review reaches the real explicit-copy modal; cancellation preserves clipboard, source and opens no Tools page.",
+      "The actual configured keyboard chord copies the exact selected document/version/digest and opens the AI anchor using only an opaque locator; all external requests are aborted in QA.",
+      "The Solidity-only real context-menu action captures the project and opens the compiler anchor after explicit approval.",
+      "Both source files remain unchanged; no browser JavaScript errors, model request, compile execution or canonical admission is substituted."
+    ],
+    "errors": [],
+    "capture": {
+      "uri": "file:///private/tmp/ynx-theia-extension-qa-YsLodR/project/editor-actions-final.ts",
+      "version": 1,
+      "fullTextDigest": "2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0",
+      "selectedText": "selected passage",
+      "sessionId": "22f61122-8013-444b-8f92-60c09423c399"
+    },
+    "compile": {
+      "protocol": "ynx-solidity-project/v1",
+      "sessionId": "22f61122-8013-444b-8f92-60c09423c399",
+      "entryPath": "editor-actions-final.sol",
+      "sources": {
+        "editor-actions-ready.sol": {
+          "content": "pragma solidity 0.8.24; contract Actions {}\n",
+          "sha256": "72b88ac6f2f0e713a4e995a2201a875ee119ccca6c47f7230088317fc9752b5a",
+          "documentVersion": 1
+        },
+        "editor-actions-final.sol": {
+          "content": "pragma solidity 0.8.24; contract Actions {}\n",
+          "sha256": "72b88ac6f2f0e713a4e995a2201a875ee119ccca6c47f7230088317fc9752b5a",
+          "documentVersion": 1
+        }
+      }
+    },
+    "externalURLs": [
+      "https://developer.ynxweb4.com/native-tools?sessionId=22f61122-8013-444b-8f92-60c09423c399",
+      "https://developer.ynxweb4.com/native-tools?sessionId=22f61122-8013-444b-8f92-60c09423c399"
+    ],
+    "openedURLs": [
+      "https://developer.ynxweb4.com/native-tools?sessionId=22f61122-8013-444b-8f92-60c09423c399#ai",
+      "https://developer.ynxweb4.com/native-tools?sessionId=22f61122-8013-444b-8f92-60c09423c399#compile"
+    ],
+    "actualEditor": true,
+    "canonical": false,
+    "externalRequests": "aborted before network",
+    "scope": "Actual menus/chord and extension capture only; no hosted provider or normal-user release."
+  },
+  "runtimePin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+    "treeSha256": "7be3685b08a06b7e7b92f07dc10f2221647613040866ff95862b86b5424014bf",
+    "manifestSha256": "c02247715578e226beac5f3e61f832c8e2a92dd9f1f1a3e978484a258a84142d"
+  },
+  "runtime": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-editor-actions-ready-20261004-mac-arm64",
+  "frontend": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/editor-actions-frontend-build-20261004",
+  "evidence": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/editor-actions-evidence-20261004",
+  "evidenceFiles": 34,
+  "evidenceIndexSha256": "4b3dbd92a12edf036e94948ee9af8aea27dc04340826ba6d190bff2290d7c8b1",
+  "resourceGuard": {
+    "availableKiB": 1242048,
+    "conservativeRequiredKiB": 1664040,
+    "sizesKiB": {
+      "previousApp": 873156,
+      "previousDMG": 339472,
+      "coreRoundTrip": 189268
+    },
+    "extraMarginKiB": 262144,
+    "pass": false,
+    "nativePackageStarted": false,
+    "scope": "No failed or historical artifact deletion; newly frozen source is not relabeled as previous Native2.11."
+  },
+  "retainedFailures": [
+    "First package mistakenly used deployed plugin directory, which has no VSIX archive; ENOENT terminal1 preserved. Correct original json-offline and matching cpp inputs package0.",
+    "First suite omitted compiler env and skipped2; exact licensed compiler input suite65 PASS0skips.",
+    "Actual standard editorHasSelection menu was absent despite real selection; original failed runtime/screenshot preserved, owned selection context fixes it.",
+    "Fixture selection field was missing after listener integration; exact mock corrected, original failing log preserved.",
+    "Browser observer wrongly expected fragment in aborted HTTP request. Actual request omits fragment; final observer records actual window.open while still invoking original, and aborts external network. Original observer failure retained."
+  ],
+  "priorNative": "COPIED_SELECTION_CONTEXT_20261004.json and source6ff/Tools2.11 remain exact historical Mac candidate. No current Tools2.12 Native distribution was built.",
+  "releaseGates": {
+    "nativeDistribution": "NOT_BUILT for new source: resource guard below conservative budget. Shared executor may combine these exact frozen inputs with its existing registered runtime; not a development permission request.",
+    "canonicalIdentityAndHost": "NOT_VERIFIED: existing five bindings unchanged, registered Node26.7 and formal Host remain A-owned.",
+    "hostedAIWalletChainJourney": "NOT_VERIFIED: no real login, hosted model request, signing or deployment performed.",
+    "installationAndAllPlatforms": "NOT_VERIFIED: no user install, notarization or new platform release.",
+    "networkPackageLXD": "Previously denied branches remain stopped; no new download or wider egress."
+  },
+  "referenceDocs": [
+    "https://code.visualstudio.com/api/references/contribution-points#contributes.menus",
+    "https://code.visualstudio.com/api/references/when-clause-contexts"
+  ],
+  "next": "Root/A exact frozen source/runtime/frontend handoff, while independent owned work continues. Only actual formal release proof permits normal user journey release acceptance."
+}
