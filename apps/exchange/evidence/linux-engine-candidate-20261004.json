@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "product": "exchange",
+  "kind": "ENGINEERING_LINUX_ENGINE_CANDIDATE_NOT_USER_INSTALLER_OR_DEPLOYMENT",
+  "sourceCommit": "fb121a22e3c113eaaef4038b985864911302d19f",
+  "sourceTree": "ee7895e55d1057ad13bd51a786ec95f3bd897b6c",
+  "sourceDirtyAtBuild": false,
+  "goVersion": "go1.25.13",
+  "build": {
+    "target": "./apps/exchange/server",
+    "GOOS": "linux",
+    "GOARCH": "amd64",
+    "CGO_ENABLED": "0",
+    "GOMAXPROCS": "2",
+    "argv": ["go", "build", "-p", "2", "-trimpath", "-buildvcs=false", "-ldflags", "-s -w -X github.com/JiahaoAlbus/YNX-Chain/internal/exchangeproduct.BuildCommit=fb121a22e3c113eaaef4038b985864911302d19f", "-o", "<candidate-path>", "./apps/exchange/server"]
+  },
+  "candidate": {
+    "path": "/tmp/ynx-exchange-engine-fb121a22.o2iJ1S/ynx-exchange",
+    "bytes": 9617592,
+    "sha256": "a1e03ada6835d45fb9254aa4a7915c2197e8eee2fc9d5a0fad7824eaff695561",
+    "type": "ELF64_LSB_X86_64_STATIC_STRIPPED",
+    "embeddedSourceCommitObserved": true
+  },
+  "repeatBuild": {
+    "path": "/tmp/ynx-exchange-engine-fb121a22.o2iJ1S/ynx-exchange-repeat",
+    "sha256": "a1e03ada6835d45fb9254aa4a7915c2197e8eee2fc9d5a0fad7824eaff695561",
+    "byteIdenticalCmp": true
+  },
+  "preservedPublicExecutionGate": "strategyVaultExecutionEvidence=false;DeployedPublic=true",
+  "nextCompositionGap": {
+    "file": "apps/exchange/scripts/package-runtime-candidate.mjs",
+    "detail": "Historical packager stages only five ordinary web files plus rebuilt Wallet/private bundles; omits locale/ui-preferences and current command-review/command-copy/venue-config graph. Do not run it as a release proof or rebuild shared SDK without exact matching inputs. Formal publisher must compose the complete current graph and accepted shared inputs."
+  },
+  "truth": {
+    "crossCompiled": true,
+    "linuxExecuted": false,
+    "runtimeArchiveFrozen": false,
+    "publicSourceBound": false,
+    "deployed": false,
+    "userInstaller": false,
+    "accountApproval": false,
+    "signature": false,
+    "financialExecution": false,
+    "complete": false
+  }
+}
