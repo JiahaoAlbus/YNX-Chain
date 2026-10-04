@@ -1,0 +1,12 @@
+1afcb08ee0cfda73d4cef6c203257332a3de2534469ded01bbadc16a07cd4365  ./java-version.txt
+2026626a995d4dcccd9bf456b721cd09fb616cd1bc1989a8ea73d8841e70b8bd  ./corrected-fixture-run.txt
+31f84078014d0876e09141b052094e2642d7ee9fe72923573ede79f698519ffe  ./runner-and-port.sha256
+4b19a13bf7f67c2f32279213da14cf800818ea54c0a4b27b34b71825a2e71b60  ./original-run.txt
+5da47fda343df02a71f5a3b5d2bc169e630fc612a1718221595fd87a02914132  ./native-port-original-stage-inputs.sha256
+a533c8d4c3a561186efdc76bde0bb7763db37d75cb1fc0b6c3549e45cab1cf9c  ./final-inputs.sha256
+b0ad2136d79fea452b9a923fde1fd5e1ec001980ff27ef99c94ae9f873ee33f6  ./original-inputs.sha256
+db6a230c2e31718e88eb26246d0bc23f4e126791b61de63997fd6f395ba6f5e8  ./README.md
+de4d8bd22a7aeef8aa0b3a71680baa968fa2ab2dfc977c7fdfc44c52f24ba15b  ./status.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./final-compile.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./kotlin-changes-since-port-source.txt
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855  ./original-compile.txt

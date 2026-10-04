@@ -1,0 +1,9 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-cold-ratchet.iX15Fe
+compile=PASS
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.signal.libsignal.internal.Native in an unnamed module (file:/private/tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+PASS cold native ratchet checks=307 messages=74 pqMessages=74 distinctCurveRatchets=66
+Synthetic independently pinned peers and atomic-memory transaction only; no OS admission, SQLite/checkpoint, Matrix relay, official build provenance, or complete SPQR/platform acceptance.

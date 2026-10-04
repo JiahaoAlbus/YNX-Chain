@@ -1,0 +1,16 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-cold-ratchet.qWmhWt
+compile=PASS
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.signal.libsignal.internal.Native in an unnamed module (file:/private/tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+Exception in thread "main" java.lang.IllegalStateException: VEIL_APPLICATION_CONTEXT_UNAVAILABLE
+	at com.ynx.social.matrix.VeilAuthenticatedEnvelope.fail(VeilAuthenticatedEnvelope.java:17)
+	at com.ynx.social.matrix.VeilContextAuthority.resolve(VeilContextAuthority.java:28)
+	at com.ynx.social.matrix.VeilSignalOutbox.encryptInTransaction(VeilSignalOutbox.java:55)
+	at com.ynx.social.matrix.VeilSignalOutbox.encryptInTransaction(VeilSignalOutbox.java:39)
+	at com.ynx.social.matrix.VeilColdRatchetCheck.lambda$send$0(VeilColdRatchetCheck.java:88)
+	at com.ynx.social.matrix.VeilOutboxCheck$Port.atomic(VeilOutboxCheck.java:56)
+	at com.ynx.social.matrix.VeilColdRatchetCheck.send(VeilColdRatchetCheck.java:87)
+	at com.ynx.social.matrix.VeilColdRatchetCheck.main(VeilColdRatchetCheck.java:133)
