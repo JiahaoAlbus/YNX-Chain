@@ -119,7 +119,7 @@ test('conflicting revision keeps actual candle view stale until an explicit veri
   try{
     const page=await browser.newPage();await page.route('**/*',route=>route.abort());
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
-    const status=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
+    const status=app.slice(app.indexOf('function retireMarketPreview('),app.indexOf('function previewRulesKey('))+app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
     await page.addScriptTag({content:`${marketForClassicScript}const $=s=>document.querySelector(s),state={publicTrades:[]},display=v=>formatMicro(v);${render}${status}
       window.marketQA={next:null,reads:0};let transport;class Source{constructor(){transport=this;this.events={}}addEventListener(k,f){this.events[k]=f}close(){} }
       window.feed=createMarketFeed({fetchImpl:async()=>{marketQA.reads++;return marketQA.badLength?new Response(JSON.stringify(marketQA.next),{headers:{'content-type':'application/json','content-length':'0'}}):Response.json(marketQA.next)},EventSourceImpl:Source,setTimer:()=>1,clearTimer:()=>{},onSnapshot:s=>{state.publicTrades=s.trades;renderPublicMarket()},onStatus:renderMarketStatus});window.emitConflict=value=>transport.events.reconciled({data:JSON.stringify(value)});`});

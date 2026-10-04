@@ -12,7 +12,7 @@ const app=await readFile(new URL('../web/app.js',import.meta.url),'utf8');
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
 const marketSource=await readFile(new URL('../web/market-data.js',import.meta.url),'utf8');
 const privateRender=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('))+app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
-const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
+const marketRender=app.slice(app.indexOf('function retireMarketPreview('),app.indexOf('function previewRulesKey('))+app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
 const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showWalletFallback('));
 // Inline the exact public market dependency as a data module for this
