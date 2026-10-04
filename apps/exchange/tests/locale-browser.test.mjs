@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
 import {catalogs,locales,errorCodes,activityKeys,riskKeys,normalizeLocale,translate} from '../web/locale.js';
-import {formatMicro} from '../web/market-data.js';
+import {formatMicro,isVenueTimestamp} from '../web/market-data.js';
 
 const html=await readFile(new URL('../web/index.html',import.meta.url),'utf8');
 const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
@@ -25,7 +25,7 @@ const review=app.slice(app.indexOf('async function reviewOrder('),app.indexOf('f
 const walletRender=app.slice(app.indexOf('function renderStandardWallet('),app.indexOf('function disconnectWallet('));
 const walletChooser=app.slice(app.indexOf('function openWalletChooser('),app.indexOf('async function restoreStandardWallet('));
 const walletConnect=app.slice(app.indexOf('async function connectWallet('),app.indexOf('function showView('));
-const identitySource=app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+const identitySource='const isVenueTimestamp='+isVenueTimestamp.toString()+';'+app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
 const revokeSource=app.slice(app.indexOf('async function revokeWalletPermission('),app.indexOf('function openWalletChooser('));
 const privateRevokeBinding=app.split('\n').find(line=>line.includes("$('#private-disconnect').addEventListener"));
 const openOrdersRender=app.slice(app.indexOf('function renderOrders('),app.indexOf('function renderBalances('));
@@ -239,7 +239,7 @@ test('actual browser identity displays late results in the current locale withou
     const page=await browser.newPage({viewport:{width:390,height:844}});let requests=0;
     await page.route('**/*',route=>{requests++;return route.abort()});await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
     await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
-    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,standardWallet:{status:'standard-connected',account:'standard-A'}};let mode='read',calls=0,cleanupFails=false,pending=null;const privateAccount={state:()=>({phase:'guest'}),guest:async()=>{},disconnect:async()=>{if(cleanupFails)throw new Error('controlled-private-cleanup')}};${identitySource}\nbrowserIdentityRequest=async path=>{calls++;if(path==='config')return {response:{ok:true},data:{enabled:true,silentRestoreAllowed:false}};if(path==='logout')return {response:{ok:mode!=='logout-failed'},data:{revoked:mode!=='logout-failed'}};if(mode==='pending')await new Promise(resolve=>pending=resolve);return mode==='guest'?{response:{ok:false,status:401},data:{}}:mode==='unavailable'?{response:{ok:false,status:503},data:{}}:{response:{ok:true},data:{account:'native-A',scopes:['identity:read'],privateWorkspaceAuthorized:false,csrfToken:'isolated-fixture-only'}}};window.identityLocaleQA={set(value){mode=value},calls:()=>calls,restore:restoreBrowserIdentity,init:initializeBrowserIdentity,cleanupFail(value){cleanupFails=value},pending:()=>!!pending,resume(){mode='read';pending()},identity:()=>browserIdentity,standard:()=>state.standardWallet};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,standardWallet:{status:'standard-connected',account:'standard-A'}};let mode='read',calls=0,cleanupFails=false,pending=null;const privateAccount={state:()=>({phase:'guest'}),guest:async()=>{},disconnect:async()=>{if(cleanupFails)throw new Error('controlled-private-cleanup')}};${identitySource}\nbrowserIdentityRequest=async path=>{calls++;if(path==='config')return {response:{ok:true},data:{enabled:true,silentRestoreAllowed:false}};if(path==='logout')return {response:{ok:mode!=='logout-failed'},data:{revoked:mode!=='logout-failed'}};if(mode==='pending')await new Promise(resolve=>pending=resolve);return mode==='guest'?{response:{ok:false,status:401},data:{}}:mode==='unavailable'?{response:{ok:false,status:503},data:{}}:{response:{ok:true},data:{signedIn:true,account:'native-A',subject:'native-A',generation:1,expiresAt:new Date(Date.now()+300000).toISOString(),scopes:['identity:read'],privateWorkspaceAuthorized:false,csrfToken:'c'.repeat(43)}}};window.identityLocaleQA={set(value){mode=value},calls:()=>calls,restore:restoreBrowserIdentity,init:initializeBrowserIdentity,cleanupFail(value){cleanupFails=value},pending:()=>!!pending,resume(){mode='read';pending()},identity:()=>browserIdentity,standard:()=>state.standardWallet};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
     await page.evaluate(()=>window.identityLocaleQA.init());
     for(const locale of locales){
       await page.locator('#exchange-language').selectOption(locale);

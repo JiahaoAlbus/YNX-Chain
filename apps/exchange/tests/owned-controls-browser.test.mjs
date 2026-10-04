@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
-import {formatMicro,parseMarketDocument} from '../web/market-data.js';
+import {formatMicro,parseMarketDocument,isVenueTimestamp} from '../web/market-data.js';
 import {locales} from '../web/locale.js';
 
 // Actual product HTML/render functions, controlled account read input only.
@@ -14,7 +14,8 @@ const css=await readFile(new URL('../web/styles.css',import.meta.url),'utf8');
 const controls=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderBook('));
 // The extracted consumer needs its actual owned parser dependency too; do
 // not silently replace it with permissive JSON.parse in this DOM fixture.
-const identity='const MAX_MARKET_DOCUMENT_BYTES=8*1024*1024;const invalid=()=>new Error("controlled-parser-invalid");'+parseMarketDocument.toString()+';'+app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+const identity='const isVenueTimestamp='+isVenueTimestamp.toString()+';const MAX_MARKET_DOCUMENT_BYTES=8*1024*1024;const invalid=()=>new Error("controlled-parser-invalid");'+parseMarketDocument.toString()+';'+app.slice(app.indexOf('let browserIdentity='),app.indexOf('\nconst marketFeed='));
+const identityFixture=account=>({signedIn:true,account,subject:account,generation:1,expiresAt:new Date(Date.now()+300000).toISOString(),csrfToken:'c'.repeat(43),scopes:['identity:read'],privateWorkspaceAuthorized:false});
 const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf('async function restoreStandardWallet()'));
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
@@ -22,14 +23,14 @@ const privateReadRender=app.slice(app.indexOf('function renderPrivateAccount('),
 test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; only explicit login navigates',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
-    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),requests=[],errors=[];let accountStatus=401;
+    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage(),requests=[],errors=[];let accountStatus=401,accountBody=null;
     page.on('pageerror',error=>errors.push(error.message));
     await page.route('**/*',route=>{
       const request=route.request(),url=new URL(request.url());requests.push({path:url.pathname,search:url.search,method:request.method()});
       if(url.origin!=='https://exchange.ynxweb4.com')return route.abort();
       if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});
       if(url.pathname==='/api/v1/sso/config')return route.fulfill({json:{enabled:true,silentRestoreAllowed:true}});
-      if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?{account:'native-owned-cookie',scopes:['identity:read'],privateWorkspaceAuthorized:false}:{code:'SSO_LOGIN_REQUIRED'}});
+      if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?(accountBody??identityFixture('native-owned-cookie')):{code:'SSO_LOGIN_REQUIRED'}});
       if(url.pathname==='/sso/start')return route.fulfill({contentType:'text/html',body:'Explicit fixed SSO fixture; no account request.'});
       return route.abort();
     });
@@ -42,6 +43,12 @@ test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; o
       assert.equal(page.url(),'https://exchange.ynxweb4.com/#market');assert.equal(await page.locator('#chart-interval').inputValue(),'3600000');assert.equal(await page.locator('#support-message').inputValue(),'Unsubmitted guest draft');assert.equal(context.pages().length,1);
     }
     assert.equal(requests.filter(row=>row.path==='/sso/start').length,0);assert.equal(requests.filter(row=>row.method!=='GET').length,0);
+    accountStatus=200;
+    for(const change of [data=>delete data.account,data=>data.subject='different-owner',data=>data.generation=0,data=>data.expiresAt=new Date(Date.now()-1).toISOString(),data=>data.csrfToken='short',data=>data.scopes=['identity:read','exchange:trade'],data=>data.signedIn=false]){
+      accountBody=identityFixture('native-owned-cookie');change(accountBody);await page.evaluate(()=>guestIdentityQA.recheck());
+      assert.equal(await page.evaluate(()=>guestIdentityQA.identity()),null);assert.equal(await page.locator('#browser-identity-logout').isVisible(),false);assert.equal(page.url(),'https://exchange.ynxweb4.com/#market');assert.equal(await page.locator('#support-message').inputValue(),'Unsubmitted guest draft');assert.equal(requests.filter(row=>row.method!=='GET').length,0);
+    }
+    accountBody=null;
     accountStatus=200;await page.evaluate(()=>guestIdentityQA.recheck());assert.equal((await page.evaluate(()=>guestIdentityQA.identity())).account,'native-owned-cookie');assert.equal(page.url(),'https://exchange.ynxweb4.com/#market');
     accountStatus=401;await page.evaluate(()=>guestIdentityQA.recheck());assert.equal(await page.evaluate(()=>guestIdentityQA.identity()),null);
     await page.locator('#browser-identity-start').click();await page.waitForURL('**/sso/start?target=market');
@@ -261,7 +268,7 @@ test('actual identity controls fence late logout outcomes and preserve current l
         if(url.origin!=='https://exchange.ynxweb4.com')return route.abort();
         if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});
         if(url.pathname==='/api/v1/sso/config')return route.fulfill({json:{enabled:true,silentRestoreAllowed:false}});
-        if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?{account:owner,csrfToken:'isolated-control-csrf',scopes:['identity:read'],privateWorkspaceAuthorized:false}:{code:'SSO_LOGIN_REQUIRED'}});
+        if(url.pathname==='/api/v1/sso/account')return route.fulfill({status:accountStatus,json:accountStatus===200?identityFixture(owner):{code:'SSO_LOGIN_REQUIRED'}});
         if(url.pathname==='/api/v1/sso/logout'){
           requests.push({method:route.request().method(),csrf:route.request().headers()['x-ynx-sso-csrf'],body:route.request().postData()});
           const result=await new Promise(resolve=>{pending.push(resolve);arrivals.shift()?.()});return route.fulfill(result);
@@ -328,7 +335,7 @@ test('actual identity controls fence late logout outcomes and preserve current l
           assert.equal(await logout.isVisible(),false);
         }
       }
-      assert.ok(requests.every(value=>value.method==='POST'&&value.csrf==='isolated-control-csrf'&&value.body==='{}'));
+      assert.ok(requests.every(value=>value.method==='POST'&&value.csrf==='c'.repeat(43)&&value.body==='{}'));
       assert.equal(requests.length,['current-failure-retry','current-timeout-retry','old-finalizer-new-logout'].includes(mode)?2:1,'no implicit logout retry');
       await page.close();
     }
