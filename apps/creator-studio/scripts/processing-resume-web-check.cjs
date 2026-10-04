@@ -30,7 +30,7 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
     if(!file.startsWith(root)&&url.pathname!=='/i18n/catalog.json')return route.abort();
     try {const body=await fs.readFile(file),ext=path.extname(file);return route.fulfill({contentType:['.js','.mjs'].includes(ext)?'text/javascript':ext==='.css'?'text/css':ext==='.json'?'application/json':ext==='.png'?'image/png':'text/html',body});}catch{return route.fulfill({status:404,body:'missing fixture source'});}
    });
-   await page.goto(origin);await page.waitForFunction(()=>document.querySelectorAll('#videos .lifecycle-row').length===2);
+   await page.goto(origin+'/app.html');await page.waitForFunction(()=>document.querySelectorAll('#videos .lifecycle-row').length===2);
    await page.locator('nav button[data-panel="content"]').click();
    await page.evaluate(view=>{document.documentElement.style.fontSize=view.fontSize+'px';document.documentElement.dir=view.dir},view);
    const geometry=await page.locator('#refresh').evaluate(button=>{const rect=button.getBoundingClientRect(),css=getComputedStyle(button),canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=css.font;return {left:rect.left,right:rect.right,height:rect.height,width:rect.width,wordFits:rect.width-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)-2>=context.measureText(button.textContent.trim()).width,overflow:document.documentElement.scrollWidth>innerWidth}});

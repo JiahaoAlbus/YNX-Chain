@@ -66,7 +66,7 @@ test("empty accountsChanged disconnects instead of becoming an invalid-account e
 
 test("wallet UI uses distinct image assets and same-tab provider flow", async () => {
   const [html, app, auth, callback, release, ynxLogo, metamaskLogo] = await Promise.all([
-    load("index.html"), load("app.js"), load("wallet-auth.js"), load("wallet-callback.html"), load("product-release.json"), load("assets/ynx-wallet.svg"), load("assets/metamask.svg"),
+    load("app.html"), load("app.js"), load("wallet-auth.js"), load("wallet-callback.html"), load("product-release.json"), load("assets/ynx-wallet.svg"), load("assets/metamask.svg"),
   ]);
   assert.match(html, /id="wallet-details"/);
   assert.match(html, /id="wallet-switch-account"/);

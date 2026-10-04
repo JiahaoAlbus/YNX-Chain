@@ -53,7 +53,7 @@ test("stalled and rejected provider reads cannot indefinitely block guest startu
 });
 
 test("viewer exposes complete truthful interaction paths",async()=>{
-  const html=await read("index.html"),js=await read("app.js");
+  const html=await read("app.html"),js=await read("app.js");
   for(const term of ["Sign in with YNX Wallet","Subscriptions","Playlists","History","Comments","Guest playback"])assert.match(html,new RegExp(term,"i"));
   for(const path of ["/watch","/comments","/reports","/subscription","/playlists","/history"])assert.match(js,new RegExp(path));
   assert.match(js,/connectVideoWallet/);
@@ -61,7 +61,7 @@ test("viewer exposes complete truthful interaction paths",async()=>{
   assert.match(js,/Published videos will appear here/);
   assert.doesNotMatch(js,/walletAuthorizationURL|ynx-video-web-v1|chain_id=6423|authorize\\?client=/);
   assert.doesNotMatch(js,/Math\\.random|fake views/i);
-  assert.match(html,/href="\.\//);
+  assert.match(html,/class="brand" href="app\.html"/);
   assert.match(html,/assets\/ynx-logo\.png/);
   assert.doesNotMatch(html,/ynxwallet:\/\/|ynxvideo:\/\//i);
 });

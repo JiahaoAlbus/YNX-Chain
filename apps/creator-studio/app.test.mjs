@@ -6,7 +6,7 @@ const load = name => readFile(new URL(name, import.meta.url), "utf8");
 
 test("studio exposes recovery, team, rights, revenue and bounded AI workflows", async () => {
   const [html, js, i18n] = await Promise.all([
-    load("index.html"),
+    load("app.html"),
     load("app.js"),
     load("i18n.js"),
   ]);

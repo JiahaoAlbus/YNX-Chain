@@ -9,7 +9,7 @@ async function finish() {
   status.textContent = 'Checking your approval and securing this browser session…';
   try {
     const state = new URL(returnedURL).searchParams.has("result") ? await finishProductReturn(returnedURL) : await restoreProductSession();
-    if (state.status === 'connected') { status.textContent = 'Signed in. Opening your Studio…'; announceProductSession(); location.replace(consumeProductReturn(state.session)); return; }
+    if (state.status === 'connected') { status.textContent = 'Signed in. Opening your Studio…'; announceProductSession(); const target=consumeProductReturn(state.session); location.replace(target==='/'?new URL('./app.html',import.meta.url).href:target); return; }
     status.textContent = state.status === 'disconnected' ? 'Approval was declined. Your account remains disconnected.' : state.message;
     retry.hidden = !['network-unavailable','retry-required'].includes(state.status);
   } catch { status.textContent = 'This return could not be verified. Return to Studio and start a new sign-in.'; }

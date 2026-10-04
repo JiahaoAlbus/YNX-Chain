@@ -31,7 +31,7 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
     if(!file.startsWith(root)&&url.pathname!=='/i18n/catalog.json')return route.abort();
     try{const body=await fs.readFile(file),ext=path.extname(file);return route.fulfill({contentType:ext==='.js'||ext==='.mjs'?'text/javascript':ext==='.css'?'text/css':ext==='.png'?'image/png':ext==='.json'?'application/json':'text/html',body})}catch{return route.fulfill({status:404,body:'missing fixture source'})}
    });
-   await page.goto(origin);await page.waitForFunction(()=>!document.querySelector('#ai-open-saved').disabled);
+   await page.goto(origin+'/app.html');await page.waitForFunction(()=>!document.querySelector('#ai-open-saved').disabled);
    await page.locator('nav button[data-panel="ai"]').click();
    assert.equal(await page.locator('#ai-saved-select option').count(),1);assert.equal(await page.locator('#ai-saved-select').inputValue(),own.ID);
    assert.equal(await page.locator('#ai-accept').isDisabled(),true);

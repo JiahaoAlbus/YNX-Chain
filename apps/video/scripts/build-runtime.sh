@@ -58,6 +58,10 @@ fi
 
 # Preserve historical source builds; every v2 source must contain the complete
 # callback/client bundle. No file is silently sourced from the working tree.
+if git cat-file -e "${source_commit}:apps/video/app.html" 2>/dev/null; then
+  files+=(app.html media-site.css media-site.js media-site-back.js media-site-back.css)
+fi
+
 if git cat-file -e "${source_commit}:apps/video/product-session.js" 2>/dev/null; then
   files+=(product-session.js product-session-sdk.js product-session-registry.json product-session-sdk-source.json
     session-events.js video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)

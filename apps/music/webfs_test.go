@@ -7,7 +7,7 @@ import (
 )
 
 func TestWebAccessibilityAndMediaEngineContract(t *testing.T) {
-	html, err := fs.ReadFile(Web(), "index.html")
+	html, err := fs.ReadFile(Web(), "app.html")
 	if err != nil {
 		t.Fatal(err)
 	}

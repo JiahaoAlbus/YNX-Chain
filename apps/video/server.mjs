@@ -15,6 +15,7 @@ const types = {
 };
 const csp = "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com wss://relay.walletconnect.org https://verify.walletconnect.org; frame-src https://verify.walletconnect.org; media-src 'self' blob:; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const publicFiles = new Set([
+  'app.html', 'media-site.css', 'media-site.js', 'media-site-back.js', 'media-site-back.css',
   "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png", "assets/ynx-brand-original.png",
   "index.html", "app.js", "business-identity.js", "browser-identity.js", "business-wire.js", "display-settings.js", "display-settings.css", "session-events.js", "video-api.js", "watch-progress.js", "playlist-journal.js", "playlist-recovery.js", "styles.css", "responsive.css", "i18n.js", "i18n/catalog.json", "assets/ynx-logo.svg",
   "wallet-connection.js", "product-session.js", "product-session-sdk.js", "product-session-registry.json", "product-session-sdk-source.json",
