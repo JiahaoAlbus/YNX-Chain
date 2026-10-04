@@ -1,0 +1,4 @@
+a5bb30c48dbad02f8079886d94f88bb5d3ebcc22b5eba570f1c60d77058169a1  apps/social/src/nativeMediaPresentation.ts
+6566742094dc3f27a8c30d33635a4dc1f3211014b52e99df47bbfb7818372840  apps/social/src/NativeMatrixMediaViewer.tsx
+aa3b7d053390f5e13efd854c777fb97e1f4e382f09c13682cc32f3d2accc7e9d  apps/social/src/nativeMediaDecodeFailure.test.ts
+c39eccdba7334b998c694e49ef11f8f8e0d093e97c66e86bb17e7ee2d44c63b1  apps/social/evidence/media-viewer-decode-lifecycle-20261004/controlled-host-bundle.js

@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { MatrixMediaPreview } from './nativeMatrixMedia';
-import { bindMediaPresentation, visibleMediaPresentation, type BoundMediaPresentation } from './nativeMediaPresentation';
+import { bindMediaPresentation, markMediaPresentationDecodeFailure, visibleMediaPresentation,
+  type BoundMediaPresentation } from './nativeMediaPresentation';
 
 const defaultTranslate = (text: string) => text;
 
@@ -25,7 +26,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
   const lease = visibleMediaPresentation(scope, presentation);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [decodeError, setDecodeError] = useState(false);
+  const decodeError = presentation?.imageDecodeFailed === true;
   const epoch = useRef(0);
   const mounted = useRef(false);
   const translation = useRef(t);
@@ -35,10 +36,10 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
 
   useEffect(() => {
     mounted.current = true; ++epoch.current;
-    setPresentation(undefined); setError(''); setDecodeError(false); setBusy(false);
+    setPresentation(undefined); setError(''); setBusy(false);
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') return;
-      ++epoch.current; setPresentation(undefined); setBusy(false); setDecodeError(false);
+      ++epoch.current; setPresentation(undefined); setBusy(false);
       setError(translation.current('Preview locked while the app is in the background.'));
       void preview.close().catch(() => { cleanupFailure.current(); });
     });
@@ -51,7 +52,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
   const open = async () => {
     if (busy) return;
     const attempt = ++epoch.current;
-    setPresentation(undefined); setError(''); setDecodeError(false); setBusy(true);
+    setPresentation(undefined); setError(''); setBusy(true);
     try {
       const original = await preview.open(roomId, eventId);
       if (mounted.current && epoch.current === attempt) setPresentation(bindMediaPresentation(scope, original));
@@ -66,7 +67,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
 
   const close = async () => {
     const attempt = ++epoch.current;
-    setPresentation(undefined); setDecodeError(false); setBusy(true);
+    setPresentation(undefined); setBusy(true);
     try {
       await preview.close();
       if (mounted.current && epoch.current === attempt) onClose();
@@ -95,7 +96,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
         <Text style={styles.body}>{lease.mimeType} - {(lease.bytes / 1024).toFixed(1)} KB</Text>
         {lease.imagePreview && !decodeError ? <Image source={{ uri: lease.uri }} resizeMode="contain"
           accessibilityLabel={t('Original received image')} style={styles.image}
-          onError={() => { setDecodeError(true); }} /> :
+          onError={() => { setPresentation(current => markMediaPresentationDecodeFailure(current, presentation)); }} /> :
           <Text style={styles.body}>{t(decodeError ? 'This image could not be displayed. Retry or close its temporary preview.' :
             'This file type has no inline preview. It will not be launched or shared automatically.')}</Text>}
       </View> : null}

@@ -1,0 +1,18 @@
+import React from 'react';
+export const callbacks: { first?: () => void; latest?: () => void } = {};
+export const lifecycle = new Set<(state: string) => void>();
+export const AppState = { addEventListener: (_: string, listener: (state: string) => void) => {
+  lifecycle.add(listener); return { remove: () => lifecycle.delete(listener) };
+} };
+export const StyleSheet = { create: (styles: unknown) => styles };
+export function View({ children }: any) { return <div>{children}</div>; }
+export function ScrollView({ children }: any) { return <section>{children}</section>; }
+export function Text({ children, accessibilityRole }: any) { return <span role={accessibilityRole === 'alert' ? 'alert' : undefined}>{children}</span>; }
+export function Pressable({ children, onPress, disabled, accessibilityLabel }: any) {
+  return <button disabled={disabled} aria-label={accessibilityLabel} onClick={onPress}>{children}</button>;
+}
+export function ActivityIndicator() { return <span>Controlled loading indicator</span>; }
+export function Image({ source, onError }: any) {
+  callbacks.first ??= onError; callbacks.latest = onError;
+  return <div role="img" aria-label="Controlled received image">Controlled image URI: {source.uri}</div>;
+}

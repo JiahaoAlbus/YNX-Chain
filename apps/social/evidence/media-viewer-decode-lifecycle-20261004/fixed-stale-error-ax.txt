@@ -1,0 +1,19 @@
+Browser tab: 16, Title: "Social media viewer controlled QA", URL: "http://127.0.0.1:63211/".
+1 AXWebArea Social media viewer controlled QA, URL: 127.0.0.1:63211/
+	2 container
+		3 heading Actual Social media viewer component: controlled React host, Value: 1
+			4 text Actual Social media viewer component: controlled React host
+		5 text Not a native installation, actual image decoder, Matrix identity, decrypted file or MONSTER acceptance.
+		6 button Deliver first image error
+		7 button Deliver current image error
+		8 button Simulate background
+		9 button Fail native cleanup
+		10 button Recover native cleanup
+		11 button Reopen controlled viewer
+		12 text Native opens:  2 ; release attempts:  1 ; cleanup failures:  0 ; host revision:  1 Encrypted attachment
+		13 button Close attachment preview
+		14 text Open the original attachment on this device. Closing removes the temporary preview; your original message is retained. Original-2.png image/png  -  0.1  KB
+		16 container Controlled received image
+		15 button Retry original attachment
+
+The focused UI element is 6 button Deliver first image error

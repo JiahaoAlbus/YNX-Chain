@@ -1,0 +1,4 @@
+owned_server_pid=26474
+cleanup_action=SIGTERM
+owned_browser_tab=16
+browser_tab_closed=true

@@ -1,0 +1,144 @@
+✘ [ERROR] Cannot read directory "node_modules/react/index.js": not a directory
+
+✘ [ERROR] Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")
+
+    ../../../../../../../private/tmp/social-media-viewer-react-20261004.vVRLzs/entry.tsx:15:15:
+      15 │   return <main><h1>Actual Social media viewer component: controlle...
+         ╵                ^
+
+  The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.
+
+✘ [ERROR] Cannot read directory "node_modules/react/index.js": not a directory
+
+✘ [ERROR] Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")
+
+    ../../../../../../../private/tmp/social-media-viewer-react-20261004.vVRLzs/host.tsx:8:49:
+      8 │ ... function View({ children }: any) { return <div>{children}</div>; }
+        ╵                                               ^
+
+  The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.
+
+✘ [ERROR] Cannot read directory "node_modules/react/index.js": not a directory
+
+✘ [ERROR] Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")
+
+    src/NativeMatrixMediaViewer.tsx:84:4:
+      84 │     <View style={styles.header}>
+         ╵     ^
+
+  The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.
+
+/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:2436
+      throw reject;
+      ^
+
+Error: Build failed with 6 errors:
+error: Cannot read directory "node_modules/react/index.js": not a directory
+error: Cannot read directory "node_modules/react/index.js": not a directory
+error: Cannot read directory "node_modules/react/index.js": not a directory
+src/NativeMatrixMediaViewer.tsx:84:4: ERROR: Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")
+../../../../../../../private/tmp/social-media-viewer-react-20261004.vVRLzs/entry.tsx:15:15: ERROR: Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")
+...
+    at failureErrorWithLog (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1748:15)
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1207:25
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1159:52
+    at buildResponseToResult (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1205:7)
+    at /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:1232:16
+    at responseCallbacks.<computed> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:884:9)
+    at handleIncomingPacket (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:939:12)
+    at Socket.readFromStdout (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/esbuild/lib/main.js:862:7)
+    at Socket.emit (node:events:514:20)
+    at addChunk (node:internal/streams/readable:568:12) {
+  errors: [
+    {
+      detail: undefined,
+      id: '',
+      location: null,
+      notes: [],
+      pluginName: '',
+      text: 'Cannot read directory "node_modules/react/index.js": not a directory'
+    },
+    {
+      detail: undefined,
+      id: '',
+      location: null,
+      notes: [],
+      pluginName: '',
+      text: 'Cannot read directory "node_modules/react/index.js": not a directory'
+    },
+    {
+      detail: undefined,
+      id: '',
+      location: null,
+      notes: [],
+      pluginName: '',
+      text: 'Cannot read directory "node_modules/react/index.js": not a directory'
+    },
+    {
+      detail: undefined,
+      id: '',
+      location: {
+        column: 4,
+        file: 'src/NativeMatrixMediaViewer.tsx',
+        length: 0,
+        line: 84,
+        lineText: '    <View style={styles.header}>',
+        namespace: '',
+        suggestion: ''
+      },
+      notes: [
+        {
+          location: null,
+          text: `The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.`
+        }
+      ],
+      pluginName: '',
+      text: 'Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")'
+    },
+    {
+      detail: undefined,
+      id: '',
+      location: {
+        column: 15,
+        file: '../../../../../../../private/tmp/social-media-viewer-react-20261004.vVRLzs/entry.tsx',
+        length: 0,
+        line: 15,
+        lineText: '  return <main><h1>Actual Social media viewer component: controlled React host</h1>',
+        namespace: '',
+        suggestion: ''
+      },
+      notes: [
+        {
+          location: null,
+          text: `The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.`
+        }
+      ],
+      pluginName: '',
+      text: 'Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")'
+    },
+    {
+      detail: undefined,
+      id: '',
+      location: {
+        column: 49,
+        file: '../../../../../../../private/tmp/social-media-viewer-react-20261004.vVRLzs/host.tsx',
+        length: 0,
+        line: 8,
+        lineText: 'export function View({ children }: any) { return <div>{children}</div>; }',
+        namespace: '',
+        suggestion: ''
+      },
+      notes: [
+        {
+          location: null,
+          text: `The path "react/jsx-runtime" was remapped to "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" using the alias feature, which then couldn't be resolved. Keep in mind that import path aliases are resolved in the current working directory.`
+        }
+      ],
+      pluginName: '',
+      text: 'Could not resolve "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/node_modules/react/index.js/jsx-runtime" (originally "react/jsx-runtime")'
+    }
+  ],
+  warnings: []
+}
+
+Node.js v26.7.0

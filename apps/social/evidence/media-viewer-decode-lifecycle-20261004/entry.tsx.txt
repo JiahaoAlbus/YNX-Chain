@@ -1,0 +1,28 @@
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { NativeMatrixMediaViewer } from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/NativeMatrixMediaViewer';
+import { MatrixMediaPreview } from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrixMedia';
+import { callbacks, lifecycle } from './host';
+let opens = 0, releases = 0, failRelease = false;
+const viewer = new MatrixMediaPreview({ open: async (roomId, eventId) => ({
+  leaseId: `${(++opens).toString(16).padStart(8, '0')}-1234-1234-1234-123456789abc`, roomId, eventId,
+  filename: `Original-${opens}.png`, mimeType: 'image/png', bytes: 100,
+  uri: `file:///fixture/original-${opens}.png`, imagePreview: true
+}), release: async () => { ++releases; if (failRelease) throw new Error('CONTROLLED_NATIVE_RELEASE_UNAVAILABLE'); } }, async () => {});
+function Harness() {
+  const [opened, setOpened] = useState(true), [version, tick] = useState(0), [cleanupFailures, setFailures] = useState(0);
+  const refresh = () => tick(value => value + 1);
+  return <main><h1>Actual Social media viewer component: controlled React host</h1>
+    <p>Not a native installation, actual image decoder, Matrix identity, decrypted file or MONSTER acceptance.</p>
+    <div><button onClick={() => { callbacks.first?.(); refresh(); }}>Deliver first image error</button>
+      <button onClick={() => { callbacks.latest?.(); refresh(); }}>Deliver current image error</button>
+      <button onClick={() => { for (const listener of lifecycle) listener('background'); refresh(); }}>Simulate background</button>
+      <button onClick={() => { failRelease = true; refresh(); }}>Fail native cleanup</button>
+      <button onClick={() => { failRelease = false; refresh(); }}>Recover native cleanup</button>
+      <button onClick={() => { setOpened(true); refresh(); }}>Reopen controlled viewer</button></div>
+    <p>Native opens: {opens}; release attempts: {releases}; cleanup failures: {cleanupFailures}; host revision: {version}</p>
+    {opened ? <NativeMatrixMediaViewer preview={viewer} roomId="!original:example.test" eventId="$original"
+      onClose={() => { setOpened(false); refresh(); }} onCleanupFailure={() => { setFailures(value => value + 1); refresh(); }} /> : <p>Viewer closed</p>}
+  </main>;
+}
+createRoot(document.getElementById('app')!).render(<Harness />);
