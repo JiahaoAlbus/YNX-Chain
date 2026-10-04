@@ -1,0 +1,12 @@
+--- FAIL: TestVideoPublishedUnknownRetainsMedia (0.14s)
+    --- FAIL: TestVideoPublishedUnknownRetainsMedia/caption (0.08s)
+        store_publication_test.go:117: published metadata lost original media caption: stat /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/TestVideoPublishedUnknownRetainsMediacaption956850875/001/objects/vid_3f3711ceef6298e913ad6930/captions-track_e739889bd91eacf31d92cea1.vtt: no such file or directory
+    --- FAIL: TestVideoPublishedUnknownRetainsMedia/thumbnail (0.07s)
+        store_publication_test.go:117: published metadata lost original media thumbnail: stat /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/TestVideoPublishedUnknownRetainsMediathumbnail2897097993/001/objects/vid_1a015c94b61e3072f1afd52c/thumbnail-asset_d7b1daf89b9cb0464173be5a.png: no such file or directory
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	1.079s
+--- FAIL: TestMusicPublishedUnknownRetainsMedia (0.05s)
+    store_publication_test.go:107: published original media was cleaned: music audio integrity verification failed for trk_5319872703707e842e20a501: lstat /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/TestMusicPublishedUnknownRetainsMedia316618639/001/media/trk_5319872703707e842e20a501.wav: no such file or directory
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/music	0.981s
+FAIL

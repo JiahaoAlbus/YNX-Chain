@@ -1,0 +1,15 @@
+--- FAIL: TestVideoStorePublicationCurrentBoundary (0.07s)
+    --- FAIL: TestVideoStorePublicationCurrentBoundary/before-publish (0.03s)
+        store_publication_test.go:27: actual before-publish writer boundary did not reject: observed=false err=<nil>
+    --- FAIL: TestVideoStorePublicationCurrentBoundary/after-publish (0.04s)
+        store_publication_test.go:27: actual after-publish writer boundary did not reject: observed=false err=<nil>
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	0.953s
+--- FAIL: TestMusicStorePublicationCurrentBoundary (0.05s)
+    --- FAIL: TestMusicStorePublicationCurrentBoundary/before-publish (0.03s)
+        store_publication_test.go:26: actual before-publish writer boundary did not reject: observed=false err=<nil>
+    --- FAIL: TestMusicStorePublicationCurrentBoundary/after-publish (0.02s)
+        store_publication_test.go:26: actual after-publish writer boundary did not reject: observed=false err=<nil>
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/music	0.961s
+FAIL

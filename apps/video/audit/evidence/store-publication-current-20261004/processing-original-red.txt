@@ -1,0 +1,5 @@
+--- FAIL: TestVideoPublishedUnknownStopsProcessing (0.07s)
+    store_publication_test.go:154: unconfirmed status continued processing: calls=1 err=source media integrity metadata is incomplete
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	0.466s
+FAIL

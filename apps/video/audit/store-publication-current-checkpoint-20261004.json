@@ -1,0 +1,278 @@
+{
+  "schema": "ynx.media.store-publication-current-source.v1",
+  "sourceCommit": "34c842ac98ae170c634efe8624330e4f38eefbd9",
+  "sourceTree": "cf2d4e1f68c444e1edab2f608fc9a2f90e3d8b34",
+  "deltaBaseCommit": "728a2a0d0ff0176362bb819b8ecb0037e11b5ca9",
+  "ACompositionBaselineOwnedCommit": "48c02f184a3268cc5f0ae7dda0b9f14d3ff45669",
+  "deltaPaths": [
+    "internal/music/business_request.go",
+    "internal/music/server.go",
+    "internal/music/service.go",
+    "internal/music/store.go",
+    "internal/music/store_publication_test.go",
+    "internal/video/business_request.go",
+    "internal/video/service.go",
+    "internal/video/store.go",
+    "internal/video/store_publication_test.go"
+  ],
+  "sourcePins": [
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/service.go",
+      "bytes": 67094,
+      "sha256": "a7399c78d0860c8e70bfd31088050b6a7667ef2a3e40edb389faf4e4021b3d37",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e",
+      "mode": "0o644"
+    },
+    {
+      "path": "internal/video/store_publication_test.go",
+      "bytes": 5570,
+      "sha256": "8c96256648a01edf6152864213250877a28fb3238c254e4c3f3a3c23f5fdce1a",
+      "mode": "0o644"
+    }
+  ],
+  "sourceArchiveScope": "complete 9-file owned delta, not a full runtime archive",
+  "retainedOriginalFailures": [
+    {
+      "stage": "original writer before repair",
+      "log": "original-red.txt",
+      "cases": 4,
+      "meaning": "pre/post actual writer Current never invoked; original paths returned success"
+    },
+    {
+      "stage": "after initial guarded writer but before cleanup correction",
+      "log": "cleanup-original-red.txt",
+      "cases": 3,
+      "meaning": "published metadata retained but original caller cleanup deleted caption/thumbnail/audio"
+    },
+    {
+      "stage": "after guarded writer/cleanup correction before processing caller correction",
+      "log": "processing-original-red.txt",
+      "cases": 1,
+      "meaning": "ignored unconfirmed transcoding status still dispatched actual software processor once"
+    }
+  ],
+  "failureSourceIdentity": "initial writer baseline Git exact; later raw red stages preserved as transient source stages, not falsely assigned final source commit",
+  "validation": [
+    {
+      "command": "GOPROXY=off GOTOOLCHAIN=local go test -race ./internal/video ./internal/music -run 'Test(Video|Music)StorePublicationCurrentBoundary|Test(Video|Music)PublishedUnknown|TestVideoBusiness|TestBusiness|TestVideoSDKLocalCurrent|TestMusic.*Current|Test.*(Backup|Restore|PersistenceFailure|Unknown|Effect|StoreUpdate|GoldenMigration)|Test.*(RetryProcessing|UploadRecovery|Asset|Caption|Thumbnail)' -count=1",
+      "exitCode": 0,
+      "log": "final-whole-boundary-focused.txt"
+    },
+    {
+      "command": "GOPROXY=off GOTOOLCHAIN=local go vet ./internal/video ./internal/music",
+      "exitCode": 0,
+      "log": "final-vet.txt"
+    }
+  ],
+  "writerBehavior": {
+    "capturedCurrent": "same local original guard before serialization, after bytes ready, after real staged write/fsync/close before rename, immediately after rename, after directory sync/readback",
+    "underOriginalStoreLock": true,
+    "extraRemoteReadsUnderStoreLock": false,
+    "unpublishedFailure": "original memory/disk/nonce retained; only successfully created staged file cleaned",
+    "publishedUnconfirmed": "memory follows last published candidate; nonce consumed and retained; typed UNKNOWN error; no rollback",
+    "durability": "file fsync, atomic rename, directory fsync, exact bytes readback; not a distributed source lease/cross-process CAS",
+    "mediaCleanup": "published UNKNOWN retains referenced caption/thumbnail/audio/artwork; uncommitted failure cleanup preserved",
+    "processing": "unconfirmed status stops before processing cleanup or Transcode",
+    "legacyMaintenance": "original nil-current writer wrapper, schema/HMAC/audit/backup/restore and grant-less legacy paths retained"
+  },
+  "softwareTestOnly": true,
+  "realProducerGrant": false,
+  "installedStorageOrWallet": "NOT_VERIFIED",
+  "full450Rerun": false,
+  "SourceAdmission": "PENDING: new delta requires same reviewer and A matching recomposition",
+  "HostExecutionApproved": false,
+  "formalDeployment": false,
+  "ACompositionInputs": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media48c-original-main-composition-source-20261004",
+    "files": 4484,
+    "manifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+    "contentRoot": "7d4a986203d7c5f507009270175d711606ede3026e91a7ce7a36bdcd57cd4fb8",
+    "preparedMainEightFilePatch": "apps/video/audit/evidence/original-main-composition-intake-20261004/owned-eight-file-source-intake.patch",
+    "liveMainPatchApplied": false
+  },
+  "remainingGates": [
+    "A merge full nine-file store/caller delta into matching original main/factory composition without overwriting mains",
+    "same reviewer new source admission",
+    "real protected source/currentActor/roles/client/sealed/browser/native OS producer and Host receipt",
+    "Music Trust same-requester final-result contract",
+    "actual installed/public Wallet/own business/recovery/codec/user acceptance"
+  ],
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/music/business_request.go",
+      "bytes": 11236,
+      "sha256": "1ccf580142983cb6b778119ea3a46306d7330b1af32546e759c31e2cb607f709"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/music/server.go",
+      "bytes": 25530,
+      "sha256": "00117926fb0e154fa33aa9f86293a28dec38de4af282c988488f1bd6498ff370"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/music/service.go",
+      "bytes": 39296,
+      "sha256": "2e91e5e6b0a0f06f36f3e0653ee72f11f365af2c70529700fc5750130ec60acc"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/music/store.go",
+      "bytes": 13638,
+      "sha256": "51fc5ef67d16db31e02b908f4be21625d2abf3eda486eee8e7af46acdf06d3c5"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/video/business_request.go",
+      "bytes": 9779,
+      "sha256": "ced98044a9deca0077b6b0eaaf300f0a947dd94bf86e1afaf55b11a9d100d53b"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/video/service.go",
+      "bytes": 66835,
+      "sha256": "5a0be7a791fa3cdbb80af0e85d8ec8ad0309f0612884c4188ec3e135b2f776df"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/baseline-source/internal/video/store.go",
+      "bytes": 10487,
+      "sha256": "1a46b2f78cabe7b24998c024fa99abe54d8f98fc61617fdf1b40b43452b3eed2"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/cleanup-original-red.txt",
+      "bytes": 1326,
+      "sha256": "6a67a811d141b18bb3d1911f7d00f48f1f079c80d8d76f567a058c2c763c0825"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/final-typed-unknown-focused.txt",
+      "bytes": 120,
+      "sha256": "e259c514593bf73c28b05208ee618a34cc78e89735584dddb214e606d3daf0d7"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/final-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/final-whole-boundary-focused.txt",
+      "bytes": 120,
+      "sha256": "c434ebce80605c607b287d7044c430b4a381ef7f39937466dfb388af123d1bc6"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/fixed-focused.txt",
+      "bytes": 120,
+      "sha256": "4f78ca4901f37f20fb119308fbf47863bd507db2c89904f1a1abc58d3b889385"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/original-red.txt",
+      "bytes": 1029,
+      "sha256": "7b6eb37b7488dd224da7f734c28fc56576e13d37b1ba90c2a480c3c2b02f9c22"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/owned-nine-file-source.patch",
+      "bytes": 23324,
+      "sha256": "3714f6727f311e8e2d1f724b7c17be98a4f6364f90caf23446bd164261a2fbdf"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/owned-nine-file-source.tar.gz",
+      "bytes": 43577,
+      "sha256": "37e6e85ad79302b479497263f1cc6047f94ff8fd6a7444b0da31ff3b0b08c487"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/processing-original-red.txt",
+      "bytes": 263,
+      "sha256": "026c3d550a1f6c85a9532c5e7f6b43c67cb70e3eda9f337028698ffa0cc5d372"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/video/service.go",
+      "bytes": 67094,
+      "sha256": "a7399c78d0860c8e70bfd31088050b6a7667ef2a3e40edb389faf4e4021b3d37"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/source/internal/video/store_publication_test.go",
+      "bytes": 5570,
+      "sha256": "8c96256648a01edf6152864213250877a28fb3238c254e4c3f3a3c23f5fdce1a"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/store-publication-current-20261004/whole-boundary-focused.txt",
+      "bytes": 120,
+      "sha256": "b27fb183cec3db49de512f2d5073a9893f07a1501bf58741fb6c2e22e8593b12"
+    }
+  ]
+}
