@@ -153,6 +153,31 @@ test('statement returned records reconcile exact amounts and references without 
     assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
   }finally{await f.browser.close()}
 });
+test('Finance Pay receipt view preserves distinct full IDs and hashes without invented transaction links',async()=>{
+  const f=await fixture();try{
+    const value=overview(),id='owned-pay-receipt-'+'r'.repeat(80),hash='0x'+'d'.repeat(64);
+    value.portfolio.payReceipts=[{id,transactionHash:hash,amountYnxt:0,createdAt:'2026-10-04T00:00:00Z'}];
+    await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.deepEqual(await f.page.locator('#recent-receipts code').allTextContents(),[id,hash]);
+    assert.equal(await f.page.locator('#recent-receipts a').count(),0);
+    assert.match(await f.page.locator('#recent-receipts .row-value').textContent(),/^0 YNXT$/);
+    await f.page.addStyleTag({content:await readFile(new URL('../web/styles.css',import.meta.url),'utf8')});await f.page.setViewportSize({width:390,height:844});
+    await f.page.evaluate(()=>{document.querySelector('#overview').classList.add('active');for(const item of document.querySelectorAll('#recent-receipts details'))item.open=true});
+    assert.equal(await f.page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+    for(const transactionHash of [id,null,{},'']){
+      value.portfolio.payReceipts[0].transactionHash=transactionHash;await f.page.evaluate(value=>overviewQA.render(value),value);
+      assert.deepEqual(await f.page.locator('#recent-receipts code').allTextContents(),[id]);
+    }
+    value.portfolio.payReceipts[0]={id:'<img src=x onerror=alert(1)>',transactionHash:'<svg onload=alert(1)>',amountYnxt:null,createdAt:null,disputeUrl:'javascript:alert(1)'};
+    await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.deepEqual(await f.page.locator('#recent-receipts code').allTextContents(),['<img src=x onerror=alert(1)>','<svg onload=alert(1)>']);
+    assert.equal(await f.page.locator('#recent-receipts img,#recent-receipts svg,#recent-receipts a').count(),0);
+    assert.match(await f.page.locator('#recent-receipts .row-value').textContent(),/^unknown YNXT$/);
+    value.portfolio.payStatus.available=false;await f.page.evaluate(value=>overviewQA.render(value),value);assert.equal(await f.page.locator('#recent-receipts code').count(),0);
+    await f.page.evaluate(value=>overviewQA.render(value),overview());assert.equal(await f.page.locator('#recent-receipts code').count(),0);
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('actual complete overview handles unavailable source metadata and malformed alerts without losing planning or safe support',async()=>{
   const f=await fixture();try{
     const value=overview();value.profile.categories=[{id:'cat',name:'Owned category',color:'#002fa7'}];value.profile.budgets=[{id:'budget',name:'Owned budget',period:'monthly',limitYnxt:0}];value.support={helpUrl:'javascript:alert(1)'};
