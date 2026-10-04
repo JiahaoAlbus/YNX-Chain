@@ -1,0 +1,67 @@
+{
+  "sourceCommit": "843508f486f3362e75d5b94459fb99b75265e428",
+  "sourceTree": "b70fdf4079a32c27986dd7f727213f4a9b80096a",
+  "workbenchVersion": "0.3.13",
+  "toolsVersion": "0.2.8",
+  "behavior": [
+    "Captures admitted single-root Solidity buffers including unsaved text; checks runtime, canonical paths, versions and hashes again after modal approval.",
+    "Explicit frontend review binds current-session snapshot: 32 files maximum, 64 KiB per file, 256 KiB total. Canonical admission and one-use CSRF remain server-side requirements.",
+    "Real pinned solc 0.8.24 resolves submitted relative imports only, returns exact entry-file contract and all source digests; no disk/network fallback or deployment authority.",
+    "Dialog accept retires pending validation after cancellation or reopening; current valid/invalid checks retain behavior."
+  ],
+  "candidate": {
+    "path": "apps/developer/.ynx-developer-candidates/ynx-composed-solidity-dialog-accept-20261004-mac-arm64",
+    "pin": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "48b3ae65ad60e187b802514370048cf38061d9b3ec155d515e0e3a9a7e46b505",
+      "treeSha256": "8f0a3263a88df4c3938fbe1ec8fbb390b679b795380915c4000cec65ebdab032",
+      "manifestSha256": "b59528906e34984576e678f11e4037dc3e113c9d0a3a2bd88a8fa932ae08898e"
+    }
+  },
+  "checks": {
+    "services": 58,
+    "dialogUnit": 2,
+    "compiledToolsControlledFixture": 8,
+    "compiledToolsActualNativeSnapshotHandoff": 8,
+    "actualNativeProjectGUI": 3,
+    "actualWorkbenchCore": 16,
+    "actualProductLifecycle": 3,
+    "fail": 0,
+    "browserErrors": [],
+    "scope": "Controlled isolated QA. Two Tools runs cover the same eight scenarios; handoff additionally uses byte-exact actual native capture, not eight distinct new scenarios."
+  },
+  "evidenceIndex": {
+    "path": "apps/developer/.ynx-developer-candidates/solidity-project-evidence-20261004/INDEX.json",
+    "sha256": "51b59f816f76106f5dcd664741e9c2fc3e8134c2ec7f81fc68caead4b01cd5dc"
+  },
+  "frontend": {
+    "path": ".ynx-developer-candidates/solidity-project-evidence-20261004/frontend-dist-byte-exact.tar.gz",
+    "files": 232,
+    "sha256": "e02c5dabe396ff92d6c04ec26e191266f02eb83724306449bee8097bfea0ebb4",
+    "manifestSha256": "a897009dfc7b95d271d2e14e54e85c94204377dfba0422f4b0e8b4a9a6fded41",
+    "roundtrip": true
+  },
+  "sourceDelta": {
+    "path": ".ynx-developer-candidates/solidity-project-evidence-20261004/source-delta-exact.tar.gz",
+    "files": 24,
+    "sha256": "90ddf4e603c174cca8e7ee4ca7606af087d9cc2b3716f2213b163593a7b451f8",
+    "manifestSha256": "a253a6cd2a983e0f66293abdbedfcf4c4345f3250f946969ff272f41ee69f9a8",
+    "roundtrip": true
+  },
+  "preservedFailures": [
+    "0.3.12 Escape cancellation real QJi.accept this.resolve is not a function stack. Fixed candidate GUI/core errors[].",
+    "Earlier GUI drivers: missing Cancel button, hidden quick input and duplicate notification selectors; incomplete receipts retained.",
+    "Old lifecycle driver inserted JSON via typing, causing auto-pair trailing brace; failed profile retained. Correct actual Monaco paste path passes settings readback/reload on fresh QA.",
+    "Initial source archive zero-file relative pathspec error preserved/rejected; accepted exact archive has 24 files and roundtrip hashes."
+  ],
+  "cleanup": "Z9Gkx6 and YkBBaY stopped after exact root/command/group validation, remainingOwnedPids[]. Intentional launcher exit1 retained.",
+  "remaining": [
+    "Native app/DMG 0.3.13 pending; previous 0.3.12 unchanged.",
+    "Compiler complete standalone transitive distribution seal pending.",
+    "Canonical Wallet, admitted production driver, real AI/Chain operations, formal publication and user acceptance unverified.",
+    "No claim of universal VSCode extension compatibility, full platform release, LLDB launch or public multi-owner capacity."
+  ],
+  "boundaries": "Owned apps/developer only; no shared Host/Auth/identity writes, network/package-egress/LXD reopening or user device/profile takeover."
+}
