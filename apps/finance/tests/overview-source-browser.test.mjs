@@ -167,6 +167,29 @@ test('duplicate activity identities are unavailable and cannot become ambiguous 
     assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
   }finally{await f.browser.close()}
 });
+test('Finance receipt summary rejects repeated identity across the complete read without deduplicating source records',async()=>{
+  const f=await fixture();try{
+    await f.page.addScriptTag({content:await readFile(new URL('../web/finance-locale.js',import.meta.url),'utf8')});
+    const value=overview(),row={id:'source-receipt-1',amountYnxt:7,createdAt:value.portfolio.asOf,status:'confirmed',disputeUrl:'https://pay.example.invalid/disputes/source-receipt-1'},neighbor={...row,id:'source-receipt-2'};
+    for(const conflicting of [false,true]){
+      value.portfolio.payReceipts=[row,{...row,...(conflicting?{amountYnxt:2,status:'rejected'}:{})},neighbor];
+      for(const locale of await f.page.evaluate(()=>YNXFinanceLocale.supported)){
+        await f.page.locator('#finance-language').selectOption(locale);
+        assert.equal(await f.page.evaluate(value=>{const before=JSON.stringify(value);overviewQA.render(value);return JSON.stringify(value)===before},value),true);
+        assert.equal(await f.page.locator('#recent-receipts .row').count(),1,'a repeated receipt identity is not two proven payments');
+        assert.equal(await f.page.locator('#recent-receipts .empty').count(),2);
+        assert.equal(await f.page.locator('#recent-receipts .empty').first().textContent(),await f.page.evaluate(()=>YNXFinanceLocale.text('unavailable')));
+        assert.deepEqual(await f.page.locator('#recent-receipts code').allTextContents(),[neighbor.id]);
+      }
+    }
+    value.portfolio.payReceipts=[row,...Array.from({length:4},(_,i)=>({...neighbor,id:'unique-receipt-'+i})),{...row}];
+    await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.equal(await f.page.locator('#recent-receipts .row').count(),4,'a duplicate beyond the five-row window invalidates the visible first receipt');
+    value.portfolio.payReceipts=[row,neighbor];await f.page.evaluate(value=>overviewQA.render(value),value);
+    assert.equal(await f.page.locator('#recent-receipts .row').count(),2,'different identities with identical amounts remain independent');
+    assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
+  }finally{await f.browser.close()}
+});
 test('statement returned records reconcile exact amounts and references without borrowing overview authority',async()=>{
   const f=await fixture();try{
     const controller=app.slice(app.indexOf('function renderStatement('),app.indexOf('let statementOperation='));

@@ -667,7 +667,18 @@ function financeNavigationURL(value){
   if(!value.startsWith('/')&&!/^https:\/\//i.test(value))return null;
   try{const url=value.startsWith('/')?new URL(value,location.origin):new URL(value);if(url.protocol!=='https:'||url.username||url.password)return null;return url.href}catch{return null}
 }
-function renderReceipts(items,status){const el=$('#recent-receipts'),reference=id=>`<details class="evidence"><summary>${esc(short(id))}</summary><code>${esc(id)}</code></details>`;if(!status||typeof status!=='object'||Array.isArray(status)||status.available!==true||!Array.isArray(items)){el.innerHTML=`<div class="empty compact">${esc(financeText('unavailable'))}. ${esc(financeText('noReceiptPlaceholders'))}</div>`;return}el.innerHTML=items.length?items.slice(0,5).map(r=>{if(!r||typeof r!=='object'||Array.isArray(r)||typeof r.id!=='string'||!r.id.trim())return `<div class="empty compact">${esc(financeText('unavailable'))}</div>`;const disputeURL=financeNavigationURL(r.disputeUrl),hash=typeof r.transactionHash==='string'&&r.transactionHash.trim()?r.transactionHash:r.id;return `<div class="row"><div class="row-main"><strong>${esc(typeof r.status==='string'&&r.status.trim()?r.status:financeText('payRecord'))}</strong><small>${esc(date(typeof r.createdAt==='string'?r.createdAt:null))} · ${reference(r.id)}${hash!==r.id?reference(hash):''}</small></div><div class="row-value">${fmt(r.amountYnxt)} YNXT${disputeURL?`<small><a href="${esc(disputeURL)}" rel="noreferrer">${esc(financeText('disputeLink'))}</a></small>`:''}</div></div>`}).join(''):`<div class="empty compact">${esc(financeText('noOwnedPayReceipts'))}</div>`}
+function renderReceipts(items,status){
+  const el=$('#recent-receipts'),reference=id=>`<details class="evidence"><summary>${esc(short(id))}</summary><code>${esc(id)}</code></details>`;
+  if(!status||typeof status!=='object'||Array.isArray(status)||status.available!==true||!Array.isArray(items)){el.innerHTML=`<div class="empty compact">${esc(financeText('unavailable'))}. ${esc(financeText('noReceiptPlaceholders'))}</div>`;return}
+  // Inspect the full observed set before applying the summary window. Never
+  // pick one of two records claiming the same identity or silently deduplicate.
+  const duplicates=duplicateRecordKeys(items,'id');
+  el.innerHTML=items.length?items.slice(0,5).map(r=>{
+    if(!r||typeof r!=='object'||Array.isArray(r)||typeof r.id!=='string'||!r.id.trim()||duplicates.has(r.id))return `<div class="empty compact">${esc(financeText('unavailable'))}</div>`;
+    const disputeURL=financeNavigationURL(r.disputeUrl),hash=typeof r.transactionHash==='string'&&r.transactionHash.trim()?r.transactionHash:r.id;
+    return `<div class="row"><div class="row-main"><strong>${esc(typeof r.status==='string'&&r.status.trim()?r.status:financeText('payRecord'))}</strong><small>${esc(date(typeof r.createdAt==='string'?r.createdAt:null))} · ${reference(r.id)}${hash!==r.id?reference(hash):''}</small></div><div class="row-value">${fmt(r.amountYnxt)} YNXT${disputeURL?`<small><a href="${esc(disputeURL)}" rel="noreferrer">${esc(financeText('disputeLink'))}</a></small>`:''}</div></div>`;
+  }).join(''):`<div class="empty compact">${esc(financeText('noOwnedPayReceipts'))}</div>`;
+}
 // The bounded activity API cannot prove a full-period total. Do not coerce
 // missing progress to zero or render a percentage of an unknown total.
 function budgetAmount(value){return Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown')}
