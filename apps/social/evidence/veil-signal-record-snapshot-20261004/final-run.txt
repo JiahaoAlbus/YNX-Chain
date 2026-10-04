@@ -1,0 +1,20 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.rug8PK
+mode=snapshot
+PASS fresh dormant native port and adapter compilation
+PASS all record kinds and evolved actual SDK session retained
+PASS actual SDK import staging preserves complete opaque image
+PASS native output is an independent copy
+PASS foreign externally supplied own pin rejects staging
+PASS unknown schema version rejects
+PASS truncated and trailing images reject
+PASS late native current failure rejects staging
+PASS stale transaction cannot export
+PASS duplicate store identifiers reject rather than overwrite
+PASS SDK prekey ID substitution rejects
+PASS missing enrolled identity rejects without automatic genesis
+PASS aggregate eight MiB cap rejects before image creation
+PASS successful capture never changes the original record set
+PASS closed image has no readable output
+PASS snapshot checks=14; actual SDK/JNI; synthetic memory/trust; no atomic restore, OS, activation or real user evidence
+selected_qa_exit=0
+QA only: synthetic trust/memory port; no real device, durable anchor, or release approval.

@@ -1,0 +1,12 @@
+7e590a852fd86d943e308c8d6647a5ccff68ae60914b0303000782e302b83385  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalRecordSnapshot.java
+9194396ecd9ccf014d8ef28900b4c8b74038a596cdacbe0e03dba196fc764830  apps/social/scripts/veil-libsignal-qa/VeilSignalRecordSnapshotCheck.java
+3563e0368fa248467ab683d7cc1c669a91d3f7cdf8de8970f8607540e8cb6cc4  apps/social/scripts/veil-libsignal-qa/native-adapter-check.sh
+8432ccb8a7e30e4b85a84282c6c3d34bf04c5707a78f3aea4fca9849fb4eb349  apps/social/evidence/veil-signal-record-snapshot-20261004/README.md
+5858654550f7f77d7c1328a95b7482abab3814b6b8a59393d4572753d8bea724  apps/social/evidence/veil-signal-record-snapshot-20261004/run-local.sh
+6ecde150caec8e4a8dfe8a050734249485d067c0d1467e6cba3efeaf02651a53  apps/social/evidence/veil-signal-record-snapshot-20261004/run.txt
+6ecde150caec8e4a8dfe8a050734249485d067c0d1467e6cba3efeaf02651a53  apps/social/evidence/veil-signal-record-snapshot-20261004/original-run.txt
+4f7a5b38d3ac64ad739077e3ee937976de0ed33c62e04d2f57a75e311086b2e3  apps/social/evidence/veil-signal-record-snapshot-20261004/final-run.txt
+c1f02a10fde2e179acd9fa7c3adecf663988f3547ec777c55069d53086965f10  apps/social/evidence/veil-signal-record-snapshot-20261004/status.txt
+737babb618a195872c1d1dd352ff70cc1f1ccf6256cbee87c76c0f91d365f326  apps/social/evidence/veil-signal-record-snapshot-20261004/compile-inputs.sha256
+fc6616b50169dab16e9188dcb6fdab4f71f1cbcda7116389f906cff2db31fbd6  apps/social/evidence/veil-signal-record-snapshot-20261004/dependencies.sha256
+2a67878e6cdf873c143a98e0a5b7519c322579a6b2cd50c1f08995cb34109f6f  apps/social/evidence/veil-signal-record-snapshot-20261004/final-inputs.sha256

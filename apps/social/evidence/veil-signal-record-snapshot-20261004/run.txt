@@ -1,0 +1,12 @@
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.kQqslp
+mode=snapshot
+PASS fresh dormant native port and adapter compilation
+Exception in thread "main" org.signal.libsignal.protocol.NoSessionException: session with qa-bob.1 not found: message_encrypt
+	at org.signal.libsignal.internal.Native.SessionCipher_EncryptMessage(Native Method)
+	at org.signal.libsignal.protocol.SessionCipher.lambda$encrypt$0(SessionCipher.java:170)
+	at org.signal.libsignal.internal.FilterExceptions.filterExceptions(FilterExceptions.java:207)
+	at org.signal.libsignal.protocol.SessionCipher.encrypt(SessionCipher.java:166)
+	at org.signal.libsignal.protocol.SessionCipher.encrypt(SessionCipher.java:148)
+	at com.ynx.social.matrix.VeilSignalRecordSnapshotCheck.main(VeilSignalRecordSnapshotCheck.java:45)
+selected_qa_exit=1
+QA only: synthetic trust/memory port; no real device, durable anchor, or release approval.

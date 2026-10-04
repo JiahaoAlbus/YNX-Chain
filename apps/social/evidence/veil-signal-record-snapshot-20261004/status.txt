@@ -1,0 +1,2 @@
+snapshot_qa_exit=1
+corrected_snapshot_qa_exit=0
