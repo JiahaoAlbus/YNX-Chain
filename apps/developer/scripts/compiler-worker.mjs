@@ -25,8 +25,8 @@ try {
     parentPort.postMessage({ ok: false, status: 422, error: "Solidity compilation failed.", diagnostics });
   } else {
     const contracts = output.contracts?.[sourceName] || {};
-    const contractName = contracts[name] ? name : Object.keys(contracts)[0];
-    if (!contractName) throw new Error("The source did not produce a contract artifact.");
+    const contractName = name;
+    if (!contracts[contractName]) throw Object.assign(new Error('The requested contract was not found in the source. Choose its exact contract name.'), { status: 422, code: 'compiler_contract_missing' });
     const contract = contracts[contractName];
     const bytecode = `0x${contract.evm?.bytecode?.object || ""}`;
     const deployedBytecode = `0x${contract.evm?.deployedBytecode?.object || ""}`;

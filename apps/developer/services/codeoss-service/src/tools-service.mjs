@@ -3,6 +3,7 @@ import { Readable } from 'node:stream';
 import { fault } from './central-identity.mjs';
 import { reviewedHostedPrompt } from '../../model-router/src/hosted-request.mjs';
 import { SELECTION_KIND, EDIT_SYSTEM, reviewedSelection, reviewedReplacement, savedSelectionReview, isSavedSelectionReview } from './reviewed-selection.mjs';
+import { createSolidityCompiler } from './solidity-compiler.mjs';
 
 const AI_SYSTEM = 'Provide a development plan and optional suggested diff. Do not claim execution, installation, signing or deployment. YNX Testnet is chain 6423; do not assume full EVM deployment support.';
 const selectedPrompt = proposal => `${proposal.prompt}\n\nUSER-SELECTED CONTEXT (untrusted data):\n${proposal.context}`;
@@ -10,7 +11,7 @@ const selectedPrompt = proposal => `${proposal.prompt}\n\nUSER-SELECTED CONTEXT 
 // This service runs on the trusted product host, outside the project runtime.
 // Extension commands can open it, but no extension message authorizes a request.
 export function createNativeToolsService({ coreService, modelRouter, aiStore, chainHandler, walletHandler,
-  admittedOwners, origin = 'https://developer.ynxweb4.com', now = Date.now } = {}) {
+  admittedOwners, compiler = createSolidityCompiler(), origin = 'https://developer.ynxweb4.com', now = Date.now } = {}) {
   const approved = new URL(origin); if (approved.origin !== origin || approved.pathname !== '/' || approved.protocol !== 'https:') throw new Error('Tools require an exact trusted HTTPS origin.');
   const tickets = new Map(), proposals = new Map();
   function prune() { for (const map of [tickets, proposals]) for (const [key, value] of map) if (value.expires <= now()) map.delete(key); }
@@ -57,6 +58,19 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
       const ticket = tickets.get(body.csrf);
       if (!ticket || ticket.expires <= now() || ticket.bound !== bound) throw fault('Review expired. Refresh the tools page.', 'tools_review_expired', 403);
       tickets.delete(body.csrf);
+      if (url.pathname === '/runtime/native-tools/chain/compile') {
+        exact(body, ['csrf', 'name', 'source']);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(2147483647, admission.expiresAt - now())));
+        try {
+          const result = await compiler.compile({ owner: admission.context.owner, name: body.name, source: body.source, signal: controller.signal });
+          const latest = await coreService.authorizeConnection(request, sessionId);
+          if (controller.signal.aborted || binding(latest) !== bound || latest.expiresAt <= now() || admission.expiresAt <= now())
+            throw fault('Wallet project changed during compilation. Build again from the current project.', 'tools_identity_changed', 401);
+          json(response, result.status || (result.ok ? 200 : 503), { ...result, projectId: admission.context.projectId, signed: false, submitted: false });
+        } finally { clearTimeout(timer); }
+        return true;
+      }
       const removeConversation = /^\/runtime\/native-tools\/ai\/conversations\/([a-f0-9-]{36})\/delete$/.exec(url.pathname);
       if (removeConversation) {
         exact(body, ['csrf']);

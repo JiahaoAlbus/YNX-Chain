@@ -24,6 +24,17 @@ This operator setting supplies a compiler input, not identity or workspace acces
 When admitted, compilation runs in worker threads with four active workers and
 a queue of 64. These source
 checks do not establish public deployment or YNX execution compatibility.
+The admitted workbench Tools page separately compiles explicitly pasted source
+through `POST /runtime/native-tools/chain/compile`. It requires canonical project
+admission and a one-use CSRF ticket, then rechecks identity before returning the
+artifact. This path accepts one source up to 64 KiB and an exact contract name;
+it never substitutes another contract or resolves imports from disk. Its local
+worker limit is four builds globally and one per owner, with no queue, a 15-second
+deadline, a 512 MiB V8 old-generation heap limit and a 2 MiB response limit.
+Quota is held until worker termination. The page displays diagnostics, ABI and
+bytecode and downloads the source-bound artifact; changing source clears the
+previous artifact. Retiring a session preserves only unsent source input, not
+its results. The path does not authorize deployment or grant an execution domain.
 The hosted open model uses a separate queue of
 two active requests and 32 waiting requests. Desktop test/check/package work has
 its own two-active/16-waiting queue and a per-user hashed workspace. Package
