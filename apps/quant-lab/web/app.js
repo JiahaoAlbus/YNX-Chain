@@ -730,7 +730,11 @@ function renderPaperPendingState(){
 paperRestoreButton.onclick=()=>{
   if(paperSubmitting||!workspaceStorageAvailable)return;
   reloadPaperJournal();const intent=pendingPaperIntent;
-  if(!workspaceStorageAvailable||pendingPaperInvalid||!intent||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent.StrategyHash)){renderPaperSubmitControl();return;}
+  if(!workspaceStorageAvailable||pendingPaperInvalid||!intent||!Object.values(snapshot.strategies||{}).some(strategy=>paperStrategyHashAvailable(strategy)&&strategy.StrategyHash===intent.StrategyHash)){
+    $('#workspace-storage-boundary').hidden=workspaceStorageAvailable;
+    $('#workspace-storage-boundary').textContent=t('workspaceStorageUnavailable');
+    renderPaperSubmitControl();renderResearchRequestState();renderRiskControls();return;
+  }
   $('#paper-strategy').value=intent.StrategyHash;$('#side').value=intent.Side;$('#paper-amount').value=String(intent.Amount);
   $('#paper-cost-model').value=intent.ExecutionCosts?'v1':'legacy';
   if(intent.ExecutionCosts){$('#paper-cost-fee').value=String(intent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(intent.ExecutionCosts.SlippageBPS);}

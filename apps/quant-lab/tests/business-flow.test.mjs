@@ -817,6 +817,25 @@ test('Paper journal read failure preserves current intent and fails closed witho
   assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
 });
 
+test('Paper Restore read failure closes workspace controls and warns in every locale without changing its intent',async()=>{
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    const tenant='a'.repeat(64),hash='d'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
+    const raw=JSON.stringify({StrategyHash:hash,Side:'buy',Amount:100,IdempotencyKey:'quant-paper-12345678-1234-1234-1234-123456789abc'});let deny=false;
+    const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,raw]],snapshot:{strategies:{saved:{Name:'Saved',StrategyHash:hash}}},storageBoundary(operation,k){if(deny&&operation==='get'&&k===key)throw Error('Read unavailable')}});await settle();
+    app.ids.get('locale').onchange({target:{value:language}});app.ids.get('paper-amount').value='200';
+    const before=app.calls.length;assert.equal(app.ids.get('kill').disabled,false);deny=true;
+    vm.runInContext('paperRestoreButton.onclick()',app.context);
+    assert.equal(app.storage.get(key),raw);assert.equal(vm.runInContext('JSON.stringify(pendingPaperIntent)',app.context),raw);
+    assert.equal(app.ids.get('paper-amount').value,'200');assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+    for(const id of ['kill','reconcile','paper-submit'])assert.equal(app.ids.get(id).disabled,true,id+' '+language);
+    assert.equal(app.ids.get('workspace-storage-boundary').hidden,false);
+    assert.equal(app.ids.get('workspace-storage-boundary').textContent,vm.runInContext('t("workspaceStorageUnavailable")',app.context));
+    deny=false;vm.runInContext('paperRestoreButton.onclick()',app.context);
+    assert.equal(app.ids.get('paper-amount').value,'200');assert.equal(app.calls.length,before);
+    assert.equal(vm.runInContext('workspaceStorageAvailable',app.context),false);
+  }
+});
+
 test('Paper Forget remains closed after storage read recovery without renewed write capability',async()=>{
   const tenant='a'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant,raw='{';let deny=false,confirms=0;
   const app=harness({savedStorage:[["ynx.quant.tenant.v1",tenant],[key,raw]],confirmAction:()=>{confirms++;return true},storageBoundary(operation,k){if(deny&&operation==='get'&&k===key)throw Error('Read unavailable')}});await settle();
