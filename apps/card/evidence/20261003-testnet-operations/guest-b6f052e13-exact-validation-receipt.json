@@ -1,0 +1,130 @@
+{
+  "source": "b6f052e13119580f2e5eb50d72a698898981e556",
+  "tree": "a60ce4579a020ed54e85da577c870c0a226be1b0",
+  "scope": "Card-owned anonymous guest control enforcement; not backend payment acceptance",
+  "validation": {
+    "focused21": true,
+    "fullFrontend": {
+      "tests": 406,
+      "failures": 0,
+      "groups": [
+        313,
+        39,
+        43,
+        11
+      ]
+    },
+    "typecheck": true,
+    "webBuild": true,
+    "browser": "Local IAB at 390px: frozen/online-disabled denial, reload retained both old records and new denial, explicit zh dynamic translation, restored English",
+    "envelope": {
+      "exactFiles": 21,
+      "staticParity": 18
+    }
+  },
+  "runtimeIdentity": {
+    "schemaVersion": "ynx.card.runtime-identity.v1",
+    "productId": "ynx-card",
+    "sourceCommit": "b6f052e13119580f2e5eb50d72a698898981e556",
+    "sourceTree": "a60ce4579a020ed54e85da577c870c0a226be1b0",
+    "appVersion": "1.0.0",
+    "releaseChannel": "qa",
+    "environment": "testnet",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "paymentNetwork": "simulation",
+    "productionRealPayments": false,
+    "cardApiCompatibility": {
+      "schemaVersion": "ynx.card.source-compatibility.v1",
+      "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+      "frontendSourceCommit": "b6f052e13119580f2e5eb50d72a698898981e556",
+      "frontendSourceTree": "a60ce4579a020ed54e85da577c870c0a226be1b0",
+      "backendSourceCommit": "b6f052e13119580f2e5eb50d72a698898981e556",
+      "backendVersionSchema": 1
+    }
+  },
+  "files": [
+    {
+      "name": "typography-registration-10-tests.txt",
+      "bytes": 2869,
+      "sha256": "5729b8b5b803e81bb41cfa6272adeb1019fbb527e2ba44e5d23aa4d2dc43b7a4"
+    },
+    {
+      "name": "guest-b6f052e13-focused-tests.txt",
+      "bytes": 4349,
+      "sha256": "4815844168103e886b3c5cf20135ef0f0f35c5ee466093df7eb39ba5a988fff2"
+    },
+    {
+      "name": "guest-b6f052e13-full-tests.txt",
+      "bytes": 57274,
+      "sha256": "908f2660e465f688b35dbd2c84bc0d50aba20e215045bf421e860ddf8d28cbea"
+    },
+    {
+      "name": "guest-b6f052e13-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "name": "guest-b6f052e13-web-build.txt",
+      "bytes": 621,
+      "sha256": "2c63aaa65041d163b406ee282e7b9bebca866feec6d5dd1e8f2ffcce6cb82b86"
+    },
+    {
+      "name": "guest-b6f052e13-envelope.txt",
+      "bytes": 246,
+      "sha256": "5a9b665fdf3e9cb33c0240a66ddb9b8dcd7a1a9698cee972ac3846ac50fc4e7b"
+    },
+    {
+      "name": "typography-7cdea49f2-keyboard-390.png",
+      "bytes": 33825,
+      "sha256": "9d8eb9d7fe1b6371155241a7d0427278a261de93d67253a07e23c5d001feba74"
+    },
+    {
+      "name": "typography-7cdea49f2-chooser-390.png",
+      "bytes": 52900,
+      "sha256": "17ac74d05bbad7bd002545907af4960f258a6a15cddfb24b3868c34da51dff4f"
+    },
+    {
+      "name": "typography-7cdea49f2-flow-observations.json",
+      "bytes": 28386,
+      "sha256": "d8e4ca35233dcfe7d67c701de63447687a73e0cb6fb3c6a82d9c1ca10c6bff7c"
+    },
+    {
+      "name": "guest-b6f052e13-frozen-decline-390.png",
+      "bytes": 46239,
+      "sha256": "1940c2e36bd9478ac600c261f8b1f2a12724940fc1b4717e6abb7ab94c718b8c"
+    },
+    {
+      "name": "guest-b6f052e13-online-decline-390.png",
+      "bytes": 46105,
+      "sha256": "2f176c9299844d184ddb738c2bb18a894d128d0b675cd19001f5c5433b92bdbf"
+    },
+    {
+      "name": "guest-b6f052e13-declines-zh-390.png",
+      "bytes": 43997,
+      "sha256": "1b9f03617898f5604a5057b1b2cb37bf3eb979b862ef114cac62b49ed443513d"
+    },
+    {
+      "name": "guest-b6f052e13-flow-observations.json",
+      "bytes": 19772,
+      "sha256": "4210ffe44dc93f3535a842e91b8a4fa9e057c83838eedd480f2d9e37c83a3e6e"
+    }
+  ],
+  "limits": [
+    "Guest capture/reversal/refund remain workflow previews, not a funded ledger.",
+    "Guest decline is local DEMO only; not evidence of protected Card API use or approved account.",
+    "Current source has not been formally published."
+  ],
+  "gates": {
+    "realWalletApproval": false,
+    "realApplicationAccepted": false,
+    "signature": false,
+    "activeCard": false,
+    "ynxtTransaction": false,
+    "creditedBalance": false,
+    "dataFabricReceiverAcceptance": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  }
+}

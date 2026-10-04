@@ -1,0 +1,53 @@
+✔ guest authorization enforces freeze and online control without manufacturing approval (0.367709ms)
+✔ new decline audit survives cold recovery without altering old valid records (0.5045ms)
+✔ decline details localize for all supported languages without English fallback (0.121ms)
+✔ browser journal restores only explicitly local demo controls and whitelist audit events (1.318084ms)
+✔ malformed or foreign storage remains byte-for-byte preserved without an overwrite (0.126166ms)
+✔ same-browser concurrent writer does not overwrite a newer saved demo history (0.085958ms)
+✔ unavailable, denied or unconfirmed storage never claims saved recovery (0.107917ms)
+✔ untrusted extra fields, arbitrary audit content, duplicate IDs and excessive history are refused (0.335875ms)
+✔ storage feedback is localized and never suggests an account or chain operation succeeded (0.170833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web navigation exposes one selected section before and after local controls change (221.097541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Native sections retain native selection attributes without Web-only aria props (85.697541ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Guest control changes stay in Controls and preserve their actual local state (76.493792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ local controls audit remains visible through explicit Activity navigation (62.504292ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ explicit Virtual Card demos still lead to Activity without creating Wallet or private identity (86.935917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Web guest controls and audit survive a real component cold remount without Wallet authority (95.840459ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ damaged guest storage remains untouched and the rendered UI warns that new changes were not saved (45.326459ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ source mismatch task dialog preserves guest access and does not request any Wallet permission (44.844833ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ page reload is an explicit two-step recovery action, not a private authorization retry (37.908792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ native source recovery never pretends it can reload or authorize a standard Web wallet (42.146375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ every source dialog locale uses local safe error copy and scalable 48px actions (371.281167ms)
+✔ all saved DEMO audit entries are reachable after cold remount without modifying history or contacting a wallet (32.899875ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 21
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1547.607791
