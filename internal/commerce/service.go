@@ -139,14 +139,16 @@ func (s *Store) CreateProduct(actor string, in CreateProductInput) (Product, err
 		return cloneProduct(s.s.Products[h]), nil
 	}
 	in.Variants = append([]Variant(nil), in.Variants...)
+	seenID, seenSKU := map[string]bool{}, map[string]bool{}
 	for i := range in.Variants {
 		v := &in.Variants[i]
 		if v.ID == "" {
 			v.ID = newID("variant")
 		}
-		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 {
-			return Product{}, errors.New("valid variant name, SKU, price and inventory required")
+		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenID[v.ID] || seenSKU[v.SKU] {
+			return Product{}, errors.New("valid unique variant identity, name, SKU, price and inventory required")
 		}
+		seenID[v.ID], seenSKU[v.SKU] = true, true
 		if v.Inventory != 0 {
 			if err := s.requireSellerPermissionLocked(in.StoreID, actor, permissionInventoryWrite); err != nil {
 				return Product{}, err
@@ -194,16 +196,16 @@ func (s *Store) UpdateProduct(actor, id string, in UpdateProductInput) (Product,
 	for _, current := range p.Variants {
 		byID[current.ID] = current
 	}
-	seenSKU := map[string]bool{}
+	seenID, seenSKU := map[string]bool{}, map[string]bool{}
 	for i := range in.Variants {
 		v := &in.Variants[i]
 		if v.ID == "" {
 			v.ID = newID("variant")
 		}
-		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenSKU[v.SKU] {
-			return Product{}, errors.New("valid unique variant name, SKU, price and inventory required")
+		if v.Name == "" || len(v.Name) > 120 || v.SKU == "" || len(v.SKU) > 80 || v.PriceYNXT <= 0 || v.Inventory < 0 || seenID[v.ID] || seenSKU[v.SKU] {
+			return Product{}, errors.New("valid unique variant identity, name, SKU, price and inventory required")
 		}
-		seenSKU[v.SKU] = true
+		seenID[v.ID], seenSKU[v.SKU] = true, true
 		if current, exists := byID[v.ID]; exists {
 			if v.Inventory != current.Inventory {
 				if err := s.requireSellerPermissionLocked(p.StoreID, actor, permissionInventoryWrite); err != nil {
