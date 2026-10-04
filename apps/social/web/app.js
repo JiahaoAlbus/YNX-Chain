@@ -1,7 +1,7 @@
 import { WALLET_LINKS, attachWalletLifecycle, connectWallet, disconnectWallet, discoverProviders, ensureYNXChain, restoreWallet, revokeWallet, selectProvider, switchWalletAccount, socialTransports } from "./wallet-provider.js";
 
 const byId = (id) => document.getElementById(id);
-const state = { provider: null, account: null, chainId: null, wallet: null, detach: () => {}, revoking: false };
+const state = { provider: null, account: null, chainId: null, wallet: null, detach: () => {}, revoking: false, revocation: null };
 // UI intent ordering; provider sessions remain owned by the Wallet transport.
 let connectionAttempt = 0;
 const walletLabel=wallet=>({ynx:"YNX Wallet",hosted:"YNX Web Wallet",mobile:"YNX Mobile Wallet",metamask:"MetaMask"})[wallet]??"Wallet";
@@ -39,7 +39,15 @@ function setConnected(result) {
   state.detach = attachWalletLifecycle(result.provider, {
     onAccountsChanged(accounts) {
       connectionAttempt++;
-      if (!accounts.length) { if (!state.revoking) disconnect("Wallet permission was removed."); return; }
+      if (!accounts.length) {
+        const operation = state.revocation;
+        // Only the exact pending revoke may absorb its empty-account event.
+        // The public epoch still advances to invalidate private consumers.
+        if (state.revoking && operation?.provider === result.provider &&
+            operation.attempt === connectionAttempt - 1) operation.attempt = connectionAttempt;
+        if (!state.revoking) disconnect("Wallet permission was removed.");
+        return;
+      }
       state.account = accounts[0];
       byId("connected-account").textContent = accounts[0];
       byId("connect-wallet").textContent = `${walletLabel(state.wallet)} · ${shortAccount(accounts[0])}`;
@@ -62,6 +70,7 @@ function disconnect(message = "Wallet disconnected locally.") {
   state.detach();
   if (state.provider) disconnectWallet(state.provider);
   state.revoking = false;
+  state.revocation = null;
   state.provider = null;
   state.account = null;
   state.chainId = null;
@@ -204,11 +213,14 @@ byId("wallet-switch-network").addEventListener("click", async () => {
 });
 byId("wallet-revoke").addEventListener("click", async () => {
   if (!state.provider || state.revoking) return;
-  const provider = state.provider, attempt = connectionAttempt;
+  const provider = state.provider;
+  const operation = { provider, attempt: connectionAttempt };
+  const current = () => state.provider === provider && state.revocation === operation && operation.attempt === connectionAttempt;
+  state.revocation = operation;
   state.revoking = true;
   try {
     const outcome = await revokeWallet(provider);
-    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    if (!current()) return;
     if (outcome.permissionRevoked && outcome.status === "revoked") {
       sessionStorage.setItem(disconnectedKey, "true");
       disconnect("Wallet permission revoked and empty accounts confirmed.");
@@ -220,11 +232,11 @@ byId("wallet-revoke").addEventListener("click", async () => {
       else showStatus(message, "warning");
     }
   } catch (error) {
-    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    if (!current()) return;
     const code = Number(error?.code);
     showStatus(code === 4001 ? "Permission revocation was rejected." : [4200, -32601].includes(code) ? "This wallet cannot revoke permission here. Remove this site's access in your wallet, or use Disconnect to disconnect locally." : "Permission revocation failed. Check site permissions in your wallet.", "error");
   } finally {
-    state.revoking = false;
+    if (state.revocation === operation) { state.revoking = false; state.revocation = null; }
   }
 });
 byId("wallet-switch-account").addEventListener("click", async () => {

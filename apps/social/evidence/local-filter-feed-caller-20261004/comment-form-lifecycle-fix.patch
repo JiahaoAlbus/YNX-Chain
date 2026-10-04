@@ -1,0 +1,24 @@
+diff --git a/apps/social/web/matrix/restricted-feed-ui.mjs b/apps/social/web/matrix/restricted-feed-ui.mjs
+index 5c2965a03..b91fcd789 100644
+--- a/apps/social/web/matrix/restricted-feed-ui.mjs
++++ b/apps/social/web/matrix/restricted-feed-ui.mjs
+@@ -29,15 +29,17 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
+   const addComment=(article,index,decoded)=>{
+     index=snapshot(index);decoded=snapshot(decoded);
+     if(!decoded.parent||typeof publishComment!=='function'||typeof commentSender!=='function'||typeof commentDrafts?.load!=='function'||typeof commentDrafts?.save!=='function'||typeof commentDrafts?.clearConfirmed!=='function')return;
++    // Retained form events cannot acquire a later view or account's authority.
++    const generation=epoch,binding=capture();
+     const form=document.createElement('form'),input=document.createElement('textarea'),button=document.createElement('button');
+     input.setAttribute('aria-label','Encrypted comment');input.maxLength=16000;
+     button.type='submit';button.textContent='Publish encrypted comment';
+     form.append(input,button);article.append(form);controls.add(input);controls.add(button);
+     let uncertain=false;
+     form.addEventListener('submit',async event=>{
+-      event.preventDefault();if(locked||busy||uncertain||pendingIntent)return;
++      event.preventDefault();if(locked||generation!==epoch||busy||uncertain||pendingIntent)return;
+       const text=input.value;if(!text.trim()||text.length>16000)return;
+-      const generation=epoch,binding=capture();setBusy(true);
++      setBusy(true);
+       try{
+         gate(generation,binding);
+         // Reauthorize the exact indexed parent, never a DOM-supplied event ID.

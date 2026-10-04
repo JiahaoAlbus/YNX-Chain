@@ -1,0 +1,5 @@
+751ec1f43ea667b2f23a10b9d2ee749ef1680683a8b78fefc716ebf1b5e95133  apps/social/web/matrix/restricted-feed-ui.mjs
+bdb51431d69d2a58d8c38740d39a59d320967df0e7bf6c25190ad18a78d5418d  apps/social/web/matrix/local-filter-ui.mjs
+28a49f677f8e5693ab2ecde4efc13f6cb7f50d846c7cc4408b59c5a07a442f3d  apps/social/src/localContentDisplay.ts
+e4e56a7fb400b39b8dc3db89491641aa7100ce2d2b2320146b210d842c23513a  apps/social/web/matrix/restricted-comment-recovery.mjs
+f454a8aab0a66166c692452f04d58190cdf4b2d2f4398ded41661d573e6d2687  apps/social/web/matrix/bounded-operation.mjs

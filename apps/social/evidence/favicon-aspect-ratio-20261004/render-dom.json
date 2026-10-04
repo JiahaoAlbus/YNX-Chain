@@ -1,0 +1,14 @@
+{
+  "image": {
+    "height": "56",
+    "preserveAspectRatio": "xMidYMid meet",
+    "width": "56"
+  },
+  "publication": false,
+  "svg": {
+    "height": "64",
+    "viewBox": "0 0 64 64",
+    "width": "64"
+  },
+  "url": "http://127.0.0.1:60339/__favicon-source.svg"
+}

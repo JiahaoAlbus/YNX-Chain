@@ -1,0 +1,14 @@
+{
+  "language": "zh-CN",
+  "logo": {
+    "height": 20,
+    "width": 38
+  },
+  "page": "landing",
+  "privateBusinessVerified": false,
+  "publicDeployment": false,
+  "scrollWidth": 375,
+  "url": "http://127.0.0.1:54805/",
+  "walletRuntime": "undefined",
+  "width": 390
+}

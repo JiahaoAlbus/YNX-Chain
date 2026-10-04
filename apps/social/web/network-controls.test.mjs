@@ -12,28 +12,49 @@ function app(overrides = {}) {
   const elements = new Map();
   const get = (id) => {
     if (!elements.has(id)) elements.set(id, {
-      textContent: "", dataset: {}, hidden: true, disabled: false, handlers: {},
+      textContent: "", dataset: {}, style: {}, attributes: new Map(), hidden: true, disabled: false, handlers: {},
       addEventListener(event, handler) { this.handlers[event] = handler; },
-      setAttribute() {}, removeAttribute() {}, close() {}, showModal() {}, focus() {}, scrollIntoView() {},
+      setAttribute(name, value) { this.attributes.set(name, String(value)); },
+      removeAttribute(name) { this.attributes.delete(name); },
+      querySelectorAll(selector) {
+        if (id === "wallet-dialog" && selector === ".wallet-option") {
+          return ["mobile", "hosted", "ynx", "metamask"].map(kind => get("connect-" + kind));
+        }
+        throw new Error("Unsupported UI fixture selector: " + selector);
+      },
+      close() { this.open = false; }, showModal() { this.open = true; }, focus() {}, scrollIntoView() {},
     });
     return elements.get(id);
   };
   const storage = overrides.storage ?? new Map();
+  const windowEvents = new EventTarget();
   const context = vm.createContext({
     ...wallet,
     // These tests isolate UI intent ordering. SDK behavior has separate tests;
     // tests that exercise the actual SDK override these lifecycle seams below.
     attachWalletLifecycle: () => () => {}, disconnectWallet: () => {},
+    // app.js registers pagehide on the browser global. Preserve that hook in
+    // this VM without running a page lifecycle during network-control tests.
+    addEventListener: windowEvents.addEventListener.bind(windowEvents),
+    removeEventListener: windowEvents.removeEventListener.bind(windowEvents),
+    dispatchEvent: windowEvents.dispatchEvent.bind(windowEvents),
     window: { location: { origin: "https://social.ynxweb4.com" } },
     ...overrides, document: { getElementById: get },
     sessionStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
     restoreWallet: overrides.restoreWallet ?? (async () => ({ ok: false })),
   });
   vm.runInContext(source, context);
-  return { get, context, storage, click: (id) => get(id).handlers.click({ currentTarget: get(id) }),
+  return { get, context, storage, windowEvents, click: (id) => get(id).handlers.click({ currentTarget: get(id) }),
     connect(provider) { context.result = { provider, account: address, chainId: "0x1", wallet: "ynx" }; vm.runInContext("setConnected(result)", context); },
   };
 }
+
+test("browser pagehide dispatches the registered transport suspension hook", () => {
+  const events = [];
+  const ui = app({ socialTransports: () => ({ suspend: () => events.push("suspend") }) });
+  ui.windowEvents.dispatchEvent(new Event("pagehide"));
+  assert.deepEqual(events, ["suspend"]);
+});
 
 for (const mode of ["switch", "add", "reject", "bad-readback"]) {
   test(`network control: ${mode}, without account authorization`, async () => {
@@ -131,15 +152,18 @@ test("unsupported revoke shows manual guidance and keeps local connection", asyn
 
 test("actual SDK revoke events cannot hide confirmed UI outcome", async () => {
   const listeners = new Map();
+  const methods = [];
   let accounts = [address];
   const provider = {
     isMetaMask: true,
     on(event, fn) { listeners.set(event, fn); },
     removeListener(event) { listeners.delete(event); },
     async request({method}) {
+      methods.push(method);
       if (method === "eth_requestAccounts" || method === "eth_accounts") return accounts;
       if (method === "eth_chainId") return "0x1917";
       if (method === "wallet_revokePermissions") { accounts = []; listeners.get("accountsChanged")?.([]); return null; }
+      if (method === "wallet_getPermissions") return accounts.length ? [{ parentCapability: "eth_accounts" }] : [];
       throw new Error(method);
     },
   };
@@ -147,6 +171,39 @@ test("actual SDK revoke events cannot hide confirmed UI outcome", async () => {
   await vm.runInContext('connect("metamask", byId("connect-metamask"))', ui.context);
   assert.equal(ui.get("connected-panel").hidden, false);
   await ui.click("wallet-revoke");
-  assert.equal(ui.get("connected-panel").hidden, true);
+  assert.equal(ui.get("connected-panel").hidden, true, JSON.stringify({status:ui.get("connected-wallet-status").textContent,methods}));
   assert.match(ui.get("connected-wallet-status").textContent, /empty accounts confirmed/);
+  assert.deepEqual(methods.slice(-3), ["wallet_revokePermissions", "eth_accounts", "wallet_getPermissions"]);
 });
+
+for (const action of ["manual-disconnect", "later-wallet-choice"]) {
+  test(`pending revoke cannot overwrite ${action}`, async () => {
+    const pending = deferred();
+    const nextProvider = { request() {} };
+    const nextAccount = "0x2222222222222222222222222222222222222222";
+    const ui = app({
+      revokeWallet: () => pending.promise,
+      connectWallet: async kind => ({ ok: true, wallet: kind, provider: nextProvider, account: nextAccount, chainId: "0x1917" }),
+    });
+    ui.connect({ request() {} });
+    const revocation = ui.click("wallet-revoke");
+    if (action === "manual-disconnect") {
+      await ui.click("wallet-disconnect");
+      assert.equal(ui.get("connected-panel").hidden, true);
+    } else {
+      await vm.runInContext('connect("metamask", byId("connect-metamask"))', ui.context);
+      assert.equal(ui.get("connected-panel").hidden, false);
+      assert.equal(ui.get("connected-wallet-name").textContent, "MetaMask");
+      assert.equal(ui.get("connected-account").textContent, nextAccount);
+    }
+    const selectedStatus = ui.get("connected-wallet-status").textContent;
+    pending.resolve({ status: "revoked", permissionRevoked: true, locallyDisconnected: true });
+    await revocation;
+    assert.equal(ui.get("connected-wallet-status").textContent, selectedStatus, "old result cannot publish a confirmation into the newer intent");
+    assert.equal(ui.get("connected-panel").hidden, action === "manual-disconnect");
+    if (action === "later-wallet-choice") {
+      assert.equal(ui.get("connected-wallet-name").textContent, "MetaMask");
+      assert.equal(ui.get("connected-account").textContent, nextAccount);
+    }
+  });
+}

@@ -1,0 +1,53 @@
+Social UI candidate, 2026-10-04
+
+Owner worktree: /Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001
+Frozen, standalone, full static candidate: /tmp/ynx-social-ig-candidate-20261004/site
+Local preview running: http://127.0.0.1:53136/ (static only, no private service or Host rewrites)
+
+Owned changed sources:
+apps/social/web/index.html
+apps/social/web/styles.css
+apps/social/web/product-shell.js
+apps/social/web/product-shell.ui.test.mjs (new UI tests)
+apps/social/web/network-controls.test.mjs (browser VM interfaces; original assertions retained; added real pagehide dispatch and permissions readback assertions)
+Favicon source supplied by main owner: apps/social/web/assets/ynx-favicon.svg; not edited here.
+
+Routes: root / is landing. Same-tab Open web app/Explore as guest -> #social-moments. Messages #matrix-social-workspace; Contacts #people-panel; Create #create; Settings #profile-form. About Social -> /. #conversations and unknown prior app hashes select app. /people/* and /invite/* select contacts when inherited Host serves the app document. Non-root legacy entry paths select app, not landing. No server or callback source changes. Dedicated Matrix callback remains its independent built document.
+
+Locale: document.documentElement.lang is the existing matrix/chat-copy.mjs createChatCopy contract. English default; English/zh-CN native selector; localStorage ynx.social.ui.locale.v1; browser storage event mirrors device choice across tabs. New UI, known status copy, aria labels and placeholders translated. User messages, room names, accepted-person options and draft values excluded. Unrecognized upstream errors/privileged legacy dialogs may still be English and need real authorized-flow acceptance.
+
+Root network proof: landing-network.json. Only root, three CSS, original PNG, MetaMask SVG and product-shell.js requested. No app.js/private-session-ui.js/matrix-session-ui.js/wallet SDK download; YNXSocialWallet undefined, chatPhase null, indexedDB.databases empty. No private credential, login, sign, transaction or device permission used. App modules load only after explicit app/deep-route entry. Returning landing hides retained connected account UI.
+
+Build commands actually executed from worktree:
+1. Initial scoped module compilation through UI test (pre deferred entry):
+YNX_SOCIAL_UI_EVIDENCE_DIR=/tmp/ynx-social-ig-candidate-20261004 node --test apps/social/web/product-shell.ui.test.mjs
+The test invoked esbuild for private-session-ui.js, matrix/session-ui.mjs, product-shell.js, with bundle=true, platform=browser, format=esm, target=es2022, NODE_ENV=production. Output initially in /tmp/ynx-social-ig-candidate-20261004/. build.json preserves scoped results. These were not a release package.
+2. Full STANDARD Web build, copied original builder unchanged, source/dependency input symlinks, output isolated:
+node /tmp/ynx-social-ig-candidate-20261004/standard-build-input/web/build.mjs
+Exit 0; original transport SHA/bytes and seven-scope registration gates passed. standard-build.log retained. Original repo web/dist was not removed or overwritten. Original build/deploy source unmodified. Full output /tmp/ynx-social-ig-candidate-20261004/standard-build-input/web/dist/ includes source-copy links.
+3. Freeze/materialize complete standard output as independent files:
+mkdir -p /tmp/ynx-social-ig-candidate-20261004/site
+cp -RL /tmp/ynx-social-ig-candidate-20261004/standard-build-input/web/dist/. /tmp/ynx-social-ig-candidate-20261004/site/
+Includes private SDK bundle, Matrix SDK bundle, callback HTML+entry, original PNG, square favicon SVG, MetaMask, vendor carriers, Rust WASM. artifact-manifest.json records exact frozen bytes and SHA256.
+
+Actual UI test command against frozen full package:
+YNX_SOCIAL_UI_SITE_DIR=/tmp/ynx-social-ig-candidate-20261004/site YNX_SOCIAL_UI_EVIDENCE_DIR=/tmp/ynx-social-ig-candidate-20261004 node --test apps/social/web/product-shell.ui.test.mjs
+4/4 passed. Root/app/back/forward/refresh, persistent EN/ZH, keyboard Enter/Escape, empty private roots, original IDs, no user-text translation, 50 width/locale/route layout cases (320/390/768/1280/1440), equal-aspect original logo and no horizontal overflow. Real compiled controllers under controlled guest HTTP 401; not public/real account acceptance. browser.json and screenshots retained.
+
+Regression command:
+node --test apps/social/web/network-controls.test.mjs apps/social/web/matrix/chat-confirmation.test.mjs apps/social/web/matrix/chat-presentation.test.mjs apps/social/web/matrix/login-callback.test.mjs
+Earlier combined run: 44/46 passed; both original red logs retained. After main owner app.js change, only network-controls.test.mjs rerun: 14/14 passed, including both new negative guards. Full standard builder rerun exit 0 and standalone site refreshed. UI unchanged; its prior 4/4 and 50 layout cases were not needlessly repeated after main owner fix. Current remaining regression is the Matrix callback fixture below.
+- actual SDK revoke events cannot hide confirmed UI outcome: app.js empty accountsChanged increments connectionAttempt; confirmed revoke result dropped. Main owner supplied its app.js repair; original SDK assertion now passes in network-controls.current.log. Kept failing original SDK assertion, added wallet_getPermissions fixture readback plus method sequence assertion; did not change app.js.
+- Matrix callback actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture): import route expected /matrix/login-callback-entry.mjs, actual undefined. Did not touch matrix source/tests. Callback-only build and 17 other callback cases passed in that run. Needs Matrix owner classification.
+regressions.final.log and prior red logs retained. Do not claim all regressions green. No repeated unrelated broad builds/tests.
+
+Outstanding: main owner Cua/actual desktop+mobile acceptance; main app.js fix is now included in rebuilt candidate; classify callback fixture failure; full authorized real private-service/account flow and privileged localization; actual current crypto activation; canonical Host deep-route behavior; A-only formal deployment/public readback. Original SDK compiles, but its live private-service correctness is NOT verified. No deployment, account authorization, signature, tx, delete, commit or push performed.
+
+Final targeted command after main owner fix:
+node --test apps/social/web/network-controls.test.mjs > /tmp/ynx-social-ig-candidate-20261004/network-controls.current.log 2>&1
+14/14, no skips. New cases: pending revoke cannot overwrite manual-disconnect; pending revoke cannot overwrite later-wallet-choice. The stale successful result must preserve the newer visible status and selected account, not merely leave the panel open.
+
+Final build then materialization commands:
+node /tmp/ynx-social-ig-candidate-20261004/standard-build-input/web/build.mjs > /tmp/ynx-social-ig-candidate-20261004/standard-build.log 2>&1
+cp -RL /tmp/ynx-social-ig-candidate-20261004/standard-build-input/web/dist/. /tmp/ynx-social-ig-candidate-20261004/site/
+Both exited 0. Latest source app.js is main owner's fix; source index/styles/product-shell stay this UI owner's candidate. Frozen manifest updated.

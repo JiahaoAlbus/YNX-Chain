@@ -1,0 +1,78 @@
+{
+  "directory": "/tmp/ynx-social-ig-candidate-20261004/site",
+  "builder": "unchanged apps/social/web/build.mjs via isolated source mirror",
+  "includesMainOwnerRevokeFix": true,
+  "publicRelease": false,
+  "files": [
+    {
+      "file": "index.html",
+      "bytes": 23068,
+      "sha256": "bcf4cb8b5624705d2ea7eee73ce22857335f95533bdf8fcb9a99bd506e04de9c"
+    },
+    {
+      "file": "styles.css",
+      "bytes": 27814,
+      "sha256": "1740751383ebcf27e2a99404ccb813f73f040135cab8343cf50713711ff93ba2"
+    },
+    {
+      "file": "workspace.css",
+      "bytes": 12648,
+      "sha256": "06c6511c683b1d3479a2522943fd4ca3b179861ccc4b9c44594d36cdd1e674e8"
+    },
+    {
+      "file": "product-shell.css",
+      "bytes": 11173,
+      "sha256": "ddcea0a9e1d250c32f452e6f91555469a089d1347534e3dc2a3d23ed77e8718c"
+    },
+    {
+      "file": "product-shell.js",
+      "bytes": 31656,
+      "sha256": "6bfca7def551c93f3e138c105409fb82bad77d9de4af680a4ebf8ee01fce014a"
+    },
+    {
+      "file": "app.js",
+      "bytes": 18069,
+      "sha256": "80a0968613d204e5fef957785f56ab25b401393b27a01f2e4d07c1c56593337d"
+    },
+    {
+      "file": "private-session-ui.js",
+      "bytes": 525618,
+      "sha256": "6d16db06bcee13abd78cb6bf629d7dd401bd51a81fcf67b88b2cd1a2aa25da0f"
+    },
+    {
+      "file": "matrix-session-ui.js",
+      "bytes": 3311122,
+      "sha256": "9cd80ff881f09b6dc256f051cb2a2757d298f69b778b8adff5923a27ccf35185"
+    },
+    {
+      "file": "assets/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "file": "assets/ynx-favicon.svg",
+      "bytes": 278095,
+      "sha256": "91903c16f512a7f273b6ec92b5622bc602880e6f8c4199f290d4de08ce559591"
+    },
+    {
+      "file": "assets/metamask.svg",
+      "bytes": 2635,
+      "sha256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f"
+    },
+    {
+      "file": "matrix/login-callback.html",
+      "bytes": 2985,
+      "sha256": "acff1b697a57a57ea8a7632f64ce75a5b11b08f0fba5d4d573ed849c2c4255d7"
+    },
+    {
+      "file": "matrix/login-callback-entry.mjs",
+      "bytes": 5611,
+      "sha256": "b713a4c73d8f51f070fe4c0f33537a9ae5e49abd10329cdacf01c47b5d243349"
+    },
+    {
+      "file": "pkg/matrix_sdk_crypto_wasm_bg.wasm",
+      "bytes": 7805486,
+      "sha256": "e6fc166a85fc6aef11d67228768a2d61f964e22e37d218f237ce13641c76522d"
+    }
+  ]
+}

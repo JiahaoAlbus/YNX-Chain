@@ -1,0 +1,37 @@
+{
+  "requests": [
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/workspace.css"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/product-shell.css"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/styles.css"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/assets/ynx-logo.png"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/assets/metamask.svg"
+    },
+    {
+      "method": "GET",
+      "url": "https://social.ynxweb4.com/product-shell.js"
+    }
+  ],
+  "walletRuntime": "undefined",
+  "chatPhase": null,
+  "databases": [],
+  "noPrivateSDK": true,
+  "controlledOrigin": true
+}
