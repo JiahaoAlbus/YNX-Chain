@@ -427,9 +427,21 @@ func (s *Store) CreateOrder(actor string, in OrderInput) (result Order, resultEr
 		if !ok || !p.Published || p.StoreID != in.StoreID {
 			return Order{}, ErrNotFound
 		}
+		matches := 0
+		for _, v := range p.Variants {
+			if v.ID == item.VariantID {
+				matches++
+			}
+		}
+		if matches > 1 {
+			return Order{}, errors.New("ambiguous product variant")
+		}
 		found := false
 		for _, v := range p.Variants {
 			if v.ID == item.VariantID {
+				if v.PriceYNXT <= 0 || v.Inventory < 0 || v.Reserved < 0 || v.Reserved > v.Inventory {
+					return Order{}, errors.New("invalid product variant")
+				}
 				if v.Inventory-v.Reserved < item.Quantity {
 					return Order{}, ErrInventory
 				}
