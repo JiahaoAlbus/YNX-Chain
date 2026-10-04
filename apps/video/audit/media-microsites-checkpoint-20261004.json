@@ -1,0 +1,951 @@
+{
+  "schema": "ynx.media.public-microsites.v1",
+  "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+  "sourceTree": "ed44a322a3224ac54a9fc0706bd1433da1fd4c60",
+  "priorDelivery": "006c3dc342cebe96c6d5bf924505d9a26e275186",
+  "ownedSource": [
+    {
+      "path": "apps/creator-studio/app.html",
+      "bytes": 17271,
+      "sha256": "1c3d3135c67ef30bd03a452c1dcfb25276431fa936a48ef37d9357d832eb5867"
+    },
+    {
+      "path": "apps/creator-studio/app.test.mjs",
+      "bytes": 3019,
+      "sha256": "16184938f2903868dae376bda6a9bff31315d4160cc7d7e722b9a0d337e15a8e"
+    },
+    {
+      "path": "apps/creator-studio/build.mjs",
+      "bytes": 3538,
+      "sha256": "9992a863a44f483a9c7333bebe3fa44983a9c2c528d6c61c4beb0f09feda2cbc"
+    },
+    {
+      "path": "apps/creator-studio/index.html",
+      "bytes": 6826,
+      "sha256": "6e1aa16f216a45869d6cdc5e046bd38eeb402696cb3aabdf1cb001471a2c6209"
+    },
+    {
+      "path": "apps/creator-studio/media-site-back.css",
+      "bytes": 254,
+      "sha256": "3c960edf43a5104cb711556840afdbdaa2ddb6fed32474b91d8ab994a161438c"
+    },
+    {
+      "path": "apps/creator-studio/media-site-back.js",
+      "bytes": 523,
+      "sha256": "6f342d2c0ea503165e6eba9e275f40caa767de9a7d489ca4aed51b91df1fc13f"
+    },
+    {
+      "path": "apps/creator-studio/media-site.css",
+      "bytes": 5094,
+      "sha256": "9b7e2ef08c88de6c268e88d851bb9895ae6320ecd179de89cc5e9df54ef4a580"
+    },
+    {
+      "path": "apps/creator-studio/media-site.js",
+      "bytes": 9905,
+      "sha256": "671a92910cec2cf4f4410ecf93eec4eb78ebe80da714976d67727719af3714dd"
+    },
+    {
+      "path": "apps/creator-studio/scripts/ai-recovery-web-check.cjs",
+      "bytes": 6684,
+      "sha256": "90e2957d1b363fca7d3c8ce7e4a082b85af732276bbc1dbfd8bc5c225e9c0c1d"
+    },
+    {
+      "path": "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+      "bytes": 6754,
+      "sha256": "4af433661c9506c5b9b39365484baccdabb889ca76e98ac4530f958e4717c2f6"
+    },
+    {
+      "path": "apps/creator-studio/server.mjs",
+      "bytes": 5611,
+      "sha256": "007f1808468ab544015c11d9fbb09f70bf8d4fca761cc26191fc51680e75fb46"
+    },
+    {
+      "path": "apps/creator-studio/wallet-callback.js",
+      "bytes": 1351,
+      "sha256": "f933926ab40ccbffb202e71a0c81bdd3f9fa97cfeee33cd56744e313f559893b"
+    },
+    {
+      "path": "apps/creator-studio/wallet-connect.test.mjs",
+      "bytes": 4976,
+      "sha256": "99f925c3792a43b3b2b52af2913f4531c605f7ee2da5915c862f81ff8fb6212a"
+    },
+    {
+      "path": "apps/music/web/app.html",
+      "bytes": 10382,
+      "sha256": "8841c001b696cb81baa302820f7a9a218ddedf1c7615f9206ca6e3aeb02445d0"
+    },
+    {
+      "path": "apps/music/web/index.html",
+      "bytes": 6806,
+      "sha256": "7965f680d7b5357176fae4b4fd077ada4bc5c5e009f9f05919ce78c1f1a5aa9e"
+    },
+    {
+      "path": "apps/music/web/media-site-back.css",
+      "bytes": 254,
+      "sha256": "3c960edf43a5104cb711556840afdbdaa2ddb6fed32474b91d8ab994a161438c"
+    },
+    {
+      "path": "apps/music/web/media-site-back.js",
+      "bytes": 523,
+      "sha256": "6f342d2c0ea503165e6eba9e275f40caa767de9a7d489ca4aed51b91df1fc13f"
+    },
+    {
+      "path": "apps/music/web/media-site.css",
+      "bytes": 5094,
+      "sha256": "9b7e2ef08c88de6c268e88d851bb9895ae6320ecd179de89cc5e9df54ef4a580"
+    },
+    {
+      "path": "apps/music/web/media-site.js",
+      "bytes": 9905,
+      "sha256": "671a92910cec2cf4f4410ecf93eec4eb78ebe80da714976d67727719af3714dd"
+    },
+    {
+      "path": "apps/music/web/wallet-callback.js",
+      "bytes": 953,
+      "sha256": "6b840de6d679a7fc31bd02632b51685fb7fcd7aba02fe2f3b75f1c12aebadd02"
+    },
+    {
+      "path": "apps/music/webfs_test.go",
+      "bytes": 1215,
+      "sha256": "5bd55b11e34013a3140cfe271f8dbf4b801eea52d9ba64af953dfaf2a707aa7b"
+    },
+    {
+      "path": "apps/video/app.html",
+      "bytes": 7091,
+      "sha256": "e56f4a079570ccfc3d083f323386db3432d3490d334c413566deef2024eeeb7f"
+    },
+    {
+      "path": "apps/video/app.test.mjs",
+      "bytes": 8388,
+      "sha256": "cbcc5cd9667719ce555b68ea80ebc0f9fa9868a11346dee9ba5968479956ab41"
+    },
+    {
+      "path": "apps/video/index.html",
+      "bytes": 6796,
+      "sha256": "d597e4225fced96ffdda221692e41dd22b88b18c8aac595fa5c5441f88fd93c8"
+    },
+    {
+      "path": "apps/video/media-site-back.css",
+      "bytes": 254,
+      "sha256": "3c960edf43a5104cb711556840afdbdaa2ddb6fed32474b91d8ab994a161438c"
+    },
+    {
+      "path": "apps/video/media-site-back.js",
+      "bytes": 523,
+      "sha256": "6f342d2c0ea503165e6eba9e275f40caa767de9a7d489ca4aed51b91df1fc13f"
+    },
+    {
+      "path": "apps/video/media-site.css",
+      "bytes": 5094,
+      "sha256": "9b7e2ef08c88de6c268e88d851bb9895ae6320ecd179de89cc5e9df54ef4a580"
+    },
+    {
+      "path": "apps/video/media-site.js",
+      "bytes": 9905,
+      "sha256": "671a92910cec2cf4f4410ecf93eec4eb78ebe80da714976d67727719af3714dd"
+    },
+    {
+      "path": "apps/video/scripts/build-runtime.sh",
+      "bytes": 4861,
+      "sha256": "a1cae1f17fbe516269c480c6c1f30f1162ef23e836cdeba7d395b8c0bc6e2aaf"
+    },
+    {
+      "path": "apps/video/scripts/media-microsites-check.cjs",
+      "bytes": 7655,
+      "sha256": "814896bef2f74b8c59ebafae57bdfd9f585309b8954916c15931851ad7e391a4"
+    },
+    {
+      "path": "apps/video/server.mjs",
+      "bytes": 5244,
+      "sha256": "ba9b354b9cb39296702dc5531950a10674b99aa7a7f6d175e75260987799ecca"
+    },
+    {
+      "path": "apps/video/wallet-callback.js",
+      "bytes": 1243,
+      "sha256": "d146cd9e28fc50cc9dd7af0e4169097e3bd2b732529f405e9a0e19378b49d82e"
+    }
+  ],
+  "taskBook": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/ECOSYSTEM_MICROSITES_20261004.md",
+  "routes": {
+    "introduction": "index.html / directory root",
+    "explicitApp": "app.html",
+    "legacy": "root query except en/zh-CN locale and non-introduction hashes redirect to same-directory app.html preserving search+hash; callbacks remain original",
+    "prefixes": [
+      "/video/",
+      "/video/studio/"
+    ],
+    "back": "app About link keeps en/zh-CN locale",
+    "SSO": "Registered origin, callback, API and proof contracts unchanged; connected callback default enters app rather than introduction"
+  },
+  "validation": {
+    "actualServers": "Original Node Video/Creator + Go Music embedded public-only local server",
+    "browser": {
+      "scope": "actual owned Node Video/Creator servers and Go embedded Music public-only server; no real grant or Host",
+      "realWallet": false,
+      "formalHost": false,
+      "cases": [
+        {
+          "product": "video",
+          "width": 1280,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "video",
+          "width": 1280,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "video",
+          "width": 390,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "video",
+          "width": 390,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "video",
+          "width": 320,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "video",
+          "width": 320,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 1280,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 1280,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 390,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 390,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 320,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "creator",
+          "width": 320,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 1280,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 1280,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 1280,
+            "scroll": 1280,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 390,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 390,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 390,
+            "scroll": 390,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 320,
+          "lang": "en",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        },
+        {
+          "product": "music",
+          "width": 320,
+          "lang": "zh-CN",
+          "publicWalletCalls": 0,
+          "publicAccountRuntimeRequests": 0,
+          "publicConsoleErrors": 0,
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "logo": {
+              "width": 798,
+              "height": 420
+            }
+          },
+          "explicitApp": true,
+          "backAndRefresh": true
+        }
+      ],
+      "zoomCases": [
+        {
+          "product": "video",
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "text": "32px"
+          }
+        },
+        {
+          "product": "creator",
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "text": "32px"
+          }
+        },
+        {
+          "product": "music",
+          "geometry": {
+            "width": 320,
+            "scroll": 320,
+            "text": "32px"
+          }
+        }
+      ],
+      "noScriptCases": [
+        {
+          "product": "video",
+          "readableWithoutJavaScript": true
+        },
+        {
+          "product": "creator",
+          "readableWithoutJavaScript": true
+        },
+        {
+          "product": "music",
+          "readableWithoutJavaScript": true
+        }
+      ],
+      "routes": [
+        {
+          "product": "video",
+          "legacy": "?video=old_video&lang=zh-CN",
+          "appURL": "http://127.0.0.1:54371/app.html?video=old_video&lang=zh-CN"
+        },
+        {
+          "product": "video",
+          "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+          "appURL": "http://127.0.0.1:54371/app.html?mediaView=playlists&mediaPlaylist=old_list"
+        },
+        {
+          "product": "video",
+          "legacy": "#library",
+          "appURL": "http://127.0.0.1:54371/app.html#library"
+        },
+        {
+          "product": "video",
+          "legacy": "?lang=ar",
+          "appURL": "http://127.0.0.1:54371/app.html?lang=ar"
+        },
+        {
+          "product": "video",
+          "prefix": "/video/app.html",
+          "status": 200
+        },
+        {
+          "product": "creator",
+          "legacy": "?video=old_video&lang=zh-CN",
+          "appURL": "http://127.0.0.1:54374/app.html?video=old_video&lang=zh-CN"
+        },
+        {
+          "product": "creator",
+          "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+          "appURL": "http://127.0.0.1:54374/app.html?mediaView=playlists&mediaPlaylist=old_list"
+        },
+        {
+          "product": "creator",
+          "legacy": "#library",
+          "appURL": "http://127.0.0.1:54374/app.html#library"
+        },
+        {
+          "product": "creator",
+          "legacy": "?lang=ar",
+          "appURL": "http://127.0.0.1:54374/app.html?lang=ar"
+        },
+        {
+          "product": "creator",
+          "prefix": "/video/studio/app.html",
+          "status": 200
+        },
+        {
+          "product": "music",
+          "legacy": "?video=old_video&lang=zh-CN",
+          "appURL": "http://127.0.0.1:54378/app.html?video=old_video&lang=zh-CN"
+        },
+        {
+          "product": "music",
+          "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+          "appURL": "http://127.0.0.1:54378/app.html?mediaView=playlists&mediaPlaylist=old_list"
+        },
+        {
+          "product": "music",
+          "legacy": "#library",
+          "appURL": "http://127.0.0.1:54378/app.html#library"
+        },
+        {
+          "product": "music",
+          "legacy": "?lang=ar",
+          "appURL": "http://127.0.0.1:54378/app.html?lang=ar"
+        }
+      ]
+    },
+    "sourceChecks": {
+      "passed": 111,
+      "failed": 0
+    },
+    "processingDOM": {
+      "passed": 9,
+      "automaticMutations": 0,
+      "reuploads": 0
+    },
+    "musicEmbed": "go test ./apps/music PASS",
+    "screenshots": 21,
+    "visualReview": "Desktop Video and Chinese mobile Creator/Music inspected against original blue-white header, split hero, device illustration and explicit entry; product illustration is labelled; text200% and keyboard focus checked",
+    "originalFailuresPreserved": [
+      "old app home-route assertion adapted to explicit app.html",
+      "skip target missing focus; fixed tabindex=-1 plus wait for fragment focus",
+      "Music stale embedded QA binary retained red; rebuilt exact source before final pass"
+    ]
+  },
+  "artifacts": {
+    "creator": {
+      "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+      "sourceTree": "ed44a322a3224ac54a9fc0706bd1433da1fd4c60",
+      "runtimeFilesVerified": 32,
+      "archive": "/tmp/ynx-media-microsites-20261004/creator-site-runtime.tar.gz",
+      "bytes": 646612,
+      "sha256": "138070cb6a86cba6b011583dcc4cd42f33909f2daf5d88de4c09cc5f1d5adb33",
+      "formalHost": false,
+      "realWallet": false
+    },
+    "videoAndMusic": {
+      "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+      "artifacts": [
+        {
+          "artifact": "Video runtime",
+          "path": "/tmp/ynx-media-microsites-20261004/video-site-runtime.tar.gz",
+          "bytes": 644334,
+          "sha256": "94129cd976730eda095155ee4d8bdd3cfe9d92290763186dd4c5f45fbc5e75b6",
+          "archiveFilesVerified": 44
+        },
+        {
+          "artifact": "Music local public-only embedded smoke binary",
+          "path": "/tmp/ynx-media-microsites-20261004/music-site-source-ba3-candidate",
+          "bytes": 13655858,
+          "sha256": "d11582968eb2299ad61ae2298da8af60f3c719af4c74f52b531fa268ece48583",
+          "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+          "tags": "default; private authority disabled",
+          "buildStamp": "local/unknown; not a signed release"
+        }
+      ],
+      "formalHost": false,
+      "realWallet": false
+    }
+  },
+  "catalog": {
+    "sourceCatalogPath": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/website-redesign/ecosystem-nav-target-20261004/A_CURRENT_INPUT.json",
+    "sha256": "643654f52f8c275f66cf1b8eeae5a57571c9167d3830e727e0df2601e9f505cb",
+    "sourceCommit": "81c2963349450a7b68fad78263abae450a952bf1",
+    "media": [
+      {
+        "key": "music",
+        "name": "YNX Music",
+        "route": "/dapp/music",
+        "docs": "/docs#music",
+        "publicEntry": {
+          "status": "unavailable",
+          "reason": "The current public release registry does not prove a public product URL. Candidate, local, CI, or health-only evidence is not promoted to a public entry."
+        },
+        "hostedDownloads": []
+      },
+      {
+        "key": "video",
+        "name": "YNX Video",
+        "route": "/dapp/video",
+        "docs": "/docs#video",
+        "publicEntry": {
+          "status": "available",
+          "href": "https://video.ynxweb4.com/",
+          "label": "Open YNX Video",
+          "external": true
+        },
+        "hostedDownloads": []
+      },
+      {
+        "key": "creatorStudio",
+        "name": "Creator Studio",
+        "route": "/dapp/creator",
+        "docs": "/docs#creator",
+        "publicEntry": {
+          "status": "available",
+          "href": "https://creator.ynxweb4.com/",
+          "label": "Open Creator Studio",
+          "external": true
+        },
+        "hostedDownloads": []
+      }
+    ]
+  },
+  "releaseLimits": {
+    "formalHost": false,
+    "nativeInstalled": false,
+    "realWalletOrActor": false,
+    "publicReadback": "NOT_RUN; unique A publishes then source-bound readback",
+    "source312PrivateBackendCandidates": "unchanged; not relabelled with this microsite source",
+    "trueProductionInputs": "A observer/profile is WIP, not accepted frozen composition; original Video/Music inputs still nil in current owned source",
+    "SSOOwnedNextStep": "Consume A typed original input factory before preparation; mount captured fixed-origin BrowserSSO Start/Callback/Account/Logout in original Video main after actual compatible source supplied",
+    "MusicTrustNextStep": "Exact provider identity/receipt/finality reconciliation contract still missing; UNKNOWN not resent",
+    "sharedSourceWritten": false,
+    "nativeSourceWritten": false
+  },
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-check-accessible.txt",
+      "bytes": 58,
+      "sha256": "784c38d1e1da2064bb1d621714d012a99bbc64a1469061c76f9c6112fbfde265"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-check-final.txt",
+      "bytes": 32,
+      "sha256": "f81ec3cbf8938d4ab3e5c8518c5f2f2f10bcc57024969c757e69ba9dabbd3526"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-check-original.txt",
+      "bytes": 293,
+      "sha256": "c94a17aca953fb730a75e1b7c8a626309394ecafc41d2775d7d062df3d377320"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-check-second.txt",
+      "bytes": 293,
+      "sha256": "c94a17aca953fb730a75e1b7c8a626309394ecafc41d2775d7d062df3d377320"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-check-third.txt",
+      "bytes": 149,
+      "sha256": "70d9fbd6dce26517e9d09347c2f7d3b6f2837d6ed0dfced3b63ac1bccbf94dc4"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/browser-receipt.json",
+      "bytes": 9964,
+      "sha256": "1755d48d2bc9d09e831cb89523cd64a2d43b1232fd545fa72c08d3b68102799d"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/catalog-input.json",
+      "bytes": 1360,
+      "sha256": "591c0e8822a6b30d7f86e8d99f0d76546e30accd7b8e64b1ed59190d06e29990"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-1280-en.png",
+      "bytes": 461149,
+      "sha256": "fdbfd92830866171aba1ddc37cf3f6c995692245838ee0a4dba116f9982903ec"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-1280-zh-CN.png",
+      "bytes": 470352,
+      "sha256": "d38778060faa77d1b9fb99dfef2a74a416010d562547461f36a191c2c4ed3b0b"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-320-en.png",
+      "bytes": 406294,
+      "sha256": "1cb967ab19fbf27156365e6f5be26ceaaeed9a3539ce86081dad7fe92d4a6126"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-320-zh-CN-text200.png",
+      "bytes": 701365,
+      "sha256": "f35630be76f4cf2aaec2484868ca89296e06c06f5dabd1b8732c5e2d81e4d0a3"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-320-zh-CN.png",
+      "bytes": 385728,
+      "sha256": "2bdcee9ae72048fafaa7a3ef04077785209c0cac8a75ca4f1db3a6c0fa1308d9"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-390-en.png",
+      "bytes": 407374,
+      "sha256": "7ecbd11aef996d5606600d6abf7d2a8801130e8ae92528be35e303d799fa4350"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-390-zh-CN.png",
+      "bytes": 394495,
+      "sha256": "dd694bae62217830cdefbb60d6437008474cf51fdb3b40eccd5453ca0b8e63ed"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-build-receipt.json",
+      "bytes": 379,
+      "sha256": "91c53fbc5429452b1ad09fb74604ad787ebaa243b39e5ea28b75f18a9d640c5f"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/creator-site-runtime.tar.gz",
+      "bytes": 646612,
+      "sha256": "138070cb6a86cba6b011583dcc4cd42f33909f2daf5d88de4c09cc5f1d5adb33"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/focused-source-final.txt",
+      "bytes": 1640,
+      "sha256": "e05b39fb0680fcbb0e21a618624314ccb362a7a8b01780daec3f1875cfb0a906"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/focused-source.txt",
+      "bytes": 17114,
+      "sha256": "477ee99ed82d3bf9e3bb5b83bff339a9d90b36cf696e745a6785917855ec05dd"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/increment-after-006c.patch",
+      "bytes": 162183,
+      "sha256": "b6ab6cbfed6a0feb6a31633124063d19fc7755a074c4f17dd61879eaa6196e2d"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/integration-source-final.txt",
+      "bytes": 10287,
+      "sha256": "a4aae41b5b98667707b6cffec590d59e410dbaa4abfb7edafa9087af5cd82f52"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-1280-en.png",
+      "bytes": 562539,
+      "sha256": "a4d02548733c004c44b49306c8395504bea3f3580ef3b2d16e8eee6af6dff955"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-1280-zh-CN.png",
+      "bytes": 473090,
+      "sha256": "1618a3ab0e420f795983ba8d41d5eaebcb6997ff7282ec72b89f8982778abc57"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-320-en.png",
+      "bytes": 394942,
+      "sha256": "cc1717f2e4efcccd1f0bf4c4779e28f6b1138d72d34406d09c6e5db9c7bfeea5"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-320-zh-CN-text200.png",
+      "bytes": 782889,
+      "sha256": "646d66d57918a56dac36169814c71004b0d2bd147208a780246b4dc9eb19be82"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-320-zh-CN.png",
+      "bytes": 388447,
+      "sha256": "30bf59637a14b28ca608aa3cc59bd85188faf2231beff52bd419873329add9a0"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-390-en.png",
+      "bytes": 409814,
+      "sha256": "e5b85d58599c8eb38418fe4f0bffb73a3ec69cf95e67138068e3f862842d96d2"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-390-zh-CN.png",
+      "bytes": 398457,
+      "sha256": "87a17c4a5c62b03df369e918de06b8302f445e8daf5493de3b3c1a7502f51919"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-embed-final.txt",
+      "bytes": 56,
+      "sha256": "34d64b8b84b8eb849ccf92a03d082667c6b13e95d5b52aca99f082f5e3ac4724"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/music-embed.txt",
+      "bytes": 56,
+      "sha256": "7432edbdf59290b97a5532f2d2ad824104fb41cf28643ff9ededcfd986e67ab4"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/owned-thirty-two-file-source.tar.gz",
+      "bytes": 51659,
+      "sha256": "a0b6bd5c32ed68d867ddccad59550eb6d307929588814aa2bc39a23b008e2fa1"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/processing-app-route.txt",
+      "bytes": 57,
+      "sha256": "44d38fa9a11c4b69f158c4d45db695ce5a82900d4a245f405e016dc04c9a2090"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/remaining-build-receipt.json",
+      "bytes": 848,
+      "sha256": "4a7204f1a86dcb7710e801e967eb2c644486ada19fb792d8eb827ce6d833523d"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/selected-reference.png",
+      "bytes": 977220,
+      "sha256": "93db0851f72e5cd05b4165819c93eb0158ebf6868394c3a1b1f0121e18ad18b0"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-1280-en.png",
+      "bytes": 563709,
+      "sha256": "16938b0f613a9b15250a20d87a5ff5c72535de6c8b0d698af2d478c2a05dd1be"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-1280-zh-CN.png",
+      "bytes": 479521,
+      "sha256": "ea913c99b5d5873bb57a53dba17718083cb8903a0069596ba9a7e1054ef1cd3c"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-320-en.png",
+      "bytes": 405599,
+      "sha256": "6b4db35981ba884ca20c8c1127b6cd8ffe5759b6b5f365eee608c94e990b9816"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-320-zh-CN-text200.png",
+      "bytes": 797015,
+      "sha256": "7263df81d9b9eb97a930ab7789ad7660e34aba38e4f5390bb5e8fcdfe17f3012"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-320-zh-CN.png",
+      "bytes": 393061,
+      "sha256": "b674bbaa31ee496d3d5d99c1f2171677ed69132433854017d3d899259aed1a9c"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-390-en.png",
+      "bytes": 405359,
+      "sha256": "1f49a39324ef28594d03d60938cea7937e61ff102a1fc35da393a18a6d50ec39"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-390-zh-CN.png",
+      "bytes": 402703,
+      "sha256": "9f4c9bef9a0862abc80d9c9c36bf053ded8752c12bafad3c67ba323ae70c24db"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-build.txt",
+      "bytes": 221,
+      "sha256": "8e2fd53c10a417126fcac942426f85ef2c86a544f61425911bd7ae02c0da0084"
+    },
+    {
+      "path": "apps/video/audit/evidence/media-microsites-20261004/video-site-runtime.tar.gz",
+      "bytes": 644334,
+      "sha256": "94129cd976730eda095155ee4d8bdd3cfe9d92290763186dd4c5f45fbc5e75b6"
+    }
+  ]
+}

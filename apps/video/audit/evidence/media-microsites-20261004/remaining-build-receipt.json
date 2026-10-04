@@ -1,0 +1,23 @@
+{
+  "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+  "artifacts": [
+    {
+      "artifact": "Video runtime",
+      "path": "/tmp/ynx-media-microsites-20261004/video-site-runtime.tar.gz",
+      "bytes": 644334,
+      "sha256": "94129cd976730eda095155ee4d8bdd3cfe9d92290763186dd4c5f45fbc5e75b6",
+      "archiveFilesVerified": 44
+    },
+    {
+      "artifact": "Music local public-only embedded smoke binary",
+      "path": "/tmp/ynx-media-microsites-20261004/music-site-source-ba3-candidate",
+      "bytes": 13655858,
+      "sha256": "d11582968eb2299ad61ae2298da8af60f3c719af4c74f52b531fa268ece48583",
+      "sourceCommit": "ba3d671ccd0d3da8f55f43e51568187e97860ffe",
+      "tags": "default; private authority disabled",
+      "buildStamp": "local/unknown; not a signed release"
+    }
+  ],
+  "formalHost": false,
+  "realWallet": false
+}

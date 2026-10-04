@@ -1,0 +1,26 @@
+✔ studio exposes recovery, team, rights, revenue and bounded AI workflows (5.685ms)
+✔ Creator serves its complete runtime but does not expose source receipts or build scripts (108.242625ms)
+✔ Creator consumes the exact shared Standard Wallet reducer boundary (1.555542ms)
+✔ late legacy injection is re-read after ethereum#initialized (251.477792ms)
+✔ empty accountsChanged disconnects instead of becoming an invalid-account error (0.288208ms)
+✔ wallet UI uses distinct image assets and same-tab provider flow (3.641208ms)
+✔ removed or absent Wallet cannot reject guest startup (3.219917ms)
+✔ restore binds provider method receiver and performs read-only calls (0.834625ms)
+✔ same-label replacement provider is not silently restored (1.352625ms)
+✔ locked, switched-account and wrong-chain providers leave restore disconnected (4.116375ms)
+✔ stalled and rejected provider reads cannot indefinitely block guest startup (8.821958ms)
+✔ viewer exposes complete truthful interaction paths (2.267166ms)
+✔ accepted browser-safe SDK modules remain byte exact (1.614792ms)
+✔ Video has one strict 6423 Testnet configuration and excludes legacy ingress (1.212458ms)
+✔ YNX EIP-6963 provider is preferred and switches to 0x1917 (1.905667ms)
+✔ missing Wallet fails with exact official installation choices (1.839167ms)
+✔ late YNX and MetaMask providers remain distinct without requesting accounts (21.270375ms)
+✔ late root injection and no-provider state are classified without navigation (23.040042ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 308.561625

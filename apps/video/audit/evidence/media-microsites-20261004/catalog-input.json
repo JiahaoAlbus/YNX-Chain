@@ -1,0 +1,44 @@
+{
+  "sourceCatalogPath": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/website-redesign/ecosystem-nav-target-20261004/A_CURRENT_INPUT.json",
+  "sha256": "643654f52f8c275f66cf1b8eeae5a57571c9167d3830e727e0df2601e9f505cb",
+  "sourceCommit": "81c2963349450a7b68fad78263abae450a952bf1",
+  "media": [
+    {
+      "key": "music",
+      "name": "YNX Music",
+      "route": "/dapp/music",
+      "docs": "/docs#music",
+      "publicEntry": {
+        "status": "unavailable",
+        "reason": "The current public release registry does not prove a public product URL. Candidate, local, CI, or health-only evidence is not promoted to a public entry."
+      },
+      "hostedDownloads": []
+    },
+    {
+      "key": "video",
+      "name": "YNX Video",
+      "route": "/dapp/video",
+      "docs": "/docs#video",
+      "publicEntry": {
+        "status": "available",
+        "href": "https://video.ynxweb4.com/",
+        "label": "Open YNX Video",
+        "external": true
+      },
+      "hostedDownloads": []
+    },
+    {
+      "key": "creatorStudio",
+      "name": "Creator Studio",
+      "route": "/dapp/creator",
+      "docs": "/docs#creator",
+      "publicEntry": {
+        "status": "available",
+        "href": "https://creator.ynxweb4.com/",
+        "label": "Open Creator Studio",
+        "external": true
+      },
+      "hostedDownloads": []
+    }
+  ]
+}

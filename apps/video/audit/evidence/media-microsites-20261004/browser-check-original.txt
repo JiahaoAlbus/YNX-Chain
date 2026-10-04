@@ -1,0 +1,12 @@
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+'' !== 'main'
+
+    at /private/tmp/ynx-media-microsites-20261004/browser-check.cjs:30:45 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: '',
+  expected: 'main',
+  operator: 'strictEqual',
+  diff: 'simple'
+}

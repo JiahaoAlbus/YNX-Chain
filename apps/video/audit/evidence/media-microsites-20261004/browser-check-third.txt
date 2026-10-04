@@ -1,0 +1,4 @@
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /private/tmp/ynx-media-microsites-20261004/browser-check.cjs:30:49 {
+  name: 'TimeoutError'
+}

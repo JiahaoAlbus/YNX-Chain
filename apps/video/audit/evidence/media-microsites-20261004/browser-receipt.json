@@ -1,0 +1,443 @@
+{
+  "scope": "actual owned Node Video/Creator servers and Go embedded Music public-only server; no real grant or Host",
+  "realWallet": false,
+  "formalHost": false,
+  "cases": [
+    {
+      "product": "video",
+      "width": 1280,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "video",
+      "width": 1280,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "video",
+      "width": 390,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "video",
+      "width": 320,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 1280,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 1280,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 390,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "creator",
+      "width": 320,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 1280,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 1280,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 1280,
+        "scroll": 1280,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 390,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 390,
+        "scroll": 390,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "lang": "en",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    },
+    {
+      "product": "music",
+      "width": 320,
+      "lang": "zh-CN",
+      "publicWalletCalls": 0,
+      "publicAccountRuntimeRequests": 0,
+      "publicConsoleErrors": 0,
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "logo": {
+          "width": 798,
+          "height": 420
+        }
+      },
+      "explicitApp": true,
+      "backAndRefresh": true
+    }
+  ],
+  "zoomCases": [
+    {
+      "product": "video",
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "text": "32px"
+      }
+    },
+    {
+      "product": "creator",
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "text": "32px"
+      }
+    },
+    {
+      "product": "music",
+      "geometry": {
+        "width": 320,
+        "scroll": 320,
+        "text": "32px"
+      }
+    }
+  ],
+  "noScriptCases": [
+    {
+      "product": "video",
+      "readableWithoutJavaScript": true
+    },
+    {
+      "product": "creator",
+      "readableWithoutJavaScript": true
+    },
+    {
+      "product": "music",
+      "readableWithoutJavaScript": true
+    }
+  ],
+  "routes": [
+    {
+      "product": "video",
+      "legacy": "?video=old_video&lang=zh-CN",
+      "appURL": "http://127.0.0.1:54371/app.html?video=old_video&lang=zh-CN"
+    },
+    {
+      "product": "video",
+      "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+      "appURL": "http://127.0.0.1:54371/app.html?mediaView=playlists&mediaPlaylist=old_list"
+    },
+    {
+      "product": "video",
+      "legacy": "#library",
+      "appURL": "http://127.0.0.1:54371/app.html#library"
+    },
+    {
+      "product": "video",
+      "legacy": "?lang=ar",
+      "appURL": "http://127.0.0.1:54371/app.html?lang=ar"
+    },
+    {
+      "product": "video",
+      "prefix": "/video/app.html",
+      "status": 200
+    },
+    {
+      "product": "creator",
+      "legacy": "?video=old_video&lang=zh-CN",
+      "appURL": "http://127.0.0.1:54374/app.html?video=old_video&lang=zh-CN"
+    },
+    {
+      "product": "creator",
+      "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+      "appURL": "http://127.0.0.1:54374/app.html?mediaView=playlists&mediaPlaylist=old_list"
+    },
+    {
+      "product": "creator",
+      "legacy": "#library",
+      "appURL": "http://127.0.0.1:54374/app.html#library"
+    },
+    {
+      "product": "creator",
+      "legacy": "?lang=ar",
+      "appURL": "http://127.0.0.1:54374/app.html?lang=ar"
+    },
+    {
+      "product": "creator",
+      "prefix": "/video/studio/app.html",
+      "status": 200
+    },
+    {
+      "product": "music",
+      "legacy": "?video=old_video&lang=zh-CN",
+      "appURL": "http://127.0.0.1:54378/app.html?video=old_video&lang=zh-CN"
+    },
+    {
+      "product": "music",
+      "legacy": "?mediaView=playlists&mediaPlaylist=old_list",
+      "appURL": "http://127.0.0.1:54378/app.html?mediaView=playlists&mediaPlaylist=old_list"
+    },
+    {
+      "product": "music",
+      "legacy": "#library",
+      "appURL": "http://127.0.0.1:54378/app.html#library"
+    },
+    {
+      "product": "music",
+      "legacy": "?lang=ar",
+      "appURL": "http://127.0.0.1:54378/app.html?lang=ar"
+    }
+  ]
+}
