@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -31,6 +31,10 @@
       ]
     },
     "commands": [
+      {
+        "command": "ynx.copySolidityProject",
+        "title": "YNX: Compile Solidity Project"
+      },
       {
         "command": "ynx.openTools",
         "title": "YNX: Open Chain, Wallet and AI Tools"

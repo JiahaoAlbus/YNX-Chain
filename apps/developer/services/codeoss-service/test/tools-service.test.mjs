@@ -45,6 +45,16 @@ test('admitted HTTP compile uses real pinned input and consumes its project-boun
   assert.equal((await h.send('chain/compile', body)).status, 403);
   assert.equal((await h.send('chain/compile', body, {cookie:'wallet=B'})).status, 401);
 });
+test('real admitted HTTP project build resolves declared files and rejects snapshots from another session', async t => {
+  if (!compilerReadiness().available) return t.skip('Supply the reviewed offline compiler input.');
+  const h=await harness(t),context=await h.send('context');
+  const sources=Object.fromEntries(Object.entries({'PinCheck.sol':'pragma solidity 0.8.24; import "./Part.sol"; contract PinCheck { function ping() external pure returns(uint256){return Part.value();}}','Part.sol':'pragma solidity 0.8.24; library Part {function value() internal pure returns(uint256){return 3;}}'}).map(([path,content])=>[path,{content,sha256:digest(content),documentVersion:2}]));
+  const snapshot={protocol:'ynx-solidity-project/v1',sessionId,entryPath:'PinCheck.sol',sources};
+  const compiled=await h.send('chain/compile',{csrf:context.value.csrf,name:'PinCheck',snapshot});
+  assert.equal(compiled.status,200);assert.equal(Object.keys(compiled.value.sourceDigests).length,2);assert.equal(compiled.value.sourceName,'PinCheck.sol');
+  const fresh=await h.send('context');snapshot.sessionId='bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+  const rejected=await h.send('chain/compile',{csrf:fresh.value.csrf,name:'PinCheck',snapshot});assert.equal(rejected.status,400);assert.equal(rejected.value.bytecode,undefined);
+});
 for (const mutation of ['changeProject', 'changeAccount', 'changeReference', 'revoke', 'expire']) test(`compile results are retired after ${mutation} while the worker is running`, async t => {
   let release, started; const running = new Promise(resolve => started = resolve), finished = new Promise(resolve => release = resolve);
   const h = await harness(t, { compilerWork: async value => { started(); await finished; return { ok:true, bytecode:'PRIVATE_OLD_PROJECT' }; } });
@@ -200,7 +210,7 @@ test('reviewed document changes reject concurrent edits, digest mismatch and dup
 test('pinned tools install survives reopen and never overwrites tampered extension or symlink', async () => {
   const projectDirectory = await mkdtemp(join(tmpdir(), 'ynx-tools-install-')), context = { projectDirectory };
   await prepareCoreProject(context); await prepareCoreProject(context);
-  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.7', 'src', 'guards.cjs');
+  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.8', 'src', 'guards.cjs');
   assert.match(await readFile(path, 'utf8'), /validateChanges/); await writeFile(path, 'changed by project');
   await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' }); assert.equal(await readFile(path, 'utf8'), 'changed by project');
   await import('node:fs/promises').then(fs => fs.unlink(path)); await symlink('/etc/passwd', path); await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' });
@@ -332,7 +342,7 @@ test('versioned Tools upgrade preserves legacy extension files and installs the 
  assert.equal(JSON.parse(await readFile(join(root,'extensions','ynx.ynx-developer-brand-0.1.2','package.json'),'utf8')).version,'0.1.2');
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(previous,'guards.cjs'),'utf8'),'previous candidate preserved');
- const current=join(root,'extensions','ynx.ynx-tools-0.2.7');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.7');
+ const current=join(root,'extensions','ynx.ynx-tools-0.2.8');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.8');
  assert.match(await readFile(join(current,'src','guards.cjs'),'utf8'),/replacements/);await prepareCoreProject({projectDirectory:root});
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(lastRelease,'extension.cjs'),'utf8'),'previous installed user changes preserved');

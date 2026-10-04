@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
-  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Copy selected context', 'ynx.copyContext'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
+  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Copy selected context', 'ynx.copyContext'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
     getChildren: item => item ? [] : entries,
     getTreeItem: ([label, command]) => ({ label, command: { command, title: label } })
@@ -35,6 +35,14 @@ function activate(context) {
       throw Error('The selected file or workspace path changed. Select and review again.');
     assertSelection();
     await vscode.env.clipboard.writeText(JSON.stringify(selected, null, 2));
+  });
+  register('ynx.copySolidityProject', async () => {
+    const reviewed = await require('./solidity-project.cjs').captureSolidityProject(vscode, process.env);
+    const count = Object.keys(reviewed.snapshot.sources).length;
+    if (await vscode.window.showInformationMessage(`Copy a snapshot of ${count} Solidity file(s) for local compilation? Unsaved editor text is included. Review the exact sources on YNX Tools before compiling.`, { modal: true }, 'Copy project sources') !== 'Copy project sources') return;
+    await reviewed.verify();
+    await vscode.env.clipboard.writeText(JSON.stringify(reviewed.snapshot, null, 2));
+    await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(reviewed.snapshot.sessionId)}#compile`));
   });
   register('ynx.createTemplate', async () => {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri; if (!root) throw Error('Open a project first.');

@@ -296,9 +296,14 @@ try {
     await command.fill('>YNX: Create Read-only Testnet SDK Starter');
     await page.getByText('YNX: Create Read-only Testnet SDK Starter', { exact: true }).first().waitFor();
     await command.press('Enter');
-    await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+    if (runtime.fixtureSessionId) {
+      await page.getByText(/^Create the read-only YNX Testnet SDK starter at /).filter({ visible: true }).waitFor();
+      await page.keyboard.press('Escape');
+    } else {
+      await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+    }
     await assert.rejects(readFile(`${runtime.workspace}/ynx-testnet-readonly.mjs`), { code: 'ENOENT' });
-    checks.push('inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files');
+    checks.push('inherited YNX Tools activates in the real extension host; controlled-locator starter cancellation or unbound refusal preserves files without canonical authentication');
   }
   await page.screenshot({ path: `${runtime.qa}/actual-language-editor.png` });
   await writeFile(`${runtime.qa}/actual-host-browser.json`, JSON.stringify({ runtime, runnerSha256, checks, errors, boundary, outside }, null, 2));

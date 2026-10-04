@@ -49,7 +49,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         finally { request.url = original; admittedOwners.delete(request); } return true;
       }
       if (request.method !== 'POST' || request.headers.origin !== origin || request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' || !/^application\/json(?:;|$)/i.test(request.headers['content-type'] || '')) throw fault('Open and approve this request on the trusted YNX Tools page.', 'tools_origin', 403);
-      const body = await readBody(request);
+      const body = await readBody(request, url.pathname === '/runtime/native-tools/chain/compile' ? 512 * 1024 : 80 * 1024);
       // Receiving a body can outlive logout or an account change. Recheck at
       // dispatch, before consuming a review or sending selected context.
       const current = await coreService.authorizeConnection(request, sessionId);
@@ -59,11 +59,12 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
       if (!ticket || ticket.expires <= now() || ticket.bound !== bound) throw fault('Review expired. Refresh the tools page.', 'tools_review_expired', 403);
       tickets.delete(body.csrf);
       if (url.pathname === '/runtime/native-tools/chain/compile') {
-        exact(body, ['csrf', 'name', 'source']);
+        const snapshot = Object.hasOwn(body, 'snapshot');
+        exact(body, ['csrf', 'name', snapshot ? 'snapshot' : 'source']);
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(2147483647, admission.expiresAt - now())));
         try {
-          const result = await compiler.compile({ owner: admission.context.owner, name: body.name, source: body.source, signal: controller.signal });
+          const result = await compiler.compile({ owner: admission.context.owner, name: body.name, ...(snapshot ? { snapshot: body.snapshot, sessionId } : { source: body.source }), signal: controller.signal });
           const latest = await coreService.authorizeConnection(request, sessionId);
           if (controller.signal.aborted || binding(latest) !== bound || latest.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet project changed during compilation. Build again from the current project.', 'tools_identity_changed', 401);
@@ -145,7 +146,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
   return { handler };
 }
 function exact(body, keys) { if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join() !== keys.sort().join()) throw fault('Unexpected tool request fields.', 'tools_schema', 400); }
-async function readBody(request) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > 80 * 1024) throw fault('Selected context is too large.', 'tools_body_limit', 413); chunks.push(chunk); } try { return JSON.parse(Buffer.concat(chunks)); } catch { throw fault('Tool request must be JSON.', 'tools_json', 400); } }
+async function readBody(request, limit = 80 * 1024) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) throw fault('The tool request body exceeds its size limit.', 'tools_body_limit', 413); chunks.push(chunk); } try { return JSON.parse(Buffer.concat(chunks)); } catch { throw fault('Tool request must be JSON.', 'tools_json', 400); } }
 function json(response, status, value) { if (response.destroyed || response.writableEnded) return; response.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff', 'cross-origin-resource-policy': 'same-origin' }); response.end(JSON.stringify(value)); }
 // Stop the HTTP wait even if an injected provider ignores its cancellation.
 // The router still owns its real running slot until the provider actually ends.

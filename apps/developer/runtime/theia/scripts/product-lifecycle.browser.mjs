@@ -33,7 +33,15 @@ async function open(name) {
 }
 async function editText(text) {
   await page.locator('.monaco-editor .view-lines').filter({ visible: true }).last().click();
-  await page.keyboard.press('Meta+a'); await page.keyboard.insertText(text); await page.keyboard.press('Meta+s');
+  await page.keyboard.press('Meta+a');
+  // Exercise real paste rather than typing an entire JSON block with auto-pairs.
+  await page.evaluate(text => {
+    const container = window.theia.container;
+    const token = [...container._bindingDictionary._map.keys()].find(id => typeof id === 'function' && 'currentEditor' in id.prototype && typeof id.prototype.getByUri === 'function');
+    const control = container.get(token).currentEditor.editor.getControl();
+    control.trigger('ynx-qa', 'paste', { text, pasteOnNewLine: false, multicursorText: null });
+  }, text);
+  await page.keyboard.press('Meta+s');
 }
 async function disk(path, expected) {
   for (let attempt = 0; attempt < 120; attempt++) {
@@ -112,9 +120,14 @@ try {
   await page.getByRole('menuitem', { name: 'Enable', exact: true }).click();
   await page.reload();
   await ready(); await command('YNX: Create Read-only Testnet SDK Starter');
-  await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+  if (runtime.fixtureSessionId) {
+    await page.getByText(/^Create the read-only YNX Testnet SDK starter at /).filter({ visible: true }).waitFor();
+    await page.keyboard.press('Escape');
+  } else {
+    await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+  }
   await assert.rejects(readFile(`${runtime.workspace}/ynx-testnet-readonly.mjs`), { code: 'ENOENT' });
-  passed('Actual YNX Tools disables and removes commands after Reload Window, then enables and reactivates after another reload; unbound Chain starter remains refused without modifying files.');
+  passed('Actual YNX Tools disables and removes commands after Reload Window, then enables and reactivates after another reload; Chain starter cancellation (controlled locator) or unbound refusal preserves files; no canonical identity is granted.');
   assert.deepEqual(errors, []);
   const receipt = { runtime, runnerSha256: createHash('sha256').update(bytes).digest('hex'), checks, errors, scope: 'Real isolated runtime/profile reload. No canonical Wallet authentication, admitted public driver, user-extension install, backend restart or multi-owner capacity acceptance.' };
   await writeFile(`${runtime.qa}/product-lifecycle-browser.json`, JSON.stringify(receipt, null, 2));

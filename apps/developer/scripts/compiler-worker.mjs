@@ -9,10 +9,10 @@ try {
   const solc = loadPinnedCompiler();
   if (!solc.version().startsWith(`${COMPILER_VERSION}+commit.e11b9ed9.`)) throw Object.assign(new Error('Solidity compiler runtime version does not match the reviewed artifact.'), { status: 503, code: 'compiler_pin_mismatch' });
   const { name, source } = workerData;
-  const sourceName = `${name || "Contract"}.sol`;
+  const sourceName = workerData.sourceName || `${name || "Contract"}.sol`;
   const input = {
     language: "Solidity",
-    sources: { [sourceName]: { content: source } },
+    sources: workerData.sources || { [sourceName]: { content: source } },
     settings: {
       optimizer: { enabled: true, runs: 200 },
       outputSelection: { "*": { "*": ["abi", "metadata", "evm.bytecode.object", "evm.bytecode.sourceMap", "evm.deployedBytecode.object", "evm.deployedBytecode.sourceMap"] } },

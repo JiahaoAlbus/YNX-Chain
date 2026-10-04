@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { verifyComposedRuntime } from '../../../services/codeoss-service/src/composed-runtime.mjs';
 
 // A real, OS-contained single-session test of this runtime. This is deliberately
@@ -43,6 +44,9 @@ if (resumeInput) {
   try { process.kill(previous.pid, 0); throw Error('Stop the exact previous runtime before resuming.'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
 }
 const qa = previous ? await realpath(previous.qa) : await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
+// An opaque locator for extension API tests only. It has no canonical grant,
+// identity attestation, Wallet access or reachability to the public Tools host.
+const fixtureSessionId = previous?.fixtureSessionId || randomUUID();
 const workspace = join(qa, 'project'), profile = join(qa, 'profile'), temporary = join(qa, 'tmp');
 if (previous) {
   for (const [key, path] of Object.entries({ workspace, profile, temporary })) if (previous[key] !== path || await realpath(path) !== path) throw Error('Resume paths must be the original canonical QA directories.');
@@ -102,7 +106,7 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
   '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   env: { PATH: `${dirname(node)}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
-    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, YNX_CORE_WORKSPACE: workspace, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, YNX_CORE_WORKSPACE: workspace, YNX_CORE_SESSION_ID: fixtureSessionId, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     // Existing approved local compiler tools, not another authority binding or
     // a download. Formal runtimes obtain these paths from their operator.
     YNX_IDE_CLANGD_ENTRY: '/Library/Developer/CommandLineTools/usr/bin/clangd',
@@ -110,7 +114,7 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
     ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
-const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, url: `http://127.0.0.1:${port}`, pid: child.pid,
+const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, fixtureSessionId, url: `http://127.0.0.1:${port}`, pid: child.pid,
   ...previous ? { previousPid: previous.pid, resumedAt: new Date().toISOString(), ...upgrade ? { previousRoot: previous.root, upgradedOwnedCandidate: true } : {} } : {},
   nodeOptions: '--no-experimental-global-navigator --max-old-space-size=1024',
   isolation: 'macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener',

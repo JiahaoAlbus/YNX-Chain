@@ -11,6 +11,15 @@ if (!target || !output || new URL(target).hostname !== '127.0.0.1') throw Error(
 assert.equal(compilerReadiness().available, true);
 const origin = new URL(target).origin, sessionId = new URL(target).searchParams.get('sessionId');
 const source = '// SPDX-License-Identifier: MIT\npragma solidity 0.8.24; contract PinCheck { function ping() external pure returns(uint256) { return 1; } }\n';
+const fixtureSnapshot = { protocol:'ynx-solidity-project/v1', sessionId, entryPath:'contracts/PinCheck.sol', sources:Object.fromEntries(Object.entries({
+  'contracts/PinCheck.sol':'// SPDX-License-Identifier: MIT\npragma solidity 0.8.24; import "./lib/Math.sol"; contract PinCheck { function ping() external pure returns(uint256) { return Math.value(); } }',
+  'contracts/lib/Math.sol':'// SPDX-License-Identifier: MIT\npragma solidity 0.8.24; library Math { function value() internal pure returns(uint256) { return 3; } }',
+}).map(([path,content])=>[path,{content,sha256:createHash('sha256').update(content).digest('hex'),documentVersion:2}])) };
+const capturedPath=process.env.YNX_QA_PROJECT_SNAPSHOT;
+if(capturedPath)assert.match(capturedPath,/^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+\/[a-z0-9-]+-snapshot\.json$/);
+const capturedBytes=capturedPath?await readFile(capturedPath):undefined;
+const snapshot=capturedBytes?JSON.parse(capturedBytes):fixtureSnapshot;
+assert.equal(snapshot.sessionId,sessionId);
 let projectId = 'project-A', started = false, responded = false;
 const realCompiler = createSolidityCompiler(), calls = [], checks = [], errors = [];
 const compiler = { async compile(value) { started = true; return realCompiler.compile(value); } };
@@ -24,7 +33,7 @@ const server = createServer((request, response) => tools.handler(request, respon
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const browser = await chromium.launch({ headless:true });
 try {
-  for (const mode of ['compile-and-diagnostics', 'late-project-change']) {
+  for (const mode of ['compile-and-diagnostics', 'late-project-change', 'project-imports', 'late-project-snapshot']) {
     projectId = 'project-A'; started = false; responded = false;
     const context = await browser.newContext({ acceptDownloads:true }), page = await context.newPage();
     page.setDefaultTimeout(10000); page.on('pageerror', error => errors.push(error.message));
@@ -46,6 +55,14 @@ try {
     await page.goto(target);
     await page.getByLabel('Contract name', { exact:true }).fill('PinCheck');
     await page.getByLabel('Solidity source', { exact:true }).fill(source);
+    if (mode === 'project-imports' || mode === 'late-project-snapshot') {
+      await page.getByLabel('Source input', { exact:true }).selectOption('project');
+      await page.getByLabel('Project source snapshot', { exact:true }).fill(JSON.stringify(snapshot));
+      assert.equal(await page.getByRole('button', { name:'Compile contract' }).isEnabled(),false);
+      await page.getByRole('button', { name:'Review project sources' }).click();
+      await page.getByRole('heading', { name:'Reviewed project sources' }).waitFor();
+      await page.getByText(`contracts/lib/Math.sol · document version ${snapshot.sources['contracts/lib/Math.sol'].documentVersion}`, { exact:true }).waitFor();
+    }
     await page.getByRole('button', { name:'Compile contract', exact:true }).click();
     if (mode === 'compile-and-diagnostics') {
       await page.getByRole('heading', { name:'Compiled artifact', exact:true }).waitFor();
@@ -68,6 +85,19 @@ try {
       await page.getByLabel('Solidity source', { exact:true }).fill('😀'.repeat(22000));
       assert.equal(await page.getByRole('button', { name:'Compile contract' }).isEnabled(), false);
       checks.push('The source limit measures UTF-8 bytes rather than JavaScript character count.');
+    } else if (mode === 'project-imports') {
+      await page.getByRole('heading', { name:'Compiled artifact', exact:true }).waitFor();
+      const downloadPromise=page.waitForEvent('download');await page.getByRole('button',{name:'Download compiled artifact'}).click();
+      const download=await downloadPromise,artifact=JSON.parse(await readFile(await download.path(),'utf8'));
+      assert.equal(artifact.sourceName,snapshot.entryPath);assert.equal(Object.keys(artifact.sourceDigests).length,2);assert.deepEqual(artifact.snapshot,snapshot);
+      assert.equal(artifact.sourceDigests['contracts/lib/Math.sol'],snapshot.sources['contracts/lib/Math.sol'].sha256);
+      checks.push('Reviewed two-file project compiles its relative import with the real pinned worker and downloads all source digests plus the exact snapshot.');
+      const altered=structuredClone(snapshot);altered.sources[snapshot.entryPath].content+=' changed';
+      await page.getByLabel('Project source snapshot',{exact:true}).fill(JSON.stringify(altered));await page.getByRole('button',{name:'Review project sources'}).click();
+      await page.getByRole('alert').filter({hasText:'A source changed after the project snapshot was copied'}).waitFor();
+      assert.equal(await page.getByRole('button',{name:'Compile contract'}).isEnabled(),false);
+      assert.equal(calls.filter(call=>call.mode===mode&&call.path.endsWith('/chain/compile')).length,1);
+      checks.push('Editing copied snapshot content invalidates its review and blocks compilation before sending any source to the backend.');
     } else {
       for (let i=0;i<200 && !started;i++) await page.waitForTimeout(10);
       assert.equal(started, true); projectId = 'project-B';
@@ -78,7 +108,15 @@ try {
       for (let i=0;i<1000 && !responded;i++) await page.waitForTimeout(10);
       assert.equal(responded, true);
       assert.equal(await page.getByRole('heading', { name:'Compiled artifact', exact:true }).count(), 0);
+      if(mode==='late-project-snapshot'){
+        await page.getByLabel('Source input',{exact:true}).selectOption('project');
+        assert.equal(await page.getByLabel('Project source snapshot',{exact:true}).inputValue(),JSON.stringify(snapshot));
+        assert.equal(await page.getByRole('heading',{name:'Reviewed project sources'}).count(),0);
+        assert.equal(await page.getByRole('button',{name:'Compile contract'}).isEnabled(),false);
+        checks.push('Project retirement preserves the raw source snapshot draft but clears its accepted review; refreshed identity requires another explicit source review.');
+      } else {
       assert.equal(await page.getByLabel('Solidity source', { exact:true }).inputValue(), source);
+      }
       assert.equal(await page.getByLabel('Contract name', { exact:true }).inputValue(), 'PinCheck');
       assert.equal(await page.getByRole('button', { name:'Refresh workspace connection' }).count(), 0);
       assert.ok(calls.some(call => call.mode === mode && call.path.endsWith('/chain/compile') && call.status === 401));
@@ -89,6 +127,6 @@ try {
   assert.deepEqual(errors, []); assert.equal(realCompiler.status().active, 0);
 } finally {
   await browser.close(); await new Promise(resolve => server.close(resolve));
-  await writeFile(output, JSON.stringify({ checks, errors, calls, actualReact:true, actualHTTP:true, actualCompiler:true, identity:'controlled canonical admission fixture', originBridge:'loopback test only', realWallet:false, chainExecutionVerified:false, public:false }, null, 2), { flag:'wx' });
+  await writeFile(output, JSON.stringify({ checks, errors, calls, actualReact:true, actualHTTP:true, actualCompiler:true, snapshotOrigin:capturedBytes?'actual controlled Theia extension output':'controlled source fixture',...(capturedBytes?{snapshotPath:capturedPath,snapshotSha256:createHash('sha256').update(capturedBytes).digest('hex')}:{}),identity:'controlled canonical admission fixture', originBridge:'loopback test only', realWallet:false, chainExecutionVerified:false, public:false }, null, 2), { flag:'wx' });
 }
 console.log(JSON.stringify({ checks:checks.length, errors }));
