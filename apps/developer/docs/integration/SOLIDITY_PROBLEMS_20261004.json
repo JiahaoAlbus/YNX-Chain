@@ -1,0 +1,111 @@
+{
+  "checkpoint": "Source-bound Solidity compiler diagnostics in actual editor Problems",
+  "sourceCommit": "adefdb9b52b2cb51ce8c241f6efd306decda57d4",
+  "sourceTree": "26a5e1a3c8159bba21a129861c8e0d12ca99324c",
+  "sourceDeltaFiles": [
+    "apps/developer/frontend/src/codeoss/NativeSolidityTools.tsx",
+    "apps/developer/frontend/src/codeoss/solidityDiagnostics.ts",
+    "apps/developer/native/ynx-tools/package.json",
+    "apps/developer/native/ynx-tools/src/extension.cjs",
+    "apps/developer/native/ynx-tools/src/solidity-diagnostics.cjs",
+    "apps/developer/runtime/theia/scripts/solidity-problems.browser.mjs",
+    "apps/developer/services/codeoss-service/test/solidity-diagnostics.test.mjs",
+    "apps/developer/services/codeoss-service/test/solidity-project-capture.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-extension.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-service.test.mjs"
+  ],
+  "toolsVersion": "0.2.13",
+  "runtime": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-problems-20261004-mac-arm64",
+    "treeSha256": "35cacbcf296693ac805804ce25e353ed487da0b400d06018d3ae4e151c04e0c6",
+    "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+    "manifestSha256": "ed93ce19b7606268bfc50e7222273cac0087f654796b8fdfdb2b07e736a1673c"
+  },
+  "frontend": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-problems-frontend-build-20261004",
+    "files": 232,
+    "manifestSha256": "b588e83f12b292b2dbb2e4dc70c9cdd780ed64c5f2a00209d9c976776dbb22e6"
+  },
+  "archives": {
+    "source-delta.tar.gz": "c028bfdc780973ec6b4c604dc08ddc4a965d5bf9c4791700e6dfc5c81bdca25b",
+    "frontend.tar.gz": "5a4c93a8cf7083d853c5eaf9f19569bfe418441ec3635d0ef61dfa6eef71f87f"
+  },
+  "sourceAndFrontendArchiveReadback": true,
+  "checksPassed": {
+    "services": 57,
+    "diagnostics": 6,
+    "joinedActualEditorReactHTTPCompiler": 6,
+    "manualSolidityRegression": 8,
+    "frontendBuildExit": 0
+  },
+  "uiChecks": [
+    "Real editor copies a Unicode two-file project; compiled Tools calls the actual HTTP compiler and copies its real source-bound diagnostic bundle.",
+    "Actual Problems panel displays the real compiler message; double-click opens the exact source and correct UTF16 column after Chinese and emoji.",
+    "Changing a real unsaved dependency clears the complete diagnostic review; replaying old diagnostics refuses without restoring stale Problems or overwriting code.",
+    "Other-session compiler diagnostics refuse in the actual extension without publishing any Problems.",
+    "After fixing the real buffer, a fresh project capture and actual compile produce a clean diagnostic review; the current version imports successfully with no stale error.",
+    "Diagnostics only change editor markers. Both unsaved source fixes reach disk only through ordinary explicit Save; compiler workers are stopped."
+  ],
+  "failedObservationsRetained": [
+    {
+      "tag": "solidity-problems",
+      "reason": "Command palette/editor focus readiness timeout; no feature execution."
+    },
+    {
+      "tag": "solidity-problems-ready",
+      "reason": "Simulated shortcut did not open Problems; editor diagnostic was rendered."
+    },
+    {
+      "tag": "solidity-problems-panel",
+      "reason": "Read selection before async Problems jump finished; next runner waits for target."
+    },
+    {
+      "tag": "keyboard-focused-observation",
+      "reason": "Both simulated Cmd+Shift+M spellings failed to toggle actual Problems; shortcut remains unresolved."
+    }
+  ],
+  "implementation": [
+    "Explicit Tools clipboard copy includes exact source snapshot/session/version/digests and actual compiler byte locations.",
+    "Owned standard VSCode DiagnosticCollection converts UTF8 offsets to UTF16 positions, validates sources and canonical paths before and after import.",
+    "Editing/closing any tracked source or changing workspace retires the complete diagnostic review; pending imports cannot publish after retirement.",
+    "Messages lacking source locations remain in Tools; clean diagnostics import clears the owned collection."
+  ],
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-problems-evidence-20261004",
+  "evidenceIndexSha256": "63fbb16b21c4301e5605b19cc93c56a9ba2aa77838d05dc8f66e63691bc89c6a",
+  "cleanup": {
+    "nativeOwnedPids": [],
+    "previewOwnedPids": []
+  },
+  "nativePackage": {
+    "built": false,
+    "guard": {
+      "availableKiB": 253924,
+      "requiredKiB": 1664048,
+      "componentsKiB": [
+        873156,
+        339472,
+        189276
+      ],
+      "componentPaths": [
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-copied-selection-native-package-20261004-mac-arm64/YNX Developer Testnet Preview.app",
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-copied-selection-native-package-20261004-mac-arm64/ynx-developer-testnet-preview-macos-arm64-unsigned.dmg",
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-problems-20261004-mac-arm64"
+      ],
+      "marginKiB": 262144,
+      "passed": false,
+      "nativePackageStarted": false,
+      "note": "All resource inputs measured live; original and failed artifacts retained."
+    },
+    "priorTools0211NativePackageUnchanged": true
+  },
+  "remaining": [
+    "Problems keyboard shortcut actual toggle not verified; menu command and source jumps pass.",
+    "Canonical shared identity/Host admission and formal publication remain owned release gates.",
+    "Real hosted AI and Wallet/Chain signing/deployment normal-user journey not verified.",
+    "Solidity syntax/semantic editing, C++ debugger full flow, all-platform delivery and user acceptance incomplete."
+  ],
+  "realWallet": false,
+  "canonical": false,
+  "public": false,
+  "chainExecutionVerified": false
+}
