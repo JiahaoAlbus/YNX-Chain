@@ -1,8 +1,9 @@
 # Composed workbench: normal-entry consumer contract
 
 Latest owned runtime checkpoint: workbench **0.3.3**, candidate
-`ynx-composed-cold-recovery-20261004-mac-arm64`; exact pin and actual cold
-recovery checks are in `COMPOSED_COLD_RECOVERY_20261004.json`. Lock
+`ynx-composed-cold-recovery-20261004-mac-arm64`; exact pin and 32 actual current
+browser checks plus eight filesystem/native tests are in
+`COMPOSED_COLD_RECOVERY_20261004.json`. Lock
 `97eb5d1c1772ebda1dc3ffc897643b75313966a6aa4779973495b71e9d8fcc10`, tree
 `7845ceba0aabafae7a523ed468bf05a33ffbdf28a36d203d5dbe5348b9dcc8e2`, manifest
 `4f896c9d0531d4473697407f8a7bef416c877cd75094496637289bc16c0d8643`.
@@ -33,6 +34,17 @@ outer app signing. Protected installation must extract with preserved modes
 registered driver. The shell's bundled Node is independent and is not asserted
 to execute this core. No workspace-selected extraction or automatic admission
 is added; canonical parent absence still refuses normal execution.
+
+The complete local macOS App/DMG containing this archive is now built at
+`.ynx-developer-candidates/ynx-composed-cold-native-package-20261004-mac-arm64`.
+It embeds source commit `d34130186520b9e860638888554ee433619ec634`, tree
+`ac33c267ff2f7090255216f17a9d2d0bb4586925`; DMG SHA256
+`63905cd0516e8a5a9cec6dfecf875a404ca250a9518528cd0b0882ff7da30fe8`.
+Deep strict ad-hoc signature verification, disk-image verification and unchanged
+core archive after outer sealing pass. It was not installed or launched and
+does not establish normal canonical admission, Developer ID/notarization or
+formal native product acceptance. This documentation continuation does not
+relabel the package's embedded source commit.
 
 The normal YNX `/projects` UI, current identity consumer, durable session/writer
 journal, `/sso/core-open` entry and HTTP/WebSocket proxy remain the product path.
