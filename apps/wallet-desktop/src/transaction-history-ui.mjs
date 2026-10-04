@@ -9,6 +9,20 @@ function publicValues(value,fields){
   if(keys.length!==fields.length||keys.some(key=>!fields.includes(key)||!Object.hasOwn(descriptors[key],"value")))throw Error("Invalid public history");
   return Object.fromEntries(fields.map(key=>[key,descriptors[key].value]));
 }
+function publicRows(value){
+  if(!Array.isArray(value)||Object.getPrototypeOf(value)!==Array.prototype)throw Error("Invalid public history rows");
+  const length=Object.getOwnPropertyDescriptor(value,"length")?.value;
+  if(!Number.isSafeInteger(length)||length<0||length>50)throw Error("Invalid public history rows");
+  const descriptors=Object.getOwnPropertyDescriptors(value);
+  if(Reflect.ownKeys(descriptors).length!==length+1)throw Error("Invalid public history rows");
+  const rows=[];
+  for(let index=0;index<length;index++){
+    const descriptor=descriptors[index];
+    if(!descriptor||!Object.hasOwn(descriptor,"value"))throw Error("Invalid public history rows");
+    rows.push(descriptor.value);
+  }
+  return rows;
+}
 // Only the existing producer's primitive display DTO crosses this boundary.
 // This validates presentation, not a new receipt proof or consensus finality.
 function projectRecord(value,account){
@@ -33,10 +47,11 @@ export function createTransactionHistoryUI({ getAccount, request, render }) {
     try {
       const response = await request(requestedCursor);
       if (current !== revision || getAccount() !== account) return;
-      if(response?.ok!==true)throw Error("Unverified history");
-      const value=publicValues(response.value,["records","nextCursor"]);
-      if(!Array.isArray(value.records)||value.records.length>50)throw Error("Unverified history");
-      const page=Array.from(value.records,record=>projectRecord(record,account)),next=value.nextCursor;
+      const envelope=publicValues(response,["ok","value"]);
+      if(envelope.ok!==true)throw Error("Unverified history");
+      const value=publicValues(envelope.value,["records","nextCursor"]);
+      // Never run response iterators/index getters to derive completed facts.
+      const page=publicRows(value.records).map(record=>projectRecord(record,account)),next=value.nextCursor;
       if(next!==null&&(typeof next!=="string"||!HASH.test(next)||page.length===0))throw Error("Invalid page");
       // Original TransactionSubmissions.history uses an inclusive cursor: it is
       // the first as-yet-undisplayed hash, never the last row of this page.

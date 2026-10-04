@@ -1,0 +1,19 @@
+{
+ "schemaVersion":1,
+ "baselineCommit":"ee0f1070207a6141a9ccc4d45d2e648274820f76",
+ "scope":"Owned Desktop history presentation container only; original producer, private journal/UNKNOWN, receipt proof, renderer, Main, Native App, shared SDK and release unchanged",
+ "originalCounterexamples":"8 original tests1PASS7FAIL exit1. Envelope ok/value getters, array index accessor/custom iterator/inherited index and extra string/symbol container metadata were executed or accepted by the original history UI.",
+ "evidenceDirectory":"/tmp/ynx-wallet-history-container-20261004-JNiXVO",
+ "repair":"Success envelope requires exact own data ok/value DTO. Records require a bounded dense ordinary Array with exactly length plus own data indices. Snapshot indices via descriptors, never response iteration/index getters; original per-row primitive projection and immutable snapshots retained. Bound length before bulk descriptors.",
+ "verification":{
+  "initialGreen":"24/24 pure container/history/mounted-locale cases passed",
+  "finalGreen":"30/30 PASS fail0 skip0 exit0 across container9, original history12, mounted locale4 and original producer/UI5 cases",
+  "producer":"Actual TransactionSubmissions.history, formatEther and original validateDurableReceipt execute with controlled public original fixture and intentStore.resolutions;43 records/3 inclusive-cursor pages, insertion refresh, missing cursor/proof failure and legacy origin/empty account retained. No signer, shared WalletAuth, RPC or actual private journal is invoked.",
+  "retry":"Bad older container preserves verified prior rows and original nextCursor; explicit retry of same cursor succeeds without accessor execution",
+  "syntaxAndWhitespace":"node --check history UI and git diff --check exit0"
+ },
+ "limits":"Local controlled JS/IPC presentation counterexamples, not evidence of remote executable getter injection through Electron structured clone or actual private journal corruption. Does not add a receipt authority or promote local snapshot to consensus finality. Pure UI tests and the SDK-independent original producer compose are engineering evidence, not whole Wallet SDK runtime admission.",
+ "notRun":["Independent whole successor review","Current full SDK/Wallet composition admission","Installed retained-account private journal recovery","UNKNOWN business recovery/signing/Pay settlement","Real camera OS/physical devices","Signed current-source release and preserving upgrade","MONSTER"],
+ "next":"Freeze complete owned source and original red/final green for Root independent review and A composition. Continue original contract/full Wallet integration; do not declare whole goal complete.",
+ "overallGoal":"NOT_COMPLETED"
+}
