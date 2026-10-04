@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "a36889fe2a43d12d69f7efe67ebd33fde756dba2",
+  "scope": "Owned existing package verifier: conditional imports/exports insertion order only. No package entrypoint execution, source release-version/signing changes or SDK runtime admission",
+  "reviewFinding": "Root relayed original independent one-case FAIL: deep object equality ignored insertion order in conditional mapping. Current real source package has no imports/exports; this is a generic future-mapping verifier gap, not observed published package tampering.",
+  "originalOwnerReproduction": "Six focused cases:2 PASS4 FAIL. Direct and nested imports/exports condition order reversed with identical values was accepted. Original failure log retained.",
+  "repair": "For imports/exports only, compare JSON-parsed mappings using recursive insertion-order-preserving serialization, including nested conditions and fallback arrays. Retain own presence and ten-field source binding. Other metadata maps remain deep-equal/order-insensitive; version stays bound by original identity.",
+  "verification": "12 focused PASS0 FAIL0 SKIP: six new cases plus original main/type/imports/dependencies rejection, required name omission and explicit release-version compatibility. Original full18 and initial placement failure remain in prior a368 evidence, not overwritten or rerun/claimed as new full review.",
+  "evidenceDirectory": "/tmp/ynx-wallet-resolution-projection-20261004-lvLImR",
+  "remaining": ["Independent exact successor review", "A current complete-source integration", "SDK runtime admission", "Formal signed/notarized installer and matching website download", "Real retained-account installed user journeys", "MONSTER NOT_RUN"],
+  "overallGoal": "NOT_COMPLETED"
+}

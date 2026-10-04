@@ -16,11 +16,11 @@ test("electron-builder preserves dependency manifests for byte-exact provenance"
   assert.equal(metadata.build.removePackageScripts, false);
 });
 
-async function fixture(t, { includeRegistry = true } = {}) {
+async function fixture(t, { includeRegistry = true, runtimeMetadata = {} } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "ynx-desktop-provenance-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const project = path.join(root, "apps/wallet-desktop"), stage = path.join(root, "package"), resources = path.join(root, "resources");
-  const files = { "apps/wallet-desktop/package.json": '{"name":"fixture","version":"0.6.4"}',
+  const files = { "apps/wallet-desktop/package.json": JSON.stringify({name:"fixture",version:"0.6.4",...runtimeMetadata}),
     "apps/wallet-desktop/src/main.mjs": "export const fixture = true;\n",
     "packages/wallet-auth/package.json": '{"name":"@ynx-chain/wallet-auth","version":"1.1.0"}',
     "packages/wallet-auth/src/index.js": "export const fixture = 1;\n",
@@ -49,6 +49,25 @@ async function fixture(t, { includeRegistry = true } = {}) {
   const pack = () => execFileSync(process.execPath, [asarCLI, "pack", stage, path.join(resources, "app.asar")], { stdio: "pipe" });
   await pack(); return { root, project, stage, resources, identity, pack };
 }
+
+for(const field of ["imports","exports"]){
+  for(const nested of [false,true])test(`conditional resolution rejects reordered ${field} ${nested?"nested":"direct"} conditions`,async t=>{
+    const conditions={node:"./src/main.mjs",default:"./src/fallback.mjs"};
+    const wrap=value=>field==="imports"?{"#entry":nested?{import:value,default:"./src/fallback.mjs"}:value}:nested?{".":{import:value,default:"./src/fallback.mjs"}}:value;
+    const f=await fixture(t,{runtimeMetadata:{[field]:wrap(conditions)}}),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+    metadata[field]=wrap({default:conditions.default,node:conditions.node});await writeFile(file,JSON.stringify(metadata));await f.pack();
+    assert.throws(()=>verifyDesktopPackage(f.resources,f.project),new RegExp(`Packaged runtime metadata differs: ${field}`));
+  });
+}
+test("conditional resolution preserves matching recursive mapping and release version",async t=>{
+  const f=await fixture(t,{runtimeMetadata:{imports:{"#entry":{node:{import:["./src/main.mjs","./src/fallback.mjs"],default:"./src/main.mjs"},default:null}},exports:{".":{node:"./src/main.mjs",default:"./src/fallback.mjs"}}}});
+  assert.equal(verifyDesktopPackage(f.resources,f.project).runtimePackageMetadataVerified,true);
+});
+test("conditional resolution does not impose execution order on dependency names",async t=>{
+  const f=await fixture(t,{runtimeMetadata:{dependencies:{first:"1.0.0",second:"2.0.0"}}}),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  metadata.dependencies={second:"2.0.0",first:"1.0.0"};await writeFile(file,JSON.stringify(metadata));await f.pack();
+  assert.equal(verifyDesktopPackage(f.resources,f.project).runtimePackageMetadataVerified,true);
+});
 
 test("every runtime Wallet and SDK byte matches the exact commit, with excluded declarations explicit", async t => {
   const f = await fixture(t), result = verifyDesktopPackage(f.resources, f.project);

@@ -43,7 +43,14 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   // entrypoint or alter resolution. Release version remains separately bound
   // by the existing identity; these runtime fields must match source exactly.
   for(const field of RUNTIME_PACKAGE_FIELDS){
-    if(Object.hasOwn(metadata,field)!==Object.hasOwn(sourceMetadata,field)||!isDeepStrictEqual(metadata[field],sourceMetadata[field]))throw new Error(`Packaged runtime metadata differs: ${field}`);
+    // Node selects conditional imports/exports in insertion order, recursively.
+    // Both values come from JSON.parse: serialized equality preserves that
+    // order, including nested conditions and fallback arrays, without running
+    // any packaged entrypoint. Other metadata maps remain order-insensitive.
+    const same=field==="imports"||field==="exports"
+      ?JSON.stringify(metadata[field])===JSON.stringify(sourceMetadata[field])
+      :isDeepStrictEqual(metadata[field],sourceMetadata[field]);
+    if(Object.hasOwn(metadata,field)!==Object.hasOwn(sourceMetadata,field)||!same)throw new Error(`Packaged runtime metadata differs: ${field}`);
   }
   // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
   // Require it in the commit as well as the archive: ls-tree alone can silently
