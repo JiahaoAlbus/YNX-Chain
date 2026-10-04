@@ -1,0 +1,17 @@
+{
+  "kind": "TERMINAL_OWN_IOS_COMPILER_LEAF_RESOURCE_RECOVERY",
+  "sourceComposition": "d3b241601d40aaa7cbd68d30fa7203954e4e904a",
+  "evidence": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native-deriveddata-space-recovery-20261004-Dh0v3m",
+  "terminalBuild": {"session": 82957, "exit": 0, "result": "BUILD SUCCEEDED"},
+  "preflight": {"lsofRecursiveExit": 1, "holders": 0, "sourceBundleCompleteHistoryVerified": true, "originalFreeze14ShaPass": true, "inventoryRecords": 15141, "regularFiles": 14676},
+  "removedLeaves": ["Build/Intermediates.noindex/Pods.build", "Build/Intermediates.noindex/ExplicitPrecompiledModules", "Build/Intermediates.noindex/SwiftExplicitPrecompiledModules", "ModuleCache.noindex", "SDKExplicitPrecompiledModules"],
+  "removedRoot": "/private/tmp/ynx-wallet-matching-ios-build-20261004-d21hza/DerivedData",
+  "removedRegularLogicalBytes": 2059026332,
+  "deletion": {"command": "plain rm -r exact leaf list, no force", "session": 62361, "exit": 0},
+  "readback": {"exit": 0, "rawAppFilesExact": 40, "originalApkAndDmgExact": true, "originalCandidateLogsExact": 46, "sourceTrackedClean": true, "podsAndLockRetained": true, "xcodeBuildDatabaseRetained": true},
+  "dataVolumeAvailableMiB": {"initialObservation": 593, "preDelete": 671, "firstPostDelete": 2646, "laterObservation": 2599, "otherConcurrentWorkMayAffectDf": true},
+  "recovery": "Regenerate removed compiler outputs from retained complete source and original pinned dependencies/toolchain; no promise of byte-identical new intermediates or trash recovery. Original final artifacts, failure logs and source remain retained.",
+  "safety": {"otherStagesOrOwnersCachesChanged": false, "deviceAvdAccountVaultKeyDatabaseOutboxTouched": false, "wholeStageRemoved": false, "globalToolchainChanged": false, "newBuildStarted": false},
+  "preservedPreparationFailures": ["Initial bundle verification from non-repository cwd rejected; corrected complete-history verification passed", "Initial inventory output URL path encoded spaces and failed ENOENT before removal; fixed fileURLToPath and reran successfully", "Force-delete invocation rejected before process creation; plain non-force deletion permitted and verified"],
+  "productGoal": "STILL_INCOMPLETE_RESOURCE_RECOVERY_IS_NOT_PAY_CRYPTO_OR_INSTALLED_ACCEPTANCE"
+}
