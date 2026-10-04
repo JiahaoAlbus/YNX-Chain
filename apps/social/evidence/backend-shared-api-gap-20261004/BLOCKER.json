@@ -1,0 +1,56 @@
+{
+  "status": "BLOCKED_BACKEND_BUILD_NOT_FULL_GOAL_COMPLETION",
+  "source": {
+    "commit": "861f9dc1f7257adae25f9d72d537a89f7f1b7c86",
+    "tree": "066e60016134e830a31c82a958f2dd068712eb0b",
+    "branch": "codex/social-wallet-chooser-20261001"
+  },
+  "actualCommand": "go build -o <isolated temp>/ynx-sociald ./cmd/ynx-sociald",
+  "exitCode": 1,
+  "compilerLog": "actual-build-failure.txt",
+  "compilerLogSha256": "7e79923fe0e995b2012507ddde1235aec755d5483316245e504df11804a8afe2",
+  "currentSharedFiles": [
+    {
+      "path": "internal/productsessionv2/README.md",
+      "bytes": 3526,
+      "sha256": "2f33f7ef3246392c5ed9ad8d33d1d6d9e7178d96c79d783237ce93f634fcdcfe"
+    },
+    {
+      "path": "internal/productsessionv2/client.go",
+      "bytes": 13608,
+      "sha256": "7616c926aa12be13cab07f3f07df70538099b3cbcca300568b5350bc2e9bf9a4"
+    },
+    {
+      "path": "internal/productsessionv2/browser_sso.go",
+      "bytes": 15043,
+      "sha256": "dd3b452cae697bf076e97bdb8e3cdd63bdcfce3c0ab216ec9b06636f307a1c2e"
+    }
+  ],
+  "missingProductionSymbols": [
+    "ActionProofHeader",
+    "VerifySocialAudienceProof",
+    "ActionAuthorization",
+    "LoadBackendEd25519PrivateKey",
+    "NewRevalidator"
+  ],
+  "missingTestContractSymbols": [
+    "RegisteredClientSet",
+    "NewPrivateBusinessRevalidator",
+    "NewRegisteredClientSet",
+    "Revalidator"
+  ],
+  "executableResolution": {
+    "owner": "Root coordinates existing A/shared Product Session owner",
+    "input": "exact admitted complete productsessionv2 source carrier/commit/tree, matching registry and current observer contracts; no stopped graph or synthetic runtime authority",
+    "productAction": "rebuild matching Social isolated source with approved shared input, retain all proof/revalidation tests and real safety checks"
+  },
+  "notPerformed": [
+    "shared source edits",
+    "deleted tests",
+    "authorization downgrade",
+    "deployment",
+    "key migration",
+    "account/sign/transaction",
+    "MONSTER acceptance"
+  ]
+}

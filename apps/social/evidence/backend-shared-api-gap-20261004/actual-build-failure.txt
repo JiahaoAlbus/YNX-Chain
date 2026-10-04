@@ -1,0 +1,6 @@
+# github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-sociald
+cmd/ynx-sociald/audience_action.go:36:45: undefined: productsessionv2.ActionProofHeader
+cmd/ynx-sociald/audience_action.go:44:36: undefined: productsessionv2.VerifySocialAudienceProof
+cmd/ynx-sociald/audience_action.go:51:52: undefined: productsessionv2.ActionAuthorization
+cmd/ynx-sociald/revalidation.go:25:31: undefined: productsessionv2.LoadBackendEd25519PrivateKey
+cmd/ynx-sociald/revalidation.go:30:34: undefined: productsessionv2.NewRevalidator
