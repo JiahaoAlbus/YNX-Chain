@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "ynx-quant-recovery-consumer-inputs-v1",
+  "classification": "ORDINARY_CONSUMER_HUNKS_NOT_RUNTIME_OR_INSTALLER",
+  "sourceCommit": "24157759c0d0173964ba6776c4f6151fe2ba231a",
+  "sourceTree": "99513c8ea59ade1ee7721e7a121d5ddb93a89337",
+  "reviewedBaseCommit": "dfc3acb4039fd3b81fcfc27fd7cef5b4a53eebd5",
+  "integrationMode": "ORDINARY_HUNKS_ONLY",
+  "releaseAuthority": "wallet_release_owner",
+  "objects": [
+    {"path":"apps/quant-lab/web/app.js","blob":"a7d5feb9e7020f233323fe2255aae128531d2874","bytes":238793,"sha256":"1e7f5001441bb77449001f2b54aec454cdff1586616a2036fb407b2ea01ccac0"},
+    {"path":"apps/quant-lab/web/index.html","blob":"f346a1db65b443b7091b790748622cb18b1abc33","bytes":30915,"sha256":"d6fa2e47424b84fb98b1d7cbac646033b913a7b67e18dddbba9f01cf2f61dfcb"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"1ff9823190a9789fe49a80333a9837d367caffed","bytes":13229,"sha256":"63682ce34d5dcda0efa002201df50ce89ac168defa5f7592d1d461fad13c59cf"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"0e92bdf84159b0e62f18e2a89ad16f6c113565d6","bytes":180017,"sha256":"10e31dce09f550005e3430f3846a2242d23ba50f26fa4e77d93955bce95002e9"},
+    {"path":"apps/quant-lab/tests/research-recovery-browser.test.mjs","blob":"23cc44b6662d122a69c510b918c09fc0e5b912f0","bytes":50680,"sha256":"00d48f4027a0e3e02b578a7b63903a338ec6b40ae798f7c94538c161bbd83c47"},
+    {"path":"apps/quant-lab/tests/cache-version-browser.test.mjs","blob":"a7203b7f744724ca9d329cf5b8c143df44c99edb","bytes":3114,"sha256":"d61c494e5553b80ad6c9e05b8a209848e39f5d561aa5b216e55c3fb2e0019aa2"}
+  ],
+  "preserveSharedGraph": true,
+  "forbiddenReplacementPaths": ["apps/quant-lab/vendor", "apps/quant-lab/web/wallet-auth.js", "apps/quant-lab/web/wallet-auth-entry.js", "packages/wallet-auth", "internal/productsessionv2", "apps/quant-lab/server", "go.mod", "go.sum"],
+  "publisherMustRebuildFinalAssetPins": true,
+  "rollback": "Reviewed ordinary consumer revert only; actual runtime rollback remains release-owner bound",
+  "truth": {"runtimeBuilt":false,"deployed":false,"installed":false,"actualProviderApproved":false,"privateSessionVerified":false,"transactionsVerified":false,"productComplete":false}
+}
