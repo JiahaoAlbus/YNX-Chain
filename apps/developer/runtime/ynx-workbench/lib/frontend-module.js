@@ -13,6 +13,7 @@ const { FrontendApplicationStateService } = require('@theia/core/lib/browser/fro
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
 const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
+const { MenuContribution } = require('@theia/core/lib/common/menu');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
 const { JsonSchemaPolicyStatus } = require('./json-schema-policy-status');
@@ -21,9 +22,15 @@ const { StatusBar } = require('@theia/core/lib/browser/status-bar/status-bar');
 const { FileService } = require('@theia/filesystem/lib/browser/file-service');
 const { EnvVariablesServer } = require('@theia/core/lib/common/env-variables/env-variables-protocol');
 const { KeybindingRegistry } = require('@theia/core/lib/browser/keybinding');
+const { YnxKeybindingRegistry } = require('./keybinding-registry');
+const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget-manager');
+const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
+const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('../style/brand.css');
+require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new JsonSchemaPolicyStatus(
     context.container.get(EditorManager), context.container.get(PreferenceService), context.container.get(StatusBar),
   )).inSingletonScope();
@@ -40,6 +47,15 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(CommandContribution).toService(UserKeybindingsContribution);
   bind(FrontendApplicationContribution).toService(UserKeybindingsContribution);
+  bind(WidgetFactory).toDynamicValue(context => ({ id: KEYBOARD_SHORTCUTS_ID, createWidget: () => new KeyboardShortcutsWidget(
+    context.container.get(UserKeybindingsContribution), context.container.get(KeybindingRegistry), context.container.get(CommandRegistry),
+  ) }));
+  bind(KeyboardShortcutsContribution).toDynamicValue(context => new KeyboardShortcutsContribution(
+    context.container.get(WidgetManager), context.container.get(ApplicationShell),
+  )).inSingletonScope();
+  bind(CommandContribution).toService(KeyboardShortcutsContribution);
+  bind(KeybindingContribution).toService(KeyboardShortcutsContribution);
+  bind(MenuContribution).toService(KeyboardShortcutsContribution);
   bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
     context.container.get(CommandRegistry),
   )).inSingletonScope();

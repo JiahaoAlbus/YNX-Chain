@@ -25,6 +25,10 @@
       },
       "args": {
         "description": "Arguments passed to the command."
+      },
+      "context": {
+        "type": "string",
+        "description": "Retained workbench context for shortcuts edited from framework defaults."
       }
     }
   }
