@@ -16,8 +16,13 @@ The compiler service requires the reviewed `solc` 0.8.24 package and the exact
 `soljson.js` SHA-256 recorded in `THIRD_PARTY_NOTICES.md`. Both the readiness
 endpoint and worker verify that local input; a missing or mismatched compiler
 returns HTTP 503 without claiming a pinned version or generating an artifact.
-There is no download or fallback to another compiler. When admitted, compilation
-runs in worker threads with four active workers and a queue of 64. These source
+There is no download or fallback to another compiler. The service can also
+consume an absolute `YNX_IDE_SOLC_INPUT` directory containing the
+unchanged, reviewed offline package. All 21 package files must match the fixed
+package manifest digest; the existing installed dependency is not replaced.
+This operator setting supplies a compiler input, not identity or workspace access.
+When admitted, compilation runs in worker threads with four active workers and
+a queue of 64. These source
 checks do not establish public deployment or YNX execution compatibility.
 The hosted open model uses a separate queue of
 two active requests and 32 waiting requests. Desktop test/check/package work has
