@@ -1,0 +1,175 @@
+2026-10-04T04:14:09.680Z pw:browser <launching> /Applications/Google Chrome.app/Contents/MacOS/Google Chrome --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --enable-automation --disable-infobars --disable-search-engine-choice-screen --disable-sync --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/playwright_chromiumdev_profile-dY16pA --remote-debugging-pipe --no-startup-window
+2026-10-04T04:14:09.681Z pw:browser <launched> pid=27505
+2026-10-04T04:14:10.045Z pw:browser [pid=27505][err] Trying to load the allocator multiple times. This is *not* supported.
+2026-10-04T04:14:10.078Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.078158:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.078Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.078341:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.081402:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.081483:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.081623:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.081706:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.081823:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.081864:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.081958:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.083Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.082014:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.194Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.194763:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.194Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.194814:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.899Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.899294:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.899Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.899346:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.900Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.900400:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.900Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.900450:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.900Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.900913:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.901Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.900954:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.901Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.901052:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.901Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.901093:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.901Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.901201:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.901Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.901245:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.999Z pw:browser [pid=27505][err] [27512:8430064:1004/121410.999428:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:10.999Z pw:browser [pid=27505][err] [27512:8430141:1004/121410.999475:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.215Z pw:browser [pid=27505][err] [27512:8430064:1004/121412.215822:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.215Z pw:browser [pid=27505][err] [27512:8430141:1004/121412.215901:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.258Z pw:browser [pid=27505][err] [27512:8430064:1004/121412.258243:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.258Z pw:browser [pid=27505][err] [27512:8430141:1004/121412.258295:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.936Z pw:browser [pid=27505][err] [27512:8430064:1004/121412.936251:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:12.936Z pw:browser [pid=27505][err] [27512:8430141:1004/121412.936304:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:13.574Z pw:browser [pid=27505][err] [27512:8430064:1004/121413.574190:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:13.574Z pw:browser [pid=27505][err] [27512:8430141:1004/121413.574244:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:14.108Z pw:browser [pid=27505][err] [27505:8430050:1004/121414.108761:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+2026-10-04T04:14:15.404Z pw:browser [pid=27505][err] [27512:8430064:1004/121415.404792:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:15.404Z pw:browser [pid=27505][err] [27512:8430141:1004/121415.404842:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:15.437Z pw:browser [pid=27505][err] [27512:8430064:1004/121415.437765:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:15.437Z pw:browser [pid=27505][err] [27512:8430141:1004/121415.437815:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:16.087Z pw:browser [pid=27505][err] [27512:8430064:1004/121416.087696:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:16.087Z pw:browser [pid=27505][err] [27512:8430141:1004/121416.087739:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:16.652Z pw:browser [pid=27505][err] [27512:8430064:1004/121416.652612:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:16.652Z pw:browser [pid=27505][err] [27512:8430141:1004/121416.652658:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:17.302Z pw:browser [pid=27505][err] [27512:8430064:1004/121417.302739:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:17.302Z pw:browser [pid=27505][err] [27512:8430141:1004/121417.302789:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.328Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.328709:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.328Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.328759:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.902Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.902016:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.902Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.902073:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.903Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.903611:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.903Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.903670:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.904746:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.904813:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.905206:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.905278:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430064:1004/121422.905389:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:22.905Z pw:browser [pid=27505][err] [27512:8430141:1004/121422.905426:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.003Z pw:browser [pid=27505][err] [27512:8430064:1004/121423.003242:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.003Z pw:browser [pid=27505][err] [27512:8430141:1004/121423.003289:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.679Z pw:browser [pid=27505][err] [27512:8430064:1004/121423.679852:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.680Z pw:browser [pid=27505][err] [27512:8430141:1004/121423.679906:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.706Z pw:browser [pid=27505][err] [27512:8430064:1004/121423.706348:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.706Z pw:browser [pid=27505][err] [27512:8430141:1004/121423.706390:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.762Z pw:browser [pid=27505][err] [27512:8430064:1004/121423.761971:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:23.762Z pw:browser [pid=27505][err] [27512:8430141:1004/121423.762018:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:24.349Z pw:browser [pid=27505][err] [27512:8430064:1004/121424.349796:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:24.349Z pw:browser [pid=27505][err] [27512:8430141:1004/121424.349855:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:24.411Z pw:browser [pid=27505][err] [27512:8430064:1004/121424.411695:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:24.411Z pw:browser [pid=27505][err] [27512:8430141:1004/121424.411744:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:25.152Z pw:browser [pid=27505][err] [27512:8430064:1004/121425.152292:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:25.152Z pw:browser [pid=27505][err] [27512:8430141:1004/121425.152361:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:26.323Z pw:browser [pid=27505][err] [27512:8430064:1004/121426.323273:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:26.323Z pw:browser [pid=27505][err] [27512:8430141:1004/121426.323343:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:26.950Z pw:browser [pid=27505][err] [27512:8430064:1004/121426.950092:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:26.950Z pw:browser [pid=27505][err] [27512:8430141:1004/121426.950150:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.020Z pw:browser [pid=27505][err] [27512:8430064:1004/121427.020688:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.020Z pw:browser [pid=27505][err] [27512:8430141:1004/121427.020740:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.120Z pw:browser [pid=27505][err] [27512:8430064:1004/121427.120193:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.120Z pw:browser [pid=27505][err] [27512:8430141:1004/121427.120250:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.234Z pw:browser [pid=27505][err] [27512:8430064:1004/121427.234032:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.234Z pw:browser [pid=27505][err] [27512:8430141:1004/121427.234088:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.848Z pw:browser [pid=27505][err] [27512:8430064:1004/121427.847953:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:27.848Z pw:browser [pid=27505][err] [27512:8430141:1004/121427.848020:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:28.470Z pw:browser [pid=27505][err] [27512:8430064:1004/121428.469981:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:28.470Z pw:browser [pid=27505][err] [27512:8430141:1004/121428.470034:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:28.934Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.934519:VERBOSE1:chrome/updater/updater.cc:364] Version: 156.0.8067.0, opt, ARM_64, command line: /Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake-all --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+2026-10-04T04:14:28.936Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.934938:VERBOSE1:chrome/updater/updater.cc:367] OS version: 27.2.0, arch: arm64, System uptime (seconds): 97968, parent pid: 27505
+2026-10-04T04:14:28.936Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.936498:VERBOSE1:chrome/updater/updater.cc:372] Available disk space in install directory (/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater): 17486499840B (16.286GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.936Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.936525:VERBOSE1:chrome/updater/updater.cc:376] Available disk space in temporary directory (/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/): 17486499840B (16.286GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.936Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.936577:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS START event to the history log
+2026-10-04T04:14:28.945Z pw:browser [pid=27505][err] [27760:8431392:1004/121428.944778:VERBOSE1:chrome/updater/updater.cc:364] Version: 156.0.8067.0, opt, ARM_64, command line: /Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=156.0.8067.0 --handshake-fd=6 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+2026-10-04T04:14:28.946Z pw:browser [pid=27505][err] [27760:8431392:1004/121428.945334:VERBOSE1:chrome/updater/updater.cc:367] OS version: 27.2.0, arch: arm64, System uptime (seconds): 97968, parent pid: 1
+2026-10-04T04:14:28.946Z pw:browser [pid=27505][err] [27760:8431392:1004/121428.946856:VERBOSE1:chrome/updater/updater.cc:372] Available disk space in install directory (/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater): 17486495744B (16.286GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.946Z pw:browser [pid=27505][err] [27760:8431392:1004/121428.946883:VERBOSE1:chrome/updater/updater.cc:376] Available disk space in temporary directory (/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/): 17486495744B (16.286GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.947Z pw:browser [pid=27505][err] [27760:8431392:1004/121428.946939:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS START event to the history log
+2026-10-04T04:14:28.947Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.947461:VERBOSE1:chrome/updater/crash_reporter.cc:123] Crash handler launched and ready.
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948036:VERBOSE1:chrome/updater/crash_client.cc:108] Found 0 completed crash reports
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948103:VERBOSE1:chrome/updater/crash_client.cc:132] Found 0 pending crash reports
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948185:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/RLZ/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948199:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/Measurement/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948209:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/consentOptions/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948234:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/AndroidStudio2025.1.1/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948264:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/ChromeForTesting/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948292:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/AndroidStudio2025.1.1-backup/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431388:1004/121428.948307:VERBOSE1:chrome/updater/updater.cc:105] Crash reporting initialized.
+2026-10-04T04:14:28.948Z pw:browser [pid=27505][err] [27758:8431402:1004/121428.948742:VERBOSE1:chrome/updater/app/app_wakeall.cc:58] Launching `/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake`
+2026-10-04T04:14:28.956Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.955866:VERBOSE1:chrome/updater/updater.cc:364] Version: 156.0.8067.0, opt, ARM_64, command line: /Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+2026-10-04T04:14:28.957Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.956251:VERBOSE1:chrome/updater/updater.cc:367] OS version: 27.2.0, arch: arm64, System uptime (seconds): 97968, parent pid: 27758
+2026-10-04T04:14:28.957Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.957804:VERBOSE1:chrome/updater/updater.cc:372] Available disk space in install directory (/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater): 17486307328B (16.285GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.957Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.957830:VERBOSE1:chrome/updater/updater.cc:376] Available disk space in temporary directory (/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/): 17486307328B (16.285GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.958Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.958004:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS START event to the history log
+2026-10-04T04:14:28.965Z pw:browser [pid=27505][err] [27763:8431410:1004/121428.965158:VERBOSE1:chrome/updater/updater.cc:364] Version: 156.0.8067.0, opt, ARM_64, command line: /Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --crash-handler --database=/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/Crashpad --url=https://clients2.google.com/cr/report --annotation=prod=Update4 --annotation=ver=156.0.8067.0 --handshake-fd=6 --enable-logging --vmodule=*/components/update_client/*=2,*/chrome/enterprise_companion/*=2,*/chrome/updater/*=2
+2026-10-04T04:14:28.966Z pw:browser [pid=27505][err] [27763:8431410:1004/121428.965534:VERBOSE1:chrome/updater/updater.cc:367] OS version: 27.2.0, arch: arm64, System uptime (seconds): 97968, parent pid: 1
+2026-10-04T04:14:28.967Z pw:browser [pid=27505][err] [27763:8431410:1004/121428.966962:VERBOSE1:chrome/updater/updater.cc:372] Available disk space in install directory (/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater): 17486422016B (16.285GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.967Z pw:browser [pid=27505][err] [27763:8431410:1004/121428.966988:VERBOSE1:chrome/updater/updater.cc:376] Available disk space in temporary directory (/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/): 17486422016B (16.285GiB) / 2000189177856B (1.819TiB)
+2026-10-04T04:14:28.967Z pw:browser [pid=27505][err] [27763:8431410:1004/121428.967333:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS START event to the history log
+2026-10-04T04:14:28.967Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.967797:VERBOSE1:chrome/updater/crash_reporter.cc:123] Crash handler launched and ready.
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968346:VERBOSE1:chrome/updater/crash_client.cc:108] Found 0 completed crash reports
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968402:VERBOSE1:chrome/updater/crash_client.cc:132] Found 0 pending crash reports
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968472:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/RLZ/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968483:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/Measurement/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968493:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/consentOptions/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968518:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/AndroidStudio2025.1.1/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968546:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/ChromeForTesting/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968554:ERROR:third_party/crashpad/crashpad/util/file/file_io_posix.cc:145] open /Users/huangjiahao/Library/Application Support/Google/AndroidStudio2025.1.1-backup/Crashpad/settings.dat: No such file or directory (2)
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968582:VERBOSE1:chrome/updater/updater.cc:105] Crash reporting initialized.
+2026-10-04T04:14:28.968Z pw:browser [pid=27505][err] [27761:8431406:1004/121428.968907:VERBOSE1:chrome/updater/ipc/update_service_internal_proxy_mojo.cc:61] Run
+2026-10-04T04:14:29.116Z pw:browser [pid=27505][err] [27512:8430064:1004/121429.116044:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:29.116Z pw:browser [pid=27505][err] [27512:8430141:1004/121429.116085:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:29.715Z pw:browser [pid=27505][err] [27512:8430064:1004/121429.715742:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:29.715Z pw:browser [pid=27505][err] [27512:8430141:1004/121429.715795:ERROR:ui/display/mac/cv_display_link_mac.mm:188] CVDisplayLinkCreateWithCGDisplay failed. CVReturn: -6670
+2026-10-04T04:14:30.254Z pw:browser [pid=27505][err] [27505:8430062:1004/121430.254812:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+2026-10-04T04:14:30.254Z pw:browser [pid=27505][err] [27505:8430062:1004/121430.254831:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+2026-10-04T04:14:30.266Z pw:browser [pid=27505] <gracefully close start>
+2026-10-04T04:14:30.275Z pw:browser [pid=27505][err] [27505:8430062:1004/121430.275654:ERROR:base/process/process_mac.cc:53] task_policy_set TASK_CATEGORY_POLICY: (os/kern) invalid argument (4)
+2026-10-04T04:14:30.275Z pw:browser [pid=27505][err] [27505:8430062:1004/121430.275671:ERROR:base/process/process_mac.cc:98] task_policy_set TASK_SUPPRESSION_POLICY: (os/kern) invalid argument (4)
+2026-10-04T04:14:46.784Z pw:browser [pid=27505][err] [27761:8431406:1004/121446.784292:VERBOSE1:chrome/updater/app/app.cc:52] Shutdown: 0
+2026-10-04T04:14:46.786Z pw:browser [pid=27505][err] [27761:8431406:1004/121446.786323:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS END event to the history log
+2026-10-04T04:14:46.786Z pw:browser [pid=27505][err] [27761:8431406:1004/121446.786376:VERBOSE1:chrome/updater/updater.cc:409] UpdaterMain (--wake) returned 0.
+2026-10-04T04:14:46.942Z pw:browser [pid=27505][err] [27758:8431402:1004/121446.941884:VERBOSE1:chrome/updater/app/app_wakeall.cc:68] `/Users/huangjiahao/Library/Application Support/Google/GoogleUpdater/156.0.8067.0/GoogleUpdater.app/Contents/MacOS/GoogleUpdater --wake` exited 0
+2026-10-04T04:14:46.942Z pw:browser [pid=27505][err] [27758:8431388:1004/121446.942017:VERBOSE1:chrome/updater/app/app.cc:52] Shutdown: 0
+2026-10-04T04:14:46.942Z pw:browser [pid=27505][err] [27758:8431388:1004/121446.942508:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS END event to the history log
+2026-10-04T04:14:46.942Z pw:browser [pid=27505][err] [27758:8431388:1004/121446.942554:VERBOSE1:chrome/updater/updater.cc:409] UpdaterMain (--wake-all) returned 0.
+✖ actual Go two-browser research and confirmed schedules stay isolated through lost-return and restart (45006.211666ms)
+ℹ {"classification":"LOCAL_SAME_WORKSPACE_TWO_TAB_REAL_GO_LATE_RESPONSE","paperPosts":3,"committedOrders":2,"distinctIntents":2,"oldResponsePreservedNewJournal":true,"newResponseClearedOwnJournal":true,"exactCostChargedOnce":true,"blankTabs":0,"publicVerified":false,"walletApproval":false}
+ℹ {"classification":"LOCAL_CORRUPT_JOURNAL_TWO_TAB_FORGET_RECOVERY","corruptJournalInjectedForBoundaryTest":true,"validReplacementCreatedByOriginalUI":true,"staleDialogs":0,"staleForgetPreserved":true,"cancelPreserved":true,"paperPosts":2,"additionalCommittedOrders":1,"exactReplay":true,"blankTabs":0,"publicVerified":false,"walletApproval":false}
+ℹ {"classification":"LOCAL_SAVED_RESEARCH_TWO_TAB_REAL_GO_LATE_RESPONSE","posts":3,"committedExperiments":2,"oldResponsePreservedNewJournal":true,"cancelPreserved":true,"blankTabs":0,"publicVerified":false,"walletApproval":false}
+ℹ cleanup=overlap-context-start
+ℹ cleanup=overlap-context-complete
+ℹ cleanup=research-contexts-start
+ℹ cleanup=research-contexts-complete
+ℹ cleanup=browser-start
+2026-10-04T04:14:56.794Z pw:browser [pid=27505][err] [27763:8431410:1004/121456.794577:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS END event to the history log
+2026-10-04T04:14:56.794Z pw:browser [pid=27505][err] [27763:8431410:1004/121456.794632:VERBOSE1:chrome/updater/updater.cc:409] UpdaterMain (--crash-handler) returned 0.
+2026-10-04T04:14:56.796Z pw:browser [pid=27505][err] [27760:8431392:1004/121456.796291:VERBOSE2:chrome/updater/event_history.cc:266] Emitted a UPDATER_PROCESS END event to the history log
+2026-10-04T04:14:56.796Z pw:browser [pid=27505][err] [27760:8431392:1004/121456.796363:VERBOSE1:chrome/updater/updater.cc:409] UpdaterMain (--crash-handler) returned 0.
+2026-10-04T04:14:56.799Z pw:browser [pid=27505] <process did exit: exitCode=0, signal=null>
+2026-10-04T04:14:56.799Z pw:browser [pid=27505] starting temporary directories cleanup
+2026-10-04T04:14:56.811Z pw:browser [pid=27505] finished temporary directories cleanup
+2026-10-04T04:14:56.811Z pw:browser [pid=27505] <gracefully close end>
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 0
+ℹ cancelled 1
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 49117.658625
+
+✖ failing tests:
+
+test at apps/quant-lab/tests/research-recovery-browser.test.mjs:17:1
+✖ actual Go two-browser research and confirmed schedules stay isolated through lost-return and restart (45006.211666ms)
+  'test timed out after 45000ms'
