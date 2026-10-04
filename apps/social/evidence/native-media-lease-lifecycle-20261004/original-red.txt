@@ -1,0 +1,99 @@
+✖ native media lease is captured before awaiting post-download authority (1.764ms)
+✖ retired late lease releases the original captured handle, not a mutated native DTO (0.362083ms)
+✖ overlapping close paths share one actual native release (2.536917ms)
+✖ shared cleanup failure retains the original handle for a later successful retry (0.513417ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 0
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 163.737834
+
+✖ failing tests:
+
+test at ../../../../../../../private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:2:1477
+✖ native media lease is captured before awaiting post-download authority (1.764ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+  +   bytes: 200,
+  -   bytes: 100,
+      eventId: '$original',
+  +   filename: 'Other.png',
+  -   filename: 'Original.png',
+      imagePreview: true,
+      leaseId: '12345678-1234-1234-1234-123456789abc',
+      mimeType: 'image/png',
+      roomId: '!original:example.org',
+  +   uri: 'file:///private/cache/other'
+  -   uri: 'file:///private/cache/original'
+    }
+  
+      at TestContext.<anonymous> (/private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:20:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { leaseId: '12345678-1234-1234-1234-123456789abc', roomId: '!original:example.org', eventId: '$original', filename: 'Other.png', mimeType: 'image/png', bytes: 200, uri: 'file:///private/cache/other', imagePreview: true },
+    expected: { leaseId: '12345678-1234-1234-1234-123456789abc', roomId: '!original:example.org', eventId: '$original', filename: 'Original.png', mimeType: 'image/png', bytes: 100, uri: 'file:///private/cache/original', imagePreview: true },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:2:2257
+✖ retired late lease releases the original captured handle, not a mutated native DTO (0.362083ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   '87654321-1234-1234-1234-123456789abc'
+  -   '12345678-1234-1234-1234-123456789abc'
+    ]
+  
+      at TestContext.<anonymous> (/private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:31:54)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ '87654321-1234-1234-1234-123456789abc' ],
+    expected: [ '12345678-1234-1234-1234-123456789abc' ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:2:3039
+✖ overlapping close paths share one actual native release (2.536917ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (/private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:42:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:2:3676
+✖ shared cleanup failure retains the original handle for a later successful retry (0.513417ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (/private/tmp/social-media-lifecycle-20261004.FSNHqD/native-media-lifecycle.test.ts:53:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

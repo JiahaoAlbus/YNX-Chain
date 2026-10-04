@@ -1,0 +1,31 @@
+{
+  "schema": "ynx-social-tester-channel-discovery/v1",
+  "observationDate": "2026-10-04",
+  "controllerThreadId": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "actualReadOnlyTool": "mcp__codex_apps__pets_list_pets",
+  "arguments": { "limit": 20 },
+  "cursor": null,
+  "activePetId": "fireball",
+  "pets": [
+    { "id": "codex", "name": "Codex", "isActive": false, "isCustom": false },
+    { "id": "dewey", "name": "Dewey", "isActive": false, "isCustom": false },
+    { "id": "fireball", "name": "Fireball", "isActive": true, "isCustom": false },
+    { "id": "hoots", "name": "Hoots", "isActive": false, "isCustom": false },
+    { "id": "rocky", "name": "Rocky", "isActive": false, "isCustom": false },
+    { "id": "seedy", "name": "Seedy", "isActive": false, "isCustom": false },
+    { "id": "stacky", "name": "Stacky", "isActive": false, "isCustom": false },
+    { "id": "bsod", "name": "BSOD", "isActive": false, "isCustom": false },
+    { "id": "null-signal", "name": "Null Signal", "isActive": false, "isCustom": false },
+    { "id": "pet_6abcfb3f8fbc8191a7a2e5aa0aa83b03", "name": "Anchor", "isActive": false, "isCustom": true }
+  ],
+  "collectionScope": "ChatGPT Pets only; not an inventory of Codex desktop agents or tester execution channels",
+  "collectionHasDotOrMonsterNamedEntry": false,
+  "desktopMonsterExistence": "NOT_DETERMINED",
+  "testerExecutionChannel": "NOT_IDENTIFIED",
+  "monsterApplicationAcceptance": "NOT_RUN",
+  "correction": "Earlier claim that no Pets collection tools were enabled was incorrect. Three collection tools exist, but collection operations do not establish tester execution capability.",
+  "actionsNotPerformed": ["pet selection", "sprite download", "pet replacement", "new same-name agent", "account request", "signing", "transaction", "deployment"],
+  "nextAction": "Original controller must route the human-designated MONSTER identity to its actual existing execution channel and source-bound application entry; do not substitute collection readback or another named agent for acceptance.",
+  "newCryptoCoreActivated": false,
+  "wholeSocialComplete": false
+}
