@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "ynx-quant-recovery-consumer-inputs-v1",
+  "classification": "ORDINARY_CONSUMER_HUNKS_NOT_RUNTIME_OR_INSTALLER",
+  "sourceCommit": "acb6ee7fede9fca7f70050015e8736b7daddbf7b",
+  "sourceTree": "0e9303a0604e9c6215628d1c6f65d2d15bc14eba",
+  "reviewedBaseCommit": "4da4fbc50a9e7364fc1f850e2416375feca41e8d",
+  "supersedesForCurrentConsumerOnly": "recovery-consumer-inputs-20261004.json",
+  "historicalManifestPreserved": true,
+  "integrationMode": "ORDINARY_HUNKS_ONLY",
+  "releaseAuthority": "wallet_release_owner",
+  "objects": [
+    {"path":"apps/quant-lab/web/app.js","blob":"e33237c6d5acf85c6e07c59d6debe0273fa3ea01","bytes":239081,"sha256":"5feb20e86f5f6434039ea9d4439dd58aef486d30889932c2d39f506e3d3d4915"},
+    {"path":"apps/quant-lab/web/index.html","blob":"e50baab2089dc2ccccb9b2b40ec413812265877c","bytes":30915,"sha256":"2141fc5053bebc0db4c6c5655f89c5710080fe3332fe7f128e89ed9f8f697d2f"},
+    {"path":"apps/quant-lab/web/styles.css","blob":"1ff9823190a9789fe49a80333a9837d367caffed","bytes":13229,"sha256":"63682ce34d5dcda0efa002201df50ce89ac168defa5f7592d1d461fad13c59cf"},
+    {"path":"apps/quant-lab/tests/business-flow.test.mjs","blob":"9665152cabe0e7ddebb898f050126f1b41cd5574","bytes":183321,"sha256":"d8edc2ce33bb88b0f3c0bc11113fa305e4975aacee34e38e02635dfe98d8ca4f"},
+    {"path":"apps/quant-lab/tests/research-recovery-browser.test.mjs","blob":"23cc44b6662d122a69c510b918c09fc0e5b912f0","bytes":50680,"sha256":"00d48f4027a0e3e02b578a7b63903a338ec6b40ae798f7c94538c161bbd83c47"},
+    {"path":"apps/quant-lab/tests/cache-version-browser.test.mjs","blob":"a7203b7f744724ca9d329cf5b8c143df44c99edb","bytes":3114,"sha256":"d61c494e5553b80ad6c9e05b8a209848e39f5d561aa5b216e55c3fb2e0019aa2"},
+    {"path":"apps/quant-lab/tests/paper-draft-browser.test.mjs","blob":"88d75e1a8a8096541a198d233a6fd704d4467813","bytes":4243,"sha256":"23bf27b1de6f90b14ee03e0c67bdcd673ce1ce0fa4260d9df9be2f4b55104f5c"},
+    {"path":"apps/quant-lab/evidence/paper-draft-render-recovery-20261004.md","blob":"f73151a4f3024148f23ac49595b91c52d6011b42","bytes":2542,"sha256":"12b303af0c94d24c558bab147d4f6a26cea0d1f53516099812473537f0f31b09"}
+  ],
+  "preserveSharedGraph": true,
+  "forbiddenReplacementPaths": ["apps/quant-lab/vendor", "apps/quant-lab/web/wallet-auth.js", "apps/quant-lab/web/wallet-auth-entry.js", "packages/wallet-auth", "internal/productsessionv2", "apps/quant-lab/server", "go.mod", "go.sum"],
+  "publisherMustRebuildFinalAssetPins": true,
+  "rollback": "Ordinary consumer revert only; deployed rollback remains exact release-owner bound",
+  "releaseBlocker": "Unique release owner must compose these ordinary hunks into current shared graph and verify final build/public/install; no publication claimed",
+  "truth": {"runtimeBuilt":false,"deployed":false,"installed":false,"actualProviderApproved":false,"privateSessionVerified":false,"transactionsVerified":false,"productComplete":false}
+}
