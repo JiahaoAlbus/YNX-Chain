@@ -20,7 +20,7 @@ try{for(const width of [390,1280]){
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>requests.push({url:request.url(),method:request.method()}));
   await page.route('**/*',async route=>{
-    const url=new URL(route.request().url()),name=url.pathname==='/'?'/index.html':url.pathname;
+    const url=new URL(route.request().url()),name=url.pathname==='/'?(assets.has('/introduction.html')&&!url.search?'/introduction.html':'/index.html'):url.pathname==='/app'?'/index.html':url.pathname;
     if(url.origin==='https://exchange.example'&&assets.has(name)){
       served.add(name);const mime=name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html';
       return route.fulfill({contentType:mime,body:assets.get(name)});
@@ -29,7 +29,7 @@ try{for(const width of [390,1280]){
     // grant, order or chain data. This is local packaged-renderer evidence only.
     return route.fulfill({status:503,contentType:'application/json',body:'{"error":"API_UNAVAILABLE"}'});
   });
-  await page.goto('https://exchange.example/#market');
+  await page.goto('https://exchange.example/app#market');
   await page.waitForFunction(()=>window.YNXExchangeWebWallet&&document.querySelector('#venue-config-retry'));
   assert.equal(await page.locator('html').getAttribute('lang'),'en');
   await page.waitForFunction(()=>document.querySelector('.brand img').complete&&document.querySelector('.brand img').naturalWidth>0);
@@ -37,7 +37,7 @@ try{for(const width of [390,1280]){
   for(const kind of ['ynx-wallet','metamask']){
     await page.locator('#connect-'+kind).click();
     await page.waitForFunction(()=>!document.querySelector('#wallet-fallback').hidden);
-    assert.equal(page.url(),'https://exchange.example/#market');assert.equal(context.pages().length,1);
+    assert.equal(page.url(),'https://exchange.example/app#market');assert.equal(context.pages().length,1);
     assert.equal(await page.locator('#wallet-fallback a').nth(0).getAttribute('href'),'https://www.ynxweb4.com/dapp/download');
     assert.equal(await page.locator('#wallet-fallback a').nth(1).getAttribute('href'),'https://metamask.io/download/');
   }
@@ -52,6 +52,11 @@ try{for(const width of [390,1280]){
   assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
   assert.equal(requests.filter(r=>r.method!=='GET').length,0);
   assert.equal(requests.filter(r=>r.url.startsWith('ynxwallet:')).length,0);
+  if(assets.has('/introduction.html')){
+    const before=requests.length;await page.goto('https://exchange.example/');await page.waitForSelector('#introduction-language');await page.locator('figure img').evaluate(img=>img.decode());
+    assert.ok(!requests.slice(before).some(r=>/wallet-connect\.js|private-session\.js|\/api\//.test(r.url)));
+    assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
+  }
   for(const name of assets.keys())if(name!=='/ynx-favicon.png')assert.ok(served.has(name),`unloaded packaged asset ${name}`);
   results.push({width,loadedAssets:[...served].sort(),pageErrors:errors,nonGetRequests:0,tabCount:1,defaultEnglish:true,logoDecoded:true,noProviderFallback:true,reload:true,publicProof:false,walletApproval:false});
   await context.close();
