@@ -17,7 +17,8 @@ function setup(){
   const window={YNXQuantWallet:{getPrivateWalletContext:()=>({...context})},addEventListener:(name,fn)=>{const list=events.get(name)||[];list.push(fn);events.set(name,list);},dispatchEvent:event=>{for(const fn of events.get(event.type)||[])fn(event);}};
   const realm=vm.createContext({window,document:{getElementById:id=>elements.get(id),querySelectorAll:()=>[]},localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>storage.set(key,value),removeItem:key=>storage.delete(key)},navigator:{onLine:true},registry:{},privateSessionCopy:()=>({pending:'pending',connected:'connected',guest:'guest',unavailable:'unavailable'}),paperSessionCopy:()=>({authorize:'authorize',refresh:'refresh',revoke:'revoke',boundary:'simulation only'}),ProductSessionGatewayFetchAdapter:class{},createBrowserProductSessionClient:async()=>({client,close(){},createIntrospectionProof:()=>proofHook()}),fetch:async(...args)=>{calls.push(args);return responseHook(...args);},Response,TextDecoder,TextEncoder,Uint8Array,AbortController,setTimeout,clearTimeout,queueMicrotask,CustomEvent:class{constructor(type,options={}){this.type=type;this.detail=options.detail;}},console});
   storage.set('ynx.quant.paper-workspace-session.v1.started','true');
-  vm.runInContext(source.replace(/^import .*;\n/gm,'').replace(/export /g,'')+'\nglobalThis.qa={mountPaperSession,paperWorkspaceRequest,revokePaperSession,getPaperSessionState};',realm);
+  realm.URL=URL;
+  vm.runInContext(source.replace(/^import .*;\n/gm,'').replace(/export /g,'')+'\nglobalThis.qa={mountPaperSession,paperWorkspaceRequest,revokePaperSession,getPaperSessionState,getPaperWorkspaceSnapshot};',realm);
   realm.qa.mountPaperSession();
   return {qa:realm.qa,calls,context,payload,window,proof:fn=>{proofHook=fn;},response:fn=>{responseHook=fn;},ready:async()=>{for(let i=0;i<20&&realm.qa.getPaperSessionState().status!=='connected';i++)await new Promise(resolve=>setTimeout(resolve,0));assert.equal(realm.qa.getPaperSessionState().status,'connected');}};
 }
@@ -58,4 +59,10 @@ test('unsupported operations and invalid POST bytes fail before HTTP',async()=>{
   await assert.rejects(f.qa.paperWorkspaceRequest('/v1/risk/kill',{method:'POST',body:'{}'}),{code:'PAPER_OPERATION_NOT_AUTHORIZED'});
   await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/orders',{method:'POST',body:{side:'buy'}}),{code:'PAPER_OPERATION_NOT_AUTHORIZED'});
   assert.equal(f.calls.length,0);
+});
+test('bounded read selectors reject injection/duplicate/unsafe offsets before HTTP; detail never replaces workspace',async()=>{
+ const f=setup();await f.ready();for(const path of ['https://other.example/v1/wallet/paper/snapshot','/v1/wallet/paper/snapshot?history=bounded_v1&account=foreign','/v1/wallet/paper/snapshot?history=bounded_v1&offset=1','/v1/wallet/paper/snapshot?history=bounded_v1&offset=9007199254741000','/v1/wallet/paper/snapshot?history=bounded_v1&history=bounded_v1','/v1/wallet/paper/experiment?id=x'])await assert.rejects(f.qa.paperWorkspaceRequest(path),{code:'PAPER_OPERATION_NOT_AUTHORIZED'});assert.equal(f.calls.length,0);
+ await f.qa.paperWorkspaceRequest('/v1/wallet/paper/snapshot');const previous=f.qa.getPaperWorkspaceSnapshot();assert.equal(f.calls[0][0],'/api/v1/wallet/paper/snapshot?history=bounded_v1');
+ f.response(async()=>new Response(JSON.stringify({account:previous.account,sessionBinding:previous.sessionBinding,revision:'revision',experiment:{id:'saved'}}),{headers:{'content-type':'application/json'}}));await f.qa.paperWorkspaceRequest('/v1/wallet/paper/experiment?id=saved&revision=revision');assert.equal(f.qa.getPaperWorkspaceSnapshot(),previous);
+ f.response(async()=>new Response(JSON.stringify({account:previous.account,sessionBinding:previous.sessionBinding,revision:'stale',experiment:{id:'saved'}}),{headers:{'content-type':'application/json'}}));await assert.rejects(f.qa.paperWorkspaceRequest('/v1/wallet/paper/experiment?id=saved&revision=revision'),{code:'PAPER_BINDING_MISMATCH'});assert.equal(f.context.status,'connected');
 });

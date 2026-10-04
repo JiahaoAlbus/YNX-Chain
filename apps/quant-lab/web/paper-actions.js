@@ -11,7 +11,7 @@ export function mountPaperActions(){
   const controller=createPaperIntentController({session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const risk=createPaperRiskController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const research=createPaperBacktestController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
-  const renderHistory=mountNativePaperHistory(find('paper-owned-result'),{session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,language:()=>localStorage.getItem('ynx.quant.locale')||'en'});
+  const renderHistory=mountNativePaperHistory(find('paper-owned-result'),{session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,request:paperWorkspaceRequest,language:()=>localStorage.getItem('ynx.quant.locale')||'en'});
   for(const [id,name,value] of [['paper-native-fee','fee','10'],['paper-native-slippage','slippage','5']]){const label=document.createElement('label'),title=document.createElement('span'),input=document.createElement('input');title.dataset.paperCost=name;input.id=id;input.type='text';input.inputMode='numeric';input.maxLength=5;input.value=value;label.append(title,input);find('paper-owned-review').before(label);}
   const costBoundary=document.createElement('p');costBoundary.id='paper-native-cost-boundary';find('paper-owned-form').append(costBoundary);
   const riskPanel=document.createElement('section');

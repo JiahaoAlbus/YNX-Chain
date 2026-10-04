@@ -134,6 +134,22 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 	}
 	var experiment Experiment
 	_ = json.Unmarshal(response.Body.Bytes(), &experiment)
+	bounded := call("GET", "/v1/wallet/paper/snapshot?history=bounded_v1", "a", "", "")
+	var index struct{ History struct{ Revision string } }
+	_ = json.Unmarshal(bounded.Body.Bytes(), &index)
+	if bounded.Code != 200 || index.History.Revision == "" {
+		t.Fatal("native bounded history unavailable")
+	}
+	detailPath := "/v1/wallet/paper/experiment?id=" + experiment.ID + "&revision=" + index.History.Revision
+	if own := call("GET", detailPath, "a", "", strings.Repeat("f", 64)); own.Code != 200 {
+		t.Fatal("owned detail unavailable", own.Code)
+	}
+	if foreign := call("GET", detailPath, "c", "", ""); foreign.Code == 200 {
+		t.Fatal("foreign owner read experiment")
+	}
+	if unauthorized := call("GET", detailPath, "e", "", ""); unauthorized.Code == 200 {
+		t.Fatal("records-only scope escaped into Paper history")
+	}
 	repeated := call("POST", "/v1/wallet/paper/backtests/from-market", "a", string(backtest), strings.Repeat("f", 64))
 	var replayExperiment Experiment
 	_ = json.Unmarshal(repeated.Body.Bytes(), &replayExperiment)

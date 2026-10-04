@@ -5,10 +5,24 @@ const time=value=>text(value)&&Number.isFinite(Date.parse(value));
 const hash=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 const integer=Number.isSafeInteger;
 const safeNumbers=(value,depth=0)=>depth<=32&&(typeof value==='number'?integer(value):Array.isArray(value)?value.length<=100001&&value.every(item=>safeNumbers(item,depth+1)):record(value)?Object.values(value).every(item=>safeNumbers(item,depth+1)):value===null||['string','boolean'].includes(typeof value));
+export function nativeHistoryPage(snapshot){
+ const value=snapshot?.history;if(value===undefined)return null;
+ if(!record(value)||value.version!=='bounded_v1'||!text(value.revision)||!integer(value.offset)||value.offset<0||value.offset>Number.MAX_SAFE_INTEGER-20||value.offset%20!==0||value.pageSize!==20||typeof value.hasNext!=='boolean'||!record(value.counts)||Object.keys(value.counts).sort().join(',')!=='audit,experiments,orders'||!['orders','experiments','audit'].every(key=>integer(value.counts[key])&&value.counts[key]>=0))return false;
+ if(value.hasNext!==(value.offset+20<Math.max(...Object.values(value.counts))))return false;
+ return value;
+}
+export function nativeSavedDetail(reply,id,revision){
+ const value=reply?.experiment,projection=reply?.curveProjection;
+ if(reply?.revision!==revision||value?.id!==id||!record(projection)||projection.policy!=='saved_points_endpoint_preserving_v1'||!integer(projection.originalPoints)||projection.originalPoints<0||projection.originalPoints>100001||!integer(projection.returnedPoints)||projection.returnedPoints!==Math.min(200,projection.originalPoints)||value.equityCurve?.length!==projection.returnedPoints)return null;
+ const model=nativePaperHistory({ready:true,status:'connected',account:reply.account},{account:reply.account,paper:{Orders:[]},experiments:{[id]:value},audit:[]});
+ if(model.status!=='ready'||model.invalid||(projection.returnedPoints>=2&&!nativeEquityCurve(value)))return null;
+ return {...value,curveProjection:projection};
+}
 export function nativePaperHistory(session,snapshot){
  const empty={status:'unavailable',orders:[],experiments:[],audit:[],invalid:0};
  if(!session?.ready||session.status!=='connected'||!session.account||snapshot?.account!==session.account)return empty;
  if(!record(snapshot.paper)||!record(snapshot.experiments)||!Array.isArray(snapshot.audit)||!(snapshot.paper.Orders===null||Array.isArray(snapshot.paper.Orders)))return {...empty,status:'invalid'};
+ if(nativeHistoryPage(snapshot)===false)return {...empty,status:'invalid'};
  const orders=snapshot.paper.Orders||[],experiments=Object.entries(snapshot.experiments),audit=snapshot.audit;
  if(orders.length>100||experiments.length>10000||audit.length>100000)return {...empty,status:'invalid'};
  let invalid=0;const seen=new Set();
@@ -29,5 +43,5 @@ export function nativeEquityCurve(experiment){
  const range=max-min||1n,indices=[];for(let n=0;n<Math.min(200,rows.length);n++)indices.push(Math.round(n*(rows.length-1)/(Math.min(200,rows.length)-1)));
  const firstTime=BigInt(Date.parse(rows[0].time)),span=BigInt(Date.parse(rows.at(-1).time))-firstTime;
  const points=key=>indices.map(index=>`${20+Number((BigInt(Date.parse(rows[index].time))-firstTime)*720n/span)},${180-Number((BigInt(rows[index][key])-min)*160n/range)}`).join(' ');
- return {equity:points('equity'),benchmark:points('benchmarkEquity'),first:rows[0].time,last:rows.at(-1).time,total:rows.length,displayed:indices.length};
+ return {equity:points('equity'),benchmark:points('benchmarkEquity'),first:rows[0].time,last:rows.at(-1).time,total:experiment.curveProjection?.originalPoints??rows.length,displayed:indices.length};
 }
