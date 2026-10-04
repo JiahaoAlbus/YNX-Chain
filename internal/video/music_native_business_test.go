@@ -17,7 +17,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -53,8 +55,75 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			var owned *music.Service
 			var actor productsessionv2.Session
 			var bound bool
+			var originalConfig music.Config
+			var trustConfigured bool
+			var trustReceipts atomic.Int32
+			// Explicit isolated HTTPS receipt provider, not Central Trust.
+			// Original SDK authority, actor and production HTTPS/effect gates remain.
+			trustProvider := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var input struct {
+					Type     string `json:"type"`
+					Key      string `json:"idempotencyKey"`
+					Subject  string `json:"subject"`
+					Scope    string `json:"requestScope"`
+					Purpose  string `json:"purpose"`
+					Action   string `json:"requestedAction"`
+					Evidence []struct {
+						Source      string    `json:"source"`
+						Digest      string    `json:"digest"`
+						Summary     string    `json:"summary"`
+						CollectedAt time.Time `json:"collectedAt"`
+						Visible     bool      `json:"visibleToSubject"`
+					} `json:"evidence"`
+				}
+				decode := json.NewDecoder(http.MaxBytesReader(w, r.Body, 16<<10))
+				decode.DisallowUnknownFields()
+				if r.Method != "POST" || r.URL.Path != "/original-case" || r.Header.Get("Authorization") != "Bearer isolated-music-trust-receipt" || r.Header.Get("X-YNX-Product-Client") != "ynx-music-v1" || decode.Decode(&input) != nil || input.Type != "open_case" || !strings.HasPrefix(input.Key, "music-trust-") || !strings.HasPrefix(input.Subject, "trk_") || input.Scope != "music.rights" || input.Action != "report" || len(input.Evidence) != 1 || input.Evidence[0].Source != "ynx-music" || input.Evidence[0].Summary != input.Purpose || input.Evidence[0].CollectedAt.IsZero() || !input.Evidence[0].Visible {
+					t.Error("isolated original Trust request contract mismatch")
+					http.Error(w, "invalid isolated provider request", 400)
+					return
+				}
+				expectedReason, expectedDigest := "Original unavailable Apple Trust retry", "sha256:original-apple-case-evidence"
+				if platform == "android" {
+					expectedReason, expectedDigest = "Original unavailable Trust retry", "sha256:original-native-case-evidence"
+				}
+				if input.Purpose != expectedReason || input.Evidence[0].Digest != expectedDigest {
+					t.Error("original Trust request contents changed")
+					http.Error(w, "changed isolated evidence", 400)
+					return
+				}
+				if trustReceipts.Add(1) != 1 {
+					t.Error("original same-key Trust request dispatched twice")
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"id":"isolated-original-trust-receipt-1"}`))
+			}))
+			defer trustProvider.Close()
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				mu.Lock()
+				if r.URL.Path == "/qa-enable-trust" {
+					defer mu.Unlock()
+					if r.Method != "POST" || !bound || trustConfigured || owned == nil || actor.Account == "" {
+						http.Error(w, "isolated Trust configuration denied", 409)
+						return
+					}
+					// Reopen the ORIGINAL persisted Music store with an isolated
+					// provider config; never change an actor/SDK grant or key.
+					cfg := originalConfig
+					cfg.TrustGatewayURL = trustProvider.URL + "/original-case"
+					cfg.TrustGatewayKey = "isolated-music-trust-receipt"
+					cfg.HTTPClient = trustProvider.Client()
+					reopened, e := music.New(cfg)
+					if e != nil {
+						http.Error(w, "original store reopen failed", 500)
+						return
+					}
+					owned = reopened
+					handler = music.NewServer(owned, "", musicapp.Web()).Handler()
+					trustConfigured = true
+					w.WriteHeader(204)
+					return
+				}
 				if r.URL.Path == "/qa-bind" {
 					defer mu.Unlock()
 					if bound || r.Method != "POST" {
@@ -123,7 +192,8 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 						http.Error(w, "QA authority denied", 500)
 						return
 					}
-					owned, e = music.New(music.Config{StatePath: filepath.Join(t.TempDir(), "state.json"), MediaDir: t.TempDir(), MaxUploadBytes: 1 << 20, Now: time.Now, BusinessAuthority: authority})
+					originalConfig = music.Config{StatePath: filepath.Join(t.TempDir(), "state.json"), MediaDir: t.TempDir(), MaxUploadBytes: 1 << 20, Now: time.Now, BusinessAuthority: authority}
+					owned, e = music.New(originalConfig)
 					if e != nil {
 						http.Error(w, "QA original store denied", 500)
 						return
@@ -158,11 +228,17 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual Native consumer/original business failed: %v %s", err, diagnostic.String())
 			}
 			var receipt struct {
-				ActualBusinessServerReadback bool `json:"actualBusinessServerReadback"`
-				ActualAppleSwiftWebKitEngine bool `json:"actualAppleSwiftWebKitEngine"`
-				ActualOriginalAppleModelFlow bool `json:"actualOriginalAppleModelFlow"`
-				ActualJavaMusicUpload        bool `json:"actualJavaMusicUpload"`
-				ActualWalletConsent          bool `json:"actualWalletConsent"`
+				ActualBusinessServerReadback            bool `json:"actualBusinessServerReadback"`
+				ActualAppleSwiftWebKitEngine            bool `json:"actualAppleSwiftWebKitEngine"`
+				ActualOriginalAppleModelFlow            bool `json:"actualOriginalAppleModelFlow"`
+				ActualJavaMusicUpload                   bool `json:"actualJavaMusicUpload"`
+				ActualWalletConsent                     bool `json:"actualWalletConsent"`
+				OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
+				IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+				JavaUpload                              struct {
+					OriginalTrustConfirmedLostReplyRecovery bool `json:"originalTrustConfirmedLostReplyRecovery"`
+					IsolatedTrustReceipt                    bool `json:"isolatedTrustReceipt"`
+				} `json:"javaUpload"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || apple && (!receipt.ActualAppleSwiftWebKitEngine || !receipt.ActualOriginalAppleModelFlow) {
 				t.Fatal("browser receipt gate invalid")
@@ -181,6 +257,19 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 			}
 			if apple && len(owned.CreatorTracks(actor.Account)) != 2 {
 				t.Fatal("missing deduplicated original upload readback")
+			}
+			if javaUpload || apple {
+				if !trustConfigured || trustReceipts.Load() != 1 || javaUpload && (!receipt.JavaUpload.OriginalTrustConfirmedLostReplyRecovery || !receipt.JavaUpload.IsolatedTrustReceipt) || apple && (!receipt.OriginalTrustConfirmedLostReplyRecovery || !receipt.IsolatedTrustReceipt) {
+					t.Fatal("original Trust receipt/lost-reply recovery gate invalid")
+				}
+				snap, e := owned.Snapshot(actor.Account)
+				if e != nil {
+					t.Fatal(e)
+				}
+				cases, ok := snap["cases"].([]music.Case)
+				if !ok || len(cases) != 1 || cases[0].CentralCaseID != "isolated-original-trust-receipt-1" {
+					t.Fatal("original Trust case duplicated or receipt missing")
+				}
 			}
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})

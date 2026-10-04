@@ -12,7 +12,7 @@ import Foundation
             let assets=URL(fileURLWithPath:args[1]),platform=args[4],original=P256.Signing.PrivateKey()
             var negative=false
             var renderedTrack="",renderedCount=0,playTasks:[Task<Void,Never>]=[]
-            var persisted: Data?,opened="",mismatch=false,hold=false,held: CheckedContinuation<Void,Never>?,loseUploadReply=false,corruptMedia=false
+            var persisted: Data?,opened="",mismatch=false,hold=false,held: CheckedContinuation<Void,Never>?,loseUploadReply=false,loseCaseReply=false,corruptMedia=false
             let credentials=MusicCredentials(read:{name in name=="device-p256" ? (errSecSuccess,Data(original.rawRepresentation.base64EncodedString().utf8)) : (errSecItemNotFound,nil)},add:{_,_ in errSecAuthFailed},update:{_,_ in errSecAuthFailed},remove:{_ in errSecAuthFailed},create:{fatalError("generated original only")})
             let key=MusicDeviceSigner(credentials:credentials)
             let network=MusicNativeTransport()
@@ -33,6 +33,7 @@ import Foundation
                     if failSnapshot {failSnapshot=false;throw URLError(.networkConnectionLost)}
                 }
                 if url.path=="/music/api/creator/tracks",request.httpMethod=="POST",loseUploadReply,(200..<300).contains(response.statusCode) {loseUploadReply=false;throw URLError(.networkConnectionLost)}
+                if url.path=="/music/api/cases",request.httpMethod=="POST",loseCaseReply,response.statusCode==201 {loseCaseReply=false;throw URLError(.networkConnectionLost)}
                 var received=bytes
                 if url.path.hasSuffix("/media"),corruptMedia,!received.isEmpty {received[received.count-1] ^= 1}
                 
@@ -94,6 +95,7 @@ import Foundation
                             }
                             let key=model.state.uploadIntent?.key ?? "",title=model.state.uploadIntent?.title ?? "",success=await model.retryUpload(operation)
                             value=["success":success,"pending":model.state.uploadIntent != nil,"key":key,"tracks":model.snapshot.creatorTracks.count,"id":model.snapshot.creatorTracks.first(where:{$0.title==title})?.id ?? ""]
+                        case "loseCaseReply":loseCaseReply=true;value=["loseCaseReply":true]
                         case "uiCase":
                             guard let operation=model.captureOperation() else{throw MusicNativeEngine.Failure.retired}
                             if let track=command["track"] as? String {guard model.prepareCase(operation,kind:"report",track:track,reason:"Original unavailable Apple Trust retry",evidence:"sha256:original-apple-case-evidence") else{throw MusicNativeEngine.Failure.rejected("case staging")}}
