@@ -1739,6 +1739,35 @@ test('saved Paper parameter restoration is read-only, exact, localized and retai
     }
   }
 });
+test('Paper refresh and language render preserve an edited next draft until explicit saved-request restore',async()=>{
+  for(const versioned of [false,true]){
+    const tenant='a'.repeat(64),hash='d'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
+    const intent={StrategyHash:hash,Side:'buy',Amount:1000000,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111',...(versioned?{ExecutionCosts:{Policy:'adverse_price_ceil_fee_micro_v1',FeeBPS:10,SlippageBPS:5}}:{})},raw=JSON.stringify(intent);
+    const workspace={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
+    const app=harness({savedStorage:[['ynx.quant.tenant.v1',tenant],[key,raw]],snapshot:workspace});await settle();
+    assert.equal(app.ids.get('paper-strategy').value,hash);assert.equal(app.ids.get('paper-amount').value,'1000000');
+    app.ids.get('paper-strategy').value='';app.ids.get('paper-strategy').onchange();app.ids.get('side').value='sell';app.ids.get('paper-amount').value='2000000';app.ids.get('paper-cost-model').value=versioned?'legacy':'v1';app.ids.get('paper-cost-fee').value='99';app.ids.get('paper-cost-slippage').value='88';
+    for(const language of vm.runInContext('supportedLocales',app.context)){
+      app.ids.get('locale').onchange({target:{value:language}});await app.ids.get('refresh').onclick();
+      assert.equal(app.ids.get('paper-strategy').value,'','an explicit unselected draft is not silently bound to the old request');
+      assert.equal(app.ids.get('side').value,'sell');assert.equal(app.ids.get('paper-amount').value,'2000000');
+      assert.equal(app.ids.get('paper-cost-model').value,versioned?'legacy':'v1');assert.equal(app.ids.get('paper-cost-fee').value,'99');assert.equal(app.ids.get('paper-cost-slippage').value,'88');
+      assert.equal(app.storage.get(key),raw);assert.equal(app.proofs(),0);assert.ok(app.calls.every(call=>(call.options.method??'GET')==='GET'));
+    }
+    const calls=app.calls.length;vm.runInContext('paperRestoreButton.onclick()',app.context);
+    assert.equal(app.ids.get('paper-strategy').value,hash);assert.equal(app.ids.get('side').value,'buy');assert.equal(app.ids.get('paper-amount').value,'1000000');assert.equal(app.ids.get('paper-cost-model').value,versioned?'v1':'legacy');
+    if(versioned){assert.equal(app.ids.get('paper-cost-fee').value,'10');assert.equal(app.ids.get('paper-cost-slippage').value,'5');}
+    assert.equal(app.calls.length,calls);assert.equal(app.storage.get(key),raw);
+  }
+});
+test('late cold-start strategy read does not bind an edited draft to the saved Paper request',async()=>{
+  const tenant='a'.repeat(64),hash='d'.repeat(64),key='ynx.quant.paper.pending.v1:'+tenant;
+  const raw=JSON.stringify({StrategyHash:hash,Side:'buy',Amount:100,IdempotencyKey:'quant-paper-11111111-1111-4111-8111-111111111111'}),read=deferred();
+  const app=harness({savedStorage:[['ynx.quant.tenant.v1',tenant],[key,raw]],apiResponse:()=>read.promise});
+  app.ids.get('paper-amount').value='101';read.resolve({strategies:{saved:{Name:'Saved',StrategyHash:hash}}});await settle();
+  assert.equal(app.ids.get('paper-strategy').value,'');assert.equal(app.ids.get('paper-amount').value,'101');assert.equal(app.storage.get(key),raw);
+  assert.equal(app.proofs(),0);assert.ok(app.calls.every(call=>(call.options.method??'GET')==='GET'));
+});
 test('cancelled retry preserves the original durable uncertain intent without a new request',async()=>{
   const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};
   const original=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();original.ids.get('paper-strategy').value=hash;original.ids.get('side').value='buy';original.ids.get('paper-amount').value='100';await original.submit('paper-order');

@@ -86,6 +86,7 @@ function readPendingResearchIntent() {
   }
 }
 let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperUnreadableBytes = null, pendingPaperIntent = readPendingPaperIntent();
+let initialPaperRestore = pendingPaperIntent;
 let paperSubmissionLane = null;
 function paperSubmissionViewMatches(lane) {
   return paperSubmissionLane === lane && $('#paper-strategy').value === lane.intent.StrategyHash && $('#side').value === lane.intent.Side &&
@@ -734,6 +735,11 @@ function renderPaperPendingState(){
   paperRestoreButton.textContent=t('paperRestore');
   paperForgetButton.hidden=!pendingPaperInvalid;paperForgetButton.disabled=paperSubmitting||!workspaceStorageAvailable;paperForgetButton.textContent=t('paperForget');
 }
+function restorePaperInputs(intent) {
+  $('#side').value=intent.Side;$('#paper-amount').value=String(intent.Amount);
+  $('#paper-cost-model').value=intent.ExecutionCosts?'v1':'legacy';
+  if(intent.ExecutionCosts){$('#paper-cost-fee').value=String(intent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(intent.ExecutionCosts.SlippageBPS);}
+}
 paperRestoreButton.onclick=()=>{
   if(paperSubmitting||!workspaceStorageAvailable)return;
   reloadPaperJournal();const intent=pendingPaperIntent;
@@ -742,9 +748,8 @@ paperRestoreButton.onclick=()=>{
     $('#workspace-storage-boundary').textContent=t('workspaceStorageUnavailable');
     renderPaperSubmitControl();renderResearchRequestState();renderRiskControls();return;
   }
-  $('#paper-strategy').value=intent.StrategyHash;$('#side').value=intent.Side;$('#paper-amount').value=String(intent.Amount);
-  $('#paper-cost-model').value=intent.ExecutionCosts?'v1':'legacy';
-  if(intent.ExecutionCosts){$('#paper-cost-fee').value=String(intent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(intent.ExecutionCosts.SlippageBPS);}
+  initialPaperRestore=null;
+  $('#paper-strategy').value=intent.StrategyHash;restorePaperInputs(intent);
   renderPaperCosts();renderPaperSubmitControl();toast(t('paperRestored'),'paperRestored');
 };
 paperForgetButton.onclick=()=>{
@@ -1079,16 +1084,18 @@ function renderPaperStrategies(strategies) {
     option.textContent = `${strategy.Name} · ${strategy.StrategyHash.slice(0, 12)}…`;
     selection.append(option);
   }
-  const preferred = previous || pendingPaperIntent?.StrategyHash || "";
+  // Cold-start recovery is one-shot. Rendering must never restore over a new
+  // draft; subsequent recovery requires the explicit saved-request action.
+  if(initialPaperRestore){
+    try{
+      if($('#side').value!==initialPaperRestore.Side || +$('#paper-amount').value!==initialPaperRestore.Amount || !samePaperCosts(selectedPaperCosts(),initialPaperRestore.ExecutionCosts))initialPaperRestore=null;
+    }catch{initialPaperRestore=null;}
+  }
+  const preferred = previous || initialPaperRestore?.StrategyHash || "";
   selection.value = available.some(strategy => strategy.StrategyHash === preferred) ? preferred : "";
+  if(selection.value)initialPaperRestore=null;
   selection.disabled = available.length === 0;
   renderPaperSubmitControl();
-  if (pendingPaperIntent && !previous) {
-    $("#side").value = pendingPaperIntent.Side;
-    $("#paper-amount").value = String(pendingPaperIntent.Amount);
-    $('#paper-cost-model').value=pendingPaperIntent.ExecutionCosts?'v1':'legacy';
-    if(pendingPaperIntent.ExecutionCosts){$('#paper-cost-fee').value=String(pendingPaperIntent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(pendingPaperIntent.ExecutionCosts.SlippageBPS);}
-  }
   renderPaperCosts();
 }
 function researchAmount(attribution, key) {
@@ -1331,7 +1338,7 @@ $$("nav button").forEach(
 );
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
-$("#paper-strategy").onchange = renderPaperSubmitControl;
+$("#paper-strategy").onchange = ()=>{initialPaperRestore=null;renderPaperSubmitControl();};
 $("#research-saved-strategy").onchange = () => { $("#research-reuse").disabled = researchSubmitting || !$("#research-saved-strategy").value; };
 $("#research-reuse").onclick = () => {
   if (researchSubmitting) return;
@@ -1811,6 +1818,7 @@ $("#kill").onclick = async () => {
     riskWrites.delete('kill');renderRiskControls();renderWorkspaceReadStatus();renderPaperSubmitControl();
   }
 };
+if(initialPaperRestore)restorePaperInputs(initialPaperRestore);
 if(pendingResearchIntent){
   restoreResearchInputs(pendingResearchIntent);
 }
