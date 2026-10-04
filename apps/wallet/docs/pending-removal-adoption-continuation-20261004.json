@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ynx-native-pending-removal-adoption/v1",
+  "parent": "a1561100f41348fcbc03196d8306c7413aa2c59d",
+  "status": "EXPLICIT_ORIGINAL_JOURNAL_RETRY_SOURCE_COMPOSITION_PASS_NOT_INSTALLED_OS_OR_RELEASE",
+  "upstreamA": {
+    "directory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native-pending-removal-explicit-app-composition-20261004",
+    "manifestSHA256": "8081775655c8158d7aa18b6b89449742cd6248d23990d757dd2ab1265137eab0",
+    "contentRoot": "99c3d3d7334679ee48c8a7eefffcaf60f474a1c66188841ee8fc122e89aea004",
+    "validation": "Fresh all22 artifact hash/size checks and all5 original dependency bindings matched current worktree. Adopted only App/localAuthorization patch and3 named new source/test files. No whole tree/index copy. Original A files retained unchanged in its handoff."
+  },
+  "implemented": "Settings offers explicit review of only previously confirmed local account removals. Review/construction/cancel never opens storage. Confirm uses original strong local authentication and original root operation lease before WalletRepository.retryPendingDeletions(assertCurrent); only current completion reloads public manifest and shows separate remote-not-confirmed notice in12 locales. No startup/resume cleanup, new deletion intent, remote session revoke, transfer/sign or new storage protocol.",
+  "ownedSuccessor": "Actual App callback tests found duplicate confirm callback cancelled the original in-flight operation through the duplicate controller rejection/finally path. One per-review synchronous confirming flag now makes duplicate callbacks inert without affecting explicit cancellation or allowing a second authentication/journal call. Controller and repository unchanged from exact A/original source.",
+  "results": {
+    "aCandidateActualAppRed": {"tests":22,"pass":21,"fail":1,"skip":0,"exitCode":1,"log":"accepted-candidate-ui-red-final.log","sha256":"9eebb86adf6743b85a869a85f2694cfc863a988edec69891632baafc2b61b3c0"},
+    "fixedControllerActualApp": {"tests":22,"pass":22,"fail":0,"skip":0,"exitCode":0,"log":"owned-controller-app-green.log"},
+    "relatedRepositoryApp": {"tests":113,"pass":113,"fail":0,"skip":0,"exitCode":0,"log":"related-repository-app.log"},
+    "fullNative": {"tests":1058,"pass":1058,"fail":0,"skip":0,"exitCode":0,"log":"full-native-tests-final.log"},
+    "typecheck": {"exitCode":0,"log":"typecheck-final.log"},
+    "androidHermesExport": {"exitCode":0,"log":"android-export.log"},
+    "iosHermesExport": {"exitCode":0,"log":"ios-export.log"},
+    "diffCheck": {"exitCode":0}
+  },
+  "coverage": ["Actual App review/cancel and all12locale confirm/success callbacks", "Duplicate confirm and old cancelled callbacks versus reopened review", "Original authentication refusal/readiness/root-scope exclusion", "Account/background/deadline/cancel during authentication and journal completion", "Original journal uncertainty never auto-retries", "Actual original repository plus native adapter faults: interrupted removal/cold controller retry retains other protected accounts and controlled UNKNOWN bytes", "Dropped journal clear rejects success and retains original journal", "Background at first protected deletion stops remaining cleanup", "Empty journal creates no delete or write"],
+  "testBoundaries": "Actual App handlers are transpiled/executed with controlled Alert/auth/public repository result; original repository/controller/lifecycle compose with synthetic account fixtures and fault-injected native storage adapter. No real accounts/keys/journal, device tap, biometrics, OS unlock, remote session, network, installed app or website operation. Controlled cold repository is not an OS restart. Readback is not cross-process atomic CAS or guaranteed OS key deletion.",
+  "dependencyBoundary": "Reused retained Native test candidate; fresh180 original inputs match parent before sync, and95 WalletAuth src match historical9555b01e47519a5df882bb0092d2d20e1d7ce6e2. Exact current owned source checked after sync. This is ordinary owned source compatibility against retained historical Native inputs, not complete current factory/SDK/issuer runtime admission. No installs, shims, aliases or dependency rewiring.",
+  "evidenceDirectory": "/tmp/ynx-wallet-pending-removal-adoption-20261004-xhLyHn",
+  "retainedDiagnostics": ["Original candidate21/22 red and unchanged A source handoff", "Initial source pin check ENOBUFS at bundled source size; retried with16MiB bound and all95 passed", "Initial new test harness typecheck2 due nonliteral indexed key; as-const fixes typing without relaxing assertions, initial log retained"],
+  "sourcePins": {
+    "originalFrozenApp": "c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+    "aCandidateApp": "b33c84965e0a685a229b1a4b114ac2063eae16ec9a41c2c735fe2800f68b4130",
+    "ownedSuccessorApp": "320da2a525cabc60f34424aedf883919e9925d44bb3c01b7f675e9731ea6f72c",
+    "controller": "acef2bae861cea45c6cde3d39e45dd5e49ca6c6ba14c289a7627f37a5f5bb8c3",
+    "localAuthorization": "d5cfc6d3ec4299e676c8bc239023dc62b5ae7c2535e82b62a197ad53290fd9be",
+    "copy": "34bdbd0731fc1f01d5c6020efdb45e7a2842e82ec45fe5c028865c2db73a262d"
+  },
+  "unchanged": ["Native repository/storage namespaces/operationLifecycle/biometricProtection", "Native index/startup/AppDelegate and Desktop product source", "Shared SDK/Auth/Host/protected factories/registry/signing/release versions", "Real retained accounts/keys/backups/history/UNKNOWN and device leases"],
+  "remaining": ["Independent successor source admission and A exact full matching factory/SDK/native profile composition", "Installed normal review/cancel/authentication and original account/journal readback", "OS/cross-process atomic storage contract and real NativeBinding37ports", "Real scanner/Receive/Pay/transfer/remote session recovery", "Final official website download/verified signature/preserving upgrade/user acceptance", "MONSTER NOT_RUN"],
+  "queuedOwnedWork": "Desktop transfer history public DTO and original cursor validation deficiency identified this turn; not yet edited or claimed fixed."
+}
