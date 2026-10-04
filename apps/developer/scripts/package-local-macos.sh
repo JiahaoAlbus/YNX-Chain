@@ -49,6 +49,7 @@ mkdir -p "$app/Contents/Resources/code/apps/developer/scripts"
 cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs scripts/solidity-semantic-index.mjs "$app/Contents/Resources/code/apps/developer/scripts/"
 if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
   node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
+  node scripts/bundle-solidity-language-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/native/ynx-tools"
 fi
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 # APFS clones preserve a standalone dependency tree while sharing unchanged

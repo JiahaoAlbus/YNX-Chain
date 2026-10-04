@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.14",
+  "version": "0.2.15",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -10,6 +10,7 @@
   "icon": "ynx-logo.png",
   "main": "./src/extension.cjs",
   "activationEvents": [
+    "onLanguage:solidity",
     "onView:ynx.tools",
     "onCommand:ynx.reviewSelection",
     "onStartupFinished"
@@ -60,6 +61,10 @@
       {
         "command": "ynx.importSolidityDiagnostics",
         "title": "YNX: Import Solidity Compiler Diagnostics"
+      },
+      {
+        "command": "ynx.solidityAnalysisStatus",
+        "title": "YNX: Solidity Language Status"
       }
     ],
     "jsonValidation": [

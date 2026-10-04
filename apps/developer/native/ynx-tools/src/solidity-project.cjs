@@ -1,8 +1,8 @@
 const path = require('node:path');
 const { digest, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
-async function captureSolidityProject(vscode, environment) {
+async function captureSolidityProject(vscode, environment, targetDocument) {
   const sessionId = environment.YNX_CORE_SESSION_ID, workspace = environment.YNX_CORE_WORKSPACE;
-  const folders = vscode.workspace.workspaceFolders, editor = vscode.window.activeTextEditor;
+  const folders = vscode.workspace.workspaceFolders, editor = targetDocument ? { document: targetDocument } : vscode.window.activeTextEditor;
   if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace || folders?.length !== 1 || !editor || editor.document.uri.scheme !== 'file' || !editor.document.uri.fsPath.endsWith('.sol'))
     throw Error('Open a Solidity file in one active YNX project before capturing its sources.');
   const root = folders[0].uri, rootKey = root.toString();

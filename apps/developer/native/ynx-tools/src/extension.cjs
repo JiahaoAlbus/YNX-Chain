@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
+  const solidityLanguage = require('./solidity-language.cjs').createSolidityLanguage(vscode, context, process.env);
   const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
   // The host context menu lives outside Monaco's scoped DOM context. Publish
@@ -20,6 +21,7 @@ function activate(context) {
     getTreeItem: ([label, command]) => ({ label, command: { command, title: label } })
   }));
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(error.message); } }));
+  register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(`Solidity language: ${JSON.stringify(solidityLanguage.status())}`); });
   register('ynx.importSolidityDiagnostics', async () => {
     const count = await compilerDiagnostics.importCopied();
     void vscode.window.showInformationMessage(`${count} compiler diagnostic(s) imported. Open Problems to jump to their source locations.`);
