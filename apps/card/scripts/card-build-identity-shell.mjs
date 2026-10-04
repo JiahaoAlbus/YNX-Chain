@@ -4,8 +4,10 @@ export function applyCardBuildIdentityShell(html,identity) {
      typeof identity.appVersion!=="string" || !/^[0-9A-Za-z.+-]{1,80}$/.test(identity.appVersion))throw Error("Invalid Card shell identity");
   const qa=identity.releaseChannel==="qa";
   const title=qa?`YNX Card QA | ${identity.appVersion}`:`YNX Card | ${identity.appVersion}`;
-  const badge=qa?`<aside id="ynx-card-qa-build" role="note" aria-label="QA build, not the formal Card release" translate="no" class="notranslate" style="pointer-events:none;position:fixed;bottom:12px;left:12px;z-index:2147483647;max-width:calc(100vw - 24px);padding:10px 14px;background:#101820;color:#fff;border:2px solid #fff;border-radius:8px;font:600 13px/1.5 sans-serif;overflow-wrap:anywhere">YNX Card QA / Testnet only<br>Version ${identity.appVersion} / Source ${identity.sourceCommit}<br>Not the formal release. No real payments.</aside>`:"";
+  const layout=qa?'<style id="ynx-card-qa-layout">body{display:flex;flex-direction:column}#root{height:auto;min-height:0;flex:1 1 0%}</style>':'';
+  const badge=qa?`<aside id="ynx-card-qa-build" role="note" aria-label="QA build, not the formal Card release" translate="no" class="notranslate" style="pointer-events:none;position:relative;flex:0 0 auto;align-self:flex-start;margin:8px 12px 12px;max-width:calc(100vw - 24px);box-sizing:border-box;padding:10px 14px;background:#101820;color:#fff;border:2px solid #fff;border-radius:8px;font:600 13px/1.5 sans-serif;overflow-wrap:anywhere">YNX Card QA / Testnet only<br>Version ${identity.appVersion} / Source ${identity.sourceCommit}<br>Not the formal release. No real payments.</aside>`:"";
   return html.replace(/<title>[^<]*<\/title>/i,`<title>${title}</title>`)
+    .replace('</head>',`${layout}</head>`)
     .replace(/<body\b/i,`<body data-ynx-card-release-channel="${identity.releaseChannel}" data-ynx-card-source="${identity.sourceCommit}"`)
     .replace("</body>",`${badge}\n</body>`);
 }

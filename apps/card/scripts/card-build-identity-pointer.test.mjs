@@ -7,8 +7,10 @@ test('QA source note remains visible and semantic without intercepting product a
  const output=applyCardBuildIdentityShell(html,identity);
  assert.match(output,/role="note"/);assert.match(output,/pointer-events:none;/);assert.match(output,/Not the formal release/);assert.match(output,/<button>Start application<\/button>/);
  assert.ok(output.includes(identity.sourceCommit));assert.doesNotMatch(output,/tabindex=|onclick=|onpointer/);
+ assert.match(output,/body\{display:flex;flex-direction:column\}/);assert.match(output,/height:auto;min-height:0;flex:1 1 0%/);
+ assert.match(output,/position:relative;flex:0 0 auto/);assert.doesNotMatch(output,/position:fixed|z-index:/);
 });
 test('formal Testnet shell never inserts the QA overlay',()=>{
  const output=applyCardBuildIdentityShell(html,{...identity,releaseChannel:'testnet-release'});
- assert.doesNotMatch(output,/<aside|ynx-card-qa-build|pointer-events/);assert.match(output,/<title>YNX Card \| 1.0.0<\/title>/);
+ assert.doesNotMatch(output,/<aside|ynx-card-qa-build|ynx-card-qa-layout|pointer-events/);assert.match(output,/<title>YNX Card \| 1.0.0<\/title>/);
 });
