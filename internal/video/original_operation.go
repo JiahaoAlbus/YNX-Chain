@@ -20,6 +20,7 @@ type VideoOriginalOperationMetadata struct {
 	ActionBodyDigest  string `json:"actionBodyDigest"`
 	Method            string `json:"method"`
 	Path              string `json:"path"`
+	OwnedOperationID  string `json:"ownedOperationId,omitempty"`
 }
 type VideoOriginalOperationIdentity struct {
 	Operation   VideoOriginalOperationMetadata `json:"operation"`
@@ -65,7 +66,7 @@ func sameVideoOperation(a, b *VideoOriginalOperationMetadata) bool {
 	return *a == *b
 }
 func validVideoOperation(p VideoOriginalOperationMetadata) bool {
-	return validVideoDigest(p.OperationID) && validVideoDigest(p.SessionBinding) && validVideoDigest(p.NodeRequestDigest) && validVideoDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
+	return (p.OwnedOperationID == "" || len(p.OwnedOperationID) <= 512 && strings.TrimSpace(p.OwnedOperationID) == p.OwnedOperationID) && validVideoDigest(p.OperationID) && validVideoDigest(p.SessionBinding) && validVideoDigest(p.NodeRequestDigest) && validVideoDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
 }
 
 func validVideoDigest(s string) bool {

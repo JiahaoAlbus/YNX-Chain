@@ -19,6 +19,7 @@ type MusicOriginalOperationMetadata struct {
 	ActionBodyDigest  string `json:"actionBodyDigest"`
 	Method            string `json:"method"`
 	Path              string `json:"path"`
+	OwnedOperationID  string `json:"ownedOperationId,omitempty"`
 }
 type MusicOriginalOperationIdentity struct {
 	Operation   MusicOriginalOperationMetadata `json:"operation"`
@@ -57,7 +58,7 @@ func sameMusicOperation(a, b *MusicOriginalOperationMetadata) bool {
 	return *a == *b
 }
 func validMusicOperation(p MusicOriginalOperationMetadata) bool {
-	return validMusicDigest(p.OperationID) && validMusicDigest(p.SessionBinding) && validMusicDigest(p.NodeRequestDigest) && validMusicDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
+	return (p.OwnedOperationID == "" || len(p.OwnedOperationID) <= 512 && strings.TrimSpace(p.OwnedOperationID) == p.OwnedOperationID) && validMusicDigest(p.OperationID) && validMusicDigest(p.SessionBinding) && validMusicDigest(p.NodeRequestDigest) && validMusicDigest(p.ActionBodyDigest) && (p.Method == "GET" || p.Method == "HEAD" || p.Method == "POST" || p.Method == "PUT" || p.Method == "PATCH" || p.Method == "DELETE") && len(p.Path) > 0 && len(p.Path) <= 4096 && strings.HasPrefix(p.Path, "/") && !strings.ContainsAny(p.Path, "?#\r\n")
 }
 
 func validMusicDigest(s string) bool { return validSHA256Hex(s) }
