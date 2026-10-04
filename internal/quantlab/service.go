@@ -663,16 +663,23 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
-	position := int64(0)
+	// Net persisted submissions exactly: int64 accumulation and abs(MinInt64)
+	// can wrap and make an over-limit position appear admissible. Map iteration
+	// order must not change admission for offsetting historical submissions.
+	position := new(big.Int)
 	recentOrders := 0
 	for _, existing := range s.state.TestnetOrders {
 		if existing.MandateDigest != mandateDigest || existing.Status != "submitted_testnet" {
 			continue
 		}
+		if existing.Amount <= 0 || (existing.Side != "buy" && existing.Side != "sell") {
+			unlock()
+			return TestnetOrder{}, ErrInvalid
+		}
 		if existing.Side == "buy" {
-			position += existing.Amount
+			position.Add(position, big.NewInt(existing.Amount))
 		} else {
-			position -= existing.Amount
+			position.Sub(position, big.NewInt(existing.Amount))
 		}
 		if !existing.CreatedAt.Before(now.Add(-time.Minute)) {
 			recentOrders++
@@ -686,7 +693,8 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 	if side == "sell" {
 		signedAmount = -amount
 	}
-	if notional > m.MaxNotional || abs(position+signedAmount) > m.MaxPosition {
+	position.Add(position, big.NewInt(signedAmount))
+	if notional > m.MaxNotional || position.Abs(position).Cmp(big.NewInt(m.MaxPosition)) > 0 {
 		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
