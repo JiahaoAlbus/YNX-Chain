@@ -2,6 +2,24 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {sdkImports,exportSyntax,sourceExportSurface} from "../scripts/sdk-import-surface.mjs";
 import {fileURLToPath} from "node:url";
+import * as surface from "../scripts/sdk-import-surface.mjs";
+test("direct ESM dependencies recognize compact and multiline imports without body-string false positives",()=>{
+  assert.equal(typeof surface.staticModuleSpecifiers,"function");
+  const source=["import{exactFields,WalletAuthError}from'./canonical.js';","import {"," other","} from './other.js';",'const text="from comma-space"; throw Error("never execute");'].join("\n");
+  assert.deepEqual(surface.staticModuleSpecifiers(source),[
+    {kind:"import",specifier:"./canonical.js",line:1},{kind:"import",specifier:"./other.js",line:2},
+  ]);
+});
+test("direct ESM dependencies include side effects and both reexport forms in source order",()=>{
+  assert.deepEqual(surface.staticModuleSpecifiers('import "./side.js"; export * from "./star.js"; export {value as alias} from "./named.js"; export * as ns from "./namespace.js";'),[
+    {kind:"import",specifier:"./side.js",line:1},{kind:"reexport",specifier:"./star.js",line:1},{kind:"reexport",specifier:"./named.js",line:1},{kind:"reexport",specifier:"./namespace.js",line:1},
+  ]);
+});
+test("direct ESM dependencies exclude type-only edges but retain mixed imports and reexports",()=>{
+  assert.deepEqual(surface.staticModuleSpecifiers('import type {T} from "types"; import {type U} from "specifier-types"; export type {V} from "export-types"; export {type W} from "export-specifier-types"; import {type X,value} from "mixed"; export {type Y,actual} from "mixed-export";'),[
+    {kind:"import",specifier:"mixed",line:1},{kind:"reexport",specifier:"mixed-export",line:1},
+  ]);
+});
 test("runtime SDK imports exclude both declaration and specifier type imports and retain alias identity",()=>{assert.deepEqual(sdkImports('import type {OnlyType} from "@ynx-chain/wallet-auth"; import {actual as local,type Shape} from "@ynx-chain/wallet-auth";'),[{name:"actual",local:"local",line:1}]);});
 test("namespace and default imports stay distinct from named imports and unrelated imports are ignored",()=>{assert.deepEqual(sdkImports('import Default,* as ns from "@ynx-chain/wallet-auth"; import {irrelevant} from "different";'),[{name:"default",local:"Default",line:1},{name:"*",local:"ns",line:1}]);});
 test("source export syntax distinguishes local, star and named reexports",()=>{assert.deepEqual(exportSyntax('export const {a,b:renamed}=source; export function f(){} export default 1; export * from "./star.js"; export {remote as alias} from "./named.js"; export type T=string;'),{names:["a","renamed","f","default"],stars:["./star.js"],named:[{source:"./named.js",imported:"remote",exported:"alias"}]});});
