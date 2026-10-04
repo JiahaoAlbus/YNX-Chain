@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, realpath } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, realpath, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { Worker } from 'node:worker_threads';
@@ -11,7 +11,7 @@ async function fixture(t){
  const extension=await realpath(process.env.YNX_SOLIDITY_LANGUAGE_EXTENSION_INPUT),root=await mkdtemp('/private/tmp/ynx-local-imports-');
  const uri=p=>({scheme:'file',fsPath:p,toString:()=>`file://${p}`}),documents=[];
  async function put(name,text){await mkdir(join(root,name,'..'),{recursive:true});await writeFile(join(root,name),text);}
- const vscode={Uri:{file:uri},workspace:{workspaceFolders:[{uri:uri(root)}],textDocuments:documents,findFiles(){throw Error('Import closure must not scan the project.');},async openTextDocument(value){let doc=documents.find(d=>d.uri.fsPath===value.fsPath);if(!doc){doc={uri:value,isClosed:false,version:1,text:await readFile(value.fsPath,'utf8'),getText(){return this.text;}};documents.push(doc);}return doc;}}};
+ const vscode={Uri:{file:uri},workspace:{workspaceFolders:[{uri:uri(root)}],textDocuments:documents,findFiles(){throw Error('Import closure must not scan the project.');},async openTextDocument(value){let doc=documents.find(d=>d.uri.fsPath===value.fsPath);if(!doc){doc={uri:value,isClosed:false,version:1,text:await readFile(value.fsPath,'utf8'),getText(){return this.text;},positionAt(offset){return{offset};},offsetAt(position){return position.offset;}};documents.push(doc);}return doc;}}};
  const environment={YNX_WORKSPACE_MODE:'local',YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'cccccccc-cccc-cccc-cccc-cccccccccccc'};
  return{root,extension,put,vscode,environment,async capture(){return captureSolidityProject(vscode,environment,await vscode.workspace.openTextDocument(uri(join(root,'Main.sol'))),{compiler:join(extension,'compiler')});}};
 }
@@ -98,4 +98,71 @@ test('actual language provider reports unfinished imports and absent relative or
   if(item.source.includes('./Missing.sol')){await h.put('Missing.sol','pragma solidity 0.8.24; contract Missing {}');await assert.rejects(reviewed.verify(),/dependency appeared/);}
   if(item.source.includes('@missing/')){await h.put('node_modules/@missing/contracts/Dep.sol','pragma solidity 0.8.24; contract Dep {}');await assert.rejects(reviewed.verify(),/dependency appeared/);}
  }
+});
+function localLanguageHost(h){
+ const providers={},events={},subscriptions=[],live={rows:[],clear(){this.rows=[];},set(rows){this.rows=rows;},dispose(){}};
+ h.vscode.languages=Object.fromEntries(['Definition','Hover','Reference','DocumentSymbol'].map(name=>[`register${name}Provider`,(_,provider)=>{providers[name]=provider;return{dispose(){}};}]));
+ h.vscode.languages.createDiagnosticCollection=()=>live;
+ h.vscode.Range=class{constructor(start,end){Object.assign(this,{start,end});}};h.vscode.Location=class{constructor(uri,range){Object.assign(this,{uri,range});}};
+ h.vscode.Diagnostic=class{constructor(range,message,severity){Object.assign(this,{range,message,severity});}};h.vscode.DiagnosticSeverity={Error:0,Warning:1,Information:2};
+ for(const [name,key] of [['onDidChangeTextDocument','change'],['onDidCloseTextDocument','close'],['onDidChangeWorkspaceFolders','folders']])h.vscode.workspace[name]=listener=>{events[key]=listener;return{dispose(){}};};
+ h.vscode.window={activeTextEditor:{document:h.vscode.workspace.textDocuments.find(d=>d.uri.fsPath.endsWith('/Main.sol'))},showTextDocument:async artifact=>artifact};
+ const open=h.vscode.workspace.openTextDocument;h.vscode.workspace.openTextDocument=async input=>typeof input.content==='string'?input:open(input);
+ return{providers,events,live,language:createSolidityLanguage(h.vscode,{extensionPath:h.extension,subscriptions},h.environment)};
+}
+test('actual compiler and providers honor Foundry longest prefix, context, tie order and remapped relative imports',async t=>{
+ for(const item of [
+  {request:'alias/special/Util.sol',mappings:'alias/=lib/base/\nalias/special/=lib/special/',target:'lib/special/Util.sol'},
+  {request:'alias/special/Util.sol',mappings:'alias/special/=lib/special/\nMain.sol:alias/=lib/context/',target:'lib/context/special/Util.sol'},
+  {request:'alias/Util.sol',mappings:'alias/=lib/first/\nalias/=lib/last/',target:'lib/last/Util.sol'},
+  {request:'./Util.sol',mappings:'Util.sol=./lib/remapped/Util.sol',target:'./lib/remapped/Util.sol'},
+  {request:'lib/identity/Util.sol',mappings:'lib/identity/=lib/identity/',target:'lib/identity/Util.sol'},
+ ]){
+  const h=await fixture(t);if(!h)return;await h.put('remappings.txt',item.mappings);
+  await h.put('Main.sol',`pragma solidity 0.8.24; import { Util } from "${item.request}"; contract Main { function value() public pure returns(uint256) { return Util.value(); } }`);
+  await h.put(item.target,'pragma solidity 0.8.24; library Util { function value() internal pure returns(uint256) { return 7; } }');
+  await h.put(join('node_modules',item.target),'This unrelated mirrored target must never be loaded.');
+  const reviewed=await h.capture();assert.equal(reviewed.documents.get(item.target).uri.fsPath,join(h.root,item.target));assert.deepEqual(reviewed.snapshot.remappings,item.mappings.split('\n'));
+  const host=localLanguageHost(h),main=h.vscode.window.activeTextEditor.document;
+  try{
+   const definition=await host.providers.Definition.provideDefinition(main,{offset:main.text.indexOf('Util.value')+5});assert.equal(definition.uri.fsPath,join(h.root,item.target));
+   const compiled=await host.language.compileProject();assert.equal(compiled.ok,true);assert.ok(compiled.bytecode.length>2);assert.ok(compiled.abi.some(row=>row.name==='value'));
+  }finally{host.language.dispose();}
+ }
+});
+test('unsaved remappings are authoritative and changes, appearance and disappearance retire snapshots',async t=>{
+ const h=await fixture(t);if(!h)return;
+ await h.put('Main.sol','pragma solidity 0.8.24; import { Util } from "alias/Util.sol"; contract Main { function value() public pure returns(uint256) { return Util.value(); } }');
+ await h.put('lib/one/Util.sol','pragma solidity 0.8.24; library Util { function value() internal pure returns(uint256) { return 1; } }');
+ await h.put('lib/two/Util.sol','pragma solidity 0.8.24; library Util { function value() internal pure returns(uint256) { return 2; } }');
+ const absent=await h.capture();await h.put('remappings.txt','alias/=lib/one/');await assert.rejects(absent.verify(),/configuration appeared/);
+ const config=await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'remappings.txt')));config.text='alias/=lib/two/';config.version++;
+ const reviewed=await h.capture();assert.ok(reviewed.snapshot.sources['lib/two/Util.sol']);assert.equal(await readFile(join(h.root,'remappings.txt'),'utf8'),'alias/=lib/one/');
+ const host=localLanguageHost(h),main=h.vscode.window.activeTextEditor.document,position={offset:main.text.indexOf('Util.value')+5};
+ try{
+  assert.equal((await host.providers.Definition.provideDefinition(main,position)).uri.fsPath,join(h.root,'lib/two/Util.sol'));
+  config.text='alias/=lib/one/';config.version++;host.events.change({document:config});await assert.rejects(reviewed.verify(),/configuration changed/);
+  assert.equal((await host.providers.Definition.provideDefinition(main,position)).uri.fsPath,join(h.root,'lib/one/Util.sol'));
+  assert.equal((await host.language.compileProject()).ok,true);
+ }finally{host.language.dispose();}
+ const saved=await h.capture();await unlink(join(h.root,'remappings.txt'));await assert.rejects(saved.verify(),/configuration appeared or disappeared/);
+});
+test('missing remapped targets preserve compiler diagnostics and reject later creation or unsafe configuration',async t=>{
+ const h=await fixture(t);if(!h)return;await h.put('remappings.txt','alias/=lib/missing/');await h.put('Main.sol','pragma solidity 0.8.24; import "alias/Util.sol"; contract Main {}');
+ await h.put('node_modules/lib/missing/Util.sol','pragma solidity 0.8.24; library FakeFallback {}');
+ const reviewed=await h.capture(),host=localLanguageHost(h),main=h.vscode.window.activeTextEditor.document;
+ assert.deepEqual(Object.keys(reviewed.snapshot.sources),['Main.sol']);
+ try{assert.equal(await host.providers.Definition.provideDefinition(main,{offset:0}),undefined);assert.ok(host.live.rows.some(([,rows])=>rows.some(row=>row.severity===0&&/not found/i.test(row.message))));}finally{host.language.dispose();}
+ await h.put('lib/missing/Util.sol','pragma solidity 0.8.24; library Util {}');await assert.rejects(reviewed.verify(),/dependency appeared/);
+ const config=h.vscode.workspace.textDocuments.find(d=>d.uri.fsPath.endsWith('/remappings.txt'));config.text='alias/=../outside/';config.version++;await assert.rejects(h.capture(),/outside this project/);
+ config.text='alias/=lib/linked/';config.version++;await symlink(join(h.root,'lib/missing'),join(h.root,'lib/linked'));await assert.rejects(h.capture(),/symbolic links/);
+});
+test('partial mapped buffers keep actual syntax diagnostics and remappings remain bounded regular files',async t=>{
+ const h=await fixture(t);if(!h)return;await h.put('remappings.txt','alias/=lib/real/');await h.put('Main.sol','pragma solidity 0.8.24; import "alias/Util.sol"; contract Main { function unfinished() public { uint256 a =');await h.put('lib/real/Util.sol','pragma solidity 0.8.24; library Util {}');
+ const reviewed=await h.capture();assert.ok(reviewed.snapshot.sources['lib/real/Util.sol']);const host=localLanguageHost(h),main=h.vscode.window.activeTextEditor.document;
+ try{assert.equal(await host.providers.Definition.provideDefinition(main,{offset:0}),undefined);assert.ok(host.live.rows.some(([uri,rows])=>uri.fsPath===main.uri.fsPath&&rows.some(row=>row.severity===0)));}finally{host.language.dispose();}
+ const limits=await fixture(t);await limits.put('Main.sol','pragma solidity 0.8.24; contract Main {}');await limits.put('remappings.txt','x'.repeat(65537));await assert.rejects(limits.capture(),/64 KiB/);
+ await limits.put('remappings.txt',Array.from({length:129},(_,i)=>`p${i}/=lib/${i}/`).join('\n'));await assert.rejects(limits.capture(),/128 mappings/);
+ const config=limits.vscode.workspace.textDocuments.find(d=>d.uri.fsPath.endsWith('/remappings.txt'));config.text='x'.repeat(1025)+'=lib/';config.version++;await assert.rejects(limits.capture(),/bounded local/);
+ await unlink(join(limits.root,'remappings.txt'));await limits.put('config-original.txt','alias/=lib/');await symlink(join(limits.root,'config-original.txt'),join(limits.root,'remappings.txt'));await assert.rejects(limits.capture(),/symbolic links/);
 });

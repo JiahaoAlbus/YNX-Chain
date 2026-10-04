@@ -21,15 +21,18 @@ function createSolidityLanguage(vscode, context, environment) {
     }, 450);
   }
   const retire = () => { epoch++; cache = undefined; pending?.abort.abort(); renameAbort?.abort(); completionPending?.abort.abort(); diagnostics?.clear(); scheduleDiagnostics(); };
-  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => { if (event.document.uri.fsPath.endsWith('.sol')) retire(); }), vscode.workspace.onDidCloseTextDocument(document => { if (document.uri.fsPath.endsWith('.sol')) retire(); }), vscode.workspace.onDidChangeWorkspaceFolders(retire));
+  const affectsSources = document => document.uri.fsPath.endsWith('.sol') || environment.YNX_WORKSPACE_MODE === 'local' && path.basename(document.uri.fsPath) === 'remappings.txt';
+  context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(event => { if (affectsSources(event.document)) retire(); }), vscode.workspace.onDidCloseTextDocument(document => { if (affectsSources(document)) retire(); }), vscode.workspace.onDidChangeWorkspaceFolders(retire));
   if (vscode.workspace.createFileSystemWatcher) {
     const watcher = vscode.workspace.createFileSystemWatcher('**/*.sol');
     context.subscriptions.push(watcher, watcher.onDidCreate(retire), watcher.onDidChange(retire), watcher.onDidDelete(retire));
+    const remappings = vscode.workspace.createFileSystemWatcher('remappings.txt'), localRetire = () => { if (environment.YNX_WORKSPACE_MODE === 'local') retire(); };
+    context.subscriptions.push(remappings, remappings.onDidCreate(localRetire), remappings.onDidChange(localRetire), remappings.onDidDelete(localRetire));
   }
   const cancelled = token => disposed || token?.isCancellationRequested;
   function analyze(snapshot, signal, mode = 'analysis', name) {
     return new Promise((resolve, reject) => {
-      const worker = new Worker(path.join(compiler, 'compiler-worker.mjs'), { workerData: { mode, name, sourceName: snapshot.entryPath, sources: Object.fromEntries(Object.entries(snapshot.sources).map(([name, row]) => [name, { content: row.content }])) }, env: { YNX_IDE_SOLC_INPUT: path.join(compiler, 'node_modules/solc') }, execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 32 } });
+      const worker = new Worker(path.join(compiler, 'compiler-worker.mjs'), { workerData: { mode, name, sourceName: snapshot.entryPath, ...(snapshot.protocol === 'ynx-solidity-local-project/v1' ? { localRemappings: snapshot.remappings || [] } : {}), sources: Object.fromEntries(Object.entries(snapshot.sources).map(([name, row]) => [name, { content: row.content }])) }, env: { YNX_IDE_SOLC_INPUT: path.join(compiler, 'node_modules/solc') }, execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 32 } });
       let finished = false;
       const finish = async (error, result) => {
         if (finished) return; finished = true; clearTimeout(timer); signal.removeEventListener('abort', abort);
@@ -55,7 +58,7 @@ function createSolidityLanguage(vscode, context, environment) {
     phase = 'capture';
     const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document, { compiler });
     if (capturedEpoch !== epoch || cancelled(token)) return undefined;
-    const fingerprint = digest(JSON.stringify({ protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
+    const fingerprint = digest(JSON.stringify({ protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, remappings: reviewed.snapshot.remappings, configurationSha256: reviewed.snapshot.configurationSha256, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
     if (cache?.fingerprint === fingerprint) { await reviewed.verify(); return cache; }
     // One worker per extension project, including all simultaneous provider
     // requests. A changed snapshot retires it; hold the slot until termination.

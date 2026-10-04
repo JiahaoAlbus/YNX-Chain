@@ -20,12 +20,26 @@ function verifyParser(root) {
   const pin = await import(pathToFileURL(path.join(workerData.compiler, 'compiler-pin.mjs')).href);
   pin.assertCompilerPin(); const solc = pin.loadPinnedCompiler();
   let recoveryParser;
-  parentPort.on('message', async ({ unit, content }) => {
+  parentPort.on('message', async ({ unit, content, remappings = [] }) => {
     try {
       if (typeof content !== 'string' || Buffer.byteLength(content) > 262144) throw Error('Local source exceeds its parse boundary.');
-      const output = JSON.parse(solc.compile(JSON.stringify({ language: 'Solidity', sources: { [unit]: { content } }, settings: { stopAfter: 'parsing', outputSelection: { '*': { '': ['ast'] } } } })));
+      if (!Array.isArray(remappings) || remappings.length > 128 || remappings.some(row => typeof row !== 'string' || row.length > 1024)) throw Error('Local remappings exceed their parse boundary.');
+      const parse = (text, mappings) => JSON.parse(solc.compile(JSON.stringify({ language: 'Solidity', sources: { [unit]: { content: text } }, settings: { stopAfter: 'parsing', remappings: mappings, outputSelection: { '*': { '': ['ast'] } } } })));
+      const output = parse(content, remappings), baseline = remappings.length ? parse(content, []) : output;
+      const importsOf = value => value.sources?.[unit]?.ast?.nodes?.filter(row => row.nodeType === 'ImportDirective');
+      const probe = (text, original) => {
+        if (!remappings.length) return {};
+        let marker = '__ynx_import_probe__/';
+        while (importsOf(original)?.some(row => row.absolutePath.startsWith(marker))) marker = '_' + marker;
+        // Ask the same compiler whether a mapping matched, even for an
+        // identity target. The marker never reaches the actual snapshot.
+        const mapped = parse(text, remappings.map(row => row.slice(0, row.indexOf('=') + 1) + marker));
+        return { marker, mapped };
+      };
+      const mappedImport = (node, checked) => ({ file: node.file, unit: node.absolutePath, remapped: !!checked.marker && !!importsOf(checked.mapped)?.find(row => row.src === node.src)?.absolutePath.startsWith(checked.marker) });
       const errors = (output.errors || []).filter(row => row.severity === 'error');
-      let imports = output.sources?.[unit]?.ast?.nodes?.filter(row => row.nodeType === 'ImportDirective').map(row => ({ file: row.file, unit: row.absolutePath }));
+      const checked = errors.length ? {} : probe(content, baseline);
+      let imports = importsOf(output)?.map(row => mappedImport(row, checked));
       if (errors.length) {
         // Recover structural import nodes while the user is midway through a
         // function. solc still decodes each literal and resolves source names.
@@ -38,11 +52,11 @@ function verifyParser(root) {
         for (const cursor of recoveryParser.parseFileContents(content).tree.descendants()) {
           if (++visited > 100000) throw Error('The partial Solidity syntax tree exceeds its boundary.');
           if (cursor.node.kind !== 'ImportDirective') continue;
-          const isolated = JSON.parse(solc.compile(JSON.stringify({ language: 'Solidity', sources: { [unit]: { content: cursor.node.unparse() } }, settings: { stopAfter: 'parsing', outputSelection: { '*': { '': ['ast'] } } } })));
+          const text = cursor.node.unparse(), isolated = parse(text, remappings), original = remappings.length ? parse(text, []) : isolated;
           if ((isolated.errors || []).some(row => row.severity === 'error')) continue;
           const node = isolated.sources?.[unit]?.ast?.nodes?.find(row => row.nodeType === 'ImportDirective');
           if (!node) continue;
-          imports.push({ file: node.file, unit: node.absolutePath });
+          imports.push(mappedImport(node, probe(text, original)));
         }
       }
       if (!imports || imports.length > 256) throw Error('Local source import tree exceeds its boundary.');

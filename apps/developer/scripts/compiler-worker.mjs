@@ -10,11 +10,14 @@ try {
   const solc = loadPinnedCompiler();
   if (!solc.version().startsWith(`${COMPILER_VERSION}+commit.e11b9ed9.`)) throw Object.assign(new Error('Solidity compiler runtime version does not match the reviewed artifact.'), { status: 503, code: 'compiler_pin_mismatch' });
   const { name, source } = workerData;
+  const localRemappings = workerData.localRemappings;
+  if (localRemappings !== undefined && (!Array.isArray(localRemappings) || localRemappings.length > 128 || localRemappings.some(row => typeof row !== 'string' || row.length > 1024))) throw Error('Local remappings exceed the compiler boundary.');
   const sourceName = workerData.sourceName || `${name || "Contract"}.sol`;
   const input = {
     language: "Solidity",
     sources: workerData.sources || { [sourceName]: { content: source } },
     settings: {
+      ...(localRemappings !== undefined ? { remappings: localRemappings } : {}),
       ...(workerData.mode === 'completion' ? { stopAfter: 'parsing' } : { optimizer: { enabled: true, runs: 200 } }),
       outputSelection: ['analysis', 'completion'].includes(workerData.mode) ? { '*': { '': ['ast'] } } : { "*": { "*": ["abi", "metadata", "evm.bytecode.object", "evm.bytecode.sourceMap", "evm.deployedBytecode.object", "evm.deployedBytecode.sourceMap"] } },
     },
