@@ -174,15 +174,21 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 		paperOwnedResult(w, r, session, result, 201)
 	case "/v1/wallet/paper/orders":
 		var input struct {
-			StrategyHash   string `json:"strategyHash"`
-			Side           string `json:"side"`
-			Amount         int64  `json:"amount"`
-			IdempotencyKey string `json:"idempotencyKey"`
+			StrategyHash   string          `json:"strategyHash"`
+			Side           string          `json:"side"`
+			Amount         int64           `json:"amount"`
+			IdempotencyKey string          `json:"idempotencyKey"`
+			ExecutionCosts json.RawMessage `json:"executionCosts"`
 		}
 		if !decode(w, r, &input) {
 			return
 		}
-		result, err := workspace.SubmitPaperSignalFromMarket(input.StrategyHash, input.Side, input.Amount, input.IdempotencyKey)
+		costs, err := decodePaperExecutionCosts(input.ExecutionCosts)
+		if err != nil {
+			writeProblem(w, r, http.StatusBadRequest, "invalid_json")
+			return
+		}
+		result, err := workspace.SubmitPaperSignalWithCostsFromMarket(input.StrategyHash, input.Side, input.Amount, input.IdempotencyKey, costs)
 		if err != nil {
 			respond(w, r, nil, err, 201)
 			return

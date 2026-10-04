@@ -287,6 +287,48 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 	if restored.Code != 200 || owned["account"] != alice["account"] || len(owned["paper"].(map[string]any)["Orders"].([]any)) != 1 {
 		t.Fatal("reopen lost owned Paper or replayed order")
 	}
+	// New explicit-cost signals use the original settlement engine. Keep the
+	// legacy rollback proof above unchanged rather than rewriting old receipts.
+	// That proof runs old research against the same strategy ID; consume the
+	// current owner snapshot hash, never an earlier superseded strategy hash.
+	var currentHash string
+	for _, row := range owned["strategies"].(map[string]any) {
+		currentHash, _ = row.(map[string]any)["StrategyHash"].(string)
+	}
+	if len(currentHash) != 64 {
+		t.Fatal("current owner has no saved strategy")
+	}
+	costBody := func(model string) string {
+		return fmt.Sprintf(`{"strategyHash":%q,"side":"sell","amount":1000000,"idempotencyKey":"native-cost-http-key","executionCosts":%s}`, currentHash, model)
+	}
+	for _, model := range []string{`null`, `{}`, `[]`, `{"policy":"unknown","feeBPS":10,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":null,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":-1,"slippageBPS":5}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"slippageBPS":10000}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"slippageBPS":5,"extra":1}`, `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"feeBPS":11,"slippageBPS":5}`} {
+		if bad := call("POST", "/v1/wallet/paper/orders", "a", costBody(model), ""); bad.Code != 400 {
+			t.Fatalf("native cost invalid model accepted: %d", bad.Code)
+		}
+	}
+	model := `{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":10,"slippageBPS":5}`
+	var costOrder PaperOrder
+	result := call("POST", "/v1/wallet/paper/orders", "a", costBody(model), "")
+	if result.Code != 201 || json.Unmarshal(result.Body.Bytes(), &costOrder) != nil || costOrder.CostPolicy != PaperCostPolicyV1 || costOrder.FeeBPS != 10 || costOrder.SlippageBPS != 5 || costOrder.ExecutionPriceMicro <= 0 || costOrder.FeeMicro <= 0 {
+		t.Fatalf("native cost settlement missing: %d %+v", result.Code, costOrder)
+	}
+	if conflict := call("POST", "/v1/wallet/paper/orders", "a", costBody(`{"policy":"adverse_price_ceil_fee_micro_v1","feeBPS":11,"slippageBPS":5}`), ""); conflict.Code != 409 {
+		t.Fatalf("native changed costs did not conflict: %d", conflict.Code)
+	}
+	if err = service.Close(); err != nil {
+		t.Fatal(err)
+	}
+	withoutMarket := cfg
+	withoutMarket.MarketData = nil
+	service, err = NewTenantServer(withoutMarket, "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var costReplay PaperOrder
+	offline := call("POST", "/v1/wallet/paper/orders", "a", costBody(model), "")
+	if offline.Code != 201 || json.Unmarshal(offline.Body.Bytes(), &costReplay) != nil || !reflect.DeepEqual(costOrder, costReplay) {
+		t.Fatal("native cost restart replay required live market or changed receipt")
+	}
 	for _, label := range []string{"", "d", "e"} {
 		denied := call("POST", "/v1/wallet/paper/risk/kill", label, `{"reason":"Confirmed native halt","idempotencyKey":"native-risk-http"}`, "")
 		if denied.Code != 401 && denied.Code != 403 {

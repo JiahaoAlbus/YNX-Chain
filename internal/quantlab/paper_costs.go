@@ -1,6 +1,33 @@
 package quantlab
 
-import "math/big"
+import (
+	"bytes"
+	"encoding/json"
+	"math/big"
+)
+
+// Both owned HTTP surfaces consume the same explicit simulation cost contract.
+// Omitted costs are legacy only, retained for exact replay of existing intents.
+func decodePaperExecutionCosts(raw json.RawMessage) (PaperExecutionCosts, error) {
+	if len(raw) == 0 {
+		return PaperExecutionCosts{}, nil
+	}
+	var model struct {
+		Policy      *string `json:"policy"`
+		FeeBPS      *int64  `json:"feeBPS"`
+		SlippageBPS *int64  `json:"slippageBPS"`
+	}
+	d := json.NewDecoder(bytes.NewReader(raw))
+	d.DisallowUnknownFields()
+	if err := d.Decode(&model); err != nil || model.Policy == nil || model.FeeBPS == nil || model.SlippageBPS == nil {
+		return PaperExecutionCosts{}, ErrInvalid
+	}
+	costs := PaperExecutionCosts{Policy: *model.Policy, FeeBPS: *model.FeeBPS, SlippageBPS: *model.SlippageBPS}
+	if costs.Policy != PaperCostPolicyV1 || !costs.valid() {
+		return PaperExecutionCosts{}, ErrInvalid
+	}
+	return costs, nil
+}
 
 // PaperExecutionCosts is an explicit simulation assumption, never a venue fee.
 // Empty policy preserves legacy zero-cost settlement. V1 rounds adverse prices
