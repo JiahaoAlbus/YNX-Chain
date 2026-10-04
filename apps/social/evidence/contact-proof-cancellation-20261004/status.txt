@@ -1,0 +1,6 @@
+original_tests_exit=1
+repaired_tests_exit=1
+final_tests_exit=0
+typecheck_exit=0
+android_export_exit=0
+ios_export_exit=0

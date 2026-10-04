@@ -50,8 +50,8 @@ export class SocialAPI {
   revokeInvite(id:string,signal?:AbortSignal){return this.request<{record:{id:string;link:string;expiresAt:string;revokedAt:string}}>(`/social/v1/invites/${encodeURIComponent(id)}/revoke`,{method:"POST",body:{},signal})}
   contacts(){return this.request<{contacts:Person[];requests:ContactRequest[]}>("/social/v1/contacts")}
   contactMatches(hashes:readonly string[]){return this.request<{matches:ContactMatch[]}>("/social/v1/contact-matches",{method:"POST",body:{hashes}})}
-  previewContact(source:GroupDiscoveryInput["source"],value:string){return this.request<{person:Person}>("/social/v1/contacts/preview",{method:"POST",body:{source,value}})}
-  requestContact(source:"handle"|"contacts"|"qr"|"invite"|"recommendation",value:string,idempotencyKey:string,expectedAccount?:string,message=""){return this.request("/social/v1/contact-requests",{method:"POST",body:{source,value,idempotencyKey,expectedAccount,message:message||undefined}})}
+  previewContact(source:GroupDiscoveryInput["source"],value:string,signal?:AbortSignal){return this.request<{person:Person}>("/social/v1/contacts/preview",{method:"POST",body:{source,value},signal})}
+  requestContact(source:"handle"|"contacts"|"qr"|"invite"|"recommendation",value:string,idempotencyKey:string,expectedAccount?:string,message="",signal?:AbortSignal){return this.request("/social/v1/contact-requests",{method:"POST",body:{source,value,idempotencyKey,expectedAccount,message:message||undefined},signal})}
   transitionRequest(id:string,action:"accept"|"reject"|"withdraw"){return this.request(`/social/v1/contact-requests/${encodeURIComponent(id)}`,{method:"POST",body:{action}})}
   deleteContact(target:string){return this.request("/social/v1/contacts/delete",{method:"POST",body:{target}})}
   block(target:string){return this.request("/social/v1/privacy/block",{method:"POST",body:{target}})}

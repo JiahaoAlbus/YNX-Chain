@@ -1,0 +1,9 @@
+--- FAIL: TestContactRequestViewCannotMutateOriginalDeadline (0.00s)
+    contact_view_snapshot_test.go:14: contact read view aliases original request deadline
+--- FAIL: TestExpiredContactViewRetainsIndependentDeadlineAndClosedAt (0.00s)
+    contact_view_snapshot_test.go:28: expired view aliases original deadline or another result field
+--- FAIL: TestClosedContactViewAndLegacyNoDeadlineRemainCompatible (0.00s)
+    contact_view_snapshot_test.go:38: closed read view aliases original terminal timestamp
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	0.946s
+FAIL

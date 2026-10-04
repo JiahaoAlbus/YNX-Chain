@@ -43,7 +43,7 @@ export class ContactRequestFlow{
       if(!/^[A-Za-z0-9_-]{32}$/.test(value))throw new Error('Use an exact YNX Social invitation link');
     }
     if(!value||value.length>2048)throw new Error("Enter a valid person discovery value");
-    const result=await this.operation.run(()=>this.api.previewContact(source,value));
+    const result=await this.operation.run(signal=>this.api.previewContact(source,value,signal));
     if(sequence!==this.sequence||!guard())throw new Error("Social authorization changed; review the person again");
     if(!/^sp_[A-Za-z0-9_-]{32}$/.test(result.person?.id??"")||typeof result.person.handle!=="string"||typeof result.person.displayName!=="string")throw new Error("A stable Social profile could not be verified");
     if(source==='qr'&&result.person.id!==value.slice('https://social.ynxweb4.com/people/'.length))throw new Error('The original personal code does not match this profile');
@@ -57,6 +57,6 @@ export class ContactRequestFlow{
     if(!this.isCurrent(review))throw new Error("Review this person again before sending");
     message=message.trim();if(Array.from(message).length>200)throw new Error("Keep the request message within 200 characters");
     if(this.message!==null&&this.message!==message)throw new Error("Retry the original message or review the person again");this.message=message;const intent={review,message,guard:this.guard!};
-    try{await this.operation.run(()=>this.api.requestContact(review.source,review.value,review.idempotencyKey,review.person.id,message));if(!this.isCurrent(review))throw new Error("Social authorization changed; the old result was discarded");this.uncertain=this.uncertain.filter(item=>item.review!==review);this.cancel()}catch(error){if(intent.guard()&&!this.uncertain.some(item=>item.review===review))this.uncertain.push(intent);throw error}
+    try{await this.operation.run(signal=>this.api.requestContact(review.source,review.value,review.idempotencyKey,review.person.id,message,signal));if(!this.isCurrent(review))throw new Error("Social authorization changed; the old result was discarded");this.uncertain=this.uncertain.filter(item=>item.review!==review);this.cancel()}catch(error){if(intent.guard()&&!this.uncertain.some(item=>item.review===review))this.uncertain.push(intent);throw error}
   }
 }

@@ -1,0 +1,2 @@
+60e5b0e22dec60e5b6f8c6d154618b8d24c5019ed180c9580456e4a66121bcbc  internal/social/contact_lifecycle.go
+91777ce485de5ae19f95f53b8e2ca69b386655213bc52ee4bddbc63e21544a52  internal/social/contact_view_snapshot_test.go
