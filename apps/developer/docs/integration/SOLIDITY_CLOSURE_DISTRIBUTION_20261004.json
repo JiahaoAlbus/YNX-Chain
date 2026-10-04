@@ -23,14 +23,13 @@
   "nativeCorrectedCandidate": {
     "path": "apps/developer/.ynx-developer-candidates/ynx-solidity-sealed-native-package-20261004-mac-arm64",
     "packageSessionId": 71705,
-    "state": "live at evidence checkpoint; bundle copy and actual packaged worker compile passed; final DMG/signature/source/SBOM checks pending"
+    "state": "Completed; signature/image/readback/packaged-worker checks passed. Exact final receipt in SOLIDITY_SEALED_NATIVE_20261004.json."
   },
   "evidenceIndex": {
     "path": ".ynx-developer-candidates/solidity-closure-evidence-20261004/INDEX.json",
     "sha256": "207580abc8507c3b084ddfe7cc85791fd79572c30a47879a758ed2ffe4756302"
   },
   "remaining": [
-    "Final corrected Native package verification and exact handoff.",
     "Formal protected activation and actual canonical Wallet/AI/Chain user acceptance.",
     "Full platform and extension compatibility release."
   ],

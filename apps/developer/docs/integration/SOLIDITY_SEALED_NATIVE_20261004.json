@@ -1,0 +1,85 @@
+{
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "3238d1cc4bc83556ce2d6c0feec38272df891c90",
+    "sourceTree": "2182570faad2ce2d6333587717ae1fef9014d18a",
+    "sourceCommitDate": "2026-10-04T17:10:24+08:00",
+    "runtimeCheckpoint": "3238d1cc4bc83556ce2d6c0feec38272df891c90",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "0da9d4385a2f03ab5a5f8803ffbdaec8e12b94a9a5fa061e6892606808e35e32",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "48b3ae65ad60e187b802514370048cf38061d9b3ec155d515e0e3a9a7e46b505",
+        "treeSha256": "8f0a3263a88df4c3938fbe1ec8fbb390b679b795380915c4000cec65ebdab032",
+        "manifestSha256": "b59528906e34984576e678f11e4037dc3e113c9d0a3a2bd88a8fa932ae08898e"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "1686e5668584381c51bdd2e9d27095dcb2b56cae3c2bae467ead11cf336d421e",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "48b3ae65ad60e187b802514370048cf38061d9b3ec155d515e0e3a9a7e46b505",
+      "treeSha256": "8f0a3263a88df4c3938fbe1ec8fbb390b679b795380915c4000cec65ebdab032",
+      "manifestSha256": "b59528906e34984576e678f11e4037dc3e113c9d0a3a2bd88a8fa932ae08898e"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "1686e5668584381c51bdd2e9d27095dcb2b56cae3c2bae467ead11cf336d421e",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "becd1dc922ddbcc3c87462924401fabc063858501be2ac27f5fc9cc955f234e5",
+  "compilerSourceMatchesCommit": true,
+  "desktopServerMatchesCommit": true,
+  "sbomIncludesPinnedCompiler": true,
+  "holderFreeStageRemoved": true,
+  "workbenchVersion": "0.3.13",
+  "toolsVersion": "0.2.8",
+  "nativeCandidate": "apps/developer/.ynx-developer-candidates/ynx-solidity-sealed-native-package-20261004-mac-arm64",
+  "compilerClosureSha256": "223fc0fd21323bcec16e861b7472da7b9c5aec15f044beb3674e455ab5996e8f",
+  "checks": {
+    "buildExit": 0,
+    "signatureExit": 0,
+    "imageExit": 0,
+    "actualPackagedWorkerCompile": true,
+    "installed": false,
+    "launched": false,
+    "notarized": false,
+    "canonicalUserAcceptance": false
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/solidity-sealed-native-evidence-20261004",
+  "evidenceIndexSha256": "94dddb1b57109f6c435675180ee28c4e09fb15fff1a6ebd92770f51f6064dcad",
+  "functionalEvidence": "SOLIDITY_PROJECT_CAPTURE_20261004.json for exact composed core GUI3/Core16/Lifecycle3. SOLIDITY_CLOSURE_DISTRIBUTION_20261004.json for11 compiler regression and standalone dependency-tamper refusal.",
+  "remaining": [
+    "Protected exact-driver installation/activation with existing canonical identity bindings.",
+    "Real installed Wallet/AI/Chain journeys and user acceptance.",
+    "Full extension/platform compatibility, signing/notarization."
+  ],
+  "scope": "Source-pinned ad-hoc macOS ARM Testnet Preview distribution. Earlier incomplete compiler package retained as historical input."
+}
