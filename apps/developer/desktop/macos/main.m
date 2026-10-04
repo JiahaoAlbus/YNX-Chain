@@ -441,16 +441,28 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // message handlers. Its backend owns the selected OS-user workspace.
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
-    _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration];
+    _webView=[[WKWebView alloc]initWithFrame:NSMakeRect(0,0,1440,900) configuration:configuration];
+    _webView.autoresizingMask=NSViewWidthSizable|NSViewHeightSizable;
     _webView.UIDelegate=self;_webView.navigationDelegate=self;
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
     NSString *project=NSProcessInfo.processInfo.environment[@"YNX_LOCAL_WORKSPACE"];
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
     if(![_window setFrameUsingName:@"YNXDeveloperLocalWorkbenchMainWindow"])[_window center];
-    [_window setFrameAutosaveName:@"YNXDeveloperLocalWorkbenchMainWindow"];[_window makeKeyAndOrderFront:nil];
+    [_window setFrameAutosaveName:@"YNXDeveloperLocalWorkbenchMainWindow"];[_webView layoutSubtreeIfNeeded];[_window makeKeyAndOrderFront:nil];[_window makeFirstResponder:_webView];
+    // The pre-run activation request has no window yet. Activate once after
+    // launch has built the visible editor; WebKit can pause drawing frames in
+    // an inactive or occluded application.
+    dispatch_async(dispatch_get_main_queue(),^{
+        if(@available(macOS 14.0,*))[NSApp activate];else[NSApp activateIgnoringOtherApps:YES];
+        [self.window makeKeyAndOrderFront:nil];[self.webView layoutSubtreeIfNeeded];[self.window displayIfNeeded];
+    });
     [_webView loadHTMLString:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px}h1{color:#002FA7}</style><h1>Opening YNX Developer…</h1><p>Your local workspace is being opened.</p>" baseURL:nil];
     if([self launchServer])[self loadWhenReady:0];else[self showFailure:[NSString stringWithFormat:@"The bundled local workbench could not start. Log: %@",_serverLogURL.path?:@"unavailable"]];
+}
+- (void)applicationDidBecomeActive:(NSNotification *)note {
+    if(!_localWorkbenchMode||!_window)return;
+    [_webView layoutSubtreeIfNeeded];[_window displayIfNeeded];
 }
 - (void)installLocalMenus {
     NSMenu *main=[NSMenu new];NSApp.mainMenu=main;
