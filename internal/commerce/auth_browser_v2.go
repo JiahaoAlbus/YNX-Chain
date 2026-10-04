@@ -41,6 +41,9 @@ func NewCommerceCombinedWebV2Server(store *Store, cfg ServerConfig, backendKeyID
 	}
 	cfg.businessV2 = &commerceV2Verifier{consumers: []commerceV2Consumer{{policy, client, live}}, browser: browser, bindBrowser: bind}
 	cfg.browserSSO = browser
+	// Browser SDK requests must reach the same fixed issuer as this constructor.
+	// This grants no private scopes, actor binding, role or business authority.
+	cfg.browserGatewayOrigin = "https://wallet-auth.ynxweb4.com"
 	return NewServer(store, cfg), nil
 }
 

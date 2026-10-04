@@ -25,7 +25,9 @@ type browserIdentityRoutes interface {
 }
 
 type ServerConfig struct {
-	browserSSO                browserIdentityRoutes
+	browserSSO browserIdentityRoutes
+	// Set only by the original combined Web constructor to its fixed issuer.
+	browserGatewayOrigin      string
 	businessV2                businessVerifier
 	Auth                      AuthGateway
 	Pay                       HTTPPayVerifier
@@ -123,7 +125,11 @@ func (s *Server) security(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "no-referrer")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data: https:")
+		policy := "default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'"
+		if s.cfg.browserGatewayOrigin != "" {
+			policy += " " + s.cfg.browserGatewayOrigin
+		}
+		w.Header().Set("Content-Security-Policy", policy+"; img-src 'self' data: https:")
 		w.Header().Set("Cache-Control", "no-store")
 		if r.Method != http.MethodGet && !s.store.Allow(clientSubject(r), "http.mutation", 240, time.Minute) {
 			fail(w, http.StatusTooManyRequests, errors.New("mutation rate limit exceeded"))
