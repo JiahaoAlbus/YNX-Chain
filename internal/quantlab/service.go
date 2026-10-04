@@ -663,6 +663,36 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 		unlock()
 		return TestnetOrder{}, ErrForbidden
 	}
+	d := hash(struct {
+		MandateDigest, Side string
+		Price, Amount       int64
+	}{mandateDigest, side, price, amount})
+	if prior, exists := s.state.Idempotency[key]; exists {
+		if prior != d {
+			unlock()
+			return TestnetOrder{}, ErrConflict
+		}
+		var receipt *TestnetOrder
+		for _, existing := range s.state.TestnetOrders {
+			if existing.IdempotencyKey != key {
+				continue
+			}
+			if receipt != nil || existing.MandateDigest != mandateDigest || existing.Side != side || existing.Price != price || existing.Amount != amount || existing.WalletSignature != strings.TrimSpace(walletSignature) {
+				unlock()
+				return TestnetOrder{}, ErrConflict
+			}
+			copy := existing
+			receipt = &copy
+		}
+		unlock()
+		if receipt == nil || receipt.Status != "submitted_testnet" {
+			return TestnetOrder{}, ErrUnavailable
+		}
+		// Existing receipt recovery is not a second position increment or a
+		// fresh venue submission. All mandate, kill and observation gates above
+		// remain in force; no new proof or signature authority is inferred.
+		return *receipt, nil
+	}
 	// Net persisted submissions exactly: int64 accumulation and abs(MinInt64)
 	// can wrap and make an over-limit position appear admissible. Map iteration
 	// order must not change admission for offsetting historical submissions.
@@ -697,25 +727,6 @@ func (s *Service) SubmitTestnetWithSession(ctx context.Context, mandateDigest, s
 	if notional > m.MaxNotional || position.Abs(position).Cmp(big.NewInt(m.MaxPosition)) > 0 {
 		unlock()
 		return TestnetOrder{}, ErrForbidden
-	}
-	d := hash(struct {
-		MandateDigest, Side string
-		Price, Amount       int64
-	}{mandateDigest, side, price, amount})
-	if prior, ok := s.state.Idempotency[key]; ok {
-		if prior != d {
-			unlock()
-			return TestnetOrder{}, ErrConflict
-		}
-		for _, o := range s.state.TestnetOrders {
-			if o.IdempotencyKey == key {
-				unlock()
-				if o.Status == "submitted_testnet" {
-					return o, nil
-				}
-				return TestnetOrder{}, ErrUnavailable
-			}
-		}
 	}
 	s.state.Sequence++
 	o := TestnetOrder{ID: fmt.Sprintf("testnet-%06d", s.state.Sequence), MandateDigest: mandateDigest, StrategyHash: m.StrategyHash, Market: m.Market, Side: side, Price: price, Amount: amount, IdempotencyKey: key, WalletSignature: strings.TrimSpace(walletSignature), Status: "reserved_outcome_unknown", CreatedAt: s.cfg.Now()}
