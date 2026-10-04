@@ -3,6 +3,19 @@ import assert from 'node:assert/strict';
 import {CARD_BUSINESS_ORIGIN,CardBusinessClient,CardBusinessError,type CardPrivateIdentity} from './cardBusinessClient';
 
 const source='a'.repeat(40),owner='0x'+'b'.repeat(40),other='0x'+'c'.repeat(40),now='2026-09-12T00:00:00.000Z';
+test('original-key transport accepts mutation grammar and rejects path/query injection before proof creation',async()=>{
+ const digest='1'.repeat(64);
+ for(const key of ['1','retry.1','request:original','9'.repeat(160)]){
+  const f=fixture(async()=>response({operation:'freeze',resourceId:'card_fixture',idempotencyKey:key,digest,status:'UNKNOWN'}));
+  assert.deepEqual(await f.client.operationResult('freeze','card_fixture',key,digest),{status:'UNKNOWN'});
+  assert.equal(f.requests[0]!.url,CARD_BUSINESS_ORIGIN+'/api/card/v1/operations/freeze/card_fixture/'+key+'/'+digest);
+  assert.deepEqual(f.scopes,[['account:read']]);
+ }
+ for(const key of ['','../foreign','a/b','a?b','a#b','%2f',':prefix','x'.repeat(161)]){
+  const f=fixture();assert.throws(()=>f.client.operationResult('freeze','card_fixture',key,digest),/INVALID_OPERATION_READBACK/);
+  assert.equal(f.proofs,0);assert.equal(f.requests.length,0);
+ }
+});
 const details={nickname:'Test application',useCase:'Testnet simulation only',limitWei:'10000000000000000000',riskAccepted:true,termsVersion:'card-testnet-v1'};
 const draft={id:'application_fixture',owner,status:'DRAFT',details,createdAt:now,updatedAt:now};
 const empty={environment:'YNX_TESTNET_CARD_PAYMENT_SIMULATION',productionRealPayments:false,asset:'YNXT_TESTNET',applications:[],cards:[],intents:[]};

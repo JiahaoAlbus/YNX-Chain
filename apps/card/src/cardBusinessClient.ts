@@ -101,7 +101,7 @@ export class CardBusinessClient {
     return {...value};
   }
   private async request<T>(scope:CardScope,method:'GET'|'POST'|'PATCH'|'PUT',path:string,parse:(data:unknown,owner:string)=>T,input?:unknown,key?:string):Promise<T>{
-    if(!/^\/api\/card\/v1\/[A-Za-z0-9/_-]+$/.test(path))throw new CardBusinessError('INVALID_CARD_API_ROUTE','configuration');
+    if(!/^\/api\/card\/v1\/[A-Za-z0-9/_-]+$/.test(path)&&!(method==='GET'&&/^\/api\/card\/v1\/operations\/[A-Za-z-]+\/[A-Za-z][A-Za-z0-9_-]{1,159}\/[A-Za-z0-9][A-Za-z0-9._:-]{0,159}\/[0-9a-f]{64}$/.test(path)))throw new CardBusinessError('INVALID_CARD_API_ROUTE','configuration');
     if(method!=='GET'&&(typeof key!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(key)))throw new CardBusinessError('IDEMPOTENCY_KEY_REQUIRED','configuration');
     rejectSensitive(input);
     const initial=this.context(),epoch=this.epoch,controller=new AbortController();this.flights.add(controller);
@@ -172,7 +172,8 @@ export class CardBusinessClient {
   },{amountWei},key);}
   operationResult(operation:string,resourceId:string,key:string,digest:string):Promise<Readonly<{status:'CONFIRMED'|'UNKNOWN'}>>{
     if(!['freeze','unfreeze','recover','controls','topup-intent','topup-confirm','authorization','capture','reverse','refund'].includes(operation)||! /^[0-9a-f]{64}$/.test(digest))throw new CardBusinessError('INVALID_OPERATION_READBACK','configuration');
-    return this.request('account:read','GET',`/api/card/v1/operations/${operation}/${this.resource(resourceId)}/${this.resource(key)}/${digest}`,value=>{
+    if(typeof key!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(key))throw new CardBusinessError('INVALID_OPERATION_READBACK','configuration');
+    return this.request('account:read','GET',`/api/card/v1/operations/${operation}/${this.resource(resourceId)}/${key}/${digest}`,value=>{
       if(!record(value)||value.operation!==operation||value.resourceId!==resourceId||value.idempotencyKey!==key||value.digest!==digest||!['CONFIRMED','UNKNOWN'].includes(String(value.status))||value.status==='CONFIRMED'&&!Object.hasOwn(value,'result')||value.status==='UNKNOWN'&&Object.hasOwn(value,'result'))throw invalid();
       // Historical result is not rendered as a current card/balance: refresh
       // the authoritative state/statement after the exact original-key match.

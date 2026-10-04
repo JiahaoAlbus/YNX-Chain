@@ -14,7 +14,7 @@ const routeScopes:readonly [string,RegExp,CardScope][]=[
   ['POST',/^\/api\/card\/v2\/provider-applications\/[^/]+\/(?:approval-request|approval-result|submit)$/,'card:application:write'],
   ['POST',/^\/api\/card\/v2\/provider-applications\/[^/]+\/(?:freeze|unfreeze)$/,'card:controls:write'],
   ['GET',/^\/api\/card\/v1\/state$/,'account:read'],
-  ['GET',/^\/api\/card\/v1\/operations\/[A-Za-z-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+\/[0-9a-f]{64}$/,'account:read'],
+  ['GET',/^\/api\/card\/v1\/operations\/[A-Za-z-]+\/[A-Za-z0-9_-]+\/[A-Za-z0-9][A-Za-z0-9._:-]{0,159}\/[0-9a-f]{64}$/,'account:read'],
   ['GET',/^\/api\/card\/v1\/cards\/[^/]+\/(statement|reconciliation)$/,'account:read'],
   ['POST',/^\/api\/card\/v1\/applications$/,'card:application:write'],
   ['PATCH',/^\/api\/card\/v1\/applications\/[^/]+$/,'card:application:write'],
