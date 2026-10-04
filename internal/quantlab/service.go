@@ -294,10 +294,16 @@ type PaperOrder struct {
 	// Omit legacy empty keys so existing persisted orders keep their integrity hash.
 	IdempotencyKey string `json:"IdempotencyKey,omitempty"`
 	// Additive market attribution; absent legacy receipts preserve integrity.
-	MarketSource      string `json:"MarketSource,omitempty"`
-	MarketObservedAt  string `json:"MarketObservedAt,omitempty"`
-	MarketPriceMicro  int64  `json:"MarketPriceMicro,omitempty"`
-	MarketVolumeMicro int64  `json:"MarketVolumeMicro,omitempty"`
+	MarketSource          string `json:"MarketSource,omitempty"`
+	MarketObservedAt      string `json:"MarketObservedAt,omitempty"`
+	MarketPriceMicro      int64  `json:"MarketPriceMicro,omitempty"`
+	MarketVolumeMicro     int64  `json:"MarketVolumeMicro,omitempty"`
+	CostPolicy            string `json:"CostPolicy,omitempty"`
+	FeeBPS                int64  `json:"FeeBPS,omitempty"`
+	SlippageBPS           int64  `json:"SlippageBPS,omitempty"`
+	ExecutionPriceMicro   int64  `json:"ExecutionPriceMicro,omitempty"`
+	ExecutedNotionalMicro int64  `json:"ExecutedNotionalMicro,omitempty"`
+	FeeMicro              int64  `json:"FeeMicro,omitempty"`
 }
 type PaperState struct {
 	Cash, Position, RealizedPnL int64
@@ -1489,20 +1495,21 @@ func (s *Service) applyPaperSignalObserved(strategyHash, side string, price, amo
 		return PaperOrder{}, lockErr
 	}
 	defer release()
-	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "", observation)
+	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "", observation, PaperExecutionCosts{})
 }
 
 // applyPaperSignalLocked runs with both the service and durable state locks held.
-func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string, observation *MarketTick) (PaperOrder, error) {
+func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string, observation *MarketTick, costs PaperExecutionCosts) (PaperOrder, error) {
 	if s.state.Paper.KillSwitch {
 		return PaperOrder{}, ErrForbidden
 	}
 	limits := RiskLimits{MaxOrderNotional: 10_000_000_000, MaxPosition: 10_000_000, MaxDailyLoss: 1_000_000_000, MaxOrders: 100}
-	notional, safe := microNotional(price, amount)
-	if !safe {
-		return PaperOrder{}, ErrInvalid
+	_, requestedNotional, requestedFee, costErr := paperCostSettlement(side, price, amount, costs)
+	if costErr != nil {
+		return PaperOrder{}, costErr
 	}
-	if notional > limits.MaxOrderNotional || len(s.state.Paper.Orders) >= limits.MaxOrders {
+	requestedDebit := new(big.Int).Add(big.NewInt(requestedNotional), big.NewInt(requestedFee))
+	if requestedDebit.Cmp(big.NewInt(limits.MaxOrderNotional)) > 0 || len(s.state.Paper.Orders) >= limits.MaxOrders {
 		return PaperOrder{}, ErrForbidden
 	}
 	fill := amount
@@ -1522,8 +1529,15 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	if new(big.Int).Abs(new(big.Int).Set(nextPosition)).Cmp(big.NewInt(limits.MaxPosition)) > 0 {
 		return PaperOrder{}, ErrForbidden
 	}
-	cashDelta := new(big.Int).Mul(big.NewInt(signed), big.NewInt(price))
-	cashDelta.Quo(cashDelta, big.NewInt(1_000_000))
+	executionPrice, executedNotional, fee, costErr := paperCostSettlement(side, price, fill, costs)
+	if costErr != nil {
+		return PaperOrder{}, costErr
+	}
+	cashDelta := big.NewInt(executedNotional)
+	if side == "sell" {
+		cashDelta.Neg(cashDelta)
+	}
+	cashDelta.Add(cashDelta, big.NewInt(fee))
 	nextCash := new(big.Int).Sub(big.NewInt(s.state.Paper.Cash), cashDelta)
 	if !nextCash.IsInt64() {
 		return PaperOrder{}, ErrInvalid
@@ -1543,6 +1557,10 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 	s.state.Paper.DailyRisk = dailyRisk
 	s.state.Sequence++
 	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}
+	if costs.Policy != "" {
+		o.CostPolicy, o.FeeBPS, o.SlippageBPS = costs.Policy, costs.FeeBPS, costs.SlippageBPS
+		o.ExecutionPriceMicro, o.ExecutedNotionalMicro, o.FeeMicro = executionPrice, executedNotional, fee
+	}
 	if observation != nil {
 		o.MarketSource, o.MarketPriceMicro, o.MarketVolumeMicro = observation.Source, observation.Price, observation.Volume
 		if !observation.At.IsZero() {
@@ -1564,8 +1582,8 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 }
 
 // The first accepted mark of each UTC day is its baseline, not a fabricated
-// midnight quote. Loss includes marked open positions; Paper still models no
-// execution fee/slippage. A breach is latched for that day, across instances.
+// midnight quote. Loss includes marked open positions and already settled
+// execution costs. A breach is latched for that day, across instances.
 func paperDailyRisk(paper PaperState, price int64, now time.Time, limit int64) (*PaperDailyRisk, error) {
 	if price <= 0 || limit <= 0 || now.IsZero() {
 		return nil, ErrInvalid
@@ -1613,6 +1631,15 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 // the lower-level execution adapter, it requires a saved strategy in this tenant
 // and a durable request key. It never grants native Testnet execution authority.
 func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount int64, key string) (PaperOrder, error) {
+	return s.SubmitPaperSignalWithCostsFromMarket(strategyHash, side, amount, key, PaperExecutionCosts{})
+}
+
+// SubmitPaperSignalWithCostsFromMarket is opt-in Paper simulation only. Its
+// exact cost assumption is part of the durable idempotent request identity.
+func (s *Service) SubmitPaperSignalWithCostsFromMarket(strategyHash, side string, amount int64, key string, costs PaperExecutionCosts) (PaperOrder, error) {
+	if !costs.valid() {
+		return PaperOrder{}, ErrInvalid
+	}
 	decoded, err := hex.DecodeString(strategyHash)
 	if err != nil || len(decoded) != sha256.Size || strategyHash != strings.ToLower(strategyHash) ||
 		(side != "buy" && side != "sell") || amount <= 0 || len(key) < 8 || len(key) > 128 {
@@ -1632,7 +1659,7 @@ func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount 
 			return PaperOrder{}, false, err
 		}
 		defer release()
-		return s.paperSubmissionLocked(strategyHash, side, amount, key)
+		return s.paperSubmissionWithCostsLocked(strategyHash, side, amount, key, costs)
 	}
 	if order, found, err := check(); found || err != nil {
 		return order, err
@@ -1653,18 +1680,22 @@ func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount 
 	defer release()
 	// Another process may have committed this key or replaced the saved strategy
 	// while the market request was in flight. Recheck under the durable write lock.
-	if order, found, err := s.paperSubmissionLocked(strategyHash, side, amount, key); found || err != nil {
+	if order, found, err := s.paperSubmissionWithCostsLocked(strategyHash, side, amount, key, costs); found || err != nil {
 		return order, err
 	}
-	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key, &tick)
+	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key, &tick, costs)
 }
 
 func (s *Service) paperSubmissionLocked(strategyHash, side string, amount int64, key string) (PaperOrder, bool, error) {
+	return s.paperSubmissionWithCostsLocked(strategyHash, side, amount, key, PaperExecutionCosts{})
+}
+
+func (s *Service) paperSubmissionWithCostsLocked(strategyHash, side string, amount int64, key string, costs PaperExecutionCosts) (PaperOrder, bool, error) {
 	// Paper orders are retained (and capped at 100). Their keys are independent
 	// from the Testnet idempotency namespace and persist in the same atomic state.
 	for _, order := range s.state.Paper.Orders {
 		if order.IdempotencyKey == key {
-			if order.StrategyHash != strategyHash || order.Side != side || order.Amount != amount {
+			if order.StrategyHash != strategyHash || order.Side != side || order.Amount != amount || order.CostPolicy != costs.Policy || order.FeeBPS != costs.FeeBPS || order.SlippageBPS != costs.SlippageBPS {
 				return PaperOrder{}, false, ErrConflict
 			}
 			return order, true, nil
