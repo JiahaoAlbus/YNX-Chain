@@ -69,6 +69,15 @@ test('real bundled compiler serves navigation and rename providers, retires inva
   assert.deepEqual(renamed.edits.map(edit => edit.uri.fsPath).sort(), documents.map(doc => doc.uri.fsPath).sort());
   assert.equal(documents[0].text, texts['Use.sol']); assert.equal(documents[1].text, texts['lib/Math.sol']);
   assert.equal(renamed.edits.find(edit => edit.uri.fsPath === documents[1].uri.fsPath).range.start.offset, texts['lib/Math.sol'].indexOf('value()'));
+  const wordEnd = { offset: position.offset + 'value'.length };
+  const preparedAtEnd = await providers.Rename.prepareRename(documents[0], wordEnd);
+  assert.equal(preparedAtEnd.placeholder, 'value');
+  assert.deepEqual(preparedAtEnd.range, prepared.range);
+  const renamedAtEnd = await providers.Rename.provideRenameEdits(documents[0], wordEnd, 'fresh');
+  assert.deepEqual(renamedAtEnd.edits, renamed.edits);
+  const declarationEnd = { offset: texts['lib/Math.sol'].indexOf('value()') + 'value'.length };
+  assert.equal((await providers.Rename.prepareRename(documents[1], declarationEnd)).placeholder, 'value');
+  await assert.rejects(providers.Rename.prepareRename(documents[0], { offset: wordEnd.offset + 1 }), /cursor on a Solidity symbol/);
   await assert.rejects(providers.Rename.provideRenameEdits(documents[0], position, 'bad-name'), /valid Solidity identifier/);
   await assert.rejects(providers.Rename.provideRenameEdits(documents[0], position, 'return'), /break the Solidity project/);
   await assert.rejects(providers.Rename.provideRenameEdits(documents[1], { offset: texts['lib/Math.sol'].indexOf('value(uint256') }, 'Math'), /already exists|break the Solidity project/);

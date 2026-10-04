@@ -72,6 +72,16 @@ try {
   assert.ok((await current()).text.includes('"contractName": "Use"'));
   const artifact=JSON.parse((await current()).text);assert.ok(artifact.bytecode.length>2);assert.ok(artifact.abi.some(row=>row.name==='ping'));
   checks.push('One standard compile command opens the real local ABI and bytecode artifact without a browser or copied JSON.');
+  await open('Use.sol');const beforeFormat=(await current()).text;
+  await page.keyboard.press('Alt+Shift+f');
+  await page.waitForFunction(()=>{
+    const c=window.theia.container,id=[...c._bindingDictionary._map.keys()].find(id=>typeof id==='function'&&'currentEditor' in id.prototype&&typeof id.prototype.getByUri==='function');
+    return c.get(id).currentEditor.editor.getControl().getModel().getLineCount()>8;
+  });
+  assert.ok((await current()).text.includes('function ping()'));
+  await page.screenshot({path:runtime.qa+'/coding-format.png'});
+  await current();await page.keyboard.press('Meta+z');assert.equal((await current()).text,beforeFormat);
+  checks.push('Standard Format Document uses the retained Nomic/Prettier formatter and its edit can be undone.');
   passed=true;
 }catch(error){errors.push({message:error.message,stack:error.stack});await page.screenshot({path:runtime.qa+'/coding-error.png'}).catch(()=>{});}
 finally{await browser.close();await writeFile(runtime.qa+'/coding-ui.json',JSON.stringify({passed,checks,errors,realEditor:true,canonical:false,public:false,sourceWrites:'Only owned fixture files through normal rename, keyboard edits and Save.'},null,2),{flag:'wx'});console.log(JSON.stringify({passed,checks,errors}));if(!passed)process.exitCode=1;}

@@ -3,7 +3,7 @@
 class LanguageCommandReadiness {
   constructor(editors, plugins, monacoCommands) { this.editors = editors; this.plugins = plugins; this.monacoCommands = monacoCommands; }
   registerCommands(registry) {
-    for (const id of ['editor.action.revealDefinition', 'editor.action.rename', 'editor.action.triggerSuggest']) {
+    for (const id of ['editor.action.revealDefinition', 'editor.action.rename', 'editor.action.triggerSuggest', 'editor.action.formatDocument']) {
       registry.registerHandler(id, {
         isEnabled: () => this.isSolidityEditor(),
         execute: (...args) => this.execute(id, args),

@@ -51,6 +51,12 @@ if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
   node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
   node scripts/bundle-solidity-language-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/native/ynx-tools"
 fi
+if [[ "${YNX_DEVELOPER_SOLIDITY_FORMAT_INPUT:-}" == retained ]]; then
+  node scripts/bundle-solidity-format-runtime.mjs "$app/Contents/Resources/code/apps/developer/native/ynx-tools"
+elif [[ -n "${YNX_DEVELOPER_SOLIDITY_FORMAT_INPUT:-}" ]]; then
+  echo "YNX_DEVELOPER_SOLIDITY_FORMAT_INPUT must be retained when enabled." >&2
+  exit 1
+fi
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 # APFS clones preserve a standalone dependency tree while sharing unchanged
 # blocks. Retain any failed clone outside the app before a fresh normal copy.
@@ -137,7 +143,58 @@ while IFS= read -r bundled_binary; do
     /usr/bin/codesign --force --sign - "$bundled_binary"
   fi
 done < <(/usr/bin/find "$app/Contents/Resources" -type f -print)
+# Record the actual signed formatter bytes before sealing the outer app. Keep
+# each original input hash so the local no-Team-ID signature is distinguishable
+# from the retained dependency and the separately documented server derivative.
+node --input-type=module - "$app/Contents/Resources" <<'NODE'
+import {readFile, writeFile, lstat} from 'node:fs/promises';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+const resources=process.argv[2];
+const formatter=join(resources,'code/apps/developer/native/ynx-tools/formatter');
+const receipt=join(formatter,'distribution.json');
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+let record;
+try {record=JSON.parse(await readFile(receipt,'utf8'));}
+catch(error) {if(error.code==='ENOENT')process.exit(0);throw error;}
+const modifications=[];
+for(const [relative,beforeSha256] of Object.entries(record.files)) {
+  if(relative.startsWith('/')||relative.split('/').some(part=>part==='..'||part===''))throw Error('Invalid formatter distribution path.');
+  const file=join(formatter,relative);
+  if(!(await lstat(file)).isFile())throw Error('Formatter distribution input is not a regular file.');
+  const bytes=await readFile(file),afterSha256=sha(bytes);
+  if(afterSha256===beforeSha256)continue;
+  const magic=bytes.length>=4?bytes.readUInt32BE(0):0;
+  if(![0xfeedface,0xfeedfacf,0xcefaedfe,0xcffaedfe,0xcafebabe,0xbebafeca,0xcafebabf,0xbfbafeca].includes(magic))throw Error('Unexpected non-Mach-O formatter mutation: '+relative);
+  modifications.push({path:relative,beforeSha256,afterSha256});
+  record.files[relative]=afterSha256;
+}
+record.macosAdhocSigning={signingClass:'adhoc-no-team-id',modifications};
+await writeFile(receipt,JSON.stringify(record,null,2)+'\n');
+const provenancePath=join(resources,'build-provenance.json');
+const provenance=JSON.parse(await readFile(provenancePath,'utf8'));
+provenance.solidityFormatterDistribution={path:'Contents/Resources/code/apps/developer/native/ynx-tools/formatter/distribution.json',sha256:sha(await readFile(receipt)),packages:record.packages,macosAdhocSigning:record.macosAdhocSigning};
+await writeFile(provenancePath,JSON.stringify(provenance,null,2)+'\n');
+NODE
 /usr/bin/codesign --force --deep --sign - "$app"
+node --input-type=module - "$app/Contents/Resources" <<'NODE'
+import {readFile} from 'node:fs/promises';
+import {join} from 'node:path';
+import {createHash} from 'node:crypto';
+const resources=process.argv[2];
+const formatter=join(resources,'code/apps/developer/native/ynx-tools/formatter');
+let bytes;
+try {bytes=await readFile(join(formatter,'distribution.json'));}
+catch(error) {if(error.code==='ENOENT')process.exit(0);throw error;}
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
+const record=JSON.parse(bytes);
+for(const [relative,expected] of Object.entries(record.files)) {
+  if(sha(await readFile(join(formatter,relative)))!==expected)throw Error('Outer signing changed recorded formatter bytes: '+relative);
+}
+const provenance=JSON.parse(await readFile(join(resources,'build-provenance.json'),'utf8'));
+if(provenance.solidityFormatterDistribution.sha256!==sha(bytes))throw Error('Formatter distribution provenance differs after outer signing.');
+console.log('Final signed formatter files and provenance match.');
+NODE
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
 if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=not set' <<<"$signature"; then
   echo "Refusing local-package classification: expected only linker ad-hoc signing with no team identity." >&2

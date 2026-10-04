@@ -43,7 +43,9 @@ test('actual reviewed compiler bundle compares all assets and refuses altered wo
   if (!input) return t.skip('Supply the existing reviewed bundled extension.');
   const qa = await mkdtemp('/private/tmp/ynx-core-compiler-review-'), target = join(qa, 'tools');
   await cp(input, target, { recursive: true }); await verifyCoreExtensionInputs(input, target);
-  for (const name of ['compiler/compiler-worker.mjs', 'compiler/node_modules/solc/soljson.js', 'compiler/node_modules/js-sha3/src/sha3.js']) {
+  const assets = ['compiler/compiler-worker.mjs', 'compiler/node_modules/solc/soljson.js', 'compiler/node_modules/js-sha3/src/sha3.js'];
+  if (process.env.YNX_SOLIDITY_FORMAT_EXTENSION_INPUT === 'retained') assets.push('formatter/node_modules/@nomicfoundation/solidity-language-server/out/index.js', 'formatter/node_modules/vscode-jsonrpc/lib/node/main.js');
+  for (const name of assets) {
     const file = join(target, name), original = await readFile(file);
     await appendFile(file, '\n// changed by user\n'); const changed = await readFile(file);
     await assert.rejects(verifyCoreExtensionInputs(input, target), { code: 'core_tools_review_required' });

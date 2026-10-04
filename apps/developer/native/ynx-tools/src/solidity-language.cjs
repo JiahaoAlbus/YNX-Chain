@@ -99,8 +99,12 @@ function createSolidityLanguage(vscode, context, environment) {
   function at(state, document, position) {
     const file = fileFor(state, document); if (!file) return undefined;
     const offset = Buffer.byteLength(document.getText().slice(0, document.offsetAt(position)));
-    const reference = state.semantics.references.find(row => row.location.file === file && row.location.start <= offset && offset < row.location.end);
-    const declaration = reference ? state.semantics.declarations.find(row => row.id === reference.targetId) : state.semantics.declarations.find(row => row.location.file === file && row.location.start <= offset && offset < row.location.end);
+    // A caret immediately after a word still targets that word, as standard
+    // editor rename/navigation does. Prefer a token containing the caret first.
+    const locate = rows => rows.find(row => row.location.file === file && row.location.start <= offset && offset < row.location.end)
+      || rows.find(row => row.location.file === file && row.location.end === offset);
+    const reference = locate(state.semantics.references);
+    const declaration = reference ? state.semantics.declarations.find(row => row.id === reference.targetId) : locate(state.semantics.declarations);
     return declaration ? { declaration, reference } : undefined;
   }
   function range(state, location) {

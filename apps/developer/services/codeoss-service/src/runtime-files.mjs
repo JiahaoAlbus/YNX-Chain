@@ -12,7 +12,7 @@ async function extensionTree(root) {
   const canonical = await realpath(root), entries = new Map();
   let bytes = 0, count = 0;
   async function visit(directory, relative, depth) {
-    if (depth > 32 || ++count > 1024 || await realpath(directory) !== directory) throw Error('Extension directory is unsafe.');
+    if (depth > 32 || ++count > 8192 || await realpath(directory) !== directory) throw Error('Extension directory is unsafe.');
     const stat = await lstat(directory);
     if (!stat.isDirectory() || stat.isSymbolicLink()) throw Error('Extension directory is not regular.');
     const names = (await readdir(directory)).sort();
@@ -21,7 +21,7 @@ async function extensionTree(root) {
       if (current.isSymbolicLink()) throw Error('Extension link is unsafe.');
       if (current.isDirectory()) { entries.set(key + '/', 'directory'); await visit(path, key, depth + 1); }
       else {
-        if (!current.isFile() || ++count > 1024 || (bytes += current.size) > 32 * 1024 * 1024) throw Error('Extension input exceeds its regular-file budget.');
+        if (!current.isFile() || ++count > 8192 || (bytes += current.size) > 128 * 1024 * 1024) throw Error('Extension input exceeds its regular-file budget.');
         const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
         try {
           const before = await file.stat();

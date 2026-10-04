@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
   const solidityLanguage = require('./solidity-language.cjs').createSolidityLanguage(vscode, context, process.env);
+  require('./solidity-format.cjs').createSolidityFormatting(vscode, context, process.env);
   const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
   // The host context menu lives outside Monaco's scoped DOM context. Publish
