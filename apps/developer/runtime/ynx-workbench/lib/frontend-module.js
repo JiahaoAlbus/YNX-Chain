@@ -40,10 +40,15 @@ const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCU
 require('./token-cache-adapter').install();
 require('./dialog-accept-adapter').install();
 require('./review-preview-adapter').install();
+const workspaceTextEdits = require('./workspace-text-edit-adapter');
+workspaceTextEdits.install();
 require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => ({
+    onStart() { workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message)); },
+  })).inSingletonScope();
   bind(OriginalBrowserStorage).to(LocalStorageService).inSingletonScope();
   rebind(LocalStorageService).toDynamicValue(context => new LocalWorkbenchStorage(
     context.container.get(OriginalBrowserStorage), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-storage'), context.container.get(MessageService),
