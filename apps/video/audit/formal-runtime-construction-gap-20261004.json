@@ -1,0 +1,167 @@
+{
+  "schema": "ynx.media.formal-runtime-construction-gap.v1",
+  "basisCommit": "9eb933794e6b865b51bc1997435407d4031a3c82",
+  "releaseCandidateCommit": "2f3f94366f09203ccd840f6cddf98940c654b93d",
+  "observation": "read-only source inspection, no runtime startup or formal/public probe",
+  "sourceReferences": [
+    {
+      "path": "internal/video/cmd/main.go",
+      "bytes": 3529,
+      "sha256": "bc20371f61a77b8da9086c46398984e133734c7879029681b6e990cccc55c843"
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3300,
+      "sha256": "87012d6d82d83c988e3c895279774bfa3d47716c6ff8571dfa92fc8838427035"
+    },
+    {
+      "path": "internal/video/service.go",
+      "bytes": 66835,
+      "sha256": "5a0be7a791fa3cdbb80af0e85d8ec8ad0309f0612884c4188ec3e135b2f776df"
+    },
+    {
+      "path": "internal/music/types.go",
+      "bytes": 7773,
+      "sha256": "3506b2094759d1049304ca1aa134422deefff11eaa6f0be5e5ddf75cb8f6d22d"
+    },
+    {
+      "path": "internal/video/business_request.go",
+      "bytes": 9779,
+      "sha256": "ced98044a9deca0077b6b0eaaf300f0a947dd94bf86e1afaf55b11a9d100d53b"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 11236,
+      "sha256": "1ccf580142983cb6b778119ea3a46306d7330b1af32546e759c31e2cb607f709"
+    },
+    {
+      "path": "internal/video/business_sdk.go",
+      "bytes": 5527,
+      "sha256": "9082a1c6d7cef8a4359158cc49a7e76d625c5838415c17935f7ed967773d0500"
+    },
+    {
+      "path": "internal/video/business_combined_sdk.go",
+      "bytes": 4261,
+      "sha256": "83c16209dbb173f1b9e75fe35ef28086e0008c818f04b39496dfe4adfe125e42"
+    },
+    {
+      "path": "internal/music/business_sdk.go",
+      "bytes": 4417,
+      "sha256": "d7d092aa9c19c37984449f7f2c2205a49f29ce57976aad453a77aa696d50798b"
+    },
+    {
+      "path": "apps/music/audit/contracts/native-rights-producer-contract-20261004.md",
+      "bytes": 7013,
+      "sha256": "c1ad7054fe73dfa9b4613058cb92e5cd5ddb51c254c0328dc000cb90ccf8a5ca"
+    }
+  ],
+  "launcherFindings": [
+    {
+      "path": "internal/video/cmd/main.go",
+      "serviceConstructor": "video.NewService(video.Config{...})",
+      "line": 38,
+      "canonicalBusinessAuthorityInjected": false,
+      "legacyAuthenticatorDoesNotEstablishCanonicalAuthority": true
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "serviceConstructor": "music.New(music.Config{...})",
+      "line": 59,
+      "canonicalBusinessAuthorityInjected": false,
+      "walletURLOrGatewayKeyDoesNotEstablishCanonicalAuthority": true
+    }
+  ],
+  "closedHandlers": [
+    {
+      "path": "internal/video/business_request.go",
+      "line": 49,
+      "httpStatus": 503
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "line": 138,
+      "httpStatus": 503
+    }
+  ],
+  "requiredOriginalConstruction": [
+    {
+      "product": "Video and Creator browser",
+      "function": "video.NewVideoCombinedSDKAuthority",
+      "buildTags": [
+        "ynx_canonical_media",
+        "ynx_media_combined_authority"
+      ],
+      "hostOwnedInputs": [
+        "matching RegisteredClientSet for Video and Creator",
+        "matching sealed BrowserSSO for both",
+        "real BindVideoCombinedCurrentActor returning current local account/device/generation/role guard"
+      ],
+      "consumerInjection": "video.Config.BusinessAuthority before video.NewService; preserve original Root/integrity/scanner/processor/AI/Pay/objects and existing Store",
+      "scopeBoundary": "combined factory admits original web platform; do not route native through a guessed browser grant"
+    },
+    {
+      "product": "Video and Creator native",
+      "function": "video.NewVideoSDKAuthority",
+      "buildTags": [
+        "ynx_canonical_media"
+      ],
+      "hostOwnedInputs": [
+        "matching original native RegisteredClientSet entries",
+        "real BindVideoCurrentActor with original enrolled OS device/account/generation and object/role checks"
+      ],
+      "consumerInjection": "video.Config.BusinessAuthority before same original service construction",
+      "scopeBoundary": "matching native protected mounting/dispatch belongs to A; no client-supplied actor or permissive fallback"
+    },
+    {
+      "product": "Music all registered platforms",
+      "function": "music.NewMusicSDKAuthority",
+      "buildTags": [
+        "ynx_canonical_media"
+      ],
+      "hostOwnedInputs": [
+        "matching original Music RegisteredClientSet",
+        "real BindMusicCurrentActor returning local original enrolled actor/device/generation guard"
+      ],
+      "consumerInjection": "music.Config.BusinessAuthority before music.New; preserve original StatePath/MediaDir/state/store and all upstream producer adapters"
+    }
+  ],
+  "observedSharedCheckout": {
+    "path": "/Users/huangjiahao/.codex/worktrees/d386/YNX Chain",
+    "commit": "57616502b980664967ec4b0ed4d6159e48f390c3",
+    "isFormalRuntimeAttestation": false,
+    "launcherGitObjects": [
+      {
+        "path": "internal/video/cmd/main.go",
+        "existsInObservedSharedCommit": false,
+        "bytes": null,
+        "sha256": null,
+        "matchingOwnedBytes": null
+      },
+      {
+        "path": "apps/music/cmd/ynx-musicd/main.go",
+        "existsInObservedSharedCommit": false,
+        "bytes": null,
+        "sha256": null,
+        "matchingOwnedBytes": null
+      }
+    ]
+  },
+  "formalAcceptanceRequired": [
+    "A exact mounted source/tree/build/SDK/registry/client and fresh Host receipt",
+    "Video same-person /v1/account then original library/playlist/watch/private playback",
+    "Creator same-person account/channel then original upload/restore/private output readback",
+    "Music same-person /api/me then original library/playback/creator flow",
+    "exact original unknown key/body recovery and actor/device generation cancellation/revoke",
+    "Music protected same-requester Trust final-result/reconciliation contract",
+    "real installed Android/macOS and normal public Web Wallet consent/callback/UI/codec/storage",
+    "original accounts/media/drafts/private keys/legacy529/journals preserved and user acceptance"
+  ],
+  "sourceAdmission": "2f3 successor remains pending original reviewer; previous 48ca SOURCE_HOLD P1 retained",
+  "notClaims": [
+    "not evidence public runtime necessarily uses inspected standalone entrypoints",
+    "not a credential or actor grant",
+    "not a deployed/installed build",
+    "not full Media completion"
+  ],
+  "nextResponsibleOwner": "sole A via Root: supply exact real protected constructor/mount input and formal receipt, then Media consumer can run original formal journeys"
+}
