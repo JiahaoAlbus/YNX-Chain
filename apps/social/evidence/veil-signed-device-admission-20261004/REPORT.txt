@@ -1,0 +1,37 @@
+Social-owned signed device admission implementation, 2026-10-04
+
+Added a native-only implementation of the original VeilDeviceGrantVerifier.
+Actual code verifies an independently pinned P-256 SPKI, complete native
+binding, single-use native challenge, signed approval/generation/duration,
+strict bounded framing and monotonic expiry. No boolean admission, issuer
+from response, JS/SSO-derived trust, automatic key creation or activation.
+
+Actual isolated Kotlin 2.1.20/JVM17 compile: exit0.
+Actual real-JCA-signature tests: 29 assertions PASS, exit0.
+Original unmodified authority/record-budget suite: 13 checks PASS, exit0.
+QA issuers are ephemeral synthetic enrollment. No private keys were saved.
+
+Production-source composition: four current native Kotlin sources, all
+current libsignal Java bridge sources, and the four original Matrix Kotlin
+pipeline sources compiled against original admitted dependencies.
+Native compile exit0; Java compile exit0.
+First pipeline compile FAILED because separate named compilation did not
+declare the original native module as a friend; the complete error log is
+preserved. Corrected isolated compilation uses the original same-module
+internal visibility through -Xfriend-paths, with distinct module metadata.
+No production visibility was expanded or check suppressed.
+Corrected pipeline compile exit0; production-source jar package exit0.
+Artifact: dormant-signed-admission-composition.jar, 149250 bytes.
+Exact SHA-256 is in composition-output.sha256; inputs are frozen separately.
+
+No network fetch, stopped SDK/Node graph, Wallet/account/sign/transaction,
+OS unlock, deployment, installation or live database action was performed.
+The existing Web publication candidate is unchanged.
+
+NOT_VERIFIED: trusted production issuer enrollment and protocol admission,
+actual native directory producer/caller, IndependentVerifier/NativeRoutes,
+checkpoint protector, enrolled Android Keystore execution, durable generation,
+real Matrix relay/device recovery, public/install journeys, MONSTER.
+P-256 is solely this admission-response authentication format and is not
+presented as the libsignal or Chain cryptographic algorithm.
+activationApproved=false; activated=false; complete Social goal NOT_COMPLETE.

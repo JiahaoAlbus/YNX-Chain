@@ -1,0 +1,93 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.jetbrains.kotlin.org.fusesource.jansi.internal.JansiLoader in an unnamed module (file:/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.1.20/4ef56b3316798316bfac7a0ae443391c9e900ea1/kotlin-compiler-embeddable-2.1.20.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+WARNING: A terminally deprecated method in sun.misc.Unsafe has been called
+WARNING: sun.misc.Unsafe::objectFieldOffset has been called by org.jetbrains.kotlin.com.intellij.util.containers.Unsafe (file:/Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-compiler-embeddable/2.1.20/4ef56b3316798316bfac7a0ae443391c9e900ea1/kotlin-compiler-embeddable-2.1.20.jar)
+WARNING: Please consider reporting this to the maintainers of class org.jetbrains.kotlin.com.intellij.util.containers.Unsafe
+WARNING: sun.misc.Unsafe::objectFieldOffset will be removed in a future release
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:15:22: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+  private val store: VeilNativeStore,
+                     ^^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:33:20: error: cannot access 'interface VeilRecordTransaction : Any': it is internal in file.
+    fun review(tx: VeilRecordTransaction, context: VeilApplicationContext, hint: String): Reviewed
+                   ^^^^^^^^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:48:27: error: cannot access 'interface VeilRecordTransaction : Any': it is internal in file.
+  private fun current(tx: VeilRecordTransaction, hint: String, peer: VeilSignalAddress): Current {
+                          ^^^^^^^^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:56:29: error: cannot access 'interface VeilRecordTransaction : Any': it is internal in file.
+    grant.recheck.run(); tx.checkLive()
+                            ^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:59:24: error: cannot access 'interface VeilRecordTransaction : Any': it is internal in file.
+  private fun bind(tx: VeilRecordTransaction, operation: UUID, context: VeilApplicationContext, reviewed: Reviewed, preparing: Boolean) {
+                       ^^^^^^^^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:70:20: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      return store.transaction { tx ->
+                   ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:81:28: error: cannot access 'interface VeilRecordTransaction : Any': it is internal in file.
+  private fun outgoing(tx: VeilRecordTransaction, operation: UUID, hint: String, peer: VeilSignalAddress): Current {
+                           ^^^^^^^^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:87:11: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    store.transaction { tx ->
+          ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:95:22: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    var view = store.transaction { tx ->
+                     ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:101:26: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      val cipher = store.transaction { tx ->
+                         ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:108:20: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      view = store.transaction { tx ->
+                   ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:115:25: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      val event = store.transaction { tx ->
+                        ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:118:22: error: cannot access 'class VeilNativeTransaction : VeilRecordTransaction': it is internal in file.
+        val raw = tx.read(VeilRecordKind.OUTBOX, "matrix-v2-result:" + operation)
+                     ^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:118:27: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+        val raw = tx.read(VeilRecordKind.OUTBOX, "matrix-v2-result:" + operation)
+                          ^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:118:42: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+        val raw = tx.read(VeilRecordKind.OUTBOX, "matrix-v2-result:" + operation)
+                                         ^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:124:27: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    val attempted = store.transaction { tx ->
+                          ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:130:11: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    store.transaction { tx ->
+          ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:136:25: error: cannot access 'class VeilNativeTransaction : VeilRecordTransaction': it is internal in file.
+      val previous = tx.read(VeilRecordKind.OUTBOX, key)
+                        ^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:136:30: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+      val previous = tx.read(VeilRecordKind.OUTBOX, key)
+                             ^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:136:45: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+      val previous = tx.read(VeilRecordKind.OUTBOX, key)
+                                            ^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:139:12: error: cannot access 'class VeilNativeTransaction : VeilRecordTransaction': it is internal in file.
+        tx.write(VeilRecordKind.OUTBOX, key, bytes)
+           ^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:139:18: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+        tx.write(VeilRecordKind.OUTBOX, key, bytes)
+                 ^^^^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:139:33: error: cannot access 'enum class VeilRecordKind : Enum<VeilRecordKind>': it is internal in file.
+        tx.write(VeilRecordKind.OUTBOX, key, bytes)
+                                ^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:146:18: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    return store.transaction { tx ->
+                 ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:158:26: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+    val original = store.transaction { tx ->
+                         ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:167:13: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      store.transaction { tx ->
+            ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:183:20: error: cannot access 'class VeilNativeStore : AutoCloseable': it is internal in file.
+      return store.transaction { tx ->
+                   ^^^^^^^^^^^
+apps/social/crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt:191:41: error: cannot access 'class VeilNativeTransaction : VeilRecordTransaction': it is internal in file.
+        checked.grant.recheck.run(); tx.checkLive()
+                                        ^^^^^^^^^

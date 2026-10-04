@@ -1,0 +1,1 @@
+VeilSignedDeviceGrantCheck: 29 assertions PASS; synthetic QA issuer, production enrollment NOT_VERIFIED
