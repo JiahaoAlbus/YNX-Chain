@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b00c77d577e8958464f92dec423ed56b29f60113",
+  "sourceTree": "555dedf979db5c94d7ae403e923e4a16694721df",
+  "changes": [
+    "Unreadable ordinary tool HTTP401 retires private results and one-use reviews while preserving unsent input",
+    "Retired late unreadable responses cannot clear newly admitted workspace",
+    "Unreadable non-401 response shows readable error and releases operation lock"
+  ],
+  "checks": {
+    "typecheckExit": 0,
+    "responseUnitTests": 3,
+    "developmentBrowserScenarios": 8,
+    "compiledBrowserScenarios": 8,
+    "pageErrors": [],
+    "productionBuildExit": 0
+  },
+  "buildFiles": 232,
+  "buildManifestSha256": "3fe8c2c594a36aa650864ab6c0823c31ccdabb03cbcee28c05f8141e8bcc1078",
+  "evidence": "apps/developer/.ynx-developer-candidates/tools-response-evidence-20261004",
+  "evidenceIndexSha256": "05a68679748506dfaeaf8ff52a95bdffc3b478bc8f5a0cefef35de9e186281ae",
+  "scope": "Owned frontend only. Browser HTTP routes controlled; no real Wallet/Chain/model acceptance or formal publication. Existing 0.3.12 native and frozen public release inputs unchanged."
+}
