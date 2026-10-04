@@ -1,0 +1,18 @@
+Starting Metro Bundler
+
+Web Bundled 445ms index.ts (2285 modules)
+
+› Assets (3):
+assets/icon.ac64b115433cc62063b01bbab973bec7.png (863KB)
+assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png (3.7KB)
+assets/ynx-logo.886ac0507f3889d6fb7acf8c78bfa78c.png (104KB)
+
+› web bundles (1):
+_expo/static/js/web/index-b862f7c6b07d68986c71f3c33db664dd.js (4.5MB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (1.2KB)
+metadata.json (49B)
+
+Exported: dist-web

@@ -1,0 +1,61 @@
+{
+  "observedAt": "2026-10-04T09:36:30.041Z",
+  "source": "f2ea66d9a312062b3d2682291d68becdce1a0efb",
+  "purpose": "Server-side public chain read only; not a Standard Wallet connection prerequisite",
+  "observations": [
+    {
+      "url": "https://evm.ynxweb4.com",
+      "method": "eth_chainId",
+      "httpStatus": 200,
+      "bytes": 43,
+      "sha256": "5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79",
+      "requestId": null,
+      "rpcBody": {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": "0x1917"
+      }
+    }
+  ],
+  "report": {
+    "schema": "ynx.card.testnet-preflight.v1",
+    "environment": "YNX_TESTNET_CARD_PAYMENT_SIMULATION",
+    "chainId": "0x1917",
+    "asset": "YNXT_TESTNET",
+    "configuration": {
+      "rpcSyntaxValid": true,
+      "rpcCanonical": true,
+      "fundingRecipientConfigured": false,
+      "stateKeyConfigured": false,
+      "sourceCommitBound": true,
+      "allowedOriginCanonical": true,
+      "authAdapterConfigured": false,
+      "minConfirmationsValid": true,
+      "configurationComplete": false
+    },
+    "authority": {
+      "adapterLoaded": "NOT_CHECKED",
+      "currentRoleActorBinding": "NOT_CHECKED",
+      "privateApiAccepted": false
+    },
+    "chainReadback": {
+      "status": "READBACK_MATCH",
+      "chainId": "0x1917"
+    },
+    "gates": {
+      "configurationOnly": true,
+      "runtimeReady": false,
+      "cardActive": false,
+      "walletApproved": false,
+      "walletSigned": false,
+      "transactionSent": false,
+      "fundingReceiptVerified": false,
+      "cardCredited": false,
+      "dataFabricDelivered": false,
+      "productionRealPayments": false
+    },
+    "commercialProviderRequiredForNativeTestnetFunding": false
+  },
+  "configurationScope": "Explicit isolated local preflight; cannot infer production Host configuration",
+  "sensitiveActionsPerformed": false
+}

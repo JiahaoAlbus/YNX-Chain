@@ -1,0 +1,64 @@
+{
+  "observedAt": "2026-10-04T09:52:56.334Z",
+  "source": "c887f8d070847d88a094484508d3fa838ee5f201",
+  "tree": "f1ea4d32ad0fc64a4717be890809f30749abb4e6",
+  "scope": "Card only; local paired QA candidate, NOT public deployment",
+  "fix": "Explicit four-field draft whitelist; save requires persisted readback; incomplete fields recover; no approval or account creation",
+  "tests": {
+    "frontend": 454,
+    "failed": 0,
+    "typecheck": true,
+    "webBuild": true,
+    "envelopeVerifier": true,
+    "backendCompile": true,
+    "newBackendSuiteRun": false
+  },
+  "regressions": [
+    "12 localized partial draft reloads",
+    "10 hostile field injection vectors",
+    "owner isolation",
+    "idempotency",
+    "failed storage write",
+    "non-DRAFT edit denied"
+  ],
+  "browser": {
+    "url": "http://127.0.0.1:62270/",
+    "visibleSource": "c887f8d070847d88a094484508d3fa838ee5f201",
+    "englishGuestObserved": true,
+    "cardAccountNotCreated": true,
+    "warnErrorCount": 0,
+    "realWalletDraftSaveVerified": false,
+    "screenshot": "/private/tmp/card-draft-save-c887f8d07-guest-20261004.png",
+    "screenshotSha256": "2e96ac3ab4171a57daad4377d74addc8307db8cd73b37b5e53a3a38a85eea889"
+  },
+  "artifactManifest": {
+    "path": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/envelope-draft-save-whitelist-v2-20261004/artifact-files.json",
+    "sha256": "508bde53bc925732f55e98153004c99918de9c8258ba8baaa25e74ba6b1e6e18"
+  },
+  "logs": {
+    "frontend": "2320da0c70d7135f9029109720f6c29db5c5157cfbbe222351bec47152fdecac",
+    "types": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600",
+    "web": "596ab5104550ad6d4521f65e9ad63a4f46060039ad4067a202bbc27323e4c9d8",
+    "envelope": "de9a7ab356820a6d34ebe261a2d98c9e28a7af5fafa34b1db23c5b4b5e6ceb23",
+    "backend-build": "2e600e93fc103a4af0382eda2d16c90baef178e41f09b6e6f79ab959411a4951"
+  },
+  "historicalFailuresRetained": [
+    "draft-save-extra-fields-wip-hold-20261004.json",
+    "draft-save-inventory-first-failure-20261004.log",
+    "chrome-draft-fields-loss-20261004.json"
+  ],
+  "boundaries": {
+    "publicDeployment": false,
+    "newAccountApproval": false,
+    "walletSignature": false,
+    "backendAcceptance": false,
+    "activeCard": false,
+    "realYnxtTopup": false,
+    "ledgerCredit": false,
+    "dataFabricAcceptance": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  },
+  "next": "Formal paired Host integration and exact-source public draft-save/reload verification; no fake Current/role/actor or fixture admission"
+}

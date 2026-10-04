@@ -1,0 +1,9 @@
+{
+  "observedAt": "2026-10-04T09:42:13.593Z",
+  "kind": "Owned uncommitted WIP software counterexample only",
+  "unexpectedOwnerOverride": true,
+  "unexpectedActiveOverride": true,
+  "actualWalletOrBackendActions": false,
+  "publishingHeld": true,
+  "fixNotApplied": true
+}
