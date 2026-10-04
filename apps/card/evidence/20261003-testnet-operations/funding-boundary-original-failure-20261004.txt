@@ -1,0 +1,32 @@
+✖ provider send must never start after the last current check becomes stale (3.007583ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 144.567084
+
+✖ failing tests:
+
+test at src/cardFundingSendBoundary.test.ts:2:1019
+✖ provider send must never start after the last current check becomes stale (3.007583ms)
+  AssertionError [ERR_ASSERTION]: a stale authorization reached the transaction provider
+  + actual - expected
+  
+  + [
+  +   false
+  + ]
+  - []
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/cardFundingSendBoundary.test.ts:30:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: [ false ],
+    expected: [],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }

@@ -1,0 +1,21 @@
+✔ exact new Card intent is durably reserved before wallet send, without creating a balance (1.123ms)
+✔ cold-start returned, rejected and unknown attempts never send automatically again (0.508167ms)
+✔ storage confirmation, account, chain, expiry and owner fail before sending (0.4605ms)
+✔ concurrent clicks reserve only one send and timeout keeps UNKNOWN (1.718833ms)
+✔ source/session changes retain original recovery but do not authorize a resend (0.153542ms)
+✔ late wallet hash recovers the original UNKNOWN without rebroadcast or credit (1.582792ms)
+✔ late result never overwrites changed recovery and does not update a departed identity (2.867458ms)
+✔ malformed late return and unconfirmed recovery keep the original attempt non-retryable (5.168958ms)
+✔ recovery parser rejects extra sensitive fields, oversize and invalid container without writing (0.237292ms)
+✔ fresh provider account and network checks block a changed selection before send (0.286958ms)
+✔ late hash stays on original intent but never updates a changed account or network (4.079042ms)
+✔ slow readonly recheck cannot start a new transaction after the attempt already timed out (1.332125ms)
+✔ provider send must never start after the last current check becomes stale (2.024208ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 142.767208

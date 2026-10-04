@@ -1,0 +1,116 @@
+{
+  "source": "7af26d32e84831bf9265020bb6bdb1fa08a69021",
+  "tree": "0995f87aaf8ce265702171aad266fea63583a002",
+  "scope": "Card-owned funding send/recovery implementation; NOT a real-chain transaction proof",
+  "failurePreserved": {
+    "previousEvidenceCommit": "44728ac652fe512a183bec7b3929821b9b2bc0aa",
+    "originalPermanentRegression": {
+      "pass": 0,
+      "fail": 1
+    }
+  },
+  "validation": {
+    "lifecycleTests": 13,
+    "fullFrontend": {
+      "tests": 414,
+      "fail": 0,
+      "groups": [
+        321,
+        39,
+        43,
+        11
+      ]
+    },
+    "typecheck": true,
+    "exactWebBuild": true,
+    "envelopeExact": 21,
+    "staticParity": 18
+  },
+  "runtimeIdentity": {
+    "schemaVersion": "ynx.card.runtime-identity.v1",
+    "productId": "ynx-card",
+    "sourceCommit": "7af26d32e84831bf9265020bb6bdb1fa08a69021",
+    "sourceTree": "0995f87aaf8ce265702171aad266fea63583a002",
+    "appVersion": "1.0.0",
+    "releaseChannel": "qa",
+    "environment": "testnet",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "paymentNetwork": "simulation",
+    "productionRealPayments": false,
+    "cardApiCompatibility": {
+      "schemaVersion": "ynx.card.source-compatibility.v1",
+      "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+      "frontendSourceCommit": "7af26d32e84831bf9265020bb6bdb1fa08a69021",
+      "frontendSourceTree": "0995f87aaf8ce265702171aad266fea63583a002",
+      "backendSourceCommit": "7af26d32e84831bf9265020bb6bdb1fa08a69021",
+      "backendVersionSchema": 1
+    }
+  },
+  "invariants": [
+    "Re-read current, selected first account and chain immediately before actual provider send.",
+    "An already timed-out preflight may not invoke a new transaction request.",
+    "Late hashes update only the exact original UNKNOWN reservation under exclusive storage access.",
+    "Different recovery bytes, changed current/account/network or expiry cannot update current UI.",
+    "RETURNED is a provider hash only: never a receipt, credit or permission to resend."
+  ],
+  "files": [
+    {
+      "name": "funding-boundary-original-failure-20261004.txt",
+      "bytes": 957,
+      "sha256": "543b4892a98c4281057650da742f67a3de9bc85e21b4bbeb0d18958a3ec5b859"
+    },
+    {
+      "name": "funding-7af26d32e-lifecycle-tests.txt",
+      "bytes": 1393,
+      "sha256": "05181f90c5ac4f162042110b16c371c2046c6adade4fec278077065ef9394215"
+    },
+    {
+      "name": "funding-7af26d32e-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "name": "funding-7af26d32e-full-tests.txt",
+      "bytes": 58058,
+      "sha256": "49b3eabc1450b4e0c2f14af9b4666859979f669f89816d34b36bbf2389204655"
+    },
+    {
+      "name": "funding-7af26d32e-web-build.txt",
+      "bytes": 620,
+      "sha256": "a113eb9e887f06cc49a59a32c8f11e9ac7a6c0dc8c6bd46c5b2cc1db5403000e"
+    },
+    {
+      "name": "funding-7af26d32e-envelope.txt",
+      "bytes": 246,
+      "sha256": "ee658808f470a0c1f3e1dfcbbe8509b9d0b807cc5317e2012e32b9ad5c476147"
+    },
+    {
+      "name": "funding-7af26d32e-topup-boundary-390.png",
+      "bytes": 48292,
+      "sha256": "ffc0b9d490f9f36e1a74e292f7175b6f85629c8df18f180a84c3e0cf53908481"
+    },
+    {
+      "name": "funding-7af26d32e-local-browser.json",
+      "bytes": 12451,
+      "sha256": "a970c61acc2d2079f0288224386b90cc84f1dcb4bd752d9fc86f22b57d027fd6"
+    },
+    {
+      "name": "public-7af26d32e-candidate-separation-20261004.json",
+      "bytes": 1988,
+      "sha256": "16c8d45804fe6ed3b3b13edebf825fb5f05bf3ca037fdf55d8edbccf12202eb5"
+    }
+  ],
+  "gates": {
+    "candidatePublished": false,
+    "realWalletApproval": false,
+    "realSignature": false,
+    "realTestnetTransaction": false,
+    "cardApiFundingAccepted": false,
+    "creditedBalance": false,
+    "dataFabricReceiverAcceptance": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  }
+}

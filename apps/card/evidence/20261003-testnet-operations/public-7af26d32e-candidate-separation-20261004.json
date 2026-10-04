@@ -1,0 +1,51 @@
+{
+  "scope": "anonymous public runtime readback; no Wallet/private action",
+  "observedAt": "2026-10-04T09:03:45.718Z",
+  "candidateSource": "7af26d32e84831bf9265020bb6bdb1fa08a69021",
+  "resources": [
+    {
+      "path": "/runtime-identity.json",
+      "status": 200,
+      "bytes": 816,
+      "sha256": "14f9e45c26880e1026fc846d2f438cc03c7ea7e1197057dea99784391a75673a",
+      "requestId": "sin1::hlc4k-1791104627617-5b613fb02440",
+      "identity": {
+        "schemaVersion": "ynx.card.runtime-identity.v1",
+        "productId": "ynx-card",
+        "sourceCommit": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+        "sourceTree": "18e8c7c32f887d0bc34bd2c6182e7e7199b909fd",
+        "appVersion": "1.0.0",
+        "releaseChannel": "testnet-release",
+        "environment": "testnet",
+        "evmChainId": 6423,
+        "evmChainHex": "0x1917",
+        "paymentNetwork": "simulation",
+        "productionRealPayments": false,
+        "cardApiCompatibility": {
+          "schemaVersion": "ynx.card.source-compatibility.v1",
+          "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+          "frontendSourceCommit": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+          "frontendSourceTree": "18e8c7c32f887d0bc34bd2c6182e7e7199b909fd",
+          "backendSourceCommit": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+          "backendVersionSchema": 1
+        }
+      }
+    },
+    {
+      "path": "/api/card/v1/version",
+      "status": 200,
+      "bytes": 255,
+      "sha256": "f2e86532b2da21f83bfa15e6b304fc76a4f86ff4c629a5a1c80064cbfd155e5e",
+      "requestId": "sin1::ncltm-1791104628187-b02db35d24d3",
+      "identity": {
+        "service": "ynx-card-business-backend",
+        "schemaVersion": 1,
+        "sourceCommit": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+        "environment": "YNX_TESTNET_CARD_PAYMENT_SIMULATION",
+        "configurationReady": true,
+        "runtimeFundingVerified": false,
+        "productionRealPayments": false
+      }
+    }
+  ]
+}
