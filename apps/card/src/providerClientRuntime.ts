@@ -7,6 +7,8 @@ import {cardOperationRecoveryContract} from './cardOperationRecoveryContract';
 type RuntimeIdentity={sourceCommit?:unknown;sourceTree?:unknown;productId?:unknown;service?:unknown;schemaVersion?:unknown;environment?:unknown;evmChainId?:unknown;evmChainHex?:unknown;paymentNetwork?:unknown;productionRealPayments?:unknown;cardApiCompatibility?:unknown};
 const compiledFrontendCommit=process.env.EXPO_PUBLIC_CARD_SOURCE_COMMIT;
 const compiledFrontendTree=process.env.EXPO_PUBLIC_CARD_SOURCE_TREE;
+const compiledBackendCommit=process.env.EXPO_PUBLIC_CARD_BACKEND_SOURCE_COMMIT;
+const expectedBackendCommit=compiledBackendCommit??compatibility.backendSourceCommit;
 type SourceFailureStage='backend-identity'|'frontend-identity'|'source-binding'|'version-transport';
 export class CardSourceVerificationError extends Error{
   readonly code:'CARD_API_SOURCE_MISMATCH'|'CARD_API_SOURCE_UNAVAILABLE';
@@ -17,7 +19,7 @@ export class CardSourceVerificationError extends Error{
 }
 function sourceMismatch(stage:SourceFailureStage):never{throw new CardSourceVerificationError('CARD_API_SOURCE_MISMATCH',stage)}
 export function validateCardSourcePair(version:RuntimeIdentity,build?:RuntimeIdentity):string{
-  if(!version||typeof version!=='object'||Array.isArray(version)||version.service!==compatibility.backendService||version.schemaVersion!==compatibility.backendVersionSchema||version.sourceCommit!==compatibility.backendSourceCommit||version.environment!==compatibility.environment||version.productionRealPayments!==false)sourceMismatch('backend-identity');
+  if(!/^[a-f0-9]{40}$/.test(expectedBackendCommit)||compiledBackendCommit&&compiledBackendCommit!==compatibility.backendSourceCommit&&compiledBackendCommit!==compiledFrontendCommit||!version||typeof version!=='object'||Array.isArray(version)||version.service!==compatibility.backendService||version.schemaVersion!==compatibility.backendVersionSchema||version.sourceCommit!==expectedBackendCommit||version.environment!==compatibility.environment||version.productionRealPayments!==false)sourceMismatch('backend-identity');
   if(build){
     const expectedCommit=compiledFrontendCommit??compatibility.frontendSourceBase;
     if(typeof build!=='object'||Array.isArray(build)||build.schemaVersion!=='ynx.card.runtime-identity.v1'||build.productId!=='ynx-card'||build.environment!=='testnet'||build.productionRealPayments!==false||build.paymentNetwork!=='simulation'||build.evmChainId!==6423||build.evmChainHex!=='0x1917'||build.sourceCommit!==expectedCommit||!/^[a-f0-9]{40}$/.test(String(build.sourceTree))||compiledFrontendTree&&build.sourceTree!==compiledFrontendTree)sourceMismatch('frontend-identity');
@@ -26,7 +28,7 @@ export function validateCardSourcePair(version:RuntimeIdentity,build?:RuntimeIde
       if(!pair||typeof pair!=='object'||Array.isArray(pair)||pair.schemaVersion!==compatibility.schemaVersion||pair.frontendSourceBase!==compatibility.frontendSourceBase||pair.frontendSourceCommit!==build.sourceCommit||pair.frontendSourceTree!==build.sourceTree||pair.backendSourceCommit!==version.sourceCommit||pair.backendVersionSchema!==compatibility.backendVersionSchema)sourceMismatch('source-binding');
     }
   }
-  return compatibility.backendSourceCommit;
+  return expectedBackendCommit;
 }
 async function json(url:string):Promise<RuntimeIdentity>{
   try{
@@ -45,11 +47,11 @@ async function verifiedCardRuntime():Promise<RuntimeIdentity>{
   return version;
 }
 export async function cardProviderSourceCommit():Promise<string>{
-  await verifiedCardRuntime();return compatibility.backendSourceCommit;
+  await verifiedCardRuntime();return expectedBackendCommit;
 }
 export async function createRuntimeCardBusinessClient(capabilities:{identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>}){
   const version=await verifiedCardRuntime();
-  return new CardBusinessClient({...capabilities,expectedSourceCommit:compatibility.backendSourceCommit,operationRecoveryContract:cardOperationRecoveryContract(version),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});
+  return new CardBusinessClient({...capabilities,expectedSourceCommit:expectedBackendCommit,operationRecoveryContract:cardOperationRecoveryContract(version),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});
 }
 export async function createRuntimeProviderClient(capabilities:{identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>}){
   return new CardProviderClient({...capabilities,expectedSourceCommit:await cardProviderSourceCommit(),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});

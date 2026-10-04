@@ -9,12 +9,12 @@ import {cardOperationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT} from './
 const candidate='a'.repeat(40),tree='b'.repeat(40);
 const version={service:compatibility.backendService,schemaVersion:1,sourceCommit:compatibility.backendSourceCommit,environment:compatibility.environment,productionRealPayments:false};
 function build(commit=compatibility.frontendSourceBase){return {schemaVersion:'ynx.card.runtime-identity.v1',productId:'ynx-card',sourceCommit:commit,sourceTree:tree,environment:'testnet',evmChainId:6423,evmChainHex:'0x1917',paymentNetwork:'simulation',productionRealPayments:false,cardApiCompatibility:{schemaVersion:compatibility.schemaVersion,frontendSourceBase:compatibility.frontendSourceBase,frontendSourceCommit:commit,frontendSourceTree:tree,backendSourceCommit:compatibility.backendSourceCommit,backendVersionSchema:1}};}
-function load(frontend?:string,response?:()=>Response|Promise<Response>){
+function load(frontend?:string,response?:()=>Response|Promise<Response>,backend?:string){
   const output:Record<string,any>={},created:Record<string,unknown>[]=[];
   const source=ts.transpileModule(fs.readFileSync(new URL('./providerClientRuntime.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   class Client{constructor(input:Record<string,unknown>){created.push(input)}}
   const requests:string[]=[];
-  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return response?await response():new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardOperationRecoveryContract'?{cardOperationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT}:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
+  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined,EXPO_PUBLIC_CARD_BACKEND_SOURCE_COMMIT:backend}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return response?await response():new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardOperationRecoveryContract'?{cardOperationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT}:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
   return {api:output,created,requests};
 }
 test('accepted historical dual source and compiled candidate pair retain exact backend response identity',async()=>{
@@ -90,4 +90,21 @@ test('runtime factory carries recovery availability only after exact source vali
  let wrongIndex=0;
  const wrong=load(candidate,()=>new Response(JSON.stringify(wrongIndex++%2===0?{...version,sourceCommit:'c'.repeat(40),features:{operationReadback:CARD_OPERATION_RECOVERY_CONTRACT}}:build(candidate)),{headers:{'content-type':'application/json'}}));
  await assert.rejects(wrong.api.createRuntimeCardBusinessClient(capabilities),/CARD_API_SOURCE_MISMATCH/);assert.equal(wrong.created.length,0);
+});
+
+test('new same-source candidate pins both factories to its real exact backend version, not e95',async()=>{
+ const paired={...build(candidate),cardApiCompatibility:{...build(candidate).cardApiCompatibility,backendSourceCommit:candidate}},v={...version,sourceCommit:candidate,features:{operationReadback:CARD_OPERATION_RECOVERY_CONTRACT}};let index=0;
+ const h=load(candidate,()=>new Response(JSON.stringify(index++%2===0?v:paired),{headers:{'content-type':'application/json'}}),candidate);
+ assert.equal(h.api.validateCardSourcePair(v,paired),candidate);
+ assert.throws(()=>h.api.validateCardSourcePair(version,paired),/CARD_API_SOURCE_MISMATCH/);
+ await h.api.createRuntimeCardBusinessClient({identity:()=>null,createIntrospectionProof:async()=>{throw Error('no grant')}});
+ await h.api.createRuntimeProviderClient({identity:()=>null,createIntrospectionProof:async()=>{throw Error('no grant')}});
+ assert.equal(h.created.length,2);for(const c of h.created)assert.equal(c.expectedSourceCommit,candidate);
+ assert.equal(h.created[0]!.operationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT);
+});
+test('candidate cannot choose an arbitrary different backend or mutable runtime pairing',()=>{
+ const paired={...build(candidate),cardApiCompatibility:{...build(candidate).cardApiCompatibility,backendSourceCommit:candidate}},v={...version,sourceCommit:candidate};
+ assert.throws(()=>load(candidate,undefined,'d'.repeat(40)).api.validateCardSourcePair({...v,sourceCommit:'d'.repeat(40)},paired),/CARD_API_SOURCE_MISMATCH/);
+ assert.throws(()=>load(candidate,undefined,candidate).api.validateCardSourcePair(v,{...paired,cardApiCompatibility:{...paired.cardApiCompatibility,backendSourceCommit:compatibility.backendSourceCommit}}),/CARD_API_SOURCE_MISMATCH/);
+ assert.throws(()=>load(undefined,undefined,candidate).api.validateCardSourcePair(v,paired),/CARD_API_SOURCE_MISMATCH/);
 });

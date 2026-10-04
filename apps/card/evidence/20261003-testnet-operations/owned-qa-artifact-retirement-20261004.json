@@ -1,0 +1,56 @@
+{
+  "sourceCommit": "04d449cfadff75d1f629fb410201e2b75ce7b11c",
+  "scope": "own unissued generated binaries only",
+  "state": "DELETED_GENERATED_BINARIES_NOT_RETAINED",
+  "entries": [
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/_expo/static/js/web/index-88d5c1dc15a145088885220e444d8abe.js",
+      "bytes": 4504241,
+      "sha256": "b179b052999a1f9e60d013a78902be2acf6ffbb5fccb485091b297cb262928fa"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+      "bytes": 3682,
+      "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/assets/assets/ynx-logo.886ac0507f3889d6fb7acf8c78bfa78c.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/card-testnet-icon.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/favicon.ico",
+      "bytes": 14510,
+      "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/pwa-register.js",
+      "bytes": 201,
+      "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/repo/apps/card/dist-web/sw.js",
+      "bytes": 364,
+      "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+    },
+    {
+      "path": "/private/tmp/ynx-card-owned-composition-20261004.uPs8Ms/backend-qa/main.mjs",
+      "bytes": 281855,
+      "sha256": "ce95f4fd6dccb60fe349c4ca69b5e9bb951a2170eb65d8455c0ca4ac30adc98f"
+    }
+  ],
+  "sourceAndLogsRetained": true,
+  "dependenciesUntouched": true,
+  "userStateUntouched": true,
+  "backendMetafileRetained": true
+}

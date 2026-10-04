@@ -2,10 +2,10 @@ import {execFileSync} from "node:child_process";
 import {readdirSync,readFileSync,statSync} from "node:fs";
 import {resolve,relative} from "node:path";
 import {createHash} from "node:crypto";
+import {envelopeArguments} from './card-static-envelope.mjs';
 
 const root=resolve(import.meta.dirname,"..");
-const source=resolve(root,"dist-web");
-const envelope=resolve(root,"deployment-envelope");
+const {source,envelope}=envelopeArguments(process.argv.slice(2),root);
 execFileSync(process.platform==="win32"?"npm.cmd":"npm",["run","build:web"],{cwd:envelope,stdio:"inherit"});
 const files=(directory)=>readdirSync(directory,{withFileTypes:true}).flatMap(entry=>{const path=resolve(directory,entry.name);return entry.isDirectory()?files(path):[path];}).sort();
 const sourceFiles=files(source).map(path=>relative(source,path));
