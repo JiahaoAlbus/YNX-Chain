@@ -1,0 +1,31 @@
+Vercel CLI 54.6.1 (Node.js 26.7.0)
+Retrieving project…
+The `name` property in vercel.json is deprecated (https://vercel.link/name-prop)
+Deploying jiahaoalbus-projects/ynx-social-web
+Uploading [--------------------] (0.0B/3.6MB)
+Uploading [=====---------------] (915.5KB/3.6MB)
+Uploading [==========----------] (1.8MB/3.6MB)
+Uploading [===============-----] (2.7MB/3.6MB)
+Uploading [====================] (3.6MB/3.6MB)
+  Inspect     https://vercel.com/jiahaoalbus-projects/ynx-social-web/SQtqG3y4WcvyMwKC7GMSs92ymwCP
+▲ Production  https://ynx-social-5ox3w6a5b-jiahaoalbus-projects.vercel.app
+Building…
+2026-10-04T14:53:51.450Z  Running build in Washington, D.C., USA (East) – iad1
+2026-10-04T14:53:51.451Z  Build machine configuration: 2 cores, 8 GB
+2026-10-04T14:53:51.507Z  Retrieving list of deployment files...
+2026-10-04T14:53:51.609Z  Previous build caches not available.
+2026-10-04T14:53:51.852Z  Downloading 34 deployment files...
+2026-10-04T14:53:53.804Z  Running "vercel build"
+2026-10-04T14:53:53.819Z  Vercel CLI 62.1.0
+{
+  "id": "dpl_SQtqG3y4WcvyMwKC7GMSs92ymwCP",
+  "url": "https://ynx-social-5ox3w6a5b-jiahaoalbus-projects.vercel.app",
+  "inspectorUrl": "https://vercel.com/jiahaoalbus-projects/ynx-social-web/SQtqG3y4WcvyMwKC7GMSs92ymwCP",
+  "readyState": "ERROR",
+  "target": "production",
+  "deploymentApiUrl": "https://api.vercel.com/v13/deployments/dpl_SQtqG3y4WcvyMwKC7GMSs92ymwCP",
+  "error": {
+    "name": "BUILD_ERROR",
+    "message": "Command \"node verify-build.cjs\" exited with 1"
+  }
+}

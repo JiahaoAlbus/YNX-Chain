@@ -1,0 +1,27 @@
+Vercel CLI 54.6.1 (Node.js 26.7.0)
+Fetching deployment "ynx-social-5ox3w6a5b-jiahaoalbus-projects.vercel.app" in jiahaoalbus-projects
+2026-10-04T14:53:51.450Z  Running build in Washington, D.C., USA (East) – iad1
+2026-10-04T14:53:51.451Z  Build machine configuration: 2 cores, 8 GB
+2026-10-04T14:53:51.507Z  Retrieving list of deployment files...
+2026-10-04T14:53:51.609Z  Previous build caches not available.
+2026-10-04T14:53:51.852Z  Downloading 34 deployment files...
+2026-10-04T14:53:53.804Z  Running "vercel build"
+2026-10-04T14:53:53.819Z  Vercel CLI 62.1.0
+2026-10-04T14:53:54.515Z  Running "install" command: `true`...
+2026-10-04T14:53:54.997Z  /vercel/path0/verify-build.cjs:7
+2026-10-04T14:53:54.997Z  if(sha(fs.readFileSync('vercel.json'))!==m.deploymentConfigSha256)throw Error('CONFIG_MISMATCH');
+2026-10-04T14:53:54.997Z  ^
+2026-10-04T14:53:54.997Z  
+2026-10-04T14:53:54.997Z  Error: CONFIG_MISMATCH
+2026-10-04T14:53:54.997Z  at Object.<anonymous> (/vercel/path0/verify-build.cjs:7:73)
+2026-10-04T14:53:54.997Z  at Module._compile (node:internal/modules/cjs/loader:1929:14)
+2026-10-04T14:53:54.997Z  at Object..js (node:internal/modules/cjs/loader:2060:10)
+2026-10-04T14:53:54.998Z  at Module.load (node:internal/modules/cjs/loader:1651:32)
+2026-10-04T14:53:54.998Z  at Module._load (node:internal/modules/cjs/loader:1443:12)
+2026-10-04T14:53:54.998Z  at wrapModuleLoad (node:internal/modules/cjs/loader:261:19)
+2026-10-04T14:53:54.998Z  at Module.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:154:5)
+2026-10-04T14:53:54.998Z  at node:internal/main/run_main_module:33:47
+2026-10-04T14:53:54.998Z  
+2026-10-04T14:53:54.998Z  Node.js v24.21.0
+2026-10-04T14:53:55.004Z  Error: Command "node verify-build.cjs" exited with 1
+status	● Error
