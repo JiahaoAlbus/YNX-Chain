@@ -69,9 +69,14 @@ test('actual statement controller binds owner and selected period before renderi
       {calculationStatus:'partial',observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}},
       {calculationStatus:'partial',observedTotals:{incomingYnxt:0,outgoingYnxt:0,feesYnxt:9007199254740992}},
       {calculationStatus:'partial',activity:[{id:'bad-date',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:'2026-02-30T00:00:00Z'}],observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}},
+      ...[false,true].map(conflict=>({calculationStatus:'partial',activity:[
+        {id:'same-source-record',direction:'incoming',amountYnxt:7,feeYnxt:1,timestamp:'2026-09-01T00:00:00Z'},
+        {id:'same-source-record',direction:conflict?'outgoing':'incoming',amountYnxt:conflict?2:7,feeYnxt:1,timestamp:'2026-09-01T00:00:00Z'}
+      ],observedTotals:{incomingYnxt:conflict?7:14,outgoingYnxt:conflict?2:0,feesYnxt:2}})),
       ...[
         {direction:'sideways'}, {timestamp:'2026-10-01T00:00:00Z'},
-        {amountYnxt:-1}, {amountYnxt:'1'}, {feeYnxt:-1}
+        {amountYnxt:-1}, {amountYnxt:'1'}, {feeYnxt:-1},
+        {id:null}, {id:''}, {id:' controlled-row '}, {id:1}
       ].map(change=>({calculationStatus:'partial',activity:[{id:'controlled-row',direction:'incoming',amountYnxt:1,feeYnxt:0,timestamp:'2026-09-01T00:00:00Z',...change}],observedTotals:{incomingYnxt:1,outgoingYnxt:0,feesYnxt:0}}))
     ]){
       await f.page.evaluate(()=>{window.statementPending=statementQA.read()});await f.page.evaluate(patch=>statementQA.reply(patch),patch);await f.page.evaluate(()=>statementPending);
@@ -88,6 +93,19 @@ test('actual statement controller binds owner and selected period before renderi
     assert.match(text,/observedIncoming7 YNXT/);assert.match(text,/observedOutgoing2 YNXT/);assert.match(text,/observedFees2 YNXT/);
     assert.match(text,/fullPeriodTotals: unknown/);assert.doesNotMatch(text,/dateUnavailable/);
     assert.deepEqual((await f.page.evaluate(()=>statementQA.inspect())).statement.activity,valid.activity);
+    const exactSameAmounts={calculationStatus:'partial',activity:[
+      {id:'distinct-source-one',direction:'incoming',amountYnxt:7,feeYnxt:1,timestamp:'2026-09-01T00:00:00Z'},
+      {id:'distinct-source-two',direction:'incoming',amountYnxt:7,feeYnxt:1,timestamp:'2026-09-01T00:00:00Z'}
+    ],observedTotals:{incomingYnxt:14,outgoingYnxt:0,feesYnxt:2}};
+    await f.page.evaluate(patch=>{window.statementPending=statementQA.read();statementQA.reply(patch)},exactSameAmounts);await f.page.evaluate(()=>statementPending);
+    assert.match(await f.page.locator('#statement').textContent(),/observedIncoming14 YNXT/);
+    assert.equal((await f.page.evaluate(()=>statementQA.inspect())).statement.activity.length,2);
+    assert.equal(await f.page.evaluate(()=>{
+      const before=document.querySelector('#statement').innerHTML;
+      const candidate={...state.statement,activity:[state.statement.activity[0],state.statement.activity[0]]};
+      let rejected=false;try{renderStatement(candidate)}catch{rejected=true}
+      return rejected&&document.querySelector('#statement').innerHTML===before;
+    }),true,'direct rendering must reject duplicate references before replacing a verified display');
     assert.deepEqual(f.errors,[]);assert.equal(f.requests(),0);assert.equal(f.context.pages().length,1);
   }finally{await f.browser.close()}
 });

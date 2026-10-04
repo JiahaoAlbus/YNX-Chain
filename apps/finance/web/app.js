@@ -761,6 +761,7 @@ $('#privacy-form').addEventListener('input',e=>{if(state.connected)formUncommitt
 $('#privacy-form').addEventListener('submit',e=>{e.preventDefault();const f=e.currentTarget;submitForm(f,'/api/privacy',{includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked},e,{method:'PUT',reset:false,successKey:'privacySaved'})});
 function renderStatement(s){
   if(s?.schemaVersion!=='finance-statement-v2'||s.coverageComplete!==false||!Array.isArray(s.activity)||!s.totals||!['incomingYnxt','outgoingYnxt','feesYnxt'].every(key=>s.totals[key]===null))throw new Error(financeText('statementCoverageInvalid'));
+  validateStatementObservation(s);
   $('#statement').classList.remove('statement-placeholder');
   const observed=s.calculationStatus==='partial'?s.observedTotals:null;
   const amount=value=>Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown');
@@ -778,9 +779,11 @@ function validateStatementObservation(statement){
   if(statement?.calculationStatus!=='partial')return;
   const invalid=()=>{throw new Error(financeText('statementCoverageInvalid'))},keys=['incomingYnxt','outgoingYnxt','feesYnxt'],observed=statement.observedTotals;
   if(!Array.isArray(statement.activity)||!observed||typeof observed!=='object'||Array.isArray(observed)||!keys.every(key=>Number.isSafeInteger(observed[key])&&observed[key]>=0))invalid();
-  const from=Date.parse(statement.from),to=Date.parse(statement.toExclusive),sum={incomingYnxt:0n,outgoingYnxt:0n,feesYnxt:0n};
+  const from=Date.parse(statement.from),to=Date.parse(statement.toExclusive),ids=new Set(),sum={incomingYnxt:0n,outgoingYnxt:0n,feesYnxt:0n};
   for(const row of statement.activity){
     if(!row||typeof row!=='object'||Array.isArray(row)||!['incoming','outgoing'].includes(row.direction)||!financeTimestampValid(row.timestamp)||!Number.isSafeInteger(row.amountYnxt)||row.amountYnxt<0||!Number.isSafeInteger(row.feeYnxt)||row.feeYnxt<0)invalid();
+    if(typeof row.id!=='string'||!row.id.trim()||row.id!==row.id.trim()||ids.has(row.id))invalid();
+    ids.add(row.id);
     const time=Date.parse(row.timestamp);if(!Number.isFinite(from)||!Number.isFinite(to)||time<from||time>=to)invalid();
     sum[row.direction==='incoming'?'incomingYnxt':'outgoingYnxt']+=BigInt(row.amountYnxt);sum.feesYnxt+=BigInt(row.feeYnxt);
   }
