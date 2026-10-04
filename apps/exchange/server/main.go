@@ -362,6 +362,23 @@ func securityHeaders(next http.Handler) http.Handler {
 }
 func spa(root http.FileSystem) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// The public introduction has no Wallet SDK or API side effects. Query
+		// returns stay on the original app; hash deep links are handed off by
+		// the tiny introduction script because fragments are browser-only.
+		if r.URL.Path == "/" && r.URL.RawQuery == "" {
+			w.Header().Set("Cache-Control", "no-store")
+			r.URL.Path = "/introduction.html"
+			http.FileServer(root).ServeHTTP(w, r)
+			return
+		}
+		if r.URL.Path == "/index.html" || r.URL.Path == "/app" {
+			// FileServer normally redirects index.html to /. Keep the explicit
+			// historical application URL usable instead of landing on marketing.
+			w.Header().Set("Cache-Control", "no-store")
+			r.URL.Path = "/"
+			http.FileServer(root).ServeHTTP(w, r)
+			return
+		}
 		f, err := root.Open(r.URL.Path)
 		if err == nil {
 			if info, e := f.Stat(); e == nil && !info.IsDir() {

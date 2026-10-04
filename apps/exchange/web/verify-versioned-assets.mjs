@@ -6,8 +6,21 @@ import path from 'node:path';
 const PAGE_ASSETS=Object.freeze(['styles.css','wallet-connect.js','app.js','ui-preferences.js']);
 const MODULE_ASSETS=Object.freeze(['market-data.js','order-preview.js','private-session.js','locale.js','command-review.js','command-copy.js','venue-config.js']);
 const IMAGE_ASSETS=Object.freeze(['ynx-logo.png','ynx-favicon.png']);
-export const EXCHANGE_RUNTIME_WEB_ASSETS=Object.freeze(['index.html',...new Set([...PAGE_ASSETS,...MODULE_ASSETS,...IMAGE_ASSETS])]);
+export const EXCHANGE_RUNTIME_WEB_ASSETS=Object.freeze(['index.html',...new Set([...PAGE_ASSETS,...MODULE_ASSETS,...IMAGE_ASSETS]),'introduction.html','introduction.css','introduction.js','exchange-workspace-preview.png']);
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
+
+export function verifyExchangeIntroductionAssets(html,readAsset){
+  const expected=['introduction.css','introduction.js','ynx-logo.png','ynx-favicon.png','exchange-workspace-preview.png'];
+  const seen=[];
+  for(const match of html.matchAll(/\b(?:src|href)="(\/[^" ]+)"/gu)){
+    const url=new URL(match[1],'https://exchange.ynxweb4.com'),name=url.pathname.slice(1);
+    if(!/\.(?:js|css|png)$/u.test(name))continue;
+    if(!expected.includes(name)||url.search!==`?v=${sha256(readAsset(name))}`||url.hash)throw new Error(`EXCHANGE_INTRODUCTION_ASSET_INVALID:${name}`);
+    seen.push(name);
+  }
+  if(JSON.stringify(seen.sort())!==JSON.stringify(expected.sort()))throw new Error('EXCHANGE_INTRODUCTION_ASSET_SET_INVALID');
+  return {status:'pass',assets:expected.length};
+}
 
 export function verifyExchangeVersionedAssets(html,app,readAsset){
   if(typeof html!=='string'||typeof app!=='string'||typeof readAsset!=='function')throw new Error('EXCHANGE_ASSET_INPUT_INVALID');

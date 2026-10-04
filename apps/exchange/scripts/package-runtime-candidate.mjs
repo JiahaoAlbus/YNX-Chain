@@ -4,7 +4,7 @@ import {execFileSync} from "node:child_process";
 import {tmpdir} from "node:os";
 import {gzipSync} from "node:zlib";
 import path from "node:path";
-import {verifyExchangeVersionedAssets,EXCHANGE_RUNTIME_WEB_ASSETS} from "../web/verify-versioned-assets.mjs";
+import {verifyExchangeVersionedAssets,verifyExchangeIntroductionAssets,EXCHANGE_RUNTIME_WEB_ASSETS} from "../web/verify-versioned-assets.mjs";
 
 const root=path.resolve(import.meta.dirname,"../../..");
 const args=parseArgs(process.argv.slice(2));
@@ -32,6 +32,7 @@ for(const name of EXCHANGE_RUNTIME_WEB_ASSETS){
 }
 const packedAsset=name=>files.find(file=>file.relative===`${release}/apps/exchange/web/${name}`)?.data;
 verifyExchangeVersionedAssets(packedAsset("index.html")?.toString("utf8"),packedAsset("app.js")?.toString("utf8"),name=>packedAsset(name));
+verifyExchangeIntroductionAssets(packedAsset("introduction.html").toString("utf8"),name=>packedAsset(name));
 files.sort((a,b)=>a.relative.localeCompare(b.relative));
 const inventory=files.map(file=>({path:file.relative,sha256:sha256(file.data),bytes:file.data.length,mode:file.mode.toString(8)}));
 files.push({relative:`${release}/BUNDLE_MANIFEST.json`,data:Buffer.from(`${JSON.stringify({schemaVersion:1,productId:"ynx-exchange",sourceCommit:commit,sourceTree,release,build:{goos:"linux",goarch:"amd64",cgoEnabled:false,trimpath:true,buildVCS:false,buildTime:sourceTime},entries:inventory},null,2)}\n`),mode:0o644});

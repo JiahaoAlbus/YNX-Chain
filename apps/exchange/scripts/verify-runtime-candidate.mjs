@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
-import {EXCHANGE_RUNTIME_WEB_ASSETS,verifyExchangeVersionedAssets} from '../web/verify-versioned-assets.mjs';
+import {EXCHANGE_RUNTIME_WEB_ASSETS,verifyExchangeVersionedAssets,verifyExchangeIntroductionAssets} from '../web/verify-versioned-assets.mjs';
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const fail=message=>{throw new Error(message)};
 export function verifyRuntimeCandidate(archive,commit,readSource){
@@ -51,6 +51,7 @@ export function verifyRuntimeCandidate(archive,commit,readSource){
   const binary=get('ynx-exchanged');
   if(binary.length<20||binary.toString('hex',0,4)!=='7f454c46'||binary[4]!==2||binary[5]!==1||binary.readUInt16LE(18)!==62||!binary.includes(Buffer.from(commit)))fail('BINARY_IDENTITY_INVALID');
   const graph=verifyExchangeVersionedAssets(get('apps/exchange/web/index.html').toString(),get('apps/exchange/web/app.js').toString(),name=>get(`apps/exchange/web/${name}`));
+  verifyExchangeIntroductionAssets(get('apps/exchange/web/introduction.html').toString(),name=>get(`apps/exchange/web/${name}`));
   return {sourceCommit:commit,sourceTree:manifest.sourceTree,release,archiveBytes:archive.length,archiveSha256:sha(archive),entryCount:entries.size,binaryBytes:binary.length,binarySha256:sha(binary),graph,entries:[...entries].map(([path,{data,mode}])=>({path,bytes:data.length,sha256:sha(data),mode:mode.toString(8)})),deployedPublic:false,installed:false};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){

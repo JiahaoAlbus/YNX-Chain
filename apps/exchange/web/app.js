@@ -96,6 +96,9 @@ function bind(){
   $('#command-review-check').addEventListener('click',checkCommandRequirements);
   $('#command-review-dialog').addEventListener('close',()=>{state.commandReview=null;$('#command-review-values').replaceChildren();});
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+  // Honor explicit old hashes and browser back/forward without touching auth.
+  const restoreView=()=>{const id=location.hash.slice(1);if(['market','assets','activity','controls'].includes(id))showView(id)};
+  restoreView();window.addEventListener('hashchange',restoreView);
   $('#connect').addEventListener('click',openWalletChooser);
   $('#connect-ynx-wallet').addEventListener('click',()=>connectWallet('ynx').catch(error=>walletConnectionFailure(error,'YNX Wallet')));
   $('#connect-hosted-ynx').addEventListener('click',()=>connectWallet('hosted').catch(error=>walletConnectionFailure(error,'YNX Wallet Web')));
