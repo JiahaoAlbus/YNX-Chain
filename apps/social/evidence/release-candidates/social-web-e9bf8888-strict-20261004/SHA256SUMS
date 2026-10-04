@@ -1,0 +1,7 @@
+35815caa71bf1b482a1cc7f6297bad34791c26e80e05d25995f6d8361f0de04b  ./README.md
+490349cb43ba9e7262b716e01060f12532836d846a486ccdd4776b6d78b95dac  ./social-web-deploy-strict.tgz
+9c89debcb348d966006ec469ea9c1e0e6312585ca97f28d8986c06f34c596365  ./check-strict.cjs
+aaa4427e3f96d477cb6debb35757465106cf40a3f3bb6c03c63a04c6a1b133e5  ./cold-original-verifier.txt
+ab6d695f44c1dd57021c4ef3d3ab1f9754b2c0f99b83afa8a22ee1aeb9c8f949  ./strict-readback.json
+eba0a11814108e37a37eb9311249bc5e44450f2d940cda5eec477617f84c7b2a  ./original-source-manifest.json
+fe076e50c0f7d9431bc10dc7ccdbed97a726605b6950d120dc37a4efa8c7e8ba  ./exact-files.txt

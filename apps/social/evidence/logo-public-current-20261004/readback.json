@@ -1,0 +1,18 @@
+{
+  "url": "https://social.ynxweb4.com/",
+  "evidenceKind": "direct-existing-public-browser-DOM-and-visual-observation",
+  "temporaryTab": "19",
+  "tabClosed": true,
+  "headerOuterHTML": "<a class=\"brand\" href=\"/\" aria-label=\"YNX Social home\"><span class=\"mark\">Y</span><span>YNX Social</span></a>",
+  "walletImages": [
+    {"alt":"YNX Wallet logo","src":"./assets/ynx-wallet.svg","naturalWidth":150,"naturalHeight":150},
+    {"alt":"MetaMask logo","src":"./assets/metamask.svg","naturalWidth":150,"naturalHeight":150}
+  ],
+  "observedVisual": "Public header visibly retains the blue letter Y placeholder rather than the original YNX logo.",
+  "requestAccounts": false,
+  "walletChooserClicked": false,
+  "signOrTransaction": false,
+  "deploymentPerformed": false,
+  "brandPublicGate": "NOT_FIXED",
+  "wholeSocialGoal": "NOT_COMPLETE"
+}
