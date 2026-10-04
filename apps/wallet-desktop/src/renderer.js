@@ -4,6 +4,7 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
+import { projectTransactionResolution } from "./transaction-resolution-display.mjs";
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
@@ -720,11 +721,13 @@ async function refreshTransactions() {
           try {
             const response = await (retry ? window.ynxWallet.retryTransaction(record.hash) : window.ynxWallet.transactionStatus(record.hash));
             if (!actionCurrent()) return;
+            const outcome=projectTransactionResolution(response,{account,hash:record.hash,retry});
+            if (!actionCurrent()) return;
             const resultNode=document.querySelector("#transaction-resolution-result");
-            if(!response.ok) resultNode.textContent=errorText(response);
-            else if(response.value.confirmed) copyUI(resultNode,response.value.successful ? "Transaction mined successfully in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof." : "Transaction failed in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof.",{fee:response.value.actualFee});
-            else copyUI(resultNode,response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.");
-            if (response.ok && response.value.confirmed) void refreshAssets();
+            if(outcome===null) resultNode.textContent=errorText(response);
+            else if(outcome.confirmed) copyUI(resultNode,outcome.successful ? "Transaction mined successfully in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof." : "Transaction failed in the node's completed local snapshot. Actual fee: {fee} YNXT. Consensus finality is not established by this proof.",{fee:outcome.actualFee});
+            else copyUI(resultNode,outcome.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.");
+            if (outcome?.confirmed) void refreshAssets();
           } catch { if (actionCurrent()) copyUI(document.querySelector("#transaction-resolution-result"),"The transaction outcome could not be checked. Keep its hash and try checking again."); }
           finally {
             actionBusy = false;

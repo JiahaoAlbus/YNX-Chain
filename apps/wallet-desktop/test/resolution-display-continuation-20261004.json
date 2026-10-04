@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "a36889fe2a43d12d69f7efe67ebd33fde756dba2",
+  "scope": "Owned Desktop UNKNOWN resolution presentation; original private journal, receipt validator, signing, retry producer, Main, Native App and shared SDK unchanged",
+  "originalCounterexamples": "Mounted original renderer: 23 tests, original10 PASS and13 new FAIL. Wrong account/hash, truthy confirmed/success/envelope, mismatched status, invalid fee/block/scope/finality, retryable terminal state and raw-bearing DTO incorrectly displayed completed results and refreshed assets.",
+  "repair": "Detached frozen primitive projection of exact existing TransactionSubmissions success DTOs, bound to active account and clicked original hash. Literal booleans, terminal status/outcome agreement, positive original uint64 block, formatEther fee, local-snapshot scope, no consensus finality and no terminal retry. Preserve exact submitted retry and all five existing durability states as unresolved. No substitute receipt proof or canonical authority.",
+  "verification": {
+    "final": "73 PASS, 0 FAIL, 0 SKIP across six files: transaction-resolution-display, transaction-resolution-mounted, transaction-history-ui, transaction-history-producer-ui, history-container-boundary and transaction-history-locale-mounted",
+    "fixtureCompatibility": "Original TransactionSubmissions check/retry composes with controlled public receipt/intent fixtures. Complete durable receipt resolves original controlled journal once; missing mined receipt stays unresolved even with durable status; explicit retry posts only controlled original bytes once; completed retry never posts. No live RPC or real private journal used.",
+    "existingMountedCases": "Original account/key/revision fences, stale exception silence, direct locked retry denial, duplicate-click retirement, valid local completed display and history/asset refresh assertions preserved. Minimal old positive DTO fixtures corrected to exact existing producer shape; new malformed cases remain rejected.",
+    "excludedSuite": "Initial expanded run had70 PASS and1 file load FAIL. transaction-durability.test.mjs transitively imports wallet-pay-quote/shared mutable WalletAuth and failed before suite execution: missing parsePayPaymentIntent export. Full original log preserved. Not a successful SDK test/admission; no SDK replacement or patch performed.",
+    "evidenceDirectory": "/tmp/ynx-wallet-resolution-projection-20261004-lvLImR"
+  },
+  "remaining": ["Whole current independent source review", "Original pending inventory container not changed by this repair", "Current complete SDK/factory admission", "Current-source install/upgrade with retained real journal/accounts/keys", "Real UNKNOWN recovery and private Pay user acceptance", "MONSTER NOT_RUN"],
+  "overallGoal": "NOT_COMPLETED"
+}
