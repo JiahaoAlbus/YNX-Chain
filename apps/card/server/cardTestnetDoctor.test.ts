@@ -22,7 +22,7 @@ test('public chain readback is bounded and cannot elevate funding or wallet gate
 });
 test('wrong chain, ambiguous JSON and network failures are distinct non-success states',async()=>{
   for(const body of [{jsonrpc:'2.0',id:1,result:'0x1'},{jsonrpc:'2.0',id:2,result:'0x1917'},{jsonrpc:'2.0',id:1,result:'0x1917',error:{message:'sensitive'}}]){
-    const result=await readTestnetChain(cardTestnetDoctor(complete),(async()=>({ok:true,json:async()=>body})) as typeof fetch);assert.equal(result.chainReadback.status,'WRONG_OR_UNVERIFIED_CHAIN');assert.equal(result.chainReadback.chainId,null);
+    const result=await readTestnetChain(cardTestnetDoctor(complete),(async()=>new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}})) as typeof fetch);assert.equal(result.chainReadback.status,'WRONG_OR_UNVERIFIED_CHAIN');assert.equal(result.chainReadback.chainId,null);
   }
   const result=await readTestnetChain(cardTestnetDoctor(complete),(async()=>{throw Error('secret')}) as typeof fetch);assert.equal(result.chainReadback.status,'RPC_UNAVAILABLE');assert.ok(!JSON.stringify(result).includes('secret'));
 });
