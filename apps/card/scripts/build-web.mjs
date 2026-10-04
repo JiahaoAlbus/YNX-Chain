@@ -29,3 +29,6 @@ if(!index.includes("/manifest.webmanifest"))index=index.replace("</head>","  <me
 writeFileSync(indexPath,applyCardBuildIdentityShell(index,{sourceCommit,appVersion,releaseChannel}));
 writeFileSync(resolve(root,"dist-web/package.json"),readFileSync(resolve(root,"static-deploy-package.json"),"utf8"));
 writeFileSync(resolve(root,"dist-web/runtime-identity.json"),`${JSON.stringify({schemaVersion:"ynx.card.runtime-identity.v1",productId:"ynx-card",sourceCommit,sourceTree,appVersion,releaseChannel,environment:"testnet",evmChainId:6423,evmChainHex:"0x1917",paymentNetwork:"simulation",productionRealPayments:false,cardApiCompatibility:{schemaVersion:compatibility.schemaVersion,frontendSourceBase:compatibility.frontendSourceBase,frontendSourceCommit:sourceCommit,frontendSourceTree:sourceTree,backendSourceCommit,backendVersionSchema:compatibility.backendVersionSchema}},null,2)}\n`);
+
+// Public introduction is additive; the root application and callback routes stay unchanged.
+await (await import('./build-card-introduction.mjs')).buildCardIntroduction({root,output: `${root}/dist-web`});
