@@ -1,0 +1,21 @@
+✔ truthful venue and unsupported-route disclosures are visible (0.445042ms)
+✔ guest market reads are independent of pending private account and order authority (0.075209ms)
+✔ responsive and reduced-motion foundations exist (0.039417ms)
+✔ accessibility landmarks, labels, live status and keyboard focus exist (0.072625ms)
+✔ AI is bounded and cannot execute an order (0.234208ms)
+✔ legacy browser sessions are absent and record rendering avoids unsafe HTML (0.642292ms)
+✔ Web Wallet exposes distinct YNX Wallet and MetaMask choices while keeping guest data available (0.447792ms)
+✔ MetaMask route selects only the discovered MetaMask provider (0.058791ms)
+✔ guest identity recheck never starts automatic top-level SSO navigation (0.391834ms)
+✔ precise source checks still reject credential persistence and extra or permission-seeking navigation (1.921292ms)
+✔ standard Wallet switches or adds the accepted shared 0x1917 chain before requesting an account (0.14925ms)
+✔ accepted RPC probe degradation cannot clear a completed standard Wallet connection (0.378333ms)
+✔ Exchange HTML and its static module graph bind final asset bytes, not unversioned cache keys (1.975042ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 58.9335

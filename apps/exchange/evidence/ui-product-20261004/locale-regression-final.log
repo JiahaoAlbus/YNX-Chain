@@ -1,0 +1,28 @@
+(node:64123) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/tmp/exchange-ui-playwright-loader-20261004.mjs", pathToFileURL("./")); register("/tmp/exchange-ui-playwright-loader-20261004.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ final AI, asset and truth-help batch preserves actual controls and fails closed without write approval (1344.14425ms)
+✔ actual security and support form labels preserve input nodes, raw values and user drafts across 12 languages (914.97025ms)
+✔ actual market workspace localizes headers and depth source without changing returned amounts, network or controls (872.068583ms)
+✔ actual public trade chart switches SVG visibility from real returned rows and clears without fabricated prices (1377.553417ms)
+✔ actual controls statuses localize without write enablement or stale placeholders replacing owned support records (727.939292ms)
+✔ actual Wallet notifications distinguish confirmed and unconfirmed outcomes across locales and preserve late result codes (730.124292ms)
+✔ actual record renderers translate only authoritative domain states and retain codes without promoting unknown or reviewed withdrawals (764.418125ms)
+✔ actual revoke confirmations use the selected locale and cancellation invokes neither private nor standard revocation (1048.508125ms)
+✔ actual browser identity displays late results in the current locale without expanding permission or retrying on language change (1951.081583ms)
+✔ actual Wallet display keeps selected identity and fallback destinations while late states use the current locale (1283.1345ms)
+✔ real order preview preserves exact financial values while form and dialog labels change languages (1696.883291ms)
+✔ actual activity tabs and all headers use 12 locales without mutating owned records or making requests (3888.075125ms)
+✔ actual public disclosure localization preserves market visibility, inputs and all action boundaries (735.524375ms)
+✔ every supported locale has all connected/degraded/recovery messages without silent English fallback (1.26ms)
+✔ actual preview errors retain exact codes in every locale, clear on correction, and cannot resurrect an obsolete toast (748.725833ms)
+✔ actual private panel translations preserve pending routes and forget unverified placeholders after account recovery (843.819125ms)
+✔ actual locale module and renderers update late account/market states in 12 languages without identity or network effects (819.715375ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 19988.833833

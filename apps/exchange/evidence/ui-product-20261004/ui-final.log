@@ -1,0 +1,25 @@
+✔ real existing source renders all twelve locales at mobile widths and enlarged desktop without losing controls (14234.283375ms)
+✔ modal native focus trap, close, backdrop and Escape preserve current controls and never request accounts (852.707375ms)
+✔ before and after preserve the exact brand bytes and testnet errors, with no fixture market data (687.276166ms)
+✔ standard desktop workspace retains three columns and styled default controls (902.581417ms)
+✔ truthful venue and unsupported-route disclosures are visible (0.493584ms)
+✔ guest market reads are independent of pending private account and order authority (0.087791ms)
+✔ responsive and reduced-motion foundations exist (0.050542ms)
+✔ accessibility landmarks, labels, live status and keyboard focus exist (0.086459ms)
+✔ AI is bounded and cannot execute an order (0.091375ms)
+✔ legacy browser sessions are absent and record rendering avoids unsafe HTML (0.635042ms)
+✔ Web Wallet exposes distinct YNX Wallet and MetaMask choices while keeping guest data available (0.489458ms)
+✔ MetaMask route selects only the discovered MetaMask provider (0.06325ms)
+✔ guest identity recheck never starts automatic top-level SSO navigation (0.460542ms)
+✔ precise source checks still reject credential persistence and extra or permission-seeking navigation (1.979042ms)
+✔ standard Wallet switches or adds the accepted shared 0x1917 chain before requesting an account (0.165ms)
+✔ accepted RPC probe degradation cannot clear a completed standard Wallet connection (0.433875ms)
+✔ Exchange HTML and its static module graph bind final asset bytes, not unversioned cache keys (2.182541ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 17065.438583

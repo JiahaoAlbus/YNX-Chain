@@ -1,0 +1,11 @@
+✔ real existing source renders all twelve locales at mobile widths and enlarged desktop without losing controls (14310.538333ms)
+✔ modal native focus trap, close, backdrop and Escape preserve current controls and never request accounts (856.621166ms)
+✔ before and after preserve the exact brand bytes and testnet errors, with no fixture market data (708.592292ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 16255.729583

@@ -1,0 +1,3 @@
+Read-only baseline 093610c481abdaab1684b51f9e11d65be01cd3b0
+EXCHANGE_ASSET_HASH_MISMATCH:styles.css
+Additional inspection: existing untracked ui-preferences.js page script; existing untracked locale.js module; existing market-data/order-preview query versions stale. Final verifier uses strict four-page/four-module hashes.

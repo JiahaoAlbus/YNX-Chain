@@ -1,0 +1,73 @@
+(node:60152) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("/tmp/exchange-ui-playwright-loader-20261004.mjs", pathToFileURL("./")); register("/tmp/exchange-ui-playwright-loader-20261004.mjs", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ final AI, asset and truth-help batch preserves actual controls and fails closed without write approval (1428.270584ms)
+✔ actual security and support form labels preserve input nodes, raw values and user drafts across 12 languages (812.192ms)
+✔ actual market workspace localizes headers and depth source without changing returned amounts, network or controls (821.008084ms)
+✔ actual public trade chart switches SVG visibility from real returned rows and clears without fabricated prices (1403.409542ms)
+✔ actual controls statuses localize without write enablement or stale placeholders replacing owned support records (742.048333ms)
+✔ actual Wallet notifications distinguish confirmed and unconfirmed outcomes across locales and preserve late result codes (715.063875ms)
+✔ actual record renderers translate only authoritative domain states and retain codes without promoting unknown or reviewed withdrawals (767.954042ms)
+✖ actual revoke confirmations use the selected locale and cancellation invokes neither private nor standard revocation (47598.487458ms)
+✔ actual browser identity displays late results in the current locale without expanding permission or retrying on language change (1994.332709ms)
+✔ actual Wallet display keeps selected identity and fallback destinations while late states use the current locale (1346.749667ms)
+✔ real order preview preserves exact financial values while form and dialog labels change languages (1686.855416ms)
+✔ actual activity tabs and all headers use 12 locales without mutating owned records or making requests (3763.649958ms)
+✔ actual public disclosure localization preserves market visibility, inputs and all action boundaries (739.854083ms)
+✔ every supported locale has all connected/degraded/recovery messages without silent English fallback (1.305542ms)
+✔ actual preview errors retain exact codes in every locale, clear on correction, and cannot resurrect an obsolete toast (798.959209ms)
+✔ actual private panel translations preserve pending routes and forget unverified placeholders after account recovery (886.28725ms)
+✖ actual locale module and renderers update late account/market states in 12 languages without identity or network effects (851.311333ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 15
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 66587.256583
+
+✖ failing tests:
+
+test at apps/exchange/tests/locale-browser.test.mjs:214:1
+✖ actual revoke confirmations use the selected locale and cancellation invokes neither private nor standard revocation (47598.487458ms)
+  locator.click: Timeout 30000ms exceeded.
+  Call log:
+  [2m  - waiting for locator('#private-disconnect')[22m
+  [2m    - locator resolved to <button type="button" class="secondary" id="private-disconnect" data-exchange-locale="private-revoke">Revoke private session…</button>[22m
+  [2m  - attempting click action[22m
+  [2m    2 × waiting for element to be visible, enabled and stable[22m
+  [2m      - element is not visible[22m
+  [2m    - retrying click action[22m
+  [2m    - waiting 20ms[22m
+  [2m    2 × waiting for element to be visible, enabled and stable[22m
+  [2m      - element is not visible[22m
+  [2m    - retrying click action[22m
+  [2m      - waiting 100ms[22m
+  [2m    58 × waiting for element to be visible, enabled and stable[22m
+  [2m       - element is not visible[22m
+  [2m     - retrying click action[22m
+  [2m       - waiting 500ms[22m
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002/apps/exchange/tests/locale-browser.test.mjs:223:111) {
+    name: 'TimeoutError'
+  }
+
+test at apps/exchange/tests/locale-browser.test.mjs:492:1
+✖ actual locale module and renderers update late account/market states in 12 languages without identity or network effects (851.311333ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok((await page.locator('#exchange-language').boundingBox()).height>=44)
+  
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002/apps/exchange/tests/locale-browser.test.mjs:530:12)
+      at runNextTicks (node:internal/process/task_queues:65:5)
+      at process.processImmediate (node:internal/timers:541:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
