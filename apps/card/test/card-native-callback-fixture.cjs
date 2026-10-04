@@ -5,6 +5,8 @@ const React=rendererRequire('react'),Renderer=require('react-test-renderer'),ts=
 const root=path.resolve(process.env.CARD_SOURCE_ROOT||path.join(__dirname,'..'));
 const hashes={};
 function execute(file,modules){
+ // Keep the actual presentation module in App tests; do not bypass its Web/native branch.
+ if(file.endsWith('/App.tsx'))modules={...modules,'./src/CardIntroductionLink':execute(path.join(root,'src/CardIntroductionLink.tsx'),{'react':modules.react,'react-native':modules['react-native']})};
  let source=fs.readFileSync(file,'utf8');
  if(file.endsWith('/App.tsx'))source=source.replace('privateSession={privateSession}', 'privateSession={privateSession} __testBusy={busy}');
  const js=ts.transpileModule(source,{fileName:file,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.React,esModuleInterop:true}}).outputText;
