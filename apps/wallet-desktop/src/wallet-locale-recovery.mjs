@@ -1,3 +1,18 @@
+export const RECOVERY_CONNECTION_NOTICE="Remote app connection cleanup is unconfirmed. Local permissions were revoked; pending transactions remain recorded. Unlock and review Connected apps before reconnecting.";
+const connectionNotices={
+  en:RECOVERY_CONNECTION_NOTICE,
+  "zh-Hans":"远端应用连接清理尚未确认。本地权限已撤销；待处理交易仍保留记录。请解锁并检查“已连接应用”，再重新连接。",
+  "zh-Hant":"遠端應用程式連線清理尚未確認。本機權限已撤銷；待處理交易仍保留記錄。請解鎖並檢查「已連線應用程式」，再重新連線。",
+  ja:"アプリのリモート接続の解除は未確認です。ローカル権限は取り消され、保留中の取引記録は保持されています。解除して接続済みアプリを確認してから再接続してください。",
+  ko:"앱의 원격 연결 정리는 확인되지 않았습니다. 로컬 권한은 철회되었으며 대기 중인 거래 기록은 유지됩니다. 잠금을 해제하고 연결된 앱을 확인한 뒤 다시 연결하세요.",
+  es:"La desconexión remota de apps no está confirmada. Se revocaron los permisos locales; las transacciones pendientes siguen registradas. Desbloquea y revisa las apps conectadas antes de reconectar.",
+  fr:"La déconnexion distante des apps n’est pas confirmée. Les permissions locales ont été révoquées ; les transactions en attente restent enregistrées. Déverrouillez et vérifiez les apps connectées avant de reconnecter.",
+  de:"Die Trennung der entfernten App-Verbindungen ist unbestätigt. Lokale Berechtigungen wurden widerrufen; ausstehende Transaktionen bleiben gespeichert. Entsperre Wallet und prüfe verbundene Apps vor einer erneuten Verbindung.",
+  pt:"A desconexão remota dos apps não foi confirmada. As permissões locais foram revogadas; as transações pendentes continuam registradas. Desbloqueie e revise os apps conectados antes de reconectar.",
+  ru:"Удалённое отключение приложений не подтверждено. Локальные разрешения отозваны; ожидающие транзакции остаются записанными. Разблокируйте Wallet и проверьте подключённые приложения перед повторным подключением.",
+  ar:"لم يتم تأكيد قطع اتصالات التطبيقات البعيدة. أُلغيت الأذونات المحلية؛ وتبقى المعاملات المعلقة مسجلة. افتح القفل وراجع التطبيقات المتصلة قبل إعادة الاتصال.",
+  id:"Pemutusan koneksi aplikasi jarak jauh belum dikonfirmasi. Izin lokal telah dicabut; transaksi tertunda tetap tercatat. Buka kunci dan tinjau aplikasi terhubung sebelum menyambung kembali."
+};
 export const RECOVERY_COPY_KEYS=Object.freeze([
   "Restore {account}.",
   "A new local password will be set. {count} other account(s) will remain visible and need their own recovery. The old encrypted Wallet is retained.",
@@ -25,5 +40,5 @@ id:"Pulihkan {account}.|Kata sandi lokal baru akan diatur. Akun lain: {count}; t
 };
 export const RECOVERY_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{
   const values=row.split("|");if(values.length!==RECOVERY_COPY_KEYS.length||values.some(value=>!value))throw Error(`Incomplete recovery copy: ${locale}`);
-  return[locale,Object.freeze(Object.fromEntries(RECOVERY_COPY_KEYS.map((key,index)=>[key,values[index]])))];
+  return[locale,Object.freeze({...Object.fromEntries(RECOVERY_COPY_KEYS.map((key,index)=>[key,values[index]])),[RECOVERY_CONNECTION_NOTICE]:connectionNotices[locale]})];
 })));

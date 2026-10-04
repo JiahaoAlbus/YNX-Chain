@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {renderRecoveryReview} from "../src/password-vault-ui.mjs";
+import {renderRecoveryReview,renderRecoveryOutcome} from "../src/password-vault-ui.mjs";
+import {RECOVERY_CONNECTION_NOTICE} from "../src/wallet-locale-recovery.mjs";
 import {initWalletLocale,WALLET_LOCALES,WALLET_COPY} from "../src/wallet-locale.mjs";
 function mounted(){
   class Element{
@@ -31,4 +32,10 @@ test("replacing a recovery review removes the prior account and count rather tha
   const h=mounted();renderRecoveryReview(h.node,{account:"old-account",resetPassword:true,count:42});
   renderRecoveryReview(h.node,{account:"new-account",resetPassword:false,count:0});h.locale.select("ar");
   assert.ok(h.node.textContent.includes("new-account"));assert.ok(!h.node.textContent.includes("old-account"));assert.ok(!h.node.textContent.includes("42"));
+});
+test("all twelve recovery outcomes retain the remote-cleanup warning on a language change without claiming another approval",()=>{
+  const h=mounted();renderRecoveryOutcome(h.node,true);
+  const saved="Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed.";
+  for(const locale of WALLET_LOCALES){h.locale.select(locale);assert.equal(h.node.textContent,`${WALLET_COPY[locale][saved]} ${WALLET_COPY[locale][RECOVERY_CONNECTION_NOTICE]} `);assert.ok(WALLET_COPY[locale][RECOVERY_CONNECTION_NOTICE]);}
+  renderRecoveryOutcome(h.node,false);h.locale.select("en");assert.equal(h.node.textContent,`${WALLET_COPY.en[saved]} `);
 });

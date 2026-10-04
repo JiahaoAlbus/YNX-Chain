@@ -2,6 +2,7 @@
 import {setWalletCopy} from "./wallet-locale.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {RECOVERY_HISTORY_NOTICE} from "./wallet-locale-password.mjs";
+import {RECOVERY_CONNECTION_NOTICE} from "./wallet-locale-recovery.mjs";
 import {createRecoveryFileInput} from "./recovery-file-input.mjs";
 export function renderRecoveryReview(node,{account,resetPassword,count},doc=node.ownerDocument){
   node.replaceChildren();
@@ -11,9 +12,15 @@ export function renderRecoveryReview(node,{account,resetPassword,count},doc=node
     ["Existing app permissions will be revoked. Pending transactions remain recorded.",{}]
   ]){const span=doc.createElement("span");setWalletCopy(span,key,values);node.append(span,doc.createTextNode(" "))}
 }
+export function renderRecoveryOutcome(node,remoteCleanupUnconfirmed,doc=node.ownerDocument){
+  node.replaceChildren();
+  const keys=["Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed."];
+  if(remoteCleanupUnconfirmed)keys.push(RECOVERY_CONNECTION_NOTICE);
+  for(const key of keys){const span=doc.createElement("span");setWalletCopy(span,key);node.append(span,doc.createTextNode(" "))}
+}
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
-  let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, busy = false;
+  let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, reviewedRecovery = null, busy = false;
   const recoveryFile=createRecoveryFileInput({document:doc,getContext:()=>({open:recoverySheet.open,generation,revision:getKeyState().revision,locked:getKeyState().locked,authenticating:getKeyState().authenticating,busy,account:$("#recovery-account").value,kind:$("#recovery-kind").value,mode:$("#recovery-password-mode").value})});
   const message = result => result?.error?.message ?? "Wallet could not complete this operation. It remains locked.";
   const showError = (node,result) => {if(!renderPermissionError(node,result?.error))node.textContent=message(result)};
@@ -23,7 +30,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent) renderAccount(status); }
     catch { if (revision === getKeyState().revision && intent === viewIntent) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
   }
-  function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
+  function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; reviewedRecovery = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
   function render() {
     const status = getAccountStatus(), state = getKeyState();
     $("#recover-wallet").hidden = !(status?.accounts?.length > 0);
@@ -36,7 +43,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   function toggleRecovery() {
     // Selecting a different account/source/password mode owns a fresh recovery
     // draft, including a read already awaiting local backup bytes.
-    generation++;viewIntent++;previewId=null;
+    generation++;viewIntent++;previewId=null;reviewedRecovery=null;
     const kind = $("#recovery-kind").value, reset = $("#recovery-password-mode").value === "reset";
     $("#recovery-value-group").hidden = ["encrypted-json", "previous-password"].includes(kind);
     $("#recovery-file-group").hidden = kind !== "encrypted-json";
@@ -136,6 +143,8 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       if (!result?.ok) { showError($("#recovery-result"),result); return; }
       const review=result.value,knownAccounts=new Set(getAccountStatus()?.accounts?.map(item=>item.account)??[]);
       if(!review||typeof review.previewId!=="string"||review.previewId.length<1||review.previewId.length>128||review.account!==input.account||review.resetPassword!==input.resetPassword||!Array.isArray(review.recoveryRequiredAccounts)||review.recoveryRequiredAccounts.length>32||new Set(review.recoveryRequiredAccounts).size!==review.recoveryRequiredAccounts.length||review.recoveryRequiredAccounts.some(account=>account===input.account||!knownAccounts.has(account))||!Number.isSafeInteger(review.expiresAt)||review.expiresAt<=Date.now())throw new Error("Recovery did not finish. Check the current Wallet before retrying.");
+      if(review.resetPassword&&review.recoveryRequiredAccounts.length!==knownAccounts.size-1)throw new Error("Recovery did not finish. Check the current Wallet before retrying.");
+      reviewedRecovery={account:review.account,accounts:getAccountStatus().accounts.map(item=>({account:item.account,state:item.account===review.account?"protected":review.recoveryRequiredAccounts.includes(item.account)?"recovery-required":item.state}))};
       previewId = review.previewId; $("#recovery-form").hidden = true; $("#recovery-review").hidden = false;
       renderRecoveryReview($("#recovery-summary"),{account:getAccountStatus()?.accounts?.find(item => item.account === result.value.account)?.ynxAccount ?? result.value.account,resetPassword:result.value.resetPassword,count:result.value.recoveryRequiredAccounts.length},doc);
       setWalletCopy($("#recovery-result"),"The backup matches this exact account. Confirm within one minute.");
@@ -143,12 +152,17 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     finally { input = null; if (token === generation) setBusy(false); }
   });
   $("#commit-recovery").addEventListener("click", async () => {
-    if (busy || !previewId) return;
-    const token = generation, intent = viewIntent, id = previewId; previewId = null; setBusy(true);
+    if (busy || !previewId || !reviewedRecovery) return;
+    const token = generation, intent = viewIntent, id = previewId, review = reviewedRecovery; previewId = null; reviewedRecovery = null; setBusy(true);
     try {
       const result = await api.commitRecovery(id);
       if (intent !== viewIntent) return;
-      if (result.ok) { if (token === generation) recoverySheet.close(); setWalletCopy($("#unlock-result"),"Account recovery is saved. Unlock with the current local password. Other accounts and pending transactions remain listed."); }
+      if (result.ok) {
+        const status=result.value,accounts=status?.accounts;
+        if(status?.initialized!==true||status.passwordConfigured!==true||status.account!==review.account||!Array.isArray(accounts)||accounts.length!==review.accounts.length||new Set(accounts.map(item=>item?.account)).size!==accounts.length||review.accounts.some(expected=>!accounts.some(item=>item?.account===expected.account&&item.state===expected.state)))throw new Error("Recovery did not finish. Check the current Wallet before retrying.");
+        if (token === generation) recoverySheet.close();
+        renderRecoveryOutcome($("#unlock-result"),!Array.isArray(status.remoteDisconnectFailures)||status.remoteDisconnectFailures.length!==0,doc);
+      }
       else { if (token === generation) showError($("#recovery-result"),result); showError($("#unlock-result"),result); }
     } catch { if (token === generation) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
     finally { if (intent === viewIntent) await refreshPublicStatus(); if (token === generation) setBusy(false); }

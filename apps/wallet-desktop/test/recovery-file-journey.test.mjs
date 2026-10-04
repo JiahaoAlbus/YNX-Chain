@@ -1,5 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from "node:fs";
+import {runInNewContext} from "node:vm";
+import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 const {createPasswordVaultUI}=await import(process.env.YNX_RECOVERY_UI_SOURCE??"../src/password-vault-ui.mjs");
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return{promise,resolve,reject}};
 function fixture(){
@@ -28,7 +31,7 @@ function fixture(){
     return[];
   },createElement:()=>new Node(),createTextNode:text=>({textContent:text})};
   const api={lock:async()=>{keyState={locked:true,revision:keyState.revision+1};return keyState},accountStatus:async()=>({ok:true,value:status}),recoveryHistory:async()=>({ok:true,value:[]}),
-    prepareRecovery:async input=>{calls.push({...input});return{ok:true,value:{previewId:"review-a",account:input.account,resetPassword:input.resetPassword,recoveryRequiredAccounts:[],expiresAt:Date.now()+60_000}}},commitRecovery:async id=>{calls.push({commit:id});return{ok:true,value:status}}};
+    prepareRecovery:async input=>{calls.push({...input});return{ok:true,value:{previewId:"review-a",account:input.account,resetPassword:input.resetPassword,recoveryRequiredAccounts:[],expiresAt:Date.now()+60_000}}},commitRecovery:async id=>{calls.push({commit:id});return{ok:true,value:{...status,remoteDisconnectFailures:[]}}}};
   const ui=createPasswordVaultUI({api,document:doc,getKeyState:()=>keyState,getAccountStatus:()=>status,renderAccount(){}});
   const open=async()=>{await get("recover-wallet").emit("click");get("recovery-account").value=status.account;get("recovery-kind").value="encrypted-json";get("recovery-password-mode").value="keep";};
   const choose=(node,file)=>{node.emit("click");node.files=[file];node.emit("change")};
@@ -52,6 +55,64 @@ test("normal explicit file selection, bounded read, account preview and commit u
   const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
   assert.equal(h.calls.length,1);assert.equal(h.calls[0].value,"CURRENT encrypted JSON");assert.equal(h.get("recovery-review").hidden,false);
   await h.get("commit-recovery").emit("click");assert.equal(h.calls[1].commit,"review-a");
+});
+for(const delta of [{account:"account-b"},{initialized:false},{passwordConfigured:false},{accounts:[]},{accounts:[{account:"account-a",state:"protected"}]},{accounts:[{account:"account-a",state:"protected"},{account:"account-a",state:"protected"}]},{accounts:[{account:"account-a",state:"recovery-required"},{account:"account-b",state:"protected"}]}])test(`commit acknowledgement cannot report a different recovery outcome: ${JSON.stringify(delta)}`,async()=>{
+  const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
+  h.api.commitRecovery=async()=>({ok:true,value:{...h.status,remoteDisconnectFailures:[],...delta}});
+  await h.get("commit-recovery").emit("click");assert.equal(h.get("recovery-sheet").open,true);
+  assert.ok(!h.get("unlock-result").textContent.includes("Account recovery is saved"));
+  assert.match(h.get("recovery-result").textContent,/Recovery did not finish/);
+});
+for(const failures of [[{topic:"retained-topic",code:"RELAY_UNAVAILABLE"}],undefined,"invalid",[null]])test(`saved recovery does not silently claim remote cleanup for ${JSON.stringify(failures)}`,async()=>{
+  const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
+  h.api.commitRecovery=async()=>({ok:true,value:{...h.status,remoteDisconnectFailures:failures}});
+  await h.get("commit-recovery").emit("click");assert.equal(h.get("recovery-sheet").open,false);
+  assert.match(h.get("unlock-result").textContent,/Account recovery is saved/);
+  assert.match(h.get("unlock-result").textContent,/Remote app connection cleanup is unconfirmed/);
+});
+test("successful exact recovery with confirmed empty failures remains locked-facing without an extra cleanup warning",async()=>{
+  const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();await h.get("commit-recovery").emit("click");
+  assert.match(h.get("unlock-result").textContent,/Unlock with the current local password/);
+  assert.ok(!h.get("unlock-result").textContent.includes("cleanup is unconfirmed"));assert.equal(h.get("recovery-sheet").open,false);
+});
+test("reset-password preview must enumerate every other retained account before explicit commit",async()=>{
+  const h=fixture();await h.open();h.get("recovery-password-mode").value="reset";h.get("recovery-password-mode").emit("change");
+  h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();await h.get("commit-recovery").emit("click");
+  assert.equal(h.calls.some(call=>call.commit),false);assert.equal(h.get("recovery-review").hidden,true);
+});
+test("matching reset-password outcome confirms the reviewed account and keeps every other account recovery-required",async()=>{
+  const h=fixture();await h.open();h.get("recovery-password-mode").value="reset";h.get("recovery-password-mode").emit("change");
+  h.api.prepareRecovery=async input=>({ok:true,value:{previewId:"reset-review",account:input.account,resetPassword:true,recoveryRequiredAccounts:["account-b"],expiresAt:Date.now()+60_000}});
+  h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
+  h.api.commitRecovery=async()=>({ok:true,value:{...h.status,accounts:h.status.accounts.map(item=>({...item,state:item.account==="account-a"?"protected":"recovery-required"})),remoteDisconnectFailures:[]}});
+  await h.get("commit-recovery").emit("click");assert.equal(h.get("recovery-sheet").open,false);assert.match(h.get("unlock-result").textContent,/Account recovery is saved/);
+});
+test("late saved acknowledgement after explicit cancel/reopen cannot close or alter the new recovery draft",async()=>{
+  const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
+  const pending=deferred();h.api.commitRecovery=()=>pending.promise;const old=h.get("commit-recovery").emit("click");
+  h.ui.cancel({explicit:true});await h.open();h.get("recovery-current-password").value="new fictional draft";h.get("unlock-result").textContent="new view notice";
+  pending.resolve({ok:true,value:{...h.status,remoteDisconnectFailures:[]}});await old;
+  assert.equal(h.get("recovery-sheet").open,true);assert.equal(h.get("recovery-current-password").value,"new fictional draft");assert.equal(h.get("unlock-result").textContent,"new view notice");
+});
+for(const remoteFailure of [false,true])test(`actual main custody-change result composes with recovery UI; remoteFailure=${remoteFailure}`,async t=>{
+  const h=fixture();await h.open();h.choose(h.get("recovery-file"),backup("CURRENT encrypted JSON"));await h.submit();
+  const life=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>{},method:"controlled-no-key-custody"}});
+  life.setFocused(true);life.setAccount("account-a");t.after(()=>life.lock());
+  const calls=[],events=[],pending=[{key:"old-request"}],sessions=[{topic:"old-session"}];
+  const context={accountChangeInProgress:false,walletConnectProposalActions:new Set(),keyAccess:life,
+    walletConnectInbox:{pending:()=>pending,finish:key=>calls.push(`finish:${key}`)},terminateWalletConnectReview:async(entry,reason)=>calls.push(`terminate:${reason}`),
+    walletAuthority:{permissions:{revokeAll:async()=>{assert.equal(life.status().locked,true);calls.push("revoke-local")}}},
+    walletConnect:{sessions:()=>sessions,disconnectSession:async()=>{calls.push("disconnect-remote");if(remoteFailure)throw Error("controlled remote failure")}},
+    mainWindow:{webContents:{send:(name,value)=>events.push({name,value})}},safeCode:()=>"CONTROLLED_REMOTE_FAILURE"};
+  const source=readFileSync(new URL("../src/main.mjs",import.meta.url),"utf8"),start=source.indexOf("async function custodyChange("),end=source.indexOf('app.on("open-url"',start);
+  assert.ok(start>=0&&end>start);runInNewContext(source.slice(start,end),context);
+  h.api.commitRecovery=async()=>({ok:true,value:await context.custodyChange(async(guard,beforePublish)=>{guard.assert();await beforePublish();guard.assert();calls.push("publish-controlled-status");return h.status;})});
+  await h.get("commit-recovery").emit("click");
+  assert.deepEqual(calls,["finish:old-request","terminate:ACCOUNT_CHANGED","revoke-local","publish-controlled-status","disconnect-remote"]);
+  assert.equal(life.status().locked,true);assert.equal(context.accountChangeInProgress,false);
+  assert.equal(events.at(-1).value.type,"custody-changed");assert.equal(events.at(-1).value.remoteDisconnectFailures.length,remoteFailure?1:0);
+  assert.equal(h.get("unlock-result").textContent.includes("cleanup is unconfirmed"),remoteFailure);
+  assert.equal(h.get("recovery-sheet").open,false);
 });
 test("late backup read after cancel cannot call prepareRecovery or clear a new form draft",async()=>{
   const h=fixture();await h.open();const pending=deferred(),file={size:4,text:()=>pending.promise,arrayBuffer:async()=>new TextEncoder().encode(await pending.promise).buffer,slice(){return this}};
