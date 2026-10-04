@@ -415,8 +415,44 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       assert.equal(await tabA.evaluate(()=>localStorage.getItem(paperPendingKey)),null);
       assert.deepEqual(overlapErrors,[]);assert.equal(overlapContext.pages().length,2);
       t.diagnostic(JSON.stringify({classification:'LOCAL_CORRUPT_JOURNAL_TWO_TAB_FORGET_RECOVERY',corruptJournalInjectedForBoundaryTest:true,validReplacementCreatedByOriginalUI:true,staleDialogs,staleForgetPreserved:true,cancelPreserved:true,paperPosts:forgetPosts,additionalCommittedOrders:1,exactReplay:true,blankTabs:0,publicVerified:false,walletApproval:false}));
-    }finally{releaseFirst();releaseNext();await overlapContext.close();}
-  }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
+      let releaseOldResearch,releaseNewResearch,oldResearchReady,newResearchReady,researchOverlapPosts=0;
+      const oldResearchHold=new Promise(resolve=>{releaseOldResearch=resolve}),newResearchHold=new Promise(resolve=>{releaseNewResearch=resolve});
+      const oldResearchCommitted=new Promise(resolve=>{oldResearchReady=resolve}),newResearchCommitted=new Promise(resolve=>{newResearchReady=resolve});
+      const researchOverlapBodies=[],researchOverlapReceipts=[];
+      await overlapContext.route('**/api/v1/backtests/from-market',async route=>{
+        const index=researchOverlapPosts++;researchOverlapBodies[index]=route.request().postData();
+        const response=await route.fetch();assert.equal(response.status(),201);researchOverlapReceipts[index]=await response.json();
+        if(index===0){oldResearchReady();await oldResearchHold;}else if(index===2){newResearchReady();await newResearchHold;}
+        return route.fulfill({response});
+      });
+      try{
+        await tabA.locator('nav button[data-view="research"]').click();await tabA.locator('#strategy').fill('Original held saved research');
+        await tabA.locator('#research-submit').click();await oldResearchCommitted;
+        await tabB.reload({waitUntil:'networkidle'});assert.equal(await tabB.locator('#strategy').inputValue(),'Original held saved research');
+        await tabB.locator('#research-submit').click();await tabB.waitForFunction(()=>pendingResearchIntent===null&&!researchSubmitting);
+        assert.equal(researchOverlapBodies[0],researchOverlapBodies[1]);assert.deepEqual(researchOverlapReceipts[0],researchOverlapReceipts[1]);
+        await tabB.locator('#strategy').fill('New held saved research');await tabB.locator('#research-submit').click();await newResearchCommitted;
+        const newResearchJournal=await tabB.evaluate(()=>localStorage.getItem(researchPendingKey)),oldResearchToast=await tabA.locator('#toast').textContent();
+        releaseOldResearch();await tabA.waitForFunction(()=>!researchSubmitting);
+        assert.equal(await tabA.evaluate(()=>localStorage.getItem(researchPendingKey)),newResearchJournal);
+        assert.equal(await tabA.evaluate(()=>JSON.stringify(pendingResearchIntent)),newResearchJournal);
+        assert.equal(await tabA.locator('#toast').textContent(),oldResearchToast);assert.equal(await tabB.evaluate(()=>researchSubmitting),true);
+        let forgetResearchDialogs=0;const noStaleResearchDialog=async dialog=>{forgetResearchDialogs++;await dialog.dismiss()};tabA.on('dialog',noStaleResearchDialog);
+        // The view now explicitly shows the replacement after lane retirement;
+        // its Forget may review that current record, but cancellation cannot delete it.
+        await tabA.locator('#research-forget-pending').click();tabA.off('dialog',noStaleResearchDialog);
+        assert.equal(forgetResearchDialogs,1);assert.equal(await tabA.evaluate(()=>localStorage.getItem(researchPendingKey)),newResearchJournal);
+        releaseNewResearch();await tabB.waitForFunction(()=>pendingResearchIntent===null&&!researchSubmitting);
+        await tabA.reload({waitUntil:'networkidle'});await tabB.reload({waitUntil:'networkidle'});
+        for(const tab of [tabA,tabB])assert.equal(await tab.evaluate(()=>Object.values(snapshot.experiments).filter(e=>['Original held saved research','New held saved research'].includes(e.strategy.Name)).length),2);
+        assert.equal(researchOverlapPosts,3);assert.deepEqual(overlapErrors,[]);assert.equal(overlapContext.pages().length,2);
+        t.diagnostic(JSON.stringify({classification:'LOCAL_SAVED_RESEARCH_TWO_TAB_REAL_GO_LATE_RESPONSE',posts:researchOverlapPosts,committedExperiments:2,oldResponsePreservedNewJournal:true,cancelPreserved:true,blankTabs:0,publicVerified:false,walletApproval:false}));
+      }finally{releaseOldResearch();releaseNewResearch();}
+    }finally{releaseFirst();releaseNext();t.diagnostic('cleanup=overlap-context-start');await overlapContext.request.dispose();await overlapContext.close();t.diagnostic('cleanup=overlap-context-complete');}
+    // Drain owned routed contexts before shutting down the browser process.
+    // Keep the original deadline; a passed flow is not a passed cleanup.
+    t.diagnostic('cleanup=research-contexts-start');await context.request.dispose();await otherContext.request.dispose();await context.close();await otherContext.close();t.diagnostic('cleanup=research-contexts-complete');
+  }finally{t.diagnostic('cleanup=browser-start');await browser?.close();t.diagnostic('cleanup=browser-complete');await stop();t.diagnostic('cleanup=service-complete');await new Promise(resolve=>tape.close(resolve));t.diagnostic('cleanup=tape-complete');}
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];

@@ -48,12 +48,29 @@ try {
 } catch { tenantId = null; workspaceStorageAvailable = false; }
 const paperPendingKey = `ynx.quant.paper.pending.v1:${tenantId}`;
 const researchPendingKey = `ynx.quant.research.pending.v1:${tenantId}`;
-let pendingResearchInvalid = false, pendingResearchIntent = readPendingResearchIntent();
+let pendingResearchInvalid = false, pendingResearchUnreadableBytes = null, pendingResearchIntent = readPendingResearchIntent();
+function reloadResearchJournal() {
+  if(!workspaceStorageAvailable)return;
+  const previousInvalid=pendingResearchInvalid,previousBytes=pendingResearchUnreadableBytes;
+  pendingResearchInvalid=false;
+  const next=readPendingResearchIntent();
+  if(workspaceStorageAvailable)pendingResearchIntent=next;
+  else {pendingResearchInvalid=previousInvalid;pendingResearchUnreadableBytes=previousBytes;}
+}
+function clearResearchJournal(expectedBytes) {
+  try {
+    if(!expectedBytes||localStorage.getItem(researchPendingKey)!==expectedBytes||JSON.stringify(pendingResearchIntent)!==expectedBytes)return false;
+    localStorage.removeItem(researchPendingKey);
+    if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
+    pendingResearchIntent=null;return true;
+  }catch{workspaceStorageAvailable=false;statefulPreview=false;return false;}
+}
 function readPendingResearchIntent() {
   if (!workspaceStorageAvailable) return null;
-  const raw = readPreference(researchPendingKey);
-  if (raw === null) return null;
+  let raw=null;
   try {
+    raw=localStorage.getItem(researchPendingKey);pendingResearchUnreadableBytes=null;
+    if(raw===null)return null;
     if (raw.length > 65536) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     const value = JSON.parse(raw), strategy = value?.strategy, costs = value?.assumptions;
     // Persisted intents are exact JSON.stringify envelopes, not imported JSON.
@@ -63,7 +80,10 @@ function readPendingResearchIntent() {
     if(Object.keys(strategy).sort().join(',')!=='family,id,license,limitations,name,params,seed,source,sourceCommit' || Object.keys(costs).sort().join(',')!=='feeBPS,latencyBars,participationBPS,seed,slippageBPS,trainEnd,walkForwardWindows' || strategy.source!=='quant://user/ma' || strategy.sourceCommit!=='local' || strategy.license!=='Apache-2.0' || typeof strategy.limitations!=='string')throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     if (Object.keys(value).sort().join(',') !== 'assumptions,idempotencyKey,strategy' || !/^quant-research-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.idempotencyKey) || !/^ma-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(strategy?.id) || strategy.family !== 'transparent' || typeof strategy.name !== 'string' || !strategy.name.trim() || strategy.name.length > 80 || !Number.isSafeInteger(strategy.seed) || Object.keys(strategy.params).sort().join(',') !== 'fast,slow' || !Number.isSafeInteger(strategy.params.fast) || strategy.params.fast < 2 || !Number.isSafeInteger(strategy.params.slow) || strategy.params.slow <= strategy.params.fast || !Number.isSafeInteger(costs.feeBPS) || costs.feeBPS < 0 || !Number.isSafeInteger(costs.slippageBPS) || costs.slippageBPS < 0 || costs.seed !== strategy.seed || costs.latencyBars !== 1 || costs.participationBPS !== 1000 || costs.trainEnd !== 24 || costs.walkForwardWindows !== 3) throw Error('INVALID_SAVED_RESEARCH_REQUEST');
     return value;
-  } catch { pendingResearchInvalid = true; return null; }
+  } catch {
+    if(raw===null){workspaceStorageAvailable=false;statefulPreview=false;return null;}
+    pendingResearchInvalid=true;pendingResearchUnreadableBytes=raw;return null;
+  }
 }
 let paperSubmitting = false, pendingPaperInvalid = false, pendingPaperUnreadableBytes = null, pendingPaperIntent = readPendingPaperIntent();
 let paperSubmissionLane = null;
@@ -732,11 +752,16 @@ const researchForgetButton = document.createElement('button');
 researchForgetButton.type='button';researchForgetButton.id='research-forget-pending';
 $('#backtest').append(researchForgetButton);
 researchForgetButton.onclick=()=>{
-  if(researchSubmitting || !confirm(t('researchForgetConfirm'))) return;
+  if(researchSubmitting||!workspaceStorageAvailable||!pendingResearchIntent&&!pendingResearchInvalid)return;
   try {
+    const expected=pendingResearchInvalid?pendingResearchUnreadableBytes:JSON.stringify(pendingResearchIntent);
+    if(typeof expected!=='string'||localStorage.getItem(researchPendingKey)!==expected){reloadResearchJournal();renderResearchRequestState();return;}
+    if(!confirm(t('researchForgetConfirm')))return;
+    const displayed=pendingResearchInvalid?pendingResearchUnreadableBytes:JSON.stringify(pendingResearchIntent);
+    if(displayed!==expected||localStorage.getItem(researchPendingKey)!==expected){reloadResearchJournal();renderResearchRequestState();return;}
     localStorage.removeItem(researchPendingKey);
     if(localStorage.getItem(researchPendingKey)!==null) throw Error('STORAGE_READBACK_MISMATCH');
-    pendingResearchIntent=null;pendingResearchInvalid=false;
+    pendingResearchIntent=null;pendingResearchInvalid=false;pendingResearchUnreadableBytes=null;
     toast(t('researchForgotten'),'researchForgotten');renderResearchRequestState();
   } catch { workspaceStorageAvailable=false;statefulPreview=false;toast(t('workspaceStorageUnavailable'),'workspaceStorageUnavailable'); }
 };
@@ -1347,7 +1372,14 @@ $("#backtest").onsubmit = async (e) => {
   researchSubmitting = true;
   renderResearchChoices(Object.values(snapshot.strategies || {}));
   renderResearchRequestState();
+  reloadResearchJournal();
   const savedWorkspace = statefulPreview;
+  let lane=null;
+  const currentLane=()=>{
+    if(!lane)return true;
+    try{return localStorage.getItem(researchPendingKey)===lane.bytes&&JSON.stringify(pendingResearchIntent)===lane.bytes&&JSON.stringify(researchDraftInputs())===lane.draft;}
+    catch{return false;}
+  };
   try {
     const draft = researchDraftInputs();
     let body = {
@@ -1384,27 +1416,24 @@ $("#backtest").onsubmit = async (e) => {
         persistWorkspaceValue(researchPendingKey,JSON.stringify(body));
       }
     }
+    if(savedWorkspace)lane={bytes:JSON.stringify(body),draft:JSON.stringify(draft)};
     const result = await api(savedWorkspace ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
     if (!researchRequestMatches(result, body)) throw Error(t("researchInvalid"));
-    if(savedWorkspace){
-      try{
-        localStorage.removeItem(researchPendingKey);
-        if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');
-        pendingResearchIntent=null;
-      }catch{workspaceStorageAvailable=false;statefulPreview=false;}
-    }
+    if(savedWorkspace&&(!currentLane()||!clearResearchJournal(lane.bytes)))return;
     renderResult(result, savedWorkspace);
     const resultMessage = savedWorkspace ? "researchSaved" : "researchTemporary";
     toast(t(resultMessage), resultMessage);
     if (savedWorkspace) await refresh();
     else { publicExperiments[result.id] = result; render(); }
   } catch (e) {
+    if(lane&&!currentLane())return;
     if(e.code!=='QUANT_API_REJECTED'&&e.status>=400&&e.status<500&&![408,409,429].includes(e.status)){
-      try{localStorage.removeItem(researchPendingKey);if(localStorage.getItem(researchPendingKey)!==null)throw Error('STORAGE_READBACK_MISMATCH');pendingResearchIntent=null;}catch{workspaceStorageAvailable=false;statefulPreview=false;}
+      if(lane)clearResearchJournal(lane.bytes);
     }
     toast(e.message, e.localeKey ?? null);
   } finally {
     researchSubmitting = false;
+    reloadResearchJournal();
     renderResearchChoices(Object.values(snapshot.strategies || {}));
     renderResearchRequestState();
   }

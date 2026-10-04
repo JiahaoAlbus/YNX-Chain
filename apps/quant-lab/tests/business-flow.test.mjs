@@ -858,7 +858,8 @@ test('one in-flight research request preserves its submitted inputs and mode acr
     const submitted=JSON.parse(posts[0].options.body);assert.equal(submitted.strategy.name,'Exact original strategy');assert.equal(submitted.strategy.params.fast,3);assert.match(submitted.strategy.id,/^ma-[0-9a-f-]{36}$/);
     assert.equal(app.ids.get('latest-result').hidden,true,'an in-flight request must not invent confirmed performance');
     pending.resolve(researchFixture('confirmed-single'));await first;
-    assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('backtest').ariaBusy,'false');assert.equal(app.ids.get('research-request-status').hidden,true);
+    assert.equal(app.ids.get('research-submit').disabled,false);assert.equal(app.ids.get('backtest').ariaBusy,'false');assert.equal(app.ids.get('research-request-status').hidden,!saved);
+    if(saved)assert.equal(JSON.parse([...app.storage].find(([key])=>key.startsWith('ynx.quant.research.pending'))[1]).strategy.name,'Exact original strategy','edited draft retains the exact old saved request for explicit recovery');
     assert.equal(app.ids.get('strategy').value,'Edited next draft');assert.equal(app.proofs(),0);
   }
 });
@@ -884,6 +885,51 @@ test('saved research retains one exact request across unknown outcome, reload, l
   assert.equal([...retry.storage.keys()].filter(key=>key.startsWith('ynx.quant.research.pending.v1:')).length,0);
   assert.equal(retry.proofs(),0);
 });
+test('late saved research responses and stale Forget preserve a replacement journal',async()=>{
+  for(const outcome of ['success','rejection','network']){
+    const wait=deferred(),app=harness({apiStatus:url=>url.endsWith('/snapshot')?200:outcome==='rejection'?400:201,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:wait.promise});await settle();
+    const operation=app.submit('backtest');await settle();
+    const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending')),original=JSON.parse(app.storage.get(key));
+    const replacement={...original,idempotencyKey:'quant-research-11111111-1111-1111-1111-111111111111',strategy:{...original.strategy,id:'ma-11111111-1111-1111-1111-111111111111',name:'Next saved research'}};
+    const raw=JSON.stringify(replacement);app.storage.set(key,raw);
+    const oldToast=app.ids.get('toast').textContent;
+    if(outcome==='network')wait.reject(Error('Lost response'));
+    else if(outcome==='rejection')wait.resolve({error:'invalid_json'});
+    else{const receipt=researchFixture('old-confirmed',original.strategy.name);receipt.strategy.ID=original.strategy.id;wait.resolve(receipt);}
+    await operation;
+    assert.equal(app.storage.get(key),raw,outcome);assert.equal(app.ids.get('toast').textContent,oldToast,outcome);
+    assert.equal(vm.runInContext('pendingResearchIntent.idempotencyKey',app.context),replacement.idempotencyKey);
+    assert.equal(app.ids.get('latest-result').hidden,true);assert.equal(app.ids.get('research-submit').disabled,false);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(app.proofs(),0);
+  }
+});
+
+test('saved research Forget binds the displayed journal before and after confirmation',async()=>{
+  for(const kind of ['valid','unreadable'])for(const during of [false,true]){
+    let app,replacement,confirms=0;
+    app=harness({confirmAction:()=>{confirms++;if(during)app.storage.set(key,replacement);return true},apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();await app.submit('backtest');
+    const key=[...app.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending'));
+    const original=JSON.parse(app.storage.get(key));replacement=kind==='valid'?JSON.stringify({...original,idempotencyKey:'quant-research-11111111-1111-1111-1111-111111111111'}):'[replacement]';
+    if(!during)app.storage.set(key,replacement);
+    vm.runInContext('researchForgetButton.onclick()',app.context);
+    assert.equal(app.storage.get(key),replacement);assert.equal(confirms,during?1:0);
+    assert.equal(vm.runInContext('pendingResearchInvalid',app.context),kind==='unreadable');assert.equal(app.proofs(),0);
+  }
+});
+
+test('saved research read and removal failures retain exact unknown intent without dispatch',async()=>{
+  const original=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();await original.submit('backtest');
+  const key=[...original.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending')),raw=original.storage.get(key);
+  for(const mode of ['get','remove']){
+    let deny=false;
+    const app=harness({savedStorage:original.storage,confirmAction:()=>true,storageBoundary(operation,k){if(deny&&operation===mode&&k===key)throw Error('Storage unavailable')}});await settle();deny=true;
+    if(mode==='get')await app.submit('backtest');else vm.runInContext('researchForgetButton.onclick()',app.context);
+    assert.equal(app.storage.get(key),raw);assert.equal(vm.runInContext('JSON.stringify(pendingResearchIntent)',app.context),raw);
+    assert.equal(vm.runInContext('workspaceStorageAvailable',app.context),false);assert.equal(vm.runInContext('statefulPreview',app.context),false);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(app.proofs(),0);
+  }
+});
+
 test('unbound saved research key never clears an unknown request; explicit local forgetting does not change service records',async()=>{
   const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:{...researchFixture('wrong-key'),researchRequestKey:'quant-research-ffffffff-ffff-ffff-ffff-ffffffffffff'}});await settle();
   await app.submit('backtest');assert.equal(app.ids.get('latest-result').hidden,true);assert.equal(app.ids.get('research-request-status').hidden,false);
