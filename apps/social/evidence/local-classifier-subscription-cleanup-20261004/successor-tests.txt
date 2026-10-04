@@ -1,0 +1,48 @@
+✔ late subscription cleanup failure after abort stops replacement engines (0.772416ms)
+✔ late subscription cleanup failure after failure stops replacement engines (0.101583ms)
+✔ worker gets a transferable private copy, not the caller buffer; valid result terminates once (1.187041ms)
+✔ pre-aborted work never creates an engine (0.261959ms)
+✔ abort terminates and late old scores cannot resolve the next job (0.187459ms)
+✔ a never-ending engine times out, terminates and explicit retry works (5.931083ms)
+✔ current worker failure never becomes a clear score and releases capacity (0.212917ms)
+✔ close terminates every active job and prevents replacement work (0.442209ms)
+✔ mime, byte and parallel-work limits reject before engine creation (0.243375ms)
+✔ malformed or incomplete scores cannot pass the worker boundary null (0.111333ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.073208ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.08575ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.052667ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.04125ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.036542ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.035708ms)
+✔ malformed or incomplete scores cannot pass the worker boundary [object Object] (0.034083ms)
+✔ wrong job identity is ignored until its own bounded valid result (0.057584ms)
+✔ abort inside the engine factory terminates without dispatching content (0.087ms)
+✔ factory failure is bounded and a fresh factory attempt can recover (0.105292ms)
+✔ invalid worker budgets and unsupported capability declarations are rejected (0.086958ms)
+✔ close inside the engine factory reclaims its returned worker without dispatch (0.058ms)
+✔ abort during subscription terminates and detaches without dispatch (0.071125ms)
+✔ default off never invokes a classifier; missing model is not protection (1.262792ms)
+✔ pending content cannot flash; original-byte and generation fences survive awaits (0.714416ms)
+✔ gore folds locally without changing original content (0.691167ms)
+✔ explicit_violence folds locally without changing original content (0.158792ms)
+✔ sexual_content folds locally without changing original content (0.148333ms)
+✔ GIF, video and audio are not certified from a still-image capability (0.102958ms)
+✔ disable cancels original work and late results cannot rescue it (0.191958ms)
+✔ replacement of the same content ID retires the old inference (0.299541ms)
+✔ bounded concurrency rejects overload, then accepts recovery (0.21175ms)
+✔ timeout with an uncooperative classifier settles without showing content (11.295084ms)
+✔ errors, NaN and missing categories never become a clear decision (0.350708ms)
+✔ invalid settings and oversized content are rejected without scanning (0.225208ms)
+✔ null result settles fail-closed, wipes owned input and permits retry (1.722208ms)
+✔ undefined result settles fail-closed, wipes owned input and permits retry (0.559333ms)
+✔ missing-category result settles fail-closed, wipes owned input and permits retry (0.222292ms)
+✔ throwing-field result settles fail-closed, wipes owned input and permits retry (0.226375ms)
+✔ adapter scores are captured once before validation and thresholding (0.603042ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 140.69275

@@ -1,0 +1,58 @@
+✖ late subscription cleanup failure after abort stops replacement engines (8002.330208ms)
+✖ late subscription cleanup failure after failure stops replacement engines (0.939291ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 0
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8130.268375
+
+✖ failing tests:
+
+test at ../../../../../../../private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:2:991
+✖ late subscription cleanup failure after abort stops replacement engines (8002.330208ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /stopped/. Input:
+  
+  'Error: Local classifier cleanup failed'
+  
+      at async TestContext.<anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:23:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Local classifier cleanup failed
+        at finish (/private/tmp/social-worker-old.Tgimah/localClassifierWorker.ts:94:18)
+        at Timeout.<anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierWorker.ts:128:34)
+        at listOnTimeout (node:internal/timers:685:17)
+        at process.processTimers (node:internal/timers:618:7),
+    expected: /stopped/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:2:991
+✖ late subscription cleanup failure after failure stops replacement engines (0.939291ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /stopped/. Input:
+  
+  'Error: Local classifier worker failed'
+  
+      at async TestContext.<anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:23:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: Local classifier worker failed
+        at <anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierWorker.ts:126:72)
+        at Object.subscribe (/private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:14:16)
+        at <anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierWorker.ts:126:30)
+        at new Promise (<anonymous>)
+        at LocalClassifierWorker.classify (/private/tmp/social-worker-old.Tgimah/localClassifierWorker.ts:75:12)
+        at TestContext.<anonymous> (/private/tmp/social-worker-old.Tgimah/localClassifierSubscriptionCleanup.test.ts:23:37)
+        at async Test.run (node:internal/test_runner/test:1404:7)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:969:7),
+    expected: /stopped/,
+    operator: 'rejects',
+    diff: 'simple'
+  }

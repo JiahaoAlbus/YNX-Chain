@@ -124,7 +124,16 @@ export class LocalClassifierWorker implements DeviceContentClassifier {
         }
         if (signal.aborted || this.closed) { cancel(); return; }
         unsubscribe = worker.subscribe(result, () => finish(undefined, new Error('Local classifier worker failed')));
-        if (finished) { unsubscribe(); return; }
+        if (finished) {
+          // subscribe can synchronously cancel/fail before returning its cleanup
+          // handle. A later cleanup failure is still terminal for this engine;
+          // finish is already settled and cannot enforce that on a second call.
+          try { unsubscribe(); } catch {
+            this.closed = true;
+            for (const stop of Array.from(this.pending.values())) stop();
+          }
+          return;
+        }
         timer = setTimeout(() => finish(undefined, new Error('Local classifier timed out')), this.timeoutMs);
         dispatched = true;
         worker.postMessage({ protocol, type: 'classify', id, content, mimeType }, [content]);
