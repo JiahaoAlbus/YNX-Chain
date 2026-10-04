@@ -481,7 +481,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 		// original recipient must still explicitly accept; never auto-consent.
 		before := cloneState(s.state)
 		s.state.Idempotency[stateKey] = idempotencyRecord{Action: "contact_request", Digest: digest, ObjectID: existing.ID}
-		return existing, true, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
+		return copyContactRequestResult(existing), true, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 	}
 	id := "request_" + objectDigest(struct{ A, B, K string }{actor.Account, target, in.IdempotencyKey})[:24]
 	expires := now.Add(7 * 24 * time.Hour)
@@ -491,7 +491,7 @@ func (s *Service) RequestContact(actor Session, in ContactRequestInput) (Contact
 	s.state.Idempotency[stateKey] = idempotencyRecord{Action: "contact_request", Digest: digest, ObjectID: id}
 	s.notifyLocked(target, actor.Account, "contact_request", id, now)
 	s.appendAuditLocked("contact_request_created", "contact_request", id, actor.Account, digest, now)
-	return record, false, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
+	return copyContactRequestResult(record), false, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 }
 
 func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRequest, error) {
@@ -540,7 +540,7 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 	if record.Status == finalStatus {
 		// A historical receipt is not a new grant: never restore a relationship
 		// that was subsequently removed, and do not duplicate notifications.
-		return record, nil
+		return copyContactRequestResult(record), nil
 	}
 	if record.Status != "pending" {
 		return ContactRequest{}, ErrConflict
@@ -556,7 +556,7 @@ func (s *Service) TransitionRequest(actor Session, id, action string) (ContactRe
 		s.notifyLocked(record.From, actor.Account, "contact_accepted", id, now)
 	}
 	s.appendAuditLocked("contact_request_"+record.Status, "contact_request", id, actor.Account, objectDigest(record), now)
-	return record, s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
+	return copyContactRequestResult(record), s.saveOrRollbackProductActorLocked(before, actor, "social.contacts")
 }
 
 func (s *Service) DeleteContact(actor Session, target string) error {
@@ -1004,7 +1004,7 @@ func (s *Service) Export(actor Session) Export {
 	}
 	for _, r := range s.state.Requests {
 		if r.From == actor.Account || r.To == actor.Account {
-			out.Requests = append(out.Requests, r)
+			out.Requests = append(out.Requests, copyContactRequestResult(r))
 		}
 	}
 	for _, n := range s.state.Notifications {

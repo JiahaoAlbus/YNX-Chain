@@ -1,0 +1,31 @@
+--- FAIL: TestPublicContactRequestResultsCannotMutateStoredTimes (0.27s)
+    --- FAIL: TestPublicContactRequestResultsCannotMutateStoredTimes/new (0.14s)
+        contact_public_snapshot_test.go:47: public request result aliases stored deadline
+    --- FAIL: TestPublicContactRequestResultsCannotMutateStoredTimes/new_key (0.03s)
+        contact_public_snapshot_test.go:47: public request result aliases stored deadline
+    --- FAIL: TestPublicContactRequestResultsCannotMutateStoredTimes/opposite (0.03s)
+        contact_public_snapshot_test.go:47: public request result aliases stored deadline
+    --- FAIL: TestPublicContactRequestResultsCannotMutateStoredTimes/export (0.03s)
+        contact_public_snapshot_test.go:47: public request result aliases stored deadline
+--- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes (0.28s)
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/transition (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/terminal_replay (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/accept/export (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/transition (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/terminal_replay (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/reject/export (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/transition (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/terminal_replay (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+    --- FAIL: TestPublicContactTerminalResultsCannotMutateStoredTimes/withdraw/export (0.03s)
+        contact_public_snapshot_test.go:88: public terminal result aliases stored timestamps
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	1.015s
+FAIL
