@@ -6,7 +6,7 @@ export function reviewedSelection(context, sessionId) {
   let value; try { value = JSON.parse(context); } catch { throw invalid('Paste the JSON capture from YNX: Copy Selected Context for Review.'); }
   if (!value || Object.keys(value).sort().join() !== 'fullTextDigest,selectedText,sessionId,uri,version' || value.sessionId !== sessionId ||
       typeof value.uri !== 'string' || value.uri.length < 1 || value.uri.length > 2048 ||
-      !Number.isSafeInteger(value.version) || value.version < 0 || !/^[a-f0-9]{64}$/.test(value.fullTextDigest || '') ||
+      !Number.isSafeInteger(value.version) || value.version < 0 || typeof value.fullTextDigest !== 'string' || !/^[a-f0-9]{64}$/.test(value.fullTextDigest) ||
       typeof value.selectedText !== 'string' || !value.selectedText.length || Buffer.byteLength(value.selectedText) > 64 * 1024)
     throw invalid('Use a nonempty selection copied from this active IDE session.');
   return { uri:value.uri, version:value.version, fullTextDigest:value.fullTextDigest, selectedText:value.selectedText, sessionId };

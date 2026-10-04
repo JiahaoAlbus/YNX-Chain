@@ -31,3 +31,9 @@ test('saved completed edit reopens without model replay; old runtime review is n
   assert.equal(savedSelectionReview('ordinary pasted context',text,id),null);
   assert.equal(savedSelectionReview(context,'opaque legacy plan text',id),null);
 });
+
+test('capture digest must be a string instead of an array coercible to the same hash',()=>{
+ for(const fullTextDigest of [[capture.fullTextDigest],{toString:capture.fullTextDigest}]){
+  assert.throws(()=>reviewedSelection(JSON.stringify({...capture,fullTextDigest}),id),{code:'tools_selection_invalid'});
+ }
+});

@@ -99,10 +99,15 @@ try {
       await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
     });
     await tools.goto(toolsURL);
-    await tools.getByLabel('Review mode', { exact: true }).selectOption('selected-edit');
     await tools.getByLabel('Request', { exact: true }).fill('Improve selected passage');
-    await tools.getByLabel('Selected context', { exact: true }).fill(JSON.stringify(capture));
+    await tools.getByRole('button', { name: 'Use copied selection', exact: true }).click();
+    await tools.getByRole('complementary', { name: 'Copied selection' }).getByText(capture.selectedText, { exact: true }).waitFor();
+    assert.equal(await tools.getByLabel('Review mode', { exact: true }).inputValue(), 'selected-edit');
+    assert.deepEqual(JSON.parse(await tools.getByLabel('Selected context', { exact: true }).inputValue()), capture);
+    assert.equal(await tools.getByLabel('Selected context', { exact: true }).isVisible(), false);
     await tools.getByRole('button', { name: 'Preview request', exact: true }).click();
+    const metadata = tools.getByText('Selection metadata', { exact: true }); await metadata.waitFor();
+    assert.equal(await metadata.evaluate(node => node.closest('details').open), false);
     assert.equal(calls.filter(call => call.path.endsWith('/approve')).length, 0);
     await tools.getByRole('button', { name: 'Send reviewed context once', exact: true }).click();
     await tools.getByRole('button', { name: 'Copy changes for editor', exact: true }).click();
@@ -112,7 +117,7 @@ try {
     await tools.screenshot({ path: `${runtime.qa}/${tag}-tools-copy.png` });
     toolsHandoff = { url: toolsURL, calls, backend: 'controlled HTTP answer; no hosted provider or canonical admission' };
     await tools.close(); await page.bringToFront();
-    checks.push('Compiled React Tools explicitly previews and sends once, then its real Copy button transfers the exact suggestion through a shared in-memory clipboard to the native editor command.');
+    checks.push('Compiled React imports the real editor selection through a shared in-memory clipboard, displays selected code, explicitly previews/sends once, then copies the exact suggestion back to the native editor command without manual JSON paste.');
   }
   await preview(bundle, 'clipboard', !!toolsURL); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).waitFor();
   previewState = await page.evaluate(() => {

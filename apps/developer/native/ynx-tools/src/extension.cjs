@@ -21,7 +21,7 @@ function activate(context) {
     const reviewedPath = await assertWorkspacePath(editor.document.uri.fsPath, workspace);
     const text = editor.document.getText(editor.selection); if (Buffer.byteLength(text) > 64 * 1024) throw Error('Select at most 64 KiB.');
     const selected = { ...capture(editor.document, text), sessionId };
-    if (await vscode.window.showWarningMessage('Copy this selection to the clipboard? Paste and approve it on the YNX Tools page before sending it to AI.', { modal: true }, 'Copy selection') !== 'Copy selection') return;
+    if (await vscode.window.showWarningMessage('Copy this selection to the clipboard? Choose Use copied selection on YNX Tools, then preview and approve the request before sending it to AI.', { modal: true }, 'Copy selection') !== 'Copy selection') return;
     const assertSelection = () => {
       const current = vscode.workspace.textDocuments.find(document => document.uri.toString() === selected.uri);
       if (current !== editor.document || current.isClosed || current.version !== selected.version ||
