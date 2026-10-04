@@ -1,0 +1,40 @@
+{
+  "source": "b2fccc4b43607f0b22236f26ed0dc37e8a42ebd3",
+  "files": [
+    {
+      "path": "protected-missing-authority/stderr.log",
+      "bytes": 42,
+      "sha256": "a64b6c3b1dae0305da103025640c0154a22ce1f83ba1f5cad6c1ecd726dff799"
+    },
+    {
+      "path": "protected-missing-authority/stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "public-unconfigured/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "public-unconfigured/stdout.log",
+      "bytes": 136,
+      "sha256": "1caf1c9ce03d690a9936da56f8fb1c44b295e2bc1acc23e3575e11f2702a8e03"
+    },
+    {
+      "path": "public-unconfigured/unauthenticated-state.json",
+      "bytes": 165,
+      "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321"
+    },
+    {
+      "path": "public-unconfigured/version.json",
+      "bytes": 325,
+      "sha256": "37e414041970830fc1e14943a03a4b71f1ebab703d5b3a8325d2027c34f5e69d"
+    },
+    {
+      "path": "results.json",
+      "bytes": 2350,
+      "sha256": "0016562590850b225ac6ac516a7fb18707ae928d67998f4f6afacf211cec7ea8"
+    }
+  ]
+}
