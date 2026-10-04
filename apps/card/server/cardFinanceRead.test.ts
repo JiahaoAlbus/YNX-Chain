@@ -35,3 +35,29 @@ test('Finance HMAC needs owner consent, durable nonce and exact Card source reco
   assert.throws(()=>producer.read(request('c'.repeat(32),'0x'+'b'.repeat(40))),/FINANCE_READ_CONSENT_REQUIRED/);
   producer.revoke(principal);assert.throws(()=>producer.read(request('d'.repeat(32))),/FINANCE_READ_CONSENT_REQUIRED/);store.close();
 });
+
+test('malformed and expired principals cannot grant revoke or inspect consent',t=>{
+ const dir=mkdtempSync(join(tmpdir(),'card-finance-expiry-')),store=new CardStore(join(dir,'state.sqlite'),Buffer.alloc(32,31));t.after(()=>{store.close();rmSync(dir,{recursive:true,force:true})});
+ const producer=new CardFinanceRead(store,new CardProviderRegistry(store),{recordedHistory(){return []}} as unknown as CardProviderLifecycle,secret,()=>at);
+ for(const expiresAt of ['invalid','2026-09-25T11:00:00Z']){
+  const invalid={...principal,expiresAt};
+  assert.throws(()=>producer.grant(invalid,['card.provider-activity.read'],'2026-09-26T12:00:00Z'),/CARD_PERMISSION_DENIED/);
+  assert.throws(()=>producer.revoke(invalid),/CARD_PERMISSION_DENIED/);
+  assert.throws(()=>producer.consent(invalid),/CARD_PERMISSION_DENIED/);
+ }
+ assert.throws(()=>producer.consent({...principal,scopes:[]}),/CARD_PERMISSION_DENIED/);
+ assert.equal(producer.consent(principal),null);
+});
+
+test('corrupted persisted consent cannot release records to a signed Finance request',t=>{
+ const dir=mkdtempSync(join(tmpdir(),'card-finance-consent-')),store=new CardStore(join(dir,'state.sqlite'),Buffer.alloc(32,31));t.after(()=>{store.close();rmSync(dir,{recursive:true,force:true})});
+ const registry=new CardProviderRegistry(store);registry.plan(principal,{productCardId:'card-a',provider:'immersve',programId:'program-a',environment:'TEST'},at.toISOString());
+ let historyReads=0;const producer=new CardFinanceRead(store,registry,{recordedHistory(){historyReads++;return []}} as unknown as CardProviderLifecycle,secret,()=>at);
+ const valid=producer.grant(principal,['card.provider-activity.read'],'2026-09-26T12:00:00Z');
+ const patches=[{expiresAt:'invalid'},{grantedAt:'invalid'},{grantedAt:'2026-09-25T12:01:00Z'},{scopes:[]},{scopes:['unknown']},{scopes:['card.provider-activity.read','card.provider-activity.read']},{revokedAt:undefined}];
+ for(const [index,patch] of patches.entries()){
+  store.transaction('card-finance-consent:'+owner,()=>({consent:null as unknown}),state=>{state.consent={...valid,...patch};return null});
+  assert.throws(()=>producer.read(request(index.toString(16).padStart(32,'0'))),/FINANCE_READ_CONSENT_REQUIRED/);
+ }
+ assert.equal(historyReads,0);
+});

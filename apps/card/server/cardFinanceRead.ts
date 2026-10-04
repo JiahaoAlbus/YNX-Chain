@@ -14,6 +14,10 @@ const consentEmpty=():ConsentState=>({consent:null}),replayEmpty=():ReplayState=
 const consentKey=(owner:string)=>'card-finance-consent:'+owner;
 const replayKey='card-finance-read-nonces';
 const headers=['x-ynx-read-consumer','x-ynx-read-account','x-ynx-read-timestamp','x-ynx-read-nonce','x-ynx-read-signature'];
+function assertConsentPrincipal(principal:Principal,now:number,write=false){
+  const expiry=Date.parse(principal.expiresAt);
+  if(!Number.isFinite(now)||!Number.isFinite(expiry)||expiry<=now||!Array.isArray(principal.scopes)||!principal.scopes.includes(write?'card:finance:share':'account:read'))throw new CardError('CARD_PERMISSION_DENIED',403);
+}
 
 /** Card-owned Finance read producer. Finance's HMAC authenticates the service;
  * owner consent is a separate, revocable Product Session scoped record. */
@@ -22,13 +26,13 @@ export class CardFinanceRead {
     if(secret!==undefined&&secret.length<32)throw Error('YNX_CARD_FINANCE_READ_KEY must have at least 32 characters');
   }
   grant(principal:Principal,requested:readonly string[],expiresAt:string){
-    if(!principal.scopes.includes('card:finance:share')||Date.parse(principal.expiresAt)<=this.clock().getTime())throw new CardError('CARD_PERMISSION_DENIED',403);
+    assertConsentPrincipal(principal,this.clock().getTime(),true);
     const owner=subject(principal.owner),expiry=Date.parse(expiresAt),now=this.clock().getTime();if(!Number.isFinite(expiry)||expiry<=now||expiry>now+30*86400000)throw new CardError('FINANCE_CONSENT_EXPIRY_INVALID',400);
     if(!Array.isArray(requested)||requested.length===0||new Set(requested).size!==requested.length||requested.some(scope=>typeof scope!=='string'||!scopes.includes(scope as never)))throw new CardError('FINANCE_CONSENT_SCOPE_INVALID',400);
     return this.store.transaction(consentKey(owner),consentEmpty,state=>{state.consent={owner,scopes:[...requested],expiresAt:new Date(expiry).toISOString(),revokedAt:null,grantedAt:this.clock().toISOString()};return state.consent});
   }
-  revoke(principal:Principal){if(!principal.scopes.includes('card:finance:share')||Date.parse(principal.expiresAt)<=this.clock().getTime())throw new CardError('CARD_PERMISSION_DENIED',403);const owner=subject(principal.owner);return this.store.transaction(consentKey(owner),consentEmpty,state=>{if(state.consent)state.consent.revokedAt=this.clock().toISOString();return state.consent})}
-  consent(principal:Principal){return this.store.read(consentKey(subject(principal.owner)),consentEmpty).consent}
+  revoke(principal:Principal){assertConsentPrincipal(principal,this.clock().getTime(),true);const owner=subject(principal.owner);return this.store.transaction(consentKey(owner),consentEmpty,state=>{if(state.consent)state.consent.revokedAt=this.clock().toISOString();return state.consent})}
+  consent(principal:Principal){assertConsentPrincipal(principal,this.clock().getTime());return this.store.read(consentKey(subject(principal.owner)),consentEmpty).consent}
   read(request:IncomingMessage){
     if(!this.secret)throw new CardError('FINANCE_READ_UNCONFIGURED',503);
     if(request.method!=='GET'||request.url!==CARD_FINANCE_READ_ROUTE)throw new CardError('FINANCE_READ_ROUTE_INVALID',404);
@@ -39,7 +43,7 @@ export class CardFinanceRead {
     const owner=subject(account),at=Date.parse(timestamp),now=this.clock().getTime();if(!Number.isFinite(at)||Math.abs(now-at)>30000)throw new CardError('FINANCE_READ_CREDENTIAL_EXPIRED',401);
     const canonical=['YNX_READ_INTEGRATION_V1','finance','card','GET',CARD_FINANCE_READ_ROUTE,account,timestamp,nonce].join('\n');const expected=createHmac('sha256',this.secret).update(canonical).digest();const supplied=Buffer.from(signature,'hex');if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected))throw new CardError('FINANCE_READ_CREDENTIAL_INVALID',401);
     this.store.transaction(replayKey,replayEmpty,state=>{for(const [used,expiry] of Object.entries(state.nonces))if(Date.parse(expiry)<=now)delete state.nonces[used];if(state.nonces[nonce]||Object.keys(state.nonces).length>=100000)throw new CardError('FINANCE_READ_REPLAYED',409);state.nonces[nonce]=new Date(now+60000).toISOString();return null});
-    const consent=this.store.read(consentKey(owner),consentEmpty).consent;if(!consent||consent.owner!==owner||consent.revokedAt||Date.parse(consent.expiresAt)<=now)throw new CardError('FINANCE_READ_CONSENT_REQUIRED',403);
+    const consent=this.store.read(consentKey(owner),consentEmpty).consent;if(!consent||consent.owner!==owner||consent.revokedAt!==null||!Number.isFinite(now)||!Number.isFinite(Date.parse(consent.expiresAt))||Date.parse(consent.expiresAt)<=now||!Number.isFinite(Date.parse(consent.grantedAt))||Date.parse(consent.grantedAt)>now||!Array.isArray(consent.scopes)||consent.scopes.length===0||new Set(consent.scopes).size!==consent.scopes.length||consent.scopes.some(scope=>!scopes.includes(scope as never)))throw new CardError('FINANCE_READ_CONSENT_REQUIRED',403);
     const principal:Principal={owner,chainId:'0x1917',expiresAt:new Date(now+1000).toISOString(),scopes:['account:read']};
     const overview=this.registry.overview(principal),cards=overview.cards.map(card=>({productCardId:card.productCardId,provider:card.provider,programId:card.programId,environment:card.environment,status:card.status,sourceAsOf:card.sourceAsOf,spendableBalance:null}));
     const activities=consent.scopes.includes('card.provider-activity.read')?cards.flatMap(card=>{const entries=[];let cursor=0;for(;;){const page=this.registry.activity(principal,card.productCardId,cursor,100);entries.push(...page.items);if(page.nextCursor===null)break;if(entries.length>=5000)throw new CardError('FINANCE_CARD_HISTORY_TOO_LARGE',503);cursor=page.nextCursor}return entries}):[];
