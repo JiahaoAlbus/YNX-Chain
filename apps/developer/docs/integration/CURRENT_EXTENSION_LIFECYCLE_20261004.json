@@ -1,0 +1,129 @@
+{
+  "sourceCommit": "19cb7f75e0b6b53624ee73a7534a98af349c17f5",
+  "sourceTree": "fb51accf6e4220811360ae383f70ce11b35691ca",
+  "workbenchVersion": "0.3.13",
+  "toolsVersion": "0.2.8",
+  "runtimePin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "48b3ae65ad60e187b802514370048cf38061d9b3ec155d515e0e3a9a7e46b505",
+    "treeSha256": "8f0a3263a88df4c3938fbe1ec8fbb390b679b795380915c4000cec65ebdab032",
+    "manifestSha256": "b59528906e34984576e678f11e4037dc3e113c9d0a3a2bd88a8fa932ae08898e"
+  },
+  "selectedPluginInput": "apps/developer/.ynx-developer-candidates/solidity-user-extension-inputs-20261004",
+  "inputQualification": "507 byte-exact source plugin files copied from the current candidate, omitting built-in TS language service to prove actual user VSIX install. Same core pin, selected built-ins; not a new full release input.",
+  "vsixSha256": "b1494642a46d1b139ab799e2ee0ae2453bdcef6ed1a718acca034445cfd9d87f",
+  "userExtensions": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-h0Lyov",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-h0Lyov/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-h0Lyov/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-dialog-accept-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-user-extension-inputs-20261004",
+      "port": 52745,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 52746,
+      "inspectorPort": 52747,
+      "fixtureSessionId": "99749253-8c29-4d03-84fc-9bf8c6cfa8b0",
+      "url": "http://127.0.0.1:52745",
+      "pid": 62144,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "54a2884503f053e5078cd8780dd959a601e45e1bc8d457b26551278e4bf5f62c",
+    "vsixSha256": "b1494642a46d1b139ab799e2ee0ae2453bdcef6ed1a718acca034445cfd9d87f",
+    "checks": [
+      "Actual local VSIX install of the cached official TypeScript/JavaScript service supplies imported-file semantic completion through the user extension host.",
+      "Real typing pairs brackets/quotes, saves disk content and reopens the saved file after local extension installation.",
+      "Actual installed language extension disables persistently, then enables and restores imported-file completion after reload.",
+      "Actual user-extension uninstall removes the installed service after reload and preserves/reopens the project file."
+    ],
+    "errors": [],
+    "scope": "Cached official VSIX, staged built-ins excluding this language service, actual local user installation lifecycle. Not online marketplace access or universal extension compatibility."
+  },
+  "profileLifecycle": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-h0Lyov",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-h0Lyov/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-h0Lyov/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-dialog-accept-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-user-extension-inputs-20261004",
+      "port": 52745,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 52746,
+      "inspectorPort": 52747,
+      "fixtureSessionId": "99749253-8c29-4d03-84fc-9bf8c6cfa8b0",
+      "url": "http://127.0.0.1:52745",
+      "pid": 62144,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "5dbf7803d75bbf8a0fc329b51d65c2814399b280c5c7b5af0f70d005ad0ca36e",
+    "checks": [
+      "Actual user font setting and JavaScript-specific tab size save to the isolated profile and survive workbench reload.",
+      "Actual Explorer creates a Unicode folder and arbitrary-suffix file; edits save to disk and workspace search finds both real files.",
+      "Actual YNX Tools disables and removes commands after Reload Window, then enables and reactivates after another reload; Chain starter cancellation (controlled locator) or unbound refusal preserves files; no canonical identity is granted."
+    ],
+    "errors": [],
+    "scope": "Real isolated runtime/profile reload. No canonical Wallet authentication, admitted public driver, user-extension install, backend restart or multi-owner capacity acceptance."
+  },
+  "backendRestart": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-h0Lyov",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-h0Lyov/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-h0Lyov/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-dialog-accept-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-user-extension-inputs-20261004",
+      "port": 52745,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 52746,
+      "inspectorPort": 52747,
+      "fixtureSessionId": "99749253-8c29-4d03-84fc-9bf8c6cfa8b0",
+      "url": "http://127.0.0.1:52745",
+      "pid": 64591,
+      "previousPid": 62144,
+      "resumedAt": "2026-10-04T09:27:32.760Z",
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "previousPid": 62144,
+    "runnerSha256": "447b633a7f0a6fdcdaa3a8c290f767f6e4e94519c7695a6e2058d9c3f4e87ed5",
+    "before": {
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile/settings.json": "f24cb043e78ec2cee51cbffc7ee948f3e4387242dc48000942e18680bf11ca03",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile/backend-settings.json": "b9fc74a8c4ea4ddf1fa4c432de551aee3aa2bad3620d0e93aa96ed81cb8cd192",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/project/main.js": "53bed17e79e1c688310f5a67ceab38bca4a62f0b0faab2350c7568127ae8e3f6",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/project/\u5f00\u53d1\u6587\u4ef6/\u5408\u7ea6.ynxnotes": "5367ecff1dc970e5daad584c0e1e207362d4f801152c953390294df7b94340d0"
+    },
+    "after": {
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile/settings.json": "f24cb043e78ec2cee51cbffc7ee948f3e4387242dc48000942e18680bf11ca03",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/profile/backend-settings.json": "b9fc74a8c4ea4ddf1fa4c432de551aee3aa2bad3620d0e93aa96ed81cb8cd192",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/project/main.js": "53bed17e79e1c688310f5a67ceab38bca4a62f0b0faab2350c7568127ae8e3f6",
+      "/private/tmp/ynx-theia-extension-qa-h0Lyov/project/\u5f00\u53d1\u6587\u4ef6/\u5408\u7ea6.ynxnotes": "5367ecff1dc970e5daad584c0e1e207362d4f801152c953390294df7b94340d0"
+    },
+    "checks": [
+      "Actual backend SIGTERM and new PID preserve the same project files, user/language settings and rendered editor preferences.",
+      "Actual disabled extension state survives backend replacement; enable and reload reactivate its real command without bypassing session admission."
+    ],
+    "errors": [],
+    "scope": "Controlled macOS backend graceful restart of the same QA profile. Not crash recovery, public identity, user-extension installation or production capacity."
+  },
+  "cleanup": {
+    "previousPid": 62144,
+    "currentPid": 64591,
+    "remainingOwnedPidOrGroupRows": [],
+    "originalLauncherTerminalExit": 1,
+    "restartRunnerTerminalExit": 0,
+    "note": "Intentional SIGTERM group shutdowns retain actual backend exit1 logs. No user/native/Cocoa process launched."
+  },
+  "backendDiagnostics": "Retained Node DEP0205 and offline VSX registry metadata fetch failures. Browser errors[] does not erase backend diagnostics or prove online marketplace operation.",
+  "evidence": "apps/developer/.ynx-developer-candidates/current-extension-lifecycle-evidence-20261004",
+  "evidenceIndexSha256": "ad86b878a152b3c706dee60f79d47f7bee57abfac3ca4e275eb753fe627a5a47",
+  "scope": "Current exact core with controlled plugin selection and own QA profile. User local installation4, profile3 and SIGTERM/restart persistence2 passed. No universal extension compatibility, crash recovery, hard quota/capacity, canonical Wallet, online registry, public admission or full installed platform acceptance. Native payload3238 and public microsite unchanged."
+}

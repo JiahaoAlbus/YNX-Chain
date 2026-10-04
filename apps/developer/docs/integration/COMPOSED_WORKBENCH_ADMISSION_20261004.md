@@ -1,6 +1,23 @@
 # Composed workbench: normal-entry consumer contract
 
-Current owned runtime checkpoint is **0.3.12**, candidate
+Current owned runtime checkpoint is **0.3.13**, Tools **0.2.8**, candidate
+`ynx-composed-solidity-dialog-accept-20261004-mac-arm64`.
+Exact core pin and actual Core16/Lifecycle3/Native project-capture3 evidence are
+in `SOLIDITY_PROJECT_CAPTURE_20261004.json`. The complete offline compiler and
+Mac candidate `ynx-solidity-sealed-native-package-20261004-mac-arm64` are sealed
+in `SOLIDITY_SEALED_NATIVE_20261004.json`, embedding source
+`3238d1cc4bc83556ce2d6c0feec38272df891c90`, tree
+`2182570faad2ce2d6333587717ae1fef9014d18a`. Its real packaged Node/server/React
+and refusal checks are in `PACKAGED_SERVER_BOUNDARIES_20261004.json`.
+Current local user-extension install/disable/enable/uninstall and controlled
+backend restart evidence is in `CURRENT_EXTENSION_LIFECYCLE_20261004.json`.
+That fixture deliberately omits built-in TS service and installs the cached
+reviewed VSIX; it does not replace the full release plugin input. The five
+existing canonical bindings remain unchanged. Formal protected admission,
+installed Wallet/AI/Chain user acceptance and full platform release remain open.
+Earlier checkpoint sections below are preserved historical evidence.
+
+Previous owned runtime checkpoint was **0.3.12**, candidate
 `ynx-composed-workspace-keybindings-location-guard-20261004-mac-arm64`.
 `COMPOSED_WORKSPACE_KEYBINDINGS_20261004.json` records its 30 actual controlled
 UI checks (project shortcuts 7, user shortcuts 7, core 16). The Mac candidate
