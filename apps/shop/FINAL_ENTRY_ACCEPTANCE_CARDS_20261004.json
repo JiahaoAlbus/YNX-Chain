@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "status": "EXECUTABLE_MANUAL_ACCEPTANCE_CARDS; ALL_FINAL_PUBLIC_PRIVATE_JOURNEYS_NOT_VERIFIED",
   "sourceBasis": {
-    "ownedRuntimeSource": "2662eb6387d4b8360e590c437b89f0ee0436a035",
-    "ownedRuntimeTree": "842b74986623a971a951dfd999b21d66d3272dab",
-    "immutableOwnedMembers": 444,
+    "ownedRuntimeSource": "0666474ffb9c86cfd54564cfca2ffe27b6ec2f34",
+    "ownedRuntimeTree": "09f6831342add045fa2d1e67ebc98378515840e4",
+    "immutableOwnedMembers": 445,
     "sourceReceipt": "apps/shop/evidence/browser-gateway-20261004/receipt.json",
     "unchangedControlledStaticBuild": {
       "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
@@ -12,7 +12,9 @@
       "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
       "qualification": "CONTROLLED_ONLY; A formal SDK/profile/backend/runtime qualification still required"
     },
-    "cardSuccessor": "Acceptance requirements updated after the frozen runtime; these cards do not change runtime authority."
+    "cardSuccessor": "Acceptance requirements updated after the frozen runtime; these cards do not change runtime authority.",
+    "previousAuthorityAndJourneySource": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+    "documentConsumer": "OriginalCommerceDocumentPolicy getter adopted narrowly; built Buyer/Seller dist defaults; A protected composition still required"
   },
   "owner": "Commerce product source; shared qualification/signing/publishing by unique A via Root",
   "products": {
@@ -69,7 +71,7 @@
   ],
   "buildInputs": {
     "preserveOriginalWorktree": true,
-    "web": "Existing source npm build with A matching complete accepted SDK/dependencies; do not substitute earlier partial package or change shared vendor casually",
+    "web": "Existing source npm build with A matching complete accepted SDK/dependencies; do not substitute earlier partial package or change shared vendor casually Actual server asset inputs must be dedicated immutable built dist roots; owner default Buyer apps/shop/dist and Seller apps/seller-console/dist. Never serve repository, evidence, keys or state roots.",
     "android": {
       "JAVA_HOME": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
       "ANDROID_HOME": "/Users/huangjiahao/Library/Android/sdk",
