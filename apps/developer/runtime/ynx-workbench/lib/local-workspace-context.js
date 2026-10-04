@@ -37,7 +37,8 @@ class LocalWorkspaceContext {
     await this.workspace.ready;
     if (this.stopped) return;
     this.listener = this.workspace.onWorkspaceChanged(() => check().catch(() => {}));
-    await check();
+    // A recovery choice must not hold the application startup/loading overlay.
+    void check().catch(() => {});
   }
   onStop() { this.stopped = true; this.listener?.dispose(); }
 }

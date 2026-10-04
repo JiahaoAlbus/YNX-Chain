@@ -99,3 +99,12 @@ test('warning resolved after stop cannot reopen a project through the native com
   f.contribution.onStop(); choose('Return to Open Project'); await settle();
   assert.deepEqual(f.opened, []); assert.deepEqual(f.posted, []); assert.equal(f.listeners, 0);
 });
+
+test('initial mismatch prompt cannot block startup and its later recovery choice remains live',async t=>{
+  const f=fixture(t,{native:false});f.change([wrong]);let choose;
+  f.messages.warn=async(...args)=>{f.warnings.push(args);return new Promise(resolve=>{choose=resolve;});};
+  let started=false;const startup=f.contribution.onStart().then(()=>{started=true;});await settle();
+  assert.equal(started,true);assert.equal(f.listeners,1);assert.equal(f.warnings.length,1);assert.equal(f.opened.length,0);
+  choose('Return to Open Project');await settle();assert.equal(f.opened.length,1);
+  assert.equal(f.opened[0].uri.toString(),bound.toString());await startup;
+});
