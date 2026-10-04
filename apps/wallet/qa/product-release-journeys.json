@@ -25,7 +25,22 @@
     {"id": "relay-error-recovery", "steps": ["Use the actually configured Relay", "Observe a real disconnection", "Retry explicitly and return to the app", "Lock and cold reopen"], "proof": ["actual transport state rather than SDK-ready inference", "old sessions not widened", "no lost-ACK resigning", "exact-event recovery"], "runtime": "NOT_VERIFIED"}
   ],
   "sourceQAPreflight": {"observedAt": "2026-10-03T01:25:59Z", "sourceCommit": "49855b54af952db3d81de47b012090560cecc554", "mode": "SOURCE_QA_NOT_FORMAL_INSTALLED_RELEASE", "candidate": "/tmp/ynx-wallet-clipboard-recovery-20261003-2aePyd/apps/wallet-desktop", "profile": "/tmp/ynx-wallet-desktop-normal-qa-20261003-EfDj7I", "visiblePasswordModalOpenAndCancelVerified": true, "emptyProfileGate": "PASS", "focused": true, "accountCount": 0, "locked": true, "secretExported": false, "credentialEntryPerformed": false, "chainWritesPerformed": false, "humanNewQAPasswordSetup": "PENDING", "completeJourneyVerified": false, "installedReleaseVerified": false},
-  "currentExternalBlockers": ["Human credential entry required in the separate QA password dialog; no secrets requested in chat", "Original Android normal PIN/upgrade journey not verified; original accounts and journals remain protected", "A formal final artifact and public entry not yet verified", "A trusted Pay dependency not yet supplied"],
+  "historicalQAPreflightInterpretation": {"currentDialogState": "NOT_REVALIDATED", "historicalHumanSetupStateIsNotCurrentBlockerProof": true, "credentialEntryOnlyAfter": "A matching final candidate is available and the normal designated user journey actually reaches its credential gate; never request secrets in chat or reuse the old QA window as current authority."},
+  "sourceIntegrationReadback": {
+    "sourceCommit": "8a422c3ed148c11710259831211f471e3fd728ec",
+    "localSDK": {"version": "1.1.0", "packageSHA256": "7c8f3f8eb40c18b9c01f9981626d6509feb0940ec3df85401b1d3ed66bbeffa4", "status": "SOURCE_IMPORT_MISMATCH", "missingDistinctNames": 13, "missingUses": 25, "testSupportUses": 2},
+    "staticOriginalDefinitionMap": "13 names / 25 uses mapped to exact original c5 source; not complete SDK/dependency/runtime admission.",
+    "nativeEntry": "index.ts registers default App; default WalletRoot receives payIntegration=null. A protected in-process composition factory exists but is not the current ordinary startup.",
+    "desktopEntry": "Main exports composeProtectedDesktopPay; its service remains unavailable until A supplies protected admitted policy/quote/authority/settlement ports.",
+    "SDKExecution": false,
+    "fullBuildAndInstalledAcceptance": "NOT_VERIFIED"
+  },
+  "currentExternalBlockers": [
+    "A complete source-matching frozen SDK and dependency/version/package/source pins are not supplied; the current local SDK fails required named imports.",
+    "A protected current-authority/trusted invoice policy/quote/authenticated settlement adapter and genuine platform binding producer are not supplied; a static definition map cannot enable Pay.",
+    "A formal source-matching Android/macOS/Web final candidate, signing/upgrade identity and official downloaded-byte binding are not verified.",
+    "Normal retained-account upgrade, OS camera/lock, real Relay, UNKNOWN recovery and actual business/user readback remain unverified; execute the full journeys only on a matching admitted candidate."
+  ],
   "MONSTER": "NOT_RUN",
   "overall": "NOT_COMPLETED"
 }
