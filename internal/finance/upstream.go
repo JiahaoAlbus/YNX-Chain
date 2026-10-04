@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -144,31 +145,48 @@ func (u *Upstreams) Portfolio(ctx context.Context, account string, classificatio
 		portfolio.PayStatus.Error = err.Error()
 		return portfolio
 	}
+	invalidOwnedAmount := false
 	for _, raw := range payPayload.Events {
 		var event map[string]any
-		if json.Unmarshal(raw, &event) != nil || !eventOwnedBy(event, account) {
+		decoder := json.NewDecoder(bytes.NewReader(raw))
+		decoder.UseNumber()
+		if decoder.Decode(&event) != nil || !eventOwnedBy(event, account) {
 			continue
 		}
-		portfolio.PayReceipts = append(portfolio.PayReceipts, u.receipt(event))
+		receipt, err := u.receipt(event)
+		if err != nil {
+			invalidOwnedAmount = true
+			continue
+		}
+		portfolio.PayReceipts = append(portfolio.PayReceipts, receipt)
 	}
 	payAsOf := observedAt
 	portfolio.PayStatus.AsOf = &payAsOf
 	portfolio.PayStatus.AsOfKind = "finance-response-observed-at"
 	portfolio.PayStatus.SyncStatus = "authorized-response"
 	portfolio.PayStatus.Available = true
+	if invalidOwnedAmount {
+		portfolio.PayStatus.Available = false
+		portfolio.PayStatus.SyncStatus = "partial-invalid-records"
+		portfolio.PayStatus.Error = "Pay returned an owned record without an exact integer amount"
+	}
 	return portfolio
 }
 
-func (u *Upstreams) receipt(event map[string]any) PayReceipt {
+func (u *Upstreams) receipt(event map[string]any) (PayReceipt, error) {
+	amount, err := firstInt64(event, "amountYnxt", "amount")
+	if err != nil {
+		return PayReceipt{}, err
+	}
 	id := firstString(event, "id", "eventId", "invoiceId")
-	receipt := PayReceipt{ID: id, Status: firstString(event, "status", "type"), Payer: firstString(event, "payer", "buyer", "signer", "from"), Merchant: firstString(event, "merchant", "seller", "to"), AmountYNXT: firstInt64(event, "amountYnxt", "amount"), TransactionHash: firstString(event, "transactionHash", "txHash", "settlementHash"), CreatedAt: firstTime(event, "createdAt", "timestamp", "settledAt"), TruthfulStatus: "pay-api-record"}
+	receipt := PayReceipt{ID: id, Status: firstString(event, "status", "type"), Payer: firstString(event, "payer", "buyer", "signer", "from"), Merchant: firstString(event, "merchant", "seller", "to"), AmountYNXT: amount, TransactionHash: firstString(event, "transactionHash", "txHash", "settlementHash"), CreatedAt: firstTime(event, "createdAt", "timestamp", "settledAt"), TruthfulStatus: "pay-api-record"}
 	if receipt.TransactionHash != "" {
 		receipt.TruthfulStatus = "pay-api-record-with-chain-reference"
 	}
 	if u.DisputeBase != "" && id != "" {
 		receipt.DisputeURL = u.DisputeBase + "/" + url.PathEscape(id)
 	}
-	return receipt
+	return receipt, nil
 }
 
 func (u *Upstreams) get(ctx context.Context, endpoint, payKey string, out any) error {
@@ -230,17 +248,22 @@ func firstString(m map[string]any, keys ...string) string {
 	return ""
 }
 
-func firstInt64(m map[string]any, keys ...string) int64 {
+func firstInt64(m map[string]any, keys ...string) (int64, error) {
 	for _, key := range keys {
-		switch value := m[key].(type) {
-		case float64:
-			return int64(value)
+		value, present := m[key]
+		if !present {
+			continue
+		}
+		switch value := value.(type) {
+		case json.Number:
+			return value.Int64()
 		case string:
-			parsed, _ := strconv.ParseInt(value, 10, 64)
-			return parsed
+			return strconv.ParseInt(value, 10, 64)
+		default:
+			return 0, errors.New("exact integer amount required")
 		}
 	}
-	return 0
+	return 0, errors.New("integer amount missing")
 }
 
 func firstTime(m map[string]any, keys ...string) time.Time {
