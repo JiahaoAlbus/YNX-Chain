@@ -62,7 +62,7 @@ test('Web guest controls and audit survive a real component cold remount without
   await app.change('Online merchant simulation',false);
   await app.tab('Virtual Card');await app.press(app.buttons('Simulate authorization')[0]);
   await app.unmount();app=await mountGuest({platform:'web',fontScale:1,guestStorage});
-  await app.tab('Activity');assert.match(app.text(),/Authorization decision prepared locally/);assert.match(app.text(),/Local freeze applied/);
+  await app.tab('Activity');assert.match(app.text(),/DEMO declined: the simulated card is frozen/);assert.match(app.text(),/Local freeze applied/);
   await app.tab('Spending Controls');
   assert.equal(app.renderer.root.find(n=>n.type==='Switch'&&n.props.accessibilityLabel==='Freeze simulated card').props.value,true);
   assert.equal(app.renderer.root.find(n=>n.type==='Switch'&&n.props.accessibilityLabel==='Online merchant simulation').props.value,false);

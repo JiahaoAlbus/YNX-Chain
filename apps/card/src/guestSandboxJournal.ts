@@ -1,4 +1,6 @@
 import type {Locale} from './i18n';
+import {isGuestAuthorizationDecision} from './guestAuthorizationDecision';
+export {guestAuthorizationDetail,guestDecisionText} from './guestAuthorizationDecision';
 
 export const GUEST_SANDBOX_KEY='ynx.card.guest-sandbox.v1';
 const details:Readonly<Record<string,string>>={
@@ -25,7 +27,7 @@ export function validGuestSandbox(value:unknown):value is GuestSandboxSnapshot{
  if(s.schemaVersion!==GUEST_SANDBOX_KEY||s.simulation!==true||!c||typeof c!=='object'||!keys(c,['frozen','online','international'])||[c.frozen,c.online,c.international].some(v=>typeof v!=='boolean')||!Array.isArray(s.events)||s.events.length>100)return false;
  const ids=new Set<number>();
  for(const event of s.events){
-  if(!event||typeof event!=='object'||!keys(event,['id','label','detail'])||!Number.isSafeInteger(event.id)||event.id<1||ids.has(event.id)||!Object.hasOwn(details,event.label)||event.detail!==details[event.label])return false;
+  if(!event||typeof event!=='object'||!keys(event,['id','label','detail'])||!Number.isSafeInteger(event.id)||event.id<1||ids.has(event.id)||!Object.hasOwn(details,event.label)||(event.detail!==details[event.label]&&!isGuestAuthorizationDecision(event.label,event.detail)))return false;
   ids.add(event.id);
  }
  return true;

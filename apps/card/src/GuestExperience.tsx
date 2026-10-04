@@ -7,7 +7,7 @@ import{isRTL,type Locale}from"./i18n";
 import{guestTemplate,guestText,isGuestCopyKey}from"./guestCopy";
 import{hostedWalletText}from"./hostedWalletCopy";
 import{privateServiceText}from"./privateServiceCopy";
-import{GuestSandboxJournal,webGuestSandboxStorage,guestSandboxStorageText,type GuestDemoEvent}from"./guestSandboxJournal";
+import{GuestSandboxJournal,webGuestSandboxStorage,guestSandboxStorageText,guestAuthorizationDetail,guestDecisionText,type GuestDemoEvent}from"./guestSandboxJournal";
 import{providerGuestText,providerGuestErrorText}from"./providerGuestCopy";
 import{CardText as NativeText}from"./cardTypography";
 import{RegistrationExperience}from"./RegistrationExperience";
@@ -27,7 +27,7 @@ const sections:readonly{key:Section;label:string;icon:typeof CreditCard}[]=[
   {key:"overview",label:"Overview",icon:BadgeCheck},{key:"card",label:"Virtual Card",icon:CreditCard},{key:"topup",label:"Top up with YNXT",icon:WalletCards},{key:"activity",label:"Activity",icon:Activity},{key:"controls",label:"Spending Controls",icon:SlidersHorizontal},{key:"help",label:"Security & Help",icon:CircleHelp},
 ];
 const GuestLocaleContext=createContext<Locale>("en");
-function Text({children,style,...props}:TextProps){const locale=useContext(GuestLocaleContext);return <NativeText {...props} style={[style,isRTL(locale)&&g.rtlText]}>{typeof children==="string"&&isGuestCopyKey(children)?guestText(locale,children):children}</NativeText>}
+function Text({children,style,...props}:TextProps){const locale=useContext(GuestLocaleContext);return <NativeText {...props} style={[style,isRTL(locale)&&g.rtlText]}>{typeof children==="string"?(guestDecisionText(locale,children)??(isGuestCopyKey(children)?guestText(locale,children):children)):children}</NativeText>}
 
 export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,connectYNXWallet,enablePrivateServices,requestFinancePermission,retryNativeWallet,disconnectNativeWallet,nativeAuthorizationPending,walletSession,walletBusy,walletError,privateSession,providerClient,providerApprovalTransport,providerClientError,businessClient,businessClientError,standardWalletState,selectedWalletKind,hostedWalletConnected=false,closeWalletChooser,disconnectWallet,switchWalletAccount}:{locale:Locale;connectWallet:()=>Promise<void>;connectMetaMaskWallet:()=>Promise<void>;connectYNXWallet:()=>Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed">;enablePrivateServices:()=>Promise<void>;requestFinancePermission?:()=>Promise<void>;retryNativeWallet:()=>Promise<void>;disconnectNativeWallet:()=>Promise<void>;nativeAuthorizationPending:boolean;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;providerClient?:CardProviderClient|null;providerApprovalTransport?:HostedCardApprovalTransport|null;providerClientError?:string;businessClient?:CardBusinessClient|null;businessClientError?:string;standardWalletState:StandardWalletState;selectedWalletKind:"metamask"|"ynx-wallet"|null;hostedWalletConnected?:boolean;closeWalletChooser:()=>void;disconnectWallet:()=>Promise<void>;switchWalletAccount:()=>Promise<void>}){
   const{width,fontScale}=useWindowDimensions(),compact=width<700;
@@ -59,6 +59,7 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
   useEffect(()=>{const frame=requestAnimationFrame(showSectionStart);return()=>{cancelAnimationFrame(frame);measurementAttempt.current++}},[section,navigationRevision,compact,layoutKey]);
   const walletLabel=walletSession?guestTemplate(locale,"walletConnected",{address:`${walletSession.address.slice(0,6)}...${walletSession.address.slice(-4)}`}):guestText(locale,"Wallet optional for guest simulation");
   const runDemo=(label:string,detail:string,showActivity=true)=>{
+    detail=guestAuthorizationDetail(label,detail,demoDraft.current.controls);
     const id=Math.max(Date.now(),...demoDraft.current.events.map(event=>event.id+1));
     const next={...demoDraft.current,events:[{id,label,detail},...demoDraft.current.events]};
     demoDraft.current=next;journal.save(next);setStorageStatus(journal.status);setEvents(next.events);
