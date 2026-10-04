@@ -626,7 +626,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)beginWorkspaceRestore {
     if(_workspaceBridge.restoring)return;
     NSUInteger attempt=++_workspaceRestoreAttempt;
-    [_webView loadHTMLString:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}</style><h1>Opening your saved workspace…</h1><p>If macOS asks for access to your workspace folder, allow access to continue.</p><p>Your saved project is being preserved.</p>" baseURL:nil];
+    [_webView loadHTMLString:YNXLocalStatusPage(@"Opening your saved workspace…",@"If macOS asks for access to your workspace folder, allow access to continue. Your saved project is being preserved.") baseURL:nil];
     [_workspaceBridge restoreWithCompletion:^(NSError *error){
         if(attempt!=self.workspaceRestoreAttempt)return;
         if(self.workspaceRestoreAlert){[NSApp endSheet:self.workspaceRestoreAlert.window returnCode:NSModalResponseCancel];self.workspaceRestoreAlert=nil;}
@@ -683,7 +683,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)showFailure:(NSString *)message {
     if(_localWorkbenchMode&&_localEditorDocumentLoaded){NSAlert *alert=[NSAlert new];alert.messageText=@"The local workbench encountered a problem";alert.informativeText=message;[alert beginSheetModalForWindow:_window completionHandler:nil];return;}
     if(_localWorkbenchMode){_localStartupFailed=YES;[_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer could not open",message) baseURL:nil];return;}
-    NSString *html=[NSString stringWithFormat:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}button{padding:10px}</style><h1>YNX Developer Testnet Preview</h1><p>%@</p><p>No project, Wallet key, or deployment was changed.</p>",message]; [_webView loadHTMLString:html baseURL:nil];
+    [_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer Testnet Preview",[NSString stringWithFormat:@"%@ No project, Wallet key, or deployment was changed.",message]) baseURL:nil];
 }
 - (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"]);} }
 - (void)click:(NSString *)selector { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector]); }
