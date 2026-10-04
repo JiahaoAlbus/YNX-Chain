@@ -1,0 +1,221 @@
+{
+  "source": "7cdea49f2fb2f927cb268ab247997af11af0c5cf",
+  "scope": "local QA only",
+  "observations": [
+    {
+      "alerts": [
+        {
+          "rect": {
+            "bottom": -136,
+            "height": 126.5,
+            "left": 16,
+            "right": 359,
+            "top": -262.5,
+            "width": 343,
+            "x": 16,
+            "y": -262.5
+          },
+          "text": "Private Service DegradedWallet: Card private services are unavailable. Standard Wallet and guest exploration remain independent. Your guest workspace remains available."
+        },
+        {
+          "rect": {
+            "bottom": 759,
+            "height": 62,
+            "left": 37,
+            "right": 338,
+            "top": 697,
+            "width": 301,
+            "x": 37,
+            "y": 697
+          },
+          "text": "Connect a Standard Wallet before starting a Testnet Card application on the web."
+        }
+      ],
+      "badge": {
+        "bottom": 832,
+        "height": 102,
+        "left": 12,
+        "right": 378,
+        "top": 730,
+        "width": 366,
+        "x": 12,
+        "y": 730
+      },
+      "documentWidth": 390,
+      "root": {
+        "bottom": 722,
+        "height": 722,
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootBadgeOverlap": false,
+      "width": 390
+    },
+    {
+      "alerts": [
+        {
+          "rect": {
+            "bottom": -210,
+            "height": 126.5,
+            "left": 16,
+            "right": 359,
+            "top": -336.5,
+            "width": 343,
+            "x": 16,
+            "y": -336.5
+          },
+          "text": "Private Service DegradedWallet: Card private services are unavailable. Standard Wallet and guest exploration remain independent. Your guest workspace remains available."
+        },
+        {
+          "rect": {
+            "bottom": 685,
+            "height": 62,
+            "left": 37,
+            "right": 338,
+            "top": 623,
+            "width": 301,
+            "x": 37,
+            "y": 623
+          },
+          "text": "Connect a Standard Wallet before starting a Testnet Card application on the web."
+        }
+      ],
+      "badge": {
+        "bottom": 832,
+        "height": 102,
+        "left": 12,
+        "right": 378,
+        "top": 730,
+        "width": 366,
+        "x": 12,
+        "y": 730
+      },
+      "documentWidth": 390,
+      "root": {
+        "bottom": 722,
+        "height": 722,
+        "left": 0,
+        "right": 390,
+        "top": 0,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "stage": "390-after-keyboard-end",
+      "width": 390
+    },
+    {
+      "alerts": [
+        {
+          "rect": {
+            "bottom": -328.5,
+            "height": 126.5,
+            "left": 16,
+            "right": 289,
+            "top": -455,
+            "width": 273,
+            "x": 16,
+            "y": -455
+          },
+          "text": "Private Service DegradedWallet: Card private services are unavailable. Standard Wallet and guest exploration remain independent. Your guest workspace remains available."
+        },
+        {
+          "rect": {
+            "bottom": 665.5,
+            "height": 81,
+            "left": 37,
+            "right": 268,
+            "top": 584.5,
+            "width": 231,
+            "x": 37,
+            "y": 584.5
+          },
+          "text": "Connect a Standard Wallet before starting a Testnet Card application on the web."
+        }
+      ],
+      "badge": {
+        "bottom": 832,
+        "height": 121.5,
+        "left": 12,
+        "right": 308,
+        "top": 710.5,
+        "width": 296,
+        "x": 12,
+        "y": 710.5
+      },
+      "documentWidth": 320,
+      "root": {
+        "bottom": 702.5,
+        "height": 702.5,
+        "left": 0,
+        "right": 320,
+        "top": 0,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "stage": "320-after-keyboard-end",
+      "width": 320
+    },
+    {
+      "alerts": [
+        {
+          "rect": {
+            "bottom": 75.5,
+            "height": 69.5,
+            "left": 276,
+            "right": 1393,
+            "top": 6,
+            "width": 1117,
+            "x": 276,
+            "y": 6
+          },
+          "text": "Private Service DegradedWallet: Card private services are unavailable. Standard Wallet and guest exploration remain independent. Your guest workspace remains available."
+        },
+        {
+          "rect": {
+            "bottom": 744.5,
+            "height": 43,
+            "left": 297,
+            "right": 1372,
+            "top": 701.5,
+            "width": 1075,
+            "x": 297,
+            "y": 701.5
+          },
+          "text": "Connect a Standard Wallet before starting a Testnet Card application on the web."
+        }
+      ],
+      "badge": {
+        "bottom": 888,
+        "height": 82.5,
+        "left": 12,
+        "right": 469.296875,
+        "top": 805.5,
+        "width": 457.296875,
+        "x": 12,
+        "y": 805.5
+      },
+      "documentWidth": 1440,
+      "root": {
+        "bottom": 797.5,
+        "height": 797.5,
+        "left": 0,
+        "right": 1440,
+        "top": 0,
+        "width": 1440,
+        "x": 0,
+        "y": 0
+      },
+      "stage": "1440-after-keyboard-end",
+      "width": 1440
+    }
+  ],
+  "accountRequested": false,
+  "signature": false,
+  "transaction": false
+}

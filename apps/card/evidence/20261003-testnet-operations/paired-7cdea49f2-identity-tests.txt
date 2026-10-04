@@ -1,0 +1,13 @@
+✔ QA source note remains visible and semantic without intercepting product actions (0.530042ms)
+✔ formal Testnet shell never inserts the QA overlay (0.216417ms)
+✔ QA is visibly and accessibly distinguished with exact source and version (0.530583ms)
+✔ formal Testnet artifact retains product shell and does not get QA badge (0.106792ms)
+✔ invalid source/version and runner-only cover fail closed (0.190042ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 51.641459

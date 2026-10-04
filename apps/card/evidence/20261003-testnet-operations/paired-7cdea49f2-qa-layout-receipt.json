@@ -1,0 +1,93 @@
+{
+  "source": "7cdea49f2fb2f927cb268ab247997af11af0c5cf",
+  "tree": "fb1f46b5380e801a1af9149be9c2eff3d0ad7a19",
+  "scope": "Local QA shell layout repair; not public release or full product acceptance",
+  "tests": {
+    "identity": 5,
+    "failed": 0,
+    "webBuild": true,
+    "envelopeExact": 21,
+    "staticParity": 18
+  },
+  "browser": {
+    "engine": "Codex IAB",
+    "url": "http://127.0.0.1:62270/",
+    "viewports": [
+      320,
+      390,
+      1440
+    ],
+    "consoleErrorsObserved": 0,
+    "note": "Alert is fully visible after keyboard End scroll. Initial post-click alert extends below internal viewport; automatic reveal is not claimed.",
+    "qaFooterOverlapsRoot": false
+  },
+  "runtimeIdentity": {
+    "schemaVersion": "ynx.card.runtime-identity.v1",
+    "productId": "ynx-card",
+    "sourceCommit": "7cdea49f2fb2f927cb268ab247997af11af0c5cf",
+    "sourceTree": "fb1f46b5380e801a1af9149be9c2eff3d0ad7a19",
+    "appVersion": "1.0.0",
+    "releaseChannel": "qa",
+    "environment": "testnet",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "paymentNetwork": "simulation",
+    "productionRealPayments": false,
+    "cardApiCompatibility": {
+      "schemaVersion": "ynx.card.source-compatibility.v1",
+      "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+      "frontendSourceCommit": "7cdea49f2fb2f927cb268ab247997af11af0c5cf",
+      "frontendSourceTree": "fb1f46b5380e801a1af9149be9c2eff3d0ad7a19",
+      "backendSourceCommit": "7cdea49f2fb2f927cb268ab247997af11af0c5cf",
+      "backendVersionSchema": 1
+    }
+  },
+  "files": [
+    {
+      "name": "paired-7cdea49f2-application-1440.png",
+      "bytes": 102302,
+      "sha256": "1e178bb0b75c25bc02b1fabce2db39844fd0981a26c4c906121bd2db96605684"
+    },
+    {
+      "name": "paired-7cdea49f2-application-320.png",
+      "bytes": 45579,
+      "sha256": "084c01a347145167b47443dafe81e4d35d5c08dc739d56bbc88d393d93eebb50"
+    },
+    {
+      "name": "paired-7cdea49f2-application-390.png",
+      "bytes": 49551,
+      "sha256": "91d560cf4f30c30030ca6ff8c85c67b481df3cfe59bd0623fa94c1c44ec4f096"
+    },
+    {
+      "name": "paired-7cdea49f2-layout-observations.json",
+      "bytes": 5415,
+      "sha256": "fc3b1a086951d989692aa815d7f1b480bcc7d7df3a557fa3e232dfe95d9673e4"
+    },
+    {
+      "name": "paired-7cdea49f2-identity-tests.txt",
+      "bytes": 532,
+      "sha256": "c4c4c79808c40bde6c3072f8b4fec11ff25260ba49298d4869c9ed15a9606fce"
+    },
+    {
+      "name": "paired-7cdea49f2-web-build.txt",
+      "bytes": 1629,
+      "sha256": "cab3480229bbfee12e2d83da1f4085a7df852ac7fff5b843d1f1315d9d1e90e9"
+    },
+    {
+      "name": "paired-7cdea49f2-envelope-build.txt",
+      "bytes": 246,
+      "sha256": "16b02bcf7662c72cf4b3e82a76305048d0845cb17d84636e21ca19f60d05eec1"
+    }
+  ],
+  "gates": {
+    "formalPublicDeployment": false,
+    "realWalletApproval": false,
+    "signature": false,
+    "cardActivation": false,
+    "chainFunding": false,
+    "dataFabricReceiverAcceptance": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  }
+}
