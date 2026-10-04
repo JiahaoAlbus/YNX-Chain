@@ -18,3 +18,20 @@
 实施顺序：先保持现有整合Wallet收转/Pay/扫码/余额/账号/备份主旅程，并完成本批权限存储与iOS正常启动；内部向A闭合策略读回、独立密钥句柄/备份、规范动作/双签、登记恢复与审阅结果合同。合同到位后按原地址做受控产品接线和隔离正反向实测，覆盖C02/C03/C05/C07/C08、X01/X02/X04及相关C06残余入口；不向用户索要私钥/API来替代内部协作。
 
 所有交付分别报告implemented、integrated、migrationVerified、endToEndVerified、securityReviewed、activationApproved、activated、independentOperationVerified、userAccepted。本页和本批943/715工程绿灯不使任何新密码能力已实现/已激活。独审、真实链回放/生产高度/运营者协调与正式制品由对应owner推进；不得清库、重建genesis、恢复快照冒充原网、后台恢复单签或未经用户授权移动资产。
+
+## 同代 Social 源码消费核验（后继事实，不改变上方历史基线）
+
+精确 Social source `55283c5339532d90f808c800fc416a32db44faba` / tree `2bf807194dc5e783a51fbb96149eca34171b164e`。原负责人报告 `apps/social/evidence/veil-current-source-composition-20261004/REPORT.txt` SHA256 `0ff37fbbe5b6c86f857fc647b5e0173260ae239881c0ab18cb059e3bd224e491` 已全文读取；本 Wallet owner 另以 Git blob 重算 3 Kotlin authority/store/transaction、13 Java crypto、4 Kotlin Matrix 共 **20 个当前源码文件**，与报告 `inputs.sha256` 全部一致，命令 exit0。未加载 SDK、旧 adapter/model jar 或新 jar，未重跑 Social 的编译/合成测试，未执行 Android SQLite/Keystore。报告所述 libsignal 0.104.0/Matrix 26.09.28 组合可编译是 Social 工程证据，不是 Wallet 安装或授权证据。
+
+这批真实 ABI **不是 Wallet 资金策略或双签 ABI**：
+
+| 当前源码边界 | Wallet 消费判断 |
+| --- | --- |
+| `VeilDeviceBinding(owner, device, socialIdentityFingerprint, keyAlias)`；alias 必须为 `ynx.social.veil.v2.*`；grant 来自原生 `VeilDeviceGrantVerifier`，最多 120 秒 lease | 是 Social 设备解密授权。不能用 Wallet account/SSO/当前进程 epoch 拼出 grant，不能把资金 vault alias 改名充作已登记 Social key |
+| `VeilNativeStore` 使用已登记的 AES-256、要求用户认证的 Android Keystore key，并按 Social tuple 绑定 SQLite/AAD；外部 `VeilCheckpointProtector` 缺失即拒绝 | 应在 Social 独立持钥与数据库边界消费。Wallet 旧 secp256k1/PBKDF2 备份不提供这些材料或防回滚证明；Keystore 不自动等于独立单调锚 |
+| `VeilContextAuthority.IndependentVerifier` 复核已批准设备、路由、generation、epoch 和 SDK/JNI 来源；在原 transaction commit 内再检查 | 真 producer/current/route/source 来自 A 的准确实现，不能以字段相等、回调存在或新可编译 jar 代替；Wallet 登录不授予 Social 历史解密权 |
+| `VeilBackupNative.seal/openForStaging` 是 package-private JNI Social ratchet snapshot codec，要求 libsodium 1.0.22 与独立 context；没有 Expo export 或实际 restore effect | 不是 Wallet v3资金备份格式，也不提供 ML-DSA 资金 key handle。不能导入资金默认导出文件，不能为接线公开私密 snapshot 或把恢复当设备授权 |
+
+新 `dormant-current-source-composition.jar` 的 SHA256 `ec185b41d6368adf2e4b2f0032f90316c680ba7a59981558196194e25d622eda` 及 163495 字节仅引用原报告；含四个 synthetic QA 入口，**不得作为 Wallet production dependency 或安装包**。没有把这批 Social 源码复制进 Wallet、修改 App/启动资产、添加依赖或修改旧资金密钥/备份。
+
+Wallet 下一可实施输入仍须是 Chain/Auth 的真实账户策略证据、原账户/网络绑定的独立资金 PQ key handle 与备份格式、同一完整动作的规范双签字节、登记/启用/换钥/恢复的真实 nonce 与结果接口。上述是尚缺输入清单，不是 Wallet 自创协议；由 A 冻结后只在 Wallet owned 消费层接入，保留原地址/经典材料/UNKNOWN。Social 已新增可编译同代源码不再记为“只有旧 model jar”，但不能因此将 Wallet crypto-core 的 implemented/integrated/activated 改为 true。
