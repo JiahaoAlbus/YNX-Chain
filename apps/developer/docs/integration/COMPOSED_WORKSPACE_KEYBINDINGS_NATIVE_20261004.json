@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "workbenchVersion": "0.3.12",
+  "nativeCandidate": "apps/developer/.ynx-developer-candidates/ynx-workspace-keybindings-native-package-20261004-mac-arm64",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "634ffd2d8c496c3634a3edb0731c8cd3e13d4e92",
+    "sourceTree": "be4d0091a4fd038477b7670a44ae873d9b163b66",
+    "sourceCommitDate": "2026-10-04T15:11:37+08:00",
+    "runtimeCheckpoint": "634ffd2d8c496c3634a3edb0731c8cd3e13d4e92",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "43ae7267c85751b505f2e939484374c33923a991aaa42febf56f36ed92836787",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "c50fdb0ddb8686457ecc2b3b18abdef567d824206ff6bbe78a712bbda6c893eb",
+        "treeSha256": "420b29d59b0b06b440f13b6e4d36d0e628101c9d0b4e69b439ac8a22994a2f63",
+        "manifestSha256": "a77e39bb4c7ae24ef3119783ab1959366e0d3f231d16d8f532821715bd90c6f1"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "c37ce17e183ec64c4371b81fa3b725f540a01c44896d6361b2218f2aa114aa39",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "c50fdb0ddb8686457ecc2b3b18abdef567d824206ff6bbe78a712bbda6c893eb",
+      "treeSha256": "420b29d59b0b06b440f13b6e4d36d0e628101c9d0b4e69b439ac8a22994a2f63",
+      "manifestSha256": "a77e39bb4c7ae24ef3119783ab1959366e0d3f231d16d8f532821715bd90c6f1"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "c37ce17e183ec64c4371b81fa3b725f540a01c44896d6361b2218f2aa114aa39",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "bbba237656a1c6da41db360f9d26ebc2fa42aba5793e45a5a90f49d5e8e2cb4b",
+  "checks": {
+    "buildExit": 0,
+    "signatureExit": 0,
+    "imageExit": 0,
+    "archiveSha256Matches": true,
+    "sbomSha256Matches": true,
+    "cloneStagingSucceededWithoutFallback": true,
+    "successfulHolderFreeStageRemoved": true,
+    "installed": false,
+    "launched": false,
+    "notarized": false,
+    "canonicalUserAcceptance": false
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/workspace-keybindings-native-evidence-20261004",
+  "evidenceIndexSha256": "83ddb26d7f1a65843ff90a326cea4419c449f10b74912161ce14e4651ce57062",
+  "functionalEvidence": "COMPOSED_WORKSPACE_KEYBINDINGS_20261004.json: Project7 + User7 + Core16 =30 actual controlled UI checks on the exact embedded candidate. No older pin tests relabeled.",
+  "remaining": [
+    "Protected operator registered driver with compatible Node26.7 and existing five canonical bindings.",
+    "Real installed Wallet/Chain/approved AI user journeys and acceptance.",
+    "Wider extension compatibility, full When conflicts, LLDB launch, Windows/Linux/native signing and notarization."
+  ],
+  "scope": "Static source-pinned ad-hoc Mac ARM Testnet Preview distribution only."
+}

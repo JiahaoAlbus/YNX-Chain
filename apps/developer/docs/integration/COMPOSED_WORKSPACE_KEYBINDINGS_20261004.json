@@ -112,9 +112,35 @@
         "signal": "SIGTERM",
         "remainingOwnedPids": []
       }
+    },
+    "core": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-vTQaQp",
+      "exitCode": 0,
+      "checks": [
+        "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+        "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+        "actual editor save writes the selected project file, confirmed on disk",
+        "the inherited YNX logo and product name render in the actual framework workbench",
+        "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+        "closing and reopening the actual file restores saved disk content",
+        "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+        "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+        "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+        "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+        "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+        "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+        "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+        "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+        "continuing the actual debug session executes the target program, confirmed by its disk output",
+        "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+      ],
+      "pageErrors": [],
+      "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+      "evidence": "apps/developer/.ynx-developer-candidates/workspace-keybindings-core-evidence-20261004",
+      "evidenceIndexSha256": "9a6bc3ad3def3936d11f6d8e242ea6efc1e0e1ae2983070f6e64759991961572"
     }
   },
-  "currentCandidateUICheckCount": 14,
+  "currentCandidateUICheckCount": 30,
   "jsoncUnitTests": {
     "passed": 3,
     "exitCode": 0,
@@ -125,7 +151,7 @@
   "limits": [
     "Controlled single local macOS project only; no canonical identity/multi-owner/public/other-platform claim.",
     "Workspace root retirement guard has source evidence only; a real second admitted project needs canonical parent integration.",
-    "Native candidate source/package for this version is pending. Earlier 0.3.11 native/36 editor checks remain historical and are not relabeled.",
+    "Native candidate built from source634ffd2d8; exact distribution checks in COMPOSED_WORKSPACE_KEYBINDINGS_NATIVE_20261004.json. Earlier 0.3.11 checks/packages remain historical.",
     "Complete When conflict analysis, wider extension compatibility, LLDB launch and normal-user Chain/Wallet/AI acceptance remain incomplete."
   ]
 }

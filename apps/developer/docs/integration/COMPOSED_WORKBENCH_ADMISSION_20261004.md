@@ -1,17 +1,19 @@
 # Composed workbench: normal-entry consumer contract
 
-Current owned runtime checkpoint is **0.3.11**, candidate
-`ynx-composed-token-cache-space-recovered-20261004-mac-arm64`. Exact inputs,
-original renderer-fault reproductions and 36 passing controlled UI checks are
-recorded in `COMPOSED_TOKEN_CACHE_FIX_20261004.json`. The source-pinned Mac
-candidate `ynx-token-cache-native-package-20261004-mac-arm64` embeds source
-`15c01048e8524bd805cb50edfc1e4367f7bbe81b`, tree
-`0ed6eb1d150646d67d8fd3d32806fe95e84a5240`; signature/image/archive checks pass.
-See `COMPOSED_TOKEN_CACHE_NATIVE_20261004.json`. These are candidate build
+Current owned runtime checkpoint is **0.3.12**, candidate
+`ynx-composed-workspace-keybindings-location-guard-20261004-mac-arm64`.
+`COMPOSED_WORKSPACE_KEYBINDINGS_20261004.json` records its 30 actual controlled
+UI checks (project shortcuts 7, user shortcuts 7, core 16). The Mac candidate
+`ynx-workspace-keybindings-native-package-20261004-mac-arm64` embeds source
+`634ffd2d8c496c3634a3edb0731c8cd3e13d4e92`, tree
+`be4d0091a4fd038477b7670a44ae873d9b163b66`; signature/image/archive checks pass.
+See `COMPOSED_WORKSPACE_KEYBINDINGS_NATIVE_20261004.json`. These are candidate
 checks, not installation, canonical admission or real Wallet/Chain/AI acceptance.
 The five existing bindings and operator contract below remain unchanged.
+Historical 0.3.11 renderer-fault inputs, unpatched failures and distribution are
+retained in `COMPOSED_TOKEN_CACHE_FIX_20261004.json` and
+`COMPOSED_TOKEN_CACHE_NATIVE_20261004.json`; their 36 checks are not relabeled.
 Historical packages/checkpoints below retain their original inputs and scope.
-
 
 Historical owned runtime checkpoint: workbench **0.3.5** with **YNX C/C++ 0.1.0**,
 candidate `ynx-composed-cpp-glob-20261004-mac-arm64`; exact pin and **33 actual
