@@ -1,0 +1,26 @@
+{
+  "recordedAt": "2026-10-04T06:42:51.812Z",
+  "owner": "Social",
+  "ownerEvidence": "apps/social/evidence/ios-native-readiness-20261004/debug-build-with-pods.txt",
+  "targets": [
+    {
+      "path": "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/Build/Intermediates.noindex",
+      "allocatedKiB": 442600,
+      "classification": "rebuildable unsigned debug compilation intermediates/cache"
+    },
+    {
+      "path": "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/ModuleCache.noindex",
+      "allocatedKiB": 462220,
+      "classification": "rebuildable unsigned debug compilation intermediates/cache"
+    }
+  ],
+  "noOpenFileHolder": true,
+  "preserved": [
+    "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/source",
+    "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/social-source.tar",
+    "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/Build/Products",
+    "apps/social/evidence/ios-native-readiness-20261004/**",
+    "all product accounts/keys/DB/UNKNOWN intents/installed dependencies/shared SDK/immutable receipts"
+  ],
+  "beforeDf": "Filesystem   1024-blocks       Used Available Capacity  iused     ifree %iused  Mounted on\n/dev/disk5s1  1953309744 1867360984  38693172    98% 19638619 386931720    5%   /System/Volumes/Data\n"
+}

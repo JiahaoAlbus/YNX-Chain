@@ -1,0 +1,17 @@
+{
+  "recordedAt": "2026-10-04T06:34:35.084Z",
+  "url": "https://social.ynxweb4.com/",
+  "tabId": "21",
+  "brandHTML": "<a class=\"brand\" href=\"/\" aria-label=\"YNX Social home\"><span class=\"mark\">Y</span><span>YNX Social</span></a>",
+  "ynxChooserAsset": "./assets/ynx-wallet.svg",
+  "metamaskChooserAsset": "./assets/metamask.svg",
+  "observedChooserAssetsNaturalSize": [
+    150,
+    150
+  ],
+  "language": "en",
+  "publicLogoFixed": false,
+  "publicSourceBinding": "NOT_ESTABLISHED",
+  "walletChooserOpened": false,
+  "accountSignTransaction": false
+}

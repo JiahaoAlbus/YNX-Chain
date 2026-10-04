@@ -1,0 +1,13 @@
+✔ actual message caller mounts explicit filter and restores only by a fresh permission-checked render (6.489167ms)
+✔ preference enabled during delayed decryption never commits the unchecked original (2.461083ms)
+✔ enabling filter during attachment decryption prevents original object URL release (1.434083ms)
+✔ turning filtering off after private authority expires cannot unlock the old plaintext (1.139667ms)
+✔ actual caller masks its room summary while filtering is enabled (0.909083ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 89.7845

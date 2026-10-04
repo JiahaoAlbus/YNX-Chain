@@ -1,0 +1,12 @@
+{
+  "completedAt": "2026-10-04T06:42:52.253Z",
+  "deletedPaths": [
+    "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/Build/Intermediates.noindex",
+    "/private/tmp/social-ios-debug-613801de-20261004.UYZulY/DerivedData/ModuleCache.noindex"
+  ],
+  "deletedAllocatedKiB": 904820,
+  "afterDf": "Filesystem   1024-blocks       Used Available Capacity  iused     ifree %iused  Mounted on\n/dev/disk5s1  1953309744 1866411508  39642648    98% 19630282 396426480    5%   /System/Volumes/Data\n",
+  "deletedArtifactsRetained": false,
+  "originalBuildHistoryRetained": true,
+  "note": "Global df can also change from concurrent owners; targets only generated cache. No rebuild started."
+}

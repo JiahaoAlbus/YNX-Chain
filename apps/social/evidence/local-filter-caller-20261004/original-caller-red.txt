@@ -1,0 +1,94 @@
+✖ actual message caller mounts explicit filter and restores only by a fresh permission-checked render (5.683375ms)
+✖ preference enabled during delayed decryption never commits the unchecked original (2.61825ms)
+✖ enabling filter during attachment decryption prevents original object URL release (1.317916ms)
+✖ turning filtering off after private authority expires cannot unlock the old plaintext (1.056125ms)
+✖ actual caller masks its room summary while filtering is enabled (0.976375ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 114.515916
+
+✖ failing tests:
+
+test at web/matrix/local-filter-caller.test.mjs:44:1
+✖ actual message caller mounts explicit filter and restores only by a fresh permission-checked render (5.683375ms)
+  AssertionError [ERR_ASSERTION]: Actual session-ui must mount its filter, not an injected default-off stub
+      at filterControls (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:37:9)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:46:73)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at web/matrix/local-filter-caller.test.mjs:53:1
+✖ preference enabled during delayed decryption never commits the unchecked original (2.61825ms)
+  AssertionError [ERR_ASSERTION]: Actual session-ui must mount its filter, not an injected default-off stub
+      at filterControls (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:37:9)
+      at toggle (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:40:43)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:55:68)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at web/matrix/local-filter-caller.test.mjs:61:1
+✖ enabling filter during attachment decryption prevents original object URL release (1.317916ms)
+  AssertionError [ERR_ASSERTION]: Actual session-ui must mount its filter, not an injected default-off stub
+      at filterControls (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:37:9)
+      at toggle (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:40:43)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:64:67)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at web/matrix/local-filter-caller.test.mjs:68:1
+✖ turning filtering off after private authority expires cannot unlock the old plaintext (1.056125ms)
+  AssertionError [ERR_ASSERTION]: Actual session-ui must mount its filter, not an injected default-off stub
+      at filterControls (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:37:9)
+      at toggle (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:40:43)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:69:60)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at web/matrix/local-filter-caller.test.mjs:74:1
+✖ actual caller masks its room summary while filtering is enabled (0.976375ms)
+  AssertionError [ERR_ASSERTION]: Actual session-ui must mount its filter, not an injected default-off stub
+      at filterControls (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:37:9)
+      at toggle (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:40:43)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/local-filter-caller.test.mjs:75:57)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
