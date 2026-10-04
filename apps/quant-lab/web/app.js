@@ -758,7 +758,11 @@ function restoreResearchInputs(previous) {
 researchRestoreButton.onclick=()=>{
   if(researchSubmitting||!workspaceStorageAvailable)return;
   reloadResearchJournal();
-  if(!workspaceStorageAvailable||pendingResearchInvalid||!pendingResearchIntent){renderResearchRequestState();return;}
+  if(!workspaceStorageAvailable||pendingResearchInvalid||!pendingResearchIntent){
+    $('#workspace-storage-boundary').hidden=workspaceStorageAvailable;
+    $('#workspace-storage-boundary').textContent=t('workspaceStorageUnavailable');
+    renderResearchRequestState();renderPaperSubmitControl();renderRiskControls();return;
+  }
   restoreResearchInputs(pendingResearchIntent);renderResearchRequestState();toast(t('researchRestored'),'researchRestored');
 };
 researchForgetButton.onclick=()=>{

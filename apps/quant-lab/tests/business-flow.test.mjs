@@ -962,6 +962,21 @@ test('saved research parameter review and Restore are exact localized read-only 
   assert.equal(app.ids.get('strategy').value,'Busy next draft');assert.equal(app.storage.get(key),'{');assert.equal(vm.runInContext('researchRestoreButton.hidden',app.context),true);
 });
 
+test('Restore read failure immediately closes all workspace write controls while preserving saved research',async()=>{
+  const original=harness({apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:Promise.reject(Error('Lost response'))});await settle();await original.submit('backtest');
+  const key=[...original.storage.keys()].find(key=>key.startsWith('ynx.quant.research.pending')),raw=original.storage.get(key);
+  let deny=false;
+  const app=harness({savedStorage:original.storage,storageBoundary(operation,k){if(deny&&operation==='get'&&k===key)throw Error('Read unavailable')}});await settle();
+  assert.equal(app.ids.get('kill').disabled,false);assert.equal(app.ids.get('reconcile').disabled,false);
+  const before=app.calls.length;app.ids.get('strategy').value='Keep next draft';deny=true;
+  vm.runInContext('researchRestoreButton.onclick()',app.context);
+  assert.equal(app.storage.get(key),raw);assert.equal(vm.runInContext('JSON.stringify(pendingResearchIntent)',app.context),raw);
+  assert.equal(app.ids.get('strategy').value,'Keep next draft');assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+  for(const id of ['kill','reconcile','paper-submit'])assert.equal(app.ids.get(id).disabled,true,id);
+  assert.equal(vm.runInContext('researchRestoreButton.disabled',app.context),true);
+  assert.equal(app.ids.get('workspace-storage-boundary').hidden,false);
+});
+
 test('unbound saved research key never clears an unknown request; explicit local forgetting does not change service records',async()=>{
   const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{access:{statefulPreview:true}}:{...researchFixture('wrong-key'),researchRequestKey:'quant-research-ffffffff-ffff-ffff-ffff-ffffffffffff'}});await settle();
   await app.submit('backtest');assert.equal(app.ids.get('latest-result').hidden,true);assert.equal(app.ids.get('research-request-status').hidden,false);
