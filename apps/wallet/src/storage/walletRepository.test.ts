@@ -16,11 +16,12 @@ class MemorySecureStorage implements SecureStorageAdapter {
   beforeSet?: (key: string) => void;
   afterSet?: (key: string) => void;
   beforeDelete?: (key: string) => void;
+  afterDelete?: (key: string) => void;
   assertSecretProtectionAvailable?: (assertCurrent?: () => void) => Promise<void>;
   readonly authenticatedSecrets = {getItem:(key:string)=>this.getItem(key),setItem:(key:string,value:string)=>this.setItem(key,value),deleteItem:(key:string)=>this.deleteItem(key)};
   async getItem(key:string){this.reads.push(key);await this.beforeGet?.(key);return this.values.get(key)??null;}
   async setItem(key:string,value:string){this.beforeSet?.(key);this.writes.push(key);this.values.set(key,value);this.afterSet?.(key);}
-  async deleteItem(key:string){this.beforeDelete?.(key);this.deletions.push(key);this.values.delete(key);}
+  async deleteItem(key:string){this.beforeDelete?.(key);this.deletions.push(key);this.values.delete(key);this.afterDelete?.(key);}
 }
 const accountOne = walletIdentity(SECRET_ONE).account;
 const accountTwo = walletIdentity(SECRET_TWO).account;
@@ -74,6 +75,57 @@ test("creation whose authority expires during manifest readback cannot return su
 });
 const secretKey = (account: string) => `ynx.wallet.account.auth.v3.${account}`;
 const privateReads = (storage: MemorySecureStorage) => storage.reads.filter((key) => key.startsWith("ynx.wallet.account.") || key === LEGACY_IDENTITY_KEY);
+for(const mode of ["lost","substituted","read-denied","cancelled-read"] as const)test(`deletion intent ${mode} cannot commit public removal or delete protected bytes`,async()=>{
+  const {storage,repository}=await twoAccounts(),beforeManifest=storage.values.get(MANIFEST_KEY),beforeSecret=storage.values.get(secretKey(accountOne));
+  const unknownKey=`ynx.wallet.native-outbox.v1.${accountOne}`;storage.values.set(unknownKey,"opaque retained UNKNOWN bytes");
+  let written=false,current=true;
+  storage.afterSet=key=>{if(key!==DELETION_JOURNAL_KEY)return;written=true;
+    if(mode==="lost")storage.values.delete(key);
+    if(mode==="substituted")storage.values.set(key,JSON.stringify({schemaVersion:1,accounts:[{account:accountTwo,accountPublicKey:walletIdentity(SECRET_TWO).accountPublicKey}]}));
+  };
+  storage.beforeGet=async key=>{if(key!==DELETION_JOURNAL_KEY||!written)return;
+    if(mode==="read-denied")throw Error("journal read unavailable");
+    if(mode==="cancelled-read")current=false;
+  };
+  await assert.rejects(repository.deleteAccount(accountOne,()=>{if(!current)throw Error("Operation cancelled")}),mode==="read-denied"?/unavailable/:mode==="cancelled-read"?/cancelled/:/deletion journal.*readback/i);
+  assert.equal(storage.values.get(MANIFEST_KEY),beforeManifest);assert.equal(storage.values.get(secretKey(accountOne)),beforeSecret);
+  assert.equal(storage.deletions.includes(secretKey(accountOne)),false);assert.equal(storage.values.get(unknownKey),"opaque retained UNKNOWN bytes");
+});
+for(const phase of ["delete","cold-retry"] as const)test(`lost journal clear after ${phase} is not successful cleanup and remains explicitly recoverable`,async()=>{
+  const {storage,repository}=await twoAccounts();
+  if(phase==="cold-retry"){
+    storage.beforeDelete=key=>{if(key===secretKey(accountOne))throw Error("protected delete interrupted")};
+    await assert.rejects(repository.deleteAccount(accountOne),/interrupted/);storage.beforeDelete=undefined;
+  }
+  storage.afterDelete=key=>{if(key===DELETION_JOURNAL_KEY)storage.values.set(key,original!)};
+  let original:string|undefined;
+  storage.beforeDelete=key=>{if(key===DELETION_JOURNAL_KEY)original=storage.values.get(key)};
+  const action=phase==="delete"?()=>repository.deleteAccount(accountOne):()=>new WalletRepository(storage).retryPendingDeletions();
+  await assert.rejects(action(),/deletion journal.*readback/i);
+  assert.ok(storage.values.has(DELETION_JOURNAL_KEY));assert.equal(storage.values.has(secretKey(accountOne)),false);
+  assert.deepEqual((await new WalletRepository(storage).load()).manifest.accounts.map(a=>a.account),[accountTwo]);
+  storage.afterDelete=undefined;storage.beforeDelete=undefined;
+  await new WalletRepository(storage).retryPendingDeletions();assert.equal(storage.values.has(DELETION_JOURNAL_KEY),false);
+  assert.equal(await repository.accountSecret(accountTwo),SECRET_TWO);
+});
+for(const mode of ["lost","substituted"] as const)test(`cold multi-entry cleanup stops before the next account after ${mode} progress write`,async()=>{
+  const {storage,repository}=await twoAccounts();
+  storage.beforeDelete=key=>{if(key===secretKey(accountOne)||key===secretKey(accountTwo))throw Error("protected delete interrupted")};
+  await assert.rejects(repository.deleteAccount(accountOne),/interrupted/);await assert.rejects(repository.deleteAccount(accountTwo),/interrupted/);
+  const before=storage.values.get(DELETION_JOURNAL_KEY)!;const pending=JSON.parse(before).accounts;
+  storage.beforeDelete=undefined;
+  storage.afterSet=key=>{if(key===DELETION_JOURNAL_KEY)storage.values.set(key,mode==="lost"?before:JSON.stringify({schemaVersion:1,accounts:[]}))};
+  await assert.rejects(new WalletRepository(storage).retryPendingDeletions(),/deletion journal.*readback/i);
+  assert.equal(storage.values.has(secretKey(pending[0].account)),false);assert.equal(storage.values.has(secretKey(pending[1].account)),true);
+  assert.equal((await repository.load()).manifest.accounts.length,0);
+});
+test("authority lost during final journal delete cannot report successful removal",async()=>{
+  const {storage,repository}=await twoAccounts();let current=true;
+  storage.afterDelete=key=>{if(key===DELETION_JOURNAL_KEY)current=false};
+  await assert.rejects(repository.deleteAccount(accountOne,()=>{if(!current)throw Error("Operation cancelled")}),/cancelled/);
+  assert.equal((await new WalletRepository(storage).load()).manifest.accounts.length,1);
+  assert.equal(storage.values.has(secretKey(accountTwo)),true);
+});
 async function twoAccounts() {
   const storage = new MemorySecureStorage(), repository = new WalletRepository(storage);
   await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false});

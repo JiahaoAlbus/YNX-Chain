@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "ynx-native-deletion-journal-readback/v1",
+  "parent": "5307842929a9c73f162c5f3e3ae469bbc5b6f6a8",
+  "status": "OWNED_CONTROLLED_SOURCE_AND_HERMES_COMPATIBILITY_VERIFIED",
+  "defect": "Original saveDeletionJournal trusted resolved set/delete. Lost/substituted intent could permit public removal/key cleanup without durable intent; lost progress write could continue to next account; dropped final delete could report cleanup success and cancellation at final delete could return success.",
+  "fix": "All original deletion/explicit retry callsites pass existing operation guard to journal persistence. Before effect and after set/delete/readback guard must remain current; exact encoded v1 journal or null for deletion must read back. No rollback/rewrite on uncertainty, new store or key namespace. Failure stops next irreversible step; only explicit original removal/retry continues.",
+  "scope": [
+    "src/storage/walletRepository.ts",
+    "src/storage/walletRepository.test.ts"
+  ],
+  "original": {
+    "tests": 68,
+    "pass": 59,
+    "fail": 9,
+    "log": "original-journal.log",
+    "sha256": "42a1e8ca48814dd81a1501a48b3b3fea85a88d37ff80cd2f4e8b8449da9b5207"
+  },
+  "related": {
+    "tests": 187,
+    "pass": 187,
+    "fail": 0,
+    "log": "fixed-related.log",
+    "sha256": "1bda870dec186a615f54b376d0922afbdeac8290f68a8eb3f9d558ecf8860e62"
+  },
+  "full": {
+    "tests": 1032,
+    "pass": 1032,
+    "fail": 0,
+    "skip": 0,
+    "log": "full-regression.log",
+    "sha256": "f950c470752a083f0afaf1ca8eb823b572e1b9e0a886d2cc9eb230ca0ba02515"
+  },
+  "typecheck": {
+    "exitCode": 0,
+    "log": "typecheck.log",
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "androidHermes": {
+    "exitCode": 0,
+    "log": "android-export.log",
+    "sha256": "a204caadfb4176caf7b3e2cf068826c1a39976a9e6467e261d4f5ccc4ca54bc2",
+    "bundle": "dist-android/_expo/static/js/android/index-bd257fd6b7c51c0831bb9554dbb470c1.hbc"
+  },
+  "iosHermes": {
+    "exitCode": 0,
+    "log": "ios-export.log",
+    "sha256": "f639fb2e8d15c39d146b709d985cb2af86ad511b52f093997baea48103bacc29",
+    "bundle": "dist-ios/_expo/static/js/ios/index-c8c8b9a03ae6d45e7b79188309ec78e4.hbc"
+  },
+  "evidenceDirectory": "/tmp/ynx-wallet-deletion-journal-20261004-OfWI0U/",
+  "scenarios": [
+    "Lost/substituted intent preserves original manifest/protected bytes/UNKNOWN record",
+    "Read denied or guard lost during intent readback stops before public commit",
+    "Lost final clear rejects both delete and cold retry, explicit later cold retry clears original journal",
+    "Lost/substituted multi-entry progress stops before next account key cleanup",
+    "Authority lost during final journal delete cannot report success"
+  ],
+  "sourceBinding": {
+    "candidate": "/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet",
+    "nativeTrackedPlusNewSrcAppIndexDelegate": "181/181 exact byte comparison, no difference/missing",
+    "walletAuthSrc": "Fresh95/95 Git blob match at9555b01e47519a5df882bb0092d2d20e1d7ce6e2, not whole package/generalSDK/runtime admission",
+    "dependencyLimits": "Keep passive-view-dependency-boundary-20261004.json; no package install/rewiring/shared code edit"
+  },
+  "CASBoundary": {
+    "adapter": "Existing getItem/setItem/deleteItem only. No compare-and-swap, atomic multi-key transaction, OS-wide writer lock or native versioned commit is exposed.",
+    "queue": "Existing WeakMap serializes only operations sharing the exact same JS adapter object. Never a cross-process writer fence.",
+    "status": "CROSS_PROCESS_ATOMICITY_NOT_VERIFIED_HOLD_FOR_NATIVE_PRODUCER_CONTRACT",
+    "needed": "A must supply/admit actual native atomic conditional commit or externally enforced OS-wide single-writer contract with crash/cold/enrollment outcomes before stronger claims. Readback is point-in-time confirmation only, not protection against an external write immediately afterwards."
+  },
+  "unchanged": [
+    "Original v1 journal schema/key and v2 public manifest/v3 secret services",
+    "Original secret/protection/legacy cleanup implementation; no newly fabricated OS deletion guarantee",
+    "All real account/key/backup/history/UNKNOWN bytes and device locks",
+    "Frozen App.tsx c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f",
+    "Shared SDK/Auth/Host/registry/factory/release versions/signing"
+  ],
+  "notVerified": [
+    "Actual retained enrolled account OS key/material deletion and crashes",
+    "Installed foreground/password/biometric/camera/backup recovery journeys",
+    "Matching protected factory37ports/hybrid NativeBinding and final graph",
+    "Public website final forward installer/business acceptance",
+    "MONSTER NOT_RUN"
+  ]
+}

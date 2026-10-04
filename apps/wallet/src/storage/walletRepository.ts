@@ -133,7 +133,7 @@ export class WalletRepository {
       const journal = existing ? pending : [...pending, { account: stored!.account, accountPublicKey: stored!.accountPublicKey }];
       // Record public intent first. Cancellation stops further deletion; the journal lets a
       // later explicitly authorized retry complete an interrupted removal without secrets.
-      await this.saveDeletionJournal(journal);
+      await this.saveDeletionJournal(journal, assertCurrent);
       assertCurrent?.();
       const accounts = current.accounts.filter((item) => item.account !== account);
       const selectedAccountId = current.selectedAccountId === account ? accounts[0]?.account ?? null : current.selectedAccountId;
@@ -142,7 +142,7 @@ export class WalletRepository {
       assertCurrent?.();
       await this.deleteAccountMaterial(account, assertCurrent, (stored ?? existing)!.accountPublicKey);
       assertCurrent?.();
-      await this.saveDeletionJournal(journal.filter((item) => item.account !== account));
+      await this.saveDeletionJournal(journal.filter((item) => item.account !== account), assertCurrent);
       return next;
     });
   }
@@ -204,7 +204,7 @@ export class WalletRepository {
         if (!current.accounts.some((account) => account.account === item.account)) await this.deleteAccountMaterial(item.account, assertCurrent, item.accountPublicKey);
         assertCurrent?.();
         remaining = remaining.filter((record) => record.account !== item.account);
-        await this.saveDeletionJournal(remaining);
+        await this.saveDeletionJournal(remaining, assertCurrent);
       }
       return current;
     });
@@ -415,10 +415,19 @@ export class WalletRepository {
     return accounts;
   }
 
-  private async saveDeletionJournal(accounts: readonly PendingDeletion[]): Promise<void> {
+  private async saveDeletionJournal(accounts: readonly PendingDeletion[], assertCurrent?: OperationGuard): Promise<void> {
     if (accounts.length > 20) throw new Error("Complete pending account removals before deleting another account");
-    if (!accounts.length) return this.storage.deleteItem(DELETION_JOURNAL_KEY);
-    await this.storage.setItem(DELETION_JOURNAL_KEY, JSON.stringify({ schemaVersion: 1, accounts: [...accounts].sort((a, b) => a.account.localeCompare(b.account)) }));
+    assertCurrent?.();
+    const encoded = accounts.length ? JSON.stringify({ schemaVersion: 1, accounts: [...accounts].sort((a, b) => a.account.localeCompare(b.account)) }) : null;
+    if (encoded === null) await this.storage.deleteItem(DELETION_JOURNAL_KEY);
+    else await this.storage.setItem(DELETION_JOURNAL_KEY, encoded);
+    assertCurrent?.();
+    // Confirm both intent/progress writes and the final deletion. A resolved
+    // call alone cannot authorize further key cleanup or a successful return.
+    // This is readback under the existing mutation queue, not cross-process CAS.
+    const readback = await this.storage.getItem(DELETION_JOURNAL_KEY);
+    assertCurrent?.();
+    if (readback !== encoded) throw new Error("Wallet deletion journal readback did not match the reviewed removal. Preserve Wallet data and retry the original removal explicitly.");
   }
 
   private mutate<T>(operation: () => Promise<T>): Promise<T> {
