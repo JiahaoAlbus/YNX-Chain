@@ -68,6 +68,46 @@ test('invalid completion cannot replace the last verified chart or localized res
 });
 const savedResearchStrategy = overrides => ({ID:'saved-research',Name:'Saved research',Stage:'Backtest',Family:'transparent',License:'test-only',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0},...overrides});
 
+function observedOrder(app){
+  for(const [id,value] of Object.entries({reference:'1000000',gas:'100',loss:'0',equity:'10000000',exposure:'1000000',peak:'10000000',current:'9900000',liquidity:'10000000',depeg:'5',concentration:'2000',orders:'10',cancels:'1','api-failures':'0',var:'100000',es:'150000'}))app.ids.get('risk-'+id).value=value;
+  for(const [id,value] of Object.entries({'risk-oracle-time':new Date(Date.now()-1000).toISOString(),'risk-venue':'healthy','order-side':'buy','order-key':'controlled-order-key','order-mandate':'f'.repeat(64)}))app.ids.get(id).value=value;
+}
+test('Testnet risk preview never invents oracle freshness or venue health and refuses ambiguous numeric input',async()=>{
+  for(const [id,value] of [['risk-oracle-time',''],['risk-oracle-time','2026-02-30T00:00:00Z'],['risk-oracle-time',new Date(Date.now()+60000).toISOString()],['risk-oracle-time',new Date(Date.now()-60000).toISOString()],['risk-venue',''],['risk-venue','unhealthy'],['risk-loss',''],['risk-loss','1e3'],['risk-gas','-1'],['risk-var','1.5'],['risk-es','9007199254740992']]){
+    const app=harness();await settle();observedOrder(app);app.ids.get(id).value=value;
+    await app.ids.get('preview-order').onclick();await app.submit('testnet-order-form');
+    assert.equal(vm.runInContext('pendingOrder',app.context),null);assert.equal(app.proofs(),0);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);
+  }
+});
+test('Testnet preview displays exact operator observations and changed risk or mandate requires a fresh preview before proof',async()=>{
+  for(const [id,value] of [['risk-gas','101'],['order-mandate','e'.repeat(64)],['risk-oracle-time',new Date(Date.now()-2000).toISOString()],['risk-venue','unhealthy']]){
+    const app=harness({confirmAction:()=>true});await settle();observedOrder(app);
+    const original=app.ids.get('risk-oracle-time').value;await app.ids.get('preview-order').onclick();
+    assert.equal(vm.runInContext('pendingOrder.Risk.oracleAsOf',app.context),original);
+    assert.ok(app.ids.get('order-payload').textContent.includes(original));
+    assert.ok(app.ids.get('order-payload').textContent.includes(vm.runInContext('t("riskOperatorObservation")',app.context)));
+    app.ids.get(id).value=value;await app.submit('testnet-order-form');
+    assert.equal(app.proofs(),0);assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,0);
+  }
+});
+test('Testnet submission confirmation and pending proof fence exact risk data without rewriting observation time',async()=>{
+  const app=harness({confirmAction:()=>true});await settle();observedOrder(app);await app.ids.get('preview-order').onclick();
+  const proof=deferred();let proofCalls=0;app.context.window.YNXQuantWallet.requireProof=()=>{proofCalls++;return proof.promise};
+  const submit=app.submit('testnet-order-form');await settle();assert.equal(proofCalls,1);
+  app.ids.get('risk-gas').value='102';proof.resolve('controlled-not-real-proof');await submit;
+  assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,0);
+  const rejected=harness({confirmAction:()=>false});await settle();observedOrder(rejected);await rejected.ids.get('preview-order').onclick();await rejected.submit('testnet-order-form');assert.equal(rejected.proofs(),0);
+});
+test('operator risk observation labels and rejection stay in all twelve selected languages',async()=>{
+ const app=harness();await settle();
+ for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+  app.ids.get('locale').onchange({target:{value:language}});await app.submit('testnet-order-form');
+  assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("riskObservationInvalid")',app.context));
+  for(const key of ['riskOracleTime','riskVenueObservation','riskOperatorObservation','riskOrderConfirm'])assert.ok(vm.runInContext(`t(${JSON.stringify(key)})`,app.context));
+ }
+});
+
 test('configured research split never claims a fixed 50 percent and follows every selected language',async()=>{
   assert.doesNotMatch(html,/First 50%|Held-out 50%/);
   const app=harness();await settle();

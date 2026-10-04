@@ -1421,6 +1421,31 @@ $("#mandate-form").onsubmit = async (e) => {
     toast(e.message);
   }
 };
+const orderRiskCopy={
+ en:['Oracle observation time (RFC3339)','Venue health observation','Unverified — do not submit','Observed healthy','Observed unhealthy','Operator-entered observations; not verified oracle data. Freshness and venue health are not inferred. Review before authorization; the service independently checks risk.','Missing, invalid, stale or unhealthy risk observations. Review and preview again.','Confirm the exact Testnet order and operator-entered risk observations below. Authorization does not prove execution.'],
+ 'zh-CN':['预言机观测时间（RFC3339）','交易场所健康观测','未验证 — 不提交','观测为健康','观测为不健康','手工输入的观测，不是已验证预言机数据。不推断新鲜度或场所健康。授权前请核对；服务独立检查风险。','风险观测缺失、无效、过期或不健康，请核对并重新预览。','确认以下精确测试网订单和手工风险观测。授权不代表成交。'],
+ 'zh-TW':['預言機觀測時間（RFC3339）','交易場所健康觀測','未驗證 — 不提交','觀測為健康','觀測為不健康','手動輸入的觀測，非已驗證預言機資料。不推斷新鮮度或場所健康。授權前核對；服務獨立檢查風險。','風險觀測缺失、無效、過期或不健康，請重新預覽。','確認以下精確測試網訂單與手動風險觀測。授權不代表成交。'],
+ ja:['オラクル観測時刻（RFC3339）','取引所の健全性観測','未検証 — 送信不可','健全と観測','不健全と観測','手入力の観測であり検証済みオラクルデータではありません。鮮度や健全性は推測しません。承認前に確認し、サービスが独立してリスクを検査します。','リスク観測が不足、無効、古い、または不健全です。再確認してプレビューしてください。','以下の正確なテストネット注文と手入力のリスク観測を確認してください。承認は約定の証明ではありません。'],
+ ko:['오라클 관측 시간 (RFC3339)','거래소 상태 관측','미검증 — 제출 불가','정상으로 관측','비정상으로 관측','수동 관측이며 검증된 오라클 데이터가 아닙니다. 최신성이나 정상 상태를 추정하지 않습니다. 승인 전 검토하고 서비스가 별도로 위험을 확인합니다.','위험 관측이 누락되었거나 잘못되었거나 오래되었거나 비정상입니다. 다시 미리 보세요.','아래의 정확한 테스트넷 주문과 수동 위험 관측을 확인하세요. 승인은 체결 증거가 아닙니다.'],
+ es:['Hora de observación del oráculo (RFC3339)','Estado observado del mercado','Sin verificar — no enviar','Observado sano','Observado no sano','Observaciones manuales, no datos de oráculo verificados. No se infiere vigencia ni salud. Revise antes de autorizar; el servicio verifica el riesgo por separado.','Observaciones ausentes, inválidas, antiguas o no sanas. Revise y previsualice de nuevo.','Confirme la orden Testnet exacta y las observaciones manuales siguientes. Autorizar no prueba ejecución.'],
+ fr:['Heure d’observation de l’oracle (RFC3339)','État observé de la place','Non vérifié — ne pas envoyer','Observé sain','Observé défaillant','Observations manuelles, pas de données d’oracle vérifiées. Aucune fraîcheur ni santé déduite. Vérifiez avant autorisation ; le service contrôle le risque indépendamment.','Observations absentes, invalides, périmées ou défaillantes. Prévisualisez à nouveau.','Confirmez l’ordre Testnet exact et les observations manuelles ci-dessous. L’autorisation ne prouve pas l’exécution.'],
+ de:['Oracle-Beobachtungszeit (RFC3339)','Beobachteter Handelsplatzstatus','Ungeprüft — nicht senden','Als gesund beobachtet','Als gestört beobachtet','Manuelle Beobachtungen, keine verifizierten Oracle-Daten. Aktualität und Zustand werden nicht angenommen. Vor Freigabe prüfen; der Dienst prüft Risiken unabhängig.','Fehlende, ungültige, veraltete oder gestörte Risikobeobachtung. Erneut prüfen und Vorschau öffnen.','Exakte Testnet-Order und manuelle Risikobeobachtungen unten bestätigen. Freigabe beweist keine Ausführung.'],
+ pt:['Hora observada do oráculo (RFC3339)','Saúde observada do mercado','Não verificado — não enviar','Observado saudável','Observado indisponível','Observações manuais, não dados de oráculo verificados. Não se infere atualidade ou saúde. Revise antes de autorizar; o serviço verifica o risco separadamente.','Observações ausentes, inválidas, antigas ou indisponíveis. Revise a prévia.','Confirme a ordem Testnet exata e as observações manuais abaixo. Autorizar não prova execução.'],
+ ru:['Время наблюдения оракула (RFC3339)','Наблюдаемое состояние площадки','Не проверено — не отправлять','Наблюдается исправность','Наблюдается неисправность','Ручные наблюдения, не проверенные данные оракула. Свежесть и исправность не предполагаются. Проверьте до разрешения; сервис независимо проверяет риск.','Наблюдения отсутствуют, неверны, устарели или показывают неисправность. Повторите просмотр.','Подтвердите точную заявку Testnet и ручные наблюдения ниже. Разрешение не доказывает исполнение.'],
+ ar:['وقت رصد الأوراكل (RFC3339)','حالة منصة التداول المرصودة','غير متحقق — لا ترسل','مرصودة سليمة','مرصودة غير سليمة','مشاهدات يدوية وليست بيانات أوراكل موثقة. لا نفترض الحداثة أو سلامة المنصة. راجع قبل التفويض؛ الخدمة تفحص المخاطر بشكل مستقل.','مشاهدات المخاطر مفقودة أو غير صالحة أو قديمة أو غير سليمة. راجع المعاينة مجدداً.','أكد أمر شبكة الاختبار والمشاهدات اليدوية الدقيقة أدناه. التفويض لا يثبت التنفيذ.'],
+ id:['Waktu pengamatan oracle (RFC3339)','Kesehatan tempat perdagangan','Belum diverifikasi — jangan kirim','Teramati sehat','Teramati tidak sehat','Pengamatan manual, bukan data oracle terverifikasi. Kesegaran dan kesehatan tidak diasumsikan. Tinjau sebelum izin; layanan memeriksa risiko secara mandiri.','Pengamatan hilang, tidak valid, usang atau tidak sehat. Tinjau pratinjau lagi.','Konfirmasi order Testnet dan pengamatan manual tepat berikut. Izin bukan bukti eksekusi.']
+};
+for(const [language,values] of Object.entries(orderRiskCopy))Object.assign(businessCopy[language],Object.fromEntries(['riskOracleTime','riskVenueObservation','riskUnknownObservation','riskHealthyObservation','riskUnhealthyObservation','riskOperatorObservation','riskObservationInvalid','riskOrderConfirm'].map((key,index)=>[key,values[index]])));
+function orderRiskDraft(){
+ const invalid=()=>{throw Object.assign(new Error(t('riskObservationInvalid')),{localeKey:'riskObservationInvalid'})},risk={};
+ for(const [key,id] of Object.entries({referencePrice:'reference',estimatedGas:'gas',observedDailyLoss:'loss',equity:'equity',grossExposure:'exposure',peakEquity:'peak',currentEquity:'current',availableLiquidity:'liquidity',depegBps:'depeg',concentrationBps:'concentration',ordersObserved:'orders',cancelsObserved:'cancels',consecutiveApiFailures:'api-failures',var:'var',expectedShortfall:'es'})){
+  const raw=$('#risk-'+id).value;if(!/^(0|[1-9][0-9]*)$/.test(raw)||!Number.isSafeInteger(Number(raw)))invalid();risk[key]=Number(raw);
+ }
+ const time=$('#risk-oracle-time').value,age=Date.now()-Date.parse(time);
+ if(!auditTimeValid(time)||age<0||age>30000||$('#risk-venue').value!=='healthy'||risk.referencePrice<=0||risk.equity<=0||risk.peakEquity<=0)invalid();
+ risk.oracleAsOf=time;risk.venueHealthy=true;return risk;
+}
+function orderReview(){return {draft:orderDraft(),Risk:orderRiskDraft(),MandateDigest:$('#order-mandate').value.trim()}}
 function orderDraft() {
   return {
     Account: $("#mandate-account").value.trim(),
@@ -1435,53 +1460,37 @@ $("#preview-order").onclick = async () => {
   clearSigningPreviews();
   const revision = previewRevision;
   try {
-    const draft = orderDraft();
+    const review = orderReview(),draft=review.draft;
     const result = await api("/v1/testnet/signing-payloads/order", { method: "POST", body: JSON.stringify(draft) });
     if (revision !== previewRevision) return;
-    pendingOrder = draft;
-    $("#order-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}`;
+    pendingOrder = review;
+    $("#order-payload").textContent = `${result.payload}\n\nSHA-256 ${result.digest}\n\n${t('riskOperatorObservation')}\n${JSON.stringify({MandateDigest:review.MandateDigest,Risk:review.Risk},null,2)}`;
     $("#order-payload").hidden = false;
   } catch (e) {
-    if (revision === previewRevision) toast(e.message);
+    if (revision === previewRevision) toast(e.message,e.localeKey??null);
   }
 };
 $("#testnet-order-form").onsubmit = async (e) => {
   e.preventDefault();
-  const draft = orderDraft();
-  if (!pendingOrder || JSON.stringify(draft) !== JSON.stringify(pendingOrder)) return toast("Preview the exact order payload before signing");
   const revision = previewRevision;
   try {
+    const review=orderReview(),draft=review.draft;
+    if(!pendingOrder||JSON.stringify(review)!==JSON.stringify(pendingOrder))throw Object.assign(new Error(t('riskObservationInvalid')),{localeKey:'riskObservationInvalid'});
+    if(!confirm(`${t('riskOrderConfirm')}\n${JSON.stringify(review,null,2)}`))return;
+    if(revision!==previewRevision||JSON.stringify(orderReview())!==JSON.stringify(review))return;
     const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:execute");
-    if (revision !== previewRevision || !pendingOrder) return;
+    if (revision !== previewRevision || !pendingOrder || JSON.stringify(orderReview())!==JSON.stringify(review)) return;
     await api("/v1/testnet/orders", {
       method: "POST",
       headers: { "x-ynx-quant-product-session-proof": productProof },
       body: JSON.stringify({
-        MandateDigest: $("#order-mandate").value.trim(),
+        MandateDigest: review.MandateDigest,
         Side: draft.Side,
         Price: draft.Price,
         Amount: draft.Amount,
         IdempotencyKey: draft.IdempotencyKey,
         WalletSignature: $("#order-signature").value.trim(),
-        Risk: {
-          referencePrice: +$("#risk-reference").value,
-          estimatedGas: +$("#risk-gas").value,
-          observedDailyLoss: +$("#risk-loss").value,
-          equity: +$("#risk-equity").value,
-          grossExposure: +$("#risk-exposure").value,
-          peakEquity: +$("#risk-peak").value,
-          currentEquity: +$("#risk-current").value,
-          availableLiquidity: +$("#risk-liquidity").value,
-          depegBps: +$("#risk-depeg").value,
-          concentrationBps: +$("#risk-concentration").value,
-          ordersObserved: +$("#risk-orders").value,
-          cancelsObserved: +$("#risk-cancels").value,
-          consecutiveApiFailures: +$("#risk-api-failures").value,
-          var: +$("#risk-var").value,
-          expectedShortfall: +$("#risk-es").value,
-          oracleAsOf: new Date().toISOString(),
-          venueHealthy: true,
-        },
+        Risk: review.Risk,
       }),
     });
     if (revision !== previewRevision) return;
@@ -1490,7 +1499,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
     $("#order-signature").value = "";
     await refresh();
   } catch (e) {
-    toast(e.message);
+    toast(e.message,e.localeKey??null);
   }
 };
 function renderRiskControls() {
