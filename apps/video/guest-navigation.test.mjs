@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createVideoBusinessIdentity} from './business-identity.js';
-import {createRecoveredPlaylist} from './playlist-recovery.js';
+import {createRecoveredPlaylist,recoverPlaylistOperation} from './playlist-recovery.js';
 
 const code=(await readFile(new URL('./app.js',import.meta.url),'utf8')).replace(/^import[^\n]*\n/gm,'').replace(/^export /gm,'');
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
@@ -36,10 +36,11 @@ async function controller({search='',hash='',browser={invalidate(){},signIn(){},
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
   videoProductSession:product,restoreVideoWallet:async()=>null,
-  createVideoBusinessIdentity,createRecoveredPlaylist,
+  createVideoBusinessIdentity,createRecoveredPlaylist,recoverPlaylistOperation,
   // Navigation fixtures have no real IDB or real actor. Real recovery is checked
   // separately with Chromium IDB and the original protected service journey.
   createPlaylistJournal:()=>({read:async(_account,current)=>{current();return {pending:null,history:[]};}}),
+  createPlaylistOperationJournal:()=>({read:async(_account,current)=>{current();return {pending:null,history:[]};}}),
   createVideoAPI:()=>async (path,options)=>{calls.push(path);return path==='/v1/account'?{schemaVersion:1,account:connected.session.account}:request(path,options);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
   discoverWalletCandidates:async()=>[],

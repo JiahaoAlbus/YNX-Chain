@@ -182,24 +182,26 @@ func TestVideoCreatorProtectedBrowserAndOriginalBusiness(t *testing.T) {
 				t.Fatalf("actual protected browser/original business failed: %v %s", e, diagnostic.String())
 			}
 			var receipt struct {
-				ActualOriginalWebPlaylistColdRecovery      bool `json:"actualOriginalWebPlaylistColdRecovery"`
-				ActualOriginalWebPickerColdRecovery        bool `json:"actualOriginalWebPickerColdRecovery"`
-				OriginalCreateDispatches                   int  `json:"originalCreateDispatches"`
-				PickerCreateDispatches                     int  `json:"pickerCreateDispatches"`
-				ActualBusinessServerReadback               bool `json:"actualBusinessServerReadback"`
-				ActualOldPrivateRetirementBeforeSiteSignIn bool `json:"actualOldPrivateRetirementBeforeSiteSignIn"`
-				ActualOriginalBrowserIdentity              bool `json:"actualOriginalBrowserIdentity"`
-				ActualCombinedDecision                     bool `json:"actualCombinedDecision"`
-				ActualSiteLogout                           bool `json:"actualSiteLogout"`
-				ActualGoStartAndCallback303                bool `json:"actualGoStartAndCallback303"`
-				RedirectNavigationSoftwareAdapter          bool `json:"redirectNavigationSoftwareAdapter"`
-				ActualWalletConsent                        bool `json:"actualWalletConsent"`
-				LegacySDK529Preserved                      bool `json:"legacySDK529Preserved"`
+				ActualOriginalWebPlaylistOperationColdRecovery bool  `json:"actualOriginalWebPlaylistOperationColdRecovery"`
+				OriginalOperationDispatches                    []int `json:"originalOperationDispatches"`
+				ActualOriginalWebPlaylistColdRecovery          bool  `json:"actualOriginalWebPlaylistColdRecovery"`
+				ActualOriginalWebPickerColdRecovery            bool  `json:"actualOriginalWebPickerColdRecovery"`
+				OriginalCreateDispatches                       int   `json:"originalCreateDispatches"`
+				PickerCreateDispatches                         int   `json:"pickerCreateDispatches"`
+				ActualBusinessServerReadback                   bool  `json:"actualBusinessServerReadback"`
+				ActualOldPrivateRetirementBeforeSiteSignIn     bool  `json:"actualOldPrivateRetirementBeforeSiteSignIn"`
+				ActualOriginalBrowserIdentity                  bool  `json:"actualOriginalBrowserIdentity"`
+				ActualCombinedDecision                         bool  `json:"actualCombinedDecision"`
+				ActualSiteLogout                               bool  `json:"actualSiteLogout"`
+				ActualGoStartAndCallback303                    bool  `json:"actualGoStartAndCallback303"`
+				RedirectNavigationSoftwareAdapter              bool  `json:"redirectNavigationSoftwareAdapter"`
+				ActualWalletConsent                            bool  `json:"actualWalletConsent"`
+				LegacySDK529Preserved                          bool  `json:"legacySDK529Preserved"`
 			}
 			if json.Unmarshal(output.Bytes(), &receipt) != nil || !receipt.ActualBusinessServerReadback || receipt.ActualWalletConsent || !receipt.LegacySDK529Preserved || !receipt.ActualOldPrivateRetirementBeforeSiteSignIn || !receipt.ActualOriginalBrowserIdentity || !receipt.ActualCombinedDecision || !receipt.ActualSiteLogout || !receipt.ActualGoStartAndCallback303 || !receipt.RedirectNavigationSoftwareAdapter {
 				t.Fatal("browser receipt gates invalid")
 			}
-			if product == "video" && (!receipt.ActualOriginalWebPlaylistColdRecovery || !receipt.ActualOriginalWebPickerColdRecovery || receipt.OriginalCreateDispatches != 2 || receipt.PickerCreateDispatches != 2) {
+			if product == "video" && (!receipt.ActualOriginalWebPlaylistOperationColdRecovery || len(receipt.OriginalOperationDispatches) != 3 || receipt.OriginalOperationDispatches[0] != 1 || receipt.OriginalOperationDispatches[1] != 1 || receipt.OriginalOperationDispatches[2] != 1 || !receipt.ActualOriginalWebPlaylistColdRecovery || !receipt.ActualOriginalWebPickerColdRecovery || receipt.OriginalCreateDispatches != 2 || receipt.PickerCreateDispatches != 2) {
 				t.Fatal("original Web playlist cold recovery gates missing")
 			}
 			mu.Lock()
