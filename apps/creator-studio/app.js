@@ -84,7 +84,7 @@ async function api(path,opt={}){
       const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
       try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
-      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
+      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(processing||opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
     }
     const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
     assertCreatorSession(revision);
