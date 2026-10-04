@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Récupérez la commande précédente avant de la modifier.</string>
     <string name="cart_no_checkout">Aucune commande à récupérer.</string>
     <string name="cart_remove">Retirer</string>
+    <string name="cart_quantity">Quantité</string>
 </resources>

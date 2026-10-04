@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Recupere el pedido anterior antes de cambiar su contenido.</string>
     <string name="cart_no_checkout">No hay pedidos pendientes de recuperación.</string>
     <string name="cart_remove">Eliminar</string>
+    <string name="cart_quantity">Cantidad</string>
 </resources>

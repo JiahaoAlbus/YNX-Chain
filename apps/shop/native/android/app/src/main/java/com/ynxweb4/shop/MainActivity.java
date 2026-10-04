@@ -170,7 +170,14 @@ public final class MainActivity extends Activity {
             JSONObject item=cart.optJSONObject(i);if(item==null)continue;
             try{JSONObject p=findProduct(item.getString("ProductID")),variant=findVariant(p,item.getString("VariantID"));long line=variant.getLong("PriceYNXT")*item.getLong("Quantity");total+=line;content.addView(text(p.getString("Title")+" × "+item.getLong("Quantity")+" · "+formatYNXT(line),15,false));}
             catch(Exception error){content.addView(text(getString(R.string.unavailable),14,false));}
-            String productID=item.optString("ProductID"),variantID=item.optString("VariantID");Button remove=action(getString(R.string.cart_remove),()->removeCart(productID,variantID));remove.setEnabled(!recoveryRequired);content.addView(remove);
+            String productID=item.optString("ProductID"),variantID=item.optString("VariantID");
+            final int shownQuantity=item.optInt("Quantity");final String shownCartKey=loadedCartKey;final long shownView=viewRevision;
+            LinearLayout quantity=row();Button less=button("−"),more=button("+");TextView count=text(getString(R.string.cart_quantity)+" "+shownQuantity,15,true);
+            less.setContentDescription(getString(R.string.cart_quantity)+" −");more.setContentDescription(getString(R.string.cart_quantity)+" +");
+            less.setEnabled(!recoveryRequired&&shownQuantity>1&&shownQuantity<=20);more.setEnabled(!recoveryRequired&&shownQuantity>=1&&shownQuantity<20);
+            less.setOnClickListener(v->changeCartQuantity(productID,variantID,shownQuantity,shownQuantity-1,shownCartKey,shownView));more.setOnClickListener(v->changeCartQuantity(productID,variantID,shownQuantity,shownQuantity+1,shownCartKey,shownView));
+            quantity.addView(less);quantity.addView(count);quantity.addView(more);content.addView(quantity);
+            Button remove=action(getString(R.string.cart_remove),()->removeCart(productID,variantID));remove.setEnabled(!recoveryRequired);content.addView(remove);
         }
         content.addView(text(formatYNXT(total),24,true));
         recipient=input(getString(R.string.recipient));address=input(getString(R.string.address));city=input(getString(R.string.city));country=input(getString(R.string.country));
@@ -188,6 +195,20 @@ public final class MainActivity extends Activity {
         if(cartWork!=null)return;
         try{if(!hasSession()||!isOnline()){synchronized(secure){syncCartContext();JSONArray next=withoutCartItem(cart,productID,variantID);ProductSession session=api.session();if(session==null)secure.put("cart:guest",next.toString());else NativeCart.edit(secure,session.account,next);restoreCart();showCart();}return;}
         runCartTask((sender,session,generation)->{NativeCart.refresh(secure,sender,session,generation);synchronized(secure){if(!isCurrent(session,generation))throw new SecurityException("Session changed");String raw=secure.get("cart:"+session.account);NativeCart.edit(secure,session.account,withoutCartItem(raw.isEmpty()?new JSONArray():new JSONArray(raw),productID,variantID));}NativeCart.sync(secure,sender,session,generation);},this::showCart);
+        }catch(Exception error){status.setText(cartError(error));}
+    }
+    private void requireCartPresentation(String shownKey,long shownView)throws Exception{
+        ProductSession current=api.session();
+        if(shownView!=viewRevision||!shownKey.equals(cartKey())||(current==null?presentationSession!=null:!isCurrent(presentationSession,presentationPrivacyGeneration)))throw new SecurityException("Cart presentation changed");
+    }
+    private void changeCartQuantity(String productID,String variantID,int shown,int next,String shownKey,long shownView){
+        if(cartWork!=null||shownView!=viewRevision)return;
+        try{
+            synchronized(secure){requireCartPresentation(shownKey,shownView);syncCartContext();CartQuantity.change(cart,productID,variantID,shown,next);}
+            if(!hasSession()||!isOnline()){
+                synchronized(secure){requireCartPresentation(shownKey,shownView);syncCartContext();JSONArray changed=CartQuantity.change(cart,productID,variantID,shown,next);ProductSession current=api.session();if(current==null)secure.put("cart:guest",changed.toString());else NativeCart.edit(secure,current.account,changed);restoreCart();}showCart();return;
+            }
+            runCartTask((sender,session,generation)->{NativeCart.refresh(secure,sender,session,generation);synchronized(secure){if(shownView!=viewRevision||!isCurrent(session,generation)||!shownKey.equals("cart:"+session.account))throw new SecurityException("Cart context changed");String raw=secure.get("cart:"+session.account);NativeCart.edit(secure,session.account,CartQuantity.change(raw.isEmpty()?new JSONArray():new JSONArray(raw),productID,variantID,shown,next));}NativeCart.sync(secure,sender,session,generation);},this::showCart);
         }catch(Exception error){status.setText(cartError(error));}
     }
     private JSONArray withoutCartItem(JSONArray original,String productID,String variantID)throws Exception{JSONArray next=new JSONArray();for(int i=0;i<original.length();i++){JSONObject item=original.getJSONObject(i);if(!(productID.equals(item.optString("ProductID"))&&variantID.equals(item.optString("VariantID"))))next.put(new JSONObject(item.toString()));}return next;}

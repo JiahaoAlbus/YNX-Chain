@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">استرد الطلب السابق قبل تغيير محتواه.</string>
     <string name="cart_no_checkout">لا يوجد طلب ينتظر الاسترداد.</string>
     <string name="cart_remove">إزالة</string>
+    <string name="cart_quantity">الكمية</string>
 </resources>

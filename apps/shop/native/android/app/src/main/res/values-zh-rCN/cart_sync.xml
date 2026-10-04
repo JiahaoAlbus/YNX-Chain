@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">请先恢复之前的结账结果，再修改内容。</string>
     <string name="cart_no_checkout">没有等待恢复的结账记录。</string>
     <string name="cart_remove">移除</string>
+    <string name="cart_quantity">数量</string>
 </resources>

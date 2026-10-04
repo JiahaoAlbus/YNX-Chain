@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Recover the earlier checkout before changing its contents.</string>
     <string name="cart_no_checkout">No saved checkout is awaiting recovery.</string>
     <string name="cart_remove">Remove</string>
+    <string name="cart_quantity">Quantity</string>
 </resources>

@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">내용을 변경하기 전에 이전 주문 결과를 복구하세요.</string>
     <string name="cart_no_checkout">복구 대기 중인 주문이 없습니다.</string>
     <string name="cart_remove">삭제</string>
+    <string name="cart_quantity">수량</string>
 </resources>

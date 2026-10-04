@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Восстановите предыдущий заказ перед изменением его содержимого.</string>
     <string name="cart_no_checkout">Нет заказов, ожидающих восстановления.</string>
     <string name="cart_remove">Удалить</string>
+    <string name="cart_quantity">Количество</string>
 </resources>

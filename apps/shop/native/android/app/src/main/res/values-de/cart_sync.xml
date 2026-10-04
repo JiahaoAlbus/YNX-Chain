@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Stellen Sie zuerst die vorherige Bestellung wieder her.</string>
     <string name="cart_no_checkout">Keine Bestellung wartet auf Wiederherstellung.</string>
     <string name="cart_remove">Entfernen</string>
+    <string name="cart_quantity">Menge</string>
 </resources>

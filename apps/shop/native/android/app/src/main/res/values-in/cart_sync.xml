@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">Pulihkan pesanan sebelumnya sebelum mengubah isinya.</string>
     <string name="cart_no_checkout">Tidak ada pesanan yang menunggu pemulihan.</string>
     <string name="cart_remove">Hapus</string>
+    <string name="cart_quantity">Jumlah</string>
 </resources>

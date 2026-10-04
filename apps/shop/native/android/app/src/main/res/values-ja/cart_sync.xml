@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">内容を変更する前に、以前の注文結果を復元してください。</string>
     <string name="cart_no_checkout">復元待ちの注文はありません。</string>
     <string name="cart_remove">削除</string>
+    <string name="cart_quantity">数量</string>
 </resources>

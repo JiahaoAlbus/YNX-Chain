@@ -13,4 +13,5 @@
     <string name="cart_checkout_unconfirmed">請先復原之前的結帳結果，再修改內容。</string>
     <string name="cart_no_checkout">沒有等待復原的結帳記錄。</string>
     <string name="cart_remove">移除</string>
+    <string name="cart_quantity">數量</string>
 </resources>
