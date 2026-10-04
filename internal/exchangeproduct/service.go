@@ -1171,7 +1171,7 @@ func (s *Service) CreateScale(session WalletSession, req ScaleRequest) (ScaleOrd
 		if !exists || effect.Account != session.Account {
 			return ScaleOrder{}, ErrForbidden
 		}
-		return effect, nil
+		return copyScaleObservation(effect), nil
 	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return ScaleOrder{}, ErrForbidden
@@ -1252,7 +1252,7 @@ func (s *Service) CreateScale(session WalletSession, req ScaleRequest) (ScaleOrd
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return ScaleOrder{}, err
 	}
-	return parent, nil
+	return copyScaleObservation(parent), nil
 }
 
 func (s *Service) syncScaleLocked(parentID, reason string) {
@@ -1329,7 +1329,7 @@ func (s *Service) CreateTWAP(session WalletSession, req TWAPRequest) (TWAPOrder,
 		if !exists || effect.Account != session.Account {
 			return TWAPOrder{}, ErrForbidden
 		}
-		return effect, nil
+		return copyTWAPObservation(effect), nil
 	}
 	if dm, ok := s.state.DeadMan[session.Account]; ok && dm.Status == "expired" {
 		return TWAPOrder{}, ErrForbidden
@@ -1366,7 +1366,7 @@ func (s *Service) CreateTWAP(session WalletSession, req TWAPRequest) (TWAPOrder,
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return TWAPOrder{}, err
 	}
-	return twap, nil
+	return copyTWAPObservation(twap), nil
 }
 
 func (s *Service) TickTWAP() (int, error) {
@@ -1519,7 +1519,7 @@ func (s *Service) CancelTWAP(session WalletSession, twapID, key, walletSignature
 		if prior.Action != "twap_cancel" || prior.Digest != d || prior.ObjectID != twapID {
 			return TWAPOrder{}, ErrConflict
 		}
-		return s.state.TWAPOrders[twapID], nil
+		return copyTWAPObservation(s.state.TWAPOrders[twapID]), nil
 	}
 	if twap.Status != "scheduled" {
 		return TWAPOrder{}, ErrConflict
@@ -1536,7 +1536,7 @@ func (s *Service) CancelTWAP(session WalletSession, twapID, key, walletSignature
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return TWAPOrder{}, err
 	}
-	return twap, nil
+	return copyTWAPObservation(twap), nil
 }
 
 func (s *Service) CreateConditionalOrder(session WalletSession, req ConditionalOrderRequest) (ConditionalOrder, error) {
@@ -1808,7 +1808,7 @@ func (s *Service) CancelScale(session WalletSession, scaleID, key, walletSignatu
 		if prior.Action != "scale_cancel" || prior.Digest != d || prior.ObjectID != scaleID {
 			return ScaleOrder{}, ErrConflict
 		}
-		return s.state.ScaleOrders[scaleID], nil
+		return copyScaleObservation(s.state.ScaleOrders[scaleID]), nil
 	}
 	if parent.Status != "open" && parent.Status != "partially_filled" {
 		return ScaleOrder{}, ErrConflict
@@ -1838,7 +1838,7 @@ func (s *Service) CancelScale(session WalletSession, scaleID, key, walletSignatu
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return ScaleOrder{}, err
 	}
-	return parent, nil
+	return copyScaleObservation(parent), nil
 }
 
 func MassCancelAuthorizationPayload(account, market, key string) []byte {
@@ -2066,7 +2066,7 @@ func (s *Service) massCancelLocked(session WalletSession, market, key, action, d
 				nonScaleOrders++
 			}
 		}
-		return CancelResult{Orders: orders, ConditionalOrders: conditional, OCOGroups: groups, TWAPOrders: twaps, ScaleOrders: scales, Count: nonScaleOrders + len(scales) + len(conditional) + len(groups) + len(twaps)}, nil
+		return copyCancelObservation(CancelResult{Orders: orders, ConditionalOrders: conditional, OCOGroups: groups, TWAPOrders: twaps, ScaleOrders: scales, Count: nonScaleOrders + len(scales) + len(conditional) + len(groups) + len(twaps)}), nil
 	}
 	orders := make([]Order, 0)
 	for _, o := range s.state.Orders {
@@ -2183,7 +2183,7 @@ func (s *Service) massCancelLocked(session WalletSession, market, key, action, d
 			nonScaleOrders++
 		}
 	}
-	return CancelResult{Orders: orders, ConditionalOrders: conditional, OCOGroups: groups, TWAPOrders: twaps, ScaleOrders: scales, Count: nonScaleOrders + len(scales) + len(conditional) + len(groups) + len(twaps)}, nil
+	return copyCancelObservation(CancelResult{Orders: orders, ConditionalOrders: conditional, OCOGroups: groups, TWAPOrders: twaps, ScaleOrders: scales, Count: nonScaleOrders + len(scales) + len(conditional) + len(groups) + len(twaps)}), nil
 }
 
 func (s *Service) ordersByIDsLocked(ids []string) []Order {
@@ -2609,6 +2609,9 @@ func (s *Service) StreamSnapshot(stream, account string) (StreamSnapshot, error)
 	if len(events) > 100 {
 		events = append([]ExecutionEvent(nil), events[len(events)-100:]...)
 	}
+	for i := range events {
+		events[i] = copyExecutionObservation(events[i])
+	}
 	return StreamSnapshot{Sequence: s.state.EventSequence, Market: DefaultMarket, Book: s.bookLocked(), Events: events, Source: QuantSource{Source: ProductID, AsOf: s.cfg.Now().UTC(), Version: "execution-stream-v1", Coverage: stream + " snapshot plus last 100 retained events", Status: "available"}}, nil
 }
 
@@ -2686,12 +2689,12 @@ func (s *Service) Snapshot(account string) AccountSnapshot {
 	}
 	for _, v := range s.state.TWAPOrders {
 		if v.Account == account {
-			r.TWAPOrders = append(r.TWAPOrders, v)
+			r.TWAPOrders = append(r.TWAPOrders, copyTWAPObservation(v))
 		}
 	}
 	for _, v := range s.state.ScaleOrders {
 		if v.Account == account {
-			r.ScaleOrders = append(r.ScaleOrders, v)
+			r.ScaleOrders = append(r.ScaleOrders, copyScaleObservation(v))
 		}
 	}
 	for _, v := range s.state.Trades {
@@ -2721,7 +2724,7 @@ func (s *Service) Snapshot(account string) AccountSnapshot {
 	}
 	for _, v := range s.state.AI {
 		if v.Account == account {
-			r.AI = append(r.AI, v)
+			r.AI = append(r.AI, copyAIObservation(v))
 		}
 	}
 	for _, v := range s.state.Audit {
@@ -3039,7 +3042,7 @@ func (s *Service) DraftAI(session WalletSession, kind, prompt string, contexts [
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return AIRecord{}, err
 	}
-	return r, nil
+	return copyAIObservation(r), nil
 }
 
 func (s *Service) ReviewAI(session WalletSession, id, action string) (AIRecord, error) {
@@ -3101,7 +3104,7 @@ func (s *Service) ReviewAI(session WalletSession, id, action string) (AIRecord, 
 	if err := s.saveOrRollbackLocked(before); err != nil {
 		return AIRecord{}, err
 	}
-	return r, nil
+	return copyAIObservation(r), nil
 }
 
 func (s *Service) balanceLocked(account, asset string) Balance {
@@ -3173,7 +3176,7 @@ func (s *Service) ExecutionEvents(after int64, stream, account string, limit int
 		if event.Sequence <= after || event.Stream != stream || (stream == "user" && event.Account != account) {
 			continue
 		}
-		events = append(events, event)
+		events = append(events, copyExecutionObservation(event))
 		if len(events) == limit {
 			break
 		}
