@@ -1,0 +1,44 @@
+Starting Metro Bundler
+
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:5896) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Web Bundled 9054ms index.ts (2284 modules)
+
+› Assets (3):
+assets/icon.ac64b115433cc62063b01bbab973bec7.png (863KB)
+assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png (3.7KB)
+assets/ynx-logo.886ac0507f3889d6fb7acf8c78bfa78c.png (104KB)
+
+› web bundles (1):
+_expo/static/js/web/index-c859b06bc6e900cee79ca1d7511d608b.js (4.5MB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (1.2KB)
+metadata.json (49B)
+
+Exported: dist-web
+file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/card-static-envelope.mjs:10
+    if(!key||seen.has(key)||!arg.slice(13))throw new Error('CARD_ENVELOPE_ARGUMENT_INVALID');
+                                                 ^
+
+Error: CARD_ENVELOPE_ARGUMENT_INVALID
+    at envelopeArguments (file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/card-static-envelope.mjs:10:50)
+    at file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/build-deployment-envelope.mjs:5:25
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0
