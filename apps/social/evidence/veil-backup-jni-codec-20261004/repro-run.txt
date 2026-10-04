@@ -1,0 +1,17 @@
+jni_stage=/tmp/social-veil-backup-jni-20261004.2AFVgP
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.9DIt5P
+mode=backup
+PASS fresh dormant native port and adapter compilation
+PASS missing native library fails closed without alternative cipher
+PASS actual SDK image sodium JNI seal/open staging round trip
+PASS caller password and external context are not modified
+PASS incorrect password rejects authenticated native open
+PASS foreign external context rejects native open
+PASS ciphertext tamper rejects without installing records
+PASS invalid native inputs reject before KDF
+PASS late native observer discards seal result
+PASS late native observer discards decrypted staging
+PASS original backup remains usable after rejected attempts
+PASS native backup codec checks=10; real SDK/libsodium/JNI; synthetic context/trust; no atomic restore, enrollment, OS or activation proof
+selected_qa_exit=0
+QA only: synthetic trust/memory port; no real device, durable anchor, or release approval.

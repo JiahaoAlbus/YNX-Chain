@@ -1,0 +1,21 @@
+jni_stage=/tmp/social-veil-backup-jni-20261004.TfsjpG
+stage=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T//social-veil-native-adapter.ODel4E
+mode=backup
+PASS fresh dormant native port and adapter compilation
+PASS missing native library fails closed without alternative cipher
+PASS actual SDK image sodium JNI seal/open staging round trip
+PASS caller password and external context are not modified
+PASS incorrect password rejects authenticated native open
+Exception in thread "main" java.lang.AssertionError: Unexpected typed failure
+	at com.ynx.social.matrix.VeilBackupNativeCheck.reject(VeilBackupNativeCheck.java:19)
+	at com.ynx.social.matrix.VeilBackupNativeCheck.lambda$main$10(VeilBackupNativeCheck.java:54)
+	at com.ynx.social.matrix.VeilBackupNativeCheck.check(VeilBackupNativeCheck.java:15)
+	at com.ynx.social.matrix.VeilBackupNativeCheck.main(VeilBackupNativeCheck.java:54)
+Caused by: java.lang.IllegalStateException: VEIL_BACKUP_INPUT_REJECTED
+	at com.ynx.social.matrix.VeilBackupNative.openImage(Native Method)
+	at com.ynx.social.matrix.VeilBackupNative.openForStaging(VeilBackupNative.java:50)
+	at com.ynx.social.matrix.VeilBackupNativeCheck.lambda$main$11(VeilBackupNativeCheck.java:54)
+	at com.ynx.social.matrix.VeilBackupNativeCheck.reject(VeilBackupNativeCheck.java:17)
+	... 3 more
+selected_qa_exit=1
+QA only: synthetic trust/memory port; no real device, durable anchor, or release approval.
