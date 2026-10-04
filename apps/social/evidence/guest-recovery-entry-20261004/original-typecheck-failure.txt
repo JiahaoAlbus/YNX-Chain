@@ -1,0 +1,4 @@
+src/guestRecoveryNotice.test.ts(8,66): error TS18047: 'notice' is possibly 'null'.
+src/guestRecoveryNotice.test.ts(9,15): error TS18047: 'notice' is possibly 'null'.
+src/guestRecoveryNotice.test.ts(9,70): error TS18047: 'notice' is possibly 'null'.
+src/guestRecoveryNotice.test.ts(9,116): error TS18047: 'notice' is possibly 'null'.

@@ -1,0 +1,5 @@
+original_typecheck_exit=2
+tests_exit=0
+typecheck_repair_exit=0
+android_export_exit=0
+ios_export_exit=0

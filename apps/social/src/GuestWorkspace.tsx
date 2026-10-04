@@ -6,6 +6,7 @@ import { AppearanceSettings, useSocialAppearance } from './SocialAppearance';
 import { ChatAppearanceSettings } from './ChatAppearanceSettings';
 import { socialLayout } from './socialPresentation';
 import { useI18n } from './i18nProvider';
+import { guestRecoveryNotice } from './guestRecoveryNotice';
 
 const tabs = [
   { id: 'chats', label: 'Chats', icon: MessageCircle },
@@ -26,15 +27,20 @@ export function GuestWorkspace({ language, signIn, error, discoveryPending }: {
   const [tab, setTab] = useState<Tab>('chats');
   const [connect, setConnect] = useState(false);
   const current = tabs.find(item => item.id === tab)!;
+  const recoveryNotice=guestRecoveryNotice(error);
   return <SafeAreaView style={[styles.root, { direction: isRTL ? 'rtl' : 'ltr' }]}>
     <View style={styles.header}><Image source={require('../assets/ynx-original-logo.png')} accessibilityLabel="Original YNX logo"
       resizeMode="contain" style={styles.logo} /><Text style={[styles.brand, { fontSize: 18 * scale }]}>YNX Social</Text>
       <Pressable accessibilityRole="button" onPress={() => setConnect(true)} style={styles.signIn}><Text style={{ color: '#002fa7', fontSize: 14 * scale }}>{t('Sign in')}</Text></Pressable></View>
+    {recoveryNotice?<View accessibilityRole="alert" style={styles.recoveryNotice}>
+      <Text style={{color:'#164173',fontSize:13*scale,lineHeight:19*scale}}>{t(recoveryNotice)}</Text>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('Review local recovery in Settings')} onPress={()=>setTab('settings')} style={styles.recoveryAction}><Text style={{color:'#002fa7',fontSize:14*scale,fontWeight:'600'}}>{t('Review local recovery in Settings')}</Text></Pressable>
+    </View>:null}
     <View style={[styles.workspace, desktop && styles.desktop]}>
       <View style={[styles.content, desktop && tab === 'chats' && styles.chatList]}>
         <Text style={[styles.heading, { fontSize: 20 * scale }]}>{t(current.label)}</Text>
         {tab === 'settings' ? <ScrollView><AppearanceSettings /><ChatAppearanceSettings account={null} /><View style={styles.language}>{language}</View>
-          <Text style={[styles.note, { fontSize: 13 * scale }]}>{t('Social never creates, imports, or receives your recovery key.')}</Text></ScrollView> :
+          <Text style={[styles.note, { fontSize: 13 * scale }]}>{t('YNX Wallet recovery phrases are never requested here. Local chat backgrounds stay on this device.')}</Text></ScrollView> :
           <View style={styles.empty}><current.icon size={32} color="#002fa7" strokeWidth={1.5} />
             <Text style={[styles.emptyTitle, { fontSize: 18 * scale }]}>{t(tab === 'chats' ? 'Your conversations' : tab === 'contacts' ? 'People you choose' : 'Your moments')}</Text>
             <Text style={[styles.note, { fontSize: 14 * scale }]}>{t(tab === 'chats' ? 'Sign in to restore your conversations on this device.' : tab === 'contacts' ? 'Find people by username, QR or invitation. Requests and following stay separate.' : 'Sign in to see moments shared with you. Private audiences stay protected.')}</Text>
@@ -59,6 +65,8 @@ export function GuestWorkspace({ language, signIn, error, discoveryPending }: {
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
+  recoveryNotice:{backgroundColor:'#eef5ff',paddingHorizontal:20,paddingTop:12,paddingBottom:8,borderBottomWidth:StyleSheet.hairlineWidth,borderBottomColor:'#d5e5fb'},
+  recoveryAction:{minHeight:44,justifyContent:'center',alignSelf:'flex-start',paddingVertical:8},
   root: { flex: 1, backgroundColor: '#fff' }, header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, minHeight: 62, gap: 10, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e3e8ef' },
   logo: { width: 24 * 798 / 420, height: 24 }, brand: { flex: 1, color: '#14263b', fontWeight: '600' }, signIn: { padding: 12, minHeight: 48, justifyContent: 'center' },
   workspace: { flex: 1, minHeight: 0 }, desktop: { flexDirection: 'row', paddingStart: 100 }, content: { flex: 1, minWidth: 0 }, chatList: { flex: 0, width: 340, borderEndWidth: StyleSheet.hairlineWidth, borderEndColor: '#e3e8ef' },

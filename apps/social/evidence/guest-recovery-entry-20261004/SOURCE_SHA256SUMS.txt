@@ -1,0 +1,4 @@
+b966b97f21efd543c2506c5f7841a854b7a744b07806ea45d1ce482930552f1b  apps/social/src/GuestWorkspace.tsx
+bf50939bc5de95111611df9793edc33a222c1d71572190c4d7cddce8a986695b  apps/social/src/guestRecoveryNotice.ts
+e2e2eac23c1bd7f11bb117a031bcb56a0c2406a2973f76a812353ab48cf94125  apps/social/src/guestRecoveryNotice.test.ts
+62e6ee5f17a624f714819c37d179caa15a0d62d4ad9222899aef66a615390aae  apps/social/crypto-engine/sodium/BACKUP_CONSUMER_CONTRACT.md
