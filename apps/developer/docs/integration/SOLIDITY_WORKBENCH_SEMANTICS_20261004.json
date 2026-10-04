@@ -1,0 +1,150 @@
+{
+  "checkpoint": "Matching compiled workbench shortcut, Solidity Tools and actual YNX theme; compiler semantic analysis foundation",
+  "sourceCommit": "83ae64024509028fd980cdc8b0b61193fed01d18",
+  "sourceTree": "f9e7fe0081459888b0ea791b4ef045ed3d3991b5",
+  "semanticServiceSourceCommit": "20ae5ed0e",
+  "sourceDeltaBase": "e17e7948009bbe872416024cd6948d717f00ecb3",
+  "sourceDeltaFiles": [
+    "apps/developer/native/ynx-brand/klein-light.json",
+    "apps/developer/native/ynx-brand/package.json",
+    "apps/developer/runtime/theia/scripts/clone-runtime-with-brand.mjs",
+    "apps/developer/runtime/theia/scripts/problems-keybinding.browser.mjs",
+    "apps/developer/runtime/theia/scripts/solidity-problems.browser.mjs",
+    "apps/developer/scripts/compiler-distribution.test.mjs",
+    "apps/developer/scripts/compiler-worker.mjs",
+    "apps/developer/scripts/package-local-macos.sh",
+    "apps/developer/scripts/solidity-semantic-index.mjs",
+    "apps/developer/services/codeoss-service/src/solidity-compiler.mjs",
+    "apps/developer/services/codeoss-service/src/tools-service.mjs",
+    "apps/developer/services/codeoss-service/test/solidity-semantics.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-service.test.mjs"
+  ],
+  "sourceArchive": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-workbench-evidence-20261004/source-delta.tar.gz",
+    "sha256": "e214c0ab5eb225c1096f249ef9d5c088504004e86fbb95a23dde553630f2c866",
+    "allGitBlobsReadBack": true
+  },
+  "workbenchBuild": {
+    "exitCode": 0,
+    "sourceCacheTreeSha256": "484f235ec1801d044f2bea8e41a5375541ddb8cce219aedcaf76007896e5ef98",
+    "initialResourceGuard": {
+      "availableKiB": 524060,
+      "compiledOutputKiB": 85452,
+      "requiredKiB": 216524,
+      "marginKiB": 131072,
+      "passed": true,
+      "sourceChanges": [
+        "953b0fa3c Problems default binding",
+        "e17e79480 Tools0.2.14 language"
+      ],
+      "priorRuntimeUnchanged": true
+    },
+    "initialComposedCandidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-workbench-20261004-mac-arm64"
+  },
+  "runtime": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-workbench-theme-20261004-mac-arm64",
+    "pin": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+      "treeSha256": "026b62f92677bf3e9db51937bb5d1e88ca7469e2cf65d996c08d33453d9ef222",
+      "manifestSha256": "a727b6c33b296ae540909e2c4e983541e16eadb5791dd63c3e4551cf8cef8bb7"
+    },
+    "toolsVersion": "0.2.14",
+    "brandVersion": "0.1.3",
+    "frameworkVersion": "1.76.0",
+    "brandOnlyCloneAllOtherFilesUnchanged": true,
+    "originalCandidateUnchanged": true
+  },
+  "frontend": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-problems-frontend-build-20261004/dist",
+    "files": 232,
+    "manifestSha256": "b588e83f12b292b2dbb2e4dc70c9cdd780ed64c5f2a00209d9c976776dbb22e6",
+    "existingArchive": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-problems-evidence-20261004/frontend.tar.gz",
+    "existingArchiveSha256": "5a4c93a8cf7083d853c5eaf9f19569bfe418441ec3635d0ef61dfa6eef71f87f",
+    "allFrozenFilesReadBack": true,
+    "sourceComponentUnchanged": true
+  },
+  "checksPassed": {
+    "servicesIncludingGrammar": 80,
+    "standaloneCompilerDistribution": 1,
+    "actualCompiledShortcut": 5,
+    "actualYnxThemeSolidityEditing": 6,
+    "joinedCompilerAndProblems": 6
+  },
+  "uiChecks": [
+    "Exact rebuilt workbench registers the Problems default without source injection or temporary keybindings.",
+    "Exact owned default registration opens, closes and reopens actual Problems from the real editor with both simulated key spellings.",
+    "The ordinary View command and keyboard toggle share the actual Problems widget.",
+    "Actual profile watcher loads JSONC user removal and replacement; original key stops toggling, replacement opens/closes, and comments remain.",
+    "Resetting the user override restores the normal default; ordinary source file is unchanged and browser errors are empty.",
+    "Real Unicode nested .sol file opens as Solidity and actual rendered tokens have distinct syntax colors; comments and source are retained.",
+    "Actual keyboard input auto-pairs brackets and both quote kinds, and surrounds an existing selection without losing its contents.",
+    "Quote pairing is suppressed inside actual comments and bracket pairing is suppressed inside actual strings.",
+    "Enter creates an indented block, and the normal comment shortcut comments and uncomments Solidity source.",
+    "Standard suggestion UI exposes the owned contract snippet on explicit completion; no semantic completion or compilation is claimed.",
+    "Scratch editing does not write source implicitly; explicit Save and close/reopen preserve exact Unicode source and Solidity language recognition.",
+    "Real editor copies the Unicode project including dependencies and existing Solidity source files; compiled Tools calls the actual HTTP compiler and copies its real source-bound diagnostic bundle.",
+    "Actual Problems panel displays the real compiler message; double-click opens the exact source and correct UTF16 column after Chinese and emoji.",
+    "Changing a real unsaved dependency clears the complete diagnostic review; replaying old diagnostics refuses without restoring stale Problems or overwriting code.",
+    "Other-session compiler diagnostics refuse in the actual extension without publishing any Problems.",
+    "After fixing the real buffer, a fresh project capture and actual compile produce a clean diagnostic review; the current version imports successfully with no stale error.",
+    "Diagnostics only change editor markers. Both unsaved source fixes reach disk only through ordinary explicit Save; compiler workers are stopped."
+  ],
+  "semanticAnalysis": {
+    "endpoint": "POST /runtime/native-tools/chain/analyze",
+    "compiler": "reviewed solc 0.8.24",
+    "output": "bounded compiler-authored declaration IDs/name locations, exact cross-file references and type strings; no ABI/bytecode execution",
+    "realOverloadAndUnicodeLocationsTested": true,
+    "actualHttpTicketOriginIdentityRecheckTested": true,
+    "sharedCompileAnalyzeQuotaCancelAndCleanupTested": true,
+    "editorProviderWiringComplete": false,
+    "semanticCompletionVerified": false,
+    "hoverDefinitionRenameUserFlowVerified": false
+  },
+  "themeCorrection": "Full composition first showed no actual syntax coloring because owned YNX theme tokenColors was empty. Brand0.1.3 now defines generic comment/type/keyword/string/numeric/function scopes; actual branded editor passed.",
+  "negativeEvidence": [
+    "solidity-semantics-tests initial 4/5: toy fixture put final x at byte7 instead of real byte10 in \u4e2d\u6587\ud83d\ude00x; real compiler Unicode/overload checks passed. Fixture corrected; final80 pass.",
+    "Pre-theme full candidate language check0: lexing registered but YNX theme had empty tokenColors. Preserved before fix.",
+    "Earlier source-only shortcut and syntax checks remain distinct from actual rebuilt candidate proof."
+  ],
+  "runnerMetadataNote": "Language runner fullRuntimeRebuilt=false means that runner does not perform a build; explicit build exit0/sealed receipt/pinned runtime and same-root actual UI verification provide the composed-build evidence.",
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-workbench-evidence-20261004",
+  "evidenceIndexSha256": "2c2a0664a8d0cc7b45a3eef99751811612d3c8db042a5a78b1d1adb4b4ae7f82",
+  "nativePackage": {
+    "built": false,
+    "guard": {
+      "availableKiB": 196092,
+      "requiredKiB": 1664064,
+      "componentKiB": [
+        873156,
+        339472,
+        189292
+      ],
+      "componentPaths": [
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-copied-selection-native-package-20261004-mac-arm64/YNX Developer Testnet Preview.app",
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-copied-selection-native-package-20261004-mac-arm64/ynx-developer-testnet-preview-macos-arm64-unsigned.dmg",
+        "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-workbench-theme-20261004-mac-arm64"
+      ],
+      "marginKiB": 262144,
+      "passed": false,
+      "nativePackageStarted": false
+    },
+    "oldTools0211PackageRetained": true
+  },
+  "cleanup": {
+    "preThemeOwnedPids": [],
+    "finalOwnedPids": [],
+    "previewOwnedPids": []
+  },
+  "remaining": [
+    "Connect compiler-authored semantic analysis to standard editor hover/definition/references/completion/rename with exact current document/snapshot retirement.",
+    "Full C++ debug user flow, full Solidity/Yul formatting semantics and arbitrary-file mature workflow completion still require evidence.",
+    "Formal shared identity/Host admission, actual AI/Wallet/Chain operations, native and all-platform distribution and user acceptance remain unverified."
+  ],
+  "canonical": false,
+  "public": false,
+  "realWallet": false,
+  "chainExecutionVerified": false
+}
