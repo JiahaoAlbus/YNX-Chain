@@ -1,0 +1,17 @@
+{
+  "baselineCommit": "15859f2966fc8aa7165e0e776e6dd4a3967b8548",
+  "scope": "Desktop public Receive renderer only; no account producer, shared SDK, authority, custody or release mutation",
+  "finding": "Array.some skips sparse holes; inherited or accessor modules were accepted, and painting reread mutable source fields after validation.",
+  "repair": "Require own data properties, complete binary modules and literal IPC success; paint a detached validated byte snapshot.",
+  "originalRegression": {"tests": 11, "pass": 1, "fail": 10, "skip": 0},
+  "finalSelectedRegression": {"tests": 30, "pass": 30, "fail": 0, "skip": 0},
+  "finalTestFiles": ["receive-code-ui-boundary.test.mjs", "receive-share-ui.test.mjs", "recipient-scan-ui.test.mjs"],
+  "evidenceDirectory": "/tmp/ynx-wallet-receive-matrix-20261004-9TM9UO",
+  "originalLogSHA256": "f9834bfdfa67365ac28f041eccb0c87f283684240e2f9e03afced3918f0ca1f0",
+  "finalLogSHA256": "7c94a5d7eb39c9d60191f89d36609a73f30ab20f9c4655392c01b7152e045ba9",
+  "rendererSHA256": "80e46b716e43fd43cea1e4e98ec55af26e3089079cb9271b56452917092e8f30",
+  "newTestSHA256": "207387d3c775f13ace9278d69f16389210d368577b49a479ad382b8775109c72",
+  "verified": ["Actual owned canvas rendering independently decoded by jsQR", "Public QRCode.create fixture uses original producer encoding settings", "Invalid matrix stays hidden and can retry", "Late success/failure cannot borrow reopened Receive intent", "Existing account/key-revision clipboard and file chooser regressions"],
+  "notVerified": ["Original account-status/checksum producer execution", "Full Desktop SDK dependency graph or package build", "Real OS clipboard or camera", "Installed Android/macOS/Web compatibility", "Canonical Pay, signing or business settlement", "Final website download/install preserving upgrade", "MONSTER"],
+  "limits": "Controlled public fixtures only. This does not establish QR payload authenticity against a malicious producer, generic Proxy isolation, camera support or a release gate. No account data or transaction state was read or changed."
+}
