@@ -1,8 +1,8 @@
 {
   "name": "ynx-tools",
-  "displayName": "YNX Tools",
+  "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.21",
+  "version": "0.2.22",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -20,7 +20,7 @@
       "activitybar": [
         {
           "id": "ynx",
-          "title": "YNX",
+          "title": "%container.ynx%",
           "icon": "activity.svg"
         }
       ]
@@ -29,46 +29,58 @@
       "ynx": [
         {
           "id": "ynx.tools",
-          "name": "YNX Tools"
+          "name": "%view.ynx.tools%"
         }
       ]
     },
     "commands": [
       {
+        "command": "ynx.createSolidityTemplate",
+        "title": "%command.ynx.createSolidityTemplate%"
+      },
+      {
+        "command": "ynx.testnetConfiguration",
+        "title": "%command.ynx.testnetConfiguration%"
+      },
+      {
         "command": "ynx.compileSolidity",
-        "title": "YNX: Compile Solidity Project"
+        "title": "%command.ynx.compileSolidity%"
       },
       {
         "command": "ynx.copySolidityProject",
-        "title": "YNX: Copy Solidity Sources for Tools"
+        "title": "%command.ynx.copySolidityProject%"
       },
       {
         "command": "ynx.openTools",
-        "title": "YNX: Open Chain, Wallet and AI Tools"
+        "title": "%command.ynx.openTools%"
       },
       {
         "command": "ynx.copyContext",
-        "title": "YNX: Copy Selected Context for Review"
+        "title": "%command.ynx.copyContext%"
       },
       {
         "command": "ynx.createTemplate",
-        "title": "YNX: Create Read-only Testnet SDK Starter"
+        "title": "%command.ynx.createTemplate%"
       },
       {
         "command": "ynx.applyReviewedDiff",
-        "title": "YNX: Apply Reviewed Text Changes"
+        "title": "%command.ynx.applyReviewedDiff%"
       },
       {
         "command": "ynx.reviewSelection",
-        "title": "YNX: Review Selection with AI"
+        "title": "%command.ynx.reviewSelection%"
       },
       {
         "command": "ynx.importSolidityDiagnostics",
-        "title": "YNX: Import Solidity Compiler Diagnostics"
+        "title": "%command.ynx.importSolidityDiagnostics%"
       },
       {
         "command": "ynx.solidityAnalysisStatus",
-        "title": "YNX: Solidity Language Status"
+        "title": "%command.ynx.solidityAnalysisStatus%"
+      },
+      {
+        "command": "ynx.openLocalReview",
+        "title": "%command.ynx.openLocalReview%"
       }
     ],
     "jsonValidation": [
@@ -145,5 +157,7 @@
   },
   "extensionKind": [
     "workspace"
-  ]
+  ],
+  "l10n": "./l10n",
+  "description": "%description%"
 }

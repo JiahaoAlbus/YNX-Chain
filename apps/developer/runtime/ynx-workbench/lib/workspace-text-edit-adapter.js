@@ -9,6 +9,52 @@ function deferModels(models, warn) {
     }
   };
 }
+const fencedEditors = new WeakSet();
+function deferWorkspaceSnippetEvents(editor, controller, warn) {
+  const releaseState = require('./workspace-snippet-notifications').deferSnippetNotifications(controller, warn);
+  let releaseEditor;
+  try { releaseEditor = deferEditorEvents(editor, warn); }
+  catch (error) { releaseState(); throw error; }
+  let released = false;
+  return () => { if (released) return; released = true; try { releaseState(); } finally { releaseEditor(); } };
+}
+function deferEditorEvents(editor, warn) {
+  // CodeEditorWidget 1.108.201 emits cursor/scroll/update notifications while
+  // the real snippet controller establishes its selections. Buffer only this
+  // editor's native notifications until the workspace history is sealed.
+  if (!editor?._onDidChangeCursorSelection || editor._onDidChangeCursorSelection.event !== editor.onDidChangeCursorSelection) throw Error('Review the retained editor notification contract before adopting a workspace snippet.');
+  if (fencedEditors.has(editor)) throw Error('This editor already has a workspace notification fence.');
+  const emitters = new Set(Object.entries(editor).filter(([name, value]) => /^_on(?:Did|BeginUpdate|EndUpdate)/.test(name) && typeof value?.fire === 'function').map(([, value]) => value));
+  const queue = [], saved = [];
+  for (const emitter of emitters) {
+    const descriptor = Object.getOwnPropertyDescriptor(emitter, 'fire'), original = emitter.fire;
+    let inherited = descriptor, parent = emitter;
+    while (!inherited && (parent = Object.getPrototypeOf(parent))) inherited = Object.getOwnPropertyDescriptor(parent, 'fire');
+    if (!inherited || !Object.prototype.hasOwnProperty.call(inherited, 'value') || !inherited.writable || !descriptor && !Object.isExtensible(emitter)) throw Error('The editor notification method cannot be safely fenced.');
+    saved.push({ emitter, descriptor, original });
+  }
+  const restore = ({ emitter, descriptor }) => { if (descriptor) Object.defineProperty(emitter, 'fire', descriptor); else delete emitter.fire; };
+  const installed = [];
+  fencedEditors.add(editor);
+  try {
+    for (const entry of saved) {
+      const { emitter, descriptor, original } = entry;
+      Object.defineProperty(emitter, 'fire', { ...(descriptor || { configurable: true, writable: true, enumerable: false }), value: (...args) => queue.push({ emitter, original, args }) });
+      installed.push(entry);
+    }
+  } catch (error) {
+    try { for (const entry of installed.reverse()) restore(entry); } finally { fencedEditors.delete(editor); }
+    throw error;
+  }
+  let released = false;
+  return () => {
+    if (released) return; released = true;
+    try { for (const entry of saved) restore(entry); } finally { fencedEditors.delete(editor); }
+    for (const { emitter, original, args } of queue) {
+      try { original.apply(emitter, args); } catch (error) { warn('Workspace edit completed, but an editor listener failed: ' + error.message); }
+    }
+  };
+}
 function copyFlags(value) { if (!value) return null; const copy = new value.constructor(); copy.elements = new Map(value.elements); return copy; }
 function historyResources(service, resources) {
   const pending = [...resources], result = new Map();
@@ -140,10 +186,10 @@ function installUndoGuards(service, warn) {
   };
   Object.defineProperty(service, installedMarker, { value: true });
 }
-function assertSupported(edits, ResourceTextEdit) {
+function assertSupported(edits, ResourceTextEdit, allowTextSnippets = false) {
   const resources = new Set();
   for (const edit of edits) for (const resource of [edit.resource, edit.oldResource, edit.newResource]) if (resource) resources.add(resource.toString());
-  if (resources.size > 1 && edits.some(edit => !(edit instanceof ResourceTextEdit) || edit.textEdit.insertAsSnippet))
+  if (resources.size > 1 && edits.some(edit => !(edit instanceof ResourceTextEdit) || edit.textEdit.insertAsSnippet && !allowTextSnippets))
     throw Error('Atomic workspace undo for mixed file operations or cross-file snippets is not available yet. No files were changed.');
 }
 async function applyTextTransaction(workspace, edits, dependencies) {
@@ -151,7 +197,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
   const byResource = new Map();
   for (const edit of edits) { const key = edit.resource.toString(); if (!byResource.has(key)) byResource.set(key, []); byResource.get(key).push(edit); }
   if (byResource.size > 2048) throw Error('A workspace text edit exceeds 2048 resources. No files were changed.');
-  const references = [], prepared = []; let characters = 0, resultCharacters = 0;
+  const references = [], prepared = [], snippetPlans = []; let characters = 0, resultCharacters = 0;
   try {
     // All model resolution and worker work precedes any stack or buffer edit.
     for (const [key, values] of byResource) {
@@ -159,8 +205,9 @@ async function applyTextTransaction(workspace, edits, dependencies) {
       const document = reference.object, model = document.textEditorModel, version = model.getVersionId(), before = state(model);
       if (values.some(edit => typeof edit.versionId === 'number' && edit.versionId !== version)) throw Error('A workspace edit target changed. Review the edits again.');
       if ((characters += before.value.length) > 8 * 1024 * 1024) throw Error('Workspace text edit models exceed 16 MiB of UTF-16 text. No files were changed.');
-      const transformed = values.map(edit => workspace.transformSnippetStringToInsertText(edit));
-      const minimal = await minimalEdits(model.uri, transformed);
+      const snippet = dependencies.prepareSnippet ? await dependencies.prepareSnippet(document, values) : undefined;
+      if (snippet) snippetPlans.push(snippet);
+      const minimal = snippet ? snippet.operations : await minimalEdits(model.uri, values.map(edit => workspace.transformSnippetStringToInsertText(edit)));
       const operations = []; let eol;
       for (const edit of minimal || []) {
         if (typeof edit.eol === 'number') eol = edit.eol;
@@ -168,7 +215,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
         if (edit.text != null && typeof edit.text !== 'string') throw Error('A workspace text edit contains invalid text. No files were changed.');
         const range = Range.lift(edit.range);
         if (!sameRange(range, model.validateRange(range))) throw Error('A workspace edit range is outside its document. No files were changed.');
-        operations.push({ forceMoveMarkers: false, range, text: edit.text });
+        operations.push({ ...edit, forceMoveMarkers: false, range, text: edit.text });
       }
       if (!operations.length && eol === undefined) continue;
       if (eol !== undefined && eol !== 0 && eol !== 1) throw Error('A workspace edit line-ending choice is invalid. No files were changed.');
@@ -181,10 +228,13 @@ async function applyTextTransaction(workspace, edits, dependencies) {
       for (const operation of operations) resultingSize += (operation.text || '').replace(/\r?\n/g, model.getEOL()).length - model.getValueInRange(operation.range).length;
       if (eol !== undefined && (eol === 0 ? '\n' : '\r\n') !== model.getEOL()) resultingSize += (eol === 1 ? 1 : -1) * (model.getLineCount() - 1);
       if ((resultCharacters += resultingSize) > 8 * 1024 * 1024) throw Error('Workspace text edit results exceed 16 MiB of UTF-16 text. No files were changed.');
-      prepared.push({ model, version, before, initialUndoRedoSnapshot: model.getInitialUndoRedoSnapshot(), operations, eol, encoding: document.getEncoding?.(), cursor: selections(document) });
+      prepared.push({ document, model, version, before, initialUndoRedoSnapshot: model.getInitialUndoRedoSnapshot(), operations, eol, encoding: document.getEncoding?.(), cursor: selections(document), snippet });
     }
     if (!prepared.length) return { totalEdits: 0, totalFiles: 0 };
-    for (const row of prepared) if (row.model.getVersionId() !== row.version || !matches(row.model, row.before)) throw Error('A workspace edit target changed during preparation. No files were changed.');
+    for (const row of prepared) {
+      if (row.model.getVersionId() !== row.version || !matches(row.model, row.before)) throw Error('A workspace edit target changed during preparation. No files were changed.');
+      row.snippet?.validateBeforeCommit();
+    }
     // No mutation until all resources are prepared. Content events are held
     // across every model, including both forward edit and undo/redo.
     for (const row of prepared) if (!row.model._eventEmitter?.beginDeferredEmit || !row.model._onDidChangeDecorations?.beginDeferredEmit) throw Error('Review the retained model event transaction contract.');
@@ -200,6 +250,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
     // Our workspace operation cannot be downgraded to a per-file undo.
     element.split = undefined;
     const records = prepared.map(row => ({ resource: row.model.uri, model: row.model, encoding: row.encoding, before: row.before, after: undefined }));
+    const snippetHandles = [];
     const transaction = {
       busy: false,
       records,
@@ -233,19 +284,41 @@ async function applyTextTransaction(workspace, edits, dependencies) {
     installUndoGuards(undoRedo, warn);
     for (const direction of ['undo', 'redo']) {
       const original = element[direction].bind(element);
-      element[direction] = () => { const publish = deferModels(records.map(row => row.model), warn); try { return original(); } finally { publish(); } };
+      element[direction] = () => {
+        // Native workspace verification has admitted the complete operation by
+        // the time its element runs. A blocked Undo keeps the live snippet.
+        const releaseEditors = [];
+        try { for (const row of prepared) if (row.snippet) releaseEditors.push(row.snippet.deferEvents()); }
+        catch (error) { for (const release of releaseEditors) release(); throw error; }
+        const publish = deferModels(records.map(row => row.model), warn);
+        try {
+          if (direction === 'undo') for (const handle of snippetHandles) handle.onUndoDecision(true);
+          return original();
+        } finally { publish(); for (const release of releaseEditors) release(); }
+      };
     }
+    const editorEvents = [];
+    try { for (const row of prepared) if (row.snippet) editorEvents.push(row.snippet.deferEvents()); }
+    catch (error) { for (const release of editorEvents) release(); throw error; }
     const restoreEvents = deferModels(prepared.map(row => row.model), warn);
     const history = snapshotHistory(undoRedo, historyResources(undoRedo, records.map(row => row.resource)));
     try {
       for (let index = 0; index < prepared.length; index++) {
         const row = prepared[index], inverse = row.operations.length ? row.model.applyEdits(row.operations, true) : [];
-        const changes = inverse.map((operation, order) => ({ change: operation.textChange, order })).sort((a, b) => a.change.oldPosition - b.change.oldPosition || a.order - b.order).map(row => row.change);
-        children[index].append(row.model, changes, row.model.getEOL() === '\n' ? 0 : 1, row.model.getAlternativeVersionId(), row.cursor);
-        if (row.eol !== undefined) {
-          row.model.setEOL(row.eol);
-          children[index].append(row.model, [], row.eol, row.model.getAlternativeVersionId(), row.cursor);
+        row.inverse = inverse;
+        if (row.eol !== undefined) row.model.setEOL(row.eol);
+      }
+      // Install native snippet presentation only after all documents contain
+      // the batch result. Cursor listeners must never see half-applied text.
+      for (let index = 0; index < prepared.length; index++) {
+        const row = prepared[index], inverse = row.inverse;
+        if (row.snippet) {
+          const handle = row.snippet.adopt(inverse);
+          snippetHandles.push(handle);
+          row.afterCursor = selections(row.document);
         }
+        const changes = inverse.map((operation, order) => ({ change: operation.textChange, order })).sort((a, b) => a.change.oldPosition - b.change.oldPosition || a.order - b.order).map(row => row.change);
+        children[index].append(row.model, changes, row.model.getEOL() === '\n' ? 0 : 1, row.model.getAlternativeVersionId(), row.afterCursor || row.cursor);
       }
       element.close();
       for (const row of records) row.after = state(row.model);
@@ -255,6 +328,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
       undoRedo.pushElement(element, dependencies.undoRedoGroup, dependencies.undoRedoSource);
       for (const [prior, closedData] of priorTyping) prior._data = closedData;
     } catch (error) {
+      for (const handle of snippetHandles) handle.cancel();
       for (const row of prepared) {
         if (row.model.getValue() !== row.before.value) (dependencies.rollbackEdits || ((model, edits) => model.applyEdits(edits)))(row.model, [{ range: row.model.getFullModelRange(), text: row.before.value }]);
         if (row.model.getEOL() !== row.before.eol) row.model.setEOL(row.before.eol === '\n' ? 0 : 1);
@@ -263,9 +337,12 @@ async function applyTextTransaction(workspace, edits, dependencies) {
       }
       restoreHistory(undoRedo, history);
       throw error;
-    } finally { restoreEvents(); }
+    } finally { restoreEvents(); for (const release of editorEvents) release(); }
     return { totalEdits: prepared.reduce((count, row) => count + row.operations.length, 0), totalFiles: prepared.length };
-  } finally { for (const reference of references) reference.dispose(); }
+  } finally {
+    for (const plan of snippetPlans) plan.dispose();
+    for (const reference of references) reference.dispose();
+  }
 }
 function install() {
   const { MonacoWorkspace } = require('@theia/monaco/lib/browser/monaco-workspace');
@@ -277,23 +354,62 @@ function install() {
   const { Range } = require('@theia/monaco-editor-core/esm/vs/editor/common/core/range');
   const { SingleModelEditStackElement, MultiModelEditStackElement } = require('@theia/monaco-editor-core/esm/vs/editor/common/model/editStack');
   const { ResourceTextEdit } = require('@theia/monaco-editor-core/esm/vs/editor/browser/services/bulkEditService');
+  const { Selection } = require('@theia/monaco-editor-core/esm/vs/editor/common/core/selection');
+  const { SnippetSession } = require('@theia/monaco-editor-core/esm/vs/editor/contrib/snippet/browser/snippetSession');
+  const { SnippetController2 } = require('@theia/monaco-editor-core/esm/vs/editor/contrib/snippet/browser/snippetController2');
+  const { SnippetParser } = require('@theia/monaco-editor-core/esm/vs/editor/contrib/snippet/browser/snippetParser');
+  const { IClipboardService } = require('@theia/monaco-editor-core/esm/vs/platform/clipboard/common/clipboardService');
+  const { prepareWorkspaceSnippet, adoptWorkspaceSnippet } = require('./workspace-snippet-session');
+  const monacoVersion = require('@theia/monaco-editor-core/package.json').version;
   const { TextModel } = require('@theia/monaco-editor-core/esm/vs/editor/common/model/textModel');
   const TheiaURI = require('@theia/core/lib/common/uri').default;
   const { MonacoEditor } = require('@theia/monaco/lib/browser/monaco-editor');
   const originalBulk = MonacoWorkspace.prototype.applyBulkEdit, originalText = MonacoWorkspace.prototype.performTextEdits;
   if (typeof originalBulk !== 'function' || typeof originalText !== 'function') throw Error('Review the Theia workspace edit contract before installing YNX transactions.');
-  MonacoWorkspace.prototype.applyBulkEdit = function (edits, options) { assertSupported(edits, ResourceTextEdit); return originalBulk.call(this, edits, options); };
-  MonacoWorkspace.prototype.performTextEdits = function (edits) {
-    if (new Set(edits.map(edit => edit.resource.toString())).size < 2) return originalText.call(this, edits);
+  function dependencies(workspace) {
     const undoRedo = StandaloneServices.get(IUndoRedoService);
-    return applyTextTransaction(this, edits, { URI, Range, SingleModelEditStackElement, MultiModelEditStackElement, undoRedo,
-      readClosed: (resource, encoding) => readClosedDocument(this.fileService, TheiaURI.fromComponents(resource), encoding),
+    return { URI, Range, SingleModelEditStackElement, MultiModelEditStackElement, undoRedo,
+      readClosed: (resource, encoding) => readClosedDocument(workspace.fileService, TheiaURI.fromComponents(resource), encoding),
       rollbackEdits: (model, edits) => TextModel.prototype.applyEdits.call(model, edits),
       minimalEdits: (uri, values) => StandaloneServices.get(IEditorWorkerService).computeMoreMinimalEdits(uri, values),
-      selections: document => MonacoEditor.findByDocument(this.editorManager, document)[0]?.getControl().getSelections() || [],
+      selections: document => MonacoEditor.findByDocument(workspace.editorManager, document)[0]?.getControl().getSelections() || [],
+      async prepareSnippet(document, values) {
+        if (!values.some(edit => edit.textEdit.insertAsSnippet)) return;
+        const editor = MonacoEditor.getActive(workspace.editorManager)?.getControl();
+        // Match the retained workspace contract: only the active document owns
+        // an interactive snippet session. Background snippets are insert text.
+        if (!editor || editor.getModel() !== document.textEditorModel) return;
+        const controller = SnippetController2.get(editor);
+        if (!controller?._languageConfigurationService) throw Error('The active snippet controller is unavailable. No files were changed.');
+        const clipboardText = values.some(edit => edit.textEdit.insertAsSnippet && /\$\{?CLIPBOARD\b/.test(edit.textEdit.text)) ? await StandaloneServices.get(IClipboardService).readText() : undefined;
+        const plan = prepareWorkspaceSnippet({ editor, edits: values.map(edit => edit.textEdit),
+          dependencies: { monacoVersion, SnippetSession, SnippetController2, SnippetParser, Range, Selection },
+          languageConfigurationService: controller._languageConfigurationService, clipboardText });
+        return { operations: plan.operations, validateBeforeCommit: () => plan.validateBeforeCommit(), dispose: () => plan.dispose(),
+          deferEvents: () => editor.getModel() === document.textEditorModel ? deferWorkspaceSnippetEvents(editor, controller, message => notification ? notification(message) : undoRedo._notificationService.warn(message)) : () => {},
+          adopt: inverseEdits => adoptWorkspaceSnippet({ plan, editor, controller, inverseEdits }) };
+      },
       warn: message => notification ? notification(message) : undoRedo._notificationService.warn(message),
-    });
+    };
+  }
+  MonacoWorkspace.prototype.applyBulkEdit = async function (edits, options) {
+    assertSupported(edits, ResourceTextEdit, true);
+    if (!edits.some(edit => edit instanceof ResourceTextEdit && edit.textEdit.insertAsSnippet) || !edits.every(edit => edit instanceof ResourceTextEdit)) return originalBulk.call(this, edits, options);
+    // Upstream partitions active snippets away from ordinary edits. Keep the
+    // complete text batch together, including ordinary edits in that document.
+    try {
+      const result = await applyTextTransaction(this, edits, dependencies(this));
+      if (options?.respectAutoSaveConfig && this.editorPreferences.get('files.refactoring.autoSave') === true) await this.saveAll(new Set(edits.map(edit => edit.resource.toString())));
+      return { ariaSummary: this.getAriaSummary(result.totalEdits, result.totalFiles), isApplied: true };
+    } catch (error) {
+      this.logger.error('Failed to apply Resource edits:', error);
+      return { ariaSummary: `Error applying Resource edits: ${error.toString()}`, isApplied: false };
+    }
+  };
+  MonacoWorkspace.prototype.performTextEdits = function (edits) {
+    if (new Set(edits.map(edit => edit.resource.toString())).size < 2) return originalText.call(this, edits);
+    return applyTextTransaction(this, edits, dependencies(this));
   };
   Object.defineProperty(MonacoWorkspace.prototype, transactionMarker, { value: true });
 }
-module.exports = { install, setNotification: notify => { notification = notify; }, applyTextTransaction, assertSupported, readClosedDocument, relocateResources };
+module.exports = { install, setNotification: notify => { notification = notify; }, applyTextTransaction, assertSupported, readClosedDocument, relocateResources, deferEditorEvents, deferWorkspaceSnippetEvents };

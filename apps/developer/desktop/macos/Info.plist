@@ -5,6 +5,7 @@
   <key>CFBundleDisplayName</key><string>YNX Developer Testnet Preview</string>
   <key>CFBundleExecutable</key><string>YNXDeveloper</string>
   <key>CFBundleIdentifier</key><string>com.ynxweb4.developer.testnetpreview</string>
+  <key>CFBundleIconFile</key><string>YNXDeveloper.icns</string>
   <key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
   <key>CFBundleName</key><string>YNX Developer Testnet Preview</string>
   <key>CFBundlePackageType</key><string>APPL</string>

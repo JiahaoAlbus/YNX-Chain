@@ -1,0 +1,18 @@
+{
+  "displayName": "YNX Tools",
+  "description": "Local Solidity project tools, Testnet configuration and reviewed connected workflows.",
+  "container.ynx": "YNX",
+  "view.ynx.tools": "YNX Tools",
+  "command.ynx.createSolidityTemplate": "YNX: Create Local Solidity Counter Contract",
+  "command.ynx.testnetConfiguration": "YNX: Show Testnet Configuration",
+  "command.ynx.compileSolidity": "YNX: Compile Solidity Project",
+  "command.ynx.copySolidityProject": "YNX: Copy Solidity Sources for Tools",
+  "command.ynx.openTools": "YNX: Open Chain, Wallet and AI Tools",
+  "command.ynx.copyContext": "YNX: Copy Selected Context for Review",
+  "command.ynx.createTemplate": "YNX: Create Read-only Testnet SDK Starter",
+  "command.ynx.applyReviewedDiff": "YNX: Apply Reviewed Text Changes",
+  "command.ynx.reviewSelection": "YNX: Review Selected Text",
+  "command.ynx.importSolidityDiagnostics": "YNX: Import Solidity Compiler Diagnostics",
+  "command.ynx.solidityAnalysisStatus": "YNX: Solidity Language Status",
+  "command.ynx.openLocalReview": "YNX: Open Local Change Review"
+}

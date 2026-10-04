@@ -1,0 +1,18 @@
+{
+  "displayName": "YNX 工具",
+  "description": "本地 Solidity 项目工具、测试网配置和已审查的连接工作流。",
+  "container.ynx": "YNX",
+  "view.ynx.tools": "YNX 工具",
+  "command.ynx.createSolidityTemplate": "YNX：创建本地 Solidity Counter 合约",
+  "command.ynx.testnetConfiguration": "YNX：查看测试网配置",
+  "command.ynx.compileSolidity": "YNX：编译 Solidity 项目",
+  "command.ynx.copySolidityProject": "YNX：复制 Solidity 源码到工具",
+  "command.ynx.openTools": "YNX：打开 Chain、钱包与 AI 工具",
+  "command.ynx.copyContext": "YNX：复制选中上下文以供审查",
+  "command.ynx.createTemplate": "YNX：创建只读测试网 SDK 示例",
+  "command.ynx.applyReviewedDiff": "YNX：应用已审查的文本修改",
+  "command.ynx.reviewSelection": "YNX：审阅选中的文本",
+  "command.ynx.importSolidityDiagnostics": "YNX：导入 Solidity 编译诊断",
+  "command.ynx.solidityAnalysisStatus": "YNX：查看 Solidity 语言状态",
+  "command.ynx.openLocalReview": "YNX：打开本地修改审阅"
+}

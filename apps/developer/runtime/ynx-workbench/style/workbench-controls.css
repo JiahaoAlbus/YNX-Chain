@@ -1,0 +1,16 @@
+.ynx-run-controls { position: relative; color: var(--theia-editorForeground); }
+.ynx-run-controls > summary { display: flex; align-items: center; cursor: pointer; list-style: none; padding: 3px 5px; }
+.ynx-run-controls > summary::-webkit-details-marker { display: none; }
+.ynx-run-menu { position: absolute; z-index: 100; right: 0; top: 100%; min-width: 210px; padding: 4px; background: var(--theia-menu-background); border: 1px solid var(--theia-menu-border); box-shadow: 0 2px 8px var(--theia-widget-shadow); }
+.ynx-run-menu button { display: block; width: 100%; text-align: left; }
+.ynx-run-menu button, .ynx-workbench-discovery button { border: 0; background: transparent; color: var(--theia-foreground); padding: 6px 8px; cursor: pointer; font: inherit; }
+.ynx-run-menu button:hover, .ynx-workbench-discovery button:hover { background: var(--theia-toolbar-hoverBackground); }
+.ynx-run-menu button:disabled, .ynx-workbench-discovery button:disabled { opacity: .45; cursor: default; }
+.ynx-run-menu button:focus-visible, .ynx-workbench-discovery button:focus-visible, .ynx-run-controls summary:focus-visible { outline: 1px solid var(--theia-focusBorder); outline-offset: -1px; }
+.ynx-workbench-discovery { z-index: 20; background: var(--theia-panel-background); }
+.ynx-workbench-discovery[hidden] { display: none; }
+.ynx-workbench-discovery-left { display: flex; flex-direction: column; width: 40px; min-width: 40px; max-width: 40px; }
+.ynx-workbench-discovery-left button { height: 42px; padding: 8px; }
+.ynx-workbench-discovery-left .codicon { font-size: 22px; }
+.ynx-workbench-discovery-bottom { min-height: 28px; max-height: 56px; display: flex; flex-wrap: wrap; border-top: 1px solid var(--theia-panel-border); }
+.ynx-workbench-discovery-bottom button { font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }

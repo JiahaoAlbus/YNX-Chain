@@ -69,6 +69,51 @@ static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port) {
     return port>0&&[url.scheme isEqual:@"http"]&&[url.host isEqual:@"127.0.0.1"]&&url.port.integerValue==port&&!url.user.length&&!url.password.length&&(!url.path.length||[url.path isEqual:@"/"]);
 }
 static BOOL YNXLocalStartupFailureMayExit(BOOL failed,BOOL editorDocumentLoaded) {return failed&&!editorDocumentLoaded;}
+static NSSet<NSString *> *YNXLocalWorkbenchCommands(void) {
+    static NSSet *commands;static dispatch_once_t once;dispatch_once(&once,^{commands=[NSSet setWithArray:@[
+        @"workbench.action.files.newUntitledFile",@"workspace:openFile",@"core.save",@"file.saveAs",@"core.saveAll",@"core.close.tab",@"preferences:open",
+        @"core.undo",@"core.redo",@"core.cut",@"core.copy",@"core.paste",@"core.find",@"core.replace",@"editor.action.commentLine",@"editor.action.formatDocument",
+        @"core.selectAll",@"editor.action.smartSelect.expand",@"editor.action.smartSelect.shrink",@"editor.action.selectHighlights",@"editor.action.insertCursorAbove",@"editor.action.insertCursorBelow",
+        @"workbench.action.showCommands",@"fileNavigator:toggle",@"search-in-workspace.toggle",@"scmView:toggle",@"debug:toggle",@"vsxExtensions.toggle",@"problemsView:toggle",@"output:toggle",@"outlineView:toggle",@"core.toggle.left.panel",@"core.toggle.bottom.panel",@"workbench.action.selectTheme",
+        @"file-search.openFile",@"editor.action.gotoLine",@"editor.action.revealDefinition",@"editor.action.goToReferences",@"textEditor.commands.go.back",@"textEditor.commands.go.forward",
+        @"workbench.action.debug.start",@"workbench.action.debug.run",@"workbench.action.debug.stop",@"workbench.action.debug.restart",@"debug.configurations.open",
+        @"terminal:new",@"workbench.action.terminal.toggleTerminal",@"terminal:split",@"terminal:clear",@"task:run:build",@"workbench.action.tasks.runTask"
+    ]];});return commands;
+}
+static BOOL YNXLocalCommandResult(id value,NSDictionary *pending) {
+    if(![value isKindOfClass:NSDictionary.class])return NO;NSDictionary *body=value;
+    if((body.count!=3&&body.count!=4)||![body[@"action"] isEqual:@"command-result"]||![body[@"requestId"] isKindOfClass:NSString.class]||!pending[body[@"requestId"]]||![body[@"accepted"] isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)body[@"accepted"])!=CFBooleanGetTypeID())return NO;
+    if(body.count==4&&(![body[@"error"] isKindOfClass:NSString.class]||[body[@"error"] length]>160))return NO;
+    return YES;
+}
+static BOOL YNXLocalOpenFolderPayload(id value) {return [value isKindOfClass:NSDictionary.class]&&[value count]==1&&[value[@"action"] isEqual:@"open-folder"];}
+static BOOL YNXLocalLocalePayload(id value) {
+    return [value isKindOfClass:NSDictionary.class]&&[value count]==2&&[value[@"action"] isEqual:@"locale"]&&[value[@"locale"] isKindOfClass:NSString.class]&&[@[@"zh-cn",@"en"] containsObject:value[@"locale"]];
+}
+static NSString *YNXLocalStoredLocale(id value) {return [value isKindOfClass:NSString.class]&&[@[@"en",@"zh-cn"] containsObject:value]?value:@"en";}
+static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
+    if(![locale isEqual:@"zh-cn"])return label;
+    static NSDictionary *labels;static dispatch_once_t once;dispatch_once(&once,^{labels=@{
+        @"File":@"文件",@"Edit":@"编辑",@"Selection":@"选择",@"View":@"视图",@"Go":@"转到",@"Run":@"运行",@"Terminal":@"终端",@"Window":@"窗口",@"Help":@"帮助",
+        @"About YNX Developer":@"关于 YNX Developer",@"Settings…":@"设置…",@"Quit YNX Developer":@"退出 YNX Developer",
+        @"New Text File":@"新建文本文件",@"Open File…":@"打开文件…",@"Open Folder…":@"打开文件夹…",@"Save":@"保存",@"Save As…":@"另存为…",@"Save All":@"全部保存",@"Close Editor":@"关闭编辑器",
+        @"Undo":@"撤销",@"Redo":@"重做",@"Cut":@"剪切",@"Copy":@"复制",@"Paste":@"粘贴",@"Find":@"查找",@"Replace":@"替换",@"Toggle Line Comment":@"切换行注释",@"Format Document":@"格式化文档",
+        @"Select All":@"全选",@"Expand Selection":@"扩大选区",@"Shrink Selection":@"缩小选区",@"Select All Occurrences":@"选择所有匹配项",@"Add Cursor Above":@"在上方添加光标",@"Add Cursor Below":@"在下方添加光标",
+        @"Command Palette…":@"命令面板…",@"Explorer":@"资源管理器",@"Search":@"搜索",@"Source Control":@"源代码管理",@"Run and Debug":@"运行和调试",@"Extensions":@"扩展",@"Problems":@"问题",@"Output":@"输出",@"Outline":@"大纲",
+        @"Toggle Primary Side Bar":@"切换主侧边栏",@"Toggle Panel":@"切换面板",@"Color Theme…":@"颜色主题…",
+        @"Go to File…":@"转到文件…",@"Go to Line/Column…":@"转到行/列…",@"Go to Definition":@"转到定义",@"Go to References":@"转到引用",@"Back":@"后退",@"Forward":@"前进",
+        @"Start Debugging":@"启动调试",@"Run Without Debugging":@"运行而不调试",@"Stop Debugging":@"停止调试",@"Restart Debugging":@"重新启动调试",@"Open Configurations…":@"打开配置…",
+        @"New Terminal":@"新建终端",@"Toggle Terminal":@"切换终端",@"Split Terminal":@"拆分终端",@"Clear Terminal":@"清除终端",@"Run Build Task…":@"运行生成任务…",@"Run Task…":@"运行任务…",
+        @"Minimize":@"最小化",@"Bring All to Front":@"全部前置",@"Show All Commands…":@"显示所有命令…",
+        @"Open":@"打开",@"OK":@"确定",@"Action unavailable":@"操作不可用",@"Wait for your workspace to finish opening, then try again.":@"请等待工作区打开完成后重试。",
+        @"Finish the current actions before starting another one.":@"请先完成当前操作，再开始其他操作。",@"This action is not available in the current editor.":@"此操作在当前编辑器中不可用。",
+        @"This command is unavailable or could not complete. Check the workbench notifications and project configuration.":@"此命令不可用或未能完成，请查看工作台通知和项目配置。",@"This menu command is not supported.":@"不支持此菜单命令。",@"This command is unavailable in the current editor.":@"此命令在当前编辑器中不可用。"
+    };});return labels[label]?:label;
+}
+static SEL YNXLocalNativeEditSelector(NSString *command) {
+    NSDictionary *selectors=@{@"core.undo":@"undo:",@"core.redo":@"redo:",@"core.cut":@"cut:",@"core.copy":@"copy:",@"core.paste":@"paste:",@"core.selectAll":@"selectAll:"};
+    NSString *name=selectors[command];return name?NSSelectorFromString(name):NULL;
+}
 static NSString *YNXLocalHTMLEscape(NSString *text) {
     NSString *escaped=[(text?:@"") stringByReplacingOccurrencesOfString:@"&" withString:@"&amp;"];
     escaped=[escaped stringByReplacingOccurrencesOfString:@"<" withString:@"&lt;"];
@@ -118,6 +163,12 @@ static BOOL YNXTrustedMessage(WKScriptMessage *message, WKWebView *webView, NSIn
 }
 static NSString *YNXOriginBoundScript(NSString *source, NSInteger port) {
     return [NSString stringWithFormat:@"if(location.origin===%@){%@}",YNXJSON(YNXOrigin(port)),source];
+}
+static NSString *YNXLocalLocaleSeedScript(id stored) {
+    // Every new window/port receives the App preference before nls imports.
+    // A same-window language selection writes localeId then reloads: preserve
+    // that valid choice rather than replaying the initial window's locale.
+    return [NSString stringWithFormat:@"(()=>{if(location.pathname!=='/')return;try{const key='localeId',marker='YNXDeveloperDisplayLocaleSeeded',value=localStorage.getItem(key);let valid=false;if(typeof value==='string'&&value.length>=2&&value.length<=63){try{valid=Intl.getCanonicalLocales(value).length===1;}catch{}}if(sessionStorage.getItem(marker)!=='1'||!valid)localStorage.setItem(key,%@);sessionStorage.setItem(marker,'1');}catch{}})();",YNXJSON(YNXLocalStoredLocale(stored))];
 }
 static void YNXEvaluateTrustedScript(WKWebView *webView, NSInteger port, NSString *source) {
     // A delayed Keychain/command reply cannot expose data after navigation.
@@ -509,6 +560,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,strong) NSAlert *workspaceRestoreAlert;
 @property(nonatomic) BOOL localWorkbenchMode;
 @property(nonatomic,copy) NSString *localCloseRequest;
+@property(nonatomic,strong) NSMutableDictionary<NSString *,NSString *> *pendingLocalCommands;
+@property(nonatomic) BOOL localCommandDocumentReady;
+@property(nonatomic,copy) NSString *localLocale;
 @property(nonatomic,strong) NSURL *serverLogURL;
 @property(nonatomic,copy) NSString *localSupportRoot;
 @property(nonatomic,copy) NSString *localWorkspace;
@@ -537,6 +591,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [self beginWorkspaceRestore];
 }
 - (void)beginLocalWorkbench {
+    _localLocale=YNXLocalStoredLocale([NSUserDefaults.standardUserDefaults objectForKey:@"YNXDeveloperDisplayLocale"]);
     NSDictionary *environment=NSProcessInfo.processInfo.environment;
     _localSupportRoot=environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]?:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/YNXDeveloper"];
     NSString *explicit=environment[@"YNX_LOCAL_WORKSPACE"];
@@ -548,6 +603,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // message handlers. Its backend owns the selected OS-user workspace.
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalLocaleSeedScript(_localLocale),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalAppearanceScript(),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     _webView=[[WKWebView alloc]initWithFrame:NSMakeRect(0,0,1440,900) configuration:configuration];
     _webView.underPageBackgroundColor=YNXLocalBackgroundColor(@"#111214");
@@ -579,6 +635,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [_webView layoutSubtreeIfNeeded];[_window displayIfNeeded];
 }
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation {
+    if(_localWorkbenchMode&&view==_webView)_localCommandDocumentReady=YNXLocalEditorDocumentURL(view.URL,_port);
     if(_localWorkbenchMode&&view==_webView&&YNXLocalEditorDocumentURL(view.URL,_port))_localEditorDocumentLoaded=YES;
     if(!_localWorkbenchMode||!_recordSelectedWorkspace||_recentWorkspaceRecorded||view!=_webView||!_server.running||![view.URL.absoluteString hasPrefix:[YNXOrigin(_port) stringByAppendingString:@"/"]]||!YNXCanonicalLocalDirectory(_localWorkspace)||!YNXPrivateLocalDirectory(_localSupportRoot))return;
     int fd=open(_serverLogURL.fileSystemRepresentation,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(fd<0)return;
@@ -592,6 +649,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
         _recentWorkspaceRecorded=YNXRecordRecentLocalWorkspace(_localSupportRoot,_localWorkspace);break;
     }
 }
+- (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
+    if(_localWorkbenchMode&&view==_webView){_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];}
+}
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
     // content can appear before its navigation finishes.
@@ -600,17 +660,123 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)installLocalMenus {
     NSMenu *main=[NSMenu new];NSApp.mainMenu=main;
     NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;
-    [app addItemWithTitle:@"About YNX Developer" action:@selector(showAbout:) keyEquivalent:@""];
-    [app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"];
-    NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;
-    NSMenuItem *open=[file addItemWithTitle:@"Open Folder in New Window…" action:@selector(openLocalFolder:) keyEquivalent:@"o"];open.target=self;open.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;
-    // Editing shortcuts belong to Monaco's standard command handlers. Do not
-    // intercept them with WebKit's unrelated native undo stack.
-    NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;
-    [windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+    [app addItemWithTitle:YNXLocalMenuLabel(@"About YNX Developer",_localLocale) action:@selector(showAbout:) keyEquivalent:@""];
+    [app addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:app title:@"Settings…" command:@"preferences:open" key:@"," modifiers:NSEventModifierFlagCommand];
+    [app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:YNXLocalMenuLabel(@"Quit YNX Developer",_localLocale) action:@selector(terminate:) keyEquivalent:@"q"];
+    NSMenu *file=[self localMenu:main title:@"File"];
+    [self localCommandItem:file title:@"New Text File" command:@"workbench.action.files.newUntitledFile" key:@"n" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:file title:@"Open File…" command:@"workspace:openFile" key:@"o" modifiers:NSEventModifierFlagCommand];
+    NSMenuItem *open=[file addItemWithTitle:YNXLocalMenuLabel(@"Open Folder…",_localLocale) action:@selector(openLocalFolder:) keyEquivalent:@"o"];open.target=self;open.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;
+    [file addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:file title:@"Save" command:@"core.save" key:@"s" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:file title:@"Save As…" command:@"file.saveAs" key:@"s" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:file title:@"Save All" command:@"core.saveAll" key:@"s" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagOption];
+    [file addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:file title:@"Close Editor" command:@"core.close.tab" key:@"w" modifiers:NSEventModifierFlagCommand];
+    NSMenu *edit=[self localMenu:main title:@"Edit"];
+    [self localCommandItem:edit title:@"Undo" command:@"core.undo" key:@"z" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:edit title:@"Redo" command:@"core.redo" key:@"z" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [edit addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:edit title:@"Cut" command:@"core.cut" key:@"x" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:edit title:@"Copy" command:@"core.copy" key:@"c" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:edit title:@"Paste" command:@"core.paste" key:@"v" modifiers:NSEventModifierFlagCommand];
+    [edit addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:edit title:@"Find" command:@"core.find" key:@"f" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:edit title:@"Replace" command:@"core.replace" key:@"f" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagOption];
+    [edit addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:edit title:@"Toggle Line Comment" command:@"editor.action.commentLine" key:@"/" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:edit title:@"Format Document" command:@"editor.action.formatDocument" key:@"f" modifiers:NSEventModifierFlagOption|NSEventModifierFlagShift];
+    NSMenu *selection=[self localMenu:main title:@"Selection"];
+    [self localCommandItem:selection title:@"Select All" command:@"core.selectAll" key:@"a" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:selection title:@"Expand Selection" command:@"editor.action.smartSelect.expand" key:@"" modifiers:0];
+    [self localCommandItem:selection title:@"Shrink Selection" command:@"editor.action.smartSelect.shrink" key:@"" modifiers:0];
+    [selection addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:selection title:@"Select All Occurrences" command:@"editor.action.selectHighlights" key:@"" modifiers:0];
+    [self localCommandItem:selection title:@"Add Cursor Above" command:@"editor.action.insertCursorAbove" key:@"" modifiers:0];
+    [self localCommandItem:selection title:@"Add Cursor Below" command:@"editor.action.insertCursorBelow" key:@"" modifiers:0];
+    NSMenu *view=[self localMenu:main title:@"View"];
+    [self localCommandItem:view title:@"Command Palette…" command:@"workbench.action.showCommands" key:@"p" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [view addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:view title:@"Explorer" command:@"fileNavigator:toggle" key:@"e" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Search" command:@"search-in-workspace.toggle" key:@"f" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Source Control" command:@"scmView:toggle" key:@"g" modifiers:NSEventModifierFlagControl|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Run and Debug" command:@"debug:toggle" key:@"d" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Extensions" command:@"vsxExtensions.toggle" key:@"x" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [view addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:view title:@"Problems" command:@"problemsView:toggle" key:@"m" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Output" command:@"output:toggle" key:@"u" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:view title:@"Terminal" command:@"workbench.action.terminal.toggleTerminal" key:@"`" modifiers:NSEventModifierFlagControl];
+    [self localCommandItem:view title:@"Outline" command:@"outlineView:toggle" key:@"" modifiers:0];
+    [view addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:view title:@"Toggle Primary Side Bar" command:@"core.toggle.left.panel" key:@"b" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:view title:@"Toggle Panel" command:@"core.toggle.bottom.panel" key:@"j" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:view title:@"Color Theme…" command:@"workbench.action.selectTheme" key:@"" modifiers:0];
+    NSMenu *go=[self localMenu:main title:@"Go"];
+    [self localCommandItem:go title:@"Go to File…" command:@"file-search.openFile" key:@"p" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:go title:@"Go to Line/Column…" command:@"editor.action.gotoLine" key:@"g" modifiers:NSEventModifierFlagControl];
+    [self localCommandItem:go title:@"Go to Definition" command:@"editor.action.revealDefinition" key:[NSString stringWithFormat:@"%C",(unichar)NSF12FunctionKey] modifiers:0];
+    [self localCommandItem:go title:@"Go to References" command:@"editor.action.goToReferences" key:[NSString stringWithFormat:@"%C",(unichar)NSF12FunctionKey] modifiers:NSEventModifierFlagShift];
+    [go addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:go title:@"Back" command:@"textEditor.commands.go.back" key:@"-" modifiers:NSEventModifierFlagControl];
+    [self localCommandItem:go title:@"Forward" command:@"textEditor.commands.go.forward" key:@"-" modifiers:NSEventModifierFlagControl|NSEventModifierFlagShift];
+    NSMenu *run=[self localMenu:main title:@"Run"];
+    [self localCommandItem:run title:@"Start Debugging" command:@"workbench.action.debug.start" key:[NSString stringWithFormat:@"%C",(unichar)NSF5FunctionKey] modifiers:0];
+    [self localCommandItem:run title:@"Run Without Debugging" command:@"workbench.action.debug.run" key:[NSString stringWithFormat:@"%C",(unichar)NSF5FunctionKey] modifiers:NSEventModifierFlagControl];
+    [self localCommandItem:run title:@"Stop Debugging" command:@"workbench.action.debug.stop" key:[NSString stringWithFormat:@"%C",(unichar)NSF5FunctionKey] modifiers:NSEventModifierFlagShift];
+    [self localCommandItem:run title:@"Restart Debugging" command:@"workbench.action.debug.restart" key:[NSString stringWithFormat:@"%C",(unichar)NSF5FunctionKey] modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [run addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:run title:@"Open Configurations…" command:@"debug.configurations.open" key:@"" modifiers:0];
+    NSMenu *terminal=[self localMenu:main title:@"Terminal"];
+    [self localCommandItem:terminal title:@"New Terminal" command:@"terminal:new" key:@"`" modifiers:NSEventModifierFlagControl|NSEventModifierFlagShift];
+    [self localCommandItem:terminal title:@"Toggle Terminal" command:@"workbench.action.terminal.toggleTerminal" key:@"" modifiers:0];
+    [self localCommandItem:terminal title:@"Split Terminal" command:@"terminal:split" key:@"" modifiers:0];
+    [self localCommandItem:terminal title:@"Clear Terminal" command:@"terminal:clear" key:@"" modifiers:0];
+    [terminal addItem:[NSMenuItem separatorItem]];
+    [self localCommandItem:terminal title:@"Run Build Task…" command:@"task:run:build" key:@"b" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
+    [self localCommandItem:terminal title:@"Run Task…" command:@"workbench.action.tasks.runTask" key:@"" modifiers:0];
+    NSMenu *windows=[self localMenu:main title:@"Window"];NSApp.windowsMenu=windows;
+    [windows addItemWithTitle:YNXLocalMenuLabel(@"Minimize",_localLocale) action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+    [windows addItemWithTitle:YNXLocalMenuLabel(@"Bring All to Front",_localLocale) action:@selector(arrangeInFront:) keyEquivalent:@""];
+    NSMenu *help=[self localMenu:main title:@"Help"];NSApp.helpMenu=help;
+    [self localCommandItem:help title:@"Show All Commands…" command:@"workbench.action.showCommands" key:@"" modifiers:0];
+    [help addItemWithTitle:YNXLocalMenuLabel(@"About YNX Developer",_localLocale) action:@selector(showAbout:) keyEquivalent:@""];
+}
+- (NSMenu *)localMenu:(NSMenu *)main title:(NSString *)title {
+    title=YNXLocalMenuLabel(title,_localLocale);
+    NSMenuItem *item=[[NSMenuItem alloc]initWithTitle:title action:nil keyEquivalent:@""];NSMenu *menu=[[NSMenu alloc]initWithTitle:title];item.submenu=menu;[main addItem:item];return menu;
+}
+- (NSMenuItem *)localCommandItem:(NSMenu *)menu title:(NSString *)title command:(NSString *)command key:(NSString *)key modifiers:(NSEventModifierFlags)modifiers {
+    title=YNXLocalMenuLabel(title,_localLocale);
+    NSMenuItem *item=[menu addItemWithTitle:title action:@selector(localWorkbenchCommand:) keyEquivalent:key];item.target=self;item.representedObject=command;item.keyEquivalentModifierMask=modifiers;return item;
+}
+- (void)localCommandUnavailable:(NSString *)message {
+    if(!_window||_window.attachedSheet)return;NSAlert *alert=[NSAlert new];alert.messageText=YNXLocalMenuLabel(@"Action unavailable",_localLocale);alert.informativeText=YNXLocalMenuLabel(message.length?message:@"Wait for your workspace to finish opening, then try again.",_localLocale);[alert addButtonWithTitle:YNXLocalMenuLabel(@"OK",_localLocale)];
+    [alert beginSheetModalForWindow:_window completionHandler:nil];
+}
+- (void)localWorkbenchCommand:(NSMenuItem *)sender {
+    NSString *command=[sender.representedObject isKindOfClass:NSString.class]?sender.representedObject:nil;
+    if(!_localWorkbenchMode||![YNXLocalWorkbenchCommands() containsObject:command])return;
+    NSWindow *window=NSApp.keyWindow;NSResponder *responder=window.firstResponder;
+    BOOL webResponder=window==_window&&[responder isKindOfClass:NSView.class]&&[(NSView *)responder isDescendantOf:_webView];
+    SEL editSelector=YNXLocalNativeEditSelector(command);
+    // Native sheets/text fields keep their genuine Cocoa responder behavior.
+    // A workbench edit never falls back to WebKit's unrelated undo stack.
+    if(!webResponder&&editSelector&&responder){[NSApp sendAction:editSelector to:responder from:sender];return;}
+    if(window!=_window||!_localCommandDocumentReady||!_server.running||!YNXLocalEditorDocumentURL(_webView.URL,_port)||_localCloseRequest)return;
+    if(!_pendingLocalCommands)_pendingLocalCommands=[NSMutableDictionary new];
+    if(_pendingLocalCommands.count>=32){[self localCommandUnavailable:@"Finish the current actions before starting another one."];return;}
+    NSString *request=NSUUID.UUID.UUIDString.lowercaseString;_pendingLocalCommands[request]=command;
+    [_webView callAsyncJavaScript:@"if(location.origin!==origin||location.pathname!=='/'||typeof window.__ynxLocalWorkbenchCommand!=='function')return false;window.__ynxLocalWorkbenchCommand(commandId,requestId);return true;"
+        arguments:@{@"origin":YNXOrigin(_port),@"commandId":command,@"requestId":request} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id invoked,NSError *error){
+            if(!self.pendingLocalCommands[request])return;
+            if(error||![invoked isEqual:@YES]){[self.pendingLocalCommands removeObjectForKey:request];[self localCommandUnavailable:nil];}
+        }];
 }
 - (void)openLocalFolder:(id)sender {
+    if(!_localWorkbenchMode||!_window||_window.attachedSheet)return;
     NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=NO;panel.canChooseDirectories=YES;panel.allowsMultipleSelection=NO;panel.canCreateDirectories=YES;
+    panel.title=YNXLocalMenuLabel(@"Open Folder…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
     [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){
         if(result!=NSModalResponseOK)return;
         NSURL *folder=panel.URL.URLByResolvingSymlinksInPath.URLByStandardizingPath;
@@ -695,6 +861,15 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)dispatchWorkbenchCommand:(NSDictionary *)detail { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)]); }
 - (void)openWalletProjects:(id)sender { if(!_hostedWorkspace)_hostedWorkspace=[YNXHostedWorkspace new];[_hostedWorkspace open]; }
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
+    if(item.action==@selector(localWorkbenchCommand:)){
+        NSString *command=[item.representedObject isKindOfClass:NSString.class]?item.representedObject:nil;
+        if(!_localWorkbenchMode||![YNXLocalWorkbenchCommands() containsObject:command])return NO;
+        NSWindow *window=NSApp.keyWindow;NSResponder *responder=window.firstResponder;
+        BOOL webResponder=window==_window&&[responder isKindOfClass:NSView.class]&&[(NSView *)responder isDescendantOf:_webView];
+        SEL selector=YNXLocalNativeEditSelector(command);
+        if(!webResponder&&selector)return responder&&[responder respondsToSelector:selector];
+        return window==_window&&_localCommandDocumentReady&&_server.running&&YNXLocalEditorDocumentURL(_webView.URL,_port)&&!_localCloseRequest&&_pendingLocalCommands.count<32;
+    }
     if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
     if(item.action==@selector(newProject:) || item.action==@selector(openProject:) || item.action==@selector(save:) || item.action==@selector(exportProject:))return NSApp.keyWindow==_window && _workspaceBridge.restoreComplete;
     return YES;
@@ -809,6 +984,28 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"locale"]){
+        if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalLocalePayload(body))return;
+        [NSUserDefaults.standardUserDefaults setObject:body[@"locale"] forKey:@"YNXDeveloperDisplayLocale"];
+        if(![_localLocale isEqual:body[@"locale"]]){
+            _localLocale=[body[@"locale"] copy];
+            // The command IDs, requests and document binding stay intact. End
+            // menu tracking before replacing only this local window's labels.
+            [NSApp.mainMenu cancelTrackingWithoutAnimation];[self installLocalMenus];
+        }return;
+    }
+    if([body[@"action"] isEqual:@"open-folder"]){
+        // Only the genuine OS picker may select a new workspace. A page/hash
+        // cannot submit a filesystem path or alter this instance's binding.
+        if(!YNXLocalOpenFolderPayload(body)||!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!_localCommandDocumentReady||!_server.running)return;
+        [self openLocalFolder:nil];return;
+    }
+    if([body[@"action"] isEqual:@"command-result"]){
+        if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalCommandResult(body,_pendingLocalCommands))return;
+        [_pendingLocalCommands removeObjectForKey:body[@"requestId"]];
+        if(![body[@"accepted"] boolValue])[self localCommandUnavailable:body[@"error"]?:@"This action is not available in the current editor."];
+        return;
+    }
     if([body[@"action"] isEqual:@"appearance"]){
         if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalAppearancePayload(body))return;
         _window.appearance=[NSAppearance appearanceNamed:[body[@"mode"] isEqual:@"light"]?NSAppearanceNameAqua:NSAppearanceNameDarkAqua];

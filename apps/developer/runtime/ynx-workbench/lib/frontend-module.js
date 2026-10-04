@@ -16,6 +16,7 @@ const { FrontendApplicationStateService } = require('@theia/core/lib/browser/fro
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
 const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
+const { nls } = require('@theia/core/lib/common/nls');
 const { MenuContribution } = require('@theia/core/lib/common/menu');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
@@ -32,6 +33,18 @@ const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { WindowService } = require('@theia/core/lib/browser/window/window-service');
 const { NativeWindowClose } = require('./native-window-close');
+const { NativeWorkbenchCommands } = require('./native-workbench-commands');
+const { LocalWorkspaceContext } = require('./local-workspace-context');
+const { WorkbenchControlsContribution } = require('./workbench-controls');
+const { TabBarToolbarContribution } = require('@theia/core/lib/browser/shell/tab-bar-toolbar');
+const { FileNavigatorContribution } = require('@theia/navigator/lib/browser/navigator-contribution');
+const { SearchInWorkspaceFrontendContribution } = require('@theia/search-in-workspace/lib/browser/search-in-workspace-frontend-contribution');
+const { ScmContribution } = require('@theia/scm/lib/browser/scm-contribution');
+const { DebugFrontendApplicationContribution } = require('@theia/debug/lib/browser/debug-frontend-application-contribution');
+const { VSXExtensionsContribution } = require('@theia/vsx-registry/lib/browser/vsx-extensions-contribution');
+const { ProblemContribution } = require('@theia/markers/lib/browser/problem/problem-contribution');
+const { OutputContribution } = require('@theia/output/lib/browser/output-contribution');
+const { DebugConsoleContribution } = require('@theia/debug/lib/browser/console/debug-console-contribution');
 const { LocalStorageService } = require('@theia/core/lib/browser/storage-service');
 const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-layout-restorer');
 const { LocalWorkbenchStorage } = require('./local-workbench-storage');
@@ -44,7 +57,9 @@ const workspaceTextEdits = require('./workspace-text-edit-adapter');
 workspaceTextEdits.install();
 require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
+require('../style/workbench-controls.css');
 const logo = require('../assets/ynx-logo.png');
+const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() { workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message)); },
@@ -56,6 +71,26 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(
     context.container.get(WindowService), window, context.container.get(ShellLayoutRestorer), context.container.get(LocalStorageService),
   )).inSingletonScope();
+  bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
+    context.container.get(CommandRegistry), window, nls.locale,
+  )).inSingletonScope();
+  bind(WorkbenchControlsContribution).toDynamicValue(context => new WorkbenchControlsContribution({
+    commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
+    editors: context.container.get(EditorManager), messages: context.container.get(MessageService),
+    translate: translateWorkbench,
+    views: { explorer: context.container.get(FileNavigatorContribution), search: context.container.get(SearchInWorkspaceFrontendContribution),
+      scm: context.container.get(ScmContribution), debug: context.container.get(DebugFrontendApplicationContribution),
+      extensions: context.container.get(VSXExtensionsContribution), problems: context.container.get(ProblemContribution),
+      output: context.container.get(OutputContribution), console: context.container.get(DebugConsoleContribution) },
+  })).inSingletonScope();
+  bind(FrontendApplicationContribution).toService(WorkbenchControlsContribution);
+  bind(TabBarToolbarContribution).toService(WorkbenchControlsContribution);
+  bind(LocalWorkspaceContext).toDynamicValue(context => new LocalWorkspaceContext(
+    context.container.get(WorkspaceService), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-context'),
+    context.container.get(CommandRegistry), context.container.get(MessageService), window, translateWorkbench,
+  )).inSingletonScope();
+  bind(CommandContribution).toService(LocalWorkspaceContext);
+  bind(FrontendApplicationContribution).toService(LocalWorkspaceContext);
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => new LanguageCommandReadiness(
     context.container.get(EditorManager), context.container.get(HostedPluginSupport), context.container.get(MonacoCommandService),

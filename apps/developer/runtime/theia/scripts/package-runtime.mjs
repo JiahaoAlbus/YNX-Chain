@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { composedTreeDigest, verifyComposedRuntime } from '../../../services/codeoss-service/src/composed-runtime.mjs';
 import { bundleSolidityLanguageRuntime } from '../../../scripts/bundle-solidity-language-runtime.mjs';
 import { bundleSolidityFormatRuntime } from '../../../scripts/bundle-solidity-format-runtime.mjs';
+import { packageLanguagePack } from '../../../scripts/package-language-pack.mjs';
 const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
@@ -59,6 +60,11 @@ if (process.env.YNX_IDE_SOLIDITY_FORMAT_INPUT === 'retained') await bundleSolidi
 const brand = join(developer, 'native/ynx-brand');
 await assertRegularTree(brand);
 await cp(brand, join(destination, 'plugins/ynx.ynx-developer-brand'), { recursive: true, errorOnExist: true, force: false });
+let languagePackReceipt;
+if (process.env.YNX_IDE_ZH_LANGUAGE_PACK_INPUT) {
+  languagePackReceipt = await packageLanguagePack(process.env.YNX_IDE_ZH_LANGUAGE_PACK_INPUT,
+    join(destination, 'plugins/ms-ceintl.vscode-language-pack-zh-hans'));
+}
 let cppReceipt;
 if (cppInput) {
   const cpp = await realpath(cppInput);
@@ -74,6 +80,8 @@ await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringi
 // Missing notice files are recorded for release review, never silently waived.
 const lock = JSON.parse(await readFile(join(application, 'package-lock.json'), 'utf8'));
 const notices = [];
+if (languagePackReceipt) notices.push({ name: languagePackReceipt.extensionId, version: languagePackReceipt.version,
+  license: 'MIT', files: ['../plugins/ms-ceintl.vscode-language-pack-zh-hans/LICENSE.md'] });
 await mkdir(join(destination, 'component-notices'), { mode: 0o700 });
 for (const input of inputs) {
   const name = `${input.namespace}.${input.name}-${input.version}`, source = join(destination, 'plugins', name);
@@ -113,6 +121,9 @@ const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${proces
   lockSha256: createHash('sha256').update(await readFile(join(destination, 'package-lock.json'))).digest('hex'),
   activitySourceSha256: createHash('sha256').update(helper).digest('hex'),
   ynxToolsVersion: JSON.parse(await readFile(join(tools, 'package.json'), 'utf8')).version,
+  ynxBrandVersion: JSON.parse(await readFile(join(brand, 'package.json'), 'utf8')).version,
+  ...languagePackReceipt ? { languagePack: { extensionId: languagePackReceipt.extensionId, version: languagePackReceipt.version,
+    languageId: languagePackReceipt.languageId, sourceSha256: languagePackReceipt.sourceSha256 } } : {},
   ...cppReceipt ? { ynxCppInput: cppReceipt } : {},
   acceptance: 'owned composed runtime candidate; formal Host, isolation and release admission remain separate',
   treeSha256: await composedTreeDigest(destination) };

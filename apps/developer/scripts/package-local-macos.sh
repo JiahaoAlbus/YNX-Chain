@@ -51,6 +51,10 @@ esac
 npm run code:build
 app="$root/YNX Developer Testnet Preview.app"
 mkdir -p "$root" "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
+branding_root="$root/branding"
+node scripts/package-macos-branding.mjs assets "$branding_root"
+cp "$branding_root/YNXDeveloper.icns" "$branding_root/installer-background.png" "$branding_root/branding-manifest.json" "$app/Contents/Resources/"
+branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest.json" | awk '{print $1}')
 /usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 if [[ -n "$local_node_runtime" ]]; then
@@ -146,7 +150,7 @@ node scripts/generate-code-sbom.mjs "$app/Contents/Resources/sbom.cdx.json" "$no
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");
-const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform, minimumOS, macosCompatibilitySha256] = process.argv.slice(1);
+const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform, minimumOS, macosCompatibilitySha256, brandingSha256] = process.argv.slice(1);
 const record = {
   schemaVersion: 1,
   productId: "ynx-developer-v1",
@@ -164,12 +168,13 @@ const record = {
   macosCompatibilityPath: "Contents/Resources/macos-compatibility.json",
   macosCompatibilitySha256,
   sbomPath: "Contents/Resources/sbom.cdx.json",
-  sbomSha256
+  sbomSha256,
+  branding: {path: "Contents/Resources/branding-manifest.json", sha256: brandingSha256}
 };
 const coreReceipt = require("path").join(require("path").dirname(output), "composed-core/distribution.json");
 if (fs.existsSync(coreReceipt)) record.composedCoreDistribution = JSON.parse(fs.readFileSync(coreReceipt, "utf8"));
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
-' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha"
+' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha" "$branding_sha"
 /usr/bin/xattr -cr "$app"
 # The reviewed portable Node binary may retain its distributor signature while
 # native npm modules are locally ad-hoc signed. macOS library validation rejects
@@ -258,6 +263,8 @@ if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=no
   echo "Refusing local-package classification: expected only linker ad-hoc signing with no team identity." >&2
   exit 1
 fi
+node scripts/package-macos-branding.mjs verify-app "$app"
+/usr/bin/codesign --verify --deep --strict "$app"
 dmg_root="$root/dmg-root"
 dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 mkdir -p "$dmg_root"
@@ -273,7 +280,7 @@ if ! COPYFILE_DISABLE=1 cp -cR "$app" "$dmg_root/"; then
   mkdir "$dmg_root"
   COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
 fi
-/usr/bin/hdiutil create -ov -format UDZO -volname "YNX Developer Testnet Preview" -srcfolder "$dmg_root" "$dmg" >/dev/null
+node scripts/package-macos-branding.mjs dmg "$dmg_root" "$branding_root" "$dmg"
 /usr/bin/shasum -a 256 "$dmg" | tee "$root/SHA256SUMS.txt"
 # Only a successful image's generated, holder-free staging duplicate is
 # disposable. Keep the original app, DMG and all failed/partial builds.

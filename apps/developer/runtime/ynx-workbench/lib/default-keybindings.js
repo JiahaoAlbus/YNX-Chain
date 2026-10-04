@@ -2,6 +2,8 @@
 // so user and workspace bindings can replace or remove them.
 function registerDefaultKeybindings(registry, closeMainTabId) {
   registry.registerKeybinding({ command: closeMainTabId, keybinding: 'ctrlcmd+w' });
+  registry.registerKeybinding({ command: 'workbench.action.files.newUntitledFile', keybinding: 'ctrlcmd+n' });
+  registry.registerKeybinding({ command: 'workbench.action.showCommands', keybinding: 'ctrlcmd+shift+p' });
   registry.registerKeybinding({ command: 'editor.action.rename', keybinding: 'f2', when: 'editorTextFocus' });
   registry.registerKeybinding({ command: 'editor.action.revealDefinition', keybinding: 'f12', when: 'editorTextFocus' });
   // The pinned Problems contribution overrides registerKeybindings without
