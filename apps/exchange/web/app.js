@@ -224,6 +224,21 @@ function renderActivity(){
   if(state.activity==='orders'){
     columns=['Time','Order ID','Market','Side / type','Price','Amount / Filled','Status','Reason'];
     rows=owned('orders').map(o=>[time(o.createdAt),o.id,o.market,`${o.side} / ${o.type}`,display(o.priceMicro),`${display(o.amountMicro)} / ${display(o.filledMicro)}`,window.YNXExchangeLocale?.record('order',o.status)??o.status,o.rejectReason||'—']);
+  }else if(state.activity==='advanced'){
+    columns=['Time','Reference','Market','Side / type','Price','Amount','Task details','Status','Reason'];
+    const text=key=>window.YNXExchangeLocale?.text(key)??key;
+    const groups=[['conditionalOrders','Conditional order'],['ocoGroups','OCO group'],['twapOrders','TWAP task'],['scaleOrders','Scale order']];
+    rows=groups.flatMap(([key,label])=>{
+      if(!Object.hasOwn(state.snapshot,key))return [['—','—','—',text(label),'—','—',text('Collection not reported; not verified.'),'—','—']];
+      return owned(key).map(o=>{
+        let price='—',amount=display(o.amountMicro??o.totalAmountMicro),details=`${text('Reserved')}: ${display(o.reservedMicro)}`;
+        if(key==='conditionalOrders'){price=`${text('Trigger')}: ${display(o.triggerPriceMicro)} / ${text('Limit price')}: ${display(o.limitPriceMicro)}`;details+=` · ${text('Activation is not a fill.')}${o.activatedOrderId?' · '+o.activatedOrderId:''}`;}
+        if(key==='ocoGroups')details+=` · ${o.stopConditionalId||'—'} / ${o.takeProfitConditionalId||'—'} · ${text('Activation is not a fill.')}${o.activatedOrderId?' · '+o.activatedOrderId:''}`;
+        if(key==='twapOrders'){price=display(o.limitPriceMicro);amount=display(o.totalAmountMicro);details+=` · ${text('Scheduled')}: ${display(o.scheduledMicro)} · ${o.slicesExecuted} / ${o.slices} · ${text('Scheduled quantity is not filled quantity.')} · ${o.childOrderIds.join(', ')||'—'}`;}
+        if(key==='scaleOrders'){price=`${display(o.startPriceMicro)} / ${display(o.endPriceMicro)}`;amount=display(o.totalAmountMicro);details+=` · ${text('Filled')}: ${display(o.filledMicro)} · ${o.levels} · ${o.childOrderIds.join(', ')||'—'}`;}
+        return [time(o.createdAt),o.id,o.market,`${o.side} / ${text(label)}`,price,amount,details,o.status,o.rejectReason||'—'];
+      });
+    });
   }else if(state.activity==='ledger'){
     columns=['Time','Entry ID','Asset','Available change','Reserved change','Source','Reference','Source digest'];
     rows=owned('ledger').map(l=>[time(l.createdAt),l.id,l.asset,display(l.availableDelta),display(l.reservedDelta),l.sourceType,l.sourceId,l.sourceDigest]);

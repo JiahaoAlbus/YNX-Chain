@@ -48,6 +48,43 @@ test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; o
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));
 const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'utf8');
 const localeSetup=app.split('\n').find(line=>line.includes('window.YNXExchangeLocale=installExchangeLocale({document'));
+test('advanced records show existing owned tasks without inventing fills, missing collections or write actions',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage({viewport:{width:390,height:844}}),errors=[];let requests=0;
+    page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>{requests++;return route.abort()});
+    await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));await page.addStyleTag({content:css});
+    await page.addScriptTag({type:'module',content:localeSource+'\nwindow.YNXExchangeLocale=installExchangeLocale({document});'});
+    await page.waitForFunction(()=>window.YNXExchangeLocale);
+    await page.evaluate(()=>{document.querySelectorAll('.view').forEach(element=>element.classList.remove('active'));document.querySelector('#activity').classList.add('active')});
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];const state={account:'A',snapshot:null,activity:'advanced'};const display=${formatMicro.toString()};${activity};${activityBinding};window.advancedQA={set(account,snapshot){state.account=account;state.snapshot=snapshot;renderActivity()}};`});
+    const base={account:'A',market:'YNXT-YUSD_TEST',side:'buy',createdAt:'2026-10-04T00:00:00Z',reservedMicro:1234567};
+    const data={
+      conditionalOrders:[{...base,id:'conditional-A',status:'triggered',amountMicro:2000000,triggerPriceMicro:3000000,limitPriceMicro:4000000,activatedOrderId:'child-A'}],
+      ocoGroups:[{...base,id:'oco-A',status:'pending_trigger',amountMicro:2000000,stopConditionalId:'stop-A',takeProfitConditionalId:'profit-A',rejectReason:'<img src=x onerror=alert(1)>'}],
+      twapOrders:[{...base,id:'twap-A',status:'scheduled',limitPriceMicro:4000000,totalAmountMicro:2000000,scheduledMicro:1000000,slices:2,slicesExecuted:1,childOrderIds:['scheduled-child-A']},{...base,account:'B',id:'twap-B',status:'scheduled',limitPriceMicro:1,totalAmountMicro:1,scheduledMicro:0,slices:1,slicesExecuted:0,childOrderIds:[]}],
+      scaleOrders:[{...base,id:'scale-A',status:'venue_unknown_status',startPriceMicro:1000000,endPriceMicro:3000000,totalAmountMicro:2000000,filledMicro:17,levels:2,childOrderIds:['scale-child-A']}]
+    };
+    const original=JSON.stringify(data);await page.evaluate(data=>advancedQA.set('A',data),data);await page.locator('[data-activity="advanced"]').click();
+    let text=await page.locator('#activity-body').innerText();assert.equal(await page.locator('#activity-body tr').count(),4);
+    for(const id of ['conditional-A','oco-A','twap-A','scale-A','child-A','stop-A','profit-A','scale-child-A'])assert.ok(text.includes(id));
+    assert.ok(text.includes('Activation is not a fill.'));assert.ok(text.includes('Scheduled quantity is not filled quantity.'));
+    assert.ok(text.includes('Scheduled: 1'));assert.ok(text.includes('Filled: 0.000017'));assert.ok(text.includes('Reserved: 1.234567'));
+    assert.ok(text.includes('venue_unknown_status'));assert.doesNotMatch(text,/twap-B/);
+    assert.equal(await page.locator('#activity-body img,#activity-body a,#activity-body button').count(),0);
+    for(const locale of locales){
+      await page.evaluate(({locale,data})=>{YNXExchangeLocale.set(locale);advancedQA.set('A',data)}, {locale,data});
+      assert.equal(await page.locator('[data-activity="advanced"]').innerText(),await page.evaluate(()=>YNXExchangeLocale.text('Advanced orders')));
+      assert.ok((await page.locator('#activity-body').innerText()).includes(await page.evaluate(()=>YNXExchangeLocale.text('Scheduled quantity is not filled quantity.'))));
+    }
+    await page.evaluate(data=>{YNXExchangeLocale.set('en');advancedQA.set('B',data)},data);text=await page.locator('#activity-body').innerText();
+    assert.match(text,/twap-B/);assert.doesNotMatch(text,/conditional-A|oco-A|twap-A|scale-A/);
+    await page.evaluate(()=>advancedQA.set('A',{}));text=await page.locator('#activity-body').innerText();assert.equal(await page.locator('#activity-body tr').count(),4);assert.match(text,/Collection not reported; not verified/);assert.doesNotMatch(text,/No owned records/);
+    await page.evaluate(()=>advancedQA.set('A',{conditionalOrders:[],ocoGroups:[],twapOrders:[],scaleOrders:[]}));assert.equal(await page.locator('#activity-body').innerText(),'No owned records yet.');
+    await page.evaluate(()=>advancedQA.set(null,null));assert.equal(await page.locator('#activity-body').innerText(),'');
+    assert.equal(JSON.stringify(data),original);assert.equal(requests,0);assert.deepEqual(errors,[]);
+  }finally{await browser.close()}
+});
 test('open-order renderer binds rows and action intent to current owner across account loss and switch',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{

@@ -77,6 +77,23 @@ function setup(overrides={}){
   const controller=createPrivateAccountController({origin,onState:s=>states.push(s),createAdapter:async()=>{calls.push('createAdapter');return adapter},fetchImpl:async(url,options)=>{calls.push(['fetch',url,options]);return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}})},...overrides.controller});
   return {controller,calls,states,client};
 }
+test('existing advanced account collections require owner identity and safe bound amounts when present',()=>{
+  for(const key of ['conditionalOrders','ocoGroups','twapOrders','scaleOrders']){
+    const row={id:key+'-owned',account,market:'YNXT-YUSD_TEST',side:'buy',status:'pending_trigger',amountMicro:10,reservedMicro:10,triggerPriceMicro:2,limitPriceMicro:2,totalAmountMicro:10,scheduledMicro:0,filledMicro:0,startPriceMicro:1,endPriceMicro:2,slices:2,slicesExecuted:0,levels:2,childOrderIds:[]};
+    assert.equal(validateAccountSnapshot({...snapshot(),[key]:[row]},account)[key][0],row);
+    for(const records of [null,{},[{...row,account:other}],[row,row],[{...row,reservedMicro:-1}],[{...row,reservedMicro:'10'}]]){
+      assert.throws(()=>validateAccountSnapshot({...snapshot(),[key]:records},account),undefined,key);
+    }
+    for(const delta of [{market:'another-market'},{side:'hold'},{status:''},{reservedMicro:0.1},{reservedMicro:undefined}]){
+      assert.throws(()=>validateAccountSnapshot({...snapshot(),[key]:[{...row,...delta}]},account),undefined,key);
+    }
+    if(key==='twapOrders'||key==='scaleOrders'){
+      for(const childOrderIds of [null,[''],['same','same'],[23]])assert.throws(()=>validateAccountSnapshot({...snapshot(),[key]:[{...row,childOrderIds}]},account));
+    }
+    const bad=key==='twapOrders'?[{slices:0},{slicesExecuted:3},{scheduledMicro:11}]:key==='scaleOrders'?[{levels:0},{filledMicro:11}]:[];
+    for(const delta of bad)assert.throws(()=>validateAccountSnapshot({...snapshot(),[key]:[{...row,...delta}]},account));
+  }
+});
 test('account read requests one SDK-owned dual proof bound to exact wire method path and empty body',async()=>{
   const {controller,calls}=setup();try{
     assert.equal((await controller.start(origin+'/')).phase,'connected');

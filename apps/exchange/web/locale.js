@@ -333,8 +333,24 @@ const matchTimeRows={
  ar:['وقت آخر صفقة محفوظة','وقت رصد اللقطة لا يعني صفقة جديدة. سعر آخر صفقة تاريخي وليس عرض سعر قابلاً للتنفيذ.'],
  id:['Waktu transaksi terakhir yang tersimpan','Waktu pengamatan snapshot bukan transaksi baru. Harga terakhir bersifat historis, bukan kuotasi yang dapat dieksekusi.']
 };
+export const advancedKeys=['Advanced orders','Task details','Conditional order','OCO group','TWAP task','Scale order','Collection not reported; not verified.','Reserved','Trigger','Activation is not a fill.','Scheduled','Scheduled quantity is not filled quantity.','Filled'];
+const advancedRows={
+ en:advancedKeys,
+ 'zh-Hans':['高级订单','任务详情','条件单','OCO 组','TWAP 任务','分层订单','未返回此类记录；尚未验证。','预留','触发价','激活不代表成交。','已调度','已调度数量不代表已成交数量。','已成交'],
+ 'zh-Hant':['進階訂單','任務詳情','條件單','OCO 組','TWAP 任務','分層訂單','未回傳此類紀錄；尚未驗證。','預留','觸發價','啟動不代表成交。','已排程','已排程數量不代表已成交數量。','已成交'],
+ ja:['高度な注文','タスク詳細','条件注文','OCO グループ','TWAP タスク','分割注文','記録未報告・未検証。','予約','トリガー','有効化は約定ではありません。','予定済み','予定数量は約定数量ではありません。','約定済み'],
+ ko:['고급 주문','작업 세부 정보','조건 주문','OCO 그룹','TWAP 작업','분할 주문','기록이 반환되지 않아 미검증입니다.','예약','트리거','활성화는 체결이 아닙니다.','예약된 수량','예약 수량은 체결 수량이 아닙니다.','체결'],
+ es:['Órdenes avanzadas','Detalles de tarea','Orden condicional','Grupo OCO','Tarea TWAP','Orden escalonada','Colección no informada; no verificada.','Reservado','Activador','Activar no equivale a ejecutar.','Programado','La cantidad programada no es la cantidad ejecutada.','Ejecutado'],
+ fr:['Ordres avancés','Détails de la tâche','Ordre conditionnel','Groupe OCO','Tâche TWAP','Ordre échelonné','Collection non fournie ; non vérifiée.','Réservé','Déclencheur','Une activation n’est pas une exécution.','Programmé','La quantité programmée n’est pas la quantité exécutée.','Exécuté'],
+ de:['Erweiterte Aufträge','Aufgabendetails','Bedingter Auftrag','OCO-Gruppe','TWAP-Aufgabe','Gestaffelter Auftrag','Datensammlung nicht gemeldet; ungeprüft.','Reserviert','Auslöser','Aktivierung ist keine Ausführung.','Geplant','Geplante Menge ist nicht ausgeführte Menge.','Ausgeführt'],
+ pt:['Ordens avançadas','Detalhes da tarefa','Ordem condicional','Grupo OCO','Tarefa TWAP','Ordem escalonada','Coleção não informada; não verificada.','Reservado','Gatilho','Ativação não é execução.','Agendado','Quantidade agendada não é quantidade executada.','Executado'],
+ ru:['Расширенные ордера','Данные задачи','Условный ордер','Группа OCO','Задача TWAP','Ступенчатый ордер','Данные не предоставлены; не проверены.','В резерве','Триггер','Активация не означает исполнение.','Запланировано','Запланированный объём не равен исполненному.','Исполнено'],
+ ar:['الأوامر المتقدمة','تفاصيل المهمة','أمر مشروط','مجموعة OCO','مهمة TWAP','أمر متدرج','لم تُقدم السجلات؛ غير متحقق منها.','محجوز','المحفز','التفعيل لا يعني التنفيذ.','مجدول','الكمية المجدولة ليست الكمية المنفذة.','منفذ'],
+ id:['Order lanjutan','Detail tugas','Order bersyarat','Grup OCO','Tugas TWAP','Order bertingkat','Koleksi tidak dilaporkan; belum diverifikasi.','Dicadangkan','Pemicu','Aktivasi bukan eksekusi.','Dijadwalkan','Jumlah terjadwal bukan jumlah terisi.','Terisi']
+};
 export const catalogs=Object.freeze(Object.fromEntries(locales.map(locale=>{
-  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys,...candleKeys,...matchTimeKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale],...candleRows[locale],...matchTimeRows[locale]];
+  const allKeys=[...keys,...errorCodes,...activityKeys,...formKeys,...riskKeys,...walletKeys,...identityKeys,...confirmKeys,...recordKeys,...balanceKeys,...toastKeys,...candleKeys,...matchTimeKeys,...advancedKeys],values=[...rows[locale],...errorRows[locale],...activityRows[locale],...formRows[locale],...riskRows[locale],...walletRows[locale],...identityRows[locale],...confirmRows[locale],...recordRows[locale],...balanceRows[locale],...toastRows[locale],...candleRows[locale],...matchTimeRows[locale],...advancedRows[locale]];
+  if(advancedRows[locale].length!==advancedKeys.length)throw new Error('EXCHANGE_ADVANCED_CATALOG_INCOMPLETE');
   if(matchTimeRows[locale].length!==matchTimeKeys.length)throw new Error('EXCHANGE_MATCH_TIME_CATALOG_INCOMPLETE');
   if(candleRows[locale].length!==candleKeys.length)throw new Error('EXCHANGE_CANDLE_CATALOG_INCOMPLETE');
   if(rows[locale].length!==keys.length||errorRows[locale].length!==errorCodes.length)throw new Error('EXCHANGE_LOCALE_CATALOG_INCOMPLETE');
@@ -380,7 +396,7 @@ export function installExchangeLocale({document,storage,onChange=()=>{}}){
     for(const element of document.querySelectorAll('[data-exchange-locale]'))element.textContent=translate(locale,element.dataset.exchangeLocale);
     const helpLabels={'#assets > .section-title > p:last-child':'unsupported-route-help','#deposit-state':'deposit-policy-help','#withdraw-form + .source-note':'withdraw-broadcast-help','#activity > .section-title > p:last-child':'activity-record-help','#controls > .section-title > p:last-child':'local-controls-help'};
     for(const [selector,key] of Object.entries(helpLabels)){const element=document.querySelector(selector);if(element)element.textContent=translate(locale,key)}
-    const activityLabels={trades:'Trade history',orders:'Order history',ledger:'Asset ledger',deposits:'Deposits',withdrawals:'Withdrawals',fees:'Fee history',audit:'Audit'};
+    const activityLabels={trades:'Trade history',orders:'Order history',advanced:'Advanced orders',ledger:'Asset ledger',deposits:'Deposits',withdrawals:'Withdrawals',fees:'Fee history',audit:'Audit'};
     for(const element of document.querySelectorAll('[data-activity]'))element.textContent=translate(locale,activityLabels[element.dataset.activity]);
     const formLabels={'#buy-tab':'Buy','#sell-tab':'Sell','#draft-order':'Ask AI to draft fields','#review-order':'Preview order · no submission','#order-preview-title':'Review a limit order','#order-preview-dialog .wide':'Return to edit'};
     for(const [selector,key] of Object.entries(formLabels)){const element=document.querySelector(selector);if(element)element.textContent=translate(locale,key)}

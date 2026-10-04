@@ -33,7 +33,11 @@ export async function readAccountResponse(response,signal){
 }
 export function validateAccountSnapshot(value,account){
   if(!accountPattern.test(account)||!value||typeof value!=='object'||Array.isArray(value))throw failure('INVALID_ACCOUNT_RESPONSE');
-  for(const key of ['balances','ledger','depositIntents','orders','trades','fees','deposits','withdrawals','support','ai','audit']){
+  // Original advanced-order read fields are optional for old response versions,
+  // but present records are not exempt from ownership and amount validation.
+  const advancedAmounts={conditionalOrders:['triggerPriceMicro','limitPriceMicro','amountMicro','reservedMicro'],ocoGroups:['amountMicro','reservedMicro'],twapOrders:['limitPriceMicro','totalAmountMicro','scheduledMicro','reservedMicro'],scaleOrders:['startPriceMicro','endPriceMicro','totalAmountMicro','filledMicro','reservedMicro']};
+  const collections=['balances','ledger','depositIntents','orders','trades','fees','deposits','withdrawals','support','ai','audit',...Object.keys(advancedAmounts).filter(key=>Object.hasOwn(value,key))];
+  for(const key of collections){
     if(!Array.isArray(value[key]))throw failure('INVALID_ACCOUNT_RESPONSE');
     for(const row of value[key]){
       if(!row||typeof row!=='object'||(key==='trades'?row.buyer!==account&&row.seller!==account:row.account!==account))throw failure('ACCOUNT_BINDING_MISMATCH');
@@ -50,7 +54,7 @@ export function validateAccountSnapshot(value,account){
   // deduplicate silently: that would invent an apparently verified total.
   const text=v=>typeof v==='string'&&v.trim().length>0;
   const amounts=(row,keys)=>{for(const key of keys)if(!Number.isSafeInteger(row[key])||row[key]<0)throw failure('UNSAFE_ACCOUNT_AMOUNT')};
-  for(const key of ['balances','ledger','depositIntents','orders','trades','fees','deposits','withdrawals','support','ai','audit']){
+  for(const key of collections){
     const seen=new Set();
     for(const row of value[key]){
       const id=key==='balances'?row.asset:row.id;
@@ -66,6 +70,14 @@ export function validateAccountSnapshot(value,account){
       if(key==='withdrawals'){
         amounts(row,['amountMicro','feeMicro','receiveMicro']);
         if(BigInt(row.receiveMicro)+BigInt(row.feeMicro)!==BigInt(row.amountMicro))throw failure('UNSAFE_ACCOUNT_AMOUNT');
+      }
+      if(Object.hasOwn(advancedAmounts,key)){
+        amounts(row,advancedAmounts[key]);
+        if(row.market!=='YNXT-YUSD_TEST'||!['buy','sell'].includes(row.side)||!text(row.status))throw failure('INVALID_ACCOUNT_RESPONSE');
+        if(key==='twapOrders'||key==='scaleOrders'){
+          if(!Array.isArray(row.childOrderIds)||row.childOrderIds.some(id=>!text(id))||new Set(row.childOrderIds).size!==row.childOrderIds.length)throw failure('INVALID_ACCOUNT_RESPONSE');
+          if(key==='twapOrders'&&(!Number.isSafeInteger(row.slices)||row.slices<=0||!Number.isSafeInteger(row.slicesExecuted)||row.slicesExecuted<0||row.slicesExecuted>row.slices||row.scheduledMicro>row.totalAmountMicro)||key==='scaleOrders'&&(!Number.isSafeInteger(row.levels)||row.levels<=0||row.filledMicro>row.totalAmountMicro))throw failure('UNSAFE_ACCOUNT_AMOUNT');
+        }
       }
     }
   }
