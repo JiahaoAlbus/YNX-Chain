@@ -109,15 +109,15 @@ func (a HTTPExchangeAdapter) CompleteWalletSession(ctx context.Context, body []b
 	}
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
-	client := a.Client
-	if client == nil {
-		client = &http.Client{Timeout: 8 * time.Second}
-	}
+	client := exchangeAuthorizationClient(a.Client)
 	response, err := client.Do(request)
 	if err != nil {
 		return nil, 0, ErrUnavailable
 	}
 	defer response.Body.Close()
+	if response.StatusCode >= 300 && response.StatusCode < 400 {
+		return nil, 0, ErrUnavailable
+	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, maxExchangeResponseBytes+1))
 	if err != nil || len(data) > maxExchangeResponseBytes {
 		return nil, 0, ErrUnavailable
@@ -180,10 +180,7 @@ func (a HTTPExchangeAdapter) post(ctx context.Context, path, productSessionProof
 	request.Header.Set("X-YNX-Product-Session-Proof", strings.TrimSpace(productSessionProof))
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "application/json")
-	client := a.Client
-	if client == nil {
-		client = &http.Client{Timeout: 8 * time.Second}
-	}
+	client := exchangeAuthorizationClient(a.Client)
 	response, err := client.Do(request)
 	if err != nil {
 		return ErrUnavailable
@@ -211,6 +208,21 @@ func (a HTTPExchangeAdapter) post(ctx context.Context, path, productSessionProof
 		return fmt.Errorf("exchange response framing: %w", ErrUnavailable)
 	}
 	return nil
+}
+
+// Authorization proofs and signed completion/order bodies belong only to the
+// configured venue. Even same-origin redirects can replay a one-time POST or
+// change its method. Clone the supplied client to preserve transport/timeouts
+// without changing another consumer's redirect policy.
+func exchangeAuthorizationClient(supplied *http.Client) *http.Client {
+	client := http.Client{Timeout: 8 * time.Second}
+	if supplied != nil {
+		client = *supplied
+	}
+	client.CheckRedirect = func(_ *http.Request, _ []*http.Request) error {
+		return http.ErrUseLastResponse
+	}
+	return &client
 }
 
 func toExchangeMandate(mandate Mandate) exchangeQuantMandate {
