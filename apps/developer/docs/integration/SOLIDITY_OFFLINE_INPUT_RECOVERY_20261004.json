@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "b5ee28547e0b6b682a506842749f8d2c52d2bc9e",
+  "sourceTree": "3af0012edac1042d0f1668e9d711aa353c279759",
+  "input": {
+    "originalTarSha256": "6d7a5bc2b07bbe78edb35b1811dec51f5f3ab36b64cb25ef3092945fbe2a69cd",
+    "cacheIntegrity": "sha512-G5yUqjTUPc8Np74sCFwfsevhBPlUifUOfhYrgyu6CmYlC6feSw0YS6eZW47XDT23k3JYdKx5nJ+Q7whCEmNcoA==",
+    "cacheIntegrityVerified": true,
+    "packageFiles": 21,
+    "packageManifestSha256": "5a07c7be20943396b173c50e7fda861fcced70dfcad8f817585eb013378bf363",
+    "wasmSha256": "fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9",
+    "inputPath": "apps/developer/.ynx-developer-candidates/solidity-0.8.24-offline-input-20261004/solc",
+    "downloaded": false,
+    "lifecycleScriptsExecuted": false,
+    "existingDependencyReplaced": false
+  },
+  "configuration": "Optional trusted operator YNX_IDE_SOLC_INPUT absolute package directory; no Host/auth changes applied",
+  "checks": {
+    "realWorkerCompile": true,
+    "realHTTPCompile": true,
+    "abiBytecodeAndDigestVerified": true,
+    "alteredWrapperRejected": true,
+    "positiveTests": 3,
+    "positiveExit": 0,
+    "defaultMismatchRefusalTests": 2,
+    "defaultSkip": 1,
+    "defaultExit": 0,
+    "testServersStopped": true
+  },
+  "artifactHash": "0x64e6417a3043c0de575b51e910b565e47ec1d37d7075632d4e9e18e593a9157f",
+  "evidence": "apps/developer/.ynx-developer-candidates/solidity-0.8.24-offline-evidence-20261004",
+  "evidenceIndexSha256": "da62e019cfdef6ebc0231c302d29170deb4e63c2e12bd45198e905980c547e83",
+  "remaining": [
+    "Project workbench compile interface and admitted project source capture",
+    "Wallet deployment review and authoritative Testnet execution compatibility",
+    "Complete transitive runtime distribution sealing and native composition",
+    "Formal operator activation and normal installed user acceptance"
+  ],
+  "scope": "Recovered local compiler input and standalone owned service proof. Not a new Native distribution, canonical project admission, public activation or Wallet/Chain execution receipt."
+}
