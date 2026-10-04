@@ -857,10 +857,12 @@ for(const [language,values] of Object.entries(quantAPIErrorCopy))Object.assign(b
 function quantAPIErrorKey(status){return status===400||status===422?'apiInputsRejected':status===401||status===403?'apiAccessRejected':status===409?'apiStateConflict':status===408||status===429||status>=500?'apiServiceUnavailable':'apiFailureUnknown';}
 async function quantResponseText(response,signal){
   const limit=8*1024*1024,invalid=()=>Object.assign(new Error('Invalid product API response'),{code:'QUANT_API_RESPONSE_INVALID',localeKey:'researchRequestUnconfirmed'});
+  const length=response.headers.get('content-length'),encoding=(response.headers.get('content-encoding')||'').trim().toLowerCase();
+  const declared=length!==null&&(!encoding||encoding==='identity')?Number(length):null;
   if(typeof response.body?.getReader!=='function'){
     // Legacy host/test adapters without a ReadableStream retain their bounded
     // text contract. Browser fetch Responses always take the streaming branch.
-    const text=await response.text();if(new TextEncoder().encode(text).byteLength>limit)throw invalid();return text;
+    const text=await response.text(),bytes=new TextEncoder().encode(text).byteLength;if(bytes>limit||declared!==null&&bytes!==declared)throw invalid();return text;
   }
   const reader=response.body.getReader(),decoder=new TextDecoder('utf-8',{fatal:true}),parts=[];let bytes=0;
   const cancel=()=>{try{Promise.resolve(reader.cancel()).catch(()=>{})}catch{}};
@@ -870,8 +872,10 @@ async function quantResponseText(response,signal){
       if(signal.aborted)throw invalid();
       const {done,value}=await reader.read();if(signal.aborted)throw invalid();if(done)break;
       if(!Number.isSafeInteger(value?.byteLength)||value.byteLength<0||value.byteLength>limit-bytes)throw invalid();
+      if(declared!==null&&value.byteLength>declared-bytes)throw invalid();
       bytes+=value.byteLength;parts.push(decoder.decode(value,{stream:true}));
     }
+    if(declared!==null&&bytes!==declared)throw invalid();
     parts.push(decoder.decode());return parts.join('');
   }catch{cancel();throw invalid();}
   finally{signal.removeEventListener('abort',cancel);try{reader.releaseLock()}catch{}}

@@ -1100,6 +1100,19 @@ test('invalid response length declarations cancel before a body read and never r
   }
 });
 
+test('shipped Quant response rejects identity body length mismatch without replaying a request',async()=>{
+  const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context);
+  for(const length of ['0','1','3','99']){
+    let calls=0;
+    await assert.rejects(transport('/v1/backtests/from-market',{method:'POST',body:'exact-original-request'},{fetchImpl:async()=>{calls++;return new Response('{}',{headers:{'content-type':'application/json','content-length':length}})}}),{code:'QUANT_API_RESPONSE_INVALID'});
+    assert.equal(calls,1,'a malformed receipt is UNKNOWN, not permission to replay');
+  }
+  // Content-Length for compressed responses counts wire bytes, not the
+  // browser's decompressed UTF8 bytes. Never compare those representations.
+  const compressed=await transport('/v1/snapshot',{}, {fetchImpl:async()=>new Response('{}',{headers:{'content-type':'application/json','content-length':'1','content-encoding':'gzip'}})});
+  assert.equal(JSON.stringify(compressed.body),'{}');
+});
+
 test('actual stream stalled body is cancelled at deadline with one request and no unbounded read',async()=>{
   const app=harness();await settle();const transport=vm.runInContext('quantHTTP',app.context),timers=new Map();let calls=0,cancels=0;
   const body=new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('{'));},cancel(){cancels++;}});
