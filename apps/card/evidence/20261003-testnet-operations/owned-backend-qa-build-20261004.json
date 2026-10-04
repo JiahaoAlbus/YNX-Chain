@@ -1,0 +1,110 @@
+{
+  "sourceCommit": "04d449cfadff75d1f629fb410201e2b75ce7b11c",
+  "kind": "owned-backend-static-bundle-with-external-dependencies",
+  "entry": "server/main.ts",
+  "bytes": 281855,
+  "sha256": "ce95f4fd6dccb60fe349c4ca69b5e9bb951a2170eb65d8455c0ca4ac30adc98f",
+  "sdkExecuted": false,
+  "backendStarted": false,
+  "currentProducerSupplied": false,
+  "formalRelease": false,
+  "inputs": [
+    "server/contracts.ts",
+    "server/storageSchema.ts",
+    "server/storage.ts",
+    "server/cardRisk.ts",
+    "server/permissions.ts",
+    "server/service.ts",
+    "server/core.ts",
+    "server/cardFinanceRead.ts",
+    "src/cardOperationRecoveryContract.ts",
+    "server/http.ts",
+    "server/vendor/wallet-session-6f332753/product-session-server.mjs",
+    "server/walletApproval.ts",
+    "server/sharedWalletAuth.ts",
+    "server/providerRegistry.ts",
+    "server/providerApplication.ts",
+    "server/immersveSandbox.ts",
+    "server/providerLifecycle.ts",
+    "server/protectedStartup.ts",
+    "server/stateKey.ts",
+    "server/main.ts"
+  ],
+  "externalImports": [
+    {
+      "path": "node:path",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:fs",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:sqlite",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:path",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:fs",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:http",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:fs",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:path",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "node:crypto",
+      "kind": "import-statement",
+      "external": true
+    },
+    {
+      "path": "@ynx-chain/wallet-auth-card-provider-v2",
+      "kind": "import-statement",
+      "external": true
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+✔ protected product composition retains original TEST registration, funding, controls and owner-isolated cold records (23.778417ms)
+✔ source refusal after asynchronous receipt verification cannot credit ledger or consume pending intent (4.332625ms)
+✔ source refusal after asynchronous approval cannot create a TEST card (3.507ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 210.792792
