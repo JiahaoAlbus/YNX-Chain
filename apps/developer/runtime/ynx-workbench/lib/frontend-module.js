@@ -35,6 +35,8 @@ const { WindowService } = require('@theia/core/lib/browser/window/window-service
 const { NativeWindowClose } = require('./native-window-close');
 const { NativeWorkbenchCommands } = require('./native-workbench-commands');
 const { LocalWorkspaceContext } = require('./local-workspace-context');
+const { LocalTerminalDefaults } = require('./local-terminal-defaults');
+const { PreferenceSchemaService } = require('@theia/core/lib/browser/preferences/preference-schema');
 const { WorkbenchControlsContribution } = require('./workbench-controls');
 const { TabBarToolbarContribution } = require('@theia/core/lib/browser/shell/tab-bar-toolbar');
 const { FileNavigatorContribution } = require('@theia/navigator/lib/browser/navigator-contribution');
@@ -51,6 +53,7 @@ const { LocalWorkbenchStorage } = require('./local-workbench-storage');
 const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
+require('./quick-input-keybinding-label-adapter').install();
 require('./dialog-accept-adapter').install();
 require('./review-preview-adapter').install();
 const workspaceTextEdits = require('./workspace-text-edit-adapter');
@@ -91,6 +94,10 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(CommandContribution).toService(LocalWorkspaceContext);
   bind(FrontendApplicationContribution).toService(LocalWorkspaceContext);
+  bind(FrontendApplicationContribution).toDynamicValue(context => new LocalTerminalDefaults(
+    WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-context'),
+    context.container.get(PreferenceSchemaService),
+  )).inSingletonScope();
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => new LanguageCommandReadiness(
     context.container.get(EditorManager), context.container.get(HostedPluginSupport), context.container.get(MonacoCommandService),

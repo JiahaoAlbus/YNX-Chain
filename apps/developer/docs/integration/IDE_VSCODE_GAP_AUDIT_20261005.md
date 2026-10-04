@@ -55,7 +55,17 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 3. **切换项目（旧版本体验不合格）**：用户把 fragment 改为 `/Users/huangjiahao` 后无法创建，返回受信 launcher 已绑定的临时项目后正常。新增本地上下文 RPC、错误项目提示、返回已打开项目按钮及原生 Open Folder OS 选择器接线；原生选择后启动新的实际工作区实例，不以更改 fragment 获得文件权限。
 4. **运行入口（源码已接线、GUI 待验证）**：编辑器 Run/Debug 下拉连接实际调试及任务命令；左侧与底部缺失入口由真实视图贡献创建并激活，已有可见标签不重复。原生 51 个命令菜单与真实 CommandRegistry 连接。
 5. **主题（源码已加入、GUI 待验证）**：14 个主题，包括克莱因蓝明暗、粉色明暗、红色明暗、Graphite、Snow、Arctic、Solarized 明暗、Midnight、Violet、Forest。编辑器、终端、主按钮、状态栏文字与背景的对比度均至少 4.5:1；视觉美观仍需真实界面逐项检查。
-6. **语言包（离线资源已集成 producer、GUI 待验证）**：保留本机官方 MIT 简体中文包原始身份及资源，正常 host language-pack 注册机制；新增 YNX 自有工作区、运行入口及 Tools 文案翻译，原生菜单跟随 en/zh-cn。没有把自有少量词条声称完整语言包。
-7. **Chain（源码已加入、GUI 待验证）**：Tools 0.2.22 的项目/网络/Wallet 与 AI 分组、实际 Counter.sol 模板和编译入口；网络是已配置的测试网信息，明确未实时检查。Wallet、在线 AI、签名部署尚未接通，不显示虚假账号、余额或结果。
+6. **语言包（组件内安装识别、切换及重载已验证）**：保留本机官方 MIT 简体中文包原始身份及资源，正常 host language-pack 注册机制；新增 YNX 自有工作区、运行入口及 Tools 文案翻译，原生菜单跟随 en/zh-cn。没有把自有少量词条声称完整语言包。
+7. **Chain（组件内模板创建、保存与编译已验证）**：Tools 0.2.22 的项目/网络/Wallet 与 AI 分组、实际 Counter.sol 模板和编译入口；网络是已配置的测试网信息，明确未实时检查。Wallet、在线 AI、签名部署尚未接通，不显示虚假账号、余额或结果。
 
 新增源代码回归已验证工作区停止时的异步监听清理，原生菜单消息及显示语言消息有严格 schema/origin/frame 检查。完整候选构建、语言重载、原生文件选择、所有主题及 Chain/AI 正常用户流程尚需继续验收。
+
+## 集成检查补充
+
+- 7f87da6e2 完整组件已通过正常语言选择器切换中文并重载；核心菜单、命令面板、YNX 树条目显示中文。已用正常颜色主题选择器切换 YNX Klein Light。全 14 个主题已注册，逐个视觉验收仍未完成。
+- 同一组件正常创建 Counter.sol、Cmd+S 后回读磁盘 332 bytes；通过 YNX 编译命令生成真实 solc 0.8.24 的 ok=true、ABI/bytecode 输出。测试工程原有的预设语法错误先产生真实诊断，再经编辑器修正并保存后通过编译。
+- 3ff34fb17 组件实际打开本地修改审阅 QuickPick，明确显示身份/AI 未连接，不再生成被阻止的 webview。capture/edit/diff/apply 的源代码回归通过，完整原生输入链路仍待验。
+- 实际运行发现工具栏的 inline overflow:hidden 裁切运行菜单；已增加仅展开 YNX 菜单时的 scoped 覆盖。另发现无绑定项复用旧 aria/hover 提示；已用 owned adapter 清理，不改实际快捷键映射。
+- 首个终端绕过 profile 的默认 login args 产生初始化文件拒绝提示；修复只改变 local 模式 Default scope 参数，显式用户设置仍优先，未改变 sandbox。
+- 带原 Logo 的 ICNS、安装器封面和 DMG mounted-assets 检查通过；当前为 ad-hoc Testnet Preview，Developer ID、公证、正式安装发布尚未完成。电脑锁屏使 Cocoa 菜单/文件夹选择与 Finder GUI 检查暂停。
+- 在线扩展搜索/下载、通用隔离 webview、Wallet 身份、真实模型与签名部署仍未完成。未绕过被停止的网络/package-egress 范围。
