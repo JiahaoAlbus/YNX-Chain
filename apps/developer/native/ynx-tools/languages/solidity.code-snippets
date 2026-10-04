@@ -1,0 +1,30 @@
+{
+  "Contract": {
+    "prefix": "ynx-contract",
+    "body": [
+      "// SPDX-License-Identifier: MIT",
+      "pragma solidity ^0.8.24;",
+      "",
+      "contract ${1:ContractName} {",
+      "    $0",
+      "}"
+    ],
+    "description": "Solidity contract starter for the pinned 0.8.24 compiler"
+  },
+  "Function": {
+    "prefix": "ynx-function",
+    "body": [
+      "function ${1:name}(${2}) ${3:public} ${4:returns (${5:uint256})} {",
+      "    $0",
+      "}"
+    ],
+    "description": "Solidity function"
+  },
+  "Event": {
+    "prefix": "ynx-event",
+    "body": [
+      "event ${1:EventName}(${2:address indexed account});"
+    ],
+    "description": "Solidity event"
+  }
+}

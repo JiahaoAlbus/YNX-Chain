@@ -1,0 +1,164 @@
+{
+  "name": "Solidity",
+  "scopeName": "source.solidity",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#declarations"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.solidity",
+          "begin": "//",
+          "end": "$",
+          "patterns": [
+            {
+              "name": "storage.type.annotation.solidity",
+              "match": "@(title|author|notice|dev|param|return|inheritdoc|custom:[A-Za-z0-9_-]+)\\b"
+            }
+          ]
+        },
+        {
+          "name": "comment.block.solidity",
+          "begin": "/\\*",
+          "end": "\\*/",
+          "patterns": [
+            {
+              "name": "storage.type.annotation.solidity",
+              "match": "@(title|author|notice|dev|param|return|inheritdoc|custom:[A-Za-z0-9_-]+)\\b"
+            }
+          ]
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.solidity",
+          "begin": "(?:\\b(?:hex|unicode))?\"",
+          "end": "\"|(?<!\\\\)$",
+          "patterns": [
+            {
+              "name": "constant.character.escape.solidity",
+              "match": "\\\\(?:[\\\\\"\\x27nrt]|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|$)"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.solidity",
+          "begin": "(?:\\b(?:hex|unicode))?'",
+          "end": "'|(?<!\\\\)$",
+          "patterns": [
+            {
+              "name": "constant.character.escape.solidity",
+              "match": "\\\\(?:[\\\\\"\\x27nrt]|x[0-9A-Fa-f]{2}|u[0-9A-Fa-f]{4}|$)"
+            }
+          ]
+        }
+      ]
+    },
+    "declarations": {
+      "patterns": [
+        {
+          "match": "\\b(contract|interface|library|struct|enum|type)(\\s+)([A-Za-z_$][A-Za-z0-9_$]*)",
+          "captures": {
+            "1": {
+              "name": "storage.type.solidity"
+            },
+            "3": {
+              "name": "entity.name.type.solidity"
+            }
+          }
+        },
+        {
+          "match": "\\b(function|modifier|event|error)(\\s+)([A-Za-z_$][A-Za-z0-9_$]*)(?=\\s*\\()",
+          "captures": {
+            "1": {
+              "name": "storage.type.solidity"
+            },
+            "3": {
+              "name": "entity.name.function.solidity"
+            }
+          }
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "storage.type.solidity",
+          "match": "\\b(?:address|bool|string|bytes(?:[1-9]|[12][0-9]|3[0-2])?|u?int(?:[0-9]+)?|u?fixed(?:[0-9]+x[0-9]+)?|mapping)\\b"
+        },
+        {
+          "name": "keyword.control.solidity",
+          "match": "\\b(?:pragma|solidity|import|from|as|abstract|is|using|for|global|function|modifier|constructor|fallback|receive|returns|return|if|else|while|do|break|continue|try|catch|emit|revert|new|delete|unchecked|assembly)\\b"
+        },
+        {
+          "name": "storage.modifier.solidity",
+          "match": "\\b(?:public|private|internal|external|pure|view|payable|constant|immutable|virtual|override|memory|storage|calldata|indexed|anonymous)\\b"
+        },
+        {
+          "name": "constant.language.solidity",
+          "match": "\\b(?:true|false)\\b"
+        },
+        {
+          "name": "support.variable.solidity",
+          "match": "\\b(?:msg|block|tx|abi|this|super)\\b"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "name": "constant.numeric.solidity",
+          "match": "\\b0[xX][0-9a-fA-F_]+\\b|(?:\\b[0-9][0-9_]*(?:\\.[0-9_]+)?|\\.[0-9][0-9_]*)(?:[eE][+-]?[0-9_]+)?\\b"
+        },
+        {
+          "name": "constant.language.unit.solidity",
+          "match": "\\b(?:wei|gwei|ether|seconds|minutes|hours|days|weeks)\\b"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "name": "keyword.operator.solidity",
+          "match": "\\*\\*|=>|:=|[+*/%=!<>?:&|^~\\-]+"
+        },
+        {
+          "name": "punctuation.section.block.solidity",
+          "match": "[{}]"
+        },
+        {
+          "name": "punctuation.section.arguments.solidity",
+          "match": "[()]"
+        },
+        {
+          "name": "punctuation.section.brackets.solidity",
+          "match": "[\\[\\]]"
+        },
+        {
+          "name": "punctuation.separator.solidity",
+          "match": "[,;.]"
+        }
+      ]
+    }
+  }
+}

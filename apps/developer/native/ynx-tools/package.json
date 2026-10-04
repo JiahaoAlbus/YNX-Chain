@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.13",
+  "version": "0.2.14",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -100,6 +100,32 @@
         "key": "ctrl+k ctrl+y",
         "mac": "cmd+k cmd+y",
         "when": "editorTextFocus && editorHasSelection && resourceScheme == file"
+      }
+    ],
+    "languages": [
+      {
+        "id": "solidity",
+        "aliases": [
+          "Solidity",
+          "solidity"
+        ],
+        "extensions": [
+          ".sol"
+        ],
+        "configuration": "./languages/solidity-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "solidity",
+        "scopeName": "source.solidity",
+        "path": "./languages/solidity.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "solidity",
+        "path": "./languages/solidity.code-snippets"
       }
     ]
   },
