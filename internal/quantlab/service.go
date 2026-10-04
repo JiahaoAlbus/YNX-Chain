@@ -1378,6 +1378,18 @@ func (s *Service) completeScheduledRunContext(ctx context.Context, claim schedul
 	} else if runErr != nil {
 		status = "failed_market_data_unavailable"
 	}
+	// The same durable claim can be delivered again after a lost completion
+	// response. Preserve its terminal receipt; conflicting outcomes cannot
+	// rewrite history. Explicit stops still reach their first completion below.
+	if !strategy.Runtime.Running {
+		switch strategy.Runtime.LastRunStatus {
+		case "completed", "cancelled_before_execution", "failed_invalid_or_cancelled_configuration", "failed_market_data_unavailable":
+			if strategy.Runtime.LastRunStatus != status || strategy.Runtime.LastExperiment != experiment.ID {
+				return ScheduledRunReceipt{}, ErrConflict
+			}
+			return ScheduledRunReceipt{StrategyID: strategy.ID, RunID: claim.RunID, Status: status, ExperimentID: experiment.ID, CompletedAt: strategy.Runtime.LastRunAt}, nil
+		}
+	}
 	strategy.Runtime.Running = false
 	strategy.Runtime.LastRunAt = s.cfg.Now()
 	strategy.Runtime.LastRunStatus = status
