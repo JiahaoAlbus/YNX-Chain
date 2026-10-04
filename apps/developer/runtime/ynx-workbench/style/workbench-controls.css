@@ -1,4 +1,7 @@
 .ynx-run-controls { position: relative; color: var(--theia-editorForeground); }
+/* Only the toolbar hosting an open YNX run menu may let its popup extend
+   beyond the editor tab strip. Other toolbars keep their native clipping. */
+.lm-TabBar-toolbar:has(.ynx-run-controls[open]) { overflow: visible; }
 .ynx-run-controls > summary { display: flex; align-items: center; cursor: pointer; list-style: none; padding: 3px 5px; }
 .ynx-run-controls > summary::-webkit-details-marker { display: none; }
 .ynx-run-menu { position: absolute; z-index: 100; right: 0; top: 100%; min-width: 210px; padding: 4px; background: var(--theia-menu-background); border: 1px solid var(--theia-menu-border); box-shadow: 0 2px 8px var(--theia-widget-shadow); }
