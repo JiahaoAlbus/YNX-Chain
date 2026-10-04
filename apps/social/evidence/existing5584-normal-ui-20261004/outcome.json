@@ -1,0 +1,27 @@
+{
+  "reservationId": "social5584-normal-ui-native-reservation-20261004-r1",
+  "controllerThread": "01a02881-2bcb-74f3-be69-bd0eb3750d41",
+  "releasedUTC": "2026-10-04T02:39:28.523Z",
+  "status": "RELEASED_OWN_COOPERATIVE_METADATA_ONLY",
+  "device": "emulator-5584",
+  "emulatorTerminated": false,
+  "applicationReinstalled": false,
+  "walletRequests": 0,
+  "signatures": 0,
+  "transactions": 0,
+  "installedSource": "NOT_VERIFIED",
+  "installedApkSHA256": "aeed8510e52e34bbc584353e9e8e5b23e5bf3ae6104251e0e1ab44f7b843586f",
+  "retainedCandidateSHA256": "9340d93b756a02878a00e9a98a31d9e6234af8b81c934b1e40a0e47399d85c74",
+  "apkIdentityMatches": false,
+  "lastInput": "Cancel second appearance dialog",
+  "finalRoute": "Settings",
+  "observations": [
+    "Guest route navigation",
+    "Original YNX header logo",
+    "English current preference",
+    "Appearance dark draft and cancel",
+    "Reopen System selected",
+    "Original 90 percent text preference retained"
+  ],
+  "wholeGoal": "NOT_COMPLETE"
+}

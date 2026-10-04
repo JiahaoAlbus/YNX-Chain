@@ -1,0 +1,17 @@
+{
+  "schemaVersion":"ynx-cooperative-existing-avd-controller-lock/v1",
+  "reservationId":"social5584-normal-ui-native-reservation-20261004-r1",
+  "status":"ATOMIC_DIRECTORY_RESERVED_FOR_ORIGINAL_SOCIAL_OWNER_ACCEPTANCE",
+  "controllerThread":"01a02881-2bcb-74f3-be69-bd0eb3750d41",
+  "coordinatorThread":"01a0ba69-3eb5-7291-94b2-cc8e39696329",
+  "relayThread":"01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "serial":"emulator-5584",
+  "avd":"YNX_SOCIAL_20260912_QA",
+  "emulatorPID":54243,
+  "expiresUTC":"2026-10-04T02:55:00Z",
+  "acquisition":"Coordinator performed successful atomic mkdir of this exact previously absent resource directory. This is an explicit newly established cooperative QA controller reservation, not a discovered old registry, OS-wide exclusion or proof against another app ignoring coordination. Root reported original Social had not acquired a controller; Native performed only read-only preflight. Social must acknowledge this exact reservation and recheck all actual holders/serial/PID before its first input; any conflicting controller means no input and internal queue.",
+  "scope":"Original Social owner only: existing normal guest/Settings/contacts/messages/Moments/recovery UI and evidence. No Wallet5586, Mail5580, iOS or Mac foreground. No private identity injection, Wallet approval, PIN, OS unlock, real signing, reset, reinstall, wipe, clone, snapshot save or emulator termination.",
+  "sourceBoundary":"Observed installed com.ynx.social1.0.0/code1 and original MainActivity from prior read-only inventory; exact installed source remains NOT_VERIFIED until Social reads original install receipt/binary/source. Ordinary UI observation does not claim new source acceptance.",
+  "release":"Social explicitly records outcome/release with this same reservationId, preserves an archived receipt/evidence, then removes only its own owner file and empty resource directory after verifying ownership. Expiry stops inputs; expiry alone never authorizes deleting a foreign or still-running controller. Coordinator/Root re-coordinate before renewal. Existing emulator and data remain running/intact.",
+  "nativeActions":"No app launch, GUI takeover, input, authentication or installed acceptance performed."
+}

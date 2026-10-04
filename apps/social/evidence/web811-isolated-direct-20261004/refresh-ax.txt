@@ -1,0 +1,49 @@
+Browser tab: 15, Title: "YNX Social — Private by design", URL: "http://127.0.0.1:54108/".
+1 AXWebArea YNX Social — Private by design, URL: 127.0.0.1:54108/
+	2 container
+		3 link Description: YNX Social home, Value: 127.0.0.1:54108/
+		4 container Primary
+			5 link Description: Chats, Value: 127.0.0.1:54108/#matrix-social-workspace
+			6 link Description: Moments, Value: 127.0.0.1:54108/#social-moments
+			7 link Description: Contacts, Value: 127.0.0.1:54108/#people-panel
+			8 link Description: Settings, Value: 127.0.0.1:54108/#profile-form
+		9 button Connect wallet, ID: connect-wallet
+	10 container Description: Private chat, ID: matrix-social-workspace
+		11 container
+			12 heading Your private conversations, Value: 2
+				13 text Your private conversations
+			14 text Locked
+		15 text Private chat is locked. Your messages and devices are retained.
+		16 button Open private chat
+		17 button Lock chat
+		18 link Description: Review sign-in and chat permissions, Value: 127.0.0.1:54108/#social-workspace
+		19 container
+			20 heading Conversations and invitations, Value: 3
+				21 text Conversations and invitations
+			22 button Conversations and invitations
+			23 container Conversations
+			24 heading Start a conversation, Value: 3
+				25 text Start a conversation
+			26 text Choose a person whose contact request has been accepted. No wallet address is needed.
+			27 button Refresh accepted contacts
+			28 container
+				29 text Accepted contact
+				30 pop up button (collapsed, settable) Accepted contact, Value: Choose a contact, Secondary Actions: Expand
+					31 menu
+						32 (selected) Choose a contact
+			33 button Start encrypted conversation
+		34 container
+			35 heading Your conversations, Value: 3
+				36 text Your conversations
+			37 button Conversation devices and security
+		38 content list Encrypted messages
+		39 container
+			40 text Your message
+			41 text entry area (settable) Your message
+			42 text Add an encrypted file
+			43 button (disabled) Add an encrypted file
+			44 button (disabled) Send message
+		45 button (collapsed) Connection details, Secondary Actions: Expand
+			46 text Connection details
+
+The focused UI element is 1 AXWebArea YNX Social — Private by design, URL: 127.0.0.1:54108/

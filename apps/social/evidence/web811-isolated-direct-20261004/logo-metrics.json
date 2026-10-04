@@ -1,0 +1,60 @@
+{
+  "lang": "en",
+  "logos": [
+    {
+      "alt": "YNX",
+      "height": 24,
+      "loaded": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "./assets/ynx-logo.png",
+      "width": 45.59375
+    },
+    {
+      "alt": "YNX Wallet",
+      "height": 48,
+      "loaded": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "./assets/ynx-logo.png",
+      "width": 48
+    },
+    {
+      "alt": "YNX Wallet",
+      "height": 48,
+      "loaded": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "./assets/ynx-logo.png",
+      "width": 48
+    },
+    {
+      "alt": "YNX Wallet logo",
+      "height": 48,
+      "loaded": true,
+      "naturalHeight": 420,
+      "naturalWidth": 798,
+      "src": "./assets/ynx-logo.png",
+      "width": 48
+    },
+    {
+      "alt": "MetaMask logo",
+      "height": 48,
+      "loaded": true,
+      "naturalHeight": 150,
+      "naturalWidth": 156,
+      "src": "./assets/metamask.svg",
+      "width": 48
+    },
+    {
+      "alt": "Scan this connection code with YNX Wallet",
+      "height": 0,
+      "loaded": false,
+      "naturalHeight": 0,
+      "naturalWidth": 0,
+      "src": null,
+      "width": 0
+    }
+  ],
+  "url": "http://127.0.0.1:54108/"
+}

@@ -1,0 +1,32 @@
+Browser tab: 15, Title: "YNX Social — Private by design", URL: "http://127.0.0.1:54108/".
+0 AXWebArea YNX Social — Private by design, URL: 127.0.0.1:54108/
+	1 container wallet-dialog
+		2 text STANDARD WALLET CONNECTION
+		3 heading Choose a wallet, Value: 2
+			4 text Choose a wallet
+		5 button Description: Close, ID: close-wallet-dialog
+		6 text Select the wallet you intend to use. YNX Social will not silently substitute another provider.
+		7 container wallet-list
+			8 button YNX Wallet YNX Mobile Wallet Scan a code or open the app on this phone Connect, ID: connect-mobile
+				9 image YNX Wallet
+				10 text YNX Mobile Wallet
+				11 text Scan a code or open the app on this phone
+				12 text Connect
+			13 button YNX Wallet YNX Web Wallet Open Wallet securely in a new window Connect, ID: connect-hosted
+				14 image YNX Wallet
+				15 text YNX Web Wallet
+				16 text Open Wallet securely in a new window
+				17 text Connect
+			18 button YNX Wallet logo YNX Wallet Use your installed YNX Wallet extension Connect, ID: connect-ynx
+				19 image YNX Wallet logo
+				20 text YNX Wallet
+				21 text Use your installed YNX Wallet extension
+				22 text Connect
+			23 button MetaMask logo MetaMask Connect your MetaMask account Connect, ID: connect-metamask
+				24 image MetaMask logo
+				25 text MetaMask
+				26 text Connect your MetaMask account
+				27 text Connect
+		28 text No account request is sent until you choose a wallet.
+
+The focused UI element is 5 button Description: Close, ID: close-wallet-dialog

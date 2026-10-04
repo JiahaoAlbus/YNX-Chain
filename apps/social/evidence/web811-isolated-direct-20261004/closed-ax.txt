@@ -1,0 +1,49 @@
+Browser tab: 15, Title: "YNX Social — Private by design", URL: "http://127.0.0.1:54108/".
+0 AXWebArea YNX Social — Private by design, URL: 127.0.0.1:54108/
+	1 container
+		2 link Description: YNX Social home, Value: 127.0.0.1:54108/
+		3 container Primary
+			4 link Description: Chats, Value: 127.0.0.1:54108/#matrix-social-workspace
+			5 link Description: Moments, Value: 127.0.0.1:54108/#social-moments
+			6 link Description: Contacts, Value: 127.0.0.1:54108/#people-panel
+			7 link Description: Settings, Value: 127.0.0.1:54108/#profile-form
+		8 button Connect wallet, ID: connect-wallet
+	9 container Description: Private chat, ID: matrix-social-workspace
+		10 container
+			11 heading Your private conversations, Value: 2
+				12 text Your private conversations
+			13 text Locked
+		14 text Private chat is locked. Your messages and devices are retained.
+		15 button Open private chat
+		16 button Lock chat
+		17 link Description: Review sign-in and chat permissions, Value: 127.0.0.1:54108/#social-workspace
+		18 container
+			19 heading Conversations and invitations, Value: 3
+				20 text Conversations and invitations
+			21 button Conversations and invitations
+			22 container Conversations
+			23 heading Start a conversation, Value: 3
+				24 text Start a conversation
+			25 text Choose a person whose contact request has been accepted. No wallet address is needed.
+			26 button Refresh accepted contacts
+			27 container
+				28 text Accepted contact
+				29 pop up button (collapsed, settable) Accepted contact, Value: Choose a contact, Secondary Actions: Expand
+					30 menu
+						31 (selected) Choose a contact
+			32 button Start encrypted conversation
+		33 container
+			34 heading Your conversations, Value: 3
+				35 text Your conversations
+			36 button Conversation devices and security
+		37 content list Encrypted messages
+		38 container
+			39 text Your message
+			40 text entry area (settable) Your message
+			41 text Add an encrypted file
+			42 button (disabled) Add an encrypted file
+			43 button (disabled) Send message
+		44 button (collapsed) Connection details, Secondary Actions: Expand
+			45 text Connection details
+
+The focused UI element is 8 button Connect wallet, ID: connect-wallet

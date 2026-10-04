@@ -1,0 +1,10 @@
+{
+  "reservationId": "social5584-normal-ui-native-reservation-20261004-r1",
+  "controllerThread": "01a02881-2bcb-74f3-be69-bd0eb3750d41",
+  "status": "ACCEPTED_COOPERATIVE_RESERVATION_ONLY",
+  "acceptedUTC": "2026-10-04T02:29:37.573Z",
+  "expiresUTC": "2026-10-04T02:55:00Z",
+  "scope": "Original Social owner only: existing normal guest/Settings/contacts/messages/Moments/recovery UI and evidence. No Wallet5586, Mail5580, iOS or Mac foreground. No private identity injection, Wallet approval, PIN, OS unlock, real signing, reset, reinstall, wipe, clone, snapshot save or emulator termination.",
+  "globalExclusion": "NOT_PROVEN",
+  "installedSource": "NOT_VERIFIED"
+}
