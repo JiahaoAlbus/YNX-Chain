@@ -63,10 +63,10 @@ export async function paperWorkspaceRequest(path,options={}){
   const method=options.method||'GET',url=new URL(path,'https://quant.ynxweb4.com'),snapshotRead=method==='GET'&&url.pathname==='/v1/wallet/paper/snapshot',detailRead=method==='GET'&&url.pathname==='/v1/wallet/paper/experiment',receiptRead=method==='GET'&&url.pathname==='/v1/wallet/paper/order-receipt';
   if(url.origin!=='https://quant.ynxweb4.com'||url.hash||(!detailRead&&!receiptRead&&!allowed[method+' '+url.pathname]))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(method!=='GET'&&url.search)fail('PAPER_OPERATION_NOT_AUTHORIZED');
-  if(snapshotRead&&!url.search)url.search='?history=bounded_v1';
+  if(snapshotRead&&!url.search)url.search='?history=bounded_v2';
   const selectors=receiptRead?['key']:detailRead?['id','revision']:snapshotRead?['history','offset','revision']:[];
   for(const key of url.searchParams.keys())if(!selectors.includes(key)||url.searchParams.getAll(key).length!==1||!url.searchParams.get(key))fail('PAPER_OPERATION_NOT_AUTHORIZED');
-  if(snapshotRead&&(url.searchParams.get('history')!=='bounded_v1'||(url.searchParams.has('offset')&&(!/^(0|[1-9][0-9]{0,15})$/.test(url.searchParams.get('offset'))||!Number.isSafeInteger(Number(url.searchParams.get('offset')))||Number(url.searchParams.get('offset'))>Number.MAX_SAFE_INTEGER-20||Number(url.searchParams.get('offset'))%20!==0))))fail('PAPER_OPERATION_NOT_AUTHORIZED');
+  if(snapshotRead&&(!['bounded_v1','bounded_v2'].includes(url.searchParams.get('history'))||(url.searchParams.has('offset')&&(!/^(0|[1-9][0-9]{0,15})$/.test(url.searchParams.get('offset'))||!Number.isSafeInteger(Number(url.searchParams.get('offset')))||Number(url.searchParams.get('offset'))>Number.MAX_SAFE_INTEGER-20||Number(url.searchParams.get('offset'))%20!==0))))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(detailRead&&(!url.searchParams.get('id')||!url.searchParams.get('revision')))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   if(receiptRead&&!/^quant-native-paper-[0-9a-f-]{36}$/.test(url.searchParams.get('key')||''))fail('PAPER_OPERATION_NOT_AUTHORIZED');
   path=url.pathname+url.search;

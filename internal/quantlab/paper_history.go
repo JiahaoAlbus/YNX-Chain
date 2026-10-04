@@ -30,7 +30,8 @@ func (s *Service) boundedPaperHistory(r *http.Request) (map[string]any, error) {
 			return nil, ErrInvalid
 		}
 	}
-	if !detail && query.Get("history") != "bounded_v1" {
+	version := query.Get("history")
+	if !detail && version != "bounded_v1" && version != "bounded_v2" {
 		return nil, ErrInvalid
 	}
 	offset := 0
@@ -132,7 +133,28 @@ func (s *Service) boundedPaperHistory(r *http.Request) (map[string]any, error) {
 	paper.Orders = orders[start:end]
 	start, end = window(len(audit))
 	maximum := max(len(experiments), len(orders), len(audit))
-	return detachedPaperHistory(map[string]any{"strategies": s.state.Strategies, "experiments": page, "paper": paper, "audit": audit[start:end], "history": map[string]any{"version": "bounded_v1", "revision": revision, "offset": offset, "pageSize": paperHistoryPageSize, "hasNext": offset+paperHistoryPageSize < maximum, "counts": map[string]int{"experiments": len(experiments), "orders": len(orders), "audit": len(audit)}}, "access": map[string]bool{"statefulPreview": false, "paperWorkspaceAuthorized": true, "nativeExecutionEnabled": false, "scheduleAuthorized": false}})
+	strategies := s.state.Strategies
+	counts := map[string]int{"experiments": len(experiments), "orders": len(orders), "audit": len(audit)}
+	if version == "bounded_v2" {
+		catalog := make([]StrategySpec, 0, len(strategies))
+		for _, value := range strategies {
+			catalog = append(catalog, value)
+		}
+		sort.Slice(catalog, func(i, j int) bool {
+			if catalog[i].CreatedAt.Equal(catalog[j].CreatedAt) {
+				return catalog[i].ID < catalog[j].ID
+			}
+			return catalog[i].CreatedAt.After(catalog[j].CreatedAt)
+		})
+		first, last := window(len(catalog))
+		strategies = make(map[string]StrategySpec, last-first)
+		for _, value := range catalog[first:last] {
+			strategies[value.ID] = value
+		}
+		counts["strategies"] = len(catalog)
+		maximum = max(maximum, len(catalog))
+	}
+	return detachedPaperHistory(map[string]any{"strategies": strategies, "experiments": page, "paper": paper, "audit": audit[start:end], "history": map[string]any{"version": version, "revision": revision, "offset": offset, "pageSize": paperHistoryPageSize, "hasNext": offset+paperHistoryPageSize < maximum, "counts": counts}, "access": map[string]bool{"statefulPreview": false, "paperWorkspaceAuthorized": true, "nativeExecutionEnabled": false, "scheduleAuthorized": false}})
 }
 
 // Copy selected records while the original lock/CAS observation is held.

@@ -7,7 +7,9 @@ const integer=Number.isSafeInteger;
 const safeNumbers=(value,depth=0)=>depth<=32&&(typeof value==='number'?integer(value):Array.isArray(value)?value.length<=100001&&value.every(item=>safeNumbers(item,depth+1)):record(value)?Object.values(value).every(item=>safeNumbers(item,depth+1)):value===null||['string','boolean'].includes(typeof value));
 export function nativeHistoryPage(snapshot){
  const value=snapshot?.history;if(value===undefined)return null;
- if(!record(value)||value.version!=='bounded_v1'||!text(value.revision)||!integer(value.offset)||value.offset<0||value.offset>Number.MAX_SAFE_INTEGER-20||value.offset%20!==0||value.pageSize!==20||typeof value.hasNext!=='boolean'||!record(value.counts)||Object.keys(value.counts).sort().join(',')!=='audit,experiments,orders'||!['orders','experiments','audit'].every(key=>integer(value.counts[key])&&value.counts[key]>=0))return false;
+ const keys=value?.version==='bounded_v2'?['audit','experiments','orders','strategies']:['audit','experiments','orders'];
+ if(!record(value)||!['bounded_v1','bounded_v2'].includes(value.version)||!text(value.revision)||!integer(value.offset)||value.offset<0||value.offset>Number.MAX_SAFE_INTEGER-20||value.offset%20!==0||value.pageSize!==20||typeof value.hasNext!=='boolean'||!record(value.counts)||Object.keys(value.counts).sort().join(',')!==keys.join(',')||!keys.every(key=>integer(value.counts[key])&&value.counts[key]>=0))return false;
+ if(value.version==='bounded_v2'&&(!record(snapshot.strategies)||Object.keys(snapshot.strategies).length!==Math.min(20,Math.max(0,value.counts.strategies-value.offset))))return false;
  if(value.hasNext!==(value.offset+20<Math.max(...Object.values(value.counts))))return false;
  return value;
 }

@@ -10,6 +10,78 @@ import (
 	"time"
 )
 
+func TestBoundedV2StrategyCatalogSurvivesRestartWithoutLoss(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "catalog.json")
+	s, err := New(Config{StatePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for n := 0; n < 43; n++ {
+		id := fmt.Sprintf("catalog-%03d", n)
+		s.state.Strategies[id] = StrategySpec{ID: id, Name: id, StrategyHash: hash(id), CreatedAt: time.Unix(1, 0).UTC()}
+	}
+	if err = s.save(); err != nil {
+		t.Fatal(err)
+	}
+	restarted, err := New(Config{StatePath: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	seen := map[string]bool{}
+	revision := ""
+	for offset := 0; offset < 60; offset += 20 {
+		route := fmt.Sprintf("/v1/wallet/paper/snapshot?history=bounded_v2&offset=%d", offset)
+		if revision != "" {
+			route += "&revision=" + url.QueryEscape(revision)
+		}
+		result, err := restarted.boundedPaperHistory(httptest.NewRequest("GET", route, nil))
+		if err != nil {
+			t.Fatal(err)
+		}
+		var meta struct {
+			Revision string
+			HasNext  bool
+			Counts   map[string]int
+		}
+		if err = json.Unmarshal(result["history"].(json.RawMessage), &meta); err != nil {
+			t.Fatal(err)
+		}
+		revision = meta.Revision
+		var rows map[string]StrategySpec
+		if err = json.Unmarshal(result["strategies"].(json.RawMessage), &rows); err != nil {
+			t.Fatal(err)
+		}
+		want := 20
+		if offset == 40 {
+			want = 3
+		}
+		if len(rows) != want || meta.Counts["strategies"] != 43 || meta.HasNext != (offset < 40) {
+			t.Fatal("catalog metadata mismatch")
+		}
+		for id, row := range rows {
+			if seen[id] || row.StrategyHash != hash(id) {
+				t.Fatal("duplicate or changed strategy")
+			}
+			seen[id] = true
+		}
+	}
+	if len(seen) != 43 {
+		t.Fatal("lost strategies")
+	}
+	legacy, err := restarted.boundedPaperHistory(httptest.NewRequest("GET", "/v1/wallet/paper/snapshot?history=bounded_v1", nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var full map[string]StrategySpec
+	_ = json.Unmarshal(legacy["strategies"].(json.RawMessage), &full)
+	if len(full) != 43 {
+		t.Fatal("v1 compatibility lost")
+	}
+	if _, err = restarted.boundedPaperHistory(httptest.NewRequest("GET", "/v1/wallet/paper/snapshot?history=bounded_v2&offset=20&revision=foreign", nil)); err != ErrConflict {
+		t.Fatal("stale catalog accepted")
+	}
+}
+
 func TestBoundedNativePaperHistoryPreservesDurableRecordsAndRejectsStalePages(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "history.json")
 	s, err := New(Config{StatePath: path})

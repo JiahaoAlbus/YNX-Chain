@@ -18,10 +18,11 @@ export function mountNativePaperHistory(host,{session,snapshot,request,language}
   if(model.invalid)root.append(node('p',copy.invalid+` (${model.invalid})`));
   const page=nativeHistoryPage(source),same=()=>{const now=session();return now.account===current.account&&now.epoch===current.epoch&&now.ready&&snapshot()===source;};
   if(page){
+   if(page.version==='bounded_v2')root.append(node('p',copy.catalog+' · '+copy.counts+` (${Object.keys(source.strategies).length}/${page.counts.strategies}) · ${page.offset}`));
    const navigation=node('nav');navigation.setAttribute('aria-label',copy.title);root.append(navigation);
    for(const [key,offset,disabled] of [['previous',page.offset-20,page.offset===0],['next',page.offset+20,!page.hasNext]]){
     const button=node('button',copy[key]);button.type='button';button.dataset.nativeHistoryPage=key;button.disabled=disabled||busy;navigation.append(button);
-    button.addEventListener('click',async()=>{if(busy||!same())return;busy=true;button.disabled=true;button.textContent=copy.loading;try{await request('/v1/wallet/paper/snapshot?history=bounded_v1&offset='+offset+'&revision='+encodeURIComponent(page.revision));}catch{}finally{busy=false;render();}});
+    button.addEventListener('click',async()=>{if(busy||!same())return;busy=true;button.disabled=true;button.textContent=copy.loading;try{await request('/v1/wallet/paper/snapshot?history='+page.version+'&offset='+offset+'&revision='+encodeURIComponent(page.revision));}catch{}finally{busy=false;render();}});
    }
   }
   for(const [kind,label] of [['orders',copy.orders],['experiments',copy.research],['audit',copy.audit]]){
