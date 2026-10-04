@@ -1,0 +1,14 @@
+{
+  "kind": "IOS_FROZEN_ARCHIVE_EXTRACTED_BYTE_READBACK",
+  "buildReceipt": "matching-ios-release-simulator-20261004.json",
+  "frozenBuild": "native-matching-ios-engineering-20261004-x5WJHG",
+  "archiveSha256": "ede4ea7b2c5a4db716841144ebdf45f10c4aca1f78244b951f455a631c16cffc",
+  "execution": {"exit": 0, "files": 40, "exactToFrozenBuildManifest": true, "unexpectedFilesOrLinks": false},
+  "identity": {"bundleId": "com.ynxweb4.wallet", "version": "1.0.15", "build": "22", "platform": "iPhoneSimulator"},
+  "verifierSha256": "9071e6f1f9c69736e48d6f841ba95347b4a90c8042eadb8cc3349384feb5875e",
+  "readbackSha256": "bffd0923beb0b15d0e03f6ae3fe28c5d079b1e6c2bbf15e859fbf1a03f45bb33",
+  "evidenceFreeze": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native-ios-archive-readback-20261004-PQsfc9",
+  "safety": {"installed": false, "launched": false, "privateUserDataReadOrChanged": false, "productRuntimeSourceChanged": false},
+  "limits": ["Byte-level custody check by original owner, not independent source review", "No embedded Git source identity", "Not formal provisioning/signing/device distribution", "Not real-user business acceptance"],
+  "overall": "ARTIFACT_BYTES_VERIFIED_PRODUCT_NOT_COMPLETED"
+}
