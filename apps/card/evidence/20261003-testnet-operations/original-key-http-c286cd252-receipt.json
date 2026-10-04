@@ -1,0 +1,71 @@
+{
+  "observedAt": "2026-10-04T10:00:44.605Z",
+  "source": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "tree": "6e7b708f2a7ecfe4fcff3faf8ceaf4f806d79fce",
+  "predecessor": "2ac7daf553642929a51f244728287e0e1616c0a6",
+  "gap": "Predecessor service-only grammar did not fix client resource validation or HTTP scope matching",
+  "fix": "Accepted original key grammar carried through fixed-origin client route, HTTP scope admission and service readback; invalid path/query keys rejected before proof minting",
+  "tests": {
+    "frontend": 455,
+    "backend": 151,
+    "failed": 0,
+    "typecheck": true,
+    "webBuild": true,
+    "envelopeVerifier": true,
+    "backendCompile": true
+  },
+  "directLocalHttp": true,
+  "fixtureAuthorityOnly": true,
+  "assertions": [
+    "actual CardBusinessClient GET through actual Card HTTP server",
+    "numeric/dot/colon/maximum-length original keys return CONFIRMED",
+    "unknown original key remains UNKNOWN",
+    "account:read only",
+    "no extra ledger/event mutation",
+    "no automatic operation replay",
+    "path/query injection rejected before proof minting"
+  ],
+  "candidate": {
+    "root": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/envelope-original-key-http-20261004",
+    "manifestSha256": "4e354849f11ba8ba6d61397df2bfeaac2c9a52a33749c31f07afe6b131197128"
+  },
+  "logs": {
+    "frontend": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-frontend.txt",
+      "sha256": "38f3fc47ce8de1a32f0ae74d7ae9d593c4272ba3db3631c5259f80fc6c2c7baa"
+    },
+    "backend": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-backend.txt",
+      "sha256": "3bd401c34d1ccc4c7880b20d31a830b6140d01d87450e5682395a9f030cc79f4"
+    },
+    "types": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-types.txt",
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    "web": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-web.txt",
+      "sha256": "e82182f5cafb9ecfee7511452a805f74da16c0b9599542188c642bd2b2bd8e03"
+    },
+    "envelope": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-envelope.txt",
+      "sha256": "d9a4124e1659fcaf4b46c7474ba56bbb94680bceedf11b556a60df9f2d76c8c3"
+    },
+    "backend-build": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-http-c286cd252-backend-build.txt",
+      "sha256": "a589144ddbf555e1243a7132e8acc5d43d1227582e8ffef4c971fa117e663cb0"
+    }
+  },
+  "boundaries": {
+    "publicDeployment": false,
+    "newWalletApproval": false,
+    "signature": false,
+    "realApplicationAcceptance": false,
+    "realActiveCard": false,
+    "realYnxtTopup": false,
+    "realLedgerCredit": false,
+    "dataFabricReceiverAcceptance": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  },
+  "remaining": "Original producer/Host integration and source-bound public approval/application/YNXT funding and lifecycle evidence remain required"
+}
