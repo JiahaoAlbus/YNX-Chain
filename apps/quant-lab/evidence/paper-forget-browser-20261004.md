@@ -1,0 +1,14 @@
+# Real local two-tab Forget recovery
+
+Test/screenshot commit `c4292c57233317d9209dd54936bc28c986e3a16d`, tree `3f0ab70ddb505d172df504782bc24f01f9b63743`. Production source inherits `958981e7cd477ccf74753eae35cdcab2445172ca` unchanged. Prior source/evidence `bce7451faccdf755bb5cf3ff52fd70eb36b18a81` remains intact.
+
+Executed `node --test apps/quant-lab/tests/research-recovery-browser.test.mjs`: 1 PASS, 0 FAIL/CANCEL/SKIP, 19983.880333 ms. Syntax and diff checks PASS. Actual original Go service, three Chrome contexts, two same-workspace tabs, four normal SIGTERM stops/restarts. Binary 11517090 bytes SHA256 `48418fe95eb5bed135908c409a16df32e544d39f0703ec0313866f5e23ab41aa`.
+
+The original late-response phase remains three POSTs/two committed simulation orders. New explicit corruption boundary phase intentionally writes `{` into the local journal only: this is a controlled test of damaged browser storage, NOT natural corruption, authorization or public acceptance. No tenant identity, Wallet, server receipt or service state is injected.
+
+Both real tabs reload the unreadable record. B explicitly confirms local Forget, then creates a different request through the original strategy/amount/cost form. The actual Go engine commits it; delivery is aborted to create an unknown-return recovery condition. A's stale Forget is clicked: zero confirmation dialogs, the valid replacement bytes remain exact, A reloads the replacement and hides stale Forget. A's read-only Restore copies exact amount 3000000/fee30/slippage15; cancelled confirmation makes no POST and leaves the journal intact. B explicitly retries the same serialized intent: two POSTs, one additional service order, exact same receipt, fee and notional charged once. Both tabs reload the same three-order service portfolio and no pending journal. No page errors or blank tabs.
+
+Committed screenshot `paper-forget-browser-20261004/stale-forget-preserved-new-request-en.png`: 301356 bytes, SHA256 `6725e51e484264b13b174ba3dc19e88ea3119e25ea4c2d9954973bbdda3157ce`.
+Full local artifact root `/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-quant-research-recovery-4Kcvmb` retains all twelve screenshots. Earlier independent stale Forget FAIL, late-response failures and timeout evidence remain preserved in predecessor records; this new PASS does not rewrite them.
+
+Limits: ordinary recovery closure for the executed sequences, not atomic cross-tab CAS proof for every possible interleaving. Local test tape and simulated broker only. Public source binding, actual private identity, provider approval/signature/transaction, Product Session, formal Host/SDK and installed release remain NOT VERIFIED. No production write. Matching formal publication belongs to the sole release owner through 接续测试网生态审计工作; goal remains incomplete. Revert this test/evidence commit only via reviewed Git revert if necessary; no reset/force push or live rollback implied.
