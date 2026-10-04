@@ -20,9 +20,18 @@ exports.activate = context => {
     const root = vscode.workspace.workspaceFolders?.[0]?.uri;
     if (!extension || !root || !vscode.workspace.isTrusted) throw Error('Use an owned trusted QA workspace.');
     await extension.activate();
+    const documentUri = vscode.Uri.joinPath(root, 'json-auto-diagnostic-probe.json');
+    await vscode.workspace.fs.writeFile(documentUri, Buffer.from(JSON.stringify({ $schema: 'https://json.schemastore.org/package', name: 'ynx-owned-policy-probe' })));
+    const document = await vscode.workspace.openTextDocument(documentUri);
+    await vscode.window.showTextDocument(document);
+    await new Promise(resolve => setTimeout(resolve, 3000));
     const report = { version: extension.packageJSON.version, active: extension.isActive,
       schemaDownload: vscode.workspace.getConfiguration('json').get('schemaDownload.enable'),
       inspection: vscode.workspace.getConfiguration('json').inspect('schemaDownload.enable'),
+      validation: vscode.workspace.getConfiguration('json').get('validate.enable'),
+      validationInspection: vscode.workspace.getConfiguration('json').inspect('validate.enable'),
+      document: { uri: document.uri.toString(), languageId: document.languageId, version: document.version },
+      automaticDiagnostics: vscode.languages.getDiagnostics(document.uri),
       diagnostics: await vscode.commands.executeCommand('json.validate', vscode.Uri.parse('https://json.schemastore.org/package'), '{}') };
     await vscode.workspace.fs.writeFile(vscode.Uri.joinPath(root, 'json-policy-report.json'), Buffer.from(JSON.stringify(report, null, 2)));
     await vscode.window.showInformationMessage('YNX JSON QA policy inspection complete');

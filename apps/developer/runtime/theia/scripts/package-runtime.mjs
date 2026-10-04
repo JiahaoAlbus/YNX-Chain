@@ -12,6 +12,14 @@ if (!destination?.startsWith(candidateRoot) || resolve(destination) !== destinat
   throw Error('Use new owned absolute candidate paths.');
 const plugins = await realpath(pluginsInput);
 if (!plugins.startsWith(candidateRoot)) throw Error('Plugin input escaped its owned candidate root.');
+const buildReceipt = JSON.parse(await readFile(join(application, '.ynx-owned-build.json'), 'utf8'));
+if (buildReceipt.workbenchTreeSha256 !== await composedTreeDigest(join(developer, 'runtime/ynx-workbench'))
+  || buildReceipt.workbenchTreeSha256 !== await composedTreeDigest(join(application, 'node_modules/@ynx/developer-workbench'))
+  || buildReceipt.compiledTreeSha256 !== await composedTreeDigest(join(application, 'lib'))
+  || buildReceipt.packageSha256 !== createHash('sha256').update(await readFile(join(application, 'package.json'))).digest('hex')
+  || buildReceipt.lockSha256 !== createHash('sha256').update(await readFile(join(application, 'package-lock.json'))).digest('hex')) {
+  throw Error('Owned source/cache/build receipt differs. Run the owned offline build before packaging.');
+}
 await mkdir(destination, { mode: 0o700 }); // never replace an existing candidate
 async function assertRegularTree(root) {
   for (const name of await readdir(root)) {

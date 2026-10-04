@@ -15,12 +15,18 @@ const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
+const { JsonSchemaPolicyStatus } = require('./json-schema-policy-status');
+const { PreferenceService } = require('@theia/core/lib/common/preferences');
+const { StatusBar } = require('@theia/core/lib/browser/status-bar/status-bar');
 const { FileService } = require('@theia/filesystem/lib/browser/file-service');
 const { EnvVariablesServer } = require('@theia/core/lib/common/env-variables/env-variables-protocol');
 const { KeybindingRegistry } = require('@theia/core/lib/browser/keybinding');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => new JsonSchemaPolicyStatus(
+    context.container.get(EditorManager), context.container.get(PreferenceService), context.container.get(StatusBar),
+  )).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => ({
     registerCommands(registry) {
       registry.registerCommand({ id: 'ynx.workbench.reloadWindow', category: 'Developer', label: 'Reload Window' }, {

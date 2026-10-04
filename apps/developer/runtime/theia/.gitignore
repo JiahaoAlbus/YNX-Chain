@@ -8,3 +8,4 @@ gen-esbuild.browser.mjs
 gen-esbuild.node.mjs
 webpack.config.js
 .theia/
+.ynx-owned-build.json
