@@ -81,6 +81,65 @@
     "receipt": "apps/wallet-desktop/test/recovery-qr-successor-engineering-package-20261004.json",
     "journeyAcceptanceUnchanged": true
   },
+  "latestAndroidEngineeringArtifact": {
+    "actualPackageComposition": "bb4fdee5dd64aa17ae5fefc8a62051024fbd7247",
+    "buildExit": 0,
+    "architecture": "arm64-v8a",
+    "version": "1.0.15-testnet-preview",
+    "versionCode": 22,
+    "signing": "UNSIGNED",
+    "apkSha256": "43641b35fc6d828048ca31b86d5b3b2b910b6c33fedae53666fd595663f08771",
+    "installedOrFormallyPublished": false,
+    "mustNotDowngradeHistoricalCode34": true,
+    "receipt": "matching-android-arm64-engineering-build-20261004.json"
+  },
+  "latestIosEngineeringArtifact": {
+    "baseComposition": "bb4fdee5dd64aa17ae5fefc8a62051024fbd7247",
+    "generatedInputsRecordedAfterBuild": "d3b241601d40aaa7cbd68d30fa7203954e4e904a",
+    "buildExit": 0,
+    "platform": "iPhoneSimulator",
+    "architecture": "arm64",
+    "version": "1.0.15",
+    "versionCode": 22,
+    "archiveSha256": "ede4ea7b2c5a4db716841144ebdf45f10c4aca1f78244b951f455a631c16cffc",
+    "extracted40FilesExactToFrozenBuildManifest": true,
+    "embeddedGitSourceIdentity": "NOT_CLAIMED",
+    "installedOrFormallyPublished": false,
+    "receipt": "matching-ios-release-simulator-20261004.json",
+    "archiveReceipt": "ios-frozen-archive-readback-20261004.json"
+  },
+  "currentNormalEntryObservation": {
+    "observedAt": "2026-10-04T08:51Z",
+    "macos": "CUA freshly returned Mac locked; Native app inventory unavailable. No automatic unlock or application launch attempted.",
+    "web": {
+      "url": "https://wallet.ynxweb4.com/",
+      "mode": "ANONYMOUS_NEW_IAB_TAB_NO_ACCOUNT_SETUP",
+      "root": "Direct Web Wallet management/onboarding, not a public product introduction",
+      "assets": "Balance dash, create-or-recover instruction, Refresh/Receive/Send disabled",
+      "activity": "Visible empty history",
+      "connections": "Visible companion.html link; text distinguishes extension connection from Web Wallet unlock",
+      "scope": "Actual visible anonymous UI only; no account, Relay, permission, payment or installed journey proven",
+      "credentialsEntered": false,
+      "accountCreatedOrImported": false,
+      "signatureOrTransferAttempted": false
+    },
+    "installedMacCopyReadback": "macos-installed-copy-identity-20261004.json",
+    "fullJourneyRuntimeStatusesUnchanged": true
+  },
+  "publicMicrositeGate": {
+    "requirement": "Existing public product introduction and explicit same-tab Open Web Wallet; preserve old application/deep/callback/API/download routes",
+    "sharedWebRootObserved": "INTRODUCTION_NOT_PRESENT",
+    "nativeContentSupplied": "wallet-microsite-content-20261004.json",
+    "writer": "A_SHARED_WEB",
+    "nativeRuntimeMustNotBecomeMarketingShell": true,
+    "websiteLandingAndSharedWebRootAreDifferentGates": true
+  },
+  "dependencyClassification": {
+    "internalDevelopment": ["A genuine current-authority/platform producer and trusted invoice/quote/settlement boot composition", "Shared Web introduction and explicit compatible app route", "Single-publisher matching signed higher-compatible release and official download binding"],
+    "normalHumanRuntimeActions": ["Unlock Mac through the normal system UI", "Original Android PIN unlock if required", "Credential entry and explicit account approval only when the actual journey reaches that gate"],
+    "externalValidation": ["Real counterparty scan and Relay/business readback", "MONSTER actual available channel", "Final user acceptance"],
+    "internalWorkIsNotUserMissingApiOrDevelopmentPermission": true
+  },
   "currentExternalBlockers": [
     "Matching frozen SDK 1.2.0 plus the exact original declared CLI and isolated 132-file distribution installation are supplied; complete owned Native/Desktop source suites pass. Actual production composition and final platform install remain unverified. Bin presence and syntax checks do not prove migration execution or production authority.",
     "A protected current-authority/trusted invoice policy/quote/authenticated settlement adapter and genuine platform binding producer are not supplied; a static definition map cannot enable Pay.",
