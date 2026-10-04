@@ -17,6 +17,7 @@ let riskOutcomeUnconfirmed = false;
 const scheduleWrites = new Set(), scheduleUnconfirmed = new Set();
 let pendingMandate = null;
 let pendingOrder = null;
+let testnetOrderSubmitting = false;
 let previewRevision = 0;
 let walletIdentity = "";
 let portfolioRevision = 0;
@@ -1446,6 +1447,12 @@ function orderRiskDraft(){
  risk.oracleAsOf=time;risk.venueHealthy=true;return risk;
 }
 function orderReview(){return {draft:orderDraft(),Risk:orderRiskDraft(),MandateDigest:$('#order-mandate').value.trim()}}
+function confirmedTestnetOrderReceipt(value,review){
+ const draft=review.draft,invalid=()=>{throw Object.assign(new Error(t('executionOutcomeUnknown')),{localeKey:'executionOutcomeUnknown'})};
+ if(!value||typeof value!=='object'||Array.isArray(value)||!/^testnet-[0-9]+$/.test(value.id||'')||value.status!=='submitted_testnet'||value.mandateDigest!==review.MandateDigest||value.market!==draft.Market||value.side!==draft.Side||value.price!==draft.Price||value.amount!==draft.Amount||value.idempotencyKey!==draft.IdempotencyKey||!Number.isSafeInteger(value.price)||value.price<=0||!Number.isSafeInteger(value.amount)||value.amount<=0||!auditTimeValid(value.createdAt)||!/^[a-f0-9]{64}$/i.test(value.strategyHash||'')||!/^[a-f0-9]{64}$/i.test(value.authorizationDigest||'')||typeof value.venueOrderId!=='string'||!value.venueOrderId.trim()||value.venueOrderId!==value.venueOrderId.trim()||!['open','partially_filled','filled'].includes(value.venueStatus)||typeof value.brokerProof!=='string'||!value.brokerProof.trim())invalid();
+ return value;
+}
+for(const [language,executionReceiptConfirmed] of Object.entries({en:'Service confirmed the exact Testnet submission. Venue status is not a settlement or transfer proof.','zh-CN':'服务已确认精确测试网提交。场所状态不是结算或转账证明。','zh-TW':'服務已確認精確測試網提交。場所狀態非結算或轉帳證明。',ja:'サービスが正確なTestnet送信を確認しました。取引所状態は決済や送金の証明ではありません。',ko:'서비스가 정확한 Testnet 제출을 확인했습니다. 거래소 상태는 결제 또는 전송 증거가 아닙니다.',es:'El servicio confirmó el envío Testnet exacto. El estado del mercado no prueba liquidación ni transferencia.',fr:'Le service confirme la soumission Testnet exacte. Le statut de la place ne prouve ni règlement ni transfert.',de:'Der Dienst bestätigt die exakte Testnet-Übermittlung. Der Handelsplatzstatus beweist keine Abrechnung oder Übertragung.',pt:'O serviço confirmou o envio Testnet exato. O status do mercado não prova liquidação ou transferência.',ru:'Сервис подтвердил точную отправку Testnet. Статус площадки не доказывает расчёт или перевод.',ar:'أكدت الخدمة إرسال شبكة الاختبار الدقيق. حالة المنصة ليست إثبات تسوية أو تحويل.',id:'Layanan mengonfirmasi pengiriman Testnet tepat. Status tempat perdagangan bukan bukti penyelesaian atau transfer.'}))Object.assign(businessCopy[language],{executionReceiptConfirmed});
 function orderDraft() {
   return {
     Account: $("#mandate-account").value.trim(),
@@ -1472,15 +1479,17 @@ $("#preview-order").onclick = async () => {
 };
 $("#testnet-order-form").onsubmit = async (e) => {
   e.preventDefault();
+  if(testnetOrderSubmitting)return;
   const revision = previewRevision;
   try {
     const review=orderReview(),draft=review.draft;
     if(!pendingOrder||JSON.stringify(review)!==JSON.stringify(pendingOrder))throw Object.assign(new Error(t('riskObservationInvalid')),{localeKey:'riskObservationInvalid'});
     if(!confirm(`${t('riskOrderConfirm')}\n${JSON.stringify(review,null,2)}`))return;
     if(revision!==previewRevision||JSON.stringify(orderReview())!==JSON.stringify(review))return;
+    testnetOrderSubmitting=true;$('#testnet-order-submit').disabled=true;
     const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:execute");
     if (revision !== previewRevision || !pendingOrder || JSON.stringify(orderReview())!==JSON.stringify(review)) return;
-    await api("/v1/testnet/orders", {
+    const receipt = await api("/v1/testnet/orders", {
       method: "POST",
       headers: { "x-ynx-quant-product-session-proof": productProof },
       body: JSON.stringify({
@@ -1494,12 +1503,15 @@ $("#testnet-order-form").onsubmit = async (e) => {
       }),
     });
     if (revision !== previewRevision) return;
-    toast("Wallet-authorized order submitted to YNX Testnet");
+    confirmedTestnetOrderReceipt(receipt,review);
+    toast(`${t('executionReceiptConfirmed')}\n${receipt.venueOrderId} · ${receipt.venueStatus}`,'executionReceiptConfirmed',`\n${receipt.venueOrderId} · ${receipt.venueStatus}`);
     pendingOrder = null;
     $("#order-signature").value = "";
     await refresh();
   } catch (e) {
     toast(e.message,e.localeKey??null);
+  } finally {
+    testnetOrderSubmitting=false;$('#testnet-order-submit').disabled=false;
   }
 };
 function renderRiskControls() {

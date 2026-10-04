@@ -107,6 +107,28 @@ test('operator risk observation labels and rejection stay in all twelve selected
   for(const key of ['riskOracleTime','riskVenueObservation','riskOperatorObservation','riskOrderConfirm'])assert.ok(vm.runInContext(`t(${JSON.stringify(key)})`,app.context));
  }
 });
+const testnetReceipt=review=>({id:'testnet-000007',mandateDigest:review.MandateDigest,strategyHash:'e'.repeat(64),market:review.draft.Market,side:review.draft.Side,price:review.draft.Price,amount:review.draft.Amount,idempotencyKey:review.draft.IdempotencyKey,status:'submitted_testnet',createdAt:new Date().toISOString(),venueOrderId:'controlled-venue-order',venueStatus:'open',authorizationDigest:'b'.repeat(64),brokerProof:'controlled-broker-receipt-not-a-real-session'});
+test('Testnet malformed or foreign 201 receipt never claims success or clears exact preview/signature',async()=>{
+ for(const patch of [null,[],{}, {id:'foreign'},{mandateDigest:'a'.repeat(64)},{market:'OTHER'},{side:'sell'},{price:999},{amount:999},{idempotencyKey:'other-key'},{status:'reserved_outcome_unknown'},{venueStatus:'rejected'},{venueOrderId:''},{brokerProof:''},{authorizationDigest:'bad'},{createdAt:'2026-02-30T00:00:00Z'},{strategyHash:null}]){
+  let returned=null;const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{}:url.endsWith('/testnet/orders')?returned:{payload:'Controlled local preview',digest:'f'.repeat(64)}});await settle();observedOrder(app);await app.ids.get('preview-order').onclick();
+  const review=vm.runInContext('pendingOrder',app.context);returned=patch===null||Array.isArray(patch)?patch:{...testnetReceipt(review),...patch};
+  if(patch&&Object.keys(patch).length===0)returned={};
+  app.context.window.YNXQuantWallet.requireProof=async()=> 'controlled-test-proof';app.ids.get('order-signature').value='controlled-signature';
+  await app.submit('testnet-order-form');
+  assert.notEqual(vm.runInContext('pendingOrder',app.context),null);assert.equal(app.ids.get('order-signature').value,'controlled-signature');
+  assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("executionOutcomeUnknown")',app.context));assert.equal(app.ids.get('testnet-order-submit').disabled,false);
+  assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,1);
+ }
+});
+test('exact confirmed Testnet receipt alone clears preview and double submit shares one proof/request lane',async()=>{
+ let returned;const confirmation=deferred(),app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{}:url.endsWith('/testnet/orders')?returned:{payload:'Controlled local preview',digest:'f'.repeat(64)}});await settle();observedOrder(app);await app.ids.get('preview-order').onclick();returned=testnetReceipt(vm.runInContext('pendingOrder',app.context));
+ let proofCalls=0;app.context.window.YNXQuantWallet.requireProof=()=>{proofCalls++;return confirmation.promise};app.ids.get('order-signature').value='controlled-signature';
+ const first=app.submit('testnet-order-form');await settle();await app.submit('testnet-order-form');assert.equal(proofCalls,1);assert.equal(app.ids.get('testnet-order-submit').disabled,true);
+ confirmation.resolve('controlled-test-proof');await first;
+ assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,1);assert.equal(vm.runInContext('pendingOrder',app.context),null);assert.equal(app.ids.get('order-signature').value,'');assert.equal(app.ids.get('testnet-order-submit').disabled,false);
+ assert.ok(app.ids.get('toast').textContent.includes('Venue status is not a settlement'));assert.doesNotMatch(app.ids.get('toast').textContent,/controlled-broker-receipt/);
+ for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){app.ids.get('locale').onchange({target:{value:language}});assert.ok(app.ids.get('toast').textContent.startsWith(vm.runInContext('t("executionReceiptConfirmed")',app.context)));}
+});
 
 test('configured research split never claims a fixed 50 percent and follows every selected language',async()=>{
   assert.doesNotMatch(html,/First 50%|Held-out 50%/);
