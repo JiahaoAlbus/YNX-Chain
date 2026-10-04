@@ -1,0 +1,89 @@
+{
+  "schema": "ynx-card-introduction-candidate-v1",
+  "source": "4990de3478e1d1ca46f23c7149bf9a03fecbcf94",
+  "tree": "1e2e1c1837bd5e263361646fcf0632c95ed6f11b",
+  "observedAt": "2026-10-04T07:41:52.828Z",
+  "preview": "http://127.0.0.1:8797/about/",
+  "app": "http://127.0.0.1:8797/",
+  "sourceReference": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/codex-clipboard-012bbb40-962b-47a8-b3f7-971458805826.png",
+  "tests": {
+    "introduction": "3/3",
+    "frontendAndBackendTypecheck": "passed",
+    "webBuild": "passed",
+    "envelopeExactFiles": 21,
+    "staticParityFiles": 18
+  },
+  "browser": {
+    "engine": "Codex in-app browser",
+    "actualViewports": [
+      {
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "width": 1440,
+        "height": 1000
+      },
+      {
+        "width": 390,
+        "height": 844
+      },
+      {
+        "width": 320,
+        "height": 800
+      }
+    ],
+    "englishDefault": true,
+    "chineseExplicitSwitch": true,
+    "localeReloadRestored": true,
+    "localeSharedWithApp": true,
+    "sameTabCTA": true,
+    "backToIntroduction": true,
+    "horizontalOverflow": false,
+    "controlMinHeight44": true,
+    "keyboardFocusVisible": true,
+    "consoleErrors": 0,
+    "originalAssetsLoaded": true
+  },
+  "remaining": [
+    "Chinese accessibility labels: introduction navigation and Testnet boundary remain English",
+    "Dedicated application-to-introduction return control not added; browser Back verified",
+    "Formal Host deployment and website entry handoff not executed",
+    "Product Design user-context preflight exited 137 without output"
+  ],
+  "screenshots": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-4990de347-desktop-en.png",
+      "bytes": 66023,
+      "sha256": "caba29c00a70f1d6a879b6135d5da119edc8f4131a53980f23dba4c15b6ebe3a"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-4990de347-desktop-1440-en.png",
+      "bytes": 285923,
+      "sha256": "e9aa1997c93a39f82841ff59828cf0a2396f18ac8ef1196e40b3203fc94ea567"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-4990de347-mobile-390-en.png",
+      "bytes": 243419,
+      "sha256": "4bd503fc68a84b5eae11951797819c0e57994872801ed3188f9de825bbcae7b2"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/introduction-4990de347-mobile-320-en.png",
+      "bytes": 237349,
+      "sha256": "b3fa5d1a587128de4ed70d1de5a71fdcaf1531b12201587c815218dbc7cd1212"
+    }
+  ],
+  "gates": {
+    "publicDeployment": false,
+    "walletApproval": false,
+    "walletSignature": false,
+    "backendActivation": false,
+    "realYNXTFunding": false,
+    "cardCredit": false,
+    "dataFabricDelivery": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false,
+    "computerControl": false
+  }
+}
