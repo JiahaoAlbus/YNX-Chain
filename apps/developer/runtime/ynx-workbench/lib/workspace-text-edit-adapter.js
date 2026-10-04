@@ -141,7 +141,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
       for (const operation of operations) resultingSize += (operation.text || '').replace(/\r?\n/g, model.getEOL()).length - model.getValueInRange(operation.range).length;
       if (eol !== undefined && (eol === 0 ? '\n' : '\r\n') !== model.getEOL()) resultingSize += (eol === 1 ? 1 : -1) * (model.getLineCount() - 1);
       if ((resultCharacters += resultingSize) > 8 * 1024 * 1024) throw Error('Workspace text edit results exceed 16 MiB of UTF-16 text. No files were changed.');
-      prepared.push({ model, version, before, operations, eol, encoding: document.getEncoding?.(), cursor: selections(document) });
+      prepared.push({ model, version, before, initialUndoRedoSnapshot: model.getInitialUndoRedoSnapshot(), operations, eol, encoding: document.getEncoding?.(), cursor: selections(document) });
     }
     if (!prepared.length) return { totalEdits: 0, totalFiles: 0 };
     for (const row of prepared) if (row.model.getVersionId() !== row.version || !matches(row.model, row.before)) throw Error('A workspace edit target changed during preparation. No files were changed.');
@@ -218,6 +218,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
         if (row.model.getValue() !== row.before.value) (dependencies.rollbackEdits || ((model, edits) => model.applyEdits(edits)))(row.model, [{ range: row.model.getFullModelRange(), text: row.before.value }]);
         if (row.model.getEOL() !== row.before.eol) row.model.setEOL(row.before.eol === '\n' ? 0 : 1);
         row.model._overwriteAlternativeVersionId(row.before.alternativeVersion);
+        row.model._overwriteInitialUndoRedoSnapshot(row.initialUndoRedoSnapshot);
       }
       restoreHistory(undoRedo, history);
       throw error;

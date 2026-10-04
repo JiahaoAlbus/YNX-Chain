@@ -126,3 +126,22 @@ test('closed UTF-8 BOM and UTF-16LE callers use retained text decoding before re
   await h.undoRedo.undo(h.resources[0]);assert.equal(h.models.has(h.resources[1].toString()),false);assert.deepEqual(h.resources.map(uri=>h.undoRedo.getElements(uri)),history);assert.match(h.warnings.at(-1),/changed|unavailable/);
  }
 });
+test('failed workspace push restores the exact initial undo snapshot, including null, across real ModelService close/reopen',async t=>{
+ for(const priorTyping of [false,true]) {
+  const h=fixture(t,['twice','twice']),first=h.models.get(h.resources[0].toString());
+  if(priorTyping)first.pushEditOperations([],[{range:new Range(1,6,1,6),text:' old'}],()=>[]);
+  const snapshots=h.resources.map(uri=>h.models.get(uri.toString()).getInitialUndoRedoSnapshot()),before=h.values(),history=h.resources.map(uri=>h.undoRedo.getElements(uri));
+  assert.equal(snapshots[0]===null,!priorTyping);assert.equal(snapshots[1],null);
+  const push=h.undoRedo.pushElement.bind(h.undoRedo);h.undoRedo.pushElement=(...args)=>{push(...args);throw Error('snapshot stack failure');};
+  await assert.rejects(applyTextTransaction(h.workspace,h.edits(),h.dependencies),/snapshot stack failure/);h.undoRedo.pushElement=push;
+  for(let index=0;index<h.resources.length;index++)assert.equal(h.models.get(h.resources[index].toString()).getInitialUndoRedoSnapshot(),snapshots[index]);
+  assert.deepEqual(h.values(),before);assert.deepEqual(h.resources.map(uri=>h.undoRedo.getElements(uri)),history);
+  for(const uri of h.resources)h.close(uri);
+  for(const uri of h.resources)await h.workspace.textModelService.createModelReference(uri);
+  assert.deepEqual(h.values(),before);assert.deepEqual(h.resources.map(uri=>h.undoRedo.getElements(uri)),history);
+  for(let index=0;index<h.resources.length;index++)assert.equal(h.models.get(h.resources[index].toString()).getInitialUndoRedoSnapshot(),snapshots[index]);
+  if(priorTyping){await h.undoRedo.undo(h.resources[0]);assert.deepEqual(h.values(),['twice','twice']);await h.undoRedo.redo(h.resources[0]);assert.deepEqual(h.values(),before);}
+  await applyTextTransaction(h.workspace,h.edits(),h.dependencies);const after=h.values();
+  await h.undoRedo.undo(h.resources[1]);assert.deepEqual(h.values(),before);await h.undoRedo.redo(h.resources[0]);assert.deepEqual(h.values(),after);assert.deepEqual(h.warnings,[]);
+ }
+});
