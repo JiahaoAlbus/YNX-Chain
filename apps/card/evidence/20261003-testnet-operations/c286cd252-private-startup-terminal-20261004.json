@@ -1,0 +1,22 @@
+{
+  "observedAt": "2026-10-04T10:02:49.000Z",
+  "source": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "artifact": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/backend-original-key-http-20261004.mjs",
+  "artifactSha256": "b6134e1da9df13361c33c87afd137390b4c71385cd7ae1cb7190c69f75c8c6da",
+  "execution": "isolated environment, no state key, no account, no private service credentials, no RPC",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "stdout": "",
+  "stderr": "node:internal/modules/package_json_reader:301\n  throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);\n        ^\n\nError [ERR_MODULE_NOT_FOUND]: Cannot find package '@ynx-chain/wallet-auth-card-provider-v2' imported from /private/tmp/ynx-card-exact-pair-20261004.OY6MZG/backend-original-key-http-20261004.mjs\n    at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)\n    at packageResolve (node:internal/modules/esm/resolve:784:25)\n    at moduleResolve (node:internal/modules/esm/resolve:873:18)\n    at defaultResolve (node:internal/modules/esm/resolve:1006:11)\n    at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)\n    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)\n    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)\n    at #resolve (node:internal/modules/esm/loader:690:17)\n    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)\n    at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {\n  code: 'ERR_MODULE_NOT_FOUND'\n}\n\nNode.js v26.7.0\n",
+  "expectedFailure": "CARD_PROTECTED_RUNTIME_SOURCE_UNAVAILABLE",
+  "expectedFailureObserved": false,
+  "runtimeInput": "originalCardRuntimeInputs.current is null; configured private startup rejects before state key decode/storage creation",
+  "requiredIntegration": "Original authenticated role/custody Current producer must be captured at construction by existing Host composer; no ENV/no-op/test fixture substitute. Pair accepted original authenticated recovery/approval transport and precise source/backend identity.",
+  "privateServiceReady": false,
+  "publicDeployment": false,
+  "realAccountApproval": false,
+  "realCardActivation": false,
+  "realYnxtFunding": false,
+  "productionRealPayments": false
+}

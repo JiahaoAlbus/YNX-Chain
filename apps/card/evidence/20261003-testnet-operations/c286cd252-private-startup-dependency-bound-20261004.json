@@ -1,0 +1,22 @@
+{
+  "observedAt": "2026-10-04T10:03:16.583Z",
+  "source": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "originalArtifact": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/backend-original-key-http-20261004.mjs",
+  "dependencyBoundArtifact": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/.qa-backend-private-startup-20261004.mjs",
+  "artifactSha256": "b6134e1da9df13361c33c87afd137390b4c71385cd7ae1cb7190c69f75c8c6da",
+  "execution": "Same artifact copied within existing dependency resolution; isolated environment has no state key, account, private service credentials or RPC",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "stdout": "",
+  "stderr": "file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/.qa-backend-private-startup-20261004.mjs:4367\nvar registry = JSON.parse(readFileSync(resolve(__dirname, \"../vendor/product-session-registry-b754ffc42.json\"), \"utf8\"));\n                                               ^\n\nReferenceError: __dirname is not defined in ES module scope\n    at file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/.qa-backend-private-startup-20261004.mjs:4367:48\n    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)\n    at async node:internal/modules/esm/loader:650:26\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)\n\nNode.js v26.7.0\n",
+  "expectedFailure": "CARD_PROTECTED_RUNTIME_SOURCE_UNAVAILABLE",
+  "expectedFailureObserved": false,
+  "priorFailurePreserved": "c286cd252-private-startup-terminal-20261004.json records external dependency resolution failure, not Current runtime refusal",
+  "requiredIntegration": "Existing Host must supply actual fixed construction-time Current/role/custody producer and authenticated approval/recovery transport; no ENV/no-op fixture substitute",
+  "privateServiceReady": false,
+  "publicDeployment": false,
+  "realCardActivation": false,
+  "realYnxtFunding": false,
+  "productionRealPayments": false
+}

@@ -1,0 +1,20 @@
+{
+  "observedAt": "2026-10-04T10:04:53.789Z",
+  "source": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "format": "cjs",
+  "artifact": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/server/.qa-private-startup-c286cd252.cjs",
+  "artifactSha256": "dcb01838dbf95a3599755e47febd74c90fb93ae8f09814f1559a21d967d660af",
+  "reproducibleBuild": "esbuild server/main.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/main.cjs",
+  "requiredLayout": "Preserve Card server/vendor and ../vendor with installed locked dependencies; artifact is NOT standalone",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "stdout": "",
+  "stderr": "CARD_PROTECTED_RUNTIME_SOURCE_UNAVAILABLE\n",
+  "protectedRefusalObserved": true,
+  "privateRuntimeStarted": false,
+  "noStateKeyOrAccountConfigured": true,
+  "publicDeployment": false,
+  "realFunding": false,
+  "productionRealPayments": false
+}

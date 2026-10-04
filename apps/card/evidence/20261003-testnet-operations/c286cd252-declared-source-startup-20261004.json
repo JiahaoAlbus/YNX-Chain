@@ -1,0 +1,20 @@
+{
+  "observedAt": "2026-10-04T10:04:08.968Z",
+  "source": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "command": "node --import tsx server/main.ts",
+  "cwd": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card",
+  "execution": "Declared source startup, existing dependencies, isolated env; no key/credentials/account/RPC",
+  "exitCode": 1,
+  "signal": null,
+  "error": null,
+  "stdout": "",
+  "stderr": "CARD_PROTECTED_RUNTIME_SOURCE_UNAVAILABLE\n",
+  "expectedFailureObserved": true,
+  "previousBundleRunnable": false,
+  "privateServiceReady": false,
+  "publicDeployment": false,
+  "realAccountApproval": false,
+  "realCardActivation": false,
+  "realYnxtFunding": false,
+  "productionRealPayments": false
+}
