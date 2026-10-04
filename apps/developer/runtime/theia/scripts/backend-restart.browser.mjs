@@ -12,6 +12,8 @@ assert.equal(runtime.workspace, `${runtime.qa}/project`);
 assert.equal(runtime.profile, `${runtime.qa}/profile`);
 const commandLine = execFileSync('/bin/ps', ['-p', String(runtime.pid), '-o', 'command='], { encoding: 'utf8' });
 assert.ok(commandLine.includes(`${runtime.root}/lib/backend/main.js ${runtime.workspace} --hostname 127.0.0.1 --port ${runtime.port}`));
+assert.ok(commandLine.trim().endsWith(`--plugins local-dir:${runtime.plugins}`));
+await writeFile(`${runtime.qa}/runtime-before-backend-restart.json`, JSON.stringify(runtime, null, 2), { flag: 'wx', mode: 0o600 });
 const bytes = await readFile(fileURLToPath(import.meta.url));
 await writeFile(`${runtime.qa}/backend-restart-runner.mjs`, bytes, { flag: 'wx', mode: 0o600 });
 const checks = [], errors = [];
@@ -47,6 +49,16 @@ try {
   const preferences = JSON.parse(await readFile(paths[0], 'utf8'));
   assert.equal(preferences['editor.fontSize'], 17);
   assert.equal(preferences['[javascript]']['editor.tabSize'], 2);
+  // Match the exact owned group as well as its command before terminating it.
+  const rows = execFileSync('/bin/ps', ['-axo', 'pid=,ppid=,pgid='], { encoding: 'utf8' }).trim().split('\n').map(line => line.trim().split(/\s+/).map(Number));
+  const descendants = new Set([runtime.pid]);
+  for (;;) {
+    const before = descendants.size;
+    for (const [pid, parent] of rows) if (descendants.has(parent)) descendants.add(pid);
+    if (descendants.size === before) break;
+  }
+  const group = rows.filter(([, , pgid]) => pgid === runtime.pid).map(([pid]) => pid);
+  assert.ok(group.includes(runtime.pid) && group.every(pid => descendants.has(pid)));
   process.kill(-runtime.pid, 'SIGTERM');
   for (let attempt = 0; attempt < 200; attempt++) {
     try { process.kill(runtime.pid, 0); } catch (error) { if (error.code === 'ESRCH') break; throw error; }
@@ -86,7 +98,12 @@ try {
   await page.locator('.codicon-settings-gear').filter({ visible: true }).last().click();
   await page.getByRole('menuitem', { name: 'Enable', exact: true }).click();
   await page.reload(); await ready(); await command('YNX: Create Read-only Testnet SDK Starter');
-  await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+  if (next.fixtureSessionId) {
+    await page.getByText(/^Create the read-only YNX Testnet SDK starter at /).filter({ visible: true }).waitFor();
+    await page.keyboard.press('Escape');
+  } else {
+    await page.waitForFunction(() => document.body.innerText.includes('Create this starter from an active YNX project runtime.'));
+  }
   await assert.rejects(readFile(`${runtime.workspace}/ynx-testnet-readonly.mjs`), { code: 'ENOENT' });
   checks.push('Actual disabled extension state survives backend replacement; enable and reload reactivate its real command without bypassing session admission.');
   assert.deepEqual(errors, []);
