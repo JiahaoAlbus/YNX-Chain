@@ -255,11 +255,12 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			var receipt struct {
 				ActualJavaVideoPlaylists bool `json:"actualJavaVideoPlaylists"`
 				JavaPlaylists            struct {
-					ActualOriginalSDKProof            bool  `json:"actualOriginalSDKProof"`
-					ActualOriginalGoBusinessReadback  bool  `json:"actualOriginalGoBusinessReadback"`
-					ActualColdJVMOrdinaryFileRecovery bool  `json:"actualColdJVMOrdinaryFileRecovery"`
-					ActualOriginalJavaEpochRetirement bool  `json:"actualOriginalJavaEpochRetirement"`
-					CompletedMutationDispatches       []int `json:"completedMutationDispatches"`
+					PersistentFailedStorageAllMutationsBlocked bool  `json:"persistentFailedStorageAllMutationsBlocked"`
+					ActualOriginalSDKProof                     bool  `json:"actualOriginalSDKProof"`
+					ActualOriginalGoBusinessReadback           bool  `json:"actualOriginalGoBusinessReadback"`
+					ActualColdJVMOrdinaryFileRecovery          bool  `json:"actualColdJVMOrdinaryFileRecovery"`
+					ActualOriginalJavaEpochRetirement          bool  `json:"actualOriginalJavaEpochRetirement"`
+					CompletedMutationDispatches                []int `json:"completedMutationDispatches"`
 				} `json:"javaPlaylists"`
 				PlaybackID                    string `json:"playbackID"`
 				ActualBusinessServerReadback  bool   `json:"actualBusinessServerReadback"`
@@ -290,7 +291,7 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			}
 			if product == "video" && platform == "android" && os.Getenv("YNX_QA_ANDROID_VIDEO_PLAYLIST_CLASSES") != "" {
 				j := receipt.JavaPlaylists
-				if !receipt.ActualJavaVideoPlaylists || !j.ActualOriginalSDKProof || !j.ActualOriginalGoBusinessReadback || !j.ActualColdJVMOrdinaryFileRecovery || !j.ActualOriginalJavaEpochRetirement || len(j.CompletedMutationDispatches) != 3 || j.CompletedMutationDispatches[0] != 1 || j.CompletedMutationDispatches[1] != 1 || j.CompletedMutationDispatches[2] != 1 {
+				if !receipt.ActualJavaVideoPlaylists || !j.PersistentFailedStorageAllMutationsBlocked || !j.ActualOriginalSDKProof || !j.ActualOriginalGoBusinessReadback || !j.ActualColdJVMOrdinaryFileRecovery || !j.ActualOriginalJavaEpochRetirement || len(j.CompletedMutationDispatches) != 3 || j.CompletedMutationDispatches[0] != 1 || j.CompletedMutationDispatches[1] != 1 || j.CompletedMutationDispatches[2] != 1 {
 					t.Fatal("actual original Java Video playlist recovery gates missing")
 				}
 			}

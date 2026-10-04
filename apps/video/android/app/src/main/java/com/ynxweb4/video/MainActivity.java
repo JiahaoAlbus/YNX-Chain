@@ -208,9 +208,9 @@ public final class MainActivity extends Activity {
             try{final JSONObject draft=viewer.reservePlaylist(input.getText().toString()),body=new JSONObject().put("Name",draft.getString("name"));
                 worker.execute(()->{try{
                     JSONObject created=originalApi.json("/v1/playlists","POST",body,draft.getString("key"));
-                    if(!originalApi.identity.account.equals(created.getString("Owner")))throw new SecurityException("Original playlist owner readback required");
+                    if(!originalApi.identity.account.equals(created.getString("Owner"))||!draft.getString("name").equals(created.getString("Name")))throw new SecurityException("Original playlist owner readback required");
                     JSONArray rows=originalApi.json("/v1/playlists","GET",null).getJSONArray("array");boolean found=false;
-                    for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(created.getString("ID").equals(row.getString("ID"))&&originalApi.identity.account.equals(row.getString("Owner")))found=true;}
+                    for(int i=0;i<rows.length();i++){JSONObject row=rows.getJSONObject(i);if(created.getString("ID").equals(row.getString("ID"))&&originalApi.identity.account.equals(row.getString("Owner"))&&draft.getString("name").equals(row.getString("Name")))found=true;}
                     if(!found)throw new SecurityException("Original playlist readback unavailable");
                     viewer.finishPlaylist(draft);currentUI(generation,()->loadCollection("/v1/playlists","playlists"));
                 }catch(Exception failed){currentUI(generation,()->showState(failed.getMessage(),true));}});
@@ -250,9 +250,7 @@ public final class MainActivity extends Activity {
     }
 
     private void sendWatch(VideoApi originalApi,VideoViewerState viewer,JSONObject batch)throws Exception{
-        String id=batch.getString("videoId");if(!id.matches("[A-Za-z0-9_-]+"))throw new SecurityException("Original watch target required");
-        JSONObject reply=originalApi.json("/v1/videos/"+id+"/watch","POST",new JSONObject().put("seconds",batch.getInt("seconds")).put("completed",batch.getBoolean("completed")).put("playback_id",batch.getString("playbackId")),batch.getString("key"));
-        if(!reply.optBoolean("ok"))throw new SecurityException("Original watch acknowledgment required");viewer.finishWatch(batch);
+        originalApi.sendWatch(viewer,batch);
     }
 
     private void playVideo(JSONObject video) {
