@@ -1,0 +1,119 @@
+{
+  "worktree": "/Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002",
+  "branch": "codex/exchange-sso-cookie-binding-20261002",
+  "baseHead": "093610c481abdaab1684b51f9e11d65be01cd3b0",
+  "head": "dbb589e8ca9fbd8bcc9ccb821c8f49cad597dd0d",
+  "committedTree": "a372d37f80199f1e06cfddc6df1887dad2c1786f",
+  "status": "UNCOMMITTED_UI_SOURCE_CANDIDATE",
+  "ownedPaths": [
+    "apps/exchange/web/index.html",
+    "apps/exchange/web/styles.css",
+    "apps/exchange/web/ui-preferences.js",
+    "apps/exchange/web/verify-versioned-assets.mjs",
+    "apps/exchange/web/assets/metamask.svg",
+    "apps/exchange/web/ynx-favicon.png",
+    "apps/exchange/tests/ui.test.mjs",
+    "apps/exchange/tests/ui-product-browser.test.mjs",
+    "apps/exchange/tests/locale-browser.test.mjs"
+  ],
+  "preservedLogoSha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+  "artifactFiles": [
+    {
+      "path": "app.js",
+      "bytes": 52198,
+      "sha256": "9fcbaecfde965e52b9b329fa8a34cd91da75daf4c1856384c818ccf7f39c8474"
+    },
+    {
+      "path": "index.html",
+      "bytes": 21586,
+      "sha256": "8a7b925383267410035390d24cf382596951f04bab2582cf39aad72a05029635"
+    },
+    {
+      "path": "locale.js",
+      "bytes": 176935,
+      "sha256": "16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd"
+    },
+    {
+      "path": "market-data.js",
+      "bytes": 16423,
+      "sha256": "77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7"
+    },
+    {
+      "path": "order-preview.js",
+      "bytes": 4591,
+      "sha256": "70465b431e6f22d85f1cc6a1f9d569d611b5662af06fa379cd5c27d03ef12ad3"
+    },
+    {
+      "path": "private-account-controller.js",
+      "bytes": 19907,
+      "sha256": "4e2e0db7e7e8933e19d907549a40ce40b76f3f5f878678e6461d22c0ddea500a"
+    },
+    {
+      "path": "private-session-entry.js",
+      "bytes": 1275,
+      "sha256": "17d5fab286841735509247bfa66ba5755d320ec1d302c413c94e787a8c4331cf"
+    },
+    {
+      "path": "private-session.js",
+      "bytes": 136529,
+      "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 18493,
+      "sha256": "6bca56554e9f11ee0b3a1e94c211a10106d4ea8c020cfa62d9dff1ce2c6cf4b8"
+    },
+    {
+      "path": "ui-preferences.js",
+      "bytes": 5722,
+      "sha256": "d64040f560c3d314682171a99f5b76b2c9f695c70801eb3e61f506a526a340fe"
+    },
+    {
+      "path": "verify-versioned-assets.mjs",
+      "bytes": 2632,
+      "sha256": "f0dd6cf2c22026b8329240f41c1cb77d5701e5d68e81d7533cd9eaae14647214"
+    },
+    {
+      "path": "verify-wallet-connect.mjs",
+      "bytes": 3271,
+      "sha256": "527536708c3475b53ec688737c2cb70817a7eeed2739e156f3e923bf0cc95022"
+    },
+    {
+      "path": "wallet-connect-entry.js",
+      "bytes": 12540,
+      "sha256": "ab5dca98afdd1cd840645fe8db6b7eab32a5e2ba92b011366912934a58994b20"
+    },
+    {
+      "path": "wallet-connect.js",
+      "bytes": 37764,
+      "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6"
+    },
+    {
+      "path": "ynx-favicon.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7"
+    },
+    {
+      "path": "ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "assets/metamask.svg",
+      "bytes": 2635,
+      "sha256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f"
+    }
+  ],
+  "gates": {
+    "source": "PASS",
+    "localPresentation": "PASS",
+    "localeRegression": "PASS",
+    "staging": "NOT_VERIFIED",
+    "public": "NOT_VERIFIED",
+    "realWalletApproval": "NOT_VERIFIED",
+    "realBusiness": "NOT_VERIFIED"
+  },
+  "scope": "UI only. No business/app.js/locale/wallet-connect/shared source written by UI owner. Finance owner repaired original app.js import hashes independently.",
+  "artifactSha256": "45ebcc32995af0f69581611e92b594fe4db4561bb9090919c7c188b8d244936e",
+  "ownedDeltaSha256": "904a09a0d718596982616690f521c2991073fd6715f5f20d320b16c1bd124d5c"
+}

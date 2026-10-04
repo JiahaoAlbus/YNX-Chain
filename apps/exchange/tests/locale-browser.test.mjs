@@ -219,6 +219,7 @@ test('actual revoke confirmations use the selected locale and cancellation invok
     await page.addScriptTag({type:'module',content:`${localeSource}\nwindow.localeTest={installExchangeLocale};`});await page.waitForFunction(()=>window.localeTest);
     assert.ok(privateRevokeBinding,'execute the actual private confirmation listener');
     await page.addScriptTag({content:`const $=s=>document.querySelector(s);let decision=false,privateCalls=0,walletCalls=0;const confirmations=[];window.confirm=text=>{confirmations.push(text);return decision};const toast=()=>{};const privateAccount={disconnect:()=>{privateCalls++}};window.YNXExchangeWebWallet={revoke:async()=>{walletCalls++;return {permissionRevoked:false,status:'unsupported'}}};${revokeSource}\n${privateRevokeBinding}\nwindow.revokeLocaleQA={revoke:revokeWalletPermission,confirmations,counts:()=>({privateCalls,walletCalls}),approve:()=>decision=true};window.YNXExchangeLocale=window.localeTest.installExchangeLocale({document});`});
+    await page.locator('.account-management summary').click();
     for(const locale of locales){
       await page.locator('#exchange-language').selectOption(locale);await page.locator('#private-disconnect').click();await page.evaluate(()=>window.revokeLocaleQA.revoke());
       const prompts=await page.evaluate(()=>window.revokeLocaleQA.confirmations.slice(-2));assert.deepEqual(prompts,[catalogs[locale]['confirm-private-revoke'],catalogs[locale]['confirm-wallet-revoke']]);

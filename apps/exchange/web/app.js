@@ -1,7 +1,7 @@
-import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-data.js?v=b8a186f1a359bfd7f83ddcf1f9186ae8aefebf4de3ab21e1b67a24f0891a6312';
-import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=5098a2dd729cc1f9b1321382febc46e361c3939ed371272a8ac63cf1bcac92b3';
+import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-data.js?v=77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7';
+import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=70465b431e6f22d85f1cc6a1f9d569d611b5662af06fa379cd5c27d03ef12ad3';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
-import {installExchangeLocale} from './locale.js';
+import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');

@@ -3,8 +3,8 @@ import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 
-const PAGE_ASSETS=Object.freeze(['styles.css','wallet-connect.js','app.js']);
-const MODULE_ASSETS=Object.freeze(['market-data.js','order-preview.js','private-session.js']);
+const PAGE_ASSETS=Object.freeze(['styles.css','wallet-connect.js','app.js','ui-preferences.js']);
+const MODULE_ASSETS=Object.freeze(['market-data.js','order-preview.js','private-session.js','locale.js']);
 const sha256=bytes=>createHash('sha256').update(bytes).digest('hex');
 
 export function verifyExchangeVersionedAssets(html,app,readAsset){

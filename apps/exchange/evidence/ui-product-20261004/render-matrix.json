@@ -1,0 +1,221 @@
+{
+  "scope": "Existing local source; API deliberately unavailable; no Wallet installed/account approval/trading/public deployment proof",
+  "results": [
+    {
+      "width": 320,
+      "locale": "en",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "zh-Hans",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "zh-Hant",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "ja",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "ko",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "es",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "fr",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "de",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "pt",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "ru",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 320,
+      "locale": "ar",
+      "overflow": false,
+      "rtl": true
+    },
+    {
+      "width": 320,
+      "locale": "id",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "en",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "zh-Hans",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "zh-Hant",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "ja",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "ko",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "es",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "fr",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "de",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "pt",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "ru",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 390,
+      "locale": "ar",
+      "overflow": false,
+      "rtl": true
+    },
+    {
+      "width": 390,
+      "locale": "id",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "en",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "zh-Hans",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "zh-Hant",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "ja",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "ko",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "es",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "fr",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "de",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "pt",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "ru",
+      "overflow": false,
+      "rtl": false
+    },
+    {
+      "width": 1440,
+      "locale": "ar",
+      "overflow": false,
+      "rtl": true
+    },
+    {
+      "width": 1440,
+      "locale": "id",
+      "overflow": false,
+      "rtl": false
+    }
+  ]
+}

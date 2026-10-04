@@ -29,3 +29,46 @@
   new MutationObserver(translate).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
   translate();
 })();
+
+// Dialog presentation only. Native showModal, Escape, provider handlers and
+// async account state remain owned by the existing application.
+(() => {
+  const copy = Object.freeze({
+    en:['Manage account & access','Close'],
+    'zh-Hans':['管理账户与访问权限','关闭'], 'zh-Hant':['管理帳戶與存取權限','關閉'],
+    ja:['アカウントとアクセスを管理','閉じる'], ko:['계정 및 접근 관리','닫기'],
+    es:['Gestionar cuenta y acceso','Cerrar'], fr:['Gérer le compte et les accès','Fermer'],
+    de:['Konto und Zugriff verwalten','Schließen'], pt:['Gerenciar conta e acesso','Fechar'],
+    ru:['Управление аккаунтом и доступом','Закрыть'], ar:['إدارة الحساب والوصول','إغلاق'],
+    id:['Kelola akun dan akses','Tutup']
+  });
+  const detailCopy=Object.freeze({"en":["Market data details","Order information"],"zh-Hans":["市场数据详情","订单说明"],"zh-Hant":["市場資料詳情","訂單說明"],"ja":["市場データの詳細","注文について"],"ko":["시장 데이터 상세","주문 안내"],"es":["Detalles del mercado","Información de la orden"],"fr":["Détails du marché","Informations sur l’ordre"],"de":["Marktdaten anzeigen","Informationen zur Order"],"pt":["Detalhes do mercado","Informações da ordem"],"ru":["Сведения о рынке","Информация об ордере"],"ar":["تفاصيل بيانات السوق","معلومات الطلب"],"id":["Detail data pasar","Informasi pesanan"]});
+  const translate = () => {
+    const lang=document.documentElement.lang;
+    const labels=Object.hasOwn(copy,lang)?copy[lang]:copy.en;
+    const details=Object.hasOwn(detailCopy,lang)?detailCopy[lang]:detailCopy.en;
+    document.querySelectorAll('[data-ui-copy="marketDetails"]').forEach(node=>{node.textContent=details[0]});
+    document.querySelectorAll('[data-ui-copy="orderNotes"]').forEach(node=>{node.textContent=details[1]});
+    document.querySelectorAll('[data-ui-copy="manage"]').forEach(node=>{node.textContent=labels[0]});
+    document.querySelectorAll('dialog .close:not([data-exchange-locale])').forEach(node=>node.setAttribute('aria-label',labels[1]));
+  };
+  new MutationObserver(translate).observe(document.documentElement,{attributes:true,attributeFilter:['lang']});
+  translate();
+  let lastTrigger=null;
+  document.addEventListener('click',event=>{
+    if(event.target instanceof Element&&!event.target.closest('dialog'))lastTrigger=event.target.closest('button,a,summary')||null;
+  },true);
+  for(const dialog of document.querySelectorAll('dialog')){
+    let trigger=null,backdropStart=false;
+    const outside=event=>{const r=dialog.getBoundingClientRect();return event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom};
+    new MutationObserver(()=>{if(dialog.open)trigger=lastTrigger;}).observe(dialog,{attributes:true,attributeFilter:['open']});
+    dialog.addEventListener('pointerdown',event=>{backdropStart=event.target===dialog&&outside(event)});
+    dialog.addEventListener('click',event=>{if(backdropStart&&event.target===dialog&&outside(event))dialog.close();backdropStart=false});
+    dialog.addEventListener('close',()=>{
+      const target=trigger;
+      queueMicrotask(()=>{
+        if(target?.isConnected&&!target.disabled&&(document.activeElement===document.body||dialog.contains(document.activeElement)))target.focus({preventScroll:true});
+      });
+    });
+  }
+})();
