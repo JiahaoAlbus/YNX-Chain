@@ -153,7 +153,10 @@ function renderMarketStatus({phase,source}){if(!['live','polling'].includes(phas
 async function refreshBook(){await refreshAll()}
 async function refreshAccount(){return privateAccount.refresh()}
 function renderPrivateAccount(value){
-  if(state.account!==value.account||state.privatePhase!==value.phase){
+  // Preview funds are observations, never reservations. A newer owned balance
+  // observation must retire both the visible review and its pending read.
+  const balanceKey=rows=>JSON.stringify(Array.isArray(rows)?rows.map(row=>[row?.account,row?.asset,row?.availableMicro,row?.reservedMicro]).sort((a,b)=>String(a[1]).localeCompare(String(b[1]))):null);
+  if(state.account!==value.account||state.privatePhase!==value.phase||balanceKey(state.snapshot?.balances)!==balanceKey(value.snapshot?.balances)){
     state.previewOwnerEpoch=(state.previewOwnerEpoch??0)+1;
     const previewDialog=$('#order-preview-dialog');if(previewDialog?.open)previewDialog.close();
     $('#order-preview-values')?.replaceChildren();

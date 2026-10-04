@@ -49,6 +49,18 @@ await page.addScriptTag({content:`${arithmetic.replace(/^export /gm,'')}const $=
     await page.evaluate(()=>ownerPreviewQA.set('B'));
     await page.evaluate(()=>{ownerPreviewQA.start();ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
     assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),true);assert.match(await page.locator('#order-preview-values').textContent(),/22 YUSD_TEST/);assert.doesNotMatch(await page.locator('#order-preview-values').textContent(),/11 YUSD_TEST/);
+    await page.evaluate(()=>renderPrivateAccount({phase:'connected',account:'B',snapshot:{...state.snapshot,balances:[{asset:'YUSD_TEST',availableMicro:23000000,reservedMicro:0}]}}));
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false,'same-owner balance change retires the old available-funds preview');
+    assert.equal(await page.locator('#order-preview-values').textContent(),'');
+    await page.evaluate(()=>{ownerPreviewQA.start();renderPrivateAccount({phase:'connected',account:'B',snapshot:{...state.snapshot,balances:[{asset:'YUSD_TEST',availableMicro:24000000,reservedMicro:0}]}});ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false,'balance change during public read requires a fresh explicit review');
+    await page.evaluate(()=>{ownerPreviewQA.start();ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    assert.match(await page.locator('#order-preview-values').textContent(),/24 YUSD_TEST/);
+    await page.evaluate(()=>renderPrivateAccount({phase:'connected',account:'B',snapshot:{...state.snapshot,balances:[{asset:'YUSD_TEST',availableMicro:24000000,reservedMicro:1000000}]}}));
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),false,'reserved funds change also retires the old preview');
+    await page.evaluate(()=>{renderPrivateAccount({phase:'connected',account:'B',snapshot:{...state.snapshot,balances:[...state.snapshot.balances,{asset:'YNXT',availableMicro:5000000,reservedMicro:0}]}});ownerPreviewQA.start();ownerPreviewQA.finish()});await page.evaluate(()=>ownerPreviewQA.wait());
+    await page.evaluate(()=>renderPrivateAccount({phase:'connected',account:'B',snapshot:{...state.snapshot,balances:state.snapshot.balances.slice().reverse().map(row=>({reservedMicro:row.reservedMicro,availableMicro:row.availableMicro,asset:row.asset}))}}));
+    assert.equal(await page.locator('#order-preview-dialog').evaluate(e=>e.open),true,'equivalent balances with reordered rows/keys preserve the valid preview');
     assert.equal(await page.locator('#price').inputValue(),'2');assert.equal(await page.locator('#amount').inputValue(),'3');
     assert.deepEqual(await page.evaluate(()=>state.standardWallet),{status:'standard-connected',account:'selected-standard-fixture',providerKind:'metamask'});
     assert.deepEqual(errors,[]);assert.equal(requests,0);assert.equal(page.context().pages().length,1);
