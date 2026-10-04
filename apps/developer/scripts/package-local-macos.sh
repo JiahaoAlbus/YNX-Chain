@@ -17,6 +17,23 @@ runtime_checkpoint="$source_commit"
 # Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
 macos_min_version=$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' desktop/macos/Info.plist)
 [[ "$macos_min_version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo "Invalid macOS deployment target" >&2; exit 1; }
+local_node_runtime="${YNX_DEVELOPER_LOCAL_NODE_RUNTIME:-}"
+if [[ -n "$local_node_runtime" ]]; then
+  [[ -n "${YNX_DEVELOPER_COMPOSED_ARTIFACT:-}" && -n "${YNX_DEVELOPER_COMPOSED_PIN:-}" ]] || { echo "Local workbench requires its exact composed payload and pin." >&2; exit 1; }
+  macos_min_version=$(node --input-type=module - "$local_node_runtime" "$PWD/.ynx-developer-candidates" "$macos_min_version" <<'NODE'
+import {readFile,realpath,lstat} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
+const [input,candidates,baseline]=process.argv.slice(2),root=await realpath(input);
+if(root!==input||!root.startsWith(candidates+'/'))throw Error('Use the exact retained owned Node runtime.');
+const record=JSON.parse(await readFile(join(root,'distribution.json')));
+if(record.schemaVersion!==1||!record.executionVerified||!/^v26\./.test(record.version)||!/^\d+(?:\.\d+)*$/.test(record.minimumOS))throw Error('Reviewed Node 26 closure required.');
+for(const entry of record.files){if(!/^(node|lib\/[^/]+)$/.test(entry.path))throw Error('Invalid runtime file.');const path=join(root,entry.path);if(!(await lstat(path)).isFile())throw Error('Regular runtime input required.');if(createHash('sha256').update(await readFile(path)).digest('hex')!==entry.bundledSha256)throw Error('Runtime input changed.');}
+for(const entry of record.notices){if(!entry.path.startsWith('notices/')||entry.path.split('/').includes('..'))throw Error('Invalid runtime notice.');if(createHash('sha256').update(await readFile(join(root,entry.path))).digest('hex')!==entry.sha256)throw Error('Runtime notice changed.');}
+if(execFileSync(join(root,'node'),['--version'],{encoding:'utf8'}).trim()!==record.version)throw Error('Retained runtime version changed.');
+const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
+console.log(compare(record.minimumOS,baseline)>0?record.minimumOS:baseline);
+NODE
+  )
+fi
 machine_arch=$(/usr/bin/uname -m)
 case "$machine_arch" in
   arm64|x86_64) platform="macos-$([[ "$machine_arch" == arm64 ]] && printf arm64 || printf x64)" ;;
@@ -36,11 +53,18 @@ app="$root/YNX Developer Testnet Preview.app"
 mkdir -p "$root" "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
 /usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
+if [[ -n "$local_node_runtime" ]]; then
+  /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
+  /usr/libexec/PlistBuddy -c 'Add YNXDesktopMode string local-workbench' "$app/Contents/Info.plist"
+  /usr/bin/clang -mmacosx-version-min="$macos_min_version" desktop/macos/local-workbench-lock.c -o "$app/Contents/Resources/runtime/ynx-local-workbench-lock"
+fi
 cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
 cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
 cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
+mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
+cp desktop/local-workbench.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.
 mkdir -p "$app/Contents/Resources/code/apps/developer/native"
@@ -79,10 +103,23 @@ composed_artifact="${YNX_DEVELOPER_COMPOSED_ARTIFACT:-}"
 composed_pin="${YNX_DEVELOPER_COMPOSED_PIN:-}"
 if [[ -n "$composed_artifact" || -n "$composed_pin" ]]; then
   [[ -n "$composed_artifact" && -n "$composed_pin" ]] || { echo "Both exact composed artifact and pin are required." >&2; exit 1; }
-  node scripts/bundle-composed-core.mjs "$composed_artifact" "$composed_pin" "$app/Contents/Resources/composed-core"
+  if [[ -n "$local_node_runtime" ]]; then
+    YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD=1 node scripts/bundle-composed-core.mjs "$composed_artifact" "$composed_pin" "$app/Contents/Resources/composed-core"
+  else
+    node scripts/bundle-composed-core.mjs "$composed_artifact" "$composed_pin" "$app/Contents/Resources/composed-core"
+  fi
 fi
 
 node_binary="${YNX_DEVELOPER_NODE_BINARY:-}"
+if [[ -n "$local_node_runtime" ]]; then
+  node --input-type=module - "$local_node_runtime" "$app/Contents/Resources/runtime" <<'NODE'
+import {readFile,mkdir,copyFile,chmod} from 'node:fs/promises';import {join,dirname} from 'node:path';
+const [input,output]=process.argv.slice(2),record=JSON.parse(await readFile(join(input,'distribution.json')));
+for(const entry of [...record.files,...record.notices]){const target=join(output,entry.path);await mkdir(dirname(target),{recursive:true});await copyFile(join(input,entry.path),target);}
+await copyFile(join(input,'distribution.json'),join(output,'distribution.json'));await chmod(join(output,'node'),0o755);
+NODE
+  node_binary="$local_node_runtime/node"
+else
 for candidate in "$node_binary" "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "$(command -v node 2>/dev/null || true)"; do
   if [[ -n "$candidate" && -x "$candidate" ]]; then
     non_system=$(/usr/bin/otool -L "$candidate" | tail -n +2 | awk '{print $1}' | grep -Ev '^(/System/|/usr/lib/)' || true)
@@ -95,6 +132,7 @@ if [[ -z "$node_binary" || ! -x "$node_binary" ]]; then
 fi
 COPYFILE_DISABLE=1 cp -X "$node_binary" "$app/Contents/Resources/runtime/node"
 chmod 0755 "$app/Contents/Resources/runtime/node"
+fi
 npm_root=$(npm root -g)
 if [[ ! -f "$npm_root/npm/bin/npm-cli.js" ]]; then
   echo "A complete npm CLI is required for isolated desktop package installation." >&2
@@ -143,6 +181,19 @@ while IFS= read -r bundled_binary; do
     /usr/bin/codesign --force --sign - "$bundled_binary"
   fi
 done < <(/usr/bin/find "$app/Contents/Resources" -type f -print)
+node --input-type=module - "$app/Contents/Resources" <<'NODE'
+import {readFile,writeFile} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
+const resources=process.argv[2],runtime=join(resources,'runtime'),path=join(runtime,'distribution.json');let record;
+try{record=JSON.parse(await readFile(path,'utf8'));}catch(error){if(error.code==='ENOENT')process.exit(0);throw error;}
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),modifications=[];
+for(const entry of record.files){const bytes=await readFile(join(runtime,entry.path)),afterSha256=sha(bytes);if(afterSha256!==entry.bundledSha256){modifications.push({path:entry.path,beforeSha256:entry.bundledSha256,afterSha256});entry.bundledSha256=afterSha256;}}
+record.packageAdhocSigning={signingClass:'adhoc-no-team-id',modifications};
+await writeFile(path,JSON.stringify(record,null,2)+'\n');
+if(execFileSync(join(runtime,'node'),['--version'],{encoding:'utf8',env:{PATH:'/usr/bin:/bin',OPENSSL_CONF:'/dev/null'}}).trim()!==record.version)throw Error('Signed bundled Node runtime version differs.');
+const provenancePath=join(resources,'build-provenance.json'),provenance=JSON.parse(await readFile(provenancePath,'utf8'));
+provenance.desktopMode='local-workbench';provenance.localNodeRuntime={path:'Contents/Resources/runtime/distribution.json',sha256:sha(await readFile(path)),version:record.version,minimumOS:record.minimumOS,packageAdhocSigning:record.packageAdhocSigning};
+await writeFile(provenancePath,JSON.stringify(provenance,null,2)+'\n');
+NODE
 # Record the actual signed formatter bytes before sealing the outer app. Keep
 # each original input hash so the local no-Team-ID signature is distinguishable
 # from the retained dependency and the separately documented server derivative.
@@ -177,6 +228,15 @@ provenance.solidityFormatterDistribution={path:'Contents/Resources/code/apps/dev
 await writeFile(provenancePath,JSON.stringify(provenance,null,2)+'\n');
 NODE
 /usr/bin/codesign --force --deep --sign - "$app"
+node --input-type=module - "$app/Contents/Resources" <<'NODE'
+import {readFile} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';
+const resources=process.argv[2],runtime=join(resources,'runtime');let bytes;
+try{bytes=await readFile(join(runtime,'distribution.json'));}catch(error){if(error.code==='ENOENT')process.exit(0);throw error;}
+const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),record=JSON.parse(bytes);
+for(const entry of record.files)if(sha(await readFile(join(runtime,entry.path)))!==entry.bundledSha256)throw Error('Outer signing changed recorded runtime bytes.');
+const provenance=JSON.parse(await readFile(join(resources,'build-provenance.json'),'utf8'));if(provenance.localNodeRuntime.sha256!==sha(bytes))throw Error('Signed runtime provenance differs.');
+console.log('Final signed Node runtime files and provenance match.');
+NODE
 node --input-type=module - "$app/Contents/Resources" <<'NODE'
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';

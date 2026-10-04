@@ -68,16 +68,45 @@ function completionSymbols(index, file, offset, receiver) {
   };
   if (builtin[receiver]) return builtin[receiver].map(name => ({ name, kind: 'VariableDeclaration', type: `Solidity ${receiver} member` }));
   let target, instance = false;
+  const typeKinds = ['ContractDefinition', 'StructDefinition', 'EnumDefinition'];
+  function qualifiedType(name, contextFile, localTypes) {
+    if (typeof name !== 'string') return undefined;
+    const parts = name.split('.');
+    if (parts.length < 2 || parts.length > 8) return undefined;
+    // Namespace paths are resolved from the compiler's import declaration,
+    // never from a matching identifier elsewhere in the project.
+    if (localTypes.some(row => row.name === parts[0])) return undefined;
+    const imports = (index.imports || []).filter(row => row.file === contextFile && row.namespace === parts[0]);
+    if (imports.length !== 1) return undefined;
+    let candidates = topLevel(imports[0].source).filter(row => row.name === parts[1] && typeKinds.includes(row.kind));
+    if (candidates.length !== 1) return undefined;
+    let result = candidates[0];
+    for (const part of parts.slice(2)) {
+      candidates = declarations.filter(row => row.scopeId === result.id && row.name === part && typeKinds.includes(row.kind));
+      if (candidates.length !== 1) return undefined;
+      result = candidates[0];
+    }
+    return result;
+  }
   if (receiver === 'this') {
     target = declarations.find(row => row.id === enclosing.find(row => row.kind === 'ContractDefinition')?.id); instance = true;
   } else {
     const rank = row => { const index = enclosing.findIndex(scope => scope.id === row.scopeId); return index < 0 ? enclosing.length : index; };
     const candidates = visible.filter(row => row.name === receiver).sort((a, b) => rank(a) - rank(b));
-    target = candidates[0];
+    target = candidates.length && (candidates.length === 1 || rank(candidates[0]) < rank(candidates[1])) ? candidates[0] : undefined;
+    if (!target && receiver.includes('.')) target = qualifiedType(receiver, file, visible);
     if (target?.kind === 'VariableDeclaration') {
       instance = true;
-      const types = visible.filter(row => ['ContractDefinition', 'StructDefinition', 'EnumDefinition'].includes(row.kind) && row.name === target.typeName);
-      target = types.length === 1 ? types[0] : undefined;
+      const declaration = target, owningScopes = new Set();
+      let scope = byId.get(declaration.scopeId);
+      while (scope && !owningScopes.has(scope.id)) { owningScopes.add(scope.id); scope = byId.get(scope.parentId); }
+      const contextTypes = declarations.filter(row => row.location.file === declaration.location.file && owningScopes.has(row.scopeId));
+      const types = contextTypes.filter(row => typeKinds.includes(row.kind) && row.name === declaration.typeName);
+      target = types.length === 1 ? types[0] : qualifiedType(declaration.typeName, declaration.location.file, contextTypes);
+      if (!target && declaration.location.file === file) {
+        const importedTypes = visible.filter(row => typeKinds.includes(row.kind) && row.name === declaration.typeName);
+        if (importedTypes.length === 1) target = importedTypes[0];
+      }
     }
   }
   if (!target || !['ContractDefinition', 'StructDefinition', 'EnumDefinition'].includes(target.kind)) return [];

@@ -125,7 +125,12 @@ function createSolidityLanguage(vscode, context, environment) {
         for (const match of content.matchAll(literals)) if (match.index < cursor && cursor < match.index + match[0].length) return undefined;
         const prefix = content.slice(0, cursor).match(/[A-Za-z_$][A-Za-z0-9_$]*$/)?.[0] || '';
         const start = cursor - prefix.length, suffix = content.slice(cursor).match(/^[A-Za-z0-9_$]*/)[0], end = cursor + suffix.length;
-        const receiver = content.slice(0, start).match(/([A-Za-z_$][A-Za-z0-9_$]*)\s*\.\s*$/)?.[1];
+        const beforeMember = content.slice(0, start), receiverMatch = beforeMember.match(/([A-Za-z_$][A-Za-z0-9_$]*(?:\s*\.\s*[A-Za-z_$][A-Za-z0-9_$]*)*)\s*\.\s*$/);
+        // A call/index expression needs typed expression resolution. Do not
+        // mistake its trailing name for an imported namespace.
+        if (receiverMatch && /\.$/.test(beforeMember.slice(0, receiverMatch.index).trimEnd())) return undefined;
+        if (!receiverMatch && /\.\s*$/.test(beforeMember)) return undefined;
+        const receiver = receiverMatch?.[1]?.replace(/\s/g, '');
         const sources = { ...reviewed.snapshot.sources }, file = reviewed.snapshot.entryPath;
         // Replace only the unfinished identifier in an ephemeral compiler input.
         // Parsing deliberately does not require a partially typed name to resolve.

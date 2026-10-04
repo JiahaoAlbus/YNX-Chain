@@ -31,6 +31,22 @@ if (hasBundledCompiler) {
   process.env.YNX_IDE_SOLC_INPUT = compilerInput;
 }
 const supportRoot = process.env.YNX_CODE_DESKTOP_SUPPORT_DIR || join(homedir(), "Library", "Application Support", "YNXDeveloper");
+// A local OS workspace never supplies canonical identity to the gateway.
+if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
+  const { startLocalWorkbench } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'local-workbench.mjs')));
+  const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
+    projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
+    node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) });
+  console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
+  const parent = process.ppid;
+  const monitor = setInterval(() => { if (process.ppid !== parent) void workbench.stop(); }, 250);
+  let stopping;
+  const stop = () => stopping ||= workbench.stop();
+  process.once('SIGTERM', stop); process.once('SIGINT', stop);
+  const result = await workbench.exited;
+  clearInterval(monitor); await stop();
+  process.exitCode = result.error ? 1 : result.code === null ? 0 : result.code;
+} else {
 const sessionKeyPath = join(supportRoot, "workspace-session.key");
 
 await mkdir(supportRoot, { recursive: true, mode: 0o700 });
@@ -72,3 +88,4 @@ const parentMonitor = setInterval(() => {
   if (process.ppid !== desktopParent) process.kill(process.pid, "SIGTERM");
 }, 250);
 parentMonitor.unref();
+}

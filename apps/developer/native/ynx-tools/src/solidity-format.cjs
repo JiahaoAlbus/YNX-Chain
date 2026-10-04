@@ -18,7 +18,7 @@ function createSolidityFormatting(vscode, context, environment) {
       const cancellation = token?.onCancellationRequested?.(() => controller.abort());
       const child = spawn(process.execPath, [path.join(root, 'node_modules/@nomicfoundation/solidity-language-server/out/index.js'), '--stdio'], {
         cwd: environment.YNX_CORE_WORKSPACE, shell: false, detached: process.platform !== 'win32', stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...Object.fromEntries(['PATH', 'TMPDIR'].filter(key => process.env[key]).map(key => [key, process.env[key]])), NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=512' },
+        env: { ...Object.fromEntries(['PATH', 'TMPDIR'].filter(key => process.env[key]).map(key => [key, process.env[key]])), OPENSSL_CONF: '/dev/null', NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=512' },
       });
       const stopped = new Promise(resolve => child.once('close', resolve));
       const connection = createMessageConnection(new StreamMessageReader(child.stdout), new StreamMessageWriter(child.stdin));

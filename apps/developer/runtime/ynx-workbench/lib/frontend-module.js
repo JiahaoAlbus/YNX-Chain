@@ -30,6 +30,8 @@ const { KeybindingRegistry } = require('@theia/core/lib/browser/keybinding');
 const { YnxKeybindingRegistry } = require('./keybinding-registry');
 const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget-manager');
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
+const { WindowService } = require('@theia/core/lib/browser/window/window-service');
+const { NativeWindowClose } = require('./native-window-close');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
 require('./dialog-accept-adapter').install();
@@ -38,6 +40,7 @@ require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(context.container.get(WindowService))).inSingletonScope();
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => new LanguageCommandReadiness(
     context.container.get(EditorManager), context.container.get(HostedPluginSupport), context.container.get(MonacoCommandService),

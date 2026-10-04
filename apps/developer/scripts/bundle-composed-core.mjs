@@ -26,7 +26,10 @@ const receipt = {
   schemaVersion: 1, runtimeArtifact: pin, requiredNodeVersion: manifest.nodeVersion,
   archive: 'workbench.tar', archiveSha256: createHash('sha256').update(await readFile(archive)).digest('hex'),
   roundTripTreeVerified: true, upstreamNotices: 'component-notices/index.json inside archive',
-  activation: 'Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.',
+  ...(process.env.YNX_DEVELOPER_LOCAL_WORKBENCH_PAYLOAD === '1' ? {
+    localWorkspace: { enabled: true, identity: 'OS-user local project only', canonicalAdmission: false },
+    activation: 'The native local workspace supervisor verifies and activates this exact payload for OS-user local editing. Online private Tools, AI and Chain require separate canonical admission. Existing profiles are not migrated.',
+  } : { activation: 'Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.' }),
   signing: 'Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation.'
 };
 await writeFile(join(output, 'distribution.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
