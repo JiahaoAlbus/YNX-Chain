@@ -82,6 +82,7 @@ export class CardService {
   })}
   reconcile(p:Principal,cardId:string){
     const s=this.state(this.principal(p)),card=own(s.cards,cardId),entries=s.ledger.filter(entry=>entry.cardId===cardId);
+    const events=s.events.filter(event=>event.cardId===cardId);
     const findings:string[]=[],ids=new Set<string>();
     const running={availableWei:0n,pendingWei:0n,postedWei:0n,feeWei:0n,fundedWei:0n};
     const columns=[['availableWei','availableDeltaWei'],['pendingWei','pendingDeltaWei'],['postedWei','postedDeltaWei'],['feeWei','feeDeltaWei']] as const;
@@ -107,9 +108,18 @@ export class CardService {
       const credits=entries.filter(entry=>entry.operation==='topup'&&entry.reference===intent.txHash);
       if(credits.length!==1||credits[0]?.availableDeltaWei!==intent.amountWei)findings.push('FUNDING_LEDGER_MISMATCH');
       if(!intent.receipt||intent.receipt.txHash!==intent.txHash||intent.receipt.from!==intent.sender||intent.receipt.to!==intent.recipient||intent.receipt.amountWei!==intent.amountWei)findings.push('STORED_RECEIPT_BINDING_MISMATCH');
+      const receipt=intent.receipt;
+      if(!receipt||receipt.chainId!==CHAIN||!Number.isSafeInteger(receipt.confirmations)||receipt.confirmations<intent.minConfirmations||!/^0x[0-9a-fA-F]{64}$/.test(receipt.blockHash)||!/^0x[0-9a-fA-F]+$/.test(receipt.blockNumber)||!Number.isFinite(Date.parse(receipt.blockTime))||Date.parse(receipt.blockTime)<Date.parse(intent.createdAt)||Date.parse(receipt.blockTime)>Date.parse(intent.expiresAt))findings.push('STORED_RECEIPT_CONFIRMATION_MISMATCH');
+      const fundedEvents=events.filter(event=>event.name==='card.funded'&&(event.details.receipt as ChainReceipt|undefined)?.txHash===intent.txHash);
+      if(fundedEvents.length!==1||fundedEvents[0]?.details.amountWei!==intent.amountWei||hash(fundedEvents[0]?.details.receipt??null)!==hash(receipt??null))findings.push('FUNDING_EVENT_MISMATCH');
     }
     if(funded!==running.fundedWei||entries.filter(entry=>entry.operation==='topup').length!==credited.length)findings.push('FUNDING_TOTAL_MISMATCH');
-    return {cardId,asOf:this.clock().toISOString(),status:findings.length?'INCONSISTENT':'CONSISTENT',findings:[...new Set(findings)],balance:{...card.balance},ledgerEntries:entries.length,creditedIntents:credited.length,chainReverified:false,dataFabricReconciled:false,environment:ENVIRONMENT,productionRealPayments:false};
+    if(events.filter(event=>event.name==='card.funded').length!==credited.length)findings.push('FUNDING_EVENT_TOTAL_MISMATCH');
+    if(new Set(events.map(event=>event.id)).size!==events.length)findings.push('DUPLICATE_BUSINESS_EVENT');
+    const outbox={scope:'LOCAL_CARD_OUTBOX' as const,total:events.length,pending:events.filter(event=>!event.delivered).length,transportAcknowledged:events.filter(event=>event.delivered).length,
+      // Delivery attempts do not alter the immutable event content identity.
+      contentDigest:hash(events.map(({delivered,attempts,...content})=>content)),externalAcceptanceVerified:false};
+    return {cardId,asOf:this.clock().toISOString(),status:findings.length?'INCONSISTENT':'CONSISTENT',findings:[...new Set(findings)],balance:{...card.balance},ledgerEntries:entries.length,creditedIntents:credited.length,outbox,chainReverified:false,dataFabricReconciled:false,environment:ENVIRONMENT,productionRealPayments:false};
   }
   statement(p:Principal,cardId:string){const state=this.state(this.principal(p)),card=own(state.cards,cardId);return {card,ledger:state.ledger.filter(e=>e.cardId===cardId),events:state.events.filter(e=>e.cardId===cardId),environment:ENVIRONMENT,productionRealPayments:false}}
   operationResult(p:Principal,operation:string,resourceId:string,key:string,digest:string){
