@@ -1,0 +1,38 @@
+{
+  "sourceCommit": "3238d1cc4bc83556ce2d6c0feec38272df891c90",
+  "sourceTree": "2182570faad2ce2d6333587717ae1fef9014d18a",
+  "compilerInput": "apps/developer/.ynx-developer-candidates/solidity-0.8.24-complete-runtime-20261004/node_modules/solc",
+  "packages": 8,
+  "files": 78,
+  "closureSha256": "223fc0fd21323bcec16e861b7472da7b9c5aec15f044beb3674e455ab5996e8f",
+  "checks": {
+    "workerHTTPPinSnapshotRegression": 11,
+    "fail": 0,
+    "standaloneRelocatedActualTwoFileCompile": true,
+    "alteredTransitiveModuleRejectedBeforeExecution": true,
+    "actualPackagedWorkerCompile": true
+  },
+  "distribution": "Original solc package preserved byte-exact. Existing eight packages copied with licenses/notices; tmp override 0.2.7 explicitly recorded. Worker loads only after measuring the complete closure. No downloads/lifecycle execution.",
+  "nativeFirstCandidate": {
+    "path": "apps/developer/.ynx-developer-candidates/ynx-solidity-project-native-package-20261004-mac-arm64",
+    "dmgSha256": "26c08b80940c1c2c86677f1812fef3e5e998aa7271151a95bdfd1ff9f1a85086",
+    "staticSignatureImageChecks": true,
+    "acceptedForCompile": false,
+    "reason": "Produced before missing compiler worker packaging was fixed; preserved, not final compiler distribution."
+  },
+  "nativeCorrectedCandidate": {
+    "path": "apps/developer/.ynx-developer-candidates/ynx-solidity-sealed-native-package-20261004-mac-arm64",
+    "packageSessionId": 71705,
+    "state": "live at evidence checkpoint; bundle copy and actual packaged worker compile passed; final DMG/signature/source/SBOM checks pending"
+  },
+  "evidenceIndex": {
+    "path": ".ynx-developer-candidates/solidity-closure-evidence-20261004/INDEX.json",
+    "sha256": "207580abc8507c3b084ddfe7cc85791fd79572c30a47879a758ed2ffe4756302"
+  },
+  "remaining": [
+    "Final corrected Native package verification and exact handoff.",
+    "Formal protected activation and actual canonical Wallet/AI/Chain user acceptance.",
+    "Full platform and extension compatibility release."
+  ],
+  "scope": "Owned source/package inputs only. No shared Host/Auth or new execution/identity permissions. Prior public microsite and runtime pin unchanged."
+}

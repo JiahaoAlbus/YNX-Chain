@@ -21,6 +21,15 @@ consume an absolute `YNX_IDE_SOLC_INPUT` directory containing the
 unchanged, reviewed offline package. All 21 package files must match the fixed
 package manifest digest; the existing installed dependency is not replaced.
 This operator setting supplies a compiler input, not identity or workspace access.
+For a self-contained distribution, `scripts/package-solidity-runtime.mjs` composes
+the original compiler and its eight measured local packages into a new owned
+candidate without downloads or lifecycle execution. Select its
+`node_modules/solc` path as `YNX_IDE_SOLC_INPUT`; the whole dependency closure is
+hash-checked before compiler loading. The existing workspace override keeps
+`tmp` at 0.2.7 and is recorded explicitly. `YNX_DEVELOPER_SOLIDITY_INPUT` gives
+the macOS package producer this exact complete input. The desktop measures the
+bundled closure before touching user state, then uses that packaged compiler.
+Canonical project authorization and execution permissions remain separate.
 When admitted, compilation runs in worker threads with four active workers and
 a queue of 64. These source
 checks do not establish public deployment or YNX execution compatibility.
