@@ -1,0 +1,14 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {verifyFinanceIntroductionAssets,verifyFinanceVersionedAssets} from '../web/verify-versioned-assets.mjs';
+const read=name=>readFileSync(new URL('../web/'+name,import.meta.url));
+const html=read('introduction.html').toString();
+test('exact introduction asset graph',()=>assert.equal(verifyFinanceIntroductionAssets(html,read).assets,4));
+for(const name of ['introduction.js','introduction.css','ynx-logo.png','finance-workspace-preview.png'])test('reject changed '+name,()=>assert.throws(()=>verifyFinanceIntroductionAssets(html,n=>n===name?Buffer.from('tampered'):read(n)),/HASH_MISMATCH/));
+test('reject omitted image',()=>assert.throws(()=>verifyFinanceIntroductionAssets(html.replace(/<img[^>]*finance-workspace-preview[^>]*>/u,''),read),/MISSING_OR_DUPLICATE/));
+test('reject unknown script',()=>assert.throws(()=>verifyFinanceIntroductionAssets(html+'<script src="/unknown.js"></script>',read),/UNKNOWN_ASSET/));
+test('reject duplicate dependency',()=>assert.throws(()=>verifyFinanceIntroductionAssets(html+html,read),/MISSING_OR_DUPLICATE/));
+test('intro cannot load provider or private API',()=>{assert.doesNotMatch(read('introduction.js').toString(),/\bfetch\s*\(|ethereum|eth_requestAccounts|window\.open|ynxwallet:|iframe/u);assert.doesNotMatch(html,/wallet-auth\.js|\/vendor\//u)});
+test('existing app exact hash graph and five original logos',()=>assert.equal(verifyFinanceVersionedAssets(read('index.html').toString(),read).versionedReferences,17));
+test('existing app sixth logo rejected',()=>assert.throws(()=>verifyFinanceVersionedAssets(read('index.html').toString()+'<img src="/ynx-logo.png?v=df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d">',read),/MISSING_OR_DUPLICATE/));

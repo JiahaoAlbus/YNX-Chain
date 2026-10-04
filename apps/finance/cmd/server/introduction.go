@@ -26,7 +26,7 @@ func introductionHandler(application http.Handler, webDir string) http.Handler {
 			name = "introduction.html"
 		}
 		switch r.URL.Path {
-		case "/introduction.css", "/introduction.js", "/finance-workspace-preview.png":
+		case "/introduction.css", "/introduction.js", "/finance-workspace-preview.png", "/ynx-favicon.png":
 			name = r.URL.Path[1:]
 		}
 		if name != "" && webDir != "" {

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { basename, dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { authorityRuntimeFiles, runtimeFiles, sha256 } from './finance-nonregressive-runtime.mjs';
-import { verifyFinanceVersionedAssets } from '../web/verify-versioned-assets.mjs';
+import { verifyFinanceVersionedAssets, verifyFinanceIntroductionAssets } from '../web/verify-versioned-assets.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const scriptDir = dirname(scriptPath);
@@ -63,7 +63,10 @@ function buildOnce(sourceRoot, destination) {
       if (built.status !== 0) throw new Error(`${built.stdout}${built.stderr}`);
       chmodSync(join(packageRoot, name), 0o755);
     }
-    for (const name of runtimeFiles) copyFileSync(join(sourceRoot, 'apps/finance/web', name), join(webRoot, name));
+    for (const name of runtimeFiles) {
+      mkdirSync(dirname(join(webRoot,name)),{recursive:true,mode:0o755});
+      copyFileSync(join(sourceRoot, 'apps/finance/web', name), join(webRoot, name));
+    }
     for (const file of authorityRuntimeFiles) {
       const destination=join(packageRoot,file.destination);
       mkdirSync(dirname(destination),{recursive:true,mode:0o755});
@@ -90,6 +93,7 @@ function buildOnce(sourceRoot, destination) {
     const html = readFileSync(join(webRoot, 'index.html'), 'utf8');
     if (!html.includes('wallet-auth.js') || html.includes('wallet-connect.js')) throw new Error('FINANCE_WALLET_SCRIPT_BINDING_REGRESSION');
     verifyFinanceVersionedAssets(html,name=>readFileSync(join(webRoot,name)));
+    verifyFinanceIntroductionAssets(readFileSync(join(webRoot,'introduction.html'),'utf8'),name=>readFileSync(join(webRoot,name)));
 
     for (const name of walk(packageRoot)) if (!programs.some(([program]) => program === name)) chmodSync(join(packageRoot, name), 0o644);
     const payloadFiles = walk(packageRoot).map(path => ({

@@ -4,6 +4,8 @@ import {createHash} from 'node:crypto';
 // The list is exact for the Finance server static map and reviewable
 // source entries used to generate standalone browser/authority bundles.
 export const runtimeFiles=Object.freeze([
+  'introduction.html','introduction.css','introduction.js','finance-workspace-preview.png',
+  'ynx-favicon.png',
   'app.js',
   'evm-read-session.js',
   'evm-subject.js',
