@@ -69,9 +69,20 @@ function activate(context) {
         throw Error('The active project runtime changed. Review the changes again.');
     };
     assertRuntime();
-    const text = await vscode.window.showInputBox({ title: 'Paste a reviewed ynx-reviewed-text/v1 change bundle', ignoreFocusOut: true }); if (!text) return;
+    const input = await vscode.window.showQuickPick([
+      { label: 'Use copied changes', description: 'Read the suggestion copied from YNX Tools', source: 'clipboard' },
+      { label: 'Paste review JSON', description: 'Open a downloaded or saved review', source: 'paste' },
+    ], { title: 'Review suggested changes', placeHolder: 'Choose where to read the suggestion', ignoreFocusOut: true });
+    if (!input) return;
+    const text = input.source === 'clipboard' ? await vscode.env.clipboard.readText() :
+      await vscode.window.showInputBox({ title: 'Paste suggested changes', ignoreFocusOut: true });
+    if (!text) { if (input.source === 'clipboard') throw Error('Copy suggested changes from YNX Tools first.'); return; }
+    if (Buffer.byteLength(text) > 16 * 1024 * 1024) throw Error('The suggested changes are too large. Copy a smaller suggestion from YNX Tools.');
     assertRuntime();
-    const value = JSON.parse(text), documents = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));
+    let value;
+    try { value = JSON.parse(text); }
+    catch { throw Error('No readable suggested changes were found. Copy them from YNX Tools, or paste a saved review.'); }
+    const documents = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));
     const changes = validateChanges(value, documents, sessionId), paths = new Map();
     for (const change of changes) paths.set(change.uri, await assertWorkspacePath(documents.get(change.uri).uri.fsPath, workspace));
     assertRuntime();

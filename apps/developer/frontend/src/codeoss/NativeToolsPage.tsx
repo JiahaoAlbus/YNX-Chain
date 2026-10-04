@@ -185,7 +185,7 @@ export function NativeToolsPage() {
 function EditBundle({ review }: { review: EditReview }) {
   const [copyStatus, setCopyStatus] = useState('');
   async function copy() {
-    try { await navigator.clipboard.writeText(JSON.stringify(review.bundle)); setCopyStatus('Review bundle copied. Paste it into YNX: Apply Reviewed Text Changes.'); }
+    try { await navigator.clipboard.writeText(JSON.stringify(review.bundle)); setCopyStatus('Changes copied. In the editor, run YNX: Apply Reviewed Text Changes and choose Use copied changes.'); }
     catch { setCopyStatus('Clipboard is unavailable. Download the bundle and copy its JSON into the editor review command.'); }
   }
   function download() {
@@ -193,5 +193,5 @@ function EditBundle({ review }: { review: EditReview }) {
     const link = document.createElement('a'); link.href = url; link.download = 'ynx-reviewed-text.json'; link.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  return <aside><h4>{review.summary}</h4><p>Copy the review bundle, then paste it into <strong>YNX: Apply Reviewed Text Changes</strong>. The editor shows the diff and checks the original document version, digest, unique selection and workspace path before asking to apply. Save the file after reviewing the change.</p><details open><summary>Exact editor review bundle</summary><pre>{JSON.stringify(review.bundle, null, 2)}</pre></details><button onClick={() => void copy()}>Copy editor review bundle</button><button onClick={download}>Download editor review bundle</button>{copyStatus && <p role="status">{copyStatus}</p>}</aside>;
+  return <aside><h4>{review.summary}</h4><p>Copy these changes, then run <strong>YNX: Apply Reviewed Text Changes</strong> in the editor and choose <strong>Use copied changes</strong>. Review the differences before confirming. Your file stays unchanged until you approve; save it when you are ready.</p><button onClick={() => void copy()}>Copy changes for editor</button><button onClick={download}>Download changes</button><details><summary>Review file contents</summary><pre>{JSON.stringify(review.bundle, null, 2)}</pre></details>{copyStatus && <p role="status">{copyStatus}</p>}</aside>;
 }

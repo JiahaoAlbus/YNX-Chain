@@ -210,7 +210,7 @@ test('reviewed document changes reject concurrent edits, digest mismatch and dup
 test('pinned tools install survives reopen and never overwrites tampered extension or symlink', async () => {
   const projectDirectory = await mkdtemp(join(tmpdir(), 'ynx-tools-install-')), context = { projectDirectory };
   await prepareCoreProject(context); await prepareCoreProject(context);
-  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.9', 'src', 'guards.cjs');
+  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.10', 'src', 'guards.cjs');
   assert.match(await readFile(path, 'utf8'), /validateChanges/); await writeFile(path, 'changed by project');
   await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' }); assert.equal(await readFile(path, 'utf8'), 'changed by project');
   await import('node:fs/promises').then(fs => fs.unlink(path)); await symlink('/etc/passwd', path); await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' });
@@ -342,7 +342,7 @@ test('versioned Tools upgrade preserves legacy extension files and installs the 
  assert.equal(JSON.parse(await readFile(join(root,'extensions','ynx.ynx-developer-brand-0.1.2','package.json'),'utf8')).version,'0.1.2');
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(previous,'guards.cjs'),'utf8'),'previous candidate preserved');
- const current=join(root,'extensions','ynx.ynx-tools-0.2.9');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.9');
+ const current=join(root,'extensions','ynx.ynx-tools-0.2.10');assert.equal(JSON.parse(await readFile(join(current,'package.json'),'utf8')).version,'0.2.10');
  assert.match(await readFile(join(current,'src','guards.cjs'),'utf8'),/replacements/);await prepareCoreProject({projectDirectory:root});
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(lastRelease,'extension.cjs'),'utf8'),'previous installed user changes preserved');

@@ -6,7 +6,7 @@ import {join} from 'node:path';import {tmpdir} from 'node:os';
 import { createRequire } from 'node:module';
 const localRequire = createRequire(import.meta.url), source = await readFile(new URL('../../../native/ynx-tools/src/extension.cjs', import.meta.url), 'utf8');
 const { digest } = localRequire('../../../native/ynx-tools/src/guards.cjs');
-function harness({ answer, exists = false, onModal, selectionEdit = false, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
+function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
   const commands = new Map(), errors = [], calls = [], id = '12345678-1234-1234-1234-123456789012';
   class FileSystemError extends Error { constructor() { super('absent'); this.code = 'FileNotFound'; } }
   let text = 'saved draft', version = 1; const runtimeEnv = { YNX_CORE_SESSION_ID: id, YNX_CORE_WORKSPACE: workspace };
@@ -14,9 +14,9 @@ function harness({ answer, exists = false, onModal, selectionEdit = false, works
   const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), ...(selectionEdit ? {replacements:[{find:'saved draft',replace:'suggested'}]} : {text:'suggested'}) }] });
   class WorkspaceEdit { constructor() { this.operations = []; } createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } replace(uri, range, text) { this.operations.push({ type: 'replace', uri, text }); } }
   const vscode = { FileSystemError, WorkspaceEdit, Position: class {}, Range: class {}, Uri: { parse: value => value, joinPath: (root, name) => ({fsPath:join(root.fsPath,name),toString:()=> 'file://'+join(root.fsPath,name)}) },
-    env: { clipboard: { writeText: async value => calls.push({ type: 'clipboard', value }) }, openExternal: async url => calls.push({ type: 'open', url }) },
+    env: { clipboard: { writeText: async value => calls.push({ type: 'clipboard', value }), readText: async () => { calls.push({ type: 'clipboard-read' }); await onClipboardRead?.(runtimeEnv); return clipboardText ?? bundle; } }, openExternal: async url => calls.push({ type: 'open', url }) },
     commands: { registerCommand: (name, fn) => { commands.set(name, fn); return {}; }, executeCommand: async (...args) => calls.push({ type: 'preview', args }) },
-    window: { activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle,
+    window: { activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle, showQuickPick: async items => items.find(item => item.source === reviewSource),
       showInformationMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; }, showWarningMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; } },
     workspace: { registerTextDocumentContentProvider: () => ({}), onDidCloseTextDocument: () => ({}), workspaceFolders: [{ uri: {fsPath:folderPath,toString:()=> 'file://'+folderPath} }], textDocuments: [doc], fs: { stat: async () => { if (!exists) throw new FileSystemError(); return {}; } }, openTextDocument: async () => ({ uri: 'untitled:preview' }), applyEdit: async edit => { calls.push({ type: 'edit', operations: edit.operations }); return true; } }
   };
@@ -145,4 +145,32 @@ test('copy approval verifies full current bytes even when a document version is 
   } });
   await h.commands.get('ynx.copyContext')();
   assert.equal(h.calls.length, 0); assert.match(h.errors[0], /document changed/);
+});
+
+test('copied suggestion opens the same guarded diff and cancellation never reads the clipboard', async () => {
+  const copied = harness({ reviewSource: 'clipboard', answer: 'Apply reviewed changes', selectionEdit: true });
+  await copied.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(copied.errors, []);
+  assert.deepEqual(copied.calls.map(call => call.type), ['clipboard-read', 'preview', 'edit']);
+  assert.equal(copied.calls[2].operations[0].text, 'suggested');
+  const cancelled = harness({ reviewSource: null }); await cancelled.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(cancelled.calls, []); assert.deepEqual(cancelled.errors, []);
+});
+test('unrelated or empty clipboard contents produce readable errors without echoing or editing', async () => {
+  for (const clipboardText of ['unrelated-private-content', '']) {
+    const h = harness({ reviewSource: 'clipboard', clipboardText }); await h.commands.get('ynx.applyReviewedDiff')();
+    assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']);
+    assert.equal(h.errors.length, 1); assert.match(h.errors[0], /YNX Tools/);
+    assert.ok(!h.errors[0].includes('unrelated-private-content'));
+  }
+});
+test('oversize copied suggestions refuse before parsing or previewing', async () => {
+  const h = harness({ reviewSource: 'clipboard', clipboardText: ' '.repeat(16 * 1024 * 1024 + 1) });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']); assert.match(h.errors[0], /too large/);
+});
+test('runtime switch while reading a copied suggestion cannot open or apply it', async () => {
+  const h = harness({ reviewSource: 'clipboard', onClipboardRead: env => { env.YNX_CORE_SESSION_ID = 'changed'; } });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']); assert.match(h.errors[0], /runtime changed/);
 });

@@ -8,6 +8,8 @@ const runtime = JSON.parse(await readFile(process.argv[2], 'utf8'));
 assert.match(runtime.qa, /^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+$/);
 assert.equal(runtime.workspace, runtime.qa + '/project');
 const tag = process.argv[3] || 'reviewed-edit'; assert.match(tag, /^[a-z0-9-]{1,40}$/);
+const toolsURL = process.env.YNX_QA_TOOLS_URL;
+if (toolsURL) assert.match(toolsURL, /^http:\/\/127\.0\.0\.1:\d{4,5}\/native-tools\?sessionId=/);
 const filename = `review-${tag}.ynxnotes`;
 const bytes = await readFile(fileURLToPath(import.meta.url));
 await writeFile(`${runtime.qa}/${tag}-runner.mjs`, bytes, { flag: 'wx', mode: 0o600 });
@@ -15,9 +17,14 @@ const original = 'before\nselected passage\nafter\n', replacement = 'before\nnew
 try { await writeFile(runtime.workspace + '/' + filename, original, { flag: 'wx', mode: 0o600 }); }
 catch (error) { if (error.code !== 'EEXIST') throw error; assert.equal(await readFile(runtime.workspace + '/' + filename, 'utf8'), original); }
 const browser = await chromium.launch({ headless: true }), context = await browser.newContext(), page = await context.newPage();
-const checks = [], errors = []; let capture, bundle, previewState;
-await context.route('**/*', route => new URL(route.request().url()).origin === runtime.url ? route.continue() : route.abort());
-await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: { writeText: async text => { window.__qaReviewCapture = text; }, readText: async () => window.__qaReviewCapture || '' } }));
+const checks = [], errors = []; let capture, bundle, previewState, sharedClipboard = '', toolsHandoff;
+await context.exposeBinding('__ynxQAClipboardWrite', (_, text) => { sharedClipboard = text; });
+await context.exposeBinding('__ynxQAClipboardRead', () => sharedClipboard);
+await context.route('**/*', route => [runtime.url, toolsURL && new URL(toolsURL).origin].includes(new URL(route.request().url()).origin) ? route.continue() : route.abort());
+await context.addInitScript(() => Object.defineProperty(navigator, 'clipboard', { value: {
+  writeText: async text => { window.__qaReviewCapture = text; await window.__ynxQAClipboardWrite(text); },
+  readText: async () => window.__ynxQAClipboardRead(),
+} }));
 page.setDefaultTimeout(30000); page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack }));
 async function command(name) {
   // Escape collapses the selected text; F1 must preserve the capture selection.
@@ -57,9 +64,11 @@ async function copySelection() {
   await page.waitForFunction(() => !!window.__qaReviewCapture);
   return JSON.parse(await page.evaluate(() => window.__qaReviewCapture));
 }
-async function preview(value) {
+async function preview(value, source = 'clipboard', preserveCopied = false) {
+  if (source === 'clipboard' && !preserveCopied) await page.evaluate(text => navigator.clipboard.writeText(text), JSON.stringify(value));
   await command('YNX: Apply Reviewed Text Changes');
-  const input = page.locator('.quick-input-box input'); await input.fill(JSON.stringify(value)); await input.press('Enter');
+  await page.locator('.quick-input-list').getByText(source === 'clipboard' ? 'Use copied changes' : 'Paste review JSON', { exact: true }).filter({ visible: true }).first().click();
+  if (source === 'paste') { const input = page.locator('.quick-input-box input'); await input.fill(JSON.stringify(value)); await input.press('Enter'); }
 }
 async function disk(expected) {
   for (let i = 0; i < 100; i++) { if (await readFile(runtime.workspace + '/' + filename, 'utf8') === expected) return; await page.waitForTimeout(50); }
@@ -77,7 +86,35 @@ try {
   assert.equal(capture.fullTextDigest, createHash('sha256').update(original).digest('hex'));
   bundle = reviewedReplacement(JSON.stringify({ summary: 'Change selected passage', replacement: 'new passage' }), reviewedSelection(JSON.stringify(capture), runtime.fixtureSessionId)).bundle;
   checks.push('Actual installed Tools captures the real selected file/version/digest/session; production review parser builds a selection-bound bundle from a controlled answer.');
-  await preview(bundle); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).waitFor();
+  if (toolsURL) {
+    const tools = await context.newPage(), calls = [];
+    tools.on('pageerror', error => errors.push({ message: error.message, stack: error.stack }));
+    await tools.route('**/runtime/native-tools/**', async route => {
+      const path = new URL(route.request().url()).pathname, body = route.request().postDataJSON(); calls.push({ path, body });
+      let value;
+      if (path.endsWith('/context')) value = { csrf: 'controlled', account: 'controlled-account', projectId: 'controlled-project', expiresAt: Date.now() + 60000 };
+      else if (path.endsWith('/proposals')) { assert.equal(body.mode, 'selected-edit'); assert.deepEqual(JSON.parse(body.context), capture); value = { ...body, csrf: 'controlled-review', proposalId: 'controlled-one-use', model: 'qwen3:4b', contextBytes: Buffer.byteLength(body.context), mode: 'selected-edit' }; }
+      else if (path.endsWith('/approve')) value = { text: 'Controlled suggested replacement', edit: { summary: 'Change selected passage', bundle }, applied: false, signed: false };
+      else throw Error('Unexpected Tools request in the controlled handoff.');
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(value) });
+    });
+    await tools.goto(toolsURL);
+    await tools.getByLabel('Review mode', { exact: true }).selectOption('selected-edit');
+    await tools.getByLabel('Request', { exact: true }).fill('Improve selected passage');
+    await tools.getByLabel('Selected context', { exact: true }).fill(JSON.stringify(capture));
+    await tools.getByRole('button', { name: 'Preview request', exact: true }).click();
+    assert.equal(calls.filter(call => call.path.endsWith('/approve')).length, 0);
+    await tools.getByRole('button', { name: 'Send reviewed context once', exact: true }).click();
+    await tools.getByRole('button', { name: 'Copy changes for editor', exact: true }).click();
+    await tools.getByRole('status').filter({ hasText: 'Changes copied' }).waitFor();
+    assert.deepEqual(JSON.parse(sharedClipboard), bundle);
+    assert.equal(calls.filter(call => call.path.endsWith('/approve')).length, 1);
+    await tools.screenshot({ path: `${runtime.qa}/${tag}-tools-copy.png` });
+    toolsHandoff = { url: toolsURL, calls, backend: 'controlled HTTP answer; no hosted provider or canonical admission' };
+    await tools.close(); await page.bringToFront();
+    checks.push('Compiled React Tools explicitly previews and sends once, then its real Copy button transfers the exact suggestion through a shared in-memory clipboard to the native editor command.');
+  }
+  await preview(bundle, 'clipboard', !!toolsURL); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).waitFor();
   previewState = await page.evaluate(() => {
     const container = window.theia.container, id = [...container._bindingDictionary._map.keys()].find(id => typeof id === 'function' && 'currentEditor' in id.prototype && typeof id.prototype.getByUri === 'function');
     const editor = container.get(id).currentEditor.editor;
@@ -96,7 +133,10 @@ try {
   });
   assert.equal(unchangedPreview, replacement); assert.equal((await editorOperation('read')).text, original); await disk(original);
   checks.push('The real suggested-change pane is read-only: keyboard input cannot change the immutable preview or source.');
-  await preview(bundle); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).click();
+  await preview(bundle, 'paste'); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).waitFor();
+  await page.keyboard.press('Escape'); assert.equal((await editorOperation('read')).text, original); await disk(original);
+  checks.push('The saved-review paste fallback opens the same guarded diff; cancellation still preserves editor and disk.');
+  await preview(bundle, 'clipboard', !!toolsURL); await page.getByRole('button', { name: 'Apply reviewed changes', exact: true }).click();
   await page.waitForFunction(() => !document.body.innerText.includes('Apply these reviewed text changes?'));
   await open();
   for (let i = 0; i < 100 && (await editorOperation('read')).text !== replacement; i++) await page.waitForTimeout(50);
@@ -125,7 +165,7 @@ try {
   assert.deepEqual(errors, []);
 } finally {
   await page.screenshot({ path: `${runtime.qa}/${tag}-last-state.png` }).catch(() => {}); await browser.close();
-  await writeFile(`${runtime.qa}/${tag}-ui.json`, JSON.stringify({ runtime, checks, errors, capture, bundle, previewState,
+  await writeFile(`${runtime.qa}/${tag}-ui.json`, JSON.stringify({ runtime, checks, errors, capture, bundle, previewState, toolsHandoff,
     runnerSha256: createHash('sha256').update(bytes).digest('hex'), actualNativeEditor: true, clipboard: 'frontend memory sink', model: 'controlled answer through production review parser; no real hosted model', canonicalAdmission: false, public: false }, null, 2), { flag: 'wx', mode: 0o600 });
 }
 console.log(JSON.stringify({ checks: checks.length, errors }));
