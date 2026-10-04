@@ -1,0 +1,146 @@
+{
+  "schema": "ynx.card.paired-source-build.v1",
+  "source": "0fd543932c7131b67ac5b0ff1725aa5bd2ec62fb",
+  "tree": "3ca7ea4968a0404cfaf399634aa0878f2d83fdad",
+  "frontendRuntime": {
+    "schemaVersion": "ynx.card.runtime-identity.v1",
+    "productId": "ynx-card",
+    "sourceCommit": "0fd543932c7131b67ac5b0ff1725aa5bd2ec62fb",
+    "sourceTree": "3ca7ea4968a0404cfaf399634aa0878f2d83fdad",
+    "appVersion": "1.0.0",
+    "releaseChannel": "qa",
+    "environment": "testnet",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "paymentNetwork": "simulation",
+    "productionRealPayments": false,
+    "cardApiCompatibility": {
+      "schemaVersion": "ynx.card.source-compatibility.v1",
+      "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+      "frontendSourceCommit": "0fd543932c7131b67ac5b0ff1725aa5bd2ec62fb",
+      "frontendSourceTree": "3ca7ea4968a0404cfaf399634aa0878f2d83fdad",
+      "backendSourceCommit": "0fd543932c7131b67ac5b0ff1725aa5bd2ec62fb",
+      "backendVersionSchema": 1
+    }
+  },
+  "backend": {
+    "path": "/private/tmp/ynx-card-paired-candidate-20261004.0FYT51/backend-0fd543932/main.mjs",
+    "bytes": 282228,
+    "sha256": "db915b74bbdfd2d38dd09725542789f6dadbb782a75a7eb617b969dad9e4a660",
+    "inputs": [
+      {
+        "path": "server/contracts.ts",
+        "bytes": 3530,
+        "sha256": "2b6d4dfcc00a6e46d2ded83bdfe77050f117d30a0675378b88942bfb06e74666"
+      },
+      {
+        "path": "server/storageSchema.ts",
+        "bytes": 1901,
+        "sha256": "71a0388a1f6b4024226a0e338eb65339fe60c2e0c2e5b11cbacea82a0cb04456"
+      },
+      {
+        "path": "server/storage.ts",
+        "bytes": 3535,
+        "sha256": "68db7a86e026e2620c6fc7d86a357ea2c47928cf0dc6248c818275f5a451e47b"
+      },
+      {
+        "path": "server/cardRisk.ts",
+        "bytes": 2539,
+        "sha256": "e3daa83b8425a3f9a24d0cc51e8544c409e6c0496dd32abae2c5c64bd729af2f"
+      },
+      {
+        "path": "server/permissions.ts",
+        "bytes": 3383,
+        "sha256": "1528fea821a27735d35127323abb4ef5e50a00aa3c96a6f83e62909e13b32b7f"
+      },
+      {
+        "path": "server/service.ts",
+        "bytes": 27704,
+        "sha256": "4361e355bc725ed302679691396e6b2212633324ee3878ad50900a417f549f5b"
+      },
+      {
+        "path": "server/core.ts",
+        "bytes": 3440,
+        "sha256": "cc278e06fbf33cdeb8a3b6a1a132016617f91c6f6ccb0aa36abedfc2e588a80e"
+      },
+      {
+        "path": "server/cardFinanceRead.ts",
+        "bytes": 6915,
+        "sha256": "69a385ceee21945a0ba558c49ce64e93e86bded37aff310c32a2dfe657eb321d"
+      },
+      {
+        "path": "src/cardOperationRecoveryContract.ts",
+        "bytes": 631,
+        "sha256": "24df630cfe95bda2ec78266727118bfba90b5ab658013a8bac570438bca40259"
+      },
+      {
+        "path": "server/http.ts",
+        "bytes": 12954,
+        "sha256": "8253e627fd66f28f1cdf2167cbc3c0cb51af6108958c33d3219fe2caabe733a4"
+      },
+      {
+        "path": "server/vendor/wallet-session-6f332753/product-session-server.mjs",
+        "bytes": 132173,
+        "sha256": "a7107b35fc4ea27e0aad4a67f8cabc388d2551e9cc09970ca90a573b7042a520"
+      },
+      {
+        "path": "server/walletApproval.ts",
+        "bytes": 1867,
+        "sha256": "fd408c018788022eec436945886a9603d41a5ae2c5902b81940c689ad0763b15"
+      },
+      {
+        "path": "server/sharedWalletAuth.ts",
+        "bytes": 2559,
+        "sha256": "afc4e8ee32f88d3778b8ec2b5b2f2edb119066c6ba7484851edafc1f24895323"
+      },
+      {
+        "path": "server/providerRegistry.ts",
+        "bytes": 18668,
+        "sha256": "7fc835e2d2912bd0b63981a8952757cdfbf9373f3490c798d05d7bdcba9b9687"
+      },
+      {
+        "path": "server/providerApplication.ts",
+        "bytes": 15742,
+        "sha256": "6a36d8008dea16a8d3ca2dc349103ced0dc635de442b0f0b27b3df6d1547d252"
+      },
+      {
+        "path": "server/immersveSandbox.ts",
+        "bytes": 22037,
+        "sha256": "7dd4202e5943e9f80ae5a8adbf92047acb0d5e2a22946f5d6859fd2c1392189b"
+      },
+      {
+        "path": "server/providerLifecycle.ts",
+        "bytes": 26145,
+        "sha256": "c634037a105e06e51bae9321d3234125b08b4dd7865f0fbe9b876f4ed4cc103b"
+      },
+      {
+        "path": "server/protectedStartup.ts",
+        "bytes": 1489,
+        "sha256": "edb091ee929a2a04205147f8b9ee37a6def20e8967c025ba4f66308aedd0ed48"
+      },
+      {
+        "path": "server/stateKey.ts",
+        "bytes": 445,
+        "sha256": "c8b8efb96ab2033830b7e15b3c8b471f27ce6bc0b0750ff36041e0cd1efca645"
+      },
+      {
+        "path": "server/main.ts",
+        "bytes": 4008,
+        "sha256": "2651f3172fc2c843d25f27c982b8dad788ae92aac47d447c71a5e936d6e4a70a"
+      }
+    ],
+    "external": [
+      "node:path",
+      "node:fs",
+      "node:sqlite",
+      "node:crypto",
+      "node:http",
+      "@ynx-chain/wallet-auth-card-provider-v2"
+    ]
+  },
+  "backendExecuted": false,
+  "privateAuthorityVerified": false,
+  "publicDeployed": false,
+  "realFunding": false,
+  "productionRealPayments": false
+}

@@ -1,0 +1,34 @@
+Starting Metro Bundler
+
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+| (node:63924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+| (Use `node --trace-warnings ...` to show where the warning was created)
+Android Bundled 14851ms index.ts (2691 modules)
+iOS Bundled 20812ms index.ts (2715 modules)
+
+› Assets (3):
+assets/icon.png (863KB)
+assets/metamask-fox.png (3.7KB)
+assets/ynx-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-6a2bf3f658a779cdacbb69d36664933c.hbc (6.2MB)
+
+› ios bundles (1):
+_expo/static/js/ios/index-d22a69f901efc1bad076d6a7ca4834bd.hbc (6.1MB)
+
+› Files (1):
+metadata.json (620B)
+
+Exported: /private/tmp/ynx-card-paired-candidate-20261004.0FYT51/native-export-0fd543932

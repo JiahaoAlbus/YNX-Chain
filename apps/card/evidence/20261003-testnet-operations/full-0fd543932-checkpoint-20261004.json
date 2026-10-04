@@ -1,0 +1,270 @@
+{
+  "source": "0fd543932c7131b67ac5b0ff1725aa5bd2ec62fb",
+  "tree": "3ca7ea4968a0404cfaf399634aa0878f2d83fdad",
+  "tests": {
+    "frontend": 403,
+    "backend": 135,
+    "additional": 8,
+    "allPassed": true,
+    "typecheck": true
+  },
+  "builds": {
+    "web": true,
+    "envelopeExactFiles": 21,
+    "staticParityFiles": 18,
+    "backendCompiled": true,
+    "backendExecuted": false,
+    "androidExport": true,
+    "iosExport": true,
+    "nativeInstalled": false
+  },
+  "browser": {
+    "scope": "LOCAL_QA",
+    "guestFourDemoEventsReloaded": true,
+    "distinctWalletLogos": true,
+    "consoleErrors": 0,
+    "accountRequested": false
+  },
+  "gates": {
+    "publicDeployment": false,
+    "realWalletApproval": false,
+    "realCardActivation": false,
+    "realTopup": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  },
+  "remaining": "Source-bound formal Host deployment and protected runtime authority, then explicit test-account approval and real YNXT receipt/credit E2E remain unverified.",
+  "files": [
+    {
+      "path": "full-0fd543932-web-build.txt",
+      "bytes": 1629,
+      "sha256": "1dfad9c82950bb4410e082527df15c8cc0050bc85fb0c18bed3092a426bea2ef"
+    },
+    {
+      "path": "full-0fd543932-native-export.txt",
+      "bytes": 1714,
+      "sha256": "34b0d4f42ad2dc89a1d0d89018e4f804ee4a5c0b40aa6471f64a8dcfeb85e551"
+    },
+    {
+      "path": "full-0fd543932-paired-composition.json",
+      "bytes": 4976,
+      "sha256": "6b42789abcf02e78db1c24eba9375d6e094f9233888b5991864fca53c1b65395"
+    },
+    {
+      "path": "native-export/_expo/static/js/android/index-6a2bf3f658a779cdacbb69d36664933c.hbc",
+      "bytes": 6154575,
+      "sha256": "d39864d4aac3ae438edf2dfef152fcdb571dd539da2b8f7497914815a269bb9c"
+    },
+    {
+      "path": "native-export/_expo/static/js/ios/index-d22a69f901efc1bad076d6a7ca4834bd.hbc",
+      "bytes": 6149069,
+      "sha256": "20a7497a684fa351666f0c651fb3ff01ef94be310884f08ff9bba8250292fca8"
+    },
+    {
+      "path": "native-export/about/about.css",
+      "bytes": 5168,
+      "sha256": "7e2ed3f385f4e3d59219978d1f7c7b9c0ca44f338b981eb86cde4eb07a539e6f"
+    },
+    {
+      "path": "native-export/about/about.mjs",
+      "bytes": 4953,
+      "sha256": "1f1d3be914673545d5c65f0feec708fe68bffdf43a720e805a379e5947996d95"
+    },
+    {
+      "path": "native-export/about/index.html",
+      "bytes": 6906,
+      "sha256": "227d54f17e1c35accf0cb07cb863eefe9bdd29c574af43d80527a052f80977b0"
+    },
+    {
+      "path": "native-export/assets/024a98855742a7b85946088532e2d4c1",
+      "bytes": 3682,
+      "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+    },
+    {
+      "path": "native-export/assets/886ac0507f3889d6fb7acf8c78bfa78c",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "native-export/assets/ac64b115433cc62063b01bbab973bec7",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "native-export/card-testnet-icon.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "native-export/manifest.webmanifest",
+      "bytes": 460,
+      "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+    },
+    {
+      "path": "native-export/metadata.json",
+      "bytes": 620,
+      "sha256": "3d7dd670c8bc5ffceb765e202ca7772e5cf1b857cb3963973de05e6166379b8f"
+    },
+    {
+      "path": "native-export/pwa-register.js",
+      "bytes": 201,
+      "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+    },
+    {
+      "path": "native-export/sw.js",
+      "bytes": 364,
+      "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+    },
+    {
+      "path": "deployment-envelope/artifact-files.json",
+      "bytes": 3855,
+      "sha256": "aaabf7bc5f89fdb9dc313f9931b069089dfa407aa0a2515019958cd178205fc4"
+    },
+    {
+      "path": "deployment-envelope/build-static.mjs",
+      "bytes": 3040,
+      "sha256": "10210795de69bb1beeda619906ccf4f140be329f141afb5dff650ccee8cc61a2"
+    },
+    {
+      "path": "deployment-envelope/dist-web/_expo/static/js/web/index-da2b325a4562a3f37e60705802bd6937.js",
+      "bytes": 4532156,
+      "sha256": "521ed13667dbb15868405e9420852873cae52bed0f90bf8f7f0aebf45c16a298"
+    },
+    {
+      "path": "deployment-envelope/dist-web/about/about.css",
+      "bytes": 5168,
+      "sha256": "7e2ed3f385f4e3d59219978d1f7c7b9c0ca44f338b981eb86cde4eb07a539e6f"
+    },
+    {
+      "path": "deployment-envelope/dist-web/about/about.mjs",
+      "bytes": 4953,
+      "sha256": "1f1d3be914673545d5c65f0feec708fe68bffdf43a720e805a379e5947996d95"
+    },
+    {
+      "path": "deployment-envelope/dist-web/about/card-testnet-identity.svg",
+      "bytes": 2514,
+      "sha256": "4e689957655b9599b543b10a447dc723c94b2e1d78ec7cf51923836a26f1726a"
+    },
+    {
+      "path": "deployment-envelope/dist-web/about/index.html",
+      "bytes": 6906,
+      "sha256": "227d54f17e1c35accf0cb07cb863eefe9bdd29c574af43d80527a052f80977b0"
+    },
+    {
+      "path": "deployment-envelope/dist-web/about/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "deployment-envelope/dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "deployment-envelope/dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+      "bytes": 3682,
+      "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+    },
+    {
+      "path": "deployment-envelope/dist-web/assets/assets/ynx-logo.886ac0507f3889d6fb7acf8c78bfa78c.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "deployment-envelope/dist-web/card-testnet-icon.png",
+      "bytes": 863227,
+      "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+    },
+    {
+      "path": "deployment-envelope/dist-web/favicon.ico",
+      "bytes": 14510,
+      "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+    },
+    {
+      "path": "deployment-envelope/dist-web/index.html",
+      "bytes": 2335,
+      "sha256": "25a624f320a2da4f4bf911a0b88625f61870f530c8c7dcc72795496176778ba4"
+    },
+    {
+      "path": "deployment-envelope/dist-web/manifest.webmanifest",
+      "bytes": 460,
+      "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+    },
+    {
+      "path": "deployment-envelope/dist-web/metadata.json",
+      "bytes": 49,
+      "sha256": "aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"
+    },
+    {
+      "path": "deployment-envelope/dist-web/package.json",
+      "bytes": 74,
+      "sha256": "b4973b4a419ac0bcab4e76ffe0a0a02f55938986d162b853429e1115086bbe75"
+    },
+    {
+      "path": "deployment-envelope/dist-web/pwa-register.js",
+      "bytes": 201,
+      "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+    },
+    {
+      "path": "deployment-envelope/dist-web/runtime-identity.json",
+      "bytes": 803,
+      "sha256": "94722953f560d798c75bd82b5783ff44f889149a4c656e1a09c10352000cadcc"
+    },
+    {
+      "path": "deployment-envelope/dist-web/sw.js",
+      "bytes": 364,
+      "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+    },
+    {
+      "path": "deployment-envelope/package.json",
+      "bytes": 83,
+      "sha256": "272f57205d44cf347719b013fda538dae2d93a359f291654b0bffcff5d3282a0"
+    },
+    {
+      "path": "deployment-envelope/vercel.json",
+      "bytes": 1256,
+      "sha256": "f0013603ad517909c79688adf05d1df72bfbfeefe668a6bd17699c08939c7bab"
+    },
+    {
+      "path": "backend/main.mjs",
+      "bytes": 282228,
+      "sha256": "db915b74bbdfd2d38dd09725542789f6dadbb782a75a7eb617b969dad9e4a660"
+    },
+    {
+      "path": "full-0fd543932-browser-20261004.json",
+      "bytes": 3351,
+      "sha256": "16ea24c01573220facee823352d4bc1beaa0ac5648d3aa1f5244d63e390a4773"
+    },
+    {
+      "path": "full-0fd543932-chooser-390-en.png",
+      "bytes": 50952,
+      "sha256": "cefbcb6b39b3620a9d595e197cc2543acbfd8c2481bb7ebc50745b65413b9a07"
+    },
+    {
+      "path": "full-0fd543932-guest-activity-390-en.png",
+      "bytes": 47754,
+      "sha256": "643b139146e2022e674dd19702051e2b3c1511fe8a440f59b78b5e81e556967f"
+    },
+    {
+      "path": "full-0fd543932-guest-reload-390-en.png",
+      "bytes": 47707,
+      "sha256": "2e05989f666786250beb55ea635c09df4340a630ac34154ee2866695a4c3ef20"
+    },
+    {
+      "path": "full-backend-0fd543932-20261004.txt",
+      "bytes": 12955,
+      "sha256": "f53a5cfb54ff48d097e2451056787feeadfefd21fa3f7df8fef88bc87a4edc8e"
+    },
+    {
+      "path": "full-extra-0fd543932-20261004.txt",
+      "bytes": 1522,
+      "sha256": "c114b518c27ff332e35223aa9e6c72fd57618363bcdafe3d685971565b6893b6"
+    },
+    {
+      "path": "full-frontend-loader-followup-20261004.txt",
+      "bytes": 56995,
+      "sha256": "a712219e1aa5d7e4a578cbbb0ee73745d19188a21fb38f0fd98ec6fa71b318ef"
+    }
+  ]
+}

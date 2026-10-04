@@ -1,0 +1,23 @@
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ new private intent widget uses explicit distinct wallet selection, then send, then Card verification (62.371792ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ unknown wallet outcome survives cold start with no rediscovery or automatic send (17.800709ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ unsupported native platform and missing browser locks disable actions with translated feedback (17.22825ms)
+✔ web application return link is explicit same-tab navigation in every supported locale (25.438833ms)
+✔ native app is not replaced by introduction and contains no web link (6.897584ms)
+✔ introduction keeps canonical app CTA and has no wallet or navigation launcher (2.363917ms)
+✔ locale is explicit, reversible and uses only the existing app preference (0.5275ms)
+✔ build copies source-owned introduction and original assets without replacing root app (3.504834ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 281.271333
