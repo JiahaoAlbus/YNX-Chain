@@ -1,0 +1,8 @@
+{
+  "scope": "synthetic module timing test only; no real provider or network",
+  "checks": 6,
+  "syntheticSendCalls": 1,
+  "currentAtEnd": false,
+  "status": "RETURNED",
+  "failure": "Deferred send lacks a fresh current check immediately before invoking provider"
+}
