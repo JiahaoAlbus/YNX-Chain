@@ -77,6 +77,7 @@ function funding(value:unknown,account:string):CardFundingView {
 /** Product-scoped transport. It never opens wallets, requests accounts, signs a
  * business approval/transaction, or changes a Standard Wallet connection. */
 export class CardBusinessClient {
+  readonly sourceCommit:string;
   readonly supportsOperationRecovery:boolean;
   private epoch=0;
   private flights=new Set<AbortController>();
@@ -84,6 +85,7 @@ export class CardBusinessClient {
   private timeout:number;
   private platform:'web'|'ios'|'android';
   constructor(private capabilities:Capabilities){
+    this.sourceCommit=capabilities.expectedSourceCommit;
     this.supportsOperationRecovery=capabilities.operationRecoveryContract===CARD_OPERATION_RECOVERY_CONTRACT;
     if(!/^[0-9a-f]{40}$/.test(capabilities.expectedSourceCommit))throw new CardBusinessError('CARD_API_SOURCE_NOT_CONFIGURED','configuration');
     this.platform=capabilities.platform??'web';
