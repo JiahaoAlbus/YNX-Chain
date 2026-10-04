@@ -177,17 +177,9 @@ func (s *Service) StartAIWithIntent(ctx context.Context, account, kind string, r
 	if !state.Privacy.AllowAIActivityContext {
 		return AIJob{}, errors.New("AI activity context is disabled in privacy settings")
 	}
-	owned := map[string]Activity{}
-	for _, activity := range portfolio.Activity {
-		owned[activity.ID] = activity
-	}
-	selected := []Activity{}
-	for _, id := range recordIDs {
-		activity, ok := owned[id]
-		if !ok {
-			return AIJob{}, errors.New("AI context contains a record not owned by this account")
-		}
-		selected = append(selected, activity)
+	selected, identityErr := selectOriginalAIActivityContext(portfolio.Activity, recordIDs)
+	if identityErr != nil {
+		return AIJob{}, identityErr
 	}
 	if len(selected) > 50 {
 		return AIJob{}, errors.New("select no more than 50 owned records")
