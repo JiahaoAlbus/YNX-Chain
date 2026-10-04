@@ -1,0 +1,50 @@
+{
+  "scope": "Actual original engines on loopback; exact domain navigation redirected only for browser QA",
+  "realAccount": false,
+  "unifiedAccountRuntime": false,
+  "formalHost": false,
+  "cases": [
+    {
+      "from": "video",
+      "to": "music",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    },
+    {
+      "from": "video",
+      "to": "creator",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    },
+    {
+      "from": "music",
+      "to": "video",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    },
+    {
+      "from": "music",
+      "to": "creator",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    },
+    {
+      "from": "creator",
+      "to": "video",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    },
+    {
+      "from": "creator",
+      "to": "music",
+      "language": "zh-CN",
+      "originalEngine": true,
+      "onlyDisplayLanguageTransferred": true
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "manifest": "a5ae233bf9f63c1ef9ef31539206a23a947091b0f1bf9d81e98ed657d71efd03",
+  "root": "8bb70f6433539686a0e0606e4ef6c872d86dc188b6cc74f9658358d27ce1a801",
+  "verifiedFiles": 4504,
+  "overlayDelta": [
+    "internal/mediacomposition/browser_mount.go",
+    "internal/mediacomposition/media_sso_mount_current_test.go",
+    "internal/productsessionv2/browser_sso.go",
+    "internal/productsessionv2/media_protected_profile.go",
+    "internal/productsessionv2/media_protected_profile_test.go",
+    "internal/productsessionv2/media_sso_current_test.go"
+  ],
+  "fixtureAdded": "internal/productsessionv2/testdata/finance-v2.json",
+  "assembly": "compact-source",
+  "excludedScratch": [
+    "matching-source",
+    "selected-source"
+  ],
+  "realProductionFeeds": false
+}

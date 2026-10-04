@@ -1,0 +1,19 @@
+✔ runtime topology isolates Viewer 6494 from API 6493 and Creator 6495 (0.400125ms)
+✔ post-P0-239 recovery baseline freezes exact legacy rollback and isolated successor topology (0.481833ms)
+✔ self-contained server serves the public /video path without a shared release symlink (76.638083ms)
+✔ same-origin API proxy preserves queries, media ranges and unavailable state (61.841458ms)
+✔ API proxy refuses a non-loopback upstream (45.043667ms)
+✔ runtime carrier rebuild is byte-identical and normalized (1107.782375ms)
+✔ actual shell deploy and rollback touch only isolated Viewer binding (1802.884291ms)
+✔ post-switch Viewer failure automatically restores the exact predecessor and preserves API and Creator (1822.933625ms)
+✔ executor refuses the shared Video current path (2.31275ms)
+✔ actual shell bootstrap creates an absent dedicated predecessor, supports switch rollback, and removes only its own state (2513.95575ms)
+✔ failed first bootstrap returns dedicated root and unit to exact absence (673.311917ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 11
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8165.63975

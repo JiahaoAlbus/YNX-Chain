@@ -1,0 +1,384 @@
+{
+  "schema": "ynx.media.unified-entry-and-sso-successor.v1",
+  "sourceCommit": "5126b0ef314a54afcbc9f5c944e757abfea7f97e",
+  "sourceTree": "c5077cd76cfd3bb33484a45cb485ca192b65d786",
+  "priorDelivery": "717015b20",
+  "ownedSource": [
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/app.html",
+      "bytes": 17831,
+      "sha256": "6bd88bab0f76921a32a8d2eae5f86048e97b4f0c0024f185eac286cfd9c7eb57"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/index.html",
+      "bytes": 6783,
+      "sha256": "dd261c1a393df903cc11198300c4e84ab09d2ab14f8ce5c351d8d83a9f612c4d"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/media-site-back.css",
+      "bytes": 1304,
+      "sha256": "e974e62066f384bd6897ebc46e666fe6ad75bd5fb9b99c2c8ea7b5026c990d66"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/media-site-back.js",
+      "bytes": 1354,
+      "sha256": "3c4306a0789620daca6986b8de13093e0440968882bfdddfcc07323ca26d0ea2"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/media-site.js",
+      "bytes": 10384,
+      "sha256": "ce8f792cd8d8079993c6667fbf0e659e3b432d0d01469b618abed06121db179a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/web/app.html",
+      "bytes": 10940,
+      "sha256": "3c3b982e68461149da53427fb50ce5d5b58721e94b27ac331dfc40a28ddc996b"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/web/index.html",
+      "bytes": 6781,
+      "sha256": "337995ab25cc674aae54f377f2957995aa79d36c994f5220d3f7e8b1a714fb99"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/web/media-site-back.css",
+      "bytes": 931,
+      "sha256": "e177663f74a6dc522601ee46abc53a50e6707537b24152b984bc40871ce58646"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/web/media-site-back.js",
+      "bytes": 1354,
+      "sha256": "3c4306a0789620daca6986b8de13093e0440968882bfdddfcc07323ca26d0ea2"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/music/web/media-site.js",
+      "bytes": 10384,
+      "sha256": "ce8f792cd8d8079993c6667fbf0e659e3b432d0d01469b618abed06121db179a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/app.html",
+      "bytes": 7649,
+      "sha256": "4ce7e983310f3dc5e54f5d3fcd4e461b4686a1187689b2b5a97db4fe5ff46754"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/index.html",
+      "bytes": 6776,
+      "sha256": "757597c90e462abdc8f6519a1cf98e25d352d62ff2485075f5693cd500ce6733"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/media-site-back.css",
+      "bytes": 931,
+      "sha256": "e177663f74a6dc522601ee46abc53a50e6707537b24152b984bc40871ce58646"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/media-site-back.js",
+      "bytes": 1354,
+      "sha256": "3c4306a0789620daca6986b8de13093e0440968882bfdddfcc07323ca26d0ea2"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/media-site.js",
+      "bytes": 10384,
+      "sha256": "ce8f792cd8d8079993c6667fbf0e659e3b432d0d01469b618abed06121db179a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/runtime.test.mjs",
+      "bytes": 25239,
+      "sha256": "03746741adfcf5acae11f7f144bf3113fef7ab828bf14854c6c8739799811a6f"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-capability-switch-check.cjs",
+      "bytes": 4087,
+      "sha256": "4ce4a3d9cec19151fee0d7ea0e4a26c52db1721343c7be047451d5bfe116e61c"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/scripts/media-microsites-check.cjs",
+      "bytes": 8717,
+      "sha256": "ae9e245535bce0e643aef166acd8f5a545b57d5809f668d8f96214271dc4e887"
+    }
+  ],
+  "sharedIntake": {
+    "manifest": "a5ae233bf9f63c1ef9ef31539206a23a947091b0f1bf9d81e98ed657d71efd03",
+    "root": "8bb70f6433539686a0e0606e4ef6c872d86dc188b6cc74f9658358d27ce1a801",
+    "verifiedFiles": 4504,
+    "overlayDelta": [
+      "internal/mediacomposition/browser_mount.go",
+      "internal/mediacomposition/media_sso_mount_current_test.go",
+      "internal/productsessionv2/browser_sso.go",
+      "internal/productsessionv2/media_protected_profile.go",
+      "internal/productsessionv2/media_protected_profile_test.go",
+      "internal/productsessionv2/media_sso_current_test.go"
+    ],
+    "fixtureAdded": "internal/productsessionv2/testdata/finance-v2.json",
+    "assembly": "compact-source",
+    "excludedScratch": [
+      "matching-source",
+      "selected-source"
+    ],
+    "realProductionFeeds": false
+  },
+  "checks": {
+    "browserMatrices": 18,
+    "capabilitySwitches": 6,
+    "legacyRoutes": 14,
+    "textZoom200": 3,
+    "noJavaScript": 3,
+    "runtimePassed": 11,
+    "focusedRacePackages": 4,
+    "canonicalBuild": "Video and Music passed, offline readonly Go1.25.13 canonical+combined",
+    "vet": "two owned main packages passed",
+    "visualInspection": [
+      "creator-application-1280-zh-CN.png",
+      "music-application-390-zh-CN.png"
+    ],
+    "limitations": [
+      "All controlled/local checks; no real registration grant, account or Wallet approval",
+      "Original engines retained; unified account runtime and consolidated native package are not completed",
+      "Actual producer registration/current/observer and Music provider finality remain absent",
+      "Candidate backend target darwin-arm64 with local/unknown stamp; Host must build frozen matching source for its target",
+      "Public readback still old Video/Creator pages, Music root404; no publication claimed"
+    ]
+  },
+  "backendCandidates": [
+    {
+      "path": "/tmp/ynx-media-sso-source-successor-consumption-20261004/video-candidate",
+      "bytes": 11001138,
+      "sha256": "7bde7bb2fab8264e9840efae48e9c867696f5b8bcf68ec492da45eeacb41e147"
+    },
+    {
+      "path": "/tmp/ynx-media-sso-source-successor-consumption-20261004/music-candidate",
+      "bytes": 14311794,
+      "sha256": "093568bbaea882734f6319b45c79933794db7120b553c30696a7a2595c82c073"
+    }
+  ],
+  "localPublicMusicCandidate": {
+    "path": "/tmp/ynx-media-unified-navigation-20261004-music-public",
+    "bytes": 13705826,
+    "sha256": "bd0ebb7d0943fabd40fff79fdcf3e04f79c6e055f963e3321040b47ce54d3e95"
+  },
+  "evidence": [
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/SHARED_MANIFEST.json",
+      "bytes": 936712,
+      "sha256": "a5ae233bf9f63c1ef9ef31539206a23a947091b0f1bf9d81e98ed657d71efd03"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/SSO_SOURCE_SUCCESSOR_HANDOFF.md",
+      "bytes": 2374,
+      "sha256": "d3c8d63ce187ceb41d3c1e1a5a1d534013e97afe59ad9f392f6e01ded3675750"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/assembly-manifest.json",
+      "bytes": 61762,
+      "sha256": "d37793db87e92b15b96a329264c2cb21ecef5dfd196465a38fc8852f77d249b1"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/browser-check.txt",
+      "bytes": 58,
+      "sha256": "784c38d1e1da2064bb1d621714d012a99bbc64a1469061c76f9c6112fbfde265"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/browser-receipt.json",
+      "bytes": 10738,
+      "sha256": "83a9caf93ad3ef63c97de378c433aa386e21e5a11d626a09d77a04caed45196f"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/capability-switch-check.txt",
+      "bytes": 33,
+      "sha256": "712e3f5cc69dd32d5d33d12cc5f2b4d837a9d2c295fcc08eaf6299d654a8bfff"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/capability-switch-receipt.json",
+      "bytes": 1169,
+      "sha256": "30a685f7b011bd40bb219d97973cf561d28d9aee8e529fb98fe3fcb5d60dd5f9"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-1280-en.png",
+      "bytes": 451790,
+      "sha256": "e3ab87fd439d7df75b85dbb8a474acb932ff0ed1ac7bd8527cee7777060e97db"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-1280-zh-CN.png",
+      "bytes": 464549,
+      "sha256": "5b3589db1e466761616315f14a7cebfdf0ff5886e8d1d1bc4ee88830bcae87e5"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-320-en.png",
+      "bytes": 392919,
+      "sha256": "65d7dd8cd5453379524517bb808f5722af83641bd0252c27f2fb04fd066e0970"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-320-zh-CN-text200.png",
+      "bytes": 768091,
+      "sha256": "1b29bbbe829b37fdf502697b3ea0c394c5978d22ddfd3f36ad208eb83920a11e"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-320-zh-CN.png",
+      "bytes": 385773,
+      "sha256": "8d52a8241d9a7d3736e4cd769c37aadd1bec074a636b3778afa2aa20a754b91a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-390-en.png",
+      "bytes": 390598,
+      "sha256": "9d75ba9c40d05ce892b443aa20f2a320518dd1dd55194b1d617ed93e1c800269"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-390-zh-CN.png",
+      "bytes": 383728,
+      "sha256": "8e677a5290674eade8bf3672929e08aec5bc21ad177a5b58bb16384117d2d966"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-application-1280-zh-CN.png",
+      "bytes": 98550,
+      "sha256": "8e995a5a8d978ba1cb2dd334b8bf027121d625695b0c4c9ed527c515dbea254c"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-application-390-zh-CN.png",
+      "bytes": 74670,
+      "sha256": "2aebdb873bd97192768c08a0b9e19e95902ca0d9056e24c7cca836500fbea01c"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/creator-site-runtime.tar.gz",
+      "bytes": 649133,
+      "sha256": "592f3f708ce0433fc20c47b5aaa9a0d1ce735acc83552e3c384a792c1669023c"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/focused-race-compact.txt",
+      "bytes": 277,
+      "sha256": "551a63bef3473ce7f9268fe95363ecb04beaa0525485ec9185a384c9a663a3d1"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/increment-after-7170.patch",
+      "bytes": 117884,
+      "sha256": "7337020ef3272189da589e325385361aa614b762a8d043048b1ceff6c23f33c6"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-1280-en.png",
+      "bytes": 556790,
+      "sha256": "549ed97eaead132b023185f5120d3775b4aedcc04d29942ae3ab03220f9f417a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-1280-zh-CN.png",
+      "bytes": 465448,
+      "sha256": "a37ffe4823397f4aae01d60d6838df17cb6b39ddc6a4a9877ee7e2b9c4e34091"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-320-en.png",
+      "bytes": 393859,
+      "sha256": "dad01dbb7c834a0f570d557ef4adc0806adba5e73e79219c4c148bf5ada2ad34"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-320-zh-CN-text200.png",
+      "bytes": 768658,
+      "sha256": "19235007f28fd81fcb79888c1891f4b046755b46cab57f4d27578545b9deb70a"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-320-zh-CN.png",
+      "bytes": 386102,
+      "sha256": "89d4c4c91e275784580c43675b21a5335de392319504e841c37aff427574b0cf"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-390-en.png",
+      "bytes": 389235,
+      "sha256": "4bcd10b4c8dffa740dd41906bfe697510ce1684ef71bf3794a1b91f789874b9e"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-390-zh-CN.png",
+      "bytes": 357351,
+      "sha256": "4b429c9f00359b128e0dbd304979c973ceaa7326bbb288753f920f23ee4ac7ff"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/music-application-390-zh-CN.png",
+      "bytes": 92949,
+      "sha256": "af15d49539c9e0d4b6238e327012dc9c87ac68cec79b4ad2b3d66f42dbdc4111"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/owned-eighteen-file-source.tar.gz",
+      "bytes": 36924,
+      "sha256": "b7eb70ab9f8f6e8c6c8cbfcbc68c9ef14f2d73f23c7a1893a425a668d87d8554"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/runtime-branding-old-assertion-failure.txt",
+      "bytes": 15502,
+      "sha256": "2e5ca436b197eebf5fcf396f4b2a59c889feff3ff16d1e35e34b179b225a95aa"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/runtime-check.txt",
+      "bytes": 1150,
+      "sha256": "f73b9fff704506f48d39b92c4f14df4b723f042b4e00fc68b34a164b7e9a0a57"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/shared-verification.json",
+      "bytes": 768,
+      "sha256": "13e2225c0abdb137defc5794f899426a83d2247507143536dae5204f184d2401"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-1280-en.png",
+      "bytes": 558020,
+      "sha256": "ac2f3ac5d2f91fdc31fd557a4389de363db39597db7a3db210ca7fec35efb044"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-1280-zh-CN.png",
+      "bytes": 467090,
+      "sha256": "e8fcb221a100b0fdd9153cd485016bae95cd4df0b8519cf0347c7b7e7b57c361"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-320-en.png",
+      "bytes": 394725,
+      "sha256": "817baa629dff6e6838f28ee994ef462f0d4e31eac084aaade11ecf0d928ee047"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-320-zh-CN-text200.png",
+      "bytes": 775166,
+      "sha256": "d9245041d299471f846dcc591de3a268c93858a5a036ff72bba272ee4afd64cf"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-320-zh-CN.png",
+      "bytes": 387868,
+      "sha256": "1ca8370b5f24a79ef9771382f40dc3aab3056d541c1684eed5765780aff7b423"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-390-en.png",
+      "bytes": 389948,
+      "sha256": "78b6560b33cb01685d3e55a5f9be2d9168445dc5d9f07c948eb49f722573e77c"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-390-zh-CN.png",
+      "bytes": 386318,
+      "sha256": "61c60d90041de4439256ec2102a4edc85ff5cf3270b1f24ad6639006b9c910b3"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-application-390-zh-CN.png",
+      "bytes": 67558,
+      "sha256": "ff026a1b84f4008e9364d06a8bfc7fdb9b314899b19dced3d7e6239c8c8a2314"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/video-site-runtime.tar.gz",
+      "bytes": 645134,
+      "sha256": "f5427177c234717d67af3665ef940d390209353a441ef5eb30b688b5c75ca29d"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/wrong-worktree-setup-failure.txt",
+      "bytes": 1498,
+      "sha256": "e90953ed449608fd9e1c0d6ee3e08fd66f3448ea5c23fd83fbe2a21cadbfa818"
+    }
+  ],
+  "publicReadback": {
+    "checkedAt": "2026-10-04T08:08:23.103447+00:00",
+    "video": {
+      "status": 200,
+      "bytes": 6555,
+      "sha256": "c7022f1dca14dbe5a561a6aa5037e3aef118054757e2d6152e802ecb8de96e6f",
+      "mediaSite": false
+    },
+    "creator": {
+      "status": 200,
+      "bytes": 16168,
+      "sha256": "b74e6d0f4a8a85de61baee20b7acec8ca2bcd1013c3ace913a4719dee31675dc",
+      "mediaSite": false
+    },
+    "music": {
+      "status": 404
+    }
+  },
+  "formalHost": false,
+  "realAccountAccepted": false
+}

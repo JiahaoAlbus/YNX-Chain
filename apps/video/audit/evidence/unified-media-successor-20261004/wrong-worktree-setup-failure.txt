@@ -1,0 +1,17 @@
+# github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd
+internal/video/cmd/protected_runtime.go:7:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition: import lookup disabled by -mod=readonly
+# github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd
+internal/video/cmd/protected_runtime.go:8:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2: import lookup disabled by -mod=readonly
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd [setup failed]
+# github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd
+internal/video/cmd/protected_runtime.go:7:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition: import lookup disabled by -mod=readonly
+# github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd
+internal/video/cmd/protected_runtime.go:8:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2: import lookup disabled by -mod=readonly
+FAIL	github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd [setup failed]
+# ./internal/mediacomposition
+stat /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/internal/mediacomposition: directory not found
+FAIL	./internal/mediacomposition [setup failed]
+# ./internal/productsessionv2
+stat /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/internal/productsessionv2: directory not found
+FAIL	./internal/productsessionv2 [setup failed]
+FAIL
