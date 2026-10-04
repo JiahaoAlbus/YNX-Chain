@@ -1233,7 +1233,12 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.audit(st, actor, "video.upload", "video", vid, v.SHA256)
 		return nil
 	}); err != nil {
-		_ = s.cfg.Objects.RemovePrefix(vid)
+		// Publication can precede a source/durability failure. The original
+		// record and nonce then exist; retain its only source and do not scan
+		// or process until an authorized recovery confirms the saved outcome.
+		if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
+			_ = s.cfg.Objects.RemovePrefix(vid)
+		}
 		return nil, err
 	}
 	if err = s.cfg.Scanner.Scan(ctx, original); err != nil {

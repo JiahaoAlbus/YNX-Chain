@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -158,5 +159,77 @@ func TestVideoPublishedUnknownStopsProcessing(t *testing.T) {
 		if after[name] != body {
 			t.Fatalf("unconfirmed processing changed original asset %s", name)
 		}
+	}
+}
+
+func TestVideoFirstUploadPublicationRetainsOriginal(t *testing.T) {
+	for _, phase := range []string{"before-publish", "after-publish"} {
+		t.Run(phase, func(t *testing.T) {
+			s, c := fixture(t, nil)
+			old := uploadWithoutRights(t, s, c, "Retained source")
+			originalFiles := storedAssetFiles(t, s, old.ID)
+			scans, processing := 0, 0
+			s.cfg.Scanner = uploadRecoveryScanner(func(context.Context, string) error { scans++; return nil })
+			s.cfg.Processor = publicationCountingProcessor{calls: &processing}
+			g := videoTestGrant(s, c.Owner, "first_upload_publication_0001", nil)
+			g.Current = func(context.Context) error {
+				if phase == "before-publish" {
+					if i, e := os.Stat(s.store.statePath + ".tmp"); e == nil && i.Size() > 0 {
+						return ErrUnauthorized
+					}
+				}
+				if phase == "after-publish" {
+					b, e := os.ReadFile(s.store.statePath)
+					var st State
+					if e == nil && json.Unmarshal(b, &st) == nil && len(st.Videos) > 1 {
+						return ErrUnauthorized
+					}
+				}
+				return nil
+			}
+			scoped := videoLease(t, s, context.Background(), g, false)
+			_, err := scoped.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Unknown original", "original.mp4", "video/mp4", testMP4))
+			if err == nil || scans != 0 || processing != 0 {
+				t.Fatalf("unconfirmed upload continued work: scans=%d processing=%d err=%v", scans, processing, err)
+			}
+			for name, body := range originalFiles {
+				if storedAssetFiles(t, s, old.ID)[name] != body {
+					t.Fatalf("changed pre-existing media %s", name)
+				}
+			}
+			dirs, e := os.ReadDir(filepath.Join(s.cfg.Root, "objects"))
+			if e != nil {
+				t.Fatal(e)
+			}
+			if phase == "before-publish" {
+				if !errors.Is(err, ErrUnauthorized) || len(s.store.state.Videos) != 1 || len(dirs) != 1 || scoped.store.business.consumed.Load() {
+					t.Fatal("unpublished upload retained staged data or consumed nonce")
+				}
+			} else {
+				if !errors.Is(err, ErrVideoStatePublicationUnconfirmed) || len(s.store.state.Videos) != 2 || !scoped.store.business.consumed.Load() {
+					t.Fatal("published upload lost original state/nonce")
+				}
+				recovered, e := NewService(s.cfg)
+				if e != nil {
+					t.Fatal(e)
+				}
+				for id, v := range recovered.store.state.Videos {
+					if id != old.ID {
+						path, e := s.cfg.Objects.Resolve(v.ObjectKey)
+						if e != nil {
+							t.Fatal(e)
+						}
+						b, e := os.ReadFile(path)
+						if e != nil || !bytes.Equal(b, testMP4) {
+							t.Fatalf("published first upload source was removed: %v", e)
+						}
+					}
+				}
+				replay := videoLease(t, recovered, context.Background(), videoTestGrant(recovered, g.Actor, g.Nonce, nil), false)
+				if _, e = replay.Upload(context.Background(), c.Owner, c.ID, ownedUploadInput("Duplicate", "duplicate.mp4", "video/mp4", testMP4)); e == nil {
+					t.Fatal("published first upload nonce replayed")
+				}
+			}
+		})
 	}
 }
