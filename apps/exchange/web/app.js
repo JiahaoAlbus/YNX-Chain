@@ -115,7 +115,7 @@ function bind(){
   $('#private-standard-wallet').addEventListener('click',openWalletChooser);
   window.addEventListener('ynx-exchange-standard-wallet-state',event=>{privateAccount.walletChanged(window.YNXExchangeWebWallet.getPrivateWalletContext());renderWalletState(event.detail)});
   $('#buy-tab').addEventListener('click',()=>setSide('buy'));$('#sell-tab').addEventListener('click',()=>setSide('sell'));
-  $('#price').addEventListener('input',estimate);$('#amount').addEventListener('input',estimate);$('#withdraw-amount').addEventListener('input',withdrawEstimate);
+  $('#price').addEventListener('input',()=>{invalidateOrderDraftReview();estimate()});$('#amount').addEventListener('input',()=>{invalidateOrderDraftReview();estimate()});$('#withdraw-amount').addEventListener('input',withdrawEstimate);
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
   $('#refresh').addEventListener('click',refreshAll);$('#security-form').addEventListener('submit',saveSecurity);$('#support-form').addEventListener('submit',openSupport);
   $('#market-retry').addEventListener('click',refreshAll);
@@ -151,8 +151,9 @@ async function connectWallet(kind){
   renderStandardWallet(result);if($('#wallet-dialog').open)$('#wallet-dialog').close();$('#connect').focus();
   toast({localeKey:'wallet-toast-connected',message:'Standard Wallet connected. No Exchange Product Session or order authority was created.'});return result;
 }
-function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
-function setSide(side){state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
+function invalidateOrderDraftReview(){state.previewDraftEpoch=(state.previewDraftEpoch??0)+1;retireMarketPreview()}
+function showView(id){invalidateOrderDraftReview();$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
+function setSide(side){if(state.side!==side)invalidateOrderDraftReview();state.side=side;$('#buy-tab').setAttribute('aria-selected',side==='buy');$('#sell-tab').setAttribute('aria-selected',side==='sell');estimate()}
 function preview(){return buildOrderPreview({price:$('#price').value,amount:$('#amount').value,side:state.side,rules:state.rules,source:state.source,marketPhase:state.marketPhase})}
 function estimate(){
   $('#reservation').textContent='—';$('#order-fees').textContent='Unavailable';window.YNXExchangeLocale?.write($('#order-fees'),'Unavailable');window.YNXExchangeLocale?.forget($('#order-error'));$('#order-error').textContent='';
@@ -388,8 +389,8 @@ function renderPublicMarket(){
 async function reviewOrder(event){
   event.preventDefault();const button=$('#review-order');if(button.disabled)return;button.disabled=true;
   const ownerAtReview=state.account,phaseAtReview=state.privatePhase,epochAtReview=state.previewOwnerEpoch??0;
-  const priceAtReview=$('#price').value,amountAtReview=$('#amount').value,sideAtReview=state.side;
-  const draftUnchanged=()=>$('#price').value===priceAtReview&&$('#amount').value===amountAtReview&&state.side===sideAtReview;
+  const priceAtReview=$('#price').value,amountAtReview=$('#amount').value,sideAtReview=state.side,draftEpochAtReview=state.previewDraftEpoch??0;
+  const draftUnchanged=()=>$('#price').value===priceAtReview&&$('#amount').value===amountAtReview&&state.side===sideAtReview&&(state.previewDraftEpoch??0)===draftEpochAtReview;
   try{
     // One public read refreshes rules. This does not create a preview on the
     // server, request an account, sign, or submit an order.

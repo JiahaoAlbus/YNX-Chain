@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
+import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {chromium} from '../../finance/node_modules/playwright/index.mjs';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
 const root=fileURLToPath(new URL('../web/',import.meta.url));
-const evidence=fileURLToPath(new URL('../evidence/ui-product-20261004/',import.meta.url));
+// Each run retains its own captures; never overwrite committed prior evidence.
+const evidence=fs.mkdtempSync(path.join(tmpdir(),'ynx-exchange-ui-product-'));
 const locales=['en','zh-Hans','zh-Hant','ja','ko','es','fr','de','pt','ru','ar','id'];
 let server,browser,url;
 test.before(async()=>{
@@ -21,7 +23,7 @@ test.before(async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));url='http://127.0.0.1:'+server.address().port;
   browser=await chromium.launch(await financeBrowserLaunchOptions());
 });
-test.after(async()=>{await browser?.close();await new Promise(r=>server?.close(r))});
+test.after(async()=>{await browser?.close();await new Promise(r=>server?.close(r));console.log('CONTROLLED LOCAL UI evidence='+evidence)});
 async function pageAt(width){const page=await browser.newPage({viewport:{width,height:900},reducedMotion:'reduce'});await page.goto(url,{waitUntil:'networkidle'});return page}
 async function noOverflow(page,label){const m=await page.evaluate(()=>({scroll:document.documentElement.scrollWidth,width:document.documentElement.clientWidth}));assert.ok(m.scroll<=m.width,label+JSON.stringify(m))}
 
