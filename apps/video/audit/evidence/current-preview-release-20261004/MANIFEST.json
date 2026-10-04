@@ -1,0 +1,112 @@
+{
+  "inputSourceCommit": "e72f2f00ff86ee40afa685de09ab193fa2afbd08",
+  "inputSourceTree": "76f4fbed27df98d33d0a79cde96608da728c3b87",
+  "project": {
+    "projectId": "prj_Y3EagRZ4ZSvNhJxc7Z9LtD7fB0jW",
+    "orgId": "team_JYlLQCpX3qEQiL92qoWMjUrw",
+    "projectName": "ynx-media-preview"
+  },
+  "release": "testnet-preview-20261004",
+  "files": {
+    "CONTRACT.md": {
+      "bytes": 3550,
+      "sha256": "fbeafad5ff6722f81d2ba4bee7933e6edbd3edc3e4bb78cb7ededafad557cd46"
+    },
+    "YNXCreator-e72f2f00-unsigned.tar.gz": {
+      "bytes": 1589427,
+      "sha256": "6f25b9206d76775db7c9c9ec5bf0fd35f8333ca0b1254ca7207411bd4f0ef1a8"
+    },
+    "YNXCreatorMac-e72f2f00-unsigned.tar.gz": {
+      "bytes": 931488,
+      "sha256": "20a32081db54ac275c1888ee94db85f6d4c76735213547b55f94eefc2db5410f"
+    },
+    "complete-owned-media-source.tar.gz": {
+      "bytes": 4389043,
+      "sha256": "3cd8ac0e3ea293c4e07dfd5cb320c33905dd0ad457b7e5938ef82d42baca55bc"
+    },
+    "creator-apple-build-receipt.json": {
+      "bytes": 9992,
+      "sha256": "781fefbc803ef98679c5c393950f31c3b0447a80ebda57ff713a8ee6a3118183"
+    },
+    "creator-web-manifest.json": {
+      "bytes": 5433,
+      "sha256": "659a2c1be216357e9f65594240749e77cb1311d909b47ef374576aa2752dd7f7"
+    },
+    "creator-web-runtime.tar.gz": {
+      "bytes": 651703,
+      "sha256": "5162db2364afe7bd877d0babc82cf2d4edb1527b7f719303a30cd6e7cfdc2c63"
+    },
+    "deploy.log": {
+      "bytes": 1875,
+      "sha256": "cbd805e51d86aeac5ed8a5fa7ac9925a730f8fa0a9c57b89b130dcd283c1276e"
+    },
+    "deployment-inspect.log": {
+      "bytes": 750,
+      "sha256": "31b9d631ca5a2b6227638ec81bb90a61d76f72fbe5bbd4ad44a943abf5e5a712"
+    },
+    "matching-build-source.tar.gz": {
+      "bytes": 1339061,
+      "sha256": "29a5f2f233f53aa0000a0661e5142fbb94405015e794572708379c94f0515ba9"
+    },
+    "matching-source-manifest.json": {
+      "bytes": 66887,
+      "sha256": "bbdaa97ae8e60149974e846ec090810028c5ca623c9dffcaa7b9b0484e336e01"
+    },
+    "media-backend-e72f2f00-linux-amd64.tar.gz": {
+      "bytes": 13467830,
+      "sha256": "7ea231d0a9333fcf1aadf5b9b325e67d4b80051d498f3ec460519c8890d9b937"
+    },
+    "music-web-manifest.json": {
+      "bytes": 28563,
+      "sha256": "cd261a45e5227946801bac07a166d43ea6348b375300c481cf68369d3cbb056d"
+    },
+    "music-web-runtime.tar.gz": {
+      "bytes": 981722,
+      "sha256": "98b1bb084b6bb2c04f56e2e74b7d919c03e243dd4d13162f4689268779508248"
+    },
+    "native-candidate-inventory.json": {
+      "bytes": 5508,
+      "sha256": "8d888aac6191f6ea951db8d6d2951ea5a61095dc7a78e3f167503247767a52c7"
+    },
+    "owned-media-source-manifest.json": {
+      "bytes": 131831,
+      "sha256": "fccf663255fac776cadecc512c7e5c10dd67568c18da14e27c86e519a46ab2b6"
+    },
+    "private-services-unavailable.js": {
+      "bytes": 385,
+      "sha256": "57a4ab83d0eaa4bfc84e3413f5b99ee3f934eb04005cd0155ab249dd6559e3a3"
+    },
+    "project-binding.json": {
+      "bytes": 122,
+      "sha256": "7f56e0533095a6eb7b11a1aeaecce0a814b15865e804468bfca53638999be86b"
+    },
+    "project-create.log": {
+      "bytes": 109,
+      "sha256": "d861a9531eff02be2f7f351ffae830aa04362bb4322a56a5f48bab2dc529aa47"
+    },
+    "project-link.log": {
+      "bytes": 215,
+      "sha256": "08720a8db9f28ccd05f4f8f46c41d17f8f9321c372fc15ef8a74a128ea1033ee"
+    },
+    "public-manifest.json": {
+      "bytes": 44826,
+      "sha256": "8d7e9cb218661351abd50e2d2bd25635340f70344d25ebbf5dd14654e22103da"
+    },
+    "release-build-receipt.json": {
+      "bytes": 518,
+      "sha256": "72d574b8f457f42a338be60353769ccd39ee971a2c6954572f24c953da54a229"
+    },
+    "vercel.json": {
+      "bytes": 1759,
+      "sha256": "36122f9ad9b60ae71e4f15c0adefab76fa4e24840c560bd3c9d9d2e223ea30f4"
+    },
+    "video-web-manifest.json": {
+      "bytes": 6447,
+      "sha256": "55862a0ee0b0a184b64d508cbee3efca3987e583918df0affa29a037630c5c15"
+    },
+    "video-web-runtime.tar.gz": {
+      "bytes": 645291,
+      "sha256": "3a30e8f9cb4dcf56048a4b8dd375e003efdc5a967e1ee6e1ab8199e045a8d359"
+    }
+  }
+}

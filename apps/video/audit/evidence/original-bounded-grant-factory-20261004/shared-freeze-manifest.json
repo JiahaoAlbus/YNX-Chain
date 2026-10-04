@@ -1,0 +1,317 @@
+{
+  "schema": "ynx-source-candidate-freeze/v1",
+  "files": {
+    "HANDOFF.md": {
+      "sha256": "e8d9aa5352f4e89b675acbeaa58bf035d32ed7e48854c82d165eb2f57b3c7147",
+      "bytes": 1321
+    },
+    "ORIGINAL_BOUNDED_PHASES_CONTRACT.md": {
+      "sha256": "1a06c3f3ff94e8f0e82318b8e07f7d3d3561eb442643dddce71bb172c62ba4f8",
+      "bytes": 20295
+    },
+    "RECEIPT.json": {
+      "sha256": "ec71e34cfec0150926a135c7439f1ea85ce915a8eb0534aa73fc86a7102790ce",
+      "bytes": 835
+    },
+    "base-inputs.json": {
+      "sha256": "28530bfe8641aed4411bea74c01e3fe73c702e648706c56444b804f3c64be812",
+      "bytes": 8415
+    },
+    "baseline-inputs.json": {
+      "sha256": "b322458e78d19f4facd8e37b60d356fb19b5b728b0da7955ff91ea33de6ba54c",
+      "bytes": 10392
+    },
+    "bounded-phases-a2bcc-to-commit-latch.patch": {
+      "sha256": "36f9c30fe78a77ecffd926d55ec21fb53034ae353e25bfc9a065b946a3260ad2",
+      "bytes": 2614
+    },
+    "bounded-phases-two-source.patch": {
+      "sha256": "1a034c7c92aba45b086dbea37b895144b1f4ec01e65c356df1afea1e3efd4224",
+      "bytes": 41420
+    },
+    "caller-reference/cloud-CONSUMER_CONTRACT.md": {
+      "sha256": "5a52990ef7cf30ea1da722cb6568bb7df42ef4b57530598f92b5c2de5e1b89f4",
+      "bytes": 8116
+    },
+    "caller-reference/cloud-RECEIPT.json": {
+      "sha256": "100a78f8a962f785a5d2995f348f48e6acbcd4c9fc30ee082e0ded75c3a931e2",
+      "bytes": 3726
+    },
+    "caller-reference/current-cloud-CONSUMER_CONTRACT.md": {
+      "sha256": "9cfe3270fd274887c58c2a579bbeb27c6a6f3447e5f4a6f1722d1b9b67d4f999",
+      "bytes": 10314
+    },
+    "caller-reference/current-cloud-RECEIPT.json": {
+      "sha256": "12d3c48dd0d7ce532337bc27dca2ac5edc249911aedcb333c1f37e38a68dbec3",
+      "bytes": 2716
+    },
+    "caller-reference/current-cloud-prepared_direct_original.go": {
+      "sha256": "b5623c4a058ae563ab3883af6ef7ee9b29247574288c1a85d00f868571d642ca",
+      "bytes": 19418
+    },
+    "caller-reference/node-opaque-CONSUMER_CONTRACT.md": {
+      "sha256": "092d497d064f33d2af3695bca4074d9322f75155e84855c4e564cc88926e8ae3",
+      "bytes": 3183
+    },
+    "caller-reference/node-opaque-MANIFEST.json": {
+      "sha256": "eb965a1f9ef07093aca06d082f137bd7e397870af3c99561fa3f3d487f5786cc",
+      "bytes": 6972
+    },
+    "caller-reference/prepared_direct_original.go": {
+      "sha256": "95fbebecde995dd6240a6c65988aebba57acadb21ab4f87b5fde0573457d7144",
+      "bytes": 18728
+    },
+    "commands.md": {
+      "sha256": "44a31a31197ae044a58218428f3fd6da32285fe209e62b21028dba1ac7a984c7",
+      "bytes": 507
+    },
+    "commit-error-latch-race.log": {
+      "sha256": "912941f2ecd71f44d792a4a2f687d0cd347ab85209f2e94d5a287da59ddd4d56",
+      "bytes": 1606
+    },
+    "double-build-readback.log": {
+      "sha256": "a951a1711f04a7db10019e87d5c43d6c6e1c819f38debaa0537554965c976556",
+      "bytes": 150
+    },
+    "final-reference-inputs.json": {
+      "sha256": "889c8e6af7b8da0e513d0f108c6d73e9c6cba37689c0c20b81485eeaa574cd59",
+      "bytes": 1275
+    },
+    "nonstandard-dependencies.txt": {
+      "sha256": "d439560caddfd1034740b3c13bde7b9ddcdd0ca2b6b51171320d557ab8a3c2fc",
+      "bytes": 138
+    },
+    "original-bounded-phases-complete-source.tar.gz": {
+      "sha256": "9957d74714777cc2d50e0223f4815b083d84fef7f7b02ffb4003733af291a60a",
+      "bytes": 118943
+    },
+    "rebuild-source-archive.py": {
+      "sha256": "845f040d3ecf019093633b94140ecd4bedd783446d259faa645b0705238665ca",
+      "bytes": 770
+    },
+    "source/go.mod": {
+      "sha256": "0eefa099af534ed3367dcf206bc077569bb68ae9d72d919279aa83cc55a279d3",
+      "bytes": 4813
+    },
+    "source/go.sum": {
+      "sha256": "892629f34b4c48a2f3c0f19256f5d72cb1fd707ca1eda5108f76206363b02e91",
+      "bytes": 38346
+    },
+    "source/internal/accountaddress/address.go": {
+      "sha256": "9854a581af2e42b0b29ce60f69002eaddabfeef1907b9fcf1b78ac9595acc8ac",
+      "bytes": 5709
+    },
+    "source/internal/accountaddress/address_test.go": {
+      "sha256": "b3b1b3c242e9f826c069c41175bdb06413bc2394d8c3506b96b1f7705ac3b948",
+      "bytes": 1676
+    },
+    "source/internal/productsessionv2/BACKEND-KEY-CONFIGURATION.md": {
+      "sha256": "d8ead5fffae8990acfbbb4172866aaae72e09c0bbc245fcfbe781c914ab7d2db",
+      "bytes": 2608
+    },
+    "source/internal/productsessionv2/BROWSER_SSO_WORKSPACE_CONTRACT.md": {
+      "sha256": "a73c88c1b8c829de6d52f0e339c542396a11830e78b12aa42242b215127e44fc",
+      "bytes": 4578
+    },
+    "source/internal/productsessionv2/COMBINED_AUTHORITY_CONTRACT.md": {
+      "sha256": "16c2fb8144e30d8e7897b3eb7de38dc197b1a5348b90ff0182c7dad9b6be82cf",
+      "bytes": 5544
+    },
+    "source/internal/productsessionv2/README.md": {
+      "sha256": "2f33f7ef3246392c5ed9ad8d33d1d6d9e7178d96c79d783237ce93f634fcdcfe",
+      "bytes": 3526
+    },
+    "source/internal/productsessionv2/REGISTERED_CLIENT_CONSUMER_CONTRACT.md": {
+      "sha256": "75b0d1ae88f9d89dde3716379f821baf845d3ec9cace38b77a66fece4dc1f3a7",
+      "bytes": 3755
+    },
+    "source/internal/productsessionv2/action_body.go": {
+      "sha256": "21dcb8c2be36dc661a329e2cb1659bdb48bc0005bf744735d2f924e4f58c88e8",
+      "bytes": 2887
+    },
+    "source/internal/productsessionv2/action_proof.go": {
+      "sha256": "3f293e7202f21360d2969291616359cc802c641fffe0a38e70c1ab9c89be759d",
+      "bytes": 4621
+    },
+    "source/internal/productsessionv2/action_proof_test.go": {
+      "sha256": "d493cd30796a6e61bba7ea1a430430000504367083ef9c1776e00ee12cc55854",
+      "bytes": 4593
+    },
+    "source/internal/productsessionv2/backend_key.go": {
+      "sha256": "09b1ff2b1c4c271669172dd256851c0e6d91c20eb31195eec6dbb3270f83f3ad",
+      "bytes": 3985
+    },
+    "source/internal/productsessionv2/backend_key_pem_test.go": {
+      "sha256": "466f33d1abf82f759f480c2c56397a8c1d66f0998c6cdcdbc112c1b84d06da1d",
+      "bytes": 2391
+    },
+    "source/internal/productsessionv2/backend_key_test.go": {
+      "sha256": "fa440a9f5acd56fe25be9799323b62eeb8fd0a7634df005471c1177347d24fe3",
+      "bytes": 3966
+    },
+    "source/internal/productsessionv2/browser_sso.go": {
+      "sha256": "0209a870ba2bab6c04e78ed1ce7e1248e2461c489b6b1416eab946710ed06250",
+      "bytes": 15969
+    },
+    "source/internal/productsessionv2/browser_sso_ecosystem_test.go": {
+      "sha256": "6b7d66f5329f7b778fcda776977334b5ba8a95e91a1cbafc3a6ff0ac8ebf2b2c",
+      "bytes": 11100
+    },
+    "source/internal/productsessionv2/browser_sso_test.go": {
+      "sha256": "b3eaae5a08e61ada78c4c12dddfdcdcc6a55ad14dc1e4118b1b6db73e6b009e7",
+      "bytes": 13624
+    },
+    "source/internal/productsessionv2/business_proof.go": {
+      "sha256": "3dc2f33081a599be43a2a0931c903aea2154df28eb1bc48c54bb17c583a5ccae",
+      "bytes": 7535
+    },
+    "source/internal/productsessionv2/business_proof_test.go": {
+      "sha256": "faf88e562843fcec7b8c43afe0745bd4d9a58e6b9f854b998ee677aac4b4494c",
+      "bytes": 5807
+    },
+    "source/internal/productsessionv2/business_revalidation_test.go": {
+      "sha256": "a68f0a24a0d1f3dd494455f1b9c4da9da53382ccd27075073792ef1ea3ebc614",
+      "bytes": 4606
+    },
+    "source/internal/productsessionv2/calendar_web_profile.go": {
+      "sha256": "76b798ee9a4c7f6c3c05b297cc5c4d542433c0ce0c62f3014da416c4de62c8de",
+      "bytes": 3119
+    },
+    "source/internal/productsessionv2/calendar_web_profile_test.go": {
+      "sha256": "867fb021192237dd9d8a2df22dc6fc7b33c1dc00e055d83e0454e69078ecef52",
+      "bytes": 2057
+    },
+    "source/internal/productsessionv2/client.go": {
+      "sha256": "866203b52887098d3d559f6ff2e40c19c8952d1467f853c97f7dcdbd2e20fd07",
+      "bytes": 16133
+    },
+    "source/internal/productsessionv2/client_test.go": {
+      "sha256": "7a700c6eac58385cb050bcf38fe1b8c395d48b3e0335facc53312b5e0db5d7c9",
+      "bytes": 9843
+    },
+    "source/internal/productsessionv2/combined_authority_test.go": {
+      "sha256": "1b2c88f81b3fa7c02ed22f59ae19b828a3e0e2bac2050d06c38d88bc54251ed2",
+      "bytes": 12010
+    },
+    "source/internal/productsessionv2/media_authority_coordinator.go": {
+      "sha256": "9aae723500e1f3c149e77c76b16461fa54567d589ebe1f0e2758a646d17ec3fb",
+      "bytes": 12998
+    },
+    "source/internal/productsessionv2/media_authority_coordinator_test.go": {
+      "sha256": "bfe6be4704b5932da434e7559757d2800163f84de659754b1cc823898bd5b87d",
+      "bytes": 16142
+    },
+    "source/internal/productsessionv2/original_bounded_phases.go": {
+      "sha256": "3011eaf6c9e7323323e4e520e2209d967996790ed5e93cac33efc0fed072eaea",
+      "bytes": 19433
+    },
+    "source/internal/productsessionv2/original_bounded_phases_test.go": {
+      "sha256": "7a68657eec29e485c8d4d47c34fd56ad711ea509b14c6cc709ba99d389b0bfc1",
+      "bytes": 20751
+    },
+    "source/internal/productsessionv2/original_effect_participant.go": {
+      "sha256": "5e9ea4439ccc8a1ee7a29c0a9dc641ea7058e70e1fbffb468fff4c4d72ccef16",
+      "bytes": 19917
+    },
+    "source/internal/productsessionv2/original_effect_participant_test.go": {
+      "sha256": "adaa9196c1940341b3a333c32010f5fc82bde68322e52226fb48c12195039b40",
+      "bytes": 23931
+    },
+    "source/internal/productsessionv2/private_business_revalidation_test.go": {
+      "sha256": "3841b999460f4a2e3152c01876a5e16ed2d91bbc5b80d8bbd7b159738098e197",
+      "bytes": 4783
+    },
+    "source/internal/productsessionv2/private_business_v3_revalidation_test.go": {
+      "sha256": "f3a587d8c0ec3f3aaf0682f10048ccfb34b667ca1f50609d5323eda173044a5c",
+      "bytes": 4792
+    },
+    "source/internal/productsessionv2/registered_clients.go": {
+      "sha256": "2543cc4ef781868bf946602a1f6914c60e3104aba41018a1456fe831261ea63a",
+      "bytes": 5169
+    },
+    "source/internal/productsessionv2/registered_clients_test.go": {
+      "sha256": "d97a210731f2a42396f403af3ddf6dc173d2255acc6bd6d9b7946474e0cf1282",
+      "bytes": 4534
+    },
+    "source/internal/productsessionv2/revalidation.go": {
+      "sha256": "885534b85303ff7f76581acc492b5b2f7b145bed3b2b04a2421b9ef90817e4c6",
+      "bytes": 16594
+    },
+    "source/internal/productsessionv2/revalidation_test.go": {
+      "sha256": "62917dc576c5e01909f23f4567b36f2fe1333b932f291f85b9a5b9e356428f30",
+      "bytes": 6865
+    },
+    "source/internal/productsessionv2/testdata/browser-sso-ecosystem-node.mjs": {
+      "sha256": "3c29edf5f559d4d131e9eb61f9ce204ef073e35498da2fa51c8213810ce9dc14",
+      "bytes": 3473
+    },
+    "source/internal/productsessionv2/testdata/business-revalidation-node.mjs": {
+      "sha256": "a163d5b94f66ac5ac98483e3656d5aeea6b732a26765924e0a9690ba63e938ee",
+      "bytes": 3116
+    },
+    "source/internal/productsessionv2/testdata/combined-authority-node.mjs": {
+      "sha256": "f8a897c559e9b8f87181245f7e96381e06edfeaffb9fdab76c99b88b797388bb",
+      "bytes": 9712
+    },
+    "source/internal/productsessionv2/testdata/finance-finite-v2.json": {
+      "sha256": "364681baa5088965deba2ca5feb17ef49d849be9324e6677329717d6e33b00de",
+      "bytes": 5709
+    },
+    "source/internal/productsessionv2/testdata/finance-v2.json": {
+      "sha256": "dc2f7305448dadabd50ae123b5cba92cceb846763be478eb9c36dc141dfe10c9",
+      "bytes": 5338
+    },
+    "source/internal/productsessionv2/testdata/generate-finite.mjs": {
+      "sha256": "4d0e76f7f4c4b89f678ff9c0294026c8a47419460e727a997c9c63cbb4f82109",
+      "bytes": 3041
+    },
+    "source/internal/productsessionv2/testdata/generate.mjs": {
+      "sha256": "8b7a73bf74e595624a27065dcd1676ab5400eb4cd31ba8a42ca47423f2a4aba1",
+      "bytes": 2920
+    },
+    "source/internal/productsessionv2/testdata/mail-business-binary-js-proof.json": {
+      "sha256": "4aa82aa796ba395cab9acfad6b8408f440f5b1d8123ba7326a4c653bfe970029",
+      "bytes": 2261
+    },
+    "source/internal/productsessionv2/testdata/mail-business-get-js-proof.json": {
+      "sha256": "3604f18e0d3acabc75c8c04fcc475357b9aa7c938935ed539ddf17a54cad8bea",
+      "bytes": 2251
+    },
+    "source/internal/productsessionv2/testdata/mail-business-js-proof.json": {
+      "sha256": "6d227b20f1e4add8ee3981cc70b5e568003a1b4f72a00187aa79850759aa4aa0",
+      "bytes": 2287
+    },
+    "source/internal/productsessionv2/testdata/mail-business-large-js-proof.json": {
+      "sha256": "4534d1820a3171d6c4fd911015933519528b7325cb051751bcad92dfe5dee360",
+      "bytes": 2291
+    },
+    "source/internal/productsessionv2/testdata/mail-business-multipart-js-proof.json": {
+      "sha256": "cdfdbd1bc284880dae7201bd7185257d5475622c327cb3cc597ea7cbe77b99c0",
+      "bytes": 2334
+    },
+    "source/internal/productsessionv2/testdata/mail-business-native-js-proof.json": {
+      "sha256": "bd3ce4547660ec8d9e021f7e8b9a2ef91639a5770b9c9e5756bbdb4b2f174fe1",
+      "bytes": 2269
+    },
+    "source/internal/productsessionv2/testdata/private-business-revalidation-node.mjs": {
+      "sha256": "ae3ff247a662b842a682740b81f47c2e03ed51359a63707b82c23a6c37415bc8",
+      "bytes": 3499
+    },
+    "source/internal/productsessionv2/testdata/private-business-v3-revalidation-node.mjs": {
+      "sha256": "15a46ed768aae5db3e054cf2d994e2ed253ca51b4e2897f487bedcfe501af5ef",
+      "bytes": 5049
+    },
+    "source/internal/productsessionv2/testdata/revalidation-node.mjs": {
+      "sha256": "f8733618c7c5c296d60cb0888d2727707985b27f854d4f17a5192a1f2c288840",
+      "bytes": 3047
+    },
+    "source/internal/productsessionv2/testdata/social-action-js-body-cases.json": {
+      "sha256": "c05a2e1c62b2ba0b6cf1704b674cb2bc65ab2dc6630c9f0c74015120c843afb0",
+      "bytes": 14856
+    },
+    "source/internal/productsessionv2/testdata/social-action-js-proof.json": {
+      "sha256": "10921896e76cb0909a9731a681f222ed17bb28795f41ed3a4b87e8ef41c46061",
+      "bytes": 2391
+    }
+  }
+}

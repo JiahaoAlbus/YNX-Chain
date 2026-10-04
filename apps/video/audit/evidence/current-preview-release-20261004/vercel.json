@@ -1,0 +1,69 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "cleanUrls": false,
+  "trailingSlash": true,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com wss://relay.walletconnect.org https://verify.walletconnect.org; frame-src https://verify.walletconnect.org; media-src 'self' blob:; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'"
+        }
+      ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/video/api/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/v1/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/sso/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/music/api/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/creator/video/api/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/creator/sso/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/video/sso/:path*",
+      "destination": "/api/unavailable"
+    },
+    {
+      "source": "/music/sso/:path*",
+      "destination": "/api/unavailable"
+    }
+  ]
+}

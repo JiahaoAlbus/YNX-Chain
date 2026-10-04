@@ -1,0 +1,125 @@
+{
+  "sourceCommit": "d21adc138af5248939feedbd9aac05d3b0b55909",
+  "sourceTree": "3f9e3e947e30c61a5310724a0547e12ecee9a2f9",
+  "ownedPaths": [
+    "internal/video/original_bounded_grant.go",
+    "internal/video/original_bounded_grant_test.go",
+    "internal/music/original_bounded_grant.go",
+    "internal/music/original_bounded_grant_test.go"
+  ],
+  "matchingFiles": 343,
+  "prior337AllByteIdentical": true,
+  "intake": {
+    "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/original-bounded-phases-commit-error-latch-successor-c5-20261004",
+    "manifestSHA256": "9f2a9365cea95bcc9c11355c9f6ccb57e567701028b51ca2976477e9366080d7",
+    "archiveSHA256": "9957d74714777cc2d50e0223f4815b083d84fef7f7b02ffb4003733af291a60a",
+    "archiveBytes": 118943,
+    "verifiedArchiveMembers": 60,
+    "selectedOnly": [
+      {
+        "path": "internal/productsessionv2/original_bounded_phases.go",
+        "bytes": 19433,
+        "sha256": "3011eaf6c9e7323323e4e520e2209d967996790ed5e93cac33efc0fed072eaea"
+      },
+      {
+        "path": "internal/productsessionv2/original_bounded_phases_test.go",
+        "bytes": 20751,
+        "sha256": "7a68657eec29e485c8d4d47c34fd56ad711ea509b14c6cc709ba99d389b0bfc1"
+      }
+    ],
+    "admission": "LIMITED_STATIC_SOURCE_PASS, exact Root routing confirmed; no real source activation",
+    "realProducer": false,
+    "wholeOldPackageNotOverlaid": true,
+    "independentReport": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/original-bounded-phases-commit-error-latch-independent-review-20261004/REPORT.md",
+    "independentReportSHA256": "36d04ddd7727f0b125a097d3448eaf4c6a2c2c448ef556e518b3b3b2ff86462c"
+  },
+  "validation": {
+    "go": "go1.25.13 darwin-arm64",
+    "tags": [
+      "ynx_canonical_media",
+      "ynx_media_combined_authority"
+    ],
+    "affectedRace": {
+      "topTests": 6,
+      "subtests": 6,
+      "video": "PASS 1.686s",
+      "music": "PASS 1.618s"
+    },
+    "vet": [
+      "./internal/video",
+      "./internal/music"
+    ],
+    "backendBuilds": [
+      "./internal/video/cmd",
+      "./apps/music/cmd/ynx-musicd"
+    ],
+    "vetAndBuildCombinedCommandExit": 0,
+    "stdout": "empty",
+    "modelsOnly": true,
+    "realRegistrationOrProviderTerminal": false
+  },
+  "candidates": {
+    "video-candidate": {
+      "bytes": 11075282,
+      "sha256": "f108d28d6d632401489c633b6667360d56a3cacbadbbf02d305e3bd103173480"
+    },
+    "music-candidate": {
+      "bytes": 14332786,
+      "sha256": "63f2af35ff33164a3ed7ed83cd0c80356fa77694b0e01c10d646e374fe62f9ae"
+    }
+  },
+  "remaining": [
+    "Actual fixed original prepared publication + mapper + Node transport with real full request context and enrolled identity; cannot bootstrap from absent Media journal",
+    "Actual production registered clients/SSO/native account device family generation roles and provider final/recovery supplied by A",
+    "New protected startup two leaves require admitted proof-cap and exact HTTP predecessors; absent from current Media assembly; A must supply exact current composition",
+    "Host installation/readback unresolved; previous remote partial upload UNKNOWN must be reconciled",
+    "Formal owned-user login/save/refresh/recovery/switch flow unverified"
+  ],
+  "releaseComplete": false,
+  "artifacts": {
+    "intake.json": {
+      "bytes": 1299,
+      "sha256": "8513fb654a62a891c0998be7da10d2e10a7dc8b36b4206d25480d8bd2175f2fe"
+    },
+    "matching-build-source.tar.gz": {
+      "bytes": 1338932,
+      "sha256": "31e2e88a78384b955f23667964f377cb6d529c25c651247f29fc5c0180414248"
+    },
+    "matching-source-manifest.json": {
+      "bytes": 66809,
+      "sha256": "cf8207762f920bea8ae92026289d5afb927cf9544ee87b3acb29cb7935c666ba"
+    },
+    "owned-factory-race.txt": {
+      "bytes": 120,
+      "sha256": "3998032b778978db538c9090c2d53cdc4bdd7318aee2ad27ccfbf552d6c4228c"
+    },
+    "owned-four-source.tar.gz": {
+      "bytes": 3927,
+      "sha256": "798654b44dab24522d3dc471a2b39fb4b08c3e7cf47e7ffaa45802d63b38a243"
+    },
+    "owned-source-manifest.json": {
+      "bytes": 852,
+      "sha256": "74fc0d01716f4d8f2086fe37c9f049215eb64a8eccf2b5653a1c73d1604de569"
+    },
+    "shared-HANDOFF.md": {
+      "bytes": 1321,
+      "sha256": "e8d9aa5352f4e89b675acbeaa58bf035d32ed7e48854c82d165eb2f57b3c7147"
+    },
+    "shared-ORIGINAL_BOUNDED_PHASES_CONTRACT.md": {
+      "bytes": 20295,
+      "sha256": "1a06c3f3ff94e8f0e82318b8e07f7d3d3561eb442643dddce71bb172c62ba4f8"
+    },
+    "shared-freeze-manifest.json": {
+      "bytes": 13561,
+      "sha256": "9f2a9365cea95bcc9c11355c9f6ccb57e567701028b51ca2976477e9366080d7"
+    },
+    "shared-independent-REPORT.md": {
+      "bytes": 5172,
+      "sha256": "36d04ddd7727f0b125a097d3448eaf4c6a2c2c448ef556e518b3b3b2ff86462c"
+    },
+    "validation-receipt.json": {
+      "bytes": 514,
+      "sha256": "4faf6013a8569a9fce9712d6518bae20afb8043bb9c6f920cb828444889ebfae"
+    }
+  }
+}

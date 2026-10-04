@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "d21adc138af5248939feedbd9aac05d3b0b55909",
+  "sourceTree": "3f9e3e947e30c61a5310724a0547e12ecee9a2f9",
+  "files": [
+    {
+      "path": "internal/video/original_bounded_grant.go",
+      "bytes": 3533,
+      "sha256": "df8f65642a7cfb530870c59c018d6969fe2f4b758a164671c0ab33e5ab56533c"
+    },
+    {
+      "path": "internal/video/original_bounded_grant_test.go",
+      "bytes": 7661,
+      "sha256": "59a96cacf7636d1689b9a8a5073f1d4178ba8754540608fee25f0f893718a30b"
+    },
+    {
+      "path": "internal/music/original_bounded_grant.go",
+      "bytes": 3517,
+      "sha256": "67b8d488decde9014030acb934b8371e7fac6d0df9ff3a70b11ceb0655da7103"
+    },
+    {
+      "path": "internal/music/original_bounded_grant_test.go",
+      "bytes": 7539,
+      "sha256": "80cd0a63ce901796fc764a808f629659eba6f75a6c2e24445ec3e013226c6b0c"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "go": "go1.25.13 darwin-arm64",
+  "tags": [
+    "ynx_canonical_media",
+    "ynx_media_combined_authority"
+  ],
+  "affectedRace": {
+    "topTests": 6,
+    "subtests": 6,
+    "video": "PASS 1.686s",
+    "music": "PASS 1.618s"
+  },
+  "vet": [
+    "./internal/video",
+    "./internal/music"
+  ],
+  "backendBuilds": [
+    "./internal/video/cmd",
+    "./apps/music/cmd/ynx-musicd"
+  ],
+  "vetAndBuildCombinedCommandExit": 0,
+  "stdout": "empty",
+  "modelsOnly": true,
+  "realRegistrationOrProviderTerminal": false
+}

@@ -1,0 +1,24 @@
+{
+  "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/original-bounded-phases-commit-error-latch-successor-c5-20261004",
+  "manifestSHA256": "9f2a9365cea95bcc9c11355c9f6ccb57e567701028b51ca2976477e9366080d7",
+  "archiveSHA256": "9957d74714777cc2d50e0223f4815b083d84fef7f7b02ffb4003733af291a60a",
+  "archiveBytes": 118943,
+  "verifiedArchiveMembers": 60,
+  "selectedOnly": [
+    {
+      "path": "internal/productsessionv2/original_bounded_phases.go",
+      "bytes": 19433,
+      "sha256": "3011eaf6c9e7323323e4e520e2209d967996790ed5e93cac33efc0fed072eaea"
+    },
+    {
+      "path": "internal/productsessionv2/original_bounded_phases_test.go",
+      "bytes": 20751,
+      "sha256": "7a68657eec29e485c8d4d47c34fd56ad711ea509b14c6cc709ba99d389b0bfc1"
+    }
+  ],
+  "admission": "LIMITED_STATIC_SOURCE_PASS, exact Root routing confirmed; no real source activation",
+  "realProducer": false,
+  "wholeOldPackageNotOverlaid": true,
+  "independentReport": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/original-bounded-phases-commit-error-latch-independent-review-20261004/REPORT.md",
+  "independentReportSHA256": "36d04ddd7727f0b125a097d3448eaf4c6a2c2c448ef556e518b3b3b2ff86462c"
+}

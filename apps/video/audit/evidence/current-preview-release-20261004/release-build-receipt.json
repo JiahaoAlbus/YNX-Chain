@@ -1,0 +1,17 @@
+{
+  "sourceCommit": "e72f2f00ff86ee40afa685de09ab193fa2afbd08",
+  "sourceTree": "76f4fbed27df98d33d0a79cde96608da728c3b87",
+  "release": "testnet-preview-20261004",
+  "go": "go1.25.13",
+  "platform": "linux-amd64",
+  "tags": [
+    "ynx_canonical_media",
+    "ynx_media_combined_authority"
+  ],
+  "videoMain": "./internal/video/cmd",
+  "musicMain": "./apps/music/cmd/ynx-musicd",
+  "combinedBuildExit": 0,
+  "buildTime": "2026-10-04T14:42:05Z",
+  "privateProducerConfigured": false,
+  "nativeInstallOrConsent": false
+}
