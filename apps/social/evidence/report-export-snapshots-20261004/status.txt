@@ -1,0 +1,2 @@
+original_tests_exit=1
+full_social_race_exit=0

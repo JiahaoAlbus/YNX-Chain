@@ -1,0 +1,8 @@
+--- FAIL: TestExportReportEvidenceCannotMutateStoredReport (0.28s)
+    --- FAIL: TestExportReportEvidenceCannotMutateStoredReport/created (0.16s)
+        report_export_snapshot_test.go:32: exported evidence aliases stored report state
+    --- FAIL: TestExportReportEvidenceCannotMutateStoredReport/appealed (0.12s)
+        report_export_snapshot_test.go:32: exported evidence aliases stored report state
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/social	1.224s
+FAIL

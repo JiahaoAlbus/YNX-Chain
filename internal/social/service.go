@@ -1056,7 +1056,7 @@ func (s *Service) Export(actor Session) Export {
 	}
 	for _, report := range s.state.Reports {
 		if report.Reporter == actor.Account {
-			out.Reports = append(out.Reports, report)
+			out.Reports = append(out.Reports, copyReportResult(report))
 		}
 	}
 	for _, rule := range s.state.Automation {
