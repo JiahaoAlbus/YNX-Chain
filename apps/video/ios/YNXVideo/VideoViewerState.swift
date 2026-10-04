@@ -9,7 +9,7 @@ import Security
     struct Watch: Codable, Equatable { let key,videoID,playbackID: String;let seconds: Int;let completed: Bool }
     struct Playlist: Codable, Equatable { let key,name: String }
     struct PlaylistOperation: Codable, Equatable { let key,action,playlistID: String;let videoID: String? }
-    private struct Stored: Codable { let version: Int;let account: String;var resume: [String:Playback];var watchPending: [Watch];var playlistDraft: Playlist?;var playlistOperation: PlaylistOperation? }
+    private struct Stored: Codable { let version: Int;let account: String;var resume: [String:Playback];var watchPending: [Watch];var playlistDraft: Playlist?;var playlistOperation: PlaylistOperation?;var playlistHistory: [Playlist]? }
     let account: String
     private let read: () throws -> Data?
     private let write: (Data) throws -> Void
@@ -25,12 +25,13 @@ import Security
     }
     private func current() throws { guard !poisoned else { throw Failure.unconfirmedWrite };try require() }
     private func load() throws -> Stored {
-        try current();guard let data=try read() else { return Stored(version:1,account:account,resume:[:],watchPending:[],playlistDraft:nil,playlistOperation:nil) }
-        guard data.count<=524288,let shape=try JSONSerialization.jsonObject(with:data) as? [String:Any],Set(shape.keys).subtracting(["version","account","resume","watchPending","playlistDraft","playlistOperation"]).isEmpty else { throw Failure.invalidState }
+        try current();guard let data=try read() else { return Stored(version:1,account:account,resume:[:],watchPending:[],playlistDraft:nil,playlistOperation:nil,playlistHistory:nil) }
+        guard data.count<=524288,let shape=try JSONSerialization.jsonObject(with:data) as? [String:Any],Set(shape.keys).subtracting(["version","account","resume","watchPending","playlistDraft","playlistOperation","playlistHistory"]).isEmpty else { throw Failure.invalidState }
         guard let resume=shape["resume"] as? [String:Any],let pending=shape["watchPending"] as? [[String:Any]] else { throw Failure.invalidState }
         for raw in resume.values { guard let row=raw as? [String:Any],Set(row.keys)==Set(["playbackID","position"]) else { throw Failure.invalidState } }
         for row in pending { guard Set(row.keys)==Set(["key","videoID","playbackID","seconds","completed"]) else { throw Failure.invalidState } }
         if let raw=shape["playlistDraft"],!(raw is NSNull) { guard let draft=raw as? [String:Any],Set(draft.keys)==Set(["key","name"]) else { throw Failure.invalidState } }
+        if let raw=shape["playlistHistory"],!(raw is NSNull) { guard let rows=raw as? [[String:Any]],rows.allSatisfy({Set($0.keys)==Set(["key","name"])}) else { throw Failure.invalidState } }
         if let raw=shape["playlistOperation"],!(raw is NSNull) {
             guard let row=raw as? [String:Any],Set(row.keys).subtracting(["key","action","playlistID","videoID"]).isEmpty else { throw Failure.invalidState }
         }
@@ -48,7 +49,9 @@ import Security
         var keys=Set<String>()
         for row in value.watchPending { guard Self.validID(row.videoID),Self.uuid(row.playbackID),Self.uuid(row.key),row.seconds>=0,row.seconds<=86400,keys.insert(row.key).inserted else { throw Failure.invalidState } }
         if let row=value.playlistOperation { guard Self.validOperation(row) else { throw Failure.invalidState } }
-        if let draft=value.playlistDraft { guard Self.uuid(draft.key),!draft.name.isEmpty,draft.name.utf16.count<=1024 else { throw Failure.invalidState } }
+        let history=value.playlistHistory ?? [];guard history.count<=64 else { throw Failure.invalidState }
+        var playlistKeys=Set<String>()
+        for draft in history+(value.playlistDraft.map{[$0]} ?? []) { guard Self.uuid(draft.key),!draft.name.trimmingCharacters(in:.whitespacesAndNewlines).isEmpty,draft.name.utf16.count<=1024,playlistKeys.insert(draft.key).inserted else { throw Failure.invalidState } }
     }
     private static func validOperation(_ row: PlaylistOperation) -> Bool {
         uuid(row.key) && validID(row.playlistID) && (["add","remove"].contains(row.action) ? row.videoID.map(validID)==true : row.action=="delete" && row.videoID==nil)
@@ -87,10 +90,17 @@ import Security
     func reservePlaylist(_ name: String) throws -> Playlist {
         let name=name.trimmingCharacters(in:.whitespacesAndNewlines);guard !name.isEmpty,name.utf16.count<=1024 else { throw Failure.invalidState }
         var state=try load();if let original=state.playlistDraft { guard original.name==name else { throw Failure.changedRecord };return original }
+        if let retained=(state.playlistHistory ?? []).first(where:{$0.name==name}) { return try restorePlaylist(retained) }
         let draft=Playlist(key:Self.newKey(),name:name);state.playlistDraft=draft;try save(state);return draft
     }
     func finishPlaylist(_ original: Playlist) throws { var state=try load();guard state.playlistDraft==original else { throw Failure.changedRecord };state.playlistDraft=nil;try save(state) }
-    func discardPlaylist(_ original: Playlist) throws { try finishPlaylist(original) }
+    func playlistHistory() throws -> [Playlist] { try load().playlistHistory ?? [] }
+    func pausePlaylist(_ original: Playlist) throws {
+        var state=try load();guard state.playlistDraft==original else { throw Failure.changedRecord };var rows=state.playlistHistory ?? [];guard rows.count<64 else { throw Failure.capacity };rows.append(original);state.playlistHistory=rows;state.playlistDraft=nil;try save(state)
+    }
+    func restorePlaylist(_ original: Playlist) throws -> Playlist {
+        var state=try load();guard state.playlistDraft==nil,var rows=state.playlistHistory,let index=rows.firstIndex(where:{$0.key==original.key}),rows[index]==original else { throw Failure.changedRecord };rows.remove(at:index);state.playlistHistory=rows;state.playlistDraft=original;try save(state);return original
+    }
     static func validID(_ id: String) -> Bool { VideoNativeState.matches(id,"^[A-Za-z0-9][A-Za-z0-9_-]{0,159}$") }
     static func uuid(_ text: String) -> Bool { VideoNativeState.matches(text,"^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$") }
     private static func newKey() -> String { UUID().uuidString.lowercased() }

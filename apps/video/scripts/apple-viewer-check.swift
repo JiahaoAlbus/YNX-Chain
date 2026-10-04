@@ -29,6 +29,29 @@ import Foundation
         try check(try cold.pendingWatch()==[pending],"wrong ACK deleted original watch")
         try cold.finishWatch(pending);try cold.finishPlaylist(draft)
         try check(try make().pendingWatch().isEmpty,"ACK did not persist")
+        let retainedDraft=try cold.reservePlaylist("Original lost reply")
+        try cold.pausePlaylist(retainedDraft)
+        try check(try make().playlistHistory()==[retainedDraft],"cold pause lost original key/body")
+        let successor=try cold.reservePlaylist("Successor")
+        try rejects { _ = try cold.restorePlaylist(retainedDraft) }
+        try rejects { try cold.finishPlaylist(retainedDraft) }
+        try check(try cold.playlistDraft()==successor,"late original ACK consumed successor")
+        try cold.pausePlaylist(successor)
+        let reopened=try make()
+        try check(try reopened.restorePlaylist(retainedDraft)==retainedDraft,"restore changed original key/body")
+        try check(try reopened.playlistHistory()==[successor],"restoring original removed successor history")
+        try rejects { try reopened.pausePlaylist(successor) }
+        try reopened.finishPlaylist(retainedDraft)
+        try check(try reopened.reservePlaylist("Successor")==successor,"same-name recovery rekeyed retained request")
+        try reopened.finishPlaylist(successor)
+        var full:[VideoViewerState.Playlist]=[]
+        for i in 0..<64 { let row=try reopened.reservePlaylist("retained-\(i)");try reopened.pausePlaylist(row);full.append(row) }
+        let capacityPending=try reopened.reservePlaylist("capacity-pending"),beforeCapacity=bytes
+        try rejects { try reopened.pausePlaylist(capacityPending) }
+        try check(bytes==beforeCapacity,"full history erased original records")
+        try rejects { _ = try reopened.restorePlaylist(full[0]) }
+        try reopened.finishPlaylist(capacityPending)
+        _ = try reopened.restorePlaylist(full[0]);try reopened.finishPlaylist(full[0])
         let completion=try cold.position("original-video",playback,position:50,seconds:0,completed:true)!
         try check(completion.completed && completion.playbackID==playback.playbackID,"completion replaced playback")
         try check(try make().playback("original-video").playbackID != playback.playbackID,"completed playback reused")

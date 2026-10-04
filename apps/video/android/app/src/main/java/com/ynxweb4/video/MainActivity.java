@@ -178,7 +178,7 @@ public final class MainActivity extends Activity {
                 final JSONArray result=items==null ? new JSONArray() : items;
                 currentUI(generation, () -> {
                     shownIdentity=nativeBridge.session();content.removeAllViews(); progress.setVisibility(View.GONE);
-                    if("playlists".equals(labelKey)){Button create=button(t("createPlaylist"));create.setOnClickListener(v->createPlaylist(generation));content.addView(create);}
+                    if("playlists".equals(labelKey)){Button create=button(t("createPlaylist"));create.setOnClickListener(v->createPlaylist(generation));content.addView(create);renderPlaylistRecovery(generation);}
                     if(result.length()==0) { content.addView(label(t(labelKey)+" · "+t("empty"),20,Color.DKGRAY)); return; }
                     for(int i=0;i<result.length();i++) {
                         JSONObject item=result.optJSONObject(i);
@@ -193,6 +193,9 @@ public final class MainActivity extends Activity {
         });
     }
 
+    private void renderPlaylistRecovery(long generation){
+        try{final VideoViewerState viewer=new VideoViewerState(this,new VideoApi(nativeBridge,boundary,generation));JSONArray rows=viewer.playlistHistory();if(rows.length()>0)content.addView(label(t("savedDrafts"),16,Color.DKGRAY));for(int i=0;i<rows.length();i++){final JSONObject original=rows.getJSONObject(i);Button restore=button(t("restoreDraft")+": "+original.getString("name"));restore.setOnClickListener(v->{if(!boundary.matches(generation))return;try{viewer.restorePlaylist(original);createPlaylist(generation);}catch(Exception held){showState(held.getMessage(),true);}});content.addView(restore);}}catch(Exception held){showState(held.getMessage(),true);}
+    }
     private void createPlaylist(long generation){
         if(!boundary.matches(generation)||nativeBridge.session()==null){showState(t("signIn"),true);return;}
         final VideoApi originalApi=new VideoApi(nativeBridge,boundary,generation);
@@ -213,7 +216,7 @@ public final class MainActivity extends Activity {
                 }catch(Exception failed){currentUI(generation,()->showState(failed.getMessage(),true));}});
             }catch(Exception failed){showState(failed.getMessage(),true);}
         });
-        if(pending!=null)builder.setNeutralButton(t("discardDraft"),(dialog,which)->{if(!boundary.matches(generation))return;try{viewer.finishPlaylist(pending);dialog.dismiss();createPlaylist(generation);}catch(Exception held){showState(held.getMessage(),true);}});
+        if(pending!=null)builder.setNeutralButton(t("pauseDraft"),(dialog,which)->{if(!boundary.matches(generation))return;activeDialog=new android.app.AlertDialog.Builder(this).setTitle(t("pauseDraft")).setMessage(t("pauseDraftNotice")).setNegativeButton(android.R.string.cancel,null).setPositiveButton(android.R.string.ok,(confirmation,choice)->{if(!boundary.matches(generation))return;try{viewer.pausePlaylist(pending);loadCollection("/v1/playlists","playlists");}catch(Exception held){showState(held.getMessage(),true);}}).show();});
         activeDialog=builder.show();
     }
     private void deletePlaylist(String id,long generation){

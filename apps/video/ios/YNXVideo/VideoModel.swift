@@ -44,6 +44,9 @@ struct NativePlaylist: Decodable, Identifiable {
     @Published var playlists: [NativePlaylist] = []
     @Published var showingPlaylists = false
     @Published var playlistName = ""
+    struct PlaylistPause { let draft: VideoViewerState.Playlist;let revision: UInt64;let account: String }
+    @Published var playlistPause: PlaylistPause?
+    @Published var savedPlaylistDrafts: [VideoViewerState.Playlist] = []
     @Published var playlistPending = false
     @Published var playlistBusy = false
     @Published var playlistOperationPending = false
@@ -133,16 +136,16 @@ struct NativePlaylist: Decodable, Identifiable {
             if let identity=created.identity {
                 self.accountMessage=identity.account
                 if self.viewer==nil {
-                    do { self.viewer=try self.makeViewer(created,identity);let draft=try self.viewer?.playlistDraft();self.playlistName=draft?.name ?? "";self.playlistPending=draft != nil;self.playlistOperationPending=try self.viewer?.pendingPlaylistOperation() != nil }
+                    do { self.viewer=try self.makeViewer(created,identity);let draft=try self.viewer?.playlistDraft();self.playlistName=draft?.name ?? "";self.playlistPending=draft != nil;self.savedPlaylistDrafts=try self.viewer?.playlistHistory() ?? [];self.playlistOperationPending=try self.viewer?.pendingPlaylistOperation() != nil }
                     catch { self.operationMessage=self.text("unavailable") }
                 }
-            } else { self.viewer=nil;self.playlists=[];self.playlistName="";self.playlistPending=false;self.playlistOperationPending=false;self.openedPlaylist=nil }
+            } else { self.viewer=nil;self.savedPlaylistDrafts=[];self.playlistPause=nil;self.playlists=[];self.playlistName="";self.playlistPending=false;self.playlistOperationPending=false;self.openedPlaylist=nil }
         }
         return created
     }
     func restoreAccount() async {
         guard !accountBusy else { return }
-        accountBusy=true;accountRevision &+= 1;let revision=accountRevision
+        accountBusy=true;playlistPause=nil;accountRevision &+= 1;let revision=accountRevision
         defer { if revision==accountRevision { accountBusy=false } }
         do {
             let active=try ensureEngine(),result=try await active.dispatch("restore")
@@ -153,7 +156,7 @@ struct NativePlaylist: Decodable, Identifiable {
     }
     func signIn() async {
         guard !accountBusy,!signOutPending else { return }
-        beginNavigation();accountBusy=true;accountRevision &+= 1;let revision=accountRevision
+        beginNavigation();accountBusy=true;playlistPause=nil;accountRevision &+= 1;let revision=accountRevision
         defer { if revision==accountRevision { accountBusy=false } }
         do {
             let active=try ensureEngine()
@@ -170,7 +173,7 @@ struct NativePlaylist: Decodable, Identifiable {
         } catch { if revision==accountRevision { accountConnected=false;accountMessage=text("signIn")+" · "+text("retry") } }
     }
     func signOut() async {
-        beginNavigation();accountRevision &+= 1;let revision=accountRevision
+        beginNavigation();playlistPause=nil;accountRevision &+= 1;let revision=accountRevision
         accountBusy=true;accountConnected=false;signOutPending=true
         defer { if revision==accountRevision { accountBusy=false } }
         do {
@@ -192,7 +195,7 @@ struct NativePlaylist: Decodable, Identifiable {
     }
     func handle(url: URL) {
         guard url.scheme=="ynxvideo",url.host=="wallet-auth",url.path=="/callback",url.user==nil,url.password==nil,url.port==nil,url.fragment==nil,url.absoluteString.count<=32768 else{return}
-        beginNavigation();accountRevision &+= 1;let revision=accountRevision
+        beginNavigation();playlistPause=nil;accountRevision &+= 1;let revision=accountRevision
         accountConnected=false;accountBusy=true;state = .unavailable
         Task { @MainActor in
             defer { if revision==accountRevision { accountBusy=false } }
@@ -200,7 +203,7 @@ struct NativePlaylist: Decodable, Identifiable {
             catch { if revision==accountRevision { accountMessage=text("signIn")+" · "+text("retry") } }
         }
     }
-    func suspendAccount() { accountRevision &+= 1;accountBusy=false;beginNavigation();engine?.suspend();accountConnected=false;state = .unavailable }
+    func suspendAccount() { playlistPause=nil;accountRevision &+= 1;accountBusy=false;beginNavigation();engine?.suspend();accountConnected=false;state = .unavailable }
     @discardableResult func mutate(_ path:String,body:[String:Any]) async -> Bool {
         let generation = boundary.generation
         do {
@@ -289,7 +292,7 @@ struct NativePlaylist: Decodable, Identifiable {
         playlistBusy=true;let generation=boundary.generation
         defer { playlistBusy=false }
         do {
-            let draft=try viewer.reservePlaylist(playlistName);playlistPending=true;playlistName=draft.name
+            let draft=try viewer.reservePlaylist(playlistName);playlistPending=true;playlistName=draft.name;savedPlaylistDrafts=try viewer.playlistHistory()
             let guardRequest: @MainActor () throws -> Void = { if !self.boundary.matches(generation) { throw CancellationError() } }
             let body=try JSONSerialization.data(withJSONObject:["Name":draft.name],options:[.sortedKeys,.withoutEscapingSlashes])
             let bytes=try await VideoHTTP.shared.accountData("/v1/playlists",method:"POST",body:body,engine:engine,requestKey:draft.key,guardRequest:guardRequest)
@@ -301,9 +304,19 @@ struct NativePlaylist: Decodable, Identifiable {
             try viewer.finishPlaylist(draft);playlistPending=false;playlistName="";await loadLibrary("/v1/playlists",label:text("playlists"))
         } catch { if boundary.matches(generation) { operationMessage=text("retry") } }
     }
-    func discardPlaylistDraft() {
-        guard !playlistBusy,let viewer else { return }
-        do { if let draft=try viewer.playlistDraft() { try viewer.discardPlaylist(draft) };playlistName="";playlistPending=false }
+    func preparePlaylistPause() {
+        guard !playlistBusy,accountConnected,let viewer else { return }
+        do { if let draft=try viewer.playlistDraft() { playlistPause=PlaylistPause(draft:draft,revision:accountRevision,account:viewer.account) } } catch { operationMessage=text("unavailable") }
+    }
+    func confirmPlaylistPause() {
+        guard let original=playlistPause else { return };playlistPause=nil
+        guard !playlistBusy,accountConnected,original.revision==accountRevision,let viewer,viewer.account==original.account else { return }
+        do { try viewer.pausePlaylist(original.draft);playlistName="";playlistPending=false;savedPlaylistDrafts=try viewer.playlistHistory() }
+        catch { operationMessage=text("unavailable") }
+    }
+    func restorePlaylistDraft(_ original: VideoViewerState.Playlist) {
+        guard !playlistBusy,accountConnected,let viewer else { return }
+        do { let draft=try viewer.restorePlaylist(original);playlistName=draft.name;playlistPending=true;savedPlaylistDrafts=try viewer.playlistHistory() }
         catch { operationMessage=text("unavailable") }
     }
     func flushWatch() async {

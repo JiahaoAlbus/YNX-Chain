@@ -9,7 +9,7 @@ assert(keys.length>=20,"catalog is too small for core native states");
 for(const locale of required){assert.deepEqual(Object.keys(catalog[locale]),keys,`${locale} keys differ`);for(const key of keys)assert.equal(typeof catalog[locale][key]==="string"&&catalog[locale][key].trim()!=="",true,`${locale}.${key} blank`)}
 for(const key of ["privacy","payment","walletPending","offline","unavailable","noMetrics","signIn"]){for(const locale of required.slice(1))assert.notEqual(catalog[locale][key],catalog.en[key],`${locale}.${key} silently fell back to English`)}
 assert(/[\u0600-\u06ff]/u.test(catalog.ar.privacy),"Arabic critical text is not Arabic");
-const swiftFiles=["ContentView.swift","VideoModel.swift","VideoNativeCore.swift","ProductDeviceKey.swift"];
+const swiftFiles=["ContentView.swift","VideoModel.swift","VideoNativeCore.swift","ProductDeviceKey.swift","VideoNativeEngine.swift","VideoNativeState.swift","VideoNativeTransport.swift","VideoViewerState.swift","VideoNativeCustody.swift","VideoPrivateMedia.swift"];
 const project=await readFile(new URL("ios/YNXVideo.xcodeproj/project.pbxproj",root),"utf8");
 const objects=[...project.matchAll(/\b(\w+)\s*=\s*\{([^{}]*)\};/g)].map(([,id,body])=>({id,body}));
 const sources=objects.filter(({body})=>/isa\s*=\s*PBXSourcesBuildPhase;/.test(body)).flatMap(({body})=>(body.match(/files\s*=\s*\(([^)]*)\)/)?.[1]||'').split(',').map(id=>id.trim()));

@@ -18,7 +18,10 @@ struct ContentView: View {
                 HStack { TextField(model.text("search"),text:$query).textFieldStyle(.roundedBorder).accessibilityLabel(model.text("search")); Button(model.text("search")){Task{await model.load(query:query)}} }.padding()
                 ScrollView(.horizontal) { HStack { Button(model.text("discover")){Task{await model.load()}}; Button(model.text("subscriptions")){Task{await model.loadLibrary("/v1/subscriptions",label:model.text("subscriptions"))}}; Button(model.text("playlists")){Task{await model.loadLibrary("/v1/playlists",label:model.text("playlists"))}}; Button(model.text("history")){Task{await model.loadLibrary("/v1/history",label:model.text("history"))}} }.buttonStyle(.bordered).font(.caption).accessibilityElement(children:.contain) }
                 if model.showingPlaylists && model.accountConnected {
-                    HStack { TextField(model.text("playlists"),text:$model.playlistName).textFieldStyle(.roundedBorder).disabled(model.playlistPending || model.playlistBusy);Button(model.text(model.playlistPending ? "retry" : "createPlaylist")){Task{await model.createPlaylist()}}.disabled(model.playlistBusy);if model.playlistPending { Button(model.text("discardDraft")){model.discardPlaylistDraft()}.disabled(model.playlistBusy) } }.padding(.horizontal)
+                    HStack { TextField(model.text("playlists"),text:$model.playlistName).textFieldStyle(.roundedBorder).disabled(model.playlistPending || model.playlistBusy);Button(model.text(model.playlistPending ? "retry" : "createPlaylist")){Task{await model.createPlaylist()}}.disabled(model.playlistBusy);if model.playlistPending { Button(model.text("pauseDraft")){model.preparePlaylistPause()}.disabled(model.playlistBusy) } }.padding(.horizontal)
+                }
+                if model.showingPlaylists && model.accountConnected && !model.savedPlaylistDrafts.isEmpty {
+                    VStack(alignment:.leading) { Text(model.text("savedDrafts")).font(.caption);ForEach(model.savedPlaylistDrafts,id:\.key) { draft in Button(model.text("restoreDraft")+": "+draft.name){model.restorePlaylistDraft(draft)}.disabled(model.playlistPending || model.playlistBusy) } }.padding(.horizontal)
                 }
                 if model.playlistOperationPending && model.accountConnected { Button(model.text("retry")){Task{await model.retryPlaylistOperation()}}.disabled(model.playlistBusy) }
                 if !model.operationMessage.isEmpty { Text(model.operationMessage).font(.caption) }
@@ -32,6 +35,7 @@ struct ContentView: View {
             .confirmationDialog(model.text("deletePlaylist"),isPresented:Binding(get:{deletingPlaylist != nil},set:{if !$0 { deletingPlaylist=nil }}),titleVisibility:.visible) {
                 Button(model.text("deletePlaylist"),role:.destructive) { if let original=deletingPlaylist { deletingPlaylist=nil;Task{await model.changePlaylist(original,videoID:nil,action:"delete")} } }
             } message: { Text(deletingPlaylist?.Name ?? "") }
+            .confirmationDialog(model.text("pauseDraft"),isPresented:Binding(get:{model.playlistPause != nil},set:{if !$0 { model.playlistPause=nil }}),titleVisibility:.visible) { Button(model.text("pauseDraft")){model.confirmPlaylistPause()} } message: { Text(model.text("pauseDraftNotice")) }
             .sheet(item:$model.selected){ VideoPlayerSheet(video:$0,gateway:model.gateway,title:model.text("play")).onDisappear { model.stopPlayback() } }
         }
     }

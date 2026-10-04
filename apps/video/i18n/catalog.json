@@ -30,7 +30,11 @@
     "confirmDelete": "Delete these records? This cannot be undone.",
     "discardDraft": "Discard saved draft",
     "removeFromPlaylist": "Remove from playlist",
-    "unsubscribe": "Unsubscribe"
+    "unsubscribe": "Unsubscribe",
+    "pauseDraft": "Pause request",
+    "pauseDraftNotice": "Pausing keeps this request for recovery. It does not cancel a playlist already created.",
+    "savedDrafts": "Saved requests",
+    "restoreDraft": "Restore request"
   },
   "zh-CN": {
     "language": "语言",
@@ -63,7 +67,11 @@
     "confirmDelete": "确认删除这些记录？此操作无法撤销。",
     "discardDraft": "放弃保存的草稿",
     "removeFromPlaylist": "从播放列表移除",
-    "unsubscribe": "取消订阅"
+    "unsubscribe": "取消订阅",
+    "pauseDraft": "暂停请求",
+    "pauseDraftNotice": "暂停会保留原请求以便恢复，不会取消已创建的播放列表。",
+    "savedDrafts": "保留的请求",
+    "restoreDraft": "恢复原请求"
   },
   "zh-TW": {
     "language": "語言",
@@ -96,7 +104,11 @@
     "confirmDelete": "確認刪除這些記錄？此操作無法復原。",
     "discardDraft": "捨棄已儲存草稿",
     "removeFromPlaylist": "從播放清單移除",
-    "unsubscribe": "取消訂閱"
+    "unsubscribe": "取消訂閱",
+    "pauseDraft": "暫停請求",
+    "pauseDraftNotice": "暫停會保留原請求以便恢復，不會取消已建立的播放清單。",
+    "savedDrafts": "保留的請求",
+    "restoreDraft": "恢復原請求"
   },
   "ja": {
     "language": "言語",
@@ -129,7 +141,11 @@
     "confirmDelete": "この記録を削除しますか？元に戻せません。",
     "discardDraft": "保存した下書きを破棄",
     "removeFromPlaylist": "プレイリストから削除",
-    "unsubscribe": "登録解除"
+    "unsubscribe": "登録解除",
+    "pauseDraft": "リクエストを一時停止",
+    "pauseDraftNotice": "元のリクエストを復元用に保持します。作成済みの再生リストは取り消されません。",
+    "savedDrafts": "保存済みリクエスト",
+    "restoreDraft": "元のリクエストを復元"
   },
   "ko": {
     "language": "언어",
@@ -162,7 +178,11 @@
     "confirmDelete": "이 기록을 삭제할까요? 되돌릴 수 없습니다.",
     "discardDraft": "저장된 초안 삭제",
     "removeFromPlaylist": "재생목록에서 제거",
-    "unsubscribe": "구독 취소"
+    "unsubscribe": "구독 취소",
+    "pauseDraft": "요청 일시 중지",
+    "pauseDraftNotice": "복구를 위해 원래 요청을 보관합니다. 이미 생성된 재생목록은 취소되지 않습니다.",
+    "savedDrafts": "보관된 요청",
+    "restoreDraft": "원래 요청 복원"
   },
   "es": {
     "language": "Idioma",
@@ -195,7 +215,11 @@
     "confirmDelete": "¿Eliminar estos registros? No se puede deshacer.",
     "discardDraft": "Descartar borrador guardado",
     "removeFromPlaylist": "Quitar de la lista",
-    "unsubscribe": "Cancelar suscripción"
+    "unsubscribe": "Cancelar suscripción",
+    "pauseDraft": "Pausar solicitud",
+    "pauseDraftNotice": "La solicitud original se conserva para recuperarla. No se cancela una lista ya creada.",
+    "savedDrafts": "Solicitudes guardadas",
+    "restoreDraft": "Restaurar solicitud"
   },
   "fr": {
     "language": "Langue",
@@ -228,7 +252,11 @@
     "confirmDelete": "Supprimer ces données ? Cette action est irréversible.",
     "discardDraft": "Abandonner le brouillon enregistré",
     "removeFromPlaylist": "Retirer de la liste",
-    "unsubscribe": "Se désabonner"
+    "unsubscribe": "Se désabonner",
+    "pauseDraft": "Suspendre la demande",
+    "pauseDraftNotice": "La demande originale est conservée pour reprise. Une playlist déjà créée n’est pas annulée.",
+    "savedDrafts": "Demandes conservées",
+    "restoreDraft": "Restaurer la demande"
   },
   "de": {
     "language": "Sprache",
@@ -261,7 +289,11 @@
     "confirmDelete": "Diese Daten löschen? Dies kann nicht rückgängig gemacht werden.",
     "discardDraft": "Gespeicherten Entwurf verwerfen",
     "removeFromPlaylist": "Aus Playlist entfernen",
-    "unsubscribe": "Abonnement beenden"
+    "unsubscribe": "Abonnement beenden",
+    "pauseDraft": "Anfrage pausieren",
+    "pauseDraftNotice": "Die ursprüngliche Anfrage bleibt zur Wiederherstellung erhalten. Eine bereits erstellte Playlist wird nicht gelöscht.",
+    "savedDrafts": "Gespeicherte Anfragen",
+    "restoreDraft": "Anfrage wiederherstellen"
   },
   "pt": {
     "language": "Idioma",
@@ -294,7 +326,11 @@
     "confirmDelete": "Excluir estes registros? Esta ação não pode ser desfeita.",
     "discardDraft": "Descartar rascunho salvo",
     "removeFromPlaylist": "Remover da lista",
-    "unsubscribe": "Cancelar inscrição"
+    "unsubscribe": "Cancelar inscrição",
+    "pauseDraft": "Pausar solicitação",
+    "pauseDraftNotice": "A solicitação original fica guardada para recuperação. Uma lista já criada não é cancelada.",
+    "savedDrafts": "Solicitações guardadas",
+    "restoreDraft": "Restaurar solicitação"
   },
   "ru": {
     "language": "Язык",
@@ -327,7 +363,11 @@
     "confirmDelete": "Удалить эти записи? Это действие нельзя отменить.",
     "discardDraft": "Удалить сохранённый черновик",
     "removeFromPlaylist": "Удалить из плейлиста",
-    "unsubscribe": "Отписаться"
+    "unsubscribe": "Отписаться",
+    "pauseDraft": "Приостановить запрос",
+    "pauseDraftNotice": "Исходный запрос сохраняется для восстановления. Уже созданный плейлист не отменяется.",
+    "savedDrafts": "Сохранённые запросы",
+    "restoreDraft": "Восстановить запрос"
   },
   "ar": {
     "language": "اللغة",
@@ -360,7 +400,11 @@
     "confirmDelete": "هل تريد حذف هذه السجلات؟ لا يمكن التراجع عن هذا الإجراء.",
     "discardDraft": "تجاهل المسودة المحفوظة",
     "removeFromPlaylist": "إزالة من قائمة التشغيل",
-    "unsubscribe": "إلغاء الاشتراك"
+    "unsubscribe": "إلغاء الاشتراك",
+    "pauseDraft": "إيقاف الطلب مؤقتًا",
+    "pauseDraftNotice": "يُحفظ الطلب الأصلي للاستعادة. لن تُلغى قائمة تشغيل أُنشئت بالفعل.",
+    "savedDrafts": "الطلبات المحفوظة",
+    "restoreDraft": "استعادة الطلب"
   },
   "id": {
     "language": "Bahasa",
@@ -393,6 +437,10 @@
     "confirmDelete": "Hapus catatan ini? Tindakan ini tidak dapat dibatalkan.",
     "discardDraft": "Buang draf tersimpan",
     "removeFromPlaylist": "Hapus dari daftar putar",
-    "unsubscribe": "Berhenti berlangganan"
+    "unsubscribe": "Berhenti berlangganan",
+    "pauseDraft": "Jeda permintaan",
+    "pauseDraftNotice": "Permintaan asli disimpan untuk pemulihan. Daftar putar yang sudah dibuat tidak dibatalkan.",
+    "savedDrafts": "Permintaan tersimpan",
+    "restoreDraft": "Pulihkan permintaan"
   }
 }

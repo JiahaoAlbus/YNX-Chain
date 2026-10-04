@@ -24,7 +24,7 @@ import Foundation
                 else { throw VideoNativeEngine.Failure.invalidSource }
                 var redirected=request;redirected.url=target
                 let (bytes,response)=try await network.send(redirected,limit)
-                if dropMutation,url.host=="video.ynxweb4.com",url.path.contains("/playlists/"),["POST","DELETE"].contains(request.httpMethod ?? "") { dropMutation=false;throw VideoHTTP.Failure.unexpectedResponse }
+                if dropMutation,url.host=="video.ynxweb4.com",(url.path.contains("/playlists/") || url.path.hasSuffix("/playlists")),["POST","DELETE"].contains(request.httpMethod ?? "") { dropMutation=false;throw VideoHTTP.Failure.unexpectedResponse }
                 var headers: [String:String]=[:];for (key,value) in response.allHeaderFields { headers[String(describing:key)]=String(describing:value) }
                 return (bytes,HTTPURLResponse(url:url,statusCode:response.statusCode,httpVersion:nil,headerFields:headers)!)
             }
@@ -90,6 +90,11 @@ import Foundation
                         case "uiFlush":await model.flushWatch();value=["pending":try viewer(engine).pendingWatch().count]
                         case "uiPlaylist":
                             model.playlistName=command["nameValue"] as! String;await model.createPlaylist();value=["pending":model.playlistPending,"count":model.playlists.count,"message":model.operationMessage]
+                        case "uiPlaylistPause":model.preparePlaylistPause();model.confirmPlaylistPause();value=["pending":model.playlistPending,"history":model.savedPlaylistDrafts.map{["key":$0.key,"name":$0.name]}]
+                        case "uiPlaylistRestore":
+                            guard let original=model.savedPlaylistDrafts.first(where:{$0.name==command["nameValue"] as? String}) else { throw VideoViewerState.Failure.changedRecord }
+                            model.restorePlaylistDraft(original);value=["pending":model.playlistPending,"draft":try viewer(engine).playlistDraft().map{["key":$0.key,"name":$0.name]} as Any,"history":model.savedPlaylistDrafts.map{["key":$0.key,"name":$0.name]}]
+                        case "uiPlaylistInspect":value=["pending":model.playlistPending,"draft":try viewer(engine).playlistDraft().map{["key":$0.key,"name":$0.name]} ?? [:],"history":try viewer(engine).playlistHistory().map{["key":$0.key,"name":$0.name]}]
                         case "nativeRange":
                             let boundary=VideoRequestBoundary(),media=try VideoPrivateMedia(engine:engine,path:command["path"] as! String,boundary:boundary,navigation:boundary.generation,expectedBytes:20)
                             let first=try await media.range(offset:0,count:4),second=try await media.range(offset:4,count:4)
