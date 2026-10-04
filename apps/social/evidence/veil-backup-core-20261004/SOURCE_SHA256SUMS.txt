@@ -1,0 +1,3 @@
+41b3d29d6b2aac8e68bda0a1e7ce5b11348993cefaf379c0a55344c81fc16e81  apps/social/crypto-engine/sodium/veil_backup.h
+1ba27dac990b6a24ddf8242e6ab18aa464ca5ae68a0bd9fb960bd8d5592e5f41  apps/social/crypto-engine/sodium/veil_backup.c
+50a541ca397ea37b7e3d1d0d53d5d2c016e021d9953f1082a2e834cc3b03b938  apps/social/crypto-engine/sodium/veil_backup_check.c

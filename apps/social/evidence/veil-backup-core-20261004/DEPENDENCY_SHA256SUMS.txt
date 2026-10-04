@@ -1,0 +1,1 @@
+ec29931ed4a0227930f2564c2025b00cca8ccf3dac8d7b5106f43b38b0686873  apps/social/evidence/sodium-1.0.22-exact-20261004/local-libsodium-1.0.22.a

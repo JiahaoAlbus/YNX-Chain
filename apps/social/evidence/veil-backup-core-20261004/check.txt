@@ -1,0 +1,1 @@
+PASS backup checks=28 libsodium=1.0.22; synthetic only; no native export/platform/activation proof
