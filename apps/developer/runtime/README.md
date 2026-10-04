@@ -157,3 +157,36 @@ Wallet authorization, AI review/apply, Git, extension-management lifecycle,
 desktop installers, profile migration and mobile device journeys require their
 own end-to-end verification. Do not restart a specifically rejected Host/LXD
 or egress operation as a consequence of this runtime change.
+# Extension restart continuation (2026-10-04)
+
+Workbench 0.3.0 keeps the standard **Reload Window** action visible after an
+extension is enabled. It uses the framework's existing reload and dirty-file
+handling and does not reload silently. This improves the visible state but does
+**not** resolve the remaining installed language-service recovery failure.
+
+`theia/scripts/start-isolated-qa.mjs` accepts an optional fifth process argument
+(after plugin input, DAP input and runtime root): the original owned QA
+`runtime.json`. Resume refuses a live original PID, mismatched artifact/input
+paths or noncanonical QA directories. It reserves the original ports and starts
+a new contained backend against the same project and profile, without reseeding
+files. Prior receipts are retained. This is a controlled QA restart, not a public
+driver, crash-recovery system or profile migration.
+
+The actual browser runners `backend-restart.browser.mjs`,
+`user-extension.browser.mjs` and `user-extension-uninstall.browser.mjs` preserve
+their own snapshots and readback. The restart runner consumes the fixture from
+the completed product-lifecycle runner. The user-extension runner expects a
+cached official language VSIX at the QA workspace's `language.vsix` and staged
+built-ins excluding that service, so an installed built-in cannot masquerade as
+a user installation.
+
+The exact artifact and passed/failed transitions are recorded in
+`docs/integration/COMPOSED_EXTENSION_LIFECYCLE_20261004.json`. Current 0.3.0:
+built-in lifecycle passes; local user install supplies semantic completion;
+edit/save/reopen and independent uninstall pass. Re-enable/reload semantic
+completion still fails in the full same-window journey and remains a preserved
+regression. Prior 0.2.9: actual graceful backend replacement preserves project,
+settings and disabled extension state. Neither receipt proves crash recovery,
+online marketplace access, universal extensions, canonical identity, production
+capacity or formal native release. Continue with TypeScript request/document
+synchronization diagnostics before claiming the complete extension lifecycle.

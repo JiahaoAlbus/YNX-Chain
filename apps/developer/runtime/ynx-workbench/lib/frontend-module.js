@@ -4,9 +4,12 @@ const { CommonCommands } = require('@theia/core/lib/browser/common-commands');
 const { Widget } = require('@theia/core/lib/browser/widgets');
 const { ViewContainer, ViewContainerIdentifier } = require('@theia/core/lib/browser/view-container');
 const { YnxViewContainer } = require('./view-container');
+const { VSXExtension } = require('@theia/vsx-registry/lib/browser/vsx-extension');
+const { YnxVSXExtension } = require('./extension-lifecycle');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  rebind(VSXExtension).to(YnxVSXExtension);
   rebind(ViewContainer.Factory).toFactory(context => options => {
     const child = context.container.createChild();
     child.bind(ViewContainerIdentifier).toConstantValue(options);

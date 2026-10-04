@@ -25,23 +25,40 @@ const dapRoot = dapInput ? await realpath(dapInput) : undefined;
 if (dapRoot && !dapRoot.startsWith(candidates)) throw Error('Only owned debugger candidate inputs are allowed.');
 if (dapRoot && JSON.parse(await readFile(join(dapRoot, 'receipt.json'), 'utf8')).sha256 !== '27dab92937ec1ab35821ae955aac867544fe06a1b6307229049f2d789af10968') throw Error('Unexpected debugger artifact pin.');
 // Keep debugger Unix socket names below macOS's sockaddr_un path limit.
-const qa = await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
+const resumeInput = process.argv[5];
+let previous;
+if (resumeInput) {
+  const resumePath = await realpath(resumeInput);
+  if (!/^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+\/runtime\.json$/.test(resumePath)) throw Error('Resume only an existing owned QA receipt.');
+  previous = JSON.parse(await readFile(resumePath, 'utf8'));
+  if (previous.qa !== dirname(resumePath) || previous.root !== root || previous.plugins !== plugins || previous.dapRoot !== dapRoot) throw Error('Resume inputs must match the original runtime.');
+  if (!Number.isSafeInteger(previous.pid) || previous.pid <= 1) throw Error('Invalid previous runtime PID.');
+  try { process.kill(previous.pid, 0); throw Error('Stop the exact previous runtime before resuming.'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+}
+const qa = previous ? await realpath(previous.qa) : await realpath(await mkdtemp('/private/tmp/ynx-theia-extension-qa-'));
 const workspace = join(qa, 'project'), profile = join(qa, 'profile'), temporary = join(qa, 'tmp');
+if (previous) {
+  for (const [key, path] of Object.entries({ workspace, profile, temporary })) if (previous[key] !== path || await realpath(path) !== path) throw Error('Resume paths must be the original canonical QA directories.');
+}
+if (!previous) {
 for (const path of [workspace, profile, temporary]) await mkdir(path, { mode: 0o700 });
 await writeFile(join(workspace, 'main.js'), 'import { wallet } from "./wallet-model.js";\nwallet.\n', { mode: 0o600 });
 await writeFile(join(workspace, 'wallet-model.js'), 'export const wallet = { address: "ynx-public-test", balance: 42 };\n', { mode: 0o600 });
 await writeFile(join(workspace, 'debug.js'), 'const marker = "YNX debugger reference";\nconsole.log(marker);\nrequire("node:fs").writeFileSync("debug-proof.txt", marker);\n', { mode: 0o600 });
 await writeFile(join(workspace, 'package.json'), JSON.stringify({ name: 'ynx-public-runtime-reference', private: true }), { mode: 0o600 });
+}
 const reservations = [];
 for (let index = 0; index < (dapRoot ? 3 : 1); index++) {
   const reserve = createServer();
-  await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(0, '127.0.0.1', ok); });
+  const resumePort = previous ? [previous.port, previous.adapterPort, previous.inspectorPort][index] : 0;
+  if (!Number.isInteger(resumePort) || resumePort < 0 || resumePort > 65535 || previous && resumePort === 0) throw Error('Invalid reserved QA port.');
+  await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(resumePort, '127.0.0.1', ok); });
   reservations.push(reserve);
 }
 const [port, adapterPort, inspectorPort] = reservations.map(server => server.address().port);
 await Promise.all(reservations.map(server => new Promise(ok => server.close(ok))));
 const node = await realpath(process.execPath);
-if (dapRoot) {
+if (dapRoot && !previous) {
   await mkdir(join(workspace, '.vscode'), { mode: 0o700 });
   await writeFile(join(workspace, '.vscode/launch.json'), JSON.stringify({ version: '0.2.0', configurations: [{
     name: 'YNX JavaScript reference', type: 'pwa-node', request: 'launch', program: '${workspaceFolder}/debug.js', cwd: '${workspaceFolder}',
@@ -70,6 +87,7 @@ const profileText = ['(version 1)', '(allow default)', '(deny network*)', '(deny
   ] : [],
 ].join('\n');
 await writeFile(join(qa, 'sandbox.sb'), profileText, { mode: 0o600 });
+if (previous) await writeFile(join(qa, `runtime-before-${previous.pid}.json`), JSON.stringify(previous, null, 2), { flag: 'wx', mode: 0o600 });
 const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root, 'lib/backend/main.js'), workspace,
   '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
@@ -79,6 +97,7 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
 const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, url: `http://127.0.0.1:${port}`, pid: child.pid,
+  ...previous ? { previousPid: previous.pid, resumedAt: new Date().toISOString() } : {},
   nodeOptions: '--no-experimental-global-navigator --max-old-space-size=1024',
   isolation: 'macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener',
   acceptance: 'single-session controlled QA, not public or multi-owner production admission' };
