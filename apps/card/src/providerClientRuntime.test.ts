@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
 import compatibility from '../card-source-compatibility.json';
+import {cardOperationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT} from './cardOperationRecoveryContract';
 
 const candidate='a'.repeat(40),tree='b'.repeat(40);
 const version={service:compatibility.backendService,schemaVersion:1,sourceCommit:compatibility.backendSourceCommit,environment:compatibility.environment,productionRealPayments:false};
@@ -13,7 +14,7 @@ function load(frontend?:string,response?:()=>Response|Promise<Response>){
   const source=ts.transpileModule(fs.readFileSync(new URL('./providerClientRuntime.ts',import.meta.url),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
   class Client{constructor(input:Record<string,unknown>){created.push(input)}}
   const requests:string[]=[];
-  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return response?await response():new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
+  vm.runInNewContext(source,{exports:output,process:{env:{EXPO_PUBLIC_CARD_SOURCE_COMMIT:frontend,EXPO_PUBLIC_CARD_SOURCE_TREE:frontend?tree:undefined}},AbortSignal,fetch:async(url:string)=>{requests.push(url);return response?await response():new Response(JSON.stringify(url.endsWith('/version')?version:build(frontend)),{headers:{'content-type':'application/json'}})},require:(name:string)=>name==='react-native'?{Platform:{OS:'web'}}:name.includes('compatibility')?compatibility:name==='./cardOperationRecoveryContract'?{cardOperationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT}:name==='./cardBusinessClient'?{CARD_BUSINESS_ORIGIN:'https://card.ynxweb4.com',CardBusinessClient:Client}:name==='./providerApplicationClient'?{CardProviderClient:Client}:(()=>{throw Error(name)})()});
   return {api:output,created,requests};
 }
 test('accepted historical dual source and compiled candidate pair retain exact backend response identity',async()=>{
@@ -76,4 +77,17 @@ test('the admitted public 661265 successor pair requires its compiled identity a
  const admitted=build(commit);
  assert.equal(load(commit).api.validateCardSourcePair(version,admitted),compatibility.backendSourceCommit);
  assert.throws(()=>load().api.validateCardSourcePair(version,admitted),/CARD_API_SOURCE_MISMATCH/);
+});
+
+test('runtime factory carries recovery availability only after exact source validation and exact feature readback',async()=>{
+ const capabilities={identity:()=>null,createIntrospectionProof:async()=>{throw Error('must not approve')}};
+ const old=load(candidate);await old.api.createRuntimeCardBusinessClient(capabilities);
+ assert.equal(old.created[0]!.operationRecoveryContract,undefined);
+ let index=0;
+ const successor=load(candidate,()=>new Response(JSON.stringify(index++%2===0?{...version,features:{operationReadback:CARD_OPERATION_RECOVERY_CONTRACT}}:build(candidate)),{headers:{'content-type':'application/json'}}));
+ await successor.api.createRuntimeCardBusinessClient(capabilities);
+ assert.equal(successor.created[0]!.operationRecoveryContract,CARD_OPERATION_RECOVERY_CONTRACT);
+ let wrongIndex=0;
+ const wrong=load(candidate,()=>new Response(JSON.stringify(wrongIndex++%2===0?{...version,sourceCommit:'c'.repeat(40),features:{operationReadback:CARD_OPERATION_RECOVERY_CONTRACT}}:build(candidate)),{headers:{'content-type':'application/json'}}));
+ await assert.rejects(wrong.api.createRuntimeCardBusinessClient(capabilities),/CARD_API_SOURCE_MISMATCH/);assert.equal(wrong.created.length,0);
 });

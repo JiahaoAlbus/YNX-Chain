@@ -1,0 +1,9 @@
+
+> @ynx-chain/card@1.0.0 typecheck
+> node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json
+
+server/operationRecoveryCapability.test.ts(19,16): error TS18046: 'version' is of type 'unknown'.
+server/operationRecoveryCapability.test.ts(20,20): error TS18046: 'version' is of type 'unknown'.
+server/operationRecoveryCapability.test.ts(21,16): error TS18046: 'version' is of type 'unknown'.
+server/operationRecoveryCapability.test.ts(21,63): error TS18046: 'version' is of type 'unknown'.
+server/operationRecoveryCapability.test.ts(21,114): error TS18046: 'version' is of type 'unknown'.

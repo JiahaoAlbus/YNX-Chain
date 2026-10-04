@@ -2,6 +2,7 @@ import {Platform} from 'react-native';
 import {CARD_BUSINESS_ORIGIN,CardBusinessClient,type CardPrivateIdentity} from './cardBusinessClient';
 import {CardProviderClient} from './providerApplicationClient';
 import compatibility from '../card-source-compatibility.json';
+import {cardOperationRecoveryContract} from './cardOperationRecoveryContract';
 
 type RuntimeIdentity={sourceCommit?:unknown;sourceTree?:unknown;productId?:unknown;service?:unknown;schemaVersion?:unknown;environment?:unknown;evmChainId?:unknown;evmChainHex?:unknown;paymentNetwork?:unknown;productionRealPayments?:unknown;cardApiCompatibility?:unknown};
 const compiledFrontendCommit=process.env.EXPO_PUBLIC_CARD_SOURCE_COMMIT;
@@ -38,12 +39,17 @@ async function json(url:string):Promise<RuntimeIdentity>{
     return value as RuntimeIdentity;
   }catch{throw new CardSourceVerificationError('CARD_API_SOURCE_UNAVAILABLE','version-transport')}
 }
-export async function cardProviderSourceCommit():Promise<string>{
+async function verifiedCardRuntime():Promise<RuntimeIdentity>{
   const version=await json(CARD_BUSINESS_ORIGIN+'/api/card/v1/version');
-  return validateCardSourcePair(version,Platform.OS==='web'?await json('/runtime-identity.json'):undefined);
+  validateCardSourcePair(version,Platform.OS==='web'?await json('/runtime-identity.json'):undefined);
+  return version;
+}
+export async function cardProviderSourceCommit():Promise<string>{
+  await verifiedCardRuntime();return compatibility.backendSourceCommit;
 }
 export async function createRuntimeCardBusinessClient(capabilities:{identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>}){
-  return new CardBusinessClient({...capabilities,expectedSourceCommit:await cardProviderSourceCommit(),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});
+  const version=await verifiedCardRuntime();
+  return new CardBusinessClient({...capabilities,expectedSourceCommit:compatibility.backendSourceCommit,operationRecoveryContract:cardOperationRecoveryContract(version),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});
 }
 export async function createRuntimeProviderClient(capabilities:{identity:()=>CardPrivateIdentity|null;createIntrospectionProof:(scopes:readonly string[])=>Promise<{proofHeader:string}>}){
   return new CardProviderClient({...capabilities,expectedSourceCommit:await cardProviderSourceCommit(),platform:Platform.OS==='ios'||Platform.OS==='android'?Platform.OS:'web'});

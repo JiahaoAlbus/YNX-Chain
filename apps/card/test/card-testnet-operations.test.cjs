@@ -3,13 +3,13 @@ const {createRequire}=require('node:module'),React=createRequire(require.resolve
 const {evaluate,textOf}=require('./guest-experience-fixture.cjs');
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const tick=()=>new Promise(setImmediate);
-async function mount({storage=new Map(),timeout=false,locale='en',owner='qa-owner-only',events=[]}={}){
+async function mount({storage=new Map(),timeout=false,locale='en',owner='qa-owner-only',events=[],recoveryAvailable=true}={}){
   const calls=[],identity={owner,sessionBinding:'qa-session-only',expiresAt:new Date(Date.now()+3600000).toISOString()};
   const statement={card:{id:'card-qa',alias:'Explicit QA fixture',status:'ACTIVE'},events};
   const mutation=async(...args)=>{assert.ok(JSON.parse(storage.get(`ynx-card.testnet-operation.v1.${owner}`)).pending);calls.push(args);if(timeout)throw Error('QA_TIMEOUT')};
-  const client={changeCard:mutation,updateControls:mutation,createTopupIntent:mutation,confirmTopup:mutation,authorize:mutation,settle:mutation,state:async()=>({intents:[{id:'intent-qa',cardId:'card-qa'}]}),operationResult:async()=>({status:'UNKNOWN'}),statement:async()=>statement};
+  const client={supportsOperationRecovery:recoveryAvailable,changeCard:mutation,updateControls:mutation,createTopupIntent:mutation,confirmTopup:mutation,authorize:mutation,settle:mutation,state:async()=>({intents:[{id:'intent-qa',cardId:'card-qa'}]}),operationResult:async()=>({status:'UNKNOWN'}),statement:async()=>statement};
   const rn={Platform:{OS:'web'},StyleSheet:{create:x=>x},...Object.fromEntries(['Modal','Pressable','ScrollView','TextInput','View'].map(x=>[x,x]))};
-  const component=evaluate(path.resolve(__dirname,'../src/TestnetCardOperationsExperience.tsx'),{react:React,'react-native':rn,'expo-crypto':{CryptoDigestAlgorithm:{SHA256:'SHA256'},digestStringAsync:async(_,value)=>crypto.createHash('sha256').update(value).digest('hex'),randomUUID:()=>crypto.randomUUID()},'expo-secure-store':{},'./cardTypography':{CardText:'Text'},'./cardBusinessClient':{},'./cardOperationJournal':require('../src/cardOperationJournal.ts'),'./cardOperationsCopy':require('../src/cardOperationsCopy.ts')},undefined,{window:{localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value)}},globalThis});
+  const component=evaluate(path.resolve(__dirname,'../src/TestnetCardOperationsExperience.tsx'),{react:React,'react-native':rn,'expo-crypto':{CryptoDigestAlgorithm:{SHA256:'SHA256'},digestStringAsync:async(_,value)=>crypto.createHash('sha256').update(value).digest('hex'),randomUUID:()=>crypto.randomUUID()},'expo-secure-store':{},'./cardTypography':{CardText:'Text'},'./cardBusinessClient':{},'./cardOperationJournal':require('../src/cardOperationJournal.ts'),'./cardOperationsCopy':require('../src/cardOperationsCopy.ts'),'./cardOperationAvailabilityCopy':require('../src/cardOperationAvailabilityCopy.ts')},undefined,{window:{localStorage:{getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,value)}},globalThis});
   let renderer;await Renderer.act(async()=>{renderer=Renderer.create(React.createElement(component.TestnetCardOperationsExperience,{client,identity,statement,locale,onUpdated:()=>{}}));await tick()});
   return {calls,storage,renderer,text:()=>textOf(renderer.toJSON()),async change(label,value){await Renderer.act(async()=>{renderer.root.find(n=>n.type==='TextInput'&&n.props.accessibilityLabel===label).props.onChangeText(value);await tick()})},async press(label){await Renderer.act(async()=>{const button=renderer.root.find(n=>n.type==='Pressable'&&n.props.accessibilityLabel===label);assert.equal(button.props.disabled,false);button.props.onPress();await tick()})},async close(){await Renderer.act(async()=>renderer.unmount())}};
 }
@@ -54,4 +54,22 @@ test('switching owner never consumes previous owner pending journal or silently 
 });
 test('Chinese operation failure stays in selected locale and disabled controls expose accessibility state',async()=>{
   const h=await mount({locale:'zh-CN',timeout:true});try{await h.press('冻结');await h.press('确认测试网操作');assert.match(h.text(),/结果未知/);assert.doesNotMatch(h.text(),/Unknown outcome|Private action unavailable/);const button=h.renderer.root.find(n=>n.type==='Pressable'&&n.props.accessibilityLabel==='冻结');assert.equal(button.props.accessibilityState.disabled,true);}finally{await h.close()}
+});
+
+test('old backend recovery absence disables new private actions without changing the existing statement',async()=>{
+ const h=await mount({recoveryAvailable:false,events:[{id:'event-existing',name:'existing.testnet.event',occurredAt:'QA-only',details:{}}]});
+ try{
+  assert.match(h.text(),/New TEST actions are unavailable/);assert.match(h.text(),/Saved records remain readable/);assert.match(h.text(),/existing.testnet.event/);
+  for(const label of ['Freeze','Create YNXT funding intent','Simulate authorization'])assert.equal(h.renderer.root.find(n=>n.type==='Pressable'&&n.props.accessibilityLabel===label).props.disabled,true);
+  assert.equal(h.calls.length,0);assert.equal(h.storage.size,0);
+ }finally{await h.close()}
+});
+test('unknown request is retained byte-for-byte when the backend lacks original-key readback',async()=>{
+ const first=await mount({timeout:true});await first.press('Freeze');await first.press('Confirm Testnet action');const storage=first.storage,saved=[...storage.values()][0];await first.close();
+ const h=await mount({storage,recoveryAvailable:false});
+ try{
+  assert.match(h.text(),/pending requests are retained/);assert.match(h.text(),/Unknown outcome/);
+  assert.equal(h.renderer.root.find(n=>n.type==='Pressable'&&n.props.accessibilityLabel==='Read original request result').props.disabled,true);
+  assert.equal(h.calls.length,0);assert.equal([...storage.values()][0],saved);
+ }finally{await h.close()}
 });

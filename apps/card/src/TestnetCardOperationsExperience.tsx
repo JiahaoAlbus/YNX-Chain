@@ -7,12 +7,14 @@ import type {Locale} from './i18n';
 import {CardBusinessClient,type CardPrivateIdentity,type CardStatementView} from './cardBusinessClient';
 import {canonicalCardOperationInput,parsePendingCardOperation,parseTestnetYnxt,type PendingCardOperation,type TestnetOperation} from './cardOperationJournal';
 import {cardOperationsCopy} from './cardOperationsCopy';
+import {cardOperationAvailabilityText} from './cardOperationAvailabilityCopy';
 type Props={client:CardBusinessClient;identity:CardPrivateIdentity;statement:CardStatementView;locale:Locale;onUpdated:()=>void};
 type Journal={pending:PendingCardOperation|null;history:PendingCardOperation[]};
 const actions:readonly TestnetOperation[]=['freeze','unfreeze','recover','topup-intent','topup-confirm','authorization','capture','reverse','refund','controls'];
 const label=(kind:TestnetOperation)=>kind==='controls'?10:actions.indexOf(kind)+1;
 export function TestnetCardOperationsExperience({client,identity,statement,locale,onUpdated}:Props){
   const copy=cardOperationsCopy[locale],card=statement.card,binding=JSON.stringify([identity.owner,identity.sessionBinding,identity.expiresAt,card.id]);
+  const recoveryAvailable=client.supportsOperationRecovery===true;
   const storageKey=`ynx-card.testnet-operation.v1.${identity.owner}`,alive=useRef(true),current=useRef({binding,client});current.current={binding,client};
   const valid=()=>alive.current&&current.current.binding===binding&&current.current.client===client&&Date.parse(identity.expiresAt)>Date.now();
   const [journal,setJournal]=useState<Journal|null>(null),[blocked,setBlocked]=useState(false),[busy,setBusy]=useState(false),[notice,setNotice]=useState('');
@@ -37,10 +39,10 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
     else await client.settle(resourceId,kind,String(input.amountWei),pending.key);
   };
   const finish=async(pending:PendingCardOperation)=>{if(!journal||!valid())return;const next={pending:null,history:[...journal.history,pending]};await write(next);if(valid()){setJournal(next);setCanRetry(false);setNotice(copy[19]!);onUpdated();}};
-  const readBack=async()=>{if(!valid()||busy||!journal?.pending)return;const pending=journal.pending;setBusy(true);setCanRetry(false);try{const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,canonicalCardOperationInput(pending.input));if(!valid()||digest!==pending.digest)throw Error();const result=await client.operationResult(pending.kind,pending.resourceId,pending.key,pending.digest);if(!valid())return;if(result.status==='UNKNOWN'){setNotice(copy[16]!);setCanRetry(true);return;}await finish(pending);}catch{if(valid())setNotice(copy[18]!);}finally{if(valid())setBusy(false);}};
-  const retryOriginal=async()=>{if(!valid()||busy||!canRetry||!journal?.pending||journal.pending.cardId!==card.id)return;const pending=journal.pending;setBusy(true);setCanRetry(false);try{const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,canonicalCardOperationInput(pending.input));if(!valid()||digest!==pending.digest)throw Error();const currentResult=await client.operationResult(pending.kind,pending.resourceId,pending.key,pending.digest);if(!valid())return;if(currentResult.status==='UNKNOWN')await execute(pending);if(valid())await finish(pending);}catch{if(valid())setNotice(copy[16]!);}finally{if(valid())setBusy(false);}};
+  const readBack=async()=>{if(!recoveryAvailable||!valid()||busy||!journal?.pending)return;const pending=journal.pending;setBusy(true);setCanRetry(false);try{const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,canonicalCardOperationInput(pending.input));if(!valid()||digest!==pending.digest)throw Error();const result=await client.operationResult(pending.kind,pending.resourceId,pending.key,pending.digest);if(!valid())return;if(result.status==='UNKNOWN'){setNotice(copy[16]!);setCanRetry(true);return;}await finish(pending);}catch{if(valid())setNotice(copy[18]!);}finally{if(valid())setBusy(false);}};
+  const retryOriginal=async()=>{if(!recoveryAvailable||!valid()||busy||!canRetry||!journal?.pending||journal.pending.cardId!==card.id)return;const pending=journal.pending;setBusy(true);setCanRetry(false);try{const digest=await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256,canonicalCardOperationInput(pending.input));if(!valid()||digest!==pending.digest)throw Error();const currentResult=await client.operationResult(pending.kind,pending.resourceId,pending.key,pending.digest);if(!valid())return;if(currentResult.status==='UNKNOWN')await execute(pending);if(valid())await finish(pending);}catch{if(valid())setNotice(copy[16]!);}finally{if(valid())setBusy(false);}};
   const perform=async()=>{
-    if(!kind||!valid()||busy||blocked||!journal||journal.pending||journal.history.length>=128)return;
+    if(!recoveryAvailable||!kind||!valid()||busy||blocked||!journal||journal.pending||journal.history.length>=128)return;
     setBusy(true);let pending:PendingCardOperation|null=null;
     try{
       let resourceId=card.id,input:Record<string,unknown>={};
@@ -55,13 +57,14 @@ export function TestnetCardOperationsExperience({client,identity,statement,local
       await execute(pending);if(valid())await finish(pending);
     }catch{if(valid())setNotice(pending?copy[16]!:copy[18]!);}finally{if(valid())setBusy(false);}
   };
-  const disabled=busy||blocked||!journal||Boolean(journal.pending)||Date.parse(identity.expiresAt)<=Date.now();
+  const disabled=!recoveryAvailable||busy||blocked||!journal||Boolean(journal.pending)||Date.parse(identity.expiresAt)<=Date.now();
   const button=(title:string,action:()=>void,off=false)=><Pressable accessibilityRole="button" accessibilityLabel={title} accessibilityState={{disabled:off,busy:busy&&off}} disabled={off} onPress={action} style={[styles.button,off&&styles.disabled]}><Text style={styles.buttonText}>{title}</Text></Pressable>;
   return <View testID="card-testnet-operations" style={styles.panel}>
     <Text accessibilityRole="header" style={styles.heading}>{copy[0]}</Text><Text>{copy[20]}</Text>
+    {!recoveryAvailable?<Text accessibilityLiveRegion="polite">{cardOperationAvailabilityText(locale)}</Text>:null}
     <View style={styles.actions}>{actions.map(action=><View key={action}>{button(copy[label(action)]!,()=>{setKind(action);setAmount('');setReference('');},disabled||card.status==='CLOSED'&&action!=='recover'||['authorization','topup-intent'].includes(action)&&card.status!=='ACTIVE')}</View>)}</View>
     {notice?<Text accessibilityLiveRegion="polite">{notice}</Text>:null}{busy?<Text>{copy[23]}</Text>:null}
-    {journal?.pending?<View><Text>{copy[16]}</Text><Text selectable>{journal.pending.cardId} · {journal.pending.kind} · {journal.pending.key}</Text>{button(copy[17]!,()=>void readBack(),busy||blocked)}{canRetry?button(retryLabels[locale],()=>void retryOriginal(),busy||blocked||journal.pending.cardId!==card.id):null}</View>:null}
+    {journal?.pending?<View><Text>{copy[16]}</Text><Text selectable>{journal.pending.cardId} · {journal.pending.kind} · {journal.pending.key}</Text>{button(copy[17]!,()=>void readBack(),!recoveryAvailable||busy||blocked)}{canRetry?button(retryLabels[locale],()=>void retryOriginal(),!recoveryAvailable||busy||blocked||journal.pending.cardId!==card.id):null}</View>:null}
     <Text accessibilityRole="header">{copy[21]}</Text>{statement.events.map(item=><View key={String(item.id)}>{button(`${String(item.occurredAt)} · ${String(item.name)}`,()=>setEvent(item))}</View>)}
     <Modal visible={Boolean(kind)||Boolean(event)} transparent animationType="fade" onRequestClose={()=>{if(!busy){setKind(null);setEvent(null);}}}>
       <View style={styles.backdrop}><ScrollView accessibilityViewIsModal style={styles.dialog} contentContainerStyle={styles.dialogContent}>

@@ -1,5 +1,6 @@
 import type {ApplicationDetails,BusinessChallenge,CardScope,ChainReceipt,FundingIntent} from '../server/contracts';
 import {walletErrorResponse} from '@ynx-chain/wallet-auth';
+import {CARD_OPERATION_RECOVERY_CONTRACT} from './cardOperationRecoveryContract';
 
 export const CARD_BUSINESS_ORIGIN='https://card.ynxweb4.com';
 const ENVIRONMENT='YNX_TESTNET_CARD_PAYMENT_SIMULATION';
@@ -18,6 +19,7 @@ export class CardBusinessError extends Error {
 }
 type Capabilities=Readonly<{
   expectedSourceCommit:string;
+  operationRecoveryContract?:typeof CARD_OPERATION_RECOVERY_CONTRACT;
   platform?:'web'|'ios'|'android';
   identity:()=>CardPrivateIdentity|null;
   // Supply the accepted SDK's createIntrospectionProof method. Card never signs or decodes DeviceProof.
@@ -75,12 +77,14 @@ function funding(value:unknown,account:string):CardFundingView {
 /** Product-scoped transport. It never opens wallets, requests accounts, signs a
  * business approval/transaction, or changes a Standard Wallet connection. */
 export class CardBusinessClient {
+  readonly supportsOperationRecovery:boolean;
   private epoch=0;
   private flights=new Set<AbortController>();
   private transport:typeof fetch;
   private timeout:number;
   private platform:'web'|'ios'|'android';
   constructor(private capabilities:Capabilities){
+    this.supportsOperationRecovery=capabilities.operationRecoveryContract===CARD_OPERATION_RECOVERY_CONTRACT;
     if(!/^[0-9a-f]{40}$/.test(capabilities.expectedSourceCommit))throw new CardBusinessError('CARD_API_SOURCE_NOT_CONFIGURED','configuration');
     this.platform=capabilities.platform??'web';
     if(!['web','ios','android'].includes(this.platform))throw new CardBusinessError('INVALID_CARD_PLATFORM','configuration');

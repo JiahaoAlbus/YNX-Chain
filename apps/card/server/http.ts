@@ -6,6 +6,7 @@ import {CardProviderRegistry} from './providerRegistry.ts';
 import {CardProviderApplications} from './providerApplication.ts';
 import {CardProviderLifecycle} from './providerLifecycle.ts';
 import {CardFinanceRead,CARD_FINANCE_READ_ROUTE} from './cardFinanceRead.ts';
+import {CARD_OPERATION_RECOVERY_CONTRACT} from '../src/cardOperationRecoveryContract.ts';
 async function body(request:IncomingMessage):Promise<any>{let bytes=0;const chunks:Buffer[]=[];for await(const chunk of request){const data=Buffer.from(chunk);bytes+=data.length;if(bytes>65536)throw new CardError('REQUEST_TOO_LARGE',413);chunks.push(data)}try{return chunks.length?JSON.parse(Buffer.concat(chunks).toString('utf8')):{}}catch{throw new CardError('INVALID_JSON',400)}}
 function rejectSensitive(value:any){if(Array.isArray(value)){value.forEach(rejectSensitive);return}if(!value||typeof value!=='object')return;for(const[key,child]of Object.entries(value)){if(/^(pan|cvv|cvc|pin|seed|mnemonic|privateKey|cryptogram|trackData|fullCardNumber)$/i.test(key))throw new CardError('SENSITIVE_PAYMENT_DATA_FORBIDDEN',400);rejectSensitive(child)}}
 export function createCardServer(options:{service:CardService;wallet:WalletAuthority;sourceCommit:string;allowedOrigin?:string;configurationReady:boolean;providerRegistry?:CardProviderRegistry;providerApplications?:CardProviderApplications;providerLifecycle?:CardProviderLifecycle;financeRead?:CardFinanceRead}){
@@ -19,7 +20,7 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
       if(request.method==='OPTIONS'){response.setHeader('Access-Control-Allow-Headers','X-YNX-Product-Session-Proof-V2, X-YNX-Card-Platform, Content-Type, Idempotency-Key');response.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, PATCH, OPTIONS');response.statusCode=204;response.end();return}
       const parsedUrl=new URL(request.url??'/','http://card-backend.invalid'),path=parsedUrl.pathname;
       if(path===CARD_FINANCE_READ_ROUTE){if(!options.financeRead)throw new CardError('FINANCE_READ_UNCONFIGURED',503);send(200,options.financeRead.read(request));return}
-      if(request.method==='GET'&&(path==='/healthz'||path==='/version'||path==='/api/card/v1/version')){send(200,{service:'ynx-card-business-backend',schemaVersion:1,sourceCommit:options.sourceCommit,environment:ENVIRONMENT,configurationReady:options.configurationReady,runtimeFundingVerified:false,productionRealPayments:false});return}
+      if(request.method==='GET'&&(path==='/healthz'||path==='/version'||path==='/api/card/v1/version')){send(200,{service:'ynx-card-business-backend',schemaVersion:1,sourceCommit:options.sourceCommit,environment:ENVIRONMENT,configurationReady:options.configurationReady,runtimeFundingVerified:false,productionRealPayments:false,features:{operationReadback:CARD_OPERATION_RECOVERY_CONTRACT}});return}
       const method=request.method??'',requiredScope=scopeForRoute(method,path);
       if(request.headers.authorization||request.headers['x-ynx-product-session-proof'])throw new CardError('LEGACY_CARD_AUTH_NOT_SUPPORTED',401);
       const proof=request.headers['x-ynx-product-session-proof-v2'];if(Array.isArray(proof))throw new CardError('INVALID_SESSION_PROOF',401);
