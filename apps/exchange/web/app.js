@@ -4,6 +4,7 @@ import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13
 import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
 import {buildCommandReview} from './command-review.js?v=f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e';
 import {commandText} from './command-copy.js?v=c9f190b2f0cc2040707fe43288ff9246625afb3e7617e574afe43672123b2b86';
+import {createVenueConfigReader} from './venue-config.js?v=1e10bb20aa713dffe505321a5fc03c9109f651c965c3ae5a0edfff6504d90b61';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');
@@ -12,6 +13,7 @@ function productApiUnavailable(){return Object.assign(new Error('API_UNAVAILABLE
 function showWalletFallback(show){$('#wallet-fallback').hidden=!show}
 function requireProductSession(){toast(productApiUnavailable());$('#private-account').scrollIntoView({block:'center'});$('#private-begin').focus();return false}
 const privateAccount=createExchangePrivateAccount({onState:renderPrivateAccount});
+const venueConfig=createVenueConfigReader({onState:renderVenueConfig});
 let browserIdentity=null,browserIdentityEpoch=0,browserIdentitySilentAttempted=false,browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityLogoutOperation=null;
 function writeBrowserIdentity(element,key,fallback,suffix=''){element.textContent=fallback;window.YNXExchangeLocale?.write(element,key,suffix)}
 async function browserIdentityRequest(path,options={}){
@@ -84,10 +86,11 @@ function previewRulesKey(value){if(Array.isArray(value))return value.map(preview
 const marketFeed=createMarketFeed({onSnapshot(value){if(state.rules&&JSON.stringify(previewRulesKey(state.rules))!==JSON.stringify(previewRulesKey(value.tradingRules)))retireMarketPreview();state.book=value.orderBook;state.publicTrades=value.trades;state.rules=value.tradingRules;state.source=value.sourceMetadata;renderBook();renderPublicMarket()},onStatus(value){state.marketPhase=value.phase;renderMarketStatus(value);estimate()}});
 async function boot(){
   let languageStorage;try{languageStorage=window.localStorage}catch{}
-  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot){renderAccount();renderOwnedControls()}renderPrivateReadMetadata(privateAccount.state());estimate();renderCommandCopy()}});
-  bind();renderBook();renderPublicMarket();renderAIState();$('#custody-address').textContent='Separate approved deposit workflow required';window.YNXExchangeLocale?.write($('#custody-address'),'Separate approved deposit workflow required');$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
+  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot){renderAccount();renderOwnedControls()}renderPrivateReadMetadata(privateAccount.state());estimate();renderCommandCopy();renderVenueConfig(venueConfig.state())}});
+  bind();renderBook();renderPublicMarket();renderAIState();marketFeed.start();await Promise.all([venueConfig.refresh(),restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
 }
 function bind(){
+  bindVenueConfig();
   const intentLabel=document.createElement('label'),intent=document.createElement('input');
   const intentText=document.createElement('span');intentText.id='deposit-intent-label';intentLabel.append(intentText);intent.id='deposit-intent';intent.required=true;intent.maxLength=128;intent.autocomplete='off';intentLabel.append(intent);$('#deposit-form').prepend(intentLabel);renderCommandCopy();
   $('#command-review-check').addEventListener('click',checkCommandRequirements);
@@ -114,8 +117,8 @@ function bind(){
   $('#refresh').addEventListener('click',refreshAll);$('#security-form').addEventListener('submit',saveSecurity);$('#support-form').addEventListener('submit',openSupport);
   $('#market-retry').addEventListener('click',refreshAll);
   $('#chart-interval').addEventListener('change',renderPublicMarket);
-  window.addEventListener('offline',()=>{marketFeed.offline();privateAccount.offline()});window.addEventListener('online',()=>{marketFeed.retry();privateAccount.online()});
-  window.addEventListener('pagehide',()=>marketFeed.stop());window.addEventListener('pageshow',event=>{if(event.persisted)marketFeed.retry()});
+  window.addEventListener('offline',()=>{venueConfig.offline();marketFeed.offline();privateAccount.offline()});window.addEventListener('online',()=>{venueConfig.refresh();marketFeed.retry();privateAccount.online()});
+  window.addEventListener('pagehide',()=>{venueConfig.offline();marketFeed.stop()});window.addEventListener('pageshow',event=>{if(event.persisted){venueConfig.refresh();marketFeed.retry()}});
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
@@ -152,9 +155,22 @@ function estimate(){
   $('#reservation').textContent='—';$('#order-fees').textContent='Unavailable';window.YNXExchangeLocale?.write($('#order-fees'),'Unavailable');window.YNXExchangeLocale?.forget($('#order-error'));$('#order-error').textContent='';
   try{const rules=validateTradingRules(state.rules);window.YNXExchangeLocale?.forget($('#order-fees'));$('#order-fees').textContent=`${rules.makerFeeBps} / ${rules.takerFeeBps} bps`;const limitSuffix=` ${display(BigInt(rules.maxOrderNotionalMicro))} YUSD_TEST.`;$('#order-limits').textContent=`6 decimals; price and amount 0.000001–1,000,000. Maximum notional:${limitSuffix}`;window.YNXExchangeLocale?.write($('#order-limits'),'order-limits-description',limitSuffix);if(!$('#price').value&&!$('#amount').value)return;const value=preview();$('#reservation').textContent=`${display(value.initialReservationMicro)} ${value.reservationAsset}`}catch(error){if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message}
 }
+function bindVenueConfig(){
+  const status=document.createElement('p');status.id='venue-config-state';status.className='source-note';status.setAttribute('role','status');status.setAttribute('aria-live','polite');
+  const retry=document.createElement('button');retry.id='venue-config-retry';retry.type='button';retry.className='secondary';retry.textContent='Refresh';window.YNXExchangeLocale?.write(retry,'Refresh');retry.addEventListener('click',()=>venueConfig.refresh());$('#deposit-form').after(status,retry);
+}
 function withdrawEstimate(){const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;$('#withdraw-receive').textContent='—';if(!Number.isSafeInteger(fee)||fee<0)return;try{const amount=parseMicro($('#withdraw-amount').value);if(amount>BigInt(fee))$('#withdraw-receive').textContent=`${display(amount-BigInt(fee))} YNXT`}catch{}}
+function renderVenueConfig(value){
+  const prior=state.config;state.config=value.phase==='live'?value.config:null;
+  if(prior!==state.config&&state.commandReview?.kind==='withdrawal')closeCommandReview();
+  const native=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet'),fee=native?.withdrawalFeeMicro;
+  window.YNXExchangeLocale?.forget($('#custody-address'));
+  $('#custody-address').textContent=native?.depositEnabled&&state.config.custodyAddress?state.config.custodyAddress:(window.YNXExchangeLocale?.text('Separate approved deposit workflow required')??'Separate approved deposit workflow required');
+  $('#withdraw-fee').textContent=Number.isSafeInteger(fee)?`${display(fee)} YNXT`:'—';withdrawEstimate();
+  const status=$('#venue-config-state');if(status){window.YNXExchangeLocale?.forget(status);status.textContent=`/api/v1/config · ${value.phase}`;if(value.phase!=='live')window.YNXExchangeLocale?.error(status,productApiUnavailable());}
+}
 
-async function refreshAll(){await marketFeed.retry();if(privateAccount.state().phase==='connected')await privateAccount.refresh()}
+async function refreshAll(){await Promise.all([marketFeed.retry(),venueConfig.refresh()]);if(privateAccount.state().phase==='connected')await privateAccount.refresh()}
 function renderMarketStatus({phase,source}){if(!['live','polling'].includes(phase))retireMarketPreview();const cached=!!source;$('#market-connection').textContent=({loading:'Loading venue market data…',live:source?.status==='degraded_single_host'?'Connected · single-host test data':'Connected · venue market data',polling:'Connected · periodic market snapshots',reconnecting:'Market connection interrupted · reconnecting',offline:'Offline · reconnect when your network returns',unavailable:'Market data unavailable · retrying'})[phase];window.YNXExchangeLocale?.write($('#market-connection'),phase==='live'?(source?.status==='degraded_single_host'?'market-single':'market-live'):`market-${phase}`);$('#market-source').textContent=source?`${source.authority} · ${source.coverage} · snapshot ${new Date(source.asOf).toLocaleString(document.documentElement.lang)} · ${source.version}`:'No verified market snapshot received.';$('#market-source').dataset.stale=String(cached&&!['live','polling'].includes(phase));$('#market-stale').hidden=!cached||['live','polling'].includes(phase);if(!cached&&['offline','unavailable'].includes(phase)){$('#spread').textContent='Market depth unavailable';$('#public-trades').innerHTML='<tr><td colspan="5" class="empty-cell">Market source unavailable. Reconnect to load actual matches.</td></tr>';$('#chart-empty').querySelector('strong').textContent='Market source unavailable'}}
 async function refreshBook(){await refreshAll()}
 async function refreshAccount(){return privateAccount.refresh()}

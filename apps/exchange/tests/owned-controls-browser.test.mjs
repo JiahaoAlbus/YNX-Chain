@@ -51,6 +51,7 @@ const localeSource=await readFile(new URL('../web/locale.js',import.meta.url),'u
 const localeSetup=app.split('\n').find(line=>line.includes('window.YNXExchangeLocale=installExchangeLocale({document'));
 const commandCopySource=(await readFile(new URL('../web/command-copy.js',import.meta.url),'utf8')).replaceAll('export ','');
 const commandCopyRender=app.slice(app.indexOf('function renderCommandCopy('),app.indexOf('function reviewCommand('));
+const venueConfigRender=app.slice(app.indexOf('function withdrawEstimate('),app.indexOf('async function refreshAll('));
 test('advanced records show existing owned tasks without inventing fills, missing collections or write actions',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
@@ -148,7 +149,7 @@ test('private account read timestamps follow the chosen language without request
     page.on('pageerror',error=>errors.push(error.message));await page.route('**/*',route=>{requests++;return route.abort()});
     await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''));
     await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={account:null,snapshot:null};let currentRead;const privateAccount={state:()=>currentRead};const languageStorage={getItem:()=>null,setItem(){}};function renderAccount(){}function renderBook(){}function renderPublicMarket(){}function estimate(){}function resumeDeferredBrowserIdentity(){};${ownedTimes};${controls};window.privateTimeQA={set(value){currentRead=value;renderPrivateAccount(value)},source(){return JSON.stringify(currentRead)}};`});
-    await page.addScriptTag({type:'module',content:`${localeSource}\nconst commandText=(()=>{${commandCopySource};return commandText})();\n${commandCopyRender}\n${localeSetup}`});
+    await page.addScriptTag({type:'module',content:`${localeSource}\nconst commandText=(()=>{${commandCopySource};return commandText})();\n${commandCopyRender}\nconst venueConfig={state:()=>({phase:'unavailable',config:null})};${venueConfigRender}\n${localeSetup}`});
     try{await page.waitForFunction(()=>window.YNXExchangeLocale,{},{timeout:3000})}catch(error){assert.deepEqual(errors,[]);throw error}
     const value={phase:'connected',account:'controlled-A',expiresAt:'2026-10-03T10:00:00+09:00',snapshot:{security:{updatedAt:'2026-10-03T01:00:00Z'},support:[{account:'controlled-A',id:'existing-case',category:'security',status:'open',createdAt:'2026-10-03T01:00:00Z',message:'Existing account-owned case'}],sourceMetadata:{status:'controlled_read',coverage:'owned_records_fixture',asOf:'2026-10-03T01:00:00Z'}}};
     await page.evaluate(value=>window.privateTimeQA.set(value),value);const original=JSON.stringify(value);

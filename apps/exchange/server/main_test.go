@@ -17,7 +17,7 @@ import (
 )
 
 func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
-	for _, module := range []string{"market-data.js", "order-preview.js", "wallet-connect.js", "private-session.js", "locale.js"} {
+	for _, module := range []string{"market-data.js", "order-preview.js", "wallet-connect.js", "private-session.js", "locale.js", "command-review.js", "command-copy.js", "venue-config.js"} {
 		expected, err := os.ReadFile("../web/" + module)
 		if err != nil {
 			t.Fatal(err)
@@ -38,7 +38,7 @@ func TestHTMLRefreshesBeforeVersionedExchangeAssets(t *testing.T) {
 			t.Fatalf("HTML route %s cache policy=%q", route, res.Header().Get("Cache-Control"))
 		}
 	}
-	for _, module := range []string{"market-data.js", "order-preview.js", "private-session.js", "app.js", "wallet-connect.js", "locale.js"} {
+	for _, module := range []string{"market-data.js", "order-preview.js", "private-session.js", "app.js", "wallet-connect.js", "locale.js", "command-review.js", "command-copy.js", "venue-config.js"} {
 		body, err := os.ReadFile("../web/" + module)
 		if err != nil {
 			t.Fatal(err)
