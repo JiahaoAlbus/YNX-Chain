@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -46,6 +46,14 @@
       {
         "command": "ynx.applyReviewedDiff",
         "title": "YNX: Apply Reviewed Text Changes"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "**/keybindings.json"
+        ],
+        "url": "./schemas/keybindings.schema.json"
       }
     ]
   },

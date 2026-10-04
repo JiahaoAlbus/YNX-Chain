@@ -60,6 +60,13 @@
                 "BASH_SILENCE_DEPRECATION_WARNING": "1"
               }
             }
+          },
+          "json.schemaDownload.enable": false,
+          "files.associations": {
+            "keybindings.json": "jsonc",
+            "settings.json": "jsonc",
+            "launch.json": "jsonc",
+            "tasks.json": "jsonc"
           }
         }
       }
