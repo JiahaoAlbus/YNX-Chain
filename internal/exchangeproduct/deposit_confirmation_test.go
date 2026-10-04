@@ -2,16 +2,84 @@ package exchangeproduct
 
 import (
 	"bytes"
+	"math"
 	"os"
 	"sync"
 	"testing"
 	"time"
 )
 
+func TestDepositCreditOverflowRefusesWithoutMutation(t *testing.T) {
+	for _, pending := range []bool{false, true} {
+		t.Run(map[bool]string{false: "observe", true: "refresh"}[pending], func(t *testing.T) {
+			s, chain, statePath := newTestService(t)
+			owner := accountSession(t, s, alice, "overflow-deposit", "exchange:read", "exchange:deposit")
+			intent, err := s.CreateDepositIntent(owner.session, "overflow-deposit-intent")
+			if err != nil {
+				t.Fatal(err)
+			}
+			hash := "ffffffaaaabbbbcc"
+			transfer := ChainTransfer{Hash: hash, From: alice, To: bob, AmountMicro: 1, Confirmations: 3, Committed: true}
+			var dep Deposit
+			if pending {
+				transfer.Confirmations = 1
+				chain.set(hash, transfer)
+				dep, err = s.ObserveDeposit(owner.session, intent.ID, hash, "overflow-deposit-observe")
+				if err != nil {
+					t.Fatal(err)
+				}
+				transfer.Confirmations = 3
+			}
+			// Extreme controlled existing ledger boundary, not issued test capital.
+			s.state.Balances[balanceKey(alice, NativeAsset)] = Balance{Account: alice, Asset: NativeAsset, AvailableMicro: math.MaxInt64}
+			chain.set(hash, transfer)
+			before := digest(s.state)
+			beforeDisk, err := os.ReadFile(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pending {
+				_, err = s.RefreshDeposit(owner.session, dep.ID)
+			} else {
+				_, err = s.ObserveDeposit(owner.session, intent.ID, hash, "overflow-deposit-observe")
+			}
+			if err != ErrConflict {
+				t.Fatalf("overflow accepted: %v", err)
+			}
+			afterDisk, readErr := os.ReadFile(statePath)
+			if readErr != nil || !bytes.Equal(beforeDisk, afterDisk) || digest(s.state) != before {
+				t.Fatal("rejected overflow changed balance, ledger, intent, sequence or durable bytes")
+			}
+		})
+	}
+}
+
 type simultaneousDepositReader struct {
 	transfer ChainTransfer
 	arrived  chan struct{}
 	release  chan struct{}
+}
+
+func TestDepositCreditBoundsIncludeReservedAndRejectInvalidLedger(t *testing.T) {
+	for _, tc := range []struct {
+		available, reserved, amount int64
+		want                        bool
+	}{
+		{math.MaxInt64 - 1, 0, 1, true},
+		{math.MaxInt64 - 2, 1, 1, true},
+		{math.MaxInt64 - 1, 1, 1, false},
+		{math.MaxInt64, 0, 1, false},
+		{0, math.MaxInt64, 1, false},
+		{-1, 0, 1, false},
+		{0, -1, 1, false},
+		{0, 0, 0, false},
+		{0, 0, -1, false},
+		{0, 0, math.MaxInt64, true},
+	} {
+		if got := depositCreditFits(Balance{AvailableMicro: tc.available, ReservedMicro: tc.reserved}, tc.amount); got != tc.want {
+			t.Fatalf("%+v got %v", tc, got)
+		}
+	}
 }
 
 func (r *simultaneousDepositReader) Transfer(string) (ChainTransfer, error) {

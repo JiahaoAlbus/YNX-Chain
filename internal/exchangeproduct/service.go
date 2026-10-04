@@ -495,6 +495,12 @@ func (s *Service) CreateDepositIntent(session WalletSession, key string) (Deposi
 	return v, nil
 }
 
+func depositCreditFits(balance Balance, amount int64) bool {
+	return amount > 0 && balance.AvailableMicro >= 0 && balance.ReservedMicro >= 0 &&
+		balance.AvailableMicro <= math.MaxInt64-amount &&
+		balance.ReservedMicro <= math.MaxInt64-amount-balance.AvailableMicro
+}
+
 func (s *Service) ObserveDeposit(session WalletSession, intentID, txHash, key string) (Deposit, error) {
 	if s.cfg.Chain == nil || s.state.CustodyAddress == "" {
 		return Deposit{}, ErrUnavailable
@@ -541,6 +547,9 @@ func (s *Service) ObserveDeposit(session WalletSession, intentID, txHash, key st
 	status := "confirming"
 	if transfer.Confirmations >= s.cfg.RequiredConfirmations {
 		status = "confirmed"
+	}
+	if status == "confirmed" && !depositCreditFits(s.balanceLocked(session.Account, NativeAsset), transfer.AmountMicro) {
+		return Deposit{}, ErrConflict
 	}
 	id := s.nextIDLocked("deposit")
 	dep := Deposit{ID: id, Account: session.Account, Asset: NativeAsset, Network: "YNX Testnet", TxHash: txHash, AmountMicro: transfer.AmountMicro, Confirmations: transfer.Confirmations, Required: s.cfg.RequiredConfirmations, Status: status, CreatedAt: now, UpdatedAt: now, IntentID: intentID, SourceType: "ynx_indexer_transfer", SourceDigest: digest(transfer)}
@@ -603,10 +612,14 @@ func (s *Service) RefreshDeposit(session WalletSession, id string) (Deposit, err
 	if dep.Status == "confirmed" {
 		return dep, nil
 	}
+	confirm := t.Committed && t.To == s.state.CustodyAddress && t.AmountMicro == dep.AmountMicro && t.Confirmations >= dep.Required
+	if confirm && !depositCreditFits(s.balanceLocked(dep.Account, dep.Asset), dep.AmountMicro) {
+		return Deposit{}, ErrConflict
+	}
 	before := cloneState(s.state)
 	dep.Confirmations = t.Confirmations
 	dep.UpdatedAt = s.cfg.Now().UTC()
-	if t.Committed && t.To == s.state.CustodyAddress && t.AmountMicro == dep.AmountMicro && t.Confirmations >= dep.Required {
+	if confirm {
 		dep.Status = "confirmed"
 		b := s.balanceLocked(dep.Account, dep.Asset)
 		b.AvailableMicro += dep.AmountMicro
