@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "ynx-ordinary-consumer-inputs-v1",
+  "productId": "finance",
+  "classification": "ORDINARY_HUNKS_NOT_FORMAL_RUNTIME",
+  "sourceCommit": "b8d79f5a9a3def474b5dc820bd2775f47036808c",
+  "sourceTree": "1717b73901d890559afabec9f9efec4119619c6e",
+  "reviewedBaseCommit": "5b378ba06de38b67511906232d8e513dfb5f37bc",
+  "integrationMode": "ORDINARY_HUNKS_ONLY",
+  "releaseAuthority": "wallet_release_owner",
+  "preserveSharedGraph": true,
+  "publisherMustRebuildFinalAssetPins": true,
+  "objects": [
+    {"path":"apps/finance/web/app.js","blob":"bca9170461af11900696d4a86ec21c6adaec669b","bytes":124810,"sha256":"f2ead2f8098bad28efe546a9c839c4375c7d6ad0100a4e5e8238455f25eda6bc"},
+    {"path":"apps/finance/web/index.html","blob":"e2bf6d663c7cd06ecf16003343591f7ddf39f528","bytes":37500,"sha256":"90c464c816fe104fb9b4566ee05405557ac1199804e0070e4e3014fa0c566c29"},
+    {"path":"apps/finance/tests/overview-source-browser.test.mjs","blob":"4b84d0cfd74164628770c05b1da17202ea02b017","bytes":30882,"sha256":"251d94828538b45833ab9f64e8f6b7754bcc226c6f3e675a2447e2ac80295e8e"},
+    {"path":"apps/finance/evidence/activity-identity-ambiguity-20261004.md","blob":"50937d7e36cb8a4f6c6b505b47519d0fdaa76db0","bytes":3577,"sha256":"ecc817f4dcde98b362764a93c02c4ae4a28cf4798d0f965e0521abc296a15302"}
+  ],
+  "readOnlyDiffArgv": ["git","diff","5b378ba06de38b67511906232d8e513dfb5f37bc","b8d79f5a9a3def474b5dc820bd2775f47036808c","--","apps/finance/web/app.js","apps/finance/web/index.html","apps/finance/tests/overview-source-browser.test.mjs","apps/finance/evidence/activity-identity-ambiguity-20261004.md"],
+  "forbiddenReplacementPaths": ["packages/wallet-auth","apps/finance/web/wallet-auth.js","apps/finance/web/wallet-auth-entry.js","apps/finance/web/evm-read-session.js","apps/finance/server","internal/finance","go.mod","go.sum"],
+  "releaseBlockers": ["SHARED_WALLET_AND_EVM_ASSET_PINS_REQUIRE_AUTHORITATIVE_COMPOSITION","FAVICON_ASSET_MISSING","FULL_HOSTED_CACHE_TESTS_FAILED"],
+  "rollback": "Ordinary hunks revert only; actual release rollback must be bound by release owner",
+  "truth": {"formalResourceGatePassed":false,"runtimeBuilt":false,"deployed":false,"installed":false,"actualProviderApproved":false,"privateSessionVerified":false,"transactionsVerified":false,"productComplete":false}
+}
