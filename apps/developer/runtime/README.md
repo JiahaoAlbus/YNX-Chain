@@ -1,5 +1,20 @@
 # YNX Developer extensible workbench
 
+Workbench 0.3.3 adds project-profile draft checkpoints to the same composed
+runtime. Actual hard-kill/cold reopen restores dirty files and untitled text;
+Save retires its checkpoint, Don't Save retires the discarded draft, and an
+external newer saved file stays intact while the older draft opens as an
+untitled recovered copy. Exact current evidence, limits and native distribution
+boundaries are in `../docs/integration/COMPOSED_COLD_RECOVERY_20261004.json` and
+`../docs/integration/COMPOSED_WORKBENCH_ADMISSION_20261004.md`. The earlier
+0.3.1 language acceptance is retained separately, not summed into this pin.
+
+Checkpointing uses a 200 ms debounce and asynchronous fsynced persistence; it
+does not guarantee the final keystrokes before a crash. Files over 2 MiB or a
+full 64-entry/16-MiB snapshot warn the user to save. Interrupted/damaged backups
+remain read-only and preserved. The existing driver must provide the canonical
+workspace and persistent sibling profile; this service authenticates nobody.
+
 This owned runtime composes Eclipse Theia 1.76.0, Monaco, a real VS Code
 extension host, PTY, language tooling and DAP. The product requirement is
 VS Code's coding workflows and interaction quality with YNX appearance and

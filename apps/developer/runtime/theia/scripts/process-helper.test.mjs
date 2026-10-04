@@ -26,3 +26,11 @@ test('real native cleanup refuses parent/current-owner targets and terminates an
     if (child.exitCode === null && child.signalCode === null) child.send('cleanup');
   }
 });
+test('already reaped owned child cleanup is idempotent without weakening live-owner refusal', { skip: process.platform !== 'darwin' }, async () => {
+  const child = spawn(process.execPath, ['-e', 'process.exit(0)'], { stdio: 'ignore' });
+  await new Promise((resolve, reject) => { child.once('exit', resolve); child.once('error', reject); });
+  assert.equal(exists(child.pid), false);
+  const result = spawnSync(helper, [String(child.pid)], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.ok(exists(process.pid));
+});

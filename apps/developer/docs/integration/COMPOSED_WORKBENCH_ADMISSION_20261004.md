@@ -1,16 +1,38 @@
 # Composed workbench: normal-entry consumer contract
 
-Latest owned runtime checkpoint: workbench **0.3.1**, candidate
-`ynx-composed-language-recovery-20261004-mac-arm64`; exact pin and 25 current
-controlled checks are in `COMPOSED_LANGUAGE_RECOVERY_20261004.json`. Lock
-`2451b4d41d894ad74cb685390fd3b0927cd8760d6df3bb8c168596acb5924ce1`, tree
-`96fbf01f917d649d62929fd7d71d724be7625b124ada8f1e54db5db049aec256`, manifest
-`6b5d053cdd56bb37194fff53f529028d62e349316374f3743a6d7e53d651e69b`.
+Latest owned runtime checkpoint: workbench **0.3.3**, candidate
+`ynx-composed-cold-recovery-20261004-mac-arm64`; exact pin and actual cold
+recovery checks are in `COMPOSED_COLD_RECOVERY_20261004.json`. Lock
+`97eb5d1c1772ebda1dc3ffc897643b75313966a6aa4779973495b71e9d8fcc10`, tree
+`7845ceba0aabafae7a523ed468bf05a33ffbdf28a36d203d5dbe5348b9dcc8e2`, manifest
+`4f896c9d0531d4473697407f8a7bef416c877cd75094496637289bc16c0d8643`.
+The prior 0.3.1 language/core 25 checks remain separate historical acceptance.
 The five nonsecret bindings, persistent sibling profile and protected parent
 contract below are unchanged. A must select the exact reviewed new artifact in
 its registered driver; historical pins and recovery families remain available.
 This checkpoint does not admit a public or canonical session or replace A's
 execution-domain, quota and identity checks.
+
+The same-runtime RPC `/services/ynx-draft-recovery` exposes only `list`,
+`getBaseline`, `upsert`, `remove`. It consumes the existing canonical workspace
+and persistent sibling profile, creates no credentials and grants no session.
+Backups stay inside `profile/ynx-draft-recovery-v1`; archives are mode 0600,
+directory 0700, two alternating atomic fsynced snapshots. Each draft is bounded
+to 2 MiB, with at most 64 entries and a 16 MiB serialized snapshot. Pending or
+damaged snapshots are retained and recovered read-only. Existing changed files
+receive recovered untitled copies, rather than replacement writes. Checkpoint
+debounce is 200 ms plus async persistence: the latest keystrokes before abrupt
+termination are not guaranteed. A retains disk quota and exclusive writer
+ownership around this service; the archive bound does not replace hard quota.
+
+The existing macOS packager can include an exact verified `workbench.tar`, pin
+and distribution receipt through `YNX_DEVELOPER_COMPOSED_ARTIFACT` and
+`YNX_DEVELOPER_COMPOSED_PIN`. The archive keeps native bytes unchanged across
+outer app signing. Protected installation must extract with preserved modes
+(`tar -xpf`), verify the exact pin and supply compatible Node v26.7.0 via the
+registered driver. The shell's bundled Node is independent and is not asserted
+to execute this core. No workspace-selected extraction or automatic admission
+is added; canonical parent absence still refuses normal execution.
 
 The normal YNX `/projects` UI, current identity consumer, durable session/writer
 journal, `/sso/core-open` entry and HTTP/WebSocket proxy remain the product path.

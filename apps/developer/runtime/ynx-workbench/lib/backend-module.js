@@ -4,6 +4,8 @@ const { spawnSync, spawn } = require('node:child_process');
 const { BackendApplicationContribution } = require('@theia/core/lib/node');
 const { join } = require('node:path');
 const { PluginHostEnvironmentVariable } = require('@theia/plugin-ext/lib/common/plugin-protocol');
+const { ConnectionHandler, RpcConnectionHandler } = require('@theia/core/lib/common');
+const { DraftRecoveryStore } = require('./draft-store');
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged
 // native helper which accepts only descendants of this backend, verifies PID
@@ -15,11 +17,15 @@ class YnxProcessUtils extends ProcessUtils {
     const app = process.env.THEIA_APP_PROJECT_PATH;
     if (!app) throw Error('Owned runtime application path is missing.');
     const result = spawnSync(join(app, 'lib/backend/ynx-process-tree'), [String(pid), ...pid === process.pid ? ['--children'] : []], { encoding: 'utf8', timeout: 5000 });
-    if (result.error || result.status !== 0) throw result.error || Error(`Owned process cleanup refused: ${result.stderr}`);
+    if (result.error || result.status !== 0) throw result.error || Error(`Owned process cleanup refused (code=${result.status}, signal=${result.signal}): ${result.stderr}`);
   }
 }
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  const drafts = new DraftRecoveryStore();
+  const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
+    upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-draft-recovery', () => draftApi));
   if (process.platform === 'darwin') rebind(ProcessUtils).to(YnxProcessUtils).inSingletonScope();
   bind(PluginHostEnvironmentVariable).toConstantValue({
     process(env) {

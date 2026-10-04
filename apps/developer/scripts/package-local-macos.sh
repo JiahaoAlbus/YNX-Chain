@@ -44,6 +44,17 @@ cp -R services "$app/Contents/Resources/code/apps/developer/services"
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
 
+# Preserve the exact reviewed native-component bytes inside an archive. Outer
+# ad-hoc signing would otherwise mutate the composed runtime's pinned tree.
+# This is distribution, not an alternative launch/authentication route: the
+# existing protected operator still installs its exact registered driver.
+composed_artifact="${YNX_DEVELOPER_COMPOSED_ARTIFACT:-}"
+composed_pin="${YNX_DEVELOPER_COMPOSED_PIN:-}"
+if [[ -n "$composed_artifact" || -n "$composed_pin" ]]; then
+  [[ -n "$composed_artifact" && -n "$composed_pin" ]] || { echo "Both exact composed artifact and pin are required." >&2; exit 1; }
+  node scripts/bundle-composed-core.mjs "$composed_artifact" "$composed_pin" "$app/Contents/Resources/composed-core"
+fi
+
 node_binary="${YNX_DEVELOPER_NODE_BINARY:-}"
 for candidate in "$node_binary" "/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node" "$(command -v node 2>/dev/null || true)"; do
   if [[ -n "$candidate" && -x "$candidate" ]]; then
@@ -90,6 +101,8 @@ const record = {
   sbomPath: "Contents/Resources/sbom.cdx.json",
   sbomSha256
 };
+const coreReceipt = require("path").join(require("path").dirname(output), "composed-core/distribution.json");
+if (fs.existsSync(coreReceipt)) record.composedCoreDistribution = JSON.parse(fs.readFileSync(coreReceipt, "utf8"));
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
 ' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha"
 /usr/bin/xattr -cr "$app"

@@ -34,7 +34,13 @@ int main(int argc, char **argv) {
   if (!end || *end || requested <= 1 || requested > 2147483647) return 64;
   pid_t root = (pid_t)requested, owner = getppid();
   struct proc_bsdinfo original;
-  if (!info(root, &original)) return errno == ESRCH ? 0 : 1;
+  if (!info(root, &original)) {
+    // libproc does not reliably set ESRCH for an already-reaped process. The
+    // separate signal-0 probe confirms absence; a live/inaccessible PID still
+    // fails closed and never receives a termination signal.
+    if (kill(root, 0) < 0 && errno == ESRCH) return 0;
+    fputs("process identity unavailable\n", stderr); return 1;
+  }
   if (children_only ? root != owner : root == owner || !descendant(root, owner)) { fputs("foreign process refused\n", stderr); return 77; }
   int count = proc_listallpids(NULL, 0);
   if (count <= 0 || count > 131072) return 1;

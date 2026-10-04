@@ -6,9 +6,18 @@ const { ViewContainer, ViewContainerIdentifier } = require('@theia/core/lib/brow
 const { YnxViewContainer } = require('./view-container');
 const { VSXExtension } = require('@theia/vsx-registry/lib/browser/vsx-extension');
 const { YnxVSXExtension } = require('./extension-lifecycle');
+const { DraftRecoveryContribution } = require('./draft-recovery');
+const { EditorManager } = require('@theia/editor/lib/browser');
+const { MessageService } = require('@theia/core/lib/common/message-service');
+const { FrontendApplicationStateService } = require('@theia/core/lib/browser/frontend-application-state');
+const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => new DraftRecoveryContribution(
+    context.container.get(EditorManager), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-draft-recovery'),
+    context.container.get(MessageService), context.container.get(FrontendApplicationStateService),
+  )).inSingletonScope();
   rebind(VSXExtension).to(YnxVSXExtension);
   rebind(ViewContainer.Factory).toFactory(context => options => {
     const child = context.container.createChild();

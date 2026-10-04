@@ -26,12 +26,19 @@ if (dapRoot && !dapRoot.startsWith(candidates)) throw Error('Only owned debugger
 if (dapRoot && JSON.parse(await readFile(join(dapRoot, 'receipt.json'), 'utf8')).sha256 !== '27dab92937ec1ab35821ae955aac867544fe06a1b6307229049f2d789af10968') throw Error('Unexpected debugger artifact pin.');
 // Keep debugger Unix socket names below macOS's sockaddr_un path limit.
 const resumeInput = process.argv[5];
+const upgrade = process.argv[6] === '--upgrade-owned-candidate';
+if (process.argv[6] && !upgrade || upgrade && !resumeInput) throw Error('Use the explicit upgrade flag only with an existing owned QA receipt.');
 let previous;
 if (resumeInput) {
   const resumePath = await realpath(resumeInput);
   if (!/^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+\/runtime\.json$/.test(resumePath)) throw Error('Resume only an existing owned QA receipt.');
   previous = JSON.parse(await readFile(resumePath, 'utf8'));
-  if (previous.qa !== dirname(resumePath) || previous.root !== root || previous.plugins !== plugins || previous.dapRoot !== dapRoot) throw Error('Resume inputs must match the original runtime.');
+  if (previous.qa !== dirname(resumePath) || previous.dapRoot !== dapRoot) throw Error('Resume inputs must match the original runtime.');
+  if (upgrade) {
+    const previousRoot = await realpath(previous.root);
+    if (!previousRoot.startsWith(candidates) || previousRoot !== previous.root || previous.plugins !== join(previousRoot, 'plugins') || plugins !== join(root, 'plugins') || root === application) throw Error('Upgrade only between exact owned reviewed candidates and their full built-in inputs.');
+    await verifyComposedRuntime(previousRoot, JSON.parse(await readFile(`${previousRoot}.pin.json`, 'utf8')));
+  } else if (previous.root !== root || previous.plugins !== plugins) throw Error('Resume inputs must match the original runtime.');
   if (!Number.isSafeInteger(previous.pid) || previous.pid <= 1) throw Error('Invalid previous runtime PID.');
   try { process.kill(previous.pid, 0); throw Error('Stop the exact previous runtime before resuming.'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
 }
@@ -92,12 +99,12 @@ const child = spawn('/usr/bin/sandbox-exec', ['-p', profileText, node, join(root
   '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
   cwd: workspace, detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   env: { PATH: `${dirname(node)}:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', TMPDIR: temporary,
-    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
+    THEIA_CONFIG_DIR: profile, THEIA_APP_PROJECT_PATH: root, YNX_CORE_WORKSPACE: workspace, NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     ...dapRoot ? { YNX_IDE_DAP_ENTRY: join(dapRoot, 'js-debug/src/dapDebugServer.js'), YNX_IDE_DAP_PORT: String(adapterPort) } : {} },
 });
 child.stdout.pipe(process.stdout); child.stderr.pipe(process.stderr);
 const receipt = { qa, workspace, profile, temporary, root, plugins, port, dapRoot, adapterPort, inspectorPort, url: `http://127.0.0.1:${port}`, pid: child.pid,
-  ...previous ? { previousPid: previous.pid, resumedAt: new Date().toISOString() } : {},
+  ...previous ? { previousPid: previous.pid, resumedAt: new Date().toISOString(), ...upgrade ? { previousRoot: previous.root, upgradedOwnedCandidate: true } : {} } : {},
   nodeOptions: '--no-experimental-global-navigator --max-old-space-size=1024',
   isolation: 'macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener',
   acceptance: 'single-session controlled QA, not public or multi-owner production admission' };
