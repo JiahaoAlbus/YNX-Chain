@@ -1971,7 +1971,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
   const restoreOriginalMoment=async()=>{
     momentNewPublication.current=false;
     const authority=api.authorizationGuard();
-    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}if(original.publishedRecordId){setCompose(false);await load();if(momentMounted.current&&authority())setError('The original publication already returned a record. It was not sent again.');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media);setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
+    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}if(original.publishedRecordId){setCompose(false);await load();if(momentMounted.current&&authority())setError('The original publication already returned a record. It was not sent again.');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media.map(item=>({...item})));setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
   };
   const publish = () => {
     momentCancellation.current?.abort();

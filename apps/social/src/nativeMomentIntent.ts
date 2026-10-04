@@ -1,6 +1,6 @@
 import {runCurrentContactAction} from './contactActionGuard';
-export type NativeMomentDraft={text:string;visibility:'public'|'contacts'|'private';media:{id:string;uri:string}[]};
-export type NativeMomentIntent=NativeMomentDraft&{schemaVersion:1;account:string;idempotencyKey:string;publishedRecordId?:string};
+export type NativeMomentDraft=Readonly<{text:string;visibility:'public'|'contacts'|'private';media:readonly Readonly<{id:string;uri:string}>[]}>;
+export type NativeMomentIntent=Readonly<NativeMomentDraft&{schemaVersion:1;account:string;idempotencyKey:string;publishedRecordId?:string}>;
 export interface MomentIntentStorage{read(key:string):Promise<string|null>;write(key:string,value:string):Promise<void>;remove(key:string):Promise<void>}
 export function publishedMomentRecordId(value:unknown):string{
  if(!value||typeof value!=='object'||!('record' in value))throw new Error('Publication readback was not confirmed; original intent retained');
@@ -9,34 +9,44 @@ export function publishedMomentRecordId(value:unknown):string{
  return record.id;
 }
 function storageKey(account:string){if(!/^ynx1[0-9a-z]{38}$/.test(account))throw new Error('Original Social account is required');return `ynx.social.moment.intent.v1.${account}`}
+const activeMomentAccounts=new Set<string>();
 function checkedDraft(value:NativeMomentDraft):NativeMomentDraft{
  if(!value||typeof value.text!=='string'||value.text.length>20000||!['public','contacts','private'].includes(value.visibility)||!Array.isArray(value.media)||value.media.length>4)throw new Error('Original moment requires recovery');
  const seen=new Set<string>();const media=value.media.map(item=>{
   if(!item||typeof item.id!=='string'||!item.id||item.id.length>256||seen.has(item.id)||typeof item.uri!=='string'||item.uri.length>4096)throw new Error('Original moment media requires recovery');
-  seen.add(item.id);return {id:item.id,uri:item.uri};
+  seen.add(item.id);return Object.freeze({id:item.id,uri:item.uri});
  });
- return {text:value.text,visibility:value.visibility,media};
+ return Object.freeze({text:value.text,visibility:value.visibility,media:Object.freeze(media)});
 }
 export function checkedNativeMomentIntent(raw:string,account:string):NativeMomentIntent{
  storageKey(account);let value:NativeMomentIntent;
  try{value=JSON.parse(raw)}catch{throw new Error('Original moment storage requires recovery; nothing was replaced')}
  const fields=value&&value.publishedRecordId!==undefined?'account,idempotencyKey,media,publishedRecordId,schemaVersion,text,visibility':'account,idempotencyKey,media,schemaVersion,text,visibility';
  if(!value||Object.keys(value).sort().join(',')!==fields||value.schemaVersion!==1||value.account!==account||!/^native-moment-[a-f0-9]{32}$/.test(value.idempotencyKey)||value.publishedRecordId!==undefined&&(typeof value.publishedRecordId!=='string'||!value.publishedRecordId||value.publishedRecordId.length>256))throw new Error('Original moment storage requires recovery; nothing was replaced');
- return {schemaVersion:1,account,idempotencyKey:value.idempotencyKey,...checkedDraft(value),...(value.publishedRecordId===undefined?{}:{publishedRecordId:value.publishedRecordId})};
+ return Object.freeze({schemaVersion:1,account,idempotencyKey:value.idempotencyKey,...checkedDraft(value),...(value.publishedRecordId===undefined?{}:{publishedRecordId:value.publishedRecordId})});
 }
 // Existing secure storage holds the original submitted intent, not grants/keys.
 // Local serialization does not claim a cross-process or server-side lock.
 export class NativeMomentIntents{
  private busy=false;
  constructor(private storage:MomentIntentStorage,private nonce:()=>Promise<string>){}
- async load(account:string):Promise<NativeMomentIntent|null>{
+ private enter(account:string):()=>void{
+  const slot=storageKey(account);
+  if(this.busy||activeMomentAccounts.has(slot))throw new Error('Original moment operation is already pending');
+  this.busy=true;activeMomentAccounts.add(slot);
+  return()=>{this.busy=false;activeMomentAccounts.delete(slot)};
+ }
+ private async readStored(account:string):Promise<NativeMomentIntent|null>{
   const raw=await this.storage.read(storageKey(account));return raw===null?null:checkedNativeMomentIntent(raw,account);
  }
+ async load(account:string):Promise<NativeMomentIntent|null>{
+  const release=this.enter(account);try{return await this.readStored(account)}finally{release()}
+ }
  async prepare(account:string,draft:NativeMomentDraft,current:()=>boolean,newPublication=false):Promise<NativeMomentIntent>{
-  if(this.busy)throw new Error('Original moment operation is already pending');this.busy=true;
+  const release=this.enter(account);
   try{
    if(!current())throw new Error('Review the moment with the original account again');
-   const original=await this.load(account),snapshot=checkedDraft(draft);
+   const snapshot=checkedDraft(draft),original=await this.readStored(account);
    if(!current())throw new Error('Review the moment with the original account again');
    if(original){
     if(JSON.stringify(checkedDraft(original))===JSON.stringify(snapshot)&&(!original.publishedRecordId||!newPublication))return original;
@@ -45,24 +55,26 @@ export class NativeMomentIntents{
    const nonce=await this.nonce();if(!/^[a-f0-9]{32}$/.test(nonce))throw new Error('Original moment request identity is unavailable');
    if(original?.idempotencyKey===`native-moment-${nonce}`)throw new Error('A distinct publication identity is unavailable; original record retained');
    if(!current())throw new Error('Review the moment with the original account again');
-   const intent:NativeMomentIntent={schemaVersion:1,account,idempotencyKey:`native-moment-${nonce}`,...snapshot};
+   const intent=checkedNativeMomentIntent(JSON.stringify({schemaVersion:1,account,idempotencyKey:`native-moment-${nonce}`,...snapshot}),account);
    await this.storage.write(storageKey(account),JSON.stringify(intent));
    if(!current())throw new Error('Original moment retained; account changed before sending');
    return intent;
-  }finally{this.busy=false}
+  }finally{release()}
  }
- async acknowledge(intent:NativeMomentIntent,recordId:string,current:()=>boolean):Promise<boolean>{
-  if(this.busy)throw new Error('Original moment operation is already pending');this.busy=true;
+ async acknowledge(supplied:NativeMomentIntent,recordId:string,current:()=>boolean):Promise<boolean>{
+  if(this.busy)throw new Error('Original moment operation is already pending');
+  if(!current())return false;
+  const intent=checkedNativeMomentIntent(JSON.stringify(supplied),supplied.account),release=this.enter(intent.account);
   try{
    if(!current())return false;
    if(typeof recordId!=='string'||!recordId||recordId.length>256)throw new Error('Publication readback was not confirmed; original intent retained');
-   const original=await this.load(intent.account);
+   const original=await this.readStored(intent.account);
    if(!current())return false;
    if(!original||JSON.stringify(original)!==JSON.stringify(intent))throw new Error('Original publication identity changed; pending intent retained');
    // Native IO cannot be cancelled after it starts. Retain original body/nonce
    // with the checked returned record instead of deleting the recovery carrier.
    await this.storage.write(storageKey(intent.account),JSON.stringify({...intent,publishedRecordId:recordId}));return current();
-  }finally{this.busy=false}
+  }finally{release()}
  }
 }
 export async function publishOriginalNativeMoment(

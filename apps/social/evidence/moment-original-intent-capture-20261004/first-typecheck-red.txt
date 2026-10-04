@@ -1,0 +1,2 @@
+App.tsx(1974,457): error TS2345: Argument of type 'readonly Readonly<{ id: string; uri: string; }>[]' is not assignable to parameter of type 'SetStateAction<{ id: string; uri: string; }[]>'.
+  The type 'readonly Readonly<{ id: string; uri: string; }>[]' is 'readonly' and cannot be assigned to the mutable type '{ id: string; uri: string; }[]'.

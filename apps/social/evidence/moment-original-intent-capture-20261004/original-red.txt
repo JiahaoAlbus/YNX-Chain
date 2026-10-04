@@ -1,0 +1,102 @@
+✖ prepare captures original text, private visibility and nested media before storage await (13.528959ms)
+✖ acknowledge uses original intent while caller body, media and key change during read (0.603291ms)
+✖ prepared and loaded intent snapshots freeze nested media without freezing caller draft (9.470459ms)
+✖ remounted controller cannot overwrite the original account while native write is pending (0.774875ms)
+✖ remounted recovery read refuses an incomplete original write instead of reporting no intent (0.400208ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 0
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 198.240333
+
+✖ failing tests:
+
+test at ../../../../../../../private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:2:1833
+✖ prepare captures original text, private visibility and nested media before storage await (13.528959ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    {
+      media: [
+        {
+  +       id: 'replacement-media',
+  -       id: 'original-media',
+          uri: 'file:///original.png'
+        },
+  +     {
+  +       id: 'new-media',
+  +       uri: 'file:///new.png'
+  +     }
+      ],
+  +   text: 'Edited',
+  +   visibility: 'public'
+  -   text: 'Original',
+  -   visibility: 'private'
+    }
+  
+      at TestContext.<anonymous> (/private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:21:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { text: 'Edited', visibility: 'public', media: [ [Object], [Object] ] },
+    expected: { text: 'Original', visibility: 'private', media: [ [Object] ] },
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:2:2663
+✖ acknowledge uses original intent while caller body, media and key change during read (0.603291ms)
+  Error: Original publication identity changed; pending intent retained
+      at NativeMomentIntents.acknowledge (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMomentIntent.ts:61:74)
+      at async TestContext.<anonymous> (/private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:30:34)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at ../../../../../../../private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:2:3500
+✖ prepared and loaded intent snapshots freeze nested media without freezing caller draft (9.470459ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(Object.isFrozen(intent))
+  
+      at TestContext.<anonymous> (/private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:37:12)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:2:4220
+✖ remounted controller cannot overwrite the original account while native write is pending (0.774875ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:46:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /already pending/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at ../../../../../../../private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:2:4965
+✖ remounted recovery read refuses an incomplete original write instead of reporting no intent (0.400208ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/private/tmp/social-moment-capture-20261004.C0228F/moment-original-capture.test.ts:54:9)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /already pending/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
