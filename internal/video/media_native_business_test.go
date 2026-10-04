@@ -249,6 +249,9 @@ func TestVideoCreatorNativeConsumerAndOriginalBusiness(t *testing.T) {
 			if e = cmd.Run(); e != nil {
 				t.Fatalf("actual native consumer/original business failed: %v %s", e, diagnostic.String())
 			}
+			if creatorApple && os.Getenv("YNX_QA_CREATOR_STAGE_TRACE") == "1" {
+				t.Log("original Creator opt-in stage trace:\n" + diagnostic.String())
+			}
 			var receipt struct {
 				PlaybackID                    string `json:"playbackID"`
 				ActualBusinessServerReadback  bool   `json:"actualBusinessServerReadback"`
