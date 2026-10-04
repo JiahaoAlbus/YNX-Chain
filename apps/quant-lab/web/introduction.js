@@ -1,0 +1,11 @@
+(()=>{
+ 'use strict';
+ const introHashes=new Set(['','#features','#downloads','#help','#content']);
+ function preserveAppRoute(){if(!introHashes.has(location.hash)){location.replace('/app'+location.search+location.hash);return true}return false}
+ if(preserveAppRoute())return;addEventListener('hashchange',preserveAppRoute);
+ const en=Object.fromEntries([...document.querySelectorAll('[data-copy]')].map(el=>[el.dataset.copy,el.innerHTML]));
+ const zh={skip:'跳到正文',features:'功能',platforms:'平台',help:'帮助',language:'语言',open:'打开网页版',title:'验证想法。<br>理解风险。',lead:'浏览可追溯市场研究与计入成本的回测。策略参数、模拟 Paper 流程与执行权限保持分离。',explore:'了解功能',guest:'此介绍页不会请求账户、签名或交易。',caption:'真实本地访客界面。截图中的研究来源不可用；没有编造收益或交易结果。',tag:'证据优先',featureTitle:'了解来源，保留控制。',recordsTitle:'可追溯市场研究',records:'查看市场来源、策略参数与数据摘要。缺少历史时明确不可用，不以静态收益图代替。',plansTitle:'计入成本的回测',plans:'结合费用与滑点模型、最大回撤和 Sharpe 说明比较基准与收益曲线。过去结果不预测未来收益。',researchTitle:'Paper 与风险边界',research:'保存策略、定时研究与模拟资金需要已授权工作区。测试网执行需额外委托与订单权限；不启用真实资金执行。',platformTag:'选择入口',platformTitle:'从网页版开始。',platformBody:'使用现有应用，或查看官方目录中的当前平台状态。这里不将候选归档和 ZIP 作为安装器。',catalog:'官方下载目录',before:'开始之前',helpTitle:'了解产品边界。',custodyQuestion:'Quant 是实盘交易服务吗？',custodyAnswer:'不是。研究、回测、Paper 与 Testnet 是不同阶段。保存的定时任务运行研究，而非资本执行。不保证收益，不提供主网托管。',accessQuestion:'浏览需要钱包吗？',accessAnswer:'不需要。应用的标准钱包连接、私人授权和操作独立。私人服务失败不能删除标准连接。请勿输入私钥或助记词。',privacyQuestion:'在哪里查看帮助与隐私信息？',privacyAnswer:'工作区解释策略、研究与执行边界。公开风险说明不需要账户授权；隐私与支持信息见官方生态入口。',support:'打开风险说明',footer:'研究与模拟 · 不启用资本执行 · 不保证收益',ecosystem:'YNX 生态'};
+ const select=document.getElementById('introduction-language');let language='en';try{if(localStorage.getItem('ynx.quant.locale')==='zh-CN')language='zh-CN'}catch{}
+ function render(){const copy=language==='zh-CN'?zh:en;document.documentElement.lang=language;select.value=language;for(const el of document.querySelectorAll('[data-copy]'))el.innerHTML=copy[el.dataset.copy];document.querySelector('[data-alt="preview"]').alt=language==='zh-CN'?'真实 Quant 访客研究工作区，无授权账户或策略结果':'Actual Quant guest research workspace without an authorized account or strategy results'}
+ select.addEventListener('change',()=>{language=select.value;try{localStorage.setItem('ynx.quant.locale',language)}catch{}render()});render();
+})();

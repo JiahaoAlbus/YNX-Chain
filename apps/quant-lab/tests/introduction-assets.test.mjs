@@ -1,0 +1,11 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {verifyQuantIntroductionAssets} from '../scripts/verify-versioned-assets.mjs';
+const read=name=>readFileSync(new URL('../web/'+name,import.meta.url)),html=read('introduction.html').toString();
+test('exact Quant introduction graph',()=>assert.equal(verifyQuantIntroductionAssets(html,read).assets,4));
+for(const name of ['introduction.js','introduction.css','quant-workspace-preview.png','ynx-brand-logo.png'])test('reject tampered '+name,()=>assert.throws(()=>verifyQuantIntroductionAssets(html,n=>n===name?Buffer.from('tamper'):read(n)),/HASH_MISMATCH/));
+test('reject duplicate dependency',()=>assert.throws(()=>verifyQuantIntroductionAssets(html+html,read),/MISSING_OR_DUPLICATE/));
+test('reject missing picture',()=>assert.throws(()=>verifyQuantIntroductionAssets(html.replace(/<img[^>]*quant-workspace-preview[^>]*>/u,''),read),/MISSING_OR_DUPLICATE/));
+test('reject SDK script',()=>assert.throws(()=>verifyQuantIntroductionAssets(html+'<script src="/wallet-auth.js"></script>',read),/UNKNOWN_ASSET/));
+test('introduction grants no provider or engine action',()=>assert.doesNotMatch(read('introduction.js').toString(),/\bfetch\s*\(|ethereum|eth_requestAccounts|window\.open|ynxwallet:|iframe/u));

@@ -1330,16 +1330,22 @@ function safe(v) {
   e.textContent = String(v ?? "");
   return e.innerHTML;
 }
-$$("nav button").forEach(
-  (b) =>
-    (b.onclick = () => {
+function selectWorkspaceView(name) {
+  const b=$$("nav button").find(button=>button.dataset.view===name);
+  if(!b)return false;
       $$("nav button").forEach((x) => x.classList.toggle("active", x === b));
       $$(".view").forEach((x) =>
         x.classList.toggle("active", x.id === b.dataset.view),
       );
       $("#view-title").textContent = b.textContent;
-    }),
-);
+  return true;
+}
+$$("nav button").forEach(b=>{b.onclick=()=>selectWorkspaceView(b.dataset.view)});
+// App deep links select an existing view only; they grant no workspace or
+// wallet authority and perform no strategy/order action.
+function restoreWorkspaceRoute(){const hash=window.location?.hash;if(typeof hash==='string')selectWorkspaceView(hash.slice(1))}
+window.addEventListener('hashchange',restoreWorkspaceRoute);
+restoreWorkspaceRoute();
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
 $("#paper-strategy").onchange = ()=>{initialPaperRestore=null;renderPaperSubmitControl();};
