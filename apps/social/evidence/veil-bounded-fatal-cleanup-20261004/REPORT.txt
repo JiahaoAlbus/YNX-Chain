@@ -1,0 +1,15 @@
+Status: CONTROLLED_NATIVE_JAVA_BOUNDARY_PASS_NOT_PRODUCTION_ACCEPTANCE
+Base source: 3d3c2676ac3e3c66aeb8db4b9607bef2043d5111
+Base tree: 7d26b494471229ed05e64abbf03985339f6fd97f
+Changed file: apps/social/scripts/veil-libsignal-qa/VeilBoundedCipherReadCheck.java
+Production source change: none
+Actual execution: Zulu Java 24 javac and java, both exit 0
+Result: 44 assertions passed
+Compile input: current owned VeilBoundedCipherRead.java and updated check; retained dormant adapter jar supplies original error helper. Exact input hashes in inputs.sha256.
+New coverage: overreported bulk read; read Error; close Error; simultaneous primary read Error and suppressed close IOException; original current-check Error after first chunk.
+Required invariants checked: failed candidates zeroized, stream closed exactly once, original error retained and close error suppressed without publishing candidate.
+Generated streams only. No network, SDK/JNI session run, real account, signing, transaction, installation or deployment.
+Independent streaming SDK producer, native admission, durable journal and complete cryptographic activation not established by this check.
+activationApproved=false
+activated=false
+MONSTER=NOT_RUN
