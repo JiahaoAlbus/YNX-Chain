@@ -35,8 +35,25 @@
     "SDKExecution": false,
     "fullBuildAndInstalledAcceptance": "NOT_VERIFIED"
   },
+  "matchingFrozenSourceReadback": {
+    "ownedSourceCommit": "31b012118f166c1b5e30a23f5384f5f6808b6556",
+    "sdkOriginalCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "sdkVersion": "1.2.0",
+    "manifestSHA256": "7bd85f0cf52cf9b5a5f90516b08de7f9908f05c571362e6b56c430f8656cd5c3",
+    "status": "MATCHING_SOURCE_AND_ISOLATED_SOFTWARE_INPUTS_SUPPLIED_NOT_INSTALLED_PRODUCT_AUTHORITY",
+    "sourceTypecheckExit": 0,
+    "sdkOfflineInstallExit": 0,
+    "sdkTarConsumerInstallExit": 0,
+    "sdkPackedInstalledFilesExactToOriginalGit": 131,
+    "sdkDeclaredSubpathsWithExistingTargets": 20,
+    "sdkInstalledBinTargetsPresent": 2,
+    "sdkDeclaredMissingBin": "scripts/ynx-wallet-control-migrate-v3.mjs",
+    "packageTargetReadback": "No SDK module or CLI executed; presence and Node resolution do not prove actual private factory or installed platform runtime.",
+    "liveSharedSDK": "Still 1.1.0 in this worktree; earlier sourceIntegrationReadback is preserved as historical local mismatch, not denial that matching frozen 1.2.0 inputs now exist.",
+    "formalCandidate": "NOT_VERIFIED"
+  },
   "currentExternalBlockers": [
-    "A complete source-matching frozen SDK and dependency/version/package/source pins are not supplied; the current local SDK fails required named imports.",
+    "Matching frozen SDK 1.2.0 source and isolated software installation are supplied. Actual production composition and final platform install remain unverified; the separately declared migration CLI target is missing in the original frozen Git and installed distribution and must not be claimed complete.",
     "A protected current-authority/trusted invoice policy/quote/authenticated settlement adapter and genuine platform binding producer are not supplied; a static definition map cannot enable Pay.",
     "A formal source-matching Android/macOS/Web final candidate, signing/upgrade identity and official downloaded-byte binding are not verified.",
     "Normal retained-account upgrade, OS camera/lock, real Relay, UNKNOWN recovery and actual business/user readback remain unverified; execute the full journeys only on a matching admitted candidate."

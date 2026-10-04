@@ -1,0 +1,21 @@
+{
+  "kind": "ACTUAL_ISOLATED_PACKAGE_INSTALL_READBACK_NOT_RUNTIME_AUTHORITY",
+  "source": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "sourceTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  "package": "@ynx-chain/wallet-auth@1.2.0",
+  "candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "consumer": "/tmp/ynx-wallet-sdk-package-consumer-20261004-YsmEzR",
+  "pack": {"command": "npm pack --ignore-scripts --offline --json", "exit": 0, "archive": "ynx-chain-wallet-auth-1.2.0.tgz", "bytes": 560625, "sha256": "a7a416659f153e320946f83e4edaa7384af83284357e2dc8b0e2c5c78844c473", "inventorySha256": "1f6fa0653243562384f0a43bb63fd48ecf6fd07cbf9663c273f6d2328e0f78bf"},
+  "consumerInstall": {"offline": true, "ignoreScripts": true, "exit": 0, "packagesAdded": 111, "logSha256": "639582bcfbb12c55c154cce998180fe4bdf6649f60e6e1a3c0e71ad15a99c33f", "npmLsExit": 0, "dependencyTreeSha256": "811d834eb1d78967c5a4657a01c37ee04961ef9c4d87d4f608b2c163a9e3e57d"},
+  "byteReadback": {"packedFiles": 131, "allInstalledFilesExactToCandidateAndOriginalGit": true, "mismatches": [], "readbackSha256": "b7496998a1c4c5887d9cd80c2a1580642e6e7678af5b7fe26e2ea1412a81bee5"},
+  "targetReadback": {"subpaths": 20, "conditionRecords": 60, "targetsPresent": 60, "nodeImportResolution": "RESOLVED_NO_MODULE_EXECUTION", "readbackSha256": "070f23f7cd9d20b99797d08795563d2c0bc2a912dd903ef6a5a54ce3a2d74c46"},
+  "bins": [
+    {"name": "ynx-wallet-gatewayd", "target": "scripts/ynx-wallet-gatewayd.mjs", "installedLink": "PRESENT", "nodeSyntaxCheckExit": 0, "execution": "NOT_RUN"},
+    {"name": "ynx-wallet-gateway-backup", "target": "scripts/ynx-wallet-gateway-backup.mjs", "installedLink": "PRESENT", "nodeSyntaxCheckExit": 0, "execution": "NOT_RUN"},
+    {"name": "ynx-wallet-control-migrate-v3", "target": "scripts/ynx-wallet-control-migrate-v3.mjs", "sourceGit": "MISSING", "packedInventory": "MISSING", "installedTarget": "MISSING", "execution": "NOT_RUN"}
+  ],
+  "status": "CLI_DISTRIBUTION_INCOMPLETE",
+  "sharedSourceChanged": false,
+  "scope": "Actual offline distribution and independent consumer installation, not full Native Desktop Web platform package installation or user flow",
+  "notInferred": ["actual CLI operation", "production 37 platform producer", "protected private key authority", "live backend", "real Wallet user unlock signing business receipt", "installer upgrade", "website publication", "MONSTER"]
+}
