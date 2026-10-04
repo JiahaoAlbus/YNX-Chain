@@ -1,0 +1,18 @@
+✔ late restore cannot overwrite a newly opened same-account composer (0.658084ms)
+✔ late restore cannot close a newly opened same-account composer (0.089459ms)
+✔ closing or editing retires an outstanding restore without reopening or overwriting (0.202ms)
+✔ retired restore error does not replace the newer view error (0.084625ms)
+✔ current restore retains original fields and supplies independently editable media (0.356125ms)
+✔ picker permission completion after close never starts the picker or upload (0.135292ms)
+✔ late image upload does not attach to a newer composer (2.121584ms)
+✔ late picker failure cannot write the new composer error (0.131667ms)
+✔ retired publish review never sends the original payload (0.198625ms)
+✔ late publish completion cannot close or clear a newly opened composer (0.406541ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 200.09775

@@ -1884,13 +1884,16 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
   const momentIntents=useMemo(()=>new NativeMomentIntents(intentStorage,async()=>Array.from(await getRandomBytesAsync(16),byte=>byte.toString(16).padStart(2,'0')).join('')),[intentStorage]);
   const momentSending=useRef(false),momentMounted=useRef(true),momentCancellation=useRef<AbortController|null>(null);
   const momentNewPublication=useRef(false);
-  const closeMomentComposer=()=>{momentCancellation.current?.abort();setCompose(false)};
+  const momentComposerRevision=useRef(0);
+  const invalidateMomentComposer=()=>{momentComposerRevision.current++;momentCancellation.current?.abort()};
+  const startMomentComposer=()=>{invalidateMomentComposer();momentNewPublication.current=true;setCompose(true)};
+  const closeMomentComposer=()=>{invalidateMomentComposer();setCompose(false)};
   useEffect(()=>{
     momentMounted.current=true;
-    const subscription=AppState.addEventListener('change',state=>{if(state!=='active')momentCancellation.current?.abort()});
-    return()=>{momentMounted.current=false;momentCancellation.current?.abort();subscription.remove()};
+    const subscription=AppState.addEventListener('change',state=>{if(state!=='active')invalidateMomentComposer()});
+    return()=>{momentMounted.current=false;invalidateMomentComposer();subscription.remove()};
   },[]);
-  useEffect(()=>{momentCancellation.current?.abort()},[api.authorizationGeneration]);
+  useEffect(()=>{invalidateMomentComposer()},[api.authorizationGeneration]);
   const [items, setItems] = useState<FeedPost[]>([]),
     [loading, setLoading] = useState(false),
     [error, setError] = useState<string | null>(null),
@@ -1905,8 +1908,8 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     [reportRecord, setReportRecord] = useState<SocialReport | null>(null),
     [explainReport, setExplainReport] = useState<SocialReport | null>(null),
     [appeal, setAppeal] = useState("");
-  const load = async () => {
-    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority();
+  const load = async (owner:()=>boolean=()=>true) => {
+    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&owner();
     if(!current())return;
     setLoading(true);
     try {
@@ -1923,11 +1926,15 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
     void load();
   }, [api.authorizationGeneration]);
   const pickMedia = async () => {
+    invalidateMomentComposer();
+    const revision=momentComposerRevision.current,authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&revision===momentComposerRevision.current;
     try {
+      if(!current())return;
       if (media.length >= 4)
         throw new Error("A moment can contain at most four images");
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if(!current())return;
       if (!permission.granted)
         throw new Error(
           "Photo access is required only for the image you choose",
@@ -1938,6 +1945,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
         quality: 0.85,
         base64: true,
       });
+      if(!current())return;
       if (result.canceled) return;
       const asset = result.assets[0];
       if (!asset?.base64)
@@ -1951,45 +1959,48 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
         hash = Array.from(
           new Uint8Array(await digest(CryptoDigestAlgorithm.SHA256, bytes)),
           (byte) => byte.toString(16).padStart(2, "0"),
-        ).join(""),
-        uploaded = await api.uploadMedia({
+        ).join("");
+      if(!current())return;
+      const uploaded = await api.uploadMedia({
           idempotencyKey: `media-${Date.now()}`,
           purpose: "moment",
           mimeType: asset.mimeType ?? "image/jpeg",
           sha256: hash,
           data: raw,
         });
+      if(!current())return;
       setMedia((current) => [
         ...current,
         { id: uploaded.record.id, uri: asset.uri },
       ]);
       setError(null);
     } catch (caught) {
-      setError(message(caught));
+      if(current())setError(message(caught));
     }
   };
   const restoreOriginalMoment=async()=>{
+    invalidateMomentComposer();
     momentNewPublication.current=false;
-    const authority=api.authorizationGuard();
-    try{const original=await momentIntents.load(session.session.account);if(!momentMounted.current||!authority())return;if(!original){setError('No original pending publication was found');return}if(original.publishedRecordId){setCompose(false);await load();if(momentMounted.current&&authority())setError('The original publication already returned a record. It was not sent again.');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media.map(item=>({...item})));setCompose(true);setError(null)}catch(caught){if(momentMounted.current&&authority())setError(message(caught))}
+    const revision=momentComposerRevision.current,authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&revision===momentComposerRevision.current;
+    try{if(!current())return;const original=await momentIntents.load(session.session.account);if(!current())return;if(!original){setError('No original pending publication was found');return}if(original.publishedRecordId){setCompose(false);await load(current);if(current())setError('The original publication already returned a record. It was not sent again.');return}setText(original.text);setVisibility(original.visibility);setMedia(original.media.map(item=>({...item})));setCompose(true);setError(null)}catch(caught){if(current())setError(message(caught))}
   };
   const publish = () => {
-    momentCancellation.current?.abort();
+    invalidateMomentComposer();
     const controller=new AbortController();momentCancellation.current=controller;
-    const authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&!controller.signal.aborted;
+    const revision=momentComposerRevision.current,authority=api.authorizationGuard(),current=()=>momentMounted.current&&authority()&&!controller.signal.aborted&&revision===momentComposerRevision.current;
     const account=session.session.account,snapshot={text,visibility,media:media.map(item=>({...item}))},newPublication=momentNewPublication.current;
     const sendOriginal=async()=>{
       if(!current()||momentSending.current)return;momentSending.current=true;
       try{
         const confirmed=await publishOriginalNativeMoment(momentIntents,account,snapshot,current,payload=>api.publishMoment(payload),30000,controller.signal,newPublication);
-        if(!confirmed)return;setCompose(false);setText('');setMedia([]);await load();
+        if(!confirmed||!current())return;setCompose(false);setText('');setMedia([]);await load(current);
       }catch(caught){if(current())setError(message(caught))}finally{momentSending.current=false;if(momentCancellation.current===controller)momentCancellation.current=null}
     };
     Alert.alert(
       "Publish this moment?",
       `Visibility: ${visibility}. You can delete it later.`,
       [
-        { text: "Review", style: "cancel" },
+        { text: "Review", style: "cancel", onPress:()=>{if(current())invalidateMomentComposer()} },
         {
           text: "Publish",
           onPress: () => void sendOriginal(),
@@ -2107,7 +2118,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
       action={
         <Pressable
           accessibilityLabel="Create moment"
-          onPress={() => {momentNewPublication.current=true;setCompose(true)}}
+          onPress={startMomentComposer}
           style={styles.iconButton}
         >
           <Plus color={BLUE} size={20} />
@@ -2227,7 +2238,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
               multiline
               maxLength={2000}
               value={text}
-              onChangeText={setText}
+              onChangeText={value=>{invalidateMomentComposer();setText(value)}}
               placeholder="What feels worth sharing?"
               placeholderTextColor="#98A2B3"
               style={styles.composer}
@@ -2237,7 +2248,7 @@ function Moments({ api, session }: { api: SocialAPI; session: Session }) {
               {(["public", "contacts", "private"] as const).map((value) => (
                 <Pressable
                   key={value}
-                  onPress={() => setVisibility(value)}
+                  onPress={() => {invalidateMomentComposer();setVisibility(value)}}
                   style={[
                     styles.chip,
                     visibility === value && styles.chipActive,
