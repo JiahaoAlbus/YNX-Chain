@@ -13,6 +13,7 @@
     "typecheck": "node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json",
     "serve:backend": "node --import tsx server/main.ts",
     "card:doctor": "node --import tsx server/cardSandboxVerify.ts doctor",
+    "card:testnet:doctor": "node --import tsx server/cardTestnetDoctor.ts",
     "card:sandbox:verify": "node --import tsx server/cardSandboxVerify.ts readback",
     "test:backend": "node --import tsx --test server/*.test.ts",
     "test": "tsx --test src/**/*.test.ts && node --test test/card-hosted-app.test.cjs test/card-native-callback.test.cjs test/card-web-private-ui-race.test.cjs test/provider-experience-race.test.cjs && node --import tsx --test test/card-guest-controls-journey.test.cjs test/card-core-application.test.cjs test/card-typography-accessibility.test.cjs test/card-secure-recovery.test.cjs test/card-testnet-operations.test.cjs test/card-api-operations-integration.test.cjs && npm run native-patch:test",
