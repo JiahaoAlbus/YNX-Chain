@@ -1,0 +1,71 @@
+SOCIAL-ONLY PUBLICATION INPUT: EXACT CURRENT LOCALE REPAIR
+
+This successor supersedes the d2 static candidate for a not-yet-started publication.
+Do not interrupt an already admitted forward publication or overwrite older carriers.
+It supplies source-bound static bytes, NOT a deployment lease or private-service authority.
+
+PRODUCT SOURCE
+commit: fda7a4e4a06ea17bc5f4e7bee2a78a75a1d293dc
+tree: ec7aeaf9e5ea394d85a55a6c9bd04ab9ea5a25ae
+original candidate carrier commit: ab4dd49e9
+scope: apps/social/web, apps/social/src, apps/social/package.json
+Owned product source was archived from exact Git commit, not copied from a dirty checkout.
+New locale helper is bundled by the original builder into the existing Matrix UI output.
+
+IMMUTABLE STATIC ARTIFACT
+site.tar.gz: 3572067 bytes
+SHA256: eb74f5bc83f8a3f55eca8dffd054f7a0a2e0c3e89acb49a73fe2dcae3656ae11
+manifest.json freezes all 28 regular output leaf files with bytes and SHA256.
+The bytes/root here have not been rebuilt, recompressed or amended by this handoff.
+Extract this archive only into a fresh isolated carrier; do not overlay a shared worktree,
+an existing deployed root, user storage or a newer shared SDK composition.
+
+ORIGINAL BUILD / OUTPUT
+command: node apps/social/web/build.mjs
+output directory: apps/social/web/dist
+Actual isolated build exit: 0
+Actual runtime: Node 26.7.0; formal Node 24 target build is NOT_VERIFIED.
+Original installed Social dependencies were used, with no network downloads.
+Do not invent an empty Vercel build command or regard this tar as a complete Vercel root.
+The sole publisher must compose the exact authorized build/output contract and retain
+original Vercel/API/SSO/callback/proxy/security configuration. Static introduction routing
+must not replace backend routes or turn unknown paths into a marketing catchall.
+No apps/social/vercel.json, Host, shared Wallet/Auth/SDK or deployment settings were edited.
+
+ACTUAL OWNED CHECKS
+92/92 controller and new chrome checks, zero skips; original builder exit 0.
+apps/social/evidence/chat-chrome-locale-20261004 retains the original real cold Chinese
+failure, current-source browser screenshots/DOM, English switch and correct permission route.
+New source cold Chinese displays the empty heading and accessible message label in Chinese;
+switching English and back works. Send remains disabled while private chat is locked.
+Only UI labels change: selected room titles, drafts, message text and contacts retain originals.
+Lock refresh resets a previous private room heading to a generic placeholder.
+The existing permissions link correctly enters #social-workspace, so no route rewrite was made.
+No sign-in link, account request, provider selection, signature or transaction was performed.
+
+PUBLICATION / ROLLBACK OBLIGATIONS
+canonical target: https://social.ynxweb4.com/
+executor: original /root/wallet_release_owner, coordinated by sole Central
+current project/deployment identity: required from fresh publisher readback, not asserted here
+exact immutable rollback deployment/artifact: required from publisher
+single-use lease and expiry: required from separate Central publication contract
+This document grants none of those permissions and carries no credentials.
+The earlier anonymous d2 observation returned index SHA256
+f81fa34f5a71b95a01ef389c2a6adef5795023ab0f724847866f44dcba1b2045,
+not the new candidate. It is a historical observation, NOT a fresh deployment identity.
+Do not reuse a consumed V5 lease or assume a stale project/rollback receipt remains current.
+
+POST-PUBLICATION PRODUCT CHECKS
+After actual compatible release, source-bind canonical bytes and exercise normal browser UI:
+English/Chinese, original proportional YNX/MetaMask logos, root/explicit guest/same-tab app,
+URL/back/forward/refresh, desktop/mobile, locked private controls and chooser open/close.
+Stop before account approval, signing or transactions. Do not inject authenticated fixtures.
+Original SDK registration/current/device/role inputs remain separate from guest publication.
+
+FULL GOAL / CRYPTO BOUNDARY
+This compatible UI package does NOT activate the new native Veil/libsignal engine.
+activationApproved=false; activated=false.
+Real enrollment, IndependentVerifier, NativeRoutes, CheckpointProtector, Android persistence,
+trusted restore, real relay, complete Social C01-C07/V01-V17/crypto acceptance and MONSTER
+remain separate uncompleted gates. Local UI evidence is not public/installed acceptance.
+Preserve all earlier artifacts, accounts, keys, messages, drafts, pending UNKNOWN and live services.
