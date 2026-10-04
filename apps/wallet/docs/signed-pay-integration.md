@@ -84,27 +84,49 @@ V4/V5 expected payer restriction uses the original Pay53eb domain/order:
 `SHA256("YNX_PAY_EXPECTED_PAYER_V1|" + canonicalNativeAccount)`. A mismatch blocks
 authorization. Matching that hash is not account-session authority.
 
-## Remaining complete-product work
+## Desktop source composition and remaining complete-product work
 
 Desktop now has `wallet-pay-prepare.mjs` for the exact native Pay transfer and
 public result inside the existing `DesktopWalletVault.withSecret` callback and
 `DesktopKeyLifecycle.run`. It is not the Ethereum sender and cannot broadcast.
 Controlled tests use the actual vault/lifecycle code with synthetic storage and
-authentication, not real OS custody acceptance. It is not yet wired into the
-Desktop normal approval/recovery UI or a native dispatch adapter. Its original
+authentication, not real OS custody acceptance. The Desktop normal entry now
+mounts `wallet-pay-ui.mjs` through the actual renderer, six guarded main-frame
+IPC channels through `wallet-pay-service.mjs`, and `DesktopNativePayChain`
+through the existing main-process runtime. These are implemented owned source
+seams, not proof of a configured production authority or installed Pay flow.
+Its original
 `FileTransactionIntentStore` now retains immutable signed Pay packets in an
 explicit schema-v3 successor. V1/V2 reads do not rewrite disk. Publication uses
 the same private permissions, fsync, atomic replacement and readback; existing
 Ethereum pending/rejection/resolution fields remain intact. Both admission
 paths block same-account replacement while the other original is unresolved.
 Stored session fields are historical context, not live approval. Signed Pay
-archival/removal, matching native durability and settlement must still be wired
-before any complete Desktop flow is claimed; no automatic pending-record delete
-or signing/retry/recovery effect is provided by this journal.
+archival/removal, matching native durability and authenticated settlement are
+consumed by `createProtectedDesktopPayFlow` and the explicit modal actions.
+Opening, scanning, historical reading or cancellation does not automatically
+delete a pending record, sign, retry, broadcast or settle.
 
-Adopt the protected factory in the actual A bootstrap with real adapter/policy
-and authenticated canonical settlement transport; implement corresponding
-Desktop protected-key/outbox consumer behavior without replacing custody.
+The source service supplies the actual Wallet vault, lifecycle, private journal
+and canonical native client from `getRuntime`; issuer input cannot replace them.
+`composeProtectedDesktopPay(integration)` in `src/main.mjs` remains a main-process
+boot export only, not renderer/IPC/environment/CLI activation. The normal shipped
+entry has not called it with admitted production inputs and reports
+`PAY_PROTECTED_INTEGRATION_UNAVAILABLE`.
+
+The exact Desktop input must include independent `policy`,
+`quoteProvider.reviewInvoice(id, {account, accountPublicKey, guard})` returning
+original `rawInvoice/rawIntent`, `authorityForReview` and `authorityForOriginal`,
+and authenticated `settlementTransport.submitOriginal/readOriginal`.
+The Native counterpart remains `createProtectedPayWalletApp(integration)`;
+the default `App` still passes `payIntegration=null`. Do not enable either through
+QR values, arbitrary launch props, parsed session fields or configuration flags.
+See `apps/wallet-desktop/test/signed-pay-mounted-20261003.md` for the original
+source integration and explicitly controlled verification scope.
+
+Adopt the protected factory and Desktop boot composition in the actual A
+bootstrap with real adapter/policy and authenticated canonical settlement
+transport, preserving the existing protected-key/outbox consumers and custody.
 Preserve original intent/result on any unknown settlement and archive only after
 matching authenticated business receipt and native durability verification.
 The original Pay backend nonce/effect atomicity and route/current registration
