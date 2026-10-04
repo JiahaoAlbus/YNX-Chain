@@ -75,6 +75,34 @@ function setup(overrides={}){
   const controller=createPrivateAccountController({origin,onState:s=>states.push(s),createAdapter:async()=>{calls.push('createAdapter');return adapter},fetchImpl:async(url,options)=>{calls.push(['fetch',url,options]);return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}})},...overrides.controller});
   return {controller,calls,states,client};
 }
+test('canonical read composition gaps are private-service degraded, not a request for fresh Wallet approval',async()=>{
+  for(const [code,status] of [['ACTION_PROOF_REQUIRED',401],['EXCHANGE_PROTECTED_PROFILE_UNAVAILABLE',503],['EXPLICIT_ROUTE_SCOPE_UNAVAILABLE',403],['HTTP_BINDING_MISMATCH',403]]){
+    let rejection=false;
+    const {controller,calls}=setup({controller:{fetchImpl:async()=>rejection?new Response(JSON.stringify({error:code,privateService:'authorization_required'}),{status,headers:{'content-type':'application/json'}}):new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}})}});
+    try{
+      assert.equal((await controller.start(origin+'/')).phase,'connected');
+      rejection=true;const unavailable=await controller.refresh();
+      assert.equal(unavailable.phase,'degraded',code);assert.equal(unavailable.code,code);assert.equal(unavailable.snapshot,null);assert.equal(unavailable.account,null);
+      assert.equal(calls.filter(value=>value==='beginExplicit'||value==='disconnect').length,0);
+      rejection=false;assert.equal((await controller.refresh()).phase,'connected');
+      assert.equal(calls.filter(value=>Array.isArray(value)&&value[0]==='proof').length,3);
+    }finally{controller.close()}
+  }
+});
+test('only exact canonical error codes with matching HTTP status are exposed; unknown bodies retain safe rejection',async()=>{
+  for(const [body,status,expected] of [
+    ['{"error":"ACTION_PROOF_REQUIRED"}',503,'PRIVATE_API_UNAVAILABLE'],
+    ['{"error":"unknown secret text"}',401,'AUTHORIZATION_REQUIRED'],
+    ['{"error":"ACTION_PROOF_REQUIRED","code":"SESSION_EXPIRED"}',401,'AUTHORIZATION_REQUIRED'],
+    ['{"error":"ACTION_PROOF_REQUIRED","error":"HTTP_BINDING_MISMATCH"}',401,'AUTHORIZATION_REQUIRED'],
+    ['{"error":["ACTION_PROOF_REQUIRED"],"privateService":"authorization_required"}',401,'AUTHORIZATION_REQUIRED'],
+    ['{"error":"ACTION_PROOF_REQUIRED","privateService":"authorization_required","secret":"not for display"}',401,'AUTHORIZATION_REQUIRED'],
+    ['not-json',403,'AUTHORIZATION_REQUIRED']
+  ]){
+    const {controller}=setup({controller:{fetchImpl:async()=>new Response(body,{status,headers:{'content-type':'application/json'}})}});
+    try{const rejected=await controller.start(origin+'/');assert.equal(rejected.code,expected);assert.equal(rejected.snapshot,null);assert.equal(rejected.account,null)}finally{controller.close()}
+  }
+});
 test('length mismatch clears unverified account records and explicit refresh recovers only a newly bound snapshot',async()=>{
   let malformed=false,reads=0;
   const {controller,calls}=setup({controller:{fetchImpl:async()=>{
@@ -177,14 +205,14 @@ test('retiring stalled SDK or proof wait settles caller before late completion a
   }
 });
 test('private response and body cancellation settle callers; retry needs a fresh proof and cannot revive a retired account',async()=>{
-  for(const stalled of ['response','body'])for(const action of ['deadline','guest','offline','close']){
+  for(const stalled of ['response','body','refusal-body'])for(const action of ['deadline','guest','offline','close']){
     const timers=new Map();let next=0,reads=0,release,completed=false;
     const wait=new Promise(resolve=>release=resolve);
     const {controller,calls}=setup({controller:{
       setTimer:(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id},clearTimer:id=>timers.delete(id),
       fetchImpl:async()=>{reads++;if(reads>1)return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}});
         if(stalled==='response')return wait;
-        return {ok:true,headers:new Headers({'content-type':'application/json'}),body:{getReader:()=>({read:()=>wait.then(body=>({done:false,value:new TextEncoder().encode(body)})),cancel:async()=>{},releaseLock(){}})}};},
+        return {ok:stalled!=='refusal-body',status:stalled==='refusal-body'?401:200,headers:new Headers({'content-type':'application/json'}),body:{getReader:()=>({read:()=>wait.then(body=>({done:false,value:new TextEncoder().encode(body)})),cancel:async()=>{},releaseLock(){}})}};},
     }});
     const running=controller.start(origin+'/').then(value=>{completed=true;return value});
     await new Promise(setImmediate);

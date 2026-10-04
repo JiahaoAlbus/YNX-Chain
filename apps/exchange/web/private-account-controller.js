@@ -5,6 +5,7 @@ export const PRIVATE_READ_SCOPE='exchange:read';
 const ORIGIN='https://exchange.ynxweb4.com',MAX_BODY=1024*1024;
 const accountPattern=/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
 const failure=code=>Object.assign(new Error(code),{code});
+const canonicalReadGapStatus=Object.freeze({ACTION_PROOF_REQUIRED:401,EXCHANGE_PROTECTED_PROFILE_UNAVAILABLE:503,EXPLICIT_ROUTE_SCOPE_UNAVAILABLE:403,HTTP_BINDING_MISMATCH:403});
 export async function readAccountResponse(response,signal){
   const length=response.headers.get('content-length');
   if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||(length!==null&&(!/^\d+$/.test(length)||!Number.isSafeInteger(Number(length))||Number(length)>MAX_BODY))||!response.body?.getReader){try{Promise.resolve(response.body?.cancel?.()).catch(()=>{})}catch{}throw failure('INVALID_ACCOUNT_RESPONSE')}
@@ -72,6 +73,18 @@ export function validateAccountSnapshot(value,account){
   return value;
 }
 
+async function accountReadFailure(response,signal){
+  const fallback=[401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE';
+  // Only these exact canonical dispatcher gaps are actionable service facts.
+  // They cannot be fixed by repeatedly asking the user to approve a Wallet.
+  // Never display arbitrary server text or weaken rejection on malformed bodies.
+  try{
+    const value=parseMarketDocument(await readAccountResponse(response,signal));
+    if(value&&typeof value==='object'&&!Array.isArray(value)&&typeof value.error==='string'&&Object.keys(value).every(key=>key==='error'||key==='privateService')&&value.privateService==='authorization_required'&&Object.hasOwn(canonicalReadGapStatus,value.error)&&canonicalReadGapStatus[value.error]===response.status)return failure(value.error);
+  }catch{}
+  return failure(fallback);
+}
+
 // The narrow adapter seam permits offline orchestration fixtures. Production
 // passes the exact same-module SDK constructor and authority in the entry file.
 export function createPrivateAccountController({createAdapter,fetchImpl,origin=ORIGIN,onState=()=>{},wallet,setTimer=setTimeout,clearTimer=clearTimeout}){
@@ -111,7 +124,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       const body=await Promise.race([(async()=>{
         const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
         if(!active(token))return null;
-        if(!response.ok)throw failure([401,403].includes(response.status)?'AUTHORIZATION_REQUIRED':'PRIVATE_API_UNAVAILABLE');
+        if(!response.ok)throw await accountReadFailure(response,controller.signal);
         return readAccountResponse(response,controller.signal);
       })(),aborted]);
       if(!active(token))return current;
