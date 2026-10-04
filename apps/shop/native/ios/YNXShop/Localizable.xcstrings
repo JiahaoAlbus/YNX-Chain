@@ -9392,6 +9392,82 @@
           }
         }
       }
+    },
+    "cart_checkout_recovery_required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recover the previous checkout before changing this cart."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先恢复上一次结账结果，再修改购物车。"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先恢復上一次結帳結果，再修改購物車。"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前回の注文手続きの結果を確認してから、カートを変更してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전 주문 요청의 결과를 복구한 후 장바구니를 변경하세요."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupera el resultado del pedido anterior antes de cambiar este carrito."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupérez le résultat de la commande précédente avant de modifier ce panier."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stelle das Ergebnis der vorherigen Bestellung wieder her, bevor du diesen Warenkorb änderst."
+          }
+        },
+        "pt": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupere o resultado do pedido anterior antes de alterar este carrinho."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановите результат предыдущего оформления заказа перед изменением корзины."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "استعد نتيجة الطلب السابق قبل تعديل سلة التسوق."
+          }
+        },
+        "id": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pulihkan hasil pesanan sebelumnya sebelum mengubah keranjang ini."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
