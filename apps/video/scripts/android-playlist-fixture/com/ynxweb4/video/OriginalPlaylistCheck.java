@@ -15,7 +15,7 @@ public final class OriginalPlaylistCheck {
   }else{
    check("finish".equals(phase),"Original phase required");JSONObject original=input.getJSONObject("original");check(NativeProductState.canonical(viewer.playlistOperation()).equals(NativeProductState.canonical(original)),"New JVM changed original key/body");api.retryPlaylist(viewer);check(viewer.playlistOperation()==null,"Original desired readback not confirmed");JSONArray after=api.ownedPlaylists();JSONObject updated=null;for(int i=0;i<after.length();i++)if(after.getJSONObject(i).getString("ID").equals(original.getString("playlistID")))updated=after.getJSONObject(i);
    if("delete".equals(action))check(updated==null&&after.length()==1&&after.getJSONObject(0).getString("Name").equals("Protected Native original library"),"Original list deletion/readback mismatch");else{check(updated!=null&&after.length()==2,"Original owned list missing");JSONArray members=updated.optJSONArray("VideoIDs");check("add".equals(action)?members!=null&&members.length()==1&&members.getString(0).equals(video):members==null||members.length()==0,"Original desired membership mismatch");}
-   check(viewer.playlistDraft()==null,"Operation borrowed create draft");System.out.println(new JSONObject().put("phase",phase).put("original",original).put("actualOriginalBusinessReadback",true).put("pendingCleared",true));
+   check(viewer.playlistDraft()==null,"Operation borrowed create draft");System.out.println(new JSONObject().put("phase",phase).put("original",original).put("actualOriginalBusinessReadback",true).put("pendingCleared",true).put("ownListCount",after.length()));
   }
  }
 }
