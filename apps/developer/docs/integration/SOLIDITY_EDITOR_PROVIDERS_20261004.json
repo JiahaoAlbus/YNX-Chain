@@ -1,0 +1,73 @@
+{
+  "checkpoint": "Standard Solidity definition, hover, references and document symbols using bundled reviewed local compiler",
+  "sourceCommit": "b8f19786ce36124982c9156a6a71edac90d4f0d9",
+  "sourceTree": "5812db56930233b2262403fe7abed3368a1f86eb",
+  "sourceDeltaBase": "316cd4db0",
+  "sourceArchive": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-editor-providers-evidence-20261004/source-delta.tar.gz",
+    "sha256": "64dd4a763b9584cdc507eb3baed0c3c111f19a645e84bae3d0e1ffb3b096af5e",
+    "allGitBlobsReadBack": true
+  },
+  "runtime": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-editor-providers-20261004-mac-arm64",
+    "pin": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+      "treeSha256": "5b7178d001e827de319d3ac760c83ee36dcd06f6fada2585188f753d953535f1",
+      "manifestSha256": "645c2dd4af99cdbedd070a6999bc7f45175e655e738999cd36967baaf23ca1dc"
+    },
+    "toolsVersion": "0.2.15",
+    "brandVersion": "0.1.3",
+    "bundledCompiler": "0.8.24+commit.e11b9ed9",
+    "compilerClosureSha256": "223fc0fd21323bcec16e861b7472da7b9c5aec15f044beb3674e455ab5996e8f"
+  },
+  "checksPassed": {
+    "services": 63,
+    "realWorkerStandardApiFixture": 1,
+    "actualFullRuntimeEditor": 6,
+    "skipped": 0
+  },
+  "uiChecks": [
+    "Actual F12 invokes the packaged reviewed local compiler and opens the precise cross-file overload declaration through the standard VSCode definition provider.",
+    "Actual editor Show Hover displays the compiler-authored function type at the correct member token.",
+    "Actual Find References uses the compiler declaration ID through the standard references provider.",
+    "Actual Go to Symbol shows compiler-authored document declarations in the standard editor picker.",
+    "An unsaved dependency that makes the project invalid retires cached definitions and refuses a stale F12 result.",
+    "Fixing the unsaved caller reanalyzes both current buffers and jumps to the renamed unsaved dependency without saving either file."
+  ],
+  "readinessGate": "Actual language status command confirms extension registered before provider tests. Immediate cold-start F12 still failed and remains an open startup race. onLanguage activation is added but is not proof of cold-start parity.",
+  "negativeEvidence": [
+    "Original first F12 and a later cold-start F12 did not navigate.",
+    "Initial status probe erased command-palette > prefix; corrected observer.",
+    "References exist but selected-file header is not an exact References label; corrected to actual peek widget and References (3).",
+    "Status was sampled while another request was active, so negative check now awaits actual No definition found.",
+    "The no-definition message exists in both visual and accessibility DOM; observer narrowed to visible first result."
+  ],
+  "nativePackage": {
+    "built": false,
+    "guard": {
+      "availableKiB": 715020,
+      "requiredKiB": 1664064,
+      "passed": false
+    },
+    "oldPackagePreserved": true
+  },
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-editor-providers-evidence-20261004",
+  "evidenceIndexSha256": "79870bcd16f0d8fd7aa6849b2305f59146f98e120ead6c24fb171e31459b67bc",
+  "cleanup": {
+    "Vx2gEf": [],
+    "ccIYlP": [],
+    "AlMwQ6": [],
+    "8qBkl1": []
+  },
+  "canonical": false,
+  "public": false,
+  "realWallet": false,
+  "remaining": [
+    "Immediate cold-start language-service activation must match ordinary first-key user flow.",
+    "Semantic completion/rename and incomplete-source editing, automatic diagnostics and formatting remain open.",
+    "Full C++ debugging, canonical shared identity/Host, real AI/Wallet/Chain operations, Native and all-platform publication/install/user acceptance remain unverified."
+  ]
+}
