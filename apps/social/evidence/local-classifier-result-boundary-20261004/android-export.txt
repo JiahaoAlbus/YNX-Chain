@@ -1,0 +1,14 @@
+Starting Metro Bundler
+
+Android Bundled 6582ms index.ts (2767 modules)
+
+› Assets (1):
+assets/ynx-original-logo.png (104KB)
+
+› android bundles (1):
+_expo/static/js/android/index-b0a13ee13e3d54caec9a8dedf9b8e6ba.hbc (5.9MB)
+
+› Files (1):
+metadata.json (212B)
+
+Exported: /tmp/social-classifier-android.L4n5mP/export

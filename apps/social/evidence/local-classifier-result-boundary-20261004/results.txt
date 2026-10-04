@@ -1,0 +1,2 @@
+originalExit=1
+successorBatchExit=0

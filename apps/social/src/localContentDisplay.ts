@@ -33,6 +33,24 @@ export type ContentDisplayDecision = Readonly<{
 type Pending = { abort: AbortController; stop: () => void };
 type DecisionRecord = { digest: string; decision: ContentDisplayDecision };
 
+function checkedScores(value: unknown): ContentScores {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Invalid device classification result');
+  }
+  const source = value as Record<ContentCategory, unknown>;
+  const scores = {} as Record<ContentCategory, number>;
+  for (const category of CONTENT_CATEGORIES) {
+    // Read each adapter field once: a bridge/getter must not change the score
+    // between validation and the display decision.
+    const score = source[category];
+    if (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 1) {
+      throw new Error('Invalid device classification score');
+    }
+    scores[category] = score;
+  }
+  return Object.freeze(scores);
+}
+
 function preferences(value: ContentFilterPreferences): ContentFilterPreferences {
   if (typeof value.enabled !== 'boolean' || CONTENT_CATEGORIES.some(category =>
     !Number.isFinite(value.thresholds[category]) || value.thresholds[category] <= 0 || value.thresholds[category] > 1)) {
@@ -125,12 +143,14 @@ export class LocalContentDisplay {
         decision = decide('unavailable', result);
       } else if (abort.signal.aborted) {
         decision = decide('unavailable', 'cancelled');
-      } else if (CONTENT_CATEGORIES.some(category =>
-        !Number.isFinite(result[category]) || result[category] < 0 || result[category] > 1)) {
-        decision = decide('unavailable', 'classification_failed');
       } else {
-        const flagged = CONTENT_CATEGORIES.filter(category => result[category] >= thresholds[category]);
-        decision = decide(flagged.length ? 'folded' : 'clear', undefined, flagged);
+        try {
+          const scores = checkedScores(result);
+          const flagged = CONTENT_CATEGORIES.filter(category => scores[category] >= thresholds[category]);
+          decision = decide(flagged.length ? 'folded' : 'clear', undefined, flagged);
+        } catch {
+          decision = decide('unavailable', 'classification_failed');
+        }
       }
       if (timer !== undefined) clearTimeout(timer);
       if (this.active.get(contentId) === pending) {

@@ -1,0 +1,25 @@
+✔ default off never invokes a classifier; missing model is not protection (0.922917ms)
+✔ pending content cannot flash; original-byte and generation fences survive awaits (1.747667ms)
+✔ gore folds locally without changing original content (1.392333ms)
+✔ explicit_violence folds locally without changing original content (0.563333ms)
+✔ sexual_content folds locally without changing original content (0.35675ms)
+✔ GIF, video and audio are not certified from a still-image capability (0.11825ms)
+✔ disable cancels original work and late results cannot rescue it (0.200584ms)
+✔ replacement of the same content ID retires the old inference (0.29925ms)
+✔ bounded concurrency rejects overload, then accepts recovery (0.195833ms)
+✔ timeout with an uncooperative classifier settles without showing content (10.531834ms)
+✔ errors, NaN and missing categories never become a clear decision (0.3785ms)
+✔ invalid settings and oversized content are rejected without scanning (0.219583ms)
+✔ null result settles fail-closed, wipes owned input and permits retry (1.130792ms)
+✔ undefined result settles fail-closed, wipes owned input and permits retry (0.267542ms)
+✔ missing-category result settles fail-closed, wipes owned input and permits retry (0.24075ms)
+✔ throwing-field result settles fail-closed, wipes owned input and permits retry (0.258792ms)
+✔ adapter scores are captured once before validation and thresholding (1.100125ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 148.93675

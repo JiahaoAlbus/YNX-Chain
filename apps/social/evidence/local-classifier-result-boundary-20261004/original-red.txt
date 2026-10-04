@@ -1,0 +1,63 @@
+✖ null result settles fail-closed, wipes owned input and permits retry (0.938375ms)
+✖ undefined result settles fail-closed, wipes owned input and permits retry (0.156ms)
+✔ missing-category result settles fail-closed, wipes owned input and permits retry (0.259792ms)
+✖ throwing-field result settles fail-closed, wipes owned input and permits retry (0.102625ms)
+✖ adapter scores are captured once before validation and thresholding (0.900666ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 1
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1160.018917
+
+✖ failing tests:
+
+test at ../../../../../../../private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:2:1323
+✖ null result settles fail-closed, wipes owned input and permits retry (0.938375ms)
+  TypeError: Cannot read properties of null (reading 'gore')
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:129:26)
+      at Array.some (<anonymous>)
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:128:37)
+      at async TestContext.<anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:29:20)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at ../../../../../../../private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:2:1323
+✖ undefined result settles fail-closed, wipes owned input and permits retry (0.156ms)
+  TypeError: Cannot read properties of undefined (reading 'gore')
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:129:26)
+      at Array.some (<anonymous>)
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:128:37)
+      at async TestContext.<anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:29:20)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at ../../../../../../../private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:2:1323
+✖ throwing-field result settles fail-closed, wipes owned input and permits retry (0.102625ms)
+  Error: Classifier bridge field failed
+      at Object.get (/private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:13:19)
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:129:26)
+      at Array.some (<anonymous>)
+      at <anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplay.ts:128:37)
+      at async TestContext.<anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:29:20)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at ../../../../../../../private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:2:2296
+✖ adapter scores are captured once before validation and thresholding (0.900666ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  4 !== 1
+  
+      at TestContext.<anonymous> (/private/tmp/social-classifier-old.sVWWaB/localContentDisplayResult.test.ts:52:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 4,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
