@@ -1,0 +1,212 @@
+diff --git a/apps/music/cmd/ynx-musicd/protected_runtime.go b/apps/music/cmd/ynx-musicd/protected_runtime.go
+index 97c3a44d5..bbfb2c1da 100644
+--- a/apps/music/cmd/ynx-musicd/protected_runtime.go
++++ b/apps/music/cmd/ynx-musicd/protected_runtime.go
+@@ -6,13 +6,36 @@ import (
+ 	"context"
+ 	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
+ 	"github.com/JiahaoAlbus/YNX-Chain/internal/music"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
++	"net/http"
+ )
+ 
+ // Nil until a real original protected launcher supplies attested readers,
+ // source custody and current enrolled actor. ENV does not populate this slot.
+ var originalMusicInputs *mediacomposition.MusicInputs
+ 
++// The original protected launcher supplies these real sources. Configuration
++// alone is insufficient; missing observer/current/registration stays closed.
++type originalMusicProtectedBootstrap struct {
++	Configuration productsessionv2.MediaProtectedConfiguration
++	Transport     http.RoundTripper
++	Registration  productsessionv2.OriginalMediaRegistration
++	Current       productsessionv2.OriginalSourceCurrent
++	Observer      mediacomposition.OriginalMediaActorObserver
++}
++
++var originalMusicBootstrap *originalMusicProtectedBootstrap
++
+ func prepareOriginalBusiness() (music.MusicBusinessAuthority, func() error, error) {
++	if originalMusicBootstrap != nil {
++		bootstrap := *originalMusicBootstrap
++		originalMusicInputs = nil
++		_, inputs, err := mediacomposition.LoadOriginalProtectedMediaInputs(context.Background(), bootstrap.Configuration, bootstrap.Transport, bootstrap.Registration, bootstrap.Current, bootstrap.Observer)
++		if err != nil {
++			return nil, nil, err
++		}
++		originalMusicInputs = inputs
++	}
+ 	prepared, err := mediacomposition.PrepareOriginalMusic(context.Background(), originalMusicInputs)
+ 	if err != nil {
+ 		return nil, nil, err
+diff --git a/apps/music/cmd/ynx-musicd/protected_runtime_test.go b/apps/music/cmd/ynx-musicd/protected_runtime_test.go
+new file mode 100644
+index 000000000..114cafcd7
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/protected_runtime_test.go
+@@ -0,0 +1,20 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package main
++
++import (
++	"errors"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
++	"testing"
++)
++
++func TestOriginalMusicBootstrapRefusesBeforeStateAndDoesNotKeepOldInputs(t *testing.T) {
++	oldBootstrap, oldInputs := originalMusicBootstrap, originalMusicInputs
++	t.Cleanup(func() { originalMusicBootstrap, originalMusicInputs = oldBootstrap, oldInputs })
++	originalMusicBootstrap = &originalMusicProtectedBootstrap{}
++	originalMusicInputs = &mediacomposition.MusicInputs{}
++	authority, current, err := prepareOriginalBusiness()
++	if !errors.Is(err, mediacomposition.ErrOriginalMediaRuntimeUnavailable) || authority != nil || current != nil || originalMusicInputs != nil {
++		t.Fatal("missing trusted observer must refuse before protected IO and state construction")
++	}
++}
+diff --git a/internal/video/cmd/main.go b/internal/video/cmd/main.go
+index 864371211..0bd1b6324 100644
+--- a/internal/video/cmd/main.go
++++ b/internal/video/cmd/main.go
+@@ -68,7 +68,7 @@ func main() {
+ 		auth = video.CentralProductSessionAuth{GatewayURL: gatewayURL, Moderators: moderators}
+ 	}
+ 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
+-	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
++	srv := &http.Server{Addr: addr, Handler: wrapOriginalBusiness(video.NewServerWithBuild(svc, auth, build).Handler()), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
+ 	if current != nil {
+ 		if err = current(); err != nil {
+ 			log.Fatal(err)
+diff --git a/internal/video/cmd/protected_runtime.go b/internal/video/cmd/protected_runtime.go
+index f2070d90a..f48d3c4b2 100644
+--- a/internal/video/cmd/protected_runtime.go
++++ b/internal/video/cmd/protected_runtime.go
+@@ -5,14 +5,39 @@ package main
+ import (
+ 	"context"
+ 	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
+ 	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
++	"net/http"
+ )
+ 
+ // Nil until a real original protected launcher supplies attested readers,
+ // source custody and current enrolled actor. ENV does not populate this slot.
+ var originalVideoInputs *mediacomposition.VideoInputs
+ 
++// Supplied by the original protected launcher, never reconstructed from ENV
++// or an HTTP actor. Nil retains the original public-only startup.
++type originalVideoProtectedBootstrap struct {
++	Configuration productsessionv2.MediaProtectedConfiguration
++	Transport     http.RoundTripper
++	Registration  productsessionv2.OriginalMediaRegistration
++	Current       productsessionv2.OriginalSourceCurrent
++	Observer      mediacomposition.OriginalMediaActorObserver
++}
++
++var originalVideoBootstrap *originalVideoProtectedBootstrap
++var originalVideoPrepared *mediacomposition.PreparedVideo
++
+ func prepareOriginalBusiness() (video.VideoBusinessAuthority, func() error, error) {
++	originalVideoPrepared = nil
++	if originalVideoBootstrap != nil {
++		bootstrap := *originalVideoBootstrap
++		originalVideoInputs = nil
++		inputs, _, err := mediacomposition.LoadOriginalProtectedMediaInputs(context.Background(), bootstrap.Configuration, bootstrap.Transport, bootstrap.Registration, bootstrap.Current, bootstrap.Observer)
++		if err != nil {
++			return nil, nil, err
++		}
++		originalVideoInputs = inputs
++	}
+ 	prepared, err := mediacomposition.PrepareOriginalVideo(context.Background(), originalVideoInputs)
+ 	if err != nil {
+ 		return nil, nil, err
+@@ -20,5 +45,10 @@ func prepareOriginalBusiness() (video.VideoBusinessAuthority, func() error, erro
+ 	if prepared == nil {
+ 		return nil, nil, nil
+ 	}
++	originalVideoPrepared = prepared
+ 	return prepared.Authority(), prepared.AssertCurrent, nil
+ }
++
++func wrapOriginalBusiness(next http.Handler) http.Handler {
++	return originalVideoPrepared.WrapOriginalVideoHandler(next)
++}
+diff --git a/internal/video/cmd/protected_runtime_disabled.go b/internal/video/cmd/protected_runtime_disabled.go
+index b1ecb6e02..78db2df47 100644
+--- a/internal/video/cmd/protected_runtime_disabled.go
++++ b/internal/video/cmd/protected_runtime_disabled.go
+@@ -2,9 +2,14 @@
+ 
+ package main
+ 
+-import "github.com/JiahaoAlbus/YNX-Chain/internal/video"
++import (
++	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
++	"net/http"
++)
+ 
+ // Original public-only build cannot acquire canonical business authority.
+ func prepareOriginalBusiness() (video.VideoBusinessAuthority, func() error, error) {
+ 	return nil, nil, nil
+ }
++
++func wrapOriginalBusiness(next http.Handler) http.Handler { return next }
+diff --git a/internal/video/cmd/protected_runtime_test.go b/internal/video/cmd/protected_runtime_test.go
+new file mode 100644
+index 000000000..9f1f53314
+--- /dev/null
++++ b/internal/video/cmd/protected_runtime_test.go
+@@ -0,0 +1,51 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package main
++
++import (
++	"errors"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
++	"net/http"
++	"net/http/httptest"
++	"testing"
++)
++
++func TestOriginalVideoBootstrapRefusesBeforeServiceAndDoesNotKeepOldInputs(t *testing.T) {
++	oldBootstrap, oldInputs, oldPrepared := originalVideoBootstrap, originalVideoInputs, originalVideoPrepared
++	t.Cleanup(func() {
++		originalVideoBootstrap, originalVideoInputs, originalVideoPrepared = oldBootstrap, oldInputs, oldPrepared
++	})
++	originalVideoBootstrap = &originalVideoProtectedBootstrap{}
++	originalVideoInputs = &mediacomposition.VideoInputs{}
++	authority, current, err := prepareOriginalBusiness()
++	if !errors.Is(err, mediacomposition.ErrOriginalMediaRuntimeUnavailable) || authority != nil || current != nil || originalVideoInputs != nil || originalVideoPrepared != nil {
++		t.Fatal("missing trusted observer must refuse before protected IO and service construction")
++	}
++}
++
++func TestOriginalVideoNilPreparedMountKeepsPublicRoutesAndClosesSSO(t *testing.T) {
++	oldBootstrap, oldInputs, oldPrepared := originalVideoBootstrap, originalVideoInputs, originalVideoPrepared
++	t.Cleanup(func() {
++		originalVideoBootstrap, originalVideoInputs, originalVideoPrepared = oldBootstrap, oldInputs, oldPrepared
++	})
++	originalVideoBootstrap, originalVideoInputs, originalVideoPrepared = nil, nil, nil
++	authority, current, err := prepareOriginalBusiness()
++	if err != nil || authority != nil || current != nil {
++		t.Fatal("original public-only preparation changed")
++	}
++	calls := 0
++	handler := wrapOriginalBusiness(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { calls++; w.WriteHeader(204) }))
++	for _, path := range []string{"/sso/start", "/sso/callback", "/api/sso/account", "/api/sso/logout"} {
++		request := httptest.NewRequest(http.MethodGet, "https://video.ynxweb4.com"+path, nil)
++		response := httptest.NewRecorder()
++		handler.ServeHTTP(response, request)
++		if response.Code != 503 || response.Header().Get("Cache-Control") != "no-store" || calls != 0 {
++			t.Fatalf("unconfigured identity reached business route: %s (%d)", path, response.Code)
++		}
++	}
++	response := httptest.NewRecorder()
++	handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "https://video.ynxweb4.com/v1/videos", nil))
++	if response.Code != 204 || calls != 1 {
++		t.Fatal("public catalog stopped routing to original handler")
++	}
++}

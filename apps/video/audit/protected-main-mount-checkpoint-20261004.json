@@ -1,0 +1,115 @@
+{
+  "schema": "ynx.media.protected-main-mount.v1",
+  "sourceCommit": "3fe9e2847e3ad02975e4be622dcaf4a1536277e5",
+  "sourceTree": "8d76b6c26f9cba6063a7e781eff61c7d81e95735",
+  "priorDelivery": "599d66f80936736ec02c0ef6da932359ad6df922",
+  "ownedPaths": [
+    "apps/music/cmd/ynx-musicd/protected_runtime.go",
+    "apps/music/cmd/ynx-musicd/protected_runtime_test.go",
+    "internal/video/cmd/main.go",
+    "internal/video/cmd/protected_runtime.go",
+    "internal/video/cmd/protected_runtime_disabled.go",
+    "internal/video/cmd/protected_runtime_test.go"
+  ],
+  "sharedSource": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media-original-protected-profile-observer-metadata-successor-20261004",
+    "manifestSHA256": "1f37222c4e6cafd5b67e37a93370c49d977b56df7c6f3149f1344f06144dc1fe",
+    "contentRoot": "ac8a95f9a7a164cf298208d1a02478f304fc6b2375a16282a83cf54a4ed1ba99",
+    "filesVerified": 4495,
+    "prior4493BytesIdentical": true,
+    "priorRootMetadataHOLDPreserved": true
+  },
+  "behavior": "Original protected launcher supplies configuration, transport, registration, source-current and actor observer. Factory called and slots assigned before preparation/state. Missing trusted observer refuses before credential IO and clears stale slot. Video main wraps original handler with captured PreparedVideo SSO routes; nil canonical prepared closes SSO503 while public catalog stays routed. Maintenance remains before preparation.",
+  "validation": {
+    "racePackages": 4,
+    "raceFailed": 0,
+    "focusedTargets": "3 new startup/mount refusals + original source-before-state checks + 5 Shared fixed-profile/observer/SSO targets",
+    "vet": "two owned mains PASS",
+    "builds": [
+      {
+        "path": "/tmp/ynx-media-protected-main-mount-20261004/video-candidate",
+        "bytes": 10984034,
+        "sha256": "f4e7878f882aa99c426af52469cb93c62c151e6c73fba77eceab99e11666fc69",
+        "tags": "ynx_canonical_media ynx_media_combined_authority",
+        "toolchain": "Go1.25.13 offline/readonly",
+        "stamp": "local/unknown; source externally pinned",
+        "installed": false
+      },
+      {
+        "path": "/tmp/ynx-media-protected-main-mount-20261004/music-candidate",
+        "bytes": 14295266,
+        "sha256": "7367632870c5041b864be18a4c2313b41ed26a76752ec1b257510302a7c4d378",
+        "tags": "ynx_canonical_media ynx_media_combined_authority",
+        "toolchain": "Go1.25.13 offline/readonly",
+        "stamp": "local/unknown; source externally pinned",
+        "installed": false
+      }
+    ],
+    "realAuthorization": false
+  },
+  "remaining": {
+    "trueProtectedBootstrapFeed": "NOT_SUPPLIED; new originalVideoBootstrap/originalMusicBootstrap remain nil until original protected launcher supplies genuine references/current registration and enrolled observer",
+    "MusicTrustFinality": "NOT_SUPPLIED; original UNKNOWN retained without resend",
+    "formalHost": "NOT_RUN; unique A publication requested",
+    "publicMicrosites": "sourceba3/delivery599d independent candidate, not modified or relabelled by Go main successor",
+    "unifiedMediaProduct": "new human direction retained: one primary Media portal and internal Video/Music/Creator capabilities; actual unified runtime/native package not finished"
+  },
+  "sharedFilesWritten": false,
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/CONSUMER_CONTRACT.md",
+      "bytes": 3044,
+      "sha256": "db046bfbcb19533631a93cab90a8a8a42d6b24b4da1ed3dd54639c700c41aff2"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/DELTA_PATHS.json",
+      "bytes": 439,
+      "sha256": "4616e685fbb412a01ba5ea760ef8b64ebe680e1b31d97aedd0763431921508dd"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/HANDOFF.md",
+      "bytes": 1322,
+      "sha256": "a4ebef846dfc7fe048893f0f83eee1b0365d2b596725d64431777e9650a46aff"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/MANIFEST.json",
+      "bytes": 935186,
+      "sha256": "1f37222c4e6cafd5b67e37a93370c49d977b56df7c6f3149f1344f06144dc1fe"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/METADATA_SUCCESSOR.md",
+      "bytes": 645,
+      "sha256": "152e17852d47945d7388ef4f84b5979b25e5c6688e13a4118360e59ff756bb86"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/PRIOR_MANIFEST.json",
+      "bytes": 934762,
+      "sha256": "aa9246786c589632fa2aec5be9bf887e5d622d3003291143a308d783d950b456"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/focused-race.txt",
+      "bytes": 277,
+      "sha256": "f2d66e2efea83382c4419ed28616e73dece2a43f6b6bb2158b1ab0d1049c502c"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/increment-after-599d.patch",
+      "bytes": 9491,
+      "sha256": "0b1f419a94d349c2b1be9ae2faebdedf4a13094c1d5ddef1effaa10e9ad6be9e"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/matching-source-manifest.json",
+      "bytes": 61362,
+      "sha256": "bec41006479efd10e93d920a44b5bd047d2d859aee0d86d7e4282423e9d67c28"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/owned-six-file-source.tar.gz",
+      "bytes": 3298,
+      "sha256": "a79a445686a6639a3a4003f4a1cd5ad975e03daf13aed96b60c19d5dbb22062b"
+    },
+    {
+      "path": "apps/video/audit/evidence/protected-main-mount-20261004/shared-validation.json",
+      "bytes": 376,
+      "sha256": "5fe78225fd32a10882b1a9198ae08551b7b7670d5fa709235a7ade40628bde4d"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# Original Media protected composition candidate
+
+Only source implementation, not registration, execution or product admission.
+
+LoadOriginalProtectedMediaInputs(ctx, config, transport, registration, current, observer) supplies VideoInputs and MusicInputs. The product-owned package assigns originalVideoInputs/originalMusicInputs before PrepareOriginalVideo/PrepareOriginalMusic and before NewService/New or state IO. Preserve current312 owned mains and latest ba3d microsite leaves; do not whole-copy this historical4484 source tree over them.
+
+The actual existing issuer/profile fixes VideoWeb and CreatorWeb origins/callback/scopes. Four registered sets and Music native set use original reader factories, protected key loader, exact role/keyID/publickey membership assertion. Two sealed BrowserSSO instances use the original authority/callback. Missing/partial/duplicate/configwrong inputs are refused; observer missing refuses before protected IO. No files are generated and no live registry is written.
+
+PreparedVideo.WrapOriginalVideoHandler(ownedHandler) mounts GET /sso/start, GET /sso/callback, GET /api/sso/account, POST /api/sso/logout for exact Video/Creator hosts. It never uses native auth after browser rejection. It preserves original sealed state, CSRF, revoke and callback order. Media-only constructor returns to /app.html#originalTarget to match new owned microsites; the registered /sso/callback and target allowlist are unchanged. Product prefix reverse-proxy routing must preserve this exact same-origin composition, not invent an additional callback.
+
+OriginalMediaRegistration must assert the actual current original registered tuple and exact public key. OriginalMediaActorObserver must capture trusted account, device ID/binding/key/algorithm, original session, family, private generation, browser generation and membership revision; its synchronous local reader must read the same protected source without network or entering the product Store lock. A parsed HTTP actor/SSO identity alone is not this producer. Missing generation is not enrolled generation zero. The actor guard freezes session/browser aliases and compares the complete observation at each original effect boundary, bracketed by OriginalSourceCurrent.
+
+Production registration/current observer feed is NOT SUPPLIED by this adapter. It is internal Shared implementation debt, not a user API request. No production key/seal/ENV body was read. Original protected file checks execute only if the real producer and config are supplied.
+
+Music Trust is NOT implemented by this profile. Existing POST /api/cases and original configured Trust provider accept a strict {id:string} submission acknowledgment only. dispatch_admitted UNKNOWN cannot be resent. Existing global appeals/governance IDs lack a proven same-requester/account/body/key/endpoint-to-Music request mapping. A final-result/reconcile producer must establish that original mapping and authenticated finality before the product adopts it; no guessed URL or arbitrary appeal ID is accepted.

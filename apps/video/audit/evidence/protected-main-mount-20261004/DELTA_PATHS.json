@@ -1,0 +1,12 @@
+{
+  "paths": [
+    "internal/productsessionv2/browser_sso.go",
+    "internal/productsessionv2/media_protected_profile.go",
+    "internal/productsessionv2/media_protected_profile_test.go",
+    "internal/mediacomposition/original_runtime.go",
+    "internal/mediacomposition/protected_inputs.go",
+    "internal/mediacomposition/protected_inputs_test.go",
+    "internal/mediacomposition/browser_mount.go"
+  ],
+  "immutableAfterFreeze": true
+}

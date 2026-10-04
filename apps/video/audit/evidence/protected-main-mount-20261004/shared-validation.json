@@ -1,0 +1,9 @@
+{
+  "manifestSHA256": "aa9246786c589632fa2aec5be9bf887e5d622d3003291143a308d783d950b456",
+  "declaredRoot": "9316bd805ff325a7616b387ac7c4a758f2a2912bb3c5d10171c4ca21a58d9940",
+  "computedRoot": "566096eedc8cd4823bc62cf4fbf9f07dee78e8dd3dd942f8f29f79c617eae9c2",
+  "allManifestEntriesVerified": 4493,
+  "safeRegularGoClosure": 143,
+  "formalHost": false,
+  "realFeed": false
+}
