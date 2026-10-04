@@ -2,6 +2,25 @@
 
 日期：2026-10-05。用户目标：保留 YNX 品牌与主题，采用 VSCode 的按钮位置、操作逻辑、扩展机制，并增加 Chain 与 AI。
 
+## 最新验收状态（覆盖下方初始基线）
+
+最新封存 macOS 候选的产品源码为 `bf18cf329f06db35d77ff09d29ec1ae462c89ddf`，源码 tree 为 `69bad806d7dd7e4db738f4c2424f806286ce9b84`，composed-core tree 为 `9a6f2177f1359bef41717ec9e74cf96b0b5acbf53fbdfd96af527cfc41c33c1d`。后续文档修改不代表这个安装包已重建。候选位于 `apps/developer/.ynx-developer-candidates/ynx-search-replace-native-bf18cf329-20261005`；DMG SHA256 为 `d557e62a6041f1c5333e21a25828f997cf80847777c6d452bfd5bdc35f6a97e2`。
+
+| 要求 | 已取得的实际证据 | 仍缺少的验收 |
+| --- | --- | --- |
+| 文件与项目 | 最新包内组件 GUI：终端创建真实文件；重命名、修改、保存、关闭再打开通过；新建文件夹、复制粘贴、含已打开文件的文件夹重命名通过，磁盘内容与编辑器新路径一致。c984 包已验证错误 fragment 的提示和返回绑定项目后创建保存 | 锁屏下无法操作 Cocoa 的原生文件夹选择器；任意用户选定项目的原生完整流程仍待验证 |
+| 成熟编辑 | bf18 多文件搜索替换、一次 Undo/Redo、Save All 和两份真实磁盘回读通过；新增 9 项回归通过。5ecd 本地修改审阅批准应用、回到源编辑器、撤销重做保存通过 | 不能由这些流程推断所有文件操作、所有语言或正式托管内核已通过 |
+| 操作布局 | 组件 GUI 已验证四项 Run/Debug 菜单、实际任务选择器、终端入口；原生 51 个命令已接线 | Cocoa 菜单、真实 C++ 断点/步进/变量仍待验收 |
+| 主题与语言 | c984 通过正常选择器逐一选择并渲染 14 个主题，截图与 actual-render.json 已保留；Klein 默认主题已展示。官方简体中文包识别、语言选择和重载已有组件证据 | 全部状态的视觉质量和全部自有文案覆盖尚未证明；不能声称零英文回退 |
+| 扩展 | 内置面板实际显示 12 项；正常 Install VSIX 选择器可打开；已有本地 VSIX 安装、启停、卸载记录。用户 VSCode 清点为 63 个唯一扩展 ID | 在线市场搜索、下载、更新仍失败；版本范围匹配不证明兼容，63 项未整体迁移或执行 |
+| Chain 与 AI | Counter.sol 模板创建保存和 solc 0.8.24 的真实 ABI/bytecode；项目/网络/Wallet 与 AI 分组入口；本地人工修改审阅通过 | 真实 Wallet 身份、余额、签名部署、在线模型与 AI 修改回读尚未接通；人工审阅不能算 AI |
+| 权限隔离与正式服务 | 本地绑定项目、终端受控路径已有实际证据；共享接入契约仍见 IDE_NATIVE_SESSION_ENTRY_20261003.md | 两个正式用户、撤销/过期、容量及真实获准内核运行仍未验收；本机 /etc/ynx-developer/adapters 当前不存在 |
+| 软件交付 | bf18 完整 app/DMG 已生成，包内组件真实运行 Node v26.7.0。安装器资源、原 Logo、挂载资产和 ad-hoc 签名检查通过 | Finder/Cocoa 安装体验、Developer ID、公证、正式发布、Windows/Linux 尚未完成；当前 bundled Node 的最低 macOS 为 27.0 |
+
+精确包内文件操作证据位于该候选的 `USER_FLOW_CHECKPOINT_20261005.json` 和 `verification/rename-save-reopen.png`、`verification/folder-copy-rename.png`。主题证据位于保留的 c984 候选 `verification/themes/`，不改标为 bf18 新验收。源码构建交接位于 bf18 候选的 `SOURCE_BUILD_HANDOFF_20261005.md`。旧候选、用户原 63649 实例及原项目均保留。
+
+正式共享服务和 A 发布范围仍暂停；network/package-egress/LXD 被停止的范围没有恢复，也没有通过代理或削弱隔离绕过。以下章节保留历史发现与修复过程，出现“待验证”的旧描述时以上表和明确标注版本的验收记录为准。
+
 ## 证据范围
 
 用户提供当前 Mac 窗口截图：编辑器打开 hello.cpp，底部只有 Problems，编辑器右上无明显运行入口；macOS 原生菜单仅 File / Window。截图可以证明入口缺口，不能证明所有底层功能不存在。
