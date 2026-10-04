@@ -21,13 +21,33 @@ struct ContentView:View {
 }
 
 struct CatalogView:View {@EnvironmentObject var model:ShopModel
-    var body:some View{List{Section{TextField("search_hint",text:$model.search).shopCapitalization(false);Button("search"){Task{await model.loadCatalog()}};Button("ai_compare"){model.runAI(workflow:"search_comparison",summary:model.search)}}
-        ForEach(model.products){p in NavigationLink{ProductView(product:p)}label:{VStack(alignment:.leading){Text(p.name).font(.headline);Text(p.category ?? "").font(.caption);Text("\(p.variants.count) variants").foregroundStyle(.secondary)}}}
+    var body:some View{ScrollView{VStack(alignment:.leading,spacing:24){
+        HStack(spacing:12){TextField("search_hint",text:$model.search).shopCapitalization(false).textFieldStyle(.roundedBorder).onSubmit{Task{await model.loadCatalog()}};Button("search"){Task{await model.loadCatalog()}}.buttonStyle(.borderedProminent)}
+        HStack{Text("catalog_heading").font(.title2.weight(.semibold));Spacer();Button("ai_compare"){model.runAI(workflow:"search_comparison",summary:model.search)}.buttonStyle(.bordered)}
+        LazyVGrid(columns:[GridItem(.adaptive(minimum:220,maximum:360),spacing:20)],alignment:.leading,spacing:20){
+            ForEach(model.products){p in NavigationLink{ProductView(product:p)}label:{VStack(alignment:.leading,spacing:0){
+                ProductImage(product:p,height:200)
+                VStack(alignment:.leading,spacing:10){Text(p.name).font(.headline).fixedSize(horizontal:false,vertical:true);if let category=p.category,!category.isEmpty{Text(category).font(.caption).foregroundStyle(.secondary)}
+                    if let price=p.variants.map(\.priceYNXT).min(){Text(price.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT").font(.headline).foregroundStyle(Color.accentColor)}
+                    Text(String(format:String(localized:"catalog_variant_count",locale:Locale(identifier:model.appLanguage)),locale:Locale(identifier:model.appLanguage),Int64(p.variants.count))).font(.caption).foregroundStyle(.secondary)
+                }.padding(18).frame(maxWidth:.infinity,alignment:.leading)
+            }.background(.background).clipShape(RoundedRectangle(cornerRadius:12)).overlay(RoundedRectangle(cornerRadius:12).stroke(Color.gray.opacity(0.18),lineWidth:1))}.buttonStyle(.plain)}
+        }
         if model.state=="empty_catalog"{ContentUnavailableView("empty_catalog",systemImage:"shippingbox",description:Text("no_fake_records"))}
-    }.navigationTitle("app_name").shopInlineTitle().refreshable{await model.loadCatalog()}}
+    }.padding(24).frame(maxWidth:1200).frame(maxWidth:.infinity,alignment:.center)}.navigationTitle("app_name").shopInlineTitle().refreshable{await model.loadCatalog()}}
+}
+struct ProductImage:View {
+    let product:Product
+    let height:CGFloat
+    private var media:ProductMedia?{product.media.first(where:{$0.imageURL != nil})}
+    var body:some View{Group{if let url=media?.imageURL{AsyncImage(url:url){phase in
+        if let image=phase.image{image.resizable().scaledToFill()}
+        else{placeholder.overlay{if phase.error==nil{ProgressView()}}}
+    }}else{placeholder}}.frame(maxWidth:.infinity).frame(height:height).clipped().accessibilityLabel(media?.altText ?? product.name)}
+    private var placeholder:some View{Rectangle().fill(Color.gray.opacity(0.08)).overlay{Image(systemName:"photo").font(.largeTitle).foregroundStyle(.secondary).accessibilityHidden(true)}}
 }
 struct ProductView:View {let product:Product;@EnvironmentObject var model:ShopModel
-    var body:some View{List{Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted()+" YNXT");Text("\(v.available) \(String(localized:"inventory"))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(v.available<1)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
+    var body:some View{List{ProductImage(product:product,height:280).listRowInsets(EdgeInsets());Text(product.description ?? "");ForEach(product.variants){v in HStack{VStack(alignment:.leading){Text(v.name);Text(v.priceYNXT.formatted(.number.locale(Locale(identifier:model.appLanguage)))+" YNXT");Text("\(v.available) \(String(localized:"inventory",locale:Locale(identifier:model.appLanguage)))").font(.caption)};Spacer();Button("add_cart"){model.add(product,v)}.disabled(v.available<1)}};Section("trust_evidence"){Text("trust_boundary")}}.navigationTitle(product.name).shopInlineTitle()}
 }
 struct CartView:View {@EnvironmentObject var model:ShopModel
     @State var recipient=""

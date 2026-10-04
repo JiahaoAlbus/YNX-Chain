@@ -7,7 +7,20 @@ struct Product: Codable, Identifiable {
     let description: String?
     let category: String?
     let variants: [Variant]
+    let media: [ProductMedia]
     var id: String { productID }
+
+    init(from decoder:Decoder)throws {
+        let c=try decoder.container(keyedBy:CodingKeys.self)
+        productID=try c.decode(String.self,forKey:.productID)
+        storeID=try c.decode(String.self,forKey:.storeID)
+        name=try c.decode(String.self,forKey:.name)
+        description=try c.decodeIfPresent(String.self,forKey:.description)
+        category=try c.decodeIfPresent(String.self,forKey:.category)
+        variants=try c.decode([Variant].self,forKey:.variants)
+        // Optional presentation metadata cannot make an original listing vanish.
+        media=(try? c.decode([ProductMedia].self,forKey:.media)) ?? []
+    }
 
     enum CodingKeys: String, CodingKey {
         case productID = "ID"
@@ -16,6 +29,19 @@ struct Product: Codable, Identifiable {
         case description = "Description"
         case category = "Category"
         case variants = "Variants"
+        case media = "Media"
+    }
+}
+
+struct ProductMedia:Codable {
+    let url:String
+    let altText:String?
+    let kind:String?
+    enum CodingKeys:String,CodingKey {case url="URL",altText="AltText",kind="Kind"}
+    var imageURL:URL? {
+        guard kind==nil || kind=="image",let components=URLComponents(string:url),components.scheme=="https",
+              let host=components.host,!host.isEmpty,components.user==nil,components.password==nil else{return nil}
+        return components.url
     }
 }
 
