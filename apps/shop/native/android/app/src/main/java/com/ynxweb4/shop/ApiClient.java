@@ -66,8 +66,11 @@ final class ApiClient {
         PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);return execute(method,path,frozen,expected,ticket);
     }
     JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation,BeforeDispatch admission)throws Exception{
-      if(expected==null||!expected.nativeV2)throw new SecurityException("Canonical Native session required");JSONObject frozen=new JSONObject(body.toString());PrivacyLifecycle.Ticket ticket=privacy().admit(expected.account,method,path,frozen,generation);NetworkCall network=networkCall(method,path,frozen,expected);
-      return executeTracked(privacy(),ticket,()->current(expected)&&privacy().current(expected.account,generation),new NetworkCall(){public void prepare()throws Exception{network.prepare();}public void admitDispatch()throws Exception{admission.admit();}public Response send()throws Exception{return network.send();}},response->observeResponse(method,path,expected,response));
+      return requestForSession(method,path,body,expected,generation,admission,()->true);
+    }
+    JSONObject requestForSession(String method,String path,JSONObject body,ProductSession expected,long generation,BeforeDispatch admission,ContextCheck presentation)throws Exception{
+      if(expected==null||!expected.nativeV2)throw new SecurityException("Canonical Native session required");JSONObject frozen=body==null?null:new JSONObject(body.toString());PrivacyLifecycle.Ticket ticket=businessMutation(method,path)?privacy().admit(expected.account,method,path,frozen,generation):null;NetworkCall network=networkCall(method,path,frozen,expected);
+      return executeTracked(privacy(),ticket,()->presentation.current()&&current(expected)&&privacy().current(expected.account,generation),new NetworkCall(){public void prepare()throws Exception{network.prepare();}public void admitDispatch()throws Exception{admission.admit();}public Response send()throws Exception{return network.send();}},response->observeResponse(method,path,expected,response));
     }
     private JSONObject execute(String method,String path,JSONObject body,ProductSession expected,PrivacyLifecycle.Ticket ticket)throws Exception{
         return executeTracked(privacy(),ticket,()->current(expected)&&(ticket==null||privacy().current(ticket.account,ticket.generation)),networkCall(method,path,body,expected),response->observeResponse(method,path,expected,response));

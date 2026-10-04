@@ -31,7 +31,7 @@ public final class MainActivity extends Activity {
     private final AIPresentation aiPresentation=new AIPresentation();
     private AlertDialog aiDialog;
     private void clearAI(){aiPresentation.clear();if(aiDialog!=null){aiDialog.dismiss();aiDialog=null;}}
-    private Object cartWork,payHandoffWork,paymentReadbackWork;private volatile long viewRevision;
+    private Object cartWork,paymentReadbackWork;private volatile Object payHandoffWork;private volatile long payPresentationRevision;private AlertDialog invoiceDialog;private volatile long viewRevision;
     private interface CartTask {void run(NativeCart.Sender sender,ProductSession session,long generation)throws Exception;}
     private NativeCart.Sender cartSender(){return new NativeCart.Sender(){public ProductSession session()throws Exception{return api.session();}public JSONObject request(String method,String path,JSONObject body,ProductSession expected,long generation)throws Exception{return api.requestForSession(method,path,body,expected,generation);}};}
     private void runCartTask(CartTask task,Runnable success){
@@ -47,7 +47,8 @@ public final class MainActivity extends Activity {
     private String presentationPrivacyPhase="";
     private void showDialog(AlertDialog dialog){showDialog(dialog,()->{});}
     private void showDialog(AlertDialog dialog,Runnable dismissed){privateDialogs.add(dialog);dialog.setOnDismissListener(d->{privateDialogs.remove(dialog);dismissed.run();});dialog.show();}
-    private void clearPrivatePresentation(){cartWork=null;payHandoffWork=null;paymentReadbackWork=null;viewRevision++;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
+    private void cancelPayPresentation(){payPresentationRevision++;payHandoffWork=null;if(invoiceDialog!=null){invoiceDialog.dismiss();invoiceDialog=null;}}
+    private void clearPrivatePresentation(){cartWork=null;cancelPayPresentation();paymentReadbackWork=null;viewRevision++;clearAI();for(AlertDialog dialog:new ArrayList<>(privateDialogs))dialog.dismiss();privacyExport.clear();recipient=null;address=null;city=null;country=null;restoreCart();}
     private void reconcileSession(){
         sessionClock.removeCallbacksAndMessages(null);
         ProductSession current=null;try{current=api.session();}catch(Exception ignored){}
@@ -62,7 +63,7 @@ public final class MainActivity extends Activity {
         if(current!=null)sessionClock.postDelayed(this::reconcileSession,Math.max(1,Math.min(1000,Duration.between(Instant.now(),current.expiresAt).toMillis()+1)));
     }
     @Override protected void onResume(){super.onResume();if(api!=null){reconcileSession();resumePaymentReadback();}}
-    @Override protected void onPause(){cancelOrderAction();payHandoffWork=null;paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
+    @Override protected void onPause(){cancelOrderAction();cancelPayPresentation();paymentReadbackWork=null;clearAI();sessionClock.removeCallbacksAndMessages(null);super.onPause();}
 
     @Override protected void attachBaseContext(Context base){super.attachBaseContext(LocaleController.apply(base));}
     @Override public void onCreate(Bundle state){super.onCreate(state);secure=SecureStore.open(this);api=new ApiClient(secure);api.onSessionRejected(this::reconcileSession);queue=new OfflineMutationQueue(secure);wallet=new WalletAuth(this,secure,api);images=new ImageLoader();build();restoreCart();try{presentationSession=api.session();if(presentationSession!=null){JSONObject privacy=api.privacy().snapshot(presentationSession.account);if(PrivacyLifecycle.ACTIVE.equals(privacy.optString("phase"))){presentationPrivacyGeneration=privacy.optLong("generation");presentationPrivacyPhase=PrivacyLifecycle.ACTIVE;}}}catch(Exception ignored){}handleIntent(getIntent());showCatalog();}
@@ -108,9 +109,9 @@ public final class MainActivity extends Activity {
         setContentView(root);
     }
 
-    private void openCommerceService(String url){payHandoffWork=null;clearAI();try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(ActivityNotFoundException error){status.setText(getString(R.string.unavailable));}}
+    private void openCommerceService(String url){cancelPayPresentation();clearAI();try{startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(url)));}catch(ActivityNotFoundException error){status.setText(getString(R.string.unavailable));}}
 
-    private void showCatalog(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showCatalog(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;cancelPayPresentation();clearAI();
         content.removeAllViews();TextView heading=text(getString(R.string.nav_catalog),24,true);content.addView(heading);
         TextView boundary=text(getString(R.string.payment_boundary),14,false);boundary.setTextColor(BLUE);boundary.setPadding(0,dp(8),0,dp(14));content.addView(boundary);
         LinearLayout search=row();EditText query=input(getString(R.string.search_hint));search.addView(query,new LinearLayout.LayoutParams(0,dp(52),1));Button run=primary(getString(R.string.search));search.addView(run);content.addView(search);
@@ -152,7 +153,7 @@ public final class MainActivity extends Activity {
     private void syncCartContext()throws Exception{String key=cartKey();if(!key.equals(loadedCartKey)||!secure.get(key).equals(loadedCartText))restoreCart();}
     private void restoreCart(){synchronized(secure){try{loadedCartKey=cartKey();String raw=secure.get(loadedCartKey);cart=raw.isEmpty()?new JSONArray():new JSONArray(raw);loadedCartText=raw;cartBadge.setText(String.valueOf(cart.length()));}catch(Exception e){cart=new JSONArray();loadedCartText="";status.setText(getString(R.string.security_error));}}}
 
-    private void showCart(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showCart(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;cancelPayPresentation();clearAI();
         try{syncCartContext();}catch(Exception error){status.setText(getString(R.string.security_error));return;}
         content.removeAllViews();content.addView(text(getString(R.string.order_review),24,true));
         if(hasSession()){content.addView(action(getString(R.string.cart_sync_button),()->runCartTask((sender,session,generation)->NativeCart.sync(secure,sender,session,generation),this::showCart)));content.addView(action(getString(R.string.cart_recover_checkout),this::recoverCheckout));}
@@ -198,7 +199,7 @@ public final class MainActivity extends Activity {
         }catch(Exception error){status.setText(cartError(error));}
     }
 
-    private void showOrders(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;payHandoffWork=null;clearAI();
+    private void showOrders(){cancelOrderAction();viewRevision++;paymentReadbackWork=null;cancelPayPresentation();clearAI();
         content.removeAllViews();content.addView(text(getString(R.string.nav_orders),24,true));if(!hasSession()){content.addView(primaryWallet());return;}
         final long view=viewRevision;final ProductSession expected;try{expected=api.session();}catch(Exception error){status.setText(message(error));return;}LinearLayout list=column();content.addView(list);content.addView(action(getString(R.string.retry),this::showOrders));status.setText(getString(R.string.loading));api.request("GET","/orders",null,()->view==viewRevision,(value,error)->runOnUiThread(()->{
             if(error!=null){status.setText(message(error));Button retry=button(getString(R.string.retry));retry.setOnClickListener(v->showOrders());list.addView(retry);return;}
@@ -223,14 +224,14 @@ public final class MainActivity extends Activity {
     }
 
     private void pay(JSONObject order){
-        if(payHandoffWork!=null)return;final ProductSession expected;final long generation;final BuyerPaymentReview.Pending pending;final Object work=new Object();final long view=viewRevision;
+        if(payHandoffWork!=null)return;final ProductSession expected;final long generation;final BuyerPaymentReview.Pending pending;final Object work=new Object();final long view=viewRevision,presentation=payPresentationRevision;
         try{expected=api.session();if(expected==null){signIn();return;}generation=PrivacyLifecycle.requireWritable(secure,expected.account);BuyerOrderReadback.validate(order,expected);pending=BuyerPaymentReview.prepare(secure,expected,order);}catch(Exception error){status.setText(message(error));return;}
         payHandoffWork=work;status.setText(getString(R.string.loading));
         new Thread(()->{JSONObject result=null;Exception failure=null;try{String path="/orders/"+pending.original.order.getString("ID")+"/pay-handoff";
-            result=pending.mayCreate()?api.requestForSession("POST",path,pending.original.body(),expected,generation,()->BuyerPaymentReview.markDispatched(secure,expected,pending)):api.requestForSession("GET",path,null,expected,generation);
+            boolean create=pending.mayCreate();result=api.requestForSession(create?"POST":"GET",path,create?pending.original.body():null,expected,generation,()->{if(create)BuyerPaymentReview.markDispatched(secure,expected,pending);},()->payHandoffWork==work&&view==viewRevision&&presentation==payPresentationRevision);
         }catch(Exception error){failure=error;}final JSONObject receipt=result;final Exception error=failure;
             runOnUiThread(()->{if(payHandoffWork!=work)return;payHandoffWork=null;if(view!=viewRevision||!isCurrent(expected,generation))return;if(error!=null){status.setText(error instanceof ApiClient.ApiException&&"INVOICE_REFERENCE_NOT_READY".equals(((ApiClient.ApiException)error).code)?getString(R.string.invoice_reference_unconfirmed):message(error));return;}try{String link=BuyerPaymentReview.received(secure,expected,pending,receipt);
-                showDialog(new AlertDialog.Builder(this).setTitle(getString(R.string.pay_handoff)).setMessage(pending.original.order.getString("ID")+" · "+formatYNXT(pending.original.order.getLong("TotalYNXT"))+"\n"+receipt.getString("invoiceId")+"\n"+getString(R.string.payment_boundary)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.pay_handoff),(d,w)->{if(view!=viewRevision||!isCurrent(expected,generation))return;try{wallet.reviewInvoice(expected,link,(opened,launchFailure)->{if(view!=viewRevision||!isCurrent(expected,generation))return;if(launchFailure!=null||!"opened".equals(opened)){status.setText(getString(R.string.unavailable));return;}try{BuyerPaymentReview.opened(secure,expected,pending);}catch(Exception storage){status.setText(getString(R.string.security_error));}});}catch(Exception rejected){status.setText(getString(R.string.unavailable));}}).create());
+                invoiceDialog=new AlertDialog.Builder(this).setTitle(getString(R.string.pay_handoff)).setMessage(pending.original.order.getString("ID")+" · "+formatYNXT(pending.original.order.getLong("TotalYNXT"))+"\n"+receipt.getString("invoiceId")+"\n"+getString(R.string.payment_boundary)).setNegativeButton(getString(R.string.cancel),null).setPositiveButton(getString(R.string.pay_handoff),(d,w)->{if(view!=viewRevision||!isCurrent(expected,generation))return;try{wallet.reviewInvoice(expected,link,()->presentation==payPresentationRevision&&view==viewRevision,(opened,launchFailure)->{if(view!=viewRevision||!isCurrent(expected,generation))return;if(launchFailure!=null||!"opened".equals(opened)){status.setText(getString(R.string.unavailable));return;}try{BuyerPaymentReview.opened(secure,expected,pending);}catch(Exception storage){status.setText(getString(R.string.security_error));}});}catch(Exception rejected){status.setText(getString(R.string.unavailable));}}).create();final AlertDialog shown=invoiceDialog;showDialog(shown,()->{if(invoiceDialog==shown)invoiceDialog=null;});
             }catch(Exception rejected){status.setText(getString(R.string.unavailable));}});
         },"shop-invoice-handoff").start();
     }
