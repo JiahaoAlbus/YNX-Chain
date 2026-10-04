@@ -1,0 +1,13 @@
+--- FAIL: TestVideoResumePublishedUnknownOriginal (0.14s)
+    --- FAIL: TestVideoResumePublishedUnknownOriginal/scanning (0.08s)
+        processing_resume_test.go:48: only failed processing can be retried
+    --- FAIL: TestVideoResumePublishedUnknownOriginal/transcoding (0.06s)
+        processing_resume_test.go:48: only failed processing can be retried
+--- FAIL: TestVideoResumeRefusesChangedOriginalBeforeProcessing (0.69s)
+    --- FAIL: TestVideoResumeRefusesChangedOriginalBeforeProcessing/failed/missing (0.19s)
+        processing_resume_test.go:108: refused original changed state or started work: scans=1 calls=1 err=<nil>
+    --- FAIL: TestVideoResumeRefusesChangedOriginalBeforeProcessing/failed/changed (0.16s)
+        processing_resume_test.go:108: refused original changed state or started work: scans=1 calls=1 err=<nil>
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	1.345s
+FAIL

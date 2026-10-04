@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-creator-studio",
+  "sourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+  "sourceTree": "f6dd20a7da7581387a9a6e2319b6e676f1da1b4c",
+  "outputDirectory": "dist",
+  "upstreamCatalog": {
+    "commit": "7a89550d4964ea38b854cbd03f18775494c2f513",
+    "path": "apps/video/i18n/catalog.json",
+    "blob": "ba01f2a1bed92537e30b0f4a0359e3927bd1deea",
+    "sha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+  },
+  "files": [
+    {
+      "path": "app.js",
+      "bytes": 70393,
+      "sha256": "631665d8eb92a2b68f8a3670d0979479839830b0d233f034b03f7a01d57a3214"
+    },
+    {
+      "path": "assets/metamask.svg",
+      "bytes": 455,
+      "sha256": "559c46c171bd6c7a3341c7d84a475173b4f23eb4dd71f875c4470d09468f00fe"
+    },
+    {
+      "path": "assets/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "assets/ynx-logo.png",
+      "bytes": 172128,
+      "sha256": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde"
+    },
+    {
+      "path": "assets/ynx-wallet.svg",
+      "bytes": 320,
+      "sha256": "3c7018405558413ed354ebd8b680d0f7d0e89d7402b59847f7955b8ee6463098"
+    },
+    {
+      "path": "browser-identity.js",
+      "bytes": 5903,
+      "sha256": "1b884553c92eb9c70d45509b9de6211299813d247e0409582e7d183ad9e65144"
+    },
+    {
+      "path": "business-wire.js",
+      "bytes": 3938,
+      "sha256": "b78251453977e9c6c71b09f0532b35db061c5ae9f936bca435d49a25804e7389"
+    },
+    {
+      "path": "callback.css",
+      "bytes": 912,
+      "sha256": "48c9dd8f860d7e3b3c53b4d00a294d917c6bf024e176f19b074f74fcf0364070"
+    },
+    {
+      "path": "display-settings.css",
+      "bytes": 2779,
+      "sha256": "c01a8b262a6a1d9352c0d25b795ee98326d0cc450d920132a3668fbde15420ca"
+    },
+    {
+      "path": "display-settings.js",
+      "bytes": 3296,
+      "sha256": "5acf6f44622122994f4b9aba5bca5f066cd26746b16b786881f2998b8bd73b99"
+    },
+    {
+      "path": "enhancements.css",
+      "bytes": 2626,
+      "sha256": "9f337222efc80d877a57ad21fa2ccacb7b352b89048dee2486891c4fa3871039"
+    },
+    {
+      "path": "i18n.js",
+      "bytes": 25047,
+      "sha256": "4dc6e56405d12a083843d49ac1ba1c49de295fd3a2757afa2f6804d5753ce331"
+    },
+    {
+      "path": "i18n/catalog.json",
+      "bytes": 14237,
+      "sha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    },
+    {
+      "path": "index.html",
+      "bytes": 17069,
+      "sha256": "f0bc74ca6044621abc4f6bce4bda4e6c09ef37c0eb16255e0d481a2255747af8"
+    },
+    {
+      "path": "product-session-registry.json",
+      "bytes": 838,
+      "sha256": "dd257ae89960cb69fdb093a78d1a51f82f9648d52a4cc267128af71f5721a7db"
+    },
+    {
+      "path": "product-session-sdk-source.json",
+      "bytes": 9580,
+      "sha256": "dfe4b4c2dd64a89322234aabd3a0b7d89875ebd0241612165e4dc1fbfe2f0ccb"
+    },
+    {
+      "path": "product-session-sdk.js",
+      "bytes": 137281,
+      "sha256": "8a42cb0a77ea9b1b2523cf484e8334c9b7e9b490888854e7519332e7c3eaaa45"
+    },
+    {
+      "path": "product-session.js",
+      "bytes": 6656,
+      "sha256": "f968c3e31b6af6dab573ab629c74241ea8255120d249df330b776149b721c523"
+    },
+    {
+      "path": "server.mjs",
+      "bytes": 5517,
+      "sha256": "c53b3c99a0c18fa124aae0a5b455608f51ffe730fd677a85c85ef5765b5169b7"
+    },
+    {
+      "path": "session-events.js",
+      "bytes": 4383,
+      "sha256": "3ef91d94f71fa0cba6190bac447bed5ae936c70dd1c43ce87053b6e944d35fe0"
+    },
+    {
+      "path": "standard-wallet-connect-state.js",
+      "bytes": 4800,
+      "sha256": "b15941911ebae07071a8ca5cc79b14616e24c43e8ba650389362ecf5333e397d"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 15249,
+      "sha256": "7ddcdde02b69d7f75efb13f34e3969eb003165054c4c46feb3b06b7f00b970a2"
+    },
+    {
+      "path": "wallet-auth.js",
+      "bytes": 19641,
+      "sha256": "2b650cec0e6394f25543b9c434f8049b1617b466b6ce5a4e0fb8026f73f478fe"
+    },
+    {
+      "path": "wallet-callback.html",
+      "bytes": 781,
+      "sha256": "22e5b9358ea17fcbd7b7a9d515db85fa59a3ef4c8b42c2c26d6ebaa7d3846729"
+    },
+    {
+      "path": "wallet-callback.js",
+      "bytes": 1274,
+      "sha256": "d5c48fd9723110e205e8173877072e47ba5741cebef7a267b334762c9ae7f445"
+    },
+    {
+      "path": "ynx-wallet-transports-2ece0cb329.manifest.json",
+      "bytes": 257815,
+      "sha256": "497db68a53f153eacd3ca253adc65418bd79f15e2ca31dbd61981f0748b94120"
+    },
+    {
+      "path": "ynx-wallet-transports-2ece0cb329.mjs",
+      "bytes": 1072970,
+      "sha256": "a385bbdf05b92b6eb442e495cead3f3305aaab7e42010079d96078f2fd2a2526"
+    }
+  ]
+}

@@ -1,0 +1,282 @@
+{
+  "schema": "ynx.media.processing-resume.v1",
+  "sourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+  "sourceTree": "f6dd20a7da7581387a9a6e2319b6e676f1da1b4c",
+  "deltaBaseCommit": "728a2a0d0ff0176362bb819b8ecb0037e11b5ca9",
+  "incrementBaseCommit": "a1d0181eadd9ab41cc4b311eeba5a96a916a0b48",
+  "fullDeltaPaths": [
+    "apps/creator-studio/app.js",
+    "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+    "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+    "internal/music/business_request.go",
+    "internal/music/server.go",
+    "internal/music/service.go",
+    "internal/music/store.go",
+    "internal/music/store_publication_test.go",
+    "internal/video/business_request.go",
+    "internal/video/processing_resume_test.go",
+    "internal/video/service.go",
+    "internal/video/store.go",
+    "internal/video/store_publication_test.go"
+  ],
+  "incrementPaths": [
+    "internal/video/service.go",
+    "internal/video/processing_resume_test.go",
+    "apps/creator-studio/app.js",
+    "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+    "apps/creator-studio/scripts/processing-resume-web-check.cjs"
+  ],
+  "candidateAssembly": {
+    "path": "/tmp/ynx-media-processing-resume-20261004/matching-source",
+    "originalAManifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+    "originalManifestFilesVerified": 4484,
+    "files": 4477,
+    "otherSourceUnchanged": true,
+    "originalMainAndSharedHooksPreserved": true,
+    "sourceAdmission": "PENDING",
+    "actualRegisteredInputs": "nil",
+    "hostExecuted": false
+  },
+  "validation": {
+    "originalServiceFocusedRace": "PASS; Go1.25.7",
+    "originalServiceVet": "PASS",
+    "creatorChecks": 75,
+    "creatorDOMCases": 3,
+    "AppleSwiftUI": "syntax parse only; no full native build or installed UI",
+    "matchingGraphFocusedRace": {
+      "toolchain": "go1.25.13 darwin/arm64",
+      "passedTests": [
+        "TestOriginalMediaInputsRefusePartialAndUnboundSource",
+        "TestOriginalMediaActorGuardChecksSourceAfterActor",
+        "TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal",
+        "TestMusicStorePublicationCurrentBoundary",
+        "TestMusicPublishedUnknownRetainsMedia",
+        "TestVideoResumePublishedUnknownOriginal",
+        "TestVideoResumeRefusesChangedOriginalBeforeProcessing",
+        "TestVideoResumeQueuedBehindActiveUploadDoesNotRepeatProcessing",
+        "TestVideoResumeRequiresCurrentAuthorizedActor",
+        "TestVideoStorePublicationCurrentBoundary",
+        "TestVideoPublishedUnknownRetainsMedia",
+        "TestVideoPublishedUnknownStopsProcessing",
+        "TestVideoFirstUploadPublicationRetainsOriginal"
+      ],
+      "failures": 0,
+      "stderrBytes": 0
+    },
+    "defaultMainCompile": "PASS",
+    "taggedMainBuild": "two binaries produced, not executed",
+    "creatorWebBuild": {
+      "sourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+      "sourceTree": "f6dd20a7da7581387a9a6e2319b6e676f1da1b4c",
+      "runtimeFiles": 27
+    }
+  },
+  "binaries": [
+    {
+      "path": "/tmp/ynx-media-processing-resume-20261004/video-candidate",
+      "bytes": 10642370,
+      "sha256": "0aacb54229b4fa0b7f38be4ac2e7a2e17b19d53ebf9d789ae9ad30981cc26bc2",
+      "executed": false,
+      "installed": false
+    },
+    {
+      "path": "/tmp/ynx-media-processing-resume-20261004/music-candidate",
+      "bytes": 13919170,
+      "sha256": "f8e5c2009ca01e69aa587a6c4690889da8c76cba57351f19b728a4b9c6f6e83b",
+      "executed": false,
+      "installed": false
+    }
+  ],
+  "preservedFailures": {
+    "originalService": "4 failing subtests before production fix",
+    "webFixture": "30-second timeout: fixture omitted the original session expiry and SSO identity response; fixture corrected, no product guard bypass or deadline change"
+  },
+  "limits": [
+    "single original service process mutex; no multi-process coordination assertion",
+    "no registered producer, real Wallet, actual Host, OS storage or codec",
+    "Music final Trust reconciliation contract remains unavailable",
+    "old Android release source/APK and old admission HOLD are not relabeled"
+  ],
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/apple-syntax.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-check.txt",
+      "bytes": 7063,
+      "sha256": "a133251c985dc543b2365aa3dd9c1aac71c040ffbff3b34bbe0276604acc0e46"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-isolated-build.txt",
+      "bytes": 49,
+      "sha256": "c8a7037e63c15daa73f55160356c7bcaa0b9db4bde9e0abaf1d91b077a36b255"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-resume-failed.png",
+      "bytes": 109358,
+      "sha256": "dd01d7fa574a2c58fd4f94413cf78149fd76c05efd41919d97670f1c9bb28521"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-resume-scanning.png",
+      "bytes": 109843,
+      "sha256": "06d05730df585855c74b5295d0ef1effb9ab3b305d40405aaa4281a098d5f3bf"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-resume-transcoding.png",
+      "bytes": 110741,
+      "sha256": "e4f17c4b48d7e5ca19b47788ebbf34db1de51e6e37e9c85dff6fdcbd7cf12467"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-studio.manifest.json",
+      "bytes": 4685,
+      "sha256": "da580360194e440fdc77f541629254caa3e4aa3cff4d72e05cbdfde4b05d244c"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/creator-web-candidate.tar.gz",
+      "bytes": 638080,
+      "sha256": "2e243ba6340ca02d40dfb77d7408670c1d0ed7ccbcb32f0508a052d7bf4c8455"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/final-focused-race.txt",
+      "bytes": 60,
+      "sha256": "44fb4c88b7afca0cb76677b6208bd9ae7d4339e3a8aaa1d4cc12c4b7594ae71f"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/increment-after-a1d-five-files.patch",
+      "bytes": 25038,
+      "sha256": "056bf44df847f6833e23891f99030c8df4a1243c4fa597dab66068799ccdd1fd"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/matching-boundaries-race.jsonl",
+      "bytes": 35420,
+      "sha256": "dcc96d17b7bb239381663441017a9144082d9670bf058e2aff124cf00555fe2b"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/matching-boundaries-race.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/matching-public-main-compile.txt",
+      "bytes": 153,
+      "sha256": "c97cd66a84391434f9e243369434cbb0668bdd30309bb5b58d8ad6cf2535bd6d"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/matching-source-manifest.json",
+      "bytes": 901977,
+      "sha256": "baa40ab1cbd284b9941aedb529003d17000e3008600c9991d4554f8b9660473c"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/music-candidate-go-metadata.txt",
+      "bytes": 605,
+      "sha256": "c2c7cd3e2af5cec9330da251bc53d3ffeb84101f0d127053e22f7c615ff83679"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/original-red.txt",
+      "bytes": 905,
+      "sha256": "0a1d9d5e6895aab8242f8dd72a2f19cc9768ac8858823406e232b48408fd30f7"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/owned-thirteen-file-source.patch",
+      "bytes": 51802,
+      "sha256": "a3c8c8a54ab8dd69d0f4c6fab757c4e76cbc6cbf5c1584d6b58545dce0621d77"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/owned-thirteen-file-source.tar.gz",
+      "bytes": 75095,
+      "sha256": "ad27fd71a9b4a49e0f42fd2edcb0583ca02d9ce2954138afd54ac13143b6318a"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/apps/creator-studio/app.js",
+      "bytes": 70393,
+      "sha256": "631665d8eb92a2b68f8a3670d0979479839830b0d233f034b03f7a01d57a3214"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+      "bytes": 49092,
+      "sha256": "d08a95e68bf36352951fa3c7d9e38448940007fef90b238d9db97051490af296"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/apps/creator-studio/scripts/processing-resume-web-check.cjs",
+      "bytes": 5662,
+      "sha256": "7086ece8c73943fe7d75bf023675165d571d56189347b071fe6986087b2e3b28"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/video/processing_resume_test.go",
+      "bytes": 6901,
+      "sha256": "a6bf23c5155cac925457f731bf99abf205d875d0ba1e1858c38b9833a6a760f9"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/video/service.go",
+      "bytes": 67980,
+      "sha256": "ef4e123cea410da3c462cb88fd7938ef42db29929f35754799c2bec7147eb2c8"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/source/internal/video/store_publication_test.go",
+      "bytes": 8456,
+      "sha256": "2ba3e456a47d86149066cf62ca154acb3b747ec925b7890f73e75f66d62891ce"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/video-candidate-go-metadata.txt",
+      "bytes": 598,
+      "sha256": "ee7749cdd65adb460b4ced3cb04d1517723f1d93f11b3c8a519e5c828fa1ee3f"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/web-dom-receipt.json",
+      "bytes": 800,
+      "sha256": "90e8fc6162ae8b059624f7e919f8d934ed88d80dd0b28f0cc7f0b309350976e2"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/web-dom.txt",
+      "bytes": 57,
+      "sha256": "ecb2769b57abbfa4b502f7da6ce2472a3a61bbc73881f37e1514911341397ec0"
+    },
+    {
+      "path": "apps/video/audit/evidence/processing-resume-20261004/web-fixture-original-red.txt",
+      "bytes": 210,
+      "sha256": "087334fedf87aa404cd39c7354741921bb47c87220e3405cc60285e09f383874"
+    }
+  ]
+}

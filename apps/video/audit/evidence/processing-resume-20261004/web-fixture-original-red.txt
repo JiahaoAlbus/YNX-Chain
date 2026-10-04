@@ -1,0 +1,4 @@
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/scripts/processing-resume-web-check.cjs:32:39 {
+  name: 'TimeoutError'
+}

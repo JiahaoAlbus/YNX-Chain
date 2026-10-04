@@ -1,0 +1,32 @@
+{
+  "scope": "original Creator DOM; synthetic session and service responses only",
+  "realWallet": false,
+  "formalHost": false,
+  "actualCodec": false,
+  "cases": [
+    {
+      "phase": "failed",
+      "originalID": "saved_original_failed",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "scanning",
+      "originalID": "saved_original_scanning",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    },
+    {
+      "phase": "transcoding",
+      "originalID": "saved_original_transcoding",
+      "automaticMutations": 0,
+      "explicitProcessingRequests": 1,
+      "reuploadRequests": 0,
+      "pageErrors": []
+    }
+  ]
+}
