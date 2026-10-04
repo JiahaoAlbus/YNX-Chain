@@ -18,6 +18,15 @@ var (
 )
 
 func main() {
+	authority, current, err := prepareOriginalBusiness()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if current != nil {
+		if err = current(); err != nil {
+			log.Fatal(err)
+		}
+	}
 	root := required("YNX_VIDEO_DATA")
 	moderators := map[string]bool{}
 	for _, account := range strings.Split(os.Getenv("YNX_VIDEO_MODERATORS"), ",") {
@@ -35,7 +44,7 @@ func main() {
 	if os.Getenv("YNX_VIDEO_PAY_ENDPOINT") != "" {
 		pay = video.PayClient{Endpoint: os.Getenv("YNX_VIDEO_PAY_ENDPOINT"), Token: required("YNX_VIDEO_PAY_TOKEN")}
 	}
-	svc, err := video.NewService(video.Config{Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
+	svc, err := newOriginalVideoService(video.Config{BusinessAuthority: authority, Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay}, current)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -60,6 +69,11 @@ func main() {
 	}
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
 	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
+	if current != nil {
+		if err = current(); err != nil {
+			log.Fatal(err)
+		}
+	}
 	log.Printf("YNX Video listening on %s", addr)
 	log.Fatal(srv.ListenAndServe())
 }

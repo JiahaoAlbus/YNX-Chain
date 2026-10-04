@@ -56,7 +56,23 @@ func main() {
 		log.Printf("YNX Music backup restored into %s", *dataDir)
 		return
 	}
-	svc, err := music.New(music.Config{StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")})
+	var authority music.MusicBusinessAuthority
+	var current func() error
+	var err error
+	// Backup mode remains the original local encrypted state operation. Restore
+	// and compatibility modes already exited above; no network/grant fallback.
+	if *backupDir == "" {
+		authority, current, err = prepareOriginalBusiness()
+		if err != nil {
+			log.Fatal(err)
+		}
+		if current != nil {
+			if err = current(); err != nil {
+				log.Fatal(err)
+			}
+		}
+	}
+	svc, err := newOriginalMusicService(music.Config{BusinessAuthority: authority, StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")}, current)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,6 +88,11 @@ func main() {
 	}
 	build := buildinfo.Info{Commit: commit, Release: release, BuildTime: buildTime}
 	server := &http.Server{Addr: *httpAddr, Handler: music.NewServerWithBuild(svc, *publicOrigin, musicapp.Web(), build).Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
+	if current != nil {
+		if err = current(); err != nil {
+			log.Fatal(err)
+		}
+	}
 	log.Printf("YNX Music listening on http://%s; public licensed catalog=false", *httpAddr)
 	log.Fatal(server.ListenAndServe())
 }
