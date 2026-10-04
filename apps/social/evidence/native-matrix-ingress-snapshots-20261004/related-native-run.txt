@@ -1,0 +1,46 @@
+✔ binding rejects insecure HS, expired authority, callback URLs and invalid identity (0.841458ms)
+✔ real consumer gate differentiates queue acceptance from delivery (1.387833ms)
+✔ same original intent never generates a new SDK queue transaction (0.820708ms)
+✔ fresh accepted-peer readback is required before send (0.237833ms)
+✔ authority changes during native restoration fence the late result (5.614291ms)
+✔ unencrypted or widened room is refused before SDK sending (0.460291ms)
+✔ lock fences old native plaintext callbacks and clears visible view (0.455333ms)
+✔ restored original journal prevents a changed body or replacement nonce (1.288459ms)
+✔ an SDK observation does not settle or delete the original journal (1.971542ms)
+✔ an older restore completion cannot invalidate a newer successful restoration (0.684625ms)
+✔ authority expiry clears the view without deleting native original entries (99.634583ms)
+✔ verification rechecks the accepted person before approving SDK trust (0.424375ms)
+✔ SAS requires matching peer, current SDK revision and one human approval attempt (0.444541ms)
+✔ another peer cannot feed comparison values into the reviewed verification flow (0.222042ms)
+✔ native timeline input is snapshotted before asynchronous authority review (0.264209ms)
+✔ producer reuse cannot change captured generation or route during review (0.243334ms)
+✔ SAS values retain the original SDK frame across asynchronous review (0.329041ms)
+✔ one subscriber cannot rewrite another subscriber native event view (0.990208ms)
+✔ a received media preview retains the native handle until explicit close (2.099791ms)
+✔ closing an in-flight native download releases its late handle without exposing it (3.866875ms)
+✔ revoked accepted contact releases downloaded plaintext before exposure (0.80725ms)
+✔ event substitution, external URIs, unbounded files and active content cannot become image previews (0.971333ms)
+✔ a second request retires a late earlier download without releasing the newer preview (1.183875ms)
+✔ failed close immediately hides plaintext but retains the original cleanup lease for retry (1.556709ms)
+✔ a replacement cannot download while the original cleanup still fails (0.213042ms)
+✔ a retired download whose release fails is still cleaned by the next close (3.696ms)
+✔ received media is pinned to original room, event, peer and native generation (8.026709ms)
+✔ missing native media exports never use a synthetic port (1.032083ms)
+✔ revoke during native download hides the returned file and releases original generation (1.384167ms)
+✔ late download cleanup cannot release or invalidate a newer restored generation (3.30575ms)
+✔ failed cleanup retains original generation for explicit retry (0.334042ms)
+✔ accepted profile cannot substitute its Matrix identity during download even in a self-only room (0.245917ms)
+✔ native failure without a returned lease retires only the original Matrix scope (0.2105ms)
+✔ validated original observation retains detached original and event snapshots (0.444208ms)
+✔ observation snapshots are frozen without freezing or reusing producer objects (0.13475ms)
+✔ original observation remains only an SDK observation, not delivery or private server proof (0.059417ms)
+✔ readback conflicts still reject rather than retaining an unverified snapshot (0.248542ms)
+✔ checked original list remains detached, immutable and room scoped (0.229959ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 233.761375

@@ -59,6 +59,21 @@ const sameIdentity = (a: MatrixBinding, b: MatrixBinding) => a.account === b.acc
   && a.homeserverUrl === b.homeserverUrl && a.userId === b.userId
   && a.deviceId === b.deviceId && a.authorityId === b.authorityId;
 
+function snapshotMatrixNativeEvent(supplied: MatrixNativeEvent): MatrixNativeEvent {
+  const snapshot: MatrixNativeEvent = { ...supplied };
+  // Snapshot the declared nested arrays before any current-authority await.
+  // Native event rows contain scalar fields; do not freeze producer objects.
+  if (Array.isArray(supplied.events)) {
+    snapshot.events = supplied.events.map(event => Object.freeze({ ...event }));
+    Object.freeze(snapshot.events);
+  }
+  if (Array.isArray(supplied.values)) {
+    snapshot.values = supplied.values.slice();
+    Object.freeze(snapshot.values);
+  }
+  return Object.freeze(snapshot);
+}
+
 // No bearer token, refresh token, DB key, callback or crypto object crosses this
 // interface. A-owned canonical authority is re-read around every native await.
 export class NativeMatrixConsumer {
@@ -100,7 +115,7 @@ export class NativeMatrixConsumer {
     this.scheduleExpiry(Math.min(binding.expiresAtMs, latest.expiresAtMs));
     this.subscription = this.bridge.addListener('onMatrixEvent', (event) => {
       if (event.generation !== this.generation) return;
-      void this.deliver(event, epoch);
+      void this.deliver(snapshotMatrixNativeEvent(event), epoch);
     });
     } catch (error) {
       if (epoch === this.epoch) this.lock(); // Never invalidate a newer restore.

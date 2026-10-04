@@ -145,3 +145,80 @@ test('another peer cannot feed comparison values into the reviewed verification 
   assert.equal(seen.at(-1)?.type, 'locked');
   await assert.rejects(f.consumer.verification('approve', 1), /FLOW_REQUIRED/);
 });
+
+test('native timeline input is snapshotted before asynchronous authority review', async () => {
+  const f = fixture(), seen: MatrixNativeEvent[] = [];
+  f.consumer.listen(event => seen.push(event));
+  await f.consumer.restore(); await f.consumer.open(person);
+  const message = { eventId: '$original', transactionId: null, sender: '@peer:example.test',
+    own: false, remote: true, kind: 'message', body: 'original incoming content' };
+  const original: MatrixNativeEvent = { generation: 7, type: 'timeline', roomId: room.roomId, events: [message] };
+  f.emit(original);
+  message.body = 'changed during authority await';
+  original.events?.push({ ...message, eventId: '$injected' });
+  await new Promise(resolve => setImmediate(resolve));
+  const delivered = seen.find(event => event.type === 'timeline');
+  assert.ok(delivered);
+  assert.equal(delivered.events?.length, 1);
+  assert.equal(delivered.events?.[0]?.body, 'original incoming content');
+  assert.equal(message.body, 'changed during authority await');
+  assert.equal(Object.isFrozen(message), false);
+  f.consumer.lock();
+});
+
+test('producer reuse cannot change captured generation or route during review', async () => {
+  const f = fixture(), seen: MatrixNativeEvent[] = [];
+  f.consumer.listen(event => seen.push(event));
+  await f.consumer.restore(); await f.consumer.open(person);
+  const original: MatrixNativeEvent = { generation: 7, type: 'timeline', roomId: room.roomId, events: [] };
+  f.emit(original);
+  original.generation = 8;
+  original.roomId = '!other:example.test';
+  await new Promise(resolve => setImmediate(resolve));
+  const delivered = seen.find(event => event.type === 'timeline');
+  assert.ok(delivered);
+  assert.equal(delivered.generation, 7);
+  assert.equal(delivered.roomId, room.roomId);
+  f.consumer.lock();
+});
+
+test('SAS values retain the original SDK frame across asynchronous review', async () => {
+  const f = fixture(), seen: MatrixNativeEvent[] = [];
+  f.consumer.listen(event => seen.push(event));
+  await f.consumer.restore(); await f.consumer.open(person); await f.consumer.requestVerification(person);
+  const values = ['1234', '2345', '3456'];
+  const original: MatrixNativeEvent = { generation: 7, type: 'sas', peerUserId: '@peer:example.test',
+    verificationAttempt: 1, revision: 2, values };
+  f.emit(original);
+  values[0] = 'changed'; values.push('injected');
+  await new Promise(resolve => setImmediate(resolve));
+  const delivered = seen.find(event => event.type === 'sas');
+  assert.ok(delivered);
+  assert.deepEqual(delivered.values, ['1234', '2345', '3456']);
+  assert.equal(Object.isFrozen(values), false);
+  assert.equal(Object.isFrozen(delivered.values), true);
+  f.consumer.lock();
+});
+
+test('one subscriber cannot rewrite another subscriber native event view', async () => {
+  const f = fixture(), seen: MatrixNativeEvent[] = [], mutations: boolean[] = [];
+  f.consumer.listen(event => {
+    if (event.type !== 'timeline' || !event.events?.[0]) return;
+    mutations.push(Reflect.set(event, 'roomId', '!changed:example.test'));
+    mutations.push(Reflect.set(event.events[0], 'body', 'changed by subscriber'));
+    mutations.push(Reflect.set(event.events, 'length', 0));
+  });
+  f.consumer.listen(event => seen.push(event));
+  await f.consumer.restore(); await f.consumer.open(person);
+  f.emit({ generation: 7, type: 'timeline', roomId: room.roomId, events: [{ eventId: '$original',
+    transactionId: null, sender: '@peer:example.test', own: false, remote: true,
+    kind: 'message', body: 'original incoming content' }] });
+  await new Promise(resolve => setImmediate(resolve));
+  const delivered = seen.find(event => event.type === 'timeline');
+  assert.ok(delivered);
+  assert.deepEqual(mutations, [false, false, false]);
+  assert.equal(delivered.roomId, room.roomId);
+  assert.equal(delivered.events?.[0]?.body, 'original incoming content');
+  assert.ok(Object.isFrozen(delivered) && Object.isFrozen(delivered.events) && Object.isFrozen(delivered.events?.[0]));
+  f.consumer.lock();
+});

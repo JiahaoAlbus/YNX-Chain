@@ -1,0 +1,31 @@
+✔ binding rejects insecure HS, expired authority, callback URLs and invalid identity (0.59225ms)
+✔ real consumer gate differentiates queue acceptance from delivery (1.034208ms)
+✔ same original intent never generates a new SDK queue transaction (0.456542ms)
+✔ fresh accepted-peer readback is required before send (0.161167ms)
+✔ authority changes during native restoration fence the late result (3.276583ms)
+✔ unencrypted or widened room is refused before SDK sending (0.149458ms)
+✔ lock fences old native plaintext callbacks and clears visible view (0.14625ms)
+✔ restored original journal prevents a changed body or replacement nonce (0.360083ms)
+✔ an SDK observation does not settle or delete the original journal (0.385333ms)
+✔ an older restore completion cannot invalidate a newer successful restoration (0.62925ms)
+✔ authority expiry clears the view without deleting native original entries (101.391709ms)
+✔ verification rechecks the accepted person before approving SDK trust (0.543667ms)
+✔ SAS requires matching peer, current SDK revision and one human approval attempt (1.008667ms)
+✔ another peer cannot feed comparison values into the reviewed verification flow (0.423042ms)
+✔ native timeline input is snapshotted before asynchronous authority review (0.394875ms)
+✔ producer reuse cannot change captured generation or route during review (0.364291ms)
+✔ SAS values retain the original SDK frame across asynchronous review (1.096083ms)
+✔ one subscriber cannot rewrite another subscriber native event view (0.322208ms)
+✔ validated original observation retains detached original and event snapshots (0.413916ms)
+✔ observation snapshots are frozen without freezing or reusing producer objects (0.099375ms)
+✔ original observation remains only an SDK observation, not delivery or private server proof (0.053666ms)
+✔ readback conflicts still reject rather than retaining an unverified snapshot (0.218542ms)
+✔ checked original list remains detached, immutable and room scoped (0.211334ms)
+ℹ tests 23
+ℹ suites 0
+ℹ pass 23
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 224.608583

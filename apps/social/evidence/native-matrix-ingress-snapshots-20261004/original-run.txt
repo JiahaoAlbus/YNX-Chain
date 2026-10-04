@@ -1,0 +1,104 @@
+✔ binding rejects insecure HS, expired authority, callback URLs and invalid identity (0.769375ms)
+✔ real consumer gate differentiates queue acceptance from delivery (1.140625ms)
+✔ same original intent never generates a new SDK queue transaction (0.443542ms)
+✔ fresh accepted-peer readback is required before send (0.1545ms)
+✔ authority changes during native restoration fence the late result (2.681209ms)
+✔ unencrypted or widened room is refused before SDK sending (0.138041ms)
+✔ lock fences old native plaintext callbacks and clears visible view (0.14225ms)
+✔ restored original journal prevents a changed body or replacement nonce (0.4375ms)
+✔ an SDK observation does not settle or delete the original journal (0.39025ms)
+✔ an older restore completion cannot invalidate a newer successful restoration (1.5445ms)
+✔ authority expiry clears the view without deleting native original entries (101.810334ms)
+✔ verification rechecks the accepted person before approving SDK trust (0.50375ms)
+✔ SAS requires matching peer, current SDK revision and one human approval attempt (0.537375ms)
+✔ another peer cannot feed comparison values into the reviewed verification flow (0.269334ms)
+✖ native timeline input is snapshotted before asynchronous authority review (1.740084ms)
+✖ producer reuse cannot change captured generation or route during review (2.486917ms)
+✖ SAS values retain the original SDK frame across asynchronous review (0.538541ms)
+✖ one subscriber cannot rewrite another subscriber native event view (0.881ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 14
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 237.995
+
+✖ failing tests:
+
+test at src/nativeMatrix.test.ts:2:10933
+✖ native timeline input is snapshotted before asynchronous authority review (1.740084ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  2 !== 1
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:162:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 2,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at src/nativeMatrix.test.ts:2:11968
+✖ producer reuse cannot change captured generation or route during review (2.486917ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(delivered)
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:179:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/nativeMatrix.test.ts:2:12633
+✖ SAS values retain the original SDK frame across asynchronous review (0.538541ms)
+  AssertionError [ERR_ASSERTION]: The expression evaluated to a falsy value:
+  
+    assert.ok(delivered)
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:196:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/nativeMatrix.test.ts:2:13482
+✖ one subscriber cannot rewrite another subscriber native event view (0.881ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly deep-equal:
+  + actual - expected
+  
+    [
+  +   true,
+  +   true,
+  +   true
+  -   false,
+  -   false,
+  -   false
+    ]
+  
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:219:10)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: [ true, true, true ],
+    expected: [ false, false, false ],
+    operator: 'deepStrictEqual',
+    diff: 'simple'
+  }
