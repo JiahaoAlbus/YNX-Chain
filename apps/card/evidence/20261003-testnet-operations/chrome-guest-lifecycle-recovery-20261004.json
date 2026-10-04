@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "ynx.card.guest-runtime-recovery.v1",
+  "observedAt": "2026-10-04T01:28:41.773Z",
+  "url": "https://card.ynxweb4.com/?verify=card-test-account-20261004",
+  "publicSourceLastVerified": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "steps": [
+    "Try demo",
+    "Simulate authorization",
+    "Simulate capture",
+    "Simulate reversal",
+    "Simulate refund"
+  ],
+  "beforeReloadDemoEventCount": 5,
+  "afterReloadDemoEventCount": 0,
+  "recoveryVerified": false,
+  "financialLifecycleVerified": false,
+  "observedSemantics": "Buttons append DEMO workflow-prepared events only; no account, balance, transaction or settlement is created.",
+  "sourceRepairPendingFormalRelease": true,
+  "metaMaskRestore": {
+    "displayedAccountObserved": true,
+    "displayedChain": "0x1917",
+    "actualApproveObserved": false,
+    "actualRejectObserved": false,
+    "stableConnectionVerified": false,
+    "subsequentlyDisconnected": true,
+    "detailsClickSucceeded": false
+  },
+  "accountPublished": false,
+  "signed": false,
+  "transaction": false,
+  "privateApproval": false,
+  "activeCard": false,
+  "topUpVerified": false,
+  "states": {
+    "beforeReload": "Browser tab: 694448569, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-test-account-20261004\".\n0 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-test-account-20261004\n\t1 container\n\t\t2 container\n\t\t\t3 container YNX\n\t\t\t4 text TESTNET / SANDBOX\n\t\t\t5 text YNX Card\n\t\t6 button Language\n\t\t\t7 image\n\t\t8 container\n\t\t\t9 container\n\t\t\t\t10 text YNX CARD\n\t\t\t11 text TESTNET / SANDBOX\n\t\t\t12 button Explore YNX Card as guest\n\t\t\t\t13 text Explore as guest\n\t\t\t14 button Connect a Standard EVM wallet\n\t\t\t\t15 image\n\t\t\t\t16 text Connect Wallet\n\t\t17 container\n\t\t\t18 tab group\n\t\t\t\t19 container\n\t\t\t\t\t20 tab (selectable, settable, boolean) Overview, Value: 0\nOverview\n\t\t\t\t\t21 tab (selectable, settable, boolean) Virtual Card, Value: 0\nVirtual Card\n\t\t\t\t\t22 tab (selectable, settable, boolean) Top up with YNXT, Value: 0\nTop up with YNXT\n\t\t\t\t\t23 tab (selected, settable, boolean) Activity, Value: 1\nActivity\n\t\t\t\t\t24 tab (selectable, settable, boolean) Spending Controls, Value: 0\nSpending Controls\n\t\t\t\t\t25 tab (selectable, settable, boolean) Security & Help, Value: 0\nSecurity & Help\n\t\t\t\t26 container\n\t\t\t\t\t27 image\n\t\t\t\t\t28 text TESTNET SANDBOX No real funds, cards, merchants, settlement, PAN, CVV, or personal data.\n\t\t\t29 container\n\t\t\t\t30 heading Your Testnet records, Value: 1\n\t\t\t\t\t31 text Your Testnet records\n\t\t\t\t32 text Read-only sandbox records. Not a bank card or real payment service.\n\t\t\t\t33 text A separate Card private authorization is required.\n\t\t\t\t55 text Activity Local audit records are created only when you run a guest simulation. They are not chain transactions.\n\t\t\t\t56 container\n\t\t\t\t\t57 text Simulate refund Refund workflow prepared locally DEMO\n\t\t\t\t58 container\n\t\t\t\t\t59 text Simulate reversal Reversal workflow prepared locally DEMO\n\t\t\t\t60 container\n\t\t\t\t\t61 text Simulate capture Capture workflow prepared locally DEMO\n\t\t\t\t62 container\n\t\t\t\t\t63 text Simulate authorization Authorization decision prepared locally DEMO\n\t\t\t\t64 container\n\t\t\t\t\t65 text Guest demo started Local sandbox workspace opened DEMO\n\t\t\t\t66 image\n\t\t\t\t67 text Simulate refund recorded locally as a DEMO event. No transaction, balance, or merchant settlement was created.\n\t\t\t\t39 text Wallet: MetaMask disconnected. Reconnect to continue.\n\t\t\t\t40 text Connect a wallet when you need it\n\t\t\t\t41 text Guest simulation works without an account. Choose YNX Wallet or MetaMask only when you intentionally need a Standard EVM Wallet action.\n\t\t\t\t42 button Choose a wallet\n\t\t\t\t\t43 image\n\t\t\t\t\t44 text Choose a wallet\n\t\t\t\t45 container\n\t\t\t\t\t46 text Private services are optional If Product Session is unavailable, Guest mode and your Standard Wallet connection remain usable.\n\t\t\t\t47 text Provider TEST Card\n\t\t\t\t48 text A separate Wallet Product Session is required. A Standard EVM connection does not grant Card access.\n\t\t\t\t49 button Authorize Card TEST session\n\t\t\t\t\t50 text Authorize Card TEST session\n\t\t\t\t51 text Create a Testnet Card application\n\t\t\t\t52 text A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.\n\t\t\t\t53 button Start application\n\t\t\t\t\t54 text Start application\n\nThe focused UI element is 0 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-test-account-20261004",
+    "afterReload": "Browser tab: 694448569, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-test-account-20261004\".\nThe following is a diff from the previous accessibility tree with ~ and + representing changed and added elements, respectively. Removed elements are summarized by ID range.\nRemoved element IDs: 35-90, 93-95, 102-103\n~\t\t\t\t\t21 tab (selectable, settable, boolean) Overview, Value: 0\nOverview\n~\t\t\t\t\t24 tab (selected, settable, boolean) Activity, Value: 1\n+\t\t\t\t\t\t102 image\n+\t\t\t\t\t\t103 text Activity\n+\t\t\t\t104 text Activity Local audit records are created only when you run a guest simulation. They are not chain transactions.\n+\t\t\t\t105 image\n+\t\t\t\t106 text No local simulation activity yet\n+\t\t\t\t107 text Run a safe authorization simulation to see local audit records here.\n+\t\t\t\t108 button Run a demo authorization\n+\t\t\t\t\t109 text Run a demo authorization\n~\t\t\t\t91 text Standard Wallet connection\n~\t\t\t\t92 text MetaMask is connected to YNX Testnet. Private Card services remain a separate optional layer.\n+\t\t\t\t110 container\n+\t\t\t\t\t111 container MetaMask fox logo\n+\t\t\t\t\t\t112 image MetaMask fox logo\n+\t\t\t\t\t113 text MetaMask\n+\t\t\t\t\t114 text [ACCOUNT_REDACTED] · 0x1917\n+\t\t\t\t\t115 button Connection details\n+\t\t\t\t\t\t116 text Connection details\n+\t\t\t\t117 button Enable private services\n+\t\t\t\t\t118 text Enable private services\n+\t\t\t\t119 text Create a Testnet Card application\n+\t\t\t\t120 text A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.\n+\t\t\t\t121 button Start application\n+\t\t\t\t\t122 text Start application\nThe focused UI element is 24 tab (selected, settable, boolean) Activity, Value: 1",
+    "later": "Browser tab: 694448569, Title: \"YNX Card | 1.0.0\", URL: \"https://card.ynxweb4.com/?verify=card-test-account-20261004\".\n1 AXWebArea YNX Card | 1.0.0, URL: card.ynxweb4.com/?verify=card-test-account-20261004\n\t2 container\n\t\t3 container\n\t\t\t4 container YNX\n\t\t\t5 text TESTNET / SANDBOX\n\t\t\t6 text YNX Card\n\t\t7 button Language\n\t\t\t8 image\n\t\t9 container\n\t\t\t10 container\n\t\t\t\t11 text YNX CARD\n\t\t\t12 text TESTNET / SANDBOX\n\t\t\t13 button Explore YNX Card as guest\n\t\t\t\t14 text Explore as guest\n\t\t\t15 button Connect a Standard EVM wallet\n\t\t\t\t16 image\n\t\t\t\t17 text Connect Wallet\n\t\t18 container\n\t\t\t19 tab group\n\t\t\t\t20 container\n\t\t\t\t\t21 tab (selectable, settable, boolean) Overview, Value: 0\nOverview\n\t\t\t\t\t22 tab (selectable, settable, boolean) Virtual Card, Value: 0\nVirtual Card\n\t\t\t\t\t23 tab (selectable, settable, boolean) Top up with YNXT, Value: 0\nTop up with YNXT\n\t\t\t\t\t24 tab (selected, settable, boolean) Activity, Value: 1\n\t\t\t\t\t\t102 image\n\t\t\t\t\t\t103 text Activity\n\t\t\t\t\t25 tab (selectable, settable, boolean) Spending Controls, Value: 0\nSpending Controls\n\t\t\t\t\t26 tab (selectable, settable, boolean) Security & Help, Value: 0\nSecurity & Help\n\t\t\t\t27 container\n\t\t\t\t\t28 image\n\t\t\t\t\t29 text TESTNET SANDBOX No real funds, cards, merchants, settlement, PAN, CVV, or personal data.\n\t\t\t30 container\n\t\t\t\t31 heading Your Testnet records, Value: 1\n\t\t\t\t\t32 text Your Testnet records\n\t\t\t\t33 text Read-only sandbox records. Not a bank card or real payment service.\n\t\t\t\t34 text A separate Card private authorization is required.\n\t\t\t\t104 text Activity Local audit records are created only when you run a guest simulation. They are not chain transactions.\n\t\t\t\t105 image\n\t\t\t\t106 text No local simulation activity yet\n\t\t\t\t107 text Run a safe authorization simulation to see local audit records here.\n\t\t\t\t108 button Run a demo authorization\n\t\t\t\t\t109 text Run a demo authorization\n\t\t\t\t110 text Wallet: MetaMask disconnected. Reconnect to continue.\n\t\t\t\t91 text Connect a wallet when you need it\n\t\t\t\t92 text Guest simulation works without an account. Choose YNX Wallet or MetaMask only when you intentionally need a Standard EVM Wallet action.\n\t\t\t\t111 button Choose a wallet\n\t\t\t\t\t112 image\n\t\t\t\t\t113 text Choose a wallet\n\t\t\t\t96 container\n\t\t\t\t\t97 text Private services are optional If Product Session is unavailable, Guest mode and your Standard Wallet connection remain usable.\n\t\t\t\t98 text Provider TEST Card\n\t\t\t\t99 text A separate Wallet Product Session is required. A Standard EVM connection does not grant Card access.\n\t\t\t\t100 button Authorize Card TEST session\n\t\t\t\t\t101 text Authorize Card TEST session\n\t\t\t\t114 text Create a Testnet Card application\n\t\t\t\t115 text A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.\n\t\t\t\t116 button Start application\n\t\t\t\t\t117 text Start application\n\nThe focused UI element is 24 tab (selected, settable, boolean) Activity, Value: 1"
+  },
+  "screenshots": [
+    {
+      "file": "chrome-guest-lifecycle-before-reload-20261004.jpg",
+      "bytes": 125423,
+      "sha256": "208c85809854ad6d6216be13264dd0702cd32c4c1dfdc39353ca3f12a817e37f"
+    },
+    {
+      "file": "chrome-guest-lifecycle-after-reload-20261004.jpg",
+      "bytes": 110429,
+      "sha256": "be8d11ee95f116bb424c0d6e9f90798fb0faa8b0ca1548499cdd740bc14049aa"
+    }
+  ]
+}

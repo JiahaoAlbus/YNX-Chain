@@ -6,11 +6,12 @@ import {guestText,guestResources,guestInvariantText} from "./guestCopy";
 import {registrationResources} from "./registrationCopy";
 import {registrationText} from "./registrationCopy";
 import {createDraft} from "./registration";
+import {guestSandboxStorageText} from "./guestSandboxJournal";
 const require=createRequire(import.meta.url);
 const {mountGuest,flattenStyle,textOf}=require("../test/guest-experience-fixture.cjs");
 const escape=(value:string)=>value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 function registeredVisibleText(locale:typeof locales[number],value:string){
-  const literals=[...Object.values(guestResources[locale].text),...Object.values(registrationResources[locale].text),...Object.values(registrationResources[locale].statuses)];
+  const literals=[...Object.values(guestResources[locale].text),...Object.values(registrationResources[locale].text),...Object.values(registrationResources[locale].statuses),...(['local','temporary','preserved'] as const).map(status=>guestSandboxStorageText(locale,status))];
   const templates=[...Object.values(guestResources[locale].templates),...Object.values(registrationResources[locale].templates)];
   return ["1","2","3","4","5"].includes(value)||literals.includes(value)||templates.some(template=>new RegExp("^"+template.split(/\{\w+\}/).map(escape).join(".+")+"$").test(value));
 }

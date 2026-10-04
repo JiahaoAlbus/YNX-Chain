@@ -7,6 +7,7 @@ import{isRTL,type Locale}from"./i18n";
 import{guestTemplate,guestText,isGuestCopyKey}from"./guestCopy";
 import{hostedWalletText}from"./hostedWalletCopy";
 import{privateServiceText}from"./privateServiceCopy";
+import{GuestSandboxJournal,webGuestSandboxStorage,guestSandboxStorageText,type GuestDemoEvent}from"./guestSandboxJournal";
 import{providerGuestText,providerGuestErrorText}from"./providerGuestCopy";
 import{CardText as NativeText}from"./cardTypography";
 import{RegistrationExperience}from"./RegistrationExperience";
@@ -18,7 +19,7 @@ import{createStandardWalletConnectState}from"@ynx-chain/wallet-auth";
 
 const BLUE="#002FA7",INK="#171A22",MUTED="#5B6270",LINE="#DFE3EA",PALE="#F4F7FF",WARN=BLUE;
 type Section="overview"|"card"|"topup"|"activity"|"controls"|"help";
-type DemoEvent={id:number;label:string;detail:string};
+type DemoEvent=GuestDemoEvent;
 type StandardWalletState=ReturnType<typeof createStandardWalletConnectState>;
 const sections:readonly{key:Section;label:string;icon:typeof CreditCard}[]=[
   {key:"overview",label:"Overview",icon:BadgeCheck},{key:"card",label:"Virtual Card",icon:CreditCard},{key:"topup",label:"Top up with YNXT",icon:WalletCards},{key:"activity",label:"Activity",icon:Activity},{key:"controls",label:"Spending Controls",icon:SlidersHorizontal},{key:"help",label:"Security & Help",icon:CircleHelp},
@@ -32,7 +33,10 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
   const layoutKey=`${width}:${fontScale}:${locale}`,measuredLayout=useRef(layoutKey);
   if(measuredLayout.current!==layoutKey){measurementAttempt.current++;measuredLayout.current=layoutKey}
   const[navigationRevision,setNavigationRevision]=useState(0);
-  const[section,setSection]=useState<Section>("overview"),[frozen,setFrozen]=useState(false),[online,setOnline]=useState(true),[international,setInternational]=useState(false),[events,setEvents]=useState<readonly DemoEvent[]>([]),[notice,setNotice]=useState(""),[ynxWalletFallback,setYNXWalletFallback]=useState(false);
+  const[journal]=useState(()=>new GuestSandboxJournal(Platform.OS==="web"?webGuestSandboxStorage():undefined));
+  const demoDraft=useRef(journal.snapshot);
+  const[storageStatus,setStorageStatus]=useState(journal.status);
+  const[section,setSection]=useState<Section>("overview"),[frozen,setFrozen]=useState(journal.snapshot.controls.frozen),[online,setOnline]=useState(journal.snapshot.controls.online),[international,setInternational]=useState(journal.snapshot.controls.international),[events,setEvents]=useState<readonly DemoEvent[]>(journal.snapshot.events),[notice,setNotice]=useState(""),[ynxWalletFallback,setYNXWalletFallback]=useState(false);
   const showSectionStart=()=>{
     const scroll=contentRef.current,content=sectionRef.current,parent=scrollBodyRef.current,nav=navigationEpoch.current;
     if(!mounted.current||!pendingNavigation.current||!scroll||measuredLayout.current!==layoutKey)return;
@@ -48,7 +52,16 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;pendingNavigation.current=false;measurementAttempt.current++}},[]);
   useEffect(()=>{const frame=requestAnimationFrame(showSectionStart);return()=>{cancelAnimationFrame(frame);measurementAttempt.current++}},[section,navigationRevision,compact,layoutKey]);
   const walletLabel=walletSession?guestTemplate(locale,"walletConnected",{address:`${walletSession.address.slice(0,6)}...${walletSession.address.slice(-4)}`}):guestText(locale,"Wallet optional for guest simulation");
-  const runDemo=(label:string,detail:string,showActivity=true)=>{setEvents(previous=>[{id:Date.now(),label,detail},...previous]);setNotice(guestTemplate(locale,"demoRecorded",{label:guestText(locale,label)}));if(showActivity)navigateTo("activity")};
+  const runDemo=(label:string,detail:string,showActivity=true)=>{
+    const id=Math.max(Date.now(),...demoDraft.current.events.map(event=>event.id+1));
+    const next={...demoDraft.current,events:[{id,label,detail},...demoDraft.current.events]};
+    demoDraft.current=next;journal.save(next);setStorageStatus(journal.status);setEvents(next.events);
+    setNotice(guestTemplate(locale,"demoRecorded",{label:guestText(locale,label)}));if(showActivity)navigateTo("activity");
+  };
+  const updateDemoControl=(key:"frozen"|"online"|"international",value:boolean)=>{
+    demoDraft.current={...demoDraft.current,controls:{...demoDraft.current.controls,[key]:value}};
+    if(key==="frozen")setFrozen(value);else if(key==="online")setOnline(value);else setInternational(value);
+  };
   const openYNXWallet=async()=>{
     const result=await connectYNXWallet();
     if(result==="wallet-opened"){setYNXWalletFallback(false);setNotice(guestText(locale,Platform.OS==="web"?"YNX Wallet Standard EVM connection was approved on YNX Testnet. No private Card session, card, funding authority, or transaction was created.":"YNX Wallet native authorization was opened. Await explicit Wallet approval; no Standard EVM connection, Card session, card, funding authority, or transaction was created."));return;}
@@ -70,8 +83,9 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
         {section==="card"?<VirtualCard runDemo={runDemo}/>:null}
         {section==="topup"?<TopUp setSection={navigateTo} connectWallet={Platform.OS==="web"?connectWallet:openYNXWallet} walletBusy={walletBusy}/>:null}
         {section==="activity"?<ActivityLog events={visibleEvents} runDemo={runDemo}/>:null}
-        {section==="controls"?<Controls frozen={frozen} setFrozen={setFrozen} online={online} setOnline={setOnline} international={international} setInternational={setInternational} runDemo={runDemo}/>:null}
+        {section==="controls"?<Controls frozen={frozen} setFrozen={value=>updateDemoControl("frozen",value)} online={online} setOnline={value=>updateDemoControl("online",value)} international={international} setInternational={value=>updateDemoControl("international",value)} runDemo={runDemo}/>:null}
         {section==="help"?<Help/>:null}
+        <View accessibilityLiveRegion="polite" style={storageStatus==="preserved"?g.degraded:g.notice}><Text style={g.noticeText}>{guestSandboxStorageText(locale,storageStatus)}</Text></View>
         {notice?<View accessibilityRole="alert" style={g.notice}><BadgeCheck color={BLUE} size={18}/><Text style={g.noticeText}>{notice}</Text></View>:null}
         {walletError?<Text accessibilityRole="alert" style={g.error}>{guestTemplate(locale,"walletError",{message:walletError})}</Text>:null}
         {privateSession?.state==="PRIVATE_SERVICE_DEGRADED"?<View accessibilityRole="alert" style={g.degraded}><Text style={g.degradedTitle}>Private Service Degraded</Text><Text style={g.degradedText}>{guestTemplate(locale,"walletError",{message:privateServiceText(locale,privateSession.code)})} {guestText(locale,"Your guest workspace remains available.")}</Text></View>:null}

@@ -53,3 +53,29 @@ test('explicit Virtual Card demos still lead to Activity without creating Wallet
     assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
   }finally{await app.unmount()}
 });
+
+test('Web guest controls and audit survive a real component cold remount without Wallet authority',async()=>{
+ const records=new Map(),guestStorage={getItem:key=>records.get(key)??null,setItem:(key,value)=>records.set(key,value)};
+ let app=await mountGuest({platform:'web',fontScale:1,guestStorage});
+ try{
+  await app.tab('Spending Controls');await app.change('Freeze simulated card',true);
+  await app.change('Online merchant simulation',false);
+  await app.tab('Virtual Card');await app.press(app.buttons('Simulate authorization')[0]);
+  await app.unmount();app=await mountGuest({platform:'web',fontScale:1,guestStorage});
+  await app.tab('Activity');assert.match(app.text(),/Authorization decision prepared locally/);assert.match(app.text(),/Local freeze applied/);
+  await app.tab('Spending Controls');
+  assert.equal(app.renderer.root.find(n=>n.type==='Switch'&&n.props.accessibilityLabel==='Freeze simulated card').props.value,true);
+  assert.equal(app.renderer.root.find(n=>n.type==='Switch'&&n.props.accessibilityLabel==='Online merchant simulation').props.value,false);
+  assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
+  assert.match(app.text(),/Not an account or on-chain history/);
+ }finally{await app.unmount()}
+});
+test('damaged guest storage remains untouched and the rendered UI warns that new changes were not saved',async()=>{
+ let raw='{damaged',writes=0;
+ const app=await mountGuest({platform:'web',fontScale:1,guestStorage:{getItem:()=>raw,setItem:value=>{writes++;raw=value}}});
+ try{
+  await app.tab('Virtual Card');await app.press(app.buttons('Simulate refund')[0]);
+  assert.match(app.text(),/Existing DEMO storage was preserved/);assert.match(app.text(),/New changes could not be saved/);
+  assert.equal(raw,'{damaged');assert.equal(writes,0);assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
+ }finally{await app.unmount()}
+});
