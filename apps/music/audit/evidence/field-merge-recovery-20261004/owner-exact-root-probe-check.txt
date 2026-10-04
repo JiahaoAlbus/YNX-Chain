@@ -1,0 +1,7 @@
+PASS profile and verified download preserve latest unrelated fields
+PASS same original library tuple cold readback acknowledges without dispatch
+PASS mismatched snapshot and old intent cannot consume successor
+PASS changed account refuses original cache commit
+MODEL newer upload=true, position=99, playlist=newer original playlist, staged audio retained=true
+PASS P2 library edit must preserve upload intent persisted after Activity snapshot capture
+RESULT pass=5 fail=0 SDK/auth/network/device=NOT_RUN
