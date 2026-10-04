@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createVideoBusinessIdentity} from './business-identity.js';
+import {createRecoveredPlaylist} from './playlist-recovery.js';
 
 const code=(await readFile(new URL('./app.js',import.meta.url),'utf8')).replace(/^import[^\n]*\n/gm,'').replace(/^export /gm,'');
 const AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
@@ -12,6 +13,7 @@ class Element {
  setAttribute(name,value){this.attributes.set(name,String(value));}
  getAttribute(name){return this.attributes.get(name)??null;}
  removeAttribute(name){this.attributes.delete(name);}
+ remove(){this.removed=true;}
  replaceChildren(...children){this.children=children;this.innerHTML='';}
  append(...children){this.children.push(...children);}
  querySelector(){return this.child??=new Element();}
@@ -27,14 +29,17 @@ async function controller({search='',hash='',browser={invalidate(){},signIn(){},
  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,new Element());return nodes.get(selector);};
  const nav=['discover','subscriptions','playlists','history','settings'].map(view=>{const e=node(`[data-view="${view}"]`);e.dataset.view=view;return e;});
  node('#page-title').setAttribute('data-i18n','discover');node('#content').setAttribute('aria-busy','true');
- const document={querySelector:node,querySelectorAll:selector=>selector==='nav button'?nav:[],createElement:()=>new Element()};
+ const document={querySelector:node,querySelectorAll:selector=>selector==='nav button'?nav:[],createElement:tag=>{const element=new Element();if(tag==='form')element.elements={name:new Element()};return element;}};
  const calls=[];
  const dependencies={createMediaBrowserIdentity:()=>({...browser,authorization:(_session,proof)=>proof()}),document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
   history:{replaceState(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;},clearTimeout,
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
   videoProductSession:product,restoreVideoWallet:async()=>null,
-  createVideoBusinessIdentity,
+  createVideoBusinessIdentity,createRecoveredPlaylist,
+  // Navigation fixtures have no real IDB or real actor. Real recovery is checked
+  // separately with Chromium IDB and the original protected service journey.
+  createPlaylistJournal:()=>({read:async(_account,current)=>{current();return {pending:null,history:[]};}}),
   createVideoAPI:()=>async (path,options)=>{calls.push(path);return path==='/v1/account'?{schemaVersion:1,account:connected.session.account}:request(path,options);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
   discoverWalletCandidates:async()=>[],
