@@ -6,7 +6,7 @@ import {randomBytes} from 'node:crypto';
 import {build} from 'esbuild';
 import {chromium} from 'playwright';
 import {ProductSessionGatewayHttpHandler,parseProductSessionWalletURL,signProductSessionApproval,createProductSessionReturnURL,canonicalJSON} from '../../../packages/wallet-auth/src/index.js';
-import {paperSessionCopy,paperActionCopy} from '../web/paper-session-copy.js';
+import {paperSessionCopy,paperActionCopy,paperRiskCopy} from '../web/paper-session-copy.js';
 import {privateSessionLocales} from '../web/private-session-copy.js';
 
 const ORIGIN='https://quant.ynxweb4.com',AUTH='https://wallet-auth.ynxweb4.com';
@@ -18,7 +18,7 @@ test('actual Chrome Paper panel approves separately, refreshes owned snapshot, r
   const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
   try{for(const reject of [false,true]){
     const context=await browser.newContext(),page=await context.newPage(),kernel=new ProductSessionGatewayHttpHandler(registry,()=>randomBytes(32).toString('base64url'));
-    let approvals=0,reads=0,writes=0,backtests=0,failOrder=false;const submittedBodies=[];
+    let approvals=0,reads=0,writes=0,backtests=0,risks=0,failOrder=false;const submittedBodies=[];
     await page.exposeFunction('fixtureApproval',async route=>{
       approvals++;const request=parseProductSessionWalletURL(registry,route);assert.deepEqual(request.scopes,['quant:paper:workspace']);
       const now=new Date(),result=reject?{result:'rejected',reason:'user_rejected'}:{result:'approved',approval:signProductSessionApproval(registry,request,{accountSecret:'1'.padStart(64,'0'),scopes:request.scopes,expiresAt:new Date(now.getTime()+180000).toISOString()},now)};
@@ -45,6 +45,7 @@ test('actual Chrome Paper panel approves separately, refreshes owned snapshot, r
         const result=kernel.handle({requestId:'req_paper_'+randomBytes(16).toString('hex'),method:'POST',path:'/v2/product-sessions/introspect',contentType:'application/json',body:canonicalJSON({requiredScopes:['quant:paper:workspace']}),proofHeader:r.headers()['x-ynx-product-session-proof-v2'],networkAvailable:true},new Date());assert.equal(result.status,200);
         const session=JSON.parse(result.body).result.session;
         const binding={account:session.account,sessionBinding:session.sessionBinding};
+        if(url.pathname.includes('/risk/')){risks++;const body=JSON.parse(r.postData());assert.equal(r.method(),'POST');assert.match(body.idempotencyKey,/^quant-native-risk-/);return route.fulfill({contentType:'application/json',body:JSON.stringify({...binding,action:url.pathname.split('/').at(-1),idempotencyKey:body.idempotencyKey,requestDigest:'d'.repeat(64),paper:{KillSwitch:true,ReconciliationDelta:0}})});}
         if(url.pathname.endsWith('/orders')){writes++;assert.equal(r.method(),'POST');submittedBodies.push(r.postData());const body=JSON.parse(r.postData());if(failOrder)return route.fulfill({status:503,contentType:'application/json',body:'{"error":"controlled_unknown"}'});return route.fulfill({contentType:'application/json',body:JSON.stringify({...binding,ID:'paper-000001',StrategyHash:body.strategyHash,Side:body.side,Amount:body.amount,IdempotencyKey:body.idempotencyKey})});}
         if(url.pathname.endsWith('/backtests/from-market')){backtests++;assert.equal(r.method(),'POST');const body=JSON.parse(r.postData());assert.equal(body.assumptions.feeBPS,10);return route.fulfill({contentType:'application/json',body:JSON.stringify({...binding,id:'fixture-experiment',strategy:body.strategy})});}
         reads++;assert.equal(r.method(),'GET');return route.fulfill({contentType:'application/json',body:JSON.stringify({...binding,paper:{Cash:123,Position:7},strategies:{a:{ID:'owned',Name:'Controlled saved strategy',StrategyHash:'a'.repeat(64)},b:{ID:'other-owned',Name:'Other controlled saved strategy',StrategyHash:'b'.repeat(64)}},experiments:{},audit:[],access:{paperWorkspaceAuthorized:true,statefulPreview:false,nativeExecutionEnabled:false,scheduleAuthorized:false}})});
@@ -74,6 +75,11 @@ test('actual Chrome Paper panel approves separately, refreshes owned snapshot, r
         const refreshed=page.waitForResponse(response=>response.url()===ORIGIN+'/api/v1/wallet/paper/snapshot');await page.locator('#paper-refresh').click();await refreshed;assert.ok(reads>=2);
         await page.reload();await page.waitForFunction(()=>window.paperQA.getPaperSessionState().status==='connected');assert.equal(approvals,1);
         await page.locator('#paper-refresh').click();await page.waitForFunction(()=>document.getElementById('paper-owned-position').textContent==='7');
+        await page.locator('#paper-native-reason').fill('Controlled user confirmed native halt');await page.locator('#paper-native-kill').click();assert.equal(risks,0);assert.equal(await page.locator('#paper-owned-model').textContent(),paperRiskCopy(await page.evaluate(()=>localStorage.getItem('ynx.quant.locale')||'en')).boundary);await page.locator('#paper-owned-cancel').click();assert.equal(risks,0);
+        await page.locator('#paper-native-kill').click();await page.locator('#paper-owned-confirm').click();await page.waitForFunction(()=>!document.getElementById('paper-owned-preview').open);assert.equal(risks,1);
+        await page.locator('#paper-native-reconcile').click();assert.equal(risks,1);assert.equal(await page.locator('#paper-owned-preview').evaluate(dialog=>dialog.open),false);
+        await page.locator('#paper-native-cash').fill('123');await page.locator('#paper-native-position').fill('7');await page.locator('#paper-native-reconcile').click();await page.locator('#paper-owned-cancel').click();assert.equal(risks,1);
+        await page.locator('#paper-native-reconcile').click();await page.locator('#paper-owned-confirm').click();await page.waitForFunction(()=>!document.getElementById('paper-owned-preview').open);assert.equal(risks,2);
         await page.locator('#paper-revoke').click();await page.waitForFunction(()=>window.paperQA.getPaperSessionState().status==='disconnected');assert.equal(await page.locator('#paper-owned-cash').textContent(),'—');
       }
       assert.equal(await page.evaluate(()=>window.standardFixture.status),'connected');assert.equal(context.pages().length,1);assert.equal(page.url(),ORIGIN+'/');

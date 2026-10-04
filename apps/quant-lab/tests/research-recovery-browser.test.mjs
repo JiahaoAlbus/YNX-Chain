@@ -60,7 +60,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       if(posts===1){const response=await route.fetch();assert.equal(response.status(),201);firstReceipt=await response.json();return route.abort('failed');}
       const response=await route.fetch();assert.equal(response.status(),201);assert.deepEqual(await response.json(),firstReceipt);return route.fulfill({response});
     });
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('#strategy').fill('Controlled lost-return research');await page.locator('#fee').fill('17');await page.locator('#research-submit').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#strategy').fill('Controlled lost-return research');await page.locator('#fee').fill('17');await page.locator('#research-submit').click();
     await page.locator('#toast').filter({hasText:'Request outcome is unconfirmed'}).waitFor();assert.equal(posts,1);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(await page.locator('#research-submit').isEnabled(),true);
     assert.match(firstReceipt.researchRequestKey,/^quant-research-/);assert.equal(firstReceipt.status,'completed_oos');assert.equal(firstReceipt.assumptions.FeeBPS,17);
     await page.locator('#fee').fill('18');await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'Restore its original inputs'}).waitFor();assert.equal(posts,1);
@@ -87,7 +87,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       }
       return route.continue();
     });
-    await otherPage.goto(base,{waitUntil:'networkidle'});await otherPage.locator('#strategy').fill('Independent browser research');await otherPage.locator('#fee').fill('29');await otherPage.locator('#research-submit').click();
+    await otherPage.goto(base+'/app',{waitUntil:'networkidle'});await otherPage.locator('#strategy').fill('Independent browser research');await otherPage.locator('#fee').fill('29');await otherPage.locator('#research-submit').click();
     await otherPage.waitForFunction(()=>workspaceReadUnavailable&&!researchSubmitting);
     assert.equal(otherPosts,1);assert.equal(await otherPage.locator('#latest-result').isVisible(),true);
     assert.equal(await otherPage.locator('#research-request-status').isVisible(),false);
@@ -327,7 +327,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     const overlapContext=await browser.newContext({viewport:{width:1280,height:800}}),tabA=await overlapContext.newPage();
     await overlapContext.route('**/*',async route=>new URL(route.request().url()).origin!==base?route.abort():route.continue());
     const overlapErrors=[];tabA.on('pageerror',error=>overlapErrors.push(error.message));
-    await tabA.goto(base,{waitUntil:'networkidle'});await tabA.locator('#strategy').fill('Same-workspace late-response research');await tabA.locator('#research-submit').click();
+    await tabA.goto(base+'/app',{waitUntil:'networkidle'});await tabA.locator('#strategy').fill('Same-workspace late-response research');await tabA.locator('#research-submit').click();
     await tabA.waitForFunction(()=>latestResearchResult?.strategy.Name==='Same-workspace late-response research'&&!researchSubmitting);
     const overlapHash=await tabA.evaluate(()=>Object.values(snapshot.strategies)[0].StrategyHash),overlapInitialCash=await tabA.evaluate(()=>snapshot.paper.Cash);
     await tabA.locator('nav button[data-view="paper"]').click();await tabA.selectOption('#paper-strategy',overlapHash);await tabA.locator('#paper-amount').fill('1000000');
@@ -348,7 +348,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
       assert.equal(await tabA.evaluate(()=>paperSubmitting),true);
       const originalJournal=await tabA.evaluate(()=>localStorage.getItem(paperPendingKey));assert.ok(originalJournal);
       const tabB=await overlapContext.newPage();tabB.on('pageerror',error=>overlapErrors.push(error.message));
-      await tabB.goto(base,{waitUntil:'networkidle'});await tabB.locator('nav button[data-view="paper"]').click();
+      await tabB.goto(base+'/app',{waitUntil:'networkidle'});await tabB.locator('nav button[data-view="paper"]').click();
       assert.equal(await tabB.evaluate(()=>localStorage.getItem(paperPendingKey)),originalJournal);
       const replayDialog=tabB.waitForEvent('dialog'),replayClick=tabB.locator('#paper-submit').click();await (await replayDialog).accept();await replayClick;
       await tabB.waitForFunction(()=>pendingPaperIntent===null&&!paperSubmitting);

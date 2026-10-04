@@ -32,11 +32,12 @@ function verify(m,{current=true,expectedPaths=paths}={}){
 test('historical recovery handoff retains six exact archived objects, but cannot pass as current bytes',()=>{
   verify(manifest,{current:false});assert.throws(()=>verify(manifest));
 });
-test('current Paper draft handoff binds eight exact consumer objects without relabelling historical custody',()=>{
+test('prior Paper draft handoff retains eight exact archived objects without relabelling them as composed runtime bytes',()=>{
   assert.equal(currentManifest.supersedesForCurrentConsumerOnly,'recovery-consumer-inputs-20261004.json');
   assert.equal(currentManifest.historicalManifestPreserved,true);
   assert.equal(currentManifest.sourceCommit,'acb6ee7fede9fca7f70050015e8736b7daddbf7b');
-  verify(currentManifest,{expectedPaths:currentPaths});
+  verify(currentManifest,{current:false,expectedPaths:currentPaths});
+  assert.throws(()=>verify(currentManifest,{expectedPaths:currentPaths}));
 });
 test('current handoff rejects altered custody, omitted browser proof, stale bytes and promoted truth',()=>{
   for(const mutate of [m=>m.sourceTree='0'.repeat(40),m=>m.objects[0].bytes++,m=>m.objects[0].sha256='0'.repeat(64),m=>m.objects.pop(),m=>m.objects[1]=m.objects[0],m=>m.objects[0].path='packages/wallet-auth/src/index.js',m=>m.truth.runtimeBuilt=true,m=>m.preserveSharedGraph=false,m=>m.forbiddenReplacementPaths=[]]){

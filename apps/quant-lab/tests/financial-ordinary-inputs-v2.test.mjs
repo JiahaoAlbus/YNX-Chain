@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {verify,manifestPath} from '../scripts/verify-financial-ordinary-inputs-v2.mjs';
 const original=JSON.parse(readFileSync(manifestPath,'utf8'));
-test('exact immutable source identities pass without promoting release',()=>{
-  const result=verify(original);assert.equal(result.verifiedObjects,11);assert.equal(result.publicVerified,false);
+test('archived immutable source identities pass custody, but never qualify as composed working bytes or release',()=>{
+  const result=verify(original,{requireWorkingBytes:false});assert.equal(result.verifiedObjects,11);assert.equal(result.publicVerified,false);assert.equal(result.classification,'ARCHIVED_EXACT_SOURCE_NOT_CURRENT_RUNTIME');assert.throws(()=>verify(original),/working bytes/);
 });
 const cases={
   tree:m=>{m.sourceTree='0'.repeat(40);},
@@ -21,4 +21,4 @@ const cases={
   mode:m=>{m.integrationMode='COPY_CHECKOUT';},
   fences:m=>{m.retainBaseStorageFences=false;}
 };
-for(const [name,mutate] of Object.entries(cases))test('reject '+name,()=>{const m=structuredClone(original);mutate(m);assert.throws(()=>verify(m));});
+for(const [name,mutate] of Object.entries(cases))test('reject '+name,()=>{const m=structuredClone(original);mutate(m);assert.throws(()=>verify(m,{requireWorkingBytes:false}));});

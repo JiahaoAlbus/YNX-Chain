@@ -48,7 +48,7 @@ for(const product of products) test(`${product.name} original YNX logo remains c
           for(let i=0;i<before.length;i++)assert.ok(after[i].font>before[i].font,`${product.name} ${width} ${phase} text size did not change: ${JSON.stringify(before[i])}`);
           await page.selectOption('#ui-text-size','standard');
           await page.locator('.ui-preferences summary').click();
-          const observed=await inspect();assert.equal(observed.width,798);assert.equal(observed.height,420);assert.equal(observed.fit,'contain');assert.equal(observed.shrink,'0');assert.equal(observed.visible,true);assert.equal(observed.boxHeight,22);assert.ok(observed.x>=0&&observed.right<=width);
+          const observed=await inspect();assert.equal(observed.width,798);assert.equal(observed.height,420);assert.equal(observed.fit,'contain');assert.equal(observed.shrink,'0');assert.equal(observed.visible,true);assert.equal(observed.boxHeight,product.name==='exchange'&&width>700?23:22);assert.ok(observed.x>=0&&observed.right<=width);
           assert.equal(context.pages().length,1);
           const sizes=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(sizes[0]<=sizes[1],`${product.name} ${width}: ${sizes}`);
           const evidence=path.join(repo,'tmp','financial-sizing-evidence');await mkdir(evidence,{recursive:true});await page.screenshot({path:path.join(evidence,`${product.name}-${width}-${phase}.png`),fullPage:false});

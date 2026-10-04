@@ -21,7 +21,7 @@ function notify(){window.dispatchEvent(new CustomEvent('ynx:quant-paper-session'
 async function client(){
   if(adapter)return adapter;
   if(!initializing){const generation=epoch;
-    const own=createBrowserProductSessionClient({registry,productId:'quant',scopes:SCOPES,purpose:'Use my simulated Paper workspace: save backtests, submit Paper signals and read receipts. No real funds, live/Testnet execution or scheduling.',gateway:new ProductSessionGatewayFetchAdapter({endpoint:'https://wallet-auth.ynxweb4.com',fetch:globalThis.fetch.bind(globalThis),walletInstalled:()=>false,schemeRegistered:()=>false,timeoutMs:10000})}).then(value=>{if(closed||generation!==epoch||initializing!==own){value.close();fail('PRIVATE_OPERATION_SUPERSEDED');}adapter=value;return value;}).finally(()=>{if(initializing===own)initializing=null;});initializing=own;
+    const own=createBrowserProductSessionClient({registry,productId:'quant',scopes:SCOPES,purpose:'Use my simulated Paper workspace: save backtests, submit signals, halt, reconcile and read receipts. No real funds, live/Testnet execution or scheduling.',gateway:new ProductSessionGatewayFetchAdapter({endpoint:'https://wallet-auth.ynxweb4.com',fetch:globalThis.fetch.bind(globalThis),walletInstalled:()=>false,schemeRegistered:()=>false,timeoutMs:10000})}).then(value=>{if(closed||generation!==epoch||initializing!==own){value.close();fail('PRIVATE_OPERATION_SUPERSEDED');}adapter=value;return value;}).finally(()=>{if(initializing===own)initializing=null;});initializing=own;
   }return initializing;
 }
 function sameContext(previous){const next=window.YNXQuantWallet.getPrivateWalletContext();return previous.provider===next.provider&&previous.account===next.account&&previous.chainId===next.chainId&&previous.providerKind===next.providerKind&&previous.revision===next.revision;}
@@ -45,7 +45,7 @@ export function beginPaperSession(){
   })();const own=pending;own.finally(()=>{if(pending===own){pending=null;render();}}).catch(()=>null);render();return own;
 }
 export async function revokePaperSession(){epoch++;data=null;state={status:'guest',account:null};render();notify();const selected=await client(),revision=epoch,result=await(cancelPending?cancelPending():retire(selected));if(revision===epoch&&result){if(result.status==='disconnected'&&result.revocationConfirmed===true)localStorage.removeItem(STARTED);publish(result);}return result;}
-const allowed=Object.freeze({'GET /v1/wallet/paper/snapshot':true,'POST /v1/wallet/paper/backtests/from-market':true,'POST /v1/wallet/paper/orders':true});
+const allowed=Object.freeze({'GET /v1/wallet/paper/snapshot':true,'POST /v1/wallet/paper/backtests/from-market':true,'POST /v1/wallet/paper/orders':true,'POST /v1/wallet/paper/risk/kill':true,'POST /v1/wallet/paper/risk/reconcile':true});
 // Response limits apply to actual decoded bytes, not JavaScript character count
 // or a compressed Content-Length. Abort/cancel before retaining oversized data.
 async function readPaperDocument(response){

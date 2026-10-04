@@ -22,7 +22,7 @@ type paperWorkspaceBinding struct {
 }
 
 func privatePaperRequest(r *http.Request) bool {
-	return r.Method == http.MethodGet && r.URL.Path == "/v1/wallet/paper/snapshot" || r.Method == http.MethodPost && (r.URL.Path == "/v1/wallet/paper/backtests/from-market" || r.URL.Path == "/v1/wallet/paper/orders")
+	return r.Method == http.MethodGet && r.URL.Path == "/v1/wallet/paper/snapshot" || r.Method == http.MethodPost && (r.URL.Path == "/v1/wallet/paper/backtests/from-market" || r.URL.Path == "/v1/wallet/paper/orders" || r.URL.Path == "/v1/wallet/paper/risk/kill" || r.URL.Path == "/v1/wallet/paper/risk/reconcile")
 }
 
 func (s *TenantServer) paperWorkspace(account string) (*Service, error) {
@@ -152,7 +152,7 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 		}
 		audit := []AuditEvent{}
 		for _, event := range source["audit"].([]AuditEvent) {
-			if strings.HasPrefix(event.Action, "paper_order_") || strings.Contains(event.Action, "backtest") {
+			if strings.HasPrefix(event.Action, "paper_order_") || strings.Contains(event.Action, "backtest") || event.Action == "paper_reconciled" || event.Action == "kill_switch_activated" {
 				audit = append(audit, event)
 			}
 		}
@@ -182,6 +182,41 @@ func (s *Server) privatePaper(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		result, err := workspace.SubmitPaperSignalFromMarket(input.StrategyHash, input.Side, input.Amount, input.IdempotencyKey)
+		if err != nil {
+			respond(w, r, nil, err, 201)
+			return
+		}
+		paperOwnedResult(w, r, session, result, 201)
+	case "/v1/wallet/paper/risk/kill", "/v1/wallet/paper/risk/reconcile":
+		var key, reason string
+		var cash, position int64
+		action := "kill"
+		if strings.HasSuffix(r.URL.Path, "/kill") {
+			var input struct {
+				Reason         string `json:"reason"`
+				IdempotencyKey string `json:"idempotencyKey"`
+			}
+			if !decode(w, r, &input) {
+				return
+			}
+			key, reason = input.IdempotencyKey, input.Reason
+		} else {
+			action = "reconcile"
+			var input struct {
+				Cash           *int64 `json:"cash"`
+				Position       *int64 `json:"position"`
+				IdempotencyKey string `json:"idempotencyKey"`
+			}
+			if !decode(w, r, &input) {
+				return
+			}
+			if input.Cash == nil || input.Position == nil {
+				writeProblem(w, r, 400, "invalid_request")
+				return
+			}
+			key, cash, position = input.IdempotencyKey, *input.Cash, *input.Position
+		}
+		result, err := workspace.submitPaperRisk(action, key, reason, cash, position)
 		if err != nil {
 			respond(w, r, nil, err, 201)
 			return

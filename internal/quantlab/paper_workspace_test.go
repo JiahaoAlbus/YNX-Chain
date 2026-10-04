@@ -271,6 +271,30 @@ func TestNativePaperWorkspaceOwnsDataWithoutTenantOrRecordsPermission(t *testing
 	if restored.Code != 200 || owned["account"] != alice["account"] || len(owned["paper"].(map[string]any)["Orders"].([]any)) != 1 {
 		t.Fatal("reopen lost owned Paper or replayed order")
 	}
+	for _, label := range []string{"", "d", "e"} {
+		denied := call("POST", "/v1/wallet/paper/risk/kill", label, `{"reason":"Confirmed native halt","idempotencyKey":"native-risk-http"}`, "")
+		if denied.Code != 401 && denied.Code != 403 {
+			t.Fatal("risk scope escape", denied.Code)
+		}
+	}
+	for range 2 {
+		result := call("POST", "/v1/wallet/paper/risk/kill", "a", `{"reason":"Confirmed native halt","idempotencyKey":"native-risk-http"}`, strings.Repeat("c", 64))
+		if result.Code != 201 {
+			t.Fatal("native risk failed", result.Code, result.Body.String())
+		}
+		var receipt map[string]any
+		if json.Unmarshal(result.Body.Bytes(), &receipt) != nil || receipt["account"] != alice["account"] || receipt["paper"].(map[string]any)["KillSwitch"] != true {
+			t.Fatal("unbound native risk receipt")
+		}
+	}
+	unchanged := call("GET", "/v1/wallet/paper/snapshot", "c", "", "")
+	var unchangedB struct {
+		Paper PaperState `json:"paper"`
+	}
+	_ = json.Unmarshal(unchanged.Body.Bytes(), &unchangedB)
+	if unchanged.Code != 200 || unchangedB.Paper.KillSwitch {
+		t.Fatal("A native risk halted B")
+	}
 	mu.Lock()
 	revoked[strings.Repeat("a", 64)] = true
 	mu.Unlock()

@@ -1,11 +1,17 @@
 import test from 'node:test';import assert from'node:assert/strict';import{spawn}from'node:child_process';import{mkdtemp,mkdir,readFile}from'node:fs/promises';import net from'node:net';import os from'node:os';import path from'node:path';import{fileURLToPath}from'node:url';import{chromium}from'playwright';
 const repo=fileURLToPath(new URL('../../../',import.meta.url));let server,browser,evidence,base;
+// A controlled rewritten snapshot is a new HTTP body. Preserve status/security
+// headers but never retain the original body's Content-Length.
+async function fulfillSnapshot(route,response,value){
+  const body=JSON.stringify(value),headers={...response.headers(),'content-length':String(Buffer.byteLength(body))};
+  await route.fulfill({status:response.status(),headers,body});
+}
 test('actual Chrome preserves rewritten pending research bytes and refuses replay after reload in every locale',async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     let posts=0;const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
     await context.route('**/api/v1/backtests/from-market',async route=>{posts++;return route.abort('failed')});
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.waitForFunction(()=>!researchSubmitting&&pendingResearchIntent!==null);
     const original=await page.evaluate(()=>{const key=Object.keys(localStorage).find(key=>key.startsWith('ynx.quant.research.pending.v1:'));return {key,raw:localStorage.getItem(key)}});
     assert.equal(posts,1);assert.ok(original.raw);
@@ -27,7 +33,7 @@ test('actual Chrome translates research fields and experiment columns in every l
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     const page=await context.newPage();let writes=0;page.on('request',request=>{if(request.method()==='POST')writes++});
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.locator('#strategy').fill('Preserved research draft');await page.locator('#fee').fill('34');
     const sourceSnapshot=await page.evaluate(()=>JSON.stringify(snapshot));
     const keys=['researchBoundary','researchName','fastWindow','slowWindow','created','tradeCount','partialFills','sensitivity','dataGaps','netPnl','realized','unrealized','tradingFee','researchSharpe','strategyLifecycle','strategyName','strategyFamily','strategyStage','strategySourceHash','strategyLicense','strategySchedule'];
@@ -58,7 +64,7 @@ test('actual Chrome renders service-bound metric formulas in all locales and pre
       await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-formulas-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:submitted.strategy.id,Name:submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions:Object.fromEntries(Object.entries(submitted.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:54,SharpeMilli:1500,VolatilityBPS:7,Trades:1,PartialFills:0,DataGaps:0},metricDefinitions,attribution:posts===1?{costRoundingPolicy:'independent_cost_component_floor_micro_v1'}:undefined})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-drawdown').getByText('54 bps',{exact:true}).waitFor();
     await page.locator('#research-run-details summary').click();
     await page.evaluate(()=>{latestResearchResult.attribution.currency='YUSD_TEST_MICRO';latestResearchResult.attribution.averageIdleCapital=99998989487;latestResearchResult.attribution.idleCapitalSamplingPolicy='observed_bar_cash_mean_truncate_micro_v1';renderRunDetails()});
@@ -96,7 +102,7 @@ test('actual Chrome rejects a declared mismatched research receipt without repla
       await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'controlled-receipt-'+posts,researchRequestKey:submitted.idempotencyKey,status:'completed_oos',strategy:{ID:posts===3?'ma-other-request':submitted.strategy.id,Name:posts===4?'Different response name':submitted.strategy.name,Family:submitted.strategy.family,Seed:submitted.strategy.seed,Params:submitted.strategy.params},assumptions,metrics:{ReturnBPS:posts===1?120:999,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}})});
     };
     await context.route('**/api/v1/**/backtests/from-market',respond);await context.route('**/api/v1/backtests/from-market',respond);
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.locator('#result-return').getByText('120 bps',{exact:true}).waitFor();assert.equal(posts,1);
     assert.equal(await page.locator('#result-sharpe').textContent(),'1.500');
     assert.equal(await page.locator('#experiments th').nth(5).textContent(),'Sharpe ratio');
@@ -120,7 +126,7 @@ test('actual Chrome rejects ambiguous research costs/windows without HTTP and pr
     await context.route('**/api/v1/**/backtests/from-market',async route=>{bodies.push(route.request().postDataJSON());await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled source unavailable; no backtest result"}'})});
     // The actual tenant route has no intervening public/research path segments.
     await context.route('**/api/v1/backtests/from-market',async route=>{bodies.push(route.request().postDataJSON());await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled source unavailable; no backtest result"}'})});
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.locator('#fee').fill('');await page.locator('#research-submit').click();await page.locator('#toast').filter({hasText:'safe whole-number'}).waitFor();assert.equal(bodies.length,0);
     await page.locator('#fee').fill('0');await page.locator('#fast').fill('8');await page.locator('#slow').fill('8');
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
@@ -140,8 +146,8 @@ test('actual Chrome reuses saved MA parameters only as a draft, preserves costs 
   try{
     let present=true,posts=0;
     const strategy={ID:'saved-ma',Name:'Saved MA',Family:'transparent',StrategyHash:'d'.repeat(64),Seed:0,Params:{fast:4,slow:12}};
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies=present?{saved:strategy}:{};await route.fulfill({response,json:body})});
-    const page=await context.newPage();page.on('request',r=>{if(r.method()==='POST')posts++});await page.goto(base,{waitUntil:'networkidle'});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies=present?{saved:strategy}:{};await fulfillSnapshot(route,response,body)});
+    const page=await context.newPage();page.on('request',r=>{if(r.method()==='POST')posts++});await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.locator('#fee').fill('34');await page.locator('#slippage').fill('17');
     await page.selectOption('#research-saved-strategy','saved-ma:'+strategy.StrategyHash);await page.locator('#research-reuse').click();
     assert.equal(await page.locator('#strategy').inputValue(),'Saved MA');assert.equal(await page.locator('#seed').inputValue(),'0');assert.equal(await page.locator('#fast').inputValue(),'4');assert.equal(await page.locator('#slow').inputValue(),'12');assert.equal(await page.locator('#fee').inputValue(),'34');assert.equal(await page.locator('#slippage').inputValue(),'17');assert.equal(posts,0);
@@ -158,12 +164,12 @@ test('actual Chrome recovers saved research history after malformed readback wit
     await context.route('**/api/v1/snapshot',async route=>{
       const response=await route.fetch(),body=await response.json();
       body.experiments=malformed?{good,bad:{...good,id:'bad-history',metrics:{...good.metrics,ReturnBPS:'<img src=x onerror="window.injected=true">'}},missing:null}:{good};
-      await route.fulfill({response,json:body});
+      await fulfillSnapshot(route,response,body);
     });
     const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.method()==='POST')posts++});
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     assert.match(await page.locator('#experiment-rows').textContent(),/Verified history/);
-    assert.equal(await page.locator('#experiment-rows td[colspan="16"]').count(),2);assert.equal(await page.locator('#experiment-rows img').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);
+    assert.equal(await page.locator('#experiment-rows td[colspan="17"]').count(),2);assert.equal(await page.locator('#experiment-rows img').count(),0);assert.equal(await page.evaluate(()=>window.injected),undefined);
     await page.selectOption('#locale','ar');assert.doesNotMatch(await page.locator('#experiment-rows').textContent(),/Research result is unconfirmed/);
     malformed=false;await page.locator('#refresh').click();await page.waitForFunction(()=>document.querySelector('#experiment-rows').querySelectorAll('tr').length===1);
     await page.reload({waitUntil:'networkidle'});assert.match(await page.locator('#experiment-rows').textContent(),/Verified history/);
@@ -176,10 +182,10 @@ test('actual Chrome distinguishes unknown Testnet execution from venue readback 
     const good={id:'testnet-000001',market:'YNXT-YUSD_TEST',side:'buy',amount:12,status:'submitted_testnet',venueOrderId:'controlled-venue-order',venueStatus:'filled',authorizationDigest:'a'.repeat(64),brokerProof:'controlled-readback-only'};
     const records={good,reserved:{...good,id:'testnet-000002',status:'reserved_outcome_unknown'},malformed:null,unsafe:{...good,id:'testnet-000003',amount:Number.MAX_SAFE_INTEGER+1}};
     let writes=0;const errors=[];
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.testnetOrders=records;await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.testnetOrders=records;await fulfillSnapshot(route,response,body)});
     context.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes++});
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     const original=JSON.stringify(records);
     for(const language of await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value))){
       await page.selectOption('#locale',language);
@@ -202,10 +208,10 @@ test('actual Chrome reads controlled persisted Paper records without creating or
     await context.route('**/api/v1/snapshot',async route=>{
       const response=await route.fetch(),body=await response.json();
       body.paper.Orders=[{ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'sell',Status:'filled',Price:9007199254740991,Amount:12,Filled:12,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'}];
-      await route.fulfill({response,json:body});
+      await fulfillSnapshot(route,response,body);
     });
     const page=await context.newPage();page.on('request',r=>{if(r.method()==='POST')posts++});
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
     assert.match(await page.locator('#paper-record-rows').textContent(),/9007199254740991 \/ 12 \/ 12/);
     assert.equal(await page.locator('#paper-record-status').textContent(),'');
     await page.locator('#refresh').click();assert.match(await page.locator('#paper-record-rows').textContent(),/paper-000042/);
@@ -219,9 +225,9 @@ test('actual Chrome requires explicit Paper preview confirmation and preserves a
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     const hash='d'.repeat(64);let posts=0;
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await fulfillSnapshot(route,response,body)});
     await context.route('**/api/v1/paper/orders',async route=>{posts++;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Controlled uncertain service outcome"}'})});
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','sell');await page.locator('#paper-amount').fill('1234567');
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','sell');await page.locator('#paper-amount').fill('1234567');
     const dialogPromise=page.waitForEvent('dialog'),cancelClick=page.locator('#paper-submit').click();const dialog=await dialogPromise;
     assert.equal(dialog.type(),'confirm');assert.ok(dialog.message().includes(hash));assert.match(dialog.message(),/1234567/);assert.match(dialog.message(),/10%/);assert.match(dialog.message(),/does not deduct commission\/gas or model slippage/);
     await dialog.dismiss();await cancelClick;assert.equal(posts,0);assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),0);
@@ -238,10 +244,10 @@ test('actual Chrome localizes a daily-loss rejection and refreshes the persisted
     await context.route('**/api/v1/snapshot',async route=>{
       const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};
       if(posts)body.paper.DailyRisk={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-10-03',Loss:1000000000,Limit:1000000000,Breached:true};
-      await route.fulfill({response,json:body});
+      await fulfillSnapshot(route,response,body);
     });
     await context.route('**/api/v1/paper/orders',async route=>{posts++;await route.fulfill({status:403,contentType:'application/json',body:'{"error":"paper_daily_loss_limit","errorId":"controlled-daily-error"}'})});
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);
     const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await (await dialog).accept();await click;
     await page.waitForFunction(()=>document.querySelector('#paper-state').textContent.includes('1000000000 / 1000000000'));
     assert.equal(posts,1);assert.match(await page.locator('#toast').textContent(),/first accepted market mark/);
@@ -257,11 +263,11 @@ test('actual Chrome refuses impossible daily-risk dates and contradictions witho
     let risk={Policy:'utc_first_mark_equity_loss_micro_v1',Day:'2026-02-29',Loss:100,Limit:100,Breached:true};
     const writes=[],errors=[];
     await context.route('**/api/v1/snapshot',async route=>{
-      const response=await route.fetch(),body=await response.json();body.paper.DailyRisk=risk;await route.fulfill({response,json:body});
+      const response=await route.fetch(),body=await response.json();body.paper.DailyRisk=risk;await fulfillSnapshot(route,response,body);
     });
     await context.route('**/api/**',route=>{if(route.request().method()!=='GET'){writes.push(route.request().url());return route.abort()}return route.fallback()});
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
     assert.doesNotMatch(await page.locator('#paper-state').textContent(),/100 \/ 100 YUSD_TEST_MICRO/);
     risk={...risk,Day:'2026-10-04',Breached:false};await page.evaluate(()=>refresh());
     assert.doesNotMatch(await page.locator('#paper-state').textContent(),/100 \/ 100 YUSD_TEST_MICRO/);
@@ -277,14 +283,14 @@ test('actual Chrome keeps a malformed Paper receipt pending and retries only the
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     const hash='d'.repeat(64),bodies=[];let recorded=null;
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};body.paper.Orders=recorded?[recorded]:[];await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};body.paper.Orders=recorded?[recorded]:[];await fulfillSnapshot(route,response,body)});
     await context.route('**/api/v1/paper/orders',async route=>{
       const submitted=route.request().postDataJSON();bodies.push(submitted);
       const receipt={ID:'paper-000042',...submitted,Price:1200000,Filled:submitted.Amount,Status:'filled',Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'};
       if(bodies.length===1)receipt.Filled=submitted.Amount+1;else recorded=receipt;
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(receipt)});
     });
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','buy');await page.locator('#paper-amount').fill('100');
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.selectOption('#side','buy');await page.locator('#paper-amount').fill('100');
     for(let attempt=0;attempt<2;attempt++){
       const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await (await dialog).accept();await click;
       if(attempt===0){await page.locator('#toast').filter({hasText:'unknown outcome'}).waitFor();assert.equal(await page.evaluate(()=>Object.keys(localStorage).filter(key=>key.startsWith('ynx.quant.paper.pending')).length),1);assert.doesNotMatch(await page.locator('#toast').textContent(),/Simulated order recorded/);await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click()}
@@ -302,7 +308,7 @@ test('actual Chrome rejects duplicate financial keys and preserves prior workspa
       const raw=JSON.stringify(body);return route.fulfill({status:200,contentType:'application/json',body:reads===2?raw.replace('"Cash":777','"Cash":777,"Cash":999999'):raw});
     });
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(request.method()==='POST')writes++});
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
     await assert.rejects(page.evaluate(()=>refresh()),/Request outcome is unconfirmed/);assert.equal(await page.evaluate(()=>workspaceReadUnavailable),true);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     await page.evaluate(()=>refresh());assert.equal(await page.evaluate(()=>workspaceReadUnavailable),false);assert.equal(await page.evaluate(()=>snapshot.paper.Cash),777);
     assert.equal(reads,3);assert.equal(writes,0);assert.equal(context.pages().length,1);assert.deepEqual(errors,[]);
@@ -313,13 +319,13 @@ test('actual Chrome blocks fresh Paper intent after silent pending removal failu
   try{
     const hash='d'.repeat(64),bodies=[],errors=[];
     await context.addInitScript(()=>{const remove=Storage.prototype.removeItem;Storage.prototype.removeItem=function(key){if(String(key).startsWith('ynx.quant.paper.pending.v1:'))return;return remove.call(this,key)}});
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:{Name:'Controlled saved strategy',StrategyHash:hash}};await fulfillSnapshot(route,response,body)});
     await context.route('**/api/v1/paper/orders',route=>{
       const submitted=route.request().postDataJSON();bodies.push(submitted);
       return route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({ID:'paper-000042',...submitted,Price:1200000,Filled:submitted.Amount,Status:'filled',Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z'})});
     });
-    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.locator('#paper-amount').fill('100');
-    const submit=async()=>{const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await(await dialog).accept();await click;await page.getByText('Simulated order recorded',{exact:true}).waitFor();await page.locator('#workspace-storage-boundary').waitFor()};
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();await page.selectOption('#paper-strategy',hash);await page.locator('#paper-amount').fill('100');
+    const submit=async()=>{const dialog=page.waitForEvent('dialog'),click=page.locator('#paper-submit').click();await(await dialog).accept();await click;await page.locator('#workspace-storage-boundary').waitFor();assert.equal(await page.evaluate(()=>workspaceStorageAvailable),false)};
     await submit();assert.equal(bodies.length,1);assert.equal(await page.locator('#paper-submit').isDisabled(),true);
     const saved=await page.evaluate(()=>({memory:pendingPaperIntent,raw:localStorage.getItem(paperPendingKey)}));assert.deepEqual(JSON.parse(saved.raw),saved.memory);assert.deepEqual(saved.memory,bodies[0]);
     await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();assert.equal(bodies.length,1,'reload must not submit an order');
@@ -332,13 +338,13 @@ test('actual Chrome binds research schedule receipts, pending rerenders and conf
   try{
     const strategy={ID:'controlled-saved-research',Name:'Controlled saved research',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
     let puts=0,release;const gate=new Promise(resolve=>release=resolve);
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await fulfillSnapshot(route,response,body)});
     await context.route('**/api/v1/strategies/controlled-saved-research/schedule',async route=>{
       puts++;const body=route.request().postDataJSON();if(body.enabled)await gate;
       strategy.Runtime=body.enabled?{enabled:true,running:false,intervalSeconds:60,nextRunAt:'2026-10-03T01:01:00Z',lastRunStatus:'scheduled',assumptions:Object.fromEntries(Object.entries(body.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value]))}:{...strategy.Runtime,enabled:false,running:false,lastRunStatus:'stopped_by_user'};
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategy)});
     });
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();const start=page.waitForEvent('dialog'),startClick=page.locator('.schedule-toggle').click();const startDialog=await start;assert.ok(startDialog.message().includes(strategy.StrategyHash));assert.match(startDialog.message(),/No Paper or Testnet order/);await startDialog.accept();await startClick;
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();const start=page.waitForEvent('dialog'),startClick=page.locator('.schedule-toggle').click();const startDialog=await start;assert.ok(startDialog.message().includes(strategy.StrategyHash));assert.match(startDialog.message(),/No Paper or Testnet order/);await startDialog.accept();await startClick;
     await page.getByText('Schedule request pending',{exact:true}).waitFor();await page.selectOption('#locale','ar');assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);assert.equal(await page.locator('.schedule-toggle').getAttribute('aria-busy'),'true');assert.equal(puts,1);
     release();await page.locator('#toast').filter({hasText:'التنفيذ غير مثبت'}).waitFor();await page.waitForFunction(()=>document.querySelector('.schedule-toggle')?.disabled===false);assert.equal(await page.locator('.schedule-toggle').isDisabled(),false);
     assert.equal(await page.evaluate(()=>Object.values(snapshot.strategies)[0].Runtime.lastRunStatus),'scheduled');
@@ -366,7 +372,7 @@ test('actual Chrome blocks stale schedule starts but keeps confirmed stop and ex
       await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategies.stop)});
     });
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
     const start=page.locator('.schedule-toggle[data-strategy-id="stale-start"]'),stop=page.locator('.schedule-toggle[data-strategy-id="stale-stop"]');
     assert.equal(await start.isEnabled(),true);stale=true;await page.locator('#refresh').click();await page.locator('#workspace-read-status').waitFor({state:'visible'});
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
@@ -391,7 +397,7 @@ test('actual Chrome preserves confirmed schedule start and stop when follow-up r
       failRead=true;await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(strategy)});
     });
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
     const action=async()=>{const dialog=page.waitForEvent('dialog'),click=page.locator('.schedule-toggle').click();await (await dialog).accept();await click;await page.waitForFunction(()=>scheduleWrites.size===0&&workspaceReadUnavailable)};
     await action();assert.equal(puts,1);assert.equal(await page.locator('.schedule-toggle').isEnabled(),true,'confirmed start retains explicit stop during history outage');
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
@@ -416,10 +422,10 @@ test('actual Chrome keeps impossible schedule timestamps unavailable across loca
   try{
     let writes=0;const errors=[];
     const strategy={ID:'invalid-time',Name:'Controlled invalid timestamp',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:true,running:false,intervalSeconds:60,lastRunStatus:'scheduled',nextRunAt:'2026-02-30T00:00:00Z',lastRunAt:'0'}};
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await fulfillSnapshot(route,response,body)});
     context.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes++});
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
     for(const language of await page.locator('#locale option').evaluateAll(options=>options.map(option=>option.value))){
       await page.selectOption('#locale',language);
       assert.equal(await page.locator('.schedule-toggle').isDisabled(),true);
@@ -438,10 +444,10 @@ test('actual Chrome localizes unconfirmed schedule recovery and keeps retry fenc
     const screenshots=await mkdtemp(path.join(evidence,'schedule-recovery-'));
     const strategy={ID:'controlled-schedule-outage',Name:'Controlled schedule outage',Family:'transparent',License:'test-only',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}};
     let puts=0;const errors=[];
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await route.fulfill({response,json:body})});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.strategies={saved:strategy};await fulfillSnapshot(route,response,body)});
     await context.route('**/api/v1/strategies/controlled-schedule-outage/schedule',route=>{puts++;return route.abort('failed')});
     const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="strategies"]').click();
     const confirmation=page.waitForEvent('dialog'),click=page.locator('.schedule-toggle').click();await (await confirmation).accept();await click;
     await page.waitForFunction(()=>document.querySelector('#toast').textContent===t('scheduleUnknown'));
     await page.screenshot({path:path.join(screenshots,'schedule-unconfirmed-en.png'),fullPage:true});
@@ -463,7 +469,7 @@ test('real research form coalesces a delayed request without displaying unconfir
   try{
     let posts=0,complete;const gate=new Promise(resolve=>complete=resolve);
     await context.route('**/api/v1/backtests/from-market',async route=>{posts++;await gate;await route.fulfill({status:503,contentType:'application/json',body:'{"error":"Exact delayed market unavailable"}'})});
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();await page.locator('#research-request-status').waitFor({state:'visible'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#research-submit').click();await page.locator('#research-request-status').waitFor({state:'visible'});
     assert.equal(await page.locator('#research-submit').isDisabled(),true);assert.equal(await page.locator('#backtest').getAttribute('aria-busy'),'true');
     await page.evaluate(()=>{document.getElementById('backtest').dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))});
     await page.selectOption('#locale','ar');assert.match(await page.locator('#research-request-status').textContent(),/قيد الانتظار/);assert.equal(await page.locator('#latest-result').isVisible(),false);assert.equal(posts,1);
@@ -478,7 +484,7 @@ test('actual Chrome retains confirmed workspace with persistent stale warning th
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)}));
     const page=await context.newPage(),errors=[],writes=[];
     page.on('pageerror',error=>errors.push(error.message));page.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes.push(request.url());});
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.locator('nav button[data-view="paper"]').click();
     await page.locator('#paper-strategy').selectOption(strategy.StrategyHash);
     assert.equal(await page.locator('#paper-submit').isEnabled(),true);
@@ -506,7 +512,7 @@ test('actual Chrome preserves workspace through malformed strategy readback with
     const page=await context.newPage(),errors=[],writes=[];
     page.on('pageerror',error=>errors.push(error.message));
     page.on('request',request=>{if(['POST','PUT','DELETE'].includes(request.method()))writes.push(request.url());});
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.evaluate(()=>{
       snapshot.strategies={bad:null,hash:{StrategyHash:42},array:[],valid:{ID:'controlled-strategy-read',Name:'Controlled strategy read fixture',Family:'transparent',Stage:'Backtest',StrategyHash:'d'.repeat(64),Runtime:{enabled:false,running:false,intervalSeconds:0}}};
       render();
@@ -532,9 +538,9 @@ test('actual Chrome recovers unavailable audit containers and preserves valid re
   try{
     let auditFixture={};const writes=[];
     await context.route('**/api/**',route=>{const method=route.request().method();if(method!=='GET'){writes.push({method,path:new URL(route.request().url()).pathname});return route.abort('failed');}return route.continue();});
-    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.audit=auditFixture;await route.fulfill({response,json:body});});
+    await context.route('**/api/v1/snapshot',async route=>{const response=await route.fetch(),body=await response.json();body.audit=auditFixture;await fulfillSnapshot(route,response,body);});
     const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="audit"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="audit"]').click();
     assert.match(await page.locator('#audit-rows').textContent(),/Audit record unavailable/);
     auditFixture=[null,{Hash:7},{Action:'Controlled readback fixture',ObjectID:'<img src=x>',Hash:'a'.repeat(64),CreatedAt:'2026-10-03T00:00:00Z'}];
     await page.evaluate(()=>refresh());assert.match(await page.locator('#audit-rows').textContent(),/Controlled readback fixture/);
@@ -556,10 +562,10 @@ test('actual Chrome renders malformed Paper amount fixtures unavailable without 
     await context.route('**/api/v1/snapshot',async route=>{
       const response=await route.fetch(),body=await response.json();
       body.paper={...body.paper,Cash:'<img src=x onerror="window.paperInjected=true">',Position:'0',ReconciliationDelta:Number.MAX_SAFE_INTEGER+1,KillSwitch:'false'};
-      await route.fulfill({response,json:body});
+      await fulfillSnapshot(route,response,body);
     });
     const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();
     assert.deepEqual((await page.locator('#paper-state dd').allTextContents()).slice(0,4),['—','—','—','—']);
     assert.equal(await page.locator('#paper-state img').count(),0);assert.equal(await page.locator('#paper-state .danger').count(),0);
     assert.equal(await page.evaluate(()=>window.paperInjected),undefined);
@@ -574,7 +580,7 @@ test('actual local Go reconciliation reports a controlled stale-snapshot differe
   try{
     let writes=0,release;const gate=new Promise(resolve=>release=resolve);
     await context.route('**/api/v1/paper/reconcile',async route=>{writes++;await gate;const response=await route.fetch();await route.fulfill({response})});
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Risk',exact:true}).click();
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});await page.getByRole('button',{name:'Risk',exact:true}).click();
     await page.evaluate(()=>{snapshot.paper.Cash-=1});const dialog=page.waitForEvent('dialog'),click=page.locator('#reconcile').click();const preview=await dialog;assert.match(preview.message(),/persistent kill switch/);await preview.accept();await click;
     await page.evaluate(()=>document.getElementById('reconcile').onclick());assert.equal(writes,1);assert.equal(await page.locator('#reconcile').isDisabled(),true);
     await page.selectOption('#locale','ar');assert.equal(await page.locator('#reconcile').isDisabled(),true);release();
@@ -588,7 +594,7 @@ test('actual guest research stays usable when Quant browser storage is denied',a
   try{
     await context.addInitScript(()=>{for(const name of ['getItem','setItem','removeItem']){const original=Storage.prototype[name];Storage.prototype[name]=function(key,...args){if(String(key).startsWith('ynx.quant.'))throw new DOMException('Blocked storage','SecurityError');return original.call(this,key,...args)}}});
     const page=await context.newPage();const calls=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))calls.push({path:new URL(request.url()).pathname,method:request.method(),headers:request.headers()})});
-    await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#workspace-storage-boundary').isVisible(),true);assert.equal(await page.locator('#locale').inputValue(),'en');
+    await page.goto(base+'/app',{waitUntil:'networkidle'});assert.equal(await page.locator('#workspace-storage-boundary').isVisible(),true);assert.equal(await page.locator('#locale').inputValue(),'en');
     await page.selectOption('#locale','ar');assert.equal(await page.locator('html').getAttribute('dir'),'rtl');assert.match(await page.locator('#workspace-storage-boundary').textContent(),/تخزين/);
     await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();
     assert.ok(calls.some(call=>call.path==='/api/v1/public/research/backtests/from-market'&&call.method==='POST'));
@@ -598,10 +604,10 @@ test('actual guest research stays usable when Quant browser storage is denied',a
     assert.equal(calls.filter(call=>/\/paper\/orders|\/risk\/kill|\/paper\/reconcile/.test(call.path)).length,0);
   }finally{await context.close()}
 });
-test('desktop fails closed without actual matched history and captures evidence',async()=>{const page=await browser.newPage({viewport:{width:1440,height:900},colorScheme:'light'});await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();await page.getByRole('button',{name:'Experiments'}).click();await page.getByText('No experiments. Empty means no invented performance.').waitFor();await page.screenshot({path:path.join(evidence,'desktop-light.png'),fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(evidence,'desktop-dark.png'),fullPage:true})});
+test('desktop fails closed without actual matched history and captures evidence',async()=>{const page=await browser.newPage({viewport:{width:1440,height:900},colorScheme:'light'});await page.goto(base+'/app',{waitUntil:'networkidle'});await page.selectOption('#locale','en');await page.getByRole('button',{name:'Run out-of-sample backtest'}).click();await page.locator('#toast').filter({hasText:await page.evaluate(()=>t('apiServiceUnavailable'))}).waitFor();await page.getByRole('button',{name:'Experiments'}).click();await page.getByText('No experiments. Empty means no invented performance.').waitFor();await page.screenshot({path:path.join(evidence,'desktop-light.png'),fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:path.join(evidence,'desktop-dark.png'),fullPage:true})});
 test('mobile Arabic risk confirmation is localized and cancellation leaves persistent risk unchanged',async()=>{
   const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true});
-  await page.goto(base,{waitUntil:'networkidle'});await page.selectOption('#locale','ar');
+  await page.goto(base+'/app',{waitUntil:'networkidle'});await page.selectOption('#locale','ar');
   assert.equal(await page.locator('html').getAttribute('dir'),'rtl');
   const m=await page.evaluate(()=>[document.documentElement.scrollWidth,document.documentElement.clientWidth]);assert.ok(m[0]<=m[1],m.join('/'));
   await page.screenshot({path:path.join(evidence,'mobile-arabic-rtl.png'),fullPage:true});
@@ -621,7 +627,7 @@ test('mobile Arabic risk confirmation is localized and cancellation leaves persi
   await page.screenshot({path:path.join(evidence,'risk-arabic-confirmation-cancelled.png'),fullPage:true});
 });
 test('paper requires a saved strategy; zero reconciliation and kill switch are visible',async()=>{
-  const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base);await page.selectOption('#locale','en');
+  const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base+'/app');await page.selectOption('#locale','en');
   await page.getByRole('button',{name:'Paper',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Submit simulated signal'}).isDisabled(),true);await page.getByText('Run a backtest to save a strategy before submitting a Paper signal.').waitFor();
   await page.getByRole('button',{name:'Risk'}).click();
   const dialog=page.waitForEvent('dialog'),click=page.getByRole('button',{name:'Reconcile exact local paper state'}).click();await (await dialog).accept();await click;
@@ -634,7 +640,7 @@ test('actual Chrome retains unreadable Paper intent across reload and explicitly
     await context.addInitScript(({tenant,key})=>{if(!localStorage.getItem('ynx.quant.tenant.v1')){localStorage.setItem('ynx.quant.tenant.v1',tenant);localStorage.setItem(key,'{invalid-pending');}},{tenant,key});
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:0,KillSwitch:false},strategies:{fixture:{Name:'Controlled choice',StrategyHash:'d'.repeat(64)}}})}));
     const page=await context.newPage(),writes=[],errors=[];page.on('request',request=>{if(request.method()==='POST')writes.push(request.url())});page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();await page.selectOption('#paper-strategy','d'.repeat(64));
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();await page.selectOption('#paper-strategy','d'.repeat(64));
     assert.equal(await page.locator('#paper-submit').isDisabled(),true);assert.equal(await page.evaluate(key=>localStorage.getItem(key),key),'{invalid-pending');
     await page.reload({waitUntil:'networkidle'});await page.getByRole('button',{name:'Paper',exact:true}).click();
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
@@ -653,7 +659,7 @@ test('actual Chrome localizes service errors without exposing server payload or 
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:0,KillSwitch:false}})}));
     const requests=[],errors=[];
     await context.route('**/api/v1/backtests/from-market',route=>{requests.push(route.request().postData());return route.fulfill({status:requests.length===1?503:409,contentType:'application/json',body:JSON.stringify({error:requests.length===1?'INTERNAL_SECRET_NOT_FOR_UI':'conflict'})})});
-    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});await page.locator('#research-submit').click();
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('#research-submit').click();
     await page.waitForFunction(()=>lastToastKey==='apiServiceUnavailable'&&!researchSubmitting);
     const pending=await page.evaluate(()=>localStorage.getItem(researchPendingKey));assert.ok(pending);
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
@@ -670,7 +676,7 @@ test('actual Chrome localizes service errors without exposing server payload or 
 test('actual Chrome native response stream preserves split UTF8 and cancels at the byte limit',async()=>{
   const context=await browser.newContext();
   try{
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});
     const result=await page.evaluate(async()=>{
       const raw=new TextEncoder().encode(JSON.stringify({label:'日本語 العربية 😀',amount:0}));let index=0;
       const valid=await quantHTTP('/v1/snapshot',{}, {fetchImpl:async()=>new Response(new ReadableStream({pull(controller){if(index===raw.length)controller.close();else controller.enqueue(raw.slice(index,index+=1));}},{highWaterMark:0}),{headers:{'content-type':'application/json'}})});
@@ -686,7 +692,7 @@ test('actual Chrome rejects invalid length before reading and retains one uncert
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true}})}));
-    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'networkidle'});
+    const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(base+'/app',{waitUntil:'networkidle'});
     const observations=await page.evaluate(async()=>{
       const results=[];
       for(const length of ['-1','1.5','1e3','NaN','Infinity','9007199254740993','8388609']){
@@ -717,7 +723,7 @@ test('actual Chrome reconciliation preview cancels in twelve locales without any
   try{
     await context.route('**/api/v1/snapshot',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({access:{statefulPreview:true},paper:{Cash:777,Position:-2,KillSwitch:false}})}));
     const page=await context.newPage(),writes=[],errors=[];page.on('request',request=>{if(request.method()==='POST')writes.push(request.url())});page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});await page.locator('nav button[data-view="risk"]').click();
+    await page.goto(base+'/app',{waitUntil:'networkidle'});await page.locator('nav button[data-view="risk"]').click();
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);const expected=await page.evaluate(()=>t('confirmReconciliation'));const dialog=page.waitForEvent('dialog'),click=page.locator('#reconcile').click();const preview=await dialog;
       assert.ok(preview.message().startsWith(expected));assert.ok(preview.message().includes(': 777'));assert.ok(preview.message().includes(': -2'));await preview.dismiss();await click;
@@ -731,7 +737,7 @@ test('lost actual-service kill response fences Paper until refresh reads persist
   const captured=new Promise(resolve=>{reached=resolve});let paperPosts=0;
   try{
     const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(base,{waitUntil:'networkidle'});
+    await page.goto(base+'/app',{waitUntil:'networkidle'});
     await page.evaluate(()=>{snapshot.strategies={fixture:{Name:'Controlled selection fixture',StrategyHash:'e'.repeat(64)}};render()});
     await page.getByRole('button',{name:'Paper',exact:true}).click();
     await page.selectOption('#paper-strategy','e'.repeat(64));assert.equal(await page.locator('#paper-submit').isEnabled(),true);
@@ -762,7 +768,7 @@ test('confirmed actual-service kill survives follow-up network loss and delayed 
   const held=new Promise(resolve=>{release=resolve;});let captured;
   const capture=new Promise(resolve=>{captured=resolve;});
   try{
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});
     let holdNext=true,failFollowup=true;
     await context.route('**/api/v1/snapshot',async route=>{
       if(!holdNext){if(failFollowup){failFollowup=false;return route.abort('failed');}return route.continue();}holdNext=false;
@@ -815,7 +821,7 @@ test('early public research retains temporary provenance in the real page throug
       const request=route.request().postDataJSON();
       await route.fulfill({status:201,contentType:'application/json',body:JSON.stringify({id:'isolated-public-ui-result',status:'completed_oos',createdAt:'2026-10-03T00:00:00Z',strategy:{ID:request.strategy.id,Name:'Isolated UI research fixture',Family:request.strategy.family,Seed:request.strategy.seed,Params:request.strategy.params,Source:'Explicit isolated UI data fixture',DataHash:'c'.repeat(64),StrategyHash:'d'.repeat(64)},assumptions:Object.fromEntries(Object.entries(request.assumptions).map(([key,value])=>[key[0].toUpperCase()+key.slice(1),value])),metricDefinitions:{sharpeMilli:'Explicit isolated UI formula: mean / sample deviation × √periods × 1,000; zero risk-free rate'},metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:1},equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1010,benchmarkEquity:1004},{time:'2026-10-03T01:00:00Z',equity:1012,benchmarkEquity:1009}],sensitivitySpreadBPS:2})});
     });
-    const page=await context.newPage();await page.goto(base,{waitUntil:'domcontentloaded'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'domcontentloaded'});
     assert.equal((await capturedSnapshot).access.statefulPreview,true);
     await page.locator('#strategy').fill('Isolated UI research fixture');
     await page.locator('#fee').fill('34');await page.locator('#slippage').fill('17');await page.locator('#seed').fill('0');
@@ -847,7 +853,8 @@ test('early public research retains temporary provenance in the real page throug
     await page.selectOption('#locale','en');await page.setViewportSize({width:1280,height:720});
     await page.getByRole('button',{name:'Experiments',exact:true}).click();
     assert.match(await page.locator('#experiment-rows').textContent(),/Isolated UI research fixture.*not saved or audited/);
-    assert.deepEqual((await page.locator('#experiment-rows tr').first().locator('td').allTextContents()).slice(-5),['—','—','—','—','—']);
+    assert.deepEqual((await page.locator('#experiment-rows tr').first().locator('td').allTextContents()).slice(-5,-1),['—','—','—','—']);
+    assert.equal(await page.locator('#experiment-rows tr').first().getByRole('button',{name:'View completed result'}).count(),1);
     assert.equal(await page.locator('#paper-strategy option').count(),1);
     await page.locator('#refresh').click();await page.waitForFunction(()=>snapshotRevision>=2);
     await page.evaluate(()=>refresh());
@@ -864,7 +871,7 @@ test('early public research retains temporary provenance in the real page throug
 test('account panel keeps guest research visible and supports keyboard, all locales and read-only opening',{timeout:20000},async()=>{
   const context=await browser.newContext({viewport:{width:390,height:844}});
   try{
-    const page=await context.newPage();await page.goto(base,{waitUntil:'networkidle'});
+    const page=await context.newPage();await page.goto(base+'/app',{waitUntil:'networkidle'});
     const summary=page.locator('#account-panel > summary');
     assert.equal(await page.locator('#locale').inputValue(),'en');
     assert.equal(await page.locator('#account-panel').getAttribute('open'),null);
@@ -897,11 +904,11 @@ test('account panel keeps guest research visible and supports keyboard, all loca
     await page.screenshot({path:path.join(evidence,'account-panel-desktop-open.png'),fullPage:true});
     assert.deepEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState()),walletBefore);
     assert.deepEqual(afterOpenRequests,[], 'layout and locale actions must not send product or authorization requests');
-    assert.equal(context.pages().length,1);assert.equal(page.url(),base+'/');
+    assert.equal(context.pages().length,1);assert.equal(page.url(),base+'/app');
     await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('#account-panel').getAttribute('open'),null);
   }finally{await context.close();}
 });
-test('browser-visible Wallet fallbacks preserve the English Quant page when no YNX or MetaMask provider is available',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('#locale').inputValue(),'en');await page.locator('#account-panel > summary').click();await page.waitForTimeout(1600);await page.getByRole('button',{name:'Connect Installed YNX Wallet'}).click();await page.getByText('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.').waitFor({timeout:5000});await page.getByRole('button',{name:'Use MetaMask'}).click();await page.locator('#wallet-status').getByText('MetaMask is not installed. This does not affect Product Session status.').waitFor({timeout:5000});await page.screenshot({path:path.join(evidence,'wallet-fallback-browser-visible.png'),fullPage:true});assert.equal(await page.url(),base+'/')});
+test('browser-visible Wallet fallbacks preserve the English Quant page when no YNX or MetaMask provider is available',async()=>{const page=await browser.newPage({viewport:{width:1024,height:800}});await page.goto(base+'/app',{waitUntil:'networkidle'});assert.equal(await page.locator('#locale').inputValue(),'en');await page.locator('#account-panel > summary').click();await page.waitForTimeout(1600);await page.getByRole('button',{name:'Connect Installed YNX Wallet'}).click();await page.getByText('YNX Wallet is unavailable in this browser. This page remains available; use Download YNX Wallet or MetaMask.').waitFor({timeout:5000});await page.getByRole('button',{name:'Use MetaMask'}).click();await page.locator('#wallet-status').getByText('MetaMask is not installed. This does not affect Product Session status.').waitFor({timeout:5000});await page.screenshot({path:path.join(evidence,'wallet-fallback-browser-visible.png'),fullPage:true});assert.equal(await page.url(),base+'/app')});
 test('exact-origin Quant explicit Hosted action opens Wallet Web without fabricating account or leaving a blank tab',async()=>{
   const context=await browser.newContext();
   try{

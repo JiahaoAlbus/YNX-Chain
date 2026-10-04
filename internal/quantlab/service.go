@@ -1740,6 +1740,13 @@ func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (Pap
 	}
 	defer release()
 	// Subtract/abs/sum must be checked before any risk or audit mutation.
+	result, err := s.reconcilePaperLocked(authoritativeCash, authoritativePosition)
+	if err != nil {
+		return PaperState{}, err
+	}
+	return result, s.save()
+}
+func (s *Service) reconcilePaperLocked(authoritativeCash, authoritativePosition int64) (PaperState, error) {
 	// int64 subtraction or abs(MinInt64) can otherwise wrap into a false delta.
 	cashDifference := new(big.Int).Sub(big.NewInt(authoritativeCash), big.NewInt(s.state.Paper.Cash))
 	positionDifference := new(big.Int).Sub(big.NewInt(authoritativePosition), big.NewInt(s.state.Paper.Position))
@@ -1753,7 +1760,7 @@ func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (Pap
 		s.state.Paper.KillSwitch = true
 	}
 	s.audit("paper_reconciled", "paper", hash(struct{ Cash, Position, Delta int64 }{authoritativeCash, authoritativePosition, delta}))
-	return copyPaperObservation(s.state.Paper), s.save()
+	return copyPaperObservation(s.state.Paper), nil
 }
 func (s *Service) Kill(reason string) (PaperState, error) {
 	if len(strings.TrimSpace(reason)) < 3 {
@@ -1766,9 +1773,16 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 		return PaperState{}, lockErr
 	}
 	defer release()
+	result, err := s.killPaperLocked(reason)
+	if err != nil {
+		return PaperState{}, err
+	}
+	return result, s.save()
+}
+func (s *Service) killPaperLocked(reason string) (PaperState, error) {
 	s.state.Paper.KillSwitch = true
 	s.audit("kill_switch_activated", "paper", hash(reason))
-	return copyPaperObservation(s.state.Paper), s.save()
+	return copyPaperObservation(s.state.Paper), nil
 }
 func (s *Service) Snapshot() map[string]any {
 	snapshot, _ := s.snapshotWithFingerprint()

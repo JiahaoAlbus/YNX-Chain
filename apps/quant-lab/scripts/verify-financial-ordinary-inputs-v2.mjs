@@ -17,7 +17,7 @@ const truthKeys=['deployed','publicSourceBound','publicMultiUserVerified','walle
 const gate=(condition,label)=>{if(!condition)throw Error(label);};
 const git=args=>execFileSync('git',args,{cwd:root,maxBuffer:4*1024*1024});
 const text=args=>git(args).toString('utf8').trim();
-export function verify(manifest){
+export function verify(manifest,{requireWorkingBytes=true}={}){
   gate(manifest.schemaVersion==='ynx-financial-ordinary-inputs-v2','schema');
   gate(manifest.classification==='ORDINARY_HUNKS_NOT_RELEASE_AUTHORITY'&&manifest.integrationMode==='ORDINARY_HUNKS_ONLY'&&manifest.releaseAuthority==='wallet_release_owner','authority');
   gate(manifest.retainBaseStorageFences===true&&manifest.baseManifest==='apps/quant-lab/integration/ordinary-publication-successor-20261003.json','base fences');
@@ -37,8 +37,8 @@ export function verify(manifest){
     const bytes=git(['cat-file','blob',object.blob]);
     gate(bytes.length===object.bytes&&createHash('sha256').update(bytes).digest('hex')===object.sha256,'source bytes/digest');
     const local=path.join(root,object.path);
-    gate(lstatSync(local).isFile()&&!lstatSync(local).isSymbolicLink()&&readFileSync(local).equals(bytes),'working bytes');
+    if(requireWorkingBytes)gate(lstatSync(local).isFile()&&!lstatSync(local).isSymbolicLink()&&readFileSync(local).equals(bytes),'working bytes');
   }
-  return {classification:'LOCAL_EXACT_SOURCE_NOT_RELEASE_PROOF',sourceCommit:manifest.sourceCommit,sourceTree:manifest.sourceTree,verifiedObjects:seen.size,passed:true,publicVerified:false};
+  return {classification:requireWorkingBytes?'LOCAL_EXACT_SOURCE_NOT_RELEASE_PROOF':'ARCHIVED_EXACT_SOURCE_NOT_CURRENT_RUNTIME',sourceCommit:manifest.sourceCommit,sourceTree:manifest.sourceTree,verifiedObjects:seen.size,passed:true,publicVerified:false};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(verify(JSON.parse(readFileSync(manifestPath,'utf8')))));
