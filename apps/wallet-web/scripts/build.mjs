@@ -21,9 +21,11 @@ export function compilePwaShell(inputFiles, workerTemplate) {
   const policy = files["service-worker-policy.js"]?.toString("utf8") ?? "";
   if (policy.split("__YNX_PWA_BUILD_ID__").length !== 2) throw new Error("PWA policy build identity placeholder is missing or duplicated");
   files["service-worker-policy.js"] = Buffer.from(policy.replace("__YNX_PWA_BUILD_ID__", buildId));
-  const html = files["index.html"]?.toString("utf8") ?? "";
-  if (!html.includes("</head>")) throw new Error("PWA navigation document is missing its head");
-  files["index.html"] = Buffer.from(html.replace("</head>", `<meta name="ynx-wallet-shell" content="${buildId}">\n</head>`));
+  for (const document of ["index.html", ...(files["app.html"] ? ["app.html"] : [])]) {
+    const html = files[document]?.toString("utf8") ?? "";
+    if (!html.includes("</head>")) throw new Error("PWA navigation document is missing its head");
+    files[document] = Buffer.from(html.replace("</head>", `<meta name="ynx-wallet-shell" content="${buildId}">\n</head>`));
+  }
   const assetIntegrity = Object.fromEntries(Object.keys(files).sort().map(name => [`./${name}`, digest(files[name])]));
   assetIntegrity["./"] = assetIntegrity["./index.html"];
   files["asset-integrity.js"] = Buffer.from(`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
@@ -185,11 +187,20 @@ for (const file of ["index.html","hosted-wallet.css","ynx-logo.png","app.js","ad
 // Hosted requests. Keep the installed-provider companion at an explicit route.
 await cp(join(root,"public","index.html"),join(dist,"pwa","companion.html"));
 await writeFile(join(dist,"pwa","companion.html"),(await readFile(join(dist,"pwa","companion.html"),"utf8")).replace('<link rel="icon" href="./ynx-logo.png">','<link rel="icon" href="./ynx-icon-512.png" type="image/png" sizes="512x512">'));
-await cp(join(root,"public","web-wallet.html"),join(dist,"pwa","index.html"));
+await cp(join(root,"public","web-wallet.html"),join(dist,"pwa","app.html"));
+for (const file of ["wallet-introduction.html","wallet-introduction.css","wallet-introduction.js","wallet-introduction-routes.js"]) {
+  await cp(join(root,"public",file),join(dist,"pwa",file === "wallet-introduction.html" ? "index.html" : file));
+}
+// Same-origin app preserves all original vault, review, request and journal
+// code. Root introduction has no Wallet engine imports or automatic prompts.
+const originalWalletApp = await readFile(join(dist,"pwa","app.html"),"utf8");
+const originalAppBody = '<body class="web-wallet">';
+if (originalWalletApp.split(originalAppBody).length !== 2) throw new Error("Original Wallet application body changed; introduction composition is unavailable");
+await writeFile(join(dist,"pwa","app.html"),originalWalletApp.replace(originalAppBody,'<body class="web-wallet"><a href="./" class="wallet-site-return">YNX Wallet · Home</a>'));
 await cp(join(root,"public","web-wallet.css"),join(dist,"pwa","web-wallet.css"));
 await cp(join(hosted,"app.js"),join(dist,"pwa","wallet-core.js"));
 await cp(join(hosted,"hosted-wallet.css"),join(dist,"pwa","wallet-core.css"));
-pwaIntegrityFiles.push("companion.html","web-wallet.css","wallet-core.js","wallet-core.css");
+pwaIntegrityFiles.push("app.html","wallet-introduction.css","wallet-introduction.js","wallet-introduction-routes.js","companion.html","web-wallet.css","wallet-core.js","wallet-core.css");
 const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
 const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
 for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
