@@ -138,6 +138,7 @@ input {
 .native-home-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px max(24px, calc((100vw - 1080px) / 2)); border-bottom: 1px solid var(--border); background: var(--panel); }
 .native-home-header a { display: flex; align-items: center; gap: 12px; color: var(--text); text-decoration: none; min-height: 44px; }
 .native-home-header img { width: auto; height: 24px; aspect-ratio: 798 / 420; object-fit: contain; flex: 0 0 auto; }
+.native-home-header nav { display: flex; gap: 20px; flex-wrap: wrap; }
 .native-home-main { width: min(100%, 880px); margin: 0 auto; padding: 48px 24px; }
 .native-home-intro h1 { font-size: clamp(20px, 3vw, 24px); line-height: 1.2; margin: 12px 0; }
 .native-home-intro .edition { display: inline-flex; width: fit-content; }

@@ -2,13 +2,15 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@xterm/xterm/css/xterm.css";
 import "./styles.css";
-import { NativeToolsPage } from "./codeoss/NativeToolsPage";
-import { NativeIDEHome } from './codeoss/NativeIDEHome';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { createHostEntry } from './desktop/host-commands';
+import { isPublicDeveloperEntry } from './public-site/entry';
 
 const nativeHome = window.location.pathname === '/projects' || !window.ynxDesktopWorkspace && ['/', '/index.html'].includes(window.location.pathname);
 const GuestWorkspace = lazy(() => import('./app/GuestWorkspace'));
+const DeveloperSite = lazy(() => import('./public-site/DeveloperSite'));
+const NativeIDEHome = lazy(() => import('./codeoss/NativeIDEHome').then(module => ({ default: module.NativeIDEHome })));
+const NativeToolsPage = lazy(() => import('./codeoss/NativeToolsPage').then(module => ({ default: module.NativeToolsPage })));
 function DeveloperEntry() {
   const [home, setHome] = useState(nativeHome);
   useEffect(() => {
@@ -22,4 +24,7 @@ function DeveloperEntry() {
   }, []);
   return window.location.pathname === '/native-tools' ? <NativeToolsPage /> : home ? <NativeIDEHome /> : <Suspense fallback={<main role="status">Opening saved workspace…</main>}><GuestWorkspace /></Suspense>;
 }
-ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><DeveloperEntry /></React.StrictMode>);
+// Native presentation markers select the existing app; they grant no identity,
+// project admission or command authority. WebView2 acceptance also uses root.
+const nativePresentation = window.ynxDesktopWorkspace || (window as unknown as { chrome?: { webview?: unknown } }).chrome?.webview;
+ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><Suspense fallback={<main role="status">YNX Developer…</main>}>{isPublicDeveloperEntry(window.location, nativePresentation) ? <DeveloperSite /> : <DeveloperEntry />}</Suspense></React.StrictMode>);

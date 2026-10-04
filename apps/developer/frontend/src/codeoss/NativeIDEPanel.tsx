@@ -3,13 +3,14 @@ import { Button } from "../components/ui/button";
 import { identityActivity } from './identityActivity';
 import { createRequestEpoch } from './requestEpoch';
 import { editorEntry, workspaceStatus, type NativeSession as Session } from './sessionNavigation';
+import { readWorkspaceResponse } from './workspaceResponse';
 type Catalog = { account: string; generation: number; identityKey: string; configured: boolean; kernel: string; license?: string; nativeProjects: string[]; sessions: Session[]; walletProjectExists: boolean; projectRevision: number; walletProjects: { projectId: string; name: string; revision: number }[] };
 const unauthorized = (error: unknown) => typeof error === "object" && error !== null && "status" in error && error.status === 401;
 async function privateRequest(path: string, options?: RequestInit, identityKey?: string) {
   const headers = new Headers(options?.headers); headers.set("content-type", "application/json");
   if (identityKey) headers.set("x-ynx-agent-identity", identityKey);
   const response = await fetch(path, { ...options, headers, credentials: "same-origin", cache: "no-store" });
-  const value = await response.json();
+  const value = await readWorkspaceResponse(response);
   if (!response.ok) throw Object.assign(new Error(value.error || "The workspace connection is unavailable."), { status: response.status, code: value.code });
   return value;
 }

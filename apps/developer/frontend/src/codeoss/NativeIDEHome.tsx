@@ -3,7 +3,7 @@ const preserveGuestOwnership = () => {};
 
 export function NativeIDEHome() {
   return <div className="native-home">
-    <header className="native-home-header"><a href="/projects" aria-label="YNX Developer home"><img src="/brand/ynx-logo.png" alt="" /><strong>YNX Developer</strong></a><a href="/guest-workspace">Guest text workspace</a></header>
+    <header className="native-home-header"><a href="/projects" aria-label="YNX Developer home"><img src="/brand/ynx-logo.png" alt="" /><strong>YNX Developer</strong></a><nav>{!window.ynxDesktopWorkspace && <a href={`/?lang=${new URLSearchParams(window.location.search).get('lang') === 'en' ? 'en' : 'zh'}`}>{new URLSearchParams(window.location.search).get('lang') === 'en' ? 'About YNX Developer' : '关于 YNX Developer'}</a>}<a href="/guest-workspace">Guest text workspace</a></nav></header>
     <main className="native-home-main">
       <div className="native-home-intro"><p className="edition">YNX TESTNET</p><h1>Your development workspace</h1><p>Open your Wallet projects in the full editor, with a persistent workspace, terminal and YNX development tools.</p></div>
       <div className="native-home-projects"><NativeIDEPanel projectId="wallet-projects" projectName="Your projects" revision={0} admitted={false} guestProjectAvailable={false} onOwnershipChange={preserveGuestOwnership} /></div>
