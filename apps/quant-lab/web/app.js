@@ -344,10 +344,8 @@ $("#locale").onchange = (e) => {
   localStorage.setItem("ynx.quant.locale", locale);
   applyLocale(); render();
 };
-$("#backtest").onsubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const body = {
+function backtestDraft() {
+    return {
       strategy: {
         id: "ma-" + Date.now(),
         name: $("#strategy").value,
@@ -369,6 +367,12 @@ $("#backtest").onsubmit = async (e) => {
         walkForwardWindows: 3,
       },
     };
+}
+window.YNXQuantBacktestDraft = backtestDraft;
+$("#backtest").onsubmit = async (e) => {
+  e.preventDefault();
+  try {
+    const body = backtestDraft();
     const result = await api(statefulPreview ? "/v1/backtests/from-market" : "/v1/public/research/backtests/from-market", { method: "POST", body: JSON.stringify(body) });
     renderResult(result);
     toast(statefulPreview ? "Out-of-sample experiment completed and audited" : "Stateless research completed. This result is not a saved strategy or funded account.");

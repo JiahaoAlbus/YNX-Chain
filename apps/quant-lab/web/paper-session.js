@@ -27,6 +27,7 @@ async function client(){
 function sameContext(previous){const next=window.YNXQuantWallet.getPrivateWalletContext();return previous.provider===next.provider&&previous.account===next.account&&previous.chainId===next.chainId&&previous.providerKind===next.providerKind&&previous.revision===next.revision;}
 function retire(selected=adapter){if(retiring)return retiring;if(!selected)return Promise.resolve(null);const own=selected.client.disconnect().finally(()=>{if(retiring===own)retiring=null;});retiring=own;return own;}
 export function getPaperSessionState(){return Object.freeze({...state,epoch,ready:data!==null});}
+export function getPaperWorkspaceSnapshot(){return data;}
 export function beginPaperSession(){
   if(pending){render();return pending;}
   if(state.status==='connected')return Promise.resolve(adapter.client.current);
@@ -77,7 +78,7 @@ export async function paperWorkspaceRequest(path,options={}){
     if(method==='GET'){
       const record=value=>value!==null&&typeof value==='object'&&!Array.isArray(value);
       if(result.access?.paperWorkspaceAuthorized!==true||result.access.statefulPreview!==false||result.access.nativeExecutionEnabled!==false||result.access.scheduleAuthorized!==false||!record(result.paper)||!record(result.strategies)||!record(result.experiments)||!Array.isArray(result.audit))fail('PAPER_BINDING_MISMATCH');
-      data=result;if(context.status==='connected')binding=context;render();
+      data=result;if(context.status==='connected')binding=context;render();notify();
     }return result;
   }catch(error){if(revision===epoch){data=null;if(error.code==='PRIVATE_AUTHORIZATION_REJECTED'){state={status:'guest',account:null};epoch++;}render();notify();}throw error;}
   finally{clearTimeout(timer);}

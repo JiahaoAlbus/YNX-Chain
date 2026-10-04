@@ -220,6 +220,10 @@
             <div class="actions"><button id="paper-authorize" type="button" class="primary">Authorize my simulated Paper workspace</button><button id="paper-refresh" type="button" class="secondary" disabled>Refresh my Paper workspace</button><button id="paper-revoke" type="button" class="secondary">Revoke Paper workspace access</button></div>
             <p id="paper-session-status" role="status" aria-live="polite"></p>
             <dl><dt data-paper-i18n="cash">Simulated cash</dt><dd id="paper-owned-cash">—</dd><dt data-paper-i18n="position">Simulated position</dt><dd id="paper-owned-position">—</dd><dt data-i18n="strategies">Strategies</dt><dd id="paper-owned-strategies">—</dd><dt data-i18n="audit">Audit</dt><dd id="paper-owned-audit">—</dd></dl>
+            <button id="paper-owned-backtest" type="button" class="secondary" data-paper-action="backtest" disabled>Review and save my backtest</button>
+            <form id="paper-owned-form"><div class="fields"><label><span data-i18n="strategies">Strategies</span><select id="paper-owned-strategy" required></select></label><label><span data-paper-action="side">Side</span><select id="paper-owned-side"><option value="buy" data-paper-action="buy">Buy</option><option value="sell" data-paper-action="sell">Sell</option></select></label><label><span data-paper-action="amount">Amount (base units)</span><input id="paper-owned-amount" type="number" min="1" step="1" value="1000000" required></label></div><button id="paper-owned-review" class="primary" data-paper-action="preview" disabled>Preview simulated signal</button></form>
+            <pre id="paper-owned-result" role="status" aria-live="polite"></pre>
+            <dialog id="paper-owned-preview"><p id="paper-owned-model"></p><pre id="paper-owned-preview-text"></pre><div class="actions"><button id="paper-owned-confirm" type="button" class="primary" data-paper-action="confirm">Confirm simulation</button><button id="paper-owned-cancel" type="button" class="secondary" data-paper-action="cancel">Cancel</button></div></dialog>
           </div>
           <div class="split">
             <div>
@@ -340,8 +344,8 @@
         <div id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <script src="/wallet-auth.js?v=2b8c4e9e6ea01f8f0e2e7d38b9c6f08b7dbbc64f2b528ef003489e21f87309c0"></script>
+    <script src="/wallet-auth.js?v=ecca748cb82c9174b301992e8bdbadd65e7c728f78a5b98f0ce3729b50054042"></script>
     <script src="/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"></script>
-    <script src="/app.js?v=21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc"></script>
+    <script src="/app.js?v=84fef6039bd825e2182ea9b505892d0e1fda8973d89c59b1040d791e3d3ad04e"></script>
   </body>
 </html>
