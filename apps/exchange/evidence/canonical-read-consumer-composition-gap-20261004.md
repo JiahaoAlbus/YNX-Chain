@@ -53,7 +53,7 @@ instead of degraded (14.463583ms; batch 1 FAIL/1 PASS, 73.804792ms).
 
 The real consumer now reads rejection bodies through its existing bounded byte,
 UTF-8 and abort pipeline. Only exact canonical `{error,privateService}` responses
-with string code, authorization_required classification and the signed server
+with string code, authorization_required classification and the contract's expected server
 status are retained for these four composition gaps:
 
 - ACTION_PROOF_REQUIRED: 401
