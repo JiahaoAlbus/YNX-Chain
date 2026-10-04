@@ -57,3 +57,29 @@ test('actual planning reminders and unavailable data follow all twelve selected 
     }
   }finally{await browser.close()}
 });
+
+test('actual planning rejects ambiguous duplicate identities and duplicate spending observations without losing valid neighbors',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const page=await browser.newPage();await page.setContent('<div id="categories"></div><form id="budget-form"><select name="categoryId"></select></form><div id="budgets"></div><div id="reminders"></div>');
+    await page.addScriptTag({content:`const $=s=>document.querySelector(s),financeText=k=>window.YNXFinanceLocale?window.YNXFinanceLocale.text(k):k,esc=v=>String(v??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');${formatters}\n${planning}\nwindow.renderPlanningQA=renderPlanning;`});
+    const profile={categories:[{id:'dup',name:'Ambiguous category A'},{id:'dup',name:'Ambiguous category B'},{id:'known',name:'Known category'}],budgets:[{id:'dup',name:'Ambiguous budget A',period:'monthly',limitYnxt:1},{id:'dup',name:'Ambiguous budget B',period:'monthly',limitYnxt:2},{id:'known',name:'Known budget',period:'monthly',limitYnxt:100}],reminders:[{id:'dup',title:'Ambiguous reminder A',schedule:'weekly'},{id:'dup',title:'Ambiguous reminder B',schedule:'weekly'},{id:'known',title:'Known reminder',schedule:'weekly'}]};
+    const progress=[{budgetId:'known',calculationStatus:'partial',coverageComplete:false,observedSpentYnxt:7},{budgetId:'known',calculationStatus:'partial',coverageComplete:false,observedSpentYnxt:9}];
+    await page.evaluate(({profile,progress})=>renderPlanningQA(profile,progress),{profile,progress});
+    assert.equal(await page.locator('option[value="dup"]').count(),0);
+    for(const id of ['categories','budgets','reminders']){const text=await page.locator('#'+id).textContent();assert.doesNotMatch(text,/Ambiguous/);assert.match(text,/Known/);assert.match(text,/unavailable/);}
+    const budget=await page.locator('#budgets').textContent();assert.doesNotMatch(budget,/7 YNXT|9 YNXT|partialObservation/);assert.match(budget,/calculationUnavailable/);
+    await page.selectOption('select','known');await page.evaluate(p=>renderPlanningQA(p,[{budgetId:'known',calculationStatus:'partial',coverageComplete:false,observedSpentYnxt:7}]),profile);
+    assert.equal(await page.locator('select').inputValue(),'known');assert.match(await page.locator('#budgets').textContent(),/7 YNXT/);
+    await page.addScriptTag({content:locale});
+    for(const language of await page.evaluate(()=>YNXFinanceLocale.supported)){
+      const observed=await page.evaluate(({language,profile,progress})=>{
+        YNXFinanceLocale.set(language);renderPlanningQA(profile,progress);
+        return {sections:['categories','budgets','reminders'].map(id=>document.querySelector('#'+id).textContent),unavailable:YNXFinanceLocale.text('unavailable'),calculation:YNXFinanceLocale.text('calculationUnavailable'),selected:document.querySelector('select').value};
+      },{language,profile,progress});
+      for(const text of observed.sections){assert.ok(text.includes(observed.unavailable),language);assert.doesNotMatch(text,/Ambiguous/);}
+      assert.ok(observed.sections[1].includes(observed.calculation),language);assert.doesNotMatch(observed.sections[1],/7 YNXT|9 YNXT/);assert.equal(observed.selected,'known');
+    }
+    assert.equal(page.context().pages().length,1);
+  }finally{await browser.close()}
+});

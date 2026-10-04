@@ -1,0 +1,11 @@
+# Planning source identities and spending ambiguity
+
+Inherited clean owner checkpoint b18a8ddf117e5334ccd0b7c52fd80ca41a8f2854. Finance ordinary product renderer/test/index only. Shared BrowserSSO/Wallet/SDK/authority, server, user state and publication graph unchanged.
+
+Actual existing Chrome rendered production planning function from apps/finance/web/app.js. New regression originally failed: duplicate category ID generated two selectable options (expected zero), 0 PASS / 1 FAIL / 0 CANCEL / 0 SKIP, 1919.096083ms runner. Original duplicate budget progress also used first matching observation, although two different values named the same budget. This is local controlled source observation, not a public account failure.
+
+Renderer now counts duplicate IDs independently per category/budget/reminder collection and duplicate budgetId in progress. Every ambiguous record is unavailable; valid neighboring records remain readable, unique category selection remains preserved, and unknown spending is not normalized to zero or arbitrarily attributed to the first row. Source collections and saved form values are not mutated. One valid replacement observation restores its exact returned spending normally. Existing planning-only/full-period-unknown boundary remains.
+
+Actual Chrome combined tests: planning-source-browser + overview-source-browser + owned-navigation-browser, 14 PASS / 0 FAIL / 0 CANCEL / 0 SKIP, 8225.243541ms. New duplicate case covers all twelve locale outputs, retained known selection, duplicate spending unknown, and unique observation recovery. Existing actual overview fail/read recovery, ownership/period statement fences, safe navigation, Explorer evidence and full references remain green. Node syntax/diff gates PASS.
+
+App SHA2560ae4dda9b8ea1b1f25e35f3a7c4a5bf6fc6873d004d93f88cc02ebd764ec0788. HTML ordinary app query updated to these bytes; formal publisher must still preserve/rebuild the exact shared graph and all other final content pins. Browser rendered controlled fixtures, not real identity/account/provider approval or source-bound public workflow. No Wallet/account/signature/transaction/SSH/production action, no downloaded installer or live rollback. Ordinary reviewed consumer revert is rollback; final public recovery belongs to unique release owner.
