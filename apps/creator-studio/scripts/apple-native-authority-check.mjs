@@ -12,13 +12,14 @@ try{
  child.on('exit',code=>{for(const wait of pending.values())wait.reject(Error('Swift fixture exited '+code+' '+swiftDiagnostic));pending.clear()});
  await readyPromise;
  async function call(name,args={},expect=true){
+  const trace=process.env.YNX_QA_CREATOR_STAGE_TRACE==='1';if(trace)console.error(JSON.stringify({creatorStage:'begin',name,at:new Date().toISOString()}));
   // Respect the original 120-per-account UTC-minute limit before preparing
   // fresh proofs. No old proof is replayed and no server limit is overridden.
   if(name!=='rateBudget'&&(name.startsWith('ui')&&!['uiSignOut','uiReleaseSubmit'].includes(name)||['json','cold','mismatch','holdNext','holdNextStudio','legacyCancelledDelta','foreignStreamJob'].includes(name))){
    let budget=(await call('rateBudget')).result.originalBusinessBudget;
-   while(budget.remaining<20){await new Promise(resolve=>setTimeout(resolve,budget.waitMilliseconds));budget=(await call('rateBudget')).result.originalBusinessBudget}
+   while(budget.remaining<20){if(trace)console.error(JSON.stringify({creatorStage:'original-rate-wait',name,remaining:budget.remaining,waitMilliseconds:budget.waitMilliseconds,at:new Date().toISOString()}));await new Promise(resolve=>setTimeout(resolve,budget.waitMilliseconds));budget=(await call('rateBudget')).result.originalBusinessBudget}
   }
-  const id=String(++seq),work=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});setTimeout(()=>{const p=pending.get(id);if(p){pending.delete(id);p.reject(Error('Swift '+name+' timeout '+swiftDiagnostic))}},40000).unref()});child.stdin.write(JSON.stringify({id,name,...args})+'\n');const reply=await work;if(expect)assert.equal(reply.ok,true,name+': '+reply.code);return reply}
+  const id=String(++seq),work=new Promise((resolve,reject)=>{pending.set(id,{resolve,reject});setTimeout(()=>{const p=pending.get(id);if(p){pending.delete(id);p.reject(Error('Swift '+name+' timeout '+swiftDiagnostic))}},40000).unref()});child.stdin.write(JSON.stringify({id,name,...args})+'\n');const reply=await work;if(trace)console.error(JSON.stringify({creatorStage:'end',name,ok:reply.ok,at:new Date().toISOString()}));if(expect)assert.equal(reply.ok,true,name+': '+reply.code);return reply}
  const initial=await call('uiSignIn');assert.equal(initial.result.pending,false);assert.equal(initial.result.businessVerified,false);assert(initial.result.walletUrl.startsWith('ynxwallet://authorize?request='));
  authority.stdin.write(JSON.stringify({kind:'approve-native-request',url:initial.result.walletUrl})+'\n');const approved=await approval();
  const wrong=new URL(approved.callback);wrong.searchParams.set('state','foreign-state');const rejected=await call('callback',{url:wrong.href},false);assert.equal(rejected.businessVerified??rejected.result?.businessVerified,false);
