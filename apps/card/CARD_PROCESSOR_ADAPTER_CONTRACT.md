@@ -46,9 +46,39 @@ The contract exposes: `createCard`, `getCard`, `freezeCard`, `unfreezeCard`,
   Closed cards cannot reopen, accept new funding or change controls. Closing with
   unexpired pending holds fails; refunds of prior captures remain possible.
 
-The page currently calls the remote contracts in `src/api.ts`; it does not use
-this processor as a hidden fallback. The missing durable backend and shared
-Wallet migration are tracked in `evidence/card-sandbox-backend-contract-20260906.md`.
+## Durable Testnet product path
+
+`server/service.ts` supplies the owned persistent Card business lifecycle using
+the original encrypted SQLite `server/storage.ts`. It has wallet-bound
+applications and explicit approval, zero-funded card creation, funding intents,
+server-side Core receipt verification, replay-protected ledger credit,
+authorization/capture/reversal/refund, controls, statements, reconciliation,
+original-key recovery and an immutable-event outbox. Ledger values are exact wei,
+not the local processor's integer demo units. These are separate contracts; do
+not silently replace one with the other or credit a durable account from a local
+processor event.
+
+`src/cardBusinessClient.ts` and the private application/action UI consume the
+source-bound `/api/card/v1/*` contract. `server/core.ts` reads actual chain
+transactions, receipts, canonical blocks and confirmations; it does not send
+transactions. `server/protectedStartup.ts` requires genuine current authority,
+and Wallet approval/registered role inputs remain shared-owner capabilities.
+Software authority seams in tests are not admitted production inputs.
+
+Historical `src/api.ts` and the legacy page funding controls still target
+`/app/card/v1/testnet/*`. Their existing exact-wallet transaction helper is not
+evidence that the new durable registered-card UI has completed an end-to-end
+funding flow. Legacy routes are not Product Session v2 migration proof. Complete
+delivery must pair the new approved provider/intent send-and-recovery UI with the
+new durable Card API, then directly verify chain credit and owner ledger state.
+
+The earlier missing-backend note in
+`evidence/card-sandbox-backend-contract-20260906.md` is historical evidence, not
+the current implementation inventory. Preserve it rather than rewriting it.
+The in-memory processor remains local simulation only and is never a hidden
+funding or authentication fallback. The persistent backend's existence likewise
+does not prove formal Host deployment, real Wallet approval, YNXT funding,
+Data Fabric delivery or full product readiness.
 
 ## Future regulated adapter
 
