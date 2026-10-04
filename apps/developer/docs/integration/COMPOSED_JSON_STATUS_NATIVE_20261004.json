@@ -1,0 +1,81 @@
+{
+  "schema": "ynx-composed-json-status-native-distribution/v1",
+  "status": "STATIC_MAC_CANDIDATE_VERIFIED_FORMAL_RELEASE_OPEN",
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-json-status-native-package-20261004-mac-arm64",
+  "workbenchVersion": "0.3.9",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "64b036c3204e9efd82cbd870bfb63a34880a0319",
+    "sourceTree": "ac479015739a5c1da57067836be404f1a88fc8a9",
+    "sourceCommitDate": "2026-10-04T13:28:07+08:00",
+    "runtimeCheckpoint": "64b036c3204e9efd82cbd870bfb63a34880a0319",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "919b55c2464837b377cf9b5d629df8a1d83cad2ac025645e49e1b93d297afa8c",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "2290284d09620a3bcc47ef16f4f477721ab726b6c00c085436308f5a7434dcc8",
+        "treeSha256": "9cdb0cad3867243b25de1fec3380620b1ff11533d8c0e073510e592bef0333d4",
+        "manifestSha256": "85fbec6e9be3f790ca225c2a0cfeb758486dc73808c4fb7c8f8ef805a225e548"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "f9594e7eda6cb37d31119de440d8f09ca66d66f430de1cc14cff053d15d82f54",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "2290284d09620a3bcc47ef16f4f477721ab726b6c00c085436308f5a7434dcc8",
+      "treeSha256": "9cdb0cad3867243b25de1fec3380620b1ff11533d8c0e073510e592bef0333d4",
+      "manifestSha256": "85fbec6e9be3f790ca225c2a0cfeb758486dc73808c4fb7c8f8ef805a225e548"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "f9594e7eda6cb37d31119de440d8f09ca66d66f430de1cc14cff053d15d82f54",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "84fd6f36c9258eb01fc6c00d3c8d4ae120ebd6bd96f3acfdcb32fc5254aa62ca",
+  "checks": {
+    "signatureExit": 0,
+    "imageExit": 0,
+    "archiveSha256Matches": true,
+    "sbomSha256Matches": true,
+    "installed": false,
+    "launched": false,
+    "notarized": false,
+    "canonicalUserAcceptance": false
+  },
+  "functionalEvidence": "COMPOSED_JSON_STATUS_20261004.json: 29 real controlled product UI checks on the exact embedded candidate; earlier C/C++ checks are not relabeled as current.",
+  "evidence": "apps/developer/.ynx-developer-candidates/json-status-native-evidence-20261004",
+  "evidenceIndexSha256": "820e1face0d2596b916e84d9334621740a4d49752d7fc30fd588c36c30980f02",
+  "remaining": [
+    "Original protected canonical installation, compatible registered driver and five-binding admission.",
+    "Real user Wallet/Chain/approved AI journeys and normal-user acceptance.",
+    "Graphical shortcuts, broader extension compatibility, C++ LLDB launch, Windows/Linux/device validation and formal signing/notarization."
+  ],
+  "scope": "Static ad-hoc Mac ARM Testnet Preview candidate only. No installation, launch, new Host/network/package permission or user-profile changes."
+}
