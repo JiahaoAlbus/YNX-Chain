@@ -210,7 +210,8 @@ test('reviewed document changes reject concurrent edits, digest mismatch and dup
 test('pinned tools install survives reopen and never overwrites tampered extension or symlink', async () => {
   const projectDirectory = await mkdtemp(join(tmpdir(), 'ynx-tools-install-')), context = { projectDirectory };
   await prepareCoreProject(context); await prepareCoreProject(context);
-  const path = join(projectDirectory, 'extensions', 'ynx.ynx-tools-0.2.15', 'src', 'guards.cjs');
+  const manifest = JSON.parse(await readFile(new URL('../../../native/ynx-tools/package.json', import.meta.url), 'utf8'));
+  const path = join(projectDirectory, 'extensions', `ynx.ynx-tools-${manifest.version}`, 'src', 'guards.cjs');
   assert.match(await readFile(path, 'utf8'), /validateChanges/); await writeFile(path, 'changed by project');
   await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' }); assert.equal(await readFile(path, 'utf8'), 'changed by project');
   await import('node:fs/promises').then(fs => fs.unlink(path)); await symlink('/etc/passwd', path); await assert.rejects(prepareCoreProject(context), { code: 'core_tools_review_required' });

@@ -1,15 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
-import { readFile, mkdtemp, mkdir, writeFile, symlink, unlink, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, mkdir, writeFile, symlink, unlink, rm, realpath, stat } from 'node:fs/promises';
 import {join} from 'node:path';import {tmpdir} from 'node:os';
 import { createRequire } from 'node:module';
 const localRequire = createRequire(import.meta.url), source = await readFile(new URL('../../../native/ynx-tools/src/extension.cjs', import.meta.url), 'utf8');
 const { digest } = localRequire('../../../native/ynx-tools/src/guards.cjs');
-function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, onClipboardWrite, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
+function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, onClipboardWrite, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, local = false, localEnv = {}, realFiles = false, beforeApply, onDirectoryCheck, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
   const commands = new Map(), errors = [], calls = [], id = '12345678-1234-1234-1234-123456789012';
   class FileSystemError extends Error { constructor() { super('absent'); this.code = 'FileNotFound'; } }
   let text = 'saved draft', version = 1; const runtimeEnv = { YNX_CORE_SESSION_ID: id, YNX_CORE_WORKSPACE: workspace };
+  if (local) { delete runtimeEnv.YNX_CORE_SESSION_ID; delete runtimeEnv.YNX_CORE_WORKSPACE; Object.assign(runtimeEnv, { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: workspace, YNX_LOCAL_PROJECT_ID: id }, localEnv); }
   const uri = { scheme: 'file', fsPath: filePath, toString: () => 'file://' + filePath }, doc = { uri, languageId: 'typescript', get version() { return version; }, getText: () => text, positionAt: offset => offset };
   const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), ...(selectionEdit ? {replacements:[{find:'saved draft',replace:'suggested'}]} : {text:'suggested'}) }] });
   class WorkspaceEdit { constructor() { this.operations = []; } createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } replace(uri, range, text) { this.operations.push({ type: 'replace', uri, text }); } }
@@ -18,10 +19,13 @@ function harness({ answer, exists = false, onModal, selectionEdit = false, revie
     commands: { registerCommand: (name, fn) => { commands.set(name, fn); return {}; }, executeCommand: async (...args) => { if(args[0] !== 'setContext') calls.push({ type: 'preview', args }); } },
     window: { onDidChangeActiveTextEditor: () => ({}), onDidChangeTextEditorSelection: () => ({}), activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle, showQuickPick: async items => items.find(item => item.source === reviewSource),
       showInformationMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; }, showWarningMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; } },
-    workspace: { onDidChangeTextDocument:()=>({}), onDidChangeWorkspaceFolders:()=>({}), registerTextDocumentContentProvider: () => ({}), onDidCloseTextDocument: () => ({}), workspaceFolders: [{ uri: {fsPath:folderPath,toString:()=> 'file://'+folderPath} }], textDocuments: [doc], fs: { stat: async () => { if (!exists) throw new FileSystemError(); return {}; } }, openTextDocument: async () => ({ uri: 'untitled:preview' }), applyEdit: async edit => { calls.push({ type: 'edit', operations: edit.operations }); return true; } }
+    workspace: { onDidChangeTextDocument:()=>({}), onDidChangeWorkspaceFolders:()=>({}), registerTextDocumentContentProvider: () => ({}), onDidCloseTextDocument: () => ({}), workspaceFolders: [{ uri: {scheme:'file',fsPath:folderPath,toString:()=> 'file://'+folderPath} }], textDocuments: [doc], fs: { stat: async () => { if (!exists) throw new FileSystemError(); return {}; } }, openTextDocument: async () => ({ uri: 'untitled:preview' }), applyEdit: async edit => { await beforeApply?.(vscode,runtimeEnv); if (realFiles) { const create=edit.operations.find(row=>row.type==='create'),insert=edit.operations.find(row=>row.type==='insert'); try { await writeFile(create.uri.fsPath,insert.text,{flag:'wx'}); } catch(error) { if(error.code==='EEXIST') return false; throw error; } } calls.push({ type: 'edit', operations: edit.operations }); return true; } }
   };
-  const module = { exports: {} }; vm.runInNewContext(source, { module, require: name => name === 'vscode' ? vscode : name === './guards.cjs' ? { ...localRequire('../../../native/ynx-tools/src/guards.cjs'), assertWorkspacePath: pathGuard, assertWorkspaceDirectory: directoryGuard } : localRequire('../../../native/ynx-tools/src/' + name.slice(2)), process: { env: runtimeEnv }, Buffer });
-  module.exports.activate({ subscriptions: [] }); return { commands, errors, calls, vscode };
+  let checks=0; const starterSource=localRequire('node:fs').readFileSync(new URL('../../../native/ynx-tools/src/local-starter.cjs',import.meta.url),'utf8'), starterModule={exports:{}};
+  vm.runInNewContext(starterSource,{module:starterModule,require:name=>name==='./guards.cjs'?{assertWorkspaceDirectory:async(...args)=>{const result=await localRequire('../../../native/ynx-tools/src/guards.cjs').assertWorkspaceDirectory(...args);await onDirectoryCheck?.(++checks,vscode,runtimeEnv);return result;}}:name.startsWith('./')?localRequire('../../../native/ynx-tools/src/'+name.slice(2)):localRequire(name)});
+  const localStarter=starterModule.exports;
+  const module = { exports: {} }; vm.runInNewContext(source, { module, require: name => name === 'vscode' ? vscode : name === './local-starter.cjs' ? localStarter : name === './guards.cjs' ? { ...localRequire('../../../native/ynx-tools/src/guards.cjs'), assertWorkspacePath: pathGuard, assertWorkspaceDirectory: directoryGuard } : localRequire('../../../native/ynx-tools/src/' + name.slice(2)), process: { env: runtimeEnv }, Buffer });
+  module.exports.activate({ subscriptions: [] }); return { commands, errors, calls, vscode, runtimeEnv };
 }
 test('actual extension command opens only fixed trusted host locator; canceled context stays local', async () => {
   const h = harness(); await h.commands.get('ynx.openTools')(); assert.deepEqual(h.calls.map(x => x.type), ['open']); assert.match(h.calls[0].url, /^https:\/\/developer\.ynxweb4\.com\/native-tools\?sessionId=/); assert.equal(h.calls[0].url.includes('saved'), false);
@@ -190,4 +194,54 @@ test('review selection cannot open Tools after runtime or source changes during 
     const h=harness({answer:'Copy selection',onClipboardWrite}); await h.commands.get('ynx.reviewSelection')();
     assert.deepEqual(h.calls.map(call=>call.type),['clipboard']); assert.match(h.errors[0],/changed/);
   }
+});
+
+async function starterFixture(t) {
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-local-starter-')));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ return {root,target:join(root,'ynx-testnet-readonly.mjs')};
+}
+test('registered local starter creates real file and opens it without a second modal or external action',async t=>{
+ const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,onModal:()=>{throw Error('Unexpected modal');}});
+ let opened;h.vscode.window.showTextDocument=async uri=>{opened=uri.fsPath;};
+ await h.commands.get('ynx.createTemplate')();assert.deepEqual(h.errors,[]);assert.equal(opened,target);assert.deepEqual(h.calls.map(row=>row.type),['edit']);
+ const text=await readFile(target,'utf8');assert.match(text,/6423n/);assert.match(text,/https:\/\/rpc\.ynxweb4\.com\/evm/);assert.match(text,/YNXT/);assert.doesNotMatch(text,/eth_sendTransaction|eth_sendRawTransaction|privateKey|npm install/);
+ localRequire('node:child_process').execFileSync(process.execPath,['--check',target]);
+ await h.commands.get('ynx.createTemplate')();assert.match(h.errors[0],/already exists/);assert.equal(await readFile(target,'utf8'),text);
+});
+test('local starter preserves existing regular files, directories, dangling symlinks and unsaved target documents',async t=>{
+ for(const kind of ['file','directory','symlink','unsaved']) {
+  const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true});
+  if(kind==='file')await writeFile(target,'existing user work');
+  if(kind==='directory')await mkdir(target);
+  if(kind==='symlink')await symlink(join(root,'absent'),target);
+  if(kind==='unsaved')h.vscode.workspace.textDocuments.push({uri:{scheme:'file',fsPath:target},isDirty:true,getText:()=> 'unsaved user work'});
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.match(h.errors[0],/already exists|already open/);
+  if(kind==='file')assert.equal(await readFile(target,'utf8'),'existing user work');
+ }
+});
+test('local starter rejects mixed session, invalid project identity, multiple folders, subfolder and symbolic root',async t=>{
+ const {root}=await starterFixture(t);const sub=join(root,'sub'),link=join(root,'alias');await mkdir(sub);await symlink(root,link);
+ for(const options of [{localEnv:{YNX_CORE_SESSION_ID:'canonical'}},{localEnv:{YNX_CORE_WORKSPACE:root}},{localEnv:{YNX_LOCAL_PROJECT_ID:'invalid'}},{folderPath:sub},{folderPath:link},{workspace:link,folderPath:link},{multiple:true}]) {
+  const h=harness({local:true,workspace:root,realFiles:true,...options});if(options.multiple)h.vscode.workspace.workspaceFolders.push(h.vscode.workspace.workspaceFolders[0]);
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.equal(h.errors.length,1);
+ }
+});
+test('local starter retires folder/runtime and dirty-document changes during destination checks',async t=>{
+ for(const change of ['runtime','core','mode','folder','document','inode','symlink']) {
+  const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,onDirectoryCheck:async(n,vscode,env)=>{
+   if(n!==2)return;
+   if(change==='runtime')env.YNX_LOCAL_PROJECT_ID='retired';
+   if(change==='core')env.YNX_CORE_WORKSPACE=root;
+   if(change==='mode')env.YNX_WORKSPACE_MODE='canonical';
+   if(change==='folder')vscode.workspace.workspaceFolders=[];
+   if(change==='document')vscode.workspace.textDocuments.push({uri:{scheme:'file',fsPath:target},isDirty:true});
+   if(change==='inode'||change==='symlink'){await localRequire('node:fs/promises').rename(root,root+'-old');if(change==='symlink')await symlink(root+'-old',root);else await mkdir(root);t.after(()=>rm(root+'-old',{recursive:true,force:true}));}
+  }});
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.equal(h.errors.length,1);await assert.rejects(stat(target),{code:'ENOENT'});
+ }
+});
+test('VS Code no-overwrite creation preserves a file created concurrently after local destination review',async t=>{
+ const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,beforeApply:()=>writeFile(target,'concurrent user file')});
+ await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.match(h.errors[0],/preserved/);assert.equal(await readFile(target,'utf8'),'concurrent user file');
 });

@@ -78,6 +78,7 @@ function activate(context) {
     await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(reviewed.snapshot.sessionId)}#compile`));
   });
   register('ynx.createTemplate', async () => {
+    if (process.env.YNX_WORKSPACE_MODE === 'local') return require('./local-starter.cjs').createLocalStarter(vscode, process.env);
     const root = vscode.workspace.workspaceFolders?.[0]?.uri; if (!root) throw Error('Open a project first.');
     const sessionId = process.env.YNX_CORE_SESSION_ID, workspace = process.env.YNX_CORE_WORKSPACE, rootKey = root.toString();
     if (!/^[a-f0-9-]{36}$/.test(sessionId || '') || !workspace) throw Error('Create this starter from an active YNX project runtime.');
