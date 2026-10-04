@@ -13,6 +13,7 @@ import{CardText as NativeText}from"./cardTypography";
 import{RegistrationExperience}from"./RegistrationExperience";
 import{ProviderExperience}from"./ProviderExperience";
 import{CardBusinessExperience}from"./CardBusinessExperience";
+import{CardSourceRecoveryDialog}from"./CardSourceRecoveryDialog";
 import type{CardBusinessClient}from"./cardBusinessClient";
 import type{CardProviderClient}from"./providerApplicationClient";
 import{createStandardWalletConnectState}from"@ynx-chain/wallet-auth";
@@ -36,6 +37,9 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
   const[journal]=useState(()=>new GuestSandboxJournal(Platform.OS==="web"?webGuestSandboxStorage():undefined));
   const demoDraft=useRef(journal.snapshot);
   const[storageStatus,setStorageStatus]=useState(journal.status);
+  const[dismissedSourceError,setDismissedSourceError]=useState<string|undefined>();
+  const sourceError=[businessClientError,providerClientError].find(code=>code==="CARD_API_SOURCE_MISMATCH"||code==="CARD_API_SOURCE_UNAVAILABLE");
+  useEffect(()=>{if(!sourceError)setDismissedSourceError(undefined)},[sourceError]);
   const[section,setSection]=useState<Section>("overview"),[frozen,setFrozen]=useState(journal.snapshot.controls.frozen),[online,setOnline]=useState(journal.snapshot.controls.online),[international,setInternational]=useState(journal.snapshot.controls.international),[events,setEvents]=useState<readonly DemoEvent[]>(journal.snapshot.events),[notice,setNotice]=useState(""),[ynxWalletFallback,setYNXWalletFallback]=useState(false);
   const showSectionStart=()=>{
     const scroll=contentRef.current,content=sectionRef.current,parent=scrollBodyRef.current,nav=navigationEpoch.current;
@@ -94,6 +98,7 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
         <RegistrationExperience walletSession={walletSession} locale={locale}/>
     </>;
   return <GuestLocaleContext.Provider value={locale}><View style={[g.page,rtl&&g.rtl]}>
+    <CardSourceRecoveryDialog locale={locale} code={sourceError===dismissedSourceError?undefined:sourceError} onClose={()=>setDismissedSourceError(sourceError)} onGuest={()=>{setDismissedSourceError(sourceError);navigateTo("overview")}} onReload={Platform.OS==="web"&&typeof window!=="undefined"?()=>window.location.reload():undefined}/>
     {!compact&&topbar}
     <View style={g.body}>
       {!compact&&sidebar}

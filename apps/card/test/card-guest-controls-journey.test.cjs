@@ -79,3 +79,55 @@ test('damaged guest storage remains untouched and the rendered UI warns that new
   assert.equal(raw,'{damaged');assert.equal(writes,0);assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
  }finally{await app.unmount()}
 });
+
+test('source mismatch task dialog preserves guest access and does not request any Wallet permission',async()=>{
+ const app=await mountGuest({platform:'web',fontScale:1,props:{businessClientError:'CARD_API_SOURCE_MISMATCH'}});
+ try{
+  assert.equal(app.renderer.root.findAll(n=>n.type==='Modal'&&n.props.visible).length,1);
+  assert.match(app.text(),/Card service verification/);assert.match(app.text(),/Do not clear application records/);
+  await app.press(app.buttons('Continue as guest')[0]);
+  assert.equal(app.renderer.root.findAll(n=>n.type==='Modal').length,0);
+  assert.match(app.text(),/Understand card flows/);
+  assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask+app.calls.pageReloads,0);
+  await app.update({businessClientError:undefined});await app.update({businessClientError:'CARD_API_SOURCE_MISMATCH'});
+  assert.equal(app.renderer.root.findAll(n=>n.type==='Modal'&&n.props.visible).length,1);
+ }finally{await app.unmount()}
+});
+test('page reload is an explicit two-step recovery action, not a private authorization retry',async()=>{
+ const app=await mountGuest({platform:'web',fontScale:1,props:{businessClientError:'CARD_API_SOURCE_UNAVAILABLE'}});
+ try{
+  await app.press(app.buttons('Reload Card page')[0]);assert.equal(app.calls.pageReloads,0);
+  assert.match(app.text(),/Unsaved form edits may be lost/);assert.match(app.text(),/does not approve Wallet access/);
+  await app.press(app.buttons('Keep this page')[0]);assert.equal(app.calls.pageReloads,0);
+  await app.press(app.buttons('Reload Card page')[0]);await app.press(app.buttons('Confirm page reload')[0]);
+  assert.equal(app.calls.pageReloads,1);assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
+  assert.equal(app.calls.writes,0);
+ }finally{await app.unmount()}
+});
+test('native source recovery never pretends it can reload or authorize a standard Web wallet',async()=>{
+ const app=await mountGuest({platform:'ios',fontScale:1,props:{businessClientError:'CARD_API_SOURCE_MISMATCH'}});
+ try{
+  assert.equal(app.buttons('Reload Card page').length,0);
+  const modal=app.renderer.root.find(n=>n.type==='Modal');
+  assert.equal(typeof modal.props.onRequestClose,'function');
+  await app.press(app.buttons('Keep this page')[0]);
+  assert.equal(app.calls.native+app.calls.pageReloads,0);
+ }finally{await app.unmount()}
+});
+
+test('every source dialog locale uses local safe error copy and scalable 48px actions',async()=>{
+ const {locales}=require('../src/i18n.ts');
+ const {privateServiceText}=require('../src/privateServiceCopy.ts');
+ const {flattenStyle,textOf}=require('./guest-experience-fixture.cjs');
+ for(const locale of locales){
+  const app=await mountGuest({platform:'web',locale,fontScale:2,props:{businessClientError:'CARD_API_SOURCE_MISMATCH'}});
+  try{
+   const modal=app.renderer.root.find(n=>n.type==='Modal');
+   assert.ok(textOf(modal).includes(privateServiceText(locale,'CARD_API_SOURCE_MISMATCH')));
+   if(locale==='en')assert.doesNotMatch(textOf(modal),/[\u3400-\u9fff]/);
+   for(const button of modal.findAll(n=>n.type==='Pressable'))assert.ok(flattenStyle(button.props.style).minHeight>=48);
+   for(const text of modal.findAll(n=>n.type==='Text')){assert.notEqual(text.props.allowFontScaling,false);assert.equal(text.props.numberOfLines,undefined)}
+   assert.equal(app.calls.chooser+app.calls.native+app.calls.metamask,0);
+  }finally{await app.unmount()}
+ }
+});
