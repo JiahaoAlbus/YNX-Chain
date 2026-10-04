@@ -70,6 +70,13 @@ func TestPaperCostsSettlePersistAndReplayOnlyExactModel(t *testing.T) {
 			if s.state.Paper.Cash != beforeCash+delta {
 				t.Fatal("fees not settled")
 			}
+			wantLoss := int64(751)
+			if side == "sell" {
+				wantLoss = 750
+			}
+			if s.state.Paper.DailyRisk == nil || s.state.Paper.DailyRisk.Loss != wantLoss {
+				t.Fatal("settled cost missing from immediate daily risk")
+			}
 			cfg.MarketData = nil
 			reopened, err := New(cfg)
 			if err != nil {
@@ -158,5 +165,24 @@ func TestPaperCostConcurrentInstancesChargeOneReceipt(t *testing.T) {
 	}
 	if second.Snapshot()["paper"].(PaperState).Cash != beforeCash-orders[0].ExecutedNotionalMicro-orders[0].FeeMicro {
 		t.Fatal("cost charged more than once")
+	}
+}
+
+func TestPaperCostsCannotCrossDailyLossLimitAndInventSettlement(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "state.json"), MarketData: adapterMarket{tick: MarketTick{Price: 2_000_000_000, Volume: 20_000_000, Source: "fixture://daily-cost-limit"}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	e, err := s.RunBacktest(request())
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := hash(s.state)
+	if _, err := s.SubmitPaperSignalWithCostsFromMarket(e.Strategy.StrategyHash, "buy", 1_000_000, "cost-daily-bound-key", PaperExecutionCosts{PaperCostPolicyV1, 10000, 0}); err != ErrPaperDailyLoss {
+		t.Fatalf("cost loss admitted: %v", err)
+	}
+	if hash(s.state) != before {
+		t.Fatal("rejected projected cost became actual state/audit")
 	}
 }

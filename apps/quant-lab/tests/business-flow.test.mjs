@@ -1480,6 +1480,42 @@ test('Paper confirmation binds exact inputs, discloses missing execution-cost mo
   accept=true;app.context.confirm=()=>{app.ids.get('paper-amount').value='100';return true};await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal([...app.storage.keys()].some(key=>key.startsWith('ynx.quant.paper.pending')),false);
 });
 
+const paperCostsV1={Policy:'adverse_price_ceil_fee_micro_v1',FeeBPS:10,SlippageBPS:5};
+const setPaperCosts = app => {app.ids.get('paper-cost-model').value='v1';app.ids.get('paper-cost-fee').value='10';app.ids.get('paper-cost-slippage').value='5';app.ids.get('paper-cost-model').emit('change');};
+const costReceipt = request => ({...paperRecord({ID:'paper-000001',Price:1000000,Status:'filled',Filled:request.Amount}),StrategyHash:request.StrategyHash,Side:request.Side,Amount:request.Amount,IdempotencyKey:request.IdempotencyKey,CostPolicy:paperCostsV1.Policy,FeeBPS:10,SlippageBPS:5,ExecutionPriceMicro:1000500,ExecutedNotionalMicro:1000500,FeeMicro:1001});
+test('Paper cost model confirmation localizes, fences changes and invalid rates, and cancellation creates no intent',async()=>{
+  let message='';const app=harness({snapshot:{strategies:{saved:savedResearchStrategy()}},confirmAction:preview=>{message=preview;return false}});await settle();
+  app.ids.get('paper-strategy').value='d'.repeat(64);app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';setPaperCosts(app);
+  for(const language of vm.runInContext('supportedLocales',app.context)){
+    app.ids.get('locale').onchange({target:{value:language}});await app.submit('paper-order');
+    assert.ok(message.includes(vm.runInContext('t("paperCostBoundary")',app.context)));assert.ok(message.includes(vm.runInContext('t("paperCostFee")',app.context)+': 10'));
+    assert.equal(app.ids.get('paper-execution-boundary').textContent,vm.runInContext('t("paperCostBoundary")',app.context));
+  }
+  app.context.confirm=()=>{app.ids.get('paper-cost-fee').value='11';return true};await app.submit('paper-order');
+  assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);assert.equal(vm.runInContext('pendingPaperIntent',app.context),null);
+  for(const value of ['','1.5','-1','10001','9007199254740992']){app.ids.get('paper-cost-fee').value=value;await app.submit('paper-order');assert.equal(app.calls.filter(call=>call.options.method==='POST').length,0);}
+});
+test('Paper confirmed costs require exact mathematically consistent receipt before clearing the durable intent',async()=>{
+  const snapshot={strategies:{saved:savedResearchStrategy()}};
+  for(const change of [{}, {FeeMicro:1000}, {ExecutedNotionalMicro:1000501}, {ExecutionPriceMicro:1000501}, {FeeBPS:11}, {CostPolicy:'unknown'}, {FeeMicro:null}, {CostPolicy:undefined,FeeBPS:undefined,SlippageBPS:undefined,ExecutionPriceMicro:undefined,ExecutedNotionalMicro:undefined,FeeMicro:undefined}]){
+    const app=harness({snapshot,confirmAction:()=>true,apiResponse:(url,options)=>url.endsWith('/snapshot')?snapshot:{...costReceipt(JSON.parse(options.body)),...change}});await settle();
+    app.ids.get('paper-strategy').value='d'.repeat(64);app.ids.get('side').value='buy';app.ids.get('paper-amount').value='1000000';setPaperCosts(app);await app.submit('paper-order');
+    const call=app.calls.find(call=>call.url.endsWith('/paper/orders'));assert.deepEqual(JSON.parse(call.options.body).ExecutionCosts,paperCostsV1);
+    assert.equal(app.calls.filter(call=>call.options.method==='POST').length,1);assert.equal(app.proofs(),0);
+    assert.equal(vm.runInContext('pendingPaperIntent!==null',app.context),Object.keys(change).length>0);
+  }
+});
+test('Paper cost pending recovery restores exact rates, refuses changed model, and retries only original intent',async()=>{
+  const snapshot={strategies:{saved:savedResearchStrategy()}};
+  const lost=harness({snapshot,confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?snapshot:Promise.reject(Error('Connection lost'))});await settle();
+  lost.ids.get('paper-strategy').value='d'.repeat(64);lost.ids.get('side').value='buy';lost.ids.get('paper-amount').value='1000000';setPaperCosts(lost);await lost.submit('paper-order');
+  const submitted=lost.calls.find(call=>call.url.endsWith('/paper/orders')).options.body;
+  const restored=harness({snapshot,savedStorage:lost.storage,confirmAction:()=>true,apiResponse:(url,options)=>url.endsWith('/snapshot')?snapshot:costReceipt(JSON.parse(options.body))});await settle();
+  assert.equal(restored.ids.get('paper-cost-model').value,'v1');assert.equal(restored.ids.get('paper-cost-fee').value,'10');assert.equal(restored.ids.get('paper-cost-slippage').value,'5');
+  restored.ids.get('paper-cost-fee').value='11';await restored.submit('paper-order');assert.equal(restored.calls.filter(call=>call.options.method==='POST').length,0);
+  restored.ids.get('paper-cost-fee').value='10';await restored.submit('paper-order');assert.equal(restored.calls.find(call=>call.url.endsWith('/paper/orders')).options.body,submitted);assert.equal(vm.runInContext('pendingPaperIntent',restored.context),null);
+});
+
 test('typed Paper daily-loss rejection clears the rejected intent, refreshes risk and stays localized without auto-retry',async()=>{
   const hash='d'.repeat(64),snapshot={strategies:{saved:{Name:'Saved',StrategyHash:hash}}};let posts=0;
   const app=harness({snapshot,confirmAction:()=>true,apiStatus:url=>url.endsWith('/paper/orders')?403:200,apiResponse:url=>{

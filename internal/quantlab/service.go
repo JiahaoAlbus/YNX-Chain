@@ -1554,6 +1554,20 @@ func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amoun
 		}
 		return PaperOrder{}, ErrPaperDailyLoss
 	}
+	if costs.Policy != "" {
+		candidate := s.state.Paper
+		candidate.Cash, candidate.Position, candidate.DailyRisk = nextCash.Int64(), nextPosition.Int64(), dailyRisk
+		settledRisk, err := paperDailyRisk(candidate, price, s.cfg.Now(), limits.MaxDailyLoss)
+		if err != nil {
+			return PaperOrder{}, err
+		}
+		// Do not record hypothetical balances or an unexecuted fee as actual loss.
+		// Refuse the entire settlement before sequence/audit/state mutation.
+		if settledRisk.Breached {
+			return PaperOrder{}, ErrPaperDailyLoss
+		}
+		dailyRisk = settledRisk
+	}
 	s.state.Paper.DailyRisk = dailyRisk
 	s.state.Sequence++
 	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}

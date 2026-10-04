@@ -200,12 +200,38 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     // No wallet provider, account grant or Exchange/chain write is involved.
     await page.selectOption('#locale','en');await page.locator('nav button[data-view="paper"]').click();
     await page.locator('#paper-strategy').selectOption(firstReceipt.strategy.StrategyHash);await page.locator('#paper-amount').fill('1000000');
+    await page.selectOption('#paper-cost-model','v1');await page.locator('#paper-cost-fee').fill('10');await page.locator('#paper-cost-slippage').fill('5');
+    let costOrderPosts=0,costOrderReceipt;const costBodies=[];
+    await context.route('**/api/v1/paper/orders',async route=>{
+      costOrderPosts++;costBodies.push(route.request().postData());
+      const response=await route.fetch();assert.equal(response.status(),201);
+      if(costOrderPosts===1){costOrderReceipt=await response.json();return route.abort('failed');}
+      assert.deepEqual(await response.json(),costOrderReceipt);return route.fulfill({response});
+    });
+    const cashBeforeCosts=await page.evaluate(()=>snapshot.paper.Cash);
+    const cancelledCostDialog=page.waitForEvent('dialog'),cancelledCostClick=page.locator('#paper-submit').click();
+    await (await cancelledCostDialog).dismiss();await cancelledCostClick;assert.equal(costOrderPosts,0);
     const paperDialog=page.waitForEvent('dialog'),paperClick=page.locator('#paper-submit').click();
-    const paperConfirmation=await paperDialog;assert.match(paperConfirmation.message(),/Simulation only/);await paperConfirmation.accept();await paperClick;
+    const paperConfirmation=await paperDialog;assert.match(paperConfirmation.message(),/Simulation assumptions/);assert.match(paperConfirmation.message(),/Fee \(bps\): 10/);assert.match(paperConfirmation.message(),/Slippage \(bps\): 5/);await paperConfirmation.accept();await paperClick;
+    await page.waitForFunction(()=>pendingPaperIntent!==null&&!paperSubmitting);
+    assert.equal(costOrderPosts,1);assert.equal(costOrderReceipt.CostPolicy,'adverse_price_ceil_fee_micro_v1');
+    assert.equal(costOrderReceipt.ExecutionPriceMicro,1047524);assert.equal(costOrderReceipt.FeeMicro,1048);
+    await page.reload({waitUntil:'networkidle'});await page.locator('nav button[data-view="paper"]').click();
+    assert.equal(await page.locator('#paper-cost-model').inputValue(),'v1');assert.equal(await page.locator('#paper-cost-fee').inputValue(),'10');
+    await page.locator('#paper-cost-fee').fill('11');await page.locator('#paper-submit').click();assert.equal(costOrderPosts,1,'changed assumption cannot replay unknown outcome');
+    await page.locator('#paper-cost-fee').fill('10');const recoveryDialog=page.waitForEvent('dialog'),recoveryClick=page.locator('#paper-submit').click();await (await recoveryDialog).accept();await recoveryClick;
+    await page.waitForFunction(()=>pendingPaperIntent===null&&!paperSubmitting);assert.equal(costOrderPosts,2);assert.equal(costBodies[0],costBodies[1]);
     await page.waitForFunction(()=>snapshot.paper?.Orders?.length===1);
     const paperBefore=await page.evaluate(()=>snapshot.paper);
     assert.equal(paperBefore.Orders[0].Amount,1000000);assert.equal(paperBefore.Orders[0].Source,'authoritative_market_adapter');
     assert.equal(paperBefore.Orders[0].StrategyHash,firstReceipt.strategy.StrategyHash);
+    assert.equal(paperBefore.Cash,cashBeforeCosts-costOrderReceipt.ExecutedNotionalMicro-costOrderReceipt.FeeMicro,'original engine debits actual simulation costs exactly once');
+    assert.equal(paperBefore.DailyRisk.Loss,1572,'settled fee and adverse price enter the original daily risk immediately');
+    assert.deepEqual(paperBefore.Orders[0],costOrderReceipt);
+    assert.match(await page.locator('#paper-record-rows').textContent(),/Fee charged \(micro\): 1048/);
+    await page.screenshot({path:path.join(work,'paper-costs-recovered-en.png'),fullPage:true});
+    await page.selectOption('#locale','ar');assert.ok((await page.locator('#paper-record-rows').textContent()).includes(await page.evaluate(()=>t('paperCostCharged'))));
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.screenshot({path:path.join(work,'paper-costs-recovered-ar.png'),fullPage:true});await page.selectOption('#locale','en');
     await otherPage.evaluate(()=>refresh());
     const otherPaperBefore=await otherPage.evaluate(()=>snapshot.paper);
     assert.equal(otherPaperBefore.Orders?.length??0,0);assert.equal(otherPaperBefore.KillSwitch,false);
@@ -264,7 +290,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
-  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png']){
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png']){
     const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
   }
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));

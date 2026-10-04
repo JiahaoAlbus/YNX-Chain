@@ -263,7 +263,7 @@
                 assumptions. No order reaches the Exchange API.
               </p>
               <p class="lead" data-business-i18n="paperWorkspaceLead">This browser's Paper workspace is stored by the Quant service. It is independent of the connected wallet; changing wallets does not change or transfer its simulated funds.</p>
-              <p class="notice" data-business-i18n="paperExecutionBoundary">Simulation only; no Exchange or chain transaction. Amount is in integer micro-units. There is no executable price quote: the service reads the market at submission, limits fills to 10% of source volume and applies position/notional limits. The Paper engine does not deduct commission/gas or model slippage; this is not a cost-inclusive execution forecast.</p>
+              <p id="paper-execution-boundary" class="notice" data-business-i18n="paperExecutionBoundary">Simulation only; no Exchange or chain transaction. Legacy mode does not deduct fees or simulate slippage. Select an explicit cost model for new signals.</p>
               <form id="paper-order">
                 <div class="fields">
                   <label><span data-business-i18n="strategy">Saved strategy</span><select id="paper-strategy" required></select></label>
@@ -278,6 +278,11 @@
                       type="number"
                       value="2000000" /></label
                   >
+                </div>
+                <div class="fields">
+                  <label><span data-business-i18n="paperCostModel">Simulation costs</span><select id="paper-cost-model"><option value="legacy" data-business-i18n="paperCostLegacy">Legacy: no fees/slippage</option><option value="v1" data-business-i18n="paperCostV1">Adverse price + fees (v1)</option></select></label>
+                  <label><span data-business-i18n="paperCostFee">Fee (bps)</span><input id="paper-cost-fee" type="number" min="0" max="10000" step="1" value="10" disabled /></label>
+                  <label><span data-business-i18n="paperCostSlippage">Slippage (bps)</span><input id="paper-cost-slippage" type="number" min="0" max="9999" step="1" value="5" disabled /></label>
                 </div>
                 <button id="paper-submit" class="primary" data-i18n="paperAction">Submit simulated signal</button>
               </form>
@@ -387,7 +392,7 @@
     </div>
     <script src="/wallet-auth.js?v=3b8c2afa35f3af7e1810c4101af8457277dc603960526ee1f6b10f80aaec1ac0"></script>
     <script src="/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca"></script>
-    <script src="/app.js?v=1832b46507b7639c2c035659c06afb504086a313228ff9cae18b2378a26d71cd"></script>
+    <script src="/app.js?v=96bc622cf1d5367595b9e3f98356b112d6a577befa451f6739ce9baf7636ba79"></script>
     <script src="/ui-preferences.js" defer></script>
   </body>
 </html>

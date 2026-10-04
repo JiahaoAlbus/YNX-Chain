@@ -83,7 +83,8 @@ function readPendingPaperIntent() {
     // Our persisted envelope is always JSON.stringify output. A duplicate-key
     // or otherwise rewritten envelope must not silently become an exact replay.
     if(JSON.stringify(value)!==raw)throw Error('INVALID_SAVED_PAPER_REQUEST');
-    if (value && Object.keys(value).sort().join(',')==='Amount,IdempotencyKey,Side,StrategyHash' && /^quant-paper-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
+    const keys=value&&Object.keys(value).sort().join(',');
+    if (value && (keys==='Amount,IdempotencyKey,Side,StrategyHash' || keys==='Amount,ExecutionCosts,IdempotencyKey,Side,StrategyHash' && validPaperCostModel(value.ExecutionCosts)) && /^quant-paper-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
     throw Error('INVALID_SAVED_PAPER_REQUEST');
   } catch { pendingPaperInvalid=true; return null; }
 }
@@ -439,19 +440,51 @@ const paperConfirmCopy = {
   id: ["Konfirmasi sinyal Paper strategi tersimpan ini?", "Simulasi saja, tanpa order Exchange atau transaksi blockchain. Jumlah dalam mikrounit bilangan bulat. Tanpa kuotasi yang dapat dieksekusi: pasar dibaca saat pengiriman, pengisian dibatasi 10% volume sumber dan batas posisi/nosional. Tanpa komisi/gas atau model slippage; bukan prakiraan termasuk biaya.", "Pratinjau berubah. Tinjau kembali masukan saat ini.", "Order simulasi dicatat"],
 };
 for (const [language, [paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded]] of Object.entries(paperConfirmCopy)) Object.assign(businessCopy[language], {paperConfirm, paperExecutionBoundary, paperPreviewChanged, paperRecorded});
+const paperCostCopy = {
+  en:['Simulation costs','Legacy: no fees/slippage','Adverse price + fees (v1)','Fee (bps)','Slippage (bps)','Simulation assumptions, not venue fees. No executable quote: market is read at submission, with a 10% source-volume fill cap. Buy price/notional round up; sell price/notional round down. Fees round up and are deducted on actual fills. No gas or real funds. Review the selected rates; actual costs are in the receipt.','Invalid cost model or rates.','Execution price (micro)','Executed notional (micro)','Fee charged (micro)'],
+  'zh-CN':['模拟成本','旧模型：无费用/滑点','不利价格与手续费（v1）','手续费（基点）','滑点（基点）','这些是模拟假设，不是交易场所收费。不是可执行报价：提交时读取行情，成交上限为来源成交量的10%。买价和买入金额向上取整，卖价和卖出金额向下取整，手续费向上取整并按实际成交扣除。不含Gas或真实资金。请核对费率；实际成本见回执。','成本模型或费率无效。','执行价格（微单位）','成交金额（微单位）','已扣费用（微单位）'],
+  'zh-TW':['模擬成本','舊模型：無費用/滑點','不利價格與手續費（v1）','手續費（基點）','滑點（基點）','這是模擬假設，非交易場所收費。非可執行報價：提交時讀取行情，成交上限為來源成交量的10%。買價與買入金額向上取整，賣價與賣出金額向下取整，費用向上取整並按實際成交扣除。不含Gas或真實資金。請核對費率；實際成本見回執。','成本模型或費率無效。','執行價格（微單位）','成交金額（微單位）','已扣費用（微單位）'],
+  ja:['模擬コスト','旧モデル：費用・滑りなし','不利価格と手数料（v1）','手数料（bps）','滑り（bps）','取引所の料金ではなく模擬条件です。執行見積りなし：送信時の市場、出来高10%上限。買価格・金額は切上げ、売価格・金額は切下げ、手数料は切上げて実際の約定分から控除。ガス・実資金なし。率を確認し、実際のコストは記録を参照。','モデルまたは率が無効です。','執行価格（マイクロ）','約定金額（マイクロ）','控除手数料（マイクロ）'],
+  ko:['모의 비용','이전 모델: 비용·슬리피지 없음','불리한 가격과 수수료(v1)','수수료(bps)','슬리피지(bps)','거래소 요금이 아닌 모의 가정입니다. 실행 견적 없음: 제출 시 시장을 읽으며 원천 거래량 10% 한도. 매수 가격·금액은 올림, 매도는 내림, 수수료는 올림하여 실제 체결에서 차감합니다. 가스·실제 자금 없음. 요율을 확인하고 실제 비용은 기록을 확인하세요.','모델 또는 요율이 잘못되었습니다.','실행 가격(마이크로)','체결 금액(마이크로)','차감 수수료(마이크로)'],
+  es:['Costes simulados','Anterior: sin costes/deslizamiento','Precio adverso + comisión (v1)','Comisión (bps)','Deslizamiento (bps)','Supuestos, no tarifas del mercado. Sin cotización ejecutable: mercado al enviar, límite 10% del volumen fuente. Compra redondea precio/importe arriba; venta abajo. Comisión arriba sobre ejecución real. Sin gas ni fondos reales. Revisa tasas; costes reales en el recibo.','Modelo o tasas no válidos.','Precio ejecutado (micro)','Importe ejecutado (micro)','Comisión cobrada (micro)'],
+  fr:['Coûts simulés','Ancien : sans frais/glissement','Prix défavorable + frais (v1)','Frais (bps)','Glissement (bps)','Hypothèses, pas les tarifs du marché. Pas de cotation exécutable : marché à l’envoi, plafond 10% du volume source. Prix/montant achat arrondis en haut, vente en bas. Frais arrondis en haut sur exécution réelle. Sans gaz ni fonds réels. Vérifiez les taux ; coûts dans le reçu.','Modèle ou taux invalides.','Prix exécuté (micro)','Montant exécuté (micro)','Frais prélevés (micro)'],
+  de:['Simulationskosten','Alt: ohne Gebühren/Slippage','Ungünstiger Kurs + Gebühren (v1)','Gebühr (bps)','Slippage (bps)','Annahmen, keine Börsengebühren. Kein ausführbares Angebot: Markt beim Senden, 10% Quellvolumen-Limit. Kaufkurs/-betrag auf-, Verkauf abgerundet. Gebühren aufgerundet für tatsächliche Füllung. Kein Gas/echtes Geld. Sätze prüfen; Kosten im Beleg.','Ungültiges Modell oder Sätze.','Ausführungskurs (Mikro)','Ausführungsbetrag (Mikro)','Gebühr (Mikro)'],
+  pt:['Custos simulados','Anterior: sem custos/slippage','Preço adverso + taxas (v1)','Taxa (bps)','Slippage (bps)','Hipóteses, não tarifas da corretora. Sem cotação executável: mercado ao enviar, limite 10% do volume fonte. Preço/valor de compra arredondados para cima, venda para baixo. Taxas para cima sobre execução real. Sem gás/fundos reais. Confira taxas; custos no recibo.','Modelo ou taxas inválidos.','Preço executado (micro)','Valor executado (micro)','Taxa cobrada (micro)'],
+  ru:['Затраты симуляции','Старый: без затрат/проскальзывания','Невыгодная цена и комиссия (v1)','Комиссия (bps)','Проскальзывание (bps)','Допущения, не тарифы биржи. Исполняемой котировки нет: рынок при отправке, лимит 10% исходного объёма. Цена/сумма покупки округляются вверх, продажи вниз. Комиссия вверх с фактического исполнения. Без газа/реальных средств. Проверьте ставки; затраты в квитанции.','Неверная модель или ставки.','Цена исполнения (микро)','Сумма исполнения (микро)','Комиссия (микро)'],
+  ar:['تكاليف المحاكاة','قديم: بلا رسوم أو انزلاق','سعر معاكس ورسوم (v1)','الرسوم (bps)','الانزلاق (bps)','افتراضات وليست رسوم منصة. لا عرض قابل للتنفيذ: السوق عند الإرسال وحد 10% من حجم المصدر. تقريب سعر وقيمة الشراء للأعلى والبيع للأسفل، والرسوم للأعلى على التنفيذ الفعلي. بلا غاز أو أموال حقيقية. راجع النسب؛ التكاليف في الإيصال.','نموذج أو نسب غير صالحة.','سعر التنفيذ (ميكرو)','قيمة التنفيذ (ميكرو)','الرسوم المخصومة (ميكرو)'],
+  id:['Biaya simulasi','Lama: tanpa biaya/slippage','Harga merugikan + biaya (v1)','Biaya (bps)','Slippage (bps)','Asumsi, bukan tarif bursa. Tanpa kuotasi eksekusi: pasar saat pengiriman, batas 10% volume sumber. Harga/nilai beli dibulatkan atas, jual bawah. Biaya dibulatkan atas untuk pengisian aktual. Tanpa gas/dana nyata. Tinjau tarif; biaya di tanda terima.','Model atau tarif tidak valid.','Harga eksekusi (mikro)','Nilai eksekusi (mikro)','Biaya dipotong (mikro)'],
+};
+for(const [language,values] of Object.entries(paperCostCopy))Object.assign(businessCopy[language],Object.fromEntries(['paperCostModel','paperCostLegacy','paperCostV1','paperCostFee','paperCostSlippage','paperCostBoundary','paperCostInvalid','paperCostExecution','paperCostNotional','paperCostCharged'].map((key,index)=>[key,values[index]])));
+function validPaperCostModel(cost) {
+  return cost && typeof cost==='object' && !Array.isArray(cost) && Object.keys(cost).sort().join(',')==='FeeBPS,Policy,SlippageBPS' && cost.Policy==='adverse_price_ceil_fee_micro_v1' && Number.isSafeInteger(cost.FeeBPS) && cost.FeeBPS>=0 && cost.FeeBPS<=10000 && Number.isSafeInteger(cost.SlippageBPS) && cost.SlippageBPS>=0 && cost.SlippageBPS<10000;
+}
+function selectedPaperCosts() {
+  const mode=$('#paper-cost-model').value;
+  if(mode==='legacy'||mode==='')return undefined;
+  const fee=$('#paper-cost-fee').value,slip=$('#paper-cost-slippage').value;
+  const cost={Policy:'adverse_price_ceil_fee_micro_v1',FeeBPS:Number(fee),SlippageBPS:Number(slip)};
+  if(mode!=='v1'||!/^\d+$/.test(fee)||!/^\d+$/.test(slip)||!validPaperCostModel(cost))throw Object.assign(Error(t('paperCostInvalid')),{localeKey:'paperCostInvalid'});
+  return cost;
+}
+function samePaperCosts(a,b) { return a===undefined&&b===undefined || validPaperCostModel(a)&&validPaperCostModel(b)&&a.Policy===b.Policy&&a.FeeBPS===b.FeeBPS&&a.SlippageBPS===b.SlippageBPS; }
+function renderPaperCosts() {
+  const enabled=$('#paper-cost-model').value==='v1';
+  $('#paper-cost-fee').disabled=!enabled;$('#paper-cost-slippage').disabled=!enabled;
+  $('#paper-execution-boundary').textContent=t(enabled?'paperCostBoundary':'paperExecutionBoundary');
+}
 const paperDailyLossCopy = {
-  en: ['Daily marked loss / limit', 'Paper daily loss uses cash plus marked open positions. Baseline: first accepted market mark of each UTC day, not a midnight quote. Loss of 1000 YUSD_TEST blocks new signals for that day, even after price recovery or restart. No fees/slippage; old records have no historical baseline.'],
-  'zh-CN': ['日内估值亏损 / 限额', '模拟日亏损按现金与持仓估值计算。基线为每个 UTC 日首次接受的行情，不是午夜报价。亏损达到 1000 YUSD_TEST 后当日禁止新信号，价格恢复或重启也不解除。不含费用或滑点；旧记录没有历史基线。'],
-  'zh-TW': ['日內估值虧損 / 限額', '模擬日虧損按現金與持倉估值計算。基線為每個 UTC 日首次接受的行情，非午夜報價。虧損達 1000 YUSD_TEST 後當日禁止新訊號，價格恢復或重啟不解除。不含費用或滑點；舊記錄無歷史基線。'],
-  ja: ['日次評価損 / 上限', '現金と保有評価額で計算。基準は UTC 日の最初の受理価格で、午前0時の価格ではありません。1000 YUSD_TEST の損失で当日の新規シグナルを停止し、価格回復・再起動でも解除しません。費用・滑りなし。旧記録に過去の基準はありません。'],
-  ko: ['일일 평가손실 / 한도', '현금과 보유 평가액으로 계산합니다. 기준은 UTC 날짜의 첫 수락 가격이며 자정 가격이 아닙니다. 1000 YUSD_TEST 손실 시 당일 새 신호가 차단되며 가격 회복·재시작으로 해제되지 않습니다. 비용·슬리피지는 제외하며 이전 기록에는 과거 기준이 없습니다.'],
-  es: ['Pérdida diaria valorada / límite', 'Efectivo más posiciones valoradas. Base: primer precio aceptado del día UTC, no precio de medianoche. Una pérdida de 1000 YUSD_TEST bloquea señales nuevas ese día, incluso tras recuperación o reinicio. Sin costes/deslizamiento; los registros antiguos no tienen base histórica.'],
-  fr: ['Perte quotidienne valorisée / plafond', 'Trésorerie plus positions valorisées. Base : premier prix accepté du jour UTC, pas celui de minuit. Une perte de 1000 YUSD_TEST bloque les nouveaux signaux ce jour, même après reprise ou redémarrage. Sans frais/glissement ; anciens enregistrements sans base historique.'],
-  de: ['Täglicher Bewertungsverlust / Limit', 'Bargeld plus bewertete Positionen. Basis: erster akzeptierter Kurs des UTC-Tags, kein Mitternachtskurs. 1000 YUSD_TEST Verlust sperrt neue Signale für den Tag, auch nach Kurserholung/Neustart. Ohne Gebühren/Slippage; alte Datensätze haben keine historische Basis.'],
-  pt: ['Perda diária marcada / limite', 'Caixa mais posições avaliadas. Base: primeiro preço aceito do dia UTC, não preço da meia-noite. Perda de 1000 YUSD_TEST bloqueia novos sinais no dia, mesmo após recuperação/reinício. Sem custos/slippage; registros antigos não têm base histórica.'],
-  ru: ['Дневной оценочный убыток / лимит', 'Деньги плюс оценка позиций. База — первая принятая цена дня UTC, не цена в полночь. Убыток 1000 YUSD_TEST блокирует новые сигналы до следующего дня, даже при восстановлении цены/перезапуске. Без комиссий/проскальзывания; старые записи без исторической базы.'],
-  ar: ['الخسارة اليومية المقدرة / الحد', 'النقد مع قيمة المراكز. الأساس أول سعر مقبول في يوم UTC وليس سعر منتصف الليل. خسارة 1000 YUSD_TEST تمنع الإشارات الجديدة لذلك اليوم حتى بعد تعافي السعر أو إعادة التشغيل. بلا رسوم أو انزلاق؛ السجلات القديمة بلا أساس تاريخي.'],
-  id: ['Kerugian harian bertanda / batas', 'Kas ditambah nilai posisi. Dasar: harga pertama yang diterima pada hari UTC, bukan harga tengah malam. Rugi 1000 YUSD_TEST memblokir sinyal baru hari itu, termasuk setelah pemulihan harga/restart. Tanpa biaya/slippage; catatan lama tidak memiliki dasar historis.'],
+  en: ['Daily marked loss / limit', 'Paper daily loss uses cash plus marked open positions, including settled simulation costs when enabled. Baseline: first accepted market mark of each UTC day, not a midnight quote. Loss of 1000 YUSD_TEST blocks new signals that day even after recovery/restart. Old records have no historical baseline.'],
+  'zh-CN': ['日内估值亏损 / 限额', '日亏损按现金与持仓估值计算，包含已启用模型的已结算模拟成本。基线为每个 UTC 日首次接受的行情，不是午夜报价。亏损达到 1000 YUSD_TEST 后当日禁止新信号，恢复或重启不解除。旧记录没有历史基线。'],
+  'zh-TW': ['日內估值虧損 / 限額', '日虧損按現金與持倉估值計算，包含啟用模型後已結算的模擬成本。基線為每個 UTC 日首次接受的行情，非午夜報價。亏損達 1000 YUSD_TEST 後當日禁止新訊號，恢復或重啟不解除。舊記錄無歷史基線。'],
+  ja: ['日次評価損 / 上限', '現金と保有評価額に、有効なモデルの決済済み模擬コストを含めます。基準はUTC日の最初の受理価格で、午前0時の価格ではありません。1000 YUSD_TESTの損失で当日停止し、回復・再起動でも解除しません。旧記録に過去の基準はありません。'],
+  ko: ['일일 평가손실 / 한도', '현금과 보유 평가액에 활성 모델의 정산된 모의 비용을 포함합니다. 기준은 UTC 날짜 첫 수락 가격이며 자정 가격이 아닙니다. 1000 YUSD_TEST 손실은 당일 신호를 차단하며 회복·재시작으로 해제되지 않습니다. 이전 기록에는 과거 기준이 없습니다.'],
+  es: ['Pérdida diaria valorada / límite', 'Efectivo y posiciones, incluidos costes simulados liquidados si se activan. Base: primer precio aceptado del día UTC, no medianoche. Perder 1000 YUSD_TEST bloquea señales ese día aun tras recuperación/reinicio. Registros antiguos sin base histórica.'],
+  fr: ['Perte quotidienne valorisée / plafond', 'Trésorerie et positions, y compris les coûts simulés réglés si activés. Base : premier prix accepté du jour UTC, pas minuit. Perte de 1000 YUSD_TEST bloque les signaux ce jour même après reprise/redémarrage. Anciens enregistrements sans base historique.'],
+  de: ['Täglicher Bewertungsverlust / Limit', 'Bargeld und Positionen einschließlich abgerechneter Simulationskosten bei Aktivierung. Basis: erster akzeptierter UTC-Tageskurs, nicht Mitternacht. 1000 YUSD_TEST Verlust sperrt Signale an diesem Tag trotz Erholung/Neustart. Alte Datensätze ohne historische Basis.'],
+  pt: ['Perda diária marcada / limite', 'Caixa e posições incluindo custos simulados liquidados quando ativados. Base: primeiro preço aceito do dia UTC, não meia-noite. Perda de 1000 YUSD_TEST bloqueia sinais no dia mesmo após recuperação/reinício. Registros antigos sem base histórica.'],
+  ru: ['Дневной оценочный убыток / лимит', 'Деньги и позиции включают рассчитанные затраты симуляции при включённой модели. База — первая принятая цена дня UTC, не полночь. Убыток 1000 YUSD_TEST блокирует сигналы на день несмотря на восстановление/перезапуск. Старые записи без исторической базы.'],
+  ar: ['الخسارة اليومية المقدرة / الحد', 'النقد والمراكز يتضمنان تكاليف المحاكاة المسواة عند تفعيلها. الأساس أول سعر مقبول في يوم UTC لا منتصف الليل. خسارة 1000 YUSD_TEST تمنع الإشارات لذلك اليوم حتى بعد التعافي أو إعادة التشغيل. السجلات القديمة بلا أساس تاريخي.'],
+  id: ['Kerugian harian bertanda / batas', 'Kas dan posisi termasuk biaya simulasi terselesaikan jika diaktifkan. Dasar: harga pertama diterima hari UTC, bukan tengah malam. Rugi 1000 YUSD_TEST memblokir sinyal hari itu meski pulih/restart. Catatan lama tanpa dasar historis.'],
 };
 for (const [language, [paperDailyLoss, paperDailyLossLead]] of Object.entries(paperDailyLossCopy)) {
   Object.assign(businessCopy[language], {paperDailyLoss, paperDailyLossLead});
@@ -530,8 +563,24 @@ function verifiedPaperRecord(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return false;
   if (typeof record.ID !== "string" || !/^paper-[0-9]+$/.test(record.ID) || typeof record.StrategyHash !== "string" || !/^[a-f0-9]{64}$/.test(record.StrategyHash)) return false;
   if (!["buy", "sell"].includes(record.Side) || !Number.isSafeInteger(record.Price) || record.Price <= 0 || !Number.isSafeInteger(record.Amount) || record.Amount <= 0 || !Number.isSafeInteger(record.Filled) || record.Filled < 0 || record.Filled > record.Amount) return false;
-  if (record.Source !== "authoritative_market_adapter" || !auditTimeValid(record.CreatedAt)) return false;
+  if (record.Source !== "authoritative_market_adapter" || !auditTimeValid(record.CreatedAt) || !verifiedPaperCosts(record)) return false;
   return record.Status === "open" && record.Filled === 0 || record.Status === "partially_filled" && record.Filled > 0 && record.Filled < record.Amount || record.Status === "filled" && record.Filled === record.Amount;
+}
+function verifiedPaperCosts(record) {
+  const fields=['FeeBPS','SlippageBPS','ExecutionPriceMicro','ExecutedNotionalMicro','FeeMicro'];
+  if(record.CostPolicy===undefined)return fields.every(key=>record[key]===undefined);
+  const cost={Policy:record.CostPolicy,FeeBPS:record.FeeBPS===undefined?0:record.FeeBPS,SlippageBPS:record.SlippageBPS===undefined?0:record.SlippageBPS};
+  if(!validPaperCostModel(cost))return false;
+  const ceil=(n,d)=>(n+d-1n)/d;
+  const price=BigInt(record.Price),fill=BigInt(record.Filled),slip=BigInt(cost.SlippageBPS);
+  const execution=record.Side==='buy'?ceil(price*(10000n+slip),10000n):price*(10000n-slip)/10000n;
+  if(execution<=0n)return false;
+  const notional=record.Side==='buy'?ceil(execution*fill,1000000n):execution*fill/1000000n;
+  const fee=ceil(notional*BigInt(cost.FeeBPS),10000n);
+  return [['ExecutionPriceMicro',execution],['ExecutedNotionalMicro',notional],['FeeMicro',fee]].every(([key,expected])=>{
+    const value=record[key]===undefined?0:record[key];
+    return Number.isSafeInteger(value)&&value>=0&&BigInt(value)===expected;
+  });
 }
 function renderPaperRecords(paper) {
   const records = paper.Orders;
@@ -550,7 +599,8 @@ function renderPaperRecords(paper) {
     const attributed = valid(row) && typeof row.MarketSource === "string" && row.MarketSource.trim() !== "" && Number.isSafeInteger(row.MarketPriceMicro) && row.MarketPriceMicro === row.Price && Number.isSafeInteger(row.MarketVolumeMicro) && row.MarketVolumeMicro > 0;
     const marketSource = attributed ? row.MarketSource : "—";
     const marketTime = attributed && auditTimeValid(row.MarketObservedAt) ? row.MarketObservedAt : "—";
-    return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}</td><td>${value(row.Source)}<small>${safe(t("source"))}: ${value(marketSource)}</small><small>${safe(t("observed"))}: ${value(marketTime)}</small></td></tr>`;
+    const costDetails=valid(row)&&row.CostPolicy==='adverse_price_ceil_fee_micro_v1'?`<small>${safe(t('paperCostExecution'))}: ${value(row.ExecutionPriceMicro)}</small><small>${safe(t('paperCostNotional'))}: ${value(row.ExecutedNotionalMicro===undefined?0:row.ExecutedNotionalMicro)}</small><small>${safe(t('paperCostCharged'))}: ${value(row.FeeMicro===undefined?0:row.FeeMicro)}</small>`:'';
+    return `<tr><td>${value(row.ID)}<small>${value(row.StrategyHash)}</small><small>${value(row.CreatedAt)}</small></td><td>${value(row.Side)} / ${value(row.Status)}${!valid(row) ? `<small class="danger">${safe(t("paperRecordsUnknown"))}</small>` : ""}</td><td>${value(row.Price)} / ${value(row.Amount)} / ${value(row.Filled)}${costDetails}</td><td>${value(row.Source)}<small>${safe(t("source"))}: ${value(marketSource)}</small><small>${safe(t("observed"))}: ${value(marketTime)}</small></td></tr>`;
   }).join("") : "";
 }
 const localDate = (value) => typeof value === "string" && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value)) : "—";
@@ -657,6 +707,7 @@ function applyLocale() {
   $("#locale").value = locale;
   $$('[data-i18n]').forEach((element) => { element.textContent = t(element.dataset.i18n); });
   $$('[data-business-i18n]').forEach((element) => { element.textContent = t(element.dataset.businessI18n); });
+  renderPaperCosts();
   const active = $('nav button.active'); if (active) $('#view-title').textContent = active.textContent;
   renderPortfolio();
   renderResearchStatus();
@@ -923,7 +974,10 @@ function renderPaperStrategies(strategies) {
   if (pendingPaperIntent && !previous) {
     $("#side").value = pendingPaperIntent.Side;
     $("#paper-amount").value = String(pendingPaperIntent.Amount);
+    $('#paper-cost-model').value=pendingPaperIntent.ExecutionCosts?'v1':'legacy';
+    if(pendingPaperIntent.ExecutionCosts){$('#paper-cost-fee').value=String(pendingPaperIntent.ExecutionCosts.FeeBPS);$('#paper-cost-slippage').value=String(pendingPaperIntent.ExecutionCosts.SlippageBPS);}
   }
+  renderPaperCosts();
 }
 function researchAmount(attribution, key) {
   const value = attribution?.[key];
@@ -1311,15 +1365,18 @@ $("#paper-order").onsubmit = async (e) => {
     if (!Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
     const Side = $("#side").value, Amount = +$("#paper-amount").value;
     if (!["buy", "sell"].includes(Side) || !Number.isSafeInteger(Amount) || Amount <= 0) throw new Error(t("paperInvalidAmount"));
-    const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount;
+    const costs=selectedPaperCosts();
+    const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount && samePaperCosts(pendingPaperIntent.ExecutionCosts,costs);
     if (pendingPaperIntent && !sameIntent) throw new Error(t("paperPendingMismatch"));
     paperSubmitting = true;
     $("#paper-submit").disabled = true;
-    if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${t("paperExecutionBoundary")}`)) return;
+    const boundary=costs?`${t('paperCostV1')}\n${t('paperCostFee')}: ${costs.FeeBPS}\n${t('paperCostSlippage')}: ${costs.SlippageBPS}\n${t('paperCostBoundary')}`:t('paperExecutionBoundary');
+    if (!confirm(`${t("paperConfirm")}\n\nYNXT-YUSD_TEST\n${t("strategy")}: ${strategyHash}\n${t("paperRecordStatus")}: ${Side}\n${t("paperRecordAmounts")}: ${Amount}\n\n${boundary}`)) return;
     if (paperFreshIntentBlocked()) { const key=paperFreshIntentBlockKey();throw Object.assign(Error(t(key)),{localeKey:key}); }
-    if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
+    if (!statefulPreview || $("#paper-strategy").value !== strategyHash || $("#side").value !== Side || +$("#paper-amount").value !== Amount || !samePaperCosts(costs,selectedPaperCosts()) || !Object.values(snapshot.strategies || {}).some(strategy => paperStrategyHashAvailable(strategy) && strategy.StrategyHash === strategyHash)) throw new Error(t("paperPreviewChanged"));
     if (!pendingPaperIntent) {
       pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
+      if(costs)pendingPaperIntent.ExecutionCosts=costs;
     }
     persistWorkspaceValue(paperPendingKey, JSON.stringify(pendingPaperIntent));
     paperSubmitting = true;
@@ -1329,7 +1386,8 @@ $("#paper-order").onsubmit = async (e) => {
       method: "POST",
       body: JSON.stringify(submitted),
     });
-    if (!verifiedPaperRecord(order) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
+    const receiptCosts=order?.CostPolicy?{Policy:order.CostPolicy,FeeBPS:order.FeeBPS===undefined?0:order.FeeBPS,SlippageBPS:order.SlippageBPS===undefined?0:order.SlippageBPS}:undefined;
+    if (!verifiedPaperRecord(order) || !samePaperCosts(submitted.ExecutionCosts,receiptCosts) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
     clearPendingPaperIntent();
     toast(t("paperRecorded"), "paperRecorded");
     await refresh();
@@ -1347,6 +1405,7 @@ $("#paper-order").onsubmit = async (e) => {
     renderPaperSubmitControl();
   }
 };
+$('#paper-cost-model').addEventListener('change',renderPaperCosts);
 function quantDeviceId() {
   const key = "ynx.quant.public-device-id";
   let value = localStorage.getItem(key);

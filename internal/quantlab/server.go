@@ -403,15 +403,35 @@ func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		StrategyHash   string `json:"strategyHash"`
-		Side           string `json:"side"`
-		Amount         int64  `json:"amount"`
-		IdempotencyKey string `json:"idempotencyKey"`
+		StrategyHash   string          `json:"strategyHash"`
+		Side           string          `json:"side"`
+		Amount         int64           `json:"amount"`
+		IdempotencyKey string          `json:"idempotencyKey"`
+		ExecutionCosts json.RawMessage `json:"executionCosts"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.SubmitPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount, q.IdempotencyKey)
+	costs := PaperExecutionCosts{}
+	if len(q.ExecutionCosts) > 0 {
+		var model struct {
+			Policy      *string `json:"policy"`
+			FeeBPS      *int64  `json:"feeBPS"`
+			SlippageBPS *int64  `json:"slippageBPS"`
+		}
+		d := json.NewDecoder(bytes.NewReader(q.ExecutionCosts))
+		d.DisallowUnknownFields()
+		if err := d.Decode(&model); err != nil || model.Policy == nil || model.FeeBPS == nil || model.SlippageBPS == nil {
+			writeProblem(w, r, http.StatusBadRequest, "invalid_json")
+			return
+		}
+		costs = PaperExecutionCosts{Policy: *model.Policy, FeeBPS: *model.FeeBPS, SlippageBPS: *model.SlippageBPS}
+		if costs.Policy != PaperCostPolicyV1 || !costs.valid() {
+			writeProblem(w, r, http.StatusBadRequest, "invalid_json")
+			return
+		}
+	}
+	v, e := s.service.SubmitPaperSignalWithCostsFromMarket(q.StrategyHash, q.Side, q.Amount, q.IdempotencyKey, costs)
 	respond(w, r, v, e, 201)
 }
 func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {
