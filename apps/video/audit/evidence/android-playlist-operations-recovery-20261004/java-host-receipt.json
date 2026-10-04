@@ -1,0 +1,81 @@
+{
+  "sourceCommit": "fdbda0bf4721d2bb3510eb0d2117fad8c0c066ca",
+  "sourcePins": [
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "bytes": 20104,
+      "sha256": "7dd84ffcb63996298f2d4b42158410af6c0117dc3ae436c4397c8ab8d14d04fd"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "27fcff90bdff66bada14effeff69bb96517f9006b0ea650b0e144ac401147071"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "bytes": 1740,
+      "sha256": "0075b8105d7bada7361e6e37ffce43731e19fe5ea01d6ddf5fdac8458c265641"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "bytes": 9894,
+      "sha256": "96870acbc7c9cc9aac7aedf3364783924a9b642f5171975adacc736968005fc3"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoMediaSource.java",
+      "bytes": 1754,
+      "sha256": "e4558f0afc97a869504688641b29ff637c549369567a01b534e36b7099a806cc"
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "bytes": 12038,
+      "sha256": "f4304d25eaf6229f28e7ccdb05023a93fd75b1a583a2521f214899252390c5c0"
+    },
+    {
+      "path": "apps/video/scripts/verify-native-engine.mjs",
+      "bytes": 1809,
+      "sha256": "23cd53c8cece5beceb652e97a734e2f00e1a9d8ccce22400cbe16fdc62052cc0"
+    },
+    {
+      "path": "apps/video/android/app/src/test/java/com/ynxweb4/video/NativeProductStateTest.java",
+      "bytes": 12167,
+      "sha256": "a3cff3b63e813dec70424e13aa2d7d728ef0e2d4a7184d7bd640e4673f1fbc76"
+    },
+    {
+      "path": "apps/video/scripts/native-engine-fixture/android/media/MediaDataSource.java",
+      "bytes": 335,
+      "sha256": "8b67a170be4175f9032150ab5df937004f3e3aa905c7100985d3acef2458e0ab"
+    },
+    {
+      "path": "apps/video/scripts/native-engine-fixture/android/content/Context.java",
+      "bytes": 1176,
+      "sha256": "c744d377589d6c7efb9987541710c09ccf5ad02c5c0aafe02ef1c9d3cbc14d57"
+    },
+    {
+      "path": "apps/video/scripts/native-engine-fixture/com/ynxweb4/video/NativeSessionBridge.java",
+      "bytes": 931,
+      "sha256": "2d62e9f9986161de93b832ef3720e74c5bd1cbba7fd05e920b0906d663f8d0a8"
+    },
+    {
+      "path": "apps/video/scripts/native-engine-fixture/com/ynxweb4/video/NativeVideoApiCheck.java",
+      "bytes": 17651,
+      "sha256": "3c998ee2813d3ea854230fd49f8dd2117d6af61744ed5dfe27a58e3cf4f4e078"
+    }
+  ],
+  "JUnitTests": 12,
+  "shippedJavaHTTPController": true,
+  "addRemoveDeleteSuccessfulReplyLostColdReadback": true,
+  "mutationsPerThreeLostReplyCases": 1,
+  "createDraftAnd64HistoryPreserved": true,
+  "foreignAccountReadbackAndOldAccountDispatchVeto": true,
+  "duplicateReadbackVeto": true,
+  "oldACKCannotConsumeSuccessor": true,
+  "corruptRecordsRetained": true,
+  "unconfirmedStorageNoMutationAndOriginalKeyRecovery": true,
+  "storagePort": "isolated in-memory host Preferences; object recreation, not physical Android storage or OS restart",
+  "proofPort": "fixture-introspection-no-auth and digest/body/unique-count; not actual SDK grants",
+  "actualJavaVideoSDK": false,
+  "actualWalletConsent": false,
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false
+}

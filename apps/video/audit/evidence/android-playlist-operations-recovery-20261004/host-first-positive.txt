@@ -1,0 +1,7 @@
+JUnit version 4.13.2
+............
+Time: 0.049
+
+OK (12 tests)
+
+PASS original add/remove/delete successful-lost-reply cold desired-state recovery with exactly one original mutation each; retained create/history, foreign readback and late ACK veto; original viewer resume UUID/position persistence, pending playlist original request key, account-switch separation and old-content retention; shipped VideoApi/VideoMediaSource: final UTF8 body and canonical header fields, fresh proof for every Range, exact offset/count/total and EOF, late same-session restore and navigation veto, retryable503 and resource403 retain session, original401 retirement; host software transport only

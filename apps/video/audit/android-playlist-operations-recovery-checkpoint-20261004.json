@@ -1,0 +1,217 @@
+{
+  "schema": "ynx.video.android-playlist-operations-recovery.checkpoint.v1",
+  "createdAt": "2026-10-04T03:35:22.332558+00:00",
+  "sourceCommit": "fdbda0bf4721d2bb3510eb0d2117fad8c0c066ca",
+  "sourceTree": "c752bd445c0d44ce8471e8264f6b018006d19699",
+  "inheritedCheckpoint": {
+    "path": "apps/video/audit/playlist-operations-recovery-checkpoint-20261004.json",
+    "bytes": 10033,
+    "sha256": "f6d62566ee70bc826eed7619c3c39012bf6f483f45a884f9030bce446dc8d20a"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/media-owned-source.tar.gz",
+    "bytes": 4325026,
+    "sha256": "3c7adfeceb3f971cae3a92db02c38a5a8686a4f3ccfb4fc21c2de3291f2a7fc5",
+    "fileCount": 636
+  },
+  "androidCandidate": {
+    "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/YNXVideo-android-debug.apk",
+    "bytes": 347395,
+    "sha256": "9f4c6f8e2a555f39e10091b02f5b4fdb639d5b0399826fc45f6d86608b17d78f"
+  },
+  "androidBuildReceipt": {
+    "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-build-receipt.json",
+    "bytes": 8045,
+    "sha256": "fed2628c434aec875125d78bd5d231c63e8d665821c448b6628bc273069f970c"
+  },
+  "unchangedWebRuntime": {
+    "path": "apps/video/audit/evidence/playlist-operations-recovery-20261004/video-web-runtime.tar.gz",
+    "bytes": 637435,
+    "sha256": "e3d7a5cab4f46e779d059e4cbd683ba14d9a1f2b80104b0bd99441bb4b428096"
+  },
+  "unchangedWebRuntimeSourceCommit": "733765dcc306c7f8c04e3f7b94d4936a6b00cfde",
+  "unchangedNativeBuildPins": [
+    {
+      "platform": "apple",
+      "receipt": {
+        "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-build-receipt.json",
+        "bytes": 10115,
+        "sha256": "b4fcfe6e0864f639490040bbb888b7fa3b683f3d1e0267c838f99a3cbaf7db68"
+      },
+      "currentSourcePinsGitExact": true,
+      "sourcePins": 23,
+      "recompiledThisBatch": false
+    }
+  ],
+  "checks": {
+    "fullGoRacePassEvents": 450,
+    "fullGoRaceFailures": 0,
+    "vet": "PASS",
+    "compositionInputs": 681,
+    "JavaJUnitTests": 12,
+    "shippedJavaHTTPController": true,
+    "newAndroidFullBuildAndLint": true,
+    "androidSourcePins": 31,
+    "addRemoveDeleteLostReplyMutationDispatchesEach": 1,
+    "AppleNativeAndWebUnchangedPinsGitExact": true,
+    "actualJavaVideoSDK": false,
+    "actualWalletConsent": false,
+    "actualFormalHostCurrentActor": false,
+    "actualOSStorage": false,
+    "productionPublished": false,
+    "installed": false,
+    "launched": false,
+    "earlierCreatorTimeoutCause": "NOT_CONFIRMED"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified",
+    "Actual Central Trust receipt and user acceptance",
+    "New native owner-appeal and pause/recovery repair independent source review pending",
+    "Earlier Creator iOS 120-second full-run timeout cause NOT_CONFIRMED; later green is recovery evidence only",
+    "Native four-kind rights record/UI independent source review pending",
+    "Actual protected shared Trust decision/read/reconciliation producer contract required before final-outcome handling",
+    "Formal Video same-own business and exact release tuple remain unverified",
+    "Independent native playlist source review pending",
+    "Independent current Web playlist and inherited native source graph review pending",
+    "Formal Video own-account login/business/cold recovery through unique A matching Host/client still unverified",
+    "New Android Video controller actual protected Java SDK bridge and physical installed cold recovery still unverified"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/YNXVideo-android-debug.apk",
+      "bytes": 347395,
+      "sha256": "9f4c6f8e2a555f39e10091b02f5b4fdb639d5b0399826fc45f6d86608b17d78f"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-apk-badging.txt",
+      "bytes": 961,
+      "sha256": "407eca615e5db206774102ba99c12e64d111e2c3f5b2d6b369adadc451e2d078"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-apk-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-build-lint.txt",
+      "bytes": 3507,
+      "sha256": "b00d30d81a8d6f686686345145e4a358ce975b96d6277754468ba66dce8fd3d7"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-build-output.txt",
+      "bytes": 583,
+      "sha256": "58fa48d352197d7a8871ded57305e86812569e5b2d2cdf387d3f58bd7bdc6ada"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/android-build-receipt.json",
+      "bytes": 8045,
+      "sha256": "fed2628c434aec875125d78bd5d231c63e8d665821c448b6628bc273069f970c"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 1078558,
+      "sha256": "fe09d3522e3c8b803654e7cc8fefb3b78d5e525f0a7c188de99775c5ec8e430c"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/combined-source-receipt.json",
+      "bytes": 190149,
+      "sha256": "b75e3978f7a4c6b4420094cadb534e77839c8e0053d6d93e37614363b9dde719"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/followup.md",
+      "bytes": 2574,
+      "sha256": "e3f906bb22c7c6885e966b4543c75a5ac67e821f87a1a6c1bec7cfe0776da221"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/host-final.txt",
+      "bytes": 676,
+      "sha256": "ffead758a854a433821325c94fc3de00e0556eea6e89165a8ffaba7c6f275547"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/host-first-corrupt-constructor-assertion-failure.txt",
+      "bytes": 1387,
+      "sha256": "71cc6c1c447a999d038e5ee5d564663ae337f0e62489369a0aafcbbb97d42f13"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/host-first-positive.txt",
+      "bytes": 676,
+      "sha256": "ffead758a854a433821325c94fc3de00e0556eea6e89165a8ffaba7c6f275547"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/i18n-final.txt",
+      "bytes": 73,
+      "sha256": "245efbd43a5d26a2a8f669e831ee1b9aa712acd1c6ad95e6163932b7707e3219"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/java-host-receipt.json",
+      "bytes": 3375,
+      "sha256": "0a5d5d13c52df83a8f96545b5ec699608511e9223e844cff98ae77d46af38d54"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/media-owned-source.tar.gz",
+      "bytes": 4325026,
+      "sha256": "3c7adfeceb3f971cae3a92db02c38a5a8686a4f3ccfb4fc21c2de3291f2a7fc5"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/prepare-checkpoint.py",
+      "bytes": 10589,
+      "sha256": "25a5a60df87837884fe4891fd80db447cbe1b2341296c0819ecccbc571e7f996"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-creator-studio-normal-product-390.png",
+      "bytes": 80609,
+      "sha256": "e2e50538f98dd63346287da3cad9c882a0132405f55dd02aafb8986fc1e5588d"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-normal-product-390.png",
+      "bytes": 59737,
+      "sha256": "199e38b8d3bd063f7bbf104e01f501af16f582cb81950f535193716bbd2a8699"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-delete-lost-success-390.png",
+      "bytes": 99849,
+      "sha256": "854e09342f3aeda5ab834d1d9a364d8b1200412579e56d929605c2cee36405ab"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-original-create-paused-successor-390.png",
+      "bytes": 85941,
+      "sha256": "100ee35893c7c7f4fa847db609b466f235d2a100e1d7d603bd096fcdf53e02ac"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-original-create-pending-390.png",
+      "bytes": 64212,
+      "sha256": "51f15d66b92e897b142d8ac7202850594afa5c80b18b48f3edc0744eed891314"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-original-playlists-complete-1440.png",
+      "bytes": 97051,
+      "sha256": "3e273a56a72a11d199b00deacb5e40394142a9a6f987b551b2f59dd277f2f75e"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-picker-create-pending-390.png",
+      "bytes": 39395,
+      "sha256": "6289461d53545009c1ed2b605c6673cf28076d97426805277e513cb7c9cdac7a"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/qa-video-web-remove-lost-success-390.png",
+      "bytes": 65640,
+      "sha256": "07a5ef959e749ad84e0e340f66acba4d57dbfc3a9df08165f777fdb3cc52db44"
+    },
+    {
+      "path": "apps/video/audit/evidence/android-playlist-operations-recovery-20261004/verify-checkpoint.py",
+      "bytes": 5284,
+      "sha256": "f37d622492756c7feb0b9f53a8623229e9c268d042f9724365a25366869fea18"
+    }
+  ]
+}
