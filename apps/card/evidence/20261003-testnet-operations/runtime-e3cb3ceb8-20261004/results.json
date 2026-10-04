@@ -1,0 +1,78 @@
+{
+  "sourceCommit": "e3cb3ceb81b94f4ae90de2983d33c88f22bb0250",
+  "node": "v26.7.0",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "at": "2026-10-04T08:20:52.618Z",
+  "scope": "ISOLATED_PUBLIC_STARTUP_AND_PROTECTED_REFUSAL",
+  "localLoopbackOnly": true,
+  "productionServiceInstalled": false,
+  "publicDeployed": false,
+  "realSession": false,
+  "realApproval": false,
+  "realFunding": false,
+  "protectedRuntimeReady": false,
+  "productionRealPayments": false,
+  "passed": true,
+  "scenarios": [
+    {
+      "label": "public-unconfigured",
+      "passed": true,
+      "exit": {
+        "code": 0,
+        "signal": null
+      },
+      "launchError": null,
+      "failure": null,
+      "resources": [
+        {
+          "path": "/api/card/v1/version",
+          "status": 200,
+          "bytes": 325,
+          "sha256": "c8a6e2af05fd11a29bebd13609520b7588dcc6c0f902e4b45abf996830a39040",
+          "headers": {
+            "cache-control": "no-store",
+            "connection": "keep-alive",
+            "content-length": "325",
+            "content-type": "application/json; charset=utf-8",
+            "date": "Sun, 04 Oct 2026 08:20:52 GMT",
+            "keep-alive": "timeout=5",
+            "x-content-type-options": "nosniff"
+          }
+        },
+        {
+          "path": "/api/card/v1/state",
+          "status": 503,
+          "bytes": 165,
+          "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321",
+          "headers": {
+            "cache-control": "no-store",
+            "connection": "keep-alive",
+            "content-length": "165",
+            "content-type": "application/json; charset=utf-8",
+            "date": "Sun, 04 Oct 2026 08:20:52 GMT",
+            "keep-alive": "timeout=5",
+            "x-content-type-options": "nosniff"
+          }
+        }
+      ],
+      "stateDirectory": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-card-candidate-state-m3I9Ke",
+      "stateFiles": [
+        "card.sqlite"
+      ]
+    },
+    {
+      "label": "protected-missing-authority",
+      "passed": true,
+      "exit": {
+        "code": 1,
+        "signal": null
+      },
+      "launchError": null,
+      "failure": null,
+      "resources": [],
+      "stateDirectory": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-card-candidate-state-APgOIk",
+      "stateFiles": []
+    }
+  ]
+}
