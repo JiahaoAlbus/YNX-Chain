@@ -57,6 +57,8 @@ test("every runtime Wallet and SDK byte matches the exact commit, with excluded 
   assert.equal(result.sourceVerificationScope, "every runtime Wallet and SDK source");
   assert.equal(result.sourceCommit, f.identity.sourceCommit); assert.equal(result.installedRuntimeVerified, false);
   assert.equal(result.productionSigned, false); assert.equal(result.storeReleased, false);
+  assert.equal(result.runtimePackageMetadataVerified,true);
+  assert.deepEqual(result.verifiedRuntimePackageFields,["name","main","type","imports","exports","dependencies","optionalDependencies","engines","os","cpu"]);
   assert.equal(desktopReleaseIdentity(f.project, "0.0.9").sourceVersion, "0.6.4"); // Existing upgrade-preflight stays truthful.
 });
 
@@ -82,6 +84,25 @@ test("dirty tracked source and a different CI commit cannot acquire release iden
   process.env.GITHUB_SHA = f.identity.sourceCommit;
   await writeFile(path.join(f.project, "src/main.mjs"), "export const changed = true;\n");
   assert.throws(() => desktopReleaseIdentity(f.project, "0.6.4"));
+});
+
+for(const patch of [{main:"injected-entry.mjs"},{type:"commonjs"},{imports:{"#authority":"./injected-entry.mjs"}},{dependencies:{"@ynx-chain/wallet-auth":"file:../unreviewed-sdk"}},{name:"different-product"},{exports:{".":"./injected-entry.mjs"}},{optionalDependencies:{"unreviewed-extra":"1.0.0"}},{engines:{node:">=999"}}]){
+  test(`runtime package metadata cannot substitute source-bound execution ${Object.keys(patch).join(",")}`,async t=>{
+    const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+    await writeFile(file,JSON.stringify({...metadata,...patch}));await f.pack();
+    assert.throws(()=>verifyDesktopPackage(f.resources,f.project),/Packaged runtime metadata differs/);
+  });
+}
+test("required runtime metadata cannot be omitted from otherwise matching source",async t=>{
+  const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  delete metadata.name;await writeFile(file,JSON.stringify(metadata));await f.pack();
+  assert.throws(()=>verifyDesktopPackage(f.resources,f.project),/Packaged runtime metadata differs: name/);
+});
+test("explicit release version change remains compatible with unchanged source runtime fields",async t=>{
+  const f=await fixture(t),file=path.join(f.stage,"package.json"),metadata=JSON.parse(await readFile(file,"utf8"));
+  metadata.version="0.6.5";await writeFile(file,JSON.stringify(metadata));await f.pack();
+  const identity=desktopReleaseIdentity(f.project,"0.6.5");await writeFile(path.join(f.resources,"ynx-wallet-build-identity.json"),JSON.stringify(identity));
+  const result=verifyDesktopPackage(f.resources,f.project);assert.equal(result.version,"0.6.5");assert.equal(result.sourceVersion,"0.6.4");assert.equal(result.runtimePackageMetadataVerified,true);assert.equal(result.productionSigned,false);
 });
 
 

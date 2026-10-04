@@ -4,10 +4,12 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { isDeepStrictEqual } from "node:util";
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
 const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+const RUNTIME_PACKAGE_FIELDS=Object.freeze(["name","main","type","imports","exports","dependencies","optionalDependencies","engines","os","cpu"]);
 
 export function desktopReleaseIdentity(cwd = projectDir, version) {
   const root = git(cwd, "rev-parse", "--show-toplevel");
@@ -36,6 +38,13 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const actual = JSON.parse(readFileSync(path.join(resources, "ynx-wallet-build-identity.json"), "utf8"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
   const root = git(cwd, "rev-parse", "--show-toplevel");
+  const sourceMetadata=JSON.parse(execFileSync("git",["show",`${expected.sourceCommit}:apps/wallet-desktop/package.json`],{cwd:root,encoding:"utf8",maxBuffer:16*1024*1024}));
+  // Matching src bytes are insufficient if package.json can select another
+  // entrypoint or alter resolution. Release version remains separately bound
+  // by the existing identity; these runtime fields must match source exactly.
+  for(const field of RUNTIME_PACKAGE_FIELDS){
+    if(Object.hasOwn(metadata,field)!==Object.hasOwn(sourceMetadata,field)||!isDeepStrictEqual(metadata[field],sourceMetadata[field]))throw new Error(`Packaged runtime metadata differs: ${field}`);
+  }
   // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
   // Require it in the commit as well as the archive: ls-tree alone can silently
   // omit a named path that no longer exists in the selected commit.
@@ -59,7 +68,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
     if (!source.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
-  return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", excludedTypeDeclarations,
+  return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     typeDeclarationExclusionReason: "TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
     asarSHA256: digest(readFileSync(archive)), files: verified };
 }

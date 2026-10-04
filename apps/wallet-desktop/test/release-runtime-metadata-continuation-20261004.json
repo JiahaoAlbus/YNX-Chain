@@ -1,0 +1,19 @@
+{
+ "schemaVersion":1,
+ "baselineCommit":"2456fa70f9d50d3e55df762bc3cb6aa51f552b19",
+ "scope":"Owned Desktop release verifier only; package versions/signing/production identity/SDK execution/Native App/startup unchanged",
+ "originalCounterexample":"Original verifier12 tests8PASS4FAIL exit1: changed main/type/imports/dependencies package metadata accepted while original runtime source and embedded source identity still matched. Does not claim an actual published package was tampered.",
+ "repair":"Verify ten execution-relevant package metadata fields against exact committed desktop package.json via own presence plus deep value equality: name/main/type/imports/exports/dependencies/optionalDependencies/engines/os/cpu. Keep existing version/source identity model and runtime source/SDK root registry byte checks. Verification result explicitly records runtimePackageMetadataVerified and verifiedRuntimePackageFields; not new runtime authority.",
+ "verification":{
+  "initialImplementationFailure":"12 tests1PASS11FAIL: check was initially inserted in identity builder rather than package verifier and referenced expected before definition. Corrected placement; original failure log preserved, not a baseline counterexample.",
+  "final":"18/18 PASS fail0 skip0 exit0: original8 plus8 runtime mutation cases, omission rejection and explicit release-version compatibility",
+  "positiveCompatibility":"Explicit0.6.4 source->0.6.5 package test preserves exact runtime metadata, sourceVersion and unverified production flags; only synthetic test artifact, no release version changed",
+  "historicalActualArtifact":"Read-only extraction of retained normalized official macOS0.6.8 ASAR; all10 critical fields equal exact6f332753 historical package.json. No launch, mount, install, re-sign, private profile, current-source verification or package admission inferred.",
+  "syntaxAndWhitespace":"node --check release-provenance.mjs and git diff --check exit0",
+  "evidenceDirectory":"/tmp/ynx-wallet-package-provenance-20261004-HaxaJM"
+ },
+ "executionBoundary":"Existing Git/ASAR tool test executes original package verifier with synthetic package/source bytes; no SDK module, Wallet Main, account, signer or installer is executed. All temp test repositories/stages are distinct helper-owned fixtures; no original accounts or artifacts removed.",
+ "independentHistoryReview":{"commit":"d8937c4ef6ec7014f9f1896f2d94d16356a8a1e4","reportSHA256":"790b7309295723878a5bcbcd2116fa09cc4c41e73b32f7b7e404c812fa44ab90","read":"Complete report read and hash matched; exact container P2 local source closed, independent13 pure cases remain distinct from owner30. Never-settling history IPC availability limitation retained, not claimed fixed."},
+ "remaining":["Independent current verifier whole successor review and A adoption","Complete current source/dependency/factory admission","Current-source formal installer verification/signing/notarization","Website publication and downloaded bytes matching the new installer","Preserving upgrade/real retained journal/account/keys/UNKNOWN recovery","Actual contract/camera/private Pay and human user acceptance","MONSTER NOT_RUN"],
+ "overallGoal":"NOT_COMPLETED"
+}
