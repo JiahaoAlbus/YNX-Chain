@@ -1,0 +1,17 @@
+{
+  "kind": "MATCHING_NATIVE_ANDROID_UNSIGNED_ENGINEERING_BUILD",
+  "ownedSourceInput": "45a9efb7f3e2aa05d5203185e068cacfd9d5e54a",
+  "actualComposition": "bb4fdee5dd64aa17ae5fefc8a62051024fbd7247",
+  "candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "build": {"task": ":app:assembleRelease", "offline": true, "noDaemon": true, "maxGradleWorkers": 2, "jvmHeapMiB": 1536, "architecture": "arm64-v8a", "jdk": "17.0.17", "gradle": "9.3.1", "exit": 0, "duration": "2m31s", "tasksExecuted": 537, "logSha256": "520e0163afb57b78fb3b85eaa42eb13519311b1b9397f4f9f03aece4f0733112", "formalSigningVariablesExplicitlyUnset": ["YNX_ANDROID_KEYSTORE_PATH", "YNX_ANDROID_KEY_ALIAS", "YNX_ANDROID_STORE_PASSWORD", "YNX_ANDROID_KEY_PASSWORD"]},
+  "artifact": {"name": "app-release-unsigned.apk", "package": "com.ynxweb4.wallet", "versionName": "1.0.15-testnet-preview", "versionCode": 22, "minSdk": 24, "targetSdk": 36, "compileSdk": 36, "nativeArchitecture": "arm64-v8a", "bytes": 47484633, "sha256": "43641b35fc6d828048ca31b86d5b3b2b910b6c33fedae53666fd595663f08771", "aaptReadbackExit": 0, "signatureVerificationExit": 1, "signatureResult": "Expected unsigned: Missing META-INF/MANIFEST.MF", "installed": false, "published": false},
+  "bundleProof": {"metroSources": 3795, "ownedAndSdkCodeSourcesExactToCompositionGit": 159, "AppAndIndexPresentAndExact": true, "sourceMapReadbackSha256": "05ae0abd2c36ffdeae8a539226d906b81d3cf4c3084b5e5c7e7aed23bd0ff78e", "apkEmbeddedBundleExactToGeneratedHermesBundle": true, "hermesBytes": 8336284, "hermesSha256": "f226068210db0fdce13715c890d28072467095b54c05b9ce0baa41ea3bb827e6", "scope": "Code sources in Metro map under owned Wallet (excluding node_modules) and SDK src. Third-party sources and transformed assets are not Git-byte proof; build source map is not embedded APK source identity."},
+  "secureStore": {"checkBeforeAndAfter": "PASS", "version": "57.0.3", "sourceSha256": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524", "barrierSha256": "ea2af95d0863f96ee668a1ab5b79a8145bfe793222797625055463c3fb948082", "actualSourceKotlinAndJavaCompile": true, "prebuiltSubstitution": false},
+  "sourceAfterBuild": {"ownedFiles": 684, "allBytesStable": true, "trackedGitClean": true, "nativeAppTsxChanged": false},
+  "warningsRetained": ["Android SDK duplicate system-image location; shared SDK and AVD untouched", "Gradle deprecated features incompatible with Gradle10", "native API deprecations", "Metro color environment warnings"],
+  "upgradeBoundary": "Code22 is below the last verified public testnet baseline code34. This unsigned engineer artifact must not be installed over an existing account Wallet or called a formal upgrade.",
+  "resourceObservation": "Free disk moved from22GiB to15GiB during the shared workspace build window; not attributed entirely to Native. No shared cache or device data cleanup.",
+  "safety": {"accountKeysUnknownChanged": false, "deviceInstallOrUnlockPerformed": false, "sharedSdkHostSigningPolicyChanged": false, "formalReleaseVerified": false},
+  "remaining": ["current iOS engineering integration", "A higher-version same-signing-identity final Android release", "official download source and artifact binding", "normal retained-account upgrade", "actual protected provider and Pay business readback", "all16 installed user journeys", "MONSTER"],
+  "overall": "ANDROID_ENGINEERING_ARTIFACT_BUILT_PRODUCT_NOT_COMPLETED"
+}
