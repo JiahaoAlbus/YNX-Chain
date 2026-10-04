@@ -41,6 +41,11 @@ cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
 cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
+mkdir -p "$app/Contents/Resources/code/apps/developer/scripts"
+cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs "$app/Contents/Resources/code/apps/developer/scripts/"
+if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
+  node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
+fi
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
 

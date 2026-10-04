@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
 
 const [output, runtimeNode, npmPackagePath, sourceCommit] = process.argv.slice(2);
 if (!output || !runtimeNode || !npmPackagePath || !/^[0-9a-f]{40}$/.test(sourceCommit || "")) throw new Error("SBOM output, runtime, npm package and source commit are required.");
@@ -29,6 +30,21 @@ components.push(
   { type: "framework", "bom-ref": `pkg:generic/node.js@${nodeVersion}`, name: "Node.js", version: nodeVersion, scope: "required" },
   { type: "application", "bom-ref": `pkg:npm/npm@${npmPackage.version}`, name: "npm", version: npmPackage.version, purl: `pkg:npm/npm@${npmPackage.version}`, scope: "required" },
 );
+const compilerReceipt = join(dirname(output), 'code/apps/developer/compiler-runtime/distribution.json');
+if (existsSync(compilerReceipt)) {
+  const compiler = JSON.parse(readFileSync(compilerReceipt, 'utf8'));
+  if (!compiler.copiedClosureVerified || !compiler.compiler?.available) throw Error('Compiler SBOM requires a verified copied closure.');
+  for (const record of compiler.packages) {
+    const purl = `pkg:npm/${record.name.replace(/^@/, '%40')}@${record.version}`;
+    let component = components.find(row => row['bom-ref'] === purl);
+    if (!component) {
+      component = { type: 'library', 'bom-ref': purl, name: record.name, version: record.version, purl, scope: 'required', properties: [] };
+      if (record.license) component.licenses = [{ license: { name: record.license } }];
+      components.push(component);
+    }
+    component.properties.push({ name: 'ynx:compilerClosureSha256', value: compiler.manifestSha256 });
+  }
+}
 components.sort((a, b) => a["bom-ref"].localeCompare(b["bom-ref"]));
 const serialSeed = createHash("sha256").update(`${sourceCommit}\n${nodeVersion}\n${npmPackage.version}\n${components.map(value => value["bom-ref"]).join("\n")}`).digest("hex");
 const sbom = {

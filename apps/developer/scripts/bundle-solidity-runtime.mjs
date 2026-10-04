@@ -1,0 +1,15 @@
+import { cp, mkdir, readFile, writeFile, realpath } from 'node:fs/promises';
+import { dirname, join, resolve } from 'node:path';
+import { compilerReadiness, COMPILER_CLOSURE_SHA256 } from './compiler-pin.mjs';
+const [inputArg, outputArg] = process.argv.slice(2);
+const input = await realpath(inputArg), output = resolve(outputArg);
+const state = compilerReadiness(input);
+if (!state.available || state.closureSha256 !== COMPILER_CLOSURE_SHA256) throw Error('Use the complete reviewed compiler closure.');
+const receipt = JSON.parse(await readFile(join(dirname(dirname(input)), 'distribution.json'), 'utf8'));
+if (receipt.manifestSha256 !== state.closureSha256) throw Error('Compiler distribution receipt differs from its measured bytes.');
+await mkdir(output);
+await cp(dirname(input), join(output, 'node_modules'), { recursive: true });
+const copied = compilerReadiness(join(output, 'node_modules', 'solc'));
+if (!copied.available || copied.closureSha256 !== state.closureSha256) throw Error('Compiler copy does not match the reviewed input.');
+await writeFile(join(output, 'distribution.json'), JSON.stringify({ ...receipt, copiedClosureVerified: true }, null, 2) + '\n', { flag: 'wx' });
+console.log(JSON.stringify({ compilerRuntime: output, closureSha256: copied.closureSha256, copiedClosureVerified: true }));

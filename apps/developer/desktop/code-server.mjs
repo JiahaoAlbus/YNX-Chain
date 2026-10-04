@@ -18,6 +18,18 @@ if (provenance?.schemaVersion !== 1 || provenance.productId !== "ynx-developer-v
   throw new Error("Desktop bundled build provenance is invalid.");
 }
 const applicationRoot = join(resources, "code", "apps", "developer");
+// An optional producer-sealed compiler is measured before any user state is
+// touched. It supplies compiler bytes, never canonical project admission.
+const compilerInput = join(applicationRoot, 'compiler-runtime', 'node_modules', 'solc');
+let hasBundledCompiler = false;
+try { await readFile(join(applicationRoot, 'compiler-runtime', 'distribution.json')); hasBundledCompiler = true; }
+catch (error) { if (error.code !== 'ENOENT') throw error; }
+if (hasBundledCompiler) {
+  const { compilerReadiness, COMPILER_CLOSURE_SHA256 } = await import(pathToFileURL(join(applicationRoot, 'scripts', 'compiler-pin.mjs')));
+  const state = compilerReadiness(compilerInput);
+  if (!state.available || state.closureSha256 !== COMPILER_CLOSURE_SHA256) throw Error('Desktop bundled compiler input is invalid.');
+  process.env.YNX_IDE_SOLC_INPUT = compilerInput;
+}
 const supportRoot = process.env.YNX_CODE_DESKTOP_SUPPORT_DIR || join(homedir(), "Library", "Application Support", "YNXDeveloper");
 const sessionKeyPath = join(supportRoot, "workspace-session.key");
 
