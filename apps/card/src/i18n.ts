@@ -4,7 +4,7 @@ export const localeNames:Record<Locale,string>={en:"English", "zh-CN":"简体中
 
 const en={
   app:"YNX Card",
-  sandbox:"TESTNET / SANDBOX",
+  sandbox:"YNX TESTNET",
   signIn:"Sign in with YNX Wallet",
   signingIn:"Waiting for Wallet",
   gatewayUnavailable:"Central Card Gateway is unavailable",
@@ -19,7 +19,7 @@ const en={
   providerUnavailable:"Issuer provider unavailable",
   pendingReview:"Pending review",
   rejected:"Not eligible",
-  issued:"Sandbox card issued",
+  issued:"Testnet card created",
   active:"Active",
   frozen:"Frozen",
   closed:"Closed",
@@ -35,8 +35,8 @@ const en={
   replace:"Replace card",
   close:"Close card",
   cancel:"Cancel",
-  confirmClose:"Close this sandbox card? This cannot be undone.",
-  spendLimit:"Sandbox spend limit",
+  confirmClose:"Close this Testnet card? This cannot be undone.",
+  spendLimit:"Testnet spending limit",
   online:"Online",
   international:"International",
   atm:"ATM",
@@ -107,7 +107,7 @@ type Catalog=Record<Key,string>;
 const zhCN:Catalog={
   ...en,
   app:"YNX 卡",
-  sandbox:"测试网 / 沙盒",
+  sandbox:"YNX 测试网",
   signIn:"使用 YNX 钱包登录",
   signingIn:"等待钱包确认",
   gatewayUnavailable:"中央卡片网关不可用",
@@ -186,7 +186,7 @@ const zhTW:Catalog={
   ...en,
   ...zhCN,
   app:"YNX 卡",
-  sandbox:"測試網 / 沙盒",
+  sandbox:"YNX 測試網",
   signIn:"使用 YNX 錢包登入",
   gatewayUnavailable:"中央卡片閘道不可用",
   overview:"卡片",
@@ -218,7 +218,7 @@ const zhTW:Catalog={
 const ja:Catalog={
   ...en,
   app:"YNX カード",
-  sandbox:"テストネット / サンドボックス",
+  sandbox:"YNX テストネット",
   signIn:"YNX Walletでサインイン",
   signingIn:"Walletの確認待ち",
   gatewayUnavailable:"中央カードGatewayを利用できません",
@@ -339,7 +339,7 @@ const ko:Catalog={
   simulateReversal:"취소 시뮬레이션",
   simulateRefund:"환불 시뮬레이션",
   refresh:"새로고침",
-  sandbox:"테스트넷 / 샌드박스",
+  sandbox:"YNX 테스트넷",
   simulation:"시뮬레이션",
 };
 
@@ -403,7 +403,7 @@ const es:Catalog={
   simulateReversal:"Simular reversa",
   simulateRefund:"Simular reembolso",
   refresh:"Actualizar",
-  sandbox:"RED DE PRUEBAS / ENTORNO DE PRUEBAS",
+  sandbox:"YNX · RED DE PRUEBAS",
   simulation:"Simulación",
 };
 
@@ -467,7 +467,7 @@ const fr:Catalog={
   simulateReversal:"Simuler annulation",
   simulateRefund:"Simuler remboursement",
   refresh:"Actualiser",
-  sandbox:"RÉSEAU DE TEST / BAC À SABLE",
+  sandbox:"YNX · RÉSEAU DE TEST",
   simulation:"Simulation",
 };
 
@@ -530,7 +530,7 @@ const de:Catalog={
   simulateRefund:"Rückerstattung simulieren",
   refresh:"Aktualisieren",
   app:"YNX Card",
-  sandbox:"TESTNETZ / SANDBOX",
+  sandbox:"YNX TESTNETZ",
   activity:"Aktivität",
   simulation:"Simulation",
 };
@@ -594,7 +594,7 @@ const pt:Catalog={
   simulateReversal:"Simular estorno",
   simulateRefund:"Simular reembolso",
   refresh:"Atualizar",
-  sandbox:"REDE DE TESTE / AMBIENTE DE TESTES",
+  sandbox:"YNX · REDE DE TESTE",
   activity:"Atividade",
   simulation:"Simulação",
 };
@@ -659,14 +659,14 @@ const ru:Catalog={
   simulateRefund:"Симулировать возврат",
   refresh:"Обновить",
   app:"YNX Card",
-  sandbox:"ТЕСТОВАЯ СЕТЬ / ПЕСОЧНИЦА",
+  sandbox:"YNX · ТЕСТОВАЯ СЕТЬ",
   simulation:"Симуляция",
 };
 
 const ar:Catalog={
   ...en,
   app:"بطاقة YNX",
-  sandbox:"شبكة اختبار / بيئة تجريبية",
+  sandbox:"YNX · شبكة اختبار",
   signIn:"تسجيل الدخول بمحفظة YNX",
   signingIn:"بانتظار تأكيد المحفظة",
   gatewayUnavailable:"بوابة البطاقة المركزية غير متاحة",
@@ -788,7 +788,7 @@ const id:Catalog={
   simulateReversal:"Simulasi pembatalan",
   simulateRefund:"Simulasi pengembalian",
   refresh:"Segarkan",
-  sandbox:"JARINGAN UJI / SANDBOX",
+  sandbox:"YNX · JARINGAN UJI",
   simulation:"Simulasi",
 };
 

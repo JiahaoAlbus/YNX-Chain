@@ -67,7 +67,7 @@ test("compact Arabic shares one scroll viewport for chrome, six tabs, safety bou
   const viewport=scrolls[0];
   assert.equal(viewport.findAll((node:any)=>node.type==="Pressable"&&node.props.accessibilityRole==="tab").length,6);
   const text=textOf(viewport);
-  for(const key of ["Explore as guest","TESTNET SANDBOX","No real funds, cards, merchants, settlement, PAN, CVV, or personal data.","Understand card flows before they touch the real world."])assert.ok(text.includes(guestText("ar",key)),key);
+  assert.ok(text.includes("عرض محلي"));for(const key of ["Explore as guest","No real funds, cards, merchants, settlement, PAN, CVV, or personal data.","Understand card flows before they touch the real world."])assert.ok(text.includes(guestText("ar",key)),key);
   assert.equal(viewport.findAll((node:any)=>node.props.testID==="guest-section-content").length,1);
   assert.equal(viewport.findAll((node:any)=>node.type==="ScrollView").length,1);
 });
