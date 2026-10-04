@@ -1,0 +1,67 @@
+{
+  "schema": "ynx.card.guest-render-copy-gap-inventory.v1",
+  "softwareFixtureOnly": true,
+  "publicEvidence": false,
+  "entries": [
+    {
+      "locale": "en",
+      "firstSection": "Overview",
+      "value": "LOCAL DEMO"
+    },
+    {
+      "locale": "zh-CN",
+      "firstSection": "Overview",
+      "value": "本地演示"
+    },
+    {
+      "locale": "zh-TW",
+      "firstSection": "Overview",
+      "value": "本機示範"
+    },
+    {
+      "locale": "ja",
+      "firstSection": "Overview",
+      "value": "ローカルデモ"
+    },
+    {
+      "locale": "ko",
+      "firstSection": "Overview",
+      "value": "로컬 데모"
+    },
+    {
+      "locale": "es",
+      "firstSection": "Overview",
+      "value": "DEMO LOCAL"
+    },
+    {
+      "locale": "fr",
+      "firstSection": "Overview",
+      "value": "DÉMO LOCALE"
+    },
+    {
+      "locale": "de",
+      "firstSection": "Overview",
+      "value": "LOKALE DEMO"
+    },
+    {
+      "locale": "pt",
+      "firstSection": "Overview",
+      "value": "DEMO LOCAL"
+    },
+    {
+      "locale": "ru",
+      "firstSection": "Overview",
+      "value": "ЛОКАЛЬНАЯ ДЕМОНСТРАЦИЯ"
+    },
+    {
+      "locale": "ar",
+      "firstSection": "Overview",
+      "value": "عرض محلي"
+    },
+    {
+      "locale": "id",
+      "firstSection": "Overview",
+      "value": "DEMO LOKAL"
+    }
+  ]
+}

@@ -1,0 +1,238 @@
+✔ twelve explicit resources exactly cover every fixed key and template without inherited English (5.175542ms)
+✔ the original 147-item audit is accounted for, including replaced interpolation fragments (0.172584ms)
+✔ actual JSX fixed text and action labels are registered, including future additions (54.069958ms)
+✔ missing copy and incorrect template variables fail visibly instead of using English (0.678416ms)
+✔ funding, native identity, simulation and download keep separate truthful meanings (0.160083ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ android: every guest connection entry calls only native YNX authorization (306.495959ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ ios: every guest connection entry calls only native YNX authorization (84.721167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ web keeps its separate standard-wallet chooser and explicit MetaMask action (66.913125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ en: all six native sections render localized fixed text and local demo notices (64.617917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ zh-CN: all six native sections render localized fixed text and local demo notices (71.104916ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ zh-TW: all six native sections render localized fixed text and local demo notices (125.011917ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ ja: all six native sections render localized fixed text and local demo notices (91.724ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ ko: all six native sections render localized fixed text and local demo notices (55.879791ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ es: all six native sections render localized fixed text and local demo notices (66.37975ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ fr: all six native sections render localized fixed text and local demo notices (71.396625ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ de: all six native sections render localized fixed text and local demo notices (76.202375ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ pt: all six native sections render localized fixed text and local demo notices (66.111958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ ru: all six native sections render localized fixed text and local demo notices (76.387958ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ ar: all six native sections render localized fixed text and local demo notices (72.164125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✖ id: all six native sections render localized fixed text and local demo notices (68.050666ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ Arabic compact header retains column layout without limiting text scaling (117.6675ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact Arabic shares one scroll viewport for chrome, six tabs, safety boundary and real content (73.2895ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ compact navigation measures current content then returns to the section start, including Help and repeated tabs (97.1025ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ locale change with no onLayout still navigates using a fresh synchronous host measurement (102.806125ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ late measurement callbacks cannot override newer locale, navigation or onLayout requests (78.662ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ silent: missing or failed measure callbacks never block a fresh tab request (70.514542ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ throwMeasure: missing or failed measure callbacks never block a fresh tab request (61.5665ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ fail: missing or failed measure callbacks never block a fresh tab request (68.520167ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ invalid measured positions and late callbacks after unmount never scroll (143.061209ms)
+react-test-renderer is deprecated. See https://react.dev/warnings/react-test-renderer
+✔ desktop keeps chrome outside its content viewport and navigation starts at content zero (105.941666ms)
+✔ crossing the compact breakpoint preserves the current owner's unsaved registration form (112.140958ms)
+✔ Card nested deployment envelope preserves a fixed dist-web Output Directory without source rebuild (154.533583ms)
+✔ Card Wallet callback rewrites once to the root SPA while retaining the callback URL and query for protocol parsing (1.147458ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 21
+ℹ fail 12
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2873.093333
+
+✖ failing tests:
+
+test at src/guestExperience.test.ts:2:4539
+✖ en: all six native sections render localized fixed text and local demo notices (64.617917ms)
+  AssertionError [ERR_ASSERTION]: en/Overview: unregistered visible text LOCAL DEMO
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ zh-CN: all six native sections render localized fixed text and local demo notices (71.104916ms)
+  AssertionError [ERR_ASSERTION]: zh-CN/Overview: unregistered visible text 本地演示
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ zh-TW: all six native sections render localized fixed text and local demo notices (125.011917ms)
+  AssertionError [ERR_ASSERTION]: zh-TW/Overview: unregistered visible text 本機示範
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ ja: all six native sections render localized fixed text and local demo notices (91.724ms)
+  AssertionError [ERR_ASSERTION]: ja/Overview: unregistered visible text ローカルデモ
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ ko: all six native sections render localized fixed text and local demo notices (55.879791ms)
+  AssertionError [ERR_ASSERTION]: ko/Overview: unregistered visible text 로컬 데모
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ es: all six native sections render localized fixed text and local demo notices (66.37975ms)
+  AssertionError [ERR_ASSERTION]: es/Overview: unregistered visible text DEMO LOCAL
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ fr: all six native sections render localized fixed text and local demo notices (71.396625ms)
+  AssertionError [ERR_ASSERTION]: fr/Overview: unregistered visible text DÉMO LOCALE
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ de: all six native sections render localized fixed text and local demo notices (76.202375ms)
+  AssertionError [ERR_ASSERTION]: de/Overview: unregistered visible text LOKALE DEMO
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ pt: all six native sections render localized fixed text and local demo notices (66.111958ms)
+  AssertionError [ERR_ASSERTION]: pt/Overview: unregistered visible text DEMO LOCAL
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ ru: all six native sections render localized fixed text and local demo notices (76.387958ms)
+  AssertionError [ERR_ASSERTION]: ru/Overview: unregistered visible text ЛОКАЛЬНАЯ ДЕМОНСТРАЦИЯ
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ ar: all six native sections render localized fixed text and local demo notices (72.164125ms)
+  AssertionError [ERR_ASSERTION]: ar/Overview: unregistered visible text عرض محلي
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at src/guestExperience.test.ts:2:4539
+✖ id: all six native sections render localized fixed text and local demo notices (68.050666ms)
+  AssertionError [ERR_ASSERTION]: id/Overview: unregistered visible text DEMO LOKAL
+      at TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain/apps/card/src/guestExperience.test.ts:46:46)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

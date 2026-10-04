@@ -1,0 +1,45 @@
+{
+  "schema": "ynx.card.guest-envelope-followup.v1",
+  "source": "1d60bd397dc598fb46eccc568c1382b9d48f9673",
+  "tree": "63e059ea472224aa437e630ba77d5c279b7d684d",
+  "sourceChanges": {
+    "testnetLabel": "Explicitly translated in all twelve existing resources; no invariant-English exemption",
+    "copyInventoryKeys": 145,
+    "envelope": "Actual helper creation, byte parity, remote static build, tamper refusal and existing-output preservation"
+  },
+  "tests": {
+    "targeted": 33,
+    "passed": 21,
+    "failed": 12,
+    "frontendAndBackendTypecheck": "PASS",
+    "remainingFailure": "Native six-section visible text has locally translated DEMO label outside the canonical copy table"
+  },
+  "diagnostic": {
+    "allSixSectionsAllTwelveLocalesScanned": true,
+    "missingUniqueValuesPerLocale": 1,
+    "missingTotal": 12,
+    "englishMissing": "LOCAL DEMO",
+    "syntheticOnly": true
+  },
+  "inputs": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/guest-envelope-followup-20261004.txt",
+      "bytes": 13564,
+      "sha256": "86e83616b17b61083e2ebf75298f13e0ecbf39ab56d41b6c4e6ffa52e94727b8"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/guest-copy-complete-gap-inventory-20261004.json",
+      "bytes": 1365,
+      "sha256": "4812daf7b91f1116c9555dd85d28db8e6bfb648940757cf069cbc6fa7a263a46"
+    }
+  ],
+  "gates": {
+    "fullRegression": false,
+    "webBuildForThisSource": false,
+    "publicDeployment": false,
+    "realWalletApproved": false,
+    "realFunding": false,
+    "cardCredit": false,
+    "productionRealPayments": false
+  }
+}
