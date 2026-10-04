@@ -1,0 +1,93 @@
+{
+  "schema": "ynx.card.testnet-diagnostic-readback.v1",
+  "observedAt": "2026-10-04T07:50:31Z",
+  "localSource": "278ac6988d341d48d705e9848810edff13798f6f",
+  "localTree": "ef7d50447d6016e6f1a10bf1c12b92c54a4b7539",
+  "localCheckpointPushed": false,
+  "tests": "4/4",
+  "typecheck": {
+    "status": "FAILED",
+    "code": "TS2352",
+    "file": "server/cardTestnetDoctor.test.ts",
+    "line": 25,
+    "reason": "Mock response is not structurally a full Response; product config implementation not modified after failure"
+  },
+  "localCandidateRuntimeIdentity": {
+    "path": "runtime-identity.json",
+    "bytes": 803,
+    "sha256": "834dab0e67b314fb6821276ab58403185b6acd0dbdc1b1831d232d57a9a3e239",
+    "body": {
+      "schemaVersion": "ynx.card.runtime-identity.v1",
+      "productId": "ynx-card",
+      "sourceCommit": "1089b32c6fdacaadfa9aec5dfb90e408025588ce",
+      "sourceTree": "459364d5a69b3691b1dda7a6b3c2520455174ec6",
+      "appVersion": "1.0.0",
+      "releaseChannel": "qa",
+      "environment": "testnet",
+      "evmChainId": 6423,
+      "evmChainHex": "0x1917",
+      "paymentNetwork": "simulation",
+      "productionRealPayments": false,
+      "cardApiCompatibility": {
+        "schemaVersion": "ynx.card.source-compatibility.v1",
+        "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+        "frontendSourceCommit": "1089b32c6fdacaadfa9aec5dfb90e408025588ce",
+        "frontendSourceTree": "459364d5a69b3691b1dda7a6b3c2520455174ec6",
+        "backendSourceCommit": "1089b32c6fdacaadfa9aec5dfb90e408025588ce",
+        "backendVersionSchema": 1
+      }
+    }
+  },
+  "correction": "Earlier introduction-return receipt guessed card-runtime-identity.json; actual built artifact is runtime-identity.json. Prior missing=true observation is retained, not overwritten.",
+  "chainRead": {
+    "endpoint": "https://evm.ynxweb4.com",
+    "method": "eth_chainId",
+    "result": "0x1917",
+    "accountOrSignatureRequested": false,
+    "transactionSent": false
+  },
+  "publicReadback": [
+    {
+      "url": "https://card.ynxweb4.com/runtime-identity.json",
+      "status": 200,
+      "bytes": 816,
+      "sha256": "14f9e45c26880e1026fc846d2f438cc03c7ea7e1197057dea99784391a75673a",
+      "requestId": "hnd1::lkbvs-1791100231387-b6a528a15e95",
+      "source": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+      "tree": "18e8c7c32f887d0bc34bd2c6182e7e7199b909fd"
+    },
+    {
+      "url": "https://card.ynxweb4.com/api/card/v1/version",
+      "status": 200,
+      "bytes": 255,
+      "sha256": "f2e86532b2da21f83bfa15e6b304fc76a4f86ff4c629a5a1c80064cbfd155e5e",
+      "requestId": "hnd1::bwjqk-1791100231510-0d4727c4aa06",
+      "source": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+      "configurationReady": true,
+      "runtimeFundingVerified": false
+    }
+  ],
+  "localEnvironment": {
+    "authAdapterConfigured": false,
+    "stateKeyConfigured": false,
+    "fundingRecipientConfigured": false,
+    "sourceCommitBound": false,
+    "conclusion": "Local shell is not the deployed Host; these false configuration fields do not contradict public configurationReady=true."
+  },
+  "nativeTestnetCommercialDependency": false,
+  "remaining": [
+    "Fix owned test Response fixture type before push/build qualification",
+    "Formal coherent source/backend composition by single Host owner",
+    "Direct registration signature/activation, confirmed funding and ledger acceptance"
+  ],
+  "gates": {
+    "newPublicDeployment": false,
+    "backendAuthorityVerified": false,
+    "cardActivated": false,
+    "walletSigned": false,
+    "fundingVerified": false,
+    "cardCredit": false,
+    "dataFabric": false,
+    "productionRealPayments": false
+  }
+}
