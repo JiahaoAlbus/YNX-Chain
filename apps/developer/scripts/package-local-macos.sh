@@ -53,7 +53,7 @@ fi
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
 # APFS clones preserve a standalone dependency tree while sharing unchanged
 # blocks. Retain any failed clone outside the app before a fresh normal copy.
-if ! COPYFILE_DISABLE=1 cp -cXR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"; then
+if ! COPYFILE_DISABLE=1 cp -cR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"; then
   if [[ -e "$app/Contents/Resources/code/apps/developer/node_modules" ]]; then
     mv "$app/Contents/Resources/code/apps/developer/node_modules" "$root/node_modules-clone-failed"
   fi
