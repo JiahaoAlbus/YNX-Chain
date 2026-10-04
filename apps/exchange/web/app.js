@@ -2,6 +2,8 @@ import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-da
 import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
 import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
+import {buildCommandReview} from './command-review.js?v=f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e';
+import {commandText} from './command-copy.js?v=c9f190b2f0cc2040707fe43288ff9246625afb3e7617e574afe43672123b2b86';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
 const state={account:null,side:'buy',snapshot:null,book:null,publicTrades:[],config:null,activity:'trades',standardWallet:null,lastWalletKind:'ynx'};
 const display=(v)=>formatMicro(v,document.documentElement.lang||'en');
@@ -82,10 +84,14 @@ function previewRulesKey(value){if(Array.isArray(value))return value.map(preview
 const marketFeed=createMarketFeed({onSnapshot(value){if(state.rules&&JSON.stringify(previewRulesKey(state.rules))!==JSON.stringify(previewRulesKey(value.tradingRules)))retireMarketPreview();state.book=value.orderBook;state.publicTrades=value.trades;state.rules=value.tradingRules;state.source=value.sourceMetadata;renderBook();renderPublicMarket()},onStatus(value){state.marketPhase=value.phase;renderMarketStatus(value);estimate()}});
 async function boot(){
   let languageStorage;try{languageStorage=window.localStorage}catch{}
-  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot){renderAccount();renderOwnedControls()}renderPrivateReadMetadata(privateAccount.state());estimate()}});
+  window.YNXExchangeLocale=installExchangeLocale({document,storage:languageStorage,onChange(){renderBook();renderPublicMarket();if(state.snapshot){renderAccount();renderOwnedControls()}renderPrivateReadMetadata(privateAccount.state());estimate();renderCommandCopy()}});
   bind();renderBook();renderPublicMarket();renderAIState();$('#custody-address').textContent='Separate approved deposit workflow required';window.YNXExchangeLocale?.write($('#custody-address'),'Separate approved deposit workflow required');$('#withdraw-fee').textContent='—';marketFeed.start();await Promise.all([restoreStandardWallet(),privateAccount.start(location.href),initializeBrowserIdentity()]);
 }
 function bind(){
+  const intentLabel=document.createElement('label'),intent=document.createElement('input');
+  const intentText=document.createElement('span');intentText.id='deposit-intent-label';intentLabel.append(intentText);intent.id='deposit-intent';intent.required=true;intent.maxLength=128;intent.autocomplete='off';intentLabel.append(intent);$('#deposit-form').prepend(intentLabel);renderCommandCopy();
+  $('#command-review-check').addEventListener('click',checkCommandRequirements);
+  $('#command-review-dialog').addEventListener('close',()=>{state.commandReview=null;$('#command-review-values').replaceChildren();});
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
   $('#connect').addEventListener('click',openWalletChooser);
   $('#connect-ynx-wallet').addEventListener('click',()=>connectWallet('ynx').catch(error=>walletConnectionFailure(error,'YNX Wallet')));
@@ -153,6 +159,7 @@ function renderMarketStatus({phase,source}){if(!['live','polling'].includes(phas
 async function refreshBook(){await refreshAll()}
 async function refreshAccount(){return privateAccount.refresh()}
 function renderPrivateAccount(value){
+  if(state.account!==value.account||state.privatePhase!==value.phase||state.snapshot!==value.snapshot){const review=$('#command-review-dialog');if(review?.open)review.close();state.commandReview=null;$('#command-review-values')?.replaceChildren();}
   // Preview funds are observations, never reservations. A newer owned balance
   // observation must retire both the visible review and its pending read.
   const balanceKey=rows=>JSON.stringify(Array.isArray(rows)?rows.map(row=>[row?.account,row?.asset,row?.availableMicro,row?.reservedMicro]).sort((a,b)=>String(a[1]).localeCompare(String(b[1]))):null);
@@ -374,11 +381,34 @@ async function reviewOrder(event){
     $('#order-preview-dialog').showModal();
   }catch(error){if(state.account!==ownerAtReview||state.privatePhase!==phaseAtReview||(state.previewOwnerEpoch??0)!==epochAtReview||!draftUnchanged())return;if(!window.YNXExchangeLocale?.error($('#order-error'),error))$('#order-error').textContent=error.message;toast(error)}finally{button.disabled=false}
 }
-function cancelOrder(){requireProductSession()}
-async function observeDeposit(event){event.preventDefault();requireProductSession()}
-function reviewWithdrawal(event){event.preventDefault();requireProductSession()}
-async function saveSecurity(event){event.preventDefault();requireProductSession()}
-async function openSupport(event){event.preventDefault();requireProductSession()}
-async function requestAI(){renderAIState();requireProductSession()}
+function closeCommandReview(){const dialog=$('#command-review-dialog');if(dialog?.open)dialog.close();state.commandReview=null;$('#command-review-values')?.replaceChildren();}
+function checkCommandRequirements(){
+  const review=state.commandReview;if(!review)return;
+  if(review.account!==state.account){closeCommandReview();return;}
+  // No legacy proof/header, signing request or POST fallback.
+  const status=$('#command-review-state');window.YNXExchangeLocale?.forget(status);
+  const error=productApiUnavailable();status.textContent=error.message;window.YNXExchangeLocale?.error(status,error);
+}
+function renderCommandCopy(){for(const [id,key] of [['command-review-title','title'],['command-review-check','check'],['deposit-intent-label','intent'],['command-review-risk','risk']]){const element=$('#'+id);if(element)element.textContent=commandText(document.documentElement.lang,key)}}
+function reviewCommand(kind,input){
+  try{
+    const fee=state.config?.networks?.find(n=>n.asset==='YNXT'&&n.network==='YNX Testnet')?.withdrawalFeeMicro;
+    const review=buildCommandReview(kind,input,{account:state.account,withdrawalFeeMicro:fee});
+    closeCommandReview();state.commandReview=review;
+    const root=$('#command-review-values');
+    const fields=[['Account',review.account??'Guest'],...Object.entries(review.body).map(([key,value])=>[key,Array.isArray(value)?value.join(', '):String(value)])];
+    if(review.resourceId)fields.push(['Order',review.resourceId]);
+    if(kind==='withdrawal')fields.push(['Exact network fee',Number.isSafeInteger(fee)?`${display(fee)} YNXT`:'Unavailable'],['Recipient receives',Number.isSafeInteger(fee)?`${display(review.body.amountMicro-fee)} YNXT`:'Unavailable']);
+    for(const [label,value] of fields){const row=document.createElement('div'),dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=window.YNXExchangeLocale?.text(label)??label;dd.textContent=value;row.append(dt,dd);root.append(row)}
+    const status=$('#command-review-state');window.YNXExchangeLocale?.forget(status);status.textContent=productApiUnavailable().message;window.YNXExchangeLocale?.error(status,productApiUnavailable());
+    $('#command-review-dialog').showModal();
+  }catch(error){toast(commandText(document.documentElement.lang,'invalid'))}
+}
+function cancelOrder(order){reviewCommand('cancel',{order})}
+async function observeDeposit(event){event.preventDefault();reviewCommand('deposit',{intentId:$('#deposit-intent').value,txHash:$('#deposit-tx').value})}
+function reviewWithdrawal(event){event.preventDefault();reviewCommand('withdrawal',{destination:$('#withdraw-destination').value,amount:$('#withdraw-amount').value})}
+async function saveSecurity(event){event.preventDefault();reviewCommand('security',{withdrawalLock:$('#withdraw-lock').checked,orderConfirmation:$('#order-confirmation').checked,sessionTtlMinutes:Number($('#session-ttl').value)})}
+async function openSupport(event){event.preventDefault();reviewCommand('support',{category:$('#support-category').value,message:$('#support-message').value})}
+async function requestAI(){reviewCommand('ai',{kind:$('#ai-kind').value,contextClass:$('#ai-context').value,prompt:$('#ai-prompt').value,permission:$('#ai-permission').checked})}
 function renderAIState(){const root=$('#ai-result');window.YNXExchangeLocale?.forget(root);root.replaceChildren();const message=document.createElement('p'),error=productApiUnavailable();message.textContent=error.message;window.YNXExchangeLocale?.error(message,error);root.append(message)}
 boot();
