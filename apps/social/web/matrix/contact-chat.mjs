@@ -6,19 +6,22 @@ const accountID=/^ynx1[0-9a-z]{38}$/;
 const fail=(code,message)=>{throw Object.assign(new Error(message),{code})};
 
 export function acceptedContactProfiles(value){
- if(!value||!Array.isArray(value.contacts)||value.contacts.length>10000)fail('MATRIX_CONTACTS_INVALID','Accepted contacts could not be verified');
+ const contacts=value?.contacts;
+ if(!Array.isArray(contacts)||contacts.length>10000)fail('MATRIX_CONTACTS_INVALID','Accepted contacts could not be verified');
  const seen=new Set();
- return Object.freeze(value.contacts.map(person=>{
-  if(!person||!socialID.test(person.id)||seen.has(person.id)||typeof person.handle!=='string'||typeof person.displayName!=='string'||person.handle.length>256||person.displayName.length>256)fail('MATRIX_CONTACTS_INVALID','Accepted contact identity could not be verified');
-  seen.add(person.id);return Object.freeze({id:person.id,handle:person.handle,displayName:person.displayName});
+ return Object.freeze(contacts.map(person=>{
+  const {id,handle,displayName}=person??{};
+  if(typeof id!=='string'||!socialID.test(id)||seen.has(id)||typeof handle!=='string'||typeof displayName!=='string'||handle.length>256||displayName.length>256)fail('MATRIX_CONTACTS_INVALID','Accepted contact identity could not be verified');
+  seen.add(id);return Object.freeze({id,handle,displayName});
  }));
 }
 
 export function checkedContactBinding(value,personId){
- if(!socialID.test(personId)||value?.protocol!=='ynx-social-matrix-peer/v1'||value.person!==personId||!accountID.test(value.account)||!validMatrixUserId(value.userId,value.serverName))fail('MATRIX_PEER_BINDING_REQUIRED','The selected contact has no matching existing chat identity');
- let url;try{url=new URL(value.homeserver)}catch{fail('MATRIX_PEER_BINDING_REQUIRED','The selected contact has no matching existing chat identity')}
+ const {protocol,person,account,userId,serverName,homeserver}=value??{};
+ if(typeof personId!=='string'||!socialID.test(personId)||protocol!=='ynx-social-matrix-peer/v1'||person!==personId||typeof account!=='string'||!accountID.test(account)||typeof userId!=='string'||typeof serverName!=='string'||!validMatrixUserId(userId,serverName)||typeof homeserver!=='string')fail('MATRIX_PEER_BINDING_REQUIRED','The selected contact has no matching existing chat identity');
+ let url;try{url=new URL(homeserver)}catch{fail('MATRIX_PEER_BINDING_REQUIRED','The selected contact has no matching existing chat identity')}
  if(url.protocol!=='https:'||url.username||url.password||url.pathname!=='/'||url.search||url.hash)fail('MATRIX_PEER_BINDING_REQUIRED','The contact chat service could not be verified');
- return Object.freeze({protocol:value.protocol,person:value.person,account:value.account,userId:value.userId,serverName:value.serverName,homeserver:url.href});
+ return Object.freeze({protocol,person,account,userId,serverName,homeserver:url.href});
 }
 
 // All data is read through the existing approved browser session. No wallet
@@ -63,7 +66,7 @@ export function createContactChat({identity,proof,guard,open,fetcher=globalThis.
    });
   },
   async start(personId,view,options){
-   if(!socialID.test(personId))fail('MATRIX_CONTACT_SELECTION_REQUIRED','Choose an accepted contact first');
+   if(typeof personId!=='string'||!socialID.test(personId))fail('MATRIX_CONTACT_SELECTION_REQUIRED','Choose an accepted contact first');
    const intent=++sequence;
    return run(view,options,async({read,wait,check})=>{
     const current=()=>{check();if(intent!==sequence)fail('UI_STALE_VIEW','Previous contact selection was discarded')};

@@ -65,3 +65,28 @@ test('a reopened original room revalidates the mapped MXID and current accepted 
 test('reopened room cannot bypass a removed contact through an old Matrix binding',async()=>{
  const {state,view,controller}=harness();state.contacts=[];await assert.rejects(controller.verifyPeer(binding.userId,view),{code:'MATRIX_CONTACT_NO_LONGER_ACCEPTED'});assert.equal(state.opened.length,0);
 });
+
+test('JSON arrays cannot masquerade as public IDs, accounts or chat routing fields',()=>{
+ assert.throws(()=>acceptedContactProfiles({contacts:[{...person,id:[id]}]}),{code:'MATRIX_CONTACTS_INVALID'});
+ for(const key of ['person','account','userId','serverName','homeserver']){
+  assert.throws(()=>checkedContactBinding({...binding,[key]:[binding[key]]},id),{code:'MATRIX_PEER_BINDING_REQUIRED'});
+ }
+ assert.throws(()=>checkedContactBinding(binding,[id]),{code:'MATRIX_PEER_BINDING_REQUIRED'});
+});
+
+test('contact response snapshots each producer field once without freezing producer objects',()=>{
+ let reads=0;
+ const original={get id(){reads++;return reads===1?id:other},handle:'original-name',displayName:'Original contact'};
+ const [captured]=acceptedContactProfiles({contacts:[original]});
+ assert.equal(reads,1);assert.equal(captured.id,id);assert.equal(Object.isFrozen(original),false);
+ let accountReads=0;
+ const route={...binding,get account(){accountReads++;return accountReads===1?account:'ynx1'+'c'.repeat(38)}};
+ const capturedRoute=checkedContactBinding(route,id);
+ assert.equal(accountReads,1);assert.equal(capturedRoute.account,account);assert.equal(Object.isFrozen(route),false);
+});
+
+test('non-string selection never requests authority, fetch or room creation',async()=>{
+ const {state,view,controller}=harness();
+ for(const value of [[id],{toString:()=>id}])await assert.rejects(controller.start(value,view),{code:'MATRIX_CONTACT_SELECTION_REQUIRED'});
+ assert.equal(state.identities,0);assert.equal(state.requests.length,0);assert.equal(state.opened.length,0);
+});
