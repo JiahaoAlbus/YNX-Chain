@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "720dc6b5c03bd1ff00647ce4e6b7321b189e0256",
+  "scope": "Owned existing Desktop contract request/display lifecycle only; original NativeContractClient, service, Main, chain parsers/pinned identities/interpreter, Native App and shared SDK unchanged",
+  "originalCounterexamples": "11 original+new UI tests8 PASS3 FAIL: truthy IPC success accepted; caller input mutation during await changed expected contract address; published result retained mutable producer containers and was not frozen.",
+  "repair": "Capture a bounded own-data immutable request before dispatch, validate the same existing service input fields, retain context/revision guards before and after await and snapshot, require literal ok=true and compare response against dispatched mode/action/address/read-only status. Deep detached frozen public DTO snapshot preserves shared object references but rejects accessors, cycles, nonordinary arrays/prototypes, custom iterators and oversized data. This is presentation/lifecycle, not new contract proof/ABI execution or arbitrary Proxy-inertness claim.",
+  "verification": {
+    "first": "11 UI tests11 PASS0 FAIL; original8 unchanged assertions retained",
+    "final": "25 PASS0 FAIL0 SKIP across native-contract-ui, native-contract-producer-ui and native-contract-locale-mounted",
+    "producerComposition": "Six original client/service/UI lookup+read compositions cover public Go BFT fixture, original Go source-analyzer fixture and controlled existing legacy pinned-bytecode-runtime metadata/interpreter shape. Original client validates chain/routes/metadata/selectors/audit or interpreter evidence in controlled fetch, not a live deployment or RPC proof. All paths return immutable public DTOs and never call deploy/execute/sendRawTransaction.",
+    "language": "Existing mounted three-case twelve-language contract display tests preserved; no extra read or raw fact rewriting inferred from locale changes",
+    "negative": "Original stale-account/key/close/edit/reopen/new-read fences and actionable failure copy remain; new accessor, custom iterator/cycle rejection and valid shared method object snapshot cases pass",
+    "executionBoundary": "Node builtins, original ethers and owned client/service/UI/locale closure only. No SDK, signer, account secret, private journal, installed Electron, GUI, OS or actual RPC executed.",
+    "evidenceDirectory": "/tmp/ynx-wallet-contract-display-20261004-XM5wxo",
+    "syntax": "native-contract-ui node --check and git diff --check exit0"
+  },
+  "remaining": ["Exact whole successor independent source review", "Current complete SDK/factory input remains missing as720 readback", "Actual original chain contract address/route/pagination readback remains NOT_VERIFIED", "Formal current install/upgrade/source-binding/signing/public download", "Retained real accounts/UNKNOWN/Pay/camera/user acceptance", "MONSTER NOT_RUN"],
+  "overallGoal": "NOT_COMPLETED"
+}
