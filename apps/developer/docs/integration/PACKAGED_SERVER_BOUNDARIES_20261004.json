@@ -1,0 +1,62 @@
+{
+  "testSourceCommit": "4bbeb9fda104b67199c31def7652a85eb5fddf5f",
+  "testSourceTree": "a70ff8fde1d84ff632b466654afb5f2e03ecad14",
+  "nativePayloadSourceCommit": "3238d1cc4bc83556ce2d6c0feec38272df891c90",
+  "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-solidity-sealed-native-package-20261004-mac-arm64",
+  "checks": [
+    "Actual packaged service starts.",
+    "Live health source identity matches embedded provenance.",
+    "Packaged frontend serves the Tools route.",
+    "Loopback host cannot acquire a private Tools context.",
+    "Forged caller identity cannot receive context, compile artifact or runtime admission.",
+    "Actual packaged React renders projects and Tools; unauthenticated users see sign-in and cannot access private AI/compile controls, pageerrors[]."
+  ],
+  "tests": {
+    "pass": 2,
+    "fail": 0
+  },
+  "privateResponses": [
+    {
+      "path": "/runtime/native-tools/context?sessionId=00000000-0000-4000-8000-000000000001",
+      "status": 401,
+      "value": {
+        "code": "core_identity_required",
+        "error": "Connect the current Wallet identity before launching this project."
+      }
+    },
+    {
+      "path": "/runtime/native-tools/chain/compile?sessionId=00000000-0000-4000-8000-000000000001",
+      "status": 401,
+      "value": {
+        "code": "core_identity_required",
+        "error": "Connect the current Wallet identity before launching this project."
+      }
+    },
+    {
+      "path": "/runtime/codeoss",
+      "status": 401,
+      "value": {
+        "error": "Connect the current Wallet identity before launching this project.",
+        "code": "core_identity_required"
+      }
+    }
+  ],
+  "bootstrapTamperRefusal": {
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-solidity-sealed-native-package-20261004-mac-arm64",
+    "qa": "/private/tmp/ynx-packaged-bootstrap-Alcxie",
+    "exit": {
+      "code": 1,
+      "signal": null
+    },
+    "compilerTamperRefused": true,
+    "supportCreated": false
+  },
+  "cleanup": "Normal packaged Node/server SIGTERM gracefully exits code0; no Cocoa app launch. Altered bootstrap exits code1 before support state exists. Own isolated dirs/receipts retained.",
+  "preservedDriverFailures": [
+    "First fetch requested SPA route with default */* Accept: correct gateway returned404; corrected to real browser text/html.",
+    "Next global fetch did not forward requested Host and hit tools_origin403. Corrected to raw HTTP client; current tests exercise typed identity rejection after host checks. These failures are driver corrections, not product regressions."
+  ],
+  "evidence": "apps/developer/.ynx-developer-candidates/packaged-server-evidence-20261004",
+  "evidenceIndexSha256": "2f95b0f1a511bb660f52391d51d29a2b629768b8f6f883bf21e3ab79c383c730",
+  "scope": "Actual packaged portable Node + desktop server + compiled React, controlled isolated browser and own support state; no production operator adapter/family credentials, real Wallet identity, model/Chain actions, installed Cocoa app, user acceptance or publication."
+}
