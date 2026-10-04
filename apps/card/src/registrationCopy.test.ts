@@ -6,8 +6,8 @@ import{locales}from"./i18n";
 import{registrationResources,registrationErrorKey,registrationStatus,registrationTemplate,registrationText,type RegistrationCopyKey,type RegistrationTemplate}from"./registrationCopy";
 import type{RegistrationStatus}from"./registration";
 const placeholders=(value:string)=>[...value.matchAll(/\{(\w+)\}/g)].map(match=>match[1]).sort();
-test("registration has 12 explicit complete resources, 32 text keys, 7 statuses and 2 templates",()=>{
-  assert.equal(Object.keys(registrationResources.en.text).length,32);assert.equal(Object.keys(registrationResources.en.statuses).length,7);assert.equal(Object.keys(registrationResources.en.templates).length,2);
+test("registration has 12 explicit complete resources, 35 text keys, 7 statuses and 2 templates",()=>{
+  assert.equal(Object.keys(registrationResources.en.text).length,35);assert.equal(Object.keys(registrationResources.en.statuses).length,7);assert.equal(Object.keys(registrationResources.en.templates).length,2);
   for(const locale of locales)for(const section of ["text","statuses","templates"] as const){
     assert.deepEqual(Object.keys(registrationResources[locale][section]).sort(),Object.keys(registrationResources.en[section]).sort());
     for(const [key,value]of Object.entries(registrationResources[locale][section])){
