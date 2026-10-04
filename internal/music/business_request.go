@@ -22,6 +22,12 @@ import (
 type MusicBusinessAuthority interface {
 	VerifyMusicBusiness(context.Context, *http.Request, string, io.Reader, int64) (MusicBusinessGrant, error)
 }
+
+// MusicLocalTransaction holds the original authority gate around one local commit.
+type MusicLocalTransaction interface {
+	Execute(context.Context, func(context.Context) error) error
+}
+
 type MusicBusinessGrant struct {
 	Actor, SessionBinding, Nonce, BodyDigest string
 	ExpiresAt                                time.Time
@@ -29,6 +35,9 @@ type MusicBusinessGrant struct {
 	// Current is a local original actor/device/generation guard, without remote
 	// calls or recursive store access. Concrete SDK consumers always supply it.
 	Current func(context.Context) error
+	// Capture each local persistence phase separately. Remote dispatch is outside
+	// the authority gate; an UNKNOWN original dispatch is never resent here.
+	CaptureTransaction func(context.Context) (MusicLocalTransaction, error)
 }
 type MusicBusinessNonce struct {
 	BodyDigest string    `json:"bodyDigest"`
@@ -71,14 +80,26 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
 	return nil
 }
 func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
+	return l.checkCurrentContext(l.ctx, clock)
+}
+func (l *musicBusinessLease) checkCurrentContext(ctx context.Context, clock func() time.Time) error {
+	if ctx == nil || ctx.Err() != nil {
+		return ErrUnauthorized
+	}
 	if l.ctx == nil || l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
 	}
 	if l.grant.Current == nil {
+		if l.grant.CaptureTransaction != nil {
+			return ErrMusicAuthorityUnavailable
+		}
 		return l.check(clock)
 	}
-	if err := l.grant.Current(l.ctx); err != nil {
+	if err := l.grant.Current(ctx); err != nil {
 		return err
+	}
+	if ctx.Err() != nil {
+		return ErrUnauthorized
 	}
 	if l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
 		return ErrUnauthorized
@@ -90,11 +111,14 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
 // the real business change. Failed validation or unpublished saves cannot consume
 // a nonce; an already published but unconfirmed save retains its original nonce.
 func (l *musicBusinessLease) commit(actor string, st *persistentState, clock func() time.Time) error {
+	return l.commitContext(l.ctx, actor, st, clock)
+}
+func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st *persistentState, clock func() time.Time) error {
 	now := clock().UTC()
 	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
 		return ErrUnauthorized
 	}
-	if err := l.checkCurrent(clock); err != nil {
+	if err := l.checkCurrentContext(ctx, clock); err != nil {
 		return err
 	}
 	now = clock().UTC()

@@ -1,6 +1,7 @@
 package music
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
@@ -112,6 +113,23 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 			return err
 		}
 	}
+	ctx := context.Background()
+	if s.business != nil {
+		ctx = s.business.ctx
+	}
+	if s.business != nil && s.business.grant.CaptureTransaction != nil {
+		if s.business.grant.Current == nil {
+			return ErrMusicAuthorityUnavailable
+		}
+		transaction, err := s.business.grant.CaptureTransaction(ctx)
+		if err != nil {
+			return err
+		}
+		return executeMusicLocalTransaction(ctx, transaction, func(local context.Context) error { return s.mutateLocal(local, actor, event, objectID, payload, fn) })
+	}
+	return s.mutateLocal(ctx, actor, event, objectID, payload, fn)
+}
+func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string, payload any, fn func(*persistentState) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	next, err := clonePersistentState(s.state)
@@ -122,7 +140,7 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 		return err
 	}
 	if s.business != nil {
-		if err := s.business.commit(actor, &next, s.cfg.Now); err != nil {
+		if err := s.business.commitContext(ctx, actor, &next, s.cfg.Now); err != nil {
 			return err
 		}
 	}
@@ -136,7 +154,7 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 	next.Audit = append(next.Audit, a)
 	var current func() error
 	if s.business != nil && s.business.grant.Current != nil {
-		current = func() error { return s.business.checkCurrent(s.cfg.Now) }
+		current = func() error { return s.business.checkCurrentContext(ctx, s.cfg.Now) }
 	}
 	published, persistErr := saveStateCurrent(s.cfg.StatePath, &next, current)
 	if published {

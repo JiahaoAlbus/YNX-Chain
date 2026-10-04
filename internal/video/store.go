@@ -1,6 +1,7 @@
 package video
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
@@ -249,6 +250,23 @@ func (s *Store) update(fn func(*State) error) error {
 			return err
 		}
 	}
+	ctx := context.Background()
+	if s.business != nil {
+		ctx = s.business.ctx
+	}
+	if s.business != nil && s.business.grant.CaptureTransaction != nil {
+		if s.business.grant.Current == nil {
+			return ErrVideoTransactionUnavailable
+		}
+		transaction, err := s.business.grant.CaptureTransaction(ctx)
+		if err != nil {
+			return err
+		}
+		return executeVideoLocalTransaction(ctx, transaction, func(local context.Context) error { return s.updateLocal(local, fn) })
+	}
+	return s.updateLocal(ctx, fn)
+}
+func (s *Store) updateLocal(ctx context.Context, fn func(*State) error) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	encoded, err := json.Marshal(s.state)
@@ -261,7 +279,7 @@ func (s *Store) update(fn func(*State) error) error {
 	}
 	normalize(&candidate)
 	if s.business != nil {
-		if err = s.business.admit(&candidate); err != nil {
+		if err = s.business.admitContext(&candidate, ctx); err != nil {
 			return err
 		}
 	}
@@ -280,7 +298,7 @@ func (s *Store) update(fn func(*State) error) error {
 				return ErrUnauthorized
 			}
 		}
-		if err = s.business.checkCurrent(); err != nil {
+		if err = s.business.checkCurrentContext(ctx); err != nil {
 			return err
 		}
 	}
@@ -289,7 +307,7 @@ func (s *Store) update(fn func(*State) error) error {
 	s.state = candidate
 	var current func() error
 	if s.business != nil && s.business.grant.Current != nil {
-		current = s.business.checkCurrent
+		current = func() error { return s.business.checkCurrentContext(ctx) }
 	}
 	published, persistErr := s.persistLockedCurrent(current)
 	if !published {

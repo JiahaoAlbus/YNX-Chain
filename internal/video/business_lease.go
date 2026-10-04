@@ -11,6 +11,12 @@ import (
 	"time"
 )
 
+// VideoLocalTransaction is supplied only by the original protected authority.
+// Execute must synchronously hold its authority gate around the callback.
+type VideoLocalTransaction interface {
+	Execute(context.Context, func(context.Context) error) error
+}
+
 // VideoBusinessGrant is issued only by the trusted shared verifier. This product
 // transaction boundary cannot authenticate headers or create a Wallet session.
 type VideoBusinessGrant struct {
@@ -22,6 +28,10 @@ type VideoBusinessGrant struct {
 	// Current checks the captured live actor/device/generation locally, without
 	// network or Store recursion. Remote Revalidate runs before taking Store's lock.
 	Current func(context.Context) error
+	// Fresh capture per local commit, after remote preflight and before Store lock.
+	// Membership-changing commands require an original writer transaction, not
+	// a normal effect lease. No producer is installed by this optional seam.
+	CaptureTransaction func(context.Context) (VideoLocalTransaction, error)
 }
 type VideoBusinessNonce struct {
 	Nonce          string    `json:"nonce,omitempty"`
@@ -87,7 +97,14 @@ func (b *videoBusinessLease) check() error {
 	}
 	return nil
 }
-func (b *videoBusinessLease) checkCurrent() error {
+func (b *videoBusinessLease) checkCurrent() error { return b.checkCurrentContext(b.ctx) }
+func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
+	if ctx == nil {
+		return ErrUnauthorized
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if err := b.ctx.Err(); err != nil {
 		return err
 	}
@@ -97,9 +114,15 @@ func (b *videoBusinessLease) checkCurrent() error {
 	// Preserve existing trusted-verifier compatibility. The concrete SDK
 	// consumer always supplies Current and never performs remote reads here.
 	if b.grant.Current == nil {
+		if b.grant.CaptureTransaction != nil {
+			return ErrVideoTransactionUnavailable
+		}
 		return b.check()
 	}
-	if err := b.grant.Current(b.ctx); err != nil {
+	if err := b.grant.Current(ctx); err != nil {
+		return err
+	}
+	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if err := b.ctx.Err(); err != nil {
@@ -123,8 +146,9 @@ func (b *videoBusinessLease) checkState(st State) error {
 	}
 	return nil
 }
-func (b *videoBusinessLease) admit(st *State) error {
-	if err := b.checkCurrent(); err != nil {
+func (b *videoBusinessLease) admit(st *State) error { return b.admitContext(st, b.ctx) }
+func (b *videoBusinessLease) admitContext(st *State, ctx context.Context) error {
+	if err := b.checkCurrentContext(ctx); err != nil {
 		return err
 	}
 	if err := b.checkState(*st); err != nil {
