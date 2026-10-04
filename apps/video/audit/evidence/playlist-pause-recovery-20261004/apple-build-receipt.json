@@ -1,0 +1,284 @@
+{
+  "schema": "ynx.video.apple.full-native-build.v1",
+  "sourceCommit": "832f675fc6ffb9d6a32a08c7b7e55b162f80a132",
+  "toolchain": "Xcode 27.0\nBuild version 27A266a",
+  "sourcePins": [
+    {
+      "path": "apps/video/ios/YNXVideo.xcodeproj/project.pbxproj",
+      "bytes": 7211,
+      "sha256": "e59ea64e073fb4361b5abba2d73a6c7ada158327714fb840f8f618d039a80310",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ContentView.swift",
+      "bytes": 11201,
+      "sha256": "f6aeb6f794d9d398894a5b3e8337d2b7e198a831ec0f653f99ae9915dbab4ab2",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/Info.plist",
+      "bytes": 1376,
+      "sha256": "869185ba6bffff7e95b30775b9fda55b2f06f13da6628e1e56806d931480c72b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/MacInfo.plist",
+      "bytes": 1165,
+      "sha256": "c1893ff3a0eb0492e2e6ccd008a13e8b5ec4594b9d41fb3ed1ae8a8bebe502cf",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ProductDeviceKey.swift",
+      "bytes": 4083,
+      "sha256": "c92aa14c65b119c8dd7f7701635ec2a9ac0029a8c9d25093671ecce51f9f1801",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoModel.swift",
+      "bytes": 26782,
+      "sha256": "89417602e7e2cd5847eb5004161357f5f3a4308a377b747f77d1619ab3c3da69",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCore.swift",
+      "bytes": 4841,
+      "sha256": "f30034b256f8350808c6b14fcc0235d4cc3f93be9fddc759bcc2f1a845ad28a7",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCustody.swift",
+      "bytes": 2868,
+      "sha256": "6a594bfd8bcf39e4e2b7b46f1012e0ce6bb976cf8e31676562231c22099c2838",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeEngine.swift",
+      "bytes": 21781,
+      "sha256": "8d2b660a70e59089a12636bfc9caa51676bb9f225d09ad60e1d62179ca87dec9",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeState.swift",
+      "bytes": 18407,
+      "sha256": "dbfb585fb2b10f71655ea3e1c717c35309af7b8fb9cf555bc8e7dd338ff8bad1",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeTransport.swift",
+      "bytes": 1473,
+      "sha256": "49e6e8785ab7a2df2917f646fcaa3889e232a5b11c83e93b46d56eaf30b5719b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoPrivateMedia.swift",
+      "bytes": 7000,
+      "sha256": "e5d5ba71a420f919212acaf2b213f20696edbcc3c475d074575c21b9ab631fd7",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoViewerState.swift",
+      "bytes": 10702,
+      "sha256": "76083b7f61d8758b1691825b67c836f60974cc5f444977ff2c1af3f0cd3b56fd",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/YNXVideoApp.swift",
+      "bytes": 252,
+      "sha256": "6329b46f32bdc4c33b568fc1be2b861a2516600bb1adc6b298d0d8fd03fd6682",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/client.mjs",
+      "bytes": 3341,
+      "sha256": "966fb8e17315b5ea1276b6c5cfd281e51b2df2ce72c2b69bd6c9d0ed4f03d86b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/source.json",
+      "bytes": 2964,
+      "sha256": "4f320799ba13951fa4875810b1f070c7be495aeb37a12ff9ae87f93692bf10a7",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ynx-brand-original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/scripts/build-apple-native.mjs",
+      "bytes": 3636,
+      "sha256": "f51568e7a88f935ef1ab0d1a6327434ba6637bd8fdcb82aa3711c75d1b667aca",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/i18n/catalog.json",
+      "bytes": 22776,
+      "sha256": "548044a27e3eac9583a5d3cecb078255c05aa79c7e226fd6e03cdbaeaba9e3eb",
+      "gitExact": true
+    }
+  ],
+  "candidates": [
+    {
+      "scheme": "YNXVideo",
+      "sdk": "iphonesimulator",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-apple-native-kR2Gd7/YNXVideo/Build/Products/Debug-iphonesimulator/YNXVideo.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-apple-native-kR2Gd7/YNXVideo.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Info.plist",
+          "bytes": 1240,
+          "sha256": "94640e9ad1ace610ab0dd1d31306b9783edab7a0dda3fb07d3a4cff13172405f"
+        },
+        {
+          "path": "PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "YNXVideo",
+          "bytes": 3754936,
+          "sha256": "cc8d0be1c564b730fe87fcd29e2fbcaf87887dce3bf962e7b8164434f52ae614"
+        },
+        {
+          "path": "catalog.json",
+          "bytes": 22776,
+          "sha256": "548044a27e3eac9583a5d3cecb078255c05aa79c7e226fd6e03cdbaeaba9e3eb"
+        },
+        {
+          "path": "native-session/client.mjs",
+          "bytes": 3341,
+          "sha256": "966fb8e17315b5ea1276b6c5cfd281e51b2df2ce72c2b69bd6c9d0ed4f03d86b"
+        },
+        {
+          "path": "native-session/index.html",
+          "bytes": 328,
+          "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+        },
+        {
+          "path": "native-session/media-native-consumer.mjs",
+          "bytes": 196466,
+          "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+        },
+        {
+          "path": "native-session/registry.json",
+          "bytes": 10393,
+          "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+        },
+        {
+          "path": "native-session/source.json",
+          "bytes": 2964,
+          "sha256": "4f320799ba13951fa4875810b1f070c7be495aeb37a12ff9ae87f93692bf10a7"
+        },
+        {
+          "path": "native-session/wallet-auth-native-consumer.mjs",
+          "bytes": 225738,
+          "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+        },
+        {
+          "path": "ynx-brand-original.png",
+          "bytes": 100732,
+          "sha256": "c4243934972df3cf1746f358a479710fb095c7f50a445df44d31413b1bf4d9fa"
+        }
+      ]
+    },
+    {
+      "scheme": "YNXVideoMac",
+      "sdk": "macosx",
+      "app": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-apple-native-kR2Gd7/YNXVideoMac/Build/Products/Debug/YNXVideoMac.app",
+      "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-apple-native-kR2Gd7/YNXVideoMac.log",
+      "signed": false,
+      "installed": false,
+      "launched": false,
+      "files": [
+        {
+          "path": "Contents/Info.plist",
+          "bytes": 1724,
+          "sha256": "92ffb1589d6b8e9729f15bb0c8c0ca2630b8de2061874dbc46427792f819da35"
+        },
+        {
+          "path": "Contents/MacOS/YNXVideoMac",
+          "bytes": 2001032,
+          "sha256": "f6c321525fb6b4ca7bfd59552fe757d1dc30b583adabbb963ef52ba04ae5c795"
+        },
+        {
+          "path": "Contents/PkgInfo",
+          "bytes": 8,
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0"
+        },
+        {
+          "path": "Contents/Resources/catalog.json",
+          "bytes": 22776,
+          "sha256": "548044a27e3eac9583a5d3cecb078255c05aa79c7e226fd6e03cdbaeaba9e3eb"
+        },
+        {
+          "path": "Contents/Resources/native-session/client.mjs",
+          "bytes": 3341,
+          "sha256": "966fb8e17315b5ea1276b6c5cfd281e51b2df2ce72c2b69bd6c9d0ed4f03d86b"
+        },
+        {
+          "path": "Contents/Resources/native-session/index.html",
+          "bytes": 328,
+          "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788"
+        },
+        {
+          "path": "Contents/Resources/native-session/media-native-consumer.mjs",
+          "bytes": 196466,
+          "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de"
+        },
+        {
+          "path": "Contents/Resources/native-session/registry.json",
+          "bytes": 10393,
+          "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+        },
+        {
+          "path": "Contents/Resources/native-session/source.json",
+          "bytes": 2964,
+          "sha256": "4f320799ba13951fa4875810b1f070c7be495aeb37a12ff9ae87f93692bf10a7"
+        },
+        {
+          "path": "Contents/Resources/native-session/wallet-auth-native-consumer.mjs",
+          "bytes": 225738,
+          "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575"
+        },
+        {
+          "path": "Contents/Resources/ynx-brand-original.png",
+          "bytes": 104171,
+          "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+        }
+      ]
+    }
+  ],
+  "actualWalletConsent": false,
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false,
+  "formalNativeV2Integration": false,
+  "shippedNativeSDKSource": "5c5e8a234206e306b6044deb6e938c1763ac7005"
+}

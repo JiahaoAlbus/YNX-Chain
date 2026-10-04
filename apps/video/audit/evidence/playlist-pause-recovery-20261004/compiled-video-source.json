@@ -1,0 +1,61 @@
+{
+  "schema": "ynx.video.apple-engine.software-qa.v1",
+  "binary": "/tmp/ynx-video-playlist-pause-apple-engine-20261004/apple-engine-check",
+  "bytes": 1422144,
+  "sha256": "cf64a227468ef1129dc29fee29a850594a04b69554a4303e82338e933d446ea1",
+  "sourcePins": [
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeEngine.swift",
+      "bytes": 21781,
+      "sha256": "8d2b660a70e59089a12636bfc9caa51676bb9f225d09ad60e1d62179ca87dec9"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeState.swift",
+      "bytes": 18407,
+      "sha256": "dbfb585fb2b10f71655ea3e1c717c35309af7b8fb9cf555bc8e7dd338ff8bad1"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCustody.swift",
+      "bytes": 2868,
+      "sha256": "6a594bfd8bcf39e4e2b7b46f1012e0ce6bb976cf8e31676562231c22099c2838"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/ProductDeviceKey.swift",
+      "bytes": 4083,
+      "sha256": "c92aa14c65b119c8dd7f7701635ec2a9ac0029a8c9d25093671ecce51f9f1801"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeTransport.swift",
+      "bytes": 1473,
+      "sha256": "49e6e8785ab7a2df2917f646fcaa3889e232a5b11c83e93b46d56eaf30b5719b"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoPrivateMedia.swift",
+      "bytes": 7000,
+      "sha256": "e5d5ba71a420f919212acaf2b213f20696edbcc3c475d074575c21b9ab631fd7"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoViewerState.swift",
+      "bytes": 10702,
+      "sha256": "76083b7f61d8758b1691825b67c836f60974cc5f444977ff2c1af3f0cd3b56fd"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoNativeCore.swift",
+      "bytes": 4841,
+      "sha256": "f30034b256f8350808c6b14fcc0235d4cc3f93be9fddc759bcc2f1a845ad28a7"
+    },
+    {
+      "path": "apps/video/ios/YNXVideo/VideoModel.swift",
+      "bytes": 26782,
+      "sha256": "89417602e7e2cd5847eb5004161357f5f3a4308a377b747f77d1619ab3c3da69"
+    },
+    {
+      "path": "apps/video/scripts/apple-engine-check.swift",
+      "bytes": 12387,
+      "sha256": "7d34bca1e72f0a1d116034eabad55a3ba330e58038c66c61fff17ef2f59d593c"
+    }
+  ],
+  "actualOSStorage": false,
+  "actualWalletConsent": false,
+  "installed": false
+}

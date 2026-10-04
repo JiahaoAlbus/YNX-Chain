@@ -1,0 +1,274 @@
+{
+  "schema": "ynx.video.playlist-pause-recovery.checkpoint.v1",
+  "createdAt": "2026-10-04T02:34:20.941772+00:00",
+  "sourceCommit": "832f675fc6ffb9d6a32a08c7b7e55b162f80a132",
+  "sourceTree": "47f23664a54a4cc25f047e62f886dd09b5674278",
+  "inheritedCheckpoint": {
+    "path": "apps/music/audit/rights-records-recovery-checkpoint-20261004.json",
+    "bytes": 16542,
+    "sha256": "339fa58837406aa224d8aecc584c25d51302227b8b77e8988be5c1b5984fb9d5"
+  },
+  "sourceArchive": {
+    "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/media-owned-source.tar.gz",
+    "bytes": 4310449,
+    "sha256": "8c82ad4987b58f2cd69b3c2ba7b6eccd6a6efb84c4f36a5e4d1781e642ff9a43",
+    "fileCount": 632
+  },
+  "androidCandidate": {
+    "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-android-debug.apk",
+    "bytes": 344191,
+    "sha256": "5969761e9b8e2afa3a17f00957c2db8eac9b4dc99c34c7593dd11e663b8747d1",
+    "installed": false,
+    "launched": false,
+    "debugSigned": true,
+    "releaseSigned": false
+  },
+  "appleUnsignedCandidates": [
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-unsigned.tar.gz",
+      "bytes": 1066284,
+      "sha256": "b5712d132b67dc4813cace0f3b1013b88fc582aac0419f72afa6be0a2a0758d7",
+      "fileCount": 11,
+      "scheme": "YNXVideo",
+      "signed": false,
+      "installed": false,
+      "launched": false
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideoMac-unsigned.tar.gz",
+      "bytes": 671714,
+      "sha256": "e3109c97a3883453aa334dd45f658fc00fa33f900088f849ad8784eef17de371",
+      "fileCount": 11,
+      "scheme": "YNXVideoMac",
+      "signed": false,
+      "installed": false,
+      "launched": false
+    }
+  ],
+  "checks": {
+    "fullGoRacePassEvents": 450,
+    "fullGoRaceFailures": 0,
+    "vet": "PASS",
+    "compositionInputs": 678,
+    "androidStorageJUnit": 12,
+    "videoWebChecks": 171,
+    "nativeRetainedHistoryCapacity": 64,
+    "originalDiscardBaseline": "REPRODUCED_KEY_ERASURE",
+    "locales": 12,
+    "localeKeys": 35,
+    "actualOriginalAppleModelCreateLostReplyPauseSuccessorColdOriginalKey": true,
+    "actualWalletConsent": false,
+    "actualInstalledNativeUI": false,
+    "actualCentralTrustAcceptance": false,
+    "earlierCreatorTimeoutCause": "NOT_CONFIRMED"
+  },
+  "remaining": [
+    "First full wrong-account-to-same-account restore failure cause is unconfirmed; preserve diagnostics and require real-device recovery acceptance despite subsequent current full and repeated passes",
+    "A formal original Host/currentActor + matching client deployment and public real-user readback",
+    "Real Wallet/iOS/macOS Keychain, installed UI/file-picker/large-media/codec acceptance",
+    "Real independent Wallet moderator approval and public publication/monetization/payout-provider/payment receipt acceptance; isolated original-service review passes only",
+    "Creator Apple AI/assets/appeals/disputes source and isolated original-service workflows now pass; real AI Gateway, picker/UI/storage/codec and revenue-backed dispute/payment acceptance remains open; inherited Creator Web retained",
+    "Native rights-review disclosure, version/schedule records, invite expiry/auth-version, ordinary operation button capture and initial upload rights expiry source compiled and original-service QA passed; wider native capability/installed UI audit remains",
+    "All 12 native catalog key sets complete; independent native-speaker/installed long-text/Arabic RTL/accessibility acceptance remains unverified",
+    "Actual Central Trust receipt and user acceptance",
+    "New native owner-appeal and pause/recovery repair independent source review pending",
+    "Earlier Creator iOS 120-second full-run timeout cause NOT_CONFIRMED; later green is recovery evidence only",
+    "Native four-kind rights record/UI independent source review pending",
+    "Actual protected shared Trust decision/read/reconciliation producer contract required before final-outcome handling",
+    "Formal Video same-own business and exact release tuple remain unverified",
+    "Web both create-playlist entry points need durable original-key recovery",
+    "Independent native playlist source review pending"
+  ],
+  "evidence": [
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-android-debug.apk",
+      "bytes": 344191,
+      "sha256": "5969761e9b8e2afa3a17f00957c2db8eac9b4dc99c34c7593dd11e663b8747d1"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-build.txt",
+      "bytes": 132605,
+      "sha256": "e54a6c074d6fadc6e8bcf50d2581d4bd54b32a0d85bbf625ff5b0fe18f5dfd27"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideo-unsigned.tar.gz",
+      "bytes": 1066284,
+      "sha256": "b5712d132b67dc4813cace0f3b1013b88fc582aac0419f72afa6be0a2a0758d7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideoMac-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideoMac-build.txt",
+      "bytes": 75944,
+      "sha256": "e327eedad9aad6307199662aa9c23d28759ca29b101831c3abfbe8197c9b5df8"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/YNXVideoMac-unsigned.tar.gz",
+      "bytes": 671714,
+      "sha256": "e3109c97a3883453aa334dd45f658fc00fa33f900088f849ad8784eef17de371"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-apk-badging.txt",
+      "bytes": 961,
+      "sha256": "407eca615e5db206774102ba99c12e64d111e2c3f5b2d6b369adadc451e2d078"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-apk-signature.txt",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-brand-pixels.txt",
+      "bytes": 73,
+      "sha256": "0c7b852a3ec3442640909407f673cf46a5fef137f025417fc39047440c778ff7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-build-receipt.json",
+      "bytes": 8044,
+      "sha256": "2e46e1f83dfbba39353d4382a6c6b153aa86ed63ef9c3352b2826ae6746e6340"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-build-stdout.txt",
+      "bytes": 583,
+      "sha256": "adc2de6aa29b9fa7d4f891283f05b6611af305c97a9a1282556caa87673c7efe"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/android-gradle-build-lint.txt",
+      "bytes": 3507,
+      "sha256": "9f1436a00efe68ed42bcfb8063057109f4c442062355a7ced1e11cc717659a54"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-build-receipt.json",
+      "bytes": 10115,
+      "sha256": "b4fcfe6e0864f639490040bbb888b7fa3b683f3d1e0267c838f99a3cbaf7db68"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-build-stdout.txt",
+      "bytes": 649,
+      "sha256": "a17bfeba22761d33c0cfba3d9eded232135dac047831176ed4690a6e051d876e"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-builder-first-path-failed.txt",
+      "bytes": 915,
+      "sha256": "4d1ccfa6ad2f11af205fc5fa5b37d9a2d76d6cc0d943a24fcb24018b5d40148c"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-engine-compile.txt",
+      "bytes": 1783,
+      "sha256": "b29f15341c43bbbf5ac987f0eb2e4359e331360a414d326b3c5ff97f076add11"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/apple-storage.txt",
+      "bytes": 104,
+      "sha256": "51f7773d1875e16ef1ae36865a57f309c15bbaa6d08e81ccc0e77fa0b5e3aeda"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/combined-go-race.jsonl",
+      "bytes": 1130499,
+      "sha256": "fe375300f4d95170fa15b89c25402c91fc2298b4fea4d50d98070859796e180c"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/combined-source-receipt.json",
+      "bytes": 189451,
+      "sha256": "2b19aea19fde750acde9e38efdb1313775369fcdc40d69f5853f3e3615bfafe6"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/compiled-brand-pixel-check.swift",
+      "bytes": 1003,
+      "sha256": "e16560352e02ff284fc588367e028dd7ac83c9d2aeb525b04b05d648424ac9d4"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/compiled-video-source.json",
+      "bytes": 2159,
+      "sha256": "8d4f5731f80a075ed76b7ac40ed3cd33df6e6e143004f064388ee9b8c3597637"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/focused-combined-go-race.jsonl",
+      "bytes": 703998,
+      "sha256": "580cd5094fe6ddbd1288f05ba6a2c11acc248b102f902e0269d75c772152018f"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/focused-combined-go-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/focused-combined-source-receipt.json",
+      "bytes": 189522,
+      "sha256": "7b884087f18a623b92ddd5544f69110fe9c7dae0341f650272026deb409127a7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/followup.md",
+      "bytes": 2162,
+      "sha256": "75913029bb9642387023f852da6ab09132125fc873026f2f08d1f42f6ff2026a"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/i18n-first-failed.txt",
+      "bytes": 395,
+      "sha256": "46c7ff9f7d724404b50a3db0bee65125796d4fa22f5f6d4129e6798f6325adf7"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/i18n-passed.txt",
+      "bytes": 73,
+      "sha256": "245efbd43a5d26a2a8f669e831ee1b9aa712acd1c6ad95e6163932b7707e3219"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/java-storage.txt",
+      "bytes": 497,
+      "sha256": "e1fd42fc0d0ee47dcf124a13fb8db8460c6224b05a7f82d5ca13094834e4e49a"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/media-owned-source.tar.gz",
+      "bytes": 4310449,
+      "sha256": "8c82ad4987b58f2cd69b3c2ba7b6eccd6a6efb84c4f36a5e4d1781e642ff9a43"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/original-discard-baseline-check.swift",
+      "bytes": 572,
+      "sha256": "10a69f6bf805e8173f4bafbda4d8ee61f9058807d94ffd6daba87ffd6c13b079"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/original-discard-baseline-compile.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/original-discard-baseline-failure.txt",
+      "bytes": 110,
+      "sha256": "e649c50ae9b06355ca2ad11537245044238cc68cff47cb4204920338a1abc48c"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/original-discard-baseline-source.swift",
+      "bytes": 9327,
+      "sha256": "dd18331f2bec43e530f4ac2e99a27c6e7efb90e25ff76ae95d2a99e5a8b2c644"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/prepare-checkpoint.py",
+      "bytes": 10589,
+      "sha256": "1964e3829b738b610287b02c4fe01d7a6f586d86e7fb2e95fc62e969b130cec6"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/verify-checkpoint.py",
+      "bytes": 4922,
+      "sha256": "b19ee2d2297957165bd4997d6514a58fa78655521ee03bd5f2af074e4c3e0265"
+    },
+    {
+      "path": "apps/video/audit/evidence/playlist-pause-recovery-20261004/video-web-check.txt",
+      "bytes": 18748,
+      "sha256": "bfaff48f7b40887214f25b5e48259ea468bb72de31542b0d04fd53c05bbdebde"
+    }
+  ]
+}
