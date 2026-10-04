@@ -14,9 +14,26 @@ const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messagi
 const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
 const { DebugSelectionContribution } = require('./debug-selection');
+const { UserKeybindingsContribution } = require('./user-keybindings');
+const { FileService } = require('@theia/filesystem/lib/browser/file-service');
+const { EnvVariablesServer } = require('@theia/core/lib/common/env-variables/env-variables-protocol');
+const { KeybindingRegistry } = require('@theia/core/lib/browser/keybinding');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(CommandContribution).toDynamicValue(context => ({
+    registerCommands(registry) {
+      registry.registerCommand({ id: 'ynx.workbench.reloadWindow', category: 'Developer', label: 'Reload Window' }, {
+        execute: () => registry.executeCommand('workbench.action.reloadWindow'),
+      });
+    },
+  })).inSingletonScope();
+  bind(UserKeybindingsContribution).toDynamicValue(context => new UserKeybindingsContribution(
+    context.container.get(FileService), context.container.get(EnvVariablesServer), context.container.get(EditorManager),
+    context.container.get(KeybindingRegistry), context.container.get(MessageService),
+  )).inSingletonScope();
+  bind(CommandContribution).toService(UserKeybindingsContribution);
+  bind(FrontendApplicationContribution).toService(UserKeybindingsContribution);
   bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
     context.container.get(CommandRegistry),
   )).inSingletonScope();

@@ -32,14 +32,14 @@ class DraftRecoveryStore {
     if (url.protocol === 'untitled:' && !url.search && !url.hash) return undefined;
     if (url.protocol !== 'file:' || url.search || url.hash) throw fault('RECOVERY_SCOPE', 'Only this project’s editable files can be backed up.');
     const path = fileURLToPath(url), child = relative(scope.workspace, path);
-    const ownSettings = path === join(scope.profile, 'settings.json');
-    if (!ownSettings && (!child || child === '..' || child.startsWith('../') || child.startsWith('..\\') || isAbsolute(child))) throw fault('RECOVERY_SCOPE', 'Draft is outside this project.');
+    const ownProfileFile = ['settings.json', 'keybindings.json'].some(name => path === join(scope.profile, name));
+    if (!ownProfileFile && (!child || child === '..' || child.startsWith('../') || child.startsWith('..\\') || isAbsolute(child))) throw fault('RECOVERY_SCOPE', 'Draft is outside this project.');
     if (checkTarget) {
       let target;
       try { target = await fs.realpath(path); }
       catch (error) { if (error.code !== 'ENOENT') throw error; target = join(await fs.realpath(dirname(path)), path.slice(dirname(path).length + 1)); }
       const actual = relative(scope.workspace, target);
-      if (target !== join(scope.profile, 'settings.json') && (!actual || actual === '..' || actual.startsWith('../') || actual.startsWith('..\\') || isAbsolute(actual))) throw fault('RECOVERY_SCOPE', 'Draft target is outside this project.');
+      if (!['settings.json', 'keybindings.json'].some(name => target === join(scope.profile, name)) && (!actual || actual === '..' || actual.startsWith('../') || actual.startsWith('..\\') || isAbsolute(actual))) throw fault('RECOVERY_SCOPE', 'Draft target is outside this project.');
     }
     return path;
   }

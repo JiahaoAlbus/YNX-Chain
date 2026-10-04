@@ -1,10 +1,12 @@
 {
   "name": "@ynx/developer-workbench",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "private": true,
   "dependencies": {
     "@theia/core": "1.76.0",
-    "@theia/task": "1.76.0"
+    "@theia/task": "1.76.0",
+    "@theia/filesystem": "1.76.0",
+    "jsonc-parser": "3.3.1"
   },
   "theiaExtensions": [
     {

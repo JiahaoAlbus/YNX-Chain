@@ -46,6 +46,19 @@ test('own settings and untitled documents are scoped backups, other profile cont
   assert.equal((await f.store.list()).entries.length, 2);
   assert.equal(await readFile(path, 'utf8'), text);
 });
+test('own shortcut drafts survive reopening and a shortcut symlink cannot back up another project', async () => {
+  const f = await fixture(), path = join(f.profile, 'keybindings.json'), text = '[]';
+  await writeFile(path, text);
+  const uri = pathToFileURL(path).toString(), baseHash = (await f.store.getBaseline(uri, text)).hash;
+  await f.store.upsert({ uri, baseHash, text: '[{"key":"f6","command":"workbench.action.debug.selectandstart"}]' });
+  const reopened = new DraftRecoveryStore({ workspace: f.workspace, profile: f.profile });
+  assert.equal((await reopened.list()).entries[0].uri, uri);
+  assert.equal(await readFile(path, 'utf8'), text);
+  const foreign = join(f.other, 'foreign.json'); await writeFile(foreign, 'foreign shortcut data');
+  const linked = await fixture(); await symlink(foreign, join(linked.profile, 'keybindings.json'));
+  await assert.rejects(linked.store.upsert({ uri: pathToFileURL(join(linked.profile, 'keybindings.json')).toString(), baseHash: null, text: 'forged' }), { code: 'RECOVERY_SCOPE' });
+  assert.equal(await readFile(foreign, 'utf8'), 'foreign shortcut data');
+});
 test('corrupt latest slot restores older data read-only and preserves damaged bytes', async () => {
   const f = await fixture(); await f.store.upsert({ uri: f.uri, baseHash: f.baseHash, text: 'older checkpoint' }); await f.store.upsert({ uri: f.uri, baseHash: f.baseHash, text: 'latest checkpoint' });
   const path = join(f.archive, 'b.json'), damaged = '{partial'; await writeFile(path, damaged);
