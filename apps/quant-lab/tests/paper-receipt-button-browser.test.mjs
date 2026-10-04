@@ -38,3 +38,31 @@ test('actual receipt button fences late A success/error from B feedback, control
   await context.close();
  }}finally{await browser.close();}
 });
+test('actual risk confirmation preserves replacement UNKNOWN and suppresses feedback after readiness retirement',async()=>{
+ const browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+ try{for(const scenario of ['replacement','readiness']){
+  const context=await browser.newContext(),page=await context.newPage();
+  await page.route('https://quant.ynxweb4.com/**',route=>route.fulfill({contentType:'text/html',body:'<select id="locale"></select><button id="paper-owned-backtest"></button><form id="paper-owned-form"><select id="paper-owned-strategy"></select><select id="paper-owned-side"><option value="buy">Buy</option></select><input id="paper-owned-amount" value="1000000"><button id="paper-owned-review"></button></form><pre id="paper-owned-result"></pre><dialog id="paper-owned-preview"><pre id="paper-owned-preview-text"></pre><p id="paper-owned-model"></p><button id="paper-owned-confirm"></button><button id="paper-owned-cancel"></button></dialog>'}));
+  await page.goto('https://quant.ynxweb4.com/');
+  await page.evaluate(()=>{
+   window.fixture={state:{account:'native-A',epoch:1,status:'connected',ready:true},snapshot:{account:'native-A',strategies:{},paper:{Orders:[],KillSwitch:false},experiments:{},audit:[]},calls:[]};
+   window.fixture.request=(path,options)=>{window.fixture.calls.push({path,options});return new Promise(resolve=>{window.fixture.resolve=resolve;});};
+  });
+  await page.addScriptTag({content:Buffer.from(bundle.outputFiles[0].contents).toString()});
+  await page.locator('#paper-native-reason').fill('Controlled explicit risk confirmation');
+  await page.locator('#paper-native-kill').click();assert.equal(await page.evaluate(()=>window.fixture.calls.length),0);
+  await page.locator('#paper-owned-confirm').click();await page.waitForFunction(()=>window.fixture.calls.length===1);
+  await page.evaluate(scenario=>{
+   const key='ynx.quant.native-paper.risk.v1:native-A',body=JSON.parse(window.fixture.calls[0].options.body);
+   if(scenario==='replacement')localStorage.setItem(key,JSON.stringify({action:'reconcile',body:{cash:30,position:2,idempotencyKey:'quant-native-risk-22222222-2222-4222-8222-222222222222'}}));
+   else{window.fixture.state={...window.fixture.state,ready:false};window.dispatchEvent(new Event('ynx:quant-paper-session'));document.getElementById('paper-owned-result').textContent='Current unavailable workspace feedback';}
+   window.fixture.retained=localStorage.getItem(key);window.fixture.resolve({action:'kill',idempotencyKey:body.idempotencyKey,requestDigest:'a'.repeat(64),paper:{KillSwitch:true,ReconciliationDelta:0}});
+  },scenario);
+  if(scenario==='replacement')await page.waitForFunction(()=>document.getElementById('paper-owned-result').textContent.includes('PAPER_PENDING_MISMATCH'));
+  else{await page.waitForTimeout(100);assert.equal(await page.locator('#paper-owned-result').textContent(),'Current unavailable workspace feedback');assert.equal(await page.locator('#paper-native-kill').isDisabled(),true);}
+  assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.native-paper.risk.v1:native-A')===window.fixture.retained),true);
+  assert.equal(await page.evaluate(()=>window.fixture.calls.length),1);
+  assert.equal(await page.evaluate(()=>window.fixture.calls[0].path),'/v1/wallet/paper/risk/kill');
+  await context.close();
+ }}finally{await browser.close();}
+});

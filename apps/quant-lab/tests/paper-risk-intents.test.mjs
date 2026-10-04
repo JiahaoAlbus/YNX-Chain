@@ -18,3 +18,23 @@ test('unsafe reference and silent storage failure cannot write',async()=>{
 test('all twelve native risk boundaries are localized and distinguish independent references from balance reset',()=>{
  const languages=['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id'];for(const language of languages){const copy=paperRiskCopy(language);assert.equal(Object.keys(copy).length,6);assert.ok(Object.values(copy).every(value=>value.length>3));if(language!=='en')assert.notEqual(copy.boundary,paperRiskCopy('en').boundary);}assert.match(paperRiskCopy('en').boundary,/does not reset balances/);
 });
+test('late risk receipt cannot retire a replaced, missing or corrupt journal or claim resolution',async()=>{
+ for(const replacement of ['missing','corrupt','new-intent']){
+  const f=fixture();let release,arrived=false;
+  const c=f.make((path,opt)=>{arrived=true;return new Promise(resolve=>{release=()=>f.request(path,opt).then(resolve);});});
+  const draft=c.preview('kill',{reason:'Confirmed original halt'}),flight=c.confirm(draft);
+  while(!arrived)await new Promise(resolve=>setTimeout(resolve,0));
+  const key='ynx.quant.native-paper.risk.v1:native-A';
+  if(replacement==='missing')f.values.delete(key);
+  else f.values.set(key,replacement==='corrupt'?'{invalid':JSON.stringify({action:'reconcile',body:{cash:30,position:2,idempotencyKey:'quant-native-risk-22222222-2222-4222-8222-222222222222'}}));
+  const retained=f.values.get(key);release();await assert.rejects(flight,{code:'PAPER_PENDING_MISMATCH'});
+  assert.equal(f.values.get(key),retained);assert.equal(f.writes.length,1);
+ }
+});
+test('risk receipt cannot retire UNKNOWN after same-owner permission/readiness loss',async()=>{
+ const f=fixture();let release,arrived=false;const c=f.make((path,opt)=>{arrived=true;return new Promise(resolve=>{release=()=>f.request(path,opt).then(resolve);});});
+ const draft=c.preview('kill',{reason:'Confirmed original halt'}),flight=c.confirm(draft);
+ while(!arrived)await new Promise(resolve=>setTimeout(resolve,0));const raw=[...f.values.values()][0];
+ f.set({account:'native-A',epoch:1,status:'connected',ready:false});release();
+ await assert.rejects(flight,{code:'PRIVATE_OPERATION_SUPERSEDED'});assert.equal([...f.values.values()][0],raw);
+});

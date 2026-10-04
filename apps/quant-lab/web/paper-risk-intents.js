@@ -19,9 +19,10 @@ export function createPaperRiskController({session,request,storage,uuid}){
   const value={action:expected.action,body:expected.body},raw=JSON.stringify(value),saved=pending(current.account);
   if(saved&&JSON.stringify(saved)!==raw)fail('PAPER_PENDING_MISMATCH');storage.setItem(key(current.account),raw);if(storage.getItem(key(current.account))!==raw)fail('PAPER_PENDING_INVALID');
   const own=Promise.resolve().then(()=>{const before=owner();if(before.account!==expected.account||before.epoch!==expected.epoch)fail('PRIVATE_OPERATION_SUPERSEDED');return request('/v1/wallet/paper/risk/'+expected.action,{method:'POST',body:JSON.stringify(expected.body)});}).then(result=>{
-   const after=session();if(after.account!==expected.account||after.epoch!==expected.epoch)fail('PRIVATE_OPERATION_SUPERSEDED');
+   const after=session();if(after.account!==expected.account||after.epoch!==expected.epoch||after.status!=='connected'||!after.ready)fail('PRIVATE_OPERATION_SUPERSEDED');
    if(result.action!==expected.action||result.idempotencyKey!==expected.body.idempotencyKey||!/^[0-9a-f]{64}$/.test(result.requestDigest||'')||!result.paper||typeof result.paper.KillSwitch!=='boolean'||(expected.action==='kill'&&!result.paper.KillSwitch)||!Number.isSafeInteger(result.paper.ReconciliationDelta))fail('PAPER_RECEIPT_MISMATCH');
-   if(storage.getItem(key(expected.account))===raw){storage.removeItem(key(expected.account));if(storage.getItem(key(expected.account))!==null)fail('PAPER_PENDING_INVALID');}
+   if(storage.getItem(key(expected.account))!==raw)fail('PAPER_PENDING_MISMATCH');
+   storage.removeItem(key(expected.account));if(storage.getItem(key(expected.account))!==null)fail('PAPER_PENDING_INVALID');
    invalidate();return result;
   }).finally(()=>{if(flight===own)flight=null;});flight=own;return own;
  }

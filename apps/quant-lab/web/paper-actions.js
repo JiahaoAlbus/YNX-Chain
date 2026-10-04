@@ -24,7 +24,7 @@ export function mountPaperActions(){
   const boundary=document.createElement('p');boundary.dataset.paperRisk='boundary';riskPanel.append(boundary);find('paper-owned-form').after(riskPanel);
   let review=null,working=false,renderedOwner=null,operation=null;
   const startOperation=kind=>{const current=getPaperSessionState();operation={kind,account:current.account,epoch:current.epoch,source:getPaperWorkspaceSnapshot(),result:find('paper-owned-result'),form:find('paper-owned-form')};working=true;return operation;};
-  const sameOperation=value=>{const current=getPaperSessionState();return operation===value&&current.account===value.account&&current.epoch===value.epoch&&find('paper-owned-result')===value.result&&find('paper-owned-form')===value.form&&value.result.isConnected&&value.form.isConnected&&(value.kind!=='receipt'||getPaperWorkspaceSnapshot()===value.source);};
+  const sameOperation=value=>{const current=getPaperSessionState();return operation===value&&current.account===value.account&&current.epoch===value.epoch&&current.status==='connected'&&current.ready&&find('paper-owned-result')===value.result&&find('paper-owned-form')===value.form&&value.result.isConnected&&value.form.isConnected&&(value.kind!=='receipt'||getPaperWorkspaceSnapshot()===value.source);};
   function retireOperation(){operation=null;working=false;}
   const copy=()=>paperActionCopy(localStorage.getItem('ynx.quant.locale')||'en');
   function invalidate(){review=null;controller.invalidate();risk.invalidate();research.invalidate();if(dialog.open)dialog.close();}
@@ -41,6 +41,7 @@ export function mountPaperActions(){
     for(const value of Object.values(snapshot?.strategies||{})){if(!/^[0-9a-f]{64}$/.test(value.StrategyHash||''))continue;const option=document.createElement('option');option.value=value.StrategyHash;option.textContent=String(value.Name||value.ID||value.StrategyHash);select.append(option);}
     if([...select.options].some(option=>option.value===previous))select.value=previous;
     if(current.account!==renderedOwner){
+      find('paper-owned-result').textContent=current.ready?'':text.unavailable;
       for(const id of ['paper-native-reason','paper-native-cash','paper-native-position'])find(id).value='';
       try{const retained=risk.pending();if(retained){if(retained.action==='kill')find('paper-native-reason').value=retained.body.reason;else{find('paper-native-cash').value=String(retained.body.cash);find('paper-native-position').value=String(retained.body.position);}}}catch(error){find('paper-owned-result').textContent=text.unavailable+' '+error.code;}
       renderedOwner=current.ready?current.account:null;find('paper-owned-side').value='buy';find('paper-owned-amount').value='1000000';find('paper-native-fee').value='10';find('paper-native-slippage').value='5';
@@ -79,6 +80,6 @@ export function mountPaperActions(){
     }catch(error){if(sameOperation(active)){active.result.textContent=copy().unavailable+' '+(error.code||'PAPER_SERVICE_UNAVAILABLE');invalidate();}}
     finally{if(sameOperation(active)){retireOperation();render();}}
   });
-  window.addEventListener('ynx:quant-paper-session',()=>{if(operation&&!sameOperation(operation))retireOperation();invalidate();render();});
+  window.addEventListener('ynx:quant-paper-session',()=>{if(operation&&!sameOperation(operation)){retireOperation();find('paper-owned-result').textContent=copy().unavailable;}invalidate();render();});
   find('locale')?.addEventListener('change',()=>queueMicrotask(()=>{invalidate();render();}));render();
 }
