@@ -1,0 +1,41 @@
+{
+  "schema": "ynx.card.local-demo-regression.v1",
+  "source": "b460fc22e9232e319bc355d2b8587aef33e26cc5",
+  "tree": "d60d819ac5fd2922944ee8c01e08073d5779439e",
+  "change": "All twelve existing LOCAL DEMO translations moved into the canonical Guest copy table; independent English fallback removed",
+  "copyKeys": 146,
+  "frontendAndBackendTypes": "PASS",
+  "npmTest": {
+    "status": "FAILED",
+    "sourceStage": {
+      "tests": 310,
+      "passed": 310,
+      "failed": 0
+    },
+    "callbackUiStage": {
+      "tests": 39,
+      "passed": 19,
+      "failed": 20,
+      "reason": "Unexpected fixture dependency: ./src/CardIntroductionLink",
+      "failureBeforeAssertions": true
+    },
+    "laterStages": "NOT_RUN"
+  },
+  "log": {
+    "path": "apps/card/evidence/20261003-testnet-operations/full-frontend-local-demo-followup-20261004.txt",
+    "bytes": 80589,
+    "sha256": "34fec8254836ff9169b41390deafce4cf05ce83dd8598e681e24ec6602dd26e9"
+  },
+  "nextOwnedFix": "Register the presentation-only CardIntroductionLink module in the isolated App loaders; do not weaken any account/callback/race assertion. Actual link behavior already tested separately.",
+  "gates": {
+    "fullRegression": false,
+    "newSourceWebBuild": false,
+    "publicDeployment": false,
+    "walletApproval": false,
+    "walletSignature": false,
+    "cardActive": false,
+    "YNXTFunding": false,
+    "cardCredit": false,
+    "productionRealPayments": false
+  }
+}
