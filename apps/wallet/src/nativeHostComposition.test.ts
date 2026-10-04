@@ -26,7 +26,8 @@ test("ordinary Android debug still uses Metro and release keeps original embedde
 
 test("iOS retains its original DEBUG Metro and release embedded-bundle distinction",()=>{
   const delegate=source("../ios/YNXWallet/AppDelegate.swift");
-  assert.match(delegate,/#if DEBUG\s+return RCTBundleURLProvider\.sharedSettings\(\)\.jsBundleURL\(forBundleRoot: "\.expo\/\.virtual-metro-entry"\)\s+#else\s+return Bundle\.main\.url\(forResource: "main", withExtension: "jsbundle"\)\s+#endif/);
+  assert.match(delegate,/#if DEBUG[\s\S]*return RCTBundleURLProvider\.jsBundleURL\([\s\S]*packagerHost: location/);
+  assert.match(delegate,/return provider\.jsBundleURL\(forBundleRoot: "\.expo\/\.virtual-metro-entry"\)\s+#else\s+return Bundle\.main\.url\(forResource: "main", withExtension: "jsbundle"\)\s+#endif/);
 });
 
 for(const linked of [false,true])test(`Metro includes the actual installed graph (${linked?"linked":"ordinary"}), preserving the exact registry resolver`,()=>{

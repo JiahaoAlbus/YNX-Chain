@@ -24,6 +24,54 @@ class MemorySecureStorage implements SecureStorageAdapter {
 }
 const accountOne = walletIdentity(SECRET_ONE).account;
 const accountTwo = walletIdentity(SECRET_TWO).account;
+for(const operation of ["rename","backup","select","delete"] as const){
+  test(`manifest lost write rejects ${operation} without deleting protected material`,async()=>{
+    const {storage,repository}=await twoAccounts(),before=storage.values.get(MANIFEST_KEY)!;
+    storage.afterSet=key=>{if(key===MANIFEST_KEY)storage.values.set(key,before)};
+    const change=operation==="rename"?()=>repository.renameAccount(accountOne,"Changed"):
+      operation==="backup"?()=>repository.confirmBackup(accountOne):
+      operation==="select"?()=>repository.selectAccount(accountOne):()=>repository.deleteAccount(accountOne);
+    await assert.rejects(change(),/manifest.*readback/i);
+    assert.equal(storage.values.get(MANIFEST_KEY),before);
+    assert.equal(storage.values.has(secretKey(accountOne)),true);
+    assert.equal(storage.deletions.includes(secretKey(accountOne)),false);
+    if(operation==="delete")assert.equal(storage.values.has(DELETION_JOURNAL_KEY),true);
+    storage.afterSet=undefined;
+    assert.equal((await new WalletRepository(storage).load()).manifest.accounts.length,2);
+  });
+}
+for(const replacement of ["missing","malformed","foreign"] as const){
+  test(`creation rejects ${replacement} manifest readback without rolling back protected bytes`,async()=>{
+    const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+    storage.afterSet=key=>{if(key!==MANIFEST_KEY)return;
+      if(replacement==="missing")storage.values.delete(key);
+      else if(replacement==="malformed")storage.values.set(key,"{");
+      else storage.values.set(key,JSON.stringify({schemaVersion:2,selectedAccountId:null,accounts:[]}));
+    };
+    await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),/manifest.*readback/i);
+    assert.equal(storage.values.has(secretKey(accountOne)),true);
+    assert.equal(storage.deletions.length,0);
+  });
+}
+test("legacy identity cleanup waits for exact public manifest readback",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  const original=JSON.stringify({schemaVersion:1,account:accountOne,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)});
+  storage.values.set(LEGACY_IDENTITY_KEY,original);
+  storage.afterSet=key=>{if(key===MANIFEST_KEY)storage.values.delete(key)};
+  await assert.rejects(repository.migrateLegacyIdentity(),/manifest.*readback/i);
+  assert.equal(storage.values.get(LEGACY_IDENTITY_KEY),original);
+  assert.equal(storage.values.has(secretKey(accountOne)),true);
+  assert.equal(storage.deletions.length,0);
+});
+test("creation whose authority expires during manifest readback cannot return success",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);let current=true,written=false;
+  storage.afterSet=key=>{if(key===MANIFEST_KEY)written=true};
+  storage.beforeGet=async key=>{if(key===MANIFEST_KEY&&written)current=false};
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true},()=>{if(!current)throw Error("Operation cancelled")}),/cancelled/);
+  assert.equal(storage.values.has(secretKey(accountOne)),true);
+  assert.equal(storage.values.has(MANIFEST_KEY),true);
+  assert.equal(storage.deletions.length,0);
+});
 const secretKey = (account: string) => `ynx.wallet.account.auth.v3.${account}`;
 const privateReads = (storage: MemorySecureStorage) => storage.reads.filter((key) => key.startsWith("ynx.wallet.account.") || key === LEGACY_IDENTITY_KEY);
 async function twoAccounts() {

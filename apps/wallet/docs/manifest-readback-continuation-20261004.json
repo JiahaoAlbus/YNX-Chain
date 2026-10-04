@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "ynx-wallet-owned-manifest-readback/v1",
+  "parent": "13cf5a823ed728e39a03dcc2c8eb808a459ed88e",
+  "status": "OWNED_SOURCE_AND_ANDROID_IOS_HERMES_COMPATIBILITY_VERIFIED_NOT_INSTALLED_BUSINESS_ACCEPTANCE",
+  "defect": "saveManifest previously trusted a resolved storage write. A lost/substituted write could report account creation, rename, backup confirmation or selection as successful; deletion and legacy migration could continue clearing protected or original recovery material without confirmed public inventory.",
+  "fix": "Read back the exact encoded reviewed manifest before success or later cleanup. Existing creation/deletion/migration guards are checked before write and after write/readback. Mismatch rejects without secret deletion or blind rollback. Retained deletion intent permits explicit retry; retained original/replacement key and legacy recovery bytes are not cleared on failure.",
+  "scope": ["src/storage/walletRepository.ts", "src/storage/walletRepository.test.ts", "src/nativeHostComposition.test.ts", "src/walletConnect/pendingReviewRecovery.test.ts"],
+  "testHarnessContinuation": "Full suite exposed two stale tests after previously delivered foreground-entry and iOS debug-host fixes. The original actual approval-handler harness now uses real captureCurrent and explicit AppState, with stale-view/background checks preserving undecided/replay-reserved outcomes. Host composition assertions cover explicit static DEBUG routing and normal discovery plus unchanged release embedding; original actual-Swift routing tests are included. No runtime guards were removed or replaced with unconditional success.",
+  "evidenceDirectory": "/tmp/ynx-wallet-manifest-readback-20261004-FYVGFi",
+  "results": {
+    "originalRepositoryWithNewTests": {"tests": 59, "pass": 50, "fail": 9, "log": "original-regression.log", "sha256": "f7c2bb2be52ccfd07f46882c80516e3147957053c6191514c727282cfe49399a"},
+    "fixedRelated": {"tests": 178, "pass": 178, "fail": 0, "log": "fixed-related.log", "sha256": "25110d1ea564abe83ae36bbba0e80f87bb78fff66aafbc983fee3f03bbb87f5c"},
+    "firstFullSuite": {"tests": 1003, "pass": 1001, "fail": 2, "log": "full-regression.log", "sha256": "c741900778add922c2ee1ea8091478923e22932767eeddc0783b11294ab6c933", "failures": ["old host regex assumed only normal DEBUG routing", "old approval fixture omitted current scanCurrent/AppState inputs"]},
+    "finalFullSuite": {"tests": 1009, "pass": 1009, "fail": 0, "cancelled": 0, "skipped": 0, "log": "full-regression-fixed.log", "sha256": "4f7d0f3968fa697a9338a629dbd7b10cc173d25965cedc9fbb0022693b3316fe"},
+    "typecheck": {"exitCode": 0, "log": "typecheck-final.log", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "androidHermes": {"exitCode": 0, "modules": 3785, "log": "android-export.log", "sha256": "bec941cebb1d2895e9d2710e0586b5964d6ac9f6f3d28efeb38457398aa70320", "bundle": "dist-android/_expo/static/js/android/index-be92894ee5c9fe0600c5e9190ce0b446.hbc"},
+    "iosHermes": {"exitCode": 0, "modules": 3787, "log": "ios-export.log", "sha256": "6c73ad5e4169d4a614ef3d503f3127136bf2c1345b477ddf89402b34c93ba9aa", "bundle": "dist-ios/_expo/static/js/ios/index-47b2267b23049a1d59e99e8ed98401d1.hbc"}
+  },
+  "sourceBinding": {
+    "candidate": "/tmp/ynx-wallet-android-inheritance-clean-test-20261003-1ZEdhW/apps/wallet",
+    "nativeSrcAppIndexAndAppDelegate": "179/179 tracked files compared byte-for-byte against current owned checkout, no missing or differing files",
+    "repositorySHA256": "b406e09bd17a68cd14f57060678338a5647b0504850050607e3914179129628e",
+    "repositoryTestsSHA256": "da0bae9921da336d9954abc0b134af951c3f4b953216b6fe84fd57ec5073c4eb",
+    "packageJSONBothSHA256": "62765a06a01642d56d8facb7786581d4122a3e98dad68ab4e405394958ba8b09",
+    "walletAuthSrc": "/private/tmp/ynx-wallet-consumer955-20261003-Xw0YSp/packages/wallet-auth/src",
+    "walletAuthSrcComparison": "95/95 files matched Git blobs at9555b01e47519a5df882bb0092d2d20e1d7ce6e2 in this run. This does not admit its whole package, general SDK or final runtime graph; retain passive-view-dependency-boundary-20261004.json limits."
+  },
+  "unchanged": ["App.tsx SHA256 c9f67581648d11a3793f08a92113f8299c124eb7f978227dcbcafa213951907f", "shared SDK/Auth/registry/Host/factory source", "formal versions/signing/installers", "all real accounts, keys, backup/history and UNKNOWN transaction bytes", "protected ordinary Pay null entry"],
+  "notVerified": ["Actual enrolled device storage lost-write outcomes", "Real camera, biometric/password review and retained-account journeys", "Final matching37ports/factory/hybrid NativeBinding producer", "Final full shared graph", "Installed upgrade continuity/public balances/transfers/settlement", "Formal release and human acceptance"],
+  "nextGate": "Root/A review and integrate exact owned successor; run final installed retained-account journeys only under current matching registered producer and existing device locks. Do not repeat unrelated closed tests or treat these controlled sources/exports as complete Wallet delivery."
+}

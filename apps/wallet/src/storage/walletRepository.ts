@@ -87,7 +87,7 @@ export class WalletRepository {
         selectedAccountId: identity.account,
         accounts: [...current.accounts, account],
       });
-      await this.saveManifest(manifest);
+      await this.saveManifest(manifest, assertCurrent);
       return manifest;
     });
   }
@@ -138,7 +138,7 @@ export class WalletRepository {
       const accounts = current.accounts.filter((item) => item.account !== account);
       const selectedAccountId = current.selectedAccountId === account ? accounts[0]?.account ?? null : current.selectedAccountId;
       const next = freezeManifest({ ...current, selectedAccountId, accounts });
-      if (stored) await this.saveManifest(next);
+      if (stored) await this.saveManifest(next, assertCurrent);
       assertCurrent?.();
       await this.deleteAccountMaterial(account, assertCurrent, (stored ?? existing)!.accountPublicKey);
       assertCurrent?.();
@@ -274,7 +274,7 @@ export class WalletRepository {
       await this.writeProtectedSecret(account, value.accountSecret, "legacy-v1", assertCurrent);
       assertCurrent?.();
       const manifest = freezeManifest({ schemaVersion: 2, selectedAccountId: identity.account, accounts: [account] });
-      await this.saveManifest(manifest);
+      await this.saveManifest(manifest, assertCurrent);
       assertCurrent?.();
       await this.cleanupLegacySecret({schemaVersion:1,...publicIdentity(account),source:"legacy-v1",state:"protected"}, assertCurrent);
       return { manifest, migrated: true };
@@ -434,8 +434,18 @@ export class WalletRepository {
     return manifest;
   }
 
-  private async saveManifest(manifest: WalletManifest): Promise<void> {
-    await this.storage.setItem(MANIFEST_KEY, JSON.stringify(manifest));
+  private async saveManifest(manifest: WalletManifest, assertCurrent?: OperationGuard): Promise<void> {
+    assertCurrent?.();
+    const encoded = JSON.stringify(manifest);
+    await this.storage.setItem(MANIFEST_KEY, encoded);
+    assertCurrent?.();
+    // A resolved storage write is not proof that the reviewed inventory was
+    // retained. Verify it before reporting success or deleting original keys.
+    // On failure keep all original/replacement secret and recovery material;
+    // blind rollback could overwrite a newer inventory from another reader.
+    const readback = await this.storage.getItem(MANIFEST_KEY);
+    assertCurrent?.();
+    if (readback !== encoded) throw new Error("Wallet manifest readback did not match the reviewed account inventory. Preserve Wallet data and reload it before continuing.");
   }
 }
 
