@@ -1,0 +1,50 @@
+{
+  "schema": "ynx-mixed-editing-foundation-checkpoint/v1",
+  "committedTextSource": "47e2b59f1",
+  "workbenchVersion": "0.3.16",
+  "workbenchFrontendForTheseChangesBuilt": false,
+  "latestSealedPackageSource": "4298b6eba17d661832e1728bc21b5cb58c65e3d9",
+  "latestSealedWorkbenchVersion": "0.3.15",
+  "rootChecks": {
+    "ownedRelocationRealMonaco": {
+      "pass": 17,
+      "fail": 0,
+      "skip": 0
+    },
+    "initialJournalRealFilesystem": {
+      "pass": 24,
+      "fail": 0,
+      "skip": 0,
+      "sourceSha256": "85763be1836f98db5f6189d048e1865a82098c4939895c8b27bda4fa2203c9c1"
+    },
+    "independentSelectedWriteUndoRedoWithUnrelatedChanges": "PASS",
+    "readonlyInnerDirectoryRename": "FAIL JOURNAL_READONLY; native system rename is permitted; implementation repair in progress"
+  },
+  "evidence": {
+    "rootFilesystemReview": "/private/tmp/ynx-journal-root-review-aVJCrK/root-review-observation.json",
+    "intermediateBlobConversionFailure": "/private/tmp/ynx-file-journal-positive-review-c1hNN3/failed-wip-write-observation.json",
+    "nativeModelMigration": "/private/tmp/ynx-workspace-model-migration-observation-20261005.log",
+    "ownedRelocationRegression": "/private/tmp/ynx-workspace-relocation-regression-20261005.log",
+    "journalInitialRegression": "/tmp/ynx-workspace-file-journal-final-20261005.log"
+  },
+  "workInProgress": [
+    "journal readonly directory move/delete/restore semantics",
+    "actual replacement document/reference/history relocation module",
+    "interactive snippet two-phase adoption contract"
+  ],
+  "notEstablished": [
+    "file journal RPC binding",
+    "ordered mixed WorkspaceEdit frontend coordinator",
+    "file event and autosave fencing",
+    "actual mixed-operation GUI Undo/Redo",
+    "canonical identity and online AI",
+    "testnet business admission",
+    "Windows/Linux native products",
+    "formal signed/notarized release and installation/publication/user acceptance"
+  ],
+  "pausedScopes": [
+    "network/package-egress/LXD",
+    "shared A/Auth/SDK/Host"
+  ],
+  "goalComplete": false
+}
