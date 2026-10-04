@@ -12,6 +12,7 @@ type Props = Readonly<{
   eventId: string;
   onClose: () => void;
   onCleanupFailure: () => void;
+  onCleanupStart?: () => (() => void);
   t?: (text: string) => string;
 }>;
 
@@ -19,7 +20,7 @@ type Props = Readonly<{
  * media port and current canonical/accepted-peer checks, not fixture callbacks.
  * Merely rendering this component does not open a file or request authorization.
  */
-export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onCleanupFailure,
+export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onCleanupFailure, onCleanupStart,
   t = defaultTranslate }: Props) {
   const [presentation, setPresentation] = useState<BoundMediaPresentation>();
   const scope = { preview, roomId, eventId };
@@ -30,22 +31,26 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
   const epoch = useRef(0);
   const mounted = useRef(false);
   const translation = useRef(t);
-  const cleanupFailure = useRef(onCleanupFailure);
   translation.current = t;
-  cleanupFailure.current = onCleanupFailure;
 
   useEffect(() => {
+    // Capture this effect's original callbacks, not a replacement room/viewer's
+    // latest ref, and register cleanup before awaiting the original native port.
+    const closeOriginal = () => {
+      const completed = onCleanupStart?.();
+      void preview.close().then(() => { completed?.(); }, () => { onCleanupFailure(); });
+    };
     mounted.current = true; ++epoch.current;
     setPresentation(undefined); setError(''); setBusy(false);
     const subscription = AppState.addEventListener('change', state => {
       if (state === 'active') return;
       ++epoch.current; setPresentation(undefined); setBusy(false);
       setError(translation.current('Preview locked while the app is in the background.'));
-      void preview.close().catch(() => { cleanupFailure.current(); });
+      closeOriginal();
     });
     return () => {
       mounted.current = false; ++epoch.current; subscription.remove();
-      void preview.close().catch(() => { cleanupFailure.current(); });
+      closeOriginal();
     };
   }, [preview, roomId, eventId]);
 
@@ -57,6 +62,7 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
       const original = await preview.open(roomId, eventId);
       if (mounted.current && epoch.current === attempt) setPresentation(bindMediaPresentation(scope, original));
     } catch {
+      if (preview.hasPendingCleanup()) onCleanupFailure();
       if (mounted.current && epoch.current === attempt) {
         setError(t('This attachment could not be opened. Check your session and contact permission, then retry.'));
       }
@@ -67,9 +73,11 @@ export function NativeMatrixMediaViewer({ preview, roomId, eventId, onClose, onC
 
   const close = async () => {
     const attempt = ++epoch.current;
+    const completed = onCleanupStart?.();
     setPresentation(undefined); setBusy(true);
     try {
       await preview.close();
+      completed?.();
       if (mounted.current && epoch.current === attempt) onClose();
     } catch {
       onCleanupFailure();

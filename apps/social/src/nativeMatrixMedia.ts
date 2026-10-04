@@ -51,6 +51,7 @@ export class MatrixMediaPreview {
   }
 
   snapshot(): MatrixMediaLease | undefined { return this.visible; }
+  hasPendingCleanup(): boolean { return this.pendingRelease.size > 0; }
 
   async close(): Promise<void> {
     ++this.epoch;

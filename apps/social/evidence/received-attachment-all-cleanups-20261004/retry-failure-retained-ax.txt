@@ -1,0 +1,16 @@
+Browser tab: 17, Title: "Social media viewer controlled QA", URL: "http://127.0.0.1:56115/".
+0 AXWebArea Social media viewer controlled QA, URL: 127.0.0.1:56115/
+	1 container
+		2 heading Actual Social received-attachment parent: controlled React host, Value: 1
+			3 text Actual Social received-attachment parent: controlled React host
+		4 text Not installed/native/decoder/permission/Matrix or MONSTER acceptance. Native controls and i18n are controlled host substitutions.
+		5 button Unmount original row
+		6 button Remount row
+		7 button Switch original event
+		8 button Recover original cleanup port
+		9 text Release attempts:  1 ; host revision:  0
+		10 button (disabled) Review received attachment
+		12 text Cleanup is pending. Retry closing the preview.
+		11 button Retry preview cleanup
+
+The focused UI element is 11 button Retry preview cleanup

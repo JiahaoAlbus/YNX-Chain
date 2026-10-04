@@ -1,0 +1,24 @@
+import React, { useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import { NativeMatrixReceivedAttachment } from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/NativeMatrixReceivedAttachment';
+import { MatrixMediaPreview } from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrixMedia';
+import type { NativeMatrixConsumer } from '/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix';
+let available = false, releaseCalls = 0;
+const originalPort = new MatrixMediaPreview({ open: async (roomId, eventId) => ({
+  leaseId: '12345678-1234-1234-1234-123456789abc', roomId, eventId, filename: 'Original.png',
+  mimeType: 'image/png', bytes: 100, uri: 'file:///fixture/original.png', imagePreview: true
+}), release: async () => { ++releaseCalls; if (!available) throw new Error('CONTROLLED_RELEASE_UNAVAILABLE'); } }, async () => {});
+const client = { receivedMedia: (_eventId: string) => ({ preview: originalPort, roomId: '!original:example.test' }) } as unknown as NativeMatrixConsumer;
+function Harness() {
+  const [mounted, setMounted] = useState(true), [event, setEvent] = useState('$A'), [version, tick] = useState(0);
+  return <main><h1>Actual Social received-attachment parent: controlled React host</h1>
+    <p>Not installed/native/decoder/permission/Matrix or MONSTER acceptance. Native controls and i18n are controlled host substitutions.</p>
+    <button onClick={() => { setMounted(false); }}>Unmount original row</button>
+    <button onClick={() => { setMounted(true); }}>Remount row</button>
+    <button onClick={() => { setEvent('$B'); }}>Switch original event</button>
+    <button onClick={() => { available = true; tick(value => value + 1); }}>Recover original cleanup port</button>
+    <p>Release attempts: {releaseCalls}; host revision: {version}</p>
+    {mounted ? <NativeMatrixReceivedAttachment client={client} eventId={event} /> : <p>Original row unmounted</p>}
+  </main>;
+}
+createRoot(document.getElementById('app')!).render(<Harness />);
