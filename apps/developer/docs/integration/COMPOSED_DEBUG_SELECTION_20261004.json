@@ -1,0 +1,113 @@
+{
+  "schema": "ynx-composed-debug-selection/v1",
+  "workbenchVersion": "0.3.6",
+  "sourceSha256": {
+    "runtime/ynx-workbench/lib/debug-selection.js": "8d9fe319e32834c47d6ade4107ad51915b6ac306d30bfa820598807c468043f9",
+    "runtime/ynx-workbench/lib/frontend-module.js": "af40a0a3b59e8b5620244dd174af5b5051178388bae8a18b2865ba1f17d6d21e",
+    "runtime/ynx-workbench/package.json": "d4bfd58ec2633f6eb5811c0351446838c1388929a3d325bd8781e33e7f26921a",
+    "runtime/theia/package-lock.json": "79bd28e2cd46633fc4978973e293e96d933d1de7b02fe6554fdf3f36c3eb71e0",
+    "runtime/theia/scripts/debug-selection.browser.mjs": "f9ebf91b38238267dd822255904ecec9b01822d7ba3e0530db119e0ddea49e57"
+  },
+  "runtimeCandidate": "apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-20261004-mac-arm64",
+  "runtimeArtifact": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "79bd28e2cd46633fc4978973e293e96d933d1de7b02fe6554fdf3f36c3eb71e0",
+    "treeSha256": "5a260424f4729d1bb5da29b80104d44424d6ee3112878a3badd2ae13da82836f",
+    "manifestSha256": "493d61a10bee24220896231fe422666409a1a593ba3092a5bd99038a56a183cb"
+  },
+  "change": "Register VS Code standard command ID workbench.action.debug.selectandstart as an unlabeled alias of the existing select.debug.configuration entry. Reuse existing dynamic providers, compounds and start lifecycle; keep a single visible menu item.",
+  "build": "Frontend and backend production compilation completed with zero errors using installed dependencies; no package/network download.",
+  "api": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-jISE6J",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-jISE6J/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-jISE6J/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-jISE6J/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/debug-api-fixture-inputs-20261004",
+      "port": 64977,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 64978,
+      "inspectorPort": 64979,
+      "url": "http://127.0.0.1:64977",
+      "pid": 27369,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "f9ebf91b38238267dd822255904ecec9b01822d7ba3e0530db119e0ddea49e57",
+    "checks": [
+      "Command palette lists both actual launch configurations; cancelling preserves launch.json and starts neither target.",
+      "Actual isolated VS Code extension invokes workbench.action.debug.selectandstart through vscode.commands.executeCommand and opens the standard configuration picker.",
+      "Selecting the second configuration starts its real JavaScript DAP session and pauses at its own breakpoint with the actual variable value.",
+      "Continue completes the selected target and writes its exact disk output; the other configuration never runs and launch.json remains unchanged."
+    ],
+    "errors": [],
+    "scope": "Actual isolated editor command selection and JS debugger; not native LLDB, canonical admission or real Wallet/Chain/AI acceptance."
+  },
+  "core": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-7TypZB",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-7TypZB/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-7TypZB/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-7TypZB/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-20261004-mac-arm64/plugins",
+      "port": 65195,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 65196,
+      "inspectorPort": 65197,
+      "url": "http://127.0.0.1:65195",
+      "pid": 27932,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+    "checks": [
+      "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+      "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+      "actual editor save writes the selected project file, confirmed on disk",
+      "the inherited YNX logo and product name render in the actual framework workbench",
+      "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+      "closing and reopening the actual file restores saved disk content",
+      "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+      "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+      "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+      "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+      "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+      "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+      "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+      "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+      "continuing the actual debug session executes the target program, confirmed by its disk output",
+      "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+    ],
+    "errors": [],
+    "boundary": {
+      "read": "EPERM",
+      "write": "EPERM",
+      "network": "EPERM"
+    },
+    "outside": "/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-other-project-boundary-EztjFY"
+  },
+  "currentControlledChecks": 20,
+  "qaFixture": {
+    "excludedFromProductArtifact": true,
+    "payloadTreeSha256": "40f1e919db0fbbcc92857a2d514424025be9a44581e28d47d9ab18b139829df1"
+  },
+  "retainedFailures": [
+    "CTdHje: initial runner omitted command search prefix and searched files; original failure retained.",
+    "PaUh2R: first implementation duplicated the framework picker label; removed in final implementation. Original source/runtime candidate and failure retained."
+  ],
+  "cleanup": "All exact newly created QA families stopped; their observed process IDs absent. Projects, profiles and all red/green records retained.",
+  "evidence": "apps/developer/.ynx-developer-candidates/debug-selection-evidence-20261004",
+  "evidenceIndexSha256": "1889c0cbb45ecd07e35047dac5c3e882a5467ccc3fd90410fbcb5434164648c6",
+  "remaining": [
+    "Native LLDB attach pending task_for_pid; no C++ debugging success claimed.",
+    "Original five bindings, canonical parent/registered driver, real Wallet/Chain/approved AI user journey.",
+    "Native package for this new source, install/launch, formal signing/notarization, all-platform and broad extension/language acceptance."
+  ],
+  "scope": "20 checks for this new candidate. Prior 33-check C/C++ candidate is preserved; its C/C++ semantic, lifecycle and cold recovery cases are not counted as rerun here. New QA API fixture is absent from the product artifact. No network/read/Host/OS security expansion."
+}

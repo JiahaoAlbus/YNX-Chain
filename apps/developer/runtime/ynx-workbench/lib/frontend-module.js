@@ -12,9 +12,14 @@ const { MessageService } = require('@theia/core/lib/common/message-service');
 const { FrontendApplicationStateService } = require('@theia/core/lib/browser/frontend-application-state');
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
 const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
+const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
+const { DebugSelectionContribution } = require('./debug-selection');
 require('../style/brand.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
+    context.container.get(CommandRegistry),
+  )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     async onStart() {
       const registry = context.container.get(ProblemMatcherRegistry);
