@@ -1,0 +1,133 @@
+{
+  "sourceCommit": "6d0769c36764623e67f28c2498b9de0d0dac740b",
+  "sourceTree": "2e44665fdd8c48a530fc60401f96d5ffbadcd299",
+  "release": "ynx-exchange-6d0769c36764",
+  "archiveBytes": 4331832,
+  "archiveSha256": "46dc57dad4bc3569336c2c8d9dbf1f2bd86e55869a2be124dfb2ccb1acadd74c",
+  "entryCount": 15,
+  "binaryBytes": 9617592,
+  "binarySha256": "c5122a3e6e7666fae170047c39f6babe9ee9dabccd9ff2940ac85ea9816d06e6",
+  "graph": {
+    "status": "pass",
+    "pageAssets": 4,
+    "moduleAssets": 7
+  },
+  "entries": [
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/app.js",
+      "bytes": 59066,
+      "sha256": "6830322df2c9c02769472b3b0c66b515cce313331d5357ebd22e31d0c861a400",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/command-copy.js",
+      "bytes": 8318,
+      "sha256": "a008ce04065ae1ea734c597b744b855490c8ca1caddee92a540f56284ea4d095",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/command-review.js",
+      "bytes": 3548,
+      "sha256": "f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/index.html",
+      "bytes": 22310,
+      "sha256": "d81dfaaf0434159b1ef2ba6184397c7b505dc07e3caa046e16609769710cc518",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/locale.js",
+      "bytes": 176935,
+      "sha256": "16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/market-data.js",
+      "bytes": 16423,
+      "sha256": "77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/order-preview.js",
+      "bytes": 4743,
+      "sha256": "76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/private-session.js",
+      "bytes": 136529,
+      "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/styles.css",
+      "bytes": 18493,
+      "sha256": "6bca56554e9f11ee0b3a1e94c211a10106d4ea8c020cfa62d9dff1ce2c6cf4b8",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/ui-preferences.js",
+      "bytes": 5722,
+      "sha256": "d64040f560c3d314682171a99f5b76b2c9f695c70801eb3e61f506a526a340fe",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/venue-config.js",
+      "bytes": 4825,
+      "sha256": "1e10bb20aa713dffe505321a5fc03c9109f651c965c3ae5a0edfff6504d90b61",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/apps/exchange/web/wallet-connect.js",
+      "bytes": 37764,
+      "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/BUNDLE_MANIFEST.json",
+      "bytes": 3187,
+      "sha256": "81c5d802aa07bdfb0cc203e83a6932c0588683a37a6f24ea27c94efe96badb42",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/SHA256SUMS",
+      "bytes": 1351,
+      "sha256": "26bff164ef8846efadbe7f2d620a4ac410894a418132432ed55daa0a87550049",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-6d0769c36764/ynx-exchanged",
+      "bytes": 9617592,
+      "sha256": "c5122a3e6e7666fae170047c39f6babe9ee9dabccd9ff2940ac85ea9816d06e6",
+      "mode": "755"
+    }
+  ],
+  "deployedPublic": false,
+  "installed": false,
+  "schemaVersion": 1,
+  "tests": {
+    "realArchiveNegativeCases": 12,
+    "sourceAssetGraph": true,
+    "nodeSyntax": true,
+    "diffCheck": true
+  },
+  "truth": {
+    "archiveBuilt": true,
+    "archiveVerified": true,
+    "linuxRuntimeExecuted": false,
+    "publicSourceBound": false,
+    "installed": false,
+    "userAccepted": false,
+    "walletApproval": false,
+    "productSession": false,
+    "ordersSubmitted": false,
+    "transactions": false
+  },
+  "commands": {
+    "build": "env GOMAXPROCS=2 GOFLAGS=-p=2 node apps/exchange/scripts/package-runtime-candidate.mjs --commit 6d0769c36764623e67f28c2498b9de0d0dac740b --output /tmp/ynx-exchange-6d0769c36764-linux-amd64-20261004.tar.gz",
+    "verify": "node apps/exchange/scripts/verify-runtime-candidate.mjs /tmp/ynx-exchange-6d0769c36764-linux-amd64-20261004.tar.gz 6d0769c36764623e67f28c2498b9de0d0dac740b",
+    "negativeTests": "node apps/exchange/scripts/test-runtime-candidate.mjs /tmp/ynx-exchange-6d0769c36764-linux-amd64-20261004.tar.gz 6d0769c36764623e67f28c2498b9de0d0dac740b"
+  }
+}

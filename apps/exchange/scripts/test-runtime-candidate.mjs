@@ -1,0 +1,35 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {gunzipSync,gzipSync} from 'node:zlib';
+import {execFileSync} from 'node:child_process';
+import path from 'node:path';
+import {verifyRuntimeCandidate} from './verify-runtime-candidate.mjs';
+const [archivePath,commit]=process.argv.slice(2);
+const root=path.resolve(import.meta.dirname,'../../..');
+const archive=readFileSync(archivePath),tar=gunzipSync(archive);
+const readSource=name=>execFileSync('git',['show',`${commit}:${name}`],{cwd:root});
+const verify=bytes=>verifyRuntimeCandidate(bytes,commit,readSource);
+assert.equal(verify(archive).entryCount,15);
+let cases=1;
+const reject=(mutate,pattern)=>{const bytes=Buffer.from(tar);mutate(bytes);assert.throws(()=>verify(gzipSync(bytes)),pattern);cases++};
+const offsets=[];
+for(let pos=0;pos+512<=tar.length&&!tar.subarray(pos,pos+512).every(b=>b===0);){
+  const size=parseInt(tar.subarray(pos+124,pos+136).toString().replace(/\0.*$/s,'').trim(),8);
+  offsets.push({pos,size,name:tar.subarray(pos,pos+100).toString().replace(/\0.*$/s,'')});pos+=512+Math.ceil(size/512)*512;
+}
+const checksum=(bytes,pos)=>{bytes.fill(32,pos+148,pos+156);const sum=[...bytes.subarray(pos,pos+512)].reduce((a,b)=>a+b,0);bytes.write(sum.toString(8).padStart(7,'0')+'\0',pos+148)};
+reject(b=>{b[512]^=1},/MANIFEST_ENTRY_INVALID/);
+reject(b=>{b[0]^=1},/TAR_HEADER_INVALID/);
+reject(b=>{b[156]=50;checksum(b,0)},/TAR_HEADER_INVALID/);
+reject(b=>{b.write('0000777\0',100);checksum(b,0)},/FILE_MODE_INVALID/);
+reject(b=>{b.fill(0,0,100);b.write('../foreign',0);checksum(b,0)},/TAR_PATH_OR_LENGTH_INVALID/);
+const second=offsets[1];
+reject(b=>{b.copy(b,second.pos,0,100);checksum(b,second.pos)},/TAR_PATH_OR_LENGTH_INVALID/);
+const sums=offsets.find(x=>x.name.endsWith('/SHA256SUMS'));
+reject(b=>{b[sums.pos+512]=b[sums.pos+512]===48?49:48},/CHECKSUM_INVALID/);
+const manifest=offsets.find(x=>x.name.endsWith('/BUNDLE_MANIFEST.json'));
+reject(b=>{const at=b.indexOf(Buffer.from(commit),manifest.pos+512);b[at]=b[at]===48?49:48},/MANIFEST_SOURCE_INVALID/);
+reject(b=>{b[b.length-1]=1},/TAR_TERMINATOR_INVALID/);
+assert.throws(()=>verify(gzipSync(tar.subarray(0,tar.length-1024))),/TAR_TERMINATOR_MISSING/);cases++;
+assert.throws(()=>verifyRuntimeCandidate(archive,commit,()=>Buffer.from('wrong source')),/SOURCE_ASSET_MISMATCH/);cases++;
+console.log(JSON.stringify({status:'pass',cases,actualArchive:archivePath,sourceCommit:commit,productionExecuted:false}));
