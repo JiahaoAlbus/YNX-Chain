@@ -1,0 +1,64 @@
+{
+  "checkpoint": "Owned Problems default shortcut source fix; actual registry integration fixture",
+  "sourceCommit": "953b0fa3c1746f6933460f581c98e459623f7a08",
+  "sourceTree": "bad001c4d1d15b50ed12a5abf35ad01a8f908f8c",
+  "sourceDeltaFiles": [
+    "apps/developer/runtime/theia/scripts/problems-keybinding.browser.mjs",
+    "apps/developer/runtime/ynx-workbench/lib/default-keybindings.js",
+    "apps/developer/runtime/ynx-workbench/lib/frontend-module.js"
+  ],
+  "cause": "Pinned @theia/markers ProblemContribution.registerKeybindings overrides its view superclass and omits the inherited toggle key. Actual registry exposes zero Problems toggle bindings; real key events reach the registry without matching a command.",
+  "fix": "Owned default-scope registration ctrlcmd+shift+m -> problemsView:toggle; normal user/workspace override and removal semantics remain. No upstream source edits.",
+  "checksPassed": 5,
+  "checks": [
+    "Pinned compiled runtime has no Problems toggle binding; real focused-editor shortcut cannot open it.",
+    "Exact owned default registration opens, closes and reopens actual Problems from the real editor with both simulated key spellings.",
+    "The ordinary View command and keyboard toggle share the actual Problems widget.",
+    "Actual profile watcher loads JSONC user removal and replacement; original key stops toggling, replacement opens/closes, and comments remain.",
+    "Resetting the user override restores the normal default; ordinary source file is unchanged and browser errors are empty."
+  ],
+  "sourceFunctionFixture": true,
+  "actualCompiledOldRuntime": true,
+  "newCompiledRuntimeVerified": false,
+  "actualRegistry": true,
+  "actualEditorAndProblems": true,
+  "userProfileWatcherTested": true,
+  "sourceAndFrontendBuildStarted": false,
+  "buildResourceGuard": {
+    "availableKiB": 167080,
+    "compiledOutputBaselineKiB": 85452,
+    "marginKiB": 131072,
+    "requiredKiB": 216524,
+    "passed": false,
+    "buildStarted": false,
+    "oldRuntimeCandidateUnchanged": true,
+    "note": "Root reports concurrent Finance linker ENOSPC; no new framework/native build, no artifact deletion."
+  },
+  "compiledRuntimeVersionUnchanged": "Tools 0.2.13 / workbench 0.3.14 baseline remains the prior adefdb source candidate without this shortcut fix.",
+  "previousSolidityDiagnosticsCheckpoint": "SOLIDITY_PROBLEMS_20261004.json",
+  "archives": {
+    "source-delta.tar.gz": "2a2db95a1cfc24198b9bdc0d54a32a78dce7d7a35fbefcbc489d6192d5bc12bf"
+  },
+  "archiveReadback": true,
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/problems-keybinding-evidence-20261004",
+  "evidenceIndexSha256": "da36acb5591acfbbdd7c6bccf1157ed0911af8b38de69bb260f10b89b18f57ae",
+  "cleanup": {
+    "qa": "/private/tmp/ynx-theia-extension-qa-FeLfsk",
+    "rootPid": 96830,
+    "verifiedGroupMembers": [
+      96830,
+      96831,
+      96832
+    ],
+    "ownedMetadata": "96830 96819 96830 Sun Oct  4 20:24:55 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n96831 96830 96830 Sun Oct  4 20:24:55 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n96832 96830 96830 Sun Oct  4 20:24:55 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n97292 96830 97292 Sun Oct  4 20:25:33 2026     /bin/bash\n99535 96830 99535 Sun Oct  4 20:28:38 2026     /bin/bash\n",
+    "signal": "SIGTERM",
+    "remainingOwnedPids": []
+  },
+  "remaining": [
+    "Build exact new owned workbench with unchanged approved shared inputs when resources pass; freeze and verify a new matching runtime, then rerun shortcut and Solidity diagnostic source-jump flow.",
+    "Formal shared Host/identity/AI/Wallet/Chain execution, all-platform installation and user acceptance remain unverified."
+  ],
+  "canonical": false,
+  "public": false,
+  "nativePackageBuilt": false
+}
