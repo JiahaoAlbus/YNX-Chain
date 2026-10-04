@@ -454,7 +454,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // launch has built the visible editor; WebKit can pause drawing frames in
     // an inactive or occluded application.
     dispatch_async(dispatch_get_main_queue(),^{
-        if(@available(macOS 14.0,*))[NSApp activate];else[NSApp activateIgnoringOtherApps:YES];
+        // A user-opened window also needs activation when its executable was
+        // launched directly without another application's cooperative yield.
+        [NSApp activateIgnoringOtherApps:YES];
         [self.window makeKeyAndOrderFront:nil];[self.webView layoutSubtreeIfNeeded];[self.window displayIfNeeded];
     });
     [_webView loadHTMLString:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px}h1{color:#002FA7}</style><h1>Opening YNX Developer…</h1><p>Your local workspace is being opened.</p>" baseURL:nil];
