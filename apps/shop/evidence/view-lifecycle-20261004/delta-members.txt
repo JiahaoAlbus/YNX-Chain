@@ -1,0 +1,8 @@
+apps/merchant-console/src/app.js
+apps/merchant-console/src/workspace-lifecycle.js
+apps/merchant-console/test/workspace-lifecycle.test.js
+apps/shop/BUYER_MERCHANT_VIEW_LIFECYCLE_20261004.md
+apps/shop/app.js
+apps/shop/checkout-recovery.js
+apps/shop/test/browser/buyer-form-lifecycle.spec.mjs
+apps/shop/test/checkout-recovery.test.mjs

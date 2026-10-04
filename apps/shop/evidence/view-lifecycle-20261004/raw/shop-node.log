@@ -1,0 +1,62 @@
+
+> test
+> node --test test/*.test.mjs
+
+✔ late stream chunks cannot cross logout or a closed and reopened AI view (27.750417ms)
+✔ stream parser handles split CRLF events and preserves authoritative 401 status (1.645709ms)
+✔ provider stream deadline aborts an open read instead of leaving generation pending (123.240292ms)
+✔ Shop Web keeps local Browser CSRF and fixed route scopes alongside private proofs (21.407166ms)
+✔ identity hint alone cannot create private authority; mismatch never requests a proof (0.3175ms)
+✔ account replacement at either await discards proof and CSRF (0.259125ms)
+✔ external origins never receive identity or private proof; read and order routes keep fixed scopes (0.264ms)
+✔ restart and concurrent prepares preserve one opaque intent without private contents (9.698584ms)
+✔ unknown contents cannot rotate key and other accounts stay independent (2.248125ms)
+✔ storage failure or malformed evidence stops prepare without losing original evidence (2.305667ms)
+✔ privacy lock checks durable intent after a competing preparation (0.934291ms)
+✔ fresh never-sent checkout survives restart and uses its exact input and key for explicit dispatch (1.034791ms)
+✔ legacy checkout never becomes unsent and simultaneous dispatch admissions allow one send (0.622708ms)
+✔ cancelled admission leaves prepared evidence; storage failure and orphan metadata never permit another checkout or deletion (0.6485ms)
+✔ failed phase cleanup preserves original intent and successful cleanup removes both opaque records (0.68875ms)
+✔ concurrent preparation preserves original key; durable record contains no account/private order (8.945166ms)
+✔ unknown dispatch and bound invoices only read back original targets after cold reopen (1.988917ms)
+✔ matching invoice survives opening, refresh and receipt mismatch without any paid assertion (61.203542ms)
+✔ current actor/storage failure cannot dispatch or discard original evidence (8.680375ms)
+✔ paid presentation requires exact original backend settlement and safe integer amounts (0.9235ms)
+✔ service worker leaves callbacks, private requests and APIs to the live network (32.523083ms)
+✔ activation only removes old Shop shells, preserving other products (122.876042ms)
+✔ buyer user inputs use actual rating, separate explanation, backend byte limits and allowed order states (1.845083ms)
+✔ unknown original operation survives cold reopen without private text and only exact lookup can acknowledge it (5.089625ms)
+✔ private body is never persisted and proof failure permits explicit prepared discard, while unknown cannot be discarded (0.764291ms)
+✔ current actor and exact target receipt fence late outcomes and keep original recovery identity (0.393834ms)
+✔ all existing twelve languages include the actual action form and recovery labels (0.123708ms)
+✔ privacy copy covers all twelve product locales (3.491875ms)
+✔ non-English privacy controls do not silently use English copy (1.320667ms)
+✔ late success and failure cannot cross a buyer, store or view change (67.361542ms)
+✔ signout during response body decoding rejects before any private result is returned (2.930375ms)
+✔ temporary service errors remain visible in the same account and retry succeeds (3.920875ms)
+✔ requests are bounded and cancellation does not publish private data (15.188ms)
+✔ Buyer private session consumes the approved SDK with a distinct three-scope namespace (5.383625ms)
+✔ buyer companion exposes audited locales, RTL and independent AI language (1.967959ms)
+✔ marketplace promise strip is localized in all twelve locales (1.627292ms)
+✔ buyer UI wires full order lifecycle (4.012667ms)
+✔ web wallet uses standard providers and YNX chain 6423 without custom-scheme navigation (0.912334ms)
+✔ MetaMask connection requests account and adds then switches YNX Testnet (3.235666ms)
+✔ Web connection never substitutes MetaMask when YNX Wallet was explicitly chosen (0.279583ms)
+✔ YNX Wallet provider connects without a custom-scheme navigation (0.330583ms)
+✔ refresh restores an already-approved account without prompting again (0.233ms)
+✔ account and chain events update or invalidate the standard connection (0.301916ms)
+✔ logout while silent account restoration is pending cannot reconnect (0.156875ms)
+✔ closing a pending chooser prevents chain prompts and late connection (0.190042ms)
+✔ account event during chain switch rejects the old connection and removes owned SDK listeners (0.662833ms)
+✔ successful switch without matching silent account readback cannot connect (0.476458ms)
+✔ chain switch rejection never adds a network or requests another grant (0.476292ms)
+✔ a conflicted announcement cannot reappear through the injected fallback (2.962125ms)
+✔ silent restore never substitutes an installed wallet for the remembered choice (0.125417ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 450.11925

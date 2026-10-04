@@ -1,0 +1,105 @@
+{
+  "sourceCommit": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+  "sourceTree": "79f4a71cfe32390ff2606545a89973238a7900bc",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    },
+    {
+      "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+      "path": "apps/shop/evidence/seller-normal-flow-20261004/commerce-owned-delta-11b514910.tar",
+      "members": 8,
+      "bytes": 94208,
+      "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-c2e17e441.tar",
+    "members": 8,
+    "bytes": 122880,
+    "sha256": "ffd99d4a1027571bf392b3b67c27a11526e0601acd1d98e6b928694560982b9c"
+  },
+  "composedOwnedMembers": 441,
+  "composition": "PASS actual four immutable layers extracted; every current owned member byte/hash matches",
+  "testedSourcePins": 75,
+  "rawRecords": [
+    {
+      "path": "raw/merchant-console-build.log",
+      "bytes": 128,
+      "sha256": "84c81b6ffb523a6782f855570ef12857f105829107d77c2b5e844a58c2996ed4"
+    },
+    {
+      "path": "raw/merchant-console-node.log",
+      "bytes": 7563,
+      "sha256": "ca39fd5108aeac4da0053abff1be9a93ac8cb696d20bd99bde4de5917e1dd04f"
+    },
+    {
+      "path": "raw/shop-browser-final.log",
+      "bytes": 1666,
+      "sha256": "1b78b1c7788d87cb0c294afa4081e4ae320bbeefd89f19cc3d50fdc4074a480d"
+    },
+    {
+      "path": "raw/shop-browser-first.log",
+      "bytes": 1175,
+      "sha256": "77e0227a7093d6c6e0aaf5edebfcfc52d96985d93f3ee44bed7e5c669431d7fd"
+    },
+    {
+      "path": "raw/shop-browser-new-first.log",
+      "bytes": 707,
+      "sha256": "9ec7bdd238136d79e0aef7e12b1e053e456b561510c392eade165be446a657b7"
+    },
+    {
+      "path": "raw/shop-build-final.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "raw/shop-build.log",
+      "bytes": 61,
+      "sha256": "851058b4c055a9dee41eb39a061225723e07b8015d893f0812bee7b084cff024"
+    },
+    {
+      "path": "raw/shop-node-final.log",
+      "bytes": 5001,
+      "sha256": "3dfa7b3d1ba4074bdc01b974e72158657639cdca71589e64432cb22c5e7ff096"
+    },
+    {
+      "path": "raw/shop-node.log",
+      "bytes": 4992,
+      "sha256": "90f79e4c2bf585fccc1607477bfc11b36f11f53e014d2a8fe7796f75b7725f06"
+    }
+  ],
+  "validation": {
+    "shopNode": 50,
+    "merchantNode": 72,
+    "shopBuild": "PASS",
+    "merchantBuild": "PASS",
+    "actualChromiumBuyer": 9
+  },
+  "qualification": "CONTROLLED_QA_ONLY actual Buyer SDK/software approval and fixture business replies; Merchant controller/transport seams",
+  "native": "unchanged retained Android46 Apple61/full builds",
+  "deployment": {
+    "authorizedByUser": true,
+    "status": "NOT_VERIFIED",
+    "owner": "unique A via Root",
+    "required": [
+      "formal SDK/profile",
+      "Buyer3 original lookup mount",
+      "source-bound backend",
+      "Web final entry deployment",
+      "signed Native package/install",
+      "actual private/own business readback"
+    ]
+  }
+}
