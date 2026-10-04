@@ -896,6 +896,12 @@ func (s *Service) RunBacktestContext(ctx context.Context, req BacktestRequest) (
 		if !exists || !current.Runtime.Enabled || current.Runtime.RunID != req.scheduleRunID {
 			return Experiment{}, ErrConflict
 		}
+		if previous, found, err := s.scheduledResearchReplayLocked(strategy, req.Assumptions, req.scheduleRunID); found || err != nil {
+			return previous, err
+		}
+		if !current.Runtime.Running {
+			return Experiment{}, ErrConflict
+		}
 		strategy.Runtime = current.Runtime
 	}
 	s.state.Sequence++

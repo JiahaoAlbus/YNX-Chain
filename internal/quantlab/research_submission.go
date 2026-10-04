@@ -95,3 +95,29 @@ func copyResearchReceipt(value Experiment) (Experiment, error) {
 	}
 	return copied, nil
 }
+
+// Scheduled research uses the existing durable claim and recorded runtime, not
+// a second public idempotency protocol. Called only after current claim/enable
+// checks under the original state lock. Ambiguous historical results fail closed.
+func (s *Service) scheduledResearchReplayLocked(strategy StrategySpec, assumptions Assumptions, runID string) (Experiment, bool, error) {
+	var result Experiment
+	found := false
+	for id, experiment := range s.state.Experiments {
+		if experiment.Strategy.ID != strategy.ID || experiment.Strategy.Runtime.RunID != runID {
+			continue
+		}
+		previous := experiment.Strategy
+		if found || experiment.ID != id || experiment.Status != "completed_oos" ||
+			previous.Name != strategy.Name || previous.StrategyHash != strategy.StrategyHash ||
+			previous.DataHash != strategy.DataHash || previous.FeatureHash != strategy.FeatureHash ||
+			experiment.Assumptions != assumptions {
+			return Experiment{}, false, ErrConflict
+		}
+		result, found = experiment, true
+	}
+	if !found {
+		return Experiment{}, false, nil
+	}
+	copy, err := copyResearchReceipt(result)
+	return copy, true, err
+}
