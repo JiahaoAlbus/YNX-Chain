@@ -1,0 +1,66 @@
+{
+  "status": "ISOLATED_MATCHING_BUILD_PASS_NOT_RUNTIME_ACCEPTANCE",
+  "social": {
+    "commit": "3a578dc5c6cf9347f1158d4b72a1491d35f7b1da",
+    "tree": "d6d93133f629001d7b144af4f6686f3935ffd66d"
+  },
+  "shared": {
+    "commit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "tree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+    "manifestSha256": "9df1676571774784c5a3a39308f93a8b928fd02b5769a023ba3382d266a550de",
+    "contentRoot": "22ccfa2cff6055ebb31003e83c8fb7ed386d98d785d59cae2610245c3b5c0c3a",
+    "inputCount": 32,
+    "coherentProductionFiles": 9,
+    "localAccountAddressProductionFiles": 1,
+    "strongerHooksOverwritten": false
+  },
+  "build": {
+    "command": "GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off <existing cached go1.25.13>/bin/go build -o <isolated>/ynx-sociald ./cmd/ynx-sociald",
+    "exitCode": 0,
+    "outputBytes": 0,
+    "target": "darwin/arm64",
+    "toolchain": "go1.25.13",
+    "moduleDownloads": false,
+    "compilerWarnings": "none emitted"
+  },
+  "artifact": {
+    "path": "ynx-sociald-darwin-arm64.gz",
+    "compressedBytes": 14460200,
+    "compressedSha256": "b25e716da11fee3d69df778c52a262b7b3c234b3b1204f5be4bbb722035d479d",
+    "executableBytes": 28467666,
+    "executableSha256": "22266ad0aa2689f9746fc917e705f4720e3bc89712527a1a4d0f6f804c3c6e37",
+    "compiledOnly": true,
+    "executed": false,
+    "installer": false,
+    "signedRelease": false
+  },
+  "tests": {
+    "command": "go test ./internal/social -run <three explicit reviewed pure-Go identity/contact targets> -count=1 -v",
+    "pass": 3,
+    "fail": 0,
+    "fixtureAuthority": true,
+    "realPublicAuthority": false,
+    "nodeOrSdkTargetsExecuted": false
+  },
+  "historicalFailuresRetained": {
+    "missingApiCompilerLogSha256": "7e79923fe0e995b2012507ddde1235aec755d5483316245e504df11804a8afe2",
+    "localToolchainAttempt": "1.25.7 rejected by pinned 1.25.13 minimum",
+    "dispatcherAttempt": "explicit selection with GOSUMDB=off refused checksum verification; no network enabled; existing cached binary used directly"
+  },
+  "unchanged": [
+    "original owned shared package",
+    "other owners",
+    "keys/history/UNKNOWN",
+    "static web candidates"
+  ],
+  "notProven": [
+    "whole-product source admission",
+    "real registry/roles/keys/current observer",
+    "public deployment",
+    "actual login/action callbacks",
+    "Matrix native lifecycle",
+    "crypto649 activation",
+    "installed user journey",
+    "MONSTER acceptance"
+  ]
+}

@@ -1,0 +1,8 @@
+=== RUN   TestOpaquePreviewConfirmationUsesOriginalPrivateAccountOverHTTP
+--- PASS: TestOpaquePreviewConfirmationUsesOriginalPrivateAccountOverHTTP (0.59s)
+=== RUN   TestPublicIdentityPrivateBindingStableWithoutRelationshipRewrite
+--- PASS: TestPublicIdentityPrivateBindingStableWithoutRelationshipRewrite (0.05s)
+=== RUN   TestPublicPreviewAndQRSurviveRenameAndDoNotExposeFunds
+--- PASS: TestPublicPreviewAndQRSurviveRenameAndDoNotExposeFunds (0.08s)
+PASS
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/social	1.211s

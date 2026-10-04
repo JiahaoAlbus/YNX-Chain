@@ -1,0 +1,19 @@
+{
+  "socialCommit": "3a578dc5c6cf9347f1158d4b72a1491d35f7b1da",
+  "socialTree": "d6d93133f629001d7b144af4f6686f3935ffd66d",
+  "sharedCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "sharedTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  "manifestSha256": "9df1676571774784c5a3a39308f93a8b928fd02b5769a023ba3382d266a550de",
+  "contentRoot": "22ccfa2cff6055ebb31003e83c8fb7ed386d98d785d59cae2610245c3b5c0c3a",
+  "verifiedCarrierFiles": 36,
+  "originalSourceInputs": 32,
+  "originalProductionFiles": 9,
+  "currentProductionFiles": [
+    "browser_sso.go",
+    "client.go"
+  ],
+  "strongerHooksFound": [],
+  "modulesIdentical": true,
+  "isolated": true,
+  "sourceTreeChanged": false
+}
