@@ -29,8 +29,12 @@ export class SocialCloudAttachments {
     if (!response.ok) throw new Error(`Cloud attachment ${operation} failed (${response.status}). Retry the same attachment.`);
     return response;
   }
-  async upload(record: CloudObjectRecord, ciphertext: Uint8Array, progress: (sent:number,total:number)=>void = ()=>{}) {
-    this.validateBytes(ciphertext);
+  async upload(suppliedRecord: CloudObjectRecord, suppliedCiphertext: Uint8Array, progress: (sent:number,total:number)=>void = ()=>{}) {
+    this.validateBytes(suppliedCiphertext);
+    // Retain the exact record and ciphertext before capability/network awaits.
+    // Neither a caller mutation nor a progress callback may retarget later parts.
+    const record = Object.freeze({ ...suppliedRecord });
+    const ciphertext = new Uint8Array(suppliedCiphertext);
     if (record.totalCiphertextBytes !== ciphertext.length || record.sha256 !== ciphertextHash(ciphertext) || !/^upload_[a-f0-9]{32}$/.test(record.uploadId)) throw new Error("Pending attachment does not match its immutable Cloud record.");
     await this.request(record,"upload.create","/uploads",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(record)});
     const status = await (await this.request(record,"upload.status",`/uploads/${record.uploadId}`)).json() as UploadStatus;

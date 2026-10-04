@@ -1,0 +1,23 @@
+✔ encrypted multipart retry skips accepted parts and decrypts exact original (86.68525ms)
+✔ mismatched operation grant is rejected before sending ciphertext to Cloud (0.178625ms)
+✔ upload retains exact initial ciphertext while the original capability request awaits (12.028708ms)
+✔ caller record mutation during capability await does not retarget or abort the original upload (0.575709ms)
+✔ progress callback mutation cannot change later multipart ciphertext or retry metadata (25.060125ms)
+✔ restart recovers last complete snapshot after a torn write (1.6825ms)
+✔ successive acknowledgements persist and do not reload the legacy queue (0.398084ms)
+✔ corruption never silently replaces the queue with an empty or legacy queue (0.087458ms)
+✔ checksums reject an altered latest snapshot and preserve the previous one (0.335333ms)
+✔ queued messages survive unrelated acknowledgements and round-trip storage (0.792167ms)
+✔ retries preserve exact ciphertext and separate devices and accounts (0.19925ms)
+✔ legacy data is preserved without being silently assigned to a new device (0.087667ms)
+✔ current recipients and exact signed retry are accepted (42.536416ms)
+✔ removed members and revoked or newly added devices block stale retries (5.545709ms)
+✔ tampering with sender, context or signature cannot be retried (7.680708ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 261.49675
