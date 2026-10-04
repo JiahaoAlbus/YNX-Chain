@@ -7,6 +7,7 @@ let statefulPreview = false;
 let publicExperiments = {};
 let latestResearchMode = null;
 let latestResearchResult = null;
+let experimentRenderEpoch = 0;
 let researchSubmitting = false;
 const RESEARCH_TRAIN_END = 24;
 let lastToastKey = null;
@@ -954,6 +955,7 @@ function renderTestnetExecutions(records){
   }).join(''):`<tr><td colspan="6">${safe(t('executionRecordsEmpty'))}</td></tr>`;
 }
 function render() {
+  const historyEpoch=++experimentRenderEpoch;
   const strategies = Object.values(snapshot.strategies || {}),
     experiments = [
       ...Object.values(snapshot.experiments || {}).map(experiment => ({experiment, temporary: false})),
@@ -974,16 +976,16 @@ function render() {
   $("#experiment-rows").innerHTML = experiments.length
     ? experiments
         .map(
-          ({experiment: e, temporary}) => {
+          ({experiment: e, temporary},index) => {
             // Saved readback must meet the same metric boundary as a new run.
             // Keep the bad row visible, but never display invented completion
             // or interpolate untrusted metric strings as HTML.
-            if (!verifiedResearchResult(e)) return `<tr><td colspan="16">${safe(t("researchInvalid"))}</td></tr>`;
-            return `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${(e.metrics.SharpeMilli / 1000).toFixed(3)}</td><td>${e.metrics.VolatilityBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${Number.isSafeInteger(e.sensitivitySpreadBPS) && e.sensitivitySpreadBPS >= 0 ? e.sensitivitySpreadBPS + " bps" : "—"}</td><td>${e.metrics.DataGaps}</td>${["userNetPnl", "userRealizedPnl", "userUnrealizedPnl", "tradingFee", "slippage"].map(key => `<td>${researchAmount(e.attribution, key)}</td>`).join("")}</tr>`;
+            if (!verifiedResearchResult(e)) return `<tr><td colspan="17">${safe(t("researchInvalid"))}</td></tr>`;
+            return `<tr><td>${localDate(e.createdAt)}</td><td>${safe(e.strategy.Name)}${temporary ? `<small>${safe(t("researchTemporary"))}</small>` : ""}</td><td>${e.metrics.ReturnBPS} bps</td><td>${e.metrics.BuyHoldBPS} bps</td><td>${e.metrics.MaxDrawdownBPS} bps</td><td>${(e.metrics.SharpeMilli / 1000).toFixed(3)}</td><td>${e.metrics.VolatilityBPS} bps</td><td>${e.metrics.Trades}</td><td>${e.metrics.PartialFills}</td><td>${Number.isSafeInteger(e.sensitivitySpreadBPS) && e.sensitivitySpreadBPS >= 0 ? e.sensitivitySpreadBPS + " bps" : "—"}</td><td>${e.metrics.DataGaps}</td>${["userNetPnl", "userRealizedPnl", "userUnrealizedPnl", "tradingFee", "slippage"].map(key => `<td>${researchAmount(e.attribution, key)}</td>`).join("")}<td><button type="button" class="experiment-open" data-history-index="${index}" data-history-epoch="${historyEpoch}">${safe(t('researchOpenResult'))}</button></td></tr>`;
           },
         )
         .join("")
-    : `<tr><td colspan="16">${safe(t("emptyExperiment"))}</td></tr>`;
+    : `<tr><td colspan="17">${safe(t("emptyExperiment"))}</td></tr>`;
   const p = snapshot.paper || {};
   renderResearchChoices(strategies);
   renderPaperRecords(p);
@@ -1035,8 +1037,25 @@ $("#strategy-rows").addEventListener("click", async event => {
   }
   finally { scheduleWrites.delete(id); render(); }
 });
+$('#experiment-rows').addEventListener('click',event=>{
+  const button=event.target.closest('.experiment-open');
+  if(!button||button.disabled||button.dataset.historyEpoch!==String(experimentRenderEpoch)||!/^(0|[1-9][0-9]*)$/.test(button.dataset.historyIndex||''))return;
+  const index=Number(button.dataset.historyIndex);
+  if(!Number.isSafeInteger(index))return;
+  const entries=[...Object.values(snapshot.experiments||{}).map(experiment=>({experiment,temporary:false})),...Object.values(publicExperiments).map(experiment=>({experiment,temporary:true}))];
+  const entry=entries[index];
+  if(!entry||!verifiedResearchResult(entry.experiment))return;
+  renderResult(entry.experiment,!entry.temporary);
+  // Local read/navigation only: never resubmit the old experiment or authorize
+  // a strategy merely because its historical result was selected.
+  const nav=$$('nav button').find(button=>button.dataset.view==='research');
+  if(nav)nav.onclick();
+});
 function renderRunDetails() {
   const result = latestResearchResult, strategy = result?.strategy;
+  $('#research-result-id').textContent=result?.id||'—';
+  $('#research-result-name').textContent=strategy?.Name||'—';
+  $('#research-result-time').textContent=auditTimeValid(result?.createdAt)?localDate(result.createdAt):'—';
   $("#research-cost-rounding").textContent = researchCostRoundingText(result);
   $('#research-idle-cash').textContent = researchAmount(result?.attribution,'averageIdleCapital');
   $('#research-idle-cash-rule').textContent = researchIdleCashRule(result);
@@ -1082,6 +1101,8 @@ const reuseResearchCopy = {
   id:["Parameter riset tersimpan","Gunakan dalam draf","Parameter disalin ke draf. Tidak ada proses atau order dimulai; tinjau biaya dan slippage."],
 };
 for (const [language,[reuseSavedLabel,reuseSavedAction,reuseSavedDone]] of Object.entries(reuseResearchCopy)) Object.assign(businessCopy[language],{reuseSavedLabel,reuseSavedAction,reuseSavedDone});
+for(const [language,researchOpenResult]of Object.entries({en:'View completed result','zh-CN':'查看已完成结果','zh-TW':'檢視已完成結果',ja:'完了した結果を表示',ko:'완료된 결과 보기',es:'Ver resultado completado',fr:'Voir le résultat terminé',de:'Abgeschlossenes Ergebnis ansehen',pt:'Ver resultado concluído',ru:'Открыть завершённый результат',ar:'عرض النتيجة المكتملة',id:'Lihat hasil selesai'}))Object.assign(businessCopy[language],{researchOpenResult});
+for(const [language,researchResultTitle]of Object.entries({en:'Research result','zh-CN':'研究结果','zh-TW':'研究結果',ja:'研究結果',ko:'연구 결과',es:'Resultado de investigación',fr:'Résultat de recherche',de:'Forschungsergebnis',pt:'Resultado da pesquisa',ru:'Результат исследования',ar:'نتيجة البحث',id:'Hasil riset'}))Object.assign(businessCopy[language],{researchResultTitle});
 function verifiedResearchResult(result) {
   return result?.status === "completed_oos" && typeof result?.id === "string" && !!result.id.trim() && typeof result?.strategy?.Name === "string" && !!result.strategy.Name.trim() && ["ReturnBPS","BuyHoldBPS","MaxDrawdownBPS","SharpeMilli","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => Number.isSafeInteger(result?.metrics?.[key])) && ["MaxDrawdownBPS","VolatilityBPS","Trades","PartialFills","DataGaps"].every(key => result.metrics[key] >= 0);
 }

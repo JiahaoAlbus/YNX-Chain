@@ -13,6 +13,38 @@ const settle = async () => {await new Promise(setImmediate);};
 const researchFixture = (id, name = id) => ({id, status:'completed_oos',createdAt:'2026-10-03T00:00:00Z', strategy:{Name:name,Family:'transparent',Seed:7,Params:{fast:3,slow:8},StrategyHash:'e'.repeat(64)},assumptions:{FeeBPS:10,SlippageBPS:5,LatencyBars:1,ParticipationBPS:1000,TrainEnd:24,WalkForwardWindows:3,Seed:7}, metrics:{ReturnBPS:120,BuyHoldBPS:90,MaxDrawdownBPS:20,SharpeMilli:1500,VolatilityBPS:7,Trades:2,PartialFills:0,DataGaps:0}, equityCurve:[{time:'2026-10-03T00:00:00Z',equity:1000,benchmarkEquity:1000},{time:'2026-10-03T00:01:00Z',equity:1012,benchmarkEquity:1009}], sensitivitySpreadBPS:2});
 const researchStatus = app => app.ids.get('latest-result').children.find(element => element.id === 'research-result-status').textContent;
 const paperRecord = overrides => ({ID:'paper-000042',StrategyHash:'e'.repeat(64),Side:'buy',Status:'partially_filled',Price:9007199254740991,Amount:2000000,Filled:1000000,Source:'authoritative_market_adapter',CreatedAt:'2026-10-03T00:00:00Z',...overrides});
+test('completed history opens exact saved or temporary research without rerun and fences stale rendered controls',async()=>{
+  const first=researchFixture('workspace-result'),second=researchFixture('next-workspace-result');
+  const app=harness({snapshot:{experiments:{first}}});await settle();
+  const open=(index,epoch=vm.runInContext('experimentRenderEpoch',app.context))=>app.ids.get('experiment-rows').events.get('click')[0]({target:{closest:()=>({disabled:false,dataset:{historyIndex:String(index),historyEpoch:String(epoch)}})}});
+  const before=app.calls.length;open(0);
+  assert.equal(vm.runInContext('latestResearchResult.id',app.context),first.id);assert.equal(vm.runInContext('latestResearchMode',app.context),true);
+  assert.equal(app.ids.get('result-return').textContent,'120 bps');assert.equal(app.ids.get('research-fee').textContent,'10');assert.equal(app.ids.get('equity-figure').hidden,false);
+  assert.equal(app.ids.get('research-result-id').textContent,first.id);assert.equal(app.ids.get('research-result-name').textContent,first.strategy.Name);assert.notEqual(app.ids.get('research-result-time').textContent,'—');
+  const retiredEpoch=vm.runInContext('experimentRenderEpoch',app.context);
+  app.context.replacement=second;vm.runInContext('snapshot.experiments={replacement};render()',app.context);
+  open(0,retiredEpoch);assert.equal(vm.runInContext('latestResearchResult.id',app.context),first.id,'old index cannot select a replacement workspace record');
+  open(0);assert.equal(vm.runInContext('latestResearchResult.id',app.context),second.id);
+  app.context.temporary={...researchFixture(second.id),metrics:{...second.metrics,ReturnBPS:777}};
+  vm.runInContext('publicExperiments={temporary};render()',app.context);open(1);
+  assert.equal(app.ids.get('result-return').textContent,'777 bps');assert.equal(vm.runInContext('latestResearchMode',app.context),false,'same ID must not collapse saved and temporary provenance');
+  const chart=app.ids.get('equity-chart').innerHTML;
+  for(const index of ['-1','1.5','01','9999999999999999999999','2']){open(index);assert.equal(app.ids.get('result-return').textContent,'777 bps');assert.equal(app.ids.get('equity-chart').innerHTML,chart);}
+  assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+});
+test('history read action localizes across twelve languages and never opens an unconfirmed experiment',async()=>{
+  const valid=researchFixture('valid-history'),invalid={...researchFixture('invalid-history'),status:'running'};
+  const app=harness({snapshot:{experiments:{valid,invalid}}});await settle();
+  const open=index=>app.ids.get('experiment-rows').events.get('click')[0]({target:{closest:()=>({disabled:false,dataset:{historyIndex:String(index),historyEpoch:String(vm.runInContext('experimentRenderEpoch',app.context))}})}});
+  const before=app.calls.length;
+  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+    app.ids.get('locale').onchange({target:{value:language}});
+    const action=vm.runInContext('t("researchOpenResult")',app.context);assert.ok(action);if(language!=='en')assert.notEqual(action,'View completed result');
+    assert.ok(app.ids.get('experiment-rows').innerHTML.includes(action));assert.equal((app.ids.get('experiment-rows').innerHTML.match(/class="experiment-open"/g)||[]).length,1);
+    open(0);open(1);assert.equal(vm.runInContext('latestResearchResult.id',app.context),'valid-history');
+  }
+  assert.equal(app.calls.length,before);assert.equal(app.proofs(),0);
+});
 test('saved research never displays returns for failed, running or unknown completion status',async()=>{
   for(const status of [undefined,null,'','running','failed','completed','COMPLETED_OOS']){
     const invalid={...researchFixture('unconfirmed-history'),status,metrics:{...researchFixture('base').metrics,ReturnBPS:9876}};
@@ -1084,7 +1116,8 @@ test('research amounts preserve measured zero, currency and unavailable attribut
     const experiment={...researchFixture('attribution-boundary'),attribution};
     const app=harness({snapshot:{experiments:{one:experiment}}});await settle();
     const cells=[...app.ids.get('experiment-rows').innerHTML.matchAll(/<td>([\s\S]*?)<\/td>/g)].map(match=>match[1]);
-    assert.deepEqual(cells.slice(-5),expected);
+    assert.equal(cells.length,17);
+    assert.deepEqual(cells.slice(11,16),expected,'exact existing five attribution columns precede the separate local read action');
     assert.doesNotMatch(app.ids.get('experiment-rows').innerHTML,/<img/);
   }
 });

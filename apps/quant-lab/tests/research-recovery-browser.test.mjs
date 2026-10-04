@@ -141,6 +141,17 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     await otherPage.waitForFunction(()=>Object.values(snapshot.experiments||{}).length===1);
     const otherAfter=await otherPage.evaluate(()=>({tenant:localStorage.getItem('ynx.quant.tenant.v1'),experiments:Object.values(snapshot.experiments),strategies:Object.values(snapshot.strategies)}));
     assert.deepEqual(otherAfter,otherBefore,'second browser reads only its exact persisted experiment and strategy after restart');
+    // Open the actual history action after cold reload. This reads the exact
+    // persisted engine result and must not rerun research or request a proof.
+    const otherRequestsBefore=otherPosts;
+    await otherPage.locator('nav button[data-view="experiments"]').click();
+    await otherPage.locator('#experiment-rows .experiment-open').click();
+    assert.equal(await otherPage.evaluate(()=>latestResearchResult.id),otherBefore.experiments[0].id);
+    assert.deepEqual(await otherPage.evaluate(()=>latestResearchResult),otherBefore.experiments[0]);
+    assert.equal(await otherPage.locator('#research-fee').textContent(),'29');
+    assert.equal(await otherPage.locator('#research-result-id').textContent(),otherBefore.experiments[0].id);assert.equal(await otherPage.locator('#research-result-name').textContent(),'Independent browser research');
+    assert.equal(await otherPage.locator('#equity-figure').isVisible(),true);
+    assert.equal(otherPosts,otherRequestsBefore);
     await otherPage.locator('nav button[data-view="strategies"]').click();
     assert.match(await otherPage.locator('#strategy-rows').textContent(),/Stop schedule/);
     const stopScheduleDialog=otherPage.waitForEvent('dialog'),stopScheduleClick=otherPage.locator('#strategy-rows .schedule-toggle').click();
@@ -163,8 +174,19 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     const engineCurve=await page.evaluate(()=>Object.values(snapshot.experiments)[0].equityCurve);
     assert.ok(engineCurve.length>1);
     const researchPostsBefore=posts;
+    await page.locator('nav button[data-view="experiments"]').click();await page.locator('#experiment-rows .experiment-open').click();
+    assert.equal(await page.evaluate(()=>latestResearchResult.id),firstReceipt.id);
+    assert.deepEqual(await page.evaluate(()=>latestResearchResult.equityCurve),engineCurve);
+    assert.equal(await page.locator('#research-result-id').textContent(),firstReceipt.id);assert.equal(await page.locator('#research-result-name').textContent(),'Controlled lost-return research');
+    assert.equal(posts,researchPostsBefore);assert.equal(await page.locator('#research-fee').textContent(),String(firstReceipt.assumptions.FeeBPS));
+    await page.locator('#research-run-details').evaluate(details=>{details.open=true});
+    await page.screenshot({path:path.join(work,'saved-experiment-reopened-en.png'),fullPage:true});
     for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
       await page.selectOption('#locale',language);
+      await page.locator('nav button[data-view="experiments"]').click();
+      assert.equal(await page.locator('#experiment-rows .experiment-open').textContent(),await page.evaluate(()=>t('researchOpenResult')));
+      await page.locator('#experiment-rows .experiment-open').click();
+      assert.equal(await page.evaluate(()=>latestResearchResult.id),firstReceipt.id);assert.equal(posts,researchPostsBefore);
       for(const time of ['2026-02-30T00:00:00Z','2026-01-01T00:00:00','01/01/2026']){
         await page.evaluate(time=>{const saved=Object.values(snapshot.experiments)[0];renderResult({...saved,equityCurve:saved.equityCurve.map((point,index)=>index===0?{...point,time}:point)},true)},time);
         assert.equal(await page.locator('#equity-figure').isVisible(),false);assert.equal(await page.locator('#equity-chart').innerHTML(),'');
@@ -241,7 +263,7 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
-  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png']){
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png']){
     const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
   }
   t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));

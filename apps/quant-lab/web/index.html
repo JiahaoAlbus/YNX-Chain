@@ -130,7 +130,8 @@
                 <p id="research-request-status" role="status" aria-live="polite" hidden>Backtest request pending. No result is confirmed yet.</p>
               </form>
               <div id="latest-result" hidden>
-                <h3 data-business-i18n="latestResearchTitle">Latest research result</h3>
+                <h3 data-business-i18n="researchResultTitle">Research result</h3>
+                <p><code id="research-result-id">—</code> · <span id="research-result-name">—</span> · <time id="research-result-time">—</time></p>
                 <dl><div><dt data-business-i18n="runReturn">OOS return</dt><dd id="result-return">—</dd></div><div><dt data-business-i18n="runBuyHold">Buy/hold</dt><dd id="result-baseline">—</dd></div><div><dt data-business-i18n="runDrawdown">Maximum drawdown</dt><dd id="result-drawdown">—</dd></div><div><dt data-i18n="researchSharpe">Sharpe ratio</dt><dd id="result-sharpe">—</dd></div><div><dt data-business-i18n="runVolatility">Volatility (bps)</dt><dd id="result-volatility">—</dd></div></dl>
                 <details id="research-run-details">
                   <summary data-business-i18n="runDetails">Run details and formulas</summary>
@@ -228,6 +229,7 @@
                   <th data-i18n="unrealized">Unrealized</th>
                   <th data-i18n="tradingFee">Trading fee</th>
                   <th data-business-i18n="runSlippage">Slippage</th>
+                  <th data-business-i18n="researchOpenResult">View completed result</th>
                 </tr>
               </thead>
               <tbody id="experiment-rows"></tbody>
