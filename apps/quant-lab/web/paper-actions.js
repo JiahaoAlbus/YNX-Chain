@@ -4,12 +4,14 @@ import {paperActionCopy,paperRiskCopy} from './paper-session-copy.js';
 import {createPaperRiskController} from './paper-risk-intents.js';
 import {createPaperBacktestController} from './paper-backtest-intents.js';
 import {paperNativeCostCopy,paperNativeBacktestBoundary} from './paper-native-cost-copy.js';
+import {mountNativePaperHistory} from './paper-history.js';
 
 export function mountPaperActions(){
   const find=id=>document.getElementById(id),dialog=find('paper-owned-preview');if(!dialog)return;
   const controller=createPaperIntentController({session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const risk=createPaperRiskController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
   const research=createPaperBacktestController({session:getPaperSessionState,request:paperWorkspaceRequest,storage:localStorage,uuid:()=>crypto.randomUUID()});
+  const renderHistory=mountNativePaperHistory(find('paper-owned-result'),{session:getPaperSessionState,snapshot:getPaperWorkspaceSnapshot,language:()=>localStorage.getItem('ynx.quant.locale')||'en'});
   for(const [id,name,value] of [['paper-native-fee','fee','10'],['paper-native-slippage','slippage','5']]){const label=document.createElement('label'),title=document.createElement('span'),input=document.createElement('input');title.dataset.paperCost=name;input.id=id;input.type='text';input.inputMode='numeric';input.maxLength=5;input.value=value;label.append(title,input);find('paper-owned-review').before(label);}
   const costBoundary=document.createElement('p');costBoundary.id='paper-native-cost-boundary';find('paper-owned-form').append(costBoundary);
   const riskPanel=document.createElement('section');
@@ -23,6 +25,7 @@ export function mountPaperActions(){
   function invalidate(){review=null;controller.invalidate();risk.invalidate();research.invalidate();if(dialog.open)dialog.close();}
   function render(){
     const current=getPaperSessionState(),snapshot=getPaperWorkspaceSnapshot(),text=copy();
+    renderHistory();
     const costText=paperNativeCostCopy(localStorage.getItem('ynx.quant.locale')||'en');for(const element of document.querySelectorAll('[data-paper-cost]'))element.textContent=costText[element.dataset.paperCost];
     let legacy=false;try{const retained=controller.pending();legacy=!!retained&&!retained.executionCosts;}catch{}costBoundary.textContent=legacy?text.model:costText.boundary;for(const id of ['paper-native-fee','paper-native-slippage'])find(id).disabled=legacy;
     for(const element of document.querySelectorAll('[data-paper-action]'))element.textContent=text[element.dataset.paperAction];

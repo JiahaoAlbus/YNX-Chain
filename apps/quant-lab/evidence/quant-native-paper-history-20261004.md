@@ -1,0 +1,17 @@
+# Native Paper saved-record consumer
+
+Owned continuation from `1dec7e305d23c68aef151611026b81b182fa0d04`. Reads only the existing canonical native-owner `/v1/wallet/paper/snapshot`; no new endpoint, permission, engine, order or scheduler is introduced.
+
+The native workspace now displays saved simulated orders/fills, fee-policy/source receipts, completed backtests, saved out-of-sample equity and buy/hold benchmark, the engine's own metric definitions and audit records. Read saved result is a pure local presentation action; it neither reruns a backtest nor submits a signal. This UI is separate from the browser-local research/Paper tenant and Exchange or blockchain transaction records. No Paper identifier is fabricated into an Explorer transaction link.
+
+The model requires current native account, ready connected state and matching snapshot account. Unready, revoked, degraded, replaced or foreign-account data clears the old panels and curves. A result button captured before owner/epoch/snapshot replacement rechecks all three before reading old data. Rows require coherent types, safe integer values, valid persisted IDs/statuses, source/time and cost fields; invalid records have an explicit localized warning rather than fabricated zeros or replacement curves. Top-level malformed collection shapes and excessive sizes fail closed. Cash and position summaries display only safe integer values.
+
+Charts consume actual saved `equityCurve` values, validate strictly increasing timestamps, preserve first/last points and sample up to 200 points with displayed/total counts. Both series share the same actual min/max range. BigInt normalization avoids unsafe intermediate subtraction; horizontal placement follows real timestamps, including gaps. This is presentation of the original saved experiment, not recalculation of returns, Sharpe or a new synthetic quant engine. Missing/unsafe/nonmonotonic series are unavailable. Full source records and metric formulas remain inspectable.
+
+Twelve product languages cover headings, boundaries and unavailable/invalid messages. Persisted technical fields and engine-provided formulas remain original source data. Rendering uses DOM text nodes/textContent, not HTML execution from strategy/source/audit content.
+
+Focused local tests: six pure model/chart/copy tests plus controlled actual Chrome native workspace flow passed. Chrome verifies saved-result read makes no POST, curve/formula render, record restoration after reload, fee/audit visibility and removal after revoke while Standard remains connected. Test data/approval is explicitly controlled; no installed or public Wallet approval is inferred. Existing Go owner-isolation/concurrency/restart tests remain separate actual original engine/persistence evidence.
+
+Final full Node regression: 321 total, 320 PASS, zero FAIL, one matching Hosted Wallet environment SKIP; 106363.4045ms. Go race passed quantlab 11.280s and server 1.489s. Versioned asset gate passed six assets; syntax and diff checks passed.
+
+No Host/SSH/upload/retry/publication, account/signature/Testnet action or shared Wallet/Auth/SDK mutation. Formal shared producer/publication remains A-owned. Public/installed/real native approval/full Product Session lifecycle/Linux execution/ComputerControl are unproved. Separate canonical research-schedule permission remains A's shared boundary; ordinary owned development continues without treating this as a blanket stop. Immutable candidate identities are recorded after freeze.

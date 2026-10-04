@@ -14,7 +14,7 @@ function render(){
   const status=document.getElementById('paper-session-status');if(status){status.dataset.pending=String(!!pending);status.textContent=(pending?common.pending:state.status==='connected'?common.connected:state.status==='guest'?common.guest:common.unavailable)+' '+(state.account||'')+' '+copy.boundary;}
   const title=document.getElementById('paper-owned-title');if(title)title.textContent=copy.workspace;
   for(const element of document.querySelectorAll('[data-paper-i18n]'))element.textContent=copy[element.dataset.paperI18n];
-  for(const [id,value] of [['paper-owned-cash',data?.paper?.Cash],['paper-owned-position',data?.paper?.Position],['paper-owned-strategies',data?Object.keys(data.strategies).length:null],['paper-owned-audit',data?.audit?.length]]){const element=document.getElementById(id);if(element)element.textContent=value===null||value===undefined?'—':String(value);}
+  for(const [id,value] of [['paper-owned-cash',data?.paper?.Cash],['paper-owned-position',data?.paper?.Position],['paper-owned-strategies',data?Object.keys(data.strategies).length:null],['paper-owned-audit',data?.audit?.length]]){const element=document.getElementById(id);if(element)element.textContent=Number.isSafeInteger(value)?String(value):'—';}
 }
 function publish(result){state={status:result.status,account:result.status==='connected'?result.session.account:null};data=null;if(state.status!=='connected')binding=null;render();notify();}
 function notify(){window.dispatchEvent(new CustomEvent('ynx:quant-paper-session',{detail:{status:state.status,account:state.account,epoch}}));}
