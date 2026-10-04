@@ -1,0 +1,16 @@
+Status: OWNED_STORE_RAW_ADDRESS_GATE_AND_ACTUAL_JNI_REGRESSION_PASS
+Base source: 73fb6089fc90cdabd7677499520957e2d9fdcd8d
+Base tree: b334e2c0ca02ee70487535289d51ce5848dd5418
+Production change: VeilSignalProtocolStore restores persisted raw addresses through existing VeilSignalAddress.of before SDK/JNI construction; rejects empty stored name; validates raw session-list/delete target name before enumeration.
+Actual compiler/runtime: Zulu Java 24 javac/java; compile and both executions exit 0.
+SDK: original official libsignal-client 0.104.0, SHA c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9.
+Retained native route-model jar supplies original VeilRecordTransaction/kind/lease ABI. Exact source and artifact inputs in inputs.sha256; not a new full Android target build.
+New test: 27 assertions, real JNI address construction, synthetic record port. Valid Unicode/emoji names unchanged; malformed UTF16, empty stored names, noncanonical/unsupported device suffixes reject. Entire store scanned before removal; failures preserve all original records.
+Original callback regression: 10 checks through actual official SessionBuilder/SessionCipher JNI and retained native lease primitive, synthetic identities/proof and memory port. Initial encrypt/decrypt, reply, one-time KEM consumption, last-resort replay rejection and revoked lease/private reads passed.
+Initial missing-native-model compiler failure preserved in initial-missing-native-models.txt. Added original retained model dependency; no SDK stub, compiler bypass or production authority invented.
+Java 24 emits its original native-access warning, retained in runtime logs. No runtime flags changed to conceal it.
+No real user keys, account requests, signing, transaction, deployment or installation.
+Durable Android/Keystore crash recovery, production enrollment, rollback anchor, independent current/route producers and actual Matrix relay NOT_VERIFIED.
+activationApproved=false
+activated=false
+MONSTER=NOT_RUN

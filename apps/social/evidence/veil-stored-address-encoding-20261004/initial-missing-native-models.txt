@@ -1,0 +1,256 @@
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:20: error: cannot find symbol
+  private final VeilRecordTransaction tx;
+                ^
+  symbol:   class VeilRecordTransaction
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:22: error: cannot find symbol
+  VeilSignalProtocolStore(VeilRecordTransaction tx, IdentityKey approvedOwnIdentity) {
+                          ^
+  symbol:   class VeilRecordTransaction
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:28: error: cannot find symbol
+  private <T> T decoded(VeilRecordKind kind, String id, Decode<T> decoder) {
+                        ^
+  symbol:   class VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:36: error: cannot find symbol
+  private void saved(VeilRecordKind kind, String id, byte[] bytes) {
+                     ^
+  symbol:   class VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:40: error: cannot find symbol
+  private boolean present(VeilRecordKind kind, String id) {
+                          ^
+  symbol:   class VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:47: error: cannot find symbol
+  private void savedKey(VeilRecordKind kind, int id, byte[] serialized) {
+                        ^
+  symbol:   class VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:63: error: cannot find symbol
+  private void retired(VeilRecordKind kind, int id) {
+                       ^
+  symbol:   class VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java:12: error: cannot find symbol
+  private static final class Port implements VeilRecordTransaction {
+                                             ^
+  symbol:   class VeilRecordTransaction
+  location: class VeilStoredAddressEncodingCheck
+apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java:16: error: cannot find symbol
+    public byte[] read(VeilRecordKind kind, String id) {
+                       ^
+  symbol:   class VeilRecordKind
+  location: class Port
+apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java:19: error: cannot find symbol
+    public void write(VeilRecordKind kind, String id, byte[] bytes) { sessions.put(id, bytes.clone()); }
+                      ^
+  symbol:   class VeilRecordKind
+  location: class Port
+apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java:20: error: cannot find symbol
+    public void remove(VeilRecordKind kind, String id) { removals++; sessions.remove(id); }
+                       ^
+  symbol:   class VeilRecordKind
+  location: class Port
+apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java:21: error: cannot find symbol
+    public List<String> ids(VeilRecordKind kind) { enumerations++; return new ArrayList<>(sessions.keySet()); }
+                            ^
+  symbol:   class VeilRecordKind
+  location: class Port
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:52: error: cannot find symbol
+      if (present(VeilRecordKind.PREKEY_LIFECYCLE, "retired:" + kind.name() + ":" + slot))
+                  ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:66: error: cannot find symbol
+    saved(VeilRecordKind.PREKEY_LIFECYCLE, "retired:" + kind.name() + ":" + slot, new byte[] {1});
+          ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:83: error: cannot find symbol
+    IdentityKey pin = decoded(VeilRecordKind.SOCIAL_IDENTITY, "public", IdentityKey::new);
+                              ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:85: error: cannot find symbol
+    IdentityKeyPair pair = decoded(VeilRecordKind.SOCIAL_IDENTITY, "identity", IdentityKeyPair::new);
+                                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:92: error: cannot find symbol
+    return decoded(VeilRecordKind.SOCIAL_IDENTITY, "registration", bytes -> {
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:111: error: cannot find symbol
+    if (!present(VeilRecordKind.IDENTITY_PIN, address.toString())) return null;
+                 ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:112: error: cannot find symbol
+    return decoded(VeilRecordKind.IDENTITY_PIN, address.toString(), IdentityKey::new);
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:116: error: cannot find symbol
+    if (!present(VeilRecordKind.SESSION, address.toString())) return new SessionRecord();
+                 ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:117: error: cannot find symbol
+    return decoded(VeilRecordKind.SESSION, address.toString(), SessionRecord::new);
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:132: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.SESSION)) {
+                            ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:152: error: cannot find symbol
+  @Override public void storeSession(SignalProtocolAddress address, SessionRecord record) { tx.checkLive(); saved(VeilRecordKind.SESSION, address.toString(), record.serialize()); }
+                                                                                                                  ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:153: error: cannot find symbol
+  @Override public boolean containsSession(SignalProtocolAddress address) { tx.checkLive(); return present(VeilRecordKind.SESSION, address.toString()); }
+                                                                                                           ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:154: error: cannot find symbol
+  @Override public void deleteSession(SignalProtocolAddress address) { tx.checkLive(); tx.remove(VeilRecordKind.SESSION, address.toString()); }
+                                                                                                 ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:159: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.SESSION)) if (storedAddress(id).getName().equals(name)) matching.add(id);
+                            ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:163: error: cannot find symbol
+    for (String id : matching) tx.remove(VeilRecordKind.SESSION, id);
+                                         ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:168: error: cannot find symbol
+    return decoded(VeilRecordKind.PREKEY, keyId(id), PreKeyRecord::new);
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:173: error: cannot find symbol
+    savedKey(VeilRecordKind.PREKEY, id, record.serialize());
+             ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:175: error: cannot find symbol
+  @Override public boolean containsPreKey(int id) { tx.checkLive(); return present(VeilRecordKind.PREKEY, keyId(id)); }
+                                                                                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:176: error: cannot find symbol
+  @Override public void removePreKey(int id) { tx.checkLive(); retired(VeilRecordKind.PREKEY, id); }
+                                                                       ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:180: error: cannot find symbol
+    return decoded(VeilRecordKind.SIGNED_PREKEY, keyId(id), SignedPreKeyRecord::new);
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:185: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.SIGNED_PREKEY)) records.add(decoded(VeilRecordKind.SIGNED_PREKEY, id, SignedPreKeyRecord::new));
+                            ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:185: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.SIGNED_PREKEY)) records.add(decoded(VeilRecordKind.SIGNED_PREKEY, id, SignedPreKeyRecord::new));
+                                                                               ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:191: error: cannot find symbol
+    savedKey(VeilRecordKind.SIGNED_PREKEY, id, record.serialize());
+             ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:193: error: cannot find symbol
+  @Override public boolean containsSignedPreKey(int id) { tx.checkLive(); return present(VeilRecordKind.SIGNED_PREKEY, keyId(id)); }
+                                                                                         ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:194: error: cannot find symbol
+  @Override public void removeSignedPreKey(int id) { tx.checkLive(); retired(VeilRecordKind.SIGNED_PREKEY, id); }
+                                                                             ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:196: error: cannot find symbol
+    int mode = decoded(VeilRecordKind.KEM_PREKEY_MODE, keyId(id), bytes -> {
+                       ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:201: error: cannot find symbol
+    if (present(VeilRecordKind.PREKEY_LIFECYCLE, receipt)) {
+                ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:202: error: cannot find symbol
+      int pinned = decoded(VeilRecordKind.PREKEY_LIFECYCLE, receipt, bytes -> {
+                           ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:207: error: cannot find symbol
+    } else if (present(VeilRecordKind.KEM_PREKEY, keyId(id))) {
+                       ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:216: error: cannot find symbol
+    return decoded(VeilRecordKind.KEM_PREKEY, keyId(id), KyberPreKeyRecord::new);
+                   ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:221: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.KEM_PREKEY)) { kemMode(Integer.parseInt(id)); records.add(decoded(VeilRecordKind.KEM_PREKEY, id, KyberPreKeyRecord::new)); }
+                            ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:221: error: cannot find symbol
+    for (String id : tx.ids(VeilRecordKind.KEM_PREKEY)) { kemMode(Integer.parseInt(id)); records.add(decoded(VeilRecordKind.KEM_PREKEY, id, KyberPreKeyRecord::new)); }
+                                                                                                             ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:228: error: cannot find symbol
+    savedKey(VeilRecordKind.KEM_PREKEY, id, record.serialize());
+             ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:229: error: cannot find symbol
+    if (!present(VeilRecordKind.PREKEY_LIFECYCLE, "kem-mode:" + keyId(id)))
+                 ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:230: error: cannot find symbol
+      saved(VeilRecordKind.PREKEY_LIFECYCLE, "kem-mode:" + keyId(id), new byte[] {(byte) mode});
+            ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:232: error: cannot find symbol
+  @Override public boolean containsKyberPreKey(int id) { tx.checkLive(); return present(VeilRecordKind.KEM_PREKEY, keyId(id)); }
+                                                                                        ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:239: error: cannot find symbol
+    if (present(VeilRecordKind.USED_KEM, marker)) throw new ReusedBaseKeyException("VEIL_KEM_BASE_KEY_REUSED");
+                ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:240: error: cannot find symbol
+    saved(VeilRecordKind.USED_KEM, marker, new byte[] {1});
+          ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java:241: error: cannot find symbol
+    if (mode == 0) retired(VeilRecordKind.KEM_PREKEY, id);
+                           ^
+  symbol:   variable VeilRecordKind
+  location: class VeilSignalProtocolStore
+51 errors

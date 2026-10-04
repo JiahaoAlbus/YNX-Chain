@@ -127,6 +127,7 @@ final class VeilSignalProtocolStore implements SignalProtocolStore {
   }
   @Override public List<Integer> getSubDeviceSessions(String name) {
     tx.checkLive();
+    VeilContextEncoding.validate(name);
     List<Integer> devices = new ArrayList<>();
     for (String id : tx.ids(VeilRecordKind.SESSION)) {
       SignalProtocolAddress address = storedAddress(id);
@@ -137,14 +138,14 @@ final class VeilSignalProtocolStore implements SignalProtocolStore {
   private SignalProtocolAddress storedAddress(String id) {
     tx.checkLive();
     int separator = id.lastIndexOf('.');
-    if (separator < 0 || separator == id.length() - 1) throw new IllegalStateException("VEIL_ADDRESS_RECOVERY_REQUIRED");
+    if (separator < 1 || separator == id.length() - 1) throw new IllegalStateException("VEIL_ADDRESS_RECOVERY_REQUIRED");
     String name = id.substring(0, separator);
     String suffix = id.substring(separator + 1);
     int device;
     try { device = Integer.parseInt(suffix); }
     catch (NumberFormatException error) { throw new IllegalStateException("VEIL_ADDRESS_RECOVERY_REQUIRED"); }
     if (device < 1 || device > 127 || !Integer.toString(device).equals(suffix)) throw new IllegalStateException("VEIL_ADDRESS_RECOVERY_REQUIRED");
-    SignalProtocolAddress address = new SignalProtocolAddress(name, device);
+    SignalProtocolAddress address = VeilSignalAddress.of(name, device).sdk();
     if (!address.toString().equals(id)) throw new IllegalStateException("VEIL_ADDRESS_RECOVERY_REQUIRED");
     return address;
   }
@@ -153,6 +154,7 @@ final class VeilSignalProtocolStore implements SignalProtocolStore {
   @Override public void deleteSession(SignalProtocolAddress address) { tx.checkLive(); tx.remove(VeilRecordKind.SESSION, address.toString()); }
   @Override public void deleteAllSessions(String name) {
     tx.checkLive();
+    VeilContextEncoding.validate(name);
     List<String> matching = new ArrayList<>();
     for (String id : tx.ids(VeilRecordKind.SESSION)) if (storedAddress(id).getName().equals(name)) matching.add(id);
     // Parse and validate every address before any removal; never partially erase

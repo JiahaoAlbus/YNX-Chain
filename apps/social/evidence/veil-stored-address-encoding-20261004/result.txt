@@ -1,0 +1,6 @@
+WARNING: A restricted method in java.lang.System has been called
+WARNING: java.lang.System::load has been called by org.signal.libsignal.internal.Native in an unnamed module (file:/private/tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar)
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for callers in this module
+WARNING: Restricted methods will be blocked in a future release unless native access is enabled
+
+PASS stored-address encoding checks=27; actual JNI address construction; synthetic records; no durable storage, enrollment or activation proof

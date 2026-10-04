@@ -1,0 +1,10 @@
+c2b415784ea95b6552a87bea4b644d1f5178142cb7cc4113c0b2c68a35c43ec9  /tmp/social-veil-jni-01040-20261004.PYpxgX/libsignal-client-0.104.0.jar
+330fdfd05dce85fede3cd4f052a1b1df2fd809de85aea85e22f9ca9137fd2cec  apps/social/evidence/veil-matrix-pipeline-20261004/dormant-java-adapters.jar
+1bcc74e8ce84e2c25eaafde10f1248349cce3062b6e36978cbeec610db1e930a  /Users/huangjiahao/.gradle/caches/modules-2/files-2.1/org.jetbrains.kotlin/kotlin-stdlib/2.1.20/aa8ca79cd50578314f6d1180c47cbe14c0fee567/kotlin-stdlib-2.1.20.jar
+f8f87a3290b8d8e5dd1206c132c066a93d39dd23db1329dea5bd5c959ad40c7d  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java
+281096ff38e89ec881e55ccd9294188ecc55065b179cc226f85ffbab4aee986b  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilSignalAddress.java
+45b9e310a0ed4880c4bfa6a20c5da5185d17cb026fef84d5110692d9e92bb5a3  apps/social/crypto-engine/java/com/ynx/social/matrix/VeilContextEncoding.java
+6dcf99f6ccd083973377518bb439441ff330fa1e40f889115e32af76d991db06  apps/social/scripts/veil-libsignal-qa/VeilStoredAddressEncodingCheck.java
+0e9a56a6fd3e8d6f431ebe4df0dafc16e156987c7bb62d029937950178b6fef2  apps/social/evidence/veil-matrix-durable-route-binding-20261004/dormant-route-native-module.jar
+dd7706884e971a81d3a7903c8ea0e90c684adb9582743f9a90c0136281056d83  apps/social/scripts/veil-libsignal-qa/VeilJniStoreCheck.java
+57b4baefb57bec77281cb21c914d9b6a2acd7abf005e5e5c67d1a7114e413634  apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilRecordTransaction.kt
