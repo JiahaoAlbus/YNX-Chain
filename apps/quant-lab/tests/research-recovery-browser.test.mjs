@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp,readFile} from 'node:fs/promises';
+import {access,mkdtemp,readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createServer} from 'node:http';
 import net from 'node:net';
@@ -10,7 +10,6 @@ import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {chromium} from 'playwright';
-import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
 
 // Controlled local tape -> actual Go research engine -> actual browser. This is
 // intentionally not a public market, real account, Relay or transaction proof.
@@ -47,7 +46,13 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     }
   }
   try{
-    await start();browser=await chromium.launch(await financeBrowserLaunchOptions());const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
+    // Use the already-installed Playwright QA binary, not the user's branded
+    // Chrome with its inherited updater/crash-handler stdout lifecycle.
+    // No download, profile reuse or installed-Wallet evidence is implied.
+    const browserExecutable=chromium.executablePath();await access(browserExecutable);
+    await start();browser=await chromium.launch({headless:true,executablePath:browserExecutable});
+    t.diagnostic(JSON.stringify({classification:'EXISTING_ISOLATED_QA_BROWSER',browserExecutable,browserVersion:browser.version(),publicVerified:false,installedWallet:false}));
+    const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
     const errors=[],bodies=[];page.on('pageerror',error=>errors.push(error.message));
     await context.route('**/*',async route=>{if(new URL(route.request().url()).origin!==base)return route.abort();return route.continue()});
     await context.route('**/api/v1/backtests/from-market',async route=>{
@@ -452,7 +457,11 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     // Drain owned routed contexts before shutting down the browser process.
     // Keep the original deadline; a passed flow is not a passed cleanup.
     t.diagnostic('cleanup=research-contexts-start');await context.request.dispose();await otherContext.request.dispose();await context.close();await otherContext.close();t.diagnostic('cleanup=research-contexts-complete');
-  }finally{t.diagnostic('cleanup=browser-start');await browser?.close();t.diagnostic('cleanup=browser-complete');await stop();t.diagnostic('cleanup=service-complete');await new Promise(resolve=>tape.close(resolve));t.diagnostic('cleanup=tape-complete');}
+  }finally{
+    t.diagnostic('cleanup=browser-start');
+    try{await browser?.close();t.diagnostic('cleanup=browser-complete');}
+    finally{try{await stop();t.diagnostic('cleanup=service-complete');}finally{await new Promise(resolve=>tape.close(resolve));t.diagnostic('cleanup=tape-complete');}}
+  }
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
