@@ -15,6 +15,7 @@ import{isFailure,recoverLastFailed,replayAwareAppend,SimulationAuditRecord,TESTN
 import{GuestExperience}from"./src/GuestExperience";
 import{YNXBrandLogo}from"./src/YNXBrandLogo";
 import{CardText as Text,CardTextInput as TextInput,CardTextSizeSettings}from"./src/cardTypography";
+import{CardIntroductionLink}from"./src/CardIntroductionLink";
 import{CardProviderClient}from"./src/providerApplicationClient";
 import{createRuntimeProviderClient,createRuntimeCardBusinessClient}from"./src/providerClientRuntime";
 import{CardBusinessClient}from"./src/cardBusinessClient";
@@ -599,6 +600,7 @@ export default function App(){
   if(settings)return <SafeAreaProvider><Language locale={locale} setLocale={setLocale} close={()=>setSettings(false)} c={c} tr={tr}/></SafeAreaProvider>;
 
   return <SafeAreaProvider><SafeAreaView style={[s.safe,{backgroundColor:c.canvas},rtl&&s.rtl]}>
+    <CardIntroductionLink locale={locale}/>
     <StatusBar style={dark?"light":"dark"}/>
     <View style={[s.header,{borderBottomColor:c.separator},rtl&&s.rowRTL]}>
       <View style={s.brandGroup}>

@@ -10,15 +10,16 @@ test('introduction keeps canonical app CTA and has no wallet or navigation launc
   const html=await readFile(join(root,'public/about/index.html'),'utf8');
   assert.match(html,/<html lang="en" translate="no"/);assert.match(html,/name="google" content="notranslate"/);
   assert.equal((html.match(/href="\/"/g)||[]).length,3);assert.doesNotMatch(html,/target=|iframe|ynxwallet:\/\/|eth_requestAccounts/);
-  for(const key of [...html.matchAll(/data-(?:copy|alt)="([^"]+)"/g)].map(m=>m[1]))assert.equal(typeof zh[key],'string',key);
+  for(const key of [...html.matchAll(/data-(?:copy|alt|label)="([^"]+)"/g)].map(m=>m[1]))assert.equal(typeof zh[key],'string',key);
 });
 test('locale is explicit, reversible and uses only the existing app preference',()=>{
   const node={dataset:{copy:'open'},textContent:'Open web app'},image={dataset:{alt:'artAlt'},alt:'Illustration'},button={setAttribute(key,value){this[key]=value}};
-  const document={documentElement:{lang:'en'},querySelectorAll:selector=>selector==='[data-copy]'?[node]:[image],getElementById:()=>button};
+  const label={dataset:{label:'navLabel'},getAttribute(){return this.value??'Introduction navigation'},setAttribute(_key,value){this.value=value}};
+  const document={documentElement:{lang:'en'},querySelectorAll:selector=>selector==='[data-copy]'?[node]:selector==='[data-alt]'?[image]:[label],getElementById:()=>button};
   const writes=[],storage={setItem:(...args)=>writes.push(args)};
   applyLanguage(document,null,'en');assert.equal(node.textContent,'Open web app');assert.equal(writes.length,0);
-  applyLanguage(document,storage,'zh-CN');assert.equal(node.textContent,zh.open);assert.equal(document.documentElement.lang,'zh-CN');
-  applyLanguage(document,storage,'en');assert.equal(node.textContent,'Open web app');assert.equal(image.alt,'Illustration');assert.deepEqual(writes,[['ynx-card.secure.v1.locale','zh-CN'],['ynx-card.secure.v1.locale','en']]);
+  applyLanguage(document,storage,'zh-CN');assert.equal(node.textContent,zh.open);assert.equal(document.documentElement.lang,'zh-CN');assert.equal(label.value,zh.navLabel);
+  applyLanguage(document,storage,'en');assert.equal(node.textContent,'Open web app');assert.equal(image.alt,'Illustration');assert.equal(label.value,'Introduction navigation');assert.deepEqual(writes,[['ynx-card.secure.v1.locale','zh-CN'],['ynx-card.secure.v1.locale','en']]);
   assert.doesNotThrow(()=>applyLanguage(document,{setItem(){throw Error('blocked storage')}},'en'));
 });
 test('build copies source-owned introduction and original assets without replacing root app',async()=>{

@@ -1,4 +1,5 @@
 export const zh={
+  brandLabel:'YNX Card 产品介绍',navLabel:'介绍页导航',boundaryLabel:'测试网边界',
   skip:'跳至正文',navExperience:'产品体验',navJourney:'使用流程',navHelp:'帮助',open:'打开网页版',
   title:'清晰理解卡支付的每一步。',lead:'申请测试网卡，探索消费控制和完整支付生命周期。仅使用 YNX Testnet 的 YNXT，不涉及真实资金。',explore:'进入网页版探索',how:'了解使用流程',guest:'无需钱包即可浏览。仅在你选择账户操作时连接钱包。',
   artAlt:'YNX 测试网卡视觉示意，不代表已发卡',caption:'TEST 卡视觉示意。不代表已发卡，不包含支付凭证。',boundaryTitle:'测试网，不是银行卡。',boundary:'仅演练支付网络。不支持法币充值、PAN、CVV、真实商户清算或现实消费。',
@@ -21,6 +22,10 @@ export function applyLanguage(document,storage,language){
   for(const element of document.querySelectorAll('[data-alt]')){
     if(!element.dataset.englishAlt)element.dataset.englishAlt=element.alt;
     element.alt=chinese?zh[element.dataset.alt]:element.dataset.englishAlt;
+  }
+  for(const element of document.querySelectorAll('[data-label]')){
+    if(!element.dataset.englishLabel)element.dataset.englishLabel=element.getAttribute('aria-label');
+    element.setAttribute('aria-label',chinese?zh[element.dataset.label]:element.dataset.englishLabel);
   }
   document.documentElement.lang=chinese?'zh-CN':'en';
   document.title=chinese?'YNX Card | 探索测试网':'YNX Card | Explore Testnet';
