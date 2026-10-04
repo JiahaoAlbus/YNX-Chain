@@ -58,6 +58,10 @@ if ! COPYFILE_DISABLE=1 cp -cR node_modules "$app/Contents/Resources/code/apps/d
   if [[ -e "$app/Contents/Resources/code/apps/developer/node_modules" ]]; then
     mv "$app/Contents/Resources/code/apps/developer/node_modules" "$root/node_modules-clone-failed"
   fi
+  if [[ "${YNX_DEVELOPER_MACOS_REQUIRE_CLONE:-0}" == 1 ]]; then
+    echo "Required dependency clone failed; partial candidate preserved without an unbudgeted full copy." >&2
+    exit 1
+  fi
   COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
 fi
 
@@ -145,6 +149,10 @@ mkdir -p "$dmg_root"
 # APFS can stage an identical copy without duplicating all runtime blocks.
 # Other filesystems retain the existing regular-copy route.
 if ! COPYFILE_DISABLE=1 cp -cR "$app" "$dmg_root/"; then
+  if [[ "${YNX_DEVELOPER_MACOS_REQUIRE_CLONE:-0}" == 1 ]]; then
+    echo "Required DMG staging clone failed; partial candidate preserved without an unbudgeted full copy." >&2
+    exit 1
+  fi
   # Preserve a failed clone attempt; the fallback starts in a fresh directory.
   dmg_root="$root/dmg-root-fallback"
   mkdir "$dmg_root"
