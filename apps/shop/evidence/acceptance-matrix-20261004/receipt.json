@@ -1,0 +1,166 @@
+{
+  "sourceCommit": "a828c9bccbef5574466d3895d356b0d785f2d0a2",
+  "sourceTree": "4ac8d148b35f985eda31140d7885c556fab72df6",
+  "runtimeSource": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+  "runtimeTree": "842b74986623a971a951dfd999b21d66d3272dab",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    },
+    {
+      "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+      "path": "apps/shop/evidence/seller-normal-flow-20261004/commerce-owned-delta-11b514910.tar",
+      "members": 8,
+      "bytes": 94208,
+      "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+    },
+    {
+      "sourceCommit": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+      "path": "apps/shop/evidence/view-lifecycle-20261004/commerce-owned-delta-c2e17e441.tar",
+      "members": 8,
+      "bytes": 122880,
+      "sha256": "ffd99d4a1027571bf392b3b67c27a11526e0601acd1d98e6b928694560982b9c"
+    },
+    {
+      "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+      "path": "apps/shop/evidence/shop-mount-20261004/commerce-owned-delta-7d1128595.tar",
+      "members": 1,
+      "bytes": 20480,
+      "sha256": "901a1b74e5700a1d9cd6dc5f21b328192c245f2e2aa3b67dbb1a975010dba3dc"
+    },
+    {
+      "sourceCommit": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+      "path": "apps/shop/evidence/browser-gateway-20261004/commerce-owned-delta-2662eb638.tar",
+      "members": 6,
+      "bytes": 71680,
+      "sha256": "dc25de9830a3bf544061d5e0ea79a86eeaa044cf063da245fbd5ba064c32424f"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-a828c9bcc.tar",
+    "members": 2,
+    "bytes": 40960,
+    "sha256": "5666fcb04a01c0a54cab87523f1a6f98c025307e6195290201d767d3cea61c06"
+  },
+  "composedOwnedMembers": 444,
+  "composition": "PASS actual seven immutable layers and all444 owned member byte/hash matches",
+  "validation": "PASS all11 original journey IDs/controls/steps/acceptance preserved; 12 total journeys/five independent platform runs remain NOT_VERIFIED",
+  "runtimeChanges": "none; retained preceding runtime/build/race/actual Browser SDK qualification only",
+  "platformRuns": [
+    {
+      "id": "web-buyer",
+      "platform": "web",
+      "role": "buyer",
+      "journeys": [
+        "buyer-private",
+        "buyer-profile-restore",
+        "buyer-cart-checkout",
+        "buyer-wallet-review",
+        "buyer-resolution"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "web-seller",
+      "platform": "web",
+      "role": "seller",
+      "journeys": [
+        "seller-catalog",
+        "seller-fulfillment",
+        "seller-resolution"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "web-merchant",
+      "platform": "web",
+      "role": "merchant",
+      "journeys": [
+        "merchant-invoice",
+        "merchant-cases"
+      ],
+      "status": "NOT_VERIFIED"
+    },
+    {
+      "id": "android-buyer",
+      "platform": "android",
+      "role": "buyer",
+      "journeys": [
+        "native-buyer"
+      ],
+      "status": "NOT_VERIFIED",
+      "required": [
+        "catalog/product/variant/cart",
+        "profile save/reopen/cold restore",
+        "explicit checkout/original order readback",
+        "original invoice and human Wallet review",
+        "refund/return/dispute/review in actually allowed status",
+        "prepared same-input/key explicit retry versus unknown original lookup",
+        "leave/background/restart/account-isolation",
+        "original Seller/Merchant Web navigation with separate actual Web authority"
+      ]
+    },
+    {
+      "id": "macos-buyer",
+      "platform": "macos",
+      "role": "buyer",
+      "journeys": [
+        "native-buyer"
+      ],
+      "status": "NOT_VERIFIED",
+      "required": [
+        "catalog/product/variant/cart",
+        "profile save/reopen/cold restore",
+        "explicit checkout/original order readback",
+        "original invoice and human Wallet review",
+        "refund/return/dispute/review in actually allowed status",
+        "prepared same-input/key explicit retry versus unknown original lookup",
+        "leave/background/restart/account-isolation",
+        "original Seller/Merchant Web navigation with separate actual Web authority"
+      ]
+    }
+  ],
+  "evidencePolicy": {
+    "default": "NOT_VERIFIED",
+    "independentPer": "product/role/platform/account/store-or-merchant/installed-or-public-source",
+    "requiredForEveryRun": [
+      "exact A source/tree and artifact hash",
+      "final URL or installed package/version/hash",
+      "accepted SDK/profile/runtime endpoint and deployed backend identity",
+      "current original account and store/merchant membership readback",
+      "explicit human Wallet approval when required",
+      "each operation original key/body digest/status and actual server readback",
+      "leave/reopen/restart/account-isolation outcomes"
+    ],
+    "privacy": "Retain only necessary redacted IDs/digests/status and source identities; never write keys, approvals, proofs, tokens, passwords or shipping bodies into acceptance evidence.",
+    "noInference": [
+      "controlled software approval is not human Wallet approval",
+      "Debug build is not signed package/install",
+      "HTML200 is not private service or source identity",
+      "one platform/role cannot qualify another",
+      "a pending transaction may not be automatically resent or cleared",
+      "queued integration is not deployment"
+    ]
+  },
+  "unchangedControlledCandidate": {
+    "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+    "path": "apps/shop/evidence/shop-mount-20261004/controlled-shop-web-7d1128595.tar",
+    "members": 23,
+    "bytes": 7837696,
+    "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
+    "qualification": "CONTROLLED_BUILD_ONLY full cached dependency stage and controlled Browser SDK; A formal qualification/signing/deployment still required"
+  },
+  "formalReceipt": "not returned; unique A confirmed live and exact source-bound entry/callback assembly queued",
+  "goal": "NOT_COMPLETE"
+}
