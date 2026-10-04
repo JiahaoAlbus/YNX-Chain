@@ -108,6 +108,19 @@ test('operator risk observation labels and rejection stay in all twelve selected
  }
 });
 const testnetReceipt=review=>({id:'testnet-000007',mandateDigest:review.MandateDigest,strategyHash:'e'.repeat(64),market:review.draft.Market,side:review.draft.Side,price:review.draft.Price,amount:review.draft.Amount,idempotencyKey:review.draft.IdempotencyKey,status:'submitted_testnet',createdAt:new Date().toISOString(),venueOrderId:'controlled-venue-order',venueStatus:'open',authorizationDigest:'b'.repeat(64),brokerProof:'controlled-broker-receipt-not-a-real-session'});
+test('Testnet confirmation binds the signature across the asynchronous proof boundary without replacement or retry',async()=>{
+ for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){
+  const app=harness({confirmAction:()=>true});await settle();observedOrder(app);await app.ids.get('preview-order').onclick();
+  app.ids.get('locale').onchange({target:{value:language}});app.ids.get('order-signature').value='controlled-original-signature';
+  const proof=deferred();let calls=0;app.context.window.YNXQuantWallet.requireProof=()=>{calls++;return proof.promise};
+  const submission=app.submit('testnet-order-form');await settle();assert.equal(calls,1);
+  app.ids.get('order-signature').value='controlled-replacement-signature';proof.resolve('controlled-not-real-proof');await submission;
+  assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,0);
+  assert.equal(app.ids.get('toast').textContent,vm.runInContext('t("paperPreviewChanged")',app.context));
+  assert.notEqual(vm.runInContext('pendingOrder',app.context),null);assert.equal(app.ids.get('order-signature').value,'controlled-replacement-signature');
+  assert.equal(app.ids.get('testnet-order-submit').disabled,false);
+ }
+});
 test('Testnet malformed or foreign 201 receipt never claims success or clears exact preview/signature',async()=>{
  for(const patch of [null,[],{}, {id:'foreign'},{mandateDigest:'a'.repeat(64)},{market:'OTHER'},{side:'sell'},{price:999},{amount:999},{idempotencyKey:'other-key'},{status:'reserved_outcome_unknown'},{venueStatus:'rejected'},{venueOrderId:''},{brokerProof:''},{authorizationDigest:'bad'},{createdAt:'2026-02-30T00:00:00Z'},{strategyHash:null}]){
   let returned=null;const app=harness({confirmAction:()=>true,apiResponse:url=>url.endsWith('/snapshot')?{}:url.endsWith('/testnet/orders')?returned:{payload:'Controlled local preview',digest:'f'.repeat(64)}});await settle();observedOrder(app);await app.ids.get('preview-order').onclick();
@@ -126,6 +139,7 @@ test('exact confirmed Testnet receipt alone clears preview and double submit sha
  const first=app.submit('testnet-order-form');await settle();await app.submit('testnet-order-form');assert.equal(proofCalls,1);assert.equal(app.ids.get('testnet-order-submit').disabled,true);
  confirmation.resolve('controlled-test-proof');await first;
  assert.equal(app.calls.filter(call=>call.url.endsWith('/testnet/orders')).length,1);assert.equal(vm.runInContext('pendingOrder',app.context),null);assert.equal(app.ids.get('order-signature').value,'');assert.equal(app.ids.get('testnet-order-submit').disabled,false);
+ assert.equal(JSON.parse(app.calls.find(call=>call.url.endsWith('/testnet/orders')).options.body).WalletSignature,'controlled-signature');
  assert.ok(app.ids.get('toast').textContent.includes('Venue status is not a settlement'));assert.doesNotMatch(app.ids.get('toast').textContent,/controlled-broker-receipt/);
  for(const language of ['en','zh-CN','zh-TW','ja','ko','es','fr','de','pt','ru','ar','id']){app.ids.get('locale').onchange({target:{value:language}});assert.ok(app.ids.get('toast').textContent.startsWith(vm.runInContext('t("executionReceiptConfirmed")',app.context)));}
 });

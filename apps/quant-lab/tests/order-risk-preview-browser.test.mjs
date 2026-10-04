@@ -8,12 +8,13 @@ test('actual Quant browser requires explicit risk observations and retires previ
  const [html,app,i18n]=await Promise.all(['index.html','app.js','i18n.js'].map(name=>readFile(new URL('../web/'+name,import.meta.url),'utf8')));
  const browser=await chromium.launch(await financeBrowserLaunchOptions());
  try{
-  const page=await browser.newPage(),errors=[],posts=[];page.on('pageerror',error=>errors.push(error.message));
+  const page=await browser.newPage(),errors=[],posts=[],executionPosts=[];page.on('pageerror',error=>errors.push(error.message));
   await page.route('**/*',route=>{
    const request=route.request(),url=new URL(request.url());
    if(url.pathname==='/')return route.fulfill({contentType:'text/html',body:html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'')});
    if(url.pathname==='/api/v1/snapshot')return route.fulfill({json:{access:{statefulPreview:true},paper:{},strategies:{},experiments:{},audit:[]}});
    if(url.pathname==='/api/v1/testnet/signing-payloads/order'){posts.push(request.postDataJSON());return route.fulfill({json:{payload:'Controlled local preview only',digest:'f'.repeat(64)}})}
+   if(url.pathname==='/api/v1/testnet/orders'){executionPosts.push(request.postDataJSON());return route.abort()}
    return route.abort();
   });
   await page.goto('https://quant-owned-fixture.invalid/');
@@ -32,6 +33,18 @@ test('actual Quant browser requires explicit risk observations and retires previ
    await page.locator('#locale').selectOption(language);
    assert.equal(await page.locator('[data-business-i18n="riskOperatorObservation"]').textContent(),await page.evaluate(()=>businessCopy[locale].riskOperatorObservation));
   }
-  assert.equal(await page.evaluate(()=>riskQAProofCalls),0);assert.deepEqual(errors,[]);assert.equal(page.context().pages().length,1);
+  assert.equal(await page.evaluate(()=>riskQAProofCalls),0);
+  await page.locator('#order-mandate').fill('a'.repeat(64));await page.locator('#order-key').fill('controlled-signature-fence-key');
+  await page.locator('#risk-oracle-time').fill(new Date(Date.now()-1000).toISOString());await page.locator('#preview-order').click();await page.locator('#order-payload').waitFor({state:'visible'});
+  await page.locator('#order-signature').fill('controlled-original-signature');
+  await page.evaluate(()=>{YNXQuantWallet.requireProof=()=>{riskQAProofCalls++;return new Promise(resolve=>{window.resolveRiskQAProof=resolve})}});
+  page.once('dialog',dialog=>dialog.accept());await page.locator('#testnet-order-submit').click();
+  await page.waitForFunction(()=>typeof window.resolveRiskQAProof==='function');
+  await page.locator('#order-signature').fill('controlled-replacement-signature');await page.evaluate(()=>resolveRiskQAProof('controlled-local-proof-not-real-authorization'));
+  await page.waitForFunction(()=>!document.querySelector('#testnet-order-submit').disabled);
+  assert.equal(await page.locator('#toast').textContent(),await page.evaluate(()=>t('paperPreviewChanged')));
+  assert.equal(executionPosts.length,0);assert.equal(await page.evaluate(()=>riskQAProofCalls),1);
+  assert.equal(await page.locator('#order-signature').inputValue(),'controlled-replacement-signature');assert.equal(await page.locator('#order-payload').isVisible(),true);
+  assert.deepEqual(errors,[]);assert.equal(page.context().pages().length,1);
  }finally{await browser.close()}
 });

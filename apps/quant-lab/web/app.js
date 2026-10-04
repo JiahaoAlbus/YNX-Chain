@@ -1482,13 +1482,15 @@ $("#testnet-order-form").onsubmit = async (e) => {
   if(testnetOrderSubmitting)return;
   const revision = previewRevision;
   try {
-    const review=orderReview(),draft=review.draft;
+    const review=orderReview(),draft=review.draft,walletSignature=$("#order-signature").value.trim();
     if(!pendingOrder||JSON.stringify(review)!==JSON.stringify(pendingOrder))throw Object.assign(new Error(t('riskObservationInvalid')),{localeKey:'riskObservationInvalid'});
     if(!confirm(`${t('riskOrderConfirm')}\n${JSON.stringify(review,null,2)}`))return;
     if(revision!==previewRevision||JSON.stringify(orderReview())!==JSON.stringify(review))return;
+    if($("#order-signature").value.trim()!==walletSignature)throw Object.assign(new Error(t('paperPreviewChanged')),{localeKey:'paperPreviewChanged'});
     testnetOrderSubmitting=true;$('#testnet-order-submit').disabled=true;
     const productProof = await window.YNXQuantWallet.requireProof("quant:mandate:execute");
     if (revision !== previewRevision || !pendingOrder || JSON.stringify(orderReview())!==JSON.stringify(review)) return;
+    if($("#order-signature").value.trim()!==walletSignature)throw Object.assign(new Error(t('paperPreviewChanged')),{localeKey:'paperPreviewChanged'});
     const receipt = await api("/v1/testnet/orders", {
       method: "POST",
       headers: { "x-ynx-quant-product-session-proof": productProof },
@@ -1498,7 +1500,7 @@ $("#testnet-order-form").onsubmit = async (e) => {
         Price: draft.Price,
         Amount: draft.Amount,
         IdempotencyKey: draft.IdempotencyKey,
-        WalletSignature: $("#order-signature").value.trim(),
+        WalletSignature: walletSignature,
         Risk: review.Risk,
       }),
     });
