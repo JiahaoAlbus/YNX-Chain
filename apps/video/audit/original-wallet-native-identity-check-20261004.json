@@ -1,0 +1,79 @@
+{
+  "schema": "ynx.media.original-wallet-native-identity-check.v1",
+  "observedAt": "2026-10-04T08:22:12.030781+00:00",
+  "method": "Read existing installed bundle Info.plist and application archive hashes only; ps pid+comm inventory",
+  "apps": [
+    {
+      "path": "/Applications/YNX Wallet 0.6.3 QA.app",
+      "bundleId": "com.ynxweb4.wallet.macos",
+      "version": "0.6.3",
+      "build": "0.6.3",
+      "infoPlistSHA256": "b40e985069be7c196fd7c0ce7dce6588f5492e0f0c47476799dd8b6b03d91d34",
+      "appAsar": {
+        "bytes": 63797064,
+        "sha256": "86a07abfb423a4165aaf974abb17df3260f7a2f61e9f14217946ec10286e3657"
+      }
+    },
+    {
+      "path": "/Applications/YNX Wallet 0.6.4 Testnet QA.app",
+      "bundleId": "com.ynxweb4.wallet.macos",
+      "version": "0.6.4",
+      "build": "0.6.4",
+      "infoPlistSHA256": "14914d865fec4c2179e54aadd3eb490e21d26e00c3e8bfa214fd6e6b8c2fee69",
+      "appAsar": {
+        "bytes": 64101657,
+        "sha256": "68252ab0f219d8240e4fffcbe8bebb88857966cee601499e049815cfb5a083ff"
+      }
+    },
+    {
+      "path": "/Applications/YNX Wallet 2.app",
+      "bundleId": "com.ynxweb4.wallet.macos",
+      "version": "0.6.8",
+      "build": "0.6.8",
+      "infoPlistSHA256": "4e7ef366923a6146e525457afa5e733d47a7db0a10212ce9e27c1f96dc6657d3",
+      "appAsar": {
+        "bytes": 65793288,
+        "sha256": "c5693825a4c620453fd5fcd8f922b09a26a02c0c769cbb345ee291be2192d969"
+      }
+    },
+    {
+      "path": "/Applications/YNX Wallet Password V3 3c93 QA.app",
+      "bundleId": "com.ynxweb4.wallet.passwordv3.qa.3c93",
+      "version": "0.6.3",
+      "build": "0.6.3",
+      "infoPlistSHA256": "8f281dd114118103c0cee442bedcee3c113f2d86479efdb817afec2f706d84bf",
+      "appAsar": {
+        "bytes": 64033941,
+        "sha256": "e06953738a8ddc7fb09bb7de4949821c77e809c63f5cb668a8c852414ad5b211"
+      }
+    },
+    {
+      "path": "/Applications/YNX Wallet.app",
+      "bundleId": "com.ynxweb4.wallet.macos",
+      "version": "0.6.4",
+      "build": "0.6.4",
+      "infoPlistSHA256": "14914d865fec4c2179e54aadd3eb490e21d26e00c3e8bfa214fd6e6b8c2fee69",
+      "appAsar": {
+        "bytes": 64101657,
+        "sha256": "68252ab0f219d8240e4fffcbe8bebb88857966cee601499e049815cfb5a083ff"
+      }
+    }
+  ],
+  "nativeUi": "Tool currently refuses because Mac is locked",
+  "runningWalletProcessObserved": false,
+  "sharedBundleDuplicates": [
+    "/Applications/YNX Wallet 0.6.3 QA.app",
+    "/Applications/YNX Wallet 0.6.4 Testnet QA.app",
+    "/Applications/YNX Wallet 2.app",
+    "/Applications/YNX Wallet.app"
+  ],
+  "correctVersionAndAccountSelection": "NOT_VERIFIED; original Wallet owner must reconcile precise existing copy with original release and preserved account",
+  "preservation": {
+    "appsRemoved": false,
+    "appStarted": false,
+    "keyOrCredentialRead": false,
+    "walletStateModified": false,
+    "launchServicesChanged": false
+  },
+  "next": "After manual unlock verify exact app path, rendered source/version and existing account before original consent; no new account or reinstall substitution"
+}
