@@ -12,13 +12,19 @@ function fixture() {
   const monacoCommands = { executeMonacoCommand: (id, ...args) => calls.push({ id, args }) };
   const contribution = new LanguageCommandReadiness(editors, plugins, monacoCommands);
   contribution.registerCommands({ registerHandler: (id, handler) => { handlers[id] = handler; } });
-  return { calls, model, position, widget, editors, start, handler: handlers['editor.action.revealDefinition'] };
+  return { calls, model, position, widget, editors, start, handlers, handler: handlers['editor.action.revealDefinition'] };
 }
 test('first definition command awaits actual host startup and language activation before standard action', async () => {
   const h = fixture(); assert.equal(h.handler.isEnabled(), true);
   const task = h.handler.execute('argument'); await Promise.resolve(); assert.deepEqual(h.calls, []);
   h.start(); await task;
   assert.deepEqual(h.calls, [{ language: 'solidity' }, { id: 'editor.action.revealDefinition', args: ['argument'] }]);
+});
+test('first rename also awaits host startup before opening the standard rename input', async () => {
+  const h = fixture(), task = h.handlers['editor.action.rename'].execute();
+  await Promise.resolve(); assert.deepEqual(h.calls, []);
+  h.start(); await task;
+  assert.deepEqual(h.calls, [{ language: 'solidity' }, { id: 'editor.action.rename', args: [] }]);
 });
 test('pending startup cannot redirect switched tab, edited source, changed cursor or disposed editor', async () => {
   for (const change of [h => { h.editors.currentEditor = undefined; }, h => { h.model.version++; }, h => { h.position.value++; }, h => { h.widget.isDisposed = true; }]) {

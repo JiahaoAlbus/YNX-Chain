@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "YNX Tools",
   "publisher": "ynx",
-  "version": "0.2.15",
+  "version": "0.2.16",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -35,8 +35,12 @@
     },
     "commands": [
       {
-        "command": "ynx.copySolidityProject",
+        "command": "ynx.compileSolidity",
         "title": "YNX: Compile Solidity Project"
+      },
+      {
+        "command": "ynx.copySolidityProject",
+        "title": "YNX: Copy Solidity Sources for Tools"
       },
       {
         "command": "ynx.openTools",
@@ -77,6 +81,11 @@
     ],
     "menus": {
       "editor/context": [
+        {
+          "command": "ynx.compileSolidity",
+          "when": "resourceScheme == file && resourceExtname == .sol",
+          "group": "ynx@2"
+        },
         {
           "command": "ynx.reviewSelection",
           "when": "ynx.hasSelection && resourceScheme == file",

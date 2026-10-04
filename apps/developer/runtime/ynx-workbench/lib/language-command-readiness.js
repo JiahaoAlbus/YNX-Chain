@@ -3,11 +3,12 @@
 class LanguageCommandReadiness {
   constructor(editors, plugins, monacoCommands) { this.editors = editors; this.plugins = plugins; this.monacoCommands = monacoCommands; }
   registerCommands(registry) {
-    const id = 'editor.action.revealDefinition';
-    registry.registerHandler(id, {
-      isEnabled: () => this.isSolidityEditor(),
-      execute: (...args) => this.execute(id, args),
-    });
+    for (const id of ['editor.action.revealDefinition', 'editor.action.rename', 'editor.action.triggerSuggest']) {
+      registry.registerHandler(id, {
+        isEnabled: () => this.isSolidityEditor(),
+        execute: (...args) => this.execute(id, args),
+      });
+    }
   }
   isSolidityEditor() {
     const editor = this.editors.currentEditor?.editor;
@@ -22,7 +23,7 @@ class LanguageCommandReadiness {
     // A pending startup must not redirect a later tab, changed buffer or cursor.
     if (widget.isDisposed || this.editors.currentEditor !== widget || control.getModel() !== model
       || model.getVersionId() !== version || !control.getSelection()?.equalsSelection(selection)) return;
-    // Definition is registered as an Action2 command in this Monaco version,
+    // These actions are registered as Action2 commands in this Monaco version,
     // not an editor.getAction entry. Use the existing Monaco command delegate
     // directly so we do not recurse through our own registry handler.
     return this.monacoCommands.executeMonacoCommand(id, ...args);

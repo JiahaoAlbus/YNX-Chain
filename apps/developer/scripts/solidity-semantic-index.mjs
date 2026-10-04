@@ -1,7 +1,7 @@
 // Compact only compiler-authored declaration/reference locations. This index
 // does not infer symbols from lexical matches or execute source code.
 export function soliditySemanticIndex(output, sources) {
-  const fileIds = new Map(), declarations = [], references = [];
+  const fileIds = new Map(), declarations = [], references = [], scopes = [], imports = [];
   for (const [name, row] of Object.entries(output.sources || {})) {
     if (Object.hasOwn(sources, name) && Number.isSafeInteger(row.id) && row.id >= 0) fileIds.set(row.id, name);
   }
@@ -14,22 +14,26 @@ export function soliditySemanticIndex(output, sources) {
     return { file, start, end };
   }
   const kinds = new Set(['ContractDefinition', 'FunctionDefinition', 'ModifierDefinition', 'VariableDeclaration', 'StructDefinition', 'EnumDefinition', 'EnumValue', 'EventDefinition', 'ErrorDefinition', 'UserDefinedValueTypeDefinition']);
+  const scopeKinds = new Set(['SourceUnit', 'ContractDefinition', 'FunctionDefinition', 'ModifierDefinition', 'Block', 'ForStatement', 'TryCatchClause', 'StructDefinition', 'EnumDefinition']);
   const stack = Object.entries(output.sources || {}).filter(([name]) => Object.hasOwn(sources, name)).map(([, row]) => ({ value: row.ast, parentId: undefined }));
   let visited = 0;
   while (stack.length) {
     if (++visited > 100000) throw Object.assign(new Error('The Solidity semantic tree exceeds its limit.'), { status: 413, code: 'compiler_semantic_limit' });
-    const { value: node, parentId } = stack.pop();
+    const { value: node, parentId, scopeId } = stack.pop();
     if (!node || typeof node !== 'object') continue;
-    if (Array.isArray(node)) { for (const value of node) stack.push({ value, parentId }); continue; }
+    if (Array.isArray(node)) { for (const value of node) stack.push({ value, parentId, scopeId }); continue; }
     const id = Number.isSafeInteger(node.id) && node.id >= 0 ? node.id : undefined;
     const definition = kinds.has(node.nodeType) && typeof node.name === 'string' && node.name.length ? location(node.nameLocation || node.src) : undefined;
-    if (definition && id !== undefined) declarations.push({ id, name: node.name, kind: node.nodeType, location: definition, ...(parentId !== undefined ? { parentId } : {}), ...(Number.isSafeInteger(node.scope) && node.scope >= 0 ? { scopeId: node.scope } : {}), ...(typeof node.typeDescriptions?.typeString === 'string' ? { type: node.typeDescriptions.typeString } : {}) });
+    if (definition && id !== undefined) declarations.push({ id, name: node.name, kind: node.nodeType, location: definition, ...(parentId !== undefined ? { parentId } : {}), ...(Number.isSafeInteger(node.scope) && node.scope >= 0 ? { scopeId: node.scope } : scopeId !== undefined ? { scopeId } : {}), ...(typeof node.typeDescriptions?.typeString === 'string' ? { type: node.typeDescriptions.typeString } : {}), ...(typeof node.typeName?.pathNode?.name === 'string' || typeof node.typeName?.name === 'string' ? { typeName: node.typeName.pathNode?.name || node.typeName.name } : {}), ...(typeof node.visibility === 'string' ? { visibility: node.visibility } : {}), ...(typeof node.contractKind === 'string' ? { contractKind: node.contractKind } : {}) });
+    const scoped = scopeKinds.has(node.nodeType) && id !== undefined && location(node.src);
+    if (scoped) scopes.push({ id, kind: node.nodeType, location: scoped, ...(scopeId !== undefined ? { parentId: scopeId } : {}) });
+    if (node.nodeType === 'ImportDirective' && location(node.src)) imports.push({ file: location(node.src).file, source: node.absolutePath || node.file, symbols: (node.symbolAliases || []).map(row => ({ name: row.foreign?.name, local: row.local || row.foreign?.name })), ...(node.unitAlias ? { namespace: node.unitAlias } : {}) });
     const reference = Number.isSafeInteger(node.referencedDeclaration) && node.referencedDeclaration >= 0 ? location(node.memberLocation || node.src) : undefined;
     if (reference) references.push({ targetId: node.referencedDeclaration, location: reference, ...(typeof node.typeDescriptions?.typeString === 'string' ? { type: node.typeDescriptions.typeString } : {}) });
-    for (const value of Object.values(node)) if (value && typeof value === 'object') stack.push({ value, parentId: id ?? parentId });
-    if (declarations.length + references.length > 16384) throw Object.assign(new Error('The Solidity semantic index exceeds its limit.'), { status: 413, code: 'compiler_semantic_limit' });
+    for (const value of Object.values(node)) if (value && typeof value === 'object') stack.push({ value, parentId: id ?? parentId, scopeId: scoped ? id : scopeId });
+    if (declarations.length + references.length + scopes.length + imports.length > 16384) throw Object.assign(new Error('The Solidity semantic index exceeds its limit.'), { status: 413, code: 'compiler_semantic_limit' });
   }
   const known = new Set(declarations.map(row => row.id));
   const byLocation = (a, b) => a.location.file.localeCompare(b.location.file) || a.location.start - b.location.start || a.location.end - b.location.end;
-  return { protocol: 'ynx-solidity-semantics/v1', declarations: declarations.sort(byLocation), references: references.filter(row => known.has(row.targetId)).sort(byLocation) };
+  return { protocol: 'ynx-solidity-semantics/v1', declarations: declarations.sort(byLocation), references: references.filter(row => known.has(row.targetId)).sort(byLocation), scopes, imports };
 }

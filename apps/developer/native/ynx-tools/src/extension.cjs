@@ -15,7 +15,7 @@ function activate(context) {
   context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(updateSelectionContext),
     vscode.window.onDidChangeTextEditorSelection(updateSelectionContext));
   updateSelectionContext();
-  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Import compiler diagnostics', 'ynx.importSolidityDiagnostics'], ['Review selection with AI', 'ynx.reviewSelection'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
+  const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.compileSolidity'], ['Import compiler diagnostics', 'ynx.importSolidityDiagnostics'], ['Review selection with AI', 'ynx.reviewSelection'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
     getChildren: item => item ? [] : entries,
     getTreeItem: ([label, command]) => ({ label, command: { command, title: label } })
@@ -65,6 +65,7 @@ function activate(context) {
     // document path or credentials enter the URL, and opening never sends AI.
     await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(selected.sessionId)}#ai`));
   });
+  register('ynx.compileSolidity', () => solidityLanguage.compileProject());
   register('ynx.copySolidityProject', async () => {
     const reviewed = await require('./solidity-project.cjs').captureSolidityProject(vscode, process.env);
     const count = Object.keys(reviewed.snapshot.sources).length;
