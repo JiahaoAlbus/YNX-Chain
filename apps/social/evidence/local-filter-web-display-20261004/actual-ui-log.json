@@ -1,0 +1,6 @@
+{
+  "url": "http://127.0.0.1:63793/qa.html",
+  "tabId": "20",
+  "logs": [],
+  "scope": "Controlled component UI only; no model, private authority, Wallet, deployment or MONSTER acceptance"
+}

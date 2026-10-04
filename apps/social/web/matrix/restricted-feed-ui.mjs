@@ -10,7 +10,7 @@ const validDecoded=(index,decoded)=>{
 };
 // Caller supplies the original guarded Matrix consumer and existing comment
 // publication flow. This view never requests a Wallet grant or creates identity.
-export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,downloadAttachment,capture,assertCurrent}) {
+export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,commentDrafts,commentSender,downloadAttachment,capture,assertCurrent,contentFilter}) {
   if(!root||typeof consumer?.read!=='function'||typeof loadIndexes!=='function'||typeof capture!=='function'||typeof assertCurrent!=='function')throw new Error('MATRIX_FEED_CONFIGURATION_REQUIRED');
   const document=root.ownerDocument;
   const section=document.createElement('section'),title=document.createElement('h2');
@@ -65,7 +65,7 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
   };
   const reload=async()=>{
     if(locked||busy)return;
-    const generation=++epoch,binding=capture();clear();setBusy(true);status.textContent='Checking current permissions...';
+    const generation=++epoch,binding=capture();contentFilter?.cancel('moments');clear();setBusy(true);status.textContent='Checking current permissions...';
     try{
       gate(generation,binding);
       if(commentDrafts?.load){const stored=await commentDrafts.load(binding);gate(generation,binding);if(stored&&pendingIntent&&JSON.stringify(stored)!==JSON.stringify(pendingIntent))throw new Error('MATRIX_COMMENT_RECOVERY_REQUIRED');pendingIntent=stored?snapshot(stored):pendingIntent}
@@ -80,7 +80,10 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
       gate(generation,binding);
       for(const {index,decoded} of rendered){
         const article=document.createElement('article'),body=document.createElement('p');
-        article.setAttribute('data-event-id',index.eventId);body.textContent=decoded.text;article.append(body);
+        article.setAttribute('data-event-id',index.eventId);
+        if(contentFilter)contentFilter.renderText(body,decoded.text,{id:`moment:${index.eventId}`,scope:'moments',assertCurrent:()=>gate(generation,binding)});
+        else body.textContent=decoded.text;
+        article.append(body);
         if(decoded.attachment){
           const label=document.createElement('p');label.textContent='Encrypted attachment';article.append(label);
           if(typeof downloadAttachment==='function'){
@@ -89,10 +92,10 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
             download.addEventListener('click',async()=>{
               if(locked||busy)return;let bytes=null,url=null;setBusy(true);
               try{
-                gate(generation,binding);
+                contentFilter?.assertAttachmentAllowed();gate(generation,binding);
                 bytes=await downloadAttachment({index:originalIndex,attachment:originalAttachment,binding,guard:()=>gate(generation,binding)});
                 gate(generation,binding);if(!(bytes instanceof ArrayBuffer)||!bytes.byteLength||bytes.byteLength>25*1024*1024)throw new Error('MATRIX_ATTACHMENT_INVALID');
-                const browser=document.defaultView;
+                contentFilter?.assertAttachmentAllowed();const browser=document.defaultView;
                 url=browser.URL.createObjectURL(new browser.Blob([bytes],{type:'application/octet-stream'}));gate(generation,binding);
                 const link=document.createElement('a');link.href=url;link.download=originalAttachment.body.replace(/[\x00-\x1f\x7f/\\]/g,'_');link.click();
                 status.textContent='Encrypted attachment verified and downloaded.';
@@ -104,7 +107,7 @@ export function mountRestrictedFeed({root,consumer,loadIndexes,publishComment,co
         addComment(article,index,decoded);list.append(article);
       }
       status.textContent=pendingIntent?'Protected intent requires recovery. Original draft retained; do not resend.':rendered.length?'Encrypted moments verified.':'No accessible encrypted moments.';
-      if(pendingIntent?.comment){draft.textContent=pendingIntent.text;recovery.hidden=typeof commentSender!=='function'}
+      if(pendingIntent?.comment){if(contentFilter)contentFilter.renderText(draft,pendingIntent.text,{id:`comment-draft:${pendingIntent.transactionId}`,scope:'moments',assertCurrent:()=>gate(generation,binding)});else draft.textContent=pendingIntent.text;recovery.hidden=typeof commentSender!=='function'}
     }catch{
       if(!locked&&generation===epoch){clear();status.textContent='Encrypted moments unavailable. No plaintext fallback.'}
     }finally{if(!locked&&generation===epoch){setBusy(false);if(pendingIntent)for(const control of controls)if(control!==refresh&&control!==recovery)control.disabled=true}}

@@ -1,0 +1,8 @@
+relatedBatchExit=0
+webBuildExit=1
+isolatedWebRoot=/tmp/social-filter-web.opgQlw/apps/social/web
+crossPanelOriginalExit=1
+correctedTestsExit=0
+correctedTypecheckExit=0
+correctedWebBuildExit=0
+isolatedCorrectedRoot=/tmp/social-filter-web-corrected.fhcMzy

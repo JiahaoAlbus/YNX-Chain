@@ -1,0 +1,28 @@
+{
+  "baseline": "9c04bed6866130665754bf3e5da821db29887fd5",
+  "files": [
+    {
+      "path": "web/matrix/local-filter-ui.mjs",
+      "bytes": 4358,
+      "sha256": "bdb51431d69d2a58d8c38740d39a59d320967df0e7bf6c25190ad18a78d5418d"
+    },
+    {
+      "path": "web/matrix/session-ui.mjs",
+      "bytes": 33062,
+      "sha256": "2b05f0af3d8605af5a1f09c0645010dfae1430acf92dda93b266f5eaa86bfd72"
+    },
+    {
+      "path": "web/matrix/restricted-feed-ui.mjs",
+      "bytes": 12746,
+      "sha256": "751ec1f43ea667b2f23a10b9d2ee749ef1680683a8b78fefc716ebf1b5e95133"
+    },
+    {
+      "path": "src/localContentDisplay.ts",
+      "bytes": 9058,
+      "sha256": "28a49f677f8e5693ab2ecde4efc13f6cb7f50d846c7cc4408b59c5a07a442f3d"
+    }
+  ],
+  "privateAuthority": false,
+  "modelInstalled": false,
+  "publicDeployed": false
+}

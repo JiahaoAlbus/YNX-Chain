@@ -13,6 +13,7 @@ import {mountRestrictedFeed} from './restricted-feed-ui.mjs';
 import {createContactChat} from './contact-chat.mjs';
 import {roomPresentation,approvedMessagePreview,messagePresentation,shouldSubmitChatKey} from './chat-presentation.mjs';
 import {mountChatAppearance} from './chat-appearance-ui.mjs';
+import {mountLocalContentFilter} from './local-filter-ui.mjs';
 const root=document.getElementById('matrix-social-workspace');
 const loginCallback=handleMatrixLoginCallback();
 if(root&&!loginCallback){
@@ -23,6 +24,10 @@ if(root&&!loginCallback){
  let momentComposer=null,momentFeed=null;
  const roomList=root.querySelector('[data-room-list]'),drafts=new Map();let reviewedPreview=null;
  const appearance=root.ownerDocument?.defaultView?mountChatAppearance(root):null;
+ const contentFilter=root.ownerDocument?.defaultView?mountLocalContentFilter({root,settingsContainer:document.getElementById('profile-form'),onChanged:()=>{
+  messages.replaceChildren();reviewedPreview=null;momentFeed?.lock();momentFeed?.destroy();momentFeed=null;
+  if(account&&transport.client){renderRoomButtons();attachMomentFeed();if(roomId)void renderMessages()}
+ }}):null;
  const draftKey=id=>account&&transport.binding?JSON.stringify([account,transport.binding.deviceId,id]):null;
  function saveDraft(){const key=draftKey(roomId);if(key)drafts.set(key,root.querySelector('[name=matrixText]').value)}
  function returnToList(){if(activeWork){const previous=activeWork;activeWork=null;previous.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));previous.buttons.forEach(button=>button.disabled=false)}confirmation.cancel();renderQueued=false;selectRoom(null);controls()}
@@ -50,7 +55,7 @@ if(root&&!loginCallback){
  function captureView(){return {epoch:pageEpoch,account,roomId,operation:transport.capture()}}
  function currentView(view){return view.epoch===pageEpoch&&view.account===account&&view.roomId===roomId&&view.operation.client===transport.client&&view.operation.binding===transport.binding&&view.operation.generation===transport.generation}
  function guardView(view){if(!currentView(view))throw uiError('UI_STALE_VIEW','Previous encrypted view was discarded');transport.guard(view.operation)}
- function selectRoom(id){if(roomId!==id){saveDraft();const previousRoom=roomId;pageEpoch++;roomId=id;appearance?.setScope(account,roomId);sendReady=false;reviewedPreview=null;messages.replaceChildren();const key=draftKey(id),loose=draftKey(null);if(id&&previousRoom===null&&!drafts.has(key)&&drafts.has(loose)){drafts.set(key,drafts.get(loose));drafts.delete(loose)}root.querySelector('[name=matrixText]').value=id?(drafts.get(key)??''):'';root.dataset.chatPane=id?'conversation':'list';if(document.body?.dataset)document.body.dataset.socialChatPane=root.dataset.chatPane;const room=id?transport.client?.getRoom(id):null;root.querySelector('[data-room-title]').textContent=room?roomPresentation(room).title:'Your conversations';if(id&&globalThis.window?.matchMedia?.('(max-width:899px)').matches&&globalThis.window.history.state?.ynxSocialPane!=='conversation')globalThis.window.history.pushState({...globalThis.window.history.state,ynxSocialPane:'conversation'},'',globalThis.window.location.href);phase(id?'verifying':'connected')}}
+ function selectRoom(id){if(roomId!==id){contentFilter?.cancel('messages');saveDraft();const previousRoom=roomId;pageEpoch++;roomId=id;appearance?.setScope(account,roomId);sendReady=false;reviewedPreview=null;messages.replaceChildren();const key=draftKey(id),loose=draftKey(null);if(id&&previousRoom===null&&!drafts.has(key)&&drafts.has(loose)){drafts.set(key,drafts.get(loose));drafts.delete(loose)}root.querySelector('[name=matrixText]').value=id?(drafts.get(key)??''):'';root.dataset.chatPane=id?'conversation':'list';if(document.body?.dataset)document.body.dataset.socialChatPane=root.dataset.chatPane;const room=id?transport.client?.getRoom(id):null;root.querySelector('[data-room-title]').textContent=room?roomPresentation(room).title:'Your conversations';if(id&&globalThis.window?.matchMedia?.('(max-width:899px)').matches&&globalThis.window.history.state?.ynxSocialPane!=='conversation')globalThis.window.history.pushState({...globalThis.window.history.state,ynxSocialPane:'conversation'},'',globalThis.window.location.href);phase(id?'verifying':'connected')}}
  async function identity(view=null,intent=activeWork){
   const base={epoch:pageEpoch,account,generation:transport.generation,client:transport.client};
   const guard=()=>{guardWork(intent);if(view){guardView(view);return}if(base.epoch!==pageEpoch||base.account!==account||base.generation!==transport.generation||base.client!==transport.client)throw uiError('UI_STALE_VIEW','Identity check belongs to a previous workspace')};
@@ -64,7 +69,7 @@ if(root&&!loginCallback){
    return verified;
   }catch(error){guard();if(['UI_PRIVATE_PERMISSION_REQUIRED','SESSION_EXPIRED','PERMISSION_REVOKED','GRANT_REVOKED','SSO_GRANT_EXPIRED'].includes(error?.code)){lock();phase('approval')}throw error}
  }
- function lock(){saveDraft();appearance?.setScope(null,null);root.querySelector('[name=matrixText]').value='';reviewedPreview=null;roomList.replaceChildren();root.dataset.chatPane='list';if(document.body?.dataset)document.body.dataset.socialChatPane='list';pageEpoch++;renderQueued=false;sendReady=false;contactChat.cancel();clearContactChoices();momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
+ function lock(){contentFilter?.cancel();saveDraft();appearance?.setScope(null,null);root.querySelector('[name=matrixText]').value='';reviewedPreview=null;roomList.replaceChildren();root.dataset.chatPane='list';if(document.body?.dataset)document.body.dataset.socialChatPane='list';pageEpoch++;renderQueued=false;sendReady=false;contactChat.cancel();clearContactChoices();momentFeed?.lock();momentFeed?.destroy();momentFeed=null;confirmation.cancel();const intent=activeWork;if(intent){activeWork=null;intent.controller.abort(uiError('UI_STALE_VIEW','Previous operation was stopped'));intent.buttons.forEach(button=>button.disabled=false)}reauth?.cancel();login?.cancel();transport.stop();account=null;roomId=null;requests.replaceChildren();devices.replaceChildren();messages.replaceChildren();phase('locked')}
  async function work(action){
   if(activeWork)return;const intent={epoch:pageEpoch,controller:new AbortController(),buttons:[...root.querySelectorAll('button')].filter(button=>button!==root.querySelector('[data-stop]')&&button!==root.querySelector('[data-chat-back]'))};activeWork=intent;intent.buttons.forEach(button=>button.disabled=true);
   controls();try{await waitIntent(action(intent),intent,0)}catch(error){if(activeWork===intent&&intent.epoch===pageEpoch&&!stale(error)){diagnostic(error);sendReady=false;if(error?.code==='MATRIX_LOGIN_CANCELLED'){phase(transport.client?'connected':'locked','Sign-in cancelled. Open private chat again when you are ready. Your encrypted history is retained.')}else phase(error?.code==='UI_IDENTITY_UNAVAILABLE'?'offline':error?.code==='MATRIX_PERMISSION_REQUIRED'?'approval':error?.code==='MATRIX_UNVERIFIED_DEVICE'||error?.code==='MATRIX_DEVICE_CHANGED'?'verifying':'error',error?.code==='UI_IDENTITY_UNAVAILABLE'?copy.text('offline'):error?.code==='MATRIX_PERMISSION_REQUIRED'?copy.text('approval'):copy.text('failed'))}}
@@ -83,13 +88,14 @@ if(root&&!loginCallback){
    try{
     view=captureView();await identity(view);guardView(view);await currentConversation(view);guardView(view);const records=await transport.messages(view.roomId);guardView(view);
     await identity(view);guardView(view);
-    const items=[];for(const record of records){const item=document.createElement('li'),display=messagePresentation(record,view.operation.binding.userId);item.className=display.own?'chat-message chat-message-own':'chat-message';item.textContent=`${record.sender===view.operation.binding.userId?'You':'Participant'}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
+    contentFilter?.cancel('messages');const items=[];for(const record of records){const item=document.createElement('li'),display=messagePresentation(record,view.operation.binding.userId);item.className=display.own?'chat-message chat-message-own':'chat-message';const body=`${record.sender===view.operation.binding.userId?'You':'Participant'}: ${record.content.body??'Encrypted attachment'}${record.verification?.shieldColour?' / identity assurance warning':''}`;
+     if(contentFilter){const content=document.createElement('span');contentFilter.renderText(content,body,{id:`message:${view.roomId}:${record.id??items.length}`,assertCurrent:()=>guardView(view)});item.append(content)}else item.textContent=body;
      if(record.content.file){const download=document.createElement('button');download.type='button';download.textContent='Download encrypted attachment';download.onclick=()=>void work(async()=>{
-      guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view);await currentConversation(view);guardView(view)}});guardView(view);
-      await identity(view);guardView(view);await currentConversation(view);guardView(view);const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
+      contentFilter?.assertAttachmentAllowed();guardView(view);await identity(view);guardView(view);const bytes=await transport.downloadAttachment(record.content,{assertCurrent:()=>guardView(view),revalidate:async()=>{guardView(view);await identity(view);guardView(view);await currentConversation(view);guardView(view)}});guardView(view);
+      await identity(view);guardView(view);await currentConversation(view);guardView(view);contentFilter?.assertAttachmentAllowed();const url=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'})),link=document.createElement('a');
       try{link.href=url;link.download=record.content.body||'attachment';link.click()}finally{setTimeout(()=>URL.revokeObjectURL(url),10000)}
      });item.append(download)}if(display.timestamp||display.status){const meta=document.createElement('small');meta.className='chat-message-meta';meta.textContent=[display.timestamp?new Date(display.timestamp).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}):'',display.status].filter(Boolean).join(' / ');item.append(meta)}items.push(item)
-    }guardView(view);messages.replaceChildren(...items);reviewedPreview={roomId:view.roomId,body:approvedMessagePreview(records.at(-1))};renderRoomButtons();await readiness(view);
+    }guardView(view);messages.replaceChildren(...items);reviewedPreview={roomId:view.roomId,body:contentFilter?.preview(approvedMessagePreview(records.at(-1)))??approvedMessagePreview(records.at(-1))};renderRoomButtons();await readiness(view);
    }catch(error){if(!stale(error)&&view&&currentView(view)){sendReady=false;phase('offline')}}
   }}finally{renderRunning=false}
  }
@@ -168,7 +174,8 @@ if(root&&!loginCallback){
   appearance?.setScope(account,roomId);
   const view=captureView();guardView(view);const items=[];
   for(const room of view.operation.client.getRooms()){
-   const metadata=roomPresentation(room,{selected:room.roomId===roomId,preview:reviewedPreview?.roomId===room.roomId?reviewedPreview.body:null});
+   const originalPreview=reviewedPreview?.roomId===room.roomId?reviewedPreview.body:null;
+   const metadata=roomPresentation(room,{selected:room.roomId===roomId,preview:contentFilter?contentFilter.preview(originalPreview):originalPreview});
    const node=document.createElement('button');node.type='button';node.className='chat-room'+(metadata.selected?' chat-room-selected':'');node.title=metadata.title;node.setAttribute?.('aria-pressed',String(metadata.selected));
    const avatar=document.createElement('span');avatar.className='chat-room-avatar';avatar.textContent=metadata.initial;
    const info=document.createElement('span');info.className='chat-room-copy';const title=document.createElement('strong');title.textContent=metadata.title;const summary=document.createElement('span');summary.className='chat-room-preview';summary.textContent=metadata.preview;info.append(title,summary);node.append(avatar,info);
@@ -190,9 +197,10 @@ if(root&&!loginCallback){
  const audienceHTTP=createSocialAudienceHTTPClient({session:publishing,capture:captureView,guard:guardView,csrfToken:async view=>(await identity(view)).csrfToken});
  async function draftAccess(view,action){guardView(view);const vault=await openProtectedMomentDrafts({account:view.account,deviceId:view.operation.binding.deviceId});try{guardView(view);return await action(vault,()=>guardView(view))}finally{vault.close()}}
  function attachMomentFeed(){
+  contentFilter?.cancel('moments');
   momentFeed?.lock();momentFeed?.destroy();
   const consumer=new RestrictedMoments({transport,authorize:(expected,action,options)=>audienceHTTP.authorize(expected,action,options)});
-  momentFeed=mountRestrictedFeed({root,consumer,capture:captureView,assertCurrent:guardView,
+  momentFeed=mountRestrictedFeed({root,consumer,capture:captureView,assertCurrent:guardView,contentFilter,
    downloadAttachment:async({index,attachment,binding:view,guard})=>{
     guard();guardView(view);
     return consumer.downloadAttachment(index,attachment,{assertCurrent:()=>{guard();guardView(view)},validateIdentity:async()=>{guard();await identity(view);guard();guardView(view)}});

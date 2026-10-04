@@ -1,0 +1,22 @@
+Browser tab: 20, Title: "Social local filtering controlled check", URL: "http://127.0.0.1:63793/qa.html".
+0 AXWebArea Social local filtering controlled check, URL: 127.0.0.1:63793/qa.html
+	1 container
+		2 heading Social display boundary, Value: 1
+			3 text Social display boundary
+		4 text Controlled local UI check. No account, private content, model or Wallet permission. This is not the public release or AI-quality acceptance.
+		5 container Content and privacy
+			6 text Content and privacy
+			7 container
+				8 checkbox (settable, integer) Description: Enable AI content review (local filtering), Value: 0
+				9 text Enable AI content review (local filtering)
+			19 text Local filtering is off on this device.
+		11 heading Messages, Value: 2
+			12 text Messages
+		22 text Refreshed ordinary message
+		14 heading Moments, Value: 2
+			15 text Moments
+		21 text Approved ordinary moment
+		17 button Refresh messages only, ID: refresh
+		18 button Render both panels, ID: render
+
+The focused UI element is 17 button Refresh messages only, ID: refresh
