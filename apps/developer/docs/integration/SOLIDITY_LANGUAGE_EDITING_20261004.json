@@ -1,0 +1,174 @@
+{
+  "checkpoint": "Solidity language recognition, lexical highlighting and normal editing; Tools 0.2.14",
+  "sourceCommit": "e17e7948009bbe872416024cd6948d717f00ecb3",
+  "sourceTree": "907495b5cfebbd043f0dc613edd40a938c32aa7c",
+  "sourceDeltaFiles": [
+    "apps/developer/native/ynx-tools/languages/solidity-configuration.json",
+    "apps/developer/native/ynx-tools/languages/solidity.code-snippets",
+    "apps/developer/native/ynx-tools/languages/solidity.tmLanguage.json",
+    "apps/developer/native/ynx-tools/package.json",
+    "apps/developer/runtime/theia/scripts/solidity-grammar.test.mjs",
+    "apps/developer/runtime/theia/scripts/solidity-language.browser.mjs",
+    "apps/developer/services/codeoss-service/test/tools-service.test.mjs"
+  ],
+  "toolsVersion": "0.2.14",
+  "sourceReference": "https://docs.soliditylang.org/en/v0.8.24/grammar.html",
+  "component": "Original owned TextMate grammar, VSCode language configuration and snippets; only installed TextMate/Oniguruma test engine; no copied third-party grammar/download/lifecycle.",
+  "checksPassed": {
+    "realTextMateLexicalChecks": 5,
+    "actualEditorLanguageAndEditing": 6,
+    "servicesDiagnosticsCaptureAndVersionedInstall": 63,
+    "skipped": 0
+  },
+  "uiChecks": [
+    "Real Unicode nested .sol file opens as Solidity and actual rendered tokens have distinct syntax colors; comments and source are retained.",
+    "Actual keyboard input auto-pairs brackets and both quote kinds, and surrounds an existing selection without losing its contents.",
+    "Quote pairing is suppressed inside actual comments and bracket pairing is suppressed inside actual strings.",
+    "Enter creates an indented block, and the normal comment shortcut comments and uncomments Solidity source.",
+    "Standard suggestion UI exposes the owned contract snippet on explicit completion; no semantic completion or compilation is claimed.",
+    "Scratch editing does not write source implicitly; explicit Save and close/reopen preserve exact Unicode source and Solidity language recognition."
+  ],
+  "observations": [
+    {
+      "initial": {
+        "text": "// SPDX-License-Identifier: MIT\n// \u4e2d\u6587\ud83d\ude00\npragma solidity ^0.8.24;\ncontract Editing {\n    string public title = unicode\"\u4e2d\u6587\ud83d\ude00\";\n    function value() public pure returns (uint256) { return 3; }\n}\n",
+        "language": "solidity",
+        "uri": "file:///private/tmp/ynx-theia-extension-qa-n2pj9D/project/contracts/%E5%90%88%E7%BA%A6-Editing-solidity-language-final.sol",
+        "selection": {
+          "startLineNumber": 8,
+          "startColumn": 1,
+          "endLineNumber": 8,
+          "endColumn": 1,
+          "selectionStartLineNumber": 8,
+          "selectionStartColumn": 1,
+          "positionLineNumber": 8,
+          "positionColumn": 1
+        }
+      },
+      "colors": [
+        {
+          "text": "//\u00a0SPDX-License-Identifier:\u00a0MIT",
+          "color": "rgb(0, 0, 0)",
+          "className": ""
+        },
+        {
+          "text": "//\u00a0SPDX-License-Identifier:\u00a0MIT",
+          "color": "rgb(0, 128, 0)",
+          "className": "mtk3"
+        },
+        {
+          "text": "contract\u00a0Editing\u00a0{",
+          "color": "rgb(0, 0, 0)",
+          "className": ""
+        },
+        {
+          "text": "contract",
+          "color": "rgb(0, 0, 255)",
+          "className": "mtk4"
+        },
+        {
+          "text": "\u00a0\u00a0\u00a0\u00a0function\u00a0value()\u00a0public\u00a0pure\u00a0returns\u00a0(uint256)\u00a0{\u00a0return\u00a03;\u00a0}",
+          "color": "rgb(0, 0, 0)",
+          "className": ""
+        },
+        {
+          "text": "function",
+          "color": "rgb(0, 0, 255)",
+          "className": "mtk4"
+        },
+        {
+          "text": "uint256",
+          "color": "rgb(0, 0, 255)",
+          "className": "mtk4"
+        }
+      ]
+    },
+    {
+      "indented": "{\n    \n}"
+    },
+    {
+      "expanded": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.24;\n\ncontract ContractName {\n    \n}"
+    },
+    {
+      "reopened": {
+        "text": "// SPDX-License-Identifier: MIT\n// \u4e2d\u6587\ud83d\ude00\npragma solidity ^0.8.24;\ncontract Editing {\n    string public title = unicode\"\u4e2d\u6587\ud83d\ude00\";\n    function value() public pure returns (uint256) { return 3; }\n}\n// saved through the editor\n",
+        "language": "solidity",
+        "uri": "file:///private/tmp/ynx-theia-extension-qa-n2pj9D/project/contracts/%E5%90%88%E7%BA%A6-Editing-solidity-language-final.sol",
+        "selection": {
+          "startLineNumber": 9,
+          "startColumn": 1,
+          "endLineNumber": 9,
+          "endColumn": 1,
+          "selectionStartLineNumber": 9,
+          "selectionStartColumn": 1,
+          "positionLineNumber": 9,
+          "positionColumn": 1
+        }
+      }
+    }
+  ],
+  "failedObserversPreserved": [
+    {
+      "receipt": "solidity-language-ui.json",
+      "checksPassedBeforeFailure": 4,
+      "reason": "Test expected snippet name Contract; actual standard suggestion label uses prefix ynx-contract."
+    },
+    {
+      "receipt": "solidity-language-ready-ui.json",
+      "checksPassedBeforeFailure": 0,
+      "reason": "New file open was asynchronous; test read earlier dirty buffer before editor switch. Next runner waits for exact URI. Earlier source and unsaved draft retained."
+    }
+  ],
+  "stagedTools": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-tools-inputs-20261004",
+    "files": 14,
+    "receiptSha256": "0333e8877b0e795bf10ac8cdbe412385a8045383abac4068903beabef4bb71cf",
+    "allFilesMatchSource": true
+  },
+  "actualCoreCandidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-problems-20261004-mac-arm64",
+  "fullRuntimeRebuilt": false,
+  "fullRuntimeMatchingSourceVerified": false,
+  "previousCoreToolsVersion": "0.2.13; not relabeled as 0.2.14",
+  "previousWorkbenchSourceFix": "953b0fa3c Problems shortcut still requires full framework build when resources allow.",
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-evidence-20261004",
+  "evidenceIndexSha256": "1d5d76074b2909b512eef1dc7d5c01278de44df67049df6a09c30a0af4004017",
+  "archives": {
+    "source-delta.tar.gz": "4557ee8b539283d6fbd58d055870a879239e7ed97b7054489a304f042f8237ca"
+  },
+  "archiveReadback": true,
+  "resourceGuard": {
+    "availableKiB": 191988,
+    "frameworkOutputKiB": 85452,
+    "frameworkRequiredKiB": 216524,
+    "runtimePackageKiB": 189276,
+    "runtimePackageRequiredKiB": 320348,
+    "frameworkBuildStarted": false,
+    "fullRuntimePackageStarted": false,
+    "nativePackageStarted": false,
+    "marginKiB": 131072,
+    "note": "Only small owned Tools payload staged within its measured 64MiB margin. Existing runtime source, old Native, candidates, receipts and user data retained."
+  },
+  "cleanup": {
+    "qa": "/private/tmp/ynx-theia-extension-qa-n2pj9D",
+    "rootPid": 4613,
+    "verifiedGroupMembers": [
+      4613,
+      4614,
+      4615
+    ],
+    "ownedMetadata": " 4613  4602  4613 Sun Oct  4 20:35:05 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n 4614  4613  4613 Sun Oct  4 20:35:05 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n 4615  4613  4613 Sun Oct  4 20:35:05 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n 6321  4613  6321 Sun Oct  4 20:37:22 2026     /bin/bash\n 7055  4613  7055 Sun Oct  4 20:38:18 2026     /bin/bash\n 7568  4613  7568 Sun Oct  4 20:38:56 2026     /bin/bash\n",
+    "signal": "SIGTERM",
+    "remainingOwnedPids": []
+  },
+  "semanticCompletionVerified": false,
+  "remaining": [
+    "Compiler-driven semantic completion, cross-file symbol navigation, hover and rename remain incomplete; snippets are not semantic completion.",
+    "Full inline Yul lexical distinctions and formatter coverage remain incomplete; compiler remains the authority for syntax and type correctness.",
+    "Build matching full workbench with shortcut fix and Tools 0.2.14, frozen frontend and shared inputs, then native/full-platform release and normal-user verification.",
+    "Canonical Host/identity, real AI, Wallet/Chain signing/deployment and final user acceptance remain unverified."
+  ],
+  "canonical": false,
+  "public": false,
+  "realWallet": false,
+  "chainExecutionVerified": false
+}
