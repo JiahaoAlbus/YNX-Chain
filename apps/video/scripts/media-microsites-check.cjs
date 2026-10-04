@@ -35,9 +35,14 @@ try{
   await page.locator('#site-language').selectOption(lang);
   const app=page.locator('header [data-app]');assert.match(await app.getAttribute('href'),new RegExp('/app.html\\?lang='+lang+'$'));
   await app.click();await page.waitForURL('**/app.html?lang='+lang);await page.locator('[data-media-about]').waitFor();
+  const navigation=page.locator('[data-media-navigation]');assert.equal(await navigation.locator('[data-media-experience]').count(),3);
+  assert.equal(await navigation.locator('[aria-current="page"]').getAttribute('data-media-experience'),site.product);
+  assert.deepEqual(await navigation.locator('[data-media-experience]').allTextContents(),lang==='zh-CN'?['观看','聆听','创作']:['Watch','Listen','Create']);
+  const navGeometry=await navigation.evaluate(n=>({left:n.getBoundingClientRect().left,right:n.getBoundingClientRect().right,scroll:n.scrollWidth,client:n.clientWidth}));assert.ok(navGeometry.left>=0&&navGeometry.right<=width+1&&navGeometry.scroll<=navGeometry.client+1,'Media navigation fits '+JSON.stringify(navGeometry));
+  for(const href of await navigation.locator('[data-media-experience]').evaluateAll(ns=>ns.map(n=>n.href))){const destination=new URL(href);assert.equal(destination.pathname,'/app.html');assert.deepEqual([...destination.searchParams.keys()],['lang']);assert.equal(destination.hash,'');}
   await page.goBack();await page.waitForFunction(lang=>document.documentElement.lang===lang,lang);assert.equal(await page.locator('#site-language').inputValue(),lang);
   await page.locator('header [data-app]').click();await page.locator('[data-media-about]').click();await page.waitForFunction(lang=>document.documentElement.lang===lang,lang);await page.reload();assert.equal(await page.locator('#site-language').inputValue(),lang);
-  cases.push({product:site.product,width,lang,publicWalletCalls:0,publicAccountRuntimeRequests:0,publicConsoleErrors,geometry,explicitApp:true,backAndRefresh:true});await context.close();
+  cases.push({product:site.product,width,lang,publicWalletCalls:0,publicAccountRuntimeRequests:0,publicConsoleErrors,geometry,explicitApp:true,unifiedCapabilityNavigation:true,backAndRefresh:true});await context.close();
  }
  const zoomCases=[],noScriptCases=[];
  for(const site of sites){

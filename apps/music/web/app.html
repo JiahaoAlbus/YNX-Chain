@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#002FA7"><link rel="icon" href="assets/ynx-logo.png" type="image/png"><title>YNX Music</title><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="media-site-back.css"></head>
-<body>
-<a class="media-about" href="index.html" data-media-about>YNX Media · About / 产品介绍</a>
+<body data-media-product="music">
+<nav class="media-navigation" data-media-navigation data-current-experience="music" aria-label="Media experiences"><a class="media-about" href="index.html" data-media-about>YNX Media</a><a data-media-experience="video" data-media-destination="https://video.ynxweb4.com/app.html" href="https://video.ynxweb4.com/app.html">Watch</a><a data-media-experience="music" data-media-destination="https://music.ynxweb4.com/app.html" href="app.html" aria-current="page">Listen</a><a data-media-experience="creator" data-media-destination="https://creator.ynxweb4.com/app.html" href="https://creator.ynxweb4.com/app.html">Create</a></nav>
 <a class="skip" href="#main">Skip to music</a>
 <div class="shell">
   <header><a class="brand" href="#home" aria-label="YNX Music home"><span class="mark" aria-hidden="true"><img src="assets/ynx-brand-original.png" alt=""></span><span>YNX Music</span></a><div class="truth">TESTNET · OWNED OR LICENSED AUDIO ONLY</div><span id="musicIdentity" hidden></span><button id="musicDisconnect" class="secondary" type="button" hidden>Disconnect Music</button><button id="musicSignOutRetry" class="secondary" type="button" hidden>Retry Music sign-out</button><button id="musicSignIn" class="primary" type="button">Sign in to Music</button><a id="musicOpenWallet" class="wallet" hidden rel="noreferrer">Open YNX Wallet</a><button id="authButton" class="wallet" type="button">Connect Wallet</button></header>
