@@ -1,0 +1,76 @@
+Browser: Codex In-app Browser (not extension Chrome)
+URL: https://card.ynxweb4.com/?verify=card-inventory-20260831
+No wallet/account/sign/send action performed. Existing state observed only.
+- img "YNX":
+  - img "YNX"
+- generic: TESTNET / SANDBOX
+- generic: YNX Card
+- button "Language":
+- generic: YNX
+- generic: CARD
+- generic: TESTNET / SANDBOX
+- button "Explore YNX Card as guest":
+  - generic: Explore as guest
+- button "Connect a Standard EVM wallet":
+  - generic: Connect Wallet
+- tablist:
+  - tab "Overview":
+    - generic: Overview
+  - tab "Virtual Card":
+    - generic: Virtual Card
+  - tab "Top up with YNXT":
+    - generic: Top up with YNXT
+  - tab "Activity" [selected]:
+    - generic: Activity
+  - tab "Spending Controls":
+    - generic: Spending Controls
+  - tab "Security & Help":
+    - generic: Security & Help
+  - generic: TESTNET SANDBOX
+  - generic: No real funds, cards, merchants, settlement, PAN, CVV, or personal data.
+- heading "Your Testnet records" [level=1]
+- generic: Read-only sandbox records. Not a bank card or real payment service.
+- generic: A separate Card private authorization is required.
+- generic: Activity
+- generic: Local audit records are created only when you run a guest simulation. They are not chain transactions.
+- generic: Guest demo started
+- generic: Local sandbox workspace opened
+- generic: DEMO
+- alert:
+  - generic: Guest demo started recorded locally as a DEMO event. No transaction, balance, or merchant settlement was created.
+- alert: "Wallet: No MetaMask provider was announced or injected in this page. Card cannot infer whether it is uninstalled, disabled, locked, or denied site access."
+- generic: Connect a wallet when you need it
+- generic: Guest simulation works without an account. Choose YNX Wallet or MetaMask only when you intentionally need a Standard EVM Wallet action.
+- button "Choose a wallet":
+  - generic: Choose a wallet
+- generic "Choose a wallet":
+  - generic "YNX Wallet logo":
+    - img "YNX Wallet logo"
+  - generic: YNX Wallet
+  - generic: Installed YNX Wallet extension or official Hosted Wallet popup. Approval is required.
+  - button "Connect YNX Wallet":
+    - generic: Connect YNX Wallet
+  - generic "MetaMask fox logo":
+    - img "MetaMask fox logo"
+  - generic: MetaMask
+  - generic: MetaMask EIP-1193 provider · io.metamask · never uses the YNX Wallet route.
+  - button "Use MetaMask":
+    - generic: Use MetaMask
+  - generic: No provider was announced? Card cannot tell whether a wallet is uninstalled, disabled, locked, or denied site access.
+  - link "Download YNX Wallet":
+    - generic: Download YNX Wallet
+  - link "Install MetaMask":
+    - generic: Install MetaMask
+  - button "Close":
+    - generic: Close
+- generic: Private services are optional
+- generic: If Product Session is unavailable, Guest mode and your Standard Wallet connection remain usable.
+- generic: Provider TEST Card
+- generic: A separate Wallet Product Session is required. A Standard EVM connection does not grant Card access.
+- button "Authorize Card TEST session":
+  - generic: Authorize Card TEST session
+- generic: Create a Testnet Card application
+- generic: A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.
+- button "Start application":
+  - generic: Start application
+- alert: Connect a Standard Wallet before starting a Testnet Card application on the web.

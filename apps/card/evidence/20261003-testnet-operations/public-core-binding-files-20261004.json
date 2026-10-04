@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-10-04T09:19:38.704Z",
+  "files": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/public-core-binding-separation-20261004.json",
+      "bytes": 2005,
+      "sha256": "d9b260dfa034067af87531fd7f89eee5cba4a70832dc7d5ac659258c7b0a37fa"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/public-core-binding-browser-20261004.txt",
+      "bytes": 3435,
+      "sha256": "938826d4aaefbb8d6c4e8d4a02e0eb7190e9aa253be0f68e4e17e23fdb5c1020"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/public-core-binding-browser-20261004.png",
+      "bytes": 99504,
+      "sha256": "ed6668bc4422fc1b70bb280d6442da4ab16490b30be7f59e073cbc0089ba28c3"
+    }
+  ],
+  "browser": "Codex In-app Browser; not installed extension evidence",
+  "sourceCandidatePublic": false,
+  "realWalletApproval": false,
+  "realFunding": false
+}
