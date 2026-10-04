@@ -1,0 +1,51 @@
+{
+  "schema": "ynx.media.formal-entry-continuation.v1",
+  "observedAt": "2026-10-04T08:14:35.408244+00:00",
+  "ownedDelivery": "b69cee26c8f4155d82fdf8a96109cfc32fce96af",
+  "method": "Actual user Chrome profile through supported browser UI; no cookies, storage, passwords or key material read",
+  "formalVideo": {
+    "url": "https://video.ynxweb4.com/",
+    "title": "YNX Video",
+    "sourceSuccessorVisible": false,
+    "accountState": "guest",
+    "publishedCatalog": "Repository-owned synthetic QA video explicitly labelled testnet QA, not user content or business adoption",
+    "actions": [
+      "Sign in with YNX Wallet",
+      "Original chooser discovered YNX Wallet / Web Wallet / phone / installed app",
+      "Selected original YNX Web Wallet",
+      "Original Video request cancelled after hosted wallet reports no local encrypted wallet"
+    ]
+  },
+  "formalWallet": {
+    "url": "https://wallet.ynxweb4.com/hosted/",
+    "title": "YNX Wallet · Connect",
+    "requester": "https://video.ynxweb4.com",
+    "observedStatus": "连接前请创建或导入本地加密钱包。",
+    "existingUnlockedLocalAccount": false,
+    "approvalGranted": false,
+    "keysRead": false,
+    "walletCreated": false,
+    "walletImported": false,
+    "backupRestored": false,
+    "passwordEntered": false
+  },
+  "native": {
+    "authoritativeState": "Native app inspection reports Mac locked; automatic unlock unsuccessful",
+    "tested": false
+  },
+  "completionAudit": {
+    "formalEntryFrozenSourceInstalled": "NOT_VERIFIED; old application still visible",
+    "realUserIdentityAndBusiness": "NOT_VERIFIED; guest and no approved grant",
+    "restoreIsolationWithExistingUserState": "NOT_VERIFIED; no state or keys mutated",
+    "AndroidNative": "NOT_VERIFIED",
+    "macOSNative": "BLOCKED_BY_LOCKED_MAC",
+    "preciseFrozenSourceDelivery": "DONE b69cee26c with source5126b0ef and pinned Shareda5ae233b",
+    "formalHostReceipt": "MISSING"
+  },
+  "nextRequiredActions": [
+    "Original A Host installs the exact owned and Shared successor and returns executable job and source readback",
+    "Shared owner supplies actual registration/current/actor observer producer references",
+    "Use the existing real Wallet account; do not substitute a newly created account",
+    "Rerun original formal authentication, own business, recovery and isolation on the installed source"
+  ]
+}
