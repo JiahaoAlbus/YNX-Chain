@@ -138,7 +138,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	httpServer := &http.Server{Addr: envDefault("YNX_FINANCE_LISTEN", "127.0.0.1:6436"), Handler: server.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second}
+	httpServer := &http.Server{Addr: envDefault("YNX_FINANCE_LISTEN", "127.0.0.1:6436"), Handler: introductionHandler(server.Handler(), webDir), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second}
 	log.Printf("YNX Finance listening on %s", httpServer.Addr)
 	signalContext, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer stop()
