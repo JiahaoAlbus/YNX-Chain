@@ -309,7 +309,7 @@
   ],
   "evidence": "apps/developer/.ynx-developer-candidates/gcc-diagnostics-evidence-20261004",
   "evidenceIndexSha256": "942e52c40296d3014b48864395b151be43b34c972d8ed7ce67ca0677f2b61bed",
-  "nativePackage": "Existing d341/0.3.3 App/DMG is unchanged. This successor is not yet packaged or installed.",
+  "nativePackage": "New cd9a8c2c4/0.3.5 App and DMG built and sealed; see COMPOSED_GCC_NATIVE_DISTRIBUTION_20261004.json. Older d341/0.3.3 package preserved. Neither is installed or canonical-user accepted.",
   "remaining": [
     "Wrapped compiler diagnostics without explicit compiler flag",
     "C++ syntax/LSP semantic completion and native debugger extensions",

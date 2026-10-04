@@ -406,7 +406,7 @@
   "evidence": "apps/developer/.ynx-developer-candidates/tools-lifecycle-final-evidence-20261004",
   "evidenceIndexSha256": "e649693b5bb91992b2ec7febf3e6f01e27d63fd04f448b309491fd1f199890eb",
   "core": "Separate owned runtime successor 0.3.5 is recorded in COMPOSED_GCC_DIAGNOSTICS_20261004.json; controlled Tools routes do not establish canonical user acceptance.",
-  "nativePackage": "Previous d341 App/DMG remains intact and accurately source-pinned; this host-tools successor has not yet been packaged or installed.",
+  "nativePackage": "New cd9a8c2c4/0.3.5 App and DMG built and sealed; see COMPOSED_GCC_NATIVE_DISTRIBUTION_20261004.json. Older d341/0.3.3 package preserved. Neither is installed or canonical-user accepted.",
   "remaining": [
     "A protected composed driver/canonical parent with normal projects/core-open/native-tools path",
     "Actual Wallet/Chain/approved existing hosted-model journey after formal release",

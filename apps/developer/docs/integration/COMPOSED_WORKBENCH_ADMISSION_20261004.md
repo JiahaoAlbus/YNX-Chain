@@ -18,9 +18,17 @@ network access; actual terminal isolation regression still passes.
 The parent Tools lifecycle successor separately passes 28 actual service HTTP
 tests, four new React/Chromium scenarios and six related browser suites; see
 `NATIVE_TOOLS_LIFECYCLE_20261004.json`. Controlled providers/model/routes do not
-establish real canonical Wallet/Chain/AI acceptance. This source successor has
-not yet been packaged or installed. The existing native distribution below
-continues to embed its original d341/0.3.3 source and core.
+establish real canonical Wallet/Chain/AI acceptance. The new App/DMG at
+`.ynx-developer-candidates/ynx-composed-gcc-native-package-20261004-mac-arm64`
+embeds source `cd9a8c2c44e63cf0a4e558c38b5c6105bb23f28b`, tree
+`c9ec1fc95deb5d61fb870c10e8350f5f1aa241f5` and the exact 0.3.5 core archive.
+Deep strict ad-hoc signature and disk-image verification pass; the core archive
+remains byte-exact after sealing. DMG SHA256
+`ba584a65c533f15fc1d4cf020a2751a24875d9bef7353aaf8a042f8668e662a2`.
+See `COMPOSED_GCC_NATIVE_DISTRIBUTION_20261004.json`. It has not been installed
+or launched and does not prove canonical admission or Developer ID/notarization.
+The existing older native distribution below continues to embed its original
+d341/0.3.3 source and core; this documentation commit does not relabel either.
 
 Previous owned runtime checkpoint: workbench **0.3.3**, candidate
 `ynx-composed-cold-recovery-20261004-mac-arm64`; exact pin and 32 actual current
