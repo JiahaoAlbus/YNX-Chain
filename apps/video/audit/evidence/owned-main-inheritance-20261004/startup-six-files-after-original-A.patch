@@ -1,0 +1,122 @@
+diff --git a/internal/video/cmd/main.go b/internal/video/cmd/main.go
+--- a/internal/video/cmd/main.go
++++ b/internal/video/cmd/main.go
+@@ -44,7 +44,7 @@
+ 	if os.Getenv("YNX_VIDEO_PAY_ENDPOINT") != "" {
+ 		pay = video.PayClient{Endpoint: os.Getenv("YNX_VIDEO_PAY_ENDPOINT"), Token: required("YNX_VIDEO_PAY_TOKEN")}
+ 	}
+-	svc, err := video.NewService(video.Config{BusinessAuthority: authority, Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
++	svc, err := newOriginalVideoService(video.Config{BusinessAuthority: authority, Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay}, current)
+ 	if err != nil {
+ 		log.Fatal(err)
+ 	}
+diff --git a/apps/music/cmd/ynx-musicd/main.go b/apps/music/cmd/ynx-musicd/main.go
+--- a/apps/music/cmd/ynx-musicd/main.go
++++ b/apps/music/cmd/ynx-musicd/main.go
+@@ -72,7 +72,7 @@
+ 			}
+ 		}
+ 	}
+-	svc, err := music.New(music.Config{BusinessAuthority: authority, StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")})
++	svc, err := newOriginalMusicService(music.Config{BusinessAuthority: authority, StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")}, current)
+ 	if err != nil {
+ 		log.Fatal(err)
+ 	}
+diff --git a/internal/video/cmd/service_start.go b/internal/video/cmd/service_start.go
+new file mode 100644
+--- /dev/null
++++ b/internal/video/cmd/service_start.go
+@@ -0,0 +1,14 @@
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/video"
++
++// Recheck the same captured source immediately before the constructor can open
++// or recover state. Nil preserves the original public-only/maintenance path.
++func newOriginalVideoService(cfg video.Config, current func() error) (*video.Service, error) {
++	if current != nil {
++		if err := current(); err != nil {
++			return nil, err
++		}
++	}
++	return video.NewService(cfg)
++}
+diff --git a/internal/video/cmd/service_start_test.go b/internal/video/cmd/service_start_test.go
+new file mode 100644
+--- /dev/null
++++ b/internal/video/cmd/service_start_test.go
+@@ -0,0 +1,25 @@
++package main
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
++)
++
++// Refusing local callbacks only; no producer, grant, Wallet or listener.
++func TestOriginalVideoSourceRefusalBeforeStateOpen(t *testing.T) {
++	root := filepath.Join(t.TempDir(), "not-opened")
++	refused := errors.New("original source no longer current")
++	calls := 0
++	cfg := video.Config{Root: root}
++	svc, err := newOriginalVideoService(cfg, func() error { calls++; return refused })
++	if svc != nil || !errors.Is(err, refused) || calls != 1 {
++		t.Fatalf("constructor did not retain original refusal: svc=%v calls=%d err=%v", svc, calls, err)
++	}
++	if _, err = os.Stat(root); !os.IsNotExist(err) {
++		t.Fatalf("refused source opened state directory: %v", err)
++	}
++}
+diff --git a/apps/music/cmd/ynx-musicd/service_start.go b/apps/music/cmd/ynx-musicd/service_start.go
+new file mode 100644
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/service_start.go
+@@ -0,0 +1,14 @@
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/music"
++
++// Recheck the same captured source immediately before the constructor can open
++// or recover state. Nil preserves the original public-only/maintenance path.
++func newOriginalMusicService(cfg music.Config, current func() error) (*music.Service, error) {
++	if current != nil {
++		if err := current(); err != nil {
++			return nil, err
++		}
++	}
++	return music.New(cfg)
++}
+diff --git a/apps/music/cmd/ynx-musicd/service_start_test.go b/apps/music/cmd/ynx-musicd/service_start_test.go
+new file mode 100644
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/service_start_test.go
+@@ -0,0 +1,25 @@
++package main
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/JiahaoAlbus/YNX-Chain/internal/music"
++)
++
++// Refusing local callbacks only; no producer, grant, Wallet or listener.
++func TestOriginalMusicSourceRefusalBeforeStateOpen(t *testing.T) {
++	root := filepath.Join(t.TempDir(), "not-opened")
++	refused := errors.New("original source no longer current")
++	calls := 0
++	cfg := music.Config{StatePath: filepath.Join(root, "state.json"), MediaDir: filepath.Join(root, "media")}
++	svc, err := newOriginalMusicService(cfg, func() error { calls++; return refused })
++	if svc != nil || !errors.Is(err, refused) || calls != 1 {
++		t.Fatalf("constructor did not retain original refusal: svc=%v calls=%d err=%v", svc, calls, err)
++	}
++	if _, err = os.Stat(root); !os.IsNotExist(err) {
++		t.Fatalf("refused source opened state directory: %v", err)
++	}
++}

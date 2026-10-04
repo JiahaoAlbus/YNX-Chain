@@ -1,0 +1,409 @@
+{
+  "schema": "ynx.media.owned-main-inheritance.v1",
+  "sourceCommit": "31208439162d20ded0d4ecaa92d2a2ea42cdb2e9",
+  "sourceTree": "67c7b3a1b41ba9cc371541922c2341fe9437515b",
+  "priorDeliveryCommit": "147da2e416887414f32ef02e03f2c325d324ef22",
+  "priorCheckpointSHA256": "e99785b64d0b3bbc5de59034c5c080357d4b1372ab59c187ec2217ab1445c1d6",
+  "fullOwnedDeltaBaseCommit": "728a2a0d0ff0176362bb819b8ecb0037e11b5ca9",
+  "fullOwnedDeltaPaths": [
+    "apps/creator-studio/app.js",
+    "apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+    "apps/creator-studio/scripts/processing-resume-web-check.cjs",
+    "apps/creator-studio/styles.css",
+    "apps/music/cmd/ynx-musicd/main.go",
+    "apps/music/cmd/ynx-musicd/protected_runtime.go",
+    "apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+    "apps/music/cmd/ynx-musicd/service_start.go",
+    "apps/music/cmd/ynx-musicd/service_start_test.go",
+    "internal/music/business_request.go",
+    "internal/music/server.go",
+    "internal/music/service.go",
+    "internal/music/store.go",
+    "internal/music/store_publication_test.go",
+    "internal/video/business_platform_sdk.go",
+    "internal/video/business_platform_sdk_test.go",
+    "internal/video/business_request.go",
+    "internal/video/cmd/main.go",
+    "internal/video/cmd/protected_runtime.go",
+    "internal/video/cmd/protected_runtime_disabled.go",
+    "internal/video/cmd/service_start.go",
+    "internal/video/cmd/service_start_test.go",
+    "internal/video/processing_resume_codec_test.go",
+    "internal/video/processing_resume_test.go",
+    "internal/video/service.go",
+    "internal/video/store.go",
+    "internal/video/store_publication_test.go"
+  ],
+  "inheritedOwnedMainFactoryFiles": [
+    "apps/music/cmd/ynx-musicd/main.go",
+    "apps/music/cmd/ynx-musicd/protected_runtime.go",
+    "apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+    "apps/music/cmd/ynx-musicd/service_start.go",
+    "apps/music/cmd/ynx-musicd/service_start_test.go",
+    "internal/video/business_platform_sdk.go",
+    "internal/video/business_platform_sdk_test.go",
+    "internal/video/cmd/main.go",
+    "internal/video/cmd/protected_runtime.go",
+    "internal/video/cmd/protected_runtime_disabled.go",
+    "internal/video/cmd/service_start.go",
+    "internal/video/cmd/service_start_test.go"
+  ],
+  "releasePointerSHA256": "6b7642b2d774249555ea2eddced6351252af86704d126576d76ecaaeb4829a7a",
+  "releaseMatchingInputsVerified": 11,
+  "sharedSourceWritten": false,
+  "assembly": {
+    "sourceCommit": "31208439162d20ded0d4ecaa92d2a2ea42cdb2e9",
+    "candidateFiles": 4482,
+    "fullManifestPath": "/tmp/ynx-media-owned-main-inheritance-20261004/matching-source-manifest.json",
+    "fullManifestSHA256": "3008d4a637083c536eba4d18b18f9e93562b8b8278118696a8baa2ede8f6d877",
+    "priorFullManifestPath": "/tmp/ynx-media-real-codec-resume-20261004/matching-source-manifest.json",
+    "priorFullManifestSHA256": "a01b1ead545c7a491e7a617a83ff9754fd19618c87c600adcdd81c759440601e",
+    "priorPreservedGitDeltaManifest": "apps/video/audit/evidence/real-codec-resume-20261004/matching-source-delta-manifest.json",
+    "unchangedFiles": 4476,
+    "changedOrAdded": [
+      {
+        "path": "apps/music/cmd/ynx-musicd/main.go",
+        "bytes": 3880,
+        "sha256": "9386dc07cde9d094060b87c9f907e2dd521433c600768228088997a40b82c715"
+      },
+      {
+        "path": "apps/music/cmd/ynx-musicd/service_start.go",
+        "bytes": 433,
+        "sha256": "2867e9afd1b1f7b2fe50c2fa3bb3044d0e972fbac5a2a997f9b2d5b71fc966aa"
+      },
+      {
+        "path": "apps/music/cmd/ynx-musicd/service_start_test.go",
+        "bytes": 853,
+        "sha256": "273dc81b041435a0b0eeb613370fdbef678e0cd51f64a1f6dd4a8e95b9ab97ba"
+      },
+      {
+        "path": "internal/video/cmd/main.go",
+        "bytes": 3828,
+        "sha256": "8f588df06da7148e58297b76799b89cbc94df85adba97271ad903cc5e3b07022"
+      },
+      {
+        "path": "internal/video/cmd/service_start.go",
+        "bytes": 440,
+        "sha256": "e64de89a2f24968bcef575f49da916ea7be38ae1b1f5e3c35359307fb146953b"
+      },
+      {
+        "path": "internal/video/cmd/service_start_test.go",
+        "bytes": 779,
+        "sha256": "b5ef7dd7d60ddc026aa3b7e042a55fec371bd644cd6be43e85636ecb7aa79267"
+      }
+    ],
+    "removed": [],
+    "allOtherFrozenSharedAndProductInputExact": true,
+    "contentSHA256": "d5d33f70ca474ebf11da0bd8658b37a1c8a628080a79de1f5594676303a1d0c8"
+  },
+  "validation": {
+    "ownedDefaultMainRace": "2 refusal tests PASS Go1.25.7",
+    "matchingCanonicalCombinedRace": {
+      "toolchain": "Go1.25.13 readonly/offline/race -p1",
+      "passed": [
+        "TestOriginalVideoSourceRefusalBeforeStateOpen",
+        "TestOriginalMusicSourceRefusalBeforeStateOpen",
+        "TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal"
+      ],
+      "failures": 0,
+      "stderrBytes": 0
+    },
+    "ownedMainVet": "PASS",
+    "mainBuilds": "Video and Music binaries produced; no listener started",
+    "MusicCompatibilityCLI": "actual new binary returned original schema/rollback policy without creating data directory",
+    "priorRealCodecAndCreatorChecks": "preserved in exact9018/147da checkpoint, unchanged runtime bytes apart from two main startup callsites"
+  },
+  "binaries": [
+    {
+      "path": "/tmp/ynx-media-owned-main-inheritance-20261004/video-candidate",
+      "bytes": 10642418,
+      "sha256": "413003d0e5d0af19153268a66b28ea21c568069409fc6bd61cb61a08116461bb",
+      "sourceCommit": "31208439162d20ded0d4ecaa92d2a2ea42cdb2e9",
+      "formalHostRun": false,
+      "installed": false,
+      "signedRelease": false,
+      "serviceBuildStamp": "default local/unknown; not a final release"
+    },
+    {
+      "path": "/tmp/ynx-media-owned-main-inheritance-20261004/music-candidate",
+      "bytes": 13935714,
+      "sha256": "480594989a338a8f86337681520d57b46c893e6409e7a25b02f179f8c836c843",
+      "sourceCommit": "31208439162d20ded0d4ecaa92d2a2ea42cdb2e9",
+      "formalHostRun": false,
+      "installed": false,
+      "signedRelease": false,
+      "serviceBuildStamp": "default local/unknown; not a final release"
+    }
+  ],
+  "sourceInheritance": "six A-owned-original product hook/routing files exact, two inherited main files additionally call owner startup guard; four new helper/test files; no shared files copied into live tree",
+  "patchSelection": [
+    "original Media728 base: full27 patch/tar",
+    "original A4484 matching composition: latest15 leaf patch plus startup-six-file patch; A already owns original hooks",
+    "exact147da owned tree: twelve-file increment",
+    "choose according to exact baseline; never blindly apply all patches"
+  ],
+  "preservedFailures": [
+    "ENOSPC interrupted tagged test builds and Music link; logs retained before retry",
+    "one retry selected original tree instead of exact matching candidate and correctly refused missing A-only mediacomposition; command cwd corrected, no shared bypass"
+  ],
+  "cleanup": "two own generated Web build copies removed after exact archived candidates verified; two old8368 unsigned unissued binaries removed with no holder; their hashes/build history preserved but paths are no longer retained artifacts; current312 binaries retained",
+  "limits": [
+    "no actual registered producer/currentActor/role/Wallet supplied; original launch slots nil",
+    "Host not executed and independent whole-source gate remains pending; neither is development permission",
+    "source/codec/build/maintenance CLI do not prove installed user or public acceptance",
+    "Creator Web runtime artifact remains exact9018 source with its own manifest; no relabel as312",
+    "old Android release/keys/data/UNKNOWN and immutable source preserved"
+  ],
+  "references": [
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/EXACT_FACTORY_AND_MAIN_INPUTS.json",
+      "bytes": 2913,
+      "sha256": "6b7642b2d774249555ea2eddced6351252af86704d126576d76ecaaeb4829a7a"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/generated-web-copy-cleanup.json",
+      "bytes": 1127,
+      "sha256": "de9e4d09427e350919d9a27869a4b8b83abd49249f1047d0eb403a1086a43129"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/increment-after-147da-twelve-files.patch",
+      "bytes": 15897,
+      "sha256": "34ddf2fde0fa4c22ec9ab0cbeddb901a5a0e3925ef8755e8d52da7f944e77809"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/main-boundaries-race.jsonl",
+      "bytes": 4558,
+      "sha256": "2536802d0e751a395d5d6438d707f87c47859cd053ca9320e976d04c33086552"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/main-boundaries-race.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/main-boundaries-space-original-red.jsonl",
+      "bytes": 5000,
+      "sha256": "36f1619717feb8ca2cb1e339b9523f6b560fc82c9236a947ec7c581cdee45770"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/matching-source-delta-manifest.json",
+      "bytes": 1849,
+      "sha256": "71b24ec2b62067406130bc041471bf3fdc0f3727c6827d9d8ed8f5b84c2dd690"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/music-build-space-original-red.txt",
+      "bytes": 222,
+      "sha256": "40b547a5e1ebcb903ec0fb3fc87ffe8abbb0d11101e464a4d1d05e78265c1894"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/music-build.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/music-candidate-go-metadata.txt",
+      "bytes": 610,
+      "sha256": "c2f19fa38bfc61c86c46d767a8fee7309ca1615c6cc0455980493256c34531fa"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/music-compatibility-cli.json",
+      "bytes": 379,
+      "sha256": "1fcf03f790c251c468862c4c42b5bad82627eb259537969a7acc5ebbcf6aba9e"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/music-compatibility-cli.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/older-unsigned-candidate-cleanup.json",
+      "bytes": 1121,
+      "sha256": "34bd24fb595e5665ab2b69d8e71d0e66cb78d27c36e43cd84c357f7e482f8a84"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/owned-default-main-boundaries-race.txt",
+      "bytes": 135,
+      "sha256": "01b30c8e165e9fc28e0727f24d4637e78ec77c42a9cb735e9a8c82ba884b1d54"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/owned-main-vet.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/owned-public-main-compile.txt",
+      "bytes": 153,
+      "sha256": "c97cd66a84391434f9e243369434cbb0668bdd30309bb5b58d8ad6cf2535bd6d"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/owned-twenty-seven-file-source.patch",
+      "bytes": 75247,
+      "sha256": "abdfad7bf7f65e1dde6fb75c11fb80d836a9c7eafed2593cba4129812bfe6ba0"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/owned-twenty-seven-file-source.tar.gz",
+      "bytes": 85591,
+      "sha256": "11354f543b3579a80e2cff8641db84ff18b1748c3a35483e1756cd2728ef2dde"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/creator-studio/app.js",
+      "bytes": 70393,
+      "sha256": "631665d8eb92a2b68f8a3670d0979479839830b0d233f034b03f7a01d57a3214"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/creator-studio/ios/YNXCreator/YNXCreatorApp.swift",
+      "bytes": 49092,
+      "sha256": "d08a95e68bf36352951fa3c7d9e38448940007fef90b238d9db97051490af296"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/creator-studio/scripts/processing-resume-web-check.cjs",
+      "bytes": 6742,
+      "sha256": "29bc37d5ae25e484bfdd7fc76f94b0c9612676251dcfe2acfe1fd58b51352497"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/creator-studio/styles.css",
+      "bytes": 15359,
+      "sha256": "50e51d66d5aca6163eb7dd288b568ccb442c88e1bc868bca888aece3247a5dfc"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3880,
+      "sha256": "9386dc07cde9d094060b87c9f907e2dd521433c600768228088997a40b82c715"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/music/cmd/ynx-musicd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "23d46086a836707efa3b748dba1a44cca729e32018842b8c66860b29b7f080c2"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "cf02aee36414e6f8768b8c2f69e58b108f917036e803688ddef3583902abcd8d"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/music/cmd/ynx-musicd/service_start.go",
+      "bytes": 433,
+      "sha256": "2867e9afd1b1f7b2fe50c2fa3bb3044d0e972fbac5a2a997f9b2d5b71fc966aa"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/apps/music/cmd/ynx-musicd/service_start_test.go",
+      "bytes": 853,
+      "sha256": "273dc81b041435a0b0eeb613370fdbef678e0cd51f64a1f6dd4a8e95b9ab97ba"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/music/business_request.go",
+      "bytes": 11325,
+      "sha256": "3a439e7b2d38041a5e1344059d9a67313fa9c95c9b1d1471efe76d77aad60b35"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/music/server.go",
+      "bytes": 25581,
+      "sha256": "fd05eabbe864d0ed09cdddddb8e9df3abd1b6fbe7ed6c6f9d30daaea1909828d"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/music/service.go",
+      "bytes": 39563,
+      "sha256": "14dcd56450be92d72f1bcb06fecde1dcf23689840fe48e61450590863afbf5ca"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/music/store.go",
+      "bytes": 15137,
+      "sha256": "c659e6ddacda88bea8718c14f2cff61651dfcfeca3e75fc50467859f635180e6"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/music/store_publication_test.go",
+      "bytes": 4206,
+      "sha256": "4a67d38ebf315bb47a15c826fedecb26d883c8ad8498b180eddd7faf9791bcee"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/business_platform_sdk.go",
+      "bytes": 1466,
+      "sha256": "dc01eb881dbe87665ced12c26fb26920c6e4c0e88b4d39ed7bb8de2d4a28795d"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/business_platform_sdk_test.go",
+      "bytes": 2356,
+      "sha256": "b3d655f0a08d99372b0667ace5fd2d967d8e59e6905908eda45e452f3b2b99f0"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/business_request.go",
+      "bytes": 9834,
+      "sha256": "1ff3693931d6d6c228af0de454c681ccde2814401473546c2f82604f99f638d0"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/cmd/main.go",
+      "bytes": 3828,
+      "sha256": "8f588df06da7148e58297b76799b89cbc94df85adba97271ad903cc5e3b07022"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/cmd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "75aee2748872225be6c7eba81e5f0d63c24499a4462f81e8621600d3379c8194"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/cmd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "84ea92622aa0e216bb2c12727f4aa67f268c9e3d92eef7ae19f038c1f875a8b7"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/cmd/service_start.go",
+      "bytes": 440,
+      "sha256": "e64de89a2f24968bcef575f49da916ea7be38ae1b1f5e3c35359307fb146953b"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/cmd/service_start_test.go",
+      "bytes": 779,
+      "sha256": "b5ef7dd7d60ddc026aa3b7e042a55fec371bd644cd6be43e85636ecb7aa79267"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/processing_resume_codec_test.go",
+      "bytes": 5100,
+      "sha256": "c0bcd784bda7baaa346ecad82624ee489d6ace44ad14f3c780ba580480e3a825"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/processing_resume_test.go",
+      "bytes": 6901,
+      "sha256": "a6bf23c5155cac925457f731bf99abf205d875d0ba1e1858c38b9833a6a760f9"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/service.go",
+      "bytes": 67980,
+      "sha256": "ef4e123cea410da3c462cb88fd7938ef42db29929f35754799c2bec7147eb2c8"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/store.go",
+      "bytes": 12150,
+      "sha256": "894f3324b7e76672ce8df477f104df94d609607be4ebcd4b267af9567e92574e"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/source/internal/video/store_publication_test.go",
+      "bytes": 8456,
+      "sha256": "2ba3e456a47d86149066cf62ca154acb3b747ec925b7890f73e75f66d62891ce"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/startup-six-files-after-original-A.patch",
+      "bytes": 6256,
+      "sha256": "82d124e2fa83632073505b9ac0e0186978ce66ce248a8c6ed0879dd77cb2ac5b"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/video-build.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/video-candidate-go-metadata.txt",
+      "bytes": 603,
+      "sha256": "8dff090a8c66d470206fe66ef3565483e2956ea7fd546978eae598ddf6525805"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/wrong-tree-test-original-red.jsonl",
+      "bytes": 4468,
+      "sha256": "126d273db267a988bffee0a38639facee9c5345865e389366ea6299c681ade61"
+    },
+    {
+      "path": "apps/video/audit/evidence/owned-main-inheritance-20261004/wrong-tree-test-original-red.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

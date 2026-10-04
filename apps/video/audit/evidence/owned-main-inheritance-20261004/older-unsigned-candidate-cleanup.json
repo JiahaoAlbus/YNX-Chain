@@ -1,0 +1,20 @@
+[
+  {
+    "removedUnsignedUnissuedCandidate": "/tmp/ynx-media-processing-resume-20261004/video-candidate",
+    "bytes": 10642370,
+    "sha256": "0aacb54229b4fa0b7f38be4ac2e7a2e17b19d53ebf9d789ae9ad30981cc26bc2",
+    "builtSourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+    "currentRetainedReplacement": "/tmp/ynx-media-owned-main-inheritance-20261004/video-candidate",
+    "rebuildFrom": "original matching4484 capsule plus owned8368 thirteen-file delta; offline Go1.25.13 canonical+combined tags",
+    "historicalBuildEvidencePreserved": true
+  },
+  {
+    "removedUnsignedUnissuedCandidate": "/tmp/ynx-media-processing-resume-20261004/music-candidate",
+    "bytes": 13919170,
+    "sha256": "f8e5c2009ca01e69aa587a6c4690889da8c76cba57351f19b728a4b9c6f6e83b",
+    "builtSourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+    "currentRetainedReplacement": "/tmp/ynx-media-owned-main-inheritance-20261004/music-candidate",
+    "rebuildFrom": "original matching4484 capsule plus owned8368 thirteen-file delta; offline Go1.25.13 canonical+combined tags",
+    "historicalBuildEvidencePreserved": true
+  }
+]

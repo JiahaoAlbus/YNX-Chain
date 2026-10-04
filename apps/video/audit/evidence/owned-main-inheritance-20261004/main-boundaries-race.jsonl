@@ -1,0 +1,24 @@
+{"Time":"2026-10-04T14:37:29.492467+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd"}
+{"Time":"2026-10-04T14:37:30.097137+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Test":"TestOriginalVideoSourceRefusalBeforeStateOpen"}
+{"Time":"2026-10-04T14:37:30.097232+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Test":"TestOriginalVideoSourceRefusalBeforeStateOpen","Output":"=== RUN   TestOriginalVideoSourceRefusalBeforeStateOpen\n"}
+{"Time":"2026-10-04T14:37:30.097966+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Test":"TestOriginalVideoSourceRefusalBeforeStateOpen","Output":"--- PASS: TestOriginalVideoSourceRefusalBeforeStateOpen (0.00s)\n"}
+{"Time":"2026-10-04T14:37:30.097988+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Test":"TestOriginalVideoSourceRefusalBeforeStateOpen","Elapsed":0}
+{"Time":"2026-10-04T14:37:30.098026+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Output":"PASS\n"}
+{"Time":"2026-10-04T14:37:31.101147+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video/cmd\t1.608s\n"}
+{"Time":"2026-10-04T14:37:31.10468+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Elapsed":1.612}
+{"Time":"2026-10-04T14:37:31.147732+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd"}
+{"Time":"2026-10-04T14:37:31.147759+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Test":"TestOriginalMusicSourceRefusalBeforeStateOpen"}
+{"Time":"2026-10-04T14:37:31.147765+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Test":"TestOriginalMusicSourceRefusalBeforeStateOpen","Output":"=== RUN   TestOriginalMusicSourceRefusalBeforeStateOpen\n"}
+{"Time":"2026-10-04T14:37:31.147775+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Test":"TestOriginalMusicSourceRefusalBeforeStateOpen","Output":"--- PASS: TestOriginalMusicSourceRefusalBeforeStateOpen (0.01s)\n"}
+{"Time":"2026-10-04T14:37:31.14778+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Test":"TestOriginalMusicSourceRefusalBeforeStateOpen","Elapsed":0.01}
+{"Time":"2026-10-04T14:37:31.147786+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Output":"PASS\n"}
+{"Time":"2026-10-04T14:37:31.147791+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd\t(cached)\n"}
+{"Time":"2026-10-04T14:37:31.147797+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Elapsed":0}
+{"Time":"2026-10-04T14:37:32.609844+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T14:37:32.984163+08:00","Action":"run","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal"}
+{"Time":"2026-10-04T14:37:32.984335+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal","Output":"=== RUN   TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal\n"}
+{"Time":"2026-10-04T14:37:32.98512+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal","Output":"--- PASS: TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal (0.00s)\n"}
+{"Time":"2026-10-04T14:37:32.985141+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Test":"TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal","Elapsed":0}
+{"Time":"2026-10-04T14:37:32.985511+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"PASS\n"}
+{"Time":"2026-10-04T14:37:33.994106+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"ok  \tgithub.com/JiahaoAlbus/YNX-Chain/internal/video\t1.384s\n"}
+{"Time":"2026-10-04T14:37:34.001306+08:00","Action":"pass","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":1.391}

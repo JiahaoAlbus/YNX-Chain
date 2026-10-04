@@ -1,0 +1,1 @@
+{"policyVersion":"1.0","currentSchemaVersion":5,"minimumReadableSchemaVersion":1,"minimumWritableSchemaVersion":5,"readableSchemaVersions":[1,2,3,4,5],"writableSchemaVersions":[5],"autoMigratedSchemaVersions":[1,2,3,4],"downgradeSupported":false,"rollbackStrategy":"restore a verified pre-upgrade backup with the matching older binary; in-place schema downgrade is unsupported"}

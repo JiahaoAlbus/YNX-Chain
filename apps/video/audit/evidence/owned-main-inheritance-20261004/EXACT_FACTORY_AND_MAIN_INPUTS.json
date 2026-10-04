@@ -1,0 +1,77 @@
+{
+  "originalCapsule": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/media48c-original-main-composition-source-20261004",
+  "originalManifestSHA256": "3cc8424a638cf0ee39244c0eaee31ed74162560bfa7358cb927e80c8dfe66f1f",
+  "sourceGate": "WHOLE_HOLD_IO_WRITER_REPAIR_OWNER_ACTIVE",
+  "matchingInputs": [
+    {
+      "path": "source/apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3857,
+      "sha256": "41e71efb393fd3f6441dd4bb73e2488c9f354a6f14d0b1c27c67836b8827b272"
+    },
+    {
+      "path": "source/apps/music/cmd/ynx-musicd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "23d46086a836707efa3b748dba1a44cca729e32018842b8c66860b29b7f080c2"
+    },
+    {
+      "path": "source/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "cf02aee36414e6f8768b8c2f69e58b108f917036e803688ddef3583902abcd8d"
+    },
+    {
+      "path": "source/internal/mediacomposition/original_runtime.go",
+      "bytes": 6227,
+      "sha256": "f31a9f764418ce1a5de170bfbbff99ae58cd4f560666fb927099f897fba89b05"
+    },
+    {
+      "path": "source/internal/mediacomposition/original_runtime_test.go",
+      "bytes": 1915,
+      "sha256": "c0522d65fb36c6052113c49fb9c300ea21be3d445d0883d8048adbc7a1c9cea2"
+    },
+    {
+      "path": "source/internal/video/business_platform_sdk.go",
+      "bytes": 1466,
+      "sha256": "dc01eb881dbe87665ced12c26fb26920c6e4c0e88b4d39ed7bb8de2d4a28795d"
+    },
+    {
+      "path": "source/internal/video/cmd/main.go",
+      "bytes": 3812,
+      "sha256": "5adb75d50eb10f34d7c2c165b79b09fdc3e047921e7826820ec1b43d60c7d8f8"
+    },
+    {
+      "path": "source/internal/video/cmd/protected_runtime.go",
+      "bytes": 758,
+      "sha256": "75aee2748872225be6c7eba81e5f0d63c24499a4462f81e8621600d3379c8194"
+    },
+    {
+      "path": "source/internal/video/cmd/protected_runtime_disabled.go",
+      "bytes": 322,
+      "sha256": "84ea92622aa0e216bb2c12727f4aa67f268c9e3d92eef7ae19f038c1f875a8b7"
+    },
+    {
+      "path": "source/internal/video/cmd/video-recover/main.go",
+      "bytes": 1624,
+      "sha256": "a5f9c3c6a1c62552642761f4d507b99f136e755b74aab9d4d3a4e55192390e54"
+    },
+    {
+      "path": "source/internal/video/cmd/video-smoke/main.go",
+      "bytes": 11076,
+      "sha256": "8dc84180c21e6f5a815bba179e4ea6df4e63e27f53c99ed29cdd25bc7579c83c"
+    }
+  ],
+  "mediaProductOwnerMayWrite": [
+    "internal/video/cmd/**",
+    "apps/music/cmd/**",
+    "internal/video/** product business",
+    "internal/music/** product business"
+  ],
+  "AOnlyRetains": [
+    "internal/mediacomposition/** shared registered reader/currentsource composition",
+    "internal/productsessionv2/**",
+    "global SDK/Auth/SSO/registry/publisher"
+  ],
+  "productSourceDevelopmentRequiresAApproval": false,
+  "noActualProducerSupplied": true,
+  "HostExecutionApproved": false,
+  "preserveCurrentMediaWriterSuccessor": true
+}

@@ -1,0 +1,16 @@
+/tmp/ynx-media-owned-main-inheritance-20261004/video-candidate: go1.25.13
+	path	github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd
+	mod	github.com/JiahaoAlbus/YNX-Chain	(devel)	
+	dep	golang.org/x/crypto	v0.55.0	h1:+KWHjbgOaAQ66dh/YlkZKHlz9ZUlq61AFirAR9ntP8M=
+	dep	golang.org/x/sys	v0.47.0	h1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=
+	build	-buildmode=exe
+	build	-compiler=gc
+	build	-tags=ynx_canonical_media,ynx_media_combined_authority
+	build	CGO_ENABLED=1
+	build	CGO_CFLAGS=
+	build	CGO_CPPFLAGS=
+	build	CGO_CXXFLAGS=
+	build	CGO_LDFLAGS=
+	build	GOARCH=arm64
+	build	GOOS=darwin
+	build	GOARM64=v8.0

@@ -1,0 +1,24 @@
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-output","Output":"internal/video/cmd/protected_runtime.go:7:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-fail"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"internal/video/business_combined_sdk.go:11:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-fail"}
+{"Time":"2026-10-04T14:37:05.196075+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd"}
+{"Time":"2026-10-04T14:37:05.196094+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/video/cmd [setup failed]\n"}
+{"Time":"2026-10-04T14:37:05.196101+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd","Elapsed":0,"FailedBuild":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-output","Output":"internal/video/cmd/protected_runtime.go:7:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition","Action":"build-fail"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"internal/video/business_combined_sdk.go:11:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-fail"}
+{"Time":"2026-10-04T14:37:05.196144+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd"}
+{"Time":"2026-10-04T14:37:05.196148+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd [setup failed]\n"}
+{"Time":"2026-10-04T14:37:05.196151+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd","Elapsed":0,"FailedBuild":"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"# github.com/JiahaoAlbus/YNX-Chain/internal/video\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-output","Output":"internal/video/business_combined_sdk.go:11:2: cannot find module providing package github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2: import lookup disabled by -mod=readonly\n"}
+{"ImportPath":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2","Action":"build-fail"}
+{"Time":"2026-10-04T14:37:05.19618+08:00","Action":"start","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video"}
+{"Time":"2026-10-04T14:37:05.196184+08:00","Action":"output","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Output":"FAIL\tgithub.com/JiahaoAlbus/YNX-Chain/internal/video [setup failed]\n"}
+{"Time":"2026-10-04T14:37:05.196193+08:00","Action":"fail","Package":"github.com/JiahaoAlbus/YNX-Chain/internal/video","Elapsed":0,"FailedBuild":"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"}

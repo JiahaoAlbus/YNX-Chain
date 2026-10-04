@@ -1,0 +1,391 @@
+diff --git a/apps/music/cmd/ynx-musicd/main.go b/apps/music/cmd/ynx-musicd/main.go
+index 328376f49..3ee230695 100644
+--- a/apps/music/cmd/ynx-musicd/main.go
++++ b/apps/music/cmd/ynx-musicd/main.go
+@@ -56,7 +56,23 @@ func main() {
+ 		log.Printf("YNX Music backup restored into %s", *dataDir)
+ 		return
+ 	}
+-	svc, err := music.New(music.Config{StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")})
++	var authority music.MusicBusinessAuthority
++	var current func() error
++	var err error
++	// Backup mode remains the original local encrypted state operation. Restore
++	// and compatibility modes already exited above; no network/grant fallback.
++	if *backupDir == "" {
++		authority, current, err = prepareOriginalBusiness()
++		if err != nil {
++			log.Fatal(err)
++		}
++		if current != nil {
++			if err = current(); err != nil {
++				log.Fatal(err)
++			}
++		}
++	}
++	svc, err := newOriginalMusicService(music.Config{BusinessAuthority: authority, StatePath: statePath, MediaDir: mediaDir, MaxUploadBytes: 50 << 20, AIGatewayURL: os.Getenv("YNX_MUSIC_AI_GATEWAY_URL"), AIGatewayKey: os.Getenv("YNX_MUSIC_AI_GATEWAY_KEY"), WalletChallengeURL: os.Getenv("YNX_MUSIC_WALLET_CHALLENGE_URL"), WalletSessionURL: os.Getenv("YNX_MUSIC_WALLET_SESSION_URL"), WalletVerifyURL: os.Getenv("YNX_MUSIC_WALLET_VERIFY_URL"), WalletGatewayKey: os.Getenv("YNX_MUSIC_WALLET_GATEWAY_KEY"), PayGatewayURL: os.Getenv("YNX_MUSIC_PAY_GATEWAY_URL"), PayGatewayKey: os.Getenv("YNX_MUSIC_PAY_GATEWAY_KEY"), TrustGatewayURL: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_URL"), TrustGatewayKey: os.Getenv("YNX_MUSIC_TRUST_GATEWAY_KEY")}, current)
+ 	if err != nil {
+ 		log.Fatal(err)
+ 	}
+@@ -72,6 +88,11 @@ func main() {
+ 	}
+ 	build := buildinfo.Info{Commit: commit, Release: release, BuildTime: buildTime}
+ 	server := &http.Server{Addr: *httpAddr, Handler: music.NewServerWithBuild(svc, *publicOrigin, musicapp.Web(), build).Handler(), ReadHeaderTimeout: 5 * time.Second, IdleTimeout: 60 * time.Second}
++	if current != nil {
++		if err = current(); err != nil {
++			log.Fatal(err)
++		}
++	}
+ 	log.Printf("YNX Music listening on http://%s; public licensed catalog=false", *httpAddr)
+ 	log.Fatal(server.ListenAndServe())
+ }
+diff --git a/apps/music/cmd/ynx-musicd/protected_runtime.go b/apps/music/cmd/ynx-musicd/protected_runtime.go
+new file mode 100644
+index 000000000..97c3a44d5
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/protected_runtime.go
+@@ -0,0 +1,24 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package main
++
++import (
++	"context"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/music"
++)
++
++// Nil until a real original protected launcher supplies attested readers,
++// source custody and current enrolled actor. ENV does not populate this slot.
++var originalMusicInputs *mediacomposition.MusicInputs
++
++func prepareOriginalBusiness() (music.MusicBusinessAuthority, func() error, error) {
++	prepared, err := mediacomposition.PrepareOriginalMusic(context.Background(), originalMusicInputs)
++	if err != nil {
++		return nil, nil, err
++	}
++	if prepared == nil {
++		return nil, nil, nil
++	}
++	return prepared.Authority(), prepared.AssertCurrent, nil
++}
+diff --git a/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go b/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go
+new file mode 100644
+index 000000000..d222d15db
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/protected_runtime_disabled.go
+@@ -0,0 +1,10 @@
++//go:build !ynx_canonical_media || !ynx_media_combined_authority
++
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/music"
++
++// Original public-only build cannot acquire canonical business authority.
++func prepareOriginalBusiness() (music.MusicBusinessAuthority, func() error, error) {
++	return nil, nil, nil
++}
+diff --git a/apps/music/cmd/ynx-musicd/service_start.go b/apps/music/cmd/ynx-musicd/service_start.go
+new file mode 100644
+index 000000000..1f0341a68
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/service_start.go
+@@ -0,0 +1,14 @@
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/music"
++
++// Recheck the same captured source immediately before the constructor can open
++// or recover state. Nil preserves the original public-only/maintenance path.
++func newOriginalMusicService(cfg music.Config, current func() error) (*music.Service, error) {
++	if current != nil {
++		if err := current(); err != nil {
++			return nil, err
++		}
++	}
++	return music.New(cfg)
++}
+diff --git a/apps/music/cmd/ynx-musicd/service_start_test.go b/apps/music/cmd/ynx-musicd/service_start_test.go
+new file mode 100644
+index 000000000..5ff59356d
+--- /dev/null
++++ b/apps/music/cmd/ynx-musicd/service_start_test.go
+@@ -0,0 +1,25 @@
++package main
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/JiahaoAlbus/YNX-Chain/internal/music"
++)
++
++// Refusing local callbacks only; no producer, grant, Wallet or listener.
++func TestOriginalMusicSourceRefusalBeforeStateOpen(t *testing.T) {
++	root := filepath.Join(t.TempDir(), "not-opened")
++	refused := errors.New("original source no longer current")
++	calls := 0
++	cfg := music.Config{StatePath: filepath.Join(root, "state.json"), MediaDir: filepath.Join(root, "media")}
++	svc, err := newOriginalMusicService(cfg, func() error { calls++; return refused })
++	if svc != nil || !errors.Is(err, refused) || calls != 1 {
++		t.Fatalf("constructor did not retain original refusal: svc=%v calls=%d err=%v", svc, calls, err)
++	}
++	if _, err = os.Stat(root); !os.IsNotExist(err) {
++		t.Fatalf("refused source opened state directory: %v", err)
++	}
++}
+diff --git a/internal/video/business_platform_sdk.go b/internal/video/business_platform_sdk.go
+new file mode 100644
+index 000000000..f5610e3ae
+--- /dev/null
++++ b/internal/video/business_platform_sdk.go
+@@ -0,0 +1,40 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package video
++
++import (
++	"context"
++	"io"
++	"net/http"
++)
++
++// NewVideoPlatformSDKAuthority only routes the existing bounded claimed tuple.
++// The selected ORIGINAL SDK authority must still verify both proofs, sealed
++// browser binding or original enrolled native actor, and exact server scopes.
++// No header supplies authority and no failed Web verification falls to Native.
++func NewVideoPlatformSDKAuthority(web, native VideoBusinessAuthority) (VideoBusinessAuthority, error) {
++	if web == nil || native == nil {
++		return nil, ErrVideoAuthorityUnavailable
++	}
++	return &videoPlatformSDKAuthority{web: web, native: native}, nil
++}
++
++type videoPlatformSDKAuthority struct{ web, native VideoBusinessAuthority }
++
++func (a *videoPlatformSDKAuthority) VerifyVideoBusiness(ctx context.Context, r *http.Request, scope string, body io.Reader, size int64) (VideoBusinessGrant, error) {
++	if ctx == nil || ctx.Err() != nil || r == nil || r.URL == nil {
++		return VideoBusinessGrant{}, ErrVideoAuthorityUnavailable
++	}
++	claimed, expected, err := videoBusinessRequestScope(r)
++	if err != nil || expected != scope {
++		return VideoBusinessGrant{}, ErrUnauthorized
++	}
++	switch claimed.Platform {
++	case "web":
++		return a.web.VerifyVideoBusiness(ctx, r, scope, body, size)
++	case "android", "ios", "macos":
++		return a.native.VerifyVideoBusiness(ctx, r, scope, body, size)
++	default:
++		return VideoBusinessGrant{}, ErrUnauthorized
++	}
++}
+diff --git a/internal/video/business_platform_sdk_test.go b/internal/video/business_platform_sdk_test.go
+new file mode 100644
+index 000000000..cbd9fd979
+--- /dev/null
++++ b/internal/video/business_platform_sdk_test.go
+@@ -0,0 +1,63 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package video
++
++import (
++	"context"
++	"encoding/base64"
++	"encoding/json"
++	"errors"
++	"io"
++	"net/http"
++	"net/http/httptest"
++	"strings"
++	"testing"
++)
++
++type rejectedPlatformAuthority struct {
++	calls   *int
++	failure error
++}
++
++func (a rejectedPlatformAuthority) VerifyVideoBusiness(context.Context, *http.Request, string, io.Reader, int64) (VideoBusinessGrant, error) {
++	*a.calls++
++	return VideoBusinessGrant{}, a.failure
++}
++func TestOriginalVideoPlatformRoutingNeverFallsBackOnRefusal(t *testing.T) {
++	refusal := errors.New("original authority refused")
++	webCalls, nativeCalls := 0, 0
++	authority, err := NewVideoPlatformSDKAuthority(rejectedPlatformAuthority{&webCalls, refusal}, rejectedPlatformAuthority{&nativeCalls, refusal})
++	if err != nil {
++		t.Fatal(err)
++	}
++	for _, platform := range []string{"web", "android", "ios", "macos"} {
++		application := "com.ynxweb4.video"
++		claim := videoSessionV2{Version: "2", ChainID: "ynx_6423-1", ProductID: "video", ClientID: "ynx-video-mobile-v1", Platform: platform, ApplicationID: application + ".web", Origin: "https://video.ynxweb4.com", Callback: "https://video.ynxweb4.com/wallet-auth/callback"}
++		if platform != "web" {
++			claim.ApplicationID = application
++			claim.Origin = "app://" + platform + "/" + application
++			claim.Callback = "ynxvideo://wallet-auth/callback"
++			if platform == "android" {
++				claim.PackageID = &application
++			} else {
++				claim.BundleID = &application
++			}
++		}
++		raw, _ := json.Marshal(claim)
++		request := httptest.NewRequest("GET", "https://video.ynxweb4.com/v1/account", nil)
++		request.Header.Set(productSessionProofV2Header, base64.RawURLEncoding.EncodeToString(raw))
++		if _, e := authority.VerifyVideoBusiness(context.Background(), request, "video:account", strings.NewReader(""), 0); !errors.Is(e, refusal) {
++			t.Fatalf("%s: %v", platform, e)
++		}
++	}
++	if webCalls != 1 || nativeCalls != 3 {
++		t.Fatalf("unexpected fallback web=%d native=%d", webCalls, nativeCalls)
++	}
++	malformed := httptest.NewRequest("GET", "https://video.ynxweb4.com/v1/account", nil)
++	if _, e := authority.VerifyVideoBusiness(context.Background(), malformed, "video:account", strings.NewReader(""), 0); e == nil {
++		t.Fatal("missing route tuple accepted")
++	}
++	if webCalls != 1 || nativeCalls != 3 {
++		t.Fatal("malformed tuple reached a factory")
++	}
++}
+diff --git a/internal/video/cmd/main.go b/internal/video/cmd/main.go
+index 916131fbc..864371211 100644
+--- a/internal/video/cmd/main.go
++++ b/internal/video/cmd/main.go
+@@ -18,6 +18,15 @@ var (
+ )
+ 
+ func main() {
++	authority, current, err := prepareOriginalBusiness()
++	if err != nil {
++		log.Fatal(err)
++	}
++	if current != nil {
++		if err = current(); err != nil {
++			log.Fatal(err)
++		}
++	}
+ 	root := required("YNX_VIDEO_DATA")
+ 	moderators := map[string]bool{}
+ 	for _, account := range strings.Split(os.Getenv("YNX_VIDEO_MODERATORS"), ",") {
+@@ -35,7 +44,7 @@ func main() {
+ 	if os.Getenv("YNX_VIDEO_PAY_ENDPOINT") != "" {
+ 		pay = video.PayClient{Endpoint: os.Getenv("YNX_VIDEO_PAY_ENDPOINT"), Token: required("YNX_VIDEO_PAY_TOKEN")}
+ 	}
+-	svc, err := video.NewService(video.Config{Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay})
++	svc, err := newOriginalVideoService(video.Config{BusinessAuthority: authority, Root: root, IntegrityKey: []byte(required("YNX_VIDEO_INTEGRITY_KEY")), MaxObjectBytes: max, AccountQuotaBytes: quota, Scanner: video.CommandScanner{Command: required("YNX_VIDEO_SCANNER"), Database: os.Getenv("YNX_VIDEO_SCANNER_DATABASE")}, Processor: video.FFmpegProcessor{FFmpeg: os.Getenv("YNX_VIDEO_FFMPEG")}, AI: ai, Pay: pay}, current)
+ 	if err != nil {
+ 		log.Fatal(err)
+ 	}
+@@ -60,6 +69,11 @@ func main() {
+ 	}
+ 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
+ 	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
++	if current != nil {
++		if err = current(); err != nil {
++			log.Fatal(err)
++		}
++	}
+ 	log.Printf("YNX Video listening on %s", addr)
+ 	log.Fatal(srv.ListenAndServe())
+ }
+diff --git a/internal/video/cmd/protected_runtime.go b/internal/video/cmd/protected_runtime.go
+new file mode 100644
+index 000000000..f2070d90a
+--- /dev/null
++++ b/internal/video/cmd/protected_runtime.go
+@@ -0,0 +1,24 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package main
++
++import (
++	"context"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/mediacomposition"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
++)
++
++// Nil until a real original protected launcher supplies attested readers,
++// source custody and current enrolled actor. ENV does not populate this slot.
++var originalVideoInputs *mediacomposition.VideoInputs
++
++func prepareOriginalBusiness() (video.VideoBusinessAuthority, func() error, error) {
++	prepared, err := mediacomposition.PrepareOriginalVideo(context.Background(), originalVideoInputs)
++	if err != nil {
++		return nil, nil, err
++	}
++	if prepared == nil {
++		return nil, nil, nil
++	}
++	return prepared.Authority(), prepared.AssertCurrent, nil
++}
+diff --git a/internal/video/cmd/protected_runtime_disabled.go b/internal/video/cmd/protected_runtime_disabled.go
+new file mode 100644
+index 000000000..b1ecb6e02
+--- /dev/null
++++ b/internal/video/cmd/protected_runtime_disabled.go
+@@ -0,0 +1,10 @@
++//go:build !ynx_canonical_media || !ynx_media_combined_authority
++
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/video"
++
++// Original public-only build cannot acquire canonical business authority.
++func prepareOriginalBusiness() (video.VideoBusinessAuthority, func() error, error) {
++	return nil, nil, nil
++}
+diff --git a/internal/video/cmd/service_start.go b/internal/video/cmd/service_start.go
+new file mode 100644
+index 000000000..d6088fe40
+--- /dev/null
++++ b/internal/video/cmd/service_start.go
+@@ -0,0 +1,14 @@
++package main
++
++import "github.com/JiahaoAlbus/YNX-Chain/internal/video"
++
++// Recheck the same captured source immediately before the constructor can open
++// or recover state. Nil preserves the original public-only/maintenance path.
++func newOriginalVideoService(cfg video.Config, current func() error) (*video.Service, error) {
++	if current != nil {
++		if err := current(); err != nil {
++			return nil, err
++		}
++	}
++	return video.NewService(cfg)
++}
+diff --git a/internal/video/cmd/service_start_test.go b/internal/video/cmd/service_start_test.go
+new file mode 100644
+index 000000000..e597313fd
+--- /dev/null
++++ b/internal/video/cmd/service_start_test.go
+@@ -0,0 +1,25 @@
++package main
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
++)
++
++// Refusing local callbacks only; no producer, grant, Wallet or listener.
++func TestOriginalVideoSourceRefusalBeforeStateOpen(t *testing.T) {
++	root := filepath.Join(t.TempDir(), "not-opened")
++	refused := errors.New("original source no longer current")
++	calls := 0
++	cfg := video.Config{Root: root}
++	svc, err := newOriginalVideoService(cfg, func() error { calls++; return refused })
++	if svc != nil || !errors.Is(err, refused) || calls != 1 {
++		t.Fatalf("constructor did not retain original refusal: svc=%v calls=%d err=%v", svc, calls, err)
++	}
++	if _, err = os.Stat(root); !os.IsNotExist(err) {
++		t.Fatalf("refused source opened state directory: %v", err)
++	}
++}

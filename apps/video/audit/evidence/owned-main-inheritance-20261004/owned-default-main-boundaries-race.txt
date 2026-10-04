@@ -1,0 +1,2 @@
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/video/cmd	1.303s
+ok  	github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd	1.316s

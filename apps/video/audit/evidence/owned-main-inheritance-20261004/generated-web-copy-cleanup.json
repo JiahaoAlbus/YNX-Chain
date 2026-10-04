@@ -1,0 +1,16 @@
+[
+  {
+    "removedGeneratedWebBuildCopy": "/tmp/ynx-media-processing-resume-20261004/web-build",
+    "recoverySourceCommit": "8368bc83cef47aaf29ae08b236929249b46a6eea",
+    "preservedExactWebArchive": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/processing-resume-20261004/creator-web-candidate.tar.gz",
+    "archiveSHA256": "2e243ba6340ca02d40dfb77d7408670c1d0ed7ccbcb32f0508a052d7bf4c8455",
+    "reason": "own reproducible duplicate build copy only; original source, commits, exact candidate and evidence remain"
+  },
+  {
+    "removedGeneratedWebBuildCopy": "/tmp/ynx-media-real-codec-resume-20261004/web-build",
+    "recoverySourceCommit": "9018e999b95e6e55ebeba09207709f7da5e568d6",
+    "preservedExactWebArchive": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/real-codec-resume-20261004/creator-web-candidate.tar.gz",
+    "archiveSHA256": "e044b64e7e853e975c9bee6c056ca702cecf09b90ffb7b8bc06767c953ed9783",
+    "reason": "own reproducible duplicate build copy only; original source, commits, exact candidate and evidence remain"
+  }
+]

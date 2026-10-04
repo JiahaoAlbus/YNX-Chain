@@ -1,0 +1,2 @@
+# github.com/JiahaoAlbus/YNX-Chain/apps/music/cmd/ynx-musicd
+/Users/huangjiahao/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.25.13.darwin-arm64/pkg/tool/darwin_arm64/link: mapping output file failed: no space left on device

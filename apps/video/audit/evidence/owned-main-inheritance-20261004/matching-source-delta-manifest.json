@@ -1,0 +1,45 @@
+{
+  "sourceCommit": "31208439162d20ded0d4ecaa92d2a2ea42cdb2e9",
+  "candidateFiles": 4482,
+  "fullManifestPath": "/tmp/ynx-media-owned-main-inheritance-20261004/matching-source-manifest.json",
+  "fullManifestSHA256": "3008d4a637083c536eba4d18b18f9e93562b8b8278118696a8baa2ede8f6d877",
+  "priorFullManifestPath": "/tmp/ynx-media-real-codec-resume-20261004/matching-source-manifest.json",
+  "priorFullManifestSHA256": "a01b1ead545c7a491e7a617a83ff9754fd19618c87c600adcdd81c759440601e",
+  "priorPreservedGitDeltaManifest": "apps/video/audit/evidence/real-codec-resume-20261004/matching-source-delta-manifest.json",
+  "unchangedFiles": 4476,
+  "changedOrAdded": [
+    {
+      "path": "apps/music/cmd/ynx-musicd/main.go",
+      "bytes": 3880,
+      "sha256": "9386dc07cde9d094060b87c9f907e2dd521433c600768228088997a40b82c715"
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/service_start.go",
+      "bytes": 433,
+      "sha256": "2867e9afd1b1f7b2fe50c2fa3bb3044d0e972fbac5a2a997f9b2d5b71fc966aa"
+    },
+    {
+      "path": "apps/music/cmd/ynx-musicd/service_start_test.go",
+      "bytes": 853,
+      "sha256": "273dc81b041435a0b0eeb613370fdbef678e0cd51f64a1f6dd4a8e95b9ab97ba"
+    },
+    {
+      "path": "internal/video/cmd/main.go",
+      "bytes": 3828,
+      "sha256": "8f588df06da7148e58297b76799b89cbc94df85adba97271ad903cc5e3b07022"
+    },
+    {
+      "path": "internal/video/cmd/service_start.go",
+      "bytes": 440,
+      "sha256": "e64de89a2f24968bcef575f49da916ea7be38ae1b1f5e3c35359307fb146953b"
+    },
+    {
+      "path": "internal/video/cmd/service_start_test.go",
+      "bytes": 779,
+      "sha256": "b5ef7dd7d60ddc026aa3b7e042a55fec371bd644cd6be43e85636ecb7aa79267"
+    }
+  ],
+  "removed": [],
+  "allOtherFrozenSharedAndProductInputExact": true,
+  "contentSHA256": "d5d33f70ca474ebf11da0bd8658b37a1c8a628080a79de1f5594676303a1d0c8"
+}
