@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "ownedProductBaseline": "671786b58153dcaaef91648544ff00efd947f37a",
+  "scope": "SDK-free real Electron/Chromium synthetic-video frame pipeline; no full Wallet boot, original checksum producer, enrolled account, OS camera or business authority",
+  "runtime": {
+    "electron": "42.8.0",
+    "platform": "darwin-arm64",
+    "toolBinary": "/tmp/ynx-wallet-published-inheritance-test-20261003-weuJ6Z/apps/wallet-desktop/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron",
+    "cacheArchive": "/Users/huangjiahao/Library/Caches/electron/electron-v42.8.0-darwin-arm64.zip",
+    "cacheArchiveSHA256": "e107e547b7ada8eda32f85910b7f6ca91a6ca4578b60dc775bb69e3957f3e1d9",
+    "archiveMatchesBundledChecksums": true,
+    "actualExecutableMatchesArchive": true,
+    "executableSHA256": "471784b680e10c411ac156eb2821525cff3ea22a2d9363ead0e0e87c90c17837",
+    "actualFrameworkMatchesArchive": true,
+    "frameworkSHA256": "5074ef3fb989c540732e012d2abe9d88ae306dd36f77c97004560cb1bc3cc184"
+  },
+  "command": "<toolBinary> /Users/huangjiahao/.codex/worktrees/d386/YNX Chain/apps/wallet-desktop/qa/camera-frame-check.mjs /tmp/ynx-wallet-camera-frame-20261004-BsPIfc",
+  "final": {
+    "profile": "/tmp/ynx-wallet-camera-frame-20261004-BsPIfc",
+    "log": "/tmp/ynx-wallet-camera-frame-20261004-BsPIfc/frame-pipeline.log",
+    "logSHA256": "03ade2755e8723a75ab1ecdb44c0d5039ce212570476ba1784e75ce434fb109c",
+    "loadedCommonJSInputsHashed": 60,
+    "graphScope": "Actual loaded CommonJS tool inputs; explicit original ESM source pins below. Not a whole Wallet/shared SDK graph admission.",
+    "exit": 0,
+    "results": "3/3 PASS",
+    "windowCreated": true,
+    "visibleWindow": false,
+    "mediaPermissionRequests": 0,
+    "networkRequests": 0,
+    "httpHttpsWsWssDenied": true,
+    "sandboxEnabled": true,
+    "nodeIntegration": false,
+    "contextIsolation": true,
+    "cases": [
+      {"inputVideo": [512,512], "encodedPNG": [512,512], "bytes": 9024, "readback": "EXACT_ORIGINAL_PUBLIC_TESTNET_URI"},
+      {"inputVideo": [1440,900], "encodedPNG": [720,450], "bytes": 9972, "readback": "EXACT_ORIGINAL_PUBLIC_TESTNET_URI"},
+      {"inputVideo": [512,512], "encodedPNG": [512,512], "bytes": 7109, "readback": "ORIGINAL_QR_DECODE_FAILED_FOR_NO_QR"}
+    ],
+    "allSyntheticTracksEnded": true,
+    "ownQAProcessTerminal": true
+  },
+  "originalPathUsed": ["Canvas.captureStream synthetic MediaStream and real HTML video playback", "Owned captureRecipientFrame", "Real canvas PNG Blob/ArrayBuffer", "Electron context-isolated preload IPC", "Original assertWalletIPC", "Real Electron nativeImage.createFromBuffer/toBitmap", "Original bounded decodeLocalQRText with actual jsQR"],
+  "originalSourcePins": {
+    "src/recipient-camera-ui.mjs": "4663db44244fd545ebe981f9c407c3273663b9e7e9ce9481a1a778dc2e263ab1",
+    "src/walletconnect-qr-decoder.mjs": "d587090e2e1c7f0e2b0211c284c9769c663962fbd1fd299bc5b4a7b2cbfdd927",
+    "src/qr-image-bounds.mjs": "e9bbfc1eb7b2068da246b67732e40337f027dff7e20dfc3ee1cc61a9073b9658",
+    "src/wallet-ipc-policy.mjs": "454ce223f55aaea3d06dcb765df52d2208af6f990a18f57350479ee52fefa0a1"
+  },
+  "failuresPreserved": [
+    {"log": "/tmp/ynx-wallet-camera-frame-20261004-HHhnXq/frame-pipeline.log", "sha256": "769e8558c40eaa17153fdfa8d126a36bfcd2f380d039b6518e1755b136939c7e", "exit": 1, "rows": 0, "cause": "QA main ESM top-level awaited app.whenReady, blocking ready/module initialization; not a camera product failure"},
+    {"log": "/tmp/ynx-wallet-camera-frame-20261004-AOIdRn/frame-pipeline.log", "sha256": "15c75d9bbbc2cb62331f6d47d4dc660dda44073a0de8feef8736059cbfdb2570", "exit": 1, "rows": 0, "cause": "Same main readiness error remained after adding offscreen diagnostics; process terminal confirmed before retry"}
+  ],
+  "intermediateResultsPreserved": ["/tmp/ynx-wallet-camera-frame-20261004-DCOU9K/frame-pipeline.log: 2 positive cases PASS", "/tmp/ynx-wallet-camera-frame-20261004-RUeWQh/frame-pipeline.log: 2 positive + 1 refusal PASS", "/tmp/ynx-wallet-camera-frame-20261004-wArvM6/frame-pipeline.log: 3/3 PASS with zero denied-network observations"],
+  "warning": "sandbox_extension_issue_file_to_process diagnostic remains in failed and successful logs; sandbox was not disabled. It was not treated as proof of a camera denial or as the demonstrated readiness cause.",
+  "unchangedProductSource": true,
+  "notRun": ["Actual getUserMedia camera permission/check/request", "Physical camera", "Original receiving checksum/account-status producer", "Full admitted shared SDK/factory", "Native account/key/biometric/PIN", "Wallet main or profile", "Installed preserving upgrade", "Pay/signing/settlement", "Android/Web parity", "MONSTER"],
+  "nextAction": "Root review the exact pure QA dependency graph and real frame/native-codec log, then A use the current original camera source in its source-bound preserving-upgrade candidate. Synthetic canvas video cannot substitute for physical-camera/user/OS acceptance.",
+  "overallGoal": "NOT_COMPLETED"
+}
