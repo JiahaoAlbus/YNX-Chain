@@ -1,0 +1,15 @@
+# Card paired envelope successor
+
+Product source `cfb999b282c0fb93d072f18021e823e8e6fcee26`, tree `57ca7a73a8793e9ff02c785d6db325889562b0ff`, branch `codex/card-test-service-recovery-20261002`.
+
+The owner envelope mismatch recorded for 293218210 is resolved. The actual builder's root `productionRealPayments:false` is authoritative; an optional nested value, if supplied, must also be false. Fixtures now follow the actual producer shape. All exact-source checks, TEST-only checks, routes, security config, file hashes and negative gates remain enforced. This does not make runtime identity an authentication authority.
+
+Source-freeze/envelope tests 11/11 passed. Changed runtime pairing tests 10/10 and frontend/server typecheck passed earlier in this same source batch; the successor only changed the envelope helper/fixture. New exact source Web build succeeded, nested envelope build/verifier passed 16 envelope files and exact 13/13 static parity. Backend main bundle succeeded: 281838B/SHA256 `01e648aef0ba8d3ecb2f3905b075518e6b73976ee6d30c30a76519a4629300ac`, 20 source inputs, 15 external imports, compiled exact source binding. Complete file/source receipts are in `paired-composition-cfb999b28-20261004.json`.
+
+Local real Chrome QA on a fresh origin showed English first open, six navigation entries, guest preview, distinct YNX Wallet/MetaMask logos and names, chooser open/close with zero new tabs, disconnected application gate, local DEMO event and one-of-one audit recovery after reload. Private services remained Degraded without hiding Guest. This is local static QA: no protected backend, real account request, approval, signature or transaction was executed. Screenshot hashes/limitations are recorded in `paired-qa-browser-cfb999b28-20261004.json`.
+
+Read-only canonical public readback still serves frontend `66126513738ecbd77a372d2ab7f5ac34076c2208` and backend `e95fcf443228d0db97c139dfa5e8ad6fbb7aa675`, runtime funding false / real payments false. Those are not this candidate. No deploy/alias mutation occurred. Preserve this historical pairing for rollback; do not infer a current Vercel deployment ID without fresh project readback.
+
+Candidate root `/private/tmp/ynx-card-paired-candidate-20261004.0FYT51`; successful envelope `envelope-cfb999b28`; backend `backend-cfb999b28`. Earlier failed outputs/logs remain intact. Temporary QA browser/server closed/stopped. No user keys, DB or journals changed.
+
+Actual remaining runtime inputs: original protected startup genuine captured-current producer, accepted Wallet/Auth authorization and registered role/actor inputs, and formal host execution. Do not synthesize these from metadata or test fixtures. Ordinary owned development/version pairing is not waiting for Central approval. `publicRuntimeVerified`, `realPrivateApproval`, `realWalletApproval`, `realYNXTTopup`, `realCardApiReadback`, `productsConnected`, `migratedV2`, `ComputerControl` and `productionRealPayments` remain false. Full Testnet product goal remains open; this receipt is not `YNX_CARD_TESTNET_PRODUCT_READY`.

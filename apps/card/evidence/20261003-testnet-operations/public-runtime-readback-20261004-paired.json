@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "ynx.card.runtime-identity.v1",
+  "productId": "ynx-card",
+  "sourceCommit": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+  "sourceTree": "18e8c7c32f887d0bc34bd2c6182e7e7199b909fd",
+  "appVersion": "1.0.0",
+  "releaseChannel": "testnet-release",
+  "environment": "testnet",
+  "evmChainId": 6423,
+  "evmChainHex": "0x1917",
+  "paymentNetwork": "simulation",
+  "productionRealPayments": false,
+  "cardApiCompatibility": {
+    "schemaVersion": "ynx.card.source-compatibility.v1",
+    "frontendSourceBase": "7f9ea9af369c61fcb358c9e80500fdd30c66cbbb",
+    "frontendSourceCommit": "66126513738ecbd77a372d2ab7f5ac34076c2208",
+    "frontendSourceTree": "18e8c7c32f887d0bc34bd2c6182e7e7199b909fd",
+    "backendSourceCommit": "e95fcf443228d0db97c139dfa5e8ad6fbb7aa675",
+    "backendVersionSchema": 1
+  }
+}

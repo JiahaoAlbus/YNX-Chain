@@ -1,0 +1,1 @@
+{"service":"ynx-card-business-backend","schemaVersion":1,"sourceCommit":"e95fcf443228d0db97c139dfa5e8ad6fbb7aa675","environment":"YNX_TESTNET_CARD_PAYMENT_SIMULATION","configurationReady":true,"runtimeFundingVerified":false,"productionRealPayments":false}

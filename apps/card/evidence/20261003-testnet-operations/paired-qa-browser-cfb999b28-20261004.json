@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "cfb999b282c0fb93d072f18021e823e8e6fcee26",
+  "sourceTree": "57ca7a73a8793e9ff02c785d6db325889562b0ff",
+  "kind": "local-static-qa-real-Chrome",
+  "url": "http://127.0.0.1:8894/?verify=cfb999b28-paired",
+  "englishFirstOpen": true,
+  "guestBrowse": true,
+  "sixNavigationVisible": true,
+  "distinctYNXMetaMaskBrandsVisible": true,
+  "chooserOpenClose": true,
+  "chooserCreatedCount": 0,
+  "disconnectedApplicationGated": true,
+  "guestDemoEventPersistedAfterReload": true,
+  "privateDegradedGuestAvailable": true,
+  "realAccountRequest": false,
+  "realApproval": false,
+  "realSignature": false,
+  "realYNXTTopup": false,
+  "backendStarted": false,
+  "publicRuntimeVerified": false,
+  "productionRealPayments": false,
+  "screenshotSha256": "c814245edfbb6300c91550e50f07745e5db240f46fa5b1823eabdf4f2d86e5e7",
+  "limitations": [
+    "Local QA, not public deployment",
+    "Static QA has no private API",
+    "No wallet connect/reject/sign/tx tested",
+    "Tab delta measures chooser only"
+  ]
+}
