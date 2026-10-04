@@ -44,6 +44,9 @@
           "telemetry.telemetryLevel": "off",
           "files.autoSave": "off",
           "editor.fontSize": 13,
+          "typescript.tsserver.useSyntaxServer": "never",
+          "javascript.validate.enable": true,
+          "typescript.validate.enable": true,
           "workbench.colorTheme": "YNX Klein Light",
           "terminal.integrated.defaultProfile.osx": "YNX Bash",
           "terminal.integrated.profiles.osx": {

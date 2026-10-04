@@ -96,7 +96,7 @@ try {
   pass('Actual installed language extension disables persistently, then enables and restores imported-file completion after reload.');
   await page.keyboard.press('Meta+a'); await page.keyboard.insertText('const retainedAfterUninstall = "YNX project retained";\n');
   await save('const retainedAfterUninstall = "YNX project retained";\n');
-  await languageDetail(); await menu('Uninstall');
+  await languageDetail(); await page.getByRole('button', { name: 'Uninstall', exact: true }).last().click();
   await reloadAfterChange(); await command('Extensions: Show Installed Extensions');
   await page.waitForTimeout(1000);
   assert.equal(await page.locator('[id="vsx-extensions:installed"]').getByText(/^(TypeScript and JavaScript Language Features \(built-in\)|vscode\.typescript-language-features)$/).filter({ visible: true }).count(), 0);

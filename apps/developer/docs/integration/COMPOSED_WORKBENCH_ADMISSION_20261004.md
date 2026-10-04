@@ -1,5 +1,17 @@
 # Composed workbench: normal-entry consumer contract
 
+Latest owned runtime checkpoint: workbench **0.3.1**, candidate
+`ynx-composed-language-recovery-20261004-mac-arm64`; exact pin and 25 current
+controlled checks are in `COMPOSED_LANGUAGE_RECOVERY_20261004.json`. Lock
+`2451b4d41d894ad74cb685390fd3b0927cd8760d6df3bb8c168596acb5924ce1`, tree
+`96fbf01f917d649d62929fd7d71d724be7625b124ada8f1e54db5db049aec256`, manifest
+`6b5d053cdd56bb37194fff53f529028d62e349316374f3743a6d7e53d651e69b`.
+The five nonsecret bindings, persistent sibling profile and protected parent
+contract below are unchanged. A must select the exact reviewed new artifact in
+its registered driver; historical pins and recovery families remain available.
+This checkpoint does not admit a public or canonical session or replace A's
+execution-domain, quota and identity checks.
+
 The normal YNX `/projects` UI, current identity consumer, durable session/writer
 journal, `/sso/core-open` entry and HTTP/WebSocket proxy remain the product path.
 The new runtime uses this same path. A installs its execution driver and protected

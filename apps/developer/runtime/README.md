@@ -157,7 +157,28 @@ Wallet authorization, AI review/apply, Git, extension-management lifecycle,
 desktop installers, profile migration and mobile device journeys require their
 own end-to-end verification. Do not restart a specifically rejected Host/LXD
 or egress operation as a consequence of this runtime change.
-# Extension restart continuation (2026-10-04)
+# Language recovery 0.3.1 (2026-10-04)
+
+The current product defaults use the official TypeScript service's supported
+`typescript.tsserver.useSyntaxServer: "never"`, with JavaScript and TypeScript
+validation enabled. Trace showed the full service accepting edits and resolving
+the imported module while completion requests kept reaching the temporary
+partial-semantic server. Direct full-service routing restores semantic results
+after extension re-enable/reload and retains normal user preference overrides.
+It also avoids starting a separate syntax-server process by default.
+
+`docs/integration/COMPOSED_LANGUAGE_RECOVERY_20261004.json` pins the new 0.3.1
+artifact and 25 actual checks with zero page errors: 16 semantic/core, 3 settings
+and file/extension lifecycle, 4 cached official user-VSIX transitions and 2
+graceful backend replacement checks. The user-installation fixture starts with
+no language-service built-in and no profile overrides for the new defaults.
+Both complete installation and disable/enable/uninstall/reopen run through the
+actual framework UI and extension host. Historical red evidence remains intact.
+These are controlled macOS arm64 fixtures, not universal extension compatibility,
+online marketplace, crash recovery, canonical parent identity, production
+capacity, all-platform or formal native release acceptance.
+
+# Previous extension restart checkpoint (2026-10-04)
 
 Workbench 0.3.0 keeps the standard **Reload Window** action visible after an
 extension is enabled. It uses the framework's existing reload and dirty-file
