@@ -1,0 +1,149 @@
+{
+  "sourceCommit": "d0346c38057074500e4630a9ae916c5808ad0699",
+  "sourceTree": "83ce7118061b1b652df00abcf4ccb9d6413081ba",
+  "release": "ynx-exchange-d0346c380570",
+  "archiveBytes": 4480400,
+  "archiveSha256": "925bf296959a1e7a62c4ecd9ddcba321a71073dcd9293b2a8516601743154862",
+  "entryCount": 17,
+  "binaryBytes": 9617592,
+  "binarySha256": "26a0db93d8facc6d803bfa87813d6529f42e21d848bcf782994cabdacbcd9f54",
+  "graph": {
+    "status": "pass",
+    "pageAssets": 4,
+    "moduleAssets": 7
+  },
+  "entries": [
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/app.js",
+      "bytes": 59066,
+      "sha256": "6830322df2c9c02769472b3b0c66b515cce313331d5357ebd22e31d0c861a400",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/command-copy.js",
+      "bytes": 8318,
+      "sha256": "a008ce04065ae1ea734c597b744b855490c8ca1caddee92a540f56284ea4d095",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/command-review.js",
+      "bytes": 3548,
+      "sha256": "f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/index.html",
+      "bytes": 22310,
+      "sha256": "d81dfaaf0434159b1ef2ba6184397c7b505dc07e3caa046e16609769710cc518",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/locale.js",
+      "bytes": 176935,
+      "sha256": "16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/market-data.js",
+      "bytes": 16423,
+      "sha256": "77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/order-preview.js",
+      "bytes": 4743,
+      "sha256": "76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/private-session.js",
+      "bytes": 136529,
+      "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/styles.css",
+      "bytes": 18493,
+      "sha256": "6bca56554e9f11ee0b3a1e94c211a10106d4ea8c020cfa62d9dff1ce2c6cf4b8",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/ui-preferences.js",
+      "bytes": 5722,
+      "sha256": "d64040f560c3d314682171a99f5b76b2c9f695c70801eb3e61f506a526a340fe",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/venue-config.js",
+      "bytes": 4825,
+      "sha256": "1e10bb20aa713dffe505321a5fc03c9109f651c965c3ae5a0edfff6504d90b61",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/wallet-connect.js",
+      "bytes": 37764,
+      "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/ynx-favicon.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/apps/exchange/web/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/BUNDLE_MANIFEST.json",
+      "bytes": 3617,
+      "sha256": "0806c823a760dc40c4911076ce44e52c64d996617ce5f5156f240d4048e3c222",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/SHA256SUMS",
+      "bytes": 1548,
+      "sha256": "70b48ea78e9bd099bfd2ce03c6b23b0d5bee28a152a73acb16b71fd2a26f9f5a",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d0346c380570/ynx-exchanged",
+      "bytes": 9617592,
+      "sha256": "26a0db93d8facc6d803bfa87813d6529f42e21d848bcf782994cabdacbcd9f54",
+      "mode": "755"
+    }
+  ],
+  "deployedPublic": false,
+  "installed": false,
+  "archivePath": "/tmp/ynx-exchange-d0346c380570-linux-amd64-20261004.tar.gz",
+  "supersedesArchiveSha256": "e2426c9ed0446d27caa947ed0e8c6c11452d233e31bff60e35e2fb262c5b9bd7",
+  "reason": "Real deposit confirmation race and wrong returned indexer hash fixed in candidate engine; old candidate cannot prove corrected engine.",
+  "tests": {
+    "simultaneousAndHashRegressionRaceCount": 5,
+    "focusedRace": "PASS 1.817s",
+    "fullExchangeGo": "PASS 5.412s",
+    "serverGo": "PASS 0.452s",
+    "actualArchiveCases": 12
+  },
+  "browserProvenance": {
+    "evidence": "apps/exchange/evidence/runtime-candidate-images-and-browser-20261004.json",
+    "all14WebAssetHashesUnchanged": true,
+    "directNewArchiveBrowserRun": false,
+    "publicEvidence": false
+  },
+  "truth": {
+    "archiveBuilt": true,
+    "archiveVerified": true,
+    "linuxExecuted": false,
+    "publicSourceBound": false,
+    "installed": false,
+    "userAccepted": false,
+    "walletApproval": false,
+    "productSession": false,
+    "ordersSubmitted": false,
+    "transactions": false
+  }
+}
