@@ -1,0 +1,167 @@
+{
+  "sourceCommit": "d83869e20b213dab2b14808033017aed7222a863",
+  "sourceTree": "162a26aad9ab09daaf4e124be79c36159a099fb2",
+  "release": "ynx-exchange-d83869e20b21",
+  "archiveBytes": 4480209,
+  "archiveSha256": "e2426c9ed0446d27caa947ed0e8c6c11452d233e31bff60e35e2fb262c5b9bd7",
+  "entryCount": 17,
+  "binaryBytes": 9617592,
+  "binarySha256": "c495c20542a09597bd4a5b6e5525e5f78f5cdbe0e28e974fcfce0d062bddea24",
+  "graph": {
+    "status": "pass",
+    "pageAssets": 4,
+    "moduleAssets": 7
+  },
+  "entries": [
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/app.js",
+      "bytes": 59066,
+      "sha256": "6830322df2c9c02769472b3b0c66b515cce313331d5357ebd22e31d0c861a400",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/command-copy.js",
+      "bytes": 8318,
+      "sha256": "a008ce04065ae1ea734c597b744b855490c8ca1caddee92a540f56284ea4d095",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/command-review.js",
+      "bytes": 3548,
+      "sha256": "f3e3be0fa43a8df6a80ae418e8784233693c8e232defacef96ca6bbb9b84d45e",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/index.html",
+      "bytes": 22310,
+      "sha256": "d81dfaaf0434159b1ef2ba6184397c7b505dc07e3caa046e16609769710cc518",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/locale.js",
+      "bytes": 176935,
+      "sha256": "16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/market-data.js",
+      "bytes": 16423,
+      "sha256": "77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/order-preview.js",
+      "bytes": 4743,
+      "sha256": "76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/private-session.js",
+      "bytes": 136529,
+      "sha256": "ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/styles.css",
+      "bytes": 18493,
+      "sha256": "6bca56554e9f11ee0b3a1e94c211a10106d4ea8c020cfa62d9dff1ce2c6cf4b8",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/ui-preferences.js",
+      "bytes": 5722,
+      "sha256": "d64040f560c3d314682171a99f5b76b2c9f695c70801eb3e61f506a526a340fe",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/venue-config.js",
+      "bytes": 4825,
+      "sha256": "1e10bb20aa713dffe505321a5fc03c9109f651c965c3ae5a0edfff6504d90b61",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/wallet-connect.js",
+      "bytes": 37764,
+      "sha256": "a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/ynx-favicon.png",
+      "bytes": 45914,
+      "sha256": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/apps/exchange/web/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/BUNDLE_MANIFEST.json",
+      "bytes": 3617,
+      "sha256": "d1eaa537ced8792417a54aa6b49a0acd00b842c00c73a9eda0ca41aafe10ac5e",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/SHA256SUMS",
+      "bytes": 1548,
+      "sha256": "2c61cdb14359f458de23b6d705f31bd22d5005e9ae3e3d78b2fc24c829aa6b5d",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-d83869e20b21/ynx-exchanged",
+      "bytes": 9617592,
+      "sha256": "c495c20542a09597bd4a5b6e5525e5f78f5cdbe0e28e974fcfce0d062bddea24",
+      "mode": "755"
+    }
+  ],
+  "deployedPublic": false,
+  "installed": false,
+  "schemaVersion": 1,
+  "archivePath": "/tmp/ynx-exchange-d83869e20b21-linux-amd64-20261004.tar.gz",
+  "supersedes": {
+    "sourceCommit": "6d0769c36764623e67f28c2498b9de0d0dac740b",
+    "archiveSha256": "46dc57dad4bc3569336c2c8d9dbf1f2bd86e55869a2be124dfb2ccb1acadd74c",
+    "evidence": "apps/exchange/evidence/runtime-candidate-complete-20261004.json",
+    "reason": "Prior JS/CSS inventory omitted actual HTML logo/favicon references. Historical result retained; prior artifact not eligible as complete page runtime."
+  },
+  "tests": {
+    "actualArchiveNegativeCases": 12,
+    "runtimeAssetTests": "2/2",
+    "nodeSyntax": true,
+    "diffCheck": true
+  },
+  "browser": {
+    "runner": "installed Chrome headless via Playwright; isolated contexts; entire actual archive page",
+    "serviceResponses": "controlled API_UNAVAILABLE HTTP503, no synthetic market/account/order/proof",
+    "widths": [
+      390,
+      1280
+    ],
+    "all14AssetsLoaded": true,
+    "logoDecoded": true,
+    "defaultEnglish": true,
+    "ynxAndMetaMaskNoProviderFallback": true,
+    "exactOfficialLinks": true,
+    "reload": true,
+    "tabCount": 1,
+    "pageErrors": [],
+    "nonGetRequests": 0,
+    "customSchemeRequests": 0,
+    "publicProof": false,
+    "installedWalletProof": false
+  },
+  "truth": {
+    "archiveBuilt": true,
+    "archiveVerified": true,
+    "linuxExecuted": false,
+    "publicSourceBound": false,
+    "installed": false,
+    "userAccepted": false,
+    "walletApproval": false,
+    "productSession": false,
+    "ordersSubmitted": false,
+    "transactions": false
+  }
+}
