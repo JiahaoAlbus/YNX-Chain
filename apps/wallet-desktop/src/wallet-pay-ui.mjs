@@ -4,6 +4,31 @@ const payStateCopy=Object.freeze({transfer_unconfirmed:"Transfer outcome unconfi
 const hash=value=>typeof value==="string"&&/^0x[0-9a-f]{64}$/.test(value);
 const invoice=value=>typeof value==="string"&&/^inv_[a-f0-9]{20}$/.test(value);
 const text=value=>typeof value==="string"&&value.length>0&&value.length<=256&&!/[\x00-\x1f\x7f]/.test(value);
+// Detach bounded public Main display DTOs before reading any fields. This is
+// not invoice/session/receipt verification; the existing protected producer
+// remains responsible for those proofs. No response accessor or iterator runs.
+function snapshotPayDisplay(value){
+  let visits=0;const memo=new WeakMap(),active=new WeakSet();
+  function copy(value,depth=0){
+    if(++visits>4096||depth>8)throw Error("Oversized Pay display");
+    if(value===null||typeof value==="boolean")return value;
+    if(typeof value==="string"){if(value.length>512)throw Error("Oversized Pay display");return value;}
+    if(typeof value==="number"&&Number.isFinite(value))return value;
+    if(!value||typeof value!=="object"||active.has(value))throw Error("Invalid Pay display");
+    if(memo.has(value))return memo.get(value);
+    const array=Array.isArray(value),prototype=Object.getPrototypeOf(value);
+    if(array?prototype!==Array.prototype:![Object.prototype,null].includes(prototype))throw Error("Invalid Pay display");
+    const descriptors=Object.getOwnPropertyDescriptors(value),keys=Reflect.ownKeys(descriptors);
+    if(keys.some(key=>typeof key!=="string"||!Object.hasOwn(descriptors[key],"value")))throw Error("Invalid Pay display");
+    const length=array?descriptors.length?.value:null;
+    if(array?(!Number.isSafeInteger(length)||length<0||length>50||keys.length!==length+1):keys.length>64)throw Error("Invalid Pay display");
+    if(array)for(let index=0;index<length;index++)if(!Object.hasOwn(descriptors,index))throw Error("Invalid Pay display");
+    const result=array?new Array(length):Object.create(prototype);memo.set(value,result);active.add(value);
+    for(const key of keys){if(array&&key==="length")continue;Object.defineProperty(result,key,{value:copy(descriptors[key].value,depth+1),enumerable:true,writable:true,configurable:true});}
+    active.delete(value);return Object.freeze(result);
+  }
+  return copy(value);
+}
 function original(value,account){
   if(!value||value.account!==account||!hash(value.hash)||!invoice(value.invoiceId)||!text(value.merchant)||!text(value.recipient)||!Number.isSafeInteger(value.amount)||value.amount<=0||value.fee!==1||value.total!==value.amount+1||!Number.isSafeInteger(value.total)||value.consensusFinality!==false||
     !["transfer_unconfirmed","settlement_pending","settlement_unknown","settled","archived"].includes(value.status)||
@@ -11,7 +36,7 @@ function original(value,account){
     value.settlementVerified&&!value.checkpointVerified||["settled","archived"].includes(value.status)!==value.settlementVerified||value.status==="settlement_unknown"&&(!value.settlementAttempted||!value.checkpointVerified)||
     value.status==="settlement_pending"&&(!value.checkpointVerified||value.settlementAttempted)||value.status==="transfer_unconfirmed"&&value.checkpointVerified||
     ["record","session","payload","raw","paymentResult","intent","signature","privateKey"].some(key=>key in value))throw Error("Unverified Pay original");
-  return {...value};
+  return Object.freeze({...value});
 }
 /** Renderer state machine; no keys, policy, original bytes, session or endpoint.
  * It can send only reference, review ID, explicit action and original hash.
@@ -24,7 +49,7 @@ export function createDesktopPayUI({getContext,api,render}){
   const capture=(before=getContext(),current=revision)=>({before,owns:()=>current===revision,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}});
   const request=async(fn,accept,{notice="Checking Pay…",failure="Pay could not be verified. Preserve the original; restore it and check its original hash or receipt."}={})=>{
     if(busy)return;const {before,live}=capture();if(!live()){view("Unlock Wallet before reviewing or restoring Pay.");return}busy=true;view(notice);
-    try{const response=await fn();if(!live())return;if(!response?.ok)throw Error("Pay request failed");accept(response.value,before.account);busy=false;view()}
+    try{const received=await fn();if(!live())return;const response=snapshotPayDisplay(received);if(!live())return;if(response?.ok!==true)throw Error("Pay request failed");accept(response.value,before.account);busy=false;view()}
     catch{if(live()){busy=false;view("",failure)}}
   };
   const acceptOriginal=(value,account)=>{if(value?.kind!=="original"&&value?.kind!=="archived")throw Error("Wrong Pay result");retained=value.original===null?null:original(value.original,account);settleBlocked=!!retained?.settlementAttempted;review=null};
@@ -37,7 +62,7 @@ export function createDesktopPayUI({getContext,api,render}){
       const {before,live,owns}=capture(getContext(),revision+1),cancelled=clear();
       if(!live()){if(owns()&&before.locked)view("Unlock Wallet before reviewing or restoring Pay.");await cancelled;return}
       await cancelled;if(!live())return;
-      try{const result=await api.payStatus();if(!live())return;if(!result?.ok||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
+      try{const received=await api.payStatus();if(!live())return;const result=snapshotPayDisplay(received);if(!live())return;if(result?.ok!==true||typeof result.value?.available!=="boolean"||result.value.paymentAuthorized!==false)throw Error();available=result.value.available;
         if(!available){view("Protected Pay is unavailable in this build. No payment was approved. Your saved originals remain on this device.");return}view();if(live())await ui.restore();
       }catch{if(live())view("","Pay readiness could not be verified. Nothing was signed.")}
     },
@@ -45,7 +70,7 @@ export function createDesktopPayUI({getContext,api,render}){
       if(value?.kind==="original"||value?.kind==="archived"){acceptOriginal(value,account);return}
       const item=value?.review;
       if(value?.kind!=="review"||!item||item.account!==account||!text(item.id)||!invoice(item.invoiceId)||!text(item.merchant)||!text(item.recipient)||!Number.isSafeInteger(item.amount)||item.amount<=0||item.fee!==1||item.total!==item.amount+1||!Number.isSafeInteger(item.total)||typeof item.intentDigest!=="string"||!/^[a-f0-9]{64}$/.test(item.intentDigest)||!Number.isFinite(Date.parse(item.expiresAt))||item.paymentAuthorized!==false)throw Error("Wrong Pay review");
-      review={...item};retained=null;
+      review=Object.freeze({...item});retained=null;
     },{notice:"Verifying the signed invoice and bound quote…",failure:"The signed invoice and quote could not be reviewed. Nothing was signed or paid."})},
     async approve(){if(!available||!review||busy)return;const token=review.id;review=null;return request(()=>api.payAction({action:"approve",id:token}),acceptOriginal,{notice:"Saving and submitting the reviewed original…",failure:"Payment outcome is unconfirmed. Do not pay again. Choose Restore original, then check its original hash."})},
     async restore(){return request(()=>api.payRestore(),acceptOriginal,{notice:"Reading the original saved on this device…"})},
@@ -63,7 +88,7 @@ export function createDesktopPayUI({getContext,api,render}){
         if(value?.account!==account||!Array.isArray(value.records)||value.records.length>50||value.nextCursor!==null&&!hash(value.nextCursor))throw Error("Wrong history");
         const verified=value.records.map(item=>original(item,account)),combined=more?[...historyRecords,...verified]:verified;
         if(verified.some(item=>item.status!=="archived")||new Set(combined.map(item=>item.hash)).size!==combined.length||value.nextCursor!==null&&verified.at(-1)?.hash!==value.nextCursor)throw Error("Wrong history");
-        historyRecords=combined;historyCursor=value.nextCursor;records=combined;
+        historyRecords=Object.freeze(combined);historyCursor=value.nextCursor;records=historyRecords;
       },{notice:"Reading verified Pay history…"});return records;
     },
   });return ui;
@@ -110,7 +135,7 @@ export function mountDesktopPayUI({document,api,getContext}){
     const bound=qrIntent;qrIntent=null;
     const live=()=>qrLive(bound);
     if(!live())return;
-    try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const result=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;if(!result?.ok||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())setWalletCopy(status,"QR reference read locally. Choose Review signed invoice; scanning never signs or pays.")}
+    try{if(!file||!["image/png","image/jpeg","image/webp"].includes(file.type)||file.size<1||file.size>10*1024*1024)throw Error();const bytes=await file.arrayBuffer();if(!live())return;if(bytes.byteLength!==file.size)throw Error();const received=await api.invoiceReferenceQR({mimeType:file.type,bytes});if(!live())return;const result=snapshotPayDisplay(received);if(!live())return;if(result?.ok!==true||!invoice(result.value?.invoiceID)||result.value.decodedLocally!==true||result.value.uploaded!==false)throw Error();reference.value=result.value.invoiceID;await ui.open();if(live())setWalletCopy(status,"QR reference read locally. Choose Review signed invoice; scanning never signs or pays.")}
     catch{if(live())setWalletCopy(status,"No supported Pay invoice QR was found. Nothing was uploaded or paid.")}
   }});
   const invalidate=()=>{qrRevision++;qrIntent=null;qrFile.invalidate();history.replaceChildren();void ui.clear()};
