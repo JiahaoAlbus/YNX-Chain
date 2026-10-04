@@ -8,6 +8,9 @@ const { VSXExtension } = require('@theia/vsx-registry/lib/browser/vsx-extension'
 const { YnxVSXExtension } = require('./extension-lifecycle');
 const { DraftRecoveryContribution } = require('./draft-recovery');
 const { EditorManager } = require('@theia/editor/lib/browser');
+const { HostedPluginSupport } = require('@theia/plugin-ext/lib/hosted/browser/hosted-plugin');
+const { LanguageCommandReadiness } = require('./language-command-readiness');
+const { MonacoCommandService } = require('@theia/monaco/lib/browser/monaco-command-service');
 const { MessageService } = require('@theia/core/lib/common/message-service');
 const { FrontendApplicationStateService } = require('@theia/core/lib/browser/frontend-application-state');
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
@@ -36,6 +39,9 @@ require('../style/keyboard-shortcuts.css');
 const logo = require('../assets/ynx-logo.png');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
+  bind(CommandContribution).toDynamicValue(context => new LanguageCommandReadiness(
+    context.container.get(EditorManager), context.container.get(HostedPluginSupport), context.container.get(MonacoCommandService),
+  )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new JsonSchemaPolicyStatus(
     context.container.get(EditorManager), context.container.get(PreferenceService), context.container.get(StatusBar),
   )).inSingletonScope();

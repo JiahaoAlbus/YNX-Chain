@@ -4,6 +4,8 @@ const { chromium } = await import(process.env.YNX_QA_PLAYWRIGHT_MODULE || 'playw
 const runtime = JSON.parse(await readFile(process.argv[2], 'utf8'));
 assert.match(runtime.qa, /^\/private\/tmp\/ynx-theia-extension-qa-[A-Za-z0-9]+$/);
 const tag = process.argv[3] || 'solidity-semantics'; assert.match(tag, /^[a-z0-9-]{1,40}$/);
+const coldStart = process.argv[4] === '--cold-start';
+if (process.argv[4] && !coldStart) throw Error('Unknown startup mode.');
 const source = '// SPDX-License-Identifier: MIT\n// 中文😀\npragma solidity 0.8.24;\nimport "./lib/Math.sol";\ncontract Use { function ping() public pure returns(uint256) { return Math.value(); } function pong() public pure returns(uint256) { return Math.value(); } }\n';
 const library = '// SPDX-License-Identifier: MIT\npragma solidity 0.8.24;\nlibrary Math { function value() internal pure returns(uint256) { return 3; } function value(uint256 n) internal pure returns(uint256) { return n; } }\n';
 await mkdir(runtime.workspace + '/contracts/lib', { recursive: true });
@@ -45,10 +47,12 @@ try {
   await open('Use.sol'); const first = await current(); assert.equal(first.language, 'solidity'); assert.equal(first.text, source);
   // Frontend readiness precedes extension-host startup. Observe the actual
   // extension command and its status before testing providers; no injected API.
-  await page.keyboard.press('F1'); await page.locator('.quick-input-box input').fill('>YNX: Solidity Language Status');
-  await page.locator('.quick-input-list').getByText('YNX: Solidity Language Status', { exact: true }).first().click();
-  await page.waitForFunction(() => document.body.innerText.includes('"registered":true'));
-  observations.push({ languageStatus: await page.locator('body').innerText() });
+  if (!coldStart) {
+    await page.keyboard.press('F1'); await page.locator('.quick-input-box input').fill('>YNX: Solidity Language Status');
+    await page.locator('.quick-input-list').getByText('YNX: Solidity Language Status', { exact: true }).first().click();
+    await page.waitForFunction(() => document.body.innerText.includes('"registered":true'));
+    observations.push({ languageStatus: await page.locator('body').innerText() });
+  }
   const lines = source.slice(0, source.indexOf('Math.value') + 5).split('\n');
   const position = { lineNumber: lines.length, column: lines.at(-1).length + 1 };
   await current(position); await page.keyboard.press('F12');
@@ -97,6 +101,6 @@ try {
   await page.screenshot({ path: runtime.qa + '/' + tag + '-error.png' }).catch(() => {});
 } finally {
   await browser.close();
-  await writeFile(runtime.qa + '/' + tag + '-ui.json', JSON.stringify({ passed, checks, errors, observations, actualEditor: true, actualStandardProviders: true, bundledPinnedCompiler: true, workerAssetPathRedirected: false, sourceWrites: 'Exclusive own QA fixtures and actual unsaved keyboard edits; original disk files are checked unchanged.', canonical: false, realWallet: false, public: false, fullRuntimeInput: runtime.plugins === runtime.root + '/plugins' }, null, 2), { flag: 'wx' });
+  await writeFile(runtime.qa + '/' + tag + '-ui.json', JSON.stringify({ passed, checks, errors, observations, coldStart, languageStatusCommandInvoked: !coldStart, actualEditor: true, actualStandardProviders: true, bundledPinnedCompiler: true, workerAssetPathRedirected: false, sourceWrites: 'Exclusive own QA fixtures and actual unsaved keyboard edits; original disk files are checked unchanged.', canonical: false, realWallet: false, public: false, fullRuntimeInput: runtime.plugins === runtime.root + '/plugins' }, null, 2), { flag: 'wx' });
   console.log(JSON.stringify({ passed, checks: checks.length, errors })); if (!passed) process.exitCode = 1;
 }
