@@ -47,5 +47,30 @@
     "Shared owner supplies actual registration/current/actor observer producer references",
     "Use the existing real Wallet account; do not substitute a newly created account",
     "Rerun original formal authentication, own business, recovery and isolation on the installed source"
-  ]
+  ],
+  "websiteReadback": {
+    "observedAt": "2026-10-04T08:17:53.242996+00:00",
+    "url": "https://www.ynxweb4.com/dapp/download?family=media&lang=zh-CN&product=video",
+    "method": "Actual existing Chrome tab reloaded after original publisher reported new deployment",
+    "beforeReload": "Cached predecessor showed three Media products; not treated as fresh deployment readback",
+    "afterReload": {
+      "mainProductHeading": "YNX Media",
+      "capabilityHeadings": [
+        "视频",
+        "音乐",
+        "创作"
+      ],
+      "primaryWebEntry": "https://video.ynxweb4.com/",
+      "helpLink": "/docs?lang=zh-CN#video",
+      "status": "整合开发中",
+      "nativeAvailability": "统一客户端正在开发；正式下载尚未提供。",
+      "legacyRecords": "Original video/music/creator release paths retained inside historical compatibility disclosure"
+    },
+    "proves": "Single Media public catalog rendering and primary entry",
+    "doesNotProve": [
+      "Media owned source installed on Video/Creator/Music Host",
+      "Real user authentication and private business",
+      "Unified native client published"
+    ]
+  }
 }
