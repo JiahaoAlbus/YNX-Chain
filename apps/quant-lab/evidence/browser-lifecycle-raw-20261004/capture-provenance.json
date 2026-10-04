@@ -1,0 +1,91 @@
+{
+  "classification": "EXACT_RECORDED_COMMAND_STREAM_EXPORT_NOT_A_RERUN",
+  "sourceRollout": "/Users/huangjiahao/.codex/sessions/2026/08/13/rollout-2026-08-13T20-10-46-019ffb08-3344-70b1-9d1a-33f8535a302e.jsonl",
+  "note": "Streams are exported verbatim from original CommandExecution item; zero recorded stderr is not a claim that Debug messages originated on OS stdout. Original event envelopes retain capture semantics.",
+  "events": [
+    {
+      "name": "qa145-success",
+      "eventTimestamp": "2026-10-04T04:16:18.552Z",
+      "eventOrdinal": 139550,
+      "threadId": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "turnId": "01a1051d-cf45-7611-9fc7-029730443b3d",
+      "commandId": "exec-015266bf-c840-4819-b6b2-a806b3994dd0",
+      "processId": "43988",
+      "command": [
+        "/bin/zsh",
+        "-lc",
+        "node --check apps/quant-lab/tests/research-recovery-browser.test.mjs\ngit diff --check\nnode --test apps/quant-lab/tests/research-recovery-browser.test.mjs"
+      ],
+      "cwd": "file:///Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002",
+      "status": "completed",
+      "exitCode": 0,
+      "duration": {
+        "secs": 31,
+        "nanos": 76674458
+      }
+    },
+    {
+      "name": "branded-chrome-debug-cancelled",
+      "eventTimestamp": "2026-10-04T04:14:56.848Z",
+      "eventOrdinal": 139529,
+      "threadId": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "turnId": "01a1051d-cf45-7611-9fc7-029730443b3d",
+      "commandId": "exec-36a67bcc-833f-4aaa-9cfc-f04d77de84ff",
+      "processId": "86804",
+      "command": [
+        "/bin/zsh",
+        "-lc",
+        "DEBUG=pw:browser node --test apps/quant-lab/tests/research-recovery-browser.test.mjs"
+      ],
+      "cwd": "file:///Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002",
+      "status": "failed",
+      "exitCode": 1,
+      "duration": {
+        "secs": 49,
+        "nanos": 46453209
+      }
+    },
+    {
+      "name": "owned-process-inventory",
+      "eventTimestamp": "2026-10-04T04:16:57.714Z",
+      "eventOrdinal": 139561,
+      "threadId": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "turnId": "01a1051d-cf45-7611-9fc7-029730443b3d",
+      "commandId": "exec-bf5ffc47-f1f8-4c47-ab99-15dc55eec26f",
+      "processId": "56659",
+      "command": [
+        "/bin/zsh",
+        "-lc",
+        "git diff --check\ngit add apps/quant-lab/tests/research-recovery-browser.test.mjs\ngit commit -m 'test(quant): isolate browser process lifecycle without extending recovery deadline'\ngit rev-parse HEAD HEAD^{tree}\nshasum -a 256 '/Users/huangjiahao/Library/Caches/ms-playwright/chromium-1208/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'\nps -axo pid,ppid,etime,comm | awk '$0 ~ /ynx-quant-research-recovery.*ynx-quant/ {print}'"
+      ],
+      "cwd": "file:///Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002",
+      "status": "completed",
+      "exitCode": 0,
+      "duration": {
+        "secs": 0,
+        "nanos": 214902334
+      }
+    },
+    {
+      "name": "research-restore-success",
+      "eventTimestamp": "2026-10-04T04:22:09.891Z",
+      "eventOrdinal": 139641,
+      "threadId": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "turnId": "01a10522-d0b1-7532-b22c-23ee389a64e0",
+      "commandId": "exec-1cf1883a-7860-484e-a9d1-9d46f3c89108",
+      "processId": "60580",
+      "command": [
+        "/bin/zsh",
+        "-lc",
+        "git diff --check\nnode --check apps/quant-lab/web/app.js\nnode --test apps/quant-lab/tests/research-recovery-browser.test.mjs"
+      ],
+      "cwd": "file:///Users/huangjiahao/.codex/worktrees/exchange-sso-cookie-binding-20261002",
+      "status": "completed",
+      "exitCode": 0,
+      "duration": {
+        "secs": 27,
+        "nanos": 25633125
+      }
+    }
+  ]
+}
