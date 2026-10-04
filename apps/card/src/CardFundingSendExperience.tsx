@@ -27,7 +27,7 @@ export function CardFundingSendExperience({client,identity,intent,locale,onVerif
   };
   const send=async()=>{
     if(!sendAvailable||!wallet||!valid()||busy||saved?.binding===binding)return;setBusy(true);setFailure(false);
-    try{const record=await sendExactCardFunding({intent,context,wallet,storage:storage(),isCurrent:valid});if(valid())setSaved({binding,record})}
+    try{const record=await sendExactCardFunding({intent,context,wallet,storage:storage(),isCurrent:valid,onRecoveryRecord:record=>{if(valid()){setSaved({binding,record});setFailure(false)}}});if(valid())setSaved({binding,record})}
     catch{if(valid()){setFailure(true);try{const raw=await storage().read();if(raw)setSaved({binding,record:parseFundingSendRecord(raw,intent,context)})}catch{}}}
     finally{if(valid())setBusy(false)};
   };
