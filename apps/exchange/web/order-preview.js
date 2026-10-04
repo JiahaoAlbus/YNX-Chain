@@ -1,4 +1,5 @@
 // Advisory arithmetic only: no provider, identity, signing or POST capability.
+import {isVenueTimestamp} from './market-data.js?v=77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7';
 export const MAX_RULE_AGE_MS = 120_000;
 const SCALE = 1_000_000n;
 function fail(code, message) { throw Object.assign(new Error(message), {code}); }
@@ -33,7 +34,7 @@ export function buildOrderPreview({price, amount, side, rules, source, marketPha
   validateTradingRules(rules);
   const observed = Date.parse(source?.asOf);
   if (!Number.isSafeInteger(now) || now < 0 || !['live', 'polling'].includes(marketPhase) || source?.authority !== 'YNX-owned deterministic order state' || source.classification !== 'testnet' ||
-      !['live', 'degraded_single_host'].includes(source.status) || !Number.isFinite(observed) || observed > now + 5000 || now - observed > MAX_RULE_AGE_MS)
+      !['live', 'degraded_single_host'].includes(source.status) || !isVenueTimestamp(source.asOf) || !Number.isFinite(observed) || observed > now + 5000 || now - observed > MAX_RULE_AGE_MS)
     fail('RULES_STALE', 'Reconnect market data to refresh the venue rules before reviewing.');
   if (!['buy', 'sell'].includes(side)) fail('SIDE_INVALID', 'Choose buy or sell.');
   const priceMicro = parseMicro(price), amountMicro = parseMicro(amount);

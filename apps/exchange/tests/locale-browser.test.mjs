@@ -15,7 +15,9 @@ const privateRender=app.slice(app.indexOf('function ownedRecordInstant('),app.in
 const marketRender=app.slice(app.indexOf('function renderMarketStatus('),app.indexOf('async function refreshBook('));
 const estimate=app.slice(app.indexOf('function preview()'),app.indexOf('function withdrawEstimate()'));
 const toast=app.slice(app.indexOf('function toast('),app.indexOf('function showWalletFallback('));
-const previewSource=await readFile(new URL('../web/order-preview.js',import.meta.url),'utf8');
+// Inline the exact public market dependency as a data module for this
+// zero-network renderer fixture; do not replace its timestamp validator.
+const previewSource=(await readFile(new URL('../web/order-preview.js',import.meta.url),'utf8')).replace(/(['"])\.\/market-data\.js\?v=[a-f0-9]{64}\1/,JSON.stringify(`data:text/javascript;base64,${Buffer.from(marketSource).toString('base64')}`));
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activityRender=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const activityBinding=app.split('\n').find(line=>line.includes("$$('.tabs button').forEach(b=>b.addEventListener"));

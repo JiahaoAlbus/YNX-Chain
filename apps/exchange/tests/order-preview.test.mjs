@@ -58,6 +58,16 @@ test('invalid observation clocks cannot bypass rule freshness comparisons', () =
   assert.equal(buildOrderPreview(input({now:now + MAX_RULE_AGE_MS})).submitted, false);
   assert.equal(buildOrderPreview(input({source:{...source,asOf:new Date(now+5000).toISOString()}})).submitted, false);
 });
+test('preview rejects normalized calendar days and local date formats even when Date.parse makes them recent',()=>{
+  for(const asOf of ['2026-02-30T00:00:00Z','2026-04-31T00:00:00Z','2025-02-29T00:00:00Z','2026-09-12T12:00:00','09/12/2026 12:00:00',new Date(now)]){
+    assert.ok(Number.isFinite(Date.parse(asOf)),'negative vector must exercise permissive Date.parse');
+    assert.throws(()=>buildOrderPreview(input({source:{...source,asOf},now:Date.parse(asOf)})),{code:'RULES_STALE'});
+  }
+  for(const asOf of ['2026-09-12T14:00:00+02:00','2026-09-12T12:00:00.123456789Z']){
+    const value=buildOrderPreview(input({source:{...source,asOf},now:Date.parse(asOf)}));
+    assert.equal(value.rulesObservedAt,asOf);assert.equal(value.submitted,false);
+  }
+});
 test('real UI offers a read-only editable preview without posting or Wallet access', () => {
   const app=fs.readFileSync(new URL('../web/app.js',import.meta.url),'utf8'), html=fs.readFileSync(new URL('../web/index.html',import.meta.url),'utf8');
   const handler=app.slice(app.indexOf('async function reviewOrder'),app.indexOf('function cancelOrder'));

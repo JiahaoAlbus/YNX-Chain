@@ -1,5 +1,5 @@
 import {createMarketFeed,formatMicro,aggregateRetainedCandles} from './market-data.js?v=77e901697a7c3e24fb181a4069d88c20a6c06000d1cf91ba0539e51840be4ec7';
-import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=70465b431e6f22d85f1cc6a1f9d569d611b5662af06fa379cd5c27d03ef12ad3';
+import {buildOrderPreview,parseMicro,validateTradingRules} from './order-preview.js?v=76f29706a7bb6e799f0fef6c9c63e8bf26c228a0c546b1b0136f85ea2fb8f2cb';
 import {createExchangePrivateAccount} from './private-session.js?v=ef1b89eef8e13e2ad27bc8893c5d4f09bf8c9fe21bb3b54498e34eb828a74675';
 import {installExchangeLocale} from './locale.js?v=16e8a4810c65a3374b3a782e1370c4a27ff689466f79eba36a8077d7ec3ea4cd';
 const $=(s)=>document.querySelector(s);const $$=(s)=>[...document.querySelectorAll(s)];
