@@ -1,0 +1,564 @@
+{
+  "classification": "DIRECT_PUBLIC_GUEST_READ_ONLY_NOT_COMPLETION",
+  "observedAt": "2026-10-04T05:45:36.391Z",
+  "ownerHead": "cd10026b1ec5cb88252a62123459e54d22692d31",
+  "browser": "145.0.7632.6",
+  "products": [
+    {
+      "product": "finance",
+      "origin": "https://finance.ynxweb4.com",
+      "expectedAppSha256": "96fc016b6eacb43bba53f8109ff0fd740c1edc7410d2deb811a1f6a8217cddc5",
+      "http": [
+        {
+          "path": "/health",
+          "status": 200,
+          "bytes": 544,
+          "sha256": "7e6f037a79c7dce4780437087e09c7e4227fa23797b84292d47371d6d6061476",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/version",
+          "status": 200,
+          "bytes": 127,
+          "sha256": "92eee2e51b111513df0f3637bf257aad8ac1d532c96a2e3640f6b07e7b5abaa8",
+          "mime": "application/json; charset=utf-8",
+          "versionFields": {
+            "commit": "17d2d6dd0f9e30c7639bb5ccdf919c4896280e6c",
+            "release": "root3-lifecycle-17d2d6dd0"
+          }
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 94133,
+          "sha256": "6038c02a3e20d144f8f887d9f8cff9d4c91ae6541342496f9a8e0e0a0925e390",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "views": [
+        {
+          "width": 1280,
+          "navigation": {
+            "status": 200,
+            "bytes": 36630,
+            "sha256": "2150454b0d3b46f2418c85513bc5db2c6de126eb5e4f19cf2e03b589fcae217f",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://finance.ynxweb4.com/",
+            "lang": "en",
+            "dir": "ltr",
+            "title": "YNX Finance",
+            "overflow": false,
+            "heading": [
+              "YNX Finance",
+              "Connect to Finance",
+              "Your finances, with clear source boundaries."
+            ],
+            "walletButtons": [
+              {
+                "tag": "A",
+                "id": "",
+                "text": "Wallet & permissions",
+                "href": "#wallet-connect"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "wallet-entry",
+                "text": "Connect a wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-ynx",
+                "text": "Connect YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-metamask",
+                "text": "Connect MetaMask",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "install-wallet",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "A",
+                "id": "install-metamask",
+                "text": "Install MetaMask",
+                "href": "https://metamask.io/download/"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-hosted-ynx",
+                "text": "Connect YNX Wallet on Web",
+                "href": null
+              }
+            ],
+            "scripts": [
+              "/finance-locale.js?v=bfbf26d35f04786229928b72ae485f1537b3f734d2f1de874c4478599f1499ab",
+              "/wallet-auth.js?v=cec7a51e0e581b07cd0468f2f35bec73de701430716afcf3f595106f118a6c40",
+              "/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc",
+              "/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0",
+              "/evm-read-session.js?v=698b7526817489677cf25ffa2bfec1c0fb4e7c9f3d3d450349f0f9c716042c47",
+              "/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161",
+              "/app.js?v=6038c02a3e20d144f8f887d9f8cff9d4c91ae6541342496f9a8e0e0a0925e390",
+              "/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d",
+              "/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/finance-1280.png",
+            "bytes": 143782,
+            "sha256": "645adfa4f20f3f2f66dda7db5ac31b4f277661bc1eb363637f657e8900bfe1e0"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": [
+            {
+              "type": "error",
+              "messageSha256": "d3896fd78f62c1f3b92c314d96ecff21047bb08ac1f2ef540bd40086fb840c44"
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "navigation": {
+            "status": 200,
+            "bytes": 36630,
+            "sha256": "2150454b0d3b46f2418c85513bc5db2c6de126eb5e4f19cf2e03b589fcae217f",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://finance.ynxweb4.com/",
+            "lang": "en",
+            "dir": "ltr",
+            "title": "YNX Finance",
+            "overflow": false,
+            "heading": [
+              "YNX Finance",
+              "Connect to Finance",
+              "Your finances, with clear source boundaries."
+            ],
+            "walletButtons": [
+              {
+                "tag": "A",
+                "id": "",
+                "text": "Wallet & permissions",
+                "href": "#wallet-connect"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "wallet-entry",
+                "text": "Connect a wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-ynx",
+                "text": "Connect YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-metamask",
+                "text": "Connect MetaMask",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "install-wallet",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "A",
+                "id": "install-metamask",
+                "text": "Install MetaMask",
+                "href": "https://metamask.io/download/"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-hosted-ynx",
+                "text": "Connect YNX Wallet on Web",
+                "href": null
+              }
+            ],
+            "scripts": [
+              "/finance-locale.js?v=bfbf26d35f04786229928b72ae485f1537b3f734d2f1de874c4478599f1499ab",
+              "/wallet-auth.js?v=cec7a51e0e581b07cd0468f2f35bec73de701430716afcf3f595106f118a6c40",
+              "/order-wallet.js?v=6cef4fceff283978a32319d8a69189c3be402573a0944e6a0363ff2a2f7e27dc",
+              "/order-opaque.js?v=c390bfe8d036a9f492a0b393ea2145d086dd9065fa63d0a826701c7190427de0",
+              "/evm-read-session.js?v=698b7526817489677cf25ffa2bfec1c0fb4e7c9f3d3d450349f0f9c716042c47",
+              "/evm-subject.js?v=8fe55f719f8899a5b57f25287a18a16338a1bfb64da266f23580e07183b8f161",
+              "/app.js?v=6038c02a3e20d144f8f887d9f8cff9d4c91ae6541342496f9a8e0e0a0925e390",
+              "/read-sources.js?v=a29b1b494f86a89c1aee12a0d27c200436b7ef33823fc8109323165b12eef63d",
+              "/product-catalog.js?v=dc98fedb9734207a2688f0a5ce154a16b0be11240947a4910414bb212eed9088"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/finance-390.png",
+            "bytes": 57514,
+            "sha256": "5f61af06c88da6f087f2e1be0563c1645895e64a0110a650db7de1c659ec3060"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": []
+        }
+      ],
+      "appMatchesOwner": false
+    },
+    {
+      "product": "exchange",
+      "origin": "https://exchange.ynxweb4.com",
+      "expectedAppSha256": "ec29b6941244b2156b383f5ac3a26dd3803bf9cb97ccda16c31a7c9860edfb31",
+      "http": [
+        {
+          "path": "/health",
+          "status": 200,
+          "bytes": 15995,
+          "sha256": "e19bfb7281f35515b5d5648f893803af94ea3a0c64ed46d766f3495a8e7b63ab",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/version",
+          "status": 200,
+          "bytes": 15995,
+          "sha256": "e19bfb7281f35515b5d5648f893803af94ea3a0c64ed46d766f3495a8e7b63ab",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 29163,
+          "sha256": "74d389577a2c4cfa0c8f747f51b43274bf4bc209cafe694392942e125c8dc562",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "views": [
+        {
+          "width": 1280,
+          "navigation": {
+            "status": 200,
+            "bytes": 15995,
+            "sha256": "e19bfb7281f35515b5d5648f893803af94ea3a0c64ed46d766f3495a8e7b63ab",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://exchange.ynxweb4.com/",
+            "lang": "en",
+            "dir": "",
+            "title": "YNX Exchange — Testnet Venue",
+            "overflow": false,
+            "heading": [
+              "Exchange private account",
+              "YNXT / YUSD_TEST",
+              "Market activity",
+              "Order book",
+              "Limit order",
+              "Recent venue matches",
+              "Open orders"
+            ],
+            "walletButtons": [
+              {
+                "tag": "BUTTON",
+                "id": "connect",
+                "text": "Connect YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "private-begin",
+                "text": "Prepare read-only Wallet sign-in",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "private-standard-wallet",
+                "text": "YNX / MetaMask standard Wallet options",
+                "href": null
+              }
+            ],
+            "scripts": [
+              "/wallet-connect.js?v=a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6",
+              "/app.js?v=74d389577a2c4cfa0c8f747f51b43274bf4bc209cafe694392942e125c8dc562"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/exchange-1280.png",
+            "bytes": 124484,
+            "sha256": "21f624f83c05106c64cda86c69dfd09de4529375510066e468f3d178e2ac1592"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": [
+            {
+              "type": "error",
+              "messageSha256": "d3896fd78f62c1f3b92c314d96ecff21047bb08ac1f2ef540bd40086fb840c44"
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "navigation": {
+            "status": 200,
+            "bytes": 15995,
+            "sha256": "e19bfb7281f35515b5d5648f893803af94ea3a0c64ed46d766f3495a8e7b63ab",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://exchange.ynxweb4.com/",
+            "lang": "en",
+            "dir": "",
+            "title": "YNX Exchange — Testnet Venue",
+            "overflow": false,
+            "heading": [
+              "Exchange private account",
+              "YNXT / YUSD_TEST",
+              "Market activity",
+              "Order book",
+              "Limit order",
+              "Recent venue matches",
+              "Open orders"
+            ],
+            "walletButtons": [
+              {
+                "tag": "BUTTON",
+                "id": "connect",
+                "text": "Connect YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "private-begin",
+                "text": "Prepare read-only Wallet sign-in",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "BUTTON",
+                "id": "private-standard-wallet",
+                "text": "YNX / MetaMask standard Wallet options",
+                "href": null
+              }
+            ],
+            "scripts": [
+              "/wallet-connect.js?v=a031dab0a4422157a11450cc69d098b404030b8503dd0284892e621e835d45b6",
+              "/app.js?v=74d389577a2c4cfa0c8f747f51b43274bf4bc209cafe694392942e125c8dc562"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/exchange-390.png",
+            "bytes": 80164,
+            "sha256": "afce436d19e3669b7483f05c72a333f2c092dec54036600e12969f32e745f88f"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": []
+        }
+      ],
+      "appMatchesOwner": false
+    },
+    {
+      "product": "quant",
+      "origin": "https://quant.ynxweb4.com",
+      "expectedAppSha256": "5feb20e86f5f6434039ea9d4439dd58aef486d30889932c2d39f506e3d3d4915",
+      "http": [
+        {
+          "path": "/api/health",
+          "status": 200,
+          "bytes": 462,
+          "sha256": "9f20f70d5719359683c2f2e4a0dabacd7003072d01b16e1930520ea79b01b4cb",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/api/version",
+          "status": 200,
+          "bytes": 274,
+          "sha256": "f82629a1bd63e50f6721611cbf7866f86d7bffd51820b05a417590541c4653df",
+          "mime": "application/json; charset=utf-8",
+          "versionFields": {
+            "commit": "664b80b00ac576317524f25b49fc01d1c0db7196",
+            "version": "0.2.0-testnet"
+          }
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 46133,
+          "sha256": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "views": [
+        {
+          "width": 1280,
+          "navigation": {
+            "status": 200,
+            "bytes": 22457,
+            "sha256": "216e54c8b2e79835bd52d4802d5c805ae864c6702b54db9508abae284c93ec32",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://quant.ynxweb4.com/",
+            "lang": "en",
+            "dir": "ltr",
+            "title": "YNX Quant Lab",
+            "overflow": false,
+            "heading": [
+              "Research, paper & testnet",
+              "Run a reproducible experiment"
+            ],
+            "walletButtons": [
+              {
+                "tag": "BUTTON",
+                "id": "connect-wallet",
+                "text": "Connect Installed YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-hosted",
+                "text": "Use YNX Wallet Web",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-metamask",
+                "text": "Use MetaMask",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "install-wallet",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "A",
+                "id": "install-metamask",
+                "text": "Download MetaMask",
+                "href": "https://metamask.io/download/"
+              }
+            ],
+            "scripts": [
+              "/wallet-auth.js?v=3b8c2afa35f3af7e1810c4101af8457277dc603960526ee1f6b10f80aaec1ac0",
+              "/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+              "/app.js?v=21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/quant-1280.png",
+            "bytes": 120950,
+            "sha256": "afc6dbf7e778340fbc3d6b6fa7dac64b86573bddf708ffdb17c39c1e71d2089f"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": [
+            {
+              "type": "error",
+              "messageSha256": "d3896fd78f62c1f3b92c314d96ecff21047bb08ac1f2ef540bd40086fb840c44"
+            }
+          ]
+        },
+        {
+          "width": 390,
+          "navigation": {
+            "status": 200,
+            "bytes": 22457,
+            "sha256": "216e54c8b2e79835bd52d4802d5c805ae864c6702b54db9508abae284c93ec32",
+            "mime": "text/html; charset=utf-8"
+          },
+          "visible": {
+            "url": "https://quant.ynxweb4.com/",
+            "lang": "en",
+            "dir": "ltr",
+            "title": "YNX Quant Lab",
+            "overflow": false,
+            "heading": [
+              "Research, paper & testnet",
+              "Run a reproducible experiment"
+            ],
+            "walletButtons": [
+              {
+                "tag": "BUTTON",
+                "id": "connect-wallet",
+                "text": "Connect Installed YNX Wallet",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-hosted",
+                "text": "Use YNX Wallet Web",
+                "href": null
+              },
+              {
+                "tag": "BUTTON",
+                "id": "connect-metamask",
+                "text": "Use MetaMask",
+                "href": null
+              },
+              {
+                "tag": "A",
+                "id": "install-wallet",
+                "text": "Download YNX Wallet",
+                "href": "https://www.ynxweb4.com/dapp/download"
+              },
+              {
+                "tag": "A",
+                "id": "install-metamask",
+                "text": "Download MetaMask",
+                "href": "https://metamask.io/download/"
+              }
+            ],
+            "scripts": [
+              "/wallet-auth.js?v=3b8c2afa35f3af7e1810c4101af8457277dc603960526ee1f6b10f80aaec1ac0",
+              "/i18n.js?v=f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+              "/app.js?v=21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc"
+            ]
+          },
+          "screenshot": {
+            "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-financial-public-guest-JvS7Oe/quant-390.png",
+            "bytes": 65490,
+            "sha256": "8bfe543e2ea8b7a641a241698e9926ea8778dad85f3673d3fa61de7a66135896"
+          },
+          "pages": 1,
+          "blockedNonGet": [],
+          "pageErrorDigests": [],
+          "consoleClasses": []
+        }
+      ],
+      "appMatchesOwner": false
+    }
+  ],
+  "truth": {
+    "sourceBound": false,
+    "accountApproval": false,
+    "signatures": false,
+    "transactions": false,
+    "productSession": false,
+    "installed": false,
+    "computerControl": false,
+    "productComplete": false
+  }
+}
