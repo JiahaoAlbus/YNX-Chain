@@ -1,0 +1,18 @@
+package com.ynxweb4.music;
+import android.content.Context;
+import org.json.*;
+import java.nio.file.*;
+// Ordinary production-store/cache counterexample. No SDK/HTTP/Wallet authority.
+public final class MusicCacheFieldCheck {
+    static void check(boolean ok,String text){if(!ok)throw new AssertionError(text);}
+    public static void main(String[] args)throws Exception {
+        Context c=new Context(Files.createTempDirectory("music-field-cache-").toFile());String account="ynx1"+"a".repeat(38);MusicStore s=MusicStore.selectAccount(c,account);
+        JSONObject oldUI=s.load();String key="music-upload-00000000-0000-0000-0000-000000000001";
+        JSONObject upload=new JSONObject().put("key",key).put("title","Original owned draft").put("artist","Original artist").put("evidence","Owned").put("provenance","Original").put("audioSHA256","a".repeat(64));s.updateUpload(upload,null,false);
+        JSONObject newest=s.load();newest.put("position",99).put("trackId","trk_"+"1".repeat(24)).put("downloads",new JSONObject().put("trk_"+"1".repeat(24),"available")).put("remote",new JSONObject().put("playlist","newer")).put("aiEnabled",false);s.save(newest);
+        oldUI.put("favorites",new JSONArray().put("trk_"+"1".repeat(24)));JSONObject written=s.prepareLibrary(oldUI,()->{});
+        boolean lost=!written.has("uploadIntent")&&written.optInt("position")==0&&written.optJSONObject("remote")==null;
+        check(lost,"Original stale-UI whole-cache loss not reproduced");
+        System.out.println(new JSONObject().put("baselineStaleUICacheLossObserved",true).put("cacheOnly",true).put("actualSDKAuthority",false));
+    }
+}

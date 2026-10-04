@@ -1,0 +1,55 @@
+{
+  "disposition": "SOURCE_HOLD",
+  "sourceCommit": "4ecbb75f0393d83b9a51b1e619a3b1e9fb19da7d",
+  "deliveryCommit": "6288eca4403564d6eaa035aaaa566ed8b1e5db92",
+  "openFindings": [
+    {
+      "id": "MEDIA6288-LIBRARY-STALE-CACHE",
+      "priority": "P2",
+      "file": "apps/music/android/app/src/main/java/com/ynxweb4/music/MusicStore.java",
+      "line": 59
+    }
+  ],
+  "independentCacheSourceModel": {
+    "pass": 4,
+    "fail": 1,
+    "javaExit": 1
+  },
+  "sourceFilesIntact": 627,
+  "actualSDKBusiness": "NOT_RUN",
+  "installedUI": "NOT_RUN",
+  "HostPublic": "NOT_RUN",
+  "productWrites": false,
+  "records": [
+    {
+      "path": "SOURCE_REPORT.md",
+      "sha256": "65ac24c7b27ecb14a1446ba1b37e07a6c5b966d938ca1293897401ac23c04f08",
+      "bytes": 11288
+    },
+    {
+      "path": "custody.json",
+      "sha256": "905c9795981576da2a740cb7b36098aa80e8400d312eed413bf5d2f0cb18ae78",
+      "bytes": 132311
+    },
+    {
+      "path": "runtime-exact.diff",
+      "sha256": "caa3dc1d966a4b8a248e6ec13e20dd40aede3980b03b04b46434b2d510e21468",
+      "bytes": 67741
+    },
+    {
+      "path": "independent-build.json",
+      "sha256": "da4ddcb3eec798034d229ba3cf5bb4fcd0c8b2ecc282a0140129059b45dbdbec",
+      "bytes": 3164
+    },
+    {
+      "path": "independent-cache-check.log",
+      "sha256": "b5c80944a8e497b1b7dbd57ad4ff8196522083732cdfe38807ea4455067f85d7",
+      "bytes": 627
+    },
+    {
+      "path": "probes/com/ynxweb4/music/IndependentCacheCheck.java",
+      "sha256": "8f1bd15d2112e04dc549705e0637707e4ce7e6aa2e8528fd6ef776b1d7d7e4c5",
+      "bytes": 5562
+    }
+  ]
+}

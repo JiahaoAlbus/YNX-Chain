@@ -55,11 +55,40 @@ final class MusicStore {
         for(int i=0;i<tracks.length();i++){JSONObject track=tracks.getJSONObject(i);try{MusicApi.verifyLocal(offline(track.getString("id")),track.getString("audioSha256"));downloads.put(track.getString("id"),"available");}catch(IOException unavailable){/* Remote markers do not prove local audio. */}}
         current.put("downloads",downloads).put("remote",new JSONObject(snapshot.toString()));guard.check();save(current);return current;
     }}
-    JSONObject prepareLibrary(JSONObject candidate,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
-        guard.check();requireAccount(account);JSONObject next=new JSONObject(candidate.toString());
+    // Preferences are patches; old UI/cache snapshots never replace the store.
+    JSONObject prepareLibrary(JSONObject preferences,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load();
+        for(String key:new String[]{"favorites","queue"})if(preferences.has(key))current.put(key,new JSONArray(preferences.getJSONArray(key).toString()));
+        return prepareLibraryCurrent(current,guard);
+    }}
+    JSONObject toggleLibrary(String key,String id,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);if(!key.equals("favorites")&&!key.equals("queue"))throw new IOException("Invalid library field");
+        if(!id.matches("trk_[0-9a-f]{24}"))throw new IOException("Invalid original track");
+        JSONObject current=load();JSONArray values=current.getJSONArray(key),next=new JSONArray();boolean found=false;
+        for(int i=0;i<values.length();i++){String value=values.getString(i);if(value.equals(id))found=true;else next.put(value);}if(!found)next.put(id);
+        current.put(key,next);return prepareLibraryCurrent(current,guard);
+    }}
+    private JSONObject prepareLibraryCurrent(JSONObject current,MusicIO.Guard guard)throws Exception {
         JSONObject intent=new JSONObject().put("id","music-library-"+java.util.UUID.randomUUID()).put("account",account);
-        for(String key:new String[]{"favorites","queue","downloads"})intent.put(key,next.get(key));
-        next.put("libraryIntent",intent);guard.check();save(next);return next;
+        for(String key:new String[]{"favorites","queue","downloads"})intent.put(key,new JSONObject(current.toString()).get(key));
+        current.put("libraryIntent",intent);guard.check();save(current);return current;
+    }
+    JSONObject commitAIEnabled(boolean enabled,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load();current.put("aiEnabled",enabled);guard.check();save(current);return current;
+    }}
+    JSONObject commitPlayback(String track,int position,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);if(!track.matches("trk_[0-9a-f]{24}")||position<0)throw new IOException("Invalid original playback cursor");
+        JSONObject current=load();current.put("trackId",track).put("position",position);guard.check();save(current);return current;
+    }}
+    JSONObject preparePlaylist(String name,JSONArray ids,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("playlistCreation");
+        if(pending==null){if(name.trim().isEmpty()||name.codePointCount(0,name.length())>120)throw new IOException("Invalid playlist name");for(int i=0;i<ids.length();i++)if(!ids.getString(i).matches("trk_[0-9a-f]{24}"))throw new IOException("Invalid original playlist track");pending=new JSONObject().put("key","music-playlist-"+java.util.UUID.randomUUID()).put("name",name).put("trackIDs",new JSONArray(ids.toString()));current.put("playlistCreation",pending);}
+        if(!pending.getString("key").matches("music-playlist-[A-Fa-f0-9-]{36}"))throw new IOException("Original playlist intent invalid");guard.check();save(current);return current;
+    }}
+    JSONObject finishPlaylist(String key,String name,JSONArray ids,boolean discard,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){
+        guard.check();requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("playlistCreation");
+        if(pending==null||!key.equals(pending.optString("key"))||(!discard&&(!name.equals(pending.getString("name"))||!NativeProductState.canonical(ids).equals(NativeProductState.canonical(pending.getJSONArray("trackIDs"))))))throw new IOException("Original playlist intent changed");
+        current.remove("playlistCreation");guard.check();save(current);return current;
     }}
     boolean libraryPending(JSONObject intent)throws Exception{synchronized(WRITE_LOCK){
         requireAccount(account);JSONObject current=load().optJSONObject("libraryIntent");
@@ -88,13 +117,13 @@ final class MusicStore {
         if(track==null)throw new IOException("Original downloaded track unavailable");
         MusicApi.verifyLocal(offline(trackId),track.getString("audioSha256"));
         JSONObject downloads=current.optJSONObject("downloads");if(downloads==null){downloads=new JSONObject();current.put("downloads",downloads);}
-        downloads.put(trackId,"available");return prepareLibrary(current,guard);
+        downloads.put(trackId,"available");return prepareLibraryCurrent(current,guard);
     }}
     void requireAccount(String expected)throws IOException{synchronized(WRITE_LOCK){if(account.isEmpty()||!account.equals(expected)||!account.equals(selectedAccount(c)))throw new IOException("Original upload account changed");}}
     void updateUpload(JSONObject intent,JSONObject snapshot,boolean acknowledge)throws Exception{synchronized(WRITE_LOCK){
         requireAccount(account);JSONObject current=load(),pending=current.optJSONObject("uploadIntent");
         if(!acknowledge){if(pending!=null)throw new IOException("Original pending upload already exists");current.put("uploadIntent",new JSONObject(intent.toString()));}
-        else{if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original upload intent changed");current.remove("uploadIntent");if(snapshot!=null)current.put("remote",snapshot);}
+        else{if(pending==null||!NativeProductState.canonical(pending).equals(NativeProductState.canonical(intent)))throw new IOException("Original upload intent changed");current.remove("uploadIntent");}
         save(current);
     }}
     void prepareCase(JSONObject intent,MusicIO.Guard guard)throws Exception{synchronized(WRITE_LOCK){

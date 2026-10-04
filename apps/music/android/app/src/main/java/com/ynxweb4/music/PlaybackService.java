@@ -44,7 +44,7 @@ public final class PlaybackService extends Service implements MediaPlayer.OnPrep
     private void persist(int position,boolean completed){
         if(trackId.trim().isEmpty()||!current())return;final NativeSessionIdentity original=capturedNative;final long nativeEpoch=capturedNativeEpoch;final MusicApi reportingApi=new MusicApi(this,nativeBridge);
         getSharedPreferences("playback",0).edit().putString("trackId",trackId).putString("sessionRef",sessionRef).putInt("position",position).apply();
-        try{MusicStore store=new MusicStore(this);JSONObject state=store.load();if(!original.account.equals(state.optString("account")))return;state.put("trackId",trackId).put("position",position);store.save(state);}catch(Exception ignored){}
+        try{MusicStore store=new MusicStore(this);store.requireAccount(original.account);store.commitPlayback(trackId,position,reportingApi::assertCurrent);}catch(Exception ignored){}
         final String id=trackId,ref=sessionRef;new Thread(()->{try{if(nativeEpoch!=nativeBridge.epoch()||!original.same(nativeBridge.session()))return;reportingApi.reportPosition(id,ref,position,completed);}catch(Exception ignored){}}).start();
     }
     private void release(){playbackRevision++;if(player!=null){persist(player.getCurrentPosition(),false);player.release();player=null;}}
