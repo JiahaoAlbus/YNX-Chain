@@ -506,7 +506,7 @@ func (s *Service) ObserveDeposit(session WalletSession, intentID, txHash, key st
 	if err != nil {
 		return Deposit{}, fmt.Errorf("%w: chain read failed", ErrUnavailable)
 	}
-	if !transfer.Committed || transfer.To != s.state.CustodyAddress || transfer.AmountMicro <= 0 {
+	if transfer.Hash != txHash || !transfer.Committed || transfer.To != s.state.CustodyAddress || transfer.AmountMicro <= 0 {
 		return Deposit{}, ErrInvalid
 	}
 	// Every account observes the same custody address and public transaction
@@ -582,12 +582,27 @@ func (s *Service) RefreshDeposit(session WalletSession, id string) (Deposit, err
 	if err != nil {
 		return Deposit{}, ErrUnavailable
 	}
+	if t.Hash != dep.TxHash {
+		return Deposit{}, ErrInvalid
+	}
 	if session.Account == "" || t.From != session.Account {
 		return Deposit{}, ErrForbidden
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	dep = s.state.Deposits[id]
+	// The external read is outside the state lock. Another refresh can settle
+	// this deposit while it is in flight; the transition must be fenced again
+	// under the same lock as balance and ledger publication.
+	dep, ok = s.state.Deposits[id]
+	if !ok {
+		return Deposit{}, ErrNotFound
+	}
+	if dep.Account != session.Account {
+		return Deposit{}, ErrForbidden
+	}
+	if dep.Status == "confirmed" {
+		return dep, nil
+	}
 	before := cloneState(s.state)
 	dep.Confirmations = t.Confirmations
 	dep.UpdatedAt = s.cfg.Now().UTC()
