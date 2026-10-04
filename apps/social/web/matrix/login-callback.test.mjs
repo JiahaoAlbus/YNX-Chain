@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {Script,createContext} from 'node:vm';
+import {spawnSync} from 'node:child_process';
 import {build} from 'esbuild';
 import {runMatrixLoginCallbackPage} from './login-callback-entry.mjs';
 import {handleMatrixLoginCallback} from './login.mjs';
@@ -13,6 +14,21 @@ import {handleMatrixLoginCallback} from './login.mjs';
 const origin='https://social.ynxweb4.com',path='/matrix/login/callback';
 const token='fixture-login-only',state='a'.repeat(64);
 const href=`${origin}${path}?state=${state}&loginToken=${token}#fixture`;
+function flaggedBootstrapFixture(name){
+ if(process.execArgv.includes('--experimental-vm-modules'))return false;
+ // Browser dynamic imports do not need Node's VM flag. Execute the original
+ // VM assertions in a flagged child rather than letting the missing flag
+ // masquerade as an import failure or weakening the callback bootstrap.
+ const pattern='^'+name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$';
+ const env={...process.env};
+ // The child is a standalone runner, not the parent's internal V8 reporter.
+ delete env.NODE_TEST_CONTEXT;
+ const result=spawnSync(process.execPath,['--experimental-vm-modules','--test','--test-reporter=tap','--test-name-pattern='+pattern,fileURLToPath(import.meta.url)],{env,encoding:'utf8',timeout:30000});
+ assert.equal(result.error,undefined,result.error?.message);
+ assert.equal(result.status,0,result.stdout+'\n'+result.stderr);
+ assert.match(result.stdout,/\bpass 1\b/);
+ return true;
+}
 function fixture(url=href){
  const order=[],status={textContent:'Returning sign-in'},body={textContent:'brand preserved'};
  const environment={location:{href:url,replace(value){order.push('navigate');this.href=new URL(value,origin).href}},history:{replaceState(a,b,value){order.push('scrub');environment.location.href=new URL(value,origin).href}},document:{body,getElementById:id=>id==='callback-status'?status:null},opener:{postMessage(message,target){order.push('delivery');assert.equal(target,origin);assert.deepEqual(message,{type:'ynx-social-matrix-login-token',state,loginToken:token})}},close(){order.push('close')}};
@@ -65,7 +81,8 @@ test('foreign opener language does not override the English default or token ori
  const f=fixture();f.environment.document.documentElement={lang:'en'};f.environment.opener.location={href:'https://other.example.test/'};f.environment.opener.document={documentElement:{lang:'zh-CN'}};
  runMatrixLoginCallbackPage({callbackHref:href,environment:f.environment});assert.equal(f.environment.document.documentElement.lang,'en');assert.equal(f.status.textContent,'Sign-in returned to Social. You can close this window.');
 });
-test('actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture)',async()=>{
+test('actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture)',async t=>{
+ if(flaggedBootstrapFixture(t.name))return;
  const html=await readFile(new URL('./login-callback.html',import.meta.url),'utf8');
  const script=html.match(/<script>([\s\S]*?)<\/script>/)[1],f=fixture();
  let ready,imported;f.environment.document.readyState='loading';
@@ -81,13 +98,15 @@ test('actual HTML bootstrap scrubs before its sole module import and DOM readine
  assert.match(html,/src="\/assets\/ynx-logo.png"/);assert.match(html,/href="\/" referrerpolicy="no-referrer"/);
  assert.equal(/<script[^>]+src=|<link\b|https?:\/\//.test(html),false);
 });
-test('bootstrap scrub failure navigates to a fixed clean URL without importing or delivering',async()=>{
+test('bootstrap scrub failure navigates to a fixed clean URL without importing or delivering',async t=>{
+ if(flaggedBootstrapFixture(t.name))return;
  const html=await readFile(new URL('./login-callback.html',import.meta.url),'utf8');
  const f=fixture();f.environment.history.replaceState=()=>{throw Error('fixture')};let imported=false;
  new Script(html.match(/<script>([\s\S]*?)<\/script>/)[1],{importModuleDynamically:async()=>{imported=true;return import('./login-callback-entry.mjs')}}).runInContext(createContext({window:f.environment,document:f.environment.document}));
  assert.equal(imported,false);assert.deepEqual(f.order,['navigate']);assert.equal(f.environment.location.href,origin+path);
 });
-test('bootstrap module failure shows a branded sanitized retry without delivery',async()=>{
+test('bootstrap module failure shows a branded sanitized retry without delivery',async t=>{
+ if(flaggedBootstrapFixture(t.name))return;
  const html=await readFile(new URL('./login-callback.html',import.meta.url),'utf8'),f=fixture();f.environment.document.readyState='complete';
  new Script(html.match(/<script>([\s\S]*?)<\/script>/)[1],{importModuleDynamically:async()=>{throw Error(token)}}).runInContext(createContext({window:f.environment,document:f.environment.document}));
  await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.order,['scrub']);assert.equal(f.status.textContent,'Sign-in is temporarily unavailable. Return to Social and retry.');assert.equal(f.body.textContent,'brand preserved');

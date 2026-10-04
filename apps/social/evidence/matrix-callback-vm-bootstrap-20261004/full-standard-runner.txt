@@ -1,0 +1,94 @@
+✔ already-scrubbed bootstrap snapshot is delivered once with the exact Social origin (0.964292ms)
+✔ invalid synthetic callback is scrubbed without delivery:  (0.101917ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce (0.073375ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?loginToken=fixture (0.066958ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=invalid&loginToken=fixture (0.066875ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&state=nonce&loginToken=fixture (0.071167ms)
+✔ invalid synthetic callback is scrubbed without delivery: ?state=nonce&loginToken=fixture&loginToken=duplicate (0.071ms)
+✔ orphan callback keeps branded retry page and never delivers credentials (0.074708ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://other.example.test/matrix/login/callback (0.103375ms)
+✔ snapshot or current page cannot cross the fixed origin/path: https://social.ynxweb4.com/other (0.102084ms)
+✔ delivery exception is sanitized and cannot replay the credential (0.121792ms)
+✔ missing snapshot produces only a safe retry message (0.060917ms)
+✔ callback inherits explicit same-origin Social language without locale storage or query flags (0.11325ms)
+✔ foreign opener language does not override the English default or token origin (0.067ms)
+✖ actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture) (41.094667ms)
+✖ bootstrap scrub failure navigates to a fixed clean URL without importing or delivering (38.660417ms)
+✖ bootstrap module failure shows a branded sanitized retry without delivery (38.930958ms)
+✔ callback-only build closes over two small owned modules without SDK/vendor/WASM in isolated output (36.451583ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 15
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 211.017542
+
+✖ failing tests:
+
+test at web/matrix/login-callback.test.mjs:81:1
+✖ actual HTML bootstrap scrubs before its sole module import and DOM readiness (isolated VM fixture) (41.094667ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\bpass 1\b/. Input:
+  
+  ''
+  
+      at flaggedBootstrapFixture (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:26:9)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:82:5)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: /\bpass 1\b/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at web/matrix/login-callback.test.mjs:98:1
+✖ bootstrap scrub failure navigates to a fixed clean URL without importing or delivering (38.660417ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\bpass 1\b/. Input:
+  
+  ''
+  
+      at flaggedBootstrapFixture (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:26:9)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:99:5)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: /\bpass 1\b/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at web/matrix/login-callback.test.mjs:105:1
+✖ bootstrap module failure shows a branded sanitized retry without delivery (38.930958ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\bpass 1\b/. Input:
+  
+  ''
+  
+      at flaggedBootstrapFixture (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:26:9)
+      at TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/web/matrix/login-callback.test.mjs:106:5)
+      at Test.runInAsyncScope (node:async_hooks:226:14)
+      at Test.run (node:internal/test_runner/test:1397:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:969:18)
+      at Test.postRun (node:internal/test_runner/test:1537:19)
+      at Test.run (node:internal/test_runner/test:1462:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '',
+    expected: /\bpass 1\b/,
+    operator: 'match',
+    diff: 'simple'
+  }
