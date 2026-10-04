@@ -286,12 +286,70 @@ test('actual Go two-browser research and confirmed schedules stay isolated throu
     assert.deepEqual(await otherPage.evaluate(id=>Object.values(snapshot.experiments).find(result=>result.id===id),signedLoss.id),signedLoss);
     await otherPage.evaluate(id=>renderResult(Object.values(snapshot.experiments).find(result=>result.id===id),true),signedLoss.id);
     assert.equal(await otherPage.locator('#equity-figure').isVisible(),true);assert.equal(otherPosts,2);assert.deepEqual(otherErrors,[]);
+
+    // Reproduce the late-response race with two real tabs sharing normal
+    // browser storage. Every journal is created by the original UI; neither
+    // storage nor receipts are injected. Tab B first recovers A's already
+    // committed request, then submits a distinct new intent while A's first
+    // response is still held. Holding HTTP delivery never changes Go state.
+    negativeTape=false;
+    const overlapContext=await browser.newContext({viewport:{width:1280,height:800}}),tabA=await overlapContext.newPage();
+    await overlapContext.route('**/*',async route=>new URL(route.request().url()).origin!==base?route.abort():route.continue());
+    const overlapErrors=[];tabA.on('pageerror',error=>overlapErrors.push(error.message));
+    await tabA.goto(base,{waitUntil:'networkidle'});await tabA.locator('#strategy').fill('Same-workspace late-response research');await tabA.locator('#research-submit').click();
+    await tabA.waitForFunction(()=>latestResearchResult?.strategy.Name==='Same-workspace late-response research'&&!researchSubmitting);
+    const overlapHash=await tabA.evaluate(()=>Object.values(snapshot.strategies)[0].StrategyHash),overlapInitialCash=await tabA.evaluate(()=>snapshot.paper.Cash);
+    await tabA.locator('nav button[data-view="paper"]').click();await tabA.selectOption('#paper-strategy',overlapHash);await tabA.locator('#paper-amount').fill('1000000');
+    await tabA.selectOption('#paper-cost-model','v1');await tabA.locator('#paper-cost-fee').fill('10');await tabA.locator('#paper-cost-slippage').fill('5');
+    let releaseFirst,releaseNext,firstReady,nextReady,overlapPosts=0;
+    const heldFirst=new Promise(resolve=>{releaseFirst=resolve}),heldNext=new Promise(resolve=>{releaseNext=resolve});
+    const firstCommitted=new Promise(resolve=>{firstReady=resolve}),nextCommitted=new Promise(resolve=>{nextReady=resolve});
+    const overlapBodies=[],overlapReceipts=[];
+    await overlapContext.route('**/api/v1/paper/orders',async route=>{
+      const index=overlapPosts++;overlapBodies[index]=route.request().postData();
+      const response=await route.fetch();assert.equal(response.status(),201);overlapReceipts[index]=await response.json();
+      if(index===0){firstReady();await heldFirst;}else if(index===2){nextReady();await heldNext;}
+      return route.fulfill({response});
+    });
+    try{
+      const beforeOldResponse=await tabA.locator('#toast').textContent(),firstDialog=tabA.waitForEvent('dialog'),firstClick=tabA.locator('#paper-submit').click();
+      await (await firstDialog).accept();await firstClick;await firstCommitted;
+      assert.equal(await tabA.evaluate(()=>paperSubmitting),true);
+      const originalJournal=await tabA.evaluate(()=>localStorage.getItem(paperPendingKey));assert.ok(originalJournal);
+      const tabB=await overlapContext.newPage();tabB.on('pageerror',error=>overlapErrors.push(error.message));
+      await tabB.goto(base,{waitUntil:'networkidle'});await tabB.locator('nav button[data-view="paper"]').click();
+      assert.equal(await tabB.evaluate(()=>localStorage.getItem(paperPendingKey)),originalJournal);
+      const replayDialog=tabB.waitForEvent('dialog'),replayClick=tabB.locator('#paper-submit').click();await (await replayDialog).accept();await replayClick;
+      await tabB.waitForFunction(()=>pendingPaperIntent===null&&!paperSubmitting);
+      assert.equal(overlapPosts,2);assert.equal(overlapBodies[1],overlapBodies[0]);assert.deepEqual(overlapReceipts[1],overlapReceipts[0]);
+      await tabB.locator('#paper-amount').fill('2000000');await tabB.locator('#paper-cost-fee').fill('20');await tabB.locator('#paper-cost-slippage').fill('10');
+      const nextDialog=tabB.waitForEvent('dialog'),nextClick=tabB.locator('#paper-submit').click();await (await nextDialog).accept();await nextClick;await nextCommitted;
+      const newJournal=await tabB.evaluate(()=>localStorage.getItem(paperPendingKey));assert.ok(newJournal);assert.notEqual(newJournal,originalJournal);
+      releaseFirst();await tabA.waitForFunction(()=>!paperSubmitting);
+      assert.equal(await tabA.evaluate(()=>localStorage.getItem(paperPendingKey)),newJournal,'late old response must preserve the new actual UI-created journal');
+      assert.equal(await tabA.evaluate(()=>JSON.stringify(pendingPaperIntent)),newJournal);
+      assert.equal(await tabA.locator('#toast').textContent(),beforeOldResponse,'old receipt cannot complete the new operation');
+      assert.equal(await tabA.locator('#paper-amount').inputValue(),'1000000');assert.equal(await tabB.evaluate(()=>paperSubmitting),true);
+      await tabA.screenshot({path:path.join(work,'same-workspace-late-old-response-en.png'),fullPage:true});
+      await tabB.screenshot({path:path.join(work,'same-workspace-new-request-pending-en.png'),fullPage:true});
+      releaseNext();await tabB.waitForFunction(()=>pendingPaperIntent===null&&!paperSubmitting&&snapshot.paper?.Orders?.length===2);
+      const overlapPaper=await tabB.evaluate(()=>snapshot.paper);
+      assert.notEqual(JSON.parse(overlapBodies[0]).IdempotencyKey,JSON.parse(overlapBodies[2]).IdempotencyKey);
+      assert.equal(overlapPaper.Cash,overlapInitialCash-overlapReceipts[0].ExecutedNotionalMicro-overlapReceipts[0].FeeMicro-overlapReceipts[2].ExecutedNotionalMicro-overlapReceipts[2].FeeMicro);
+      assert.deepEqual(overlapPaper.Orders,[overlapReceipts[0],overlapReceipts[2]]);
+      await tabA.reload({waitUntil:'networkidle'});await tabB.reload({waitUntil:'networkidle'});
+      assert.equal(await tabA.evaluate(()=>pendingPaperIntent),null);assert.equal(await tabB.evaluate(()=>pendingPaperIntent),null);
+      assert.deepEqual(await tabA.evaluate(()=>snapshot.paper),overlapPaper);assert.deepEqual(await tabB.evaluate(()=>snapshot.paper),overlapPaper);
+      assert.equal(overlapPosts,3,'recovery/reload cannot add another order');assert.deepEqual(overlapErrors,[]);assert.equal(overlapContext.pages().length,2);
+      await tabB.locator('nav button[data-view="paper"]').click();await tabB.screenshot({path:path.join(work,'same-workspace-two-orders-reloaded-en.png'),fullPage:true});
+      t.diagnostic(JSON.stringify({classification:'LOCAL_SAME_WORKSPACE_TWO_TAB_REAL_GO_LATE_RESPONSE',paperPosts:overlapPosts,committedOrders:2,distinctIntents:2,oldResponsePreservedNewJournal:true,newResponseClearedOwnJournal:true,exactCostChargedOnce:true,blankTabs:0,publicVerified:false,walletApproval:false}));
+    }finally{releaseFirst();releaseNext();await overlapContext.close();}
   }finally{await browser?.close();await stop();await new Promise(resolve=>tape.close(resolve));}
   assert.equal(cleanStops,4,'all four service launches drain successfully');
   const binaryBytes=await readFile(binary);
   const screenshots=[];
-  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png']){
+  for(const name of ['workspace-unavailable-en.png','workspace-recovered-en.png','saved-experiment-reopened-en.png','paper-costs-recovered-en.png','paper-costs-recovered-ar.png','same-workspace-late-old-response-en.png','same-workspace-new-request-pending-en.png','same-workspace-two-orders-reloaded-en.png']){
     const bytes=await readFile(path.join(work,name));screenshots.push({path:path.join(work,name),bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
   }
-  t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
+  t.diagnostic(JSON.stringify({classification:'LOCAL_BROWSER_CONTROLLED_TAPE_NOT_PUBLIC_ACCEPTANCE',retainedRoot:work,binaryBytes:binaryBytes.length,binarySha256:createHash('sha256').update(binaryBytes).digest('hex'),screenshots,independentBrowserContexts:3,sameWorkspaceTabs:2,cleanSIGTERMStops:cleanStops,publicVerified:false,walletApproval:false}));
 });
