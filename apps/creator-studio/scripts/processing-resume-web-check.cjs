@@ -7,8 +7,8 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
 (async()=>{
  await fs.mkdir(out,{recursive:true});const browser=await chromium.launch({headless:true});const cases=[];
  try {
-  for(const phase of ['failed','scanning','transcoding']) {
-   const context=await browser.newContext({viewport:{width:390,height:844}}),page=await context.newPage();
+  for(const phase of ['failed','scanning','transcoding']) for(const view of [{width:390,height:844,fontSize:16,dir:'ltr'},{width:320,height:740,fontSize:32,dir:'rtl'},{width:1280,height:900,fontSize:16,dir:'ltr'}]) {
+   const context=await browser.newContext({viewport:{width:view.width,height:view.height}}),page=await context.newPage();
    let saved={id:'saved_original_'+phase,title:'Saved original',status:phase,visibility:'private',sha256:'a'.repeat(64),workflow_state:'draft'};
    let releaseRetry;const retryRelease=new Promise(resolve=>{releaseRetry=resolve});const requests=[],errors=[];page.on('pageerror',e=>errors.push(e.message));
    await page.route(origin+'/**',async route=>{
@@ -32,15 +32,18 @@ const sdk=`export const atRegisteredOrigin=()=>true;export const productAuthoriz
    });
    await page.goto(origin);await page.waitForFunction(()=>document.querySelectorAll('#videos .lifecycle-row').length===2);
    await page.locator('nav button[data-panel="content"]').click();
+   await page.evaluate(view=>{document.documentElement.style.fontSize=view.fontSize+'px';document.documentElement.dir=view.dir},view);
+   const geometry=await page.locator('#refresh').evaluate(button=>{const rect=button.getBoundingClientRect(),css=getComputedStyle(button),canvas=document.createElement('canvas'),context=canvas.getContext('2d');context.font=css.font;return {left:rect.left,right:rect.right,height:rect.height,width:rect.width,wordFits:rect.width-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)-2>=context.measureText(button.textContent.trim()).width,overflow:document.documentElement.scrollWidth>innerWidth}});
+   assert.equal(geometry.wordFits,true,'Refresh control must retain enough width to read its label');assert.equal(geometry.overflow,false);assert.ok(geometry.left>=0&&geometry.right<=view.width+1);assert.ok(geometry.height>=44);
    assert.equal(requests.length,0);assert.equal(await page.locator('#videos [data-action="retry"]').count(),1);
-   await page.screenshot({path:path.join(out,'creator-resume-'+phase+'.png'),fullPage:true});
+   await page.screenshot({path:path.join(out,'creator-resume-'+phase+'-'+view.width+'-'+view.dir+'.png'),fullPage:true});
    await page.locator('#videos [data-action="retry"]').click();
    await page.waitForFunction(()=>document.querySelector('#videos [data-action="retry"]').disabled);
    await page.locator('#videos [data-action="retry"]').evaluate(button=>button.click());
    releaseRetry();
    await page.waitForFunction(()=>document.querySelectorAll('#videos [data-action="retry"]').length===0);
    assert.deepEqual(requests,[{method:'POST',path:'/video/api/v1/videos/'+saved.id+'/retry-processing',body:null}]);
-   assert.deepEqual(errors,[]);cases.push({phase,originalID:saved.id,automaticMutations:0,explicitProcessingRequests:requests.length,reuploadRequests:0,pageErrors:errors});await context.close();
+   assert.deepEqual(errors,[]);cases.push({phase,view,geometry,originalID:saved.id,automaticMutations:0,explicitProcessingRequests:requests.length,reuploadRequests:0,pageErrors:errors});await context.close();
   }
   await fs.writeFile(path.join(out,'web-dom-receipt.json'),JSON.stringify({scope:'original Creator DOM; synthetic session and service responses only',realWallet:false,formalHost:false,actualCodec:false,cases},null,2)+'\n');console.log(JSON.stringify({passed:cases.length,automaticMutations:0,reuploadRequests:0}));
  }finally{await browser.close();}
