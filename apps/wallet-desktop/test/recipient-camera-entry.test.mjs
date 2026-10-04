@@ -42,6 +42,18 @@ test("actual mounted blur retires a late frame without filling the old recipient
   h.nodes.get("#start-recipient-camera").listeners.click();await tick();h.events.find(e=>e[0]==="blur")[1]();
   resolve({ok:true,value:{ynxAccount:account,chainId:"ynx_6423-1",asset:"YNXT"}});await tick();assert.equal(h.stops,1);assert.deepEqual(h.applied,[]);
 });
+test("actual mounted restart waits for the retired IPC before dispatching a new frame",async()=>{
+  const pending=[];let active=0,peak=0;
+  const h=mounted(()=>{active++;peak=Math.max(peak,active);return new Promise(resolve=>pending.push(value=>{active--;resolve(value);}));});
+  h.nodes.get("#start-recipient-camera").listeners.click();await tick();
+  h.nodes.get("#start-recipient-camera").listeners.click();await tick();
+  assert.equal(pending.length,1);assert.equal(h.stops,1);assert.equal(peak,1);
+  pending[0]({ok:true,value:{ynxAccount:account,chainId:"ynx_6423-1",asset:"YNXT"}});await tick();
+  assert.deepEqual(h.parseReads,[]);assert.deepEqual(h.applied,[]);assert.equal(pending.length,2);assert.equal(peak,1);
+  h.nodes.get("#stop-recipient-camera").listeners.click();
+  pending[1]({ok:true,value:{ynxAccount:account,chainId:"ynx_6423-1",asset:"YNXT"}});await tick();
+  assert.deepEqual(h.applied,[]);assert.equal(h.stops,2);
+});
 test("actual mounted image chooser and Stop button release capture without decoding or signing",async()=>{
   const h=mounted(async()=>({ok:false}));h.nodes.get("#start-recipient-camera").listeners.click();await tick();
   h.nodes.get("#recipient-qr-file").listeners.click();await tick();assert.equal(h.stops,1);assert.deepEqual(h.applied,[]);

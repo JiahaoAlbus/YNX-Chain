@@ -2,11 +2,11 @@
 export function createRecipientCameraUI({getContext, begin, end, openStream, attach, detach,
   capture, decode, apply, report, schedule = (fn, delay = 500) => setTimeout(fn, delay), cancel = clearTimeout,
   now = Date.now}) {
-  let generation = 0, current = null;
+  let generation = 0, current = null, frameInFlight = false, frameWaiter = null;
   const stopTracks = stream => {for (const track of stream?.getTracks?.() ?? []) {try {track.stop();} catch {}}};
   function stop() {
     generation++;
-    const old = current; current = null;
+    const old = current; current = null; frameWaiter = null;
     if (!old) return;
     cancel(old.timer); cancel(old.expiry); stopTracks(old.stream); detach();
     if (old.permit) void Promise.resolve().then(() => end(old.permit)).catch(() => {});
@@ -19,6 +19,10 @@ export function createRecipientCameraUI({getContext, begin, end, openStream, att
   }
   async function frame(job) {
     if (!live(job)) {if (current === job) stop(); return;}
+    // Stop retires an intent, not an unresolved capture/IPC promise. Keep one
+    // controller-wide slot until actual completion, with only the latest waiter.
+    if (frameInFlight) {frameWaiter = job; return;}
+    frameInFlight = true;
     try {
       const image = await capture();
       if (!live(job)) {if (current === job) stop(); return;}
@@ -37,9 +41,14 @@ export function createRecipientCameraUI({getContext, begin, end, openStream, att
     } catch {
       if (!live(job)) {if (current === job) stop(); return;}
       // A frame with no usable QR is normal; never dispatch overlapping decodes.
+    } finally {
+      frameInFlight = false;
+      const waiter = frameWaiter; frameWaiter = null;
+      if (waiter && live(waiter)) void frame(waiter);
+      else if (waiter && current === waiter) stop();
+      else if (live(job)) job.timer = schedule(() => void frame(job), 500);
+      else if (current === job) stop();
     }
-    if (live(job)) job.timer = schedule(() => void frame(job), 500);
-    else if (current === job) stop();
   }
   async function start() {
     stop();
