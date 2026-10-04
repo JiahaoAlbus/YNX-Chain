@@ -1,0 +1,257 @@
+{
+  "sourceCommit": "c798251831e8e499078b7b8492003beeb46e73e3",
+  "sourceTree": "112f6a42edd800745e1bce7f8d586c82e60bd4f1",
+  "sourceDeltaFiles": [
+    "apps/developer/frontend/src/codeoss/NativeSolidityTools.tsx",
+    "apps/developer/frontend/test/copied-project.browser.mjs"
+  ],
+  "frontendFiles": 232,
+  "sourceAndFrontendRoundTrip": true,
+  "archives": {
+    "source-delta.tar": "fd967c4afb07aa06ee303e4c3e3d5f924073396ba61d14ddf58c8648eda9d691",
+    "frontend.tar": "8047c6a77721622af193fb56dfaed21337dd706bd4102eff958314bbf794e8f1"
+  },
+  "checkpoint": "Copied Solidity project input to actual compiler, 2026-10-04",
+  "changes": [
+    "Use copied project sources reads only on explicit click, validates exact session/source digest tuple, displays entry source code and file list, collapses raw metadata; no automatic compile.",
+    "Manual paste and single-file source remain; changing a snapshot retires its accepted review and artifact.",
+    "Component lifetime epoch discards clipboard read or digest result after identity retirement, preserving both unsent source drafts."
+  ],
+  "checksPassed": {
+    "copiedProjectCompiledReactRealCompiler": 6,
+    "existingManualSingleProjectAndRetirement": 8,
+    "frontendBuildExit": 0
+  },
+  "copiedProject": {
+    "passed": true,
+    "checks": [
+      "Unrelated, foreign-session and digest-tampered clipboard refuse without replacing the project draft, revealing unrelated contents or calling the compiler.",
+      "The exact real editor project snapshot imports into a human file review with entry code visible, raw metadata collapsed and no automatic compilation.",
+      "Explicit Compile travels through the real HTTP Tools handler and pinned worker, producing a downloaded two-file artifact bound to every captured source digest.",
+      "Editing the manual snapshot retires its review and compiled artifact; source changes cannot reuse a previous compile approval.",
+      "Identity retirement during clipboard read preserves both drafts and discards the late imported review after refresh.",
+      "Identity retirement during clipboard digest preserves both drafts and discards the late imported review after refresh."
+    ],
+    "errors": [],
+    "calls": [
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 200,
+        "body": {
+          "csrf": "DB9V6fq2YY27TLvVnu7Qj4L9TTZv7gtPQnTSjhTmahY",
+          "name": "Actions",
+          "snapshot": {
+            "protocol": "ynx-solidity-project/v1",
+            "sessionId": "22f61122-8013-444b-8f92-60c09423c399",
+            "entryPath": "editor-actions-final.sol",
+            "sources": {
+              "editor-actions-ready.sol": {
+                "content": "pragma solidity 0.8.24; contract Actions {}\n",
+                "sha256": "72b88ac6f2f0e713a4e995a2201a875ee119ccca6c47f7230088317fc9752b5a",
+                "documentVersion": 1
+              },
+              "editor-actions-final.sol": {
+                "content": "pragma solidity 0.8.24; contract Actions {}\n",
+                "sha256": "72b88ac6f2f0e713a4e995a2201a875ee119ccca6c47f7230088317fc9752b5a",
+                "documentVersion": 1
+              }
+            }
+          }
+        }
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 401
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 401
+      },
+      {
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      }
+    ],
+    "snapshotPath": "/private/tmp/ynx-theia-extension-qa-YsLodR/copied-project-snapshot.json",
+    "snapshotSha256": "20d96d6f1a441317bb16b994b08b854b933a5acab9efb584d1a706334dbb90b5",
+    "actualCompiledReact": true,
+    "actualHTTP": true,
+    "actualCompiler": true,
+    "snapshotOrigin": "actual controlled Theia Tools0.2.12 output",
+    "clipboard": "controlled in-memory read",
+    "digest": "actual browser SHA256 with controlled asynchronous gate",
+    "identity": "controlled admission fixture",
+    "originBridge": "loopback QA only",
+    "realWallet": false,
+    "canonical": false,
+    "chainExecutionVerified": false,
+    "public": false
+  },
+  "legacySolidity": {
+    "checks": [
+      "Actual compiled React page \u2192 real HTTP Tools handler \u2192 pinned worker \u2192 downloaded ABI/bytecode/source-bound artifact.",
+      "Real Solidity syntax errors render diagnostics, retire the old artifact and allow a corrected build.",
+      "The source limit measures UTF-8 bytes rather than JavaScript character count.",
+      "A real build finishing after project change is rejected; refresh preserves only the unsent source draft and late results cannot retire the new identity.",
+      "Reviewed two-file project compiles its relative import with the real pinned worker and downloads all source digests plus the exact snapshot.",
+      "Editing copied snapshot content invalidates its review and blocks compilation before sending any source to the backend.",
+      "Project retirement preserves the raw source snapshot draft but clears its accepted review; refreshed identity requires another explicit source review.",
+      "A real build finishing after project change is rejected; refresh preserves only the unsent source draft and late results cannot retire the new identity."
+    ],
+    "errors": [],
+    "calls": [
+      {
+        "mode": "compile-and-diagnostics",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "compile-and-diagnostics",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "compile-and-diagnostics",
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 200
+      },
+      {
+        "mode": "compile-and-diagnostics",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "compile-and-diagnostics",
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 422
+      },
+      {
+        "mode": "late-project-change",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-change",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-change",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-change",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-change",
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 401
+      },
+      {
+        "mode": "project-imports",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "project-imports",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "project-imports",
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 200
+      },
+      {
+        "mode": "late-project-snapshot",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-snapshot",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-snapshot",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-snapshot",
+        "path": "/runtime/native-tools/context",
+        "status": 200
+      },
+      {
+        "mode": "late-project-snapshot",
+        "path": "/runtime/native-tools/chain/compile",
+        "status": 401
+      }
+    ],
+    "actualReact": true,
+    "actualHTTP": true,
+    "actualCompiler": true,
+    "snapshotOrigin": "controlled source fixture",
+    "identity": "controlled canonical admission fixture",
+    "originBridge": "loopback test only",
+    "realWallet": false,
+    "chainExecutionVerified": false,
+    "public": false
+  },
+  "snapshotFromActualEditor": "/private/tmp/ynx-theia-extension-qa-YsLodR/copied-project-snapshot.json",
+  "runtimePin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+    "treeSha256": "7be3685b08a06b7e7b92f07dc10f2221647613040866ff95862b86b5424014bf",
+    "manifestSha256": "c02247715578e226beac5f3e61f832c8e2a92dd9f1f1a3e978484a258a84142d"
+  },
+  "runtime": "Unchanged Tools0.2.12/workbench0.3.14 exact editor-actions-ready candidate; this frontend change does not rebuild or relabel the runtime.",
+  "frontend": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/copied-project-frontend-build-20261004",
+  "evidence": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/copied-project-evidence-20261004",
+  "evidenceFiles": 21,
+  "evidenceIndexSha256": "42a96d629dc26f5e98abd5112dc37f7effeb243a72811d3661241c00b66ebb6b",
+  "resourceGuard": {
+    "availableKiB": 804460,
+    "conservativeRequiredKiB": 1664040,
+    "sizesKiB": {
+      "previousApp": 873156,
+      "previousDMG": 339472,
+      "coreRoundTrip": 189268
+    },
+    "extraMarginKiB": 262144,
+    "pass": false,
+    "nativePackageStarted": false
+  },
+  "cleanup": {
+    "pid": 64989,
+    "verifiedCommand": "/opt/homebrew/bin/node ../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4212 --strictPort --outDir /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/frontend/../.ynx-developer-candidates/copied-project-frontend-build-20261004/dist",
+    "signal": "SIGTERM",
+    "remainingOwnedPids": [],
+    "previousGuardRefusal": "Wrong repo-root cwd produced a mismatched expected path; assertion refused before any process signal. Correct exact product cwd used here."
+  },
+  "releaseGates": {
+    "nativeDistribution": "New Native package NOT_BUILT: exact resource budget below conservative required amount. Prior source6ff/Tools2.11 Mac candidate remains intact and is not relabeled.",
+    "identityAndFormalHost": "NOT_VERIFIED. Test uses controlled admission/origin bridge with real HTTP Tools and worker; existing canonical bindings unchanged, registered Node26.7 and formal Host are A-owned.",
+    "WalletAIChainExecution": "NOT_VERIFIED. Real compiler ABI/bytecode do not prove hosted AI, normal Wallet login/signing or chain execution.",
+    "installedAllPlatforms": "NOT_VERIFIED. No new user installation, notarization or all-platform release.",
+    "networkPackageLXD": "Previously refused branches remain stopped; existing reviewed offline compiler closure only."
+  },
+  "next": "Root/A combine exact current source/compiled frontend with unchanged pinned runtime. Independently continue owned IDE development; verify normal user flow only after actual formal release."
+}
