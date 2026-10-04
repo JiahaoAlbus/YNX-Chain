@@ -624,7 +624,7 @@ func resultStatus(w http.ResponseWriter, v any, e error, status int) {
 func writeErr(w http.ResponseWriter, e error) {
 	status := 500
 	switch {
-	case errors.Is(e, ErrMusicAuthorityUnavailable):
+	case errors.Is(e, ErrMusicStatePublicationUnconfirmed), errors.Is(e, ErrMusicAuthorityUnavailable):
 		status = http.StatusServiceUnavailable
 	case errors.Is(e, ErrInvalid):
 		status = 400

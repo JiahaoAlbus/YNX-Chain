@@ -87,7 +87,8 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
 }
 
 // Called under the ORIGINAL shared store lock on the candidate that contains
-// the real business change. Failed validation/save cannot consume a nonce.
+// the real business change. Failed validation or unpublished saves cannot consume
+// a nonce; an already published but unconfirmed save retains its original nonce.
 func (l *musicBusinessLease) commit(actor string, st *persistentState, clock func() time.Time) error {
 	now := clock().UTC()
 	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {

@@ -287,52 +287,108 @@ func (s *Store) update(fn func(*State) error) error {
 	candidate.Integrity = ""
 	previous := s.state
 	s.state = candidate
-	if err = s.persistLocked(); err != nil {
-		s.state = previous
-		return err
+	var current func() error
+	if s.business != nil && s.business.grant.Current != nil {
+		current = s.business.checkCurrent
 	}
-	if s.business != nil {
+	published, persistErr := s.persistLockedCurrent(current)
+	if !published {
+		s.state = previous
+	} else if s.business != nil {
 		s.business.consumed.Store(true)
 	}
-	return nil
+	return persistErr
 }
 
+// A rename is publication even when the subsequent source check or durability
+// confirmation fails. Callers must retain the published state and nonce, return
+// uncertainty, and never roll memory back to a pre-publication snapshot.
+var ErrVideoStatePublicationUnconfirmed = errors.New("Video state publication unconfirmed")
+
 func (s *Store) persistLocked() error {
+	_, err := s.persistLockedCurrent(nil)
+	return err
+}
+func (s *Store) persistLockedCurrent(current func() error) (published bool, err error) {
+	defer func() {
+		if published && err != nil {
+			err = fmt.Errorf("%w: %w", ErrVideoStatePublicationUnconfirmed, err)
+		}
+	}()
+	check := func() error {
+		if current != nil {
+			return current()
+		}
+		return nil
+	}
+	if err = check(); err != nil {
+		return false, err
+	}
 	s.state.Integrity = ""
 	canonical, err := json.Marshal(s.state)
 	if err != nil {
-		return err
+		return false, err
 	}
 	mac := hmac.New(sha256.New, s.integrityKey)
 	_, _ = mac.Write(canonical)
 	s.state.Integrity = hex.EncodeToString(mac.Sum(nil))
 	b, err := json.MarshalIndent(s.state, "", "  ")
 	if err != nil {
-		return err
+		return false, err
+	}
+	if err = check(); err != nil {
+		return false, err
 	}
 	tmp := s.statePath + ".tmp"
 	if err = os.WriteFile(tmp, b, 0600); err != nil {
-		return err
+		return false, err
 	}
+	defer os.Remove(tmp)
 	f, err := os.OpenFile(tmp, os.O_RDWR, 0600)
 	if err != nil {
-		_ = os.Remove(tmp)
-		return err
+		return false, err
 	}
-	if err = f.Sync(); err != nil {
-		_ = f.Close()
-		_ = os.Remove(tmp)
-		return err
+	err = f.Sync()
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
 	}
-	if err = f.Close(); err != nil {
-		_ = os.Remove(tmp)
-		return err
+	if err != nil {
+		return false, err
+	}
+	// The SAME captured local actor/source check after serialization/write/fsync,
+	// immediately before the real atomic rename. No remote reader under Store.mu.
+	if err = check(); err != nil {
+		return false, err
 	}
 	if err = os.Rename(tmp, s.statePath); err != nil {
-		_ = os.Remove(tmp)
-		return err
+		return false, err
 	}
-	return nil
+	published = true
+	if err = check(); err != nil {
+		return true, err
+	}
+	dir, err := os.Open(filepath.Dir(s.statePath))
+	if err != nil {
+		return true, err
+	}
+	err = dir.Sync()
+	if closeErr := dir.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return true, err
+	}
+	confirmed, err := os.ReadFile(s.statePath)
+	if err != nil {
+		return true, err
+	}
+	if !hmac.Equal(confirmed, b) {
+		return true, errors.New("Video published state readback mismatch")
+	}
+	if err = check(); err != nil {
+		return true, err
+	}
+	return true, nil
 }
 
 func migrateState(state *State, target int) (bool, error) {

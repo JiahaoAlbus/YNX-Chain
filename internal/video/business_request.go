@@ -293,7 +293,7 @@ func (w *videoBusinessResponse) Flush() {
 }
 
 func videoBusinessErrorStatus(err error) int {
-	if errors.Is(err, ErrVideoAuthorityUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) || errors.Is(err, ErrVideoAuthorityUnavailable) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 		return http.StatusServiceUnavailable
 	}
 	return http.StatusUnauthorized

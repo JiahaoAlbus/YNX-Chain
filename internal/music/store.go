@@ -265,29 +265,53 @@ func verifyPrivateMedia(path, expectedHash string) error {
 	return nil
 }
 
+var ErrMusicStatePublicationUnconfirmed = errors.New("Music state publication unconfirmed")
+
+// Legacy creation/migration/maintenance retains the original writer contract.
 func saveState(path string, state *persistentState) error {
+	_, err := saveStateCurrent(path, state, nil)
+	return err
+}
+func saveStateCurrent(path string, state *persistentState, current func() error) (published bool, err error) {
+	defer func() {
+		if published && err != nil {
+			err = fmt.Errorf("%w: %w", ErrMusicStatePublicationUnconfirmed, err)
+		}
+	}()
+	check := func() error {
+		if current != nil {
+			return current()
+		}
+		return nil
+	}
+	if err = check(); err != nil {
+		return false, err
+	}
 	integrity, err := stateIntegrity(*state)
 	if err != nil {
-		return err
+		return false, err
 	}
 	state.IntegrityHash = integrity
 	data, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		return err
+		return false, err
+	}
+	if err = check(); err != nil {
+		return false, err
 	}
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
+	if err = os.MkdirAll(dir, 0o700); err != nil {
+		return false, err
 	}
 	tmp, err := os.CreateTemp(dir, ".music-state-*")
 	if err != nil {
-		return err
+		return false, err
 	}
 	name := tmp.Name()
 	defer os.Remove(name)
-	if err := tmp.Chmod(0o600); err != nil {
-		tmp.Close()
-		return err
+	if err = tmp.Chmod(0o600); err != nil {
+		_ = tmp.Close()
+		return false, err
 	}
 	if _, err = tmp.Write(data); err == nil {
 		err = tmp.Sync()
@@ -296,12 +320,45 @@ func saveState(path string, state *persistentState) error {
 		err = closeErr
 	}
 	if err != nil {
-		return err
+		return false, err
+	}
+	// Same captured local Current, after the actual staged write/fsync and before
+	// publishing. The prepared temporary file is removed on every refusal.
+	if err = check(); err != nil {
+		return false, err
 	}
 	if err = os.Rename(name, path); err != nil {
-		return err
+		return false, err
 	}
-	return os.Chmod(path, 0o600)
+	published = true
+	if err = check(); err != nil {
+		return true, err
+	}
+	if err = os.Chmod(path, 0o600); err != nil {
+		return true, err
+	}
+	directory, err := os.Open(dir)
+	if err != nil {
+		return true, err
+	}
+	err = directory.Sync()
+	if closeErr := directory.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		return true, err
+	}
+	confirmed, err := os.ReadFile(path)
+	if err != nil {
+		return true, err
+	}
+	if string(confirmed) != string(data) {
+		return true, errors.New("Music published state readback mismatch")
+	}
+	if err = check(); err != nil {
+		return true, err
+	}
+	return true, nil
 }
 
 func stateIntegrity(state persistentState) (string, error) {

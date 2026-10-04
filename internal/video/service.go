@@ -184,6 +184,9 @@ func (s *Service) AddCaptions(actor, videoID, language, label string, aiProposed
 		s.audit(st, actor, "captions.add", "video", videoID, language)
 		return nil
 	})
+	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
+		committed = true
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -511,7 +514,9 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 		s.failVideo(videoID, "probe_failed: "+err.Error())
 		return nil, err
 	}
-	s.setStatus(videoID, "transcoding", "")
+	if err = s.setStatus(videoID, "transcoding", ""); err != nil {
+		return nil, err
+	}
 	if err = cleanProcessingOutputs(filepath.Dir(original)); err != nil {
 		s.failVideo(videoID, "processing cleanup failed: "+err.Error())
 		return nil, err
@@ -626,6 +631,9 @@ func (s *Service) SetThumbnail(actor, videoID, mime string, body io.Reader, size
 		s.audit(st, actor, "thumbnail.set", "video", videoID, mime)
 		return nil
 	})
+	if errors.Is(err, ErrVideoStatePublicationUnconfirmed) {
+		committed = true
+	}
 	if err != nil {
 		return err
 	}
@@ -1237,7 +1245,9 @@ func (s *Service) Upload(ctx context.Context, actor, channelID string, in Upload
 		s.failVideo(vid, "probe_failed: "+err.Error())
 		return v, err
 	}
-	s.setStatus(vid, "transcoding", "")
+	if err = s.setStatus(vid, "transcoding", ""); err != nil {
+		return v, err
+	}
 	variants, err := s.cfg.Processor.Transcode(ctx, original, objDir)
 	if err != nil {
 		s.failVideo(vid, "transcode_failed: "+err.Error())
@@ -1409,8 +1419,8 @@ func (s *Service) usageForOwner(owner string) (int64, error) {
 	}
 	return total, nil
 }
-func (s *Service) setStatus(videoID, status, failure string) {
-	_ = s.store.update(func(st *State) error {
+func (s *Service) setStatus(videoID, status, failure string) error {
+	return s.store.update(func(st *State) error {
 		if v := st.Videos[videoID]; v != nil {
 			v.Status = status
 			v.Failure = failure
@@ -1431,7 +1441,7 @@ func (s *Service) snapshotVideo(videoID string) *Video {
 	return out
 }
 
-func (s *Service) failVideo(videoID, failure string) { s.setStatus(videoID, "failed", failure) }
+func (s *Service) failVideo(videoID, failure string) { _ = s.setStatus(videoID, "failed", failure) }
 func activeTakedown(v *Video) bool {
 	return v != nil && v.Takedown != nil && v.Takedown.State == "active"
 }

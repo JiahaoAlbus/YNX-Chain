@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -133,14 +134,18 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
 	a := AuditEvent{Sequence: uint64(len(next.Audit) + 1), Type: event, ObjectID: objectID, Actor: actor, At: now, PayloadHash: hashJSON(payload), PreviousHash: prev}
 	a.Hash = hashJSON(a)
 	next.Audit = append(next.Audit, a)
-	if err := saveState(s.cfg.StatePath, &next); err != nil {
-		return err
+	var current func() error
+	if s.business != nil && s.business.grant.Current != nil {
+		current = func() error { return s.business.checkCurrent(s.cfg.Now) }
 	}
-	s.state = next
-	if s.business != nil {
-		s.business.consumed = true
+	published, persistErr := saveStateCurrent(s.cfg.StatePath, &next, current)
+	if published {
+		s.state = next
+		if s.business != nil {
+			s.business.consumed = true
+		}
 	}
-	return nil
+	return persistErr
 }
 
 func clonePersistentState(state persistentState) (persistentState, error) {
@@ -362,8 +367,10 @@ func (s *Service) UploadTrack(actor string, req TrackUpload) (Track, error) {
 		return nil
 	})
 	if err != nil {
-		for _, p := range cleanup {
-			os.Remove(p)
+		if !errors.Is(err, ErrMusicStatePublicationUnconfirmed) {
+			for _, p := range cleanup {
+				os.Remove(p)
+			}
 		}
 		if err == errIdempotentReplay {
 			return out, nil
