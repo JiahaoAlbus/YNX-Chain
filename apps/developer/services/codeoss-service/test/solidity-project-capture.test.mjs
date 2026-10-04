@@ -32,6 +32,7 @@ test('actual registered project command copies only after unchanged-source revie
  const h=await fixture(t),commands=new Map(),calls=[],errors=[];
  h.vscode.commands={registerCommand:(name,action)=>{commands.set(name,action);return{};}};
  h.vscode.Uri={parse:value=>value};h.vscode.env={clipboard:{writeText:async value=>calls.push({kind:'copy',value})},openExternal:async value=>calls.push({kind:'open',value})};
+ h.vscode.workspace.registerTextDocumentContentProvider=()=>({});h.vscode.workspace.onDidCloseTextDocument=()=>({});
  h.vscode.window.registerTreeDataProvider=()=>({});h.vscode.window.showErrorMessage=message=>errors.push(message);
  h.vscode.window.showInformationMessage=async()=>'Copy project sources';
  const module={exports:{}};vm.runInNewContext(await readFile(new URL('../../../native/ynx-tools/src/extension.cjs',import.meta.url),'utf8'),{module,require:name=>name==='vscode'?h.vscode:require('../../../native/ynx-tools/src/'+name.slice(2)),process:{env:h.environment},Buffer});module.exports.activate({subscriptions:[]});

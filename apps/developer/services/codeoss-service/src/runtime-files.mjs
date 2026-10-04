@@ -31,7 +31,7 @@ export async function prepareCoreProject(context, brandingRoot = fileURLToPath(n
   const toolsTarget = join(context.projectDirectory, "extensions", `ynx.ynx-tools-${tools.version}`);
   try { const stat = await lstat(toolsTarget); if (!stat.isDirectory() || stat.isSymbolicLink()) throw fault("YNX Tools directory changed.", "core_tools_review_required", 409); }
   catch (error) { if (error.code !== "ENOENT") throw error; await cp(toolsRoot, toolsTarget, { recursive: true, errorOnExist: true, force: false }); }
-  for (const file of ["package.json", "activity.svg", "ynx-logo.png", "LICENSE.txt", "src/extension.cjs", "src/guards.cjs", "src/template.cjs", "src/solidity-project.cjs"]) {
+  for (const file of ["package.json", "activity.svg", "ynx-logo.png", "LICENSE.txt", "src/extension.cjs", "src/guards.cjs", "src/template.cjs", "src/solidity-project.cjs", "src/review-preview.cjs"]) {
     if ((await lstat(join(toolsTarget, "src"))).isSymbolicLink()) throw fault("YNX Tools source directory changed.", "core_tools_review_required", 409);
     const current = join(toolsTarget, file), stat = await lstat(current);
     if (!stat.isFile() || stat.isSymbolicLink() || !(await readFile(join(toolsRoot, file))).equals(await readFile(current))) throw fault("YNX Tools changed. Review before replacing user files.", "core_tools_review_required", 409);

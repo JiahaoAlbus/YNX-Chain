@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
+  const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
   const entries = [ ['Chain · Wallet · AI review', 'ynx.openTools'], ['Compile Solidity project', 'ynx.copySolidityProject'], ['Copy selected context', 'ynx.copyContext'], ['Testnet SDK starter', 'ynx.createTemplate'], ['Apply reviewed changes', 'ynx.applyReviewedDiff'] ];
   context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
     getChildren: item => item ? [] : entries,
@@ -75,7 +76,7 @@ function activate(context) {
     for (const change of changes) paths.set(change.uri, await assertWorkspacePath(documents.get(change.uri).uri.fsPath, workspace));
     assertRuntime();
     // Open previews before the modal approval; no edits happen during preview.
-    for (const change of changes) { const preview = await vscode.workspace.openTextDocument({ content: change.text, language: documents.get(change.uri).languageId }); await vscode.commands.executeCommand('vscode.diff', documents.get(change.uri).uri, preview.uri, 'YNX suggested change — review'); }
+    for (const change of changes) { const preview = await previewChange(change, documents.get(change.uri)); await vscode.commands.executeCommand('vscode.diff', documents.get(change.uri).uri, preview.uri, 'YNX suggested change — review'); }
     if (await vscode.window.showWarningMessage('Apply these reviewed text changes? This does not execute commands or sign transactions.', { modal: true }, 'Apply reviewed changes') !== 'Apply reviewed changes') return;
     assertRuntime();
     const currentDocuments = new Map(vscode.workspace.textDocuments.map(doc => [doc.uri.toString(), doc]));

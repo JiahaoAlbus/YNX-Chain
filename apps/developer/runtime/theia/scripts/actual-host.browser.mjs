@@ -71,8 +71,9 @@ try {
   checks.push('real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk');
   await page.keyboard.press('Meta+a');
   await page.keyboard.insertText('const savedMarker = "YNX actual extension host";\n');
-  await page.keyboard.press('Meta+s');
-  await page.waitForFunction(() => !document.querySelector('.lm-TabBar-tab.lm-mod-closable.theia-mod-dirty'));
+  // Other open files may deliberately retain unsaved drafts. Verify this
+  // project file on disk without requiring unrelated buffers to be saved.
+  await savedText('const savedMarker = "YNX actual extension host";\n');
   // Disk readback, rather than a mocked model, is the save assertion.
   let saved;
   for (let attempt = 0; attempt < 100; attempt++) {
