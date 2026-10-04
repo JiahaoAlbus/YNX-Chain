@@ -435,7 +435,7 @@ function renderAccountSession(){
   route();
 }
 async function consumeCallback(){await window.YNXFinanceWallet.ready}
-function clearPrivateView({clearOpaquePending=true}={}){state.context++;clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
+function clearPrivateView({clearOpaquePending=true}={}){state.context++;resetAIDraftRequest();clearInterval(state.aiTimer);state.aiJob=null;state.statement=null;state.statementError=false;state.overview=null;state.connected=false;if(clearOpaquePending){sessionStorage.removeItem(OPAQUE_ORDER_PENDING_KEY);window.YNXFinanceOrderWallet?.clear()}hideBrokerApproval();for(const id of ['account','balance','staked','balance-source','statement','ai-status']){const element=$('#'+id);if(element)element.textContent='—'}brokerSnapshotState={kind:'guest'};brokerWorkspaceUnavailable=false;renderBrokerSnapshot();renderBrokerWorkspace(null);renderSignedOut()}
 async function logout(){const result=await window.YNXFinanceWallet.disconnect();if(result?.status==='disconnected'){clearPrivateView()}else notify(financeText('privateLogoutUnconfirmed'),true)}
 function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');sourceStatus('notConnected');$('#page-title').textContent=financeText('pageTitle');route()}
 
@@ -514,7 +514,9 @@ async function download(path,name){
 }
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
-async function startAI(){const button=$('#ai-start');if(button.disabled)return;button.disabled=true;button.textContent=financeText('aiRequesting');try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent}state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});renderAIJob();pollAI()}catch(error){notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid'],'aiDraftFailed')}finally{button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
+let aiStartOperation=null,aiActionOperation=null;
+function resetAIDraftRequest(){aiStartOperation=null;aiActionOperation=null;const button=$('#ai-start');if(button){button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
+async function startAI(){const button=$('#ai-start');if(button.disabled)return;const operation={context:state.context,revision:window.YNXFinanceWallet.getRevision()};aiStartOperation=operation;const current=()=>aiStartOperation===operation&&operation.context===state.context&&operation.revision===window.YNXFinanceWallet.getRevision();button.disabled=true;button.textContent=financeText('aiRequesting');try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent}const job=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});if(!current())return;state.aiJob=job;renderAIJob();pollAI()}catch(error){if(current())notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid'],'aiDraftFailed')}finally{if(aiStartOperation===operation){aiStartOperation=null;button.disabled=false;button.textContent=financeText('aiRequestDraft')}}}
 function renderAIJob(){const j=state.aiJob;if(!j)return;const statusKey=({running:'aiStatusRunning',ready:'aiStatusReady',failed:'aiStatusFailed',cancelled:'aiStatusCancelled',applied:'aiStatusApplied',rejected:'aiStatusRejected'})[j.status];$('#ai-status').innerHTML=`<p><strong>${esc(statusKey?financeText(statusKey):j.status)}</strong> · ${esc(j.provider||financeText('aiProviderUnavailable'))} / ${esc(j.model||'—')}</p><p>${esc(j.progress||j.error||financeText('aiWaitingStream'))}</p><p><small>${esc(financeText('aiEstimate'))}: ${esc(j.estimatedCost||financeText('aiNotReturned'))}</small></p>${j.result?`<pre>${esc(JSON.stringify(j.result,null,2))}</pre>`:''}`;$('#ai-actions').classList.remove('hidden');$$('[data-ai=cancel]').forEach(b=>b.classList.toggle('hidden',j.status!=='running'));$$('[data-ai=delete]').forEach(b=>b.classList.toggle('hidden',j.status==='running'));$$('[data-ai=apply],[data-ai=reject]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind==='draft_broker_order'));$$('[data-ai=use-order]').forEach(b=>b.classList.toggle('hidden',j.status!=='ready'||j.kind!=='draft_broker_order'))}
 function pollAI(){
   clearInterval(state.aiTimer);
@@ -537,7 +539,38 @@ function pollAI(){
   state.aiTimer=timer;
 }
 const deleteAIButton=document.createElement('button');deleteAIButton.dataset.ai='delete';deleteAIButton.className='danger hidden';deleteAIButton.textContent=financeText('aiDeleteDraftData');$('#ai-actions').append(deleteAIButton);
-$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='use-order'){const d=state.aiJob.result?.orderDraft,form=$('#broker-order-form');if(!d||!['buy','sell'].includes(d.side)||!d.symbol||!d.qty||!d.limitPrice)throw new Error(financeText('aiDraftIncomplete'));form.elements.assetId.value='';form.elements.symbol.value='';form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);$('#broker-asset-search').elements.query.value=String(d.symbol);state.brokerSelectedAsset=null;location.hash='broker-sandbox';notify(financeText('aiDraftCopied'));return}else if(decision==='delete'){if(!window.confirm(financeText('aiDeleteConfirm')))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent=financeText('aiDraftDeleted');$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notifyKnownOrFailure(error,['aiDraftIncomplete'],'aiDraftFailed')}});
+async function handleAIAction(e){
+  const decision=e.target.dataset.ai,job=state.aiJob;
+  if(!['cancel','use-order','delete','apply','reject'].includes(decision)||!job)return;
+  const context=state.context,revision=window.YNXFinanceWallet.getRevision(),jobId=job.id;
+  if(aiActionOperation?.context===context&&aiActionOperation?.revision===revision&&aiActionOperation?.jobId===jobId)return;
+  const operation={context,revision,jobId};aiActionOperation=operation;
+  const current=()=>aiActionOperation===operation&&context===state.context&&revision===window.YNXFinanceWallet.getRevision()&&state.aiJob?.id===jobId;
+  try{
+    if(decision==='cancel'){
+      await api(`/api/ai/jobs/${encodeURIComponent(jobId)}/cancel`,{method:'POST'});
+      if(!current())return;state.aiJob.status='cancelled';
+    }else if(decision==='use-order'){
+      const d=job.result?.orderDraft,form=$('#broker-order-form');
+      if(!d||!['buy','sell'].includes(d.side)||!d.symbol||!d.qty||!d.limitPrice)throw new Error(financeText('aiDraftIncomplete'));
+      form.elements.assetId.value='';form.elements.symbol.value='';form.elements.side.value=String(d.side);form.elements.qty.value=String(d.qty);form.elements.limitPrice.value=String(d.limitPrice);
+      $('#broker-asset-search').elements.query.value=String(d.symbol);state.brokerSelectedAsset=null;location.hash='broker-sandbox';notify(financeText('aiDraftCopied'));return;
+    }else if(decision==='delete'){
+      if(!window.confirm(financeText('aiDeleteConfirm')))return;
+      await api(`/api/ai/jobs/${encodeURIComponent(jobId)}`,{method:'DELETE'});
+      if(!current())return;
+      clearInterval(state.aiTimer);state.aiTimer=null;state.aiJob=null;$('#ai-status').textContent=financeText('aiDraftDeleted');$('#ai-actions').classList.add('hidden');return;
+    }else{
+      const result=await api(`/api/ai/jobs/${encodeURIComponent(jobId)}/decision`,{method:'POST',body:JSON.stringify({decision})});
+      if(!current())return;
+      if(!result||result.id!==jobId)throw new Error('FINANCE_AI_JOB_RESPONSE_MISMATCH');
+      state.aiJob=result;
+    }
+    renderAIJob();if(decision==='apply')await load();
+  }catch(error){if(current())notifyKnownOrFailure(error,['aiDraftIncomplete'],'aiDraftFailed')}
+  finally{if(aiActionOperation===operation)aiActionOperation=null}
+}
+$('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',handleAIAction);
 $('#ai-order-intent').addEventListener('submit',event=>{event.preventDefault();startAI()});
 $('#ai-kind').addEventListener('change',()=>$('#ai-order-intent').classList.toggle('hidden',$('#ai-kind').value!=='draft_broker_order'));
 
@@ -575,7 +608,7 @@ function route(){
   $('#page-title').textContent=financeText('appName');
 }
 window.addEventListener('ynx-finance-standard-state',event=>{
-  state.context++;clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity();
+  state.context++;resetAIDraftRequest();clearInterval(state.aiTimer);walletIdentityState='identityUnverified';renderWalletIdentity();
   renderAccountSession();
   if(window.YNXFinanceWallet?.connected?.()&&!window.YNXFinanceWallet.privateAccountMatchesSelected?.())clearPrivateView({clearOpaquePending:false});
   const selected=event.detail;
