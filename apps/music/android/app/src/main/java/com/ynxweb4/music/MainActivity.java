@@ -216,7 +216,7 @@ public final class MainActivity extends Activity {
     private String caseDetails(JSONObject record){
         String kind=record.optString("kind"),label=kind;switch(kind){case "report":label=getString(R.string.trust_report);break;case "dispute":label=getString(R.string.trust_dispute);break;case "appeal":label=getString(R.string.trust_appeal);break;case "takedown":label=getString(R.string.trust_takedown);break;}
         String central=record.optString("centralCaseId"),status=record.optString("status");boolean linked=!central.isEmpty()&&central.length()<=256&&central.equals(central.trim());
-        return label+" · "+record.optString("id")+"\n"+caseTrackTitle(record.optString("trackId"))+"\n"+record.optString("reason")+"\n"+getString(R.string.trust_status)+": "+("open".equals(status)?getString(R.string.trust_open):status)+"\n"+(linked?getString(R.string.trust_reference)+": "+central+"\n"+getString(R.string.trust_outcome_pending):getString(R.string.trust_reference_pending));
+        return label+" · "+record.optString("id")+"\n"+caseTrackTitle(record.optString("trackId"))+"\n"+record.optString("reason")+"\n"+getString(R.string.trust_status)+": "+("open".equals(status)?getString(R.string.trust_open):"submitted_to_trust".equals(status)?getString(R.string.trust_submitted):status)+"\n"+(linked?getString(R.string.trust_reference)+": "+central+"\n"+getString(R.string.trust_outcome_pending):getString(R.string.trust_reference_pending));
     }
     private void renderCases(){
         if(!hasCurrentSnapshot())return;JSONObject remote=state.optJSONObject("remote"),profile=remote==null?null:remote.optJSONObject("profile");if(profile==null||!api.account().equals(profile.optString("account")))return;

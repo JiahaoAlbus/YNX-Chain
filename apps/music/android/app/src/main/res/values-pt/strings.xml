@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">Salvo no Music. A referência do Trust ainda não foi confirmada.</string>
     <string name="trust_outcome_pending">A referência não confirma o resultado da análise.</string>
     <string name="trust_track_unavailable">Os detalhes da faixa não estão disponíveis</string>
+    <string name="trust_submitted">Enviado ao Trust para análise</string>
 </resources>

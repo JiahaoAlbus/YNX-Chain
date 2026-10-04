@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">تم الحفظ في Music. لم يتم تأكيد مرجع Trust بعد.</string>
     <string name="trust_outcome_pending">المرجع لا يؤكد نتيجة المراجعة.</string>
     <string name="trust_track_unavailable">تفاصيل المقطع غير متاحة</string>
+    <string name="trust_submitted">تم الإرسال إلى Trust للمراجعة</string>
 </resources>

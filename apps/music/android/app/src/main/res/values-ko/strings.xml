@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">Music에 저장되었습니다. Trust 참조 번호는 미확인입니다.</string>
     <string name="trust_outcome_pending">참조 번호는 검토 결과의 확정을 의미하지 않습니다.</string>
     <string name="trust_track_unavailable">곡 세부 정보를 확인할 수 없습니다</string>
+    <string name="trust_submitted">Trust에 제출됨 · 검토 대기</string>
 </resources>

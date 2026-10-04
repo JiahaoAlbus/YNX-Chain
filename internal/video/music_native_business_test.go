@@ -361,7 +361,7 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 					if record.Kind == "report" {
 						reference = "isolated-original-trust-receipt-1"
 					}
-					if seen[record.Kind] || record.OpenedBy != actor.Account || record.Status != "open" || record.CentralCaseID != reference {
+					if seen[record.Kind] || record.OpenedBy != actor.Account || record.Status != "submitted_to_trust" || record.CentralCaseID != reference {
 						t.Fatal("original case record identity/status/reference changed")
 					}
 					seen[record.Kind] = true
@@ -372,7 +372,7 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 						t.Fatal("original rights kind repeated or missing")
 					}
 				}
-				t.Log("original four rights kinds/lost-native-reply/cold-original-key replay: four cases, one case and one isolated HTTPS dispatch per original request; status remains open, actual Central Trust/Wallet/install NOT_VERIFIED")
+				t.Log("original four rights kinds/lost-native-reply/cold-original-key replay: four cases, one case and one isolated HTTPS dispatch per original request; status is submitted_to_trust without a decision claim, actual Central Trust/Wallet/install NOT_VERIFIED")
 			}
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})

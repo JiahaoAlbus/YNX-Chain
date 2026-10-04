@@ -486,7 +486,7 @@ struct TrustRecordsSection:View {
                         Text(l.t("trust_"+record.kind)).font(.headline)
                         Text(record.id).font(.caption);Text(trackTitle(record));if record.createdAt != nil{Text(l.date(caseDate(record))).font(.caption)}
                         if let reason=record.reason{Text(reason)}
-                        Text(l.t("trust_status")+": "+(record.status=="open" ? l.t("trust_open"):record.status))
+                        Text(l.t("trust_status")+": "+(record.status=="open" ? l.t("trust_open"):record.status=="submitted_to_trust" ? l.t("trust_submitted"):record.status))
                         if let reference=record.centralCaseId,!reference.isEmpty,reference.count<=256,reference==reference.trimmingCharacters(in:.whitespacesAndNewlines){Text(l.t("trust_reference")+": "+reference);Text(l.t("trust_outcome_pending")).font(.footnote)}else{Text(l.t("trust_reference_pending")).font(.footnote)}
                     }
                 }

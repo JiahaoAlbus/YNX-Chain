@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">In Music gespeichert. Eine Trust-Referenz ist noch nicht bestätigt.</string>
     <string name="trust_outcome_pending">Die Referenz bestätigt kein Prüfergebnis.</string>
     <string name="trust_track_unavailable">Titeldetails sind nicht verfügbar</string>
+    <string name="trust_submitted">Zur Prüfung an Trust übermittelt</string>
 </resources>

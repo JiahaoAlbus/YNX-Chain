@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">Сохранено в Music. Номер Trust ещё не подтверждён.</string>
     <string name="trust_outcome_pending">Номер не подтверждает результат рассмотрения.</string>
     <string name="trust_track_unavailable">Сведения о композиции недоступны</string>
+    <string name="trust_submitted">Отправлено в Trust на рассмотрение</string>
 </resources>

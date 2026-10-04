@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">已保存至 Music，尚未确认 Trust 编号。</string>
     <string name="trust_outcome_pending">此编号不表示已完成审查或裁决。</string>
     <string name="trust_track_unavailable">暂无法查看作品详情</string>
+    <string name="trust_submitted">已提交 Trust 等待审查</string>
 </resources>

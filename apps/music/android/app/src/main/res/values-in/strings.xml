@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">Tersimpan di Music. Referensi Trust belum dikonfirmasi.</string>
     <string name="trust_outcome_pending">Referensi tidak mengonfirmasi hasil peninjauan.</string>
     <string name="trust_track_unavailable">Detail lagu tidak tersedia</string>
+    <string name="trust_submitted">Dikirim ke Trust untuk peninjauan</string>
 </resources>

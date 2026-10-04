@@ -34,4 +34,5 @@
     <string name="trust_reference_pending">Music に保存済みです。Trust 参照番号は未確認です。</string>
     <string name="trust_outcome_pending">参照番号は審査結果の確定を意味しません。</string>
     <string name="trust_track_unavailable">楽曲の詳細を取得できません</string>
+    <string name="trust_submitted">Trust に送信済み・審査待ち</string>
 </resources>

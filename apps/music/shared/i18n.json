@@ -104,7 +104,8 @@
       "trust_reference": "Trust reference",
       "trust_reference_pending": "Saved in Music. A Trust reference has not been confirmed.",
       "trust_outcome_pending": "The reference does not confirm a review outcome.",
-      "trust_track_unavailable": "Track details are unavailable"
+      "trust_track_unavailable": "Track details are unavailable",
+      "trust_submitted": "Submitted to Trust for review"
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -195,7 +196,8 @@
       "trust_reference": "Trust 编号",
       "trust_reference_pending": "已保存至 Music，尚未确认 Trust 编号。",
       "trust_outcome_pending": "此编号不表示已完成审查或裁决。",
-      "trust_track_unavailable": "暂无法查看作品详情"
+      "trust_track_unavailable": "暂无法查看作品详情",
+      "trust_submitted": "已提交 Trust 等待审查"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -286,7 +288,8 @@
       "trust_reference": "Trust 編號",
       "trust_reference_pending": "已儲存至 Music，尚未確認 Trust 編號。",
       "trust_outcome_pending": "此編號不表示已完成審查或裁決。",
-      "trust_track_unavailable": "暫時無法查看作品詳情"
+      "trust_track_unavailable": "暫時無法查看作品詳情",
+      "trust_submitted": "已提交 Trust 等待審查"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -377,7 +380,8 @@
       "trust_reference": "Trust 参照番号",
       "trust_reference_pending": "Music に保存済みです。Trust 参照番号は未確認です。",
       "trust_outcome_pending": "参照番号は審査結果の確定を意味しません。",
-      "trust_track_unavailable": "楽曲の詳細を取得できません"
+      "trust_track_unavailable": "楽曲の詳細を取得できません",
+      "trust_submitted": "Trust に送信済み・審査待ち"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -468,7 +472,8 @@
       "trust_reference": "Trust 참조 번호",
       "trust_reference_pending": "Music에 저장되었습니다. Trust 참조 번호는 미확인입니다.",
       "trust_outcome_pending": "참조 번호는 검토 결과의 확정을 의미하지 않습니다.",
-      "trust_track_unavailable": "곡 세부 정보를 확인할 수 없습니다"
+      "trust_track_unavailable": "곡 세부 정보를 확인할 수 없습니다",
+      "trust_submitted": "Trust에 제출됨 · 검토 대기"
     },
     "es": {
       "app_name": "YNX Music",
@@ -559,7 +564,8 @@
       "trust_reference": "Referencia de Trust",
       "trust_reference_pending": "Guardado en Music. La referencia de Trust no está confirmada.",
       "trust_outcome_pending": "La referencia no confirma el resultado de la revisión.",
-      "trust_track_unavailable": "Los detalles de la pista no están disponibles"
+      "trust_track_unavailable": "Los detalles de la pista no están disponibles",
+      "trust_submitted": "Enviado a Trust para revisión"
     },
     "fr": {
       "app_name": "YNX Music",
@@ -650,7 +656,8 @@
       "trust_reference": "Référence Trust",
       "trust_reference_pending": "Enregistré dans Music. La référence Trust reste non confirmée.",
       "trust_outcome_pending": "La référence ne confirme pas le résultat de la révision.",
-      "trust_track_unavailable": "Les détails du morceau sont indisponibles"
+      "trust_track_unavailable": "Les détails du morceau sont indisponibles",
+      "trust_submitted": "Envoyé à Trust pour révision"
     },
     "de": {
       "app_name": "YNX Music",
@@ -741,7 +748,8 @@
       "trust_reference": "Trust-Referenz",
       "trust_reference_pending": "In Music gespeichert. Eine Trust-Referenz ist noch nicht bestätigt.",
       "trust_outcome_pending": "Die Referenz bestätigt kein Prüfergebnis.",
-      "trust_track_unavailable": "Titeldetails sind nicht verfügbar"
+      "trust_track_unavailable": "Titeldetails sind nicht verfügbar",
+      "trust_submitted": "Zur Prüfung an Trust übermittelt"
     },
     "pt": {
       "app_name": "YNX Music",
@@ -832,7 +840,8 @@
       "trust_reference": "Referência do Trust",
       "trust_reference_pending": "Salvo no Music. A referência do Trust ainda não foi confirmada.",
       "trust_outcome_pending": "A referência não confirma o resultado da análise.",
-      "trust_track_unavailable": "Os detalhes da faixa não estão disponíveis"
+      "trust_track_unavailable": "Os detalhes da faixa não estão disponíveis",
+      "trust_submitted": "Enviado ao Trust para análise"
     },
     "ru": {
       "app_name": "YNX Music",
@@ -923,7 +932,8 @@
       "trust_reference": "Номер Trust",
       "trust_reference_pending": "Сохранено в Music. Номер Trust ещё не подтверждён.",
       "trust_outcome_pending": "Номер не подтверждает результат рассмотрения.",
-      "trust_track_unavailable": "Сведения о композиции недоступны"
+      "trust_track_unavailable": "Сведения о композиции недоступны",
+      "trust_submitted": "Отправлено в Trust на рассмотрение"
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -1014,7 +1024,8 @@
       "trust_reference": "مرجع Trust",
       "trust_reference_pending": "تم الحفظ في Music. لم يتم تأكيد مرجع Trust بعد.",
       "trust_outcome_pending": "المرجع لا يؤكد نتيجة المراجعة.",
-      "trust_track_unavailable": "تفاصيل المقطع غير متاحة"
+      "trust_track_unavailable": "تفاصيل المقطع غير متاحة",
+      "trust_submitted": "تم الإرسال إلى Trust للمراجعة"
     },
     "id": {
       "app_name": "YNX Music",
@@ -1105,7 +1116,8 @@
       "trust_reference": "Referensi Trust",
       "trust_reference_pending": "Tersimpan di Music. Referensi Trust belum dikonfirmasi.",
       "trust_outcome_pending": "Referensi tidak mengonfirmasi hasil peninjauan.",
-      "trust_track_unavailable": "Detail lagu tidak tersedia"
+      "trust_track_unavailable": "Detail lagu tidak tersedia",
+      "trust_submitted": "Dikirim ke Trust untuk peninjauan"
     }
   }
 }
