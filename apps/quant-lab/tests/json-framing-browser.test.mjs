@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {financeBrowserLaunchOptions} from '../../finance/tests/browser-launch-options.mjs';
+import {QUANT_RUNTIME_WEB_ASSETS} from '../scripts/verify-versioned-assets.mjs';
 test('actual complete Quant renderer enforces identity byte framing in real Chrome without write replay',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{for(const width of [390,1280]){
@@ -11,10 +12,11 @@ test('actual complete Quant renderer enforces identity byte framing in real Chro
     await page.route('https://quant.example/**',async route=>{
       const name=new URL(route.request().url()).pathname.slice(1)||'index.html';
       if(name.startsWith('api/'))return route.fulfill({status:503,contentType:'application/json',body:'{"error":"unavailable"}'});
-      if(!/^(?:index\.html|app\.js|i18n\.js|styles\.css|wallet-auth\.js|ui-preferences\.js|ui-brand\.js|ynx-logo\.png|ynx-favicon\.png)$/.test(name))return route.abort();
+      if(!QUANT_RUNTIME_WEB_ASSETS.includes(name))return route.abort();
       return route.fulfill({contentType:name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.png')?'image/png':'text/html',body:await readFile(new URL('../web/'+name,import.meta.url))});
     });
     await page.goto('https://quant.example/');await page.waitForFunction(()=>typeof quantHTTP==='function');
+    await page.locator('.product-logo').evaluate(image=>image.decode());
     const result=await page.evaluate(async()=>{
       let calls=0,cancels=0;const codes=[];
       for(const length of ['0','1','3','99']){
