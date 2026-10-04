@@ -21,9 +21,15 @@ const id=(prefix:string)=>prefix+'_'+randomUUID();
 const own=<T>(map:Record<string,T>,key:string):T=>{if(!Object.hasOwn(map,key))throw new CardError('CARD_RESOURCE_NOT_FOUND',404);return map[key]!};
 const bounded=(value:unknown,min:number,max:number):string=>{if(typeof value!=='string'||value.trim().length<min||value.trim().length>max)throw new CardError('INVALID_APPLICATION_DETAILS',400);return value.trim()};
 const intentBinding=(value:FundingIntent)=>({id:value.id,cardId:value.cardId,owner:value.owner,sender:value.sender,chainId:value.chainId,recipient:value.recipient,amountWei:value.amountWei,minConfirmations:value.minConfirmations,createdAt:value.createdAt,expiresAt:value.expiresAt});
+function immutableEvent(event:BusinessEvent):BusinessEvent{
+  const copy=structuredClone(event);
+  const freeze=(value:unknown):void=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}};
+  freeze(copy);return copy;
+}
 function controls(limit:string):Controls{return {maxSingleWei:limit,dailyWei:limit,monthlyWei:limit,online:true,recurring:false,international:false,blockedMcc:[],allowedMcc:[],blockedMerchants:[],allowedMerchants:[],emergencyBlock:false,blockedCountries:[],allowedCountries:[],velocity:5}}
 
 export class CardService {
+  private readonly eventFlushes=new Map<string,Promise<BusinessEvent[]>>();
   private store:CardStore;private wallet:WalletAuthority;private core:CoreAuthority;private recipient:string|null;private confirmations:number;private clock:()=>Date;
   constructor(options:{store:CardStore;wallet:WalletAuthority;core:CoreAuthority;fundingAddress?:string;minConfirmations?:number;clock?:()=>Date}){this.store=options.store;this.wallet=options.wallet;this.core=options.core;this.recipient=options.fundingAddress?address(options.fundingAddress):null;this.confirmations=options.minConfirmations??2;if(!Number.isSafeInteger(this.confirmations)||this.confirmations<1)throw Error('Invalid Card confirmation policy');this.clock=options.clock??(()=>new Date())}
   private principal(p:Principal,scope:CardScope='account:read'):string{const owner=subject(p.owner);if(p.chainId!==CHAIN&&p.chainId!=='ynx_6423-1')throw new CardError('WRONG_TESTNET_CHAIN');if(!Number.isFinite(Date.parse(p.expiresAt))||Date.parse(p.expiresAt)<=this.clock().getTime())throw new CardError('CARD_AUTH_EXPIRED',401);requireScope(p,scope);return owner}
@@ -121,5 +127,17 @@ export class CardService {
   }
   // Trusted server worker only. Never expose transport selection or this method
   // through an end-user route, and never invent a broad Wallet write scope.
-  async flushEvents(ownerInput:string,transport:{publish:(event:BusinessEvent)=>Promise<void>}){const owner=subject(ownerInput);for(const event of this.state(owner).events.filter(e=>!e.delivered)){let delivered=false;try{await transport.publish(event);delivered=true}catch{}this.store.transaction(owner,()=>empty(owner),state=>{const current=state.events.find(e=>e.id===event.id);if(current&&!current.delivered){current.attempts++;current.delivered=delivered}return null})}return this.state(owner).events.filter(e=>!e.delivered)}
+  async flushEvents(ownerInput:string,transport:{publish:(event:BusinessEvent)=>Promise<void>}){
+    const owner=subject(ownerInput),existing=this.eventFlushes.get(owner);if(existing)return existing;
+    // Schedule after the owner lock is recorded, including synchronous transports.
+    const task=Promise.resolve().then(()=>this.flushPendingEvents(owner,transport));this.eventFlushes.set(owner,task);
+    try{return await task}finally{if(this.eventFlushes.get(owner)===task)this.eventFlushes.delete(owner)}
+  }
+  private async flushPendingEvents(owner:string,transport:{publish:(event:BusinessEvent)=>Promise<void>}){
+    for(const event of this.state(owner).events.filter(e=>!e.delivered)){
+      let delivered=false;try{await transport.publish(immutableEvent(event));delivered=true}catch{}
+      this.store.transaction(owner,()=>empty(owner),state=>{const current=state.events.find(e=>e.id===event.id);if(current&&!current.delivered){current.attempts++;current.delivered=delivered}return null});
+    }
+    return this.state(owner).events.filter(e=>!e.delivered);
+  }
 }
