@@ -14,9 +14,9 @@
 <p>Query the existing YNX Testnet contract runtime. This does not sign, submit a transaction or grant permissions.</p>
 <form id="contract-form">
 <label for="contract-mode">Chain runtime</label><select id="contract-mode"><option value="bft">Current BFT bounded contract runtime</option><option value="legacy">Legacy local pure/view runtime (explicit)</option></select>
-<label for="contract-address">Contract address</label><input id="contract-address" placeholder="0x…" maxlength="42" autocomplete="off" spellcheck="false" required>
+<label for="contract-address">Contract address</label><input id="contract-address" dir="ltr" placeholder="0x…" maxlength="42" autocomplete="off" spellcheck="false" required>
 <button id="lookup-contract" type="button">Look up contract</button>
-<label for="contract-function">Read-only function or calldata</label><input id="contract-function" placeholder="0x selector and encoded arguments" maxlength="8194" autocomplete="off" spellcheck="false">
+<label for="contract-function">Read-only function or calldata</label><input id="contract-function" dir="ltr" placeholder="0x selector and encoded arguments" maxlength="8194" autocomplete="off" spellcheck="false">
 <p class="muted">The current runtime uses hex calldata. A listed method with no arguments can fill its selector. For a method with arguments, supply its complete encoded calldata. Legacy mode accepts a pure/view function name or calldata. There is no automatic fallback between runtimes.</p>
 <button id="read-contract" type="submit" class="primary">Read contract</button></form>
 <p id="contract-status" role="status"></p><div id="contract-methods"></div><dl id="contract-facts" class="network-facts"></dl><pre id="contract-result" hidden></pre>

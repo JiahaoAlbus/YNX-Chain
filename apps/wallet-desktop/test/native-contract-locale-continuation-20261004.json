@@ -1,0 +1,20 @@
+{
+ "schemaVersion":1,
+ "baselineCommit":"ba7f9199109276c985b147810025e9cb16e83abe",
+ "scope":"Owned Desktop contract display localization and RTL raw input/fact isolation; no original contract API/client/service/permission/key/private authority or release changes",
+ "originalCounterexample":"Original2 mounted/catalog cases0PASS2FAIL exit1: contract labels absent from all12 locale catalogs and actual renderer status remained English after language switch",
+ "implemented":["35 contract display keys explicitly supplied for all12 existing Wallet locales","Static contract entry/dialog/actions/options and three runtime/calldata/no-write/no-finality notices enrolled in existing localization","Dynamic busy/success/original mapped errors, fact labels, argument hints and result labels update without requesting data again","Contract names/addresses/runtime identities/source-bytecode-audit hashes/heights/endpoints/timestamps remain raw LTR facts","ABI signatures/return values/encoded results/raw limitations are text-only isolated parameters, never HTML or translated wire data","No-known-ABI fallback and Not applicable state remain localizable without inventing decode success","Calldata placeholder localizes but input bytes remain unchanged; address/calldata inputs explicitly LTR under RTL"],
+ "verification":{
+  "initialAdaptation":"13PASS1FAIL exit1: prior mounted VM fixture omitted original renderer copyUI function. Original failure retained; fixed by including exact original helper, not by faking a business response",
+  "mountedGreen":"14/14 PASS before additional placeholder/raw-byte case",
+  "contractRelatedGreen":"45/45 PASS original contracts/UI/service/mounted, locale and history mounted cases",
+  "finalRelatedGreen":"113/113 PASS fail0 skip0 exit0 across13 selected files; covers original contract safeguards, all12 locales, unchanged exact input/facts, history container/producer/cursors and camera restart/permission lifecycle",
+  "syntaxAndWhitespace":"node --check renderer.js and wallet-locale-contracts.mjs; git diff --check exit0",
+  "evidenceDirectory":"/tmp/ynx-wallet-contract-locale-20261004-orGugL"
+ },
+ "boundary":"Mounted original renderer expressions and controlled public DOM/IPC ports, actual original modules and SDK-independent ethers helpers. Not complete Wallet Main/SDK boot or installed human language/device acceptance. No server values or chain authority are fabricated or translated by locale logic.",
+ "unchanged":["Native App/startup assets","Original NativeContractClient/service/UI context/read guards","Public RPC origins/routes/pinned capability identities","Shared SDK/Auth/Host/factory/registry","Private accounts/keys/UNKNOWN intent and Pay journals","Release versions/signing identity"],
+ "notRun":["Independent whole successor review","Actual deployed contract lookup/read (prior real RPC discovery gap stays open)","Complete admitted SDK/Wallet assembly","Installed Android/macOS/Web parity and retained-user acceptance","OS/physical camera","Canonical private Pay/signing/settlement","Signed package/preserving upgrade/final website delivery","MONSTER"],
+ "next":"Freeze complete owned successor and original red/current green for Root independent review and A compatibility composition; continue whole Wallet goal without declaring locale tests a release gate.",
+ "overallGoal":"NOT_COMPLETED"
+}

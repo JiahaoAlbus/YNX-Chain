@@ -18,6 +18,7 @@ import {PERMISSION_COPY} from "./wallet-locale-permissions.mjs";
 import {BALANCE_COPY} from "./wallet-locale-balance.mjs";
 import {SESSION_COPY} from "./wallet-locale-sessions.mjs";
 import {CAMERA_COPY} from "./wallet-locale-camera.mjs";
+import {CONTRACT_COPY} from "./wallet-locale-contracts.mjs";
 export const WALLET_LOCALE_KEY = "ynx-wallet-locale-v1";
 export const WALLET_LOCALES = Object.freeze(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"]);
 export const WALLET_LANGUAGE_NAMES = Object.freeze({en:"English","zh-Hans":"简体中文","zh-Hant":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"});
@@ -50,7 +51,7 @@ keys.push(zoomKey);for(const locale of WALLET_LOCALES)rows[locale]+="|"+zoomRows
 export const WALLET_COPY = Object.freeze(Object.fromEntries(WALLET_LOCALES.map(locale=>{
   const values=rows[locale].split("|");
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete Wallet copy: ${locale}`);
-  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale]})];
+  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale],...CONTRACT_COPY[locale]})];
 })));
 export function systemWalletLocale(languages=[]) {
   for(const tag of languages){if(typeof tag!=="string")continue;const value=tag.toLowerCase();if(value.startsWith("zh"))return /(?:hant|tw|hk|mo)/.test(value)?"zh-Hant":"zh-Hans";const locale=WALLET_LOCALES.find(item=>value===item.toLowerCase()||value.startsWith(item.toLowerCase()+"-"));if(locale)return locale}
@@ -66,6 +67,12 @@ const instances=new WeakMap();
 // Explicit application-owned UI labels. Raw request/account/value containers
 // deliberately do not appear here, including auth-purpose and all review pre.
 export const WALLET_STATIC_COPY=Object.freeze({
+  "#open-contracts":"Read a contract","#contract-title":"Read a contract",'[data-close="contract-sheet"]':"Close",
+  'label[for="contract-mode"]':"Chain runtime",'#contract-mode option[value="bft"]':"Current BFT bounded contract runtime",'#contract-mode option[value="legacy"]':"Legacy local pure/view runtime (explicit)",
+  'label[for="contract-address"]':"Contract address","#lookup-contract":"Look up contract",'label[for="contract-function"]':"Read-only function or calldata","#read-contract":"Read contract",
+  "#contract-sheet > p:first-of-type":"Query the existing YNX Testnet contract runtime. This does not sign, submit a transaction or grant permissions.",
+  "#contract-form > p.muted":"The current runtime uses hex calldata. A listed method with no arguments can fill its selector. For a method with arguments, supply its complete encoded calldata. Legacy mode accepts a pure/view function name or calldata. There is no automatic fallback between runtimes.",
+  "#contract-sheet > p.muted":"Supported pinned artifacts and a bounded static-call interpreter only. This is not general Ethereum execution, contract deployment or a contract write. A read result is not consensus finality or a transfer confirmation.",
   "#open-protected-pay":"Pay & original receipts","#protected-pay-title":"Pay & original receipts",
   '[data-close="protected-pay-sheet"]':"Close",
   "#protected-pay-sheet > p:first-of-type":"Review a registered merchant's signed invoice before approving its exact YNX Testnet payment. Unknown outcomes must be recovered by original hash, never by paying again.",
@@ -104,7 +111,7 @@ export const WALLET_STATIC_COPY=Object.freeze({
   '#recovery-kind option[value="private-key"],#import-kind option[value="private-key"]':"Private key",'#recovery-kind option[value="recovery-phrase"],#import-kind option[value="recovery-phrase"]':"Recovery phrase (first Ethereum account)",'#recovery-kind option[value="encrypted-json"],#import-kind option[value="encrypted-json"]':"Encrypted JSON backup",'#recovery-kind option[value="previous-password"]':"Previously saved Wallet and its old password",
   "[data-custody-cancel]":"Cancel",'[data-close="receive-sheet"]':"Close",'[data-close="send-sheet"]':"Close"
 });
-export const WALLET_STATIC_ATTRIBUTES=Object.freeze({"#receive-qr":Object.freeze({"aria-label":"QR code for your selected YNX Testnet receiving address"}),"#import-value":Object.freeze({placeholder:"Entered locally on this device"}),"#transfer-to":Object.freeze({placeholder:"ynx1… or a YNX receiving link"})});
+export const WALLET_STATIC_ATTRIBUTES=Object.freeze({"#receive-qr":Object.freeze({"aria-label":"QR code for your selected YNX Testnet receiving address"}),"#import-value":Object.freeze({placeholder:"Entered locally on this device"}),"#transfer-to":Object.freeze({placeholder:"ynx1… or a YNX receiving link"}),"#contract-function":Object.freeze({placeholder:"0x selector and encoded arguments"})});
 /** Only explicitly enrolled product-owned nodes are localized. Never walk or
  * observe arbitrary text, inputs, signed requests, account values or HTML. */
 export function initWalletLocale({document,getStorage=()=>null,systemLanguages=[]}) {

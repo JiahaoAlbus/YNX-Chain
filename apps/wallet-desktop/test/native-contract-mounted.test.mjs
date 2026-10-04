@@ -26,7 +26,7 @@ test("actual mounted contract entry, lookup, method selection, read and close us
   const document = {querySelector: get, getElementById: id => get("#"+id), createElement: element};
   const start = source.indexOf("const contractSheet ="), end = source.indexOf("let paymentDraftRevision", start);
   assert.ok(start >= 0 && end > start);
-  runInNewContext(source.slice(start, end), {document, window: {ynxWallet: api}, createNativeContractUI, accountState: null, keyState: {locked: true, revision: 1}});
+  runInNewContext(source.match(/function copyUI\([^\n]+/)[0]+"\n"+source.slice(start, end), {document, window: {ynxWallet: api}, createNativeContractUI, accountState: null, keyState: {locked: true, revision: 1}});
   get("#contract-mode").value = "bft"; get("#contract-address").value = address;
   await get("#open-contracts").emit("click"); assert.equal(get("#contract-sheet").open, true);
   await get("#lookup-contract").emit("click");

@@ -67,7 +67,7 @@ const contractUI = createNativeContractUI({
   render: ({busy, result, error}) => {
     document.querySelector("#lookup-contract").disabled = busy;
     document.querySelector("#read-contract").disabled = busy;
-    document.querySelector("#contract-status").textContent = busy ? "Reading from YNX Testnet…" : error ?? (result ? "Read-only response verified. No transaction was signed or submitted." : "");
+    copyUI(document.querySelector("#contract-status"),busy ? "Reading from YNX Testnet…" : error ?? (result ? "Read-only response verified. No transaction was signed or submitted." : ""));
     const facts = document.querySelector("#contract-facts"), methods = document.querySelector("#contract-methods"), output = document.querySelector("#contract-result");
     facts.replaceChildren(); methods.replaceChildren(); output.textContent = ""; output.hidden = true;
     if (!result) return;
@@ -75,14 +75,14 @@ const contractUI = createNativeContractUI({
     const rows = [["Contract", artifact.name], ["Address", artifact.address], ["Runtime", artifact.runtimeMode], ["Source hash", artifact.sourceHash], ["Bytecode hash", artifact.deployedBytecodeHash]];
     if (artifact.auditHash) rows.push(["Record audit hash", artifact.auditHash], ["Last updated height", String(artifact.lastUpdatedHeight)]);
     if (result.read) rows.push(["As of", result.read.asOf], ["Endpoint", result.read.origin], ["Opcode steps", String(result.read.opcodeStepCount ?? "Not applicable")]);
-    for (const [label, value] of rows) { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = label; dd.textContent = value; facts.append(dt, dd); }
+    for (const [label, value] of rows) { const dt = document.createElement("dt"), dd = document.createElement("dd"); copyUI(dt,label);dd.dir="ltr";if(label==="Opcode steps"&&result.read.opcodeStepCount==null)copyUI(dd,"Not applicable");else dd.textContent=value;facts.append(dt, dd); }
     for (const method of result.methods ?? []) {
       const button = document.createElement("button"); button.type = "button";
-      button.textContent = `${method.signature}${method.inputCount ? " — encoded arguments required" : ""}`;
+      if(method.inputCount)copyUI(button,"{signature} — encoded arguments required",{signature:method.signature});else{button.textContent=method.signature;button.dir="ltr";}
       button.addEventListener("click", () => { contractUI.clear(); document.querySelector("#contract-function").value = method.selector; document.querySelector("#contract-function").focus(); });
       methods.append(button);
     }
-    if (result.read) { output.hidden = false; output.textContent = `Result: ${result.read.returnValue ?? "No known ABI decoder; encoded result below"}\nEncoded result: ${result.read.encodedResult}\n${(result.read.limitations ?? artifact.limitations ?? []).join("\n")}`; }
+    if (result.read) { output.hidden = false;copyUI(output,result.read.returnValue==null?"No known ABI decoder; encoded result: {encoded}\n{limitations}":"Result: {value}\nEncoded result: {encoded}\n{limitations}",{value:result.read.returnValue,encoded:result.read.encodedResult,limitations:(result.read.limitations??artifact.limitations??[]).join("\n")}); }
   },
 });
 function contractInput(action) { return {mode: document.querySelector("#contract-mode").value, address: document.querySelector("#contract-address").value.trim(), action, ...(action === "read" ? {function: document.querySelector("#contract-function").value.trim()} : {})}; }

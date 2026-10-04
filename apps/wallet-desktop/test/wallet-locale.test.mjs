@@ -37,7 +37,7 @@ test("explicit QR accessibility copy changes only its owned label, never canvas 
   const document={documentElement:{},querySelector:()=>null,querySelectorAll:selector=>selector==="#receive-qr"?[canvas]:[]};
   const ui=initWalletLocale({document});ui.select("ar");assert.equal(attrs.get("aria-label"),WALLET_COPY.ar["QR code for your selected YNX Testnet receiving address"]);assert.equal(canvas.textContent,"unmodified canvas fallback");assert.equal(canvas.width,256);assert.equal(canvas.height,256);assert.equal(canvas.value,"original-value");assert.equal(attrs.get("data-hash"),"original-hash");
   assert.equal(ui.setAttributeCopy(canvas,"data-hash","Receive YNXT"),false);
-  attrs.set("aria-label","new raw owner label");ui.select("zh-Hans");assert.equal(attrs.get("aria-label"),"new raw owner label");assert.deepEqual(Object.keys(WALLET_STATIC_ATTRIBUTES),["#receive-qr","#import-value","#transfer-to"]);
+  attrs.set("aria-label","new raw owner label");ui.select("zh-Hans");assert.equal(attrs.get("aria-label"),"new raw owner label");assert.deepEqual(Object.keys(WALLET_STATIC_ATTRIBUTES),["#receive-qr","#import-value","#transfer-to","#contract-function"]);
 });
 test("dynamic parameters use isolated text, retain exact bytes and survive locale changes without business callbacks",()=>{
   class Element {
