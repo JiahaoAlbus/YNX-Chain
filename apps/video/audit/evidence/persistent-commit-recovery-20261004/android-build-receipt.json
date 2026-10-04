@@ -1,0 +1,212 @@
+{
+  "schema": "ynx.video.android.full-native-build.v1",
+  "sourceCommit": "c29032cb152de59303febf46b37b7341d49f852c",
+  "sourceTree": "107b558727ae9a4c7f570c76a7b5a9841510184e",
+  "sourcePins": [
+    {
+      "path": "apps/video/android/.gitignore",
+      "bytes": 61,
+      "sha256": "8ff30cd2483d6785014430bf3547be9dca892f79e389215c20d35574f6d45cce",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/build.gradle",
+      "bytes": 493,
+      "sha256": "e413317ba984a16086b4ce50b3160490e46ae9b2686706ceb1357be1a8b1f804",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/AndroidManifest.xml",
+      "bytes": 1835,
+      "sha256": "2b297e811353891edab8ddc06e2747163e9f7c876b3d32aa739f50b6621e4373",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/client.mjs",
+      "bytes": 3235,
+      "sha256": "93a9f59de63e226482db3a926722318863897e1649c970752e93e8a627ce97db",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/index.html",
+      "bytes": 328,
+      "sha256": "f42db844d98845eb7a2f02739e71e7dd9b9244208469a087f0912ee62e4db788",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/media-native-consumer.mjs",
+      "bytes": 196466,
+      "sha256": "d8a681383fb2456e1dbb3257f64f3b0640fa32107178446cfbe33f04f5a477de",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/source.json",
+      "bytes": 2966,
+      "sha256": "96b00819fcaa627d1d4c3962bf73cfcc55b368e51df4f3a7c56146f2143d5cf6",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/assets/native-session/wallet-auth-native-consumer.mjs",
+      "bytes": 225738,
+      "sha256": "e0147cf9f324f4eca8f98f7ca3a154d1cfe130fbb072314924ceb57441048575",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/DisplayPreferences.java",
+      "bytes": 1941,
+      "sha256": "305c1cff33cdaa758be51b98e007205e18a67ac6e53aeff40ec74d4ad2ddb231",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+      "bytes": 38496,
+      "sha256": "4eef34089d27cb70617c6d4a1cc496f8c53fc63e69c63e1d52dd7f6d43bd8583",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProductState.java",
+      "bytes": 20104,
+      "sha256": "7dd84ffcb63996298f2d4b42158410af6c0117dc3ae436c4397c8ab8d14d04fd",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeProtectedRuntime.java",
+      "bytes": 7825,
+      "sha256": "1417b8a7d058ea5830c613b10fe9c75f80e57a9c37319e1d36e1947247cae676",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionBridge.java",
+      "bytes": 18590,
+      "sha256": "b222ba78a4271cb0830b1820d27df685fc111178c5db01f887f68ee703d0037d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeSessionIdentity.java",
+      "bytes": 1790,
+      "sha256": "27fcff90bdff66bada14effeff69bb96517f9006b0ea650b0e144ac401147071",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/NativeStateCustody.java",
+      "bytes": 4842,
+      "sha256": "57c22a4eb4d87bbce72a124adba00008ad438c54f3bf1e76fd4ac0dbf5de4bb5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoApi.java",
+      "bytes": 10627,
+      "sha256": "15b0a23cf366657bdbc05aa3907bdfef2eb2952d65d4277dafc468a317aa60b6",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoMediaSource.java",
+      "bytes": 1754,
+      "sha256": "e4558f0afc97a869504688641b29ff637c549369567a01b534e36b7099a806cc",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoPlaybackView.java",
+      "bytes": 4965,
+      "sha256": "00d64ff50d7397c73edd9b4c9042e377bb0fd94f7ceadbba646f98c111b085fd",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoRequestBoundary.java",
+      "bytes": 1740,
+      "sha256": "0075b8105d7bada7361e6e37ffce43731e19fe5ea01d6ddf5fdac8458c265641",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/java/com/ynxweb4/video/VideoViewerState.java",
+      "bytes": 13653,
+      "sha256": "985eccc0b1e09107c39ddf00373fdbcb16f335d543956ed68a9f5e7107374358",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/drawable-nodpi/ynx_brand_original.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/drawable/ic_launcher.xml",
+      "bytes": 342,
+      "sha256": "4f45d51aa361ef844eac5950218fff86b508e0988a8dda6202f9afb07409e18b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/values/strings.xml",
+      "bytes": 66,
+      "sha256": "b07246531020b337012168fe8f440e49c3c9437b6a31d2c69503ad305740ed0d",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/values/styles.xml",
+      "bytes": 415,
+      "sha256": "25de8a45a340ac7d1281a05c2aa36080a5537a29ae1d2c26859576608f50c9b7",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/main/res/xml/network_security_config.xml",
+      "bytes": 146,
+      "sha256": "dea35ebed76536c24c13f74036f02dc874f944147cb3a49c2ad0550f71e3e0c7",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/app/src/test/java/com/ynxweb4/video/NativeProductStateTest.java",
+      "bytes": 12167,
+      "sha256": "a3cff3b63e813dec70424e13aa2d7d728ef0e2d4a7184d7bd640e4673f1fbc76",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/build.gradle",
+      "bytes": 133,
+      "sha256": "68fbfbe27ca7effd66c275628b2e48da6be0ef9ec458042d55f738d739f6773b",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/gradle.properties",
+      "bytes": 160,
+      "sha256": "8eb351a7a6ee460f78771b01480a9896897db4ca8521d9fe81b8e3d9e058f698",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/android/settings.gradle",
+      "bytes": 269,
+      "sha256": "d2ce6854cf9c99e7cbc1c69fcf889bd6a31f0130acc69bb3f147ac47c0cf5db5",
+      "gitExact": true
+    },
+    {
+      "path": "apps/video/i18n/catalog.json",
+      "bytes": 22776,
+      "sha256": "548044a27e3eac9583a5d3cecb078255c05aa79c7e226fd6e03cdbaeaba9e3eb",
+      "gitExact": true
+    }
+  ],
+  "javaHome": "/Library/Java/JavaVirtualMachines/openjdk-17.jdk/Contents/Home",
+  "androidSDK": "/Users/huangjiahao/Library/Android/sdk",
+  "project": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-android-native-CcbF65/project",
+  "log": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-android-native-CcbF65/gradle-build-lint.txt",
+  "apk": {
+    "path": "/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-video-android-native-CcbF65/project/app/build/outputs/apk/debug/app-debug.apk",
+    "bytes": 348151,
+    "sha256": "d36b1efa70c7c9ed63e730c1cd9852b35eb0b3ba0fa7262c5a7afde4ac62a745",
+    "debugSigned": true,
+    "releaseSigned": false,
+    "installed": false,
+    "launched": false
+  },
+  "lint": "PASS full lintDebug",
+  "originalPackagedSDKAssetsGitExact": true,
+  "actualWalletConsent": false,
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false,
+  "actualAPI26DeviceRuntime": false
+}

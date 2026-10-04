@@ -1,0 +1,157 @@
+{
+  "actualShippedJavaPlaylistController": true,
+  "persistentFailedStorageAllMutationsBlocked": true,
+  "actualOriginalSDKProof": true,
+  "actualOriginalGoBusinessReadback": true,
+  "actualColdJVMOrdinaryFileRecovery": true,
+  "actualOriginalJavaEpochRetirement": true,
+  "completedMutationDispatches": [
+    1,
+    1,
+    1
+  ],
+  "restores": 3,
+  "proofs": 23,
+  "proxyCalls": 23,
+  "traces": [
+    {
+      "phase": "durability",
+      "action": "add",
+      "cachedWatchReplayBlocked": true,
+      "createRetriesBlocked": true,
+      "operationRetriesBlocked": true,
+      "unconfirmedACKRetainsOriginals": true,
+      "originalBodiesAndKeysRetained": true,
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 205,
+          "sha256": "bf5baf7e509e4fa9dcb17d425da1c77925794015b2fe7aa99bd96acb0340b604"
+        }
+      ]
+    },
+    {
+      "phase": "stage",
+      "action": "add",
+      "originalJavaEpochRetired": true,
+      "pending": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "add",
+        "videoID": "vid_78a27b5a59bccff59c1dd659",
+        "key": "23669d15-ff92-4a83-885b-4169a78ee66f"
+      },
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 330,
+          "sha256": "c03f1df41834d504063a5114ded376dcecae69554ec17509f634d91ffd9de795"
+        }
+      ]
+    },
+    {
+      "phase": "finish",
+      "action": "add",
+      "original": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "add",
+        "videoID": "vid_78a27b5a59bccff59c1dd659",
+        "key": "23669d15-ff92-4a83-885b-4169a78ee66f"
+      },
+      "actualOriginalBusinessReadback": true,
+      "ownListCount": 2,
+      "pendingCleared": true,
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 100,
+          "sha256": "398334a96826725a58d9a2874daa2b70f771932368fa56a9f085a1ad9a813205"
+        }
+      ]
+    },
+    {
+      "phase": "stage",
+      "action": "remove",
+      "originalJavaEpochRetired": true,
+      "pending": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "remove",
+        "videoID": "vid_78a27b5a59bccff59c1dd659",
+        "key": "d9312acc-523e-42d4-9a21-9ce9d0c7c835"
+      },
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 333,
+          "sha256": "ca178cea094065d9388ac72b0bdf91e0613be0a6dc74249ad604ec1fc71607ec"
+        }
+      ]
+    },
+    {
+      "phase": "finish",
+      "action": "remove",
+      "original": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "remove",
+        "videoID": "vid_78a27b5a59bccff59c1dd659",
+        "key": "d9312acc-523e-42d4-9a21-9ce9d0c7c835"
+      },
+      "actualOriginalBusinessReadback": true,
+      "ownListCount": 2,
+      "pendingCleared": true,
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 100,
+          "sha256": "398334a96826725a58d9a2874daa2b70f771932368fa56a9f085a1ad9a813205"
+        }
+      ]
+    },
+    {
+      "phase": "stage",
+      "action": "delete",
+      "originalJavaEpochRetired": true,
+      "pending": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "delete",
+        "videoID": null,
+        "key": "f1258221-89e2-40b2-871f-42cf1210d5e1"
+      },
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 305,
+          "sha256": "1fc0e056bedc2283bd23fcb6f0b6ab0a8c21e8b1223c71c3143e55a107d096d4"
+        }
+      ]
+    },
+    {
+      "phase": "finish",
+      "action": "delete",
+      "original": {
+        "playlistID": "pl_a25d48df4d8eabd29e145dd2",
+        "name": "Protected Java original recovery",
+        "action": "delete",
+        "videoID": null,
+        "key": "f1258221-89e2-40b2-871f-42cf1210d5e1"
+      },
+      "actualOriginalBusinessReadback": true,
+      "ownListCount": 1,
+      "pendingCleared": true,
+      "ordinaryPins": [
+        {
+          "name": "ynx_video_viewer_v2_50e59fa886c20a817dda488c2134c03c9363557a99d4adb166cdc13a49bbd666.json",
+          "bytes": 100,
+          "sha256": "398334a96826725a58d9a2874daa2b70f771932368fa56a9f085a1ad9a813205"
+        }
+      ]
+    }
+  ],
+  "actualOSStorage": false,
+  "actualRenderedNativeUI": false,
+  "productionInstalled": false
+}
