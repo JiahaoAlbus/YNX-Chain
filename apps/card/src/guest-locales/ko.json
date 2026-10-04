@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "카드 계정",
+    "Not created": "생성되지 않음",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "비공개 Product Session에 문제가 생겨도 게스트 기능은 사라지지 않으며 표준 지갑 연결도 해제되지 않습니다.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "실제 복구에는 권한이 부여된 Card 서비스가 필요합니다. 게스트 모드에서는 제어 절차를 안전하게 연습하고 활동 내역에서 확인할 수 있습니다.",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "잔액을 표시하려면 지갑, 내용이 확정된 YNXT 테스트넷 입금 요청, 확인된 온체인 거래, Card API의 수락이 모두 필요합니다.",

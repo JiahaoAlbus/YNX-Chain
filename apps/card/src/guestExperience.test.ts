@@ -16,6 +16,16 @@ function registeredVisibleText(locale:typeof locales[number],value:string){
   return ["1","2","3","4","5"].includes(value)||literals.includes(value)||templates.some(template=>new RegExp("^"+template.split(/\{\w+\}/).map(escape).join(".+")+"$").test(value));
 }
 
+for(const locale of locales)for(const connected of [false,true])test(`${locale}: demo card account creation is independent of standard wallet connection (${connected})`,async t=>{
+  const address='0x'+'a'.repeat(40);
+  const app=await mountGuest({platform:'web',locale,props:connected?{walletSession:{address,chainId:'0x1917'},selectedWalletKind:'metamask',standardWalletState:{status:'connected',account:address,chainId:'0x1917',chooserOpen:false}}:{}});t.after(()=>app.unmount());
+  const preview=app.renderer.root.find((node:any)=>node.type==='View'&&node.props.testID==='guest-card-preview');
+  const copy=textOf(preview);
+  assert.ok(copy.includes(guestText(locale,'Card account')));assert.ok(copy.includes(guestText(locale,'Not created')));
+  assert.ok(copy.includes(guestText(locale,'DEMO ONLY')));assert.ok(!copy.includes(guestText(locale,'NOT CONNECTED')));assert.ok(!copy.includes(address));
+  assert.equal(app.calls.native,0);assert.equal(app.calls.metamask,0);assert.equal(app.calls.chooser,0);assert.equal(app.calls.writes,0);
+});
+
 for(const platform of ["android","ios"])test(`${platform}: every guest connection entry calls only native YNX authorization`,async t=>{
   const app=await mountGuest({platform,props:{standardWalletState:{status:"disconnected",chooserOpen:true}}});t.after(()=>app.unmount());
   assert.doesNotMatch(app.text(),/MetaMask|Choose a wallet|Independent YNX EIP-1193 provider/);

@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "Kartenkonto",
+    "Not created": "Nicht erstellt",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "Ein Fehler der privaten Product Session entfernt keine Gastfunktionen und trennt nicht deine Standard-Wallet.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "Eine echte Wiederherstellung erfordert einen autorisierten Card-Dienst. Im Gastmodus kannst du die Bedienfolge sicher üben und unter Aktivität prüfen.",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "Bevor ein Guthaben angezeigt werden kann, sind eine Wallet, ein genauer YNXT-Testnet-Aufladeauftrag, eine bestätigte On-Chain-Transaktion und die Annahme durch die Card API erforderlich.",

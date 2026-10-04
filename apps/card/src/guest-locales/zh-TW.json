@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "卡帳戶",
+    "Not created": "尚未建立",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "私人 Product Session 失敗不會移除訪客功能，也不會中斷你的標準錢包連線。",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "實際復原需要獲得授權的 Card 服務。在訪客模式中，你可以安全地練習控制順序，並在「活動」中查看紀錄。",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "顯示任何餘額前，必須具備錢包、精確的 YNXT 測試網儲值意圖、已確認的鏈上交易及 Card API 接受。",

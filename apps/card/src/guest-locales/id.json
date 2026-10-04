@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "Akun kartu",
+    "Not created": "Belum dibuat",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "Kegagalan Product Session privat tidak menghapus fitur tamu atau memutus koneksi dompet standar Anda.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "Pemulihan nyata memerlukan layanan Card yang berwenang. Dalam mode tamu, Anda dapat berlatih urutan kontrol dengan aman dan meninjaunya di Aktivitas.",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "Dompet, permintaan pendanaan YNXT testnet dengan rincian yang pasti, transaksi yang telah dikonfirmasi di blockchain, serta penerimaan oleh Card API semuanya diperlukan sebelum saldo apa pun dapat ditampilkan.",

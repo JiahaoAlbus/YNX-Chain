@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "Card account",
+    "Not created": "Not created",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.",

@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "Карточный счёт",
+    "Not created": "Не создан",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "Сбой частной Product Session не удаляет гостевые функции и не отключает ваш стандартный кошелёк.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "Для настоящего восстановления нужен авторизованный сервис Card. В гостевом режиме можно безопасно отработать последовательность действий и просмотреть её в разделе «Активность».",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "Для отображения баланса требуются кошелёк, точное намерение пополнения YNXT Testnet, подтверждённая транзакция в блокчейне и принятие со стороны Card API.",

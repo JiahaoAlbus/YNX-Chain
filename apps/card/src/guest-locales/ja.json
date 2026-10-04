@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "カードアカウント",
+    "Not created": "未作成",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "プライベートな Product Session に障害が発生しても、ゲスト機能は失われず、標準ウォレットの接続も切断されません。",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "実際の復旧には、認可された Card サービスが必要です。ゲストモードでは操作手順を安全に練習し、利用履歴で確認できます。",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "残高を表示するには、ウォレット、内容を確定した YNXT テストネット入金要求、オンチェーンで確認済みの取引、Card API による受け入れのすべてが必要です。",

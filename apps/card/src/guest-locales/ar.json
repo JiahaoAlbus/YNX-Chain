@@ -1,5 +1,7 @@
 {
   "text": {
+    "Card account": "حساب البطاقة",
+    "Not created": "لم يُنشأ",
     "A private Product Session failure does not remove guest features or disconnect your Standard Wallet.": "لا يؤدي تعطل جلسة Product Session الخاصة إلى إزالة ميزات الضيف أو قطع اتصال محفظتك القياسية.",
     "A real recovery requires an authorized Card service. In Guest mode, you can safely practice the control sequence and review it in Activity.": "يتطلب الاسترداد الفعلي خدمة Card مخولة. في وضع الضيف، يمكنك التدرب بأمان على تسلسل إجراءات التحكم ومراجعته في سجل النشاط.",
     "A wallet, exact YNXT Testnet funding intent, confirmed on-chain transaction, and Card API acceptance are all required before any balance can be shown.": "يلزم توفر محفظة وطلب تمويل YNXT على الشبكة التجريبية بتفاصيل محددة ومعاملة مؤكدة على السلسلة وقبول من واجهة Card API قبل عرض أي رصيد.",
