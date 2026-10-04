@@ -359,6 +359,11 @@
       "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/wrong-worktree-setup-failure.txt",
       "bytes": 1498,
       "sha256": "e90953ed449608fd9e1c0d6ee3e08fd66f3448ea5c23fd83fbe2a21cadbfa818"
+    },
+    {
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/matching-315-file-build-source.tar.gz",
+      "bytes": 1292349,
+      "sha256": "825574f6bd72f68178d31afca2c5d4a76e9b56992a7d03ba5375ee9e3aaeba12"
     }
   ],
   "publicReadback": {
@@ -380,5 +385,10 @@
     }
   },
   "formalHost": false,
-  "realAccountAccepted": false
+  "realAccountAccepted": false,
+  "matchingBuildSource": {
+    "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/evidence/unified-media-successor-20261004/matching-315-file-build-source.tar.gz",
+    "bytes": 1292349,
+    "sha256": "825574f6bd72f68178d31afca2c5d4a76e9b56992a7d03ba5375ee9e3aaeba12"
+  }
 }
