@@ -8,7 +8,7 @@ import {financeBrowserLaunchOptions} from './browser-launch-options.mjs';
 const web=new URL('../web/',import.meta.url);
 const walletStub=`window.YNXFinanceWallet={ready:Promise.resolve(),connected:()=>true,getRevision:()=>0,requireProof:async()=>({proofHeader:'TEST_ONLY',requestId:'req_test_finance_ai_0001'}),connect:async()=>{},disconnect:async()=>({status:'disconnected'}),reportPrivateFailure:()=>{}};`;
 const orderWalletStub=`window.YNXFinanceOrderWallet={pending:()=>null,clear:()=>{},begin:()=>{throw new Error('order Wallet is outside this AI fixture')},parseReturn:()=>{throw new Error('order Wallet is outside this AI fixture')}};`;
-let server,browser,base,aiRequests,aiFail=false,statementInvalid=false;
+let server,browser,base,aiRequests,aiFail=false,statementInvalid=false,aiRaceScenario=null;
 
 function json(res,status,value){res.writeHead(status,{'content-type':'application/json'});res.end(JSON.stringify(value));}
 test.before(async()=>{
@@ -28,9 +28,21 @@ test.before(async()=>{
     if(url.pathname==='/api/ai/jobs'&&req.method==='POST'){
       const chunks=[];for await(const chunk of req)chunks.push(chunk);
       aiRequests.push(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      if(aiRaceScenario){
+        const scenario=aiRaceScenario,number=aiRequests.length;
+        if(number===scenario.holdCreate){scenario.enter();await new Promise(resolve=>{scenario.release=resolve})}
+        return json(res,202,{id:`race-job-${number}`,kind:'draft_broker_order',status:number===1&&scenario.decision==='delete'?'ready':'running',provider:'controlled-lifecycle-fixture',model:'draft-only',progress:`fixture-job-${number}`});
+      }
       if(aiFail)return json(res,503,{error:'Untranslated upstream service failure',code:'AI_PROVIDER_UNAVAILABLE'});
       await new Promise(resolve=>setTimeout(resolve,75));
       return json(res,202,{id:'ai-browser-fixture',kind:'draft_broker_order',status:'ready',provider:'loopback-browser-fixture',model:'strict-schema-fixture',estimatedCost:'unverified',progress:'structured draft',result:{schemaVersion:'finance.ai.broker-order-draft.v1',draftOnly:true,orderDraft:{symbol:'ACME',side:'buy',qty:'2',limitPrice:'10.25',timeInForce:'day',warnings:['Review only']}}});
+    }
+    if(aiRaceScenario&&/^\/api\/ai\/jobs\/race-job-[12](?:\/cancel)?$/.test(url.pathname)){
+      const scenario=aiRaceScenario;
+      if(req.method==='GET'){scenario.polls.push(url.pathname);return json(res,200,{id:url.pathname.split('/').at(-1),kind:'draft_broker_order',status:'running',provider:'controlled-lifecycle-fixture',progress:url.pathname})}
+      scenario.actionRequests++;scenario.enter();await new Promise(resolve=>{scenario.release=resolve});
+      if(req.method==='DELETE'){res.writeHead(204);return res.end()}
+      return json(res,200,{cancelled:true});
     }
     if(url.pathname==='/api/ai/jobs/ai-browser-fixture')return json(res,200,{id:'ai-browser-fixture',kind:'draft_broker_order',status:'ready',provider:'loopback-browser-fixture',model:'strict-schema-fixture',estimatedCost:'unverified',progress:'structured draft'});
     const file=url.pathname==='/'?'index.html':url.pathname.slice(1);
@@ -44,7 +56,7 @@ test.before(async()=>{
 test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
 
 async function fixture(){
-  aiRequests=[];aiFail=false;statementInvalid=false;
+  aiRequests=[];aiFail=false;statementInvalid=false;aiRaceScenario=null;
   const page=await browser.newPage(),errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base);
@@ -190,4 +202,50 @@ test('real Finance DOM permits an explicit empty chain context and copies only t
     assert.equal(await page.locator('#broker-asset-search [name=query]').inputValue(),'ACME');
     assert.deepEqual(errors,[]);
   }finally{await page.close();}
+});
+
+function raceScenario(options){
+  let enter;
+  const entered=new Promise(resolve=>{enter=resolve});
+  return aiRaceScenario={...options,enter,entered,polls:[],actionRequests:0,release:null};
+}
+
+for(const decision of ['cancel','delete'])test(`real buttons keep new job polling after late old ${decision}`,{timeout:15000},async()=>{
+  const {page,errors}=await fixture(),scenario=raceScenario({decision});
+  try{
+    await fillIntent(page);await page.locator('#ai-start').click();
+    await page.waitForFunction(()=>state.aiJob?.id==='race-job-1'&&!document.querySelector('#ai-start').disabled);
+    if(decision==='delete')page.once('dialog',dialog=>dialog.accept());
+    await page.locator(`[data-ai="${decision}"]`).click();await scenario.entered;
+    await page.locator('#ai-start').click();
+    await page.waitForFunction(()=>state.aiJob?.id==='race-job-2'&&state.aiJob.status==='running');
+    const notice=await page.locator('#notice').textContent();
+    const newPoll=page.waitForResponse(response=>response.request().method()==='GET'&&new URL(response.url()).pathname==='/api/ai/jobs/race-job-2');
+    scenario.release();await newPoll;
+    assert.equal(await page.evaluate(()=>state.aiJob.id),'race-job-2');
+    assert.equal(await page.evaluate(()=>state.aiJob.status),'running');
+    assert.equal(await page.evaluate(()=>state.aiTimer!==null),true);
+    assert.equal(await page.locator('#notice').textContent(),notice);
+    assert.equal(aiRequests.length,2);assert.equal(scenario.actionRequests,1);
+    assert.ok(scenario.polls.includes('/api/ai/jobs/race-job-2'));assert.deepEqual(errors,[]);
+  }finally{scenario.release?.();await page.close();aiRaceScenario=null}
+});
+
+test('real private-context event retires old create and preserves replacement create/button/poll',{timeout:15000},async()=>{
+  const {page,errors}=await fixture(),scenario=raceScenario({holdCreate:1});
+  try{
+    await fillIntent(page);await page.locator('#ai-start').click();await scenario.entered;
+    assert.equal(await page.locator('#ai-start').isDisabled(),true);
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'connected'}})));
+    await page.waitForFunction(()=>state.connected&&!document.querySelector('#ai-start').disabled&&!document.querySelector('#workspace').classList.contains('hidden'));
+    await page.locator('#ai-start').click();
+    await page.waitForFunction(()=>state.aiJob?.id==='race-job-2'&&!document.querySelector('#ai-start').disabled);
+    const notice=await page.locator('#notice').textContent();
+    const retired=page.waitForResponse(response=>response.request().method()==='POST'&&new URL(response.url()).pathname==='/api/ai/jobs');
+    scenario.release();await retired;
+    const poll=page.waitForResponse(response=>response.request().method()==='GET'&&new URL(response.url()).pathname==='/api/ai/jobs/race-job-2');await poll;
+    assert.equal(await page.evaluate(()=>state.aiJob.id),'race-job-2');assert.equal(await page.locator('#ai-start').isDisabled(),false);
+    assert.equal(await page.locator('#ai-start').textContent(),'Request review draft');assert.equal(await page.locator('#notice').textContent(),notice);
+    assert.equal(aiRequests.length,2);assert.deepEqual(errors,[]);
+  }finally{scenario.release?.();await page.close();aiRaceScenario=null}
 });
