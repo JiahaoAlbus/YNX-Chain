@@ -36,6 +36,7 @@
     "fullBuildAndInstalledAcceptance": "NOT_VERIFIED"
   },
   "matchingFrozenSourceReadback": {
+    "historicalBeforeOriginalCliRestoration": true,
     "ownedSourceCommit": "31b012118f166c1b5e30a23f5384f5f6808b6556",
     "sdkOriginalCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
     "sdkVersion": "1.2.0",
@@ -52,8 +53,23 @@
     "liveSharedSDK": "Still 1.1.0 in this worktree; earlier sourceIntegrationReadback is preserved as historical local mismatch, not denial that matching frozen 1.2.0 inputs now exist.",
     "formalCandidate": "NOT_VERIFIED"
   },
+  "currentMatchingSourceSuccessorReadback": {
+    "testedOwnedSourceHead": "5868817ed6327ff064c47f3c719f72f99e220899",
+    "sourceFilesStableBeforeAndAfter": 676,
+    "nativeCompleteSourceTests": {"pass": 1079, "fail": 0, "exit": 0},
+    "desktopCompleteSourceTests": {"pass": 1110, "fail": 0, "exit": 0},
+    "sdkComposite": "Exact c5 1.2.0 original files plus A-delivered exact original 5f15133 migration CLI; no other source dependency version or authority change",
+    "sdkRestorationManifestSHA256": "7ca24d47b27e32238203a846bf21cc695bfd1e932d8da5deb2cef66376760037",
+    "sdkNewPackedInstalledFiles": 132,
+    "sdkPrevious131FilesByteUnchanged": true,
+    "sdkDeclaredBinTargetsPresentAndSyntaxChecked": 3,
+    "migrationExecuted": false,
+    "sharedLiveSdkModified": false,
+    "actualFactoryOrFormalInstalledProduct": "NOT_VERIFIED",
+    "receipt": "matching-complete-source-and-original-cli-successor-20261004.json"
+  },
   "currentExternalBlockers": [
-    "Matching frozen SDK 1.2.0 source and isolated software installation are supplied. Actual production composition and final platform install remain unverified; the separately declared migration CLI target is missing in the original frozen Git and installed distribution and must not be claimed complete.",
+    "Matching frozen SDK 1.2.0 plus the exact original declared CLI and isolated 132-file distribution installation are supplied; complete owned Native/Desktop source suites pass. Actual production composition and final platform install remain unverified. Bin presence and syntax checks do not prove migration execution or production authority.",
     "A protected current-authority/trusted invoice policy/quote/authenticated settlement adapter and genuine platform binding producer are not supplied; a static definition map cannot enable Pay.",
     "A formal source-matching Android/macOS/Web final candidate, signing/upgrade identity and official downloaded-byte binding are not verified.",
     "Normal retained-account upgrade, OS camera/lock, real Relay, UNKNOWN recovery and actual business/user readback remain unverified; execute the full journeys only on a matching admitted candidate."

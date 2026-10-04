@@ -1,0 +1,50 @@
+{
+  "kind": "CURRENT_COMPLETE_OWNED_SOURCE_REGRESSION_AND_ORIGINAL_CLI_INSTALL_SUCCESSOR",
+  "testedOwnedSourceHead": "5868817ed6327ff064c47f3c719f72f99e220899",
+  "testedOwnedSourceTree": "f101d4c76abe61114903d3bd487b96602d97d2c0",
+  "candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "sourceReadback": {"trackedOwnedFiles": 676, "allBytesExactToOwnedCleanGit": true, "beforeAndAfterStable": true, "beforeSha256": "3df55e03ca72c3e5499fb528c43675b49beb1ff1c1c2d80a743efbebccaaf84b", "afterSha256": "3df55e03ca72c3e5499fb528c43675b49beb1ff1c1c2d80a743efbebccaaf84b"},
+  "environment": {"node": "v26.7.0", "platform": "darwin", "arch": "arm64"},
+  "completeSuites": {
+    "native": {"command": "node node_modules/tsx/dist/cli.mjs --test --test-concurrency=1 src/*.test.ts src/**/*.test.ts", "exit": 0, "pass": 1079, "fail": 0, "skipped": 0, "log": "native-current-complete-suite-after.log", "sha256": "55d1644d38968db3167593a97897856b69fc795b48e0e5f821af2946e4772445"},
+    "desktop": {"command": "node --test --test-concurrency=1 test/*.test.mjs", "exit": 0, "pass": 1110, "fail": 0, "skipped": 0, "log": "desktop-current-complete-suite-after.log", "sha256": "0b0cf261aa0c8512ddc38babdf8c534b2d04f61c6077cd2f7bada2d86564940f"},
+    "sdkEvaluation": "Ordinary owned controlled source tests evaluate frozen c5 SDK modules; no actual provider OS migration or production authority is created"
+  },
+  "originalSdkAddition": {
+    "baseGit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+    "version": "1.2.0",
+    "admittedOrdinarySourceInputManifestSha256": "7ca24d47b27e32238203a846bf21cc695bfd1e932d8da5deb2cef66376760037",
+    "inputContentRoot": "7da1626545a4fda2ae7155df5ff0bf1cdeb0f88ba06cad4270b71a58e60647bd",
+    "inputListedFilesVerified": 105,
+    "inheritedSourceFilesExactToC5Git": 100,
+    "onlyAdditionalSource": "scripts/ynx-wallet-control-migrate-v3.mjs",
+    "originalHistoricalGit": "5f15133e4ba02fdbeb1d677669aa7a9d746f1c0d",
+    "originalHistoricalBlob": "ed7dc7f55d9236a22b3893eeb7118dc94cb36c45",
+    "originalCliBytes": 2653,
+    "originalCliSha256": "6d57a5f81d7881e33672be88bba184dcf02997e1f294195dd3f6c4d9ea6d1fc8",
+    "applyCheckExit": 0,
+    "sharedLiveSdkChanged": false,
+    "sourceAdmissionForActualRuntime": "PENDING",
+    "HostExecutionApproved": false
+  },
+  "distribution": {
+    "packOfflineIgnoreScriptsExit": 0,
+    "archiveBytes": 561659,
+    "archiveSha256": "00b8224ffd6e4d7122ec00ebee77a0a7202cfb47048741471744162a7edfe83d",
+    "packInventorySha256": "bc70b1e538e330aba88263d1fa2463f8c38b620765f4a1caa387afb07367668e",
+    "consumer": "/tmp/ynx-wallet-sdk-original-cli-consumer-20261004-7NNLSw",
+    "consumerOfflineIgnoreScriptsInstallExit": 0,
+    "consumerNpmLsExit": 0,
+    "installedFilesExact": 132,
+    "old131PackedInstalledBytesUnchanged": true,
+    "onlyNewFile": "scripts/ynx-wallet-control-migrate-v3.mjs",
+    "installedThreeDeclaredBinLinksAndSyntaxChecks": "PASS",
+    "readbackSha256": "712a2827924f240e9e6210a8472c66b7b0d823c891f5c761917f59beccaf6140",
+    "migrationOrAnyCliExecution": "NOT_RUN",
+    "stateWritersAccountsKeysDatabasesChanged": false
+  },
+  "preserved": ["original red complete Native1077 Desktop1102 logs", "earlier incomplete131-file SDK package proof and original tar", "original ENOSPC and fixture failures", "all16 acceptance journeys", "original key account and UNKNOWN intent safety", "stopped e105 and 2a6 review branches"],
+  "preparationNote": "First manifest-to-Git comparison hit default child-process ENOBUFS for original large bundle; retained transcript and empty failed stdout, rerun with explicit 8MB read buffer under new filename succeeded; no source substituted",
+  "notVerified": ["actual37 provider", "real actor device lease private business authority", "OS key approval camera Relay", "formal Native Desktop Web installer and normal retained-account upgrade", "official downloaded-byte source binding", "all16 installed real user journeys", "independent review of this complete successor", "MONSTER"],
+  "overall": "NOT_COMPLETED"
+}
