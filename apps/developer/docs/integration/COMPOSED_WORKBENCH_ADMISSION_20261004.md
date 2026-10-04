@@ -1,6 +1,19 @@
 # Composed workbench: normal-entry consumer contract
 
-Latest owned runtime checkpoint: workbench **0.3.5** with **YNX C/C++ 0.1.0**,
+Current owned runtime checkpoint is **0.3.11**, candidate
+`ynx-composed-token-cache-space-recovered-20261004-mac-arm64`. Exact inputs,
+original renderer-fault reproductions and 36 passing controlled UI checks are
+recorded in `COMPOSED_TOKEN_CACHE_FIX_20261004.json`. The source-pinned Mac
+candidate `ynx-token-cache-native-package-20261004-mac-arm64` embeds source
+`15c01048e8524bd805cb50edfc1e4367f7bbe81b`, tree
+`0ed6eb1d150646d67d8fd3d32806fe95e84a5240`; signature/image/archive checks pass.
+See `COMPOSED_TOKEN_CACHE_NATIVE_20261004.json`. These are candidate build
+checks, not installation, canonical admission or real Wallet/Chain/AI acceptance.
+The five existing bindings and operator contract below remain unchanged.
+Historical packages/checkpoints below retain their original inputs and scope.
+
+
+Historical owned runtime checkpoint: workbench **0.3.5** with **YNX C/C++ 0.1.0**,
 candidate `ynx-composed-cpp-glob-20261004-mac-arm64`; exact pin and **33 actual
 controlled checks** are in `COMPOSED_CPP_LANGUAGE_20261004.json` (core 16,
 lifecycle 3, C++ semantic 6, C semantic 2, cold recovery with active Clangd 6).

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "nativeCandidate": "apps/developer/.ynx-developer-candidates/ynx-token-cache-native-package-20261004-mac-arm64",
+  "workbenchVersion": "0.3.11",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "15c01048e8524bd805cb50edfc1e4367f7bbe81b",
+    "sourceTree": "0ed6eb1d150646d67d8fd3d32806fe95e84a5240",
+    "sourceCommitDate": "2026-10-04T14:58:06+08:00",
+    "runtimeCheckpoint": "15c01048e8524bd805cb50edfc1e4367f7bbe81b",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "1cbc7418473159c2a5f0168bd0d6552602fed403c4df4bbf4209c36fffc3e0f6",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "0bbd98751c1c443cd0ca1355c09a3f376218a09a8ede122d29b6bc31e9dc9f84",
+        "treeSha256": "a9e03945fd35d66300a0cce4e971b0c079395ba065c6276b5237959899d1f96f",
+        "manifestSha256": "3ae5119a2f1b5d37ccf6e945422217d615a810f18bc4e5eefd9b4b0dbeaf6924"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "9094cbb521c581aa620d89a603ce89becc6542fa3ef578689ec4d95325bcf40a",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "0bbd98751c1c443cd0ca1355c09a3f376218a09a8ede122d29b6bc31e9dc9f84",
+      "treeSha256": "a9e03945fd35d66300a0cce4e971b0c079395ba065c6276b5237959899d1f96f",
+      "manifestSha256": "3ae5119a2f1b5d37ccf6e945422217d615a810f18bc4e5eefd9b4b0dbeaf6924"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "9094cbb521c581aa620d89a603ce89becc6542fa3ef578689ec4d95325bcf40a",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "5cddadfd3805bd4dfcd0f17700991d81a6e50279ee4e74f89cd0ad694519666c",
+  "checks": {
+    "buildExit": 0,
+    "signatureExit": 0,
+    "imageExit": 0,
+    "archiveSha256Matches": true,
+    "sbomSha256Matches": true,
+    "successfulFallbackStagingRemoved": true,
+    "failedCloneEmptyDirectoryPreserved": true,
+    "installed": false,
+    "launched": false,
+    "notarized": false,
+    "canonicalUserAcceptance": false
+  },
+  "packagingObservation": "Native source 15c01048 used cp -cXR, which macOS rejects. Its preplanned fresh cp -XR fallback succeeded; the empty failed clone directory remains. The successful fallback staging was deleted only after successful DMG and empty lsof/status 1, with all 24619 paths recorded. Subsequent script correction cp -cR passed a distinct fixture byte/symlink clone probe; it does not relabel this package source or claim this image used cloning.",
+  "functionalEvidence": "COMPOSED_TOKEN_CACHE_FIX_20261004.json: exact embedded candidate has selection6 + core16 + JSON8 + CPP6 =36 real UI checks; unit2. Original unpatched errors and prior checks remain separate.",
+  "evidence": "apps/developer/.ynx-developer-candidates/token-cache-native-evidence-20261004",
+  "evidenceIndexSha256": "0b729adf82cac7614e0c2aa08ee1a4378d63955b19ca714f855dab9f348d1e58",
+  "remaining": [
+    "Protected registered driver/admission and real canonical installed user journey.",
+    "Chain/Wallet/approved AI normal UI journey and user acceptance.",
+    "Wider extension compatibility, LLDB launch, Windows/Linux distribution and Developer ID/notarization."
+  ],
+  "scope": "Static ad-hoc macOS ARM Testnet Preview distribution only; original source checkpoint remains embedded unchanged."
+}

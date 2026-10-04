@@ -127,7 +127,7 @@ dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 mkdir -p "$dmg_root"
 # APFS can stage an identical copy without duplicating all runtime blocks.
 # Other filesystems retain the existing regular-copy route.
-if ! COPYFILE_DISABLE=1 cp -cXR "$app" "$dmg_root/"; then
+if ! COPYFILE_DISABLE=1 cp -cR "$app" "$dmg_root/"; then
   # Preserve a failed clone attempt; the fallback starts in a fresh directory.
   dmg_root="$root/dmg-root-fallback"
   mkdir "$dmg_root"
