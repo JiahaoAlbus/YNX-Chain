@@ -5,6 +5,21 @@ import test from 'node:test';
 
 const originalSha = 'df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d';
 
+test('Every public YNX wallet choice and the header use the original brand, with the official MetaMask symbol', () => {
+  const html = readFileSync(new URL('../web/index.html', import.meta.url), 'utf8');
+  for (const id of ['connect-mobile', 'connect-hosted', 'connect-ynx']) {
+    const button = html.match(new RegExp(`<button id="${id}"[^>]*>([\\s\\S]*?)</button>`));
+    assert.ok(button, `${id} must retain its original entry`);
+    assert.match(button[1]!, /src="\.\/assets\/ynx-logo\.png"/);
+    assert.doesNotMatch(button[1]!, /ynx-wallet\.svg|class="mark"/);
+  }
+  assert.match(html, /class="brand"[^>]*><img class="brand-logo" src="\.\/assets\/ynx-logo\.png"/);
+  const official = readFileSync(new URL('../web/assets/metamask.svg', import.meta.url));
+  assert.equal(createHash('sha256').update(official).digest('hex'), '163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f');
+  const css = readFileSync(new URL('../web/styles.css', import.meta.url), 'utf8');
+  assert.match(css, /\.wallet-logo\{[^}]*border-radius:0;object-fit:contain/);
+});
+
 test('Native and Web retain the exact admitted original YNX PNG, not letter substitutes', () => {
   for (const relative of ['../assets/ynx-original-logo.png', '../web/assets/ynx-logo.png']) {
     const bytes = readFileSync(new URL(relative, import.meta.url));

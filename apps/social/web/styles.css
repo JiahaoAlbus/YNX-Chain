@@ -57,7 +57,7 @@ a{color:inherit;text-decoration:none}
 .wallet-option{display:flex;width:100%;gap:15px;align-items:center;text-align:left;border:1px solid var(--line);border-radius:16px;background:#fff;padding:16px;cursor:pointer}
 .wallet-option:hover{border-color:var(--blue);background:#f8faff}
 .wallet-option:disabled{opacity:.65}
-.wallet-logo{flex:0 0 48px;width:48px;height:48px;border-radius:14px;object-fit:contain}
+.wallet-logo{flex:0 0 48px;width:48px;height:48px;border-radius:0;object-fit:contain}
 .wallet-icon{width:42px;height:42px;object-fit:contain}
 .connected-title{display:flex;align-items:center;gap:12px}.connected-title>div{min-width:0}.connected-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.connected-actions button{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 10px;cursor:pointer}.connected-actions button:last-child{color:var(--error)}
 .wallet-copy{display:block;flex:1 1 auto;min-width:0}

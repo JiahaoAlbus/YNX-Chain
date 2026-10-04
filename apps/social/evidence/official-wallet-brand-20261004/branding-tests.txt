@@ -1,0 +1,12 @@
+✔ Every public YNX wallet choice and the header use the original brand, with the official MetaMask symbol (1.228291ms)
+✔ Native and Web retain the exact admitted original YNX PNG, not letter substitutes (0.573709ms)
+✔ Formal Native entry owns one product chrome and preserves branding across signed-out and restored states (1.80625ms)
+✔ Web brand has contain geometry and small-screen navigation cannot cover the header (0.226875ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 189.42775
