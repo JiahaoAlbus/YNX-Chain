@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "358598455010881a245142b5b68aa2354b297168",
+  "format": "commonjs",
+  "entry": "server/main.cjs",
+  "testedBuildNode": "v26.7.0",
+  "dependencyMode": "EXTERNAL_LOCKED_INSTALL_REQUIRED",
+  "packageLockSha256": "cbe09da735876ff0c96d93a783ab0997527a11185fae33f82854ffefaed43044",
+  "files": [
+    {
+      "path": "server/main.cjs",
+      "bytes": 289218,
+      "sha256": "dcb01838dbf95a3599755e47febd74c90fb93ae8f09814f1559a21d967d660af"
+    },
+    {
+      "path": "vendor/product-session-registry-b754ffc42.json",
+      "bytes": 7612,
+      "sha256": "d0300caa389cf30026483e66bbf719dd0e6d0d98d907e3ee21729c962fd87ed8"
+    }
+  ],
+  "privateRuntimeReady": false,
+  "productionRealPayments": false
+}

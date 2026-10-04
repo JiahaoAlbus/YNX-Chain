@@ -1,0 +1,13 @@
+file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/card-build-source-freeze.mjs:15
+    if(!generatedPrefixes.some(prefix=>relative.startsWith(prefix)))throw new Error('CARD_BUILD_UNTRACKED_PRODUCT_INPUT');
+                                                                          ^
+
+Error: CARD_BUILD_UNTRACKED_PRODUCT_INPUT
+    at assertFrozenCardBuildInputs (file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/card-build-source-freeze.mjs:15:75)
+    at verifyCardBuildSourceFreeze (file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/card-build-source-freeze.mjs:21:3)
+    at file:///private/tmp/ynx-card-exact-pair-20261004.OY6MZG/repo/apps/card/scripts/build-web.mjs:22:1
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0

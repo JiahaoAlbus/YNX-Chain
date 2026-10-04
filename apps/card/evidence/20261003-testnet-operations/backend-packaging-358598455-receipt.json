@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-10-04T10:09:12.198Z",
+  "source": "358598455010881a245142b5b68aa2354b297168",
+  "backendManifest": {
+    "schemaVersion": 1,
+    "sourceCommit": "358598455010881a245142b5b68aa2354b297168",
+    "format": "commonjs",
+    "entry": "server/main.cjs",
+    "testedBuildNode": "v26.7.0",
+    "dependencyMode": "EXTERNAL_LOCKED_INSTALL_REQUIRED",
+    "packageLockSha256": "cbe09da735876ff0c96d93a783ab0997527a11185fae33f82854ffefaed43044",
+    "files": [
+      {
+        "path": "server/main.cjs",
+        "bytes": 289218,
+        "sha256": "dcb01838dbf95a3599755e47febd74c90fb93ae8f09814f1559a21d967d660af"
+      },
+      {
+        "path": "vendor/product-session-registry-b754ffc42.json",
+        "bytes": 7612,
+        "sha256": "d0300caa389cf30026483e66bbf719dd0e6d0d98d907e3ee21729c962fd87ed8"
+      }
+    ],
+    "privateRuntimeReady": false,
+    "productionRealPayments": false
+  },
+  "backendManifestSha256": "c459720488b3c13c5b3e4e62c74cdb6b806cc6bf9f4b689205d71539782fc1ab",
+  "frontendEnvelope": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/envelope-backend-packaging-20261004",
+  "frontendManifestSha256": "ba1849913577aab043323785f74aa166405cba4bc7fe9516c137325469a955a5",
+  "gate": {
+    "exitCode": 1,
+    "error": null,
+    "signal": null,
+    "stdout": "",
+    "stderr": "CARD_PROTECTED_RUNTIME_SOURCE_UNAVAILABLE\n",
+    "protectedRefusalObserved": true
+  },
+  "dependencyInstallation": "existing locked dependencies linked only for isolated startup; no fresh install claimed",
+  "previousTemporaryArtifacts": "Moved own generated QA artifacts out of clean clone to /private/tmp/ynx-card-exact-pair-20261004.OY6MZG/startup-artifacts-preserved; none removed",
+  "buildSourceFreezeFirstFailurePreserved": true,
+  "frontendSemanticsUnchangedFrom": "c286cd252ed809188b8ffb339c7324a42c0e5c9c",
+  "priorFrontendTests": 455,
+  "priorBackendTests": 151,
+  "newPackagingTests": 1,
+  "webBuild": true,
+  "webEnvelopeVerifier": true,
+  "privateRuntimeReady": false,
+  "publicDeployment": false,
+  "realAccountApproval": false,
+  "realSignature": false,
+  "realCardActivation": false,
+  "realYnxtFunding": false,
+  "ledgerCredit": false,
+  "dataFabricAccepted": false,
+  "productionRealPayments": false
+}
