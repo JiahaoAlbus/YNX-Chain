@@ -270,6 +270,7 @@ func TestMusicNativeConsumerAndOriginalBusiness(t *testing.T) {
 				if !ok || len(cases) != 1 || cases[0].CentralCaseID != "isolated-original-trust-receipt-1" {
 					t.Fatal("original Trust case duplicated or receipt missing")
 				}
+				t.Log("original Trust success/lost-native-reply/cold-original-key replay: one original case, one isolated HTTPS provider dispatch; actual Central Trust/Wallet/install NOT_VERIFIED")
 			}
 			t.Log("actual Native SDK -> own native Music consumer -> original HTTP account/playlist, cold/revoke; software QA ports, real OS/Wallet unverified")
 		})
