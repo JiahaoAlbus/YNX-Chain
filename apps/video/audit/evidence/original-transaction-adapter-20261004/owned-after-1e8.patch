@@ -1,0 +1,1100 @@
+diff --git a/internal/music/authority_coordinator_test.go b/internal/music/authority_coordinator_test.go
+new file mode 100644
+index 000000000..18c28e4ec
+--- /dev/null
++++ b/internal/music/authority_coordinator_test.go
+@@ -0,0 +1,69 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package music
++
++import (
++	"context"
++	"encoding/json"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
++	"os"
++	"testing"
++	"time"
++)
++
++// No real enrollment producer is claimed: controlled binding compatibility
++// exercises actual original Music persistence with the exact Shared component.
++type musicOwnedCoordinatorSource struct{ session productsessionv2.Session }
++
++func (s *musicOwnedCoordinatorSource) AssertOriginalMediaSourceCurrent(context.Context) error {
++	return nil
++}
++func (s *musicOwnedCoordinatorSource) ReadOriginalMediaAuthority(context.Context, productsessionv2.Session, *productsessionv2.BrowserGrant) (productsessionv2.MediaAuthoritySnapshot, error) {
++	return productsessionv2.MediaAuthoritySnapshot{Session: s.session, FamilyID: "controlled-integration-model-not-enrollment", PrivateGeneration: 0, GenerationAvailable: true, Enrolled: true, MembershipAvailable: true, MembershipRevision: 0}, nil
++}
++func TestMusicOriginalCoordinatorFreshCommitPhasesAndDurableReadback(t *testing.T) {
++	b, err := os.ReadFile("../productsessionv2/testdata/finance-v2.json")
++	if err != nil {
++		t.Fatal(err)
++	}
++	var f struct{ Session productsessionv2.Session }
++	if err = json.Unmarshal(b, &f); err != nil {
++		t.Fatal(err)
++	}
++	issued, err := time.Parse(time.RFC3339Nano, f.Session.IssuedAt)
++	if err != nil {
++		t.Fatal(err)
++	}
++	now := issued.Add(time.Second)
++	s := testService(t)
++	s.cfg.Now = func() time.Time { return now }
++	c := productsessionv2.NewMediaAuthorityCoordinator(func() time.Time { return now })
++	_, err = c.RegisterOriginalWriter(context.Background(), &musicOwnedCoordinatorSource{f.Session})
++	if err != nil {
++		t.Fatal(err)
++	}
++	lease := testBusinessLease(f.Session.Account, "coordinator_music_nonce_01", s.cfg.Now)
++	lease.grant.Current = func(context.Context) error { return nil }
++	captures := 0
++	lease.grant.CaptureTransaction = func(ctx context.Context) (MusicLocalTransaction, error) {
++		captures++
++		return c.Capture(ctx, f.Session, nil)
++	}
++	scoped := s.requestService(lease)
++	for _, name := range []string{"original first phase", "original second phase"} {
++		if _, err = scoped.UpsertProfile(f.Session.Account, Profile{DisplayName: name}); err != nil {
++			t.Fatal(err)
++		}
++	}
++	if captures != 2 {
++		t.Fatal("one-shot lease reused", captures)
++	}
++	recovered, err := New(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	record, err := recovered.ReadOriginalBusinessNonce(context.Background(), lease.grant.SessionBinding, lease.grant.Nonce)
++	if err != nil || record.Actor != f.Session.Account {
++		t.Fatal("original nonce not durable", record, err)
++	}
++}
+diff --git a/internal/music/authority_readback.go b/internal/music/authority_readback.go
+new file mode 100644
+index 000000000..bea820636
+--- /dev/null
++++ b/internal/music/authority_readback.go
+@@ -0,0 +1,78 @@
++package music
++
++import (
++	"context"
++	"encoding/json"
++	"os"
++)
++
++// Readback is for the original trusted writer AFTER its local commit returns.
++// It takes the original Store lock; never use it as a coordinator source read.
++// Matching bytes and integrity are local readback, not proof of prior fsync
++// success, authority provenance, approval or finality. A prior unconfirmed
++// commit error remains authoritative even if this readback succeeds.
++func (s *Service) originalConfirmedFileStateLocked(ctx context.Context) (persistentState, error) {
++	if ctx == nil || ctx.Err() != nil {
++		return persistentState{}, ErrMusicAuthorityUnavailable
++	}
++	raw, err := os.ReadFile(s.cfg.StatePath)
++	if err != nil {
++		return persistentState{}, err
++	}
++	disk, err := decodePersistedState(raw)
++	if err != nil {
++		return persistentState{}, err
++	}
++	integrity, err := stateIntegrity(disk)
++	if err != nil || integrity != disk.IntegrityHash {
++		return persistentState{}, ErrMusicStatePublicationUnconfirmed
++	}
++	if err = verifyAuditChain(disk.Audit); err != nil {
++		return persistentState{}, err
++	}
++	a, err := json.Marshal(s.state)
++	if err != nil {
++		return persistentState{}, err
++	}
++	b, err := json.Marshal(disk)
++	if err != nil {
++		return persistentState{}, err
++	}
++	if string(a) != string(b) {
++		return persistentState{}, ErrMusicStatePublicationUnconfirmed
++	}
++	if ctx.Err() != nil {
++		return persistentState{}, ctx.Err()
++	}
++	return disk, nil
++}
++func (s *Service) ReadOriginalBusinessNonce(ctx context.Context, binding, nonce string) (MusicBusinessNonce, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return MusicBusinessNonce{}, err
++	}
++	record, ok := disk.BusinessNonces[binding+":"+nonce]
++	if !ok {
++		return MusicBusinessNonce{}, ErrNotFound
++	}
++	return record, nil
++}
++
++// Copies the original dispatch/receipt journal, including UNKNOWN/admitted
++// records. No readback invokes a provider, promotes an ACK or retries a POST.
++func (s *Service) ReadOriginalBusinessEffect(ctx context.Context, actor, kind, id string) (MusicBusinessEffect, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return MusicBusinessEffect{}, err
++	}
++	record, ok := disk.BusinessEffects[effectKey(actor, kind, id)]
++	if !ok || record.Actor != actor || record.Kind != kind || record.ObjectID != id {
++		return MusicBusinessEffect{}, ErrNotFound
++	}
++	record.Receipt = append(json.RawMessage(nil), record.Receipt...)
++	return record, nil
++}
+diff --git a/internal/music/authority_transaction.go b/internal/music/authority_transaction.go
+new file mode 100644
+index 000000000..6b1c2979f
+--- /dev/null
++++ b/internal/music/authority_transaction.go
+@@ -0,0 +1,37 @@
++package music
++
++import (
++	"context"
++	"errors"
++	"reflect"
++	"sync/atomic"
++)
++
++// This consumes an original protected transaction, never registers a writer.
++// No callback means no success; preserve original commit errors and uncertainty.
++func executeMusicLocalTransaction(ctx context.Context, tx MusicLocalTransaction, commit func(context.Context) error) error {
++	if ctx == nil || ctx.Err() != nil || tx == nil {
++		return ErrMusicAuthorityUnavailable
++	}
++	v := reflect.ValueOf(tx)
++	switch v.Kind() {
++	case reflect.Pointer, reflect.Interface, reflect.Func, reflect.Map, reflect.Slice, reflect.Chan:
++		if v.IsNil() {
++			return ErrMusicAuthorityUnavailable
++		}
++	}
++	var entered, invalid atomic.Bool
++	var originalErr error
++	result := tx.Execute(ctx, func(local context.Context) error {
++		if !entered.CompareAndSwap(false, true) || local == nil || local.Err() != nil || ctx.Err() != nil {
++			invalid.Store(true)
++			return ErrMusicAuthorityUnavailable
++		}
++		originalErr = commit(local)
++		return originalErr
++	})
++	if invalid.Load() || !entered.Load() && result == nil {
++		return ErrMusicAuthorityUnavailable
++	}
++	return errors.Join(result, originalErr)
++}
+diff --git a/internal/music/authority_transaction_test.go b/internal/music/authority_transaction_test.go
+new file mode 100644
+index 000000000..5504af135
+--- /dev/null
++++ b/internal/music/authority_transaction_test.go
+@@ -0,0 +1,174 @@
++package music
++
++import (
++	"context"
++	"errors"
++	"net/http"
++	"net/http/httptest"
++	"sync"
++	"sync/atomic"
++	"testing"
++)
++
++type musicLocalTestTransaction func(context.Context, func(context.Context) error) error
++
++func (f musicLocalTestTransaction) Execute(ctx context.Context, commit func(context.Context) error) error {
++	return f(ctx, commit)
++}
++
++type musicTxMarker struct{}
++
++func installMusicTestTransaction(t *testing.T, s *Service, lease *musicBusinessLease, gate *sync.Mutex, captures *atomic.Int32) {
++	t.Helper()
++	lease.grant.Revalidate = func(context.Context) error {
++		if !gate.TryLock() {
++			return errors.New("network revalidation under authority gate")
++		}
++		gate.Unlock()
++		return nil
++	}
++	lease.grant.Current = func(ctx context.Context) error {
++		if s.mu.TryLock() {
++			s.mu.Unlock()
++			return nil
++		}
++		if ctx.Value(musicTxMarker{}) != true {
++			return errors.New("marked transaction context missing under Store")
++		}
++		return nil
++	}
++	lease.grant.CaptureTransaction = func(context.Context) (MusicLocalTransaction, error) {
++		if !s.mu.TryLock() {
++			return nil, errors.New("capture under original Store")
++		}
++		s.mu.Unlock()
++		captures.Add(1)
++		return musicLocalTestTransaction(func(ctx context.Context, commit func(context.Context) error) error {
++			gate.Lock()
++			defer gate.Unlock()
++			return commit(context.WithValue(ctx, musicTxMarker{}, true))
++		}), nil
++	}
++}
++func TestMusicOriginalTransactionPortDurableNonceAndFreshPhases(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 20)
++	lease := testBusinessLease(actor, "coordinated_local_01", s.cfg.Now)
++	var gate sync.Mutex
++	var captures atomic.Int32
++	installMusicTestTransaction(t, s, lease, &gate, &captures)
++	scoped := s.requestService(lease)
++	for _, name := range []string{"first phase", "second phase"} {
++		if _, err := scoped.UpsertProfile(actor, Profile{DisplayName: name}); err != nil {
++			t.Fatal(err)
++		}
++	}
++	if captures.Load() != 2 {
++		t.Fatal("lease reused", captures.Load())
++	}
++	record, err := s.ReadOriginalBusinessNonce(context.Background(), lease.grant.SessionBinding, lease.grant.Nonce)
++	if err != nil || record.Actor != actor {
++		t.Fatal(record, err)
++	}
++	recovered, err := New(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if _, err = recovered.requestService(testBusinessLease(actor, lease.grant.Nonce, s.cfg.Now)).UpsertProfile(actor, Profile{DisplayName: "replay"}); !errors.Is(err, ErrUnauthorized) {
++		t.Fatal("original nonce not durable", err)
++	}
++}
++func TestMusicOriginalTransactionPortUnknownNeverResends(t *testing.T) {
++	s, actor, v, input := effectFixture(t)
++	var gate sync.Mutex
++	var calls, captures atomic.Int32
++	central := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
++		if !gate.TryLock() {
++			t.Error("provider dispatched under authority gate")
++		} else {
++			gate.Unlock()
++		}
++		calls.Add(1)
++		w.WriteHeader(503)
++	}))
++	defer central.Close()
++	s.cfg.HTTPClient = central.Client()
++	s.cfg.TrustGatewayURL = central.URL
++	s.cfg.TrustGatewayKey = "fixture-central-key"
++	lease := testBusinessLease(actor, "coordinated_dispatch01", s.cfg.Now)
++	installMusicTestTransaction(t, s, lease, &gate, &captures)
++	if err := runTrustEffect(s.requestService(lease), actor, v, input); err == nil {
++		t.Fatal("unknown provider treated as complete")
++	}
++	record, err := s.ReadOriginalBusinessEffect(context.Background(), actor, "trust", v.ID)
++	if err != nil || record.Status != "dispatch_admitted" {
++		t.Fatal(record, err)
++	}
++	recovered, err := New(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	newLease := testBusinessLease(actor, "fresh_capture_retry_01", recovered.cfg.Now)
++	installMusicTestTransaction(t, recovered, newLease, &gate, &captures)
++	if err = runTrustEffect(recovered.requestService(newLease), actor, v, input); err == nil {
++		t.Fatal("UNKNOWN promoted")
++	}
++	if calls.Load() != 1 {
++		t.Fatal("fresh capture resent original UNKNOWN", calls.Load())
++	}
++}
++func TestMusicOriginalTransactionPortMissingAndNoopClosed(t *testing.T) {
++	for _, mode := range []string{"missing-current", "typed-nil", "noop", "reject"} {
++		t.Run(mode, func(t *testing.T) {
++			s := testService(t)
++			actor := testAccount(t, 21)
++			lease := testBusinessLease(actor, "closed_transaction01", s.cfg.Now)
++			lease.grant.Current = func(context.Context) error { return nil }
++			lease.grant.CaptureTransaction = func(context.Context) (MusicLocalTransaction, error) {
++				switch mode {
++				case "typed-nil":
++					var tx musicLocalTestTransaction
++					return tx, nil
++				case "noop":
++					return musicLocalTestTransaction(func(context.Context, func(context.Context) error) error { return nil }), nil
++				default:
++					return nil, ErrMusicAuthorityUnavailable
++				}
++			}
++			if mode == "missing-current" {
++				lease.grant.Current = nil
++			}
++			_, err := s.requestService(lease).UpsertProfile(actor, Profile{DisplayName: "denied"})
++			if !errors.Is(err, ErrMusicAuthorityUnavailable) {
++				t.Fatal(err)
++			}
++			if len(s.state.BusinessNonces) != 0 || len(s.state.Profiles) != 0 {
++				t.Fatal("closed gate changed original state")
++			}
++		})
++	}
++}
++func TestMusicOriginalTransactionLocalCancellationBeforeNonce(t *testing.T) {
++	s := testService(t)
++	actor := testAccount(t, 22)
++	lease := testBusinessLease(actor, "cancel_local_nonce_01", s.cfg.Now)
++	var cancel context.CancelFunc
++	lease.grant.Current = func(ctx context.Context) error {
++		if ctx.Value(musicTxMarker{}) == true {
++			cancel()
++		}
++		return nil
++	}
++	lease.grant.CaptureTransaction = func(context.Context) (MusicLocalTransaction, error) {
++		return musicLocalTestTransaction(func(ctx context.Context, commit func(context.Context) error) error {
++			var local context.Context
++			local, cancel = context.WithCancel(ctx)
++			defer cancel()
++			return commit(context.WithValue(local, musicTxMarker{}, true))
++		}), nil
++	}
++	_, err := s.requestService(lease).UpsertProfile(actor, Profile{DisplayName: "canceled"})
++	if !errors.Is(err, ErrUnauthorized) || len(s.state.BusinessNonces) != 0 || len(s.state.Profiles) != 0 {
++		t.Fatal("local cancellation committed", err)
++	}
++}
+diff --git a/internal/music/business_request.go b/internal/music/business_request.go
+index 30a70e3ec..aae54c107 100644
+--- a/internal/music/business_request.go
++++ b/internal/music/business_request.go
+@@ -22,6 +22,12 @@ import (
+ type MusicBusinessAuthority interface {
+ 	VerifyMusicBusiness(context.Context, *http.Request, string, io.Reader, int64) (MusicBusinessGrant, error)
+ }
++
++// MusicLocalTransaction holds the original authority gate around one local commit.
++type MusicLocalTransaction interface {
++	Execute(context.Context, func(context.Context) error) error
++}
++
+ type MusicBusinessGrant struct {
+ 	Actor, SessionBinding, Nonce, BodyDigest string
+ 	ExpiresAt                                time.Time
+@@ -29,6 +35,9 @@ type MusicBusinessGrant struct {
+ 	// Current is a local original actor/device/generation guard, without remote
+ 	// calls or recursive store access. Concrete SDK consumers always supply it.
+ 	Current func(context.Context) error
++	// Capture each local persistence phase separately. Remote dispatch is outside
++	// the authority gate; an UNKNOWN original dispatch is never resent here.
++	CaptureTransaction func(context.Context) (MusicLocalTransaction, error)
+ }
+ type MusicBusinessNonce struct {
+ 	BodyDigest string    `json:"bodyDigest"`
+@@ -71,15 +80,27 @@ func (l *musicBusinessLease) check(clock func() time.Time) error {
+ 	return nil
+ }
+ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
++	return l.checkCurrentContext(l.ctx, clock)
++}
++func (l *musicBusinessLease) checkCurrentContext(ctx context.Context, clock func() time.Time) error {
++	if ctx == nil || ctx.Err() != nil {
++		return ErrUnauthorized
++	}
+ 	if l.ctx == nil || l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+ 		return ErrUnauthorized
+ 	}
+ 	if l.grant.Current == nil {
++		if l.grant.CaptureTransaction != nil {
++			return ErrMusicAuthorityUnavailable
++		}
+ 		return l.check(clock)
+ 	}
+-	if err := l.grant.Current(l.ctx); err != nil {
++	if err := l.grant.Current(ctx); err != nil {
+ 		return err
+ 	}
++	if ctx.Err() != nil {
++		return ErrUnauthorized
++	}
+ 	if l.ctx.Err() != nil || !l.grant.ExpiresAt.After(clock().UTC()) {
+ 		return ErrUnauthorized
+ 	}
+@@ -90,11 +111,14 @@ func (l *musicBusinessLease) checkCurrent(clock func() time.Time) error {
+ // the real business change. Failed validation or unpublished saves cannot consume
+ // a nonce; an already published but unconfirmed save retains its original nonce.
+ func (l *musicBusinessLease) commit(actor string, st *persistentState, clock func() time.Time) error {
++	return l.commitContext(l.ctx, actor, st, clock)
++}
++func (l *musicBusinessLease) commitContext(ctx context.Context, actor string, st *persistentState, clock func() time.Time) error {
+ 	now := clock().UTC()
+ 	if actor != l.grant.Actor || !musicProofNonce.MatchString(l.grant.Nonce) || !digestPattern.MatchString(l.grant.SessionBinding) || !validSHA256Hex(l.grant.BodyDigest) || st.BusinessClock != nil && now.Before(*st.BusinessClock) {
+ 		return ErrUnauthorized
+ 	}
+-	if err := l.checkCurrent(clock); err != nil {
++	if err := l.checkCurrentContext(ctx, clock); err != nil {
+ 		return err
+ 	}
+ 	now = clock().UTC()
+diff --git a/internal/music/service.go b/internal/music/service.go
+index 9b4b5bab0..61b5318a8 100644
+--- a/internal/music/service.go
++++ b/internal/music/service.go
+@@ -1,6 +1,7 @@
+ package music
+ 
+ import (
++	"context"
+ 	"crypto/rand"
+ 	"crypto/sha256"
+ 	"encoding/hex"
+@@ -112,6 +113,23 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
+ 			return err
+ 		}
+ 	}
++	ctx := context.Background()
++	if s.business != nil {
++		ctx = s.business.ctx
++	}
++	if s.business != nil && s.business.grant.CaptureTransaction != nil {
++		if s.business.grant.Current == nil {
++			return ErrMusicAuthorityUnavailable
++		}
++		transaction, err := s.business.grant.CaptureTransaction(ctx)
++		if err != nil {
++			return err
++		}
++		return executeMusicLocalTransaction(ctx, transaction, func(local context.Context) error { return s.mutateLocal(local, actor, event, objectID, payload, fn) })
++	}
++	return s.mutateLocal(ctx, actor, event, objectID, payload, fn)
++}
++func (s *Service) mutateLocal(ctx context.Context, actor, event, objectID string, payload any, fn func(*persistentState) error) error {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+ 	next, err := clonePersistentState(s.state)
+@@ -122,7 +140,7 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
+ 		return err
+ 	}
+ 	if s.business != nil {
+-		if err := s.business.commit(actor, &next, s.cfg.Now); err != nil {
++		if err := s.business.commitContext(ctx, actor, &next, s.cfg.Now); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -136,7 +154,7 @@ func (s *Service) mutate(actor, event, objectID string, payload any, fn func(*pe
+ 	next.Audit = append(next.Audit, a)
+ 	var current func() error
+ 	if s.business != nil && s.business.grant.Current != nil {
+-		current = func() error { return s.business.checkCurrent(s.cfg.Now) }
++		current = func() error { return s.business.checkCurrentContext(ctx, s.cfg.Now) }
+ 	}
+ 	published, persistErr := saveStateCurrent(s.cfg.StatePath, &next, current)
+ 	if published {
+diff --git a/internal/video/authority_coordinator_test.go b/internal/video/authority_coordinator_test.go
+new file mode 100644
+index 000000000..ddc3d3747
+--- /dev/null
++++ b/internal/video/authority_coordinator_test.go
+@@ -0,0 +1,130 @@
++//go:build ynx_canonical_media && ynx_media_combined_authority
++
++package video
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
++	"os"
++	"sync/atomic"
++	"testing"
++	"time"
++)
++
++// Controlled enrollment labels only; this does NOT install a real writer/feed.
++// Membership revision is read from the ORIGINAL durable channel, not epoch.
++type videoOwnedCoordinatorSource struct {
++	session        productsessionv2.Session
++	channel, actor string
++	view           atomic.Pointer[OriginalCreatorMembershipView]
++}
++
++func (s *videoOwnedCoordinatorSource) AssertOriginalMediaSourceCurrent(context.Context) error {
++	return nil
++}
++func (s *videoOwnedCoordinatorSource) ReadOriginalMediaAuthority(context.Context, productsessionv2.Session, *productsessionv2.BrowserGrant) (productsessionv2.MediaAuthoritySnapshot, error) {
++	v := s.view.Load()
++	_, rev, ok := v.Lookup(s.channel, s.actor)
++	return productsessionv2.MediaAuthoritySnapshot{Session: s.session, FamilyID: "controlled-integration-model-not-enrollment", PrivateGeneration: 0, GenerationAvailable: true, Enrolled: true, MembershipAvailable: ok, MembershipRevision: rev}, nil
++}
++func TestVideoOriginalCoordinatorDurableCommitAndMembershipInvalidation(t *testing.T) {
++	b, err := os.ReadFile("../productsessionv2/testdata/finance-v2.json")
++	if err != nil {
++		t.Fatal(err)
++	}
++	var f struct{ Session productsessionv2.Session }
++	if err = json.Unmarshal(b, &f); err != nil {
++		t.Fatal(err)
++	}
++	issued, err := time.Parse(time.RFC3339Nano, f.Session.IssuedAt)
++	if err != nil {
++		t.Fatal(err)
++	}
++	now := issued.Add(time.Second)
++	s, _ := fixture(t, func(cfg *Config) { cfg.Now = func() time.Time { return now } })
++	ch, err := s.EnsureChannel(f.Session.Account, "coordinated", "Original owned channel")
++	if err != nil {
++		t.Fatal(err)
++	}
++	view, err := s.CopyOriginalCreatorMembership(context.Background())
++	if err != nil {
++		t.Fatal(err)
++	}
++	source := &videoOwnedCoordinatorSource{session: f.Session, channel: ch.ID, actor: f.Session.Account}
++	source.view.Store(&view)
++	c := productsessionv2.NewMediaAuthorityCoordinator(func() time.Time { return now })
++	writer, err := c.RegisterOriginalWriter(context.Background(), source)
++	if err != nil {
++		t.Fatal(err)
++	}
++	g := videoTestGrant(s, f.Session.Account, "coordinator_original_nonce_01", nil)
++	g.Current = func(context.Context) error { return nil }
++	g.CaptureTransaction = func(ctx context.Context) (VideoLocalTransaction, error) { return c.Capture(ctx, f.Session, nil) }
++	scoped := videoLease(t, s, context.Background(), g, false)
++	if _, err = scoped.CreatePlaylist(g.Actor, "durable original playlist"); err != nil {
++		t.Fatal(err)
++	}
++	if _, err = s.ReadOriginalBusinessNonce(context.Background(), g.SessionBinding, g.Nonce); err != nil {
++		t.Fatal(err)
++	}
++	pending, err := c.Capture(context.Background(), f.Session, nil)
++	if err != nil {
++		t.Fatal(err)
++	}
++	// Real Store mutation/readback and immutable publication while writer owns gate.
++	err = writer.Mutate(context.Background(), func(ctx context.Context) error {
++		if err := s.store.update(func(st *State) error { bumpChannelAuthVersion(st.Channels[ch.ID]); return nil }); err != nil {
++			return err
++		}
++		next, err := s.CopyOriginalCreatorMembership(ctx)
++		if err == nil {
++			source.view.Store(&next)
++		}
++		return err
++	})
++	if err != nil {
++		t.Fatal(err)
++	}
++	ran := false
++	if err = pending.Execute(context.Background(), func(context.Context) error { ran = true; return nil }); err == nil || ran {
++		t.Fatal("old membership capture entered commit", err)
++	}
++	// Cancellation AFTER original publication cannot erase its nonce or permit replay.
++	ctx, cancel := context.WithCancel(context.Background())
++	defer cancel()
++	late := videoTestGrant(s, f.Session.Account, "coordinator_after_publish_01", nil)
++	late.Current = func(context.Context) error { return nil }
++	late.CaptureTransaction = func(capture context.Context) (VideoLocalTransaction, error) {
++		e, err := c.Capture(capture, f.Session, nil)
++		if err != nil {
++			return nil, err
++		}
++		return videoLocalTestTransaction(func(run context.Context, commit func(context.Context) error) error {
++			return e.Execute(run, func(local context.Context) error {
++				err := commit(local)
++				if err == nil {
++					cancel()
++				}
++				return err
++			})
++		}), nil
++	}
++	_, err = videoLease(t, s, ctx, late, false).CreatePlaylist(late.Actor, "published before cancellation")
++	var outcome *productsessionv2.MediaCoordinationError
++	if !errors.As(err, &outcome) || !outcome.EffectStarted || outcome.Code != "EFFECT_OUTCOME_UNCONFIRMED" {
++		t.Fatal("published uncertainty lost", err)
++	}
++	if _, err = s.ReadOriginalBusinessNonce(context.Background(), late.SessionBinding, late.Nonce); err != nil {
++		t.Fatal("published nonce rolled back", err)
++	}
++
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if _, err = recovered.ReadOriginalBusinessNonce(context.Background(), g.SessionBinding, g.Nonce); err != nil {
++		t.Fatal("original nonce missing after restart", err)
++	}
++}
+diff --git a/internal/video/authority_readback.go b/internal/video/authority_readback.go
+new file mode 100644
+index 000000000..b21a97034
+--- /dev/null
++++ b/internal/video/authority_readback.go
+@@ -0,0 +1,117 @@
++package video
++
++import (
++	"context"
++	"encoding/json"
++	"errors"
++	"os"
++)
++
++// OriginalCreatorMembershipView contains copied ORIGINAL Channel/AuthVersion
++// and team records. It creates neither enrollment nor private generation.
++// Prepare under the original writer transaction after durable commit, then
++// publish the immutable value through that same authority gate. Never call the
++// copying method from a coordinator source callback: it takes the Store lock.
++type OriginalCreatorMembershipView struct {
++	channels map[string]originalCreatorChannel
++}
++type originalCreatorChannel struct {
++	owner   string
++	version uint64
++	members map[string]CreatorRole
++}
++
++func (v OriginalCreatorMembershipView) Lookup(channel, actor string) (CreatorRole, uint64, bool) {
++	c, ok := v.channels[channel]
++	if !ok || actor == "" {
++		return "", 0, false
++	}
++	if actor == c.owner {
++		return CreatorRoleOwner, c.version, true
++	}
++	role, ok := c.members[actor]
++	return role, c.version, ok
++}
++
++// Matching bytes and integrity are local readback, not proof of prior fsync
++// success, authority provenance, approval or finality. A prior unconfirmed
++// commit error remains authoritative even if this readback succeeds.
++func (s *Store) originalConfirmedFileStateLocked(ctx context.Context) (State, error) {
++	if ctx == nil || ctx.Err() != nil {
++		return State{}, ErrVideoTransactionUnavailable
++	}
++	raw, err := os.ReadFile(s.statePath)
++	if err != nil {
++		return State{}, err
++	}
++	var disk State
++	if err = json.Unmarshal(raw, &disk); err != nil {
++		return State{}, err
++	}
++	verifier := &Store{videoStateStore: &videoStateStore{state: disk, integrityKey: s.integrityKey}}
++	if err = verifier.verifyIntegrity(); err != nil {
++		return State{}, err
++	}
++	a, err := json.Marshal(s.state)
++	if err != nil {
++		return State{}, err
++	}
++	b, err := json.Marshal(disk)
++	if err != nil {
++		return State{}, err
++	}
++	if string(a) != string(b) {
++		return State{}, ErrVideoStatePublicationUnconfirmed
++	}
++	if ctx.Err() != nil {
++		return State{}, ctx.Err()
++	}
++	return disk, nil
++}
++func (s *Store) CopyOriginalCreatorMembership(ctx context.Context) (OriginalCreatorMembershipView, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return OriginalCreatorMembershipView{}, err
++	}
++	view := OriginalCreatorMembershipView{channels: map[string]originalCreatorChannel{}}
++	for id, channel := range disk.Channels {
++		if channel == nil {
++			continue
++		}
++		members := map[string]CreatorRole{}
++		for _, member := range disk.TeamMembers {
++			if member != nil && member.ChannelID == id && member.State == "active" && member.RevokedAt == nil {
++				members[member.Account] = member.Role
++			}
++		}
++		view.channels[id] = originalCreatorChannel{owner: channel.Owner, version: channel.AuthVersion, members: members}
++	}
++	return view, nil
++}
++
++// This trusted internal readback is not an HTTP authorization API. It only
++// confirms an original nonce already stored with the original durable effect.
++func (s *Store) ReadOriginalBusinessNonce(ctx context.Context, binding, nonce string) (VideoBusinessNonce, error) {
++	s.mu.RLock()
++	defer s.mu.RUnlock()
++	disk, err := s.originalConfirmedFileStateLocked(ctx)
++	if err != nil {
++		return VideoBusinessNonce{}, err
++	}
++	record, ok := disk.BusinessNonces[videoBusinessNonceKey(binding, nonce)]
++	if !ok || record.SessionBinding != binding || record.Nonce != nonce {
++		return VideoBusinessNonce{}, errors.New("original Video nonce not found")
++	}
++	return record, nil
++}
++
++// Protected bootstrap uses the original Service/Store instance, never reopens
++// a second writer. These methods add no HTTP or renderer authority.
++func (s *Service) CopyOriginalCreatorMembership(ctx context.Context) (OriginalCreatorMembershipView, error) {
++	return s.store.CopyOriginalCreatorMembership(ctx)
++}
++func (s *Service) ReadOriginalBusinessNonce(ctx context.Context, binding, nonce string) (VideoBusinessNonce, error) {
++	return s.store.ReadOriginalBusinessNonce(ctx, binding, nonce)
++}
+diff --git a/internal/video/authority_transaction.go b/internal/video/authority_transaction.go
+new file mode 100644
+index 000000000..52274935b
+--- /dev/null
++++ b/internal/video/authority_transaction.go
+@@ -0,0 +1,39 @@
++package video
++
++import (
++	"context"
++	"errors"
++	"reflect"
++	"sync/atomic"
++)
++
++var ErrVideoTransactionUnavailable = errors.New("original Video transaction unavailable")
++
++// This consumes an original protected transaction, never registers a writer.
++// No callback means no success; preserve original commit errors and uncertainty.
++func executeVideoLocalTransaction(ctx context.Context, tx VideoLocalTransaction, commit func(context.Context) error) error {
++	if ctx == nil || ctx.Err() != nil || tx == nil {
++		return ErrVideoTransactionUnavailable
++	}
++	v := reflect.ValueOf(tx)
++	switch v.Kind() {
++	case reflect.Pointer, reflect.Interface, reflect.Func, reflect.Map, reflect.Slice, reflect.Chan:
++		if v.IsNil() {
++			return ErrVideoTransactionUnavailable
++		}
++	}
++	var entered, invalid atomic.Bool
++	var originalErr error
++	result := tx.Execute(ctx, func(local context.Context) error {
++		if !entered.CompareAndSwap(false, true) || local == nil || local.Err() != nil || ctx.Err() != nil {
++			invalid.Store(true)
++			return ErrVideoTransactionUnavailable
++		}
++		originalErr = commit(local)
++		return originalErr
++	})
++	if invalid.Load() || !entered.Load() && result == nil {
++		return ErrVideoTransactionUnavailable
++	}
++	return errors.Join(result, originalErr)
++}
+diff --git a/internal/video/authority_transaction_test.go b/internal/video/authority_transaction_test.go
+new file mode 100644
+index 000000000..c8670450a
+--- /dev/null
++++ b/internal/video/authority_transaction_test.go
+@@ -0,0 +1,146 @@
++package video
++
++import (
++	"context"
++	"errors"
++	"sync"
++	"testing"
++)
++
++type videoLocalTestTransaction func(context.Context, func(context.Context) error) error
++
++func (f videoLocalTestTransaction) Execute(ctx context.Context, commit func(context.Context) error) error {
++	return f(ctx, commit)
++}
++
++type videoTxMarker struct{}
++
++func TestVideoOriginalTransactionPortDurableNonceAndContext(t *testing.T) {
++	s, ch := fixture(t, nil)
++	var gate sync.Mutex
++	captures := 0
++	g := videoTestGrant(s, "ynx1owner", "owned_transaction_nonce_001", func(context.Context) error {
++		if !gate.TryLock() {
++			return errors.New("remote preflight under gate")
++		}
++		gate.Unlock()
++		return nil
++	})
++	g.Current = func(ctx context.Context) error {
++		if s.store.mu.TryLock() {
++			s.store.mu.Unlock()
++			return nil
++		}
++		if ctx.Value(videoTxMarker{}) != true {
++			return errors.New("marked transaction context missing under Store")
++		}
++		return nil
++	}
++	g.CaptureTransaction = func(context.Context) (VideoLocalTransaction, error) {
++		if !s.store.mu.TryLock() {
++			t.Fatal("capture under Store lock")
++		}
++		s.store.mu.Unlock()
++		captures++
++		return videoLocalTestTransaction(func(ctx context.Context, commit func(context.Context) error) error {
++			gate.Lock()
++			defer gate.Unlock()
++			return commit(context.WithValue(ctx, videoTxMarker{}, true))
++		}), nil
++	}
++	scoped := videoLease(t, s, context.Background(), g, false)
++	for _, name := range []string{"first coordinated playlist", "second local phase"} {
++		if _, err := scoped.CreatePlaylist(g.Actor, name); err != nil {
++			t.Fatal(err)
++		}
++	}
++	if captures != 2 {
++		t.Fatal("fresh capture missing", captures)
++	}
++	record, err := s.ReadOriginalBusinessNonce(context.Background(), g.SessionBinding, g.Nonce)
++	if err != nil || record.Actor != g.Actor {
++		t.Fatal(record, err)
++	}
++	view, err := s.CopyOriginalCreatorMembership(context.Background())
++	if err != nil {
++		t.Fatal(err)
++	}
++	role, version, ok := view.Lookup(ch.ID, ch.Owner)
++	if !ok || role != CreatorRoleOwner || version != ch.AuthVersion {
++		t.Fatal("not original channel membership")
++	}
++	// An immutable original copy cannot silently track later membership changes.
++	if err = s.store.update(func(st *State) error { st.Channels[ch.ID].AuthVersion++; return nil }); err != nil {
++		t.Fatal(err)
++	}
++	_, old, _ := view.Lookup(ch.ID, ch.Owner)
++	fresh, err := s.CopyOriginalCreatorMembership(context.Background())
++	if err != nil {
++		t.Fatal(err)
++	}
++	_, next, _ := fresh.Lookup(ch.ID, ch.Owner)
++	if old == next {
++		t.Fatal("membership copy aliased mutable Store")
++	}
++	recovered, err := NewService(s.cfg)
++	if err != nil {
++		t.Fatal(err)
++	}
++	replay := videoLease(t, recovered, context.Background(), g, false)
++	if _, err = replay.CreatePlaylist(g.Actor, "replay"); err == nil {
++		t.Fatal("original durable nonce replayed")
++	}
++}
++func TestVideoOriginalTransactionPortUnavailableAndNoopClosed(t *testing.T) {
++	for _, mode := range []string{"missing-current", "typed-nil", "noop", "reject"} {
++		t.Run(mode, func(t *testing.T) {
++			s, _ := fixture(t, nil)
++			g := videoTestGrant(s, "ynx1owner", "closed_transaction_nonce_01", nil)
++			g.Current = func(context.Context) error { return nil }
++			g.CaptureTransaction = func(context.Context) (VideoLocalTransaction, error) {
++				switch mode {
++				case "typed-nil":
++					var tx videoLocalTestTransaction
++					return tx, nil
++				case "noop":
++					return videoLocalTestTransaction(func(context.Context, func(context.Context) error) error { return nil }), nil
++				default:
++					return nil, ErrVideoTransactionUnavailable
++				}
++			}
++			if mode == "missing-current" {
++				g.Current = nil
++			}
++			scoped := videoLease(t, s, context.Background(), g, false)
++			if _, err := scoped.CreatePlaylist(g.Actor, "denied"); !errors.Is(err, ErrVideoTransactionUnavailable) {
++				t.Fatal(err)
++			}
++			if len(s.store.state.BusinessNonces) != 0 || len(s.store.state.Playlists) != 0 {
++				t.Fatal("refusal changed original Store")
++			}
++		})
++	}
++}
++func TestVideoOriginalTransactionLocalCancellationBeforeNonce(t *testing.T) {
++	s, _ := fixture(t, nil)
++	g := videoTestGrant(s, "ynx1owner", "cancel_local_nonce_0001", nil)
++	var cancel context.CancelFunc
++	g.Current = func(ctx context.Context) error {
++		if ctx.Value(videoTxMarker{}) == true {
++			cancel()
++		}
++		return nil
++	}
++	g.CaptureTransaction = func(context.Context) (VideoLocalTransaction, error) {
++		return videoLocalTestTransaction(func(ctx context.Context, commit func(context.Context) error) error {
++			var local context.Context
++			local, cancel = context.WithCancel(ctx)
++			defer cancel()
++			return commit(context.WithValue(local, videoTxMarker{}, true))
++		}), nil
++	}
++	_, err := videoLease(t, s, context.Background(), g, false).CreatePlaylist(g.Actor, "canceled local transaction")
++	if !errors.Is(err, context.Canceled) || len(s.store.state.BusinessNonces) != 0 || len(s.store.state.Playlists) != 0 {
++		t.Fatal("local cancellation committed", err)
++	}
++}
+diff --git a/internal/video/business_lease.go b/internal/video/business_lease.go
+index 3e28ed9df..dcbebc1e0 100644
+--- a/internal/video/business_lease.go
++++ b/internal/video/business_lease.go
+@@ -11,6 +11,12 @@ import (
+ 	"time"
+ )
+ 
++// VideoLocalTransaction is supplied only by the original protected authority.
++// Execute must synchronously hold its authority gate around the callback.
++type VideoLocalTransaction interface {
++	Execute(context.Context, func(context.Context) error) error
++}
++
+ // VideoBusinessGrant is issued only by the trusted shared verifier. This product
+ // transaction boundary cannot authenticate headers or create a Wallet session.
+ type VideoBusinessGrant struct {
+@@ -22,6 +28,10 @@ type VideoBusinessGrant struct {
+ 	// Current checks the captured live actor/device/generation locally, without
+ 	// network or Store recursion. Remote Revalidate runs before taking Store's lock.
+ 	Current func(context.Context) error
++	// Fresh capture per local commit, after remote preflight and before Store lock.
++	// Membership-changing commands require an original writer transaction, not
++	// a normal effect lease. No producer is installed by this optional seam.
++	CaptureTransaction func(context.Context) (VideoLocalTransaction, error)
+ }
+ type VideoBusinessNonce struct {
+ 	Nonce          string    `json:"nonce,omitempty"`
+@@ -87,7 +97,14 @@ func (b *videoBusinessLease) check() error {
+ 	}
+ 	return nil
+ }
+-func (b *videoBusinessLease) checkCurrent() error {
++func (b *videoBusinessLease) checkCurrent() error { return b.checkCurrentContext(b.ctx) }
++func (b *videoBusinessLease) checkCurrentContext(ctx context.Context) error {
++	if ctx == nil {
++		return ErrUnauthorized
++	}
++	if err := ctx.Err(); err != nil {
++		return err
++	}
+ 	if err := b.ctx.Err(); err != nil {
+ 		return err
+ 	}
+@@ -97,9 +114,15 @@ func (b *videoBusinessLease) checkCurrent() error {
+ 	// Preserve existing trusted-verifier compatibility. The concrete SDK
+ 	// consumer always supplies Current and never performs remote reads here.
+ 	if b.grant.Current == nil {
++		if b.grant.CaptureTransaction != nil {
++			return ErrVideoTransactionUnavailable
++		}
+ 		return b.check()
+ 	}
+-	if err := b.grant.Current(b.ctx); err != nil {
++	if err := b.grant.Current(ctx); err != nil {
++		return err
++	}
++	if err := ctx.Err(); err != nil {
+ 		return err
+ 	}
+ 	if err := b.ctx.Err(); err != nil {
+@@ -123,8 +146,9 @@ func (b *videoBusinessLease) checkState(st State) error {
+ 	}
+ 	return nil
+ }
+-func (b *videoBusinessLease) admit(st *State) error {
+-	if err := b.checkCurrent(); err != nil {
++func (b *videoBusinessLease) admit(st *State) error { return b.admitContext(st, b.ctx) }
++func (b *videoBusinessLease) admitContext(st *State, ctx context.Context) error {
++	if err := b.checkCurrentContext(ctx); err != nil {
+ 		return err
+ 	}
+ 	if err := b.checkState(*st); err != nil {
+diff --git a/internal/video/store.go b/internal/video/store.go
+index a263c5c22..c8e345032 100644
+--- a/internal/video/store.go
++++ b/internal/video/store.go
+@@ -1,6 +1,7 @@
+ package video
+ 
+ import (
++	"context"
+ 	"crypto/hmac"
+ 	"crypto/sha256"
+ 	"encoding/hex"
+@@ -249,6 +250,23 @@ func (s *Store) update(fn func(*State) error) error {
+ 			return err
+ 		}
+ 	}
++	ctx := context.Background()
++	if s.business != nil {
++		ctx = s.business.ctx
++	}
++	if s.business != nil && s.business.grant.CaptureTransaction != nil {
++		if s.business.grant.Current == nil {
++			return ErrVideoTransactionUnavailable
++		}
++		transaction, err := s.business.grant.CaptureTransaction(ctx)
++		if err != nil {
++			return err
++		}
++		return executeVideoLocalTransaction(ctx, transaction, func(local context.Context) error { return s.updateLocal(local, fn) })
++	}
++	return s.updateLocal(ctx, fn)
++}
++func (s *Store) updateLocal(ctx context.Context, fn func(*State) error) error {
+ 	s.mu.Lock()
+ 	defer s.mu.Unlock()
+ 	encoded, err := json.Marshal(s.state)
+@@ -261,7 +279,7 @@ func (s *Store) update(fn func(*State) error) error {
+ 	}
+ 	normalize(&candidate)
+ 	if s.business != nil {
+-		if err = s.business.admit(&candidate); err != nil {
++		if err = s.business.admitContext(&candidate, ctx); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -280,7 +298,7 @@ func (s *Store) update(fn func(*State) error) error {
+ 				return ErrUnauthorized
+ 			}
+ 		}
+-		if err = s.business.checkCurrent(); err != nil {
++		if err = s.business.checkCurrentContext(ctx); err != nil {
+ 			return err
+ 		}
+ 	}
+@@ -289,7 +307,7 @@ func (s *Store) update(fn func(*State) error) error {
+ 	s.state = candidate
+ 	var current func() error
+ 	if s.business != nil && s.business.grant.Current != nil {
+-		current = s.business.checkCurrent
++		current = func() error { return s.business.checkCurrentContext(ctx) }
+ 	}
+ 	published, persistErr := s.persistLockedCurrent(current)
+ 	if !published {

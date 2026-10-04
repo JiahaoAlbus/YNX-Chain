@@ -1,0 +1,66 @@
+{
+  "commit": "3c50439a77af9e29385afa09cb90b8bfcab8a3a6",
+  "tree": "df91a1dc0916005dd159447ae7d572ab231ea26c",
+  "files": [
+    {
+      "path": "internal/music/authority_coordinator_test.go",
+      "bytes": 2628,
+      "sha256": "c702859ccf8d46761328653de50d84e1621c426b12f9d86704ff98b66417283c"
+    },
+    {
+      "path": "internal/music/authority_readback.go",
+      "bytes": 2519,
+      "sha256": "d124cff76996c6a751f688706948a8309d3a85fcf772e6b3b4eeaa47ca060dc7"
+    },
+    {
+      "path": "internal/music/authority_transaction.go",
+      "bytes": 1140,
+      "sha256": "fe0281c32b72dd72fceab1fd3aacce9a2040b3ba553210585864245f9e50494c"
+    },
+    {
+      "path": "internal/music/authority_transaction_test.go",
+      "bytes": 5992,
+      "sha256": "3bd9cd5249594dc03f3b66054e1611827c52446533717728d6c837cf3eb959e7"
+    },
+    {
+      "path": "internal/music/business_request.go",
+      "bytes": 12281,
+      "sha256": "3dbe2c12a594d99a703f0794cdb071100cc3b113ef858b79861f2a5811158cb5"
+    },
+    {
+      "path": "internal/music/service.go",
+      "bytes": 40293,
+      "sha256": "39fc0037bb11c913fe1aae0317ee0af5b8552a223f94e2f45f9c73197124afed"
+    },
+    {
+      "path": "internal/video/authority_coordinator_test.go",
+      "bytes": 5001,
+      "sha256": "20d3bf0ade6bbd0d7f730fbb0d0815e097a62aa20bbf85dd495434f350b0dd58"
+    },
+    {
+      "path": "internal/video/authority_readback.go",
+      "bytes": 3976,
+      "sha256": "82d9c4a93ab4e5f4fa7e98a7b92805e36798371eea6948fe14e7de9968870190"
+    },
+    {
+      "path": "internal/video/authority_transaction.go",
+      "bytes": 1239,
+      "sha256": "4ab13455cebac7f8257b4042d837bc7e87acb3891c5258460e9807b83b140a9c"
+    },
+    {
+      "path": "internal/video/authority_transaction_test.go",
+      "bytes": 4884,
+      "sha256": "c1a773c80fae53856c5d485c3d491325b4fe5c7f668bf8a037cb84795d873de8"
+    },
+    {
+      "path": "internal/video/business_lease.go",
+      "bytes": 7986,
+      "sha256": "3606b522647baa94c7f5436b01808bba5e542e09f3e8693e36955ae27c7a4d45"
+    },
+    {
+      "path": "internal/video/store.go",
+      "bytes": 12794,
+      "sha256": "09abfcf6a0187f12d8bd579d8d5dee2497c4aca5e7313f61e1d1e88eddd5e213"
+    }
+  ]
+}

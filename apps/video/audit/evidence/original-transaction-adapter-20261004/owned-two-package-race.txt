@@ -1,0 +1,7 @@
+--- FAIL: TestVideoBusinessWaitCancellationAndFinalRevocation (0.07s)
+    --- FAIL: TestVideoBusinessWaitCancellationAndFinalRevocation/wait-cancel (0.03s)
+        business_lease_test.go:89: waiting write not canceled: unauthorized
+FAIL
+FAIL	github.com/JiahaoAlbus/YNX-Chain/internal/video	14.768s
+ok  	github.com/JiahaoAlbus/YNX-Chain/internal/music	8.537s
+FAIL

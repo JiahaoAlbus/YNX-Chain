@@ -1,0 +1,23 @@
+{
+  "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/media-authority-coordinator-boundary-successor-c5-20261004",
+  "manifestSHA256": "9592192dd0090af69969bebaf2a945e4a7d1ed3cb27b48ea51c55608650a9eb0",
+  "archiveSHA256": "0d2d7def640d12c3a4506161f56c58f4894bafa0d4c44aaf15410caa627bcfe9",
+  "verifiedMembers": 56,
+  "selectedOnly": [
+    {
+      "path": "internal/productsessionv2/media_authority_coordinator.go",
+      "bytes": 12998,
+      "sha256": "9aae723500e1f3c149e77c76b16461fa54567d589ebe1f0e2758a646d17ec3fb"
+    },
+    {
+      "path": "internal/productsessionv2/media_authority_coordinator_test.go",
+      "bytes": 16142,
+      "sha256": "bfe6be4704b5932da434e7559757d2800163f84de659754b1cc823898bd5b87d"
+    }
+  ],
+  "sourceAdmission": "Root independently closes only typed-nil and Current-before-commit cancellation/deadline source P2; real producer and cross-process writer still missing",
+  "realProducer": false,
+  "remoteNodeAtomicity": false,
+  "historicalCompletePackageNotOverlaid": true,
+  "rootBoundaryEvidence": "Root unchanged original617eba probes plus affected targets 4top8sub race0/1.810s, not owned execution"
+}

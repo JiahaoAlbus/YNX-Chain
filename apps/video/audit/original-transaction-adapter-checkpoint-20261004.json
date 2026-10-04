@@ -1,0 +1,167 @@
+{
+  "sourceCommit": "3c50439a77af9e29385afa09cb90b8bfcab8a3a6",
+  "sourceTree": "df91a1dc0916005dd159447ae7d572ab231ea26c",
+  "parentDelivery": "1e8ae533b02176ccbb5ebd32b70e2b7d273390a7",
+  "ownedPaths": [
+    "internal/music/authority_coordinator_test.go",
+    "internal/music/authority_readback.go",
+    "internal/music/authority_transaction.go",
+    "internal/music/authority_transaction_test.go",
+    "internal/music/business_request.go",
+    "internal/music/service.go",
+    "internal/video/authority_coordinator_test.go",
+    "internal/video/authority_readback.go",
+    "internal/video/authority_transaction.go",
+    "internal/video/authority_transaction_test.go",
+    "internal/video/business_lease.go",
+    "internal/video/store.go"
+  ],
+  "matchingFiles": 325,
+  "inheritedFilesVerifiedUnchangedExceptDeclaredDelta": true,
+  "coordinator": {
+    "packet": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/generic-business/media-authority-coordinator-boundary-successor-c5-20261004",
+    "manifestSHA256": "9592192dd0090af69969bebaf2a945e4a7d1ed3cb27b48ea51c55608650a9eb0",
+    "archiveSHA256": "0d2d7def640d12c3a4506161f56c58f4894bafa0d4c44aaf15410caa627bcfe9",
+    "verifiedMembers": 56,
+    "selectedOnly": [
+      {
+        "path": "internal/productsessionv2/media_authority_coordinator.go",
+        "bytes": 12998,
+        "sha256": "9aae723500e1f3c149e77c76b16461fa54567d589ebe1f0e2758a646d17ec3fb"
+      },
+      {
+        "path": "internal/productsessionv2/media_authority_coordinator_test.go",
+        "bytes": 16142,
+        "sha256": "bfe6be4704b5932da434e7559757d2800163f84de659754b1cc823898bd5b87d"
+      }
+    ],
+    "sourceAdmission": "Root independently closes only typed-nil and Current-before-commit cancellation/deadline source P2; real producer and cross-process writer still missing",
+    "realProducer": false,
+    "remoteNodeAtomicity": false,
+    "historicalCompletePackageNotOverlaid": true,
+    "rootBoundaryEvidence": "Root unchanged original617eba probes plus affected targets 4top8sub race0/1.810s, not owned execution"
+  },
+  "validation": {
+    "fullDefaultRace": [
+      "internal/video PASS 15.820s",
+      "internal/music PASS 8.718s"
+    ],
+    "ownedTaggedTargets": 9,
+    "changedSharedTargets": 2,
+    "vet": "both owned packages PASS with canonical+combined tags",
+    "build": "Video and Music PASS, darwin-arm64, local/unknown stamps",
+    "controlledOnly": true,
+    "priorFailuresRetained": true
+  },
+  "candidateBinaries": {
+    "video-candidate": {
+      "bytes": 11021954,
+      "sha256": "3102b602ac80491e6bc81da250edaab29e74fb406648771aea7df584cb38464c"
+    },
+    "music-candidate": {
+      "bytes": 14331170,
+      "sha256": "26943d25763737240a66995f9353b16bb9d11a9dd5cc64f425731b4c31c9984e"
+    }
+  },
+  "semantics": [
+    "original Store lock under supplied authority gate",
+    "fresh capture each persistence phase",
+    "original immutable membership revision copy",
+    "nonce and effect readback preserve UNKNOWN and prior unconfirmed commit errors",
+    "network effects remain outside local gate"
+  ],
+  "remaining": [
+    "real authority enrollment/current/actor producer absent",
+    "remote Node writer not joined same transaction gate",
+    "main original bootstrap remains nil without actual producer",
+    "no verified Media Host installation handle or deployment receipt; prior remote partial UNKNOWN unresolved",
+    "real Wallet and native user flow remain unverified; previous Mac locked"
+  ],
+  "releaseComplete": false,
+  "artifacts": {
+    "coordinator-intake.json": {
+      "bytes": 692,
+      "sha256": "b25016083b0b676ef55b7e9d0b12eb981605436dcea4d17c1365b591604fee17"
+    },
+    "coordinator-owned-integration-race.txt": {
+      "bytes": 120,
+      "sha256": "3cb8b780771057d3b9cbeffc58f44925e2648768dab43deacb814d8466fc590f"
+    },
+    "coordinator-successor-intake.json": {
+      "bytes": 1216,
+      "sha256": "dff6ea834f47c134ce0b4f01f6cf18f383bd4253bf7933bb930dc0230a14621e"
+    },
+    "matching-build-source.tar.gz": {
+      "bytes": 1300935,
+      "sha256": "3554150711c5e5d17d4f2f6807e6f03dcf1fc0e419df77479815281c859d564b"
+    },
+    "matching-source-manifest.json": {
+      "bytes": 63719,
+      "sha256": "711e30e24ad322efedb771d00037c059581bb617ad3033d462a1d39a4ca186e9"
+    },
+    "owned-after-1e8.patch": {
+      "bytes": 39936,
+      "sha256": "567c9ecce2bdde67c38126ae9aba0786cbc776081e6a86abd833ae3b9d5204f9"
+    },
+    "owned-and-successor-boundaries-race.txt": {
+      "bytes": 191,
+      "sha256": "1bb30a82f3529f197605443569fd4b1df278f6f68b4391f2a8108881e5556a9b"
+    },
+    "owned-final-nine-target-race.txt": {
+      "bytes": 120,
+      "sha256": "3c930490cbca9b3c0e735dd2f00b17502c0b33b325110cc3d7b801dc8bffae99"
+    },
+    "owned-integration-final-race.txt": {
+      "bytes": 120,
+      "sha256": "2625bf7162b86db3d93fd4fe7be9abfec4ccdc153bc5837576d78f57a213a7cc"
+    },
+    "owned-source-manifest.json": {
+      "bytes": 2193,
+      "sha256": "3eb904a9da61a8a08bd8050429ba675293bd710b599367cbe375f4df06e8ded9"
+    },
+    "owned-twelve-source.tar.gz": {
+      "bytes": 24344,
+      "sha256": "3a2d905299b09d35dd2b661e3f99fcb1ba0f0861a86eebb81b2b3e405d341cf4"
+    },
+    "owned-two-package-final-race.txt": {
+      "bytes": 121,
+      "sha256": "f0898acb59068151e791073129f0c52f07c39ddce12bb87affa90ab1b5c3b7d4"
+    },
+    "owned-two-package-race.txt": {
+      "bytes": 363,
+      "sha256": "7e6f0ebd099966936fd371dcad73d5d2650c998faf9fd1f49cf9d96ca5e1233e"
+    },
+    "owned-video-race-fixed.txt": {
+      "bytes": 61,
+      "sha256": "9cf96413544ca62f67b854f43e8cd5c318e46352737730b6c4a35b525105b7cc"
+    },
+    "shared-successor-HANDOFF.md": {
+      "bytes": 1982,
+      "sha256": "f6d00e970eb34527e3b4f970d393f2b42df3e4c29b15156ca8bb2c746cabb5ae"
+    },
+    "shared-successor-MEDIA_AUTHORITY_COORDINATOR_CONTRACT.md": {
+      "bytes": 9476,
+      "sha256": "172185b00766fdf6356bebcd820a48d9c32f724eaef605b38d2d71115473bf47"
+    },
+    "shared-successor-freeze-manifest.json": {
+      "bytes": 12843,
+      "sha256": "9592192dd0090af69969bebaf2a945e4a7d1ed3cb27b48ea51c55608650a9eb0"
+    },
+    "shared-successor-receipt.json": {
+      "bytes": 1269,
+      "sha256": "875a4c67457cb7293718ab928eeb4035c25ddafdaa740bb5fb007a23ec08e676"
+    },
+    "ynx-media-transaction-port-baseline-fixed.log": {
+      "bytes": 120,
+      "sha256": "3afc7d861d0db0ace9f7a436c1f39f967dfed6bb9fdb6bfa2d2d90762dbf0447"
+    },
+    "ynx-media-transaction-port-baseline.log": {
+      "bytes": 481,
+      "sha256": "39dc70912a5dc06e10bebe2b3fddeb055ce199e17ecd047e09326fb65336b297"
+    },
+    "ynx-media-transaction-port-race.log": {
+      "bytes": 120,
+      "sha256": "78873b9a535df37249fbc4f67323c61144c0d6eeef2a19e8d7477a7d08b46ccf"
+    }
+  }
+}

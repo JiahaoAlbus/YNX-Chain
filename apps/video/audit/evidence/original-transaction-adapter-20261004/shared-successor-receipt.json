@@ -1,0 +1,38 @@
+{
+  "baseCommit": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "baseTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  "predecessorManifestSHA256": "788e4839051b497b6a00f7d942b42454817f839f92a718ba136d1aa1a562e953",
+  "onlySourcePaths": [
+    "internal/productsessionv2/media_authority_coordinator.go",
+    "internal/productsessionv2/media_authority_coordinator_test.go"
+  ],
+  "inherited50SourceHashesUnchanged": true,
+  "originalFreeze63HashesUnchanged": true,
+  "focusedRace": {
+    "exit": 0,
+    "topLevel": 13,
+    "subtests": 21,
+    "original11Top13SubPreserved": true
+  },
+  "independentProbe": {
+    "sha256": "617eba7b196b2aa0a74be498ec7872d8dbd66170cd618d07021b4008fb7891c8",
+    "unchangedExpected": true,
+    "exit": 0,
+    "pass": 2,
+    "originalRedPreserved": true
+  },
+  "archive": {
+    "members": 56,
+    "sourceFiles": 52,
+    "metadataFiles": 4,
+    "bytes": 98263,
+    "sha256": "0d2d7def640d12c3a4506161f56c58f4894bafa0d4c44aaf15410caa627bcfe9",
+    "doubleBuildIdentical": true
+  },
+  "testsAreCoordinationModelOnly": true,
+  "actualOriginalProducer": "NOT_SUPPLIED",
+  "durableWriterEffectIntegration": "NOT_VERIFIED",
+  "remoteNodeAtomicity": false,
+  "HostJSNetworkKeyENV": false,
+  "sourceAdmission": "PENDING_ROOT_INDEPENDENT_REVIEW"
+}

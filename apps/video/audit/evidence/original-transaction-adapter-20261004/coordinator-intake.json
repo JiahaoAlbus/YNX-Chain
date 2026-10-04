@@ -1,0 +1,19 @@
+{
+  "archiveSHA256": "213af23c8df75696322bf2e6c95eae5deea4a4a5bd95344d3279e541c6af9d35",
+  "members": 56,
+  "selectedOnly": [
+    {
+      "path": "internal/productsessionv2/media_authority_coordinator.go",
+      "bytes": 12543,
+      "sha256": "54e2b43fb22819d069e54629215fb01c1f24206a8a1486157010533b0f5da00e"
+    },
+    {
+      "path": "internal/productsessionv2/media_authority_coordinator_test.go",
+      "bytes": 11287,
+      "sha256": "3daaa2eed83a365115b76142d4dd1c9328ba8164f59fbfd9ed75bac76514d1c6"
+    }
+  ],
+  "draftOnly": true,
+  "sourceReview": "SOURCE_HOLD; typed-nil source registration and mutate cancellation; exact successor required",
+  "inheritedA5HooksUnchanged": true
+}
