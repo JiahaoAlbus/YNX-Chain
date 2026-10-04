@@ -56,3 +56,29 @@ test('emergency block precedes spend and attempt budgets but cannot unfreeze a c
   assert.equal(risk({...input,status:'FROZEN'}),'CARD_FROZEN');
   assert.equal(risk({...input,status:'CLOSED'}),'CARD_CLOSED');
 });
+
+test('invalid amounts and controls fail closed instead of producing approval or throwing',()=>{
+ for(const amountWei of ['-1','0','01','1.5','1e3','',String(2n**256n),'x'])assert.equal(risk({...base,amountWei}),'INVALID_PROCESSOR_EVENT');
+ for(const availableWei of ['-1','invalid',String(2n**256n)])assert.equal(risk({...base,availableWei}),'INVALID_PROCESSOR_EVENT');
+ for(const patch of [{velocity:0},{velocity:1.5},{velocity:NaN},{dailyWei:'-1'},{monthlyWei:'invalid'},{online:'yes'},{blockedMcc:null},{emergencyBlock:'yes'},{allowedMerchants:[null]}])assert.equal(risk({...base,controls:{...controls,...patch} as unknown as TestnetRiskControls}),'INVALID_PROCESSOR_EVENT');
+});
+
+test('malformed processor history and future authorizations cannot bypass budgets',()=>{
+ for(const createdAt of ['invalid','2026-10-03T12:01:00.000Z','2026-10-03T12:00:00+00:00'])assert.equal(risk({...base,previous:[prior('APPROVED',createdAt)]}),'INVALID_PROCESSOR_EVENT');
+ for(const amountWei of ['-100','0','invalid',String(2n**256n)])assert.equal(risk({...base,previous:[prior('APPROVED',now,'card-a',amountWei)]}),'INVALID_PROCESSOR_EVENT');
+ assert.equal(risk({...base,previous:[{...prior('APPROVED'),status:'CAPTURED' as 'APPROVED'}]}),'INVALID_PROCESSOR_EVENT');
+ assert.equal(risk({...base,now:'invalid'}),'INVALID_PROCESSOR_EVENT');
+});
+
+test('merchant schema rejects unrecognized channels and noncanonical categories before approval',()=>{
+ for(const patch of [{id:''},{mcc:'581'},{mcc:'5812\n'},{country:'us'},{channel:'unrecognized'},{recurring:'yes'}])assert.equal(risk({...base,merchant:{...base.merchant,...patch} as typeof base.merchant}),'INVALID_PROCESSOR_EVENT');
+ assert.equal(risk({...base,status:'UNKNOWN' as 'ACTIVE'}),'INVALID_PROCESSOR_EVENT');
+});
+
+test('uint256 boundary remains exact and invalid other-card history cannot spend this card budget',()=>{
+ const limit=(2n**256n-1n).toString();
+ assert.equal(risk({...base,amountWei:limit,availableWei:limit,controls:{...controls,maxSingleWei:limit,dailyWei:limit,monthlyWei:limit}}),undefined);
+ assert.equal(risk({...base,previous:[prior('APPROVED','invalid','other-card','invalid')]}),undefined);
+ const input={...base,previous:[prior('APPROVED','invalid')]},snapshot=JSON.stringify(input);
+ assert.equal(risk(input),'INVALID_PROCESSOR_EVENT');assert.equal(JSON.stringify(input),snapshot);
+});
