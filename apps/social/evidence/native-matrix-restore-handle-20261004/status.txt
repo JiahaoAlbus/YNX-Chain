@@ -1,0 +1,5 @@
+originalExit=1
+finalNativeTestsExit=1
+correctedNativeTestsExit=0
+typecheckExit=0
+webBuildExit=0

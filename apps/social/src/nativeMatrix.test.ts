@@ -11,6 +11,7 @@ function fixture() {
   let accepted = true;
   let sendCount = 0;
   let restoreWait: (() => Promise<void>) | undefined;
+  let currentWait: (() => Promise<void>) | undefined;
   let listener: ((event: MatrixNativeEvent) => void) | undefined;
   let originalEntries: MatrixPendingIntent[] = [];
   const bridge: NativeMatrixBridge = {
@@ -23,9 +24,10 @@ function fixture() {
     async requestVerification() { return { attempt: 1 }; }, async verificationAction() {}, async logout() {},
     addListener(_event, callback) { listener = callback; return { remove() { listener = undefined; } }; }
   };
-  const consumer = new NativeMatrixConsumer(bridge, async () => current, async () => ({ personId: person, userId: '@peer:example.test', accepted, blocked: false, authorityId: current.authorityId }));
+  const consumer = new NativeMatrixConsumer(bridge, async () => { if (currentWait) await currentWait(); return current; }, async () => ({ personId: person, userId: '@peer:example.test', accepted, blocked: false, authorityId: current.authorityId }));
   return { consumer, bridge, setCurrent(value: MatrixBinding) { current = value; }, rejectPeer() { accepted = false; },
     setRestoreWait(value: () => Promise<void>) { restoreWait = value; }, setOriginals(entries: MatrixPendingIntent[]) { originalEntries = entries; },
+    setCurrentWait(value: () => Promise<void>) { currentWait = value; },
     originals: () => originalEntries, count: () => sendCount, emit(event: MatrixNativeEvent) { listener?.(event); } };
 }
 
@@ -221,4 +223,44 @@ test('one subscriber cannot rewrite another subscriber native event view', async
   assert.equal(delivered.events?.[0]?.body, 'original incoming content');
   assert.ok(Object.isFrozen(delivered) && Object.isFrozen(delivered.events) && Object.isFrozen(delivered.events?.[0]));
   f.consumer.lock();
+});
+
+test('malformed native restore generation cannot produce an active session or delete originals', async () => {
+  for (const generation of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
+    const f = fixture();
+    const original: MatrixPendingIntent = { intentId: `native-matrix-${'c'.repeat(32)}`,
+      roomId: room.roomId, kind: 'file', body: null, state: 'unknown', eventId: null };
+    f.setOriginals([original]);
+    f.bridge.restore = async () => ({ generation });
+    await assert.rejects(f.consumer.restore(), /MATRIX_NATIVE_GENERATION_INVALID/);
+    await assert.rejects(f.consumer.rooms(), /MATRIX_NATIVE_SESSION_REQUIRED/);
+    assert.deepEqual(f.originals(), [original]);
+  }
+});
+
+test('native restore handle is captured before the subsequent authority await', async () => {
+  const f = fixture(), result = { generation: 7 };
+  f.bridge.restore = async () => {
+    f.setCurrentWait(async () => { result.generation = 8; });
+    return result;
+  };
+  f.bridge.rooms = async generation => {
+    assert.equal(generation, 7);
+    return [room];
+  };
+  await f.consumer.restore();
+  assert.equal(result.generation, 8);
+  assert.equal((await f.consumer.rooms()).length, 1);
+  f.consumer.lock();
+});
+
+test('valid integer restore handles retain the original opaque process-handle semantics', async () => {
+  for (const generation of [0, 7]) {
+    const f = fixture();
+    f.bridge.restore = async () => ({ generation });
+    f.bridge.rooms = async supplied => { assert.equal(supplied, generation); return [room]; };
+    await f.consumer.restore();
+    assert.equal((await f.consumer.rooms()).length, 1);
+    f.consumer.lock();
+  }
 });

@@ -106,12 +106,16 @@ export class NativeMatrixConsumer {
     const binding = checkedMatrixBinding(await this.current());
     if (epoch !== this.epoch) throw new Error('MATRIX_STALE_AUTHORITY');
     const result = await this.bridge.restore(binding);
+    const generation = result?.generation;
+    if (typeof generation !== 'number' || !Number.isSafeInteger(generation)) {
+      throw new Error('MATRIX_NATIVE_GENERATION_INVALID');
+    }
     const latest = checkedMatrixBinding(await this.current());
     if (epoch !== this.epoch || !sameIdentity(binding, latest)) {
       throw new Error('MATRIX_STALE_AUTHORITY');
     }
     this.binding = binding;
-    this.generation = result.generation;
+    this.generation = generation;
     this.scheduleExpiry(Math.min(binding.expiresAtMs, latest.expiresAtMs));
     this.subscription = this.bridge.addListener('onMatrixEvent', (event) => {
       if (event.generation !== this.generation) return;

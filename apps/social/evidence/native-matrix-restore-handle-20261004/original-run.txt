@@ -1,0 +1,64 @@
+✔ binding rejects insecure HS, expired authority, callback URLs and invalid identity (0.570208ms)
+✔ real consumer gate differentiates queue acceptance from delivery (0.978125ms)
+✔ same original intent never generates a new SDK queue transaction (0.453541ms)
+✔ fresh accepted-peer readback is required before send (0.160041ms)
+✔ authority changes during native restoration fence the late result (2.615792ms)
+✔ unencrypted or widened room is refused before SDK sending (0.127167ms)
+✔ lock fences old native plaintext callbacks and clears visible view (0.14875ms)
+✔ restored original journal prevents a changed body or replacement nonce (0.401167ms)
+✔ an SDK observation does not settle or delete the original journal (0.352667ms)
+✔ an older restore completion cannot invalidate a newer successful restoration (1.230917ms)
+✔ authority expiry clears the view without deleting native original entries (101.945792ms)
+✔ verification rechecks the accepted person before approving SDK trust (0.458583ms)
+✔ SAS requires matching peer, current SDK revision and one human approval attempt (0.743125ms)
+✔ another peer cannot feed comparison values into the reviewed verification flow (0.383375ms)
+✔ native timeline input is snapshotted before asynchronous authority review (0.329834ms)
+✔ producer reuse cannot change captured generation or route during review (0.2635ms)
+✔ SAS values retain the original SDK frame across asynchronous review (0.28475ms)
+✔ one subscriber cannot rewrite another subscriber native event view (0.289333ms)
+✖ malformed native restore generation cannot produce an active session or delete originals (1.597166ms)
+✖ native restore handle is captured before the subsequent authority await (0.815292ms)
+✔ valid integer restore handles retain the original opaque process-handle semantics (0.110167ms)
+ℹ tests 21
+ℹ suites 0
+ℹ pass 19
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 238.084083
+
+✖ failing tests:
+
+test at src/nativeMatrix.test.ts:2:14813
+✖ malformed native restore generation cannot produce an active session or delete originals (1.597166ms)
+  AssertionError [ERR_ASSERTION]: Missing expected rejection.
+      at async TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:235:5)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: undefined,
+    expected: /MATRIX_NATIVE_GENERATION_INVALID/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at src/nativeMatrix.test.ts:2:15512
+✖ native restore handle is captured before the subsequent authority await (0.815292ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  8 !== 7
+  
+      at Object.f.bridge.rooms (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:248:12)
+      at NativeMatrixConsumer.rooms (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.ts:229:37)
+      at async TestContext.<anonymous> (/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/src/nativeMatrix.test.ts:253:17)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 8,
+    expected: 7,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
