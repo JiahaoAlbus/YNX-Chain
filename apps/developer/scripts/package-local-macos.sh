@@ -41,6 +41,10 @@ cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
 cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
+# The packaged project preparer resolves these owned inputs relative to its
+# service module. The composed archive alone does not supply those paths.
+mkdir -p "$app/Contents/Resources/code/apps/developer/native"
+cp -R native/ynx-brand native/ynx-tools "$app/Contents/Resources/code/apps/developer/native/"
 mkdir -p "$app/Contents/Resources/code/apps/developer/scripts"
 cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs "$app/Contents/Resources/code/apps/developer/scripts/"
 if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then

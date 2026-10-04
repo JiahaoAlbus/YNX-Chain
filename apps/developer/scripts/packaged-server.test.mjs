@@ -4,7 +4,7 @@ import { mkdtemp, mkdir, readFile, writeFile, realpath, cp, appendFile, access }
 import { createServer } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { spawn } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 test('actual bundled desktop service starts with isolated state and refuses unauthenticated private operations', async t => {
@@ -123,4 +123,54 @@ test('actual desktop bootstrap refuses altered bundled compiler before creating 
   await assert.rejects(access(support), { code: 'ENOENT' });
   await writeFile(join(qa, 'receipt.json'), JSON.stringify({ candidate, qa, exit, compilerTamperRefused: true, supportCreated: false }, null, 2));
   t.diagnostic(`Preserved actual bootstrap refusal: ${qa}/receipt.json`);
+});
+
+test('packaged project preparer stages exact owned extensions and preserves user state', async t => {
+  if (!process.env.YNX_QA_NATIVE_PACKAGE) return t.skip('Supply an existing owned native candidate.');
+  const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+  const candidate = await realpath(process.env.YNX_QA_NATIVE_PACKAGE);
+  assert.ok(candidate.startsWith(join(appRoot, '.ynx-developer-candidates') + '/'));
+  const code = join(candidate, 'YNX Developer Testnet Preview.app/Contents/Resources/code/apps/developer');
+  const qa = await mkdtemp('/private/tmp/ynx-packaged-project-inputs-');
+  const projectDirectory = join(qa, 'project-state');
+  const settings = join(projectDirectory, 'user-data/User/settings.json');
+  await mkdir(dirname(settings), { recursive: true });
+  const originalSettings = '{"editor.fontSize":19}\n';
+  await writeFile(settings, originalSettings, { flag: 'wx' });
+  const checks = []; let failure;
+  t.after(async () => {
+    await writeFile(join(qa, 'receipt.json'), JSON.stringify({ candidate, qa, checks, failure,
+      scope: 'Actual packaged filesystem preparer only, synthetic project state. No process driver, network, canonical admission or user profile.' }, null, 2), { flag: 'wx' });
+    t.diagnostic(`Preserved packaged owned-input proof: ${qa}/receipt.json`);
+  });
+  try {
+    const { prepareCoreProject } = await import(pathToFileURL(join(code, 'services/codeoss-service/src/runtime-files.mjs')));
+    await prepareCoreProject({ projectDirectory });
+    const inputs = {
+      'ynx-brand': ['package.json', 'klein-light.json', 'ynx-logo.png', 'LICENSE.txt'],
+      'ynx-tools': ['package.json', 'activity.svg', 'ynx-logo.png', 'LICENSE.txt', 'src/extension.cjs', 'src/guards.cjs', 'src/template.cjs', 'src/solidity-project.cjs', 'src/review-preview.cjs'],
+    };
+    let toolsTarget;
+    for (const [name, files] of Object.entries(inputs)) {
+      const source = join(appRoot, 'native', name), packaged = join(code, 'native', name);
+      const manifest = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'));
+      const target = join(projectDirectory, 'extensions', `${manifest.publisher}.${manifest.name}-${manifest.version}`);
+      for (const file of files) {
+        const expected = await readFile(join(source, file));
+        assert.deepEqual(await readFile(join(packaged, file)), expected);
+        assert.deepEqual(await readFile(join(target, file)), expected);
+      }
+      if (name === 'ynx-tools') toolsTarget = target;
+    }
+    checks.push('Exact packaged brand and Tools including immutable preview helper stage from the standalone package.');
+    assert.equal(await readFile(settings, 'utf8'), originalSettings);
+    checks.push('Existing synthetic user settings remain byte-identical.');
+    const changed = join(toolsTarget, 'src/review-preview.cjs');
+    const changedBytes = (await readFile(changed, 'utf8')) + '\n// preserve a locally changed extension\n';
+    await writeFile(changed, changedBytes);
+    await assert.rejects(prepareCoreProject({ projectDirectory }), error => error.code === 'core_tools_review_required');
+    assert.equal(await readFile(changed, 'utf8'), changedBytes);
+    assert.equal(await readFile(settings, 'utf8'), originalSettings);
+    checks.push('Changed extension input refuses preparation without overwriting its bytes or user settings.');
+  } catch (error) { failure = { code: error.code, message: error.message }; throw error; }
 });
