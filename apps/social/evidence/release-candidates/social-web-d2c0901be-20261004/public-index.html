@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" translate="no" class="notranslate">
+  <head>
+    <meta charset="utf-8" />
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google" content="notranslate" />
+    <meta name="description" content="YNX Social is a private, wallet-connected Social experience on YNX Testnet. Explore safely as a guest before connecting a wallet." />
+    <title>YNX Social — Private by design</title>
+    <link rel="icon" href="./assets/ynx-logo.png" type="image/png" />
+    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./workspace.css" />
+    <link rel="stylesheet" href="./product-shell.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="YNX Social home"><img class="brand-logo" src="./assets/ynx-logo.png" alt="YNX" width="76" height="40" /><span>YNX Social</span></a>
+      <nav aria-label="Primary"><a href="#matrix-social-workspace">Messages</a><a href="#social-moments">Moments</a><a href="#people-panel">Contacts</a><a href="#profile-form">Me</a></nav>
+      <button id="connect-wallet" class="button button-primary" type="button">Connect wallet</button>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span id="service-status" data-tone="neutral">Checking Social service…</span></div>
+          <h1>Close conversations.<br />Clear control.</h1>
+          <p>Explore YNX Social without an account. Connect a standard EVM wallet only when you are ready to link a profile or approve a private session.</p>
+          <div class="hero-actions"><button id="hero-connect-wallet" class="button button-primary" type="button">Connect wallet</button><a class="button button-secondary" href="#experience">Explore as guest</a></div>
+          <p class="fineprint">Guest access never creates a profile, wallet approval, Product Session, signature, or transaction.</p>
+        </div>
+        <div class="phone" aria-label="Product preview">
+          <div class="phone-head"><span>Social</span><span class="private">Private</span></div>
+          <div class="story-row"><span class="story blue"></span><span class="story violet"></span><span class="story coral"></span><span class="story mint"></span></div>
+          <article class="post"><div class="avatar"></div><div><strong>Design Circle</strong><small>Community preview</small></div><p>A calm place for people, projects and conversations you choose.</p><div class="post-image"></div></article>
+        </div>
+      </section>
+
+      <section id="experience" class="section"><div class="section-head"><span class="eyebrow">Guest preview</span><h2>See the product before you connect.</h2><p>Public information remains readable while identity, contacts, messages and private actions stay locked.</p></div><div class="grid"><article><span>01</span><h3>Moments</h3><p>Share thoughtful updates with public, contacts-only or private visibility controls.</p></article><article><span>02</span><h3>Encrypted chat</h3><p>Device-bound conversation keys, verified recovery states and explicit device rotation.</p></article><article><span>03</span><h3>People you choose</h3><p>Discover by handle, invite or QR without exposing a wallet address as a public identity.</p></article></div></section>
+
+      <section id="privacy" class="section contrast"><div><span class="eyebrow">Privacy boundary</span><h2>Your wallet is a key, not your public profile.</h2></div><ul><li>Standard wallet connection stays available if private YNX services are degraded.</li><li>No recovery phrase or private key is requested or received.</li><li>Private Social access requires a separate, explicit Product Session approval.</li><li>Rejected or failed approval creates no local or canned session.</li></ul></section>
+
+      <section id="social-workspace" class="section" aria-labelledby="workspace-title">
+        <h2 id="workspace-title">Your private workspace</h2>
+        <p>Sign in with YNX, then choose whether to allow Social to manage your profile, contacts and encrypted chat on this device. Review each permission in Wallet.</p>
+        <a class="button button-primary" href="/sso/start?target=conversations">Sign in with YNX identity</a>
+        <div class="connected-actions"><button id="chat-authorize" type="button">Allow my Social profile, contacts and chat</button><button id="chat-restore" type="button">Continue my workspace</button><button id="chat-logout" type="button">Sign out of private workspace</button><button id="protect-chat-device" type="button" hidden>Protect existing browser chat device</button></div>
+        <a id="chat-open-wallet" hidden>Open chat permission request in YNX Wallet</a>
+        <p id="workspace-status" role="status" aria-live="polite">Private workspace is locked. Guest access makes no authorization request.</p>
+        <div id="workspace-content" hidden>
+          <p id="workspace-account"></p>
+          <form id="profile-form"><h3>Your profile</h3><label>Handle <input name="handle" required maxlength="32" autocomplete="username" /></label><label>Display name <input name="displayName" required maxlength="64" /></label><label>Bio <textarea name="bio" maxlength="280"></textarea></label><button type="submit">Save profile</button></form>
+          <section id="profile-share-panel" aria-label="My personal discovery code"></section>
+          <section aria-label="My invitations"><h3>People I invite</h3><p>Read your original links, or explicitly create a one-day invitation. A retry keeps the original request identity across tabs and browser restarts. Sharing does not automatically add contacts or followers.</p><button id="load-invites" type="button">Read my invitations</button><button id="create-invite" type="button">Create or retry my invitation</button><ul id="invitation-list" aria-live="polite"></ul></section>
+          <section aria-label="Discovery privacy"><h3>Who can find me</h3><p>All discovery entrances keep the same request and acceptance boundary. No address book is uploaded by these controls.</p><button id="load-privacy" type="button">Read my current privacy settings</button><form id="privacy-form"><fieldset disabled><label><input name="discoverableByHandle" type="checkbox"> Find me by username</label><label><input name="allowRecommendations" type="checkbox"> Allow profile recommendations</label><label><input name="contactsMatching" type="checkbox"> Allow separately opt-in contact matching</label><label>Contact requests from <select name="allowRequestsFrom"><option value="everyone">Everyone</option><option value="contacts">Existing contacts</option><option value="nobody">Nobody</option></select></label><button type="submit">Save discovery privacy</button></fieldset></form></section>
+          <section id="people-panel"><h3>Contacts and requests</h3><p>Find a person, review their profile, then explicitly send a request. They must accept before you become contacts.</p><form id="contact-request-form"><label>Find by <select name="source"><option value="handle">Username</option><option value="qr">QR content</option><option value="invite">Invitation link</option></select></label><label>Username, QR content or invitation <input name="handle" required maxlength="2048" autocomplete="off" /></label><button type="submit">Preview person</button><button id="contact-scan-qr" type="button">Scan QR with camera</button></form><h4>Your contacts</h4><ul id="contact-list"></ul><h4>Contact requests</h4><ul id="contact-request-list" aria-live="polite"></ul></section>
+          <div class="social-chat-layout"><section><h3>Earlier encrypted history</h3><p>Your original history and pending ciphertext are retained. Start new conversations from Contacts in the mature private chat below; old history is not relabeled as Matrix encryption.</p><form id="conversation-form" hidden><label>Existing contact's handle <input name="handle" required autocomplete="off" /></label><button type="submit">Open conversation</button></form><button id="workspace-refresh" type="button">Refresh contacts and history</button><ul id="conversation-list"></ul></section><section><h3 id="conversation-title">Choose an earlier conversation</h3><ol id="message-list" aria-live="polite"></ol><form id="message-form" hidden><label>Encrypted message <textarea name="message" required maxlength="16000"></textarea></label><button type="submit">Send encrypted message</button></form><button id="message-retry" type="button">Retry retained encrypted message</button></section></div>
+        </div>
+      </section>
+      <section id="downloads" class="section downloads"><div><span class="eyebrow">Get the app</span><h2>Continue on mobile.</h2><p>Use the same approved YNX identity. Existing messages remain bound to the devices for which they were encrypted.</p></div><div class="download-actions"><a class="button button-primary" href="https://www.ynxweb4.com/dapp/download">Download YNX apps</a><span>Android Testnet preview · other platforms require verified releases</span></div></section>
+
+      <section id="connected-panel" class="connected" hidden><div class="connected-title"><img id="connected-logo" class="wallet-icon" alt="" /><div><span id="connected-wallet-name">Connected wallet</span><strong id="connected-account"></strong></div></div><p id="connected-chain">YNX Testnet · 0x1917</p><p id="private-session-state">Standard connection only. A private Social Product Session has not been created.</p><p id="connected-wallet-status" role="status" aria-live="polite"></p><div class="connected-actions"><button id="wallet-switch-network" type="button">Switch to YNX Testnet</button><button id="wallet-switch-account" type="button">Switch account</button><button id="wallet-revoke" type="button">Revoke permission</button><button id="wallet-disconnect" type="button">Disconnect</button></div></section>
+      <section id="private-auth-panel" class="section" aria-labelledby="private-auth-title">
+        <h2 id="private-auth-title">Private Social identity</h2>
+        <p>Sign in to use your identity in Social. Access to contacts and chat is a separate choice.</p>
+        <p id="private-auth-account">No confirmed private identity link.</p>
+        <p id="private-auth-status" role="status" aria-live="polite">Private identity has not been checked. Guest browsing sends no private authorization request.</p>
+        <div class="connected-actions"><button id="private-auth-begin" type="button">Sign in to Social</button><button id="private-auth-restore" type="button">Continue identity sign-in</button><button id="private-auth-disconnect" type="button">Revoke private session</button></div>
+        <a id="private-auth-open" hidden>Open YNX Wallet</a>
+        <p><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Install or update YNX Wallet</a>. Installation alone does not prove the browser can open the Wallet link.</p>
+      </section>
+    </main>
+
+    <dialog id="wallet-dialog" class="wallet-dialog">
+      <div class="dialog-head"><div><span class="eyebrow">Standard wallet connection</span><h2>Choose a wallet</h2></div><button id="close-wallet-dialog" class="icon-button" type="button" aria-label="Close">×</button></div>
+      <p>Select the wallet you intend to use. YNX Social will not silently substitute another provider.</p>
+      <div id="wallet-list" class="wallet-list"><button id="connect-mobile" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Mobile Wallet</strong><small>Scan a code or open the app on this phone</small></span><b>Connect</b></button><button id="connect-hosted" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet" /><span class="wallet-copy"><strong>YNX Web Wallet</strong><small>Open Wallet securely in a new window</small></span><b>Connect</b></button><button id="connect-ynx" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/ynx-logo.png" alt="YNX Wallet logo" /><span class="wallet-copy"><strong>YNX Wallet</strong><small>Use your installed YNX Wallet extension</small></span><b>Connect</b></button><button id="connect-metamask" class="wallet-option" type="button"><img class="wallet-logo" src="./assets/metamask.svg" alt="MetaMask logo" /><span class="wallet-copy"><strong>MetaMask</strong><small>Connect your MetaMask account</small></span><b>Connect</b></button></div>
+      <section id="wallet-selected-step" hidden><p id="selected-wallet-name"></p><button id="back-wallet-selection" type="button">Choose another wallet</button><button id="retry-wallet-connection" type="button" hidden>Retry connection</button><button id="cancel-wallet-pair" type="button">Cancel connection</button></section><section id="mobile-pair-panel" hidden><img id="wallet-pair-qr" width="240" height="240" alt="Scan this connection code with YNX Wallet" /><a id="wallet-pair-open">Open YNX Wallet</a></section><div id="wallet-status" class="wallet-status" data-tone="neutral" role="status">No account request is sent until you choose a wallet.</div>
+      <a id="install-wallet" class="install-link" href="#" rel="noreferrer" hidden>Install wallet</a>
+      <button id="retry-wallet-discovery" class="install-link" type="button" hidden>Retry wallet detection</button>
+    </dialog>
+    <script type="module" src="./app.js"></script>
+    <script type="module" src="./private-session-ui.js"></script>
+<section id="matrix-social-workspace" class="section" aria-label="Private chat">
+  <header class="chat-heading"><div><span class="chat-wordmark"><img src="./assets/ynx-logo.png" alt="YNX" width="76" height="40">YNX Social</span><h2 data-chat-copy="title">Your private conversations</h2><p data-chat-copy="intro">Choose a conversation, compare devices, then share messages and files.</p></div><span class="chat-connection-label" data-connection-label>Locked</span></header>
+  <p data-status role="status" aria-live="polite">Private chat is locked. Your messages and devices are retained.</p>
+  <div class="chat-actions"><button type="button" data-connect data-chat-copy="open">Open private chat</button><button type="button" data-stop data-chat-copy="lock">Lock chat</button><a href="#social-workspace" data-chat-copy="permissions">Review sign-in and chat permissions</a></div>
+  <div class="chat-workspace-grid"><aside class="chat-sidebar"><h3 data-chat-copy="rooms">Conversations and invitations</h3><button type="button" data-rooms data-chat-copy="rooms">Conversations and invitations</button><div data-room-list class="chat-room-list" aria-label="Conversations"></div><div data-verification class="chat-verification" aria-live="polite"></div><h3 data-chat-copy="people">Start a conversation</h3><p data-chat-copy="contactHelp">Choose a person whose contact request has been accepted. No wallet address is needed.</p><button type="button" data-refresh-contacts data-chat-copy="refreshContacts">Refresh accepted contacts</button><form data-peer-form><label><span data-chat-copy="peer">Accepted contact</span><select name="matrixPeer" required><option value="">Choose a contact</option></select></label><button type="submit" data-chat-copy="create">Start encrypted conversation</button></form></aside>
+    <div class="chat-conversation"><header class="chat-conversation-heading"><button type="button" data-chat-back aria-label="Back to conversations">Back</button><h3 data-room-title>Your conversations</h3><button type="button" data-chat-device-menu aria-label="Conversation devices and security">Security</button></header><ul data-messages aria-live="polite" aria-label="Encrypted messages"></ul><form data-send-form><label><span data-chat-copy="message">Your message</span><textarea name="matrixText" required maxlength="16000"></textarea></label><div class="chat-composer-actions"><label class="chat-file-label"><span data-chat-copy="attachment">Add an encrypted file</span><input type="file" data-attachment disabled></label><button type="submit" data-chat-copy="send" disabled>Send message</button></div></form></div>
+  </div>
+  <section class="chat-device-section"><div class="chat-device-heading"><h3 data-chat-copy="checks">Device checks</h3><button type="button" data-show-devices data-chat-copy="devices">My devices</button></div><div data-devices aria-live="polite"></div></section>
+  <section id="social-moments" data-moments-panel aria-label="Moments"></section>
+  <details class="chat-connection-details"><summary data-chat-copy="details">Connection details</summary><p>Account and device permissions are checked with the sign-in service. Conversations use the existing Matrix encrypted transport and Rust crypto storage. Availability is checked when you connect.</p><p>Diagnostic code: <code data-diagnostic-code>NONE</code></p></details>
+</section>
+<script type="module" src="/matrix-session-ui.js"></script>
+<script type="module" src="./product-shell.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+Social-only immutable static publication input, not deployment approval.
+Exact product commit d2c0901bebef47ad6d958e21fe98f6b0d0bfc77b / tree 0eccf2524dc43971028bc0d97c997e49aeddfe88.
+site.tar.gz: 3571692 bytes, SHA256 e1bca00efa251fa6266b48d201a7af42dfa11cff6839e02305ea1e1fec5b8c14.
+28 regular output files frozen individually in manifest.json.
+Built from exact Git archive using original web/build.mjs and existing Social installed dependencies; no source edits, package downloads or private SDK evaluation. Runtime Node26.7.0, not a formal Node24 target build. Initial missing isolated esbuild dependency failure retained; corrected by linking original Social dependency directory, build exit0.
+Contains current microsite, original proportional logos, English/Chinese public/app shell and current accepted-contact route consumer hardening. Does not activate Veil native cryptography or claim private business ready.
+Anonymous HTTPS public observation at freeze still returns index 17029 bytes / SHA f81fa34f5a71b95a01ef389c2a6adef5795023ab0f724847866f44dcba1b2045, NOT matching candidate index. This is public byte readback, not browser or user acceptance.
+Current deploymentId/rollback identity is NOT reasserted from old receipts. Exact current project/deployment/artifact, rollback, formal build/output contract and lease expiry must be supplied by sole Central/A publisher.
+Executor: original /root/wallet_release_owner only. No publication by this product owner; no vercel.json or shared Host writes.
+A may use existing separate publication authorization with source binding and necessary current protection; the manifest itself grants no lease.
+After actual compatible publication, product owner must directly exercise canonical public EN/ZH/root/explicit same-tab app/URL/back/refresh/mobile/logo/provider UI without account/sign/transaction requests and freeze actual source identity. Current-source and public browser acceptance are NOT_RUN in this package.
+Preserve old 8c candidate, original live services, keys/history/drafts/UNKNOWN and all prior negative evidence. Crypto activationApproved=false/activated=false; installed/MONSTER remain unverified.
