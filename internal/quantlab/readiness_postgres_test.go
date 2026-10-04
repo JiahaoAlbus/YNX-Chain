@@ -1,6 +1,7 @@
 package quantlab
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -23,6 +24,21 @@ func TestPostgreSQLReadinessRejectsClosedPoolAndRecoversOnReopen(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer service.Close()
+	t.Cleanup(func() {
+		// The original pool is deliberately closed by this test. Reopen only
+		// this exact disposable namespace for cleanup, never delete other rows.
+		cleanup, err := New(cfg)
+		if err != nil {
+			t.Error(err)
+			return
+		}
+		defer cleanup.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := cleanup.store.(*postgresStateStore).db.ExecContext(ctx, `DELETE FROM ynx_quant_state WHERE state_key=$1`, cfg.StateNamespace); err != nil {
+			t.Error(err)
+		}
+	})
 	server := httptest.NewServer(NewServer(service))
 	defer server.Close()
 	check := func(url string, status int, reason string) {

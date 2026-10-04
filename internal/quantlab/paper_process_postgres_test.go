@@ -30,6 +30,30 @@ type paperProcessFixture struct {
 	HoldSchedule                      bool
 }
 
+func TestPaperProcessRejectsUnapprovedDatabaseBeforeStart(t *testing.T) {
+	executable, err := os.Executable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture := paperProcessFixture{DatabaseURL: "postgres://isolated_fixture@127.0.0.1:9/wrong_database", Namespace: "quant-process-it-negative", StatePath: filepath.Join(t.TempDir(), "must-not-exist.json")}
+	input, err := json.Marshal(fixture)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, executable, "-test.run=^TestQuantPostgresPaperProcessHelper$", "-test.timeout=4s")
+	cmd.Env = append(os.Environ(), "YNX_QUANT_PAPER_PROCESS_FIXTURE=1")
+	cmd.Stdin = bytes.NewReader(input)
+	output, err := cmd.CombinedOutput()
+	if err == nil || ctx.Err() != nil || !bytes.Contains(output, []byte("requires exact loopback QA database and isolated namespace")) || bytes.Contains(output, []byte("paperProcessURL=")) {
+		t.Fatal("unapproved fixture did not fail before readiness")
+	}
+	if _, err := os.Lstat(fixture.StatePath); !os.IsNotExist(err) {
+		t.Fatal("rejected child created a state path")
+	}
+}
+
 // Only the test binary exposes this endpoint. Its synthetic market is explicitly
 // local Paper data, not public prices, wallet authorization or Testnet trading.
 func TestQuantPostgresPaperProcessHelper(t *testing.T) {
@@ -176,6 +200,11 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 		}
 		t.Logf("actual Quant PostgreSQL process pid=%d paperMarket=%t researchMarket=%t scheduledResearch=%t", cmd.Process.Pid, fixture.Online, fixture.ResearchOnline, fixture.ScheduleAt != 0)
 		return paperProcessEndpoint{URL: endpoint, Close: closeProcess, Crash: func() { terminate(true) }}
+	case err := <-done:
+		// Already reaped. Never turn an observed terminal exit into a timeout or
+		// consume the same Wait result again during registered cleanup.
+		once.Do(func() {})
+		t.Fatalf("Quant child exited before readiness: %v", err)
 	case <-time.After(10 * time.Second):
 		t.Fatal("Quant child startup timeout")
 	}
@@ -183,6 +212,16 @@ func startPaperProcess(t *testing.T, fixture paperProcessFixture) paperProcessEn
 }
 
 func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) {
+	for _, costs := range []bool{false, true} {
+		name := "legacy"
+		if costs {
+			name = "explicit_costs"
+		}
+		t.Run(name, func(t *testing.T) { runPostgreSQLPaperHTTPProcesses(t, costs) })
+	}
+}
+
+func runPostgreSQLPaperHTTPProcesses(t *testing.T, costsEnabled bool) {
 	databaseURL := strings.TrimSpace(os.Getenv("YNX_QUANT_POSTGRES_TEST_URL"))
 	if databaseURL == "" {
 		t.Skip("YNX_QUANT_POSTGRES_TEST_URL is not configured")
@@ -207,6 +246,7 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 		t.Fatal(err)
 	}
 	hashes := make([]string, 2)
+	initialCash := make([]int64, 2)
 	for i, tenant := range tenants {
 		tenantConfig := cfg
 		tenantConfig.StateNamespace += ":tenant:" + tenant
@@ -217,6 +257,7 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 		q := request()
 		q.Strategy.Seed += int64(i)
 		experiment, err := seed.RunBacktest(q)
+		initialCash[i] = seed.state.Paper.Cash
 		_ = seed.Close()
 		if err != nil {
 			t.Fatal(err)
@@ -249,7 +290,11 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 	}
 	intents := make([][]byte, 2)
 	for i := range tenants {
-		intents[i], _ = json.Marshal(map[string]any{"strategyHash": hashes[i], "side": "buy", "amount": 1_000_000 * (i + 1), "idempotencyKey": "same-key-two-isolated-tenants"})
+		intent := map[string]any{"strategyHash": hashes[i], "side": "buy", "amount": 1_000_000 * (i + 1), "idempotencyKey": "same-key-two-isolated-tenants"}
+		if costsEnabled {
+			intent["executionCosts"] = map[string]any{"policy": PaperCostPolicyV1, "feeBPS": 10 + 5*i, "slippageBPS": 5 + 5*i}
+		}
+		intents[i], _ = json.Marshal(intent)
 	}
 	start := make(chan struct{})
 	results := make(chan result, 16)
@@ -275,6 +320,14 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 		r := call(two.URL, tenant, "POST", "/v1/paper/orders", intents[i])
 		if r.err != nil || r.status != 201 || json.Unmarshal(r.body, &receipts[i]) != nil || receipts[i].StrategyHash != hashes[i] || receipts[i].Amount != int64(1_000_000*(i+1)) || receipts[i].Filled != receipts[i].Amount {
 			t.Fatalf("bound tenant receipt status=%d err=%v", r.status, r.err)
+		}
+		if costsEnabled {
+			wantPrice := []int64{1_200_600, 1_201_200}[i]
+			wantNotional := []int64{1_200_600, 2_402_400}[i]
+			wantFee := []int64{1201, 3604}[i]
+			if receipts[i].CostPolicy != PaperCostPolicyV1 || receipts[i].FeeBPS != int64(10+5*i) || receipts[i].SlippageBPS != int64(5+5*i) || receipts[i].ExecutionPriceMicro != wantPrice || receipts[i].ExecutedNotionalMicro != wantNotional || receipts[i].FeeMicro != wantFee {
+				t.Fatalf("tenant %d wrong exact cost receipt: %+v", i, receipts[i])
+			}
 		}
 	}
 	r := call(one.URL, tenants[0], "POST", "/v1/risk/kill", []byte(`{"reason":"controlled multi-process tenant kill"}`))
@@ -302,6 +355,23 @@ func TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation(t *testing.T) 
 		}
 		if r.err != nil || r.status != 200 || json.Unmarshal(r.body, &before) != nil || len(before.Paper.Orders) != 1 || before.Paper.KillSwitch != (i == 0) {
 			t.Fatalf("restart isolated state status=%d err=%v", r.status, r.err)
+		}
+		if costsEnabled {
+			if before.Paper.Cash != initialCash[i]-receipts[i].ExecutedNotionalMicro-receipts[i].FeeMicro || before.Paper.DailyRisk == nil || before.Paper.DailyRisk.Loss != []int64{1801, 6004}[i] {
+				t.Fatal("SQL cost charged twice or missing immediate marked loss")
+			}
+			var altered map[string]any
+			_ = json.Unmarshal(intents[i], &altered)
+			altered["executionCosts"] = map[string]any{"policy": PaperCostPolicyV1, "feeBPS": 99, "slippageBPS": 5 + 5*i}
+			body, _ := json.Marshal(altered)
+			if result := call(restarted.URL, tenant, "POST", "/v1/paper/orders", body); result.err != nil || result.status != 409 {
+				t.Fatalf("changed SQL cost identity accepted: %d/%v", result.status, result.err)
+			}
+			delete(altered, "executionCosts")
+			body, _ = json.Marshal(altered)
+			if result := call(restarted.URL, tenant, "POST", "/v1/paper/orders", body); result.err != nil || result.status != 409 {
+				t.Fatalf("legacy SQL request reused cost receipt: %d/%v", result.status, result.err)
+			}
 		}
 		for replay := 0; replay < 4; replay++ {
 			r = call(restarted.URL, tenant, "POST", "/v1/paper/orders", intents[i])

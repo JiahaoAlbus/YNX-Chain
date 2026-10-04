@@ -54,16 +54,17 @@ try {
   requireSuccess(startResult);
   if(!started)throw Error('Started QA server has no identity receipt.');
   const connection=['-h','127.0.0.1','-p',String(receipt.port),'-U','ynx_quant_qa'];
-  requireSuccess(await run('createdb',path.join(bin,'createdb'),[...connection,'quant_isolated_qa']));
-  receipt.databaseIdentity=requireSuccess(await run('identity',path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-At','-c',"SELECT current_database(),inet_server_addr(),current_setting('server_version')"])).stdout.trim();
+  requireSuccess(await run('createdb',path.join(bin,'createdb'),[...connection,'ynx_quant_qa']));
+  receipt.databaseIdentity=requireSuccess(await run('identity',path.join(bin,'psql'),[...connection,'-d','ynx_quant_qa','-At','-c',"SELECT current_database(),inet_server_addr(),current_setting('server_version')"])).stdout.trim();
   const required=['TestPostgreSQLStateStoreMultiInstanceCASRestartAndTenantIsolation','TestPostgreSQLTenantServerKeepsRiskStateIsolatedAcrossHTTPUsers','TestPostgreSQLResearchReplayConcurrentInstancesRestartAndTenantIsolation','TestFinanceReadPostgresTenantAndCrossInstanceReplay','TestPostgreSQLPaperKillFencesInFlightMarketAndSurvivesRestart','TestPostgreSQLPaperDailyMarkedLossPersistsLatchAndUTCReset','TestPostgreSQLSchedulesFenceStoppedInflightAndRecoverClaimsAcrossInstances'];
   required.push('TestPostgreSQLReadinessRejectsClosedPoolAndRecoversOnReopen');
   required.push('TestPostgreSQLTenantSchedulerResumesAfterRestartWithoutBrowser');
   required.push('TestPostgreSQLSchedulesPreserveContextCancellationAndNextDueRecovery');
-  const result=requireSuccess(await run('integration','go',['test','-race','./internal/quantlab','-run','^(TestPostgreSQL|TestFinanceReadPostgres)','-count=2','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/quant_isolated_qa?sslmode=disable`}));
+  required.push('TestPostgreSQLPaperHTTPProcessesReplayRiskAndTenantIsolation');
+  const result=requireSuccess(await run('integration','go',['test','-race','./internal/quantlab','-run','^(TestPostgreSQL|TestFinanceReadPostgres)','-count=2','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/ynx_quant_qa?sslmode=disable`}));
   if(result.stdout.includes('--- SKIP:') || required.some(name=>(result.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==2)) throw Error('All required actual PostgreSQL gates must execute twice, not skip.');
   receipt.integrationPasses=required.length*2;
-  const sql=async (phase,query)=>requireSuccess(await run(phase,path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-v','ON_ERROR_STOP=1','-At','-c',query])).stdout.trim();
+  const sql=async (phase,query)=>requireSuccess(await run(phase,path.join(bin,'psql'),[...connection,'-d','ynx_quant_qa','-v','ON_ERROR_STOP=1','-At','-c',query])).stdout.trim();
   await sql('restart-probe-create',"CREATE TABLE qa_restart_probe (value TEXT NOT NULL); INSERT INTO qa_restart_probe VALUES ('isolated_restart_receipt')");
   await stopOwnedCluster('restart-stop');
   const restartResult=await run('restart-start',path.join(bin,'pg_ctl'),['-D',data,'-w','-t','20','-l',path.join(root,'postgres.log'),'-o',`-h 127.0.0.1 -p ${receipt.port} -k ${socket}`,'start']);
@@ -73,11 +74,11 @@ try {
   if(await sql('restart-probe-read','SELECT value FROM qa_restart_probe')!=='isolated_restart_receipt')throw Error('Database restart lost durable fixture receipt.');
   await sql('restart-probe-drop','DROP TABLE qa_restart_probe');
   receipt.databaseRestartVerified=true;
-  const full=requireSuccess(await run('full-regression','go',['test','-race','./internal/quantlab','./internal/readintegration','-count=1','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/quant_isolated_qa?sslmode=disable`}));
+  const full=requireSuccess(await run('full-regression','go',['test','-race','./internal/quantlab','./internal/readintegration','-count=1','-v','-timeout=90s'],{...process.env,YNX_QUANT_POSTGRES_TEST_URL:`postgres://ynx_quant_qa@127.0.0.1:${receipt.port}/ynx_quant_qa?sslmode=disable`}));
   if(required.some(name=>(full.stdout.match(new RegExp('^--- PASS: '+name+' ','gm'))||[]).length!==1))throw Error('Full regression did not execute every actual database gate.');
   receipt.fullRegressionPassed=true;
   receipt.fullRegressionPasses=(full.stdout.match(/^--- PASS: /gm)||[]).length;
-  receipt.remainingRows=requireSuccess(await run('row-receipt',path.join(bin,'psql'),[...connection,'-d','quant_isolated_qa','-At','-c','SELECT (SELECT count(*) FROM ynx_quant_state),(SELECT count(*) FROM ynx_quant_finance_read_nonces)'])).stdout.trim();
+  receipt.remainingRows=requireSuccess(await run('row-receipt',path.join(bin,'psql'),[...connection,'-d','ynx_quant_qa','-At','-c','SELECT (SELECT count(*) FROM ynx_quant_state),(SELECT count(*) FROM ynx_quant_finance_read_nonces)'])).stdout.trim();
   if(receipt.remainingRows!=='0|0') throw Error('Integration left fixture state/nonce rows behind.');
   receipt.testsPassed=true;
 } catch(error) {failure=error.message;receipt.failure=error.message;}
