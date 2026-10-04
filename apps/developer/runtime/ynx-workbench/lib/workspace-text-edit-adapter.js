@@ -48,6 +48,46 @@ async function readClosedDocument(fileService, resource, encoding) {
 }
 function matches(model, expected) { return !model.isDisposed() && model.getAlternativeVersionId() === expected.alternativeVersion && model.getEOL() === expected.eol && model.getValue() === expected.value; }
 function refuse(message, warn) { warn(message); return { returnValue: undefined }; }
+function relocateResources(service, mappings) {
+  const bySource = new Map(), destinations = new Set(), elements = new Set();
+  for (const mapping of mappings) {
+    const source = mapping.oldResource?.toString(), destination = mapping.newResource?.toString();
+    if (!source || !destination || source === destination || bySource.has(source) || destinations.has(destination)) throw Error('Workspace resource relocation has duplicate or invalid identities.');
+    if (mapping.model !== undefined && (mapping.model.isDisposed() || mapping.model.uri.toString() !== destination)) throw Error('Workspace resource relocation model URI does not match its destination.');
+    if (service.getUriComparisonKey(mapping.oldResource) !== source || service.getUriComparisonKey(mapping.newResource) !== destination) throw Error('Workspace resource relocation cannot alias another undo history.');
+    bySource.set(source, mapping); destinations.add(destination);
+  }
+  for (const stack of service._editStacks.values()) for (const wrapper of [...stack._past, ...stack._future]) if (wrapper.actual?.[transactionMarker]) elements.add(wrapper.actual);
+  const changes = [], transactions = new Set();
+  for (const element of elements) {
+    const transaction = element[transactionMarker], resulting = new Set();
+    for (const row of transaction.records) {
+      const source = row.resource.toString(), mapping = bySource.get(source), destination = mapping?.newResource.toString() || source;
+      if (resulting.has(destination) || !mapping && destinations.has(source)) throw Error('Workspace resource relocation collides with another captured resource.');
+      resulting.add(destination);
+      if (!mapping) continue;
+      if (transaction.busy) throw Error('A workspace transaction is busy and cannot relocate resources.');
+      if (!element.matchesResource(mapping.newResource) || ![...service.getElements(mapping.newResource).past, ...service.getElements(mapping.newResource).future].includes(element)) throw Error('Native workspace history must be rekeyed before relocating captured resources.');
+      const child = element._editStackElementsArr.find(item => item.resource.toString() === destination);
+      if (!child || mapping.model !== undefined && child.model !== mapping.model || mapping.model === undefined && child.model.uri && !child.model.isDisposed()) throw Error('Workspace resource relocation model does not match its native child binding.');
+      changes.push({ row, resource: row.resource, model: row.model, nextResource: mapping.newResource, nextModel: mapping.model }); transactions.add(transaction);
+    }
+  }
+  // Validation is complete. No buffers, native stacks or reference collections
+  // are changed here; the coordinator owns their fenced migration and rollback.
+  for (const change of changes) { change.row.resource = change.nextResource; change.row.model = change.nextModel; }
+  let rolledBack = false;
+  return {
+    recordsChanged: changes.length, elementsChanged: transactions.size,
+    rollback() {
+      if (rolledBack) return;
+      for (const transaction of transactions) if (transaction.busy) throw Error('A busy workspace transaction cannot roll back resource relocation.');
+      for (const change of changes) if (change.row.resource !== change.nextResource || change.row.model !== change.nextModel) throw Error('Workspace resource relocation changed before rollback.');
+      for (const change of changes) { change.row.resource = change.resource; change.row.model = change.model; }
+      rolledBack = true;
+    },
+  };
+}
 function installUndoGuards(service, warn) {
   if (service[installedMarker]) return;
   for (const name of ['_undo', '_redo', '_checkWorkspaceUndo', '_checkWorkspaceRedo', '_tryToSplitAndUndo', '_tryToSplitAndRedo']) {
@@ -162,6 +202,7 @@ async function applyTextTransaction(workspace, edits, dependencies) {
     const records = prepared.map(row => ({ resource: row.model.uri, model: row.model, encoding: row.encoding, before: row.before, after: undefined }));
     const transaction = {
       busy: false,
+      records,
       async acquire(direction) {
         const acquired = [];
         try {
@@ -255,4 +296,4 @@ function install() {
   };
   Object.defineProperty(MonacoWorkspace.prototype, transactionMarker, { value: true });
 }
-module.exports = { install, setNotification: notify => { notification = notify; }, applyTextTransaction, assertSupported, readClosedDocument };
+module.exports = { install, setNotification: notify => { notification = notify; }, applyTextTransaction, assertSupported, readClosedDocument, relocateResources };

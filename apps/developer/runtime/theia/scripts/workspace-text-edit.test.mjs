@@ -11,7 +11,7 @@ import { Event } from '../node_modules/@theia/monaco-editor-core/esm/vs/base/com
 import { EDITOR_MODEL_DEFAULTS } from '../node_modules/@theia/monaco-editor-core/esm/vs/editor/common/core/misc/textModelDefaults.js';
 import { SingleModelEditStackElement, MultiModelEditStackElement } from '../node_modules/@theia/monaco-editor-core/esm/vs/editor/common/model/editStack.js';
 import { UndoRedoService } from '../node_modules/@theia/monaco-editor-core/esm/vs/platform/undoRedo/common/undoRedoService.js';
-const require = createRequire(import.meta.url), { applyTextTransaction, assertSupported, readClosedDocument } = require('../../ynx-workbench/lib/workspace-text-edit-adapter.js');
+const require = createRequire(import.meta.url), { applyTextTransaction, assertSupported, readClosedDocument, relocateResources } = require('../../ynx-workbench/lib/workspace-text-edit-adapter.js');
 require('reflect-metadata');
 const { EncodingService } = require('../node_modules/@theia/core/lib/common/encoding-service.js');
 const { BinaryBufferReadableStream } = require('../node_modules/@theia/core/lib/common/buffer.js');
@@ -31,7 +31,7 @@ function fixture(t, texts = ['twice\r\n中文🧩', 'twice\nsecond line', 'twice
  const values=()=>resources.map(uri=>models.get(uri.toString()).getValue());
  const save=()=>{for(const model of models.values())disk.set(model.uri.toString(),model.getValue());};
  function close(uri){const model=models.get(uri.toString());save();modelService.destroyModel(uri);models.delete(uri.toString());}
- return {workspace,dependencies,models,undoRedo,warnings,resources,edits,values,save,close,disk};
+ return {modelService,workspace,dependencies,models,undoRedo,warnings,resources,edits,values,save,close,disk};
 }
 test('real retained Monaco models and workspace undo stacks restore every text edit, EOL and UTF-16 span from any caller',async t=>{
  const h=fixture(t),before=h.values();const changes=h.edits();changes[0].textEdit.eol=0;
@@ -144,4 +144,60 @@ test('failed workspace push restores the exact initial undo snapshot, including 
   await applyTextTransaction(h.workspace,h.edits(),h.dependencies);const after=h.values();
   await h.undoRedo.undo(h.resources[1]);assert.deepEqual(h.values(),before);await h.undoRedo.redo(h.resources[0]);assert.deepEqual(h.values(),after);assert.deepEqual(h.warnings,[]);
  }
+});
+
+// Test-only native relocation: the production hook does not perform this work.
+function migrateNative(h,oldUri,newUri){
+ const oldKey=oldUri.toString(),newKey=newUri.toString(),oldModel=h.models.get(oldKey),snapshot=oldModel.getInitialUndoRedoSnapshot();
+ const replacement=h.modelService.createModel(oldModel.getValue(undefined,true),'plaintext',newUri);
+ replacement._overwriteVersionId(oldModel.getVersionId());replacement._overwriteAlternativeVersionId(oldModel.getAlternativeVersionId());
+ if(snapshot){const moved=Object.create(Object.getPrototypeOf(snapshot));Object.assign(moved,snapshot,{resource:newUri});replacement._overwriteInitialUndoRedoSnapshot(moved);}
+ const stack=h.undoRedo._editStacks.get(oldKey),seen=new Set();
+ if(stack){h.undoRedo._editStacks.delete(oldKey);h.undoRedo._editStacks.set(newKey,stack);stack.strResource=newKey;stack.resourceLabel=newUri.fsPath;}
+ for(const current of h.undoRedo._editStacks.values())for(const wrapper of [...current._past,...current._future]){
+  if(seen.has(wrapper))continue;seen.add(wrapper);
+  wrapper.strResources=wrapper.strResources.map(key=>key===oldKey?newKey:key);wrapper.resourceLabels=wrapper.resourceLabels.map((label,index)=>wrapper.strResources[index]===newKey?newUri.fsPath:label);
+  if(wrapper.strResource===oldKey){wrapper.strResource=newKey;wrapper.resourceLabel=newUri.fsPath;}
+  const actual=wrapper.actual;
+  if(actual instanceof SingleModelEditStackElement){if(actual.model===oldModel||actual.model.toString()===oldKey)actual.setModel(replacement);}
+  else if(actual instanceof MultiModelEditStackElement){const child=actual._editStackElementsMap.get(oldKey);if(child){actual._editStackElementsMap.delete(oldKey);actual._editStackElementsMap.set(newKey,child);child.setModel(replacement);}}
+  for(const flag of [wrapper.removedResources,wrapper.invalidatedResources])if(flag?.elements.has(oldKey)){const entry=flag.elements.get(oldKey);flag.elements.delete(oldKey);entry.resourceLabel=newUri.fsPath;flag.elements.set(newKey,entry);}
+ }
+ h.models.set(newKey,replacement);h.models.delete(oldKey);h.modelService.destroyModel(oldUri);
+ const index=h.resources.findIndex(uri=>uri.toString()===oldKey);h.resources[index]=newUri;h.disk.set(newKey,h.disk.get(oldKey));h.disk.delete(oldKey);return replacement;
+}
+test('explicit relocation preserves old typing, owned workspace history, closed restore, inverse migration and unrelated history',async t=>{
+ const h=fixture(t,['twice','twice','unrelated']),oldUri=h.resources[0],first=h.models.get(oldUri.toString()),unrelated=h.models.get(h.resources[2].toString());
+ first.pushEditOperations([],[{range:new Range(1,6,1,6),text:' old'}],()=>[]);unrelated.pushEditOperations([],[{range:new Range(1,10,1,10),text:' user'}],()=>[]);const unrelatedHistory=h.undoRedo.getElements(unrelated.uri);
+ await applyTextTransaction(h.workspace,h.edits().slice(0,2),h.dependencies);const after=h.values(),element=h.undoRedo.getElements(oldUri).past.at(-1),newUri=URI.parse('file:///owned/renamed.sol'),replacement=migrateNative(h,oldUri,newUri);
+ const relocation=relocateResources(h.undoRedo,[{oldResource:oldUri,newResource:newUri,model:replacement}]);assert.equal(relocation.recordsChanged,1);assert.equal(h.disk.get(newUri.toString()),'twice');
+ await replacement.undo();assert.deepEqual(h.values(),['twice old','twice','unrelated user']);await replacement.undo();assert.deepEqual(h.values(),['twice','twice','unrelated user']);await replacement.redo();await replacement.redo();assert.deepEqual(h.values(),after);
+ h.close(newUri);h.close(h.resources[1]);await h.undoRedo.undo(newUri);assert.deepEqual(h.values(),['twice old','twice','unrelated user']);await h.undoRedo.redo(newUri);assert.deepEqual(h.values(),after);
+ // Closing/reopening changed the bound model, so the original immediate
+ // rollback token is stale. A later inverse migration is a fresh operation.
+ assert.throws(()=>relocation.rollback(),/changed before rollback/);
+ const restored=migrateNative(h,newUri,oldUri);relocateResources(h.undoRedo,[{oldResource:newUri,newResource:oldUri,model:restored}]);await restored.undo();assert.deepEqual(h.values(),['twice old','twice','unrelated user']);await restored.redo();assert.deepEqual(h.values(),after);
+ assert.deepEqual(h.undoRedo.getElements(unrelated.uri),unrelatedHistory);assert.deepEqual(h.warnings,[]);
+});
+test('directory leaf relocation updates past and future owned records, including closed models',async t=>{
+ const h=fixture(t,['twice','twice']);await applyTextTransaction(h.workspace,h.edits(),h.dependencies);await h.undoRedo.undo(h.resources[0]);const old=h.resources.slice(),mappings=[];
+ for(let index=0;index<old.length;index++){const next=URI.parse(`file:///owned/moved/${index}.sol`);migrateNative(h,old[index],next);h.close(next);mappings.push({oldResource:old[index],newResource:next});}
+ const moved=relocateResources(h.undoRedo,mappings);assert.equal(moved.recordsChanged,2);await h.undoRedo.redo(h.resources[1]);assert.deepEqual(h.values(),['doubleValue','doubleValue']);await h.undoRedo.undo(h.resources[0]);assert.deepEqual(h.values(),['twice','twice']);assert.deepEqual(h.warnings,[]);
+});
+test('relocation validates the entire batch before changing records and refuses busy, collisions and mismatched model identities',async t=>{
+ const h=fixture(t,['twice','twice']);await applyTextTransaction(h.workspace,h.edits(),h.dependencies);const element=h.undoRedo.getElements(h.resources[0]).past.at(-1),transaction=element[Symbol.for('ynx.workspace-text-transaction.v1')],old=h.resources[0],next=URI.parse('file:///owned/moved.sol'),model=migrateNative(h,old,next),before=transaction.records.map(row=>({resource:row.resource,model:row.model})),mapping={oldResource:old,newResource:next,model};
+ for(const invalid of [[mapping,{oldResource:h.resources[1],newResource:next}], [{...mapping,model:h.models.get(h.resources[1].toString())}], [{...mapping,model:{uri:next,isDisposed:()=>false}}], [{oldResource:old,newResource:next}], [{oldResource:old,newResource:h.resources[1],model:h.models.get(h.resources[1].toString())}]]){assert.throws(()=>relocateResources(h.undoRedo,invalid),/duplicate|match|collid|rekeyed/);assert.deepEqual(transaction.records.map(row=>({resource:row.resource,model:row.model})),before);}
+ transaction.busy=true;assert.throws(()=>relocateResources(h.undoRedo,[mapping]),/busy/);transaction.busy=false;assert.deepEqual(transaction.records.map(row=>({resource:row.resource,model:row.model})),before);
+ const key=h.undoRedo.getUriComparisonKey.bind(h.undoRedo);h.undoRedo.getUriComparisonKey=uri=>uri.toString()===next.toString()?old.toString():key(uri);assert.throws(()=>relocateResources(h.undoRedo,[mapping]),/alias/);h.undoRedo.getUriComparisonKey=key;assert.deepEqual(transaction.records.map(row=>({resource:row.resource,model:row.model})),before);
+ const move=relocateResources(h.undoRedo,[mapping]);transaction.busy=true;assert.throws(()=>move.rollback(),/busy/);transaction.busy=false;assert.equal(transaction.records[0].resource,next);move.rollback();assert.deepEqual(transaction.records.map(row=>({resource:row.resource,model:row.model})),before);
+});
+test('relocated transactions still refuse later user typing and recover only after that native typing is undone',async t=>{
+ const h=fixture(t,['twice','twice']);await applyTextTransaction(h.workspace,h.edits(),h.dependencies);const old=h.resources[0],next=URI.parse('file:///owned/moved.sol'),model=migrateNative(h,old,next);relocateResources(h.undoRedo,[{oldResource:old,newResource:next,model}]);
+ model.pushStackElement();model.pushEditOperations([],[{range:new Range(1,12,1,12),text:' user'}],()=>[]);model.pushStackElement();const before=h.values(),history=h.resources.map(uri=>h.undoRedo.getElements(uri));await h.undoRedo.undo(h.resources[1]);assert.deepEqual(h.values(),before);assert.deepEqual(h.resources.map(uri=>h.undoRedo.getElements(uri)),history);assert.match(h.warnings.at(-1),/later edits/);await model.undo();await h.undoRedo.undo(h.resources[1]);assert.deepEqual(h.values(),['twice','twice']);
+});
+test('relocation updates every marked past and future element sharing a source URI',async t=>{
+ const h=fixture(t,['twice','twice']);await applyTextTransaction(h.workspace,h.edits(),h.dependencies);
+ const second=h.resources.map(uri=>({resource:uri,textEdit:{range:new Range(1,1,1,12),text:'tripleValue'}}));await applyTextTransaction(h.workspace,second,h.dependencies);await h.undoRedo.undo(h.resources[0]);
+ const old=h.resources[0],next=URI.parse('file:///owned/shared-history.sol'),model=migrateNative(h,old,next),result=relocateResources(h.undoRedo,[{oldResource:old,newResource:next,model}]);assert.equal(result.recordsChanged,2);assert.equal(result.elementsChanged,2);
+ await model.redo();assert.deepEqual(h.values(),['tripleValue','tripleValue']);await model.undo();assert.deepEqual(h.values(),['doubleValue','doubleValue']);await model.undo();assert.deepEqual(h.values(),['twice','twice']);await model.redo();await model.redo();assert.deepEqual(h.values(),['tripleValue','tripleValue']);assert.deepEqual(h.warnings,[]);
 });
