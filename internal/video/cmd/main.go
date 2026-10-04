@@ -68,7 +68,7 @@ func main() {
 		auth = video.CentralProductSessionAuth{GatewayURL: gatewayURL, Moderators: moderators}
 	}
 	build := buildinfo.Normalize(buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime})
-	srv := &http.Server{Addr: addr, Handler: video.NewServerWithBuild(svc, auth, build).Handler(), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
+	srv := &http.Server{Addr: addr, Handler: wrapOriginalBusiness(video.NewServerWithBuild(svc, auth, build).Handler()), ReadHeaderTimeout: 10_000_000_000, MaxHeaderBytes: 1 << 20}
 	if current != nil {
 		if err = current(); err != nil {
 			log.Fatal(err)
