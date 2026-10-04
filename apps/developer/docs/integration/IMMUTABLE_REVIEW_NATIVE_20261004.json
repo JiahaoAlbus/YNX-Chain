@@ -1,0 +1,242 @@
+{
+  "checkpoint": "YNX immutable review standalone macOS package, 2026-10-04",
+  "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "8c2183d1d9c69c0f955c500e29ea1dc69212955e",
+    "sourceTree": "37f097ab471b8102980315f37ee27094704ae122",
+    "sourceCommitDate": "2026-10-04T18:15:24+08:00",
+    "runtimeCheckpoint": "8c2183d1d9c69c0f955c500e29ea1dc69212955e",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "07b1da32b02e614c5680e99192a1f432a61e1f59e3ba116d3b48888d98ec05bb",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+        "treeSha256": "533254908a12ea914346c15001b641152083947258cd7d37e8f608e45a090727",
+        "manifestSha256": "a1f6e4dfecf4f7deb76d0b57e5c34b97bcdd57c81127985eb37ea7903055cb8e"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "3eb537739b0ace0196c18f3fad4a5071cc072fc603e0f22e8808a2e1fc65c93b",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "workbenchVersion": "0.3.14",
+  "toolsVersion": "0.2.9",
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+      "treeSha256": "533254908a12ea914346c15001b641152083947258cd7d37e8f608e45a090727",
+      "manifestSha256": "a1f6e4dfecf4f7deb76d0b57e5c34b97bcdd57c81127985eb37ea7903055cb8e"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "3eb537739b0ace0196c18f3fad4a5071cc072fc603e0f22e8808a2e1fc65c93b",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmg": {
+    "file": "ynx-developer-testnet-preview-macos-arm64-unsigned.dmg",
+    "sha256": "248253be67b4c1ba518903223a2749d11e59fc318cb47c06851e225b429399dd",
+    "imageVerifyExit": 0
+  },
+  "signature": {
+    "deepStrictVerifyExit": 0,
+    "class": "adhoc",
+    "teamIdentifier": null,
+    "notarized": false
+  },
+  "packagingExit": 0,
+  "packagedServer": {
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64",
+    "qa": "/private/tmp/ynx-packaged-server-goTECi",
+    "pid": 7195,
+    "provenance": {
+      "schemaVersion": 1,
+      "productId": "ynx-developer-v1",
+      "version": "0.2.0",
+      "artifactClass": "unsigned-testnet-preview",
+      "platform": "macos-arm64",
+      "signingClass": "adhoc-no-team-id",
+      "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+      "sourceCommit": "8c2183d1d9c69c0f955c500e29ea1dc69212955e",
+      "sourceTree": "37f097ab471b8102980315f37ee27094704ae122",
+      "sourceCommitDate": "2026-10-04T18:15:24+08:00",
+      "runtimeCheckpoint": "8c2183d1d9c69c0f955c500e29ea1dc69212955e",
+      "sourceDirty": false,
+      "minimumOS": "13.5",
+      "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+      "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+      "sbomPath": "Contents/Resources/sbom.cdx.json",
+      "sbomSha256": "07b1da32b02e614c5680e99192a1f432a61e1f59e3ba116d3b48888d98ec05bb",
+      "composedCoreDistribution": {
+        "schemaVersion": 1,
+        "runtimeArtifact": {
+          "kind": "ynx-theia",
+          "version": "1.76.0",
+          "architecture": "darwin-arm64",
+          "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+          "treeSha256": "533254908a12ea914346c15001b641152083947258cd7d37e8f608e45a090727",
+          "manifestSha256": "a1f6e4dfecf4f7deb76d0b57e5c34b97bcdd57c81127985eb37ea7903055cb8e"
+        },
+        "requiredNodeVersion": "v26.7.0",
+        "archive": "workbench.tar",
+        "archiveSha256": "3eb537739b0ace0196c18f3fad4a5071cc072fc603e0f22e8808a2e1fc65c93b",
+        "roundTripTreeVerified": true,
+        "upstreamNotices": "component-notices/index.json inside archive",
+        "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+        "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+      }
+    },
+    "checks": [
+      "Actual packaged service starts.",
+      "Live health source identity matches embedded provenance.",
+      "Packaged frontend serves the Tools route.",
+      "Loopback host cannot acquire a private Tools context.",
+      "Forged caller identity cannot receive context, compile artifact or runtime admission.",
+      "Actual packaged React renders projects and Tools; unauthenticated users see sign-in and cannot access private AI/compile controls, pageerrors[]."
+    ],
+    "responses": [
+      {
+        "path": "/runtime/native-tools/context?sessionId=00000000-0000-4000-8000-000000000001",
+        "status": 401,
+        "value": {
+          "code": "core_identity_required",
+          "error": "Connect the current Wallet identity before launching this project."
+        }
+      },
+      {
+        "path": "/runtime/native-tools/chain/compile?sessionId=00000000-0000-4000-8000-000000000001",
+        "status": 401,
+        "value": {
+          "code": "core_identity_required",
+          "error": "Connect the current Wallet identity before launching this project."
+        }
+      },
+      {
+        "path": "/runtime/codeoss",
+        "status": 401,
+        "value": {
+          "error": "Connect the current Wallet identity before launching this project.",
+          "code": "core_identity_required"
+        }
+      }
+    ],
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "scope": "Actual packaged Node/server only, own new support state. No Cocoa app launch, installed user state, canonical identity or operator adapter."
+  },
+  "compilerTamper": {
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64",
+    "qa": "/private/tmp/ynx-packaged-bootstrap-tYf3ae",
+    "exit": {
+      "code": 1,
+      "signal": null
+    },
+    "compilerTamperRefused": true,
+    "supportCreated": false
+  },
+  "ownedExtensionInputs": {
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64",
+    "qa": "/private/tmp/ynx-packaged-project-inputs-NCXcrm",
+    "checks": [
+      "Exact packaged brand and Tools including immutable preview helper stage from the standalone package.",
+      "Existing synthetic user settings remain byte-identical.",
+      "Changed extension input refuses preparation without overwriting its bytes or user settings."
+    ],
+    "scope": "Actual packaged filesystem preparer only, synthetic project state. No process driver, network, canonical admission or user profile."
+  },
+  "packagedCompiler": {
+    "runtime": "Actual packaged portable Node24.21.0",
+    "version": "0.8.24+commit.e11b9ed9.Emscripten.clang",
+    "artifactHash": "0x06dae0f28d5f43449f0690ce8bfceba4b03034d112bb4f4354f157cfd56472e7",
+    "bytecodeProduced": true,
+    "submittedSources": 2,
+    "matchedSourceFiles": [
+      {
+        "path": "scripts/compiler-worker.mjs",
+        "sha256": "29e10e5fbf7740a9bdf2438ae8210ee02daa258a533d6a0dc185fe1513bf9baa"
+      },
+      {
+        "path": "scripts/compiler-pin.mjs",
+        "sha256": "2b9a4e4dce92db7f5854aef168d8f6ba4b4ffc05663ebdf1296e0594b323c9c3"
+      },
+      {
+        "path": "services/codeoss-service/src/runtime-files.mjs",
+        "sha256": "c50f311678390c9743a34a0aab735b289e84517796aba63aed0012a374ad381c"
+      },
+      {
+        "path": "native/ynx-tools/src/review-preview.cjs",
+        "sha256": "4ae6fb7cb17ad16150c088f0d03f0c2ae34213f83c1f6cd518dfe671c2139e02"
+      },
+      {
+        "path": "native/ynx-tools/src/extension.cjs",
+        "sha256": "374f78b100669ae98a67e42fdffd0042822070525487fdf80b73deb0a02019c5"
+      },
+      {
+        "path": "native/ynx-tools/package.json",
+        "sha256": "a2948471bf78401f1d07891396af31b0da617d5f061eceeb96abc1bc0823d25a"
+      },
+      {
+        "path": "native/ynx-brand/package.json",
+        "sha256": "3a0728ffcbd4dfbfe7270b3e4caae01d67821f3e202954ac518fc39fb4094130"
+      }
+    ],
+    "serverMatchesGitBlob": true
+  },
+  "fix": "Copy the owned native/ynx-brand and native/ynx-tools inputs required by the packaged service filesystem preparer. Real preparation stages current exact inputs, preserves existing user settings and refuses changed extension files without overwriting them. No driver/admission/network behavior changed.",
+  "retainedMissingInputCandidate": {
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-immutable-review-native-package-20261004-mac-arm64",
+    "packagingExit": 0,
+    "sourceCommit": "684f7280e41e384837d59ef1250e73521997da7e",
+    "dmgSha256": "a18f2dbcfbb7f89fd5e1c47c2de97fbfa6d9d8996f38578f3e77f61f9a8b4a1d",
+    "missingInputProof": "original-missing-input/receipt.json and logs/ynx-packaged-owned-input-regression-red-20261004.log",
+    "acceptance": "Not accepted for standalone owned-extension preparation; original App/DMG retained."
+  },
+  "cloneStaging": {
+    "actualPackage": "Original cp-cXR option combination failed; existing normal-copy fallback completed successfully. Full diagnostic retained; no claim this candidate used dependency clones.",
+    "correctedBuildScriptCommit": "de8090bdea78a2a89f8ad47241623d259a41fc0f",
+    "correctedCommand": "COPYFILE_DISABLE=1 cp -cR SOURCE TARGET",
+    "proof": "clone-flags/receipt.json verifies10 exact owned files on this filesystem. Packaged source/pin remain8c218, not relabeled to the subsequent build-script-only correction."
+  },
+  "driverFailuresRetained": {
+    "worker": "Wrong stdin argv slice1 ERR_WORKER_PATH; fresh slice2 runner compiles successfully. Failed bytes/log retained in worker-driver-failure.",
+    "evidenceCopy": "Wrong screenshot filename; resumed unsealed directory after checking all existing copies identical. evidence-copy-first-attempt.json retains detail."
+  },
+  "evidence": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/immutable-review-native-evidence-20261004",
+  "evidenceIndexSha256": "d5bdead6bd5f5d05dfffa85ffe780983b5ef2cee04f9bc6d9486e52f049b5f15",
+  "functionalWorkbenchProof": "IMMUTABLE_REVIEW_PREVIEW_20261004.json: exact core current23 distinct actual UI checks plus51 service tests. Runtime archive hash preserved after outer signature.",
+  "releaseGates": {
+    "installedCocoa": "NOT_VERIFIED; no installation, user app/profile migration or Cocoa launch.",
+    "canonicalWalletHostedAI": "NOT_VERIFIED; existing five bindings unchanged, operator/A formal admission pending. Controlled UI answer is not hosted AI.",
+    "composedRuntime": "Protected operator must provide registered Node26.7.0 runtime and exact pin; packaged Node24 serves the gateway/worker, not composed runtime activation.",
+    "testnetDeployment": "NOT_VERIFIED; actual compiler ABI/bytecode does not prove YNX execution or signing.",
+    "fullPlatform": "macOS unsigned candidate only; notarization, Windows/Linux installers and normal-user acceptance remain open."
+  },
+  "scope": "Standalone owned source/distribution gap repaired and actual packaged3 regressions plus worker compile passed. No full formal IDE completion claim."
+}

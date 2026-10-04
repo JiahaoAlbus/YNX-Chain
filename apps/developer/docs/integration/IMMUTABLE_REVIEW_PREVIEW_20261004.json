@@ -180,8 +180,8 @@
     "reason": "Intentional verified exact backend-group SIGTERM. Both QA profiles, projects, unsaved-state evidence and failure artifacts retained."
   },
   "releaseGates": {
-    "nativeCandidate": "Existing sealed0.3.13 App/DMG embeds3238d1cc4bc83556ce2d6c0feec38272df891c90. It does not contain this fix. See SOLIDITY_SEALED_NATIVE_20261004.json.",
-    "native0_3_14": "Not built; disk availability below1GiB, retained packages and originals not deleted.",
+    "nativeCandidate": "Current later sealed0.3.14 App/DMG embeds8c2183d1d9c69c0f955c500e29ea1dc69212955e, includes the immutable preview and owned extension inputs. See IMMUTABLE_REVIEW_NATIVE_20261004.json. Original0.3.13 and intermediate missing-input candidates retained.",
+    "native0_3_14": "Initially deferred for low disk at this source checkpoint; subsequent space recovery permitted a standalone candidate. Later proof is IMMUTABLE_REVIEW_NATIVE_20261004.json, not installed or canonical acceptance.",
     "formalAdmission": "NOT_VERIFIED; A-owned canonical five bindings unchanged, absent admission typed closed.",
     "hostedAI": "NOT_VERIFIED in this test. Controlled answer uses the production reviewed-selection parser and real editor command.",
     "walletChainNormalUser": "NOT_VERIFIED; no Wallet unlock, transaction signing or actual deployment performed.",

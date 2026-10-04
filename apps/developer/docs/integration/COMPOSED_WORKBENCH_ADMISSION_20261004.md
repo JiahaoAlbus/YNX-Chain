@@ -9,20 +9,24 @@ review7 and current real Core16 evidence are in
 `IMMUTABLE_REVIEW_PREVIEW_20261004.json`; services51 pass. The review uses a
 controlled answer through the production parser, with the real native editor;
 it does not prove hosted AI or canonical admission. Previous failures,
-profiles and packages remain retained. Native0.3.14 has not been packaged
-because current disk availability is below1GiB.
+profiles and packages remain retained.
 
-Latest sealed Mac candidate remains workbench **0.3.13**, Tools **0.2.8**,
-`ynx-solidity-sealed-native-package-20261004-mac-arm64`, embedding source
-`3238d1cc4bc83556ce2d6c0feec38272df891c90`, tree
-`2182570faad2ce2d6333587717ae1fef9014d18a`.
-Its complete offline compiler and package pins are in
-`SOLIDITY_SEALED_NATIVE_20261004.json`; packaged Node/server/React checks are in
-`PACKAGED_SERVER_BOUNDARIES_20261004.json`. It does not include the current
-immutable-preview fix. Historical0.3.13 project capture and local extension
-install/disable/enable/uninstall/backend restart evidence remain in
+Latest sealed Mac candidate now embeds workbench **0.3.14**, Tools **0.2.9**,
+`ynx-immutable-review-owned-inputs-native-package-20261004-mac-arm64`, source
+`8c2183d1d9c69c0f955c500e29ea1dc69212955e`, tree
+`37f097ab471b8102980315f37ee27094704ae122`.
+See `IMMUTABLE_REVIEW_NATIVE_20261004.json` for exact DMG/SBOM/core pins,
+deep strict ad-hoc signature/image verification, actual packaged server/
+compiler refusal and owned extension preparation3 checks, plus real two-file
+packaged-worker compile. An intermediate candidate missing the standalone
+owned extension inputs is retained and explicitly rejected for that path.
+The subsequent clone-flag-only build-script correction has its own commit;
+the already sealed package source is not relabeled to it.
+Historical0.3.13 complete compiler, packaged server and extension lifecycle
+proofs remain in `SOLIDITY_SEALED_NATIVE_20261004.json`,
+`PACKAGED_SERVER_BOUNDARIES_20261004.json`,
 `SOLIDITY_PROJECT_CAPTURE_20261004.json` and
-`CURRENT_EXTENSION_LIFECYCLE_20261004.json`; they are not relabeled0.3.14.
+`CURRENT_EXTENSION_LIFECYCLE_20261004.json` with their original scope.
 The five existing canonical bindings remain unchanged. Formal protected
 admission, installed Wallet/AI/Chain user acceptance and full platform release
 remain open. Earlier checkpoint sections below preserve historical evidence.
