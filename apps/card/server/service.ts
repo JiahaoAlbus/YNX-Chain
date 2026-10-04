@@ -18,6 +18,7 @@ type State={owner:string;applications:Record<string,Application>;cards:Record<st
 const empty=(owner:string):State=>({owner,applications:{},cards:{},intents:{},authorizations:{},captures:{},ledger:[],events:[],idempotency:{}});
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(digestInput(value))).digest('hex');
 const id=(prefix:string)=>prefix+'_'+randomUUID();
+const validIdempotencyKey=(value:unknown):value is string=>typeof value==='string'&&/^[A-Za-z0-9][A-Za-z0-9._:-]{0,159}$/.test(value);
 const own=<T>(map:Record<string,T>,key:string):T=>{if(!Object.hasOwn(map,key))throw new CardError('CARD_RESOURCE_NOT_FOUND',404);return map[key]!};
 const bounded=(value:unknown,min:number,max:number):string=>{if(typeof value!=='string'||value.trim().length<min||value.trim().length>max)throw new CardError('INVALID_APPLICATION_DETAILS',400);return value.trim()};
 const intentBinding=(value:FundingIntent)=>({id:value.id,cardId:value.cardId,owner:value.owner,sender:value.sender,chainId:value.chainId,recipient:value.recipient,amountWei:value.amountWei,minConfirmations:value.minConfirmations,createdAt:value.createdAt,expiresAt:value.expiresAt});
@@ -124,7 +125,7 @@ export class CardService {
   statement(p:Principal,cardId:string){const state=this.state(this.principal(p)),card=own(state.cards,cardId);return {card,ledger:state.ledger.filter(e=>e.cardId===cardId),events:state.events.filter(e=>e.cardId===cardId),environment:ENVIRONMENT,productionRealPayments:false}}
   operationResult(p:Principal,operation:string,resourceId:string,key:string,digest:string){
     const state=this.state(this.principal(p));
-    if(!/^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(resourceId)||! /^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(key)||! /^[0-9a-f]{64}$/.test(digest))throw new CardError('INVALID_OPERATION_READBACK',400);
+    if(!/^[A-Za-z][A-Za-z0-9_-]{1,159}$/.test(resourceId)||!validIdempotencyKey(key)||! /^[0-9a-f]{64}$/.test(digest))throw new CardError('INVALID_OPERATION_READBACK',400);
     const routes:Record<string,string>={freeze:'card:freeze:',unfreeze:'card:unfreeze:',recover:'card:recover:',controls:'controls:','topup-intent':'topup-intent:','topup-confirm':'topup-confirm:',authorization:'authorization:',capture:'capture:',reverse:'reverse:',refund:'refund:'};
     if(!Object.hasOwn(routes,operation))throw new CardError('INVALID_OPERATION_READBACK',400);
     if(operation==='topup-confirm')own(state.intents,resourceId);
