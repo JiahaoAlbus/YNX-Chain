@@ -63,7 +63,11 @@ require('../style/keyboard-shortcuts.css');
 require('../style/workbench-controls.css');
 const logo = require('../assets/ynx-logo.png');
 const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
+const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(LocalWorkspaceContextApi).toDynamicValue(context => WebSocketConnectionProvider.createProxy(
+    context.container, '/services/ynx-local-workbench-context',
+  )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() { workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message)); },
   })).inSingletonScope();
@@ -89,13 +93,13 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toService(WorkbenchControlsContribution);
   bind(TabBarToolbarContribution).toService(WorkbenchControlsContribution);
   bind(LocalWorkspaceContext).toDynamicValue(context => new LocalWorkspaceContext(
-    context.container.get(WorkspaceService), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-context'),
+    context.container.get(WorkspaceService), context.container.get(LocalWorkspaceContextApi),
     context.container.get(CommandRegistry), context.container.get(MessageService), window, translateWorkbench,
   )).inSingletonScope();
   bind(CommandContribution).toService(LocalWorkspaceContext);
   bind(FrontendApplicationContribution).toService(LocalWorkspaceContext);
   bind(FrontendApplicationContribution).toDynamicValue(context => new LocalTerminalDefaults(
-    WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-context'),
+    context.container.get(LocalWorkspaceContextApi),
     context.container.get(PreferenceSchemaService),
   )).inSingletonScope();
   rebind(KeybindingRegistry).to(YnxKeybindingRegistry).inSingletonScope();
