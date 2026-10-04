@@ -1,0 +1,43 @@
+{
+  "recordedAt": "2026-10-04T09:21:40.732Z",
+  "sourceCommit": "9bbe01cd53976148b5040997dd81042105198280",
+  "sourceTree": "fdc23b536260ba601078dbf571d9b0abb3d73ae5",
+  "focusedPassed": 3,
+  "backendPassed": 149,
+  "typecheck": true,
+  "backendBuild": true,
+  "artifacts": [
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/finance-consent-9bbe01cd5-focused.txt",
+      "bytes": 391,
+      "sha256": "d68bd248e61a6dcfcb8ef2b1b4e4e2ceb966501e4989533b0e71b6311550e6ba"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/finance-consent-9bbe01cd5-backend.txt",
+      "bytes": 14302,
+      "sha256": "3ca1e0b445ef89241fa034e15e6cdc5efe4d2bb28917ef67417255c722761098"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/finance-consent-9bbe01cd5-typecheck.txt",
+      "bytes": 177,
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    {
+      "path": "apps/card/evidence/20261003-testnet-operations/finance-consent-9bbe01cd5-build.txt",
+      "bytes": 98,
+      "sha256": "9f7cec88efca2d9d9fbd70aa8040cb444e14a74b52ebf2493b2ae7e096a47206"
+    }
+  ],
+  "bundle": {
+    "bytes": 288517,
+    "sha256": "3515fcc3f1e41b481d0dbceb422314ebc42a451502f33affe21919f5e2eaee99"
+  },
+  "scope": "Card-owned Finance read consent producer",
+  "realFinanceConsumerAcceptance": false,
+  "publicDeployment": false,
+  "realWalletApproval": false,
+  "realSignature": false,
+  "realFunding": false,
+  "productionRealPayments": false,
+  "note": "Software-only permission regression. Invalid/expired principals and damaged persisted consent fail closed. No Finance, shared Wallet, Gateway, Central or Host files changed. Inherited untracked files preserved."
+}

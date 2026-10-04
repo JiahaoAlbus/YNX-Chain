@@ -1,0 +1,11 @@
+✔ Finance HMAC needs owner consent, durable nonce and exact Card source record (6.838ms)
+✔ malformed and expired principals cannot grant revoke or inspect consent (1.558916ms)
+✔ corrupted persisted consent cannot release records to a signed Finance request (4.458834ms)
+ℹ tests 3
+ℹ suites 0
+ℹ pass 3
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 167.956416
