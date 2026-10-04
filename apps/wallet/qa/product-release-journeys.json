@@ -68,6 +68,19 @@
     "actualFactoryOrFormalInstalledProduct": "NOT_VERIFIED",
     "receipt": "matching-complete-source-and-original-cli-successor-20261004.json"
   },
+  "latestIntegratedDesktopEngineeringArtifact": {
+    "ownedInputHead": "45a9efb7f3e2aa05d5203185e068cacfd9d5e54a",
+    "actualPackageComposition": "bb4fdee5dd64aa17ae5fefc8a62051024fbd7247",
+    "runtimeFilesExact": 181,
+    "currentHistoryAndReceiveFixesActuallyPackaged": true,
+    "explicitContainedSdkHelperConsumed": true,
+    "architecture": "arm64",
+    "version": "0.6.8",
+    "dmgSha256": "b1635e863e589ebddd8edc2b8545cee672159f10c5a7f0abd83f273579fd4b55",
+    "installedOrFormallyPublished": false,
+    "receipt": "apps/wallet-desktop/test/recovery-qr-successor-engineering-package-20261004.json",
+    "journeyAcceptanceUnchanged": true
+  },
   "currentExternalBlockers": [
     "Matching frozen SDK 1.2.0 plus the exact original declared CLI and isolated 132-file distribution installation are supplied; complete owned Native/Desktop source suites pass. Actual production composition and final platform install remain unverified. Bin presence and syntax checks do not prove migration execution or production authority.",
     "A protected current-authority/trusted invoice policy/quote/authenticated settlement adapter and genuine platform binding producer are not supplied; a static definition map cannot enable Pay.",
