@@ -485,9 +485,33 @@ function renderStatement(s){
   const amount=value=>Number.isSafeInteger(value)&&value>=0?`${fmt(value)} YNXT`:financeText('unknown');
   $('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} ${esc(financeText('statementThrough'))} ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><p><strong>${esc(financeText('fullPeriodTotals'))}: ${esc(financeText('unknown'))}</strong><br>${esc(s.coverage||financeText('completeHistoryMissing'))}</p><div class="statement-grid"><div class="stat"><small>${esc(financeText('observedIncoming'))}</small><strong>${amount(observed?.incomingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedOutgoing'))}</small><strong>${amount(observed?.outgoingYnxt)}</strong></div><div class="stat"><small>${esc(financeText('observedFees'))}</small><strong>${amount(observed?.feesYnxt)}</strong></div><div class="stat"><small>${esc(financeText('returnedRecords'))}</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. ${esc(financeText('notBankStatement'))}</small></p>`;
 }
-$('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);renderStatement(candidate);state.statement=candidate;state.statementError=false}catch(error){state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable')}});
+async function requestStatement(form){
+  const context=state.context,revision=window.YNXFinanceWallet.getRevision();
+  const operation={};state.statementRequestOperation=operation;
+  const current=()=>state.statementRequestOperation===operation&&context===state.context&&revision===window.YNXFinanceWallet.getRevision();
+  const f=new FormData(form);
+  try{
+    const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);
+    toDate.setUTCDate(toDate.getUTCDate()+1);
+    const candidate=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);
+    if(!current())return;
+    renderStatement(candidate);state.statement=candidate;state.statementError=false;
+  }catch(error){
+    if(!current())return;
+    state.statement=null;state.statementError=true;$('#statement').classList.remove('statement-placeholder');$('#statement').textContent=financeText('unavailable');notifyFailure(error,'unavailable');
+  }
+}
+$('#statement-form').addEventListener('submit',e=>{e.preventDefault();void requestStatement(e.currentTarget)});
 
-async function download(path,name){try{const blob=await api(path,{responseType:'blob'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}catch(error){notifyFailure(error,'unavailable')}}
+async function download(path,name){
+  const context=state.context,revision=window.YNXFinanceWallet.getRevision();
+  const current=()=>context===state.context&&revision===window.YNXFinanceWallet.getRevision();
+  try{
+    const blob=await api(path,{responseType:'blob'});
+    if(!current())return;
+    const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);
+  }catch(error){if(current())notifyFailure(error,'unavailable')}
+}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-observed-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-observed-activity.csv')}));
 
 async function startAI(){const button=$('#ai-start');if(button.disabled)return;button.disabled=true;button.textContent=financeText('aiRequesting');try{const recordIds=$$('#ai-records input:checked').map(x=>x.value),kind=$('#ai-kind').value,consent=$('#ai-consent').checked;if(kind!=='draft_broker_order'&&recordIds.length<1)throw new Error(financeText('aiSelectOwned'));if(!consent)throw new Error(financeText('aiConsentRequired'));const payload={kind,recordIds,contextClasses:recordIds.length?['owned_activity']:[],consent};if(kind==='draft_broker_order'){const form=$('#ai-order-intent');if(!(form instanceof HTMLFormElement))throw new Error(financeText('aiIntentUnavailable'));const fields=new FormData(form),intent={symbol:String(fields.get('symbol')||'').trim().toUpperCase(),side:String(fields.get('side')||''),qty:String(fields.get('qty')||'').trim(),limitPrice:String(fields.get('limitPrice')||'').trim()};if(!/^[A-Z][A-Z0-9.]{0,11}$/.test(intent.symbol))throw new Error(financeText('aiSymbolInvalid'));if(!['buy','sell'].includes(intent.side))throw new Error(financeText('aiSideInvalid'));if(!/^(?:[1-9][0-9]{0,5}|1000000)$/.test(intent.qty))throw new Error(financeText('aiQtyInvalid'));if(!/^(?:0\.[0-9]{0,3}[1-9]|[1-9][0-9]{0,8}(?:\.[0-9]{0,3}[1-9])?)$/.test(intent.limitPrice))throw new Error(financeText('aiLimitInvalid'));payload.securitiesOrderIntent=intent}state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify(payload)});renderAIJob();pollAI()}catch(error){notifyKnownOrFailure(error,['aiSelectOwned','aiConsentRequired','aiIntentUnavailable','aiSymbolInvalid','aiSideInvalid','aiQtyInvalid','aiLimitInvalid'],'aiDraftFailed')}finally{button.disabled=false;button.textContent=financeText('aiRequestDraft')}}
