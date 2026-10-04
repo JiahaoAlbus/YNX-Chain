@@ -82,7 +82,7 @@ test('actual language provider reports unfinished imports and absent relative or
   const reviewed=await h.capture();assert.deepEqual(Object.keys(reviewed.snapshot.sources),['Main.sol']);
   const main=h.vscode.workspace.textDocuments[0],providers={},subscriptions=[],live={rows:[],clear(){this.rows=[];},set(rows){this.rows=rows;},dispose(){}};
   main.positionAt=offset=>({offset});main.offsetAt=position=>position.offset;
-  h.vscode.languages=Object.fromEntries(['Definition','Hover','Reference','DocumentSymbol'].map(name=>[`register${name}Provider`,(_,provider)=>{providers[name]=provider;return{dispose(){}};}]));
+  h.vscode.languages=Object.fromEntries(['Definition','Hover','Reference','DocumentSymbol','Rename'].map(name=>[`register${name}Provider`,(_,provider)=>{providers[name]=provider;return{dispose(){}};}]));
   h.vscode.languages.createDiagnosticCollection=()=>live;
   h.vscode.Range=class{constructor(start,end){Object.assign(this,{start,end});}};
   h.vscode.Diagnostic=class{constructor(range,message,severity){Object.assign(this,{range,message,severity});}};
@@ -101,7 +101,7 @@ test('actual language provider reports unfinished imports and absent relative or
 });
 function localLanguageHost(h){
  const providers={},events={},subscriptions=[],live={rows:[],clear(){this.rows=[];},set(rows){this.rows=rows;},dispose(){}};
- h.vscode.languages=Object.fromEntries(['Definition','Hover','Reference','DocumentSymbol'].map(name=>[`register${name}Provider`,(_,provider)=>{providers[name]=provider;return{dispose(){}};}]));
+ h.vscode.languages=Object.fromEntries(['Definition','Hover','Reference','DocumentSymbol','Rename'].map(name=>[`register${name}Provider`,(_,provider)=>{providers[name]=provider;return{dispose(){}};}]));
  h.vscode.languages.createDiagnosticCollection=()=>live;
  h.vscode.Range=class{constructor(start,end){Object.assign(this,{start,end});}};h.vscode.Location=class{constructor(uri,range){Object.assign(this,{uri,range});}};
  h.vscode.Diagnostic=class{constructor(range,message,severity){Object.assign(this,{range,message,severity});}};h.vscode.DiagnosticSeverity={Error:0,Warning:1,Information:2};
@@ -165,4 +165,49 @@ test('partial mapped buffers keep actual syntax diagnostics and remappings remai
  await limits.put('remappings.txt',Array.from({length:129},(_,i)=>`p${i}/=lib/${i}/`).join('\n'));await assert.rejects(limits.capture(),/128 mappings/);
  const config=limits.vscode.workspace.textDocuments.find(d=>d.uri.fsPath.endsWith('/remappings.txt'));config.text='x'.repeat(1025)+'=lib/';config.version++;await assert.rejects(limits.capture(),/bounded local/);
  await unlink(join(limits.root,'remappings.txt'));await limits.put('config-original.txt','alias/=lib/');await symlink(join(limits.root,'config-original.txt'),join(limits.root,'remappings.txt'));await assert.rejects(limits.capture(),/symbolic links/);
+});
+
+test('first-open definition discovers closed callers including own lib, aliases and unsaved callers; all rename edits recompile',async t=>{
+ const h=await fixture(t);if(!h)return;
+ await h.put('remappings.txt','math/=lib/math/\nalias/=./lib/math/\n');
+ await h.put('lib/math/Util.sol','pragma solidity 0.8.24; library Util { function twice(uint256 n) internal pure returns(uint256) { return n * 2; } }');
+ await h.put('Main.sol','pragma solidity 0.8.24; import "math/Util.sol"; contract Main { function calculate() external pure returns(uint256) { return Util.twice(2); } }');
+ await h.put('src/Other.sol','pragma solidity 0.8.24; import * as Pack from "alias/Util.sol"; contract Other { function calculate() external pure returns(uint256) { return Pack.Util.twice(3); } }');
+ await h.put('lib/user/Caller.sol','pragma solidity 0.8.24; import "../math/Util.sol"; contract Caller { function calculate() external pure returns(uint256) { return Util.twice(4); } }');
+ await h.put('Unrelated.sol','unfinished unrelated buffer');
+ for(let i=0;i<140;i++)await h.put(`lib/vendor/Unused${i}.sol`,`pragma solidity 0.8.24; library Unused${i} {}`);
+ const definition=await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'lib/math/Util.sol')));
+ const other=await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'src/Other.sol')));other.text=other.text.replace('twice(3)','twice(5) + Pack.Util.twice(6)');other.version++;
+ const host=localLanguageHost(h);t.after(()=>host.language.dispose());
+ h.vscode.WorkspaceEdit=class{constructor(){this.edits=[];}replace(uri,range,text){this.edits.push({uri,range,text});}};
+ const position={offset:definition.text.indexOf('twice(')};
+ const references=await host.providers.Reference.provideReferences(definition,position,{includeDeclaration:true});
+ assert.ok(references,JSON.stringify({status:host.language.status(),diagnostics:host.live.rows.map(([,rows])=>rows.map(row=>row.message))}));
+ assert.equal(references.length,5);assert.equal(references.filter(row=>row.uri.fsPath===definition.uri.fsPath).length,1);
+ assert.ok(references.some(row=>row.uri.fsPath===join(h.root,'Main.sol')));assert.ok(references.some(row=>row.uri.fsPath===join(h.root,'lib/user/Caller.sol')));
+ const edits=await host.providers.Rename.provideRenameEdits(definition,position,'doubleValue');assert.equal(edits.edits.length,5);
+ for(const document of h.vscode.workspace.textDocuments){for(const edit of edits.edits.filter(row=>row.uri.fsPath===document.uri.fsPath).sort((a,b)=>b.range.start.offset-a.range.start.offset))document.text=document.text.slice(0,edit.range.start.offset)+edit.text+document.text.slice(edit.range.end.offset);document.version++;}
+ for(const file of ['Main.sol','src/Other.sol','lib/user/Caller.sol','lib/math/Util.sol']){const doc=h.vscode.workspace.textDocuments.find(row=>row.uri.fsPath===join(h.root,file));assert.match(doc.text,/doubleValue/);assert.doesNotMatch(doc.text,/\btwice\b/);await writeFile(doc.uri.fsPath,doc.text);assert.equal(await readFile(doc.uri.fsPath,'utf8'),doc.text);}
+ const main=h.vscode.workspace.textDocuments.find(row=>row.uri.fsPath===join(h.root,'Main.sol'));
+ const captured=await captureSolidityProject(h.vscode,h.environment,main,{compiler:join(h.extension,'compiler'),projectReferences:true});
+ assert.equal(Object.keys(captured.snapshot.sources).some(unit=>unit==='Unrelated.sol'),false);
+ const worker=new Worker(join(h.extension,'compiler/compiler-worker.mjs'),{workerData:{mode:'compile',name:'Main',sourceName:captured.snapshot.entryPath,localRemappings:captured.snapshot.remappings,sources:Object.fromEntries(Object.entries(captured.snapshot.sources).map(([unit,row])=>[unit,{content:row.content}]))},env:{YNX_IDE_SOLC_INPUT:join(h.extension,'compiler/node_modules/solc')},execArgv:[]});
+ try{const result=await new Promise((resolve,reject)=>{worker.once('message',resolve);worker.once('error',reject);});assert.equal(result.ok,true,JSON.stringify(result));assert.ok(result.abi.some(row=>row.name==='calculate'));assert.ok(result.bytecode.length>2);}finally{await worker.terminate();}
+});
+test('project reference inventory verifies new/deleted callers and refuses incomplete discovery bounds or symlink trees',async t=>{
+ const h=await fixture(t);if(!h)return;await h.put('Main.sol','pragma solidity 0.8.24; contract Main {}');
+ const doc=await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'Main.sol'))), options={compiler:join(h.extension,'compiler'),projectReferences:true};
+ const captured=await captureSolidityProject(h.vscode,h.environment,doc,options);await h.put('New.sol','pragma solidity 0.8.24; contract New {}');await assert.rejects(captured.verify(),/inventory changed/);
+ const second=await captureSolidityProject(h.vscode,h.environment,doc,options);await unlink(join(h.root,'New.sol'));await assert.rejects(second.verify(),/inventory changed/);
+ const fresh=await captureSolidityProject(h.vscode,h.environment,doc,options);doc.text+=' // unsaved changed caller';doc.version++;await assert.rejects(fresh.verify(),/changed during review/);
+ await symlink(h.root,join(h.root,'linked'));await assert.rejects(captureSolidityProject(h.vscode,h.environment,doc,options),/symbolic links/);await unlink(join(h.root,'linked'));
+ for(let i=0;i<1024;i++)await h.put(`lib/C${i}.sol`,`pragma solidity 0.8.24; contract C${i} {}`);
+ const host=localLanguageHost(h);t.after(()=>host.language.dispose());await assert.rejects(host.providers.Rename.prepareRename(doc,{offset:doc.text.indexOf('Main')}),/1024 files|1024 source/);
+});
+test('reference discovery and related compiler limits are independent and excessive related components refuse rename',async t=>{
+ const h=await fixture(t);if(!h)return;
+ for(let i=0;i<128;i++)await h.put(`Part${i}.sol`,`pragma solidity 0.8.24; library Part${i} {}`);
+ await h.put('Main.sol','pragma solidity 0.8.24; '+Array.from({length:128},(_,i)=>`import "./Part${i}.sol";`).join(' ')+' contract Main {}');
+ const doc=await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'Main.sol'))),host=localLanguageHost(h);t.after(()=>host.language.dispose());
+ await assert.rejects(host.providers.Rename.prepareRename(doc,{offset:doc.text.indexOf('Main')}),/Related Solidity project exceeds 128 files or 2 MiB/);
 });

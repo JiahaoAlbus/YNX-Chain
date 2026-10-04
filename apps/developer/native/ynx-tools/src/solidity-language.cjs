@@ -11,11 +11,14 @@ function createSolidityLanguage(vscode, context, environment) {
   const compiler = path.join(context.extensionPath || path.resolve(__dirname, '..'), 'compiler');
   const selector = { language: 'solidity', scheme: 'file' };
   const diagnostics = vscode.languages.createDiagnosticCollection && vscode.Diagnostic ? vscode.languages.createDiagnosticCollection('YNX Solidity Live') : undefined;
-  let epoch = 0, pending, completionPending, renameAbort, compileAbort, diagnosticTimer, cache, disposed = false, phase = 'ready', lastError;
+  let epoch = 0, pending, completionPending, renameAbort, compileAbort, diagnosticTimer, cache, disposed = false, phase = 'ready', lastError, referenceCaptures = 0;
   function scheduleDiagnostics() {
     clearTimeout(diagnosticTimer);
     if (!diagnostics || disposed) return;
     diagnosticTimer = setTimeout(() => {
+      // Passive diagnostics must not cancel an explicit project-wide rename
+      // or references request while its larger inventory is being captured.
+      if (referenceCaptures || pending || renameAbort || completionPending) { scheduleDiagnostics(); return; }
       const document = vscode.window?.activeTextEditor?.document || vscode.workspace.textDocuments.find(doc => doc.uri.fsPath.endsWith('.sol') && !doc.isClosed);
       if (document?.uri.fsPath.endsWith('.sol')) void current(document).catch(error => { lastError = error.code || 'analysis_error'; });
     }, 450);
@@ -51,15 +54,19 @@ function createSolidityLanguage(vscode, context, environment) {
       if (signal.aborted) abort();
     });
   }
-  async function current(document, token) {
+  async function current(document, token, projectReferences = false) {
+    projectReferences = projectReferences && environment.YNX_WORKSPACE_MODE === 'local';
     if (cancelled(token)) { phase = 'cancelled'; return undefined; }
     if (vscode.workspace.isTrusted === false) { phase = 'workspace_untrusted'; return undefined; }
     if (!existsSync(path.join(compiler, 'distribution.json'))) { phase = 'compiler_unavailable'; return undefined; }
     phase = 'capture';
-    const capturedEpoch = epoch, reviewed = await captureSolidityProject(vscode, environment, document, { compiler });
+    const capturedEpoch = epoch; let reviewed;
+    if (projectReferences) referenceCaptures++;
+    try { reviewed = await captureSolidityProject(vscode, environment, document, { compiler, projectReferences }); }
+    finally { if (projectReferences) referenceCaptures--; }
     if (capturedEpoch !== epoch || cancelled(token)) return undefined;
-    const fingerprint = digest(JSON.stringify({ protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, remappings: reviewed.snapshot.remappings, configurationSha256: reviewed.snapshot.configurationSha256, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
-    if (cache?.fingerprint === fingerprint) { await reviewed.verify(); return cache; }
+    const fingerprint = digest(JSON.stringify({ projectReferences, referenceFingerprint: reviewed.referenceFingerprint, protocol: reviewed.snapshot.protocol, projectId: reviewed.snapshot.projectId, sessionId: reviewed.snapshot.sessionId, remappings: reviewed.snapshot.remappings, configurationSha256: reviewed.snapshot.configurationSha256, workspace: environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE, sources: Object.entries(reviewed.snapshot.sources).sort(([a], [b]) => a.localeCompare(b)) }));
+    if (cache?.fingerprint === fingerprint) { await reviewed.verify(); cache = { ...cache, snapshot: reviewed.snapshot, documents: reviewed.documents || cache.documents, verify: reviewed.verify }; return cache; }
     // One worker per extension project, including all simultaneous provider
     // requests. A changed snapshot retires it; hold the slot until termination.
     if (pending && pending.fingerprint !== fingerprint) { pending.abort.abort(); await pending.promise.catch(() => {}); }
@@ -178,18 +185,27 @@ function createSolidityLanguage(vscode, context, environment) {
     await state.verify(); return new vscode.Hover(text, range(state, symbol.reference?.location || symbol.declaration.location));
   }) }));
   context.subscriptions.push(vscode.languages.registerReferenceProvider(selector, { provideReferences: guarded(async (document, position, options, token) => {
-    const state = await current(document, token); if (!state) return undefined;
+    const state = await current(document, token, true); if (!state) return undefined;
     const symbol = at(state, document, position); if (!symbol) return undefined;
-    const locations = state.semantics.references.filter(row => row.targetId === symbol.declaration.id).map(row => row.location);
+    const ids = physicalDeclarations(state, symbol.declaration);
+    const locations = state.semantics.references.filter(row => ids.has(row.targetId)).map(row => row.location);
     if (options.includeDeclaration) locations.unshift(symbol.declaration.location);
-    await state.verify(); return locations.map(location => new vscode.Location(state.documents.get(location.file).uri, range(state, location)));
+    await state.verify(); return physicalLocations(state, locations).map(location => new vscode.Location(state.documents.get(location.file).uri, range(state, location)));
   }) }));
+  function physicalDeclarations(state, declaration) {
+    const uri = state.documents.get(declaration.location.file).uri.toString();
+    return new Set(state.semantics.declarations.filter(row => row.name === declaration.name && row.kind === declaration.kind && row.location.start === declaration.location.start && row.location.end === declaration.location.end && state.documents.get(row.location.file).uri.toString() === uri).map(row => row.id));
+  }
+  function physicalLocations(state, locations) {
+    return [...new Map(locations.map(row => [state.documents.get(row.file).uri.toString() + ':' + row.start + ':' + row.end, row])).values()];
+  }
   if (vscode.languages.registerRenameProvider) {
     function renameTarget(state, document, position) {
       const symbol = at(state, document, position);
       if (!symbol) throw Error('Place the cursor on a Solidity symbol.');
       const declaration = symbol.declaration;
-      const locations = [declaration.location, ...state.semantics.references.filter(row => row.targetId === declaration.id).map(row => row.location)];
+      const ids = physicalDeclarations(state, declaration);
+      const locations = [...state.semantics.declarations.filter(row => ids.has(row.id)).map(row => row.location), ...state.semantics.references.filter(row => ids.has(row.targetId)).map(row => row.location)];
       const unique = [...new Map(locations.map(location => [`${location.file}:${location.start}:${location.end}`, location])).values()];
       // Import aliases and qualified type spans need their own binding edits.
       // Never replace an entire expression or a different alias with a name.
@@ -198,14 +214,14 @@ function createSolidityLanguage(vscode, context, environment) {
     }
     context.subscriptions.push(vscode.languages.registerRenameProvider(selector, {
       prepareRename: async (document, position, token) => {
-        const state = await current(document, token); if (!state) throw Error('Fix the current Solidity errors before renaming.');
+        const state = await current(document, token, true); if (!state) throw Error('Fix the current Solidity errors before renaming.');
         const target = renameTarget(state, document, position); await state.verify();
         if (cancelled(token)) return undefined;
         return { range: range(state, target.selection), placeholder: target.declaration.name };
       },
       provideRenameEdits: async (document, position, newName, token) => {
         if (!/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(newName) || newName.length > 128) throw Error('Enter a valid Solidity identifier.');
-        const state = await current(document, token); if (!state) throw Error('Fix the current Solidity errors before renaming.');
+        const state = await current(document, token, true); if (!state) throw Error('Fix the current Solidity errors before renaming.');
         const capturedEpoch = epoch, target = renameTarget(state, document, position);
         if (state.semantics.declarations.some(row => row.id !== target.declaration.id && row.name === newName && row.scopeId === target.declaration.scopeId)) throw Error('That name already exists in this Solidity scope.');
         const sources = {};
@@ -246,7 +262,7 @@ function createSolidityLanguage(vscode, context, environment) {
             if (!next || next.targetId !== mappedDeclarations.get(reference.targetId)) throw Error('The proposed rename would change another Solidity symbol binding. Choose another name.');
           }
           const edit = new vscode.WorkspaceEdit();
-          for (const location of target.locations) edit.replace(state.documents.get(location.file).uri, range(state, location), newName);
+          for (const location of physicalLocations(state, target.locations)) edit.replace(state.documents.get(location.file).uri, range(state, location), newName);
           return edit;
         } finally { cancellation?.dispose(); if (renameAbort === abort) renameAbort = undefined; }
       },
