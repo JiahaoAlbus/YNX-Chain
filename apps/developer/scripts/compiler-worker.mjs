@@ -1,6 +1,7 @@
 import { parentPort, workerData } from "node:worker_threads";
 import { createHash } from "node:crypto";
 import { assertCompilerPin, loadPinnedCompiler, COMPILER_VERSION } from './compiler-pin.mjs';
+import { soliditySemanticIndex } from './solidity-semantic-index.mjs';
 
 const sha256 = (value) => `0x${createHash("sha256").update(value).digest("hex")}`;
 
@@ -15,7 +16,7 @@ try {
     sources: workerData.sources || { [sourceName]: { content: source } },
     settings: {
       optimizer: { enabled: true, runs: 200 },
-      outputSelection: { "*": { "*": ["abi", "metadata", "evm.bytecode.object", "evm.bytecode.sourceMap", "evm.deployedBytecode.object", "evm.deployedBytecode.sourceMap"] } },
+      outputSelection: workerData.mode === 'analysis' ? { '*': { '': ['ast'] } } : { "*": { "*": ["abi", "metadata", "evm.bytecode.object", "evm.bytecode.sourceMap", "evm.deployedBytecode.object", "evm.deployedBytecode.sourceMap"] } },
     },
   };
   const output = JSON.parse(solc.compile(JSON.stringify(input)));
@@ -23,6 +24,8 @@ try {
   const failures = diagnostics.filter((item) => item.severity === "error");
   if (failures.length) {
     parentPort.postMessage({ ok: false, status: 422, error: "Solidity compilation failed.", diagnostics });
+  } else if (workerData.mode === 'analysis') {
+    parentPort.postMessage({ ok: true, compiler: { name: 'solc', version: COMPILER_VERSION, longVersion: solc.version(), artifactSha256: pin.artifactSha256, execution: 'worker-isolated-standard-json' }, semantics: soliditySemanticIndex(output, input.sources), diagnostics });
   } else {
     const contracts = output.contracts?.[sourceName] || {};
     const contractName = name;

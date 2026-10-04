@@ -49,7 +49,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         finally { request.url = original; admittedOwners.delete(request); } return true;
       }
       if (request.method !== 'POST' || request.headers.origin !== origin || request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' || !/^application\/json(?:;|$)/i.test(request.headers['content-type'] || '')) throw fault('Open and approve this request on the trusted YNX Tools page.', 'tools_origin', 403);
-      const body = await readBody(request, url.pathname === '/runtime/native-tools/chain/compile' ? 512 * 1024 : 80 * 1024);
+      const body = await readBody(request, ['/runtime/native-tools/chain/compile', '/runtime/native-tools/chain/analyze'].includes(url.pathname) ? 512 * 1024 : 80 * 1024);
       // Receiving a body can outlive logout or an account change. Recheck at
       // dispatch, before consuming a review or sending selected context.
       const current = await coreService.authorizeConnection(request, sessionId);
@@ -58,13 +58,14 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
       const ticket = tickets.get(body.csrf);
       if (!ticket || ticket.expires <= now() || ticket.bound !== bound) throw fault('Review expired. Refresh the tools page.', 'tools_review_expired', 403);
       tickets.delete(body.csrf);
-      if (url.pathname === '/runtime/native-tools/chain/compile') {
+      if (['/runtime/native-tools/chain/compile', '/runtime/native-tools/chain/analyze'].includes(url.pathname)) {
+        const analysis = url.pathname.endsWith('/analyze');
         const snapshot = Object.hasOwn(body, 'snapshot');
-        exact(body, ['csrf', 'name', snapshot ? 'snapshot' : 'source']);
+        exact(body, analysis ? ['csrf', 'snapshot'] : ['csrf', 'name', snapshot ? 'snapshot' : 'source']);
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(2147483647, admission.expiresAt - now())));
         try {
-          const result = await compiler.compile({ owner: admission.context.owner, name: body.name, ...(snapshot ? { snapshot: body.snapshot, sessionId } : { source: body.source }), signal: controller.signal });
+          const result = await (analysis ? compiler.analyze({ owner: admission.context.owner, snapshot: body.snapshot, sessionId, signal: controller.signal }) : compiler.compile({ owner: admission.context.owner, name: body.name, ...(snapshot ? { snapshot: body.snapshot, sessionId } : { source: body.source }), signal: controller.signal }));
           const latest = await coreService.authorizeConnection(request, sessionId);
           if (controller.signal.aborted || binding(latest) !== bound || latest.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet project changed during compilation. Build again from the current project.', 'tools_identity_changed', 401);
