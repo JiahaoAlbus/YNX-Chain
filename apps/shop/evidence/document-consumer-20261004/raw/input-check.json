@@ -1,0 +1,10 @@
+{
+  "manifestSHA": "ea9bc183cc4500ca5b2c95a390bd36b73b8a6852d13233de501747dd30b89284",
+  "files": 2907,
+  "sourceServerPriorSHA": "74a27f9ced397d8e7d1cf23f678371cd1b2d83cf39e55249c20c6617cabba455",
+  "adoptedServerSHA": "779a4cec497cde69e58efda69603d39b2210561dd3b418480037475f95f198e5",
+  "adopted": "only original immutable CSP getter and security delegate",
+  "sharedMountMainSellerNotCopied": true,
+  "contentRoot": "3cd94581a3b13d3eb5df052c72ea8bbcd45c2ffb063bbfd95ee64cae9b5f9394",
+  "modeChecks": "PASS"
+}

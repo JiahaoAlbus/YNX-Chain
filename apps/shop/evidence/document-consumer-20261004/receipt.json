@@ -1,0 +1,126 @@
+{
+  "sourceCommit": "e9005d3b98a26d44c58c816c8dd46974ede326af",
+  "sourceTree": "15ac520a718a7c1f9fc3674a50ab8da502d81a0b",
+  "runtimeSource": "0666474ffb9c86cfd54564cfca2ffe27b6ec2f34",
+  "runtimeTree": "09f6831342add045fa2d1e67ebc98378515840e4",
+  "requiredPriorLayers": [
+    {
+      "sourceCommit": "cc3676508a4173b946ab8a6ae8bdcd43b6bbd4d9",
+      "path": "apps/shop/evidence/buyer-transition-20261004/commerce-owned-source-cc3676508.tar",
+      "members": 427,
+      "bytes": 15055872,
+      "sha256": "a3afd479bcd9a5c3d1cc11ef74e25e9f7999b0a5ac39e32f7290f0a026414648"
+    },
+    {
+      "sourceCommit": "609c981bbf7245dc04c7a6cbbe503d073866ea24",
+      "path": "apps/shop/evidence/offline-draft-20261004/commerce-owned-delta-609c981bb.tar",
+      "members": 12,
+      "bytes": 204288,
+      "sha256": "562127b1eb644099457f5f8d370b32dee5260c3c871ea3655b8df0b0e0eb510b"
+    },
+    {
+      "sourceCommit": "11b51491097d68e73e5443a83989f7a15fab19f2",
+      "path": "apps/shop/evidence/seller-normal-flow-20261004/commerce-owned-delta-11b514910.tar",
+      "members": 8,
+      "bytes": 94208,
+      "sha256": "4a138d149c8586d70b0f5bade23ff99598719b2f00f7b79822f7583ccf379e1f"
+    },
+    {
+      "sourceCommit": "c2e17e441cd84a4044f5b426b47299a432c4465c",
+      "path": "apps/shop/evidence/view-lifecycle-20261004/commerce-owned-delta-c2e17e441.tar",
+      "members": 8,
+      "bytes": 122880,
+      "sha256": "ffd99d4a1027571bf392b3b67c27a11526e0601acd1d98e6b928694560982b9c"
+    },
+    {
+      "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+      "path": "apps/shop/evidence/shop-mount-20261004/commerce-owned-delta-7d1128595.tar",
+      "members": 1,
+      "bytes": 20480,
+      "sha256": "901a1b74e5700a1d9cd6dc5f21b328192c245f2e2aa3b67dbb1a975010dba3dc"
+    },
+    {
+      "sourceCommit": "2662eb6387d4b8360e590c437b89f0ee0436a035",
+      "path": "apps/shop/evidence/browser-gateway-20261004/commerce-owned-delta-2662eb638.tar",
+      "members": 6,
+      "bytes": 71680,
+      "sha256": "dc25de9830a3bf544061d5e0ea79a86eeaa044cf063da245fbd5ba064c32424f"
+    },
+    {
+      "sourceCommit": "a828c9bccbef5574466d3895d356b0d785f2d0a2",
+      "path": "apps/shop/evidence/acceptance-matrix-20261004/commerce-owned-delta-a828c9bcc.tar",
+      "members": 2,
+      "bytes": 40960,
+      "sha256": "5666fcb04a01c0a54cab87523f1a6f98c025307e6195290201d767d3cea61c06"
+    }
+  ],
+  "delta": {
+    "path": "commerce-owned-delta-e9005d3b9.tar",
+    "members": 5,
+    "bytes": 92160,
+    "sha256": "5b6a29f963ef4da8bf8f11e227da3fa6df4fa0f4a4ed87fd1d6a108370c2b2b4"
+  },
+  "composedOwnedMembers": 445,
+  "composition": "PASS actual eight immutable layers/all445 owned byte/hash matches",
+  "reviewedAInput": {
+    "manifestSHA": "ea9bc183cc4500ca5b2c95a390bd36b73b8a6852d13233de501747dd30b89284",
+    "files": 2907,
+    "sourceServerPriorSHA": "74a27f9ced397d8e7d1cf23f678371cd1b2d83cf39e55249c20c6617cabba455",
+    "adoptedServerSHA": "779a4cec497cde69e58efda69603d39b2210561dd3b418480037475f95f198e5",
+    "adopted": "only original immutable CSP getter and security delegate",
+    "sharedMountMainSellerNotCopied": true,
+    "contentRoot": "3cd94581a3b13d3eb5df052c72ea8bbcd45c2ffb063bbfd95ee64cae9b5f9394",
+    "modeChecks": "PASS"
+  },
+  "adoption": "Only original policy getter/security delegate and owned built-asset defaults; no whole Shared mount/main/Seller constructor copy",
+  "rawRecords": [
+    {
+      "path": "raw/actual-go-policies.json",
+      "bytes": 387,
+      "sha256": "f68018ad16cd01ab0dd9fb462a642f2bc35743bb7d98c1ed6d8f452c5ae4803b"
+    },
+    {
+      "path": "raw/actual-main-help.log",
+      "bytes": 1092,
+      "sha256": "f3144fcae32bbb9f863c45a77f5445cbfe4b8c95df54233b4687273f19c0b5a3"
+    },
+    {
+      "path": "raw/getter-browser.log",
+      "bytes": 595,
+      "sha256": "3dadb31473eadf39a1342d47728d73714ea3559c4bb0f264ffc01aef9e81f1e3"
+    },
+    {
+      "path": "raw/getter-handler-go.log",
+      "bytes": 542,
+      "sha256": "6032c8a95148956ab79ca9250797529e9f38309e1c79e40cadb31f57f561ed4c"
+    },
+    {
+      "path": "raw/input-check.json",
+      "bytes": 513,
+      "sha256": "90c3c8c7078e345fe1a707ac7dfe036977c356d67d8e5d55e008fa0e763a7131"
+    }
+  ],
+  "validation": {
+    "actualGoHandlerRaceBranches": 3,
+    "actualHeaderToChromiumSDK": 2,
+    "actualOwnedMainCompilationAndHelp": "PASS no Store/keys/service opened"
+  },
+  "controlledQualification": "No production Wallet/Host/current actor/reader/profile/private grant; actual browser software approval and fixture business replies",
+  "unchangedStaticCandidate": {
+    "sourceCommit": "7d112859597b23657b58d07c245593e9a15644d8",
+    "path": "apps/shop/evidence/shop-mount-20261004/controlled-shop-web-7d1128595.tar",
+    "members": 23,
+    "bytes": 7837696,
+    "sha256": "8f4258ee2e2f199d4391da263b67f188ef8a1e453d1046384329a20dd3b10898",
+    "qualification": "CONTROLLED_BUILD_ONLY full cached dependency stage and controlled Browser SDK; A formal qualification/signing/deployment still required"
+  },
+  "originalCases": "all12 journeys and five platform runs retained NOT_VERIFIED",
+  "formalARequirements": [
+    "apply owned dist-default correction without overwriting A main overlay",
+    "qualified protected startup, original role/profile/actual actor/readers/seal and matching SDK/runtime",
+    "exact source-bound backend/three URLs/callbacks",
+    "Merchant actual build",
+    "signed Android/macOS package/install and each actual own-user journey"
+  ],
+  "goal": "NOT_COMPLETE"
+}

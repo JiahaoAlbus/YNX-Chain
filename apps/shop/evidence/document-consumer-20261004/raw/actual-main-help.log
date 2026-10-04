@@ -1,0 +1,19 @@
+Usage of /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/go-build1481258387/b001/exe/shopd:
+  -buyer-assets string
+    	built buyer public assets; use a dedicated immutable build root (default "apps/shop/dist")
+  -confirm-prune-transient
+    	apply the transient retention preview; requires --prune-transient-before and an integrity key
+  -export-rollback string
+    	write a new bounded rollback snapshot and exit; never overwrites an existing file
+  -http string
+    	HTTP listen address (default "127.0.0.1:8095")
+  -prune-transient-before string
+    	preview or prune terminal AI jobs and rate-limit samples older than this RFC3339 cutoff, then exit
+  -restore-backup
+    	restore the last verified state backup before starting
+  -rollback-version int
+    	rollback snapshot target version: 3, 4, 5, 6 or 7; refused when retired intent protection cannot be represented (default 5)
+  -seller-assets string
+    	built seller public assets; use a dedicated immutable build root (default "apps/seller-console/dist")
+  -state string
+    	persistent state path (default "tmp/shop/state.json")
