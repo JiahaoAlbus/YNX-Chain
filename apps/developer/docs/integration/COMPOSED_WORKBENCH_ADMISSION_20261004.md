@@ -28,6 +28,19 @@ roots, network rules, Host or credentials are added. Tests use the already
 approved installed macOS Command Line Tools and SDK; other platforms/toolchains
 and the normal canonical installed journey remain unverified.
 
+The complete new macOS App/DMG at
+`.ynx-developer-candidates/ynx-composed-cpp-native-package-20261004-mac-arm64`
+embeds source `bd1681105ef1b294bf491bb70910d19a5258ba73`, tree
+`0a0b65a6cad37fcdafd7e95bf1442715fc4b6a9a`, and this exact reviewed core and
+C/C++ extension. DMG SHA256
+`3570eca5646b854a141518f81cc8908a232fec8b2fcbf36de864f3580109471a`.
+Deep strict ad-hoc signature and disk-image checks pass; the archived core
+remains byte-exact after sealing. The compiler/Clangd executable is not bundled.
+It has not been installed or launched and does not establish canonical admission,
+Developer ID/notarization or platform acceptance. See
+`COMPOSED_CPP_NATIVE_DISTRIBUTION_20261004.json`. Older distributions below
+remain accurately source-pinned; this documentation does not relabel them.
+
 Previous compiler-task checkpoint: workbench **0.3.5**, candidate
 `ynx-composed-gcc-diagnostics-20261004-mac-arm64`. Exact pin and **26 actual
 controlled browser checks** (core 16, lifecycle 3, same-profile cold recovery 4,

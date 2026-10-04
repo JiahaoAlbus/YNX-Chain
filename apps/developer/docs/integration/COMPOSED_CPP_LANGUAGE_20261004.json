@@ -394,7 +394,7 @@
   ],
   "evidence": "apps/developer/.ynx-developer-candidates/cpp-language-evidence-20261004",
   "evidenceIndexSha256": "18631d6435db1ab36f9468555dc080ed369036e778e187d1344baaf5912842bd",
-  "nativePackage": "This successor is not yet packaged or installed; previous cd9a/0.3.5 GCC-only package remains accurately source pinned.",
+  "nativePackage": "New complete App/DMG built and sealed from bd1681105/0.3.5+Cpp0.1.0; see COMPOSED_CPP_NATIVE_DISTRIBUTION_20261004.json. Previous cd9a GCC-only package preserved. Not installed/launched or canonical-user accepted.",
   "operatorContract": {
     "identity": "Existing five nonsecret workspace/profile/parent bindings unchanged. No authority or profile migration.",
     "tools": [
