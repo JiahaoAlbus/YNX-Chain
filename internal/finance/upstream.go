@@ -302,7 +302,7 @@ func firstTime(m map[string]any, keys ...string) time.Time {
 
 func requireHTTPURL(value string) (*url.URL, error) {
 	parsed, err := url.Parse(value)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" || parsed.User != nil || parsed.ForceQuery || parsed.RawQuery != "" || strings.Contains(value, "#") {
 		return nil, errors.New("absolute http(s) base URL without credentials, query or fragment required")
 	}
 	return parsed, nil

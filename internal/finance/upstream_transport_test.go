@@ -77,7 +77,10 @@ func TestFinanceUpstreamBoundedSingleDocumentResponse(t *testing.T) {
 }
 
 func TestFinanceUpstreamRejectsCredentialBearingBaseURLs(t *testing.T) {
-	for _, value := range []string{"https://user:secret@example.test", "https://example.test?token=secret", "https://example.test#fragment"} {
+	for _, value := range []string{"https://user:secret@example.test", "https://example.test?token=secret", "https://example.test#fragment", "https://example.test?", "https://example.test#", "https://example.test/prefix?", "https://example.test/prefix#"} {
+		if _, err := requireHTTPURL(value); err == nil || strings.Contains(err.Error(), value) {
+			t.Fatal("unsafe base accepted or configuration echoed in error")
+		}
 		if _, err := NewUpstreams(value, "", "", ""); err == nil {
 			t.Fatal("unsafe Explorer base accepted")
 		}
@@ -86,6 +89,22 @@ func TestFinanceUpstreamRejectsCredentialBearingBaseURLs(t *testing.T) {
 		}
 		if err := (&Upstreams{}).ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{ExchangeURL: value, ExchangeKey: strings.Repeat("k", 32)}); err == nil {
 			t.Fatal("unsafe owner base accepted")
+		}
+	}
+}
+
+func TestFinanceUpstreamCompatibleBaseURLPaths(t *testing.T) {
+	for _, value := range []string{"https://example.test", "https://example.test/", "http://127.0.0.1:6483", "https://example.test/prefix/", "https://example.test/path%3Fname%23suffix"} {
+		u, err := NewUpstreams(value, value, "configured-key", "")
+		if err != nil {
+			t.Fatalf("compatible base rejected: %v", err)
+		}
+		want := strings.TrimRight(value, "/")
+		if u.ExplorerURL != want || u.PayURL != want {
+			t.Fatal("compatible base changed unexpectedly")
+		}
+		if err := u.ConfigureReadSourceIntegrations(ReadSourceIntegrationConfig{ExchangeURL: value, ExchangeKey: strings.Repeat("k", 32)}); err != nil {
+			t.Fatalf("compatible owner base rejected: %v", err)
 		}
 	}
 }
