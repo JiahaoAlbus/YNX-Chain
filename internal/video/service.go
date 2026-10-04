@@ -488,8 +488,17 @@ func (s *Service) RetryProcessing(ctx context.Context, actor, videoID string) (*
 			return ErrForbidden
 		}
 		quotaOwner = v.Owner
-		if v.Status != "failed" {
-			return errors.New("only failed processing can be retried")
+		// Upload and explicit recovery share quotaMu, including scoped services.
+		// An active upload finishes before this status is checked again.
+		if v.Status != "failed" && v.Status != "scanning" && v.Status != "transcoding" {
+			return errors.New("only failed or interrupted processing can be retried")
+		}
+		if v.ID != videoID {
+			return errors.New("source media identity does not match video")
+		}
+		// Validate the retained original before changing state or removing outputs.
+		if _, integrityErr := s.finalizeMediaVariants(v, []MediaVariant{{Name: "original-fallback", ObjectKey: v.ObjectKey, MIME: v.ContentType}}); integrityErr != nil {
+			return integrityErr
 		}
 		v.Status = "scanning"
 		v.Failure = ""
@@ -1527,7 +1536,7 @@ func (s *Service) recoverInterrupted() error {
 		for _, v := range st.Videos {
 			if v.Status == "scanning" || v.Status == "transcoding" {
 				v.Status = "failed"
-				v.Failure = "processing interrupted by restart; retry upload"
+				v.Failure = "processing interrupted by restart; retry processing of the saved original"
 				v.UpdatedAt = s.cfg.Now().UTC()
 				s.audit(st, "system", "video.processing.recovered", "video", v.ID, v.Failure)
 			}

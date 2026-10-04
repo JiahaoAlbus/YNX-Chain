@@ -196,7 +196,7 @@ struct CreatorView: View {
     }
     @ViewBuilder private func videoActions(_ video:CreatorVideo) -> some View {
         Button(model.text("rights")) {selectedVideo=video}
-        if video.status=="failed" {Button(model.text("retryProcessing")) {model.submit("/v1/videos/"+video.id+"/retry-processing")}}
+        if ["failed","scanning","transcoding"].contains(video.status) {Button(model.text("retryProcessing")) {model.submit("/v1/videos/"+video.id+"/retry-processing")}}
         if ["draft","rejected","unpublished"].contains(video.workflow_state) && video.status=="ready" {Button(model.text("submitReview")) {model.submit("/v1/videos/"+video.id+"/submit-review")}}
         if video.workflow_state=="approved" {
             Menu(model.text("publish")) {ForEach(["public","unlisted","private"],id:\.self) {visibility in Button(model.text(visibility)) {model.submit("/v1/videos/"+video.id+"/publish",body:["visibility":visibility])}}}
