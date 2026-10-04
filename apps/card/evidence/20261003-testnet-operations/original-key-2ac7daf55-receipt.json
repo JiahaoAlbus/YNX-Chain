@@ -1,0 +1,75 @@
+{
+  "observedAt": "2026-10-04T09:57:13.855Z",
+  "source": "2ac7daf553642929a51f244728287e0e1616c0a6",
+  "tree": "838eef5f44291b1b4996e5635f359357171ebe47",
+  "fix": "Readback now accepts exactly the existing mutation idempotency-key grammar; no write or scope semantics expanded",
+  "tests": {
+    "focused": 1,
+    "backend": 150,
+    "backendFailed": 0,
+    "frontendChanged": false,
+    "priorFrontend454Source": "c887f8d070847d88a094484508d3fa838ee5f201",
+    "typecheck": true,
+    "webBuild": true,
+    "envelopeVerifier": true,
+    "backendCompile": true
+  },
+  "verified": [
+    "actual encrypted SQLite close/reopen",
+    "numeric/dot/colon/160-character keys recover identical responses",
+    "unknown key stays UNKNOWN",
+    "digest mismatch rejected",
+    "foreign owner denied",
+    "invalid keys rejected",
+    "queries preserve statement and events"
+  ],
+  "fixtureAuthorityOnly": true,
+  "localBrowser": {
+    "visibleSource": "2ac7daf553642929a51f244728287e0e1616c0a6",
+    "url": "http://127.0.0.1:62270/",
+    "screenshotSha256": "f9a220e95ce8c79ba1e15eb4d059783e732d1749db7d1c626e57e163f6681878"
+  },
+  "candidate": {
+    "root": "/private/tmp/ynx-card-exact-pair-20261004.OY6MZG/envelope-original-key-20261004",
+    "manifestSha256": "2bffa4c60f2a52b800ecbdc226aa90cba75f96de0707e8eb9ea18dd34de535b3"
+  },
+  "logs": {
+    "focused": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-focused.txt",
+      "sha256": "07391028103f884738ea4350698749dcb2006733cd698feffcda1c87f615b820"
+    },
+    "backend": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-backend.txt",
+      "sha256": "ef2f1a5d216ff9933f157f1403e34f456027c9e6a305d80513b3dc6d66e0e46d"
+    },
+    "types": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-types.txt",
+      "sha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+    },
+    "web": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-web.txt",
+      "sha256": "cb38289ee44471bba94b2f6334f0683927606dda8fad4ca619e4f9b5a4478f82"
+    },
+    "envelope": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-envelope.txt",
+      "sha256": "cb5211b92430efbc9d2ea467f3f83436706bbc77211d4dd724cec5ea150d971c"
+    },
+    "backend-build": {
+      "file": "apps/card/evidence/20261003-testnet-operations/original-key-2ac7daf55-backend-build.txt",
+      "sha256": "3295b54c1b3e26fafc9b3c7c9e9fd7035d7e1c19e951def6825a0e8d9728031b"
+    }
+  },
+  "boundaries": {
+    "newPublicDeployment": false,
+    "realAccountApproval": false,
+    "realSignature": false,
+    "realBackendActivation": false,
+    "realYnxtTopup": false,
+    "realLedgerCredit": false,
+    "dataFabricReceiverAcceptance": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "productionRealPayments": false
+  },
+  "remaining": "Formal original Current/role/actor/recovery producer and paired Host integration, followed by direct public registration/funding/payment-simulation E2E"
+}
