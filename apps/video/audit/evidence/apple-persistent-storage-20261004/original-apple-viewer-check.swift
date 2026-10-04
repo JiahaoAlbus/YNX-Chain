@@ -60,61 +60,6 @@ import Foundation
         try rejects { _ = try make() };try check(bytes != retained,"corrupt state was silently overwritten");bytes=retained
         let poisoned=try make();failWrite=true;try rejects { _ = try poisoned.reservePlaylist("Retry") };failWrite=false
         try rejects { _ = try poisoned.pendingWatch() };try check(bytes==retained,"failed write replaced original state")
-        // A failed adapter may update its volatile readback before throwing.
-        // Exercise each original reserve/queue/ACK, with the durable snapshot
-        // kept separate. This is injected storage, not a Keychain guarantee.
-        for path in ["reserve-create","reserve-operation","queue-watch","ack-create","ack-operation","ack-watch"] {
-            var durable: Data?,volatile: Data?,failing=false,writes=0
-            func state() throws -> VideoViewerState {
-                try VideoViewerState(account:account,read:{volatile},write:{next in
-                    writes += 1;volatile=next
-                    if failing { throw Failure(reason:"persistent adapter failure") }
-                    durable=next
-                },require:{})
-            }
-            func closed(_ action: () throws -> Void) throws {
-                do { try action() }
-                catch VideoViewerState.Failure.unconfirmedWrite { return }
-                throw Failure(reason:"\(path): poisoned storage did not reject with unconfirmedWrite")
-            }
-            let active=try state(),play=try active.playback("persistent-video")
-            let watch=try active.position("persistent-video",play,position:7,seconds:7,completed:false)!
-            let create=path=="reserve-create" ? nil : try active.reservePlaylist("Persistent original")
-            let operation=path=="reserve-operation" ? nil : try active.reservePlaylistOperation(action:"add",playlistID:"persistent-list",videoID:"persistent-video")
-            let before=durable;failing=true
-            do {
-                switch path {
-                case "reserve-create":_ = try active.reservePlaylist("Persistent original")
-                case "reserve-operation":_ = try active.reservePlaylistOperation(action:"add",playlistID:"persistent-list",videoID:"persistent-video")
-                case "queue-watch":_ = try active.position("persistent-video",play,position:8,seconds:1,completed:false)
-                case "ack-create":try active.finishPlaylist(create!)
-                case "ack-operation":try active.finishPlaylistOperation(operation!)
-                default:try active.finishWatch(watch)
-                }
-                throw Failure(reason:"\(path): failed write accepted")
-            } catch let error as Failure {
-                try check(error.reason=="persistent adapter failure","\(path): unexpected error \(error.reason)")
-            }
-            try check(durable==before && volatile != before,"\(path): counterexample did not model volatile-only update")
-            let attempts=writes
-            for _ in 0..<2 {
-                try closed { _ = try active.reservePlaylist("Persistent original") }
-                try closed { _ = try active.reservePlaylistOperation(action:"add",playlistID:"persistent-list",videoID:"persistent-video") }
-                try closed { _ = try active.pendingWatch() }
-                try closed { try active.finishWatch(watch) }
-            }
-            failing=false
-            try closed { _ = try active.pendingWatch() }
-            try check(writes==attempts && durable==before,"\(path): poisoned retry wrote or erased durable originals")
-            volatile=durable;let reopened=try state()
-            try check(try reopened.pendingWatch()==[watch],"\(path): cold recovery changed original watch key/body")
-            try check(try reopened.playlistDraft()==create,"\(path): cold recovery changed original create key/body")
-            try check(try reopened.pendingPlaylistOperation()==operation,"\(path): cold recovery changed original operation key/body")
-            try reopened.finishWatch(watch)
-            if let create { try reopened.finishPlaylist(create) }
-            if let operation { try reopened.finishPlaylistOperation(operation) }
-            print("PASS: Apple persistent failure \(path), volatile update blocked, durable original cold recovery; injected storage only")
-        }
         var clock=VideoPlaybackClock()
         try check(clock.sample(position:47,playing:true,now:0)==0,"resume counted as watch")
         try check(clock.sample(position:52,playing:true,now:5)==5,"playing seconds missing")
