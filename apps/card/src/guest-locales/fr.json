@@ -143,7 +143,8 @@
     "YNX Wallet native identity": "Identité native YNX Wallet",
     "Your YNX Wallet identity and Card funding permissions are separate.": "Votre identité YNX Wallet et les permissions de recharge Card sont distinctes.",
     "Your guest workspace remains available.": "Votre espace invité reste disponible.",
-    "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••"
+    "••••  ••••  ••••  ••••": "••••  ••••  ••••  ••••",
+    "YNX TESTNET": "Réseau de test YNX"
   },
   "templates": {
     "walletConnected": "Wallet standard connecté : {address}",
