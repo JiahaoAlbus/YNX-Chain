@@ -94,6 +94,11 @@ import Foundation
                             }
                             let key=model.state.uploadIntent?.key ?? "",title=model.state.uploadIntent?.title ?? "",success=await model.retryUpload(operation)
                             value=["success":success,"pending":model.state.uploadIntent != nil,"key":key,"tracks":model.snapshot.creatorTracks.count,"id":model.snapshot.creatorTracks.first(where:{$0.title==title})?.id ?? ""]
+                        case "uiCase":
+                            guard let operation=model.captureOperation() else{throw MusicNativeEngine.Failure.retired}
+                            if let track=command["track"] as? String {guard model.prepareCase(operation,kind:"report",track:track,reason:"Original unavailable Apple Trust retry",evidence:"sha256:original-apple-case-evidence") else{throw MusicNativeEngine.Failure.rejected("case staging")}}
+                            let key=model.state.caseIntent?.key ?? "",success=await model.retryCase(operation)
+                            await model.refresh(operation);value=["success":success,"pending":model.state.caseIntent != nil,"key":key,"cases":model.snapshot.cases.count]
                         case "uiRelease":
                             guard let operation=model.captureOperation(),let track=model.snapshot.creatorTracks.first(where:{command["track"]==nil || $0.id==command["track"] as? String}) else{throw MusicNativeEngine.Failure.retired}
                             guard await model.perform(operation,{try await $0.release(track.id)}) != nil else{throw MusicNativeEngine.Failure.retired};await model.refresh(operation);value=["id":track.id,"catalog":model.snapshot.catalog.count]
@@ -115,7 +120,7 @@ import Foundation
                             guard let operation=model.captureOperation(),let id=command["track"] as? String,MusicAccountStore.validTrackID(id) else{throw MusicNativeEngine.Failure.retired}
                             let file=directory.appendingPathComponent("MusicAccounts/"+MusicAccountStore.accountKey(operation.account.account)+"/Offline/"+id+".wav");if FileManager.default.fileExists(atPath:file.path){try FileManager.default.removeItem(at:file)};value=["removedQAFile":true]
                         case "uiSignOut":model.signOut();let deadline=Date().addingTimeInterval(35);while model.revokePending && Date()<deadline { try await Task.sleep(nanoseconds:10_000_000) };value=["connected":model.signedIn,"pending":model.revokePending]
-                        case "cold":engine.close();engine=try create();model=createModel(engine);await model.restoreNative();value=["status":engine.lastStatus,"connected":model.signedIn,"count":model.snapshot.playlists.count,"uploadPending":model.state.uploadIntent != nil,"uploadKey":model.state.uploadIntent?.key ?? "","tracks":model.snapshot.creatorTracks.count]
+                        case "cold":engine.close();engine=try create();model=createModel(engine);await model.restoreNative();value=["status":engine.lastStatus,"connected":model.signedIn,"count":model.snapshot.playlists.count,"uploadPending":model.state.uploadIntent != nil,"uploadKey":model.state.uploadIntent?.key ?? "","casePending":model.state.caseIntent != nil,"caseKey":model.state.caseIntent?.key ?? "","tracks":model.snapshot.creatorTracks.count]
                         case "mismatch":mismatch=command["enabled"] as! Bool;value=["enabled":mismatch]
                         case "holdNext":hold=true;value=["holding":true]
                         case "holdNextModelSnapshot":holdSnapshot=true;holdModelSnapshot=true;value=["holding":true]

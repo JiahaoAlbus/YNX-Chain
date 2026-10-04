@@ -8,14 +8,25 @@ struct Listener:Codable{var favorites:[String]=[];var queue:[String]=[];var down
 struct Profile:Codable{var account="";var displayName="";var bio:String?;var explicitAllowed=false;var privateHistory=true;var creatorStatus="listener"}
 struct Allocation:Codable,Identifiable{let id:String;let amountMicros:Int}
 struct Settlement:Codable,Identifiable{let id,status,reviewUri:String;let amountMicros:Int}
-struct CaseRecord:Codable,Identifiable{let id,kind,status:String}
+struct CaseRecord:Codable,Identifiable{let id,kind,status:String;var openedBy:String?;var trackId:String?;var reason:String?;var evidenceRef:String?;var centralCaseId:String?}
+struct MusicCaseIntent:Codable,Equatable {
+    let key,account,kind,trackID,reason,evidenceRef:String
+    func body()throws->Data {
+        guard key.range(of:"^music-trust-[A-Fa-f0-9-]{36}$",options:.regularExpression) != nil,["report","takedown","dispute","appeal"].contains(kind),trackID.range(of:"^trk_[0-9a-f]{24}$",options:.regularExpression) != nil,reason.count>=5,reason==reason.trimmingCharacters(in:.whitespacesAndNewlines),evidenceRef==evidenceRef.trimmingCharacters(in:.whitespacesAndNewlines) else{throw URLError(.badURL)}
+        let data=try JSONSerialization.data(withJSONObject:["kind":kind,"trackID":trackID,"reason":reason,"evidenceRef":evidenceRef],options:[.sortedKeys]);guard data.count<=16*1024 else{throw URLError(.dataLengthExceedsMaximum)};return data
+    }
+    func confirms(_ record:CaseRecord)->Bool {
+        guard let central=record.centralCaseId,!central.isEmpty,central.count<=256,central==central.trimmingCharacters(in:.whitespacesAndNewlines) else{return false}
+        return record.id.range(of:"^case_[0-9a-f]{24}$",options:.regularExpression) != nil && record.openedBy==account && record.kind==kind && record.trackId==trackID && record.reason==reason && (record.evidenceRef ?? "")==evidenceRef
+    }
+}
 struct AIProposal:Codable,Identifiable{let id,kind,status:String;let estimatedUnits:Int;var result:String?}
 struct MusicPlaylist:Codable,Identifiable { let id:String;var name:String;var description:String?;var trackIds:[String] }
 struct Snapshot:Codable { var profile=Profile();var listener=Listener();var catalog:[Track]=[];var creatorTracks:[Track]=[];var usage:[Usage]=[];var allocations:[Allocation]=[];var settlements:[Settlement]=[];var cases:[CaseRecord]=[];var aiProposals:[AIProposal]=[];var playlists:[MusicPlaylist]=[] }
 struct Usage:Codable,Identifiable{let id,trackId:String;let listenedMillis:Int}
 struct PlaylistCreation:Codable {let key:String;let name:String;let trackIds:[String]}
 struct MusicUploadIntent:Codable,Equatable { let key,title,artist,evidence,provenance,audioSHA256:String }
-struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation?;var uploadIntent:MusicUploadIntent? }
+struct LocalState:Codable { var favorites:[String]=[];var queue:[String]=[];var downloads:[String:String]=[:];var trackId="";var position:Double=0;var aiEnabled=true;var playlistCreation:PlaylistCreation?;var uploadIntent:MusicUploadIntent?;var caseIntent:MusicCaseIntent? }
 
 
 struct MusicSessionContext:Equatable, Sendable {

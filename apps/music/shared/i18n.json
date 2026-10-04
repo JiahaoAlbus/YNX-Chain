@@ -86,7 +86,8 @@
       "playlist_pending": "A previous creation may already be saved. Retry to recover it, or start a new playlist; any saved playlist is kept.",
       "new_playlist": "New playlist",
       "cancel_upload_draft": "Cancel this upload draft? Audio already received by the server will be retained.",
-      "cancel_upload": "Cancel draft"
+      "cancel_upload": "Cancel draft",
+      "trust_pending": "Saved request. Trust confirmation is pending. Retry this request."
     },
     "zh-Hans": {
       "app_name": "YNX 音乐",
@@ -159,7 +160,8 @@
       "playlist_pending": "上次创建可能已经保存。重试可恢复原记录，也可新建歌单；已保存的歌单会保留。",
       "new_playlist": "新建歌单",
       "cancel_upload_draft": "取消此上传草稿？服务端已收到的音频会保留。",
-      "cancel_upload": "取消草稿"
+      "cancel_upload": "取消草稿",
+      "trust_pending": "请求已保存，尚待 Trust 确认。请重试此请求。"
     },
     "zh-Hant": {
       "app_name": "YNX 音樂",
@@ -232,7 +234,8 @@
       "playlist_pending": "上次建立可能已儲存。重試可恢復原紀錄，也可建立新歌單；已儲存的歌單會保留。",
       "new_playlist": "建立新歌單",
       "cancel_upload_draft": "取消此上傳草稿？伺服器已收到的音訊會保留。",
-      "cancel_upload": "取消草稿"
+      "cancel_upload": "取消草稿",
+      "trust_pending": "請求已儲存，尚待 Trust 確認。請重試此請求。"
     },
     "ja": {
       "app_name": "YNX Music",
@@ -305,7 +308,8 @@
       "playlist_pending": "前回の作成は保存済みかもしれません。再試行して復元するか、新規作成してください。保存済みのリストは保持されます。",
       "new_playlist": "新規リスト",
       "cancel_upload_draft": "このアップロード下書きを取り消しますか？サーバーが受信した音声は保持されます。",
-      "cancel_upload": "下書きを取り消す"
+      "cancel_upload": "下書きを取り消す",
+      "trust_pending": "リクエストは保存済みです。Trust の確認待ちです。このリクエストを再試行してください。"
     },
     "ko": {
       "app_name": "YNX Music",
@@ -378,7 +382,8 @@
       "playlist_pending": "이전 생성이 저장되었을 수 있습니다. 재시도하여 복구하거나 새 목록을 만드세요. 저장된 목록은 유지됩니다.",
       "new_playlist": "새 재생 목록",
       "cancel_upload_draft": "업로드 초안을 취소할까요? 서버가 받은 오디오는 유지됩니다.",
-      "cancel_upload": "초안 취소"
+      "cancel_upload": "초안 취소",
+      "trust_pending": "요청이 저장되었습니다. Trust 확인을 기다리고 있습니다. 이 요청을 다시 시도하세요."
     },
     "es": {
       "app_name": "YNX Music",
@@ -451,7 +456,8 @@
       "playlist_pending": "La creación anterior podría estar guardada. Reintenta para recuperarla o crea otra lista; las listas guardadas se conservan.",
       "new_playlist": "Nueva lista",
       "cancel_upload_draft": "¿Cancelar este borrador? El audio recibido por el servidor se conservará.",
-      "cancel_upload": "Cancelar borrador"
+      "cancel_upload": "Cancelar borrador",
+      "trust_pending": "Solicitud guardada. Pendiente de confirmación de Trust. Reintenta esta solicitud."
     },
     "fr": {
       "app_name": "YNX Music",
@@ -524,7 +530,8 @@
       "playlist_pending": "La création précédente est peut-être enregistrée. Réessayez pour la retrouver ou créez une nouvelle liste ; les listes enregistrées sont conservées.",
       "new_playlist": "Nouvelle liste",
       "cancel_upload_draft": "Annuler ce brouillon ? Les fichiers audio reçus par le serveur seront conservés.",
-      "cancel_upload": "Annuler le brouillon"
+      "cancel_upload": "Annuler le brouillon",
+      "trust_pending": "Demande enregistrée. Confirmation Trust en attente. Réessayez cette demande."
     },
     "de": {
       "app_name": "YNX Music",
@@ -597,7 +604,8 @@
       "playlist_pending": "Die vorige Liste könnte gespeichert sein. Erneut versuchen oder eine neue Liste erstellen; gespeicherte Listen bleiben erhalten.",
       "new_playlist": "Neue Liste",
       "cancel_upload_draft": "Diesen Upload-Entwurf abbrechen? Bereits empfangene Audiodateien bleiben auf dem Server erhalten.",
-      "cancel_upload": "Entwurf abbrechen"
+      "cancel_upload": "Entwurf abbrechen",
+      "trust_pending": "Anfrage gespeichert. Trust-Bestätigung steht aus. Diese Anfrage erneut versuchen."
     },
     "pt": {
       "app_name": "YNX Music",
@@ -670,7 +678,8 @@
       "playlist_pending": "A criação anterior pode estar salva. Tente recuperar ou crie outra lista; as listas salvas são mantidas.",
       "new_playlist": "Nova lista",
       "cancel_upload_draft": "Cancelar este rascunho? O áudio recebido pelo servidor será mantido.",
-      "cancel_upload": "Cancelar rascunho"
+      "cancel_upload": "Cancelar rascunho",
+      "trust_pending": "Pedido salvo. A confirmação do Trust está pendente. Tente este pedido novamente."
     },
     "ru": {
       "app_name": "YNX Music",
@@ -743,7 +752,8 @@
       "playlist_pending": "Предыдущая запись могла сохраниться. Повторите попытку для восстановления или создайте новую; сохранённые плейлисты останутся.",
       "new_playlist": "Новый плейлист",
       "cancel_upload_draft": "Отменить черновик загрузки? Полученное сервером аудио будет сохранено.",
-      "cancel_upload": "Отменить черновик"
+      "cancel_upload": "Отменить черновик",
+      "trust_pending": "Запрос сохранён. Ожидается подтверждение Trust. Повторите этот запрос."
     },
     "ar": {
       "app_name": "موسيقى YNX",
@@ -816,7 +826,8 @@
       "playlist_pending": "قد تكون القائمة السابقة محفوظة. أعد المحاولة لاستعادتها أو أنشئ قائمة جديدة؛ ستبقى القوائم المحفوظة.",
       "new_playlist": "قائمة جديدة",
       "cancel_upload_draft": "هل تريد إلغاء مسودة الرفع؟ سيبقى الصوت الذي استلمه الخادم محفوظًا.",
-      "cancel_upload": "إلغاء المسودة"
+      "cancel_upload": "إلغاء المسودة",
+      "trust_pending": "تم حفظ الطلب. تأكيد Trust قيد الانتظار. أعد محاولة هذا الطلب."
     },
     "id": {
       "app_name": "YNX Music",
@@ -889,7 +900,8 @@
       "playlist_pending": "Pembuatan sebelumnya mungkin sudah tersimpan. Coba pulihkan atau buat daftar baru; daftar yang tersimpan tetap dipertahankan.",
       "new_playlist": "Daftar baru",
       "cancel_upload_draft": "Batalkan draf unggahan ini? Audio yang diterima server akan tetap disimpan.",
-      "cancel_upload": "Batalkan draf"
+      "cancel_upload": "Batalkan draf",
+      "trust_pending": "Permintaan tersimpan. Konfirmasi Trust masih tertunda. Coba lagi permintaan ini."
     }
   }
 }

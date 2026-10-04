@@ -1,3 +1,4 @@
+import {createCaseJournal} from './case-journal.js';
 import {createPlaylistJournal} from './playlist-journal.js';
 import {createMusicAIStream} from './ai-stream.js';
 // The release owner's canonical request adapter supplies authentication and
@@ -6,7 +7,7 @@ import {createMusicAIStream} from './ai-stream.js';
 export function createMusicBusiness({document:doc, audio, tell}) {
   const $=s=>doc.querySelector(s), $$=s=>[...doc.querySelectorAll(s)];
   let view='home', aiCancel=null, aiRevision=0;
-  const playlistJournal=createPlaylistJournal();
+  const playlistJournal=createPlaylistJournal(),caseJournal=createCaseJournal();let caseIntent=null,caseBusy=null;
   let epoch=0, transport=null, snapshot=null, current=null, detail=null, mediaURL='', playback='', lastSave=0, playRevision=0, searchRevision=0, libraryTail=Promise.resolve();
   const pending=new Set(), urls=new Set(), dialogs=new Set();
   const stale=()=>new DOMException('Music account changed','AbortError');
@@ -51,7 +52,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
   }
   function releaseURL(url){if(url){URL.revokeObjectURL(url);urls.delete(url)}}
   function reset(){
-    epoch++;aiRevision++;$('#musicIdentity').hidden=true;$('#musicIdentity').textContent='';$('#musicDisconnect').hidden=true;aiCancel?.();aiCancel=null;$('#aiCancel').disabled=true;$('#aiStreamStatus').textContent='';transport=null;snapshot=null;current=null;detail=null;playback='';playRevision++;searchRevision++;
+    epoch++;aiRevision++;$('#musicIdentity').hidden=true;$('#musicIdentity').textContent='';$('#musicDisconnect').hidden=true;aiCancel?.();aiCancel=null;$('#aiCancel').disabled=true;$('#aiStreamStatus').textContent='';transport=null;snapshot=null;caseIntent=null;caseBusy=null;current=null;detail=null;playback='';playRevision++;searchRevision++;
     for(const p of pending)p.abort();pending.clear();for(const d of dialogs){d.close();d.remove()}dialogs.clear();
     audio.pause();audio.removeAttribute('src');audio.load();for(const u of urls)URL.revokeObjectURL(u);urls.clear();mediaURL='';libraryTail=Promise.resolve();
     for(const id of ['trackGrid','favorites','queue','history','playlists','creatorRecords','settlementRecords','aiRecords','aiOutput'])$('#'+id)?.replaceChildren();
@@ -63,7 +64,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
     const next=await json(t,'api/me');check(t);
     if(!next?.profile?.account||!next.listener||!Array.isArray(next.catalog)||!Array.isArray(next.playlists))throw new Error('Verified Music business snapshot missing');
     if(snapshot&&snapshot.profile.account!==next.profile.account){reset();throw stale()}
-    snapshot=next;$('#musicIdentity').hidden=false;$('#musicIdentity').textContent=next.profile.displayName||next.profile.account;$('#musicDisconnect').hidden=false;render();return next;
+    snapshot=next;caseIntent=await caseJournal.read(next.profile.account,()=>check(t));check(t);$('#musicIdentity').hidden=false;$('#musicIdentity').textContent=next.profile.displayName||next.profile.account;$('#musicDisconnect').hidden=false;render();return next;
   }
   async function activate(request) {
     reset();if(typeof request!=='function')throw new Error('Canonical Music request adapter missing');transport=request;
@@ -93,6 +94,7 @@ export function createMusicBusiness({document:doc, audio, tell}) {
     $('#allocationSelect').replaceChildren(...(snapshot.allocations||[]).map(a=>{const option=node('option',`${a.id} · ${a.amountMicros} micros`);option.value=a.id;return option}));
     $('#settlementRecords').replaceChildren(...(snapshot.settlements||[]).map(s=>{const row=node('div',null,'record');row.append(node('span',`${s.amountMicros} YNXT micros · ${s.status}`));try{const uri=new URL(s.reviewUri);if(s.centralIntentId&&uri.protocol==='ynxpay:'&&uri.hostname==='settlement'&&uri.pathname==='/review'&&!uri.username&&!uri.password&&!uri.hash){const link=node('a','Review in YNX Pay');link.href=s.reviewUri;row.append(link)}}catch{}return row}));
     $('#aiRecords').replaceChildren(...(snapshot.aiProposals||[]).map(p=>{const row=node('div',null,'record');row.append(node('span',`${p.kind} · ${p.provider}/${p.model} · ${p.estimatedUnits} estimated units · ${p.status}`),node('small',`Intent: ${p.intent||''} · Context: ${(p.contextTrackIds||[]).map(trackName).join(', ')}`));if(['awaiting_gateway','provider_failed'].includes(p.status)){const start=button('Stream',t=>streamAI(t,p.id));start.classList.add('ai-stream-start');start.disabled=!!aiCancel;row.append(start)}if(p.status==='streaming'){row.append(node('small','Waiting for a saved result. Checking status preserves this proposal.'),button('Check saved result',t=>checkAI(t,p.id)))}if(p.status==='completed'){row.append(button('View saved result',t=>checkAI(t,p.id)),button('Apply',t=>reviewAI(t,p.id,'apply')),button('Reject',t=>reviewAI(t,p.id,'reject')))}return row}));
+    if(caseIntent){const row=node('div',null,'record trust-pending');row.append(node('p','Saved request. Trust confirmation is pending.'),node('p',caseIntent.body.reason));const retry=button('Retry saved Trust request',t=>retryCase(t));retry.disabled=caseBusy?.epoch===epoch;row.append(retry);$('#playlists').append(row)}
     showView(view);
   }
   function dialog(t,title,build){
@@ -133,7 +135,19 @@ export function createMusicBusiness({document:doc, audio, tell}) {
     if(revision!==playRevision)return;const url=URL.createObjectURL(blob);urls.add(url);releaseURL(mediaURL);mediaURL=url;audio.pause();current=track;playback=crypto.randomUUID();lastSave=Date.now();audio.src=url;audio.currentTime=(snapshot.listener.positions?.[track.id]||0)/1000;audio.volume=Number($('#volume').value);await audio.play();check(t);if(revision!==playRevision)return;$('#nowTitle').textContent=track.title;$('#nowArtist').textContent=track.artistName;tell(`Playing ${track.title}`);
   }
   async function adjacent(t,direction){const ids=snapshot.listener.queue?.length?snapshot.listener.queue:tracks().map(t=>t.id);if(!ids.length)return;const at=ids.indexOf(current?.id),index=at<0?(direction>0?0:ids.length-1):(at+direction+ids.length)%ids.length;await play(t,allTracks().find(t=>t.id===ids[index]))}
-  async function openCase(t,id,kind='report'){const reason=await ask(t,'Reason and evidence context');check(t);if(!reason)return;const c=await json(t,'api/cases','POST',{kind,trackID:id,reason,evidenceRef:''},`music-trust-${crypto.randomUUID()}`);await load(t);tell(`Trust case ${c.id} opened`)}
+  async function openCase(t,id,kind='report'){
+    check(t);if(caseIntent)throw new Error('A saved Trust request is awaiting confirmation. Retry it from Library.');
+    const reason=await ask(t,kind==='report'?'Explain the rights concern':'Describe the dispute or appeal');check(t);if(reason===null)return;
+    const account=snapshot.profile.account;const intent=await caseJournal.begin(account,{kind,trackID:id,reason:reason.trim(),evidenceRef:''},()=>check(t));check(t);caseIntent=intent;render();await retryCase(t);
+  }
+  async function retryCase(t){
+    check(t);if(caseBusy?.epoch===epoch)return;const account=snapshot.profile.account;const intent=await caseJournal.read(account,()=>check(t));check(t);if(!intent||caseBusy?.epoch===epoch)return;
+    const busy={epoch,transport};caseBusy=busy;caseIntent=intent;render();
+    try{const c=await json(t,'api/cases','POST',intent.body,intent.key);check(t);
+      if(!validID(c?.id,'case')||c.openedBy!==account||c.kind!==intent.body.kind||c.trackId!==intent.body.trackID||c.reason!==intent.body.reason||(c.evidenceRef||'')!==intent.body.evidenceRef||typeof c.centralCaseId!=='string'||!c.centralCaseId||c.centralCaseId!==c.centralCaseId.trim()||c.centralCaseId.length>256)throw new Error('Original Trust receipt remains unconfirmed. Your request is saved.');
+      await caseJournal.finish(account,intent.key,()=>check(t));check(t);caseIntent=null;await load(t);tell(`Trust case ${c.id} confirmed`);
+    }finally{if(caseBusy===busy){caseBusy=null;if(t.epoch===epoch&&snapshot)render()}}
+  }
   async function readAI(t,id,guard){
     guard();const final=await json(t,`api/ai/proposals/${path(id,'ai')}`);guard();
     await load(t);guard();
