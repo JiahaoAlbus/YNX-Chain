@@ -51,7 +51,14 @@ if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
   node scripts/bundle-solidity-runtime.mjs "$YNX_DEVELOPER_SOLIDITY_INPUT" "$app/Contents/Resources/code/apps/developer/compiler-runtime"
 fi
 cp package.json package-lock.json "$app/Contents/Resources/code/apps/developer/"
-COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
+# APFS clones preserve a standalone dependency tree while sharing unchanged
+# blocks. Retain any failed clone outside the app before a fresh normal copy.
+if ! COPYFILE_DISABLE=1 cp -cXR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"; then
+  if [[ -e "$app/Contents/Resources/code/apps/developer/node_modules" ]]; then
+    mv "$app/Contents/Resources/code/apps/developer/node_modules" "$root/node_modules-clone-failed"
+  fi
+  COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
+fi
 
 # Preserve the exact reviewed native-component bytes inside an archive. Outer
 # ad-hoc signing would otherwise mutate the composed runtime's pinned tree.
