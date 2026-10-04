@@ -32,7 +32,9 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
     const installController=()=>page.evaluate(async()=>{
       const {createPrivateAccountController}=await import('/controller.js');let nonce=0,who='alice';
       const fixture=async()=>await(await fetch('/__qa/proof?who='+who+'&nonce='+String(++nonce).padStart(24,'0'))).json();
-      const adapter={client:{restore:async()=>({status:'connected',session:(await fixture()).session})},createIntrospectionProof:fixture,close(){}};
+      // Original cookie-binding service fixture is not the canonical dual-proof
+      // dispatcher. Its extra action header is controlled orchestration only.
+      const adapter={client:{restore:async()=>({status:'connected',session:(await fixture()).session})},createBusinessProof:async()=>({introspection:await fixture(),proofHeader:'controlled-action-fixture',body:''}),close(){}};
       window.boundary={setWho:value=>who=value,controller:createPrivateAccountController({origin:location.origin,createAdapter:async()=>adapter,fetchImpl:fetch.bind(window)})};
     });
     await installController();
@@ -71,10 +73,30 @@ test('actual Chromium controller forwards host-only SSO cookie to owned Go API a
 function setup(overrides={}){
   const calls=[],states=[];let proofCount=0;
   const client={restore:async()=>{calls.push('restore');return connected()},beginExplicit:async()=>{calls.push('beginExplicit');return pending()},handleReturn:async url=>{calls.push(['handleReturn',url]);return connected()},retryDetected:async()=>{calls.push('retryDetected');return connected()},disconnect:async()=>{calls.push('disconnect');return {status:'disconnected',revocationConfirmed:true}},enterGuest:()=>calls.push('enterGuest'),setNetworkAvailable:v=>calls.push(['network',v]),...overrides.client};
-  const adapter={client,close:()=>calls.push('close'),createIntrospectionProof:async scopes=>{calls.push(['proof',scopes]);return {proofHeader:'fresh-offline-proof-'+(++proofCount)}},...overrides.adapter};
+  const adapter={client,close:()=>calls.push('close'),createIntrospectionProof:async()=>{throw Error('standalone introspection must not consume the business nonce')},createBusinessProof:async input=>{calls.push(['proof',input.requiredScopes],['businessProof',input]);const index=++proofCount;return {introspection:{proofHeader:'fresh-offline-proof-'+index},proofHeader:'fresh-action-proof-'+index,body:''}},...overrides.adapter};
   const controller=createPrivateAccountController({origin,onState:s=>states.push(s),createAdapter:async()=>{calls.push('createAdapter');return adapter},fetchImpl:async(url,options)=>{calls.push(['fetch',url,options]);return new Response(JSON.stringify(snapshot()),{headers:{'content-type':'application/json'}})},...overrides.controller});
   return {controller,calls,states,client};
 }
+test('account read requests one SDK-owned dual proof bound to exact wire method path and empty body',async()=>{
+  const {controller,calls}=setup();try{
+    assert.equal((await controller.start(origin+'/')).phase,'connected');
+    assert.deepEqual(calls.find(value=>Array.isArray(value)&&value[0]==='businessProof')[1],{method:'GET',path:'/api/v1/account',body:'',requiredScopes:['exchange:read']});
+    const options=calls.find(value=>Array.isArray(value)&&value[0]==='fetch')[2];
+    assert.equal(options.headers['X-YNX-Product-Session-Proof-V2'],'fresh-offline-proof-1');
+    assert.equal(options.headers['X-YNX-Product-Session-Action-Proof-V2'],'fresh-action-proof-1');
+    assert.equal(options.body,undefined);
+  }finally{controller.close()}
+});
+test('missing business factory or malformed dual proof never sends a private HTTP request',async()=>{
+  for(const result of [undefined,{}, {proofHeader:'action',body:''}, {introspection:{proofHeader:'identity'},body:''}, {introspection:{proofHeader:'identity'},proofHeader:'action',body:'changed'}, {introspection:{proofHeader:'identity'},proofHeader:'action'}, {introspection:{proofHeader:'identity'},proofHeader:'identity',body:''}, {introspection:{proofHeader:'identity\r\nforged'},proofHeader:'action',body:''}, {introspection:{proofHeader:'identity'},proofHeader:'a'.repeat(16385),body:''}]){
+    const adapter=result===undefined?{createBusinessProof:undefined}:{createBusinessProof:async()=>result};
+    const {controller,calls}=setup({adapter});try{
+      const value=await controller.start(origin+'/');assert.equal(value.phase,'degraded');assert.equal(value.code,'ACTION_PROOF_UNAVAILABLE');
+      assert.equal(calls.filter(value=>Array.isArray(value)&&value[0]==='fetch').length,0);
+      assert.equal(calls.filter(value=>value==='beginExplicit'||value==='disconnect').length,0);
+    }finally{controller.close()}
+  }
+});
 test('canonical read composition gaps are private-service degraded, not a request for fresh Wallet approval',async()=>{
   for(const [code,status] of [['ACTION_PROOF_REQUIRED',401],['EXCHANGE_PROTECTED_PROFILE_UNAVAILABLE',503],['EXPLICIT_ROUTE_SCOPE_UNAVAILABLE',403],['HTTP_BINDING_MISMATCH',403]]){
     let rejection=false;
@@ -178,7 +200,7 @@ test('reject and callback retry do not fabricate account or API traffic',async()
   for(const result of [{status:'disconnected'},{status:'retry-required'}]){const {controller,calls}=setup({client:{handleReturn:async()=>result}});const value=await controller.start(origin+'/wallet-auth/callback?reject=opaque');assert.equal(value.account,null);assert.ok(!calls.some(v=>Array.isArray(v)&&v[0]==='fetch'));controller.close()}
 });
 test('second startup uses restore, every account refresh obtains a fresh proof, never reuses prior header',async()=>{
-  const {controller,calls}=setup();await controller.start(origin+'/');await controller.refresh();assert.equal(calls.filter(v=>v==='restore').length,2);assert.deepEqual(calls.filter(v=>Array.isArray(v)&&v[0]==='fetch').map(v=>v[2].headers['X-YNX-Product-Session-Proof-V2']),['fresh-offline-proof-1','fresh-offline-proof-2']);controller.close();
+  const {controller,calls}=setup();await controller.start(origin+'/');await controller.refresh();assert.equal(calls.filter(v=>v==='restore').length,2);assert.deepEqual(calls.filter(v=>Array.isArray(v)&&v[0]==='fetch').map(v=>v[2].headers['X-YNX-Product-Session-Proof-V2']),['fresh-offline-proof-1','fresh-offline-proof-2']);assert.deepEqual(calls.filter(v=>Array.isArray(v)&&v[0]==='fetch').map(v=>v[2].headers['X-YNX-Product-Session-Action-Proof-V2']),['fresh-action-proof-1','fresh-action-proof-2']);controller.close();
 });
 test('private network loss clears visible private data; Retry resumes without standard Wallet interaction',async()=>{
   const {controller,calls}=setup();await controller.start(origin+'/');controller.offline();assert.equal(controller.state().phase,'degraded');assert.equal(controller.state().snapshot,null);await controller.online();assert.equal(controller.state().phase,'connected');assert.ok(calls.includes('retryDetected'));assert.ok(!calls.some(v=>/eth_|personal_sign|disconnectWallet/.test(JSON.stringify(v))));controller.close();
@@ -187,7 +209,7 @@ test('retiring stalled SDK or proof wait settles caller before late completion a
   for(const stage of ['restore','proof'])for(const action of ['guest','offline','close','replace']){
     let release,entered,completed=false,count=0;
     const wait=new Promise(resolve=>release=resolve),reached=new Promise(resolve=>entered=resolve);
-    const overrides=stage==='restore'?{client:{restore:async()=>{if(++count===1){entered();return wait}return connected()}}}:{adapter:{createIntrospectionProof:async()=>{if(++count===1){entered();return wait}return {proofHeader:'fresh-retry-proof'}}}};
+    const overrides=stage==='restore'?{client:{restore:async()=>{if(++count===1){entered();return wait}return connected()}}}:{adapter:{createBusinessProof:async()=>{if(++count===1){entered();return wait}return {introspection:{proofHeader:'fresh-retry-proof'},proofHeader:'fresh-retry-action',body:''}}}};
     const {controller,calls}=setup(overrides);
     const old=controller.start(origin+'/').then(value=>{completed=true;return value});await reached;
     let next;if(action==='replace')next=controller.refresh();else controller[action]();
@@ -198,7 +220,7 @@ test('retiring stalled SDK or proof wait settles caller before late completion a
       assert.equal((await next).phase,'connected');
     }
     const requests=calls.filter(item=>Array.isArray(item)&&item[0]==='fetch').length;
-    release(stage==='restore'?connected(other):{proofHeader:'late-retired-proof'});await new Promise(setImmediate);
+    release(stage==='restore'?connected(other):{introspection:{proofHeader:'late-retired-proof'},proofHeader:'late-retired-action',body:''});await new Promise(setImmediate);
     assert.equal(calls.filter(item=>Array.isArray(item)&&item[0]==='fetch').length,requests,'late retired completion must not issue API read');
     assert.equal(controller.state().account,action==='close'?null:account);
     assert.ok(!calls.some(item=>/eth_requestAccounts|personal_sign|disconnectWallet/.test(JSON.stringify(item))));controller.close();

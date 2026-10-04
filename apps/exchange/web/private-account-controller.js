@@ -107,9 +107,12 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
     const session=value.session;
     if(!session||!accountPattern.test(session.account)||session.productId!=='exchange'||session.origin!==ORIGIN||session.chainId!=='ynx_6423-1'||session.scopes?.length!==1||session.scopes[0]!==PRIVATE_READ_SCOPE)throw failure('ACCOUNT_BINDING_MISMATCH');
     if(Date.parse(session.expiresAt)<=Date.now()||!Number.isFinite(Date.parse(session.expiresAt)))throw failure('SESSION_EXPIRED');
-    const authorization=await adapter.createIntrospectionProof([PRIVATE_READ_SCOPE]);
+    if(typeof adapter.createBusinessProof!=='function')throw failure('ACTION_PROOF_UNAVAILABLE');
+    const authorization=await adapter.createBusinessProof({method:'GET',path:'/api/v1/account',body:'',requiredScopes:[PRIVATE_READ_SCOPE]});
     if(!active(token))return current;
-    if(typeof authorization.proofHeader!=='string'||!authorization.proofHeader||authorization.proofHeader.length>16384)throw failure('PROOF_REQUIRED');
+    const validHeader=value=>typeof value==='string'&&value.length>0&&value.length<=16384&&!/[\x00-\x20\x7f]/u.test(value);
+    if(!validHeader(authorization?.introspection?.proofHeader)||!validHeader(authorization?.proofHeader)||authorization.proofHeader===authorization.introspection.proofHeader||authorization.body!=='')throw failure('ACTION_PROOF_UNAVAILABLE');
+    if(Date.parse(session.expiresAt)<=Date.now())throw failure('SESSION_EXPIRED');
     const controller=new AbortController();request=controller;
     // Bound the full HTTP/body wait even if the transport ignores abort.
     let rejectAborted;
@@ -122,7 +125,7 @@ export function createPrivateAccountController({createAdapter,fetchImpl,origin=O
       // exists. Omitting that cookie incorrectly selects the independent native
       // channel and prevents central logout/account isolation from applying.
       const body=await Promise.race([(async()=>{
-        const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.proofHeader}});
+        const response=await fetchImpl(new URL('/api/v1/account',origin).href,{method:'GET',credentials:'same-origin',redirect:'error',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':authorization.introspection.proofHeader,'X-YNX-Product-Session-Action-Proof-V2':authorization.proofHeader}});
         if(!active(token))return null;
         if(!response.ok)throw await accountReadFailure(response,controller.signal);
         return readAccountResponse(response,controller.signal);
