@@ -138,3 +138,16 @@ test('panel initialization preserves restored split views, skips unavailable vie
   f.controls.stopped = true; await f.controls.onDidInitializeLayout();
   assert.equal(f.calls.length, 0);
 });
+
+test('extension palette language conditions track actual editor, changes and disposal without inventing task support', () => {
+  const f = fixture(), keys = new Map();
+  const editors = { all: [f.editor], currentEditor: { editor: { document: { languageId: 'python' } } } };
+  const controls = new WorkbenchControlsContribution({ ...f, editors, contextKeys: { createKey: (name, initial) => {
+    keys.set(name, initial); return { set: value => keys.set(name, value), reset: () => keys.set(name, undefined) };
+  } } });
+  controls.refresh(); assert.equal(keys.get('editorLangId'), 'python');
+  editors.currentEditor.editor.document.languageId = 'cpp'; controls.refresh(); assert.equal(keys.get('editorLangId'), 'cpp');
+  editors.currentEditor.isDisposed = true; controls.refresh(); assert.equal(keys.get('editorLangId'), undefined);
+  editors.currentEditor = undefined; controls.refresh(); assert.equal(keys.get('editorLangId'), undefined);
+  assert.deepEqual([...keys.keys()], ['editorLangId']); controls.dispose();
+});

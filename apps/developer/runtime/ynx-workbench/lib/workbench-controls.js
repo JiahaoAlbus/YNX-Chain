@@ -47,7 +47,7 @@ class WorkbenchControlsContribution {
   // views: {key: native AbstractViewContribution}; terminal is found by widget
   // predicate since each PTY has its own widget. Supply EditorManager so toolbar
   // visibility uses actual EditorWidgets, not URI guesses.
-  constructor({ commands, shell, editors, views, messages, contextMenus, translate = (key, text) => text }) {
+  constructor({ commands, shell, editors, views, messages, contextMenus, contextKeys, translate = (key, text) => text }) {
     Object.assign(this, { commands, shell, editors, views: views || {}, messages, contextMenus });
     this.translate = (key, text) => {
       const translated = translate(key, text);
@@ -56,6 +56,9 @@ class WorkbenchControlsContribution {
     this.disposables = []; this.nodes = []; this.widgets = []; this.stopped = false;
     const { Emitter } = require('@theia/core/lib/common/event');
     this.changed = new Emitter();
+    // Monaco supplies this key only in its focused editor scope. Extension
+    // command-palette conditions also need the actual current editor language.
+    this.editorLanguage = contextKeys && contextKeys.createKey('editorLangId', undefined);
   }
   state(id) {
     const state = commandState(this.commands, id);
@@ -163,7 +166,7 @@ class WorkbenchControlsContribution {
     }
     const refresh = () => this.refresh();
     for (const event of [this.commands.onCommandsChanged, this.shell.onDidAddWidget, this.shell.onDidRemoveWidget,
-      this.shell.onDidChangeCurrentWidget, this.shell.onDidChangeActiveWidget]) {
+      this.shell.onDidChangeCurrentWidget, this.shell.onDidChangeActiveWidget, this.editors.onCurrentEditorChanged]) {
       if (event) this.disposables.push(event(refresh));
     }
     // Tab overflow, panel collapse and resizing change discovery even without
@@ -175,6 +178,8 @@ class WorkbenchControlsContribution {
   }
   refresh() {
     if (this.stopped) return;
+    const editor = this.editors.currentEditor;
+    if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
     const runState = RUN_ACTIONS.map(action => this.state(action.id).enabled).join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
@@ -200,6 +205,7 @@ class WorkbenchControlsContribution {
   onStop() { this.dispose(); }
   dispose() {
     this.stopped = true; if (this.popup) { this.popup.dispose(); this.popup = undefined; } clearInterval(this.timer); if (this.observer) this.observer.disconnect();
+    if (this.editorLanguage) this.editorLanguage.reset();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
     for (const widget of this.widgets.splice(0)) widget.dispose();
     this.nodes.length = 0; this.changed.dispose();

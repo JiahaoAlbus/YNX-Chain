@@ -39,6 +39,7 @@ const { LocalWorkspaceContext } = require('./local-workspace-context');
 const { LocalTerminalDefaults } = require('./local-terminal-defaults');
 const { PreferenceSchemaService } = require('@theia/core/lib/common/preferences/preference-schema');
 const { WorkbenchControlsContribution } = require('./workbench-controls');
+const { ContextKeyService } = require('@theia/core/lib/browser/context-key-service');
 const { TabBarToolbarContribution } = require('@theia/core/lib/browser/shell/tab-bar-toolbar');
 const { FileNavigatorContribution } = require('@theia/navigator/lib/browser/navigator-contribution');
 const { SearchInWorkspaceFrontendContribution } = require('@theia/search-in-workspace/lib/browser/search-in-workspace-frontend-contribution');
@@ -85,6 +86,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(WorkbenchControlsContribution).toDynamicValue(context => new WorkbenchControlsContribution({
     commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
+    contextKeys: context.container.get(ContextKeyService),
     editors: context.container.get(EditorManager), messages: context.container.get(MessageService),
     translate: translateWorkbench, contextMenus: context.container.get(ContextMenuRenderer),
     views: { explorer: context.container.get(FileNavigatorContribution), search: context.container.get(SearchInWorkspaceFrontendContribution),
