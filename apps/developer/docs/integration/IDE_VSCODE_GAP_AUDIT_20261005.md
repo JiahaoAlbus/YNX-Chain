@@ -241,3 +241,9 @@ YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源�
 自有初始化适配器保留框架请求组装、测试选择、profile 和 preserveFocus，通过每个请求的兼容取消源通知插件；单次取消只通知匹配请求，取消全部覆盖尚未创建 TestRun 的异步请求。结束事件只触发一次并执行实际框架清理；原生 run token 提前触发 end 时仍能送达 profile 取消；异步 profile 未结束时保留取消监听。控制器销毁同时取消原生 run 与 profile 并释放请求。
 
 使用实际 TestControllerImpl、TestRun 和原生 CancellationTokenSource 的 6 项新增回归，加原 4 项令牌兼容回归，共 10 PASS、0 FAIL、0 SKIP。最终 browser/node 构建零错误；封存初始化文件与自有源码 cmp 一致。构建日志 /private/tmp/ynx-test-profile-cancellation-build-final-20261005.log。尚未用新封存组件做正常 Python GUI 取消复验，也未重建完整 App/DMG；不声称断点调试或失败自动清理已完成。既有 debugpy 端口拒绝与网络隔离保持不变。
+
+### 1c44921f3 封存组件正常取消复验
+
+上述源码已封存为新组件，tree 2bc69baaf9e42a564b21f7986e7c51c7dcfe51e0377439dc323ebc463d1ee9ca，manifest b4194f5f6d231edec189294c64e4aed768fcb957e0aaeda43afd58e10dd14f0b，payload 归档往返核验通过。使用保留 2b 完整包的 Node/lock helper 和当前监督器，在独立项目正常启动。明确选择 CLT 解释器并重载后自动发现项目；正常 unittest 两项通过。随后可见 Debug Test 图标启动真实 debugpy，socket.bind 仍被拒绝；原生 Cancel All Test Runs 后 Python 输出 Test run cancelled ... waiting for result pipe to drain，原旋转的运行图标结束。取消的调试运行没有通过/失败结果，不计为测试成功。运行名称仍是插件提供的 Running Tests for Workspace(s)，结束状态与该静态名称分开判定。
+
+本次另暴露首次配置问题：虽默认设置和列表显示 CLT 解释器，首次输出实际调用 /usr/bin/python3 安装入口并报告无效解释器。正常手工 Enter interpreter path 输入 CLT 路径、重载后状态栏和 discovery 输出恢复正确；不是已修复的首次配置体验。组件封存、截图、服务器日志与精确范围位于 ynx-test-profile-cancel-verification-1c44921f3-20261005。没有重建完整 App/DMG，不替代 Cocoa/Finder 验收，也没有开放调试端口或改变网络隔离。
