@@ -92,6 +92,7 @@ mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
 cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+  cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"
 fi
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.
@@ -121,6 +122,9 @@ if ! COPYFILE_DISABLE=1 cp -cR node_modules "$app/Contents/Resources/code/apps/d
     exit 1
   fi
   COPYFILE_DISABLE=1 cp -XR node_modules "$app/Contents/Resources/code/apps/developer/node_modules"
+fi
+if [[ -n "$local_node_runtime" ]]; then
+  node scripts/package-node-pty-distribution.mjs prepare "$app/Contents/Resources"
 fi
 
 # Preserve the exact reviewed native-component bytes inside an archive. Outer
@@ -256,7 +260,13 @@ const provenance=JSON.parse(await readFile(provenancePath,'utf8'));
 provenance.solidityFormatterDistribution={path:'Contents/Resources/code/apps/developer/native/ynx-tools/formatter/distribution.json',sha256:sha(await readFile(receipt)),packages:record.packages,macosAdhocSigning:record.macosAdhocSigning};
 await writeFile(provenancePath,JSON.stringify(provenance,null,2)+'\n');
 NODE
+if [[ -n "$local_node_runtime" ]]; then
+  node scripts/package-node-pty-distribution.mjs seal "$app/Contents/Resources"
+fi
 /usr/bin/codesign --force --deep --sign - "$app"
+if [[ -n "$local_node_runtime" ]]; then
+  node scripts/package-node-pty-distribution.mjs verify "$app/Contents/Resources"
+fi
 node --input-type=module - "$app/Contents/Resources" <<'NODE'
 import {readFile} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';
 const resources=process.argv[2],runtime=join(resources,'runtime');let bytes;

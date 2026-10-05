@@ -11,6 +11,12 @@ const exec = promisify(execFile), helper = '/private/tmp/ynx-workspace-path-iden
 const native = process.platform === 'darwin';
 if (native) await exec('/usr/bin/clang', ['-Wall', '-Wextra', '-Werror', fileURLToPath(new URL('./macos/workspace-path-identity.c', import.meta.url)), '-o', helper]);
 const quote = p => JSON.stringify(p);
+test('actual devfs signed dev_t matches Node bigint identity', { skip: !native }, async () => {
+ const proof = await inspectWorkspacePathIdentity({ helper, path: '/dev' });
+ const actual = await (await import('node:fs/promises')).lstat('/dev', { bigint: true });
+ assert.equal(proof.identity.dev, String(actual.dev));
+ await assertWorkspacePathIdentity(proof);
+});
 test('real external APFS selected project works under the same policy; siblings and parent contents stay denied', { skip: !native }, async () => {
  const base = await mkdtemp('/Volumes/Data/private/tmp/ynx-vnode-project-');
  const project = join(base, 'selected'), sibling = join(base, 'unselected'); await mkdir(project); await mkdir(sibling);
