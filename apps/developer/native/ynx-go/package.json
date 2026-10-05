@@ -1,0 +1,97 @@
+{
+  "name": "ynx-go",
+  "publisher": "ynx",
+  "version": "0.1.0",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "main": "./src/extension.cjs",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onCommand:ynx.go.run",
+    "onCommand:ynx.go.configure",
+    "onCommand:ynx.go.cancel",
+    "onTaskType:ynx-go"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "ynx.go.configure",
+        "title": "%command.configure%"
+      },
+      {
+        "command": "ynx.go.run",
+        "title": "%command.run%"
+      },
+      {
+        "command": "ynx.go.cancel",
+        "title": "%command.cancel%"
+      }
+    ],
+    "configuration": {
+      "title": "YNX Go",
+      "properties": {
+        "ynx.go.project": {
+          "type": "object",
+          "scope": "resource",
+          "description": "%configuration.project%"
+        }
+      }
+    },
+    "taskDefinitions": [
+      {
+        "type": "ynx-go",
+        "required": [
+          "stage",
+          "target"
+        ],
+        "properties": {
+          "stage": {
+            "type": "string",
+            "enum": [
+              "build",
+              "run"
+            ]
+          },
+          "target": {
+            "type": "string"
+          },
+          "runId": {
+            "type": "string"
+          }
+        }
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ynx.go.run",
+          "when": "resourceScheme == file && resourceExtname == .go",
+          "group": "ynx@2"
+        }
+      ]
+    },
+    "problemMatchers": [
+      {
+        "name": "ynx-go-compile",
+        "owner": "ynx-go",
+        "fileLocation": [
+          "relative",
+          "${cwd}"
+        ],
+        "pattern": {
+          "regexp": "^(.+\\.go):(\\d+):(\\d+):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "message": 4
+        }
+      }
+    ]
+  }
+}
