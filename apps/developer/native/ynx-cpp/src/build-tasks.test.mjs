@@ -4,7 +4,7 @@ import { mkdtemp, readFile, writeFile, mkdir, symlink, realpath } from 'node:fs/
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 const require = createRequire(import.meta.url);
-const { createBuildTasks, installedCompiler } = require('./build-tasks.cjs');
+const { createBuildTasks, installedCompiler, readGeneratedTasks } = require('./build-tasks.cjs');
 const runtime={clangd:'/Library/Developer/CommandLineTools/usr/bin/clangd',sysroot:'/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',language:'cpp'};
 test('existing trusted CLT alias produces process tasks with separate argument boundaries and native build dependency',async()=>{
   const tool=await installedCompiler(runtime),root=await mkdtemp('/private/tmp/ynx-cpp-tasks-');
@@ -29,4 +29,14 @@ test('project-supplied language server and external SDK cannot select an executa
  await assert.rejects(installedCompiler({...runtime,clangd:'/private/tmp/project/clangd'}),/no supported local/);
  await assert.rejects(installedCompiler({...runtime,sysroot:'/usr'}),/outside/);
  const c=await installedCompiler({...runtime,language:'c'});assert.equal(c.compiler,'/Library/Developer/CommandLineTools/usr/bin/clang');
+});
+test('exact generated config snapshot rejects extra fields, comments, changed bytes and oversized files',async()=>{
+ const root=await mkdtemp('/private/tmp/ynx-cpp-tasks-snapshot-'),tool=await installedCompiler(runtime);
+ const {path}=await createBuildTasks(root,tool),original=await readFile(path);
+ const snapshot=await readGeneratedTasks(root,path,tool);assert.ok(snapshot);
+ const config=JSON.parse(original);config.tasks[0].detail='user field';await writeFile(path,JSON.stringify(config));
+ assert.equal(await readGeneratedTasks(root,path,tool),undefined);await assert.rejects(readGeneratedTasks(root,path,tool,snapshot.digest),/changed/);
+ await writeFile(path,'// user comment\n'+original);assert.equal(await readGeneratedTasks(root,path,tool),undefined);
+ await writeFile(path,' '.repeat(65537));assert.equal(await readGeneratedTasks(root,path,tool),undefined);
+ await writeFile(path,original);assert.equal((await readGeneratedTasks(root,path,tool,snapshot.digest)).digest,snapshot.digest);
 });

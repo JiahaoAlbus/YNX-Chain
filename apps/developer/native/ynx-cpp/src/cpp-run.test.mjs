@@ -11,6 +11,8 @@ function emitter() { const listeners = new Set(); return { event: fn => { listen
 const runtimeRequire = createRequire(new URL('../../../runtime/theia/package.json', import.meta.url));
 runtimeRequire('reflect-metadata');
 const { Task, ProcessExecution } = runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');
+const converter = runtimeRequire('@theia/plugin-ext/lib/plugin/type-converters');
+const { TasksExtImpl } = runtimeRequire('@theia/plugin-ext/lib/plugin/tasks/tasks');
 async function fixture() {
  const root = await mkdtemp('/private/tmp/ynx-cpp-first-use-'), path = join(root, 'main.cpp');
  const document = { uri: { scheme: 'file', fsPath: path }, languageId: 'cpp', version: 1, isDirty: false, save: async () => true };
@@ -61,14 +63,14 @@ test('project trust and path guard reject foreign source without reading its con
 });
 test('fast task completion before executeTask promise and unrelated tasks are handled by execution identity', async () => {
  const end = emitter(), ended = emitter(), execution = {}, token = { isCancellationRequested: false, onCancellationRequested: emitter().event };
- const vscode = { tasks: { onDidEndTaskProcess: end.event, onDidEndTask: ended.event, executeTask: async () => { end.fire({ execution: {}, exitCode: 9 }); end.fire({ execution, exitCode: 0 }); ended.fire({ execution }); return execution; } } };
- assert.equal(await executeAndWait(vscode, {}, token), 0); assert.equal(end.count(), 0); assert.equal(ended.count(), 0);
+ const vscode = { Task, tasks: { onDidEndTaskProcess: end.event, onDidEndTask: ended.event, executeTask: async () => { end.fire({ execution: {}, exitCode: 9 }); end.fire({ execution, exitCode: 0 }); ended.fire({ execution }); return execution; } } };
+ assert.equal(await executeAndWait(vscode, new Task({type:"process"}, 2, "test", "Workspace", new ProcessExecution("/usr/bin/true"), []), token), 0); assert.equal(end.count(), 0); assert.equal(ended.count(), 0);
 });
 test('cancellation terminates only the owned task and waits for its terminal event', async () => {
  const end = emitter(), ended = emitter(), cancel = emitter(); let calls = 0;
  const execution = { terminate() { calls++; ended.fire({ execution }); } }, token = { isCancellationRequested: false, onCancellationRequested: cancel.event };
- const vscode = { tasks: { onDidEndTaskProcess: end.event, onDidEndTask: ended.event, executeTask: async () => execution } };
- const pending = executeAndWait(vscode, {}, token); await Promise.resolve(); token.isCancellationRequested = true; cancel.fire();
+ const vscode = { Task, tasks: { onDidEndTaskProcess: end.event, onDidEndTask: ended.event, executeTask: async () => execution } };
+ const pending = executeAndWait(vscode, new Task({type:"process"}, 2, "test", "Workspace", new ProcessExecution("/usr/bin/true"), []), token); await Promise.resolve(); token.isCancellationRequested = true; cancel.fire();
  assert.equal(await pending, undefined); assert.equal(calls, 1); assert.equal(cancel.count(), 0);
 });
 test('first debug configuration keeps the real task association and refuses replacing existing launch', async () => {
@@ -87,4 +89,131 @@ test('same-name user build with successful exit and no product is never classifi
  f.vscode.window.showQuickPick = async (items, options) => { explicitPicker = /existing project task/.test(options.title); return items[0]; };
  await f.commands.get('ynx.cpp.runActive')(); assert.equal(explicitPicker, true); assert.ok(!f.output.includes('STALE MUST NOT RUN'));
  assert.ok(f.output.some(text => /Project task/.test(text))); assert.deepEqual(f.errors, []);
+});
+
+test('retained TasksMain fetch and converter expose process DTO mismatch; persisted command still builds and repeats', async () => {
+ const source = await readFile(runtimeRequire.resolve('@theia/plugin-ext/lib/main/browser/tasks-main'), 'utf8');
+ // Execute the retained methods verbatim, excluding unrelated browser widget imports.
+ const fetch = source.slice(source.indexOf('    async $fetchTasks('), source.indexOf('    async $executeTask('));
+ const from = source.slice(source.indexOf('    fromTaskConfiguration('), source.indexOf('    convertTaskPresentation('));
+ const main = Function('return ({' + fetch.trim() + ',' + from.trim() + '})')();
+ const f = await fixture(); await writeFile(f.path, '#include <iostream>\nint main(){std::cout << "REAL DTO 42";}\n');
+ await createBuildTasks(f.root, await installedCompiler({sysroot:'/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',language:'cpp'}));
+ const json = JSON.parse(await readFile(join(f.root,'.vscode/tasks.json'),'utf8'));
+ main.taskService = {startUserAction:()=>1, getConfiguredTasks:async()=>json.tasks.map(item=>({...item, presentation:undefined, _scope:'file://' + f.root,_source:'Workspace'})),getProvidedTasks:async()=>[]};
+ main.taskDefinitionRegistry={getDefinition:()=>undefined};
+ const fetched=(await main.$fetchTasks(undefined,'process')).map(converter.toTask);
+ assert.equal(fetched.length,2); assert.equal(fetched[0].scope.uri.fsPath,f.root);
+ assert.equal(fetched[0].execution instanceof ProcessExecution,false);
+ assert.equal(fetched[0].execution.constructor.name,'ShellExecution');
+ let fetchCalls=0; f.vscode.tasks.fetchTasks=async()=>{fetchCalls++;return fetched;};
+ await f.commands.get('ynx.cpp.runActive')(); assert.deepEqual(f.errors,[]);assert.ok(f.output.includes('REAL DTO 42'));
+ f.vscode.window.activeTextEditor={document:f.document}; f.output.length=0;
+ // A watcher that has not observed the new file cannot prevent normal first use.
+ main.taskService.getConfiguredTasks=async()=>[];f.vscode.tasks.fetchTasks=async()=>{fetchCalls++;return(await main.$fetchTasks()).map(converter.toTask);};
+ await f.commands.get('ynx.cpp.runActive')();assert.deepEqual(f.errors,[]);assert.ok(f.output.includes('REAL DTO 42'));assert.equal(fetchCalls,0);
+});
+
+test('dirty task editor and config changes during compile never launch an old or new binary',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){}');
+ await createBuildTasks(f.root,await installedCompiler({sysroot:'/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',language:'cpp'}));
+ const configPath=join(f.root,'.vscode/tasks.json');let executions=0;
+ f.vscode.workspace.textDocuments=[{uri:{scheme:'file',fsPath:configPath},isDirty:true}];
+ const original=f.vscode.tasks.executeTask;f.vscode.tasks.executeTask=async task=>{executions++;return original(task);};
+ await f.commands.get('ynx.cpp.runActive')();assert.equal(executions,0);assert.match(f.errors[0],/Save/);
+ f.errors.length=0;f.vscode.workspace.textDocuments=[];f.vscode.window.activeTextEditor={document:f.document};
+ f.vscode.tasks.executeTask=async task=>{executions++;const json=JSON.parse(await readFile(configPath));json.tasks[0].detail='user change';await writeFile(configPath,JSON.stringify(json));return original(task);};
+ await f.commands.get('ynx.cpp.runActive')();assert.equal(executions,1);assert.match(f.errors[0],/configuration changed/);
+});
+test('extra fields in otherwise matching user tasks force explicit selection and never run the generated binary',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){}');
+ const {path}=await createBuildTasks(f.root,await installedCompiler({sysroot:'/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',language:'cpp'}));
+ const config=JSON.parse(await readFile(path));config.tasks[0].detail='my build';await writeFile(path,JSON.stringify(config));
+ let asked=false;f.vscode.window.showQuickPick=async(_items,options)=>{asked=/existing project task/.test(options.title);return undefined;};
+ f.vscode.tasks.executeTask=async()=>{throw Error('must not execute before explicit choice');};
+ await f.commands.get('ynx.cpp.runActive')();assert.equal(asked,true);assert.deepEqual(f.errors,[]);
+ assert.equal(JSON.parse(await readFile(path)).tasks[0].detail,'my build');
+});
+test('first-use debug uses same persisted process build without task discovery and launches captured executable',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){return 0;}');
+ let selected;f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
+ f.vscode.tasks.fetchTasks=async()=>{throw Error('task cache must not gate first debug');};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{assert.equal(folder,f.folder);selected=configuration;return true;};
+ await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.equal(selected.program,join(f.root,'main'));
+ assert.equal(selected.cwd,f.root);assert.equal(selected.preLaunchTask,undefined);assert.ok((await readFile(selected.program)).length>0);
+});
+test('real TasksExt early process/end lifecycle recreates public execution but settles 127 without kill',async()=>{
+ let ext,kills=0;const folder={uri:runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl').URI.file('/private/tmp/project'),name:'project',index:0};
+ const task=new Task({type:'process'},folder,'native failed','Workspace',new ProcessExecution('/usr/bin/false',[],{cwd:'/private/tmp'}),[]);
+ const proxy={$executeTask:async dto=>{const value={id:42,task:dto};await ext.$onDidStartTask(value,42);ext.$onDidEndTaskProcess(127,42);ext.$onDidEndTask(42);return value;},$terminateTask:()=>{kills++;}};
+ ext=new TasksExtImpl({getProxy:()=>proxy},{});
+ const token={isCancellationRequested:false,onCancellationRequested:emitter().event};
+ assert.equal(await executeAndWait({Task,tasks:ext},task,token),127);assert.equal(kills,0);
+ // Task ended before process start must also settle without inventing exit0.
+ proxy.$executeTask=async dto=>{const value={id:43,task:dto};await ext.$onDidStartTask(value,43);ext.$onDidEndTask(43);token.isCancellationRequested=true;return value;};
+ assert.equal(await executeAndWait({Task,tasks:ext},task,token),undefined);assert.equal(kills,0);
+});
+for (const difference of ['scope','definition','source','args','marker','missing marker']) test('real TasksExt isolates same-name early '+difference+' task from the pending run',async()=>{
+ const {URI}=runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');let ext,kills=0;
+ const task=new Task({type:'process',target:'original'},{uri:URI.file('/private/tmp/own'),name:'own',index:0},'same name','Workspace',new ProcessExecution('/usr/bin/true',[],{cwd:'/private/tmp'}),[]);
+ const proxy={$executeTask:async dto=>{
+  const other=structuredClone(dto);if(difference==='scope')other.scope='file:///private/tmp/foreign';
+  if(difference==='definition')other.target='foreign';if(difference==='source')other.source='Foreign';if(difference==='args')other.args=['foreign'];
+  if(difference==='marker')other.__ynxExecutionRequest='other request';if(difference==='missing marker')delete other.__ynxExecutionRequest;
+  const foreign={id:81,task:other};await ext.$onDidStartTask(foreign,81);ext.$onDidEndTaskProcess(127,81);ext.$onDidEndTask(81);
+  const own={id:82,task:dto};await ext.$onDidStartTask(own,82);
+  setImmediate(()=>{ext.$onDidEndTaskProcess(0,82);ext.$onDidEndTask(82);});return own;
+ },$terminateTask:()=>{kills++;}};
+ ext=new TasksExtImpl({getProxy:()=>proxy},{});
+ assert.equal(await executeAndWait({Task,tasks:ext},task,{isCancellationRequested:false,onCancellationRequested:emitter().event}),0);assert.equal(kills,0);
+});
+test('real TasksExt two identical early completions reject ambiguity without killing already ended tasks',async()=>{
+ const {URI}=runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');let ext,kills=0;
+ const task=new Task({type:'process'},{uri:URI.file('/private/tmp/own'),name:'own',index:0},'same','Workspace',new ProcessExecution('/usr/bin/true',[],{cwd:'/private/tmp'}),[]);
+ const proxy={$executeTask:async dto=>{for(const id of [91,92]){await ext.$onDidStartTask({id,task:dto},id);ext.$onDidEndTaskProcess(0,id);ext.$onDidEndTask(id);}return{id:92,task:dto};},$terminateTask:()=>{kills++;}};
+ ext=new TasksExtImpl({getProxy:()=>proxy},{});
+ await assert.rejects(executeAndWait({Task,tasks:ext},task,{isCancellationRequested:false,onCancellationRequested:emitter().event}),/ambiguous/);assert.equal(kills,0);
+});
+test('request metadata survives real TasksMain DTO methods, backend TaskServer/ProcessTask and late-RPC TasksExt lifecycle',async()=>{
+ const source=await readFile(runtimeRequire.resolve('@theia/plugin-ext/lib/main/browser/tasks-main'),'utf8');
+ const to=source.slice(source.indexOf('    toTaskConfiguration('),source.indexOf('    fromTaskConfiguration('));
+ const from=source.slice(source.indexOf('    fromTaskConfiguration('),source.indexOf('    convertTaskPresentation('));
+ const presentation=source.slice(source.indexOf('    convertTaskPresentation('),source.lastIndexOf('\n}'));
+ const main=Function('revealKindMap','panelKindMap','return ({'+to.trim()+','+from.trim()+','+presentation.trim()+'})')(new Map([[1,'always'],['always',1]]),new Map([[1,'shared'],['shared',1]]));
+ const {TaskServerImpl}=runtimeRequire('@theia/task/lib/node/task-server');
+ const {TaskManager}=runtimeRequire('@theia/task/lib/node/task-manager');
+ const {ProcessTask}=runtimeRequire('@theia/task/lib/node/process/process-task');
+ const {URI}=runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');
+ const logger={debug(){},info(){},warn(){},error(){}};const manager=new TaskManager(logger),server=new TaskServerImpl();
+ server.taskManager=manager;server.logger=logger;let ext,completed,finish;const done=new Promise(resolve=>finish=resolve);let seenConfig;
+ server.runnerRegistry={getRunner:()=>({run:async config=>{
+  seenConfig=config;const child=spawn('/usr/bin/false',[],{stdio:['ignore','pipe','pipe']}),closed=emitter();
+  const process={id:7,pid:child.pid,outputStream:child.stdout,onClose:closed.event,kill:()=>child.kill()};
+  const native=new ProcessTask(manager,logger,{process,config,command:'/usr/bin/false',context:'local',label:config.label});
+  child.on('close',(code,signal)=>closed.fire({code,signal}));return native;
+ }})};
+ server.clients=[{onTaskCreated:event=>ext.$onDidStartTask({id:event.taskId,task:main.fromTaskConfiguration(event.config)},event.terminalId),
+  onDidStartTaskProcess:event=>ext.$onDidStartTaskProcess(event.processId,{id:event.taskId,task:main.fromTaskConfiguration(event.config)}),
+  onDidEndTaskProcess:event=>ext.$onDidEndTaskProcess(event.code,event.taskId),onTaskExit:event=>{ext.$onDidEndTask(event.taskId);completed=event.code;finish();}}];
+ const proxy={$executeTask:async dto=>{const info=await server.run(main.toTaskConfiguration(dto),'local');await done;return{id:info.taskId,task:main.fromTaskConfiguration(info.config)};},$terminateTask:id=>server.kill(id)};
+ ext=new TasksExtImpl({getProxy:()=>proxy},{});
+ const task=new Task({type:'process',target:'user target',dependsOn:['build predecessor']},{uri:URI.file('/private/tmp/own'),name:'own',index:0},'user task','User',new ProcessExecution('/usr/bin/false',[],{cwd:'/private/tmp',env:{OWN:'value'}}),['$gcc']);
+ task.group={id:'build',isDefault:true};task.presentationOptions={reveal:1};task.runOptions={reevaluateOnRerun:false};task.detail='user detail';
+ const result=await executeAndWait({Task,tasks:ext},task,{isCancellationRequested:false,onCancellationRequested:emitter().event});
+ assert.equal(result,1);assert.equal(completed,1);assert.match(seenConfig.__ynxExecutionRequest,/^[0-9a-f-]{36}$/);
+ assert.equal(task.definition.__ynxExecutionRequest,undefined);assert.deepEqual(seenConfig.dependsOn,['build predecessor']);assert.equal(seenConfig.target,'user target');
+ assert.equal(seenConfig.detail,'user detail');assert.deepEqual(seenConfig.options.env,{OWN:'value'});assert.deepEqual(seenConfig.problemMatcher,['$gcc']);assert.equal(seenConfig.group.kind,'build');assert.equal(seenConfig.runOptions.reevaluateOnRerun,false);
+ assert.equal(manager.tasks.size,0);server.dispose();
+});
+test('real TasksExt early success preserves exit0 and native cancellation ends only its own active execution',async()=>{
+ const {URI}=runtimeRequire('@theia/plugin-ext/lib/plugin/types-impl');let ext,kills=0;
+ const task=new Task({type:'process'},{uri:URI.file('/private/tmp/own'),name:'own',index:0},'own','User',new ProcessExecution('/usr/bin/true'),undefined);
+ const cancel=emitter(),token={isCancellationRequested:false,onCancellationRequested:cancel.event};
+ const proxy={$executeTask:async dto=>{const value={id:51,task:dto};await ext.$onDidStartTask(value,51);ext.$onDidEndTaskProcess(0,51);ext.$onDidEndTask(51);return value;},$terminateTask:id=>{kills++;ext.$onDidEndTask(id);}};
+ ext=new TasksExtImpl({getProxy:()=>proxy},{});
+ assert.equal(await executeAndWait({Task,tasks:ext},task,token),0);assert.equal(kills,0);
+ proxy.$executeTask=async dto=>{assert.equal(dto.problemMatcher,undefined);const value={id:52,task:dto};await ext.$onDidStartTask(value,52);return value;};
+ const pending=executeAndWait({Task,tasks:ext},task,token);await new Promise(resolve=>setImmediate(resolve));
+ token.isCancellationRequested=true;cancel.fire();assert.equal(await pending,undefined);assert.equal(kills,1);assert.equal(cancel.count(),0);
 });

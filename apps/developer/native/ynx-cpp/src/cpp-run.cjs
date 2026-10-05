@@ -2,7 +2,8 @@
 const { realpath, access } = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { relative, isAbsolute, dirname, basename, join } = require('node:path');
-const { installedCompiler, createBuildTasks, createLaunchConfiguration, existingConfiguration, taskConfiguration } = require('./build-tasks.cjs');
+const { randomUUID } = require('node:crypto');
+const { installedCompiler, createBuildTasks, createLaunchConfiguration, existingConfiguration, readGeneratedTasks } = require('./build-tasks.cjs');
 const { cppProjectRoot } = require('./project-root.cjs');
 const TEXT = {
   project: ['Open one trusted local C/C++ project.', '请打开一个受信任的本地 C/C++ 项目。'],
@@ -39,18 +40,38 @@ async function sourceContext(vscode, env) {
 }
 // Subscribe before executeTask: short native tasks may finish before its RPC promise.
 async function executeAndWait(vscode, task, token) {
+  const request = randomUUID();
+  const trackedTask = new vscode.Task({ ...task.definition, __ynxExecutionRequest: request }, task.scope, task.name, task.source, task.execution,
+    task.hasProblemMatchers === false ? undefined : task.problemMatchers);
+  for (const key of ['isBackground', 'group', 'presentationOptions', 'runOptions', 'detail']) if (task[key] !== undefined) trackedTask[key] = task[key];
   let execution, settled = false, resolveResult, rejectResult;
   const early = new Map(), endedEarly = new Set(), result = new Promise((resolve, reject) => { resolveResult = resolve; rejectResult = reject; });
   const end = vscode.tasks.onDidEndTaskProcess(event => { if (!execution) early.set(event.execution, event.exitCode); else if (event.execution === execution && !settled) { settled = true; resolveResult(event.exitCode); } });
   // A task can terminate before its process starts (launch error/cancel).
   const terminal = vscode.tasks.onDidEndTask(event => { if (!execution) endedEarly.add(event.execution); else if (event.execution === execution && !settled) { settled = true; resolveResult(undefined); } });
-  const cancel = token.onCancellationRequested(() => { if (execution) execution.terminate(); });
+  const cancel = token.onCancellationRequested(() => { if (execution && !settled) execution.terminate(); });
   try {
     if (token.isCancellationRequested) return undefined;
-    execution = await vscode.tasks.executeTask(task);
-    if (token.isCancellationRequested) execution.terminate();
+    execution = await vscode.tasks.executeTask(trackedTask);
     if (!execution) throw Error('Task did not start. Check Output.');
-    if (early.has(execution) || endedEarly.has(execution)) { settled = true; resolveResult(early.get(execution)); }
+    let completed = early.has(execution) || endedEarly.has(execution) ? execution : undefined;
+    if (!completed) {
+      // Theia deletes an ended execution before the executeTask RPC resolves,
+      // then recreates its public object. Match the per-request public definition
+      // metadata AND complete semantics; ongoing events retain object identity.
+      const signature = value => JSON.stringify({name:value?.name,source:value?.source,
+        scope:value?.scope?.uri ? {uri:value.scope.uri.toString(),scheme:value.scope.uri.scheme,path:value.scope.uri.fsPath} : value?.scope,
+        definition:value?.definition,process:value?.execution?.process,commandLine:value?.execution?.commandLine,
+        command:value?.execution?.command,args:value?.execution?.args,options:value?.execution?.options,matchers:value?.problemMatchers,
+        detail:value?.detail,group:value?.group,presentation:value?.presentationOptions,runOptions:value?.runOptions});
+      const candidates = [...new Set([...early.keys(), ...endedEarly])].filter(item =>
+        execution.task?.definition?.__ynxExecutionRequest === request && item.task?.definition?.__ynxExecutionRequest === request &&
+        signature(item.task) === signature(execution.task));
+      if (candidates.length > 1) throw Error('Task completion is ambiguous. Check Terminal and Output.');
+      completed = candidates[0];
+    }
+    if (completed) { settled = true; resolveResult(early.get(completed)); }
+    else if (token.isCancellationRequested) execution.terminate();
     return await result;
   } catch (error) { rejectResult(error); await result.catch(() => {}); throw error; }
   finally { end.dispose(); terminal.dispose(); cancel.dispose(); }
@@ -78,28 +99,33 @@ function registerCppRun(vscode, context, env) {
     await validateScope(scope);
     return createBuildTasks(scope.root, tool);
   }
-  async function generatedPair(scope, tasks) {
+  async function generatedPair(scope, config, expectedDigest) {
+    await validateScope(scope);
+    for (const document of vscode.workspace.textDocuments || []) {
+      if (document.uri?.scheme === 'file' && document.isDirty && await realpath(document.uri.fsPath) === config.path) throw Error(t('save'));
+    }
     const tool = await installedCompiler({ sysroot: env.YNX_IDE_CPP_SYSROOT || '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', language: scope.language });
-    const [expectedBuild, expectedRun] = taskConfiguration(tool).tasks;
-    const matches = (task, expected) => task?.name === expected.label && task.execution instanceof vscode.ProcessExecution
-      && task.execution.process === expected.command
-      && JSON.stringify(task.execution.args) === JSON.stringify(expected.args || [])
-      && task.execution.options?.cwd === expected.options.cwd && !Object.keys(task.execution.options?.env || {}).length;
-    const scoped = tasks.filter(task => task.scope?.uri?.fsPath === scope.folder.uri.fsPath);
-    const build = scoped.find(task => matches(task, expectedBuild)), run = scoped.find(task => matches(task, expectedRun));
-    return build && run ? { build, run } : undefined;
+    const persisted = await readGeneratedTasks(scope.root, config.path, tool, expectedDigest);
+    if (!persisted) { if (expectedDigest) throw Error(t('missing')); return undefined; }
+    const tasks = persisted.configuration.tasks.map(item => {
+      const task = new vscode.Task({ type: 'process' }, scope.folder, item.label, 'YNX C/C++',
+        new vscode.ProcessExecution(item.command, item.args || [], item.options), item.problemMatcher);
+      task.presentationOptions = item.presentation;
+      return task;
+    });
+    return { build: tasks[0], run: tasks[1], digest: persisted.digest };
   }
   async function chooseTask(scope, config) {
+    const pair = await generatedPair(scope, config);
+    if (pair) return { task: pair.run, generated: true, digest: pair.digest };
     const tasks = (await vscode.tasks.fetchTasks()).filter(task => task.scope?.uri?.fsPath === scope.folder.uri.fsPath);
-    let pair; try { pair = await generatedPair(scope, tasks); } catch { /* Existing custom tools are selected explicitly. */ }
-    if (pair) return { task: pair.run, generated: true };
     if (!tasks.length) { await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(config.path))); throw Error(t('missing')); }
     const item = await vscode.window.showQuickPick(tasks.map(task => ({ label: task.name, description: task.source, detail: t('existing'), task })), { title: t('tasks') });
     return item && { task: item.task, generated: false };
   }
-  async function buildCaptured(scope, token) {
+  async function buildCaptured(scope, token, config, digest) {
     await validateScope(scope);
-        const build = (await generatedPair(scope, await vscode.tasks.fetchTasks()))?.build;
+    const build = (await generatedPair(scope, config, digest))?.build;
     if (!build || !(build.execution instanceof vscode.ProcessExecution)) throw Error(t('missing'));
     const file = scope.path, folder = dirname(file), stem = basename(file).replace(/\.[^.]+$/, '');
     const substitute = value => String(value).replaceAll('${fileDirname}', folder).replaceAll('${fileBasenameNoExtension}', stem).replaceAll('${file}', file).replaceAll('${workspaceFolder}', scope.root);
@@ -110,6 +136,7 @@ function registerCppRun(vscode, context, env) {
     if (token.isCancellationRequested) return undefined;
     if (built !== 0) throw Error(t('failed'));
     if (scope.document.version !== version || scope.document.isDirty) throw Error(t('save'));
+    await generatedPair(scope, config, digest);
     const binary = join(folder, stem); await access(binary, constants.X_OK);
     return { binary, folder };
   }
@@ -126,10 +153,11 @@ function registerCppRun(vscode, context, env) {
           let code;
           const ownName = 'YNX: Run active ' + (scope.language === 'c' ? 'C' : 'C++');
           if (choice.generated) {
-            const target = await buildCaptured(scope, token);
+            const target = await buildCaptured(scope, token, config, choice.digest);
             if (!target) { vscode.window.showInformationMessage(t('stopped')); return; }
             const { binary, folder } = target;
             const run = new vscode.Task({ type: 'process' }, scope.folder, ownName, 'YNX C/C++', new vscode.ProcessExecution(binary, [], { cwd: folder }), []);
+            await generatedPair(scope, config, choice.digest);
             code = await executeAndWait(vscode, run, token);
           } else { await validateScope(scope); code = await executeAndWait(vscode, task, token); }
           if (token.isCancellationRequested) vscode.window.showInformationMessage(t('stopped'));
@@ -148,7 +176,7 @@ function registerCppRun(vscode, context, env) {
         if (!isAbsolute(selectedAdapter)) throw Error(t('debugger'));
         try { await access(await realpath(selectedAdapter), constants.X_OK); } catch { throw Error(t('debugger')); }
         if (!settings.get('executable-path')) await settings.update('executable-path', adapter, vscode.ConfigurationTarget.WorkspaceFolder);
-        const pair = await generatedPair(scope, await vscode.tasks.fetchTasks()).catch(() => undefined);
+        const pair = await generatedPair(scope, config);
         if (!pair && !await existingConfiguration(scope.root, 'launch')) throw Error(t('launchMissing'));
         const launch = await createLaunchConfiguration(scope.root, config.path, scope.language);
         let selected = launch.configuration;
@@ -159,7 +187,7 @@ function registerCppRun(vscode, context, env) {
           if (!selected) return;
         }
         if (pair && selected.preLaunchTask === 'YNX: Build active ' + (scope.language === 'c' ? 'C' : 'C++') && selected.program === '${fileDirname}/${fileBasenameNoExtension}') {
-          const target = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'C/C++', cancellable: true }, (_progress, token) => buildCaptured(scope, token));
+          const target = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'C/C++', cancellable: true }, (_progress, token) => buildCaptured(scope, token, config, pair.digest));
           if (!target) { vscode.window.showInformationMessage(t('stopped')); return; }
           selected = { ...selected, program: target.binary, cwd: target.folder };
           delete selected.preLaunchTask; // Captured source was already built successfully.

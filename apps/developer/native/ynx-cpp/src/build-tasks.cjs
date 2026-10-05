@@ -2,6 +2,8 @@
 const { realpath, lstat, readlink, mkdir, open } = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { join, dirname, isAbsolute } = require('node:path');
+const { isDeepStrictEqual } = require('node:util');
+const { createHash } = require('node:crypto');
 const CLT = '/Library/Developer/CommandLineTools';
 async function trusted(path, directory = false) {
   if (!isAbsolute(path) || await realpath(path) !== path) throw Error('Compiler path is not canonical.');
@@ -81,6 +83,30 @@ async function existingConfiguration(root, name) {
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
   }
 }
+// Only the complete persisted product configuration bypasses async discovery.
+// Extra user fields and commented/custom configurations remain user tasks.
+async function readGeneratedTasks(root, path, tool, expectedDigest) {
+  if (await existingConfiguration(root, 'tasks') !== path) throw Error('Task configuration changed.');
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+  try {
+    const before = await handle.stat();
+    if (!before.isFile() || before.size > 65536) return undefined;
+    const buffer = Buffer.alloc(65537);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    const bytes = buffer.subarray(0, bytesRead);
+    const after = await handle.stat(), current = await lstat(path);
+    if (bytesRead !== before.size || before.dev !== current.dev || before.ino !== current.ino || before.size !== after.size ||
+        before.mtimeMs !== after.mtimeMs || before.ctimeMs !== after.ctimeMs || current.isSymbolicLink() ||
+        after.size !== current.size || after.mtimeMs !== current.mtimeMs || after.ctimeMs !== current.ctimeMs)
+      throw Error('Task configuration changed.');
+    const digest = createHash('sha256').update(bytes).digest('hex');
+    if (expectedDigest && digest !== expectedDigest) throw Error('Task configuration changed.');
+    let configuration;
+    try { configuration = JSON.parse(bytes.toString('utf8')); } catch { return undefined; }
+    if (!isDeepStrictEqual(configuration, taskConfiguration(tool))) return undefined;
+    return { configuration, digest };
+  } finally { await handle.close(); }
+}
 async function createLaunchConfiguration(root, tasksPath, language) {
   const existing = await existingConfiguration(root, 'launch');
   if (existing) return { path: existing, created: false };
@@ -96,4 +122,4 @@ async function createLaunchConfiguration(root, tasksPath, language) {
   finally { await handle.close(); }
   return { path, created: true, configuration };
 }
-module.exports = { installedCompiler, taskConfiguration, createBuildTasks, existingConfiguration, createLaunchConfiguration };
+module.exports = { installedCompiler, taskConfiguration, createBuildTasks, existingConfiguration, createLaunchConfiguration, readGeneratedTasks };
