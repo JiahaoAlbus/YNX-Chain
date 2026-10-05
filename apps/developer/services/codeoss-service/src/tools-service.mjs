@@ -14,6 +14,17 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
   admittedOwners, compiler = createSolidityCompiler(), origin = 'https://developer.ynxweb4.com', now = Date.now } = {}) {
   const approved = new URL(origin); if (approved.origin !== origin || approved.pathname !== '/' || approved.protocol !== 'https:') throw new Error('Tools require an exact trusted HTTPS origin.');
   const tickets = new Map(), proposals = new Map();
+  function configuredModel() {
+    const hosted = modelRouter?.catalog?.()?.hosted;
+    return hosted?.id === 'ynx-hosted' && typeof hosted.model === 'string' &&
+      /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(hosted.model) ? hosted.model : null;
+  }
+  function requireModel(expected) {
+    const model = configuredModel();
+    if (!model) throw fault('The approved model service is not configured.', 'tools_model_unavailable', 503);
+    if (expected && model !== expected) throw fault('The model changed after review. Review and approve a new request.', 'tools_model_changed', 409);
+    return model;
+  }
   function prune() { for (const map of [tickets, proposals]) for (const [key, value] of map) if (value.expires <= now()) map.delete(key); }
   function binding(admission) { return JSON.stringify([admission.context.owner, admission.context.projectId, admission.context.runtimeId, admission.context.sessionId, admission.identity.account, admission.identity.generation, admission.identity.identityReference || null]); }
   function token(map, value) { prune(); if (map.size >= 128 || [...map.values()].filter(item => item.bound === value.bound).length >= 8) throw fault('Tools review is full. Retry shortly.', 'tools_capacity', 429); const id = randomBytes(32).toString('base64url'); map.set(id, value); return id; }
@@ -29,7 +40,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         // cannot mint approvals or exhaust the one-use review ticket budget.
         const csrf = url.searchParams.get('checkOnly') === '1' ? undefined : token(tickets, { bound, expires });
         json(response, 200, { csrf, account: admission.identity.account, projectId: admission.context.projectId,
-          expiresAt: expires, sessionExpiresAt: admission.expiresAt, model: 'qwen3:4b', signingAvailable: false }); return true;
+          expiresAt: expires, sessionExpiresAt: admission.expiresAt, model: configuredModel(), signingAvailable: false }); return true;
       }
       if (request.method === 'GET' && url.pathname.startsWith('/runtime/native-tools/ai/conversations')) {
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
@@ -99,20 +110,23 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         if (typeof body.prompt !== 'string' || body.prompt.trim().length < 4 || Buffer.byteLength(body.prompt) > 4096 || typeof body.context !== 'string' || Buffer.byteLength(body.context) > 64 * 1024) throw fault('Keep the request within 4096 UTF-8 bytes and review a bounded selected context.', 'tools_context', 400);
         const selection = body.mode === 'selected-edit' ? reviewedSelection(body.context, sessionId) : null;
         const wirePrompt = reviewedHostedPrompt(selection ? EDIT_SYSTEM : AI_SYSTEM, selectedPrompt(body));
-        const proposalId = token(proposals, { bound, expires, prompt: body.prompt, context: body.context, selection });
+        const model = requireModel();
+        const proposalId = token(proposals, { bound, expires, prompt: body.prompt, context: body.context, selection, model });
         const csrf = token(tickets, { bound, expires });
-        json(response, 200, { proposalId, csrf, prompt: body.prompt, context: body.context, mode: selection ? 'selected-edit' : 'plan', contextBytes: Buffer.byteLength(body.context), wirePrompt, requestBytes: Buffer.byteLength(wirePrompt), model: 'qwen3:4b', expiresAt: expires }); return true;
+        json(response, 200, { proposalId, csrf, prompt: body.prompt, context: body.context, mode: selection ? 'selected-edit' : 'plan', contextBytes: Buffer.byteLength(body.context), wirePrompt, requestBytes: Buffer.byteLength(wirePrompt), model, expiresAt: expires }); return true;
       }
       if (url.pathname === '/runtime/native-tools/approve') {
         exact(body, ['csrf', 'proposalId', 'approval']);
         const proposal = proposals.get(body.proposalId);
         if (!proposal || proposal.bound !== bound || proposal.expires <= now() || body.approval !== 'send-reviewed-context-once') throw fault('The reviewed request is not available.', 'tools_proposal', 409);
         proposals.delete(body.proposalId); // One-use, including failures. Never auto-retry a model request.
+        requireModel(proposal.model);
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
         const conversation = aiStore.create({ owner: admission.context.owner, projectId: admission.context.projectId, prompt: proposal.prompt,
-          context: proposal.selection ? JSON.stringify({ kind: SELECTION_KIND, context: proposal.context }) : proposal.context, model: 'qwen3:4b' });
+          context: proposal.selection ? JSON.stringify({ kind: SELECTION_KIND, context: proposal.context }) : proposal.context, model: proposal.model });
         const controller = new AbortController(), timer = setTimeout(() => controller.abort(fault('Wallet session expired during generation.', 'tools_identity_changed', 401)), Math.max(1, admission.expiresAt - now()));
         const assertCurrent = async () => {
+          requireModel(proposal.model);
           const current = await coreService.authorizeConnection(request, sessionId);
           if (binding(current) !== bound || current.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet session changed during generation.', 'tools_identity_changed', 401);
@@ -128,10 +142,11 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
           void assertCurrent().catch(error => controller.abort(error)).finally(() => { checking = false; });
         }, 5000);
         try {
-          const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: 'qwen3:4b',
+          const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: proposal.model,
             hostedSession: conversation.id, prompt: selectedPrompt(proposal),
             system: proposal.selection ? EDIT_SYSTEM : AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal, assertCurrent }), controller.signal);
           await assertCurrent();
+          if (result.model !== proposal.model) throw fault('The model response does not match the approved model. No edit was offered.', 'tools_model_response_mismatch', 502);
           const edit = proposal.selection ? reviewedReplacement(result.text, proposal.selection) : null;
           aiStore.complete(admission.context.owner, admission.context.projectId, conversation.id, { text: result.text, model: result.model });
           json(response, 200, { text: result.text, ...(edit ? { edit } : {}), model: result.model, conversationId: conversation.id, saved: true, applied: false, signed: false });

@@ -33,3 +33,9 @@ macOS 27.0 来源已进一步定位：包内 Node 本体 LC_BUILD_VERSION minos=
 本轮总控准确依赖材料：/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261005/ide-existing-dependency-contracts-root-20261005-8c102fd6/REPORT.md 与 INPUT_PINS.json，已全文读取。共享 Wallet/Auth 源1.2.0没有交同代正式 supplier；IDE vendor旧candidate未部署，v2 Browser身份与v1部署不可拼成已接通。Chain authority pin已于9/27到期；consumer的address/function与BFT源address/calldata存在差异，必须按实际target能力核接，不能自行改链或猜接口。AI缺真实provider/身份接线；Cloud source完整1894/root928e存在，但后端NOT_RUNNING，静态READY不是存储/计算业务。真实QA身份和dot调用入口未提供。普通IDE代码继续，暂停的network/package-egress/LXD/remote/shared发布没有恢复。
 
 扩展只读核验：用户原65条/63唯一清单真实存在，未有完整逐项功能矩阵；原Pylance/C++/RemoteSSH许可限制不能静默迁移。当前默认扩展API为框架1.139.0，不能用Monaco版本或semver匹配认定兼容。在线市场后端被整树deny network策略拒绝。兼容性核验另发现drivelist最终link和process-tree编译漏minimum target，现二进制都27.0；本机签名Node24.19.0仅系统库且minos13.5，加载检查通过，但尚无新的相容整包或旧OS证明。
+
+异常测试/调试启动清理已整合：actual Theia TestController/TestRun/DebugExtImpl/tracker 与实际短子进程退出回归27 PASS/0 FAIL/0 SKIP，root复验相同结果；只对未终态Queued/Running标Errored，取消保留未知，保留Passed/Failed/Skipped，迟建run和迟到输出不能恢复运行，多请求隔离，正常launch后仍等测试pipe结果。没有放宽debugpy/socket或网络隔离。真实断点、变量、单步与新组件GUI尚待验。日志 /private/tmp/ynx-test-failure-cleanup-integrated-20261005.log。Workbench版本0.3.20，后续实际构建/封存仍另记。
+
+AI审阅模型绑定已从硬编码qwen改为现router configured catalog：proposal、批准、调用和记录统一模型；批准后变更、排队执行前变更均要求新审阅；返回模型不匹配则不提供编辑/保留生成文本。缺配置不冒充可用模型。使用原reviewed上下文与一次性ticket，不扩大网络、provider或费用权限。40 PASS/0 FAIL/0 SKIP（含已review离线0.8.24 compiler），日志 /private/tmp/ynx-tools-model-binding-pinned-tests-20261005.log；这仍是受控服务回归，不是genuine在线模型验收。
+
+只读身份核验进一步确认：真实local Theia没有legacy React Wallet桥；v2仅factory/options/Guest，没有正常beginYNX/handleReturn/restore/disconnect消费；IndexedDB设备签名与随机loopback origin可能换key，Keychain session持久不证明设备签名跨重启。需要IDE-owned真实native设备签名及root消费者接线，使用canonical SDK，不新写Auth。独立browserSSO不能当ProductSession，ProductSession也不能自动当部署动作授权。

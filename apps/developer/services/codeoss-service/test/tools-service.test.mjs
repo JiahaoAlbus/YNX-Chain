@@ -13,7 +13,7 @@ import { prepareCoreProject } from '../src/runtime-files.mjs';
 import { compilerReadiness } from '../../../scripts/compiler-pin.mjs';
 const require = createRequire(import.meta.url), { digest, validateChanges, assertWorkspacePath } = require('../../../native/ynx-tools/src/guards.cjs');
 const sessionId = '12345678-1234-1234-1234-123456789012', origin = 'https://developer.ynxweb4.com';
-async function harness(t, { realChain = false, generationHook, modelWork, compilerWork } = {}) {
+async function harness(t, { realChain = false, generationHook, modelWork, compilerWork, configuredModel = 'qwen3:4b' } = {}) {
   let now = 100, generation = 1, revoked = false, admissions = 0, projectId = 'project-A', identityReference = 'reference-A'; const calls = [], admittedOwners = new WeakMap();
   const coreService = { async authorizeConnection(request, id) { admissions++; if (revoked || request.headers.cookie !== 'wallet=A' || id !== sessionId) throw Object.assign(Error('Identity rejected'), { status: 401 }); return { context: { owner: 'verified-A', sessionId, projectId, runtimeId: 'runtime-A' }, identity: { account: 'account-A', generation, identityReference }, expiresAt: 100000 }; } };
   const readonly = async (req, res) => { calls.push({ route: req.url, owner: admittedOwners.get(req) }); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true })); };
@@ -26,12 +26,12 @@ async function harness(t, { realChain = false, generationHook, modelWork, compil
   const directory = await mkdtemp(join(tmpdir(), 'ynx-tools-ai-'));
   const aiStore = createNativeAIStore({ filename: join(directory, 'requests.sqlite'), keyPath: join(directory, 'requests.key') });
   t.after(() => aiStore.close());
-  const service = createNativeToolsService({ coreService, aiStore, admittedOwners, now: () => now, ...(compilerWork ? { compiler: { async compile(value) { calls.push(value); return compilerWork(value); } } } : {}), chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: 'qwen3:4b', text: 'reviewed plan' }; } } });
+  const service = createNativeToolsService({ coreService, aiStore, admittedOwners, now: () => now, ...(compilerWork ? { compiler: { async compile(value) { calls.push(value); return compilerWork(value); } } } : {}), chainHandler: realChain ? chain.handler : readonly, walletHandler: readonly, modelRouter: { catalog: () => ({ hosted: { id: 'ynx-hosted', model: configuredModel } }), async generate(value) { calls.push(value); generationHook?.(() => revoked = true); return modelWork ? modelWork(value) : { model: configuredModel, text: 'reviewed plan' }; } } });
   const server = createServer((req, res) => service.handler(req, res)); await new Promise(resolve => server.listen(0, '127.0.0.1', resolve)); t.after(() => new Promise(resolve => server.close(resolve)));
   const send = (path, body, headers = {}) => new Promise((resolve, reject) => {
     const req = httpRequest({ hostname: '127.0.0.1', port: server.address().port, path: '/runtime/native-tools/' + path + (path.includes('?') ? '&' : '?') + 'sessionId=' + sessionId, method: body ? 'POST' : 'GET', headers: { host: 'developer.ynxweb4.com', cookie: 'wallet=A', ...(body ? { origin, 'content-type': 'application/json', 'sec-fetch-site': 'same-origin' } : {}), ...headers } }, res => { let data='';res.on('data', chunk => data += chunk);res.on('end', () => resolve({ status:res.statusCode, value:JSON.parse(data), headers:new Headers(res.headers) })); });req.on('error',reject);req.end(body ? JSON.stringify(body) : undefined);
   });
-  return { send, calls, server, aiStore, changeReference: () => identityReference += '-new', admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
+  return { send, calls, server, aiStore, changeModel: value => configuredModel = value, changeReference: () => identityReference += '-new', admissions: () => admissions, setTime: value => now = value, changeAccount: () => generation++, changeProject: value => projectId = value, revoke: () => revoked = true };
 }
 
 test('admitted HTTP compile uses real pinned input and consumes its project-bound ticket once', async t => {
@@ -350,4 +350,51 @@ test('versioned Tools upgrade preserves legacy extension files and installs the 
  assert.equal(await readFile(join(legacy,'guards.cjs'),'utf8'),'legacy user file preserved');
  assert.equal(await readFile(join(lastRelease,'extension.cjs'),'utf8'),'previous installed user changes preserved');
  assert.equal(await readFile(join(priorCopy,'extension.cjs'),'utf8'),'0.2.4 installed user draft preserved');
+});
+
+test('review and execution use the configured model and preserve it in saved records', async t => {
+  const h = await harness(t, { configuredModel: 'approved-model:v2' });
+  const c = await h.send('context'); assert.equal(c.value.model, 'approved-model:v2');
+  const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review this selection', context: 'selected text' });
+  assert.equal(p.value.model, c.value.model);
+  const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+  assert.equal(result.status, 200); assert.equal(result.value.model, p.value.model);
+  assert.equal(h.calls[0].model, p.value.model);
+  assert.equal(h.aiStore.list('verified-A', 'project-A')[0].model, p.value.model);
+});
+test('model changes after review invalidate the one-use approval before generation or storage', async t => {
+  const h = await harness(t), c = await h.send('context');
+  const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review this selection', context: 'private selected text' });
+  h.changeModel('approved-model:v2');
+  const body = { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' };
+  const result = await h.send('approve', body);
+  assert.equal(result.status, 409); assert.equal(result.value.code, 'tools_model_changed');
+  assert.equal(h.calls.length, 0); assert.deepEqual(h.aiStore.list('verified-A', 'project-A'), []);
+  assert.equal((await h.send('approve', body)).status, 403);
+});
+test('a different response model cannot provide an edit or retain generated text', async t => {
+  const h = await harness(t, { modelWork: async () => ({ model: 'unreviewed-model', text: 'PRIVATE_GENERATED_TEXT' }) });
+  const c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review this selection', context: 'selected text' });
+  const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+  assert.equal(result.status, 502); assert.equal(result.value.code, 'tools_model_response_mismatch');
+  assert.equal(result.value.edit, undefined); assert.equal(result.value.text, undefined);
+  const record = h.aiStore.list('verified-A', 'project-A')[0]; assert.equal(record.status, 'failed');
+  assert.equal(h.aiStore.get('verified-A', 'project-A', record.id).text, undefined);
+});
+test('missing configured model permits project context but cannot create an AI proposal', async t => {
+  const h = await harness(t, { configuredModel: null }), c = await h.send('context');
+  assert.equal(c.status, 200); assert.equal(c.value.model, null);
+  const p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review this selection', context: 'selected text' });
+  assert.equal(p.status, 503); assert.equal(p.value.code, 'tools_model_unavailable'); assert.equal(h.calls.length, 0);
+});
+test('queued work rechecks the approved model before the provider sends context', async t => {
+  let h, providerRequests = 0;
+  h = await harness(t, { modelWork: async input => {
+    h.changeModel('changed-while-queued'); await input.assertCurrent();
+    providerRequests++; return { model: input.model, text: 'must not generate' };
+  } });
+  const c = await h.send('context'), p = await h.send('proposals', { csrf: c.value.csrf, prompt: 'Review this selection', context: 'selected text' });
+  const result = await h.send('approve', { csrf: p.value.csrf, proposalId: p.value.proposalId, approval: 'send-reviewed-context-once' });
+  assert.equal(result.status, 409); assert.equal(result.value.code, 'tools_model_changed'); assert.equal(providerRequests, 0);
+  assert.equal(h.aiStore.list('verified-A', 'project-A')[0].status, 'failed');
 });
