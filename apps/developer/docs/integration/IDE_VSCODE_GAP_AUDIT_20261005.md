@@ -225,3 +225,11 @@ YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源�
 完整 App/DMG 已生成，源码 2b25b2412125d0a88713477c554523484096ac4c；source tree 9c823043f8aa33e8c1eaa574573ae4b25287169c，DMG SHA256 046cc1e34160e7dd4e00a2e6532b9d66bdcd7fd11acaa7a0d5f7f968d5fae573。安装镜像、Logo、挂载资源和 ad-hoc 签名检查通过。含刷新展开修复的最新包 Cocoa/Finder/完整 GUI 尚未复验，见候选 SOURCE_BUILD_HANDOFF_20261005.md。
 
 后续源码修正 Test Runs 空状态：原文错误地说尚未发现测试，改为尚未运行测试及在 Test Explorer 运行后查看结果；中英文均注册自有语言键。非空结果继续调用原生显示。3 项实际本地化回归与 browser/node 构建通过；干净组件 GUI 实际显示新的空运行提示。core tree 263d1956d2d1d2752fc6fc3a88d5ad7dc0ec83f68104d7f7a91062299b834c66，manifest 3379cdf9eebf875fecf005de76ac891ed8272ab771a48741f7a5fe1b03b3bc3a；证据 ynx-test-run-empty-verification-20261005。此后源码不重标成上述 2b 完整包内容。
+
+## 自动发现与 Python 测试调试实测
+
+在 a362 之后无产品代码变化的干净组件中，已配置项目重载后不点 Refresh Tests，正常展开控制器/项目/文件/类可见两项 Python 测试。私有诊断日志证明自动 resolve、有效解释器与 unittest 适配器、success payload 含两项；日志已从自建运行副本移除，并按原 SHA256 恢复后正常重载再次验证。这个范围是已有项目的重载自动发现，不替代无缓存新 profile 的首次解释器配置验收。此前一部分“空树”观察也受自动化点击未真正命中展开按钮影响，不能据此断定插件没有发现。
+
+正常第 6 行设置断点、通过 Test Explorer 的 Debug Test 启动 Python 调试；debugpy adapter 在 clients.serve -> socket.bind 报 PermissionError [Errno 1] Operation not permitted，随后调试连接关闭。未到断点暂停/变量/步进。当前网络隔离保持不变，没有开放端口或出站。另发现断开后测试运行仍显示 Running，正常 Cancel All Test Runs 未即时结束；后续要验证并修复测试取消令牌与失败清理，不能把调试器已注册当作调试通过。
+
+证据目录 ynx-auto-discovery-verification-20261005，包含 clean-reload.png、debug-failure.png、debug.log、restoration.json 与精确范围 verification.json。
