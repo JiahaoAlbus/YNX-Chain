@@ -74,3 +74,16 @@ test('timer stack serialization exposes numeric positions only and is bounded', 
   for (const item of locations) assert.match(item, /^timer\.location\.\d+\.\d+\.\d+$/);
   assert.equal(JSON.stringify(locations).includes('secret'), false);
 });
+
+test('large push is observed once, preserves mutation and is gated before step', () => {
+  const rows = [], proto = { stepOver() {} }, arrayProto = { push: Array.prototype.push };
+  trace.traceMethods([['thread', proto, ['stepOver']]], value => rows.push(value), 300, undefined, arrayProto);
+  const array = new Array(10000);
+  assert.equal(arrayProto.push.call(array, 1), 10001);
+  assert.equal(rows.length, 0);
+  proto.stepOver();
+  assert.equal(arrayProto.push.call(array, 2), 10002);
+  assert.equal(array[10001], 2);
+  arrayProto.push.call(array, 3);
+  assert.equal(rows.filter(row => row.event === 'array.largePush').length, 1);
+});

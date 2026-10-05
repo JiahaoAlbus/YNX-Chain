@@ -1,6 +1,6 @@
 // Opt-in native QA instrumentation: no source, paths, values or error content.
 const installed = Symbol.for('ynx.debug-ui-trace');
-function timerLocations(stack) {
+function timerLocations(stack, limit = 4) {
   const locations = [];
   for (const row of String(stack).split('\n')) {
     const match = row.match(/\/([^/\s?:]+\.js):(\d+):(\d+)\)?$/);
@@ -9,16 +9,31 @@ function timerLocations(stack) {
     let hash = 0;
     for (const char of match[1]) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
     locations.push(`timer.location.${hash}.${match[2]}.${match[3]}`);
-    if (locations.length === 4) break;
+    if (locations.length === limit) break;
   }
   return locations;
 }
-function traceMethods(targets, send, limit = 300, timers) {
+function traceMethods(targets, send, limit = 300, timers, arrayPrototype) {
   let sequence = 0, calls = 0, armed = false;
   const emit = (method, phase, call) => {
-    if (!armed || sequence >= limit) return;
+    const ceiling = arrayPrototype && !method.startsWith('array.') ? Math.max(0, limit - 20) : limit;
+    if (!armed || sequence >= ceiling) return;
     try { send({ action: 'debug-ui-trace', seq: ++sequence, event: method, phase: phase === 'begin' ? 'begin' : 'end', count: call }); } catch (_) { /* Preserve execution. */ }
   };
+  if (arrayPrototype && !arrayPrototype[installed]) {
+    const push = arrayPrototype.push;
+    let reported = false;
+    arrayPrototype.push = function (...items) {
+      if (armed && !reported && this.length >= 10000) {
+        reported = true;
+        const call = ++calls;
+        emit('array.largePush', 'begin', call);
+        for (const location of timerLocations(new Error().stack, 8)) emit(location.replace('timer.location', 'array.location'), 'begin', call);
+      }
+      return push.apply(this, items);
+    };
+    Object.defineProperty(arrayPrototype, installed, { value: true });
+  }
   if (timers && !timers[installed]) {
     for (const name of ['setTimeout', 'setInterval']) {
       const schedule = timers[name];
@@ -66,12 +81,20 @@ function install(target = globalThis) {
   const { DebugInlineValueDecorator } = require('@theia/debug/lib/browser/editor/debug-inline-value-decorator');
   const { DebugThread } = require('@theia/debug/lib/browser/model/debug-thread');
   const { DebugStackFrame } = require('@theia/debug/lib/browser/model/debug-stack-frame');
+  const { TabBarDecoratorService } = require('@theia/core/lib/browser/shell/tab-bar-decorator');
+  const { DecorationsServiceImpl } = require('@theia/core/lib/browser/decorations-service');
+  const { TreeWidget } = require('@theia/core/lib/browser/tree/tree-widget');
+  const { StatusBarImpl } = require('@theia/core/lib/browser/status-bar/status-bar');
   traceMethods([
     ['editor', DebugEditorModel.prototype, ['updateModel', 'updateEditorDecorations', 'createInlineValueDecorations', 'createFrameDecorations', 'deltaDecorations', 'render', 'renderBreakpoints', 'updateBreakpointRanges', 'renderCurrentBreakpoints', 'createBreakpoints']],
     ['inline', DebugInlineValueDecorator.prototype, ['calculateDecorations', 'updateInlineValueDecorations', 'createInlineValueDecorationsInsideRange', 'getWordToPositionsMap']],
     ['thread', DebugThread.prototype, ['stepOver', 'fetchFrames', 'update', 'clear']],
     ['frame', DebugStackFrame.prototype, ['open', 'getScopes']],
-  ], record => bridge.postMessage(record), 300, target);
+    ['tab', TabBarDecoratorService.prototype, ['getDecorations']],
+    ['decorations', DecorationsServiceImpl.prototype, ['getDecoration']],
+    ['tree', TreeWidget.prototype, ['doUpdateDecorations', 'doUpdateRows', 'updateRows']],
+    ['status', StatusBarImpl.prototype, ['update']],
+  ], record => bridge.postMessage(record), 300, target, Array.prototype);
 }
 exports.traceMethods = traceMethods;
 exports.timerLocations = timerLocations;
