@@ -1,6 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createServer,connect} from 'node:net';import {mkdtemp,mkdir,cp,writeFile,readFile,symlink,lstat} from 'node:fs/promises';import {join} from 'node:path';import {spawn} from 'node:child_process';
 const resources=process.env.YNX_JS_TEST_RESOURCES,qa=process.env.YNX_JS_QA_ROOT;assert.ok(resources&&qa,'Provide the explicit owned component and QA root; never download inputs');
-const desktop=join(resources,'code/apps/developer/desktop');const {createJsDebugSessionSupervisor,trustedJsNodeAncestor}=await import(join(desktop,'local-js-debug-session.mjs'));
+const desktop=join(resources,'code/apps/developer/desktop');
+// Exercise the current supervisor while retaining the sealed native PTY and
+// workspace-identity dependencies. Never hot-swap a stored component or App.
+const {registerHooks}=await import('node:module');const {pathToFileURL}=await import('node:url');
+const supervisorUrl=new URL('./local-js-debug-session.mjs',import.meta.url).href;
+const supervisorDependencies=registerHooks({resolve(specifier,context,next){if(context.parentURL===supervisorUrl&&['./local-debug-session.mjs','./workspace-path-identity.mjs'].includes(specifier))return next(pathToFileURL(join(desktop,specifier)).href,context);return next(specifier,context);}});
+const {createJsDebugSessionSupervisor,trustedJsNodeAncestor}=await import(supervisorUrl);supervisorDependencies.deregister();
 const {localProjectContext,localWorkbenchPathIdentities,localWorkbenchSandboxPolicy,localWorkbenchEnvironment}=await import(join(desktop,'local-workbench.mjs'));const {createLocalIpcSession}=await import(join(desktop,'local-workbench-ipc.mjs'));
 const delay=ms=>new Promise(ok=>setTimeout(ok,ms));async function until(check){for(let i=0;i<200;i++){if(await check())return;await delay(20);}throw Error('Expected JavaScript lifecycle did not complete');}
 async function fixture(task){const root=await mkdtemp(join(qa,'case-')),project=join(root,'project');await mkdir(project,{mode:0o700});const context=await localProjectContext({supportRoot:join(root,'support'),projectDirectory:project});assert.match(context.id,/^[a-f0-9-]{36}$/);const ipc=await createLocalIpcSession(context);context.ipcTemporary=ipc.path;
@@ -47,13 +53,22 @@ test('official public config provider/NamedPipe launch reaches real breakpoint, 
  async function start(configuration,parentSession){const session={id:randomUUID(),configuration,name:configuration.name,type:configuration.type,workspaceFolder:{uri:require('../runtime/theia/node_modules/vscode-uri').URI.file(f.project),name:'Actual JS project',index:0},parentSession};const {descriptor,realSession}=await official.descriptor(session);assert.equal(descriptor.constructor.name,'DebugAdapterNamedPipeServer');const client=new Dap(realSession);clients.push(client);session.customRequest=async(command,args)=>{const response=await client.request(command,args);if(!response.success)throw Error(response.message);return response.body;};const initialized=await client.request('initialize',{clientID:'ynx-real-js-qa',adapterID:'pwa-node',linesStartAt1:true,columnsStartAt1:true,pathFormat:'path',supportsVariableType:true,supportsRunInTerminalRequest:true});assert.equal(initialized.success,true);official.bindFrontend(session,client,initialized.body);
  const launched=client.request('launch',configuration);await client.event('initialized');assert.equal((await client.request('setBreakpoints',{source:{path:file},breakpoints:[{line:2}]})).success,true);assert.equal((await client.request('configurationDone')).success,true);assert.equal((await launched).success,true);await official.native.$sessionDidStart(session.id);return{client,session};}
  try{official=await officialDebugger({extension:join(f.plugins,'ms-vscode.js-debug-1.140.0'),project:f.project,environment,terminalHost,onStart:async(folder,configuration,options)=>{const parent=official.native.sessions.get(options.parentSessionId);const promise=start({...configuration,...options},parent);children.push(promise);await promise;return true;}});
+ // Native notification promises remain pending until a user dismisses them.
+ // Leaving them open must not prevent ordinary launch or error cancellation.
+ official.api.window.showInformationMessage=message=>{official.notifications.push(message);return new Promise(()=>{});};
+ official.api.window.showErrorMessage=message=>{official.notifications.push(message);return new Promise(()=>{});};
+ const resolvePromptly=configuration=>Promise.race([official.resolve(configuration),delay(1500).then(()=>{throw Error('Native resolver waited for notification dismissal');})]);
+ const userPreload=join(f.project,'user preload.cjs');
+ await writeFile(userPreload,"console.log('USER_PRELOAD_RETAINED', process.env.NODE_OPTIONS.includes('--no-warnings'), process.env.NODE_OPTIONS.includes('/src/bootloader.js'), Boolean(process.env.VSCODE_INSPECTOR_OPTIONS));\n");
  for(const type of ['node','pwa-node']) {
-  const config=await official.resolve({type,request:'launch',name:'Run without debugging '+type,skipFiles:['<node_internals>/**'],program:file,cwd:f.project,noDebug:true});
+  const config=await resolvePromptly({type,request:'launch',name:'Run without debugging '+type,skipFiles:['<node_internals>/**'],program:file,cwd:f.project,noDebug:true,env:{NODE_OPTIONS:`--require "${userPreload}" --no-warnings`}});
   assert.equal(config.outputCapture,'std');
   assert.ok(config.__ynxJsLaunch,'Run Without Debugging must use the supervisor');
   const childCount=children.length;
   const running=await start(config);await running.client.event('terminated');
   assert.ok(running.client.messages.some(message=>message.event==='output'&&message.body.output.includes('OFFICIAL_JS 42')),'Run Without Debugging must retain actual stdout');
+  assert.doesNotMatch(running.client.messages.filter(message=>message.event==='output').map(message=>message.body.output).join(''),/ERR_INSPECTOR_NOT_ACTIVE|Starting inspector .*failed|Error in js-debug bootloader/);
+  assert.match(running.client.messages.filter(message=>message.event==='output').map(message=>message.body.output).join(''),/USER_PRELOAD_RETAINED true false false/);
   assert.equal(children.length,childCount,'Run Without Debugging must not create an Inspector child session');
   await until(()=>f.supervisor.activeSessions()===0);await official.native.$sessionDidDestroy(running.session.id);await official.drain();
   console.log('OFFICIAL_DAP_CONFIRMED noDebug '+type+' output=42 sessions=0');
@@ -76,13 +91,13 @@ test('official public config provider/NamedPipe launch reaches real breakpoint, 
  assert.deepEqual(official.frameworkErrors,[]);
  for(const type of ['node','pwa-node']){
   const rejected={type,request:'launch',name:'Explicit children retained',program:file,cwd:f.project,console:'internalConsole',autoAttachChildProcesses:true};
-  assert.equal(await official.resolve(rejected),null,'Native resolver must cancel explicit child debugging, not fall back');assert.equal(rejected.autoAttachChildProcesses,true);
-  assert.equal(await official.resolve({...rejected,autoAttachChildProcesses:false,runtimeExecutable:'/untrusted/node'}),null,'Native resolver must cancel unapproved runtimes');
+  assert.equal(await resolvePromptly(rejected),null,'Native resolver must cancel explicit child debugging, not fall back');assert.equal(rejected.autoAttachChildProcesses,true);
+  assert.equal(await resolvePromptly({...rejected,autoAttachChildProcesses:false,runtimeExecutable:'/untrusted/node'}),null,'Native resolver must cancel unapproved runtimes');
  }
  assert.ok(official.notifications.some(message=>message.includes('Child-process debugging')));assert.ok(official.notifications.some(message=>message.includes('bundled Node runtime')));assert.deepEqual(official.frameworkErrors,[]);assert.equal(f.supervisor.activeSessions(),0);
  const held=[];try{
   for(let index=0;index<8;index++)held.push(await request(f,{op:'prepare',console:'internalConsole',noDebug:true}));
-  assert.equal(await official.resolve({type:'node',request:'launch',name:'Admission denied',program:file,cwd:f.project,noDebug:true}),null,'Supervisor refusal must stop the native chain, never restore the raw Node configuration');
+  assert.equal(await resolvePromptly({type:'node',request:'launch',name:'Admission denied',program:file,cwd:f.project,noDebug:true}),null,'Supervisor refusal must stop the native chain, never restore the raw Node configuration');
   assert.ok(official.notifications.some(message=>message.includes('admission is unavailable')));assert.deepEqual(official.frameworkErrors,[]);
  }finally{for(const entry of held)await request(f,{op:'cancel',launchId:entry.launchId});}
  assert.equal(f.supervisor.activeSessions(),0);

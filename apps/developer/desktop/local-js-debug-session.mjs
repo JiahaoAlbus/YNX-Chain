@@ -100,7 +100,19 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           const env=message.env;if(!env||typeof env!=='object'||Array.isArray(env)||Object.keys(env).length>256||Object.entries(env).some(([k,v])=>!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)||typeof v!=='string'||v.includes('\0')||v.length>65536))throw Error('Invalid JavaScript target environment');
           if(message.args.some(x=>/^--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|$)/.test(x))||/(?:^|\s)--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|\s|$)/.test(env.NODE_OPTIONS||''))throw Error('A user-specified Inspector endpoint conflicts with supervised local debugging');
           if(!entry.noDebug){const options=JSON.parse((env.VSCODE_INSPECTOR_OPTIONS||'').split(':::').reverse().find(value=>value)||'null');if(!options||typeof options.inspectorIpc!=='string'||!inside(context.ipcTemporary,options.inspectorIpc)||!String(env.NODE_OPTIONS||'').includes(join(extension,'src/bootloader.js')))throw Error('The official JavaScript bootloader is required');const socketStat=await lstat(options.inspectorIpc);if(await realpath(options.inspectorIpc)!==options.inspectorIpc||socketStat.isSymbolicLink()||!socketStat.isSocket()||socketStat.uid!==process.getuid())throw Error('Official Inspector IPC is not an owned socket');}
-          const targetEnv={...env};if(!entry.noDebug){const parts=env.VSCODE_INSPECTOR_OPTIONS.split(':::');const last=parts.findLastIndex(value=>value);const options=JSON.parse(parts[last]);options.execPath=join(resolve(process.execPath,'..'),'local-js-debug-launcher.sh');parts[last]=JSON.stringify(options);targetEnv.VSCODE_INSPECTOR_OPTIONS=parts.join(':::');}for(const key of Object.keys(targetEnv))if(key.startsWith('YNX_JS_DEBUG_')||key==='YNX_JS_ORIGINAL_NODE_OPTIONS')delete targetEnv[key];
+          const targetEnv={...env};
+          if(entry.noDebug){
+            // The official adapter injects its bootloader even for noDebug.
+            // Remove only this known preload, preserving all user Node flags
+            // and preloads. Clearing its control environment also makes any
+            // official compatibility shim inert without removing user code.
+            const bootloader=join(extension,'src/bootloader.js');
+            for(const preload of [` --require ${bootloader} `,` --require "${bootloader}" `]){
+              if(targetEnv.NODE_OPTIONS?.startsWith(preload)){targetEnv.NODE_OPTIONS=targetEnv.NODE_OPTIONS.slice(preload.length);break;}
+            }
+            delete targetEnv.VSCODE_INSPECTOR_OPTIONS;
+          }else{const parts=env.VSCODE_INSPECTOR_OPTIONS.split(':::');const last=parts.findLastIndex(value=>value);const options=JSON.parse(parts[last]);options.execPath=join(resolve(process.execPath,'..'),'local-js-debug-launcher.sh');parts[last]=JSON.stringify(options);targetEnv.VSCODE_INSPECTOR_OPTIONS=parts.join(':::');}
+          for(const key of Object.keys(targetEnv))if(key.startsWith('YNX_JS_DEBUG_')||key==='YNX_JS_ORIGINAL_NODE_OPTIONS')delete targetEnv[key];
           for(const key of ['TMPDIR','TMP','TEMP','XDG_RUNTIME_DIR'])targetEnv[key]=context.ipcTemporary;
           for(const proof of pathIdentities)await assertWorkspacePathIdentity(proof);
           clearTimeout(entry.timer);entry.phase='running';entry.timer=setTimeout(()=>retire(entry).catch(warn),deadlineMs);entry.timer.unref();

@@ -177,18 +177,24 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   }
   let singleTargetNotice = false;
   const childChoice = configuration => ({ explicit: Object.prototype.hasOwnProperty.call(configuration || {}, 'autoAttachChildProcesses'), value: configuration?.autoAttachChildProcesses });
-  const notifySingleTarget = async () => {
+  const notify = (method, message) => {
+    // VS Code notification promises settle when dismissed. Informational and
+    // error reporting must never hold the resolver or cancellation open.
+    try { Promise.resolve(api.window?.[method]?.(message)).catch(error => console.error('JavaScript launch notification:', error)); }
+    catch (error) { console.error('JavaScript launch notification:', error); }
+  };
+  const notifySingleTarget = () => {
     if (singleTargetNotice) return;
     if (!api.window?.showInformationMessage) throw Error('This local launch supports one Node process. Choose autoAttachChildProcesses: false explicitly to proceed.');
-    await api.window.showInformationMessage('Local JavaScript debugging currently supports one Node process. Child-process debugging remains unavailable in this profile.'); singleTargetNotice = true;
+    singleTargetNotice = true;
+    notify('showInformationMessage', 'Local JavaScript debugging currently supports one Node process. Child-process debugging remains unavailable in this profile.');
   };
   const resolveOrCancel = async task => {
     try { return await task(); }
     catch (error) {
       // Theia logs a thrown resolver error and continues with its previous
       // configuration. Null explicitly stops the native resolver chain.
-      try { await api.window?.showErrorMessage?.('Local JavaScript launch: ' + error.message); }
-      catch (notificationError) { console.error('JavaScript launch notification:', notificationError); }
+      notify('showErrorMessage', 'Local JavaScript launch: ' + error.message);
       return null;
     }
   };

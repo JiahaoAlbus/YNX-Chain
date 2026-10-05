@@ -1,4 +1,5 @@
 const { ContainerModule } = require('@theia/core/shared/inversify');
+require('./reconnection-lifecycle').install();
 require('./test-range-adapter').install();
 require('./test-tree-state-adapter').install();
 require('./test-run-empty-state-adapter').install();
