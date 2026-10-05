@@ -5,6 +5,7 @@ import { join, dirname, resolve, isAbsolute } from 'node:path';
 import { createServer } from 'node:net';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createLocalIpcSession, localIpcRoot } from './local-workbench-ipc.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -77,7 +78,8 @@ export async function prepareLocalGitConfig(context) {
   return path;
 }
 export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) {
-  return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: context.temporary, OPENSSL_CONF: '/dev/null',
+  const temporary = context.ipcTemporary || context.temporary;
+  return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
@@ -85,12 +87,15 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
 }
 export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git }) {
   const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
-  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary];
+  const ipc = context.ipcTemporary;
+  if (ipc && (!ipc.startsWith(localIpcRoot() + '/') || !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(ipc.slice(localIpcRoot().length + 1)) || Buffer.byteLength(ipc) > 48)) throw Error('Local IPC policy requires its owned short session directory.');
+  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(ipc ? [ipc] : [])];
   const ancestors = new Set(); for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
   return ['(version 1)', '(allow default)', '(deny network*)', '(deny process-exec (literal "/usr/bin/git"))', '(deny file-read*)', '(deny file-write*)', '(allow file-read* (literal "/"))',
     ...reads.map(path => `(allow file-read* (subpath "${escape(path)}"))`),
     ...[...ancestors].map(path => `(allow file-read-metadata (literal "${escape(path)}"))`),
-    ...[context.workspace, context.profile, context.temporary, '/dev'].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
+    ...[context.workspace, context.profile, context.temporary, '/dev', ...(ipc ? [ipc] : [])].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
+    ...(ipc ? [`(allow network-bind (local unix-socket (subpath "${escape(ipc)}")))`, `(allow network-outbound (remote unix-socket (subpath "${escape(ipc)}")))`] : []),
     `(allow network-bind (local ip "localhost:${port}"))`, `(allow network-inbound (local ip "localhost:${port}"))`].join('\n');
 }
 
@@ -192,6 +197,9 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const runtime = await prepareLocalRuntime({ payload, supportRoot });
   if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
   const context = await localProjectContext({ supportRoot, projectDirectory });
+  const ipc = await createLocalIpcSession(context);
+  context.ipcTemporary = ipc.path;
+  try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
   const git = await findTrustedLocalGit();
@@ -200,6 +208,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const gitConfig = await prepareLocalGitConfig(context);
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
   const plugins = await prepareLocalPlugins({ runtime, context });
+  await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }),
@@ -216,7 +225,11 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     // Also terminate any surviving descendants after backend exit.
     try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
     if (cleanupError) throw Error('Local child cleanup could not be verified. Runtime state was retained.', { cause: cleanupError });
+    if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
   })();
+  try { if (child.pid) await ipc.attach(child.pid); } catch (error) { await stop(); throw error; }
+  // Unexpected backend exit follows the same process/session cleanup as Stop.
+  exited.then(() => stop().catch(error => log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${error.message}\n`)));
   const url = `http://127.0.0.1:${port}`;
   try {
     const deadline = Date.now() + readinessTimeoutMs;
@@ -231,4 +244,10 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     }
     throw Error('Local workbench did not become ready. Project and profile were retained.');
   } catch (error) { await stop(); throw error; }
+  } catch (error) {
+    // Setup failures precede spawn, or the inner stop has already confirmed
+    // exit. Unknown in-flight launch residue is deliberately retained.
+    try { await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
+    throw error;
+  }
 }
