@@ -46,3 +46,31 @@ test('installing twice does not add duplicate wrappers', () => {
   assert.equal(proto.stepOver(), 4);
   assert.equal(count, 2);
 });
+
+test('timer wrapper records only after arming and preserves callback receiver arguments and handle', () => {
+  const scheduled = [], rows = [], timerHost = { setTimeout(callback, delay, ...args) { scheduled.push({ callback, delay, args }); return 123; }, setInterval(callback, delay) { scheduled.push({ callback, delay }); return 456; } };
+  const proto = { stepOver() {} };
+  trace.traceMethods([['thread', proto, ['stepOver']]], row => rows.push(row), 300, timerHost);
+  const receiver = {};
+  const fn = function (value) { assert.equal(this, receiver); return value; };
+  assert.equal(timerHost.setTimeout(fn, 12, 42), 123);
+  assert.equal(scheduled[0].delay, 12);
+  assert.equal(scheduled[0].callback.call(receiver, ...scheduled[0].args), 42);
+  assert.equal(rows.length, 0);
+  proto.stepOver();
+  assert.equal(scheduled[0].callback.call(receiver, 43), 43);
+  assert.equal(rows.at(-2).event, 'timer.setTimeout');
+  assert.equal(rows.at(-2).phase, 'begin');
+  assert.equal(rows.at(-1).phase, 'end');
+  assert.equal(timerHost.setInterval(fn, 5), 456);
+  assert.equal(timerHost.setTimeout('legacy string', 9), 123);
+  assert.equal(scheduled.at(-1).callback, 'legacy string');
+});
+
+test('timer stack serialization exposes numeric positions only and is bounded', () => {
+  const stack = 'secret\nfunction@http://localhost:123/bundle.js:10:20\n at user (/secret/private.js:30:40)\n' + 'x@http://local/chunk.js:50:60\n'.repeat(20);
+  const locations = trace.timerLocations(stack);
+  assert.equal(locations.length, 4);
+  for (const item of locations) assert.match(item, /^timer\.location\.\d+\.\d+\.\d+$/);
+  assert.equal(JSON.stringify(locations).includes('secret'), false);
+});

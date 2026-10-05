@@ -1,11 +1,42 @@
 // Opt-in native QA instrumentation: no source, paths, values or error content.
 const installed = Symbol.for('ynx.debug-ui-trace');
-function traceMethods(targets, send, limit = 300) {
+function timerLocations(stack) {
+  const locations = [];
+  for (const row of String(stack).split('\n')) {
+    const match = row.match(/\/([^/\s?:]+\.js):(\d+):(\d+)\)?$/);
+    if (!match) continue;
+    // A numeric filename fingerprint disambiguates chunks without exposing URLs.
+    let hash = 0;
+    for (const char of match[1]) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) >>> 0;
+    locations.push(`timer.location.${hash}.${match[2]}.${match[3]}`);
+    if (locations.length === 4) break;
+  }
+  return locations;
+}
+function traceMethods(targets, send, limit = 300, timers) {
   let sequence = 0, calls = 0, armed = false;
   const emit = (method, phase, call) => {
     if (!armed || sequence >= limit) return;
     try { send({ action: 'debug-ui-trace', seq: ++sequence, event: method, phase: phase === 'begin' ? 'begin' : 'end', count: call }); } catch (_) { /* Preserve execution. */ }
   };
+  if (timers && !timers[installed]) {
+    for (const name of ['setTimeout', 'setInterval']) {
+      const schedule = timers[name];
+      if (typeof schedule !== 'function') continue;
+      timers[name] = function (callback, ...args) {
+        if (typeof callback !== 'function') return schedule.call(this, callback, ...args);
+        const locations = timerLocations(new Error().stack);
+        return schedule.call(this, function (...values) {
+          const call = ++calls;
+          for (const location of locations) emit(location, 'begin', call);
+          emit('timer.' + name, 'begin', call);
+          try { return callback.apply(this, values); }
+          finally { emit('timer.' + name, 'end', call); }
+        }, ...args);
+      };
+    }
+    Object.defineProperty(timers, installed, { value: true });
+  }
   for (const [label, prototype, methods] of targets) {
     if (!prototype || prototype[installed]) continue;
     for (const method of methods) {
@@ -40,7 +71,8 @@ function install(target = globalThis) {
     ['inline', DebugInlineValueDecorator.prototype, ['calculateDecorations', 'updateInlineValueDecorations', 'createInlineValueDecorationsInsideRange', 'getWordToPositionsMap']],
     ['thread', DebugThread.prototype, ['stepOver', 'fetchFrames', 'update', 'clear']],
     ['frame', DebugStackFrame.prototype, ['open', 'getScopes']],
-  ], record => bridge.postMessage(record));
+  ], record => bridge.postMessage(record), 300, target);
 }
 exports.traceMethods = traceMethods;
+exports.timerLocations = timerLocations;
 exports.install = install;
