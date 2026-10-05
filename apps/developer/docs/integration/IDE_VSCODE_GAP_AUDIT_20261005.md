@@ -152,3 +152,6 @@ f49d141e5 精确包内工作台正常用户流程：F12 从 Main.sol 调用跳�
 当前 f49d141e5 包中的 YNX C/C++ 0.1.0 仅取 YNX_CORE_WORKSPACE；本地监督器只提供 YNX_LOCAL_WORKSPACE 且未配置 Clangd，故不能把已有正式/受控 C++ 证据视作该本地包具备补全服务。新源码 YNX C/C++ 0.1.1 接受单一 local 模式、有效本地项目 ID 与规范绝对路径；拒绝混入 CORE_WORKSPACE/CORE_SESSION_ID。正式模式仍保留既有独立路径，真实 workspace root 校验继续执行。
 
 本地监督器仅选择已有 root-owned、不可组/全局写入、父路径无符号链接的 /Library/Developer/CommandLineTools/usr/bin/clangd，校验版本与 SDK 规范目标。不调用 /usr/bin/clangd 安装 shim，不使用项目指定执行程序、不下载、不改 sandbox/network 策略、不注入正式会话。当前机器 Apple Clangd 21.0.0 在原生产 sandbox 内启动通过；9 项本地 runtime 回归通过、无跳过，涵盖替代程序拒绝、Git/外部目录及网络拒绝、目录隔离、实际 fd 锁。新增源码尚未封包，C++ 补全/定义/诊断正常 GUI 流程仍待验收；f49d141e5 包保持原有版本和 pin。
+
+
+本地 C/C++ 0.1.1 已封入 bcfac9f07 完整包，DMG SHA256 936440e2a0be114eb4cfa66ed437704b038f4971cdd0e190f0e79649dab278ab，core tree fc6476e3eb1e31d85f887f7f9cad8d1b914dcf3b0decba1cbe71d213d57cff70。包内真实 browser GUI 的 Trigger Suggest 返回未打开头文件中的 confirmedBalance/pendingBalance，F12 跳到实际 wallet.hpp 2:12；错误代码正常保存后 Problems 显示 YNX_UNDECLARED_CPP 1:21，恢复保存后问题清除、磁盘回读一致。首次原生 Ctrl+Space 输入未显示建议，未冒称该快捷键已验收；命令面板操作通过。9 项 runtime 测试和核心 pin 重验通过。新候选的跨文件 C++ rename/format、调试器及 Cocoa/Finder 流程仍待验。完整交接及截图保存在该候选 verification/ 与 SOURCE_BUILD_HANDOFF_20261005.md。
