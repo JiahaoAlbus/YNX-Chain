@@ -133,6 +133,29 @@ test('build progress covers blocked source capture; cancel stops it and a late e
  lateReply(await original(h.vscode.Uri.file(join(h.root,'Delayed.sol'))));
  assert.equal((await host.language.compileProject()).ok,true);
 });
+test('real capture deadline rejects a stalled editor RPC, identifies the dependency, and permits a fresh build', {timeout:25000}, async t=>{
+ const h=await fixture(t);if(!h)return;
+ await h.put('Main.sol','pragma solidity 0.8.24; import "./Stalled.sol"; contract Main {}');
+ await h.put('Stalled.sol','pragma solidity 0.8.24; library Stalled {}');
+ await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'Main.sol')));
+ const host=localLanguageHost(h);t.after(()=>host.language.dispose());
+ const original=h.vscode.workspace.openTextDocument;
+ let lateReply,artifacts=0;
+ h.vscode.window.showTextDocument=async artifact=>{artifacts++;return artifact;};
+ h.vscode.workspace.openTextDocument=input=>{
+   if(input.content!==undefined)return original(input);
+   if(input.fsPath===join(h.root,'Stalled.sol'))return new Promise(resolve=>lateReply=resolve);
+   return original(input);
+ };
+ const started=Date.now();
+ await assert.rejects(host.language.compileProject(),/time limit while waiting for the editor to open Stalled\.sol/);
+ assert.ok(Date.now()-started>=15000,'the production deadline was not shortened');
+ assert.equal(typeof lateReply,'function');assert.equal(artifacts,0);assert.equal(host.language.status().active,0);
+ h.vscode.workspace.openTextDocument=original;
+ lateReply(await original(h.vscode.Uri.file(join(h.root,'Stalled.sol'))));
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(artifacts,0);
+ assert.equal((await host.language.compileProject()).ok,true);assert.equal(artifacts,1);
+});
 test('actual compiler and providers honor Foundry longest prefix, context, tie order and remapped relative imports',async t=>{
  for(const item of [
   {request:'alias/special/Util.sol',mappings:'alias/=lib/base/\nalias/special/=lib/special/',target:'lib/special/Util.sol'},

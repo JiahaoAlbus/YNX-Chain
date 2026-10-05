@@ -73,7 +73,7 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
   const projectFiles = options.projectReferences ? await inventory() : undefined;
   assertRuntime();
   const worker = new Worker(path.join(__dirname, 'solidity-imports-worker.cjs'), { workerData: { compiler: compiler || path.join(__dirname, '..', 'compiler') }, env: { YNX_IDE_SOLC_INPUT: path.join(compiler || path.join(__dirname, '..', 'compiler'), 'node_modules/solc') }, execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 32 } });
-  let failure, waiting;
+  let failure, waiting, phase = 'starting the import parser';
   const captureAbort = new AbortController();
   function stopCapture(error) {
     failure ||= error;
@@ -87,7 +87,7 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
   const cancel = () => stopCapture(options.signal.reason);
   options.signal?.addEventListener('abort', cancel, { once: true });
   if (options.signal?.aborted) cancel();
-  const timer = setTimeout(() => stopCapture(Error('Local import discovery exceeded its time limit.')), 15000);
+  const timer = setTimeout(() => stopCapture(Error(`Local import discovery exceeded its time limit while ${phase}. Retry the build; if it repeats, reopen the project.`)), 15000);
   const receive = () => new Promise((resolve, reject) => { if (failure) return reject(failure); waiting = (error, value) => error ? reject(error) : resolve(value); });
   const sources = {}, documents = new Map(), records = [], missing = new Set(), bindings = new Map(), queue = [{ unit: entryPath, file: entryFile }, ...(projectFiles || []).map(file => ({ unit: path.relative(root, file).split(path.sep).join('/'), file }))], edges = new Map(); let total = 0;
   async function available(file) {
@@ -98,18 +98,23 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
     await receive();
     for (let cursor = 0; cursor < queue.length; cursor++) {
       const { unit, file } = queue[cursor]; assertRuntime();
+      phase = `checking ${unit}`;
       if (!validUnit(unit)) throw Error('A compiler import path is invalid.');
       if (bindings.has(unit)) { if (bindings.get(unit) !== file) throw Error('A Solidity source unit has ambiguous file bindings.'); continue; }
       if (bindings.size >= (projectFiles ? 1024 : 128)) throw Error(projectFiles ? 'Project reference discovery exceeds 1024 source units. Rename cannot be complete.' : 'Local Solidity sources exceed 128 files.');
       const stat = await checked(file); bindings.set(unit, file);
       if (stat.size > 262144) throw Error('Local Solidity files exceed 256 KiB before opening.');
       const uri = vscode.Uri.file(file), open = currentDocument(file);
+      phase = `waiting for the editor to open ${unit}`;
       const current = open || await waitForSignal(() => vscode.workspace.openTextDocument(uri), captureAbort.signal), content = current.getText();
+      phase = `checking the captured text of ${unit}`;
       if (Buffer.byteLength(content) > 262144 || (total += Buffer.byteLength(content)) > (projectFiles ? 16777216 : 2097152)) throw Error(projectFiles ? 'Project reference discovery exceeds 256 KiB per file or 16 MiB total. Rename cannot be complete.' : 'Local Solidity sources exceed 256 KiB per file or 2 MiB total.');
       if (JSON.stringify(stat) !== JSON.stringify(await checked(file))) throw Error('A source path changed during review.');
       const row = { content, sha256: digest(content), documentVersion: current.version };
       Object.defineProperty(sources, unit, { value: row, enumerable: true, configurable: true }); documents.set(unit, current); records.push({ file, document: current, row, stat });
+      phase = `parsing imports in ${unit}`;
       const response = receive(); worker.postMessage({ unit, content, remappings }); const { imports } = await response;
+      phase = `resolving imports in ${unit}`;
       for (const imported of imports) {
         if (!validUnit(imported.unit) || typeof imported.file !== 'string' || /[\\:\u0000-\u001f\u007f]/.test(imported.file) || path.isAbsolute(imported.file)) throw Error('A Solidity import cannot leave its local project.');
         let target;
