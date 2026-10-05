@@ -3,10 +3,13 @@ const { realpath, access } = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { relative, isAbsolute, dirname, basename, join } = require('node:path');
 const { randomUUID } = require('node:crypto');
-const { installedCompiler, createBuildTasks, createLaunchConfiguration, existingConfiguration, readGeneratedTasks } = require('./build-tasks.cjs');
+const { isGeneratedActiveDebug, launchConfiguration, installedCompiler, createBuildTasks, createLaunchConfiguration, existingConfiguration, readGeneratedTasks } = require('./build-tasks.cjs');
 const { cppProjectRoot } = require('./project-root.cjs');
 const TEXT = {
   project: ['Open one trusted local C/C++ project.', '请打开一个受信任的本地 C/C++ 项目。'],
+  mismatch: ['The selected YNX active-file C/C++ configuration does not match this editor. Select a C/C++ source file, or use the appropriate language debugger.', '已选的 YNX 活动文件 C/C++ 配置不适用于当前编辑器。请选择 C/C++ 源文件，或使用对应语言的调试器。'],
+  pythonDebug: ['Debug Python File', '调试 Python 文件'],
+  debugView: ['Open Run and Debug', '打开运行和调试'],
   source: ['Select a saved C or C++ source file in this project.', '请选择本项目内已保存的 C 或 C++ 源文件。'],
   save: ['Save the source file before running.', '请先保存源文件，再运行。'],
   compiler: ['Select C/C++ compiler', '选择 C/C++ 编译器'],
@@ -79,6 +82,26 @@ async function executeAndWait(vscode, task, token) {
 }
 function registerCppRun(vscode, context, env) {
   const t = translator(vscode), active = new Map();
+  if (vscode.debug.registerDebugConfigurationProvider) context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider('lldb-dap', {
+    async resolveDebugConfiguration(folder, configuration) {
+      const language = ['c', 'cpp'].find(value => configuration.name === launchConfiguration(value).name);
+      if (!language) return configuration; // Explicit or edited targets remain authoritative.
+      const root = cppProjectRoot(env);
+      if (!root || !folder || folder.uri.scheme !== 'file' || await realpath(folder.uri.fsPath) !== root) return configuration;
+      if (!await isGeneratedActiveDebug(root, configuration, language)) return configuration;
+      const document = vscode.window.activeTextEditor?.document;
+      if (document?.languageId === language && document.uri.scheme === 'file' && !document.isUntitled) return configuration;
+      // Return cancellation immediately; a notification's dismissal must never
+      // keep an F5 admission pending. Actions are explicit later user choices.
+      const python = document?.languageId === 'python';
+      Promise.resolve(vscode.window.showErrorMessage(t('mismatch'), ...(python ? [t('pythonDebug')] : []), t('debugView'))).then(async action => {
+        if (!action || vscode.window.activeTextEditor?.document !== document) return;
+        const command = python && action === t('pythonDebug') ? 'debugpy.debugInTerminal' : action === t('debugView') ? 'workbench.view.debug' : undefined;
+        if (command) await vscode.commands.executeCommand(command);
+      }).catch(error => vscode.window.showErrorMessage(error.message));
+      return null;
+    },
+  }));
   if (vscode.debug.registerDebugAdapterTrackerFactory) context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('lldb-dap', {
     createDebugAdapterTracker(session) {
       if (![...active.values()].some(owner => owner.kind === 'debug' && owner.folder === session.workspaceFolder?.uri?.fsPath && owner.requestId === session.configuration?.__ynxCppRunId)) return;

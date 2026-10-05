@@ -1,4 +1,5 @@
 import test from 'node:test';
+import vm from 'node:vm';
 import assert from 'node:assert/strict';
 import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -294,4 +295,30 @@ test('a mixed JS project can run and debug new C++ twice without replacing its e
  }
  assert.deepEqual(f.errors,[]);assert.equal(emptyPickers,0);assert.equal(launches,2);assert.equal(compilerChoices,1);assert.equal(f.output.filter(text=>text==='MIXED CPP 42').length,2);
  assert.equal(await readFile(launchPath,'utf8'),bytes);await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
+});
+test('F5 generated C++ target rejects a Python editor before build and offers its real debugger without waiting for notification dismissal',async()=>{
+ const f=await fixture(),tool=await installedCompiler({sysroot:'/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',language:'cpp'});
+ const tasks=await createBuildTasks(f.root,tool),launch=await createLaunchConfiguration(f.root,tasks.path,'cpp');
+ const originalTasks=await readFile(tasks.path),originalLaunch=await readFile(launch.path);let provider,choose;const executed=[];
+ f.vscode.debug.registerDebugConfigurationProvider=(type,value)=>{assert.equal(type,'lldb-dap');provider=value;return{dispose(){}};};
+ f.vscode.window.showErrorMessage=(_message,...actions)=>{assert.ok(actions.includes('Debug Python File'));return new Promise(resolve=>choose=resolve);};
+ f.vscode.commands.executeCommand=async name=>executed.push(name);
+ registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.document.languageId='python';f.document.uri.fsPath=join(f.root,'hello.py');await writeFile(f.document.uri.fsPath,'print(42)');await writeFile(join(f.root,'hello'),'KEEP PREVIOUS OUTPUT');
+ // Exercise retained Theia's exact F5 noDebug=false injection and resolver
+ // chain (without loading its unrelated DOM-rendering dependencies in Node).
+ const frontend=await readFile(runtimeRequire.resolve('@theia/debug/lib/browser/debug-frontend-application-contribution'),'utf8');
+ const service=await readFile(runtimeRequire.resolve('@theia/plugin-ext/lib/main/browser/debug/plugin-debug-service'),'utf8');
+ const method=(text,begin,end)=>vm.runInNewContext('({' + text.slice(text.indexOf(begin),text.indexOf(end,text.indexOf(begin))) + '})');
+ const start=method(frontend,'    async start(noDebug, debugSessionOptions) {','    async runTo(').start;
+ const chain=method(service,'    async resolveDebugConfigurationByResolversChain(config, workspaceFolderUri, resolvers) {','    registerDebugger(').resolveDebugConfigurationByResolversChain;
+ let incoming,result;
+ await start.call({configurations:{current:{configuration:launch.configuration}},manager:{start:async options=>{incoming=options.configuration;result=await chain.call({logger:{error:e=>{throw e}}},incoming,f.folder,[(folder,config)=>provider.resolveDebugConfiguration(folder,{...config,__sessionId:'framework',debugAdapterExecutable:'/official/lldb-dap'})]);}}},false);
+ assert.equal(incoming.noDebug,false);assert.equal(result,null);
+ assert.equal(await readFile(join(f.root,'hello'),'utf8'),'KEEP PREVIOUS OUTPUT');assert.equal(executed.length,0);
+ choose('Debug Python File');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(executed,['debugpy.debugInTerminal']);
+ assert.deepEqual(await readFile(tasks.path),originalTasks);assert.deepEqual(await readFile(launch.path),originalLaunch);
+ f.document.languageId='cpp';assert.equal(await provider.resolveDebugConfiguration(f.folder,launch.configuration),launch.configuration);
+ const custom={...launch.configuration,program:'/explicit/project/target'};f.document.languageId='python';assert.equal(await provider.resolveDebugConfiguration(f.folder,custom),custom);
+ const config=JSON.parse(originalTasks);config.tasks[0].args[config.tasks[0].args.indexOf('${file}')]='main.cpp';await writeFile(tasks.path,JSON.stringify(config));assert.equal(await provider.resolveDebugConfiguration(f.folder,launch.configuration),launch.configuration);
 });
