@@ -9,7 +9,7 @@ if (!destination?.startsWith(join(developer, '.ynx-developer-candidates') + '/')
 const clients = await realpath(clientInput), syntax = await realpath(syntaxInput);
 const versions = { 'vscode-languageclient': '9.0.1', minimatch: '5.1.7', semver: '7.5.4',
   'vscode-languageserver-protocol': '3.17.5', 'vscode-jsonrpc': '8.2.0', 'vscode-languageserver-types': '3.17.5',
-  'brace-expansion': '2.0.2', 'balanced-match': '1.0.2', 'lru-cache': '6.0.0', yallist: '4.0.0' };
+  'brace-expansion': '2.0.2', 'balanced-match': '1.0.2', 'lru-cache': '6.0.0', yallist: '4.0.0', 'jsonc-parser': '3.3.1' };
 async function regularTree(root) {
   for (const name of await readdir(root)) {
     const stat = await lstat(join(root, name));
@@ -50,6 +50,7 @@ await writeFile(join(extension, 'NOTICE.txt'), 'YNX C/C++ uses local cached MIT/
 if (await composedTreeDigest(syntax) !== syntaxTreeSha256) throw Error('Cached syntax changed during staging.');
 const extensionMetadata = JSON.parse(await readFile(join(extension, 'package.json'), 'utf8'));
 const receipt = { schema: 'ynx-cpp-offline-input/v1', version: extensionMetadata.version, components,
+  ownedSourceTreeSha256: await composedTreeDigest(join(developer, 'native/ynx-cpp')),
   syntax: { version: syntaxMetadata.version, license: syntaxMetadata.license, sourceTreeSha256: syntaxTreeSha256 },
   extensionTreeSha256: await composedTreeDigest(extension),
   source: 'Existing local dependency and syntax bytes only; no package/network download or package lifecycle execution.',

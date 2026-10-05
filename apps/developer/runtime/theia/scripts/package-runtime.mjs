@@ -13,7 +13,34 @@ const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
 const cppInput = process.argv[4];
+// A valid old payload receipt does not prove that this build contains the
+// current owned C/C++ fixes. Bind every owned source file to its staged bytes.
+async function verifyCppOwnedSource(extension, receipt) {
+  const source = join(developer, 'native/ynx-cpp');
+  const before = await composedTreeDigest(source);
+  if (receipt.ownedSourceTreeSha256 !== before) throw Error('C/C++ input is stale. Stage the current owned source before packaging.');
+  async function compare(folder, staged) {
+    for (const name of await readdir(folder)) {
+      const input = join(folder, name), output = join(staged, name);
+      const [a, b] = await Promise.all([lstat(input), lstat(output)]);
+      if (a.isSymbolicLink() || b.isSymbolicLink()) throw Error('C/C++ owned source must be regular.');
+      if (a.isDirectory() && b.isDirectory()) await compare(input, output);
+      else if (a.isFile() && b.isFile()) {
+        const [x, y] = await Promise.all([readFile(input), readFile(output)]);
+        if (!x.equals(y)) throw Error('Staged C/C++ source differs from this build.');
+      } else throw Error('Staged C/C++ source type differs from this build.');
+    }
+  }
+  await compare(source, extension);
+  if (await composedTreeDigest(source) !== before) throw Error('C/C++ source changed during packaging.');
+}
 const candidateRoot = join(developer, '.ynx-developer-candidates') + '/';
+if (cppInput) {
+  const cpp = await realpath(cppInput);
+  if (!cpp.startsWith(candidateRoot) || cpp !== cppInput) throw Error('C/C++ input must be an exact owned candidate.');
+  const receipt = JSON.parse(await readFile(join(cpp, 'receipt.json'), 'utf8'));
+  await verifyCppOwnedSource(join(cpp, 'ynx.ynx-cpp'), receipt);
+}
 if (process.platform === 'darwin' && !reviewedMacNodeVersion(process.version)) throw Error('Use an exact reviewed macOS Node version for runtime provenance.');
 if (!destination || resolve(destination) !== destination || !pluginsInput?.startsWith(candidateRoot))
   throw Error('Use new owned absolute candidate paths.');
@@ -82,7 +109,9 @@ if (cppInput) {
   const extension = join(cpp, 'ynx.ynx-cpp');
   await assertRegularTree(extension);
   if (cppReceipt.schema !== 'ynx-cpp-offline-input/v1' || await composedTreeDigest(extension) !== cppReceipt.extensionTreeSha256) throw Error('C/C++ extension input changed.');
+  await verifyCppOwnedSource(extension, cppReceipt);
   await cp(extension, join(destination, 'plugins/ynx.ynx-cpp'), { recursive: true, errorOnExist: true, force: false });
+  await verifyCppOwnedSource(join(destination, 'plugins/ynx.ynx-cpp'), cppReceipt);
 }
 await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringify(inputs, null, 2));
 // Keep component license declarations and available upstream legal notices.
