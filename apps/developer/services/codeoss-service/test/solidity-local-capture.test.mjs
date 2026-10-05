@@ -110,6 +110,29 @@ function localLanguageHost(h){
  const open=h.vscode.workspace.openTextDocument;h.vscode.workspace.openTextDocument=async input=>typeof input.content==='string'?input:open(input);
  return{providers,events,live,language:createSolidityLanguage(h.vscode,{extensionPath:h.extension,subscriptions},h.environment)};
 }
+test('build progress covers blocked source capture; cancel stops it and a late editor reply cannot produce an artifact', {timeout:15000}, async t=>{
+ const h=await fixture(t);if(!h)return;
+ await h.put('Main.sol','pragma solidity 0.8.24; import "./Delayed.sol"; contract Main {}');
+ await h.put('Delayed.sol','pragma solidity 0.8.24; library Delayed {}');
+ await h.vscode.workspace.openTextDocument(h.vscode.Uri.file(join(h.root,'Main.sol')));
+ const host=localLanguageHost(h);t.after(()=>host.language.dispose());
+ const original=h.vscode.workspace.openTextDocument;
+ let signalEntered,lateReply,cancel,progressVisible=false,artifacts=0;
+ const entered=new Promise(resolve=>signalEntered=resolve);
+ h.vscode.ProgressLocation={Notification:15};
+ h.vscode.window.withProgress=async(options,task)=>{assert.equal(options.cancellable,true);progressVisible=true;return task({}, {isCancellationRequested:false,onCancellationRequested(listener){cancel=listener;return{dispose(){cancel=undefined;}};}});};
+ h.vscode.workspace.openTextDocument=input=>{
+   if(input.content!==undefined){artifacts++;return original(input);}
+   if(input.fsPath===join(h.root,'Delayed.sol')){assert.equal(progressVisible,true);signalEntered();return new Promise(resolve=>lateReply=resolve);}
+   return original(input);
+ };
+ const build=host.language.compileProject();await entered;
+ await assert.rejects(host.language.compileProject(),/already running/);
+ cancel();assert.equal(await build,undefined);assert.equal(artifacts,0);assert.equal(host.language.status().active,0);
+ h.vscode.workspace.openTextDocument=original;
+ lateReply(await original(h.vscode.Uri.file(join(h.root,'Delayed.sol'))));
+ assert.equal((await host.language.compileProject()).ok,true);
+});
 test('actual compiler and providers honor Foundry longest prefix, context, tie order and remapped relative imports',async t=>{
  for(const item of [
   {request:'alias/special/Util.sol',mappings:'alias/=lib/base/\nalias/special/=lib/special/',target:'lib/special/Util.sol'},

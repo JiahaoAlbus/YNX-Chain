@@ -1,13 +1,16 @@
 const fs = require('node:fs/promises'), path = require('node:path');
 const { Worker } = require('node:worker_threads');
 const { digest } = require('./guards.cjs');
+const { waitForSignal } = require('./capture-cancellation.cjs');
 const validUnit = unit => typeof unit === 'string' && unit.length <= 240 && unit.endsWith('.sol') && !/[\\:\u0000-\u001f\u007f]/.test(unit) && !unit.startsWith('/');
 async function captureLocalSolidityProject(vscode, environment, document, compiler, options = {}) {
+  options.signal?.throwIfAborted();
   const workspace = environment.YNX_LOCAL_WORKSPACE, projectId = environment.YNX_LOCAL_PROJECT_ID, folder = vscode.workspace.workspaceFolders?.[0]?.uri;
   if (!workspace || !/^[a-f0-9-]{36}$/.test(projectId || '') || vscode.workspace.workspaceFolders?.length !== 1 || !document || document.uri.scheme !== 'file' || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE) throw Error('Local editing cannot use a canonical project session. Open one local Solidity project.');
   const root = await fs.realpath(workspace), folderKey = folder.toString();
   if (await fs.realpath(folder.fsPath) !== root) throw Error('Open the local project root before capturing sources.');
   function assertRuntime() {
+    options.signal?.throwIfAborted();
     if (environment.YNX_WORKSPACE_MODE !== 'local' || environment.YNX_LOCAL_PROJECT_ID !== projectId || environment.YNX_LOCAL_WORKSPACE !== workspace || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0].uri.toString() !== folderKey) throw Error('The project runtime changed. Capture its Solidity sources again.');
   }
   async function checked(file) {
@@ -30,7 +33,7 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
     const stat = await checked(configurationFile);
     configurationSeen = true;
     if (stat.size > 65536) throw Error('Solidity remappings.txt exceeds 64 KiB.');
-    const current = currentDocument(configurationFile) || await vscode.workspace.openTextDocument(vscode.Uri.file(configurationFile)), content = current.getText();
+    const current = currentDocument(configurationFile) || await waitForSignal(() => vscode.workspace.openTextDocument(vscode.Uri.file(configurationFile)), options.signal), content = current.getText();
     if (Buffer.byteLength(content) > 65536) throw Error('Solidity remappings.txt exceeds 64 KiB.');
     const diskDigest = digest(await fs.readFile(configurationFile));
     if (JSON.stringify(stat) !== JSON.stringify(await checked(configurationFile))) throw Error('Solidity remappings.txt changed during review.');
@@ -68,12 +71,23 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
     await visit(root, 0); return files.sort();
   }
   const projectFiles = options.projectReferences ? await inventory() : undefined;
+  assertRuntime();
   const worker = new Worker(path.join(__dirname, 'solidity-imports-worker.cjs'), { workerData: { compiler: compiler || path.join(__dirname, '..', 'compiler') }, env: { YNX_IDE_SOLC_INPUT: path.join(compiler || path.join(__dirname, '..', 'compiler'), 'node_modules/solc') }, execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 512, maxYoungGenerationSizeMb: 32 } });
   let failure, waiting;
-  worker.on('message', result => { if (result.error) failure = Error(result.error); if (waiting) { const callback = waiting; waiting = undefined; callback(result.error ? failure : undefined, result); } });
-  worker.on('error', error => { failure = error; if (waiting) { const callback = waiting; waiting = undefined; callback(error); } });
-  worker.on('exit', () => { failure ||= Error('The local import parser stopped.'); if (waiting) { const callback = waiting; waiting = undefined; callback(failure); } });
-  const timer = setTimeout(() => { failure = Error('Local import discovery exceeded its time limit.'); void worker.terminate(); }, 15000);
+  const captureAbort = new AbortController();
+  function stopCapture(error) {
+    failure ||= error;
+    captureAbort.abort(failure);
+    if (waiting) { const callback = waiting; waiting = undefined; callback(failure); }
+    void worker.terminate();
+  }
+  worker.on('message', result => { if (result.error) return stopCapture(Error(result.error)); if (waiting) { const callback = waiting; waiting = undefined; callback(undefined, result); } });
+  worker.on('error', stopCapture);
+  worker.on('exit', () => stopCapture(Error('The local import parser stopped.')));
+  const cancel = () => stopCapture(options.signal.reason);
+  options.signal?.addEventListener('abort', cancel, { once: true });
+  if (options.signal?.aborted) cancel();
+  const timer = setTimeout(() => stopCapture(Error('Local import discovery exceeded its time limit.')), 15000);
   const receive = () => new Promise((resolve, reject) => { if (failure) return reject(failure); waiting = (error, value) => error ? reject(error) : resolve(value); });
   const sources = {}, documents = new Map(), records = [], missing = new Set(), bindings = new Map(), queue = [{ unit: entryPath, file: entryFile }, ...(projectFiles || []).map(file => ({ unit: path.relative(root, file).split(path.sep).join('/'), file }))], edges = new Map(); let total = 0;
   async function available(file) {
@@ -90,7 +104,7 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
       const stat = await checked(file); bindings.set(unit, file);
       if (stat.size > 262144) throw Error('Local Solidity files exceed 256 KiB before opening.');
       const uri = vscode.Uri.file(file), open = currentDocument(file);
-      const current = open || await vscode.workspace.openTextDocument(uri), content = current.getText();
+      const current = open || await waitForSignal(() => vscode.workspace.openTextDocument(uri), captureAbort.signal), content = current.getText();
       if (Buffer.byteLength(content) > 262144 || (total += Buffer.byteLength(content)) > (projectFiles ? 16777216 : 2097152)) throw Error(projectFiles ? 'Project reference discovery exceeds 256 KiB per file or 16 MiB total. Rename cannot be complete.' : 'Local Solidity sources exceed 256 KiB per file or 2 MiB total.');
       if (JSON.stringify(stat) !== JSON.stringify(await checked(file))) throw Error('A source path changed during review.');
       const row = { content, sha256: digest(content), documentVersion: current.version };
@@ -114,7 +128,7 @@ async function captureLocalSolidityProject(vscode, environment, document, compil
         if (queue.length > 4096) throw Error('Local Solidity import graph exceeds its boundary.');
       }
     }
-  } finally { clearTimeout(timer); await worker.terminate(); }
+  } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', cancel); await worker.terminate(); }
   async function verify() {
     assertRuntime();
     if (projectFiles && JSON.stringify(await inventory()) !== JSON.stringify(projectFiles)) throw Error('Project source inventory changed. Capture references again.');

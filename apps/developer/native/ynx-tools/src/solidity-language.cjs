@@ -287,12 +287,15 @@ function createSolidityLanguage(vscode, context, environment) {
     // A save notification can retire the language-query cache even though the
     // current text is unchanged. Builds capture and verify their own buffers,
     // so Save followed immediately by Compile does not cancel a valid build.
-    const state = await captureSolidityProject(vscode, environment, document, { compiler }), file = state.snapshot.entryPath;
     if (compileAbort) throw Error('A Solidity build is already running.');
     const abort = new AbortController(); compileAbort = abort;
     const task = async (_progress, token) => {
       const cancellation = token?.onCancellationRequested?.(() => abort.abort());
       try {
+        if (token?.isCancellationRequested) abort.abort();
+        abort.signal.throwIfAborted();
+        const state = await captureSolidityProject(vscode, environment, document, { compiler, signal: abort.signal }), file = state.snapshot.entryPath;
+        abort.signal.throwIfAborted();
         const analysis = await analyze(state.snapshot, abort.signal);
         await state.verify();
         if (!analysis.ok) throw Error('Fix the Solidity errors shown in Problems before building.');
@@ -310,9 +313,13 @@ function createSolidityLanguage(vscode, context, environment) {
         const artifact = await vscode.workspace.openTextDocument({ language: 'json', content: JSON.stringify(result, null, 2) + '\n' });
         await vscode.window.showTextDocument(artifact, { preview: false });
         return result;
-      } finally { cancellation?.dispose(); if (compileAbort === abort) compileAbort = undefined; }
+      } catch (error) {
+        if (!abort.signal.aborted) throw error;
+      } finally { cancellation?.dispose(); }
     };
-    return vscode.window.withProgress ? vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Compiling Solidity project', cancellable: true }, task) : task();
+    try {
+      return await (vscode.window.withProgress ? vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Compiling Solidity project', cancellable: true }, task) : task());
+    } finally { if (compileAbort === abort) compileAbort = undefined; }
   }
   const lifetime = { compileProject, dispose() { disposed = true; retire(); compileAbort?.abort(); clearTimeout(diagnosticTimer); }, status: () => ({ registered: true, compilerAvailable: existsSync(path.join(compiler, 'distribution.json')), active: (pending ? 1 : 0) + (completionPending ? 1 : 0) + (renameAbort ? 1 : 0) + (compileAbort ? 1 : 0), cached: !!cache, phase, ...(lastError ? { errorCode: lastError } : {}) }) }; context.subscriptions.push(lifetime); return lifetime;
 }

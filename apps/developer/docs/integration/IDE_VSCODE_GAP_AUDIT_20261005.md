@@ -124,3 +124,9 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 96779efe6 完整原生候选通过 YNX 工具面板打开、Counter.sol 模板保存、实际 solc 0.8.24 编译和 JSON 产物保存；磁盘产物含 Counter 的 2 个 ABI 条目、225 字节创建字节码。只读 YNX Testnet SDK 模板也已保存，没有发起 RPC 或签名。截图、源码和产物保存在该候选 verification/native-chain-compile.png 与 native-chain-acceptance.json 中。
 
 错误合约测试曾出现 Local import discovery exceeded its time limit；不将失败诊断流程标为通过。同一封存解析器在独立进程与实际生产 sandbox 下都能在约 0.3 秒解析同一错误内容；当前源码的完整 local-capture 实际回归为 13 PASS、0 FAIL、0 SKIP。仍需解锁后的正常原生窗口复现来定位。工具再次报告 Mac 锁屏，故复验中断；自有无效测试文件已按精确内容守卫恢复磁盘，编辑器同步仍待验证。正式身份、AI、签名部署和 A 发布仍暂停或未验收。
+
+## 同服务错误合约复验与编译取消修复
+
+原生 96779efe6 所监督的同一 52251 服务，通过 IAB 正常代码输入、保存和命令面板编译错误合约，正确拒绝构建，并在 Problems 标记 Expected primary expression. 第 5 行第 28 列。正常 Undo/Save 后错误清除，重新编译保存的产物 hash 与先前原生成功产物一致。此项是同服务浏览器证据，不替代仍被锁屏阻挡的 Cocoa 超时复验。
+
+当前 Tools 0.2.23 源码把源码收集纳入可取消的构建进度，收集前即拦住重复编译；取消和原 15 秒解析截止时间都可结束等待编辑器回复，终止解析 Worker，迟到回复不继续收集或生成产物。新增真实编译器测试阻塞依赖文件的编辑器回复，验证提前进度、拒绝重复构建、及时取消、迟到回复不生成产物以及随后正常编译。local-capture 14 PASS、language 1 PASS，无跳过。首个 language 测试因输入在 Library 缓存下不满足其 owned-candidate 路径约束而在开始前失败；改用同一字节的封存候选路径后通过，没有放宽断言。新 Tools 源码尚待重新封存和包内界面验收。
