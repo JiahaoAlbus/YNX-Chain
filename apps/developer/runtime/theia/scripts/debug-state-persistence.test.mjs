@@ -77,3 +77,32 @@ test('failed initial restore cannot be overwritten by a fresh default snapshot',
   trackLoad(Failed.prototype); const state = new Failed(); await assert.rejects(state.load(), /invalid saved state/);
   await assert.rejects(persistDebugState([state]), /invalid saved state/);
 });
+
+test('real DefaultWindowService restores dirty-editor veto after approved close fails persistence or final flush', async () => {
+  const path = require.resolve('@theia/core/lib/browser/window/default-window-service');
+  const localRequire = createRequire(path), upstream = { exports: {} };
+  // Only the unused confirm-exit dialog UI is substituted; the complete actual
+  // DefaultWindowService class, veto collection and shutdown method execute.
+  vm.runInNewContext(readFileSync(path, 'utf8'), {
+    exports: upstream.exports,
+    require: name => name === '../dialogs' ? { confirmExit: () => assert.fail('unexpected generic dialog') } : localRequire(name),
+  });
+  const { DefaultWindowService } = upstream.exports;
+  for (const failure of ['persist', 'flush']) {
+    const windows = new DefaultWindowService(); let prompts = 0, persistCalls = 0, flushCalls = 0;
+    windows.corePreferences = { 'application.confirmExit': 'ifRequired' };
+    windows.logger = { debug() {}, error() {} };
+    windows.contributions = { getContributions: () => [{ onWillStop: () => ({ reason: 'dirty-editor', action: async () => ++prompts === 1 }) }] };
+    const messages = [], ui = target(messages);
+    const storage = { flush: async () => { if (++flushCalls === 2 && failure === 'flush') throw Error('final disk flush failed'); } };
+    const close = new NativeWindowClose(windows, ui, undefined, storage, async () => {
+      persistCalls++; if (failure === 'persist') throw Error('debug state save failed');
+    }); close.onStart({});
+    await ui.__ynxLocalWorkbenchClose(requestId);
+    assert.equal(messages[0].accepted, false); assert.equal(prompts, 1);
+    assert.equal(windows.allowVetoes, true, 'failed close must restore ordinary editor protection');
+    // User continues editing and chooses Cancel at the next dirty prompt.
+    await ui.__ynxLocalWorkbenchClose(requestId);
+    assert.equal(prompts, 2); assert.equal(messages[1].accepted, false); assert.equal(persistCalls, 1);
+  }
+});

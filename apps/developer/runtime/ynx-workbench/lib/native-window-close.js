@@ -13,6 +13,8 @@ class NativeWindowClose {
     this.close = async requestId => {
       if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return;
       if (!this.pendingClose) this.pendingClose = (async () => {
+        const previousAllowVetoes = this.windows.allowVetoes;
+        let committed = false;
         try {
           if (this.initialized) this.layout?.storeLayout(application); await this.storage?.flush?.();
           const safe = await this.windows.isSafeToShutDown(StopReason.Close);
@@ -20,8 +22,15 @@ class NativeWindowClose {
           await this.persistDebugState?.();
           if (this.initialized) this.layout?.storeLayout(application);
           await this.storage?.flush?.();
+          committed = true;
           return true;
         } catch { return false; }
+        finally {
+          // DefaultWindowService consumes its veto permission on approval.
+          // Persistence is part of this same close transaction: if it fails,
+          // continued editing must receive the ordinary dirty-file veto again.
+          if (!committed && typeof previousAllowVetoes === 'boolean') this.windows.allowVetoes = previousAllowVetoes;
+        }
       })();
       const pending = this.pendingClose;
       const accepted = await pending;
