@@ -8,6 +8,18 @@ import { execFileSync } from 'node:child_process';
 const sourceRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
 const run = (command, args, options = {}) => execFileSync(command, args, { stdio: ['pipe', 'pipe', 'pipe'], ...options });
+export async function createDmgMountWorkspace() {
+  // This host rejects mountpoints on the external build volume. Only the
+  // mount view and tiny alias metadata use OS temp; image bytes stay external.
+  const base = '/private/tmp', stat = await lstat(base);
+  if (!stat.isDirectory() || stat.isSymbolicLink() || await realpath(base) !== base
+    || stat.uid !== 0 || (stat.mode & 0o1777) !== 0o1777) throw Error('Unsafe system mount scratch root.');
+  const work = await mkdtemp(join(base, 'ynx-dmg-branding-'));
+  const owned = await lstat(work);
+  if (!owned.isDirectory() || owned.isSymbolicLink() || owned.uid !== process.getuid()
+    || (owned.mode & 0o777) !== 0o700 || await realpath(work) !== work) throw Error('Unsafe private mount workspace.');
+  return work;
+}
 const u32 = n => { const b = Buffer.alloc(4); b.writeUInt32BE(n); return b; };
 const xmlEscape = value => value.replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' })[ch]);
 function binaryPlist(values) {
@@ -99,7 +111,7 @@ export async function createBrandedDmg({ stage, assets, output, brandingFixture 
   await mkdir(join(stage, '.background'), { mode: 0o700 }); await copyFile(join(assets, 'installer-background.png'), join(stage, '.background/installer-background.png'));
   await copyFile(join(assets, 'YNXDeveloper.icns'), join(stage, '.VolumeIcon.icns')); await symlink('/Applications', join(stage, 'Applications'));
   await copyFile(join(assets, 'branding-manifest.json'), join(stage, '.background/branding-manifest.json'));
-  const work = await mkdtemp(join(tmpdir(), 'ynx-dmg-branding-')), mount = join(work, 'mount'), writable = output + '.writable.dmg';
+  const work = await createDmgMountWorkspace(), mount = join(work, 'mount'), writable = output + '.writable.dmg';
   await newDirectory(mount);
   let attached = false;
   try {
@@ -122,6 +134,7 @@ export async function createBrandedDmg({ stage, assets, output, brandingFixture 
     if (!brandingFixture) { await verifyAppBranding(join(mount, apps[0])); run('/usr/bin/codesign', ['--verify','--deep','--strict',join(mount, apps[0])]); }
     run('/usr/bin/hdiutil', ['detach', mount]); attached = false;
     const receipt = { schemaVersion: 1, artifactClass: brandingFixture ? 'branding-fixture' : 'unsigned-testnet-preview', imageSha256: sha(await regular(output)), brandingManifestSha256: sha(await regular(join(assets, 'branding-manifest.json'))), finderStoreSha256: sha(store), appName: apps[0], checks: { hdiutilVerify: 'PASS', mountedAssets: 'PASS', mountedNativeBackgroundAlias: 'PASS', applicationsSymlink: 'PASS', volumeIconFlag: 'PASS', mountedAppBranding: brandingFixture ? 'NOT_APPLICABLE_FIXTURE' : 'PASS', mountedAppCodeSignature: brandingFixture ? 'NOT_APPLICABLE_FIXTURE' : 'PASS', finderGUI: 'NOT_VERIFIED' } };
+    receipt.mountScratch = { path: work, uid: process.getuid(), location: 'private-system-temp', imageBytesLocation: dirname(output) };
     await writeFile(output + '.branding.json', JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
     await rm(writable); await rm(work, { recursive: true }); return receipt;
   } finally { if (attached) run('/usr/bin/hdiutil', ['detach', mount]); }

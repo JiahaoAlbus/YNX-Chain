@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { generateAssets, verifyAssets, verifyAppBranding, createBrandedDmg } from './package-macos-branding.mjs';
+import { generateAssets, verifyAssets, verifyAppBranding, createBrandedDmg, createDmgMountWorkspace } from './package-macos-branding.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url))), sha = bytes => createHash('sha256').update(bytes).digest('hex');
 if (process.platform !== 'darwin') throw Error('Run actual macOS branding tests on macOS.');
@@ -55,7 +55,11 @@ test('real small branded image mounts with resolvable background, valid native p
   await mkdir(join(stage, appName)); await writeFile(join(stage, appName, 'fixture.txt'), 'Branding fixture only; no executable application.\n');
   const output = join(fixture, 'branding-fixture.dmg'), receipt = await createBrandedDmg({ stage, assets, output, brandingFixture: true });
   assert.equal(receipt.checks.hdiutilVerify, 'PASS'); assert.equal(receipt.checks.mountedNativeBackgroundAlias, 'PASS'); assert.equal(receipt.checks.finderGUI, 'NOT_VERIFIED');
-  const mount = join(fixture, 'verify-mount'); await mkdir(mount);
+  assert.ok(receipt.mountScratch.path.startsWith('/private/tmp/ynx-dmg-branding-'));
+  assert.equal(receipt.mountScratch.imageBytesLocation, fixture);
+  const work = await createDmgMountWorkspace(), mount = join(work, 'verify-mount'); await mkdir(mount);
+  const workStat = await lstat(work);
+  assert.equal(workStat.uid, process.getuid()); assert.equal(workStat.mode & 0o777, 0o700); assert.equal(workStat.isSymbolicLink(), false);
   execFileSync('/usr/bin/hdiutil', ['attach','-readonly','-nobrowse','-noautoopen','-mountpoint',mount,output]);
   try {
     assert.equal(await readlink(join(mount, 'Applications')), '/Applications'); assert.equal((await lstat(join(mount,'.VolumeIcon.icns'))).isFile(), true);
