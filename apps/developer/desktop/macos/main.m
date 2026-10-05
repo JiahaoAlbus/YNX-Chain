@@ -683,6 +683,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
         NSString *traceScript=@"Object.defineProperty(window,'__ynxDebugUiTraceEnabled',{value:true});";
         [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(traceScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     }
+    if([environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"]){
+        NSString *terminalTraceScript=@"Object.defineProperty(window,'__ynxTerminalUiTraceEnabled',{value:true});";
+        [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(terminalTraceScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    }
     _localWalletBridge=[[YNXWalletDeviceBridge alloc]initWithTag:@"com.ynxweb4.developer.native-device-p256-v2" storageService:YNXWalletStorageService lockDirectory:_localSupportRoot];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
     NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
@@ -1291,6 +1295,21 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"terminal-ui-trace"]){
+        static NSUInteger terminalTraceCount=0;
+        if(![NSProcessInfo.processInfo.environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"]||terminalTraceCount>=300||body.count!=17||
+           !YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
+        if(![@[@"init",@"open",@"write",@"onAfterShow",@"onResize",@"render",@"observer",@"settled"] containsObject:body[@"event"]])return;
+        for(NSString *key in @[@"seq",@"id",@"bytes",@"writes",@"renders",@"opened",@"visible",@"attached",@"rows",@"cols",@"paused",@"pending",@"renderer",@"disposed",@"docVisible"]){
+            id value=body[key];if(![value isKindOfClass:NSNumber.class]||[value doubleValue]!=[value integerValue]||[value integerValue]<0||[value integerValue]>2147483647)return;
+        }
+        terminalTraceCount++;NSMutableDictionary *record=[body mutableCopy];
+        record[@"nativeVisible"]=@(_window.isVisible);record[@"nativeOcclusion"]=@(_window.occlusionState);
+        NSData *data=[NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys error:nil];
+        NSString *line=[NSString stringWithFormat:@"[terminal-ui-trace] %@\n",[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding]];
+        @try{[_serverLog writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];}@catch(NSException *exception){}
+        return;
+    }
     if([body[@"action"] isEqual:@"debug-ui-trace"]){
         static NSUInteger traceCount=0;
         if(![NSProcessInfo.processInfo.environment[@"YNX_IDE_DEBUG_UI_TRACE"] isEqual:@"1"]||traceCount>=300||
