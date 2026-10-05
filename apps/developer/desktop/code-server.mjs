@@ -33,10 +33,17 @@ if (hasBundledCompiler) {
 const supportRoot = process.env.YNX_CODE_DESKTOP_SUPPORT_DIR || join(homedir(), "Library", "Application Support", "YNXDeveloper");
 // A local OS workspace never supplies canonical identity to the gateway.
 if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
-  const { startLocalWorkbench } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'local-workbench.mjs')));
+  // Inherited shell metadata never grants a toolchain read capability.
+  for (const name of ['YNX_IDE_GO_ENTRY','YNX_IDE_GO_ROOT','YNX_IDE_GO_VERSION','YNX_IDE_GO_SHA']) delete process.env[name];
+  const { startLocalWorkbench, localProjectContext } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'local-workbench.mjs')));
+  const context=await localProjectContext({supportRoot,projectDirectory:process.env.YNX_LOCAL_WORKSPACE||undefined});
+  const {createLocalGoSelectionStore,attachNativeGoSelectionChannel}=await import(pathToFileURL(join(applicationRoot,'desktop','local-go-selection.mjs')));
+  let goStore,goToolchain;
+  try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
+  catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
+    goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
       // startLocalWorkbench has already stopped its own child before rejecting.
       // Preserve the lock refusal across the launcher/native-host boundary.
       if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
@@ -45,11 +52,17 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
       }
       throw error;
     });
+  let goChannel;
+  if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
+    try{const directory=await goStore.controlDirectory(process.env.YNX_NATIVE_GO_INSTANCE);goChannel=attachNativeGoSelectionChannel({input:process.stdin,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});}
+    catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
+  }
+  delete process.env.YNX_NATIVE_GO_INSTANCE;
   console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
   const parent = process.ppid;
   const monitor = setInterval(() => { if (process.ppid !== parent) void workbench.stop(); }, 250);
   let stopping;
-  const stop = () => stopping ||= workbench.stop();
+  const stop = () => {goChannel?.close();return stopping ||= workbench.stop();};
   process.once('SIGTERM', stop); process.once('SIGINT', stop);
   const result = await workbench.exited;
   clearInterval(monitor); await stop();

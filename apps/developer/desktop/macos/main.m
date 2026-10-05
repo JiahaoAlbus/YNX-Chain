@@ -88,6 +88,22 @@ static BOOL YNXRecordRecentLocalWorkspace(NSString *support,NSString *workspace)
 static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port) {
     return port>0&&[url.scheme isEqual:@"http"]&&[url.host isEqual:@"127.0.0.1"]&&url.port.integerValue==port&&!url.user.length&&!url.password.length&&(!url.path.length||[url.path isEqual:@"/"]);
 }
+static BOOL YNXLocalGoPayload(id body) {
+    return [body isKindOfClass:NSDictionary.class]&&[body count]==2&&[body[@"action"] isEqual:@"select-go-toolchain"]&&[body[@"requestId"] isKindOfClass:NSString.class]&&[[NSUUID alloc]initWithUUIDString:body[@"requestId"]];
+}
+static BOOL YNXLocalGoPrivateControl(NSString *control,NSString *workspace) {
+    if(!YNXPrivateLocalDirectory(control)||!YNXCanonicalLocalDirectory(workspace))return NO;
+    struct stat project;if(lstat(workspace.fileSystemRepresentation,&project))return NO;
+    for(NSString *current=control;;current=current.stringByDeletingLastPathComponent){struct stat status;
+        if(!YNXCanonicalLocalDirectory(current)||lstat(current.fileSystemRepresentation,&status)||(status.st_uid!=getuid()&&status.st_uid!=0)||(status.st_mode&0022)||(status.st_dev==project.st_dev&&status.st_ino==project.st_ino))return NO;
+        if([current isEqual:@"/"])return YES;
+    }
+}
+static BOOL YNXLocalGoResult(id result,NSString *request,NSString *projectID) {
+    if(![result isKindOfClass:NSDictionary.class]||![result[@"id"] isEqual:request]||![result[@"projectId"] isEqual:projectID])return NO;
+    if([result[@"status"] isEqual:@"selected"])return [result count]==6&&[result[@"effective"] isEqual:@"after-reopen"]&&[result[@"root"] isKindOfClass:NSString.class]&&[result[@"root"] length]<=4096&&[result[@"version"] isKindOfClass:NSString.class]&&[result[@"version"] length]<=160;
+    return [result count]==4&&[@[@"error",@"cancelled"] containsObject:result[@"status"]]&&[result[@"error"] isKindOfClass:NSString.class]&&[result[@"error"] length]<=240;
+}
 static BOOL YNXLocalStartupFailureMayExit(BOOL failed,BOOL editorDocumentLoaded) {return failed&&!editorDocumentLoaded;}
 static NSTimeInterval const YNXLocalReadinessBudget=180.0;
 typedef NS_ENUM(NSInteger,YNXLocalReadinessDecision){YNXLocalReadinessIgnore,YNXLocalReadinessWait,YNXLocalReadinessLoad,YNXLocalReadinessFail};
@@ -598,6 +614,17 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,copy) NSString *localSupportRoot;
 @property(nonatomic,copy) NSString *localWorkspace;
 @property(nonatomic,strong) NSOpenPanel *localFolderPanel;
+@property(nonatomic,strong) NSOpenPanel *localGoPanel;
+@property(nonatomic,strong) NSAlert *localGoProgress;
+@property(nonatomic,strong) NSTimer *localGoPoll;
+@property(nonatomic,strong) NSPipe *localGoInput;
+@property(nonatomic,copy) NSString *localGoInstance;
+@property(nonatomic,copy) NSString *localGoRequest;
+@property(nonatomic,copy) NSString *localGoProjectID;
+@property(nonatomic,copy) NSString *localGoDocument;
+@property(nonatomic) BOOL localGoWebRequest;
+@property(nonatomic) BOOL localGoCancelRequested;
+@property(nonatomic) NSTimeInterval localGoStarted;
 @property(nonatomic) BOOL recordSelectedWorkspace;
 @property(nonatomic) BOOL recentWorkspaceRecorded;
 @property(nonatomic) BOOL localEditorDocumentLoaded;
@@ -655,6 +682,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
     NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *trashScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeTrashReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.ok?j.resolve():j.reject(Object.assign(new Error(r.error||'Move to Trash failed.'),{cancelled:r.cancelled===true,recoveryPath:r.recoveryPath}));}});Object.defineProperty(window,'ynxDesktopTrash',{value:Object.freeze({trash(relativePath){return new Promise((resolve,reject)=>{if(typeof relativePath!=='string'||jobs.size>=32){reject(new Error('Invalid or excessive native Trash requests.'));return;}const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'trash',requestId,relativePath});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Native Trash document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(trashScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(localWalletReturnReady:) name:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:_localWalletBridge.instanceID] object:nil];
@@ -707,7 +736,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -792,6 +821,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [terminal addItem:[NSMenuItem separatorItem]];
     [self localCommandItem:terminal title:@"Run Build Task…" command:@"task:run:build" key:@"b" modifiers:NSEventModifierFlagCommand|NSEventModifierFlagShift];
     [self localCommandItem:terminal title:@"Run Task…" command:@"workbench.action.tasks.runTask" key:@"" modifiers:0];
+    [terminal addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *selectGo=[terminal addItemWithTitle:[_localLocale isEqual:@"zh-cn"]?@"选择 Go 工具链…":@"Select Go Toolchain…" action:@selector(selectLocalGoToolchain:) keyEquivalent:@""];selectGo.target=self;
     NSMenu *windows=[self localMenu:main title:@"Window"];NSApp.windowsMenu=windows;
     [windows addItemWithTitle:YNXLocalMenuLabel(@"Minimize",_localLocale) action:@selector(performMiniaturize:) keyEquivalent:@"m"];
     [windows addItemWithTitle:YNXLocalMenuLabel(@"Bring All to Front",_localLocale) action:@selector(arrangeInFront:) keyEquivalent:@""];
@@ -849,6 +880,66 @@ static NSString *YNXDesktopTitle(NSString *label) {
         }];
     }];
 }
+- (NSString *)localGoControlDirectory {return [[_localSupportRoot stringByAppendingPathComponent:@"native-go-controls"]stringByAppendingPathComponent:_localGoInstance?:@"unavailable"];}
+- (void)localGoReply:(NSDictionary *)result {
+    if(_localGoWebRequest&&[_localGoDocument isEqual:_webView.URL.absoluteString])YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxNativeGoReply)window.__ynxNativeGoReply(%@);",YNXJSON(result)]);
+}
+- (BOOL)sendLocalGoControl:(NSString *)action selected:(NSString *)selected {
+    if(!_server.running||!_localGoRequest||!_localGoProjectID||!_localGoInput)return NO;
+    NSMutableDictionary *body=[@{@"action":action,@"id":_localGoRequest,@"projectId":_localGoProjectID,@"workspace":_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"]}mutableCopy];if(selected)body[@"selectedRoot"]=selected;
+    NSData *json=[NSJSONSerialization dataWithJSONObject:body options:0 error:nil];if(!json||json.length>16384)return NO;NSMutableData *line=[json mutableCopy];[line appendData:[@"\n" dataUsingEncoding:NSUTF8StringEncoding]];
+    NSError *error=nil;return [_localGoInput.fileHandleForWriting writeData:line error:&error];
+}
+- (void)cancelLocalGoSelection {
+    [self sendLocalGoControl:@"cancel-go" selected:nil];
+    if(_localGoRequest)[self localGoReply:@{@"id":_localGoRequest,@"status":@"cancelled",@"error":@"Go toolchain selection cancelled."}];
+    _localGoRequest=nil;_localGoProjectID=nil;[_localGoPoll invalidate];_localGoPoll=nil;
+    if(_localGoPanel){NSOpenPanel *panel=_localGoPanel;_localGoPanel=nil;[panel cancel:nil];}
+    if(_localGoProgress){NSAlert *alert=_localGoProgress;_localGoProgress=nil;[_window endSheet:alert.window returnCode:NSModalResponseCancel];}
+}
+- (void)requestCancelLocalGoPreparation {
+    // The parent may already have atomically published a selection. Await its
+    // actual result rather than claiming cancellation after that barrier.
+    _localGoProgress=nil;_localGoCancelRequested=YES;
+    if(![self sendLocalGoControl:@"cancel-go" selected:nil])[self cancelLocalGoSelection];
+}
+- (void)selectLocalGoToolchain:(id)sender {[self beginLocalGoSelection:NSUUID.UUID.UUIDString.lowercaseString web:NO];}
+- (void)beginLocalGoSelection:(NSString *)request web:(BOOL)web {
+    NSDictionary *binding=[self localTrashAdmittedBinding];NSString *workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+    if(!_localCommandDocumentReady||!_server.running||_localCloseRequest||_localGoRequest||_window.attachedSheet||!binding||!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){
+        if(web)YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxNativeGoReply?.(%@);",YNXJSON(@{@"id":request,@"status":@"error",@"error":@"Go selection is unavailable for this project or another action is pending."})]);
+        else [self localCommandUnavailable:[_localLocale isEqual:@"zh-cn"]?@"此项目暂时无法选择 Go 工具链，或另一项操作正在进行。":@"Go selection is unavailable for this project or another action is pending."];return;
+    }
+    _localGoRequest=request;_localGoProjectID=[binding[@"projectId"]copy];_localGoDocument=_webView.URL.absoluteString;_localGoWebRequest=web;_localGoCancelRequested=NO;
+    NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=NO;panel.canChooseDirectories=YES;panel.allowsMultipleSelection=NO;panel.canCreateDirectories=NO;
+    panel.title=[_localLocale isEqual:@"zh-cn"]?@"选择已安装的 GOROOT":@"Choose an installed GOROOT";panel.message=[_localLocale isEqual:@"zh-cn"]?@"请选择包含 bin/go、src 和 pkg 的 Go 安装目录。不会下载或安装工具链。":@"Select the Go installation directory containing bin/go, src and pkg. No toolchain will be downloaded or installed.";_localGoPanel=panel;
+    [panel beginWithCompletionHandler:^(NSModalResponse answer){if(![self.localGoRequest isEqual:request])return;self.localGoPanel=nil;
+        if(answer!=NSModalResponseOK){[self cancelLocalGoSelection];return;}
+        NSString *selected=YNXCanonicalPickedLocalDirectory(panel.URL);
+        if(!selected||![self.localGoDocument isEqual:self.webView.URL.absoluteString]||![self.localGoProjectID isEqual:[self localTrashAdmittedBinding][@"projectId"]]||![self sendLocalGoControl:@"prepare-go" selected:selected]){[self cancelLocalGoSelection];[self localCommandUnavailable:@"The selected Go toolchain could not be prepared. Existing editors and configuration were retained."];return;}
+        NSAlert *progress=[NSAlert new];progress.messageText=[self.localLocale isEqual:@"zh-cn"]?@"正在准备 Go 工具链…":@"Preparing Go toolchain…";progress.informativeText=[self.localLocale isEqual:@"zh-cn"]?@"将核验完整工具链并创建此应用的私有副本。当前编辑器和运行中的进程将保留。":@"The complete toolchain is being verified and copied into private App storage. Your current editors and running processes are preserved.";[progress addButtonWithTitle:[self.localLocale isEqual:@"zh-cn"]?@"取消":@"Cancel"];self.localGoProgress=progress;self.localGoStarted=NSProcessInfo.processInfo.systemUptime;
+        [progress beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse result){if(self.localGoProgress==progress)[self requestCancelLocalGoPreparation];}];
+        __weak typeof(self) weakSelf=self;self.localGoPoll=[NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *timer){[weakSelf pollLocalGoSelection];}];
+    }];
+}
+- (void)pollLocalGoSelection {
+    if(!_localGoRequest)return;NSString *request=_localGoRequest;
+    if(!_server.running||![_localGoDocument isEqual:_webView.URL.absoluteString]||![_localGoProjectID isEqual:[self localTrashAdmittedBinding][@"projectId"]]||NSProcessInfo.processInfo.systemUptime-_localGoStarted>600){[self cancelLocalGoSelection];return;}
+    NSString *workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+    if(!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){[self cancelLocalGoSelection];return;}
+    NSString *file=[[self localGoControlDirectory]stringByAppendingPathComponent:[request stringByAppendingString:@".json"]];
+    int fd=open(file.fileSystemRepresentation,O_RDONLY|O_NOFOLLOW_ANY|O_CLOEXEC);if(fd<0)return;
+    struct stat status;BOOL safe=fstat(fd,&status)==0&&S_ISREG(status.st_mode)&&status.st_uid==getuid()&&status.st_nlink==1&&(status.st_mode&0777)==0600&&status.st_size>0&&status.st_size<=16384;NSMutableData *bytes=[NSMutableData dataWithLength:safe?(NSUInteger)status.st_size:0];ssize_t count=safe?pread(fd,bytes.mutableBytes,bytes.length,0):-1;close(fd);if(!safe||count!=(ssize_t)bytes.length){[self cancelLocalGoSelection];return;}
+    id result=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];if(!YNXLocalGoResult(result,request,_localGoProjectID)){[self cancelLocalGoSelection];return;}
+    [self localGoReply:result];[_localGoPoll invalidate];_localGoPoll=nil;_localGoRequest=nil;_localGoProjectID=nil;NSAlert *progress=_localGoProgress;_localGoProgress=nil;if(progress)[_window endSheet:progress.window returnCode:NSModalResponseStop];
+    if([result[@"status"] isEqual:@"cancelled"])return;
+    NSAlert *notice=[NSAlert new];BOOL selected=[result[@"status"] isEqual:@"selected"];
+    notice.messageText=selected?([_localLocale isEqual:@"zh-cn"]?@"Go 工具链已选择":@"Go toolchain selected"):@"Go toolchain could not be selected";
+    if(selected&&_localGoCancelRequested)notice.messageText=[_localLocale isEqual:@"zh-cn"]?@"取消前已完成 Go 工具链选择":@"Go selection completed before cancellation";
+    _localGoCancelRequested=NO;
+    notice.informativeText=selected?[NSString stringWithFormat:[_localLocale isEqual:@"zh-cn"]?@"%@\n请正常关闭后重新打开此项目以生效。当前编辑器、未保存内容和运行中的进程不会被重启。私有副本：%@":@"%@\nClose and reopen this project normally to apply this selection. Current editors, unsaved content and running processes have not been restarted. Private copy: %@",result[@"version"],result[@"root"]]:result[@"error"];
+    [notice beginSheetModalForWindow:_window completionHandler:nil];
+}
 - (void)beginWorkspaceRestore {
     if(_workspaceBridge.restoring)return;
     NSUInteger attempt=++_workspaceRestoreAttempt;
@@ -903,7 +994,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
         [NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:nil];
         [@"" writeToURL:_serverLogURL atomically:YES encoding:NSUTF8StringEncoding error:nil];_serverLog=[NSFileHandle fileHandleForWritingToURL:_serverLogURL error:nil];
     }
-    _server=[NSTask new]; _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode){environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench";environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]=_localSupportRoot;if(_localWorkspace)environment[@"YNX_LOCAL_WORKSPACE"]=_localWorkspace;else[environment removeObjectForKey:@"YNX_LOCAL_WORKSPACE"];} _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{if(task!=weakSelf.server||(weakSelf.localWorkbenchMode&&weakSelf.localStartupFailed&&!weakSelf.localEditorDocumentLoaded))return;if(weakSelf.localWorkbenchMode&&task.terminationStatus==73){[weakSelf showLocalProjectAlreadyOpen];return;}NSString *message=weakSelf.localWorkbenchMode?[NSString stringWithFormat:@"Local server exited with code %d. Log: %@",task.terminationStatus,weakSelf.serverLogURL.path?:@"unavailable"]:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus];[weakSelf showFailure:message];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
+    _server=[NSTask new]; if(_localWorkbenchMode){_localGoInstance=NSUUID.UUID.UUIDString.lowercaseString;_localGoInput=[NSPipe pipe];_server.standardInput=_localGoInput;} _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode){for(NSString *name in @[@"YNX_IDE_GO_ENTRY",@"YNX_IDE_GO_ROOT",@"YNX_IDE_GO_VERSION",@"YNX_IDE_GO_SHA",@"YNX_NATIVE_GO_INSTANCE"])[environment removeObjectForKey:name];environment[@"YNX_NATIVE_GO_INSTANCE"]=_localGoInstance;environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench";environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]=_localSupportRoot;if(_localWorkspace)environment[@"YNX_LOCAL_WORKSPACE"]=_localWorkspace;else[environment removeObjectForKey:@"YNX_LOCAL_WORKSPACE"];} _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{if(task!=weakSelf.server||(weakSelf.localWorkbenchMode&&weakSelf.localStartupFailed&&!weakSelf.localEditorDocumentLoaded))return;if(weakSelf.localWorkbenchMode&&task.terminationStatus==73){[weakSelf showLocalProjectAlreadyOpen];return;}NSString *message=weakSelf.localWorkbenchMode?[NSString stringWithFormat:@"Local server exited with code %d. Log: %@",task.terminationStatus,weakSelf.serverLogURL.path?:@"unavailable"]:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus];[weakSelf showFailure:message];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
 }
 - (void)cancelLocalReadiness {++_localReadyGeneration;[_localReadyTask cancel];_localReadyTask=nil;}
 - (void)stopUnopenedLocalServer {
@@ -1119,7 +1210,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=[NSString stringWithFormat:@"Version: %@\nPackaged source: %@\n%@Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.",NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"]?:@"unverified",YNXPackagedSource(),NSProcessInfo.processInfo.environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"].length?@"QA profile — not the normal user profile.\n":@""];[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
-    if(_localWorkbenchMode)[self cancelLocalTrashConsent];
+    if(_localWorkbenchMode){[self cancelLocalGoSelection];[self cancelLocalTrashConsent];}
     if(_localWorkbenchMode){
         if(YNXLocalStartupFailureMayExit(_localStartupFailed,_localEditorDocumentLoaded))return NSTerminateNow;
         if(_localCloseRequest)return NSTerminateCancel;
@@ -1195,6 +1286,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"select-go-toolchain"]){
+        if(YNXLocalGoPayload(body)&&YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self beginLocalGoSelection:body[@"requestId"] web:YES];return;
+    }
     if([body[@"action"] isEqual:@"trash"]){
         if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self handleLocalTrashMessage:body];return;
     }
@@ -1233,7 +1327,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
