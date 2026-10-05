@@ -180,3 +180,7 @@ bcfac9f07 同一精确包内工作台继续通过 C++ F2 跨文件语义重命�
 ### bcf 包运行按钮实测补充
 
 通过右上 Run and Debug actions → Run Task → YNX: Run C++，执行 .vscode/tasks.json 中的构建依赖后运行新目标 wallet-task；截图显示实际输出 YNX C++ balance=5，新生成 33560 字节可执行文件已回读并留存 hash。任务配置为测试准备，不声称用户可以无需配置自动识别所有语言。证据位于候选 verification/cpp-run-task-button.json 和 cpp-run-task-button.png；此实测不证明 C++ 调试器或完整 VSCode 功能等价。
+
+### dbe872115 统一真实底部面板
+
+Workbench 0.3.18 在布局恢复后按原生贡献创建静态问题、输出和调试控制台视图，不激活/展开、不自行创建 PTY；已有分组保留。11 项回归通过，离线 browser/node 构建零错误；新 core tree 57ef76f399947804e99cb5506db78d5a95822eb318e2bc5bc82fa30a50c839ba 已封存核验。正常隔离组件 GUI 逐一切换 Problems/Output/Debug Console/bash，终端 pwd 回读真实项目；重载后同组标签与选中终端保留，额外补充入口行消失。截图与精确源码交接位于 ynx-panel-layout-verification-dbe872115-20261005。尚未重建完整 App/DMG，不能把此结果算成 Cocoa/Finder 或完整 VSCode 等价验收。首次封包错误输入的部分候选保留，重试使用现有核验编译器；无新增网络权限。
