@@ -9,7 +9,10 @@ import test from "node:test";
 
 test("native window precedes recovery and Workbench cannot mount before successful snapshot read", async () => {
   const source = await readFile(new URL("../desktop/macos/main.m", import.meta.url), "utf8");
-  const launch = source.slice(source.indexOf("- (void)applicationDidFinishLaunching:"), source.indexOf("- (void)beginWorkspaceRestore"));
+  const launchStart = source.indexOf("- (void)applicationDidFinishLaunching:");
+  const launchEnd = source.indexOf("\n- (", launchStart + 1);
+  assert.ok(launchStart >= 0 && launchEnd > launchStart);
+  const launch = source.slice(launchStart, launchEnd);
   assert.ok(launch.indexOf("makeKeyAndOrderFront") < launch.indexOf("[self beginWorkspaceRestore]"));
   assert.doesNotMatch(launch, /YNXReadWorkspaceSnapshot|launchServer/);
   assert.match(source, /if\(!_workspaceBridge\.restoreComplete\)return;/);

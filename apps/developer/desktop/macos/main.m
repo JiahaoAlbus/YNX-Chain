@@ -10,11 +10,20 @@
 #import <stdlib.h>
 
 static NSString *YNXCanonicalLocalDirectory(NSString *path) {
-    if(![path isKindOfClass:NSString.class]||!path.isAbsolutePath||![path isEqual:path.stringByStandardizingPath])return nil;
+    if(![path isKindOfClass:NSString.class]||!path.isAbsolutePath)return nil;
     char *resolved=realpath(path.fileSystemRepresentation,NULL);if(!resolved)return nil;
     NSString *canonical=[NSString stringWithUTF8String:resolved];free(resolved);
     struct stat status;
     return [canonical isEqual:path]&&lstat(path.fileSystemRepresentation,&status)==0&&S_ISDIR(status.st_mode)?canonical:nil;
+}
+static NSString *YNXCanonicalPickedLocalDirectory(NSURL *url) {
+    if(![url isKindOfClass:NSURL.class]||!url.isFileURL||!url.path.isAbsolutePath)return nil;
+    // Foundation can present /private/tmp as /tmp even after URL standardizing.
+    // Resolve the explicit native selection with the same filesystem authority
+    // used by the strict launch boundary; do not relax that boundary itself.
+    char *resolved=realpath(url.path.fileSystemRepresentation,NULL);if(!resolved)return nil;
+    NSString *canonical=[NSString stringWithUTF8String:resolved];free(resolved);
+    return YNXCanonicalLocalDirectory(canonical);
 }
 static BOOL YNXPrivateLocalDirectory(NSString *path) {
     struct stat status;
@@ -566,6 +575,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,strong) NSURL *serverLogURL;
 @property(nonatomic,copy) NSString *localSupportRoot;
 @property(nonatomic,copy) NSString *localWorkspace;
+@property(nonatomic,strong) NSOpenPanel *localFolderPanel;
 @property(nonatomic) BOOL recordSelectedWorkspace;
 @property(nonatomic) BOOL recentWorkspaceRecorded;
 @property(nonatomic) BOOL localEditorDocumentLoaded;
@@ -774,16 +784,19 @@ static NSString *YNXDesktopTitle(NSString *label) {
         }];
 }
 - (void)openLocalFolder:(id)sender {
-    if(!_localWorkbenchMode||!_window||_window.attachedSheet)return;
+    if(!_localWorkbenchMode||!_window||_window.attachedSheet||_localFolderPanel)return;
     NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=NO;panel.canChooseDirectories=YES;panel.allowsMultipleSelection=NO;panel.canCreateDirectories=YES;
     panel.title=YNXLocalMenuLabel(@"Open Folder…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
-    [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){
+    // Keep selection asynchronous without attaching a sheet: on the supported
+    // macOS runtime the sheet's directory confirmation remains disabled.
+    self.localFolderPanel=panel;
+    [panel beginWithCompletionHandler:^(NSModalResponse result){
+        self.localFolderPanel=nil;
         if(result!=NSModalResponseOK)return;
-        NSURL *folder=panel.URL.URLByResolvingSymlinksInPath.URLByStandardizingPath;
-        NSNumber *directory=nil;[folder getResourceValue:&directory forKey:NSURLIsDirectoryKey error:nil];if(!directory.boolValue)return;
-        if(!YNXCanonicalLocalDirectory(folder.path)||!YNXPrivateLocalDirectory(self.localSupportRoot))return;
+        NSString *selectedWorkspace=YNXCanonicalPickedLocalDirectory(panel.URL);
+        if(!selectedWorkspace||!YNXPrivateLocalDirectory(self.localSupportRoot))return;
         NSWorkspaceOpenConfiguration *configuration=[NSWorkspaceOpenConfiguration configuration];configuration.activates=YES;configuration.createsNewApplicationInstance=YES;configuration.allowsRunningApplicationSubstitution=NO;
-        configuration.environment=@{@"YNX_DEVELOPER_DESKTOP_MODE":@"local-workbench",@"YNX_LOCAL_WORKSPACE":folder.path,@"YNX_CODE_DESKTOP_SUPPORT_DIR":self.localSupportRoot,@"YNX_LOCAL_WORKSPACE_SELECTION":@"native-panel"};
+        configuration.environment=@{@"YNX_DEVELOPER_DESKTOP_MODE":@"local-workbench",@"YNX_LOCAL_WORKSPACE":selectedWorkspace,@"YNX_CODE_DESKTOP_SUPPORT_DIR":self.localSupportRoot,@"YNX_LOCAL_WORKSPACE_SELECTION":@"native-panel"};
         [NSWorkspace.sharedWorkspace openApplicationAtURL:NSBundle.mainBundle.bundleURL configuration:configuration completionHandler:^(NSRunningApplication *application,NSError *error){
             if(error)dispatch_async(dispatch_get_main_queue(),^{NSAlert *alert=[NSAlert new];alert.messageText=@"The folder could not be opened";alert.informativeText=error.localizedDescription?:@"Try opening the folder again.";[alert beginSheetModalForWindow:self.window completionHandler:nil];});
         }];

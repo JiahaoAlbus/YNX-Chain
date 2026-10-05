@@ -102,3 +102,11 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 在 c984 组件中发现：项目搜索的全部替换逐文件执行并保存，Undo 只恢复当前文件。新增 owned search-replace-transaction 适配器，将多文件搜索替换提交为同一个带 document version 的 MonacoWorkspace bulk edit，继承现有整体撤销逻辑。确认后校验搜索词、替换词与每个匹配的实际文本；异步加载期间的版本变化拒绝执行。失败保留搜索结果，保存仍是独立操作，不声称跨文件磁盘写入原子性。单文件和单个匹配仍使用框架路径。
 
 新增回归 9 项通过；工作台 browser/node 构建零错误。新封存组件 core tree 9a6f2177f1359bef41717ec9e74cf96b0b5acbf53fbdfd96af527cfc41c33c1d，在隔离测试工程 Main.sol/Second.sol 用正常键盘输入 value→total；两份文件磁盘回读通过。一次 Edit→Undo 后 File→Save All，两份磁盘均恢复 value；一次 Redo 后 Save All，两份均恢复 total。该组件来自当前修复源码、保留的 5ecd Node/lock-helper，不是最新 Cocoa 安装器验收。原用户 63649 实例未修改。
+
+## 原生项目选择修复（尚未重新封存完整包）
+
+解锁后实际原生 File → Open Folder 面板选中目录，但 Open 和 New Folder 按钮禁用。独立应用标识副本、重新编译的产品源码和最小 Cocoa sheet 程序均复现；不是根据多版本并存就判定版本冲突。显式目录类型过滤没有解决，不纳入产品。最小程序改用 beginWithCompletionHandler 的独立异步面板后，Open 启用并实际返回带空格的测试项目路径。同步 runModal 实验出现回读超时，不作为产品方案或成功验收。
+
+产品源码改用独立异步面板并保留强引用、防重复打开。进一步记录发现 Foundation 将原生选中的 /private/tmp 路径返回为 /tmp；旧严格函数还通过 stringByStandardizingPath 拒绝 /private/tmp 的真实规范路径，导致项目交接静默失败。现在仅可信原生选择器边界通过 realpath 得到实际目录；严格启动边界仍以 realpath 相等和 lstat 目录类型确认，不接受相对路径、别名、符号链接路径、点段或父目录段。原生明确选择符号链接时交接的是其真实目录，而非扩大文件权限。
+
+新编译的目录边界回归与原生 origin/frame、异步恢复、私有存储回归共 6 项通过、0 跳过。恢复测试的旧源码切片误把后续 local-workbench 方法纳入启动方法，已改为只检查目标方法；实际阻塞恢复/存储保留测试继续通过。两处产品修复已编译，但完整项目切换 GUI 最后一次复验时 Mac 再次锁屏，因此新实例启动、创建保存和终端路径仍待验证；没有覆盖或重新标注原 bf18 完整 DMG。诊断资源保留在 ynx-native-picker-diagnostic-20261005，不是正式软件交付。
