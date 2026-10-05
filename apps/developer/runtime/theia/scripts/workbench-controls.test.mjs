@@ -170,3 +170,5 @@ test('first-use debug context follows real configuration selection and preserves
  configuration.current = { name: 'compound' }; controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), false);
  configuration.current = undefined; controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), true); controls.dispose();
 });
+
+test('VSCode Problems alias uses real CommandRegistry and repeatedly reveals the same native view',async()=>{const f=fixture();let visible=false;const widget={id:'native-problems'};f.views.problems.openView=options=>{assert.equal(options.activate,true);assert.equal(options.reveal,true);visible=true;return widget;};f.controls.registerCommands(f.commands);assert.equal(f.commands.isEnabled('workbench.actions.view.problems'),true);assert.equal(await f.commands.executeCommand('workbench.actions.view.problems'),widget);assert.equal(visible,true);assert.equal(await f.commands.executeCommand('workbench.actions.view.problems'),widget);assert.equal(visible,true);f.controls.dispose();assert.equal(f.commands.getCommand('workbench.actions.view.problems'),undefined);});

@@ -122,6 +122,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toService(WorkbenchControlsContribution);
   bind(TabBarToolbarContribution).toService(WorkbenchControlsContribution);
   bind(MenuContribution).toService(WorkbenchControlsContribution);
+  bind(CommandContribution).toService(WorkbenchControlsContribution);
   bind(LocalWorkspaceContext).toDynamicValue(context => new LocalWorkspaceContext(
     context.container.get(WorkspaceService), context.container.get(LocalWorkspaceContextApi),
     context.container.get(CommandRegistry), context.container.get(MessageService), window, translateWorkbench,

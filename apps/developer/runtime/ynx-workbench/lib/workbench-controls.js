@@ -63,6 +63,14 @@ class WorkbenchControlsContribution {
     this.noSelectedDebug = contextKeys && contextKeys.createKey('ynxNoSelectedDebugConfiguration', !debugConfigurations?.current);
     this.editorLanguage = contextKeys && contextKeys.createKey('editorLangId', undefined);
   }
+  registerCommands(registry) {
+    this.disposables.push(registry.registerCommand({ id: 'workbench.actions.view.problems' }, {
+      execute: () => {
+        if (!this.views.problems) throw Error('Native Problems view contribution is unavailable');
+        return this.views.problems.openView({ activate: true, reveal: true });
+      },
+    }));
+  }
   state(id) {
     const state = commandState(this.commands, id);
     return { ...state, reason: state.reason ? this.translate(state.reason === 'Unavailable in this runtime' ? 'unavailableRuntime' : 'currentlyUnavailable', state.reason) : '' };
