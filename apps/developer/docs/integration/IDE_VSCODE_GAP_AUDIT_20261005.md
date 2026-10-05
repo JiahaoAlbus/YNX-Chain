@@ -142,3 +142,6 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 
 
 新版核心 pin 重验通过，包内相关四个模块与提交源码逐字节相同。完整 App/DMG 生产器退出 0，DMG SHA256 373ee4bf6b365ff67e70b6f0eb665b7bf7a5c317a995a97ed055422c47d414db，core tree 0812fe34b00531c9e59fd994d30f5f565927b6c798fe68fe5984d9d5a06aae5a。精确封存模块使用包内 Node v26.7.0，真实等待 15012 ms 后明确拒绝编辑器读取 Stalled.sol；迟到回复后新的双文件 capture 和 verify 通过。该证据是包内模块/API harness，未混报为 Cocoa 窗口、身份或真实 AI 验收。完整交接位于候选 SOURCE_BUILD_HANDOFF_20261005.md。
+
+
+f49d141e5 精确包内工作台正常用户流程：F12 从 Main.sol 调用跳转 Math.sol 定义；F2 answer→result 后 Save All，两份磁盘文件实际更新；新终端 pwd 为真实项目根、Node v26.7.0，cat 回读双方变更。重命名后的双文件项目真实编译并 Save As 为 RenamedMain.build.json，磁盘 ok=true、Main、含字节码，Problems 0。截图及输入错误纠正记录位于该候选 verification/navigation-rename-acceptance.json；这是包内浏览器 GUI 实测，不替代 Cocoa/Finder、统一身份或 AI 接入。
