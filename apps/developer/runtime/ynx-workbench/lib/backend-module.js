@@ -30,6 +30,7 @@ class YnxProcessUtils extends ProcessUtils {
 }
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  require('./local-filesystem-watcher').bindLocalFilesystemWatcher(rebind);
   let localization, keyboardLocalization, walletLocalization;
   bind(BackendApplicationContribution).toDynamicValue(context => ({
     initialize() {
