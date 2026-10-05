@@ -24,6 +24,10 @@ const { MonacoCommandService } = require('@theia/monaco/lib/browser/monaco-comma
 const { MessageService } = require('@theia/core/lib/common/message-service');
 const { FrontendApplicationStateService } = require('@theia/core/lib/browser/frontend-application-state');
 const { WebSocketConnectionProvider } = require('@theia/core/lib/browser/messaging/ws-connection-provider');
+const { ProcessTaskResolver } = require('@theia/task/lib/browser/process/process-task-resolver');
+const { TaskConfigurations } = require('@theia/task/lib/browser/task-configurations');
+const { GeneratedCppTaskGuard } = require('./generated-cpp-task-guard');
+const OriginalProcessTaskResolver = Symbol('YNX original process task resolver');
 const { ProblemMatcherRegistry } = require('@theia/task/lib/browser/task-problem-matcher-registry');
 const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common/command');
 const { nls } = require('@theia/core/lib/common/nls');
@@ -102,6 +106,10 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() { workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message)); },
   })).inSingletonScope();
+  bind(OriginalProcessTaskResolver).to(ProcessTaskResolver).inSingletonScope();
+  rebind(ProcessTaskResolver).toDynamicValue(context => new GeneratedCppTaskGuard(
+    context.container.get(OriginalProcessTaskResolver), context.container.get(TaskConfigurations), context.container.get(MessageService), context.container.get(CommandRegistry), nls.locale,
+  )).inSingletonScope();
   bind(OriginalBrowserStorage).to(LocalStorageService).inSingletonScope();
   rebind(LocalStorageService).toDynamicValue(context => new LocalWorkbenchStorage(
     context.container.get(OriginalBrowserStorage), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-workbench-storage'), context.container.get(MessageService),
