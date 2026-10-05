@@ -38,6 +38,17 @@ if(execFileSync(join(root,'node'),['--version'],{encoding:'utf8'}).trim()!==reco
 const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
 if(!runtimeFloors.length||record.minimumOS!==runtimeFloors.sort(compare).at(-1))throw Error('Runtime floor differs from its actual Mach-O bytes.');
 const core=await verifyComposedRuntime(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT,validateRuntimeArtifact(JSON.parse(await readFile(process.env.YNX_DEVELOPER_COMPOSED_PIN))));
+// A local development App must retain the reviewed language extension closure.
+// Runtime adapters alone cannot provide Python commands or language detection.
+const pluginRoot=join(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT,'plugins');
+const pluginInputs=JSON.parse(await readFile(join(pluginRoot,'extension-inputs.json')));
+for(const id of ['vscode.javascript','vscode.typescript','vscode.typescript-language-features','vscode.git','vscode.git-base','ms-vscode.js-debug','vscode.json','vscode.json-language-features','ms-python.python','ms-python.debugpy','vscode.python','llvm-vs-code-extensions.lldb-dap']){
+  const input=pluginInputs.find(item=>`${item.namespace}.${item.name}`===id);
+  if(!input)throw Error(`Local development App is missing required extension ${id}. Use the complete reviewed language inputs.`);
+  const metadata=JSON.parse(await readFile(join(pluginRoot,`${id}-${input.version}`,'package.json')));
+  if(`${metadata.publisher}.${metadata.name}`!==id||metadata.version!==input.version)throw Error('Local language extension payload identity differs.');
+}
+if(!core.ynxCppInput)throw Error('Local development App requires the current owned C/C++ extension.');
 if(core.nodeVersion!==record.version)throw Error('Reviewed runtime does not match the exact composed Node build.');
 if(core.macosCompatibility&&(core.macosCompatibility.architecture!==process.arch||!/^\d+(?:\.\d+)*$/.test(core.macosCompatibility.minimumOS)||!Array.isArray(core.macosCompatibility.binaries)||!core.macosCompatibility.binaries.length))throw Error('Invalid sealed core Mach-O closure metadata.');
 if(record.version==='v24.19.0'&&(!core.macosCompatibility||core.macosCompatibility.architecture!==process.arch||!/^\d+(?:\.\d+)*$/.test(core.macosCompatibility.minimumOS)))throw Error('Node24 requires a newly measured sealed core Mach-O closure.');
