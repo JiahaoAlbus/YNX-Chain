@@ -31,6 +31,8 @@ static int deepest_first(const void *left, const void *right) {
 int main(int argc, char **argv) {
   int children_only = argc == 3 && strcmp(argv[2], "--children") == 0;
   int force = argc == 3 && strcmp(argv[2], "--force") == 0;
+  int graceful = argc == 3 && strcmp(argv[2], "--graceful-root") == 0;
+  if (graceful) force = 1;
   if (argc != 2 && !children_only && !force) return 64;
   int termination_signal = SIGTERM;
   char *end = NULL; long requested = strtol(argv[1], &end, 10);
@@ -66,6 +68,23 @@ int main(int argc, char **argv) {
   }
   free(pids);
   qsort(children, accepted, sizeof(struct child_record), deepest_first);
+  if (graceful) {
+    // Capture the descendants before asking the backend to stop: it can exit
+    // and reparent detached workers while its awaited shutdown hooks run.
+    struct proc_bsdinfo current;
+    if (!info(root, &current) || current.pbi_uid != getuid() ||
+        current.pbi_start_tvsec != original.pbi_start_tvsec || current.pbi_start_tvusec != original.pbi_start_tvusec ||
+        !descendant(root, owner)) { free(children); return 1; }
+    if (kill(root, SIGTERM) < 0 && errno != ESRCH) { free(children); return 1; }
+    // Theia grants two five-second shutdown phases. Normal shutdown exits
+    // immediately; a hung hook reaches the bounded identity-checked fallback.
+    for (int attempt = 0; attempt < 550; attempt++) {
+      if (!info(root, &current) || current.pbi_status == SZOMB) break;
+      if (current.pbi_uid != getuid() || current.pbi_start_tvsec != original.pbi_start_tvsec ||
+          current.pbi_start_tvusec != original.pbi_start_tvusec) { free(children); return 1; }
+      usleep(20000);
+    }
+  }
   for (int index = 0; index < accepted; index++) {
     struct child_record child = children[index]; struct proc_bsdinfo current;
     if (info(child.pid, &current) && child.started.pbi_start_tvsec == current.pbi_start_tvsec &&
@@ -74,16 +93,20 @@ int main(int argc, char **argv) {
   if (force) {
     // Retain the original authorized set across TERM: an intermediate parent
     // can exit and reparent its detached worker before the escalation. The
-    // root has not been signalled by this helper; disappearance is allowed,
+    // root may have completed graceful shutdown; disappearance is allowed,
     // reuse or loss of the still-live owning backend identity is refused.
     usleep(300000);
     struct proc_bsdinfo guard, owning_now;
     int root_present = info(root, &guard);
+    // After graceful exit macOS can hide the reaping root from libproc while
+    // signal-0 still refuses it. No root signal is sent without a fresh matching
+    // identity below; captured descendants remain independently identity-bound.
     if (getppid() != owner || !info(owner, &owning_now) || owning_now.pbi_uid != getuid() ||
         owning_now.pbi_start_tvsec != owning.pbi_start_tvsec || owning_now.pbi_start_tvusec != owning.pbi_start_tvusec ||
         (root_present ? guard.pbi_uid != getuid() || guard.pbi_start_tvsec != original.pbi_start_tvsec ||
-          guard.pbi_start_tvusec != original.pbi_start_tvusec || !descendant(root, owner) : !(kill(root, 0) < 0 && errno == ESRCH))) {
-      free(children); fputs("cleanup owner/root identity changed\n", stderr); return 1;
+          guard.pbi_start_tvusec != original.pbi_start_tvusec || !descendant(root, owner) : !graceful && !(kill(root, 0) < 0 && errno == ESRCH))) {
+      fputs("cleanup owner/root identity changed\n", stderr);
+      free(children); return 1;
     }
     // The root may have exited in response to its children's TERM. Only this
     // invocation's captured UID/start-time records remain eligible; no new

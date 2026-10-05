@@ -30,6 +30,10 @@ class YnxProcessUtils extends ProcessUtils {
 }
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  if (process.env.YNX_WORKSPACE_MODE === 'local') {
+    const { HostedPluginProcess } = require('@theia/plugin-ext/lib/hosted/node/hosted-plugin-process');
+    bind(BackendApplicationContribution).toConstantValue(require('./local-plugin-shutdown').install(HostedPluginProcess.prototype));
+  }
   require('./local-filesystem-watcher').bindLocalFilesystemWatcher(rebind);
   let localization, keyboardLocalization, walletLocalization;
   bind(BackendApplicationContribution).toDynamicValue(context => ({

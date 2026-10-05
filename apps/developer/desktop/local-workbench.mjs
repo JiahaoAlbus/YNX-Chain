@@ -268,7 +268,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const stop = () => stopping ||= (async () => { let cleanupError; if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
     // verifies OS UID, ancestry and process start time before signalling them.
-    try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--force'], { timeout: 5000 }); } catch (error) { cleanupError = error; }
+    try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 }); } catch (error) { cleanupError = error; }
     try { await Promise.race([exited, new Promise((_, reject) => setTimeout(() => reject(Error('Local backend exit was not verified')), 5000).unref())]); }
     catch (error) { cleanupError ||= error; } }
     // The single native cleanup already owns TERM/escalation and identity

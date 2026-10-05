@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 const directory = process.platform==='darwin' ? mkdtempSync('/private/tmp/ynx-process-helper-current-') : '';
 const helper = join(directory,'ynx-process-tree');
@@ -55,3 +55,19 @@ test('one force snapshot reaps a detached TERM-resistant worker after its interm
  try{const result=spawnSync(helper,[String(root.pid),'--force'],{encoding:'utf8',timeout:5000});assert.equal(result.status,0,result.stderr);await closed;for(let i=0;i<100&&exists(worker);i++)await new Promise(ok=>setTimeout(ok,20));assert.equal(exists(worker),false);assert.ok(exists(process.pid));}
  finally{if(exists(root.pid))process.kill(-root.pid,'SIGKILL');if(exists(worker))process.kill(worker,'SIGKILL');}
 });
+
+test('graceful root runs its stop hook first, captures detached orphans, and preserves an unrelated project', {skip:process.platform!=='darwin'},async()=>{
+ for(const pid of [process.pid,process.ppid]){const result=spawnSync(helper,[String(pid),'--graceful-root'],{encoding:'utf8'});assert.equal(result.status,77,result.stderr);}
+ const marker=join(directory,'graceful-hook');
+ const workerCode="process.on('SIGTERM',()=>{});process.send('ready');setInterval(()=>{},1000);";
+ const code=`const cp=require('node:child_process'),fs=require('node:fs');const child=cp.spawn(process.execPath,['-e',${JSON.stringify(workerCode)}],{detached:true,stdio:['ignore','ignore','ignore','ipc']});child.once('message',()=>process.send(child.pid));process.on('SIGTERM',()=>{fs.writeFileSync(${JSON.stringify(marker)},'saved');process.exit(0);});setInterval(()=>{},1000);`;
+ const root=spawn(process.execPath,['-e',code],{detached:true,stdio:['ignore','ignore','ignore','ipc']}),unrelated=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});
+ const closed=onceExit(root),otherClosed=onceExit(unrelated),worker=await new Promise(ok=>root.once('message',ok));
+ try{const result=spawnSync(helper,[String(root.pid),'--graceful-root'],{encoding:'utf8',timeout:15000});assert.equal(result.status,0,result.stderr);await closed;assert.equal(root.exitCode,0);assert.ok(existsSync(marker));for(let i=0;i<100&&exists(worker);i++)await new Promise(ok=>setTimeout(ok,20));assert.equal(exists(worker),false);assert.ok(exists(unrelated.pid));}
+ finally{unrelated.kill();await otherClosed;if(root.exitCode===null&&root.signalCode===null)root.kill('SIGKILL');if(exists(worker))process.kill(worker,'SIGKILL');}
+});
+test('graceful root deadline still reaps an unresponsive original tree', {skip:process.platform!=='darwin',timeout:18000},async()=>{
+ const root=spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});process.send('ready');setInterval(()=>{},1000);"],{detached:true,stdio:['ignore','ignore','ignore','ipc']}),closed=onceExit(root);
+ await new Promise(ok=>root.once('message',ok));try{const start=Date.now(),result=spawnSync(helper,[String(root.pid),'--graceful-root'],{encoding:'utf8',timeout:15000});assert.equal(result.status,0,result.stderr);await closed;assert.ok(Date.now()-start>=10000);assert.equal(root.signalCode,'SIGKILL');assert.ok(exists(process.pid));}finally{if(exists(root.pid))root.kill('SIGKILL');}
+});
+function onceExit(child){return new Promise(resolve=>child.once('exit',resolve));}
