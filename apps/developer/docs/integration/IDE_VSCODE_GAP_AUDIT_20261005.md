@@ -2,7 +2,25 @@
 
 日期：2026-10-05。用户目标：保留 YNX 品牌与主题，采用 VSCode 的按钮位置、操作逻辑、扩展机制，并增加 Chain 与 AI。
 
-## 当前原生候选补充（96779efe6）
+## 当前完整功能差距（bcfac9f07，2026-10-05）
+
+最新产品候选源码 bcfac9f0767209f9c02c486ee776153371f85ba6。下面区分真实流程证据、入口和缺失；旧版本记录保留在后文，不代表全部功能已在最新包复验。
+
+| 功能 | 当前实际状态 | 与目标体验的差距 |
+| --- | --- | --- |
+| 底部面板 | 已接入 Problems、Output、Debug Console、Terminal；真实终端和任务执行有包内 GUI 证据 | Ports 缺失；面板标签仍分散，统一位置、切换和管理体验待补齐 |
+| 文件与编辑 | 原生目录选择和新建保存重开有 7cb/967 证据；跨文件搜索替换撤销有 bf18 证据 | 不能把旧包证据当成最新包全量验收，更多工作区操作仍需覆盖 |
+| 运行与调试 | bcf 包右上菜单 Run Task 选择 C++ 任务，真实执行构建依赖再运行，输出 balance=5；任务配置为测试预置 | 仍依赖项目任务配置；C++ 断点、步进、变量尚未通过，其他语言不能据此算通过 |
+| 多语言 | bcf C++ 补全、定义、诊断、语义重命名、格式化及运行已验；Solidity 本地编译已有 f49 实测 | Python、Go、Rust、Java 等完整插件和运行调试流程尚未全面验收 |
+| 扩展生态 | 本地 VSIX 安装、启停、卸载已有记录 | 在线搜索下载更新仍失败；用户 63 个扩展尚未整体迁移、执行或证明兼容 |
+| 测试与远程开发 | 当前组合含任务及调试基础组件 | 完整测试发现、运行、覆盖率及 SSH、容器、WSL 流程尚未完成；不以组件依赖证明可用 |
+| 主题与界面语言 | 14 个主题有历史实际渲染；中文语言包识别切换有记录 | 所有自有页面的视觉一致性、中文覆盖及最新包复验仍未完成 |
+| Chain 与 AI | Solidity 模板、真实 ABI/bytecode、本地修改审阅已有证据 | 真实 Wallet 身份、签名部署交易和在线 AI 批准应用回读未闭环 |
+| 软件交付 | bcf App/DMG 已封存，资源、Logo、ad-hoc 签名已检查 | 正式签名公证发布、最新 Cocoa/Finder 完整体验及 Windows/Linux 未验收；当前包最低 macOS 27.0 |
+
+这仍是开发中的 IDE，不能称为 VSCode 同等成熟体验。Ports 需要真实服务发现、端口管理及明确的访问状态，不能仅添加空标签。在线市场、远程转发和服务接入须遵守现有暂停边界；不通过代理、出站放行或弱化隔离绕过。
+
+## 历史原生候选补充（96779efe6）
 
 新版位于 apps/developer/.ynx-developer-candidates/ynx-duplicate-project-native-96779efe6-20261005。源码 96779efe6c56183850c4ec4460af62ffea597002，tree 1ad4781ba4ca070ee08cb1d0454f544a9b152d2f；DMG SHA256 be4f0172e822c2bf627301aef95ec51938e621a078ad90e2ae51c99d632ac4e9。沿用同一封存 core tree，原生程序、启动器和本地监督器按新源码重建。
 
@@ -10,7 +28,7 @@ Mac 原生操作已恢复：7cbf 完整候选通过系统选择含空格的项�
 
 以下 bf18 表格为旧版本证据；其中锁屏导致原生流程未验收的状态已由以上实测取代。正式服务、在线市场、真实 Chain/AI 和正式发布仍未验收。
 
-## 最新验收状态（覆盖下方初始基线）
+## 历史验收状态（bf18，已由顶部当前矩阵覆盖）
 
 最新封存 macOS 候选的产品源码为 `bf18cf329f06db35d77ff09d29ec1ae462c89ddf`，源码 tree 为 `69bad806d7dd7e4db738f4c2424f806286ce9b84`，composed-core tree 为 `9a6f2177f1359bef41717ec9e74cf96b0b5acbf53fbdfd96af527cfc41c33c1d`。后续文档修改不代表这个安装包已重建。候选位于 `apps/developer/.ynx-developer-candidates/ynx-search-replace-native-bf18cf329-20261005`；DMG SHA256 为 `d557e62a6041f1c5333e21a25828f997cf80847777c6d452bfd5bdc35f6a97e2`。
 
@@ -158,3 +176,7 @@ f49d141e5 精确包内工作台正常用户流程：F12 从 Main.sol 调用跳�
 
 
 bcfac9f07 同一精确包内工作台继续通过 C++ F2 跨文件语义重命名与 Save All、Clangd Format Document 按 .clang-format 生成双空格多行源码并落盘。正常终端 CLT clang++ 使用已配置 SDK 构建实际 33560 字节程序，执行输出 YNX C++ balance=5；包含标准库 cstdio。第一次原生 typeText 丢失命令开头斜杠导致找不到编译器；改为正常 paste 保留完整命令后构建运行成功，不作为产品编译错误。源文件、头文件、可执行产物及截图/hash 记录在候选 verification/cpp-rename-format-build-run.json；C++ debugger 和通用 Run Task 按钮链路没有因此被标成通过。
+
+### bcf 包运行按钮实测补充
+
+通过右上 Run and Debug actions → Run Task → YNX: Run C++，执行 .vscode/tasks.json 中的构建依赖后运行新目标 wallet-task；截图显示实际输出 YNX C++ balance=5，新生成 33560 字节可执行文件已回读并留存 hash。任务配置为测试准备，不声称用户可以无需配置自动识别所有语言。证据位于候选 verification/cpp-run-task-button.json 和 cpp-run-task-button.png；此实测不证明 C++ 调试器或完整 VSCode 功能等价。

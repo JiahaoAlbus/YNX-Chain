@@ -107,3 +107,34 @@ test('missing native popup renderer is explicitly unavailable and empty translat
   const rendered = item.render(f.editor); assert.equal(rendered.props.disabled, true); assert.ok(rendered.props['aria-label'].trim());
   assert.throws(() => controls.openRunMenu({}), /Unavailable in this runtime/); controls.dispose();
 });
+
+test('restored panel initializes real static views in one tab group without activation or a terminal process', async () => {
+  const f = fixture(), terminal = { id: 'terminal-existing' }, widgets = [];
+  f.shell.getWidgets = () => [terminal];
+  for (const key of ['problems', 'output', 'console']) {
+    f.views[key].openView = options => { f.calls.push([key, options]); const widget = { id: key }; widgets.push(widget); return widget; };
+  }
+  await f.controls.onDidInitializeLayout();
+  assert.deepEqual(f.calls.map(call => call[0]), ['problems', 'output', 'console']);
+  assert.equal(f.calls[0][1].ref, terminal);
+  assert.equal(f.calls[1][1].ref, widgets[0]);
+  assert.equal(f.calls[2][1].ref, widgets[1]);
+  for (const [, options] of f.calls) {
+    assert.equal(options.area, 'bottom'); assert.equal(options.mode, 'tab-after');
+    assert.equal(options.activate, false); assert.equal(options.reveal, false);
+  }
+});
+test('panel initialization preserves restored split views, skips unavailable views, and survives a failing contribution', async () => {
+  const f = fixture(), restored = { id: 'restored-problems' }, errors = [];
+  f.views.problems.tryGetWidget = () => restored;
+  f.shell.getTabBarFor = widget => widget === restored ? {} : undefined;
+  f.controls.messages = { error: error => errors.push(error) };
+  f.views.output.openView = () => { throw new Error('output initialization failed'); };
+  await f.controls.onDidInitializeLayout();
+  assert.deepEqual(errors, ['output initialization failed']);
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0][0], 'console');
+  assert.equal(f.calls[0][1].ref, restored);
+  f.calls.length = 0; f.commands.unregisterCommand('debug:console:toggle');
+  f.controls.stopped = true; await f.controls.onDidInitializeLayout();
+  assert.equal(f.calls.length, 0);
+});

@@ -94,6 +94,25 @@ class WorkbenchControlsContribution {
     throw new Error('Native view contribution is unavailable');
   }
   report(error) { if (this.messages) this.messages.error(error.message || String(error)); }
+  async onDidInitializeLayout() {
+    // Restore the user's layout first. Attach actual static panel views to its
+    // existing tab group without activating/revealing them or creating a PTY.
+    // Existing views (including user-created split groups) stay where restored.
+    let reference = this.shell.getWidgets('bottom').find(widget => !widget.isDisposed);
+    for (const view of VIEWS.filter(view => view.area === 'bottom' && view.key !== 'terminal')) {
+      if (this.stopped) return;
+      const native = this.views[view.key];
+      if (!native || !this.state(view.command).enabled) continue;
+      const existing = native.tryGetWidget();
+      if (existing && this.shell.getTabBarFor(existing)) { reference = existing; continue; }
+      try {
+        const widget = await native.openView({ area: 'bottom', activate: false, reveal: false,
+          ...(reference ? { ref: reference, mode: 'tab-after' } : {}) });
+        if (widget && !widget.isDisposed) reference = widget;
+      } catch (error) { this.report(error); }
+    }
+    this.refresh();
+  }
   registerMenus(menus) {
     RUN_ACTIONS.forEach((action, index) => this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'actions'], {
       commandId: action.id,
