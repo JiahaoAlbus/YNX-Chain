@@ -25,3 +25,11 @@ macOS 27.0 来源已进一步定位：包内 Node 本体 LC_BUILD_VERSION minos=
 最终候选验收账本：D01—D20 当前均未完整通过。D01/D02/D03/D04/D05/D18 有明确旧包或组件辅助证据；D06/D07/D08/D09/D10 仍需实现或执行；D11—D17 缺真实纵向接入与外部授权证据；D19/D20 缺各平台最终包、签名状态及真实 dot/下载入口验证。这些不全归为外部阻塞，内部未实现仍由 IDE owner 继续完成。原14主题、中文、Logo、用户项目、设置、扩展及未提交成果保留。
 
 回滚只针对本轮源码/程序版本：保留原包和 source commits，未发布共享服务、未迁移用户数据、未修改链历史。当前更新源构建不等于 integrated/testedOnExactPackage/deployed/publicVerified/signed/notarized/securityReviewed/userAccepted。
+
+## 当前项目 Chain 接入与并行整合
+
+统一 reader 源提交 0887ba10b3a72bbfb37d127dda1e2311366601ce。现新增本地项目 Chain 工具：正常命令/Tools 树配置 ynx-chain-project.json；查询操作及交易引用写入当前项目 .ynx/chain-history；重开历史与同一引用重新批准查询。配置、可编辑历史和录入 hash 都不是身份、授权或 IDE 部署证明。无正式获准运输层时明确拒绝，零请求；没有换端点、fetch fallback 或签名接口。39 项 agent 回归通过（项目11/shared reader4/既有Tools24）；root 项目11项复验、全部命令标题和59条中文映射检查通过。测试使用受控接口/临时项目，真实 Wallet、实时链和最终 App 未通过。日志 /private/tmp/ynx-chain-project-final-tests-20261005.log 与 /private/tmp/ynx-chain-project-integrated-tests-20261005.log。
+
+本轮总控准确依赖材料：/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261005/ide-existing-dependency-contracts-root-20261005-8c102fd6/REPORT.md 与 INPUT_PINS.json，已全文读取。共享 Wallet/Auth 源1.2.0没有交同代正式 supplier；IDE vendor旧candidate未部署，v2 Browser身份与v1部署不可拼成已接通。Chain authority pin已于9/27到期；consumer的address/function与BFT源address/calldata存在差异，必须按实际target能力核接，不能自行改链或猜接口。AI缺真实provider/身份接线；Cloud source完整1894/root928e存在，但后端NOT_RUNNING，静态READY不是存储/计算业务。真实QA身份和dot调用入口未提供。普通IDE代码继续，暂停的network/package-egress/LXD/remote/shared发布没有恢复。
+
+扩展只读核验：用户原65条/63唯一清单真实存在，未有完整逐项功能矩阵；原Pylance/C++/RemoteSSH许可限制不能静默迁移。当前默认扩展API为框架1.139.0，不能用Monaco版本或semver匹配认定兼容。在线市场后端被整树deny network策略拒绝。兼容性核验另发现drivelist最终link和process-tree编译漏minimum target，现二进制都27.0；本机签名Node24.19.0仅系统库且minos13.5，加载检查通过，但尚无新的相容整包或旧OS证明。

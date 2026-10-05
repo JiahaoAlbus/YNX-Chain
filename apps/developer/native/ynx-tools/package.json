@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.25",
+  "version": "0.2.26",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -86,6 +86,22 @@
       {
         "command": "ynx.configurePython",
         "title": "%command.ynx.configurePython%"
+      },
+      {
+        "command": "ynx.chainProject",
+        "title": "%command.ynx.chainProject%"
+      },
+      {
+        "command": "ynx.configureChainProject",
+        "title": "%command.ynx.configureChainProject%"
+      },
+      {
+        "command": "ynx.chainProjectHistory",
+        "title": "%command.ynx.chainProjectHistory%"
+      },
+      {
+        "command": "ynx.trackChainTransaction",
+        "title": "%command.ynx.trackChainTransaction%"
       }
     ],
     "jsonValidation": [

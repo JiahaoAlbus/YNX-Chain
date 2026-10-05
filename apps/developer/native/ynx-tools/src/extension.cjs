@@ -12,6 +12,13 @@ function activate(context) {
     localReviewPanel ||= require('./local-review-panel.cjs').createLocalReviewPanel(vscode, context, process.env, previewChange);
     return localReviewPanel.open(capture);
   };
+  let chainProject;
+  const projectChain = () => {
+    if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to configure its Chain tools.'));
+    // No network transport is discovered from project files or environment.
+    // A future admitted host binding must be supplied by its unique owner.
+    return chainProject ||= require('./chain-project-ui.cjs').createChainProjectUI(vscode, context, process.env, t);
+  };
   // The host context menu lives outside Monaco's scoped DOM context. Publish
   // our own selection state through the extension API so both hosts can render
   // the same conditional menu without changing the upstream context service.
@@ -33,6 +40,10 @@ function activate(context) {
     ] },
     { label: t('Network'), children: [
       { label: t('YNX Testnet · 6423 · YNXT'), description: t('Configured; not live checked'), command: 'ynx.testnetConfiguration' },
+      { label: t('Configure Chain for this project'), command: 'ynx.configureChainProject' },
+      { label: t('Chain project tools'), description: t('Read transport not connected'), command: 'ynx.chainProject' },
+      { label: t('Open saved observations'), command: 'ynx.chainProjectHistory' },
+      { label: t('Remember a transaction reference'), command: 'ynx.trackChainTransaction' },
       { label: t('Create read-only SDK starter'), command: 'ynx.createTemplate' },
       { label: t('Deployment unavailable'), description: t('No admitted signing connection'), tooltip: t('Local compilation does not submit a transaction. No deployment is performed.') },
     ] },
@@ -51,6 +62,10 @@ function activate(context) {
       ...(item.command ? { command: { command: item.command, title: item.label } } : {}) })
   }));
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
+  register('ynx.chainProject', () => projectChain().open());
+  register('ynx.configureChainProject', () => projectChain().configure());
+  register('ynx.chainProjectHistory', () => projectChain().saved());
+  register('ynx.trackChainTransaction', () => projectChain().track());
   register('ynx.configurePython', () => require('./python-setup.cjs').configurePython(vscode, process.env, t));
   register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(t('Solidity language: {0}', JSON.stringify(solidityLanguage.status()))); });
   register('ynx.openLocalReview', () => openLocalReview(false));
@@ -68,6 +83,7 @@ function activate(context) {
     await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(id)}`));
   });
   register('ynx.testnetConfiguration', async () => {
+    if (process.env.YNX_WORKSPACE_MODE === 'local') return projectChain().open();
     await vscode.window.showInformationMessage(t('Configured YNX Testnet: chain ID 6423, currency YNXT, RPC https://rpc.ynxweb4.com/evm. This is the retained read-only starter configuration; current network availability has not been checked. No request, signing or deployment is performed.'));
   });
   register('ynx.createSolidityTemplate', () => createSolidityTemplate(vscode, process.env));

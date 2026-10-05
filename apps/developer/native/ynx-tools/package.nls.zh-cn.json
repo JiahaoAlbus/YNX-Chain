@@ -15,5 +15,9 @@
   "command.ynx.importSolidityDiagnostics": "YNX：导入 Solidity 编译诊断",
   "command.ynx.solidityAnalysisStatus": "YNX：查看 Solidity 语言状态",
   "command.ynx.openLocalReview": "YNX：打开本地修改审阅",
-  "command.ynx.configurePython": "YNX：配置此项目的 Python"
+  "command.ynx.configurePython": "YNX：配置此项目的 Python",
+  "command.ynx.chainProject": "项目 Chain 工具",
+  "command.ynx.configureChainProject": "配置当前项目 Chain",
+  "command.ynx.chainProjectHistory": "打开已保存的 Chain 观察结果",
+  "command.ynx.trackChainTransaction": "记录交易查询引用"
 }

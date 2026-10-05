@@ -15,5 +15,9 @@
   "command.ynx.importSolidityDiagnostics": "YNX: Import Solidity Compiler Diagnostics",
   "command.ynx.solidityAnalysisStatus": "YNX: Solidity Language Status",
   "command.ynx.openLocalReview": "YNX: Open Local Change Review",
-  "command.ynx.configurePython": "YNX: Configure Python for This Project"
+  "command.ynx.configurePython": "YNX: Configure Python for This Project",
+  "command.ynx.chainProject": "Chain project tools",
+  "command.ynx.configureChainProject": "Configure Chain for this project",
+  "command.ynx.chainProjectHistory": "Open saved Chain observations",
+  "command.ynx.trackChainTransaction": "Remember a transaction reference"
 }
