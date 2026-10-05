@@ -8,7 +8,7 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
-import { localProjectContext, prepareLocalRuntime, findTrustedLocalGit, inspectTrustedLocalGit, inspectTrustedLocalClangd, prepareLocalGitConfig, localWorkbenchSandboxPolicy, localWorkbenchEnvironment } from './local-workbench.mjs';
+import { localProjectContext, prepareLocalRuntime, prepareLocalPlugins, findTrustedLocalGit, inspectTrustedLocalGit, inspectTrustedLocalClangd, prepareLocalGitConfig, localWorkbenchSandboxPolicy, localWorkbenchEnvironment } from './local-workbench.mjs';
 import { createRequire } from 'node:module';
 const { cppProjectRoot } = createRequire(import.meta.url)('../native/ynx-cpp/src/project-root.cjs');
 import { composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
@@ -20,6 +20,8 @@ async function fixture(task) {
 async function payload(root, unsafe = false) {
   const source = join(root, 'source'), out = join(root, 'payload'); await mkdir(source); await mkdir(out);
   await writeFile(join(source, 'package-lock.json'), '{}');
+  await mkdir(join(source, 'plugins/example'), { recursive: true });
+  await writeFile(join(source, 'plugins/example/extension.js'), 'module.exports = {};');
   if (unsafe) await symlink('/etc/passwd', join(source, 'escape'));
   const pin = { kind: 'ynx-theia', version: '1.76.0', architecture: `darwin-${process.arch}`, lockSha256: digest('{}'), treeSha256: unsafe ? 'a'.repeat(64) : await composedTreeDigest(source) };
   const manifest = { ...pin, entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html', nodeVersion: '26.0.0' };
@@ -147,4 +149,29 @@ test('real native fd lock excludes a second backend and releases after backend e
     await symlink(join(profile, 'local-workbench.lock'), join(secondProfile, 'local-workbench.lock'));
     assert.equal(spawnSync(helper, [secondProfile, node, '-e', 'process.exit(0)']).status, 65);
   } finally { if (first.exitCode === null && first.signalCode === null) { first.kill('SIGKILL'); await closed; } }
+}));
+
+test('fresh verified project plugin copies allow runtime state under existing sandbox without writing sealed cache', async () => fixture(async root => {
+  const runtime = await prepareLocalRuntime({ payload: await payload(root), supportRoot: join(root, 'support') });
+  const project = join(root, 'project'); await mkdir(project);
+  const context = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: project });
+  const sourceDigest = await composedTreeDigest(join(runtime.root, 'plugins'));
+  const first = await prepareLocalPlugins({ runtime, context });
+  const policy = localWorkbenchSandboxPolicy({ node: '/usr/bin/true', lockHelper: '/usr/bin/true', runtime, context, port: 43119, git: null });
+  execFileSync('/usr/bin/sandbox-exec', ['-p', policy, '/bin/mkdir', join(first, 'example/.runtime-endpoints')]);
+  assert.throws(() => execFileSync('/usr/bin/sandbox-exec', ['-p', policy, '/bin/mkdir', join(runtime.root, 'plugins/example/.runtime-endpoints')], { stdio: 'pipe' }));
+  assert.equal(await composedTreeDigest(join(runtime.root, 'plugins')), sourceDigest);
+  await writeFile(join(first, 'example/extension.js'), 'changed runtime copy');
+  const second = await prepareLocalPlugins({ runtime, context });
+  assert.notEqual(first, second); assert.equal(await readFile(join(second, 'example/extension.js'), 'utf8'), 'module.exports = {};');
+  assert.equal(await composedTreeDigest(second), sourceDigest);
+}));
+test('plugin copies reject foreign project bindings and corrupted source before launch', async () => fixture(async root => {
+  const runtime = await prepareLocalRuntime({ payload: await payload(root), supportRoot: join(root, 'support') });
+  const project = join(root, 'project'); await mkdir(project);
+  const context = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: project });
+  await assert.rejects(prepareLocalPlugins({ runtime, context: { ...context, temporary: root } }), /outside the project/);
+  await assert.rejects(prepareLocalPlugins({ runtime, context: { ...context, id: 'foreign-project' } }), /different project/);
+  await writeFile(join(runtime.root, 'plugins/example/extension.js'), 'tampered');
+  await assert.rejects(prepareLocalPlugins({ runtime, context }), /reviewed artifact/);
 }));

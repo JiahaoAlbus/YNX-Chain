@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, lstat, realpath, readFile, writeFile, rename, mkdtemp } from 'node:fs/promises';
+import { createReadStream, constants } from 'node:fs';
+import { mkdir, lstat, realpath, readFile, writeFile, rename, mkdtemp, cp } from 'node:fs/promises';
 import { join, dirname, resolve, isAbsolute } from 'node:path';
 import { createServer } from 'node:net';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact } from '../services/codeoss-service/src/composed-runtime.mjs';
+import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
 const exact = path => typeof path === 'string' && isAbsolute(path) && resolve(path) === path && !path.includes('\0');
@@ -160,6 +160,26 @@ export async function localProjectContext({ supportRoot, projectDirectory }) {
   return { workspace: projectDirectory, profile, temporary, id };
 }
 
+export async function prepareLocalPlugins({ runtime, context }) {
+  // Extensions can keep runtime state beside their code (debugpy does this).
+  // Fresh project-private copies permit that within the EXISTING temporary
+  // write boundary; the shared sealed cache and network policy stay unchanged.
+  if (context.temporary !== join(dirname(context.profile), 'tmp')) throw Error('Extension state is outside the project profile.');
+  await privateDirectory(context.profile); await privateDirectory(context.temporary);
+  const binding = JSON.parse(await readFile(join(context.profile, 'ynx-local-project.json'), 'utf8'));
+  if (binding.schemaVersion !== 1 || binding.projectId !== context.id || binding.workspace !== context.workspace || binding.profile !== context.profile)
+    throw Error('Extension state belongs to a different project.');
+  await verifyComposedRuntime(runtime.root, runtime.pin);
+  const source = join(runtime.root, 'plugins'), digest = await composedTreeDigest(source);
+  const session = await mkdtemp(join(context.temporary, 'extensions-')), plugins = join(session, 'plugins');
+  await cp(source, plugins, { recursive: true, errorOnExist: true, force: false, mode: constants.COPYFILE_FICLONE });
+  if (await composedTreeDigest(plugins) !== digest || await composedTreeDigest(source) !== digest)
+    throw Error('Extension copy changed before launch.');
+  await writeFile(join(session, 'source.json'), JSON.stringify({ runtimeArtifact: runtime.pin, pluginTreeSha256: digest, projectId: context.id,
+    scope: 'Fresh per-launch extension copy; source cache remains sealed. Runtime state is not reused as executable source.' }) + '\n', { flag: 'wx', mode: 0o600 });
+  return plugins;
+}
+
 export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
@@ -178,7 +198,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
-  const plugins = join(runtime.root, 'plugins');
+  const plugins = await prepareLocalPlugins({ runtime, context });
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }),
