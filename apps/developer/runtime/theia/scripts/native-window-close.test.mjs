@@ -5,7 +5,7 @@ import { readFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 const require = createRequire(new URL('../package.json', import.meta.url));
 const module = {exports:{}};
-vm.runInNewContext(await readFile(new URL('../../ynx-workbench/lib/native-window-close.js', import.meta.url),'utf8'),{module,require});
+vm.runInNewContext(await readFile(new URL('../../ynx-workbench/lib/native-window-close.js', import.meta.url),'utf8'),{module,require,setTimeout,clearTimeout});
 const {NativeWindowClose}=module.exports;
 test('native close waits for standard shutdown and rejects cancellation or failure',async()=>{
   const messages=[],target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>messages.push(value)}}}};
@@ -44,4 +44,30 @@ test('closing during native startup preserves the previously saved layout',async
   await target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa');
   assert.equal(messages[0].accepted,true);assert.equal(layout.shouldStoreLayout,false);
   close.onDidInitializeLayout();assert.equal(layout.shouldStoreLayout,true);
+});
+function debugFixture({request='launch',reply=async()=>{},save=async()=>{},safe=true}={}) {
+ const messages=[],events=[],listeners=new Set();
+ const target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:m=>messages.push(m)}}}};
+ const session={id:'owned',configuration:{request},isStopping:false,sendRequest:async(command,args)=>{events.push([command,args]);await reply();}};
+ const manager={sessions:[session],onDidDestroyDebugSession:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},debug:{terminateDebugSession:async()=>{events.push('adapter-stop');manager.sessions=[];for(const fn of listeners)fn(session);}}};
+ const windows={allowVetoes:true,isSafeToShutDown:async()=>{windows.allowVetoes=false;return safe;}};
+ const close=new NativeWindowClose(windows,target,undefined,{flush:save},undefined,()=>manager,20);close.onStart();
+ return {messages,events,session,manager,windows,run:()=>target.__ynxLocalWorkbenchClose('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')};
+}
+test('cancel and save failure never stop a debug session',async()=>{
+ for(const options of [{safe:false},{save:async()=>{throw Error('save failed')}}]){const f=debugFixture(options);await f.run();assert.equal(f.messages[0].accepted,false);assert.equal(f.events.length,0);assert.equal(f.windows.allowVetoes,true);}
+});
+test('launch disconnect acknowledgement precedes adapter teardown and native acceptance',async()=>{
+ let reply;const f=debugFixture({reply:()=>new Promise(r=>reply=r)}),pending=f.run();
+ await new Promise(r=>setTimeout(r,1));assert.equal(f.messages.length,0);assert.equal(f.events[0][0],'disconnect');assert.equal(f.events[0][1].terminateDebuggee,true);assert.equal(f.events.length,1);
+ reply();await pending;assert.equal(f.events[1],'adapter-stop');assert.equal(f.manager.sessions.length,0);assert.equal(f.messages[0].accepted,true);
+});
+test('attach disconnect preserves the external target',async()=>{
+ const f=debugFixture({request:'attach'});await f.run();assert.equal(f.events[0][1].terminateDebuggee,false);assert.equal(f.messages[0].accepted,true);
+});
+test('debug rejection or timeout keeps window open and allows retry without force killing',async()=>{
+ for(const reply of [async()=>{throw Error('refused')},()=>new Promise(()=>{})]){const f=debugFixture({reply});await f.run();assert.equal(f.messages[0].accepted,false);assert.equal(f.events.length,1);assert.equal(f.session.isStopping,false);assert.equal(f.windows.allowVetoes,true);f.session.sendRequest=async()=>{};await f.run();assert.equal(f.messages[1].accepted,true);}
+});
+test('adapter acknowledgement alone does not claim a remaining session was removed',async()=>{
+ const f=debugFixture();f.manager.debug.terminateDebugSession=async()=>{};await f.run();assert.equal(f.messages[0].accepted,false);assert.equal(f.manager.sessions.length,1);
 });

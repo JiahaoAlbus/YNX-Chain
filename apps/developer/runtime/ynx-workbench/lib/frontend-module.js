@@ -109,6 +109,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(
     context.container.get(WindowService), window, context.container.get(ShellLayoutRestorer), context.container.get(LocalStorageService),
     () => debugStatePersistence.persistDebugState([context.container.get(DebugConfigurationManager), context.container.get(BreakpointManager), context.container.get(DebugWatchManager)]),
+    () => context.container.get(DebugSessionManager),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
     context.container.get(CommandRegistry), window, nls.locale,
