@@ -2,6 +2,14 @@
 
 日期：2026-10-05。用户目标：保留 YNX 品牌与主题，采用 VSCode 的按钮位置、操作逻辑、扩展机制，并增加 Chain 与 AI。
 
+## 当前原生候选补充（96779efe6）
+
+新版位于 apps/developer/.ynx-developer-candidates/ynx-duplicate-project-native-96779efe6-20261005。源码 96779efe6c56183850c4ec4460af62ffea597002，tree 1ad4781ba4ca070ee08cb1d0454f544a9b152d2f；DMG SHA256 be4f0172e822c2bf627301aef95ec51938e621a078ad90e2ae51c99d632ac4e9。沿用同一封存 core tree，原生程序、启动器和本地监督器按新源码重建。
+
+Mac 原生操作已恢复：7cbf 完整候选通过系统选择含空格的项目目录、新建真实文件、保存、关闭重开，以及终端 pwd/cat 回读。96779efe6 完整候选通过重复项目提示、原生 Open Folder 选择其他项目并进入正常编辑器；原文件与旧运行进程保留。15 项相关测试通过且无跳过。证据和精确源码交接保存在新候选目录。
+
+以下 bf18 表格为旧版本证据；其中锁屏导致原生流程未验收的状态已由以上实测取代。正式服务、在线市场、真实 Chain/AI 和正式发布仍未验收。
+
 ## 最新验收状态（覆盖下方初始基线）
 
 最新封存 macOS 候选的产品源码为 `bf18cf329f06db35d77ff09d29ec1ae462c89ddf`，源码 tree 为 `69bad806d7dd7e4db738f4c2424f806286ce9b84`，composed-core tree 为 `9a6f2177f1359bef41717ec9e74cf96b0b5acbf53fbdfd96af527cfc41c33c1d`。后续文档修改不代表这个安装包已重建。候选位于 `apps/developer/.ynx-developer-candidates/ynx-search-replace-native-bf18cf329-20261005`；DMG SHA256 为 `d557e62a6041f1c5333e21a25828f997cf80847777c6d452bfd5bdc35f6a97e2`。
