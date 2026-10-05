@@ -73,6 +73,18 @@ test('official public config provider/NamedPipe launch reaches real breakpoint, 
   await official.native.$sessionDidDestroy(current.session.id);await official.native.$sessionDidDestroy(parent.session.id);await official.drain();
   if(kind==='integrated'){assert.ok(terminals.length>0);terminals.at(-1).widget.resize(101,37);assert.match(terminalOutput.replace(/\x1b\[[0-9;]*m/g,''),/OFFICIAL_JS\s+42/);assert.ok(parent.client.messages.some(message=>message.type==='request'&&message.command==='runInTerminal'));}console.log('OFFICIAL_DAP_CONFIRMED '+kind+' sessions=0');
  }
- assert.deepEqual(official.frameworkErrors,[]);await assert.rejects(official.resolve({type:'pwa-node',request:'launch',name:'Explicit children retained',program:file,cwd:f.project,console:'internalConsole',autoAttachChildProcesses:true}),/Child-process debugging/);
+ assert.deepEqual(official.frameworkErrors,[]);
+ for(const type of ['node','pwa-node']){
+  const rejected={type,request:'launch',name:'Explicit children retained',program:file,cwd:f.project,console:'internalConsole',autoAttachChildProcesses:true};
+  assert.equal(await official.resolve(rejected),null,'Native resolver must cancel explicit child debugging, not fall back');assert.equal(rejected.autoAttachChildProcesses,true);
+  assert.equal(await official.resolve({...rejected,autoAttachChildProcesses:false,runtimeExecutable:'/untrusted/node'}),null,'Native resolver must cancel unapproved runtimes');
+ }
+ assert.ok(official.notifications.some(message=>message.includes('Child-process debugging')));assert.ok(official.notifications.some(message=>message.includes('bundled Node runtime')));assert.deepEqual(official.frameworkErrors,[]);assert.equal(f.supervisor.activeSessions(),0);
+ const held=[];try{
+  for(let index=0;index<8;index++)held.push(await request(f,{op:'prepare',console:'internalConsole',noDebug:true}));
+  assert.equal(await official.resolve({type:'node',request:'launch',name:'Admission denied',program:file,cwd:f.project,noDebug:true}),null,'Supervisor refusal must stop the native chain, never restore the raw Node configuration');
+  assert.ok(official.notifications.some(message=>message.includes('admission is unavailable')));assert.deepEqual(official.frameworkErrors,[]);
+ }finally{for(const entry of held)await request(f,{op:'cancel',launchId:entry.launchId});}
+ assert.equal(f.supervisor.activeSessions(),0);
  }catch(error){console.error('OFFICIAL_DAP_FAILURE',error,'SUPERVISOR',JSON.stringify(f.supervisor.sessionStates()),'FRAMEWORK',JSON.stringify(official?.frameworkErrors),'TERMINAL_TAIL',terminalOutput.slice(-160).replace(/[a-f0-9]{64}/g,'[redacted]'),'TERMINAL_ERRORS',JSON.stringify(terminalOutput.split('\n').filter(line=>/^(?:bash:|Local JavaScript|Local JavaScript supervisor|JavaScript supervisor)/.test(line))));throw error;}finally{for(const client of [...clients].reverse()){if(!client.socket.destroyed&&!client.socket.readableEnded&&!client.messages.some(message=>message.event==='terminated'))await Promise.race([client.request('disconnect',{terminateDebuggee:true}),delay(1000)]).catch(()=>{});}await official?.dispose();for(const terminal of terminals){terminal.child.kill();await terminal.closed;}for(const client of clients){client.socket.destroy();assert.deepEqual(client.errors,[]);}for(const [key,value] of savedEnvironment){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
 }));

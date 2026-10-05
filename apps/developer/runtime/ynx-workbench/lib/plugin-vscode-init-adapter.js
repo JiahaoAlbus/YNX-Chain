@@ -175,8 +175,23 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     const task = request({ op: 'cancel', launchId: id }); pendingCleanup.add(task);
     task.then(() => pendingCleanup.delete(task), error => { pendingCleanup.delete(task); cleanupErrors.push(error); }); return task;
   }
-  const childChoices = new WeakMap(); let singleTargetNotice = false;
-  const childChoice = configuration => childChoices.get(configuration) || { explicit: Object.prototype.hasOwnProperty.call(configuration || {}, 'autoAttachChildProcesses'), value: configuration?.autoAttachChildProcesses };
+  let singleTargetNotice = false;
+  const childChoice = configuration => ({ explicit: Object.prototype.hasOwnProperty.call(configuration || {}, 'autoAttachChildProcesses'), value: configuration?.autoAttachChildProcesses });
+  const notifySingleTarget = async () => {
+    if (singleTargetNotice) return;
+    if (!api.window?.showInformationMessage) throw Error('This local launch supports one Node process. Choose autoAttachChildProcesses: false explicitly to proceed.');
+    await api.window.showInformationMessage('Local JavaScript debugging currently supports one Node process. Child-process debugging remains unavailable in this profile.'); singleTargetNotice = true;
+  };
+  const resolveOrCancel = async task => {
+    try { return await task(); }
+    catch (error) {
+      // Theia logs a thrown resolver error and continues with its previous
+      // configuration. Null explicitly stops the native resolver chain.
+      try { await api.window?.showErrorMessage?.('Local JavaScript launch: ' + error.message); }
+      catch (notificationError) { console.error('JavaScript launch notification:', notificationError); }
+      return null;
+    }
+  };
   async function configure(configuration, choice) {
     if (!configuration || configuration.request !== 'launch' || configuration.__pendingTargetId) return configuration;
     if (configuration.__ynxJsLaunch) { if (!launches.has(configuration.__ynxJsLaunch)) throw Error('Unknown local JavaScript launch correlation'); return configuration; }
@@ -186,8 +201,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     if (choice.explicit && choice.value !== undefined && typeof choice.value !== 'boolean') throw Error('Invalid explicit child-process debugging configuration');
     if (choice.explicit && choice.value === true) throw Error('Child-process debugging requires separate supervised endpoints; use a single Node launch in this local profile.');
     if (!choice.explicit && configuration.autoAttachChildProcesses === true && !singleTargetNotice) {
-      if (!api.window?.showInformationMessage) throw Error('This local launch supports one Node process. Choose autoAttachChildProcesses: false explicitly to proceed.');
-      await api.window.showInformationMessage('Local JavaScript debugging currently supports one Node process. Child-process debugging remains unavailable in this profile.'); singleTargetNotice = true;
+      await notifySingleTarget();
     }
     if (launches.size >= 8) throw Error('Too many local JavaScript launches are pending. End a current session and retry.');
     const prepared = await request({ op: 'prepare', console: configuration.console || 'internalConsole', noDebug: configuration.noDebug === true, program: configuration.program, cwd: configuration.cwd });
@@ -207,12 +221,22 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     if (!['node', 'pwa-node'].includes(type)) return register.call(this, type, provider, trigger);
     const original = provider.resolveDebugConfigurationWithSubstitutedVariables;
     const wrapper = Object.create(provider);
-    if (provider.resolveDebugConfiguration) wrapper.resolveDebugConfiguration = async (...args) => { const choice = childChoice(args[1]); const result = await provider.resolveDebugConfiguration.apply(provider, args); if (result && typeof result === 'object') childChoices.set(result, choice); return result; };
-    wrapper.resolveDebugConfigurationWithSubstitutedVariables = async (...args) => {
+    wrapper.resolveDebugConfiguration = (...args) => resolveOrCancel(async () => {
+      const choice = childChoice(args[1]);
+      const result = provider.resolveDebugConfiguration ? await provider.resolveDebugConfiguration.apply(provider, args) : args[1];
+      if (!result || result.request !== 'launch' || result.__pendingTargetId) return result;
+      if (choice.explicit && choice.value !== undefined && typeof choice.value !== 'boolean') throw Error('Invalid explicit child-process debugging configuration');
+      if (choice.explicit && choice.value === true) throw Error('Child-process debugging requires separate supervised endpoints; use a single Node launch in this local profile.');
+      if (!choice.explicit && result.autoAttachChildProcesses === true) await notifySingleTarget();
+      // Select the supported default before returning through RPC. WeakMap
+      // metadata is lost when Theia serializes the resolved configuration.
+      return { ...result, autoAttachChildProcesses: false };
+    });
+    wrapper.resolveDebugConfigurationWithSubstitutedVariables = (...args) => resolveOrCancel(async () => {
       const choice = childChoice(args[1]);
       const configuration = original ? await original.apply(provider, args) : args[1];
-      const result = await configure(configuration, choice); if (result && typeof result === 'object') childChoices.set(result, choice); return result;
-    };
+      return configure(configuration, choice);
+    });
     return register.call(this, type, wrapper, trigger);
   };
   const registerFactory = debug.registerDebugAdapterDescriptorFactory;
