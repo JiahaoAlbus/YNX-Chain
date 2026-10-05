@@ -1,3 +1,4 @@
+import { createChainReader } from '../../../services/chain-service/src/chain-reader.mjs';
 export type TaskResult = {
   protocolVersion: string;
   taskId: string;
@@ -550,30 +551,12 @@ async function chainFetch(path: string, options: RequestInit = {}) {
   }
   throw new Error("Workspace session could not be established.");
 }
-export async function loadChainStatus(): Promise<ChainStatus> {
-  return (await chainFetch("/status")).status;
-}
-export async function chainRpc(method: string, params: unknown[] = []) {
-  return (
-    await chainFetch("/rpc", {
-      method: "POST",
-      body: JSON.stringify({
-        protocolVersion: "ynx-code-chain/v1",
-        method,
-        params,
-      }),
-    })
-  ).result;
-}
-export function debugChainTransaction(hash: string) {
-  return chainFetch(`/transactions/${encodeURIComponent(hash)}`);
-}
-export function debugChainBlock(id: string) {
-  return chainFetch(`/blocks/${encodeURIComponent(id)}`);
-}
-export async function loadChainCompiler() {
-  return (await chainFetch("/compiler")).compiler;
-}
+const chainReader = createChainReader(chainFetch);
+export async function loadChainStatus(): Promise<ChainStatus> { return chainReader.status(); }
+export function chainRpc(method: string, params: unknown[] = []) { return chainReader.rpc(method, params); }
+export function debugChainTransaction(hash: string) { return chainReader.transaction(hash); }
+export function debugChainBlock(id: string) { return chainReader.block(id); }
+export function loadChainCompiler() { return chainReader.compiler(); }
 export type WalletReadiness = {
   protocolVersion: "ynx-code-wallet-readiness/v1";
   gateway: {
