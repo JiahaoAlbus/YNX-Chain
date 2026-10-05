@@ -219,3 +219,9 @@ YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源�
 完整包 DMG SHA256 59ae9a07ea8fcc2ae055c4f6991f25b6e5afb2eb389b2ace8eba13d511f036eb；源码 tree 6c9244085ea596993b13f58d778e80a60480245f。原 Logo、挂载资源、ad-hoc 签名通过，包内启动器/监督器与源码字节一致。完整包正常 GUI 手动发现、运行两项 Python 测试与准确源码跳转通过；首次自动发现、测试调试/覆盖率及 Cocoa/Finder 全流程仍未验收。
 
 测试树另有已定位的刷新状态缺陷：框架用原始 TestItem.id 查找旧节点，但实际节点索引是完整 controller/path ID，因此丢失展开状态。自有适配器按完整节点 ID 保留展开及选择，控制器重新生成也保留原状态；不强制展开用户折叠项。4 项基于已安装框架实际节点构建方法的范围/状态回归通过。此后源码尚未进入 51df 完整包。browser/node 构建通过；新干净组件正常 GUI 原生刷新按钮进入 Cancel Test Refresh 再返回 Refresh Tests，项目/文件/类仍保持展开，两项测试继续可见。core tree ea6d431419d99d451dffdd0380e23d4ae0342ad1a3a30f1486302fa1064b9fad，manifest 19603df8470ddbf0df88bb4f3cedc54bd48d7841aa63b3733a6c0658f9dc60de；证据目录 ynx-test-tree-state-verification-20261005。
+
+## 2b25b2412 完整包与测试运行提示
+
+完整 App/DMG 已生成，源码 2b25b2412125d0a88713477c554523484096ac4c；source tree 9c823043f8aa33e8c1eaa574573ae4b25287169c，DMG SHA256 046cc1e34160e7dd4e00a2e6532b9d66bdcd7fd11acaa7a0d5f7f968d5fae573。安装镜像、Logo、挂载资源和 ad-hoc 签名检查通过。含刷新展开修复的最新包 Cocoa/Finder/完整 GUI 尚未复验，见候选 SOURCE_BUILD_HANDOFF_20261005.md。
+
+后续源码修正 Test Runs 空状态：原文错误地说尚未发现测试，改为尚未运行测试及在 Test Explorer 运行后查看结果；中英文均注册自有语言键。非空结果继续调用原生显示。3 项实际本地化回归与 browser/node 构建通过；干净组件 GUI 实际显示新的空运行提示。core tree 263d1956d2d1d2752fc6fc3a88d5ad7dc0ec83f68104d7f7a91062299b834c66，manifest 3379cdf9eebf875fecf005de76ac891ed8272ab771a48741f7a5fe1b03b3bc3a；证据 ynx-test-run-empty-verification-20261005。此后源码不重标成上述 2b 完整包内容。

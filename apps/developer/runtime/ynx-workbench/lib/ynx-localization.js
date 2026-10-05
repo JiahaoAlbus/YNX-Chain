@@ -4,6 +4,7 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['noTestRuns', 'No test runs yet. Run a test from Test Explorer to see results here.', '尚未运行测试。请在测试资源管理器中运行测试，在此查看结果。'],
   ['openFolder', 'Open Folder…', '打开文件夹…'],
   ['returnToProject', 'Return to Open Project', '返回已打开的项目'],
   ['workspaceMismatch', 'This window is connected to a different project folder. Use Open Folder to open another project; changing the URL does not change the writable project.', '此窗口连接到了不同的项目文件夹。请使用“打开文件夹”打开其他项目；更改网址不会改变可写入的项目。'],
