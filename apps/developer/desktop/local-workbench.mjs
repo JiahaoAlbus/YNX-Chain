@@ -180,6 +180,7 @@ export async function prepareLocalPlugins({ runtime, context }) {
   return plugins;
 }
 
+export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
 export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
@@ -187,9 +188,9 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   if (!exact(lockHelper)) throw Error('The bundled local profile lock helper is required.');
   await regular(lockHelper);
   const version = (await exec(node, ['--version'], { timeout: 5000 })).stdout.trim();
-  if (!/^v26\./.test(version)) throw Error('The sealed workbench requires a bundled Node 26 runtime.');
+  if (!isSupportedLocalNodeVersion(version)) throw Error('The sealed macOS workbench requires an exact reviewed bundled Node runtime.');
   const runtime = await prepareLocalRuntime({ payload, supportRoot });
-  if (runtime.distribution.requiredNodeVersion && runtime.distribution.requiredNodeVersion.replace(/^v/, '') !== version.slice(1)) throw Error('Bundled Node version does not match the workbench build.');
+  if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
   const context = await localProjectContext({ supportRoot, projectDirectory });
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
