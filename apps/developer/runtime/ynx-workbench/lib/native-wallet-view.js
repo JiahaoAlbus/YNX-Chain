@@ -39,7 +39,7 @@ class NativeWalletWidget extends BaseWidget {
   renderState(state) {
     this.status.textContent = t(state.phase === 'guest' ? 'guestState' : state.phase);
     this.session.textContent = `${t(state.sessionCurrent ? 'session' : 'historical')}: ${t(EN['sdk-' + state.session.status] ? 'sdk-' + state.session.status : 'sdk-unknown')}${state.session.account ? ' · ' + state.session.account : ''}`;
-    this.detail.textContent = state.available === false ? t('unavailable') : ['dependency-missing', 'paused', 'error'].includes(state.phase) ? t('retryAction') : '';
+    this.detail.textContent = state.phase === 'error' ? t('operationFailed') : state.bridgeContract === 'check-failed' ? t('bridgeCheckFailed') : state.available === false ? t('bridgeMissing') : ['dependency-missing', 'paused'].includes(state.phase) ? t('retryAction') : state.available === true ? t('bridgePresent') : '';
     const configuration = { 'not-supplied': 'serviceMissing', paused: 'servicePaused', unverified: 'serviceUnverified', verified: 'serviceVerified' };
     this.source.textContent = t(configuration[state.serviceConfiguration] || 'serviceUnverified') + (state.source ? ` · ${state.source.gatewayOrigin}` : '');
     for (const key of ['connect', 'restore', 'disconnect']) this.buttons[key].disabled = state.busy || state.awaitingCallback;

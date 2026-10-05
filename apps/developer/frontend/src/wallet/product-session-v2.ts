@@ -123,12 +123,19 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
 }
 
 export async function inspectDeveloperWalletV2Runtime() {
+  // Passive inspection observes only the current document's native interface.
+  // Reading device() can touch an unprovisioned Keychain identity; constructing
+  // the SDK also probes installation. Neither belongs in a view's initial render.
   try {
-    const runtime = await createDeveloperWalletV2Runtime();
-    if (!runtime) throw new Error("A native OS-protected Developer Wallet device and storage bridge is required.");
-    const options = await runtime.connection.options();
-    return Object.freeze({ available: true, options, source: runtime.source });
-  } catch (error) { return unavailable(error); }
+    const bridge = developerWalletV2Bridge();
+    return Object.freeze({ available: Boolean(bridge), bridgeContract: bridge ? "present" : "missing", deviceStatus: "not-observed", authoritative: false,
+      requiresExplicitConnection: true, options: undefined as { availability?: { ynxWalletInstalled?: boolean } } | undefined,
+      source: DEVELOPER_WALLET_V2_SOURCE, reason: bridge ? undefined : "The native Wallet interface is unavailable in this document." });
+  } catch {
+    return Object.freeze({ available: false, bridgeContract: "check-failed", deviceStatus: "not-observed", authoritative: false,
+      requiresExplicitConnection: true, options: undefined as { availability?: { ynxWalletInstalled?: boolean } } | undefined,
+      source: DEVELOPER_WALLET_V2_SOURCE, reason: "The native Wallet interface could not be inspected." });
+  }
 }
 
 export async function enterDeveloperWalletV2Guest() {

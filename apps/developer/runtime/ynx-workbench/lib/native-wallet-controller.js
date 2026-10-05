@@ -20,8 +20,8 @@ class NativeWalletController {
   publish(patch) { if (!this.disposed) { this.state = Object.freeze({ ...this.state, ...patch, projectCapability: 'not-supplied' }); this.emit(this.state); } }
   async inspect() {
     const epoch = this.epoch;
-    try { const result = await this.api.inspectDeveloperWalletV2Runtime(); if (epoch === this.epoch) this.publish({ available: result.available, source: result.source, message: result.available ? 'Explicit connection is required. Existing sessions have not been restored.' : result.reason }); }
-    catch (error) { if (epoch === this.epoch) this.publish({ available: false, message: error.message }); }
+    try { const result = await this.api.inspectDeveloperWalletV2Runtime(); if (epoch === this.epoch) this.publish({ available: result.available, bridgeContract: result.bridgeContract, deviceStatus: 'not-observed', source: result.source, message: result.reason || '' }); }
+    catch (error) { if (epoch === this.epoch) this.publish({ available: false, bridgeContract: 'check-failed', deviceStatus: 'not-observed', message: error.message }); }
   }
   connect() { return this.run('connect'); }
   restore() { return this.run('restore'); }

@@ -116,9 +116,8 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   }, []);
   useEffect(() => {
     void inspectDeveloperWalletV2Runtime().then(result => {
-      if (!result.available) { setWalletV2State("Wallet Product Session v2 requires the native Developer Keychain bridge; browser sessions are not relabeled as secure."); return; }
-      const availability = result.options?.availability;
-      setWalletV2State(availability?.ynxWalletInstalled ? "Wallet Product Session v2 root factory is ready; YNX Wallet remains the preferred optional connection." : "YNX Wallet is not installed; use the official download or Guest / Try mode.");
+      if (!result.available) { setWalletV2State("The native Wallet interface is unavailable in this document. Local Guest development remains available."); return; }
+      setWalletV2State("The native Wallet interface is available. Device and Wallet installation status have not been checked; explicit connection approval is required.");
     }).catch(() => setWalletV2State("Wallet Product Session v2 is unavailable; no local session was substituted."));
   }, []);
   useEffect(() => {

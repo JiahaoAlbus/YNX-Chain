@@ -125,3 +125,39 @@ test('real retained SDK rejects caller endpoint/registry flags and unsupported n
  const config = Object.fromEntries(['registry', 'productId', 'platform', 'walletInstalled', 'schemeRegistered', 'gatewayTimeoutMs', 'storage', 'device', 'scope', 'discoveryWaitMs', 'openWallet', 'openTimeoutMs'].map(key => [key, undefined]));
  assert.throws(() => createProductWalletConnection({ ...config, endpoint: 'https://example.invalid' }), /fields|schema/i);
 });
+test('actual Cocoa Wallet script plus original TS-generated inspection does not call native, storage, availability or fetch', async () => {
+ const cocoa = await readFile(new URL('../../../desktop/macos/main.m', import.meta.url), 'utf8');
+ const scripts = [...cocoa.matchAll(/NSString\s*\*\s*(\w+)\s*=\s*@"((?:\\.|[^"\\])*)";/g)];
+ const native = scripts.find(match => match[2].includes("Object.defineProperty(window,'ynxDesktopWallet'")); assert.ok(native, 'Actual native root Wallet script must exist.');
+ const script = JSON.parse('"' + native[2] + '"'), target = new EventTarget(), messages = [];
+ target.webkit = { messageHandlers: { wallet: { postMessage: message => messages.push(message) } } };
+ vm.runInNewContext(script, { window: target, location: { pathname: '/' }, crypto: globalThis.crypto, addEventListener: target.addEventListener.bind(target), setTimeout, clearTimeout });
+ const previousWindow = globalThis.window, previousFetch = globalThis.fetch; let fetches = 0;
+ globalThis.window = target; globalThis.fetch = () => { ++fetches; throw Error('Passive inspection must never fetch.'); };
+ try {
+  const result = await actual.inspectDeveloperWalletV2Runtime();
+  assert.equal(result.available, true); assert.equal(result.bridgeContract, 'present'); assert.equal(result.deviceStatus, 'not-observed'); assert.equal(result.authoritative, false); assert.equal(result.options, undefined);
+  const controller = new NativeWalletController(actual); await controller.inspect(); assert.equal(controller.state.available, true); assert.equal(controller.state.bridgeContract, 'present'); assert.equal(controller.state.sessionCurrent, false);
+  await controller.connect(); assert.equal(controller.state.phase, 'dependency-missing'); await controller.dispose();
+  assert.deepEqual(messages, []); assert.equal(fetches, 0);
+ } finally { globalThis.window = previousWindow; globalThis.fetch = previousFetch; }
+});
+test('passive inspection distinguishes absent/invalid bridge from an unobserved device without invoking any capability', async () => {
+ const saved = globalThis.window; let calls = 0; const never = () => { ++calls; throw Error('No native calls permitted.'); };
+ try {
+  globalThis.window = new EventTarget(); let result = await actual.inspectDeveloperWalletV2Runtime(); assert.equal(result.available, false); assert.equal(result.bridgeContract, 'missing');
+  globalThis.window.ynxDesktopWallet = { openAuthorization: never, device: never, beginConnection: never, endConnection: never, walletAvailability: never, protectedStorage: { securityLevel: 'os-protected', get: never, set: never } };
+  result = await actual.inspectDeveloperWalletV2Runtime(); assert.equal(result.available, false); assert.equal(result.bridgeContract, 'missing');
+  globalThis.window.ynxDesktopWallet.protectedStorage.remove = never;
+  result = await actual.inspectDeveloperWalletV2Runtime(); assert.equal(result.available, true); assert.equal(result.deviceStatus, 'not-observed'); assert.equal(calls, 0);
+ } finally { globalThis.window = saved; }
+});
+test('real view rendering keeps bridge presence, unobserved device and explicit operation failure separate', async () => {
+ const source = await readFile(new URL('../../ynx-workbench/lib/native-wallet-view.js', import.meta.url), 'utf8'), module = { exports: {} };
+ vm.runInNewContext(source, { module, require: name => name === '@theia/core/lib/browser/widgets' ? { BaseWidget: class {} } : name === '@theia/core/lib/browser/common-menus' ? { CommonMenus: { VIEW_VIEWS: [] } } : name === '@theia/core/lib/common/nls' ? { nls: { localize: (_key, text) => text } } : name.endsWith('native-wallet-localization') ? require('../../ynx-workbench/lib/native-wallet-localization') : name.endsWith('native-wallet-controller') ? { NativeWalletController } : actual });
+ const widget = { status: {}, session: {}, detail: {}, source: {}, buttons: Object.fromEntries(['connect', 'restore', 'disconnect', 'returned', 'cancel', 'guest'].map(key => [key, {}])) };
+ const state = { phase: 'idle', available: true, bridgeContract: 'present', deviceStatus: 'not-observed', serviceConfiguration: 'not-supplied', session: { status: 'disconnected' } };
+ module.exports.NativeWalletWidget.prototype.renderState.call(widget, state); assert.match(widget.detail.textContent, /have not been checked/); assert.doesNotMatch(widget.detail.textContent, /unavailable/);
+ module.exports.NativeWalletWidget.prototype.renderState.call(widget, { ...state, phase: 'error', message: '/private/internal/keychain error' }); assert.match(widget.detail.textContent, /operation failed/); assert.doesNotMatch(widget.detail.textContent, /private|Keychain|interface is unavailable/);
+ module.exports.NativeWalletWidget.prototype.renderState.call(widget, { ...state, available: false, bridgeContract: 'missing' }); assert.match(widget.detail.textContent, /interface is unavailable/);
+});
