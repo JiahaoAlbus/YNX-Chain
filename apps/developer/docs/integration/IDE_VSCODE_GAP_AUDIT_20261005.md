@@ -233,3 +233,11 @@ YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源�
 正常第 6 行设置断点、通过 Test Explorer 的 Debug Test 启动 Python 调试；debugpy adapter 在 clients.serve -> socket.bind 报 PermissionError [Errno 1] Operation not permitted，随后调试连接关闭。未到断点暂停/变量/步进。当前网络隔离保持不变，没有开放端口或出站。另发现断开后测试运行仍显示 Running，正常 Cancel All Test Runs 未即时结束；后续要验证并修复测试取消令牌与失败清理，不能把调试器已注册当作调试通过。
 
 证据目录 ynx-auto-discovery-verification-20261005，包含 clean-reload.png、debug-failure.png、debug.log、restoration.json 与精确范围 verification.json。
+
+## 测试取消与结束清理源码修复
+
+实际已安装 TestControllerImpl.runTestsForUI 把 CancellationToken.None 传给 profile.runHandler，而 Python 插件监听的是这个 profile token；原生 Cancel All 只取消 TestRun.token，因而不能通知该插件结束运行。TestRun.end 同时没有触发已公开的 onDidEndEmitter，导致 activeRuns 清理监听器不执行。
+
+自有初始化适配器保留框架请求组装、测试选择、profile 和 preserveFocus，通过每个请求的兼容取消源通知插件；单次取消只通知匹配请求，取消全部覆盖尚未创建 TestRun 的异步请求。结束事件只触发一次并执行实际框架清理；原生 run token 提前触发 end 时仍能送达 profile 取消；异步 profile 未结束时保留取消监听。控制器销毁同时取消原生 run 与 profile 并释放请求。
+
+使用实际 TestControllerImpl、TestRun 和原生 CancellationTokenSource 的 6 项新增回归，加原 4 项令牌兼容回归，共 10 PASS、0 FAIL、0 SKIP。最终 browser/node 构建零错误；封存初始化文件与自有源码 cmp 一致。构建日志 /private/tmp/ynx-test-profile-cancellation-build-final-20261005.log。尚未用新封存组件做正常 Python GUI 取消复验，也未重建完整 App/DMG；不声称断点调试或失败自动清理已完成。既有 debugpy 端口拒绝与网络隔离保持不变。
