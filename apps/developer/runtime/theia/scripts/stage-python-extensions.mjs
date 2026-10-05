@@ -47,6 +47,19 @@ for (const [publisher, id, version, source] of [
   await regular(source); const digest = await composedTreeDigest(source), name = `${publisher}.${id}-${metadata.version}`, target = join(destination, name);
   await cp(source, target, { recursive: true, errorOnExist: true, force: false });
   if (await composedTreeDigest(target) !== digest || await composedTreeDigest(source) !== digest) throw Error('Installed component changed during copy.');
+  if (publisher === 'ms-python' && id === 'python') {
+    const runner = join(target, 'python_files/run-jedi-language-server.py'), bytes = await readFile(runner);
+    if (createHash('sha256').update(bytes).digest('hex') !== 'f203bf320e958c92c9e62e7f2d331b12d7a9a61b6e17dc648de7a203ba2493c5')
+      throw Error('Retained Jedi launcher changed.');
+    const text = bytes.toString('utf8'), anchor = 'from jedi_language_server.cli import cli  # noqa: E402';
+    if (text.split(anchor).length !== 2) throw Error('Unexpected Jedi launcher.');
+    await writeFile(join(target, 'python_files/run-jedi-language-server.upstream.py'), bytes, { flag: 'wx' });
+    await writeFile(runner, text.replace(anchor, anchor + '\n\n# YNX: cache stays inside the supervisor-selected project temporary directory.\nimport jedi\njedi.settings.cache_directory = os.path.join(os.environ["TMPDIR"], "ynx-jedi-cache")'));
+    await writeFile(join(target, 'YNX-JEDI-CACHE-ADAPTATION.json'), JSON.stringify({ upstreamSha256: createHash('sha256').update(bytes).digest('hex'),
+      derivedSha256: createHash('sha256').update(await readFile(runner)).digest('hex'),
+      modification: 'Only Jedi cache_directory uses the existing supervisor-provided project TMPDIR; original launcher retained.',
+      licensing: 'Original MIT license and component notices retained. No network or sandbox policy change.' }, null, 2) + '\n', { flag: 'wx' });
+  }
   if (publisher === 'vscode') {
     await cp(mitInput, join(target, 'MICROSOFT-MIT-NOTICE.txt'), { errorOnExist: true, force: false });
     await cp(join(app, 'ThirdPartyNotices.txt'), join(target, 'ThirdPartyNotices.txt'), { errorOnExist: true, force: false });
@@ -60,11 +73,11 @@ for (const [publisher, id, version, source] of [
   const bytes = await readFile(archive);
   receipts.push({ namespace: publisher, name: id, version: metadata.version, license: metadata.license, engines: metadata.engines,
     installedPayload: target, sourceTreeSha256: digest, payloadTreeSha256: await composedTreeDigest(target), bytes: bytes.length,
-    sha256: createHash('sha256').update(bytes).digest('hex'), source: 'Locally assembled VSIX from unchanged retained MIT extension; not a registry archive.',
+    sha256: createHash('sha256').update(bytes).digest('hex'), source: 'Locally assembled retained MIT extension; Python launcher has a declared project-cache adaptation; not a registry archive.',
     lifecycleScriptsExecuted: false, activationVerified: false, apiVersionRangeMatched: apiVersion });
 }
 await writeFile(join(destination, 'extension-inputs.json'), JSON.stringify(receipts, null, 2) + '\n', { flag: 'wx' });
 await writeFile(join(destination, 'python-scope.json'), JSON.stringify({ included: ['vscode.python', 'ms-python.python', 'ms-python.debugpy'], excluded: ['ms-python.vscode-pylance', 'ms-python.vscode-python-envs'],
-  policy: 'No downloads, lifecycle execution, extension modification, API-version spoofing or network isolation changes.',
+  policy: 'No downloads, lifecycle execution, API-version spoofing or network isolation changes. Python Jedi cache adaptation is declared and retains original launcher.',
   acceptance: 'Engine range and byte copy only; runtime activation, language service and debugging require separate real-flow evidence.' }, null, 2) + '\n');
 console.log(JSON.stringify(receipts.slice(-3)));
