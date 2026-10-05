@@ -247,3 +247,11 @@ YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源�
 上述源码已封存为新组件，tree 2bc69baaf9e42a564b21f7986e7c51c7dcfe51e0377439dc323ebc463d1ee9ca，manifest b4194f5f6d231edec189294c64e4aed768fcb957e0aaeda43afd58e10dd14f0b，payload 归档往返核验通过。使用保留 2b 完整包的 Node/lock helper 和当前监督器，在独立项目正常启动。明确选择 CLT 解释器并重载后自动发现项目；正常 unittest 两项通过。随后可见 Debug Test 图标启动真实 debugpy，socket.bind 仍被拒绝；原生 Cancel All Test Runs 后 Python 输出 Test run cancelled ... waiting for result pipe to drain，原旋转的运行图标结束。取消的调试运行没有通过/失败结果，不计为测试成功。运行名称仍是插件提供的 Running Tests for Workspace(s)，结束状态与该静态名称分开判定。
 
 本次另暴露首次配置问题：虽默认设置和列表显示 CLT 解释器，首次输出实际调用 /usr/bin/python3 安装入口并报告无效解释器。正常手工 Enter interpreter path 输入 CLT 路径、重载后状态栏和 discovery 输出恢复正确；不是已修复的首次配置体验。组件封存、截图、服务器日志与精确范围位于 ynx-test-profile-cancel-verification-1c44921f3-20261005。没有重建完整 App/DMG，不替代 Cocoa/Finder 验收，也没有开放调试端口或改变网络隔离。
+
+### 全新 profile 的首次发现对照
+
+相同 1c44921f3 组件、相同生产隔离，在新项目 ceJQW6 和新 profile 929a2fe2... 启动；仅复制项目配置及 Python 文件，未复制 global/workspace 插件状态。正常信任项目、打开 test_wallet.py，等待 Python 激活后，状态栏自动显示 CLT Python 3.9.6，未调用解释器选择命令，也未重载。首次 Test Explorer 根节点确实展开（DOM 不含 theia-mod-collapsed），但没有项目；正常 Refresh Tests 进入 Cancel Test Refresh 再返回 Refresh Tests，随后项目节点出现。
+
+这证明“必须手工输入路径并重载”不是所有全新 profile 的必然要求；前一次恢复路径只能证明该序列有效，不能证明重载必要性或解释器配置的稳定根因。仍可复现的缺口是首次自动测试发现未完成。实际框架 TestControllerImpl.update 在首次 canResolve 更新时立即触发根级 resolve，且只触发一次；Python 测试构造器注册 resolveHandler，activateLegacyWorkspace 则在后续 activate 才建立适配器。初始化/解释器时序是下一步诊断方向，尚未用实际调用日志确认，不据此宣称根因已修复。
+
+截图 /private/tmp/ynx-python-first-discovery-refresh-20261005.png；运行收据 /private/tmp/ynx-python-first-selection-ui-runtime-20261005.json，服务器日志位于独立测试根 server.log。新项目保留运行，不重启旧项目，不改变隔离。此为有预置项目配置的新 profile，不替代无设置项目配置向导的全量首次流程。
