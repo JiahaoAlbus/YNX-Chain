@@ -1,5 +1,6 @@
 #include <libproc.h>
 #include <sys/proc_info.h>
+#include <sys/proc.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
@@ -29,11 +30,14 @@ static int deepest_first(const void *left, const void *right) {
 }
 int main(int argc, char **argv) {
   int children_only = argc == 3 && strcmp(argv[2], "--children") == 0;
-  if (argc != 2 && !children_only) return 64;
+  int force = argc == 3 && strcmp(argv[2], "--force") == 0;
+  if (argc != 2 && !children_only && !force) return 64;
+  int termination_signal = SIGTERM;
   char *end = NULL; long requested = strtol(argv[1], &end, 10);
   if (!end || *end || requested <= 1 || requested > 2147483647) return 64;
   pid_t root = (pid_t)requested, owner = getppid();
-  struct proc_bsdinfo original;
+  struct proc_bsdinfo original, owning;
+  if (!info(owner, &owning) || owning.pbi_uid != getuid()) return 77;
   if (!info(root, &original)) {
     // libproc does not reliably set ESRCH for an already-reaped process. The
     // separate signal-0 probe confirms absence; a live/inaccessible PID still
@@ -65,14 +69,51 @@ int main(int argc, char **argv) {
   for (int index = 0; index < accepted; index++) {
     struct child_record child = children[index]; struct proc_bsdinfo current;
     if (info(child.pid, &current) && child.started.pbi_start_tvsec == current.pbi_start_tvsec &&
-        child.started.pbi_start_tvusec == current.pbi_start_tvusec && descendant(child.pid, root)) kill(child.pid, SIGTERM);
+        child.started.pbi_start_tvusec == current.pbi_start_tvusec && descendant(child.pid, root)) kill(child.pid, termination_signal);
+  }
+  if (force) {
+    // Retain the original authorized set across TERM: an intermediate parent
+    // can exit and reparent its detached worker before the escalation. The
+    // root has not been signalled by this helper; disappearance is allowed,
+    // reuse or loss of the still-live owning backend identity is refused.
+    usleep(300000);
+    struct proc_bsdinfo guard, owning_now;
+    int root_present = info(root, &guard);
+    if (getppid() != owner || !info(owner, &owning_now) || owning_now.pbi_uid != getuid() ||
+        owning_now.pbi_start_tvsec != owning.pbi_start_tvsec || owning_now.pbi_start_tvusec != owning.pbi_start_tvusec ||
+        (root_present ? guard.pbi_uid != getuid() || guard.pbi_start_tvsec != original.pbi_start_tvsec ||
+          guard.pbi_start_tvusec != original.pbi_start_tvusec || !descendant(root, owner) : !(kill(root, 0) < 0 && errno == ESRCH))) {
+      free(children); fputs("cleanup owner/root identity changed\n", stderr); return 1;
+    }
+    // The root may have exited in response to its children's TERM. Only this
+    // invocation's captured UID/start-time records remain eligible; no new
+    // enumeration or historical session PID is accepted after reparenting.
+    for (int index = 0; index < accepted; index++) {
+      struct child_record child = children[index]; struct proc_bsdinfo now;
+      if (info(child.pid, &now) && now.pbi_uid == getuid() && now.pbi_start_tvsec == child.started.pbi_start_tvsec &&
+          now.pbi_start_tvusec == child.started.pbi_start_tvusec && now.pbi_status != SZOMB) {
+        if (kill(child.pid, SIGKILL) < 0 && errno != ESRCH) { free(children); return 1; }
+      }
+    }
+    for (int attempt = 0; attempt < 100; attempt++) {
+      int live = 0;
+      for (int index = 0; index < accepted; index++) {
+        struct child_record child = children[index]; struct proc_bsdinfo now;
+        if (info(child.pid, &now) && now.pbi_uid == getuid() && now.pbi_start_tvsec == child.started.pbi_start_tvsec &&
+            now.pbi_start_tvusec == child.started.pbi_start_tvusec && now.pbi_status != SZOMB) live++;
+      }
+      if (!live) break;
+      if (attempt == 99) { free(children); fputs("cleanup child exit unverified\n", stderr); return 1; }
+      usleep(20000);
+    }
+    termination_signal = SIGKILL;
   }
   free(children);
   struct proc_bsdinfo current;
   if (!children_only && info(root, &current) && original.pbi_start_tvsec == current.pbi_start_tvsec &&
       original.pbi_start_tvusec == current.pbi_start_tvusec && descendant(root, owner)) {
-    if (group == root) kill(-root, SIGTERM);
-    kill(root, SIGTERM);
+    if (group == root) kill(-root, termination_signal);
+    kill(root, termination_signal);
   }
   return 0;
 }

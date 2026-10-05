@@ -199,7 +199,7 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
           const failures = [];
           try {
             for (const pid of [terminal?.pid, child?.pid].filter(Boolean)) {
-              try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(pid)], { timeout: cleanupTimeoutMs }); }
+              try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(pid), '--force'], { timeout: cleanupTimeoutMs }); }
               catch (error) { failures.push(new Error('Debug descendant cleanup could not be verified', { cause: error })); }
             }
             try { if (terminal && !terminalEnded) terminal.kill(); } catch (error) { failures.push(error); }

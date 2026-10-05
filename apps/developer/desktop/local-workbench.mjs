@@ -7,6 +7,7 @@ import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createLocalIpcSession, localIpcRoot } from './local-workbench-ipc.mjs';
 import { createDebugSessionSupervisor } from './local-debug-session.mjs';
+import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -79,13 +80,14 @@ export async function prepareLocalGitConfig(context) {
   if (stat.uid !== process.getuid() || stat.nlink !== 1 || (stat.mode & 0o777) !== 0o600) throw Error('Local Git configuration is not a private regular file. Existing configuration was retained.');
   return path;
 }
-export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor }) {
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor }) {
   const temporary = context.ipcTemporary || context.temporary;
   return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
+    ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
     ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot } : {}) };
 }
 export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities = [] }) {
@@ -214,7 +216,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const context = await localProjectContext({ supportRoot, projectDirectory });
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
-  let debugSupervisor;
+  let debugSupervisor, jsDebugSupervisor;
   try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
@@ -228,11 +230,12 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities });
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
     pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) });
+  jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor }),
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
@@ -240,12 +243,14 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const stop = () => stopping ||= (async () => { let cleanupError; if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
     // verifies OS UID, ancestry and process start time before signalling them.
-    try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid)], { timeout: 5000 }); } catch (error) { cleanupError = error; }
-    try { process.kill(-child.pid, 'SIGTERM'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
-    const timer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 2500); try { await exited; } finally { clearTimeout(timer); } }
-    // Also terminate any surviving descendants after backend exit.
-    try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
-    await debugSupervisor.stop();
+    try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--force'], { timeout: 5000 }); } catch (error) { cleanupError = error; }
+    try { await Promise.race([exited, new Promise((_, reject) => setTimeout(() => reject(Error('Local backend exit was not verified')), 5000).unref())]); }
+    catch (error) { cleanupError ||= error; } }
+    // The single native cleanup already owns TERM/escalation and identity
+    // checks. Never signal a historical process-group number after exit.
+    const debugResults = await Promise.allSettled([debugSupervisor.stop(), jsDebugSupervisor.stop()]);
+    const debugErrors = debugResults.filter(result => result.status === 'rejected').map(result => result.reason);
+    if (debugErrors.length) throw new AggregateError(debugErrors, 'Local debug session cleanup could not be verified.');
     if (cleanupError) throw Error('Local child cleanup could not be verified. Runtime state was retained.', { cause: cleanupError });
     if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
   })();
@@ -269,7 +274,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   } catch (error) {
     // Setup failures precede spawn, or the inner stop has already confirmed
     // exit. Unknown in-flight launch residue is deliberately retained.
-    try { await debugSupervisor?.stop(); await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
+    try { const results = await Promise.allSettled([debugSupervisor?.stop(), jsDebugSupervisor?.stop()]); const failures = results.filter(result => result.status === 'rejected').map(result => result.reason); if (failures.length) throw new AggregateError(failures, 'Local debug setup cleanup failed'); await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
     throw error;
   }
 }

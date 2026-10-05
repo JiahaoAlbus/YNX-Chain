@@ -150,6 +150,90 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
     });
   };
 };
+const localJsApis = new WeakSet();
+exports.adaptLocalJsDebugging = (api, environment = process.env) => {
+  const debug = api.debug;
+  if (environment.YNX_WORKSPACE_MODE !== 'local' || !environment.YNX_JS_DEBUG_SOCKET ||
+      !/^[a-f0-9]{64}$/.test(environment.YNX_JS_DEBUG_CREDENTIAL || '') ||
+      environment.YNX_JS_DEBUG_PROJECT !== environment.YNX_LOCAL_PROJECT_ID ||
+      !environment.YNX_JS_DEBUG_LAUNCHER || !environment.YNX_JS_DEBUG_NODE ||
+      Object.keys(environment).some(key => key.startsWith('YNX_CORE_')) ||
+      !debug?.registerDebugConfigurationProvider || localJsApis.has(debug)) return;
+  localJsApis.add(debug);
+  const launches = new Map(), pendingCleanup = new Set(), cleanupErrors = [], register = debug.registerDebugConfigurationProvider;
+  const request = message => new Promise((ok, bad) => {
+    const socket = require('node:net').connect(environment.YNX_JS_DEBUG_SOCKET); socket.setEncoding('utf8'); let buffer = '', settled = false;
+    const timer = setTimeout(() => { socket.destroy(); bad(Error('Local JavaScript supervisor did not admit this launch')); }, 5000);
+    const done = (error, value) => { if (settled) return; settled = true; clearTimeout(timer); socket.end(); error ? bad(error) : ok(value); };
+    socket.once('connect', () => socket.write(JSON.stringify({ ...message, credential: environment.YNX_JS_DEBUG_CREDENTIAL, projectId: environment.YNX_LOCAL_PROJECT_ID }) + '\n'));
+    socket.on('error', error => done(error)); socket.on('close', () => done(Error('Local JavaScript supervisor closed before admission')));
+    socket.on('data', data => { buffer += data; if (Buffer.byteLength(buffer) > 65536) return done(Error('Invalid JavaScript admission response')); const end = buffer.indexOf('\n'); if (end < 0) return; try { const value = JSON.parse(buffer.slice(0, end)); done(value.kind === 'error' ? Error(value.message) : undefined, value); } catch (error) { done(error); } });
+  });
+  function release(id) {
+    const record = launches.get(id); if (!record) return;
+    clearTimeout(record.timer); launches.delete(id);
+    const task = request({ op: 'cancel', launchId: id }); pendingCleanup.add(task);
+    task.then(() => pendingCleanup.delete(task), error => { pendingCleanup.delete(task); cleanupErrors.push(error); }); return task;
+  }
+  const childChoices = new WeakMap(); let singleTargetNotice = false;
+  const childChoice = configuration => childChoices.get(configuration) || { explicit: Object.prototype.hasOwnProperty.call(configuration || {}, 'autoAttachChildProcesses'), value: configuration?.autoAttachChildProcesses };
+  async function configure(configuration, choice) {
+    if (!configuration || configuration.request !== 'launch' || configuration.__pendingTargetId) return configuration;
+    if (configuration.__ynxJsLaunch) { if (!launches.has(configuration.__ynxJsLaunch)) throw Error('Unknown local JavaScript launch correlation'); return configuration; }
+    const runtime = configuration.runtimeExecutable;
+    if (runtime && runtime !== 'node' && runtime !== environment.YNX_JS_DEBUG_NODE) throw Error('Select the bundled Node runtime for supervised local JavaScript debugging. Custom runtime configuration was retained.');
+    if (configuration.runtimeArgs && (!Array.isArray(configuration.runtimeArgs) || configuration.runtimeArgs.some(value => typeof value !== 'string'))) throw Error('Invalid JavaScript runtime arguments');
+    if (choice.explicit && choice.value !== undefined && typeof choice.value !== 'boolean') throw Error('Invalid explicit child-process debugging configuration');
+    if (choice.explicit && choice.value === true) throw Error('Child-process debugging requires separate supervised endpoints; use a single Node launch in this local profile.');
+    if (!choice.explicit && configuration.autoAttachChildProcesses === true && !singleTargetNotice) {
+      if (!api.window?.showInformationMessage) throw Error('This local launch supports one Node process. Choose autoAttachChildProcesses: false explicitly to proceed.');
+      await api.window.showInformationMessage('Local JavaScript debugging currently supports one Node process. Child-process debugging remains unavailable in this profile.'); singleTargetNotice = true;
+    }
+    if (launches.size >= 8) throw Error('Too many local JavaScript launches are pending. End a current session and retry.');
+    const prepared = await request({ op: 'prepare', console: configuration.console || 'internalConsole', noDebug: configuration.noDebug === true, program: configuration.program, cwd: configuration.cwd });
+    if (prepared.kind !== 'prepared' || !/^[a-f0-9-]{36}$/.test(prepared.launchId || '')) throw Error('Invalid JavaScript launch admission');
+    const timer = setTimeout(() => { release(prepared.launchId)?.catch(error => console.error('JavaScript launch expiry:', error)); }, 30000); timer.unref?.();
+    launches.set(prepared.launchId, { timer });
+    const mapping = prepared.sourceMapping;
+    if (mapping && (configuration.localRoot || configuration.remoteRoot) && (configuration.localRoot !== mapping.localRoot || configuration.remoteRoot !== mapping.remoteRoot)) { await release(prepared.launchId); throw Error('Existing localRoot/remoteRoot conflicts with this verified local project alias. Configuration was retained.'); }
+    return { ...configuration, ...(!configuration.localRoot && !configuration.remoteRoot && mapping ? mapping : {}), runtimeExecutable: environment.YNX_JS_DEBUG_LAUNCHER, autoAttachChildProcesses: false, __ynxJsLaunch: prepared.launchId,
+      env: { ...(configuration.env || {}), YNX_JS_DEBUG_SOCKET: environment.YNX_JS_DEBUG_SOCKET, YNX_JS_DEBUG_CREDENTIAL: environment.YNX_JS_DEBUG_CREDENTIAL,
+        YNX_JS_DEBUG_LAUNCH: prepared.launchId, YNX_LOCAL_PROJECT_ID: environment.YNX_LOCAL_PROJECT_ID, YNX_WORKSPACE_MODE: 'local' } };
+  }
+  debug.registerDebugConfigurationProvider = function (type, provider, trigger) {
+    if (!['node', 'pwa-node'].includes(type)) return register.call(this, type, provider, trigger);
+    const original = provider.resolveDebugConfigurationWithSubstitutedVariables;
+    const wrapper = Object.create(provider);
+    if (provider.resolveDebugConfiguration) wrapper.resolveDebugConfiguration = async (...args) => { const choice = childChoice(args[1]); const result = await provider.resolveDebugConfiguration.apply(provider, args); if (result && typeof result === 'object') childChoices.set(result, choice); return result; };
+    wrapper.resolveDebugConfigurationWithSubstitutedVariables = async (...args) => {
+      const choice = childChoice(args[1]);
+      const configuration = original ? await original.apply(provider, args) : args[1];
+      const result = await configure(configuration, choice); if (result && typeof result === 'object') childChoices.set(result, choice); return result;
+    };
+    return register.call(this, type, wrapper, trigger);
+  };
+  const registerFactory = debug.registerDebugAdapterDescriptorFactory;
+  if (registerFactory) debug.registerDebugAdapterDescriptorFactory = function (type, factory) {
+    if (!['node', 'pwa-node'].includes(type)) return registerFactory.call(this, type, factory);
+    const wrapper = Object.create(factory);
+    wrapper.createDebugAdapterDescriptor = async (...args) => {
+      try { return await factory.createDebugAdapterDescriptor.apply(factory, args); }
+      catch (error) { await release(args[0]?.configuration?.__ynxJsLaunch)?.catch(cleanup => console.error('JavaScript descriptor cleanup:', cleanup)); throw error; }
+    };
+    return registerFactory.call(this, type, wrapper);
+  };
+  debug.onDidStartDebugSession?.(session => {
+    const record = launches.get(session.configuration?.__ynxJsLaunch);
+    if (record) clearTimeout(record.timer);
+  });
+  debug.onDidTerminateDebugSession?.(session => {
+    release(session.configuration?.__ynxJsLaunch)?.catch(error => console.error('JavaScript debug cleanup:', error));
+  });
+  return {
+    async whenIdle() { while (pendingCleanup.size) await Promise.allSettled([...pendingCleanup]); if (cleanupErrors.length) throw new AggregateError(cleanupErrors.splice(0), 'Local JavaScript debug cleanup failed'); },
+    async dispose() { for (const id of [...launches.keys()]) release(id); await this.whenIdle(); }
+  };
+};
 let debugRequestId = 0;
 function adaptTestDebugging(debug) {
   if (!debug?.registerDebugAdapterTrackerFactory || debugApis.has(debug)) return;
@@ -365,6 +449,7 @@ exports.adaptApi = api => {
   }
   api.CancellationTokenSource = CompatibleSource;
   exports.adaptLocalDebugging(api);
+  exports.adaptLocalJsDebugging(api);
   adaptTestDebugging(api.debug);
   if (api.tests && !testApis.has(api.tests)) {
     testApis.add(api.tests);

@@ -2,7 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-const helper = fileURLToPath(new URL('../lib/backend/ynx-process-tree', import.meta.url));
+import { mkdtempSync } from 'node:fs';
+import { join } from 'node:path';
+const directory = process.platform==='darwin' ? mkdtempSync('/private/tmp/ynx-process-helper-current-') : '';
+const helper = join(directory,'ynx-process-tree');
+if(process.platform==='darwin'){const result=spawnSync('/Library/Developer/CommandLineTools/usr/bin/clang',['-isysroot','/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk',fileURLToPath(new URL('../../ynx-workbench/native/process-tree.c',import.meta.url)),'-o',helper],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);}
 const exists = pid => { try { process.kill(pid, 0); return true; } catch (error) { if (error.code === 'ESRCH') return false; throw error; } };
 test('real native cleanup refuses parent/current-owner targets and terminates an owned child tree', { skip: process.platform !== 'darwin' }, async () => {
   for (const pid of [process.pid, process.ppid]) {
@@ -33,4 +37,21 @@ test('already reaped owned child cleanup is idempotent without weakening live-ow
   const result = spawnSync(helper, [String(child.pid)], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.ok(exists(process.pid));
+});
+
+test('force keeps actual owner/foreign guards and reaps a live owned group ignoring TERM', {skip:process.platform!=='darwin'},async()=>{
+ for(const pid of [process.pid,process.ppid]){const result=spawnSync(helper,[String(pid),'--force'],{encoding:'utf8'});assert.equal(result.status,77,result.stderr);assert.ok(exists(pid));}
+ const code=`const cp=require('node:child_process');process.on('SIGTERM',()=>{});const child=cp.spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{stdio:'ignore'});setTimeout(()=>process.send(child.pid),100);setInterval(()=>{},1000);`;
+ const child=spawn(process.execPath,['-e',code],{detached:true,stdio:['ignore','ignore','ignore','ipc']});const closed=new Promise(ok=>child.once('exit',ok));const grandchild=await new Promise(ok=>child.once('message',ok));
+ try{assert.equal(spawnSync(helper,[String(child.pid)],{encoding:'utf8'}).status,0);await new Promise(ok=>setTimeout(ok,100));assert.ok(exists(child.pid));assert.ok(exists(grandchild));const result=spawnSync(helper,[String(child.pid),'--force'],{encoding:'utf8'});assert.equal(result.status,0,result.stderr);await closed;for(let i=0;i<100&&exists(grandchild);i++)await new Promise(ok=>setTimeout(ok,20));assert.equal(exists(grandchild),false);assert.ok(exists(process.pid));}
+ finally{if(exists(child.pid))process.kill(-child.pid,'SIGKILL');}
+});
+
+test('one force snapshot reaps a detached TERM-resistant worker after its intermediate parent exits', {skip:process.platform!=='darwin'},async()=>{
+ const workerCode="process.on('SIGTERM',()=>{});process.send('ready');setInterval(()=>{},1000);";
+ const mainCode=`const cp=require('node:child_process');const worker=cp.spawn(process.execPath,['-e',${JSON.stringify(workerCode)}],{detached:true,stdio:['ignore','ignore','ignore','ipc']});worker.once('message',()=>process.send(worker.pid));setInterval(()=>{},1000);`;
+ const code=`const cp=require('node:child_process');process.on('SIGTERM',()=>{});const child=cp.spawn(process.execPath,['-e',${JSON.stringify(mainCode)}],{stdio:['ignore','ignore','ignore','ipc']});child.once('message',pid=>process.send(pid));setInterval(()=>{},1000);`;
+ const root=spawn(process.execPath,['-e',code],{detached:true,stdio:['ignore','ignore','ignore','ipc']});const closed=new Promise(ok=>root.once('exit',ok));const worker=await new Promise((ok,bad)=>{root.once('message',ok);root.once('error',bad);root.once('exit',()=>bad(Error('Fixture exited before worker ready')));});
+ try{const result=spawnSync(helper,[String(root.pid),'--force'],{encoding:'utf8',timeout:5000});assert.equal(result.status,0,result.stderr);await closed;for(let i=0;i<100&&exists(worker);i++)await new Promise(ok=>setTimeout(ok,20));assert.equal(exists(worker),false);assert.ok(exists(process.pid));}
+ finally{if(exists(root.pid))process.kill(-root.pid,'SIGKILL');if(exists(worker))process.kill(worker,'SIGKILL');}
 });
