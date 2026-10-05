@@ -10,6 +10,15 @@
 #import <stdlib.h>
 #import <CoreServices/CoreServices.h>
 #import "ynx-wallet-device-bridge.h"
+#import "ynx-native-trash-broker.h"
+#import <CommonCrypto/CommonDigest.h>
+
+static NSString *YNXTrashExpectedProfile(NSString *support,NSString *workspace) {
+    NSData *bytes=[workspace dataUsingEncoding:NSUTF8StringEncoding];unsigned char digest[CC_SHA256_DIGEST_LENGTH];CC_SHA256(bytes.bytes,(CC_LONG)bytes.length,digest);NSMutableString *hex=[NSMutableString new];for(NSUInteger i=0;i<sizeof(digest);i++)[hex appendFormat:@"%02x",digest[i]];return [[support stringByAppendingPathComponent:@"local-projects"] stringByAppendingPathComponent:[hex stringByAppendingString:@"/profile"]];
+}
+static BOOL YNXTrashBoundReceipt(id receipt,NSString *support,NSString *workspace,NSString *projectID) {
+    return [receipt isKindOfClass:NSDictionary.class]&&[receipt count]==4&&[receipt[@"workspace"] isEqual:workspace]&&[receipt[@"profile"] isEqual:YNXTrashExpectedProfile(support,workspace)]&&[receipt[@"projectId"] isKindOfClass:NSString.class]&&[[NSUUID alloc]initWithUUIDString:receipt[@"projectId"]]&&(!projectID||[receipt[@"projectId"] isEqual:projectID]);
+}
 
 static NSString *YNXCanonicalLocalDirectory(NSString *path) {
     if(![path isKindOfClass:NSString.class]||!path.isAbsolutePath)return nil;
@@ -602,6 +611,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,strong) NSAlert *localWalletConsent;
 @property(nonatomic) NSUInteger localWalletGeneration;
 @property(nonatomic,strong) NSMutableArray<NSURL *> *pendingNativeWalletURLs;
+@property(nonatomic,strong) YNXNativeTrashRequest *localTrashBoundary;
+@property(nonatomic,strong) NSAlert *localTrashConsent;
+@property(nonatomic,copy) NSString *localTrashRequestID;
+@property(nonatomic,copy) NSString *localTrashBindingID;
 @end
 
 @implementation YNXAppDelegate
@@ -628,6 +641,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _localSupportRoot=environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]?:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/YNXDeveloper"];
     NSString *explicit=environment[@"YNX_LOCAL_WORKSPACE"];
     _localWorkspace=YNXSelectedLocalWorkspace(explicit,_localSupportRoot);
+    NSString *trashRoot=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+    NSString *trashProfile=YNXTrashExpectedProfile(_localSupportRoot,trashRoot);
+    _localTrashBoundary=[YNXNativeTrashRequest bindRoot:trashRoot excluded:@[trashProfile,[trashProfile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"],@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]] error:nil];
     _recordSelectedWorkspace=explicit&&[environment[@"YNX_LOCAL_WORKSPACE_SELECTION"] isEqual:@"native-panel"];
     _port=YNXAvailablePort();
     [self installLocalMenus];
@@ -639,6 +655,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
     NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    NSString *trashScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeTrashReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.ok?j.resolve():j.reject(Object.assign(new Error(r.error||'Move to Trash failed.'),{cancelled:r.cancelled===true,recoveryPath:r.recoveryPath}));}});Object.defineProperty(window,'ynxDesktopTrash',{value:Object.freeze({trash(relativePath){return new Promise((resolve,reject)=>{if(typeof relativePath!=='string'||jobs.size>=32){reject(new Error('Invalid or excessive native Trash requests.'));return;}const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'trash',requestId,relativePath});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Native Trash document closed.'));jobs.clear();},{once:true});})();";
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(trashScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(localWalletReturnReady:) name:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:_localWalletBridge.instanceID] object:nil];
     NSArray<NSURL *> *pendingWalletURLs=[_pendingNativeWalletURLs copy];_pendingNativeWalletURLs=nil;
     for(NSURL *callback in pendingWalletURLs){NSString *owner=[_localWalletBridge routeCallback:callback.absoluteString];if(owner)[NSDistributedNotificationCenter.defaultCenter postNotificationName:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:owner] object:nil userInfo:nil deliverImmediately:YES];}
@@ -689,12 +707,12 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
     // content can appear before its navigation finishes.
-    if(_localWorkbenchMode&&view==_webView&&YNXLocalEditorDocumentURL(view.URL,_port))_localEditorDocumentLoaded=YES;
+    if(_localWorkbenchMode&&view==_webView&&YNXLocalEditorDocumentURL(view.URL,_port)){_localEditorDocumentLoaded=YES;[self captureLocalTrashBoundary];}
 }
 - (void)installLocalMenus {
     NSMenu *main=[NSMenu new];NSApp.mainMenu=main;
@@ -1101,6 +1119,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=[NSString stringWithFormat:@"Version: %@\nPackaged source: %@\n%@Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.",NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"]?:@"unverified",YNXPackagedSource(),NSProcessInfo.processInfo.environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"].length?@"QA profile — not the normal user profile.\n":@""];[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
+    if(_localWorkbenchMode)[self cancelLocalTrashConsent];
     if(_localWorkbenchMode){
         if(YNXLocalStartupFailureMayExit(_localStartupFailed,_localEditorDocumentLoaded))return NSTerminateNow;
         if(_localCloseRequest)return NSTerminateCancel;
@@ -1123,6 +1142,52 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }];
     return NSTerminateLater;
 }
+- (NSDictionary *)localTrashAdmittedBinding {
+    if(!_localWorkbenchMode||!_localReadyComplete||!_server.running||![self localReadinessReceiptMatched])return nil;
+    int fd=open(_serverLogURL.fileSystemRepresentation,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(fd<0)return nil;struct stat st;
+    BOOL valid=fstat(fd,&st)==0&&S_ISREG(st.st_mode)&&st.st_uid==getuid()&&st.st_nlink==1&&(st.st_mode&0077)==0;
+    NSMutableData *data=[NSMutableData dataWithLength:1024*1024];ssize_t length=valid?pread(fd,data.mutableBytes,data.length,0):-1;close(fd);if(length<=0)return nil;data.length=(NSUInteger)length;
+    NSString *text=[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    for(NSString *line in [text componentsSeparatedByString:@"\n"]){NSString *prefix=@"YNX_LOCAL_WORKBENCH ";if(![line hasPrefix:prefix]||line.length>16384)continue;
+        id receipt=[NSJSONSerialization JSONObjectWithData:[[line substringFromIndex:prefix.length]dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
+        if(![receipt isKindOfClass:NSDictionary.class])continue;NSString *workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+        if(YNXTrashBoundReceipt(receipt,_localSupportRoot,workspace,_localTrashBindingID)&&YNXCanonicalLocalDirectory(workspace)&&YNXMatchingLocalReadyReceipt(receipt,_localSupportRoot,workspace,YNXOrigin(_port)))return receipt;
+    }return nil;
+}
+- (void)captureLocalTrashBoundary {
+    // Capture admitted root/ancestor descriptors once, before the editor can
+    // issue a request. Reload never re-admits a replaced project pathname.
+    if(_localTrashBindingID)return;NSDictionary *binding=[self localTrashAdmittedBinding];if(!binding)return;
+    _localTrashBindingID=[binding[@"projectId"] copy];NSString *profile=binding[@"profile"],*temporary=[profile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"];
+    if(!_localTrashBoundary)_localTrashBoundary=[YNXNativeTrashRequest bindRoot:binding[@"workspace"] excluded:@[profile,temporary,@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]] error:nil];
+}
+- (void)cancelLocalTrashConsent {
+    if(_localTrashConsent){NSAlert *alert=_localTrashConsent;NSString *identifier=_localTrashRequestID;if(identifier&&_localCommandDocumentReady&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self localTrashReply:identifier error:YNXTrashError(5,@"Move to Trash was cancelled.") recovery:nil];_localTrashConsent=nil;_localTrashRequestID=nil;[_window endSheet:alert.window returnCode:NSModalResponseCancel];}
+}
+- (void)localTrashReply:(NSString *)identifier error:(NSError *)error recovery:(NSString *)recovery {
+    NSMutableDictionary *reply=[@{@"requestId":identifier,@"ok":@(!error),@"cancelled":@(error.code==5&&[error.domain isEqual:@"YNXNativeTrash"])} mutableCopy];
+    if(error)reply[@"error"]=error.localizedDescription.length>160?[error.localizedDescription substringToIndex:160]:error.localizedDescription;
+    if(recovery)reply[@"recoveryPath"]=recovery;
+    YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxNativeTrashReply)window.__ynxNativeTrashReply(%@);",YNXJSON(reply)]);
+}
+- (void)handleLocalTrashMessage:(NSDictionary *)body {
+    if(!YNXTrashPayload(body))return;NSString *identifier=body[@"requestId"];NSDictionary *binding=[self localTrashAdmittedBinding];
+    if(_localTrashConsent||!_localCommandDocumentReady||!_localTrashBoundary||![_localTrashBindingID isEqual:binding[@"projectId"]]||_localCloseRequest){[self localTrashReply:identifier error:YNXTrashError(3,@"Native Trash is unavailable for this project or another approval is pending. The item was retained.") recovery:nil];return;}
+    NSError *error=nil;YNXNativeTrashRequest *request=[YNXNativeTrashRequest prepareBoundary:_localTrashBoundary relative:body[@"relativePath"] error:&error];
+    if(!request){[self localTrashReply:identifier error:error recovery:nil];return;}
+    NSURL *document=_webView.URL;NSTask *child=_server;NSUInteger generation=_localReadyGeneration;
+    NSAlert *alert=[NSAlert new];alert.messageText=[_localLocale isEqual:@"zh-cn"]?@"移到废纸篓？":@"Move to Trash?";
+    alert.informativeText=[NSString stringWithFormat:[_localLocale isEqual:@"zh-cn"]?@"项目：%@\n文件：%@\n文件将移到系统废纸篓，可恢复。":@"Project: %@\nItem: %@\nThe item will be moved to the system Trash and can be recovered.",binding[@"workspace"],request.relativePath];
+    [alert addButtonWithTitle:[_localLocale isEqual:@"zh-cn"]?@"移到废纸篓":@"Move to Trash"];[alert addButtonWithTitle:[_localLocale isEqual:@"zh-cn"]?@"取消":@"Cancel"];
+    _localTrashConsent=alert;_localTrashRequestID=identifier;
+    [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse answer){
+        BOOL current=self.localTrashConsent==alert&&[self.localTrashRequestID isEqual:identifier];if(current){self.localTrashConsent=nil;self.localTrashRequestID=nil;}
+        BOOL admitted=current&&answer==NSAlertFirstButtonReturn&&self.server==child&&child.running&&generation==self.localReadyGeneration&&[self.webView.URL isEqual:document]&&YNXLocalEditorDocumentURL(document,self.port)&&self.localCommandDocumentReady&&[self.localTrashBindingID isEqual:[self localTrashAdmittedBinding][@"projectId"]];
+        NSError *failure=nil;[request commitApproved:admitted error:&failure];
+        if(current&&[self.webView.URL isEqual:document])[self localTrashReply:identifier error:failure recovery:request.recoveryPath];
+        if(request.recoveryPath){NSAlert *recovery=[NSAlert new];recovery.messageText=@"The item was retained for recovery";recovery.informativeText=[NSString stringWithFormat:@"The recoverable item remains at %@. The new file at its original location was preserved.",request.recoveryPath];[recovery beginSheetModalForWindow:self.window completionHandler:nil];}
+    }];
+}
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
     if(_localWorkbenchMode&&[message.name isEqual:@"ynxLocalWallet"]){
         if(YNXTrustedMessage(message,_webView,_port)&&YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port)) [self handleLocalWalletMessage:message.body];
@@ -1130,6 +1195,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"trash"]){
+        if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self handleLocalTrashMessage:body];return;
+    }
     if([body[@"action"] isEqual:@"locale"]){
         if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalLocalePayload(body))return;
         [NSUserDefaults.standardUserDefaults setObject:body[@"locale"] forKey:@"YNXDeveloperDisplayLocale"];
@@ -1165,7 +1233,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
