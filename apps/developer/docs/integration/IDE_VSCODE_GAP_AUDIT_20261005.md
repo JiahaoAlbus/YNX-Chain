@@ -20,6 +20,16 @@
 
 这仍是开发中的 IDE，不能称为 VSCode 同等成熟体验。Ports 需要真实服务发现、端口管理及明确的访问状态，不能仅添加空标签。在线市场、远程转发和服务接入须遵守现有暂停边界；不通过代理、出站放行或弱化隔离绕过。
 
+## 46a 完整包之后的新组件验证
+
+以下修改尚未进入新的完整 App/DMG，不混报为 46a 已交付能力。
+
+- C/C++ 0.1.2（801d64c4d）：正常命令选择受信 CLT 编译器，生成真实 `.vscode/tasks.json`，通过原生 Run Task 构建并运行当前 C++ 文件；再次配置保留已有任务文件。只覆盖单个当前文件，完整项目与断点调试仍待完成。
+- Python 组件（d0896c373）：本机保留的 MIT Python 2026.6.0、debugpy 2026.6.0 及 Python 语法扩展进入封存组件。正常 GUI 中解释器为 CLT Python 3.9.6，F12 从 main.py 跳到 wallet.py 的 WalletBalance；wallet. 提示 confirmed_balance/pending_balance；原生 Python: Run Python File in Terminal 命令实际输出 `YNX Python balance= 5`。删除测试输入、保存后磁盘恢复原文件，诊断回到零。
+- 这次 Python 项目预先配置 Jedi 和 CLT 解释器，首次安装后无需配置的引导尚未完成；debugpy 激活不算断点、步进或变量验收，其他语言、测试发现及用户全部扩展仍待验证。Pylance 和 Python Environments 没有打入组件。
+- 修复真实发现的三项问题：每次启动核验封存源插件并生成项目私有运行副本，避免 debugpy 在封存缓存写目录被拒；Jedi 启动器明确适配为只在监督器给定 TMPDIR 写缓存，保留原启动器及修改声明；命令面板 editorLangId 跟随真实当前编辑器，避免 Python 运行命令被错误隐藏。插件副本修复 11 项回归、命令上下文 12 项回归、工作台 browser/node 构建通过；未改变网络隔离策略。
+- 封存 core tree `8e66234a36dc7b3ad63e368669a68d0516a6bf1968d16c016ee3416db09a9243`，manifest `68f8c5ba513973d70c69a0a7f25582daa927a370d31aa23de55722fa4315751b`。证据位于 `.ynx-developer-candidates/ynx-python-editor-verification-d0896c373-20261005`。真实 Wallet、AI、签名部署和正式发布状态不变。
+
 ## 历史原生候选补充（96779efe6）
 
 新版位于 apps/developer/.ynx-developer-candidates/ynx-duplicate-project-native-96779efe6-20261005。源码 96779efe6c56183850c4ec4460af62ffea597002，tree 1ad4781ba4ca070ee08cb1d0454f544a9b152d2f；DMG SHA256 be4f0172e822c2bf627301aef95ec51938e621a078ad90e2ae51c99d632ac4e9。沿用同一封存 core tree，原生程序、启动器和本地监督器按新源码重建。
