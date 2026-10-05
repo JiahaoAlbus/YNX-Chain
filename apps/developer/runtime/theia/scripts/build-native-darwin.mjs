@@ -53,11 +53,6 @@ await writeFile(join(output, 'ynx-build-receipt.json'), JSON.stringify({ depende
   arch: process.arch, node: process.version, napi: 8, minimumOS, sources, sha256, lifecycleScriptsExecuted: false }, null, 2));
 console.log(JSON.stringify({ artifact, sha256 }));
 const helper = qualification ? join(qualification, 'ynx-process-tree') : join(root, 'lib/backend/ynx-process-tree');
-await mkdir(dirname(helper), { recursive: true });
-const helperSource = resolve(root, '../ynx-workbench/native/process-tree.c');
-run(join(compilerRoot, 'clang'), ['-std=c17', '-Wall', '-Wextra', '-Werror', '-isysroot', sdk, target, '-arch', architecture, helperSource, '-o', helper]);
-verifyTarget(helper);
-const helperHash = createHash('sha256').update(await readFile(helper)).digest('hex');
-await writeFile(`${helper}.receipt.json`, JSON.stringify({ source: helperSource, sourceSha256: createHash('sha256').update(await readFile(helperSource)).digest('hex'),
-  platform: process.platform, arch: process.arch, minimumOS, sha256: helperHash, elevatedPrivileges: false }, null, 2));
-console.log(JSON.stringify({ helper, sha256: helperHash }));
+const { buildProcessHelper } = await import('./process-helper-build.mjs');
+const helperReceipt = await buildProcessHelper({ output: helper });
+console.log(JSON.stringify({ helper, sha256: helperReceipt.sha256 }));

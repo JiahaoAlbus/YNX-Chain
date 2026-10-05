@@ -27,6 +27,10 @@ const digest = await composedTreeDigest(source);
 assert.equal(await composedTreeDigest(cached), digest, 'Stale extra cache files must be reviewed before building.');
 console.log('Owned workbench source/cache SHA256 ' + digest);
 if (seal) {
+  if (process.platform === 'darwin') {
+    const { buildProcessHelper } = await import('./process-helper-build.mjs');
+    await buildProcessHelper();
+  }
   await cp(join(source, 'lib/plugin-vscode-init-adapter.js'), join(runtime, 'lib/backend/ynx-plugin-vscode-init.js'));
   const terminalHelper = await lstat(join(source, 'lib/python-terminal-creation.js'));
   assert.ok(terminalHelper.isFile() && !terminalHelper.isSymbolicLink(), 'Only the regular owned Python terminal helper is admitted.');
