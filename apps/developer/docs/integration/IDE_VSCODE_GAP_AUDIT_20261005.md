@@ -22,11 +22,13 @@
 
 ### 本轮测试功能实测
 
-be 完整包内工作台通过正常 Python: Configure Tests 配置 unittest，生成真实项目设置。包含两个测试的 test_wallet.py 在解释器中运行通过；原插件 discovery.py 返回 success 和两项测试，但 Testing 面板仍只有 Python Tests 根节点。相同封存 Node、解释器和生产隔离策略下的命名管道独立收发成功，不能据此把问题归因于网络出站限制。
+be 完整包内工作台通过正常 Python: Configure Tests 配置 unittest，生成真实项目设置。包含两个测试的 test_wallet.py 在解释器中运行通过；原插件 discovery.py 返回 success 和两项测试。相同封存 Node、解释器和生产隔离策略下的命名管道独立收发成功，不能据此把问题归因于网络出站限制。最初只看到了 Python Tests 根节点；后续实测已更正“测试树始终为空”的判断：在下面明确标注的干净组件内，正常手动刷新再展开可以发现真实测试。
 
-新增扩展 API 取消令牌兼容适配：dispose() 释放监听器但不自动取消，dispose(true) 和 cancel() 保留显式取消；框架内部的取消行为不改。4 项实际框架构造器回归通过，browser/node 构建通过。封存实验组件 tree 为 a3d4218e45e109c232f1fcbcea081565198a6bc150efd0d8878ecc570f704b17，manifest 为 706a17960371e550ff53d456ede7ffbdcc477400f4e09bbda1f74a2480412e41。新隔离项目 GUI 刷新测试后，发现子进程完成但测试树仍为空，所以这项适配不作为测试功能修复成功的证据，也没有重标旧完整包。
+新增扩展 API 取消令牌兼容适配：dispose() 释放监听器但不自动取消，dispose(true) 和 cancel() 保留显式取消；框架内部的取消行为不改。4 项实际框架构造器回归通过，browser/node 构建通过。c48dcc76e 干净组件 tree 为 a3d4218e45e109c232f1fcbcea081565198a6bc150efd0d8878ecc570f704b17，manifest 为 706a17960371e550ff53d456ede7ffbdcc477400f4e09bbda1f74a2480412e41。正常手动刷新、展开项目/文件/类后，两个测试实际从原生 Test Explorer 运行通过。通过正常编辑保存把一个期望值改为 6 后，测试运行显示一失败一通过；选择失败条目、Show Test Output 显示真实 AssertionError: 5 != 6 和 test_wallet.py 第 6 行的 traceback。随后正常 Undo、保存恢复期望值 5，磁盘回读确认原文件恢复。没有使用假测试状态或人工注入测试节点。
 
-诊断证据：/private/tmp/ynx-python-sandbox-fifo-evidence-20261005.json、/private/tmp/ynx-test-cancellation-ui-runtime-20261005.json、/private/tmp/ynx-test-cancellation-ui-FKHByf/server.log。下一步仍需定位发现结果到测试树的传递，再验收正常测试运行、失败定位和调试。
+这轮还修复 Go to Test 的坐标偏移：原生操作从第 5 行定义跳到第 6 行第 2 列；前端正确转换扩展 RPC 的一基坐标为 TestService 的零基坐标后，正常 GUI 精确跳到第 5 行第 1 列。新的干净组件 tree 为 ebd86f68d98ab5c5d3c3ee064bfcc5e6a88b7cb5a682fcd40003375060a647b6，manifest 为 7af6358605e16f876897fa3339a8887b79ffe7933d68d5704631f62933f5e5c9；正常手动刷新、展开和两个测试运行通过。6 项取消/坐标回归通过，browser/node 构建通过。当前完整 App/DMG 仍是顶部 be 版本，不能把新组件证据重标成新完整包。首次自动发现、刷新后的展开与状态保留、测试调试和覆盖率仍未完成全量验收。
+
+证据：/private/tmp/ynx-python-sandbox-fifo-evidence-20261005.json、/private/tmp/ynx-test-cancellation-ui-runtime-20261005.json、/private/tmp/ynx-test-range-ui-runtime-20261005.json；截图为 /private/tmp/ynx-python-test-panel-pass-20261005.png、/private/tmp/ynx-python-test-panel-failure-20261005.png、/private/tmp/ynx-python-test-go-to-line-20261005.png。临时日志只加在自建运行副本，已按原 SHA256 恢复；前端临时诊断已移除并重新构建，新行号组件无临时诊断。原 VSCode 扩展和旧封存软件包未修改。
 
 ## 46a 完整包之后的新组件验证
 

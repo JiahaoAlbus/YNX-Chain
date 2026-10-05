@@ -1,4 +1,5 @@
 const { ContainerModule } = require('@theia/core/shared/inversify');
+require('./test-range-adapter').install();
 const { FrontendApplicationContribution, KeybindingContribution } = require('@theia/core/lib/browser');
 const { CommonCommands } = require('@theia/core/lib/browser/common-commands');
 const { Widget } = require('@theia/core/lib/browser/widgets');
