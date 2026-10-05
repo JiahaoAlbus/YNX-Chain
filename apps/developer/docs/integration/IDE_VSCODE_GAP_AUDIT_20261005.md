@@ -118,3 +118,9 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 产品源码改用独立异步面板并保留强引用、防重复打开。进一步记录发现 Foundation 将原生选中的 /private/tmp 路径返回为 /tmp；旧严格函数还通过 stringByStandardizingPath 拒绝 /private/tmp 的真实规范路径，导致项目交接静默失败。现在仅可信原生选择器边界通过 realpath 得到实际目录；严格启动边界仍以 realpath 相等和 lstat 目录类型确认，不接受相对路径、别名、符号链接路径、点段或父目录段。原生明确选择符号链接时交接的是其真实目录，而非扩大文件权限。
 
 新编译的目录边界回归与原生 origin/frame、异步恢复、私有存储回归共 6 项通过、0 跳过。恢复测试的旧源码切片误把后续 local-workbench 方法纳入启动方法，已改为只检查目标方法；实际阻塞恢复/存储保留测试继续通过。两处产品修复已编译，但完整项目切换 GUI 最后一次复验时 Mac 再次锁屏，因此新实例启动、创建保存和终端路径仍待验证；没有覆盖或重新标注原 bf18 完整 DMG。诊断资源保留在 ynx-native-picker-diagnostic-20261005，不是正式软件交付。
+
+## 新版原生 Chain 工具实测补充
+
+96779efe6 完整原生候选通过 YNX 工具面板打开、Counter.sol 模板保存、实际 solc 0.8.24 编译和 JSON 产物保存；磁盘产物含 Counter 的 2 个 ABI 条目、225 字节创建字节码。只读 YNX Testnet SDK 模板也已保存，没有发起 RPC 或签名。截图、源码和产物保存在该候选 verification/native-chain-compile.png 与 native-chain-acceptance.json 中。
+
+错误合约测试曾出现 Local import discovery exceeded its time limit；不将失败诊断流程标为通过。同一封存解析器在独立进程与实际生产 sandbox 下都能在约 0.3 秒解析同一错误内容；当前源码的完整 local-capture 实际回归为 13 PASS、0 FAIL、0 SKIP。仍需解锁后的正常原生窗口复现来定位。工具再次报告 Mac 锁屏，故复验中断；自有无效测试文件已按精确内容守卫恢复磁盘，编辑器同步仍待验证。正式身份、AI、签名部署和 A 发布仍暂停或未验收。
