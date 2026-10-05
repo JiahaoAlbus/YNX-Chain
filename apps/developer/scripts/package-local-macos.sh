@@ -94,6 +94,9 @@ if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-go-toolchain-supplier.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+  cp desktop/local-js-debug-session.mjs desktop/local-js-debug-launcher.mjs desktop/local-js-debug-launcher.sh "$app/Contents/Resources/code/apps/developer/desktop/"
+  cp desktop/local-js-debug-launcher.mjs desktop/local-js-debug-launcher.sh "$app/Contents/Resources/runtime/"
+  chmod 0755 "$app/Contents/Resources/runtime/local-js-debug-launcher.sh"
 fi
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.

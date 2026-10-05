@@ -84,9 +84,17 @@ export async function bundleLocalNodeRuntime(input,outputArg) {
   entry.minimumOS=minimumOS;entry.bundledSha256=sha(await readFile(target));entry.loadCommandsSha256=sha(commands);
  }
  const measured=exec(join(output,'node'),['--version']).trim();if(measured!==version)throw Error('Bundled runtime does not execute the retained version.');
+ // The retained debugger respects its public watchdog execPath only when the
+ // target's process.execPath does not use Node's conventional basename. This
+ // entry is the exact already-linked and signed Node bytes, not another runtime.
+ const nodeEntry=selected.get(source),aliasPath=join(output,'ynx-js-node');
+ await copyFile(join(output,'node'),aliasPath);await chmod(aliasPath,0o755);
+ if(sha(await readFile(aliasPath))!==nodeEntry.bundledSha256||exec(aliasPath,['--version']).trim()!==version)throw Error('JavaScript debug Node entry differs from the sealed runtime.');
+ exec('/usr/bin/codesign',['--verify','--strict',aliasPath]);
+ const aliasEntry={...nodeEntry,path:'ynx-js-node',derivedFrom:'node',dependencies:nodeEntry.dependencies.map(dependency=>({...dependency})),loadCommandsSha256:sha(exec('/usr/bin/otool',['-l',aliasPath]))};
  const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
  const minimumOS=[...selected.values()].map(entry=>entry.minimumOS).sort(compare).at(-1);
- const record={schemaVersion:1,version,architecture:process.arch,minimumOS,source,sourceSha256:sha(await readFile(source)),sourceKind:reviewed.kind,...reviewed.originalSignature?{originalSignature:reviewed.originalSignature,originalArchitectures:reviewed.originalArchitectures,architectureDerivation:`lipo -thin ${process.arch}; original signed universal input is retained unchanged`,originalSigningClass:'developer-id-nodejs-foundation',licenseVerified:true}:{},signingClass:'adhoc-no-team-id',downloaded:false,lifecycleScriptsExecuted:false,files:[...selected.values()],notices,executionVerified:true};
+ const record={schemaVersion:1,version,architecture:process.arch,minimumOS,source,sourceSha256:sha(await readFile(source)),sourceKind:reviewed.kind,...reviewed.originalSignature?{originalSignature:reviewed.originalSignature,originalArchitectures:reviewed.originalArchitectures,architectureDerivation:`lipo -thin ${process.arch}; original signed universal input is retained unchanged`,originalSigningClass:'developer-id-nodejs-foundation',licenseVerified:true}:{},signingClass:'adhoc-no-team-id',downloaded:false,lifecycleScriptsExecuted:false,files:[...selected.values(),aliasEntry],notices,executionVerified:true};
  await writeFile(join(output,'distribution.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});return record;
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){const r=await bundleLocalNodeRuntime(process.argv[2],process.argv[3]);console.log(JSON.stringify({output:resolve(process.argv[3]),version:r.version,minimumOS:r.minimumOS,files:r.files.length,notices:r.notices.length,executionVerified:r.executionVerified}));}
