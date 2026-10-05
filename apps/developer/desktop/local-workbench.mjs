@@ -9,6 +9,7 @@ import { createLocalIpcSession, localIpcRoot } from './local-workbench-ipc.mjs';
 import { createDebugSessionSupervisor } from './local-debug-session.mjs';
 import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
+import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -93,7 +94,7 @@ function verifiedGo(toolchain, context) {
   if (!binding || Object.entries(binding).some(([key, value]) => context[key] !== value)) throw Error('Go read scope requires this project’s verified native selection.');
   return toolchain;
 }
-export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor, goToolchain }) {
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }) {
   const go = verifiedGo(goToolchain, context);
   const temporary = context.ipcTemporary || context.temporary;
   // Finder launches do not supply a UTF-8 locale. Bash readline otherwise
@@ -102,6 +103,7 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
+    ...(python ? { YNX_IDE_PYTHON_ENTRY: python.executable } : {}),
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
     ...(go ? { YNX_IDE_GO_ENTRY: go.entry, YNX_IDE_GO_ROOT: go.root, YNX_IDE_GO_VERSION: go.version, YNX_IDE_GO_SHA: go.sha } : {}),
@@ -247,6 +249,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
   const git = await findTrustedLocalGit();
   const clangd = await inspectTrustedLocalClangd('/Library/Developer/CommandLineTools');
+  const python = await inspectTrustedLocalPython();
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
   const plugins = await prepareLocalPlugins({ runtime, context });
@@ -254,13 +257,13 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities });
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
-    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, goToolchain }) });
+    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
   jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor, goToolchain }),
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });

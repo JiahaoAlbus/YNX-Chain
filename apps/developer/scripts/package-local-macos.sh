@@ -102,7 +102,7 @@ cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
-cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"

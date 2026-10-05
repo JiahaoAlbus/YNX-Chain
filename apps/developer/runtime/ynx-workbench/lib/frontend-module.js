@@ -141,6 +141,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(CommandContribution).toService(LocalWorkspaceContext);
   bind(FrontendApplicationContribution).toService(LocalWorkspaceContext);
+  bind(FrontendApplicationContribution).toDynamicValue(context => new (require('./local-python-defaults').LocalPythonDefaults)(
+    context.container.get(LocalWorkspaceContextApi), context.container.get(PreferenceSchemaService),
+  )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new LocalTerminalDefaults(
     context.container.get(LocalWorkspaceContextApi),
     context.container.get(PreferenceSchemaService),

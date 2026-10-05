@@ -1,6 +1,6 @@
 {
   "name": "@ynx/developer-workbench",
-  "version": "0.3.40",
+  "version": "0.3.41",
   "private": true,
   "dependencies": {
     "@theia/core": "1.76.0",

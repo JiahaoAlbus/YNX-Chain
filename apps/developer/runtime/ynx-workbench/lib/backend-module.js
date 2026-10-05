@@ -50,7 +50,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-draft-recovery', () => draftApi));
   const contextApi = Object.freeze({ getContext: () => process.env.YNX_WORKSPACE_MODE === 'local'
-    ? { mode: 'local', workspace: process.env.YNX_LOCAL_WORKSPACE } : { mode: 'hosted' } });
+    ? { mode: 'local', workspace: process.env.YNX_LOCAL_WORKSPACE, pythonDefault: process.env.YNX_IDE_PYTHON_ENTRY } : { mode: 'hosted' } });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-local-workbench-context', () => contextApi));
   if (process.env.YNX_WORKSPACE_MODE === 'local') {
     const storage = new LocalWorkbenchStorageStore();
