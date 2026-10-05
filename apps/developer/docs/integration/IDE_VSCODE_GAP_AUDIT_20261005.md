@@ -2,9 +2,9 @@
 
 日期：2026-10-05。用户目标：保留 YNX 品牌与主题，采用 VSCode 的按钮位置、操作逻辑、扩展机制，并增加 Chain 与 AI。
 
-## 当前完整功能差距（be871826a 完整包，2026-10-05）
+## 当前完整功能差距（51df70d33 完整包，2026-10-05）
 
-最新完整 App/DMG 候选源码 be871826ac71f449c7845db4a0265501ebe1a813；封存 core tree 为 09e5066a7d0d0cc0c46030db6a06fa54d6d1f7d136fc5e63fa33ba390bc4a42d，包含 Workbench 0.3.19、Tools 0.2.25、C/C++ 0.1.2 和保留的 Python 插件。包内启动器、Node 和监督器在新隔离项目运行，正常 GUI 通过 Python 首次配置、定义跳转、终端运行；此前的其他证据仍按实际版本标注，不代表全部功能已在最新包复验。
+最新完整 App/DMG 候选源码 51df70d33cf529187e59c9b1c3bce74c31130499；封存 core tree 为 ebd86f68d98ab5c5d3c3ee064bfcc5e6a88b7cb5a682fcd40003375060a647b6，包含 Workbench 0.3.19、Tools 0.2.25、C/C++ 0.1.2 和保留的 Python 插件。包内启动器、Node 和监督器在新隔离项目运行，正常 GUI 通过 Python 首次配置、定义跳转、终端运行；此前的其他证据仍按实际版本标注，不代表全部功能已在最新包复验。
 
 | 功能 | 当前实际状态 | 与目标体验的差距 |
 | --- | --- | --- |
@@ -13,10 +13,10 @@
 | 运行与调试 | C++ 0.1.2 组件正常配置任务再构建运行已验，已进入新完整包；be 包 Python 原生终端运行输出 balance=5 | 完整项目任务、C++/Python 断点、步进、变量尚未通过，其他语言不能据此算通过 |
 | 多语言 | bcf C++ 补全、定义、诊断、语义重命名、格式化及运行已验；Solidity 本地编译已有 f49 实测；be 包 Python 从无设置的项目正常配置 Jedi/解释器、跨文件 F12 和运行通过，前序 d089 组件成员补全通过 | Go、Rust、Java 等完整插件流程尚未验收；Python 测试发现、虚拟环境完整管理和调试仍未验收 |
 | 扩展生态 | 本地 VSIX 安装、启停、卸载已有记录 | 在线搜索下载更新仍失败；用户 63 个扩展尚未整体迁移、执行或证明兼容 |
-| 测试与远程开发 | 当前组合含任务及调试基础组件 | 完整测试发现、运行、覆盖率及 SSH、容器、WSL 流程尚未完成；不以组件依赖证明可用 |
+| 测试与远程开发 | 51df 完整包原生 Test Explorer 手动刷新、展开、两项 Python 测试运行和源码跳转通过 | 首次自动发现、刷新状态保持、测试调试与覆盖率及 SSH、容器、WSL 流程仍待完成 |
 | 主题与界面语言 | 14 个主题有历史实际渲染；中文语言包识别切换有记录 | 所有自有页面的视觉一致性、中文覆盖及最新包复验仍未完成 |
 | Chain 与 AI | Solidity 模板、真实 ABI/bytecode、本地修改审阅已有证据 | 真实 Wallet 身份、签名部署交易和在线 AI 批准应用回读未闭环 |
-| 软件交付 | be App/DMG 已封存，资源、Logo、ad-hoc 签名和挂载检查通过；精确包内启动器及 Python 工作台 GUI 已复验 | 正式签名公证发布、最新 Cocoa/Finder 完整体验及 Windows/Linux 未验收；当前包最低 macOS 27.0 |
+| 软件交付 | 51df App/DMG 已封存，资源、Logo、ad-hoc 签名和挂载检查通过；包内启动器运行及手动 Python 测试 GUI 已复验 | 正式签名公证发布、最新 Cocoa/Finder 完整体验及 Windows/Linux 未验收；当前包最低 macOS 27.0 |
 
 这仍是开发中的 IDE，不能称为 VSCode 同等成熟体验。Ports 需要真实服务发现、端口管理及明确的访问状态，不能仅添加空标签。在线市场、远程转发和服务接入须遵守现有暂停边界；不通过代理、出站放行或弱化隔离绕过。
 
@@ -26,7 +26,7 @@ be 完整包内工作台通过正常 Python: Configure Tests 配置 unittest，�
 
 新增扩展 API 取消令牌兼容适配：dispose() 释放监听器但不自动取消，dispose(true) 和 cancel() 保留显式取消；框架内部的取消行为不改。4 项实际框架构造器回归通过，browser/node 构建通过。c48dcc76e 干净组件 tree 为 a3d4218e45e109c232f1fcbcea081565198a6bc150efd0d8878ecc570f704b17，manifest 为 706a17960371e550ff53d456ede7ffbdcc477400f4e09bbda1f74a2480412e41。正常手动刷新、展开项目/文件/类后，两个测试实际从原生 Test Explorer 运行通过。通过正常编辑保存把一个期望值改为 6 后，测试运行显示一失败一通过；选择失败条目、Show Test Output 显示真实 AssertionError: 5 != 6 和 test_wallet.py 第 6 行的 traceback。随后正常 Undo、保存恢复期望值 5，磁盘回读确认原文件恢复。没有使用假测试状态或人工注入测试节点。
 
-这轮还修复 Go to Test 的坐标偏移：原生操作从第 5 行定义跳到第 6 行第 2 列；前端正确转换扩展 RPC 的一基坐标为 TestService 的零基坐标后，正常 GUI 精确跳到第 5 行第 1 列。新的干净组件 tree 为 ebd86f68d98ab5c5d3c3ee064bfcc5e6a88b7cb5a682fcd40003375060a647b6，manifest 为 7af6358605e16f876897fa3339a8887b79ffe7933d68d5704631f62933f5e5c9；正常手动刷新、展开和两个测试运行通过。6 项取消/坐标回归通过，browser/node 构建通过。当前完整 App/DMG 仍是顶部 be 版本，不能把新组件证据重标成新完整包。首次自动发现、刷新后的展开与状态保留、测试调试和覆盖率仍未完成全量验收。
+这轮还修复 Go to Test 的坐标偏移：原生操作从第 5 行定义跳到第 6 行第 2 列；前端正确转换扩展 RPC 的一基坐标为 TestService 的零基坐标后，正常 GUI 精确跳到第 5 行第 1 列。新的干净组件 tree 为 ebd86f68d98ab5c5d3c3ee064bfcc5e6a88b7cb5a682fcd40003375060a647b6，manifest 为 7af6358605e16f876897fa3339a8887b79ffe7933d68d5704631f62933f5e5c9；正常手动刷新、展开和两个测试运行通过。6 项取消/坐标回归通过，browser/node 构建通过。后续 51df70d33 完整 App/DMG 已重建；包内 Node 和启动器在新隔离项目实际运行，手动刷新后展开发现两项测试、运行两项通过、Go to Test 精确 Ln 5 Col 1。较早只见根节点的完整包检查点已被后续实测更正。首次自动发现、刷新后的展开与状态保留、测试调试和覆盖率仍未完成全量验收。
 
 证据：/private/tmp/ynx-python-sandbox-fifo-evidence-20261005.json、/private/tmp/ynx-test-cancellation-ui-runtime-20261005.json、/private/tmp/ynx-test-range-ui-runtime-20261005.json；截图为 /private/tmp/ynx-python-test-panel-pass-20261005.png、/private/tmp/ynx-python-test-panel-failure-20261005.png、/private/tmp/ynx-python-test-go-to-line-20261005.png。临时日志只加在自建运行副本，已按原 SHA256 恢复；前端临时诊断已移除并重新构建，新行号组件无临时诊断。原 VSCode 扩展和旧封存软件包未修改。
 
@@ -213,3 +213,9 @@ Workbench 0.3.18 在布局恢复后按原生贡献创建静态问题、输出和
 ### 801d64c4d C/C++ 任务配置向导
 
 YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源，只选现有可信 CLT 编译器/SDK，生成当前文件的 process 构建和依赖运行任务；保留已有 tasks.json，不下载或放宽 sandbox。4 项回归通过，覆盖真实可信工具、既有带注释配置保留、目录/文件链接拒绝和项目指定工具拒绝。新 core tree 57d9bc03a9f4e363444298352448b971f7ae186f4014418e19503cf09bb4ea71 已封存；正常组件 GUI 选择编译器实际创建配置，再从右上运行菜单运行，stdout 为 YNX configured C++ run，新程序 38648 字节；再次配置提示保留且 hash 不变。证据位于 ynx-cpp-build-tasks-verification-801d64c4d-20261005。此为单个当前源文件任务，不声称多文件项目构建、C 语言 GUI、C++ debugger 或最新完整 App 已通过；完整安装包仍为 46a。
+
+## 51df70d33 完整包与测试树状态修复
+
+完整包 DMG SHA256 59ae9a07ea8fcc2ae055c4f6991f25b6e5afb2eb389b2ace8eba13d511f036eb；源码 tree 6c9244085ea596993b13f58d778e80a60480245f。原 Logo、挂载资源、ad-hoc 签名通过，包内启动器/监督器与源码字节一致。完整包正常 GUI 手动发现、运行两项 Python 测试与准确源码跳转通过；首次自动发现、测试调试/覆盖率及 Cocoa/Finder 全流程仍未验收。
+
+测试树另有已定位的刷新状态缺陷：框架用原始 TestItem.id 查找旧节点，但实际节点索引是完整 controller/path ID，因此丢失展开状态。自有适配器按完整节点 ID 保留展开及选择，控制器重新生成也保留原状态；不强制展开用户折叠项。4 项基于已安装框架实际节点构建方法的范围/状态回归通过。此后源码尚未进入 51df 完整包。browser/node 构建通过；新干净组件正常 GUI 原生刷新按钮进入 Cancel Test Refresh 再返回 Refresh Tests，项目/文件/类仍保持展开，两项测试继续可见。core tree ea6d431419d99d451dffdd0380e23d4ae0342ad1a3a30f1486302fa1064b9fad，manifest 19603df8470ddbf0df88bb4f3cedc54bd48d7841aa63b3733a6c0658f9dc60de；证据目录 ynx-test-tree-state-verification-20261005。
