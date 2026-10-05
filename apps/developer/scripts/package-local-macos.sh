@@ -81,6 +81,7 @@ if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
   /usr/libexec/PlistBuddy -c 'Add YNXDesktopMode string local-workbench' "$app/Contents/Info.plist"
   /usr/bin/clang -mmacosx-version-min="$macos_min_version" desktop/macos/local-workbench-lock.c -o "$app/Contents/Resources/runtime/ynx-local-workbench-lock"
+  /usr/bin/clang -Wall -Wextra -Werror -mmacosx-version-min="$macos_min_version" desktop/macos/workspace-path-identity.c -o "$app/Contents/Resources/runtime/workspace-path-identity"
 fi
 cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
 cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
@@ -89,6 +90,9 @@ cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
 cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+if [[ -n "$local_node_runtime" ]]; then
+  cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+fi
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.
 mkdir -p "$app/Contents/Resources/code/apps/developer/native"
@@ -215,6 +219,8 @@ await writeFile(path,JSON.stringify(record,null,2)+'\n');
 if(execFileSync(join(runtime,'node'),['--version'],{encoding:'utf8',env:{PATH:'/usr/bin:/bin',OPENSSL_CONF:'/dev/null'}}).trim()!==record.version)throw Error('Signed bundled Node runtime version differs.');
 const provenancePath=join(resources,'build-provenance.json'),provenance=JSON.parse(await readFile(provenancePath,'utf8'));
 provenance.desktopMode='local-workbench';provenance.localNodeRuntime={path:'Contents/Resources/runtime/distribution.json',sha256:sha(await readFile(path)),version:record.version,minimumOS:record.minimumOS,packageAdhocSigning:record.packageAdhocSigning};
+provenance.localWorkspaceHelpers={schemaVersion:1,minimumOS:provenance.minimumOS,signingClass:'adhoc-no-team-id',files:[]};
+for(const [path,source] of [['runtime/ynx-local-workbench-lock','desktop/macos/local-workbench-lock.c'],['runtime/workspace-path-identity','desktop/macos/workspace-path-identity.c'],['code/apps/developer/desktop/workspace-path-identity.mjs','desktop/workspace-path-identity.mjs']])provenance.localWorkspaceHelpers.files.push({path:'Contents/Resources/'+path,sha256:sha(await readFile(join(resources,path))),source,sourceSha256:sha(await readFile(source))});
 await writeFile(provenancePath,JSON.stringify(provenance,null,2)+'\n');
 NODE
 # Record the actual signed formatter bytes before sealing the outer app. Keep
@@ -258,6 +264,10 @@ try{bytes=await readFile(join(runtime,'distribution.json'));}catch(error){if(err
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),record=JSON.parse(bytes);
 for(const entry of record.files)if(sha(await readFile(join(runtime,entry.path)))!==entry.bundledSha256)throw Error('Outer signing changed recorded runtime bytes.');
 const provenance=JSON.parse(await readFile(join(resources,'build-provenance.json'),'utf8'));if(provenance.localNodeRuntime.sha256!==sha(bytes))throw Error('Signed runtime provenance differs.');
+const expected=['Contents/Resources/runtime/ynx-local-workbench-lock','Contents/Resources/runtime/workspace-path-identity','Contents/Resources/code/apps/developer/desktop/workspace-path-identity.mjs'];
+if(provenance.localWorkspaceHelpers?.schemaVersion!==1||provenance.localWorkspaceHelpers.files.length!==expected.length)throw Error('Native workspace helper ledger missing.');
+for(const [index,entry] of provenance.localWorkspaceHelpers.files.entries()){if(entry.path!==expected[index]||sha(await readFile(join(resources,entry.path.slice('Contents/Resources/'.length))))!==entry.sha256)throw Error('Outer signing changed recorded workspace helper bytes.');}
+console.log('Final signed workspace helpers and provenance match.');
 console.log('Final signed Node runtime files and provenance match.');
 NODE
 node --input-type=module - "$app/Contents/Resources" <<'NODE'
