@@ -188,3 +188,7 @@ Workbench 0.3.18 在布局恢复后按原生贡献创建静态问题、输出和
 ### 46a 完整 Mac 软件包复验
 
 完整候选 ynx-panel-layout-native-46a76d30c-20261005 的 producer 退出 0，DMG SHA256 b5a1c3a647d91496ab238c46a38b27dc267e7cd36d87daf37753bd72de099d52；SBOM ab9ed0587361aa6479b04d179975544873e90ed2ca9aa09a5ae1efbb54bde817，最低 macOS 27.0。原 Logo、安装器资源、签名及 DMG 挂载检查通过。实际 App 的 server.mjs 和自带 Node 在新隔离项目/profile 启动，嵌入 pin 与 core 一致，源码字节回读一致；浏览器 GUI 同组标签切换、终端 pwd 和重载恢复通过。源码交接、checkpoint 与截图保存在候选目录。Cocoa/Finder 正常安装、Developer ID/公证、正式发布及真实身份/AI/签名部署仍未完成。旧 verify-local-macos-package.sh 针对之前 gateway 模式和固定源 plist 最低系统，未用来替代本地模式验收。
+
+### 801d64c4d C/C++ 任务配置向导
+
+YNX C/C++ 0.1.2 新增配置构建和运行任务命令及中英文命令资源，只选现有可信 CLT 编译器/SDK，生成当前文件的 process 构建和依赖运行任务；保留已有 tasks.json，不下载或放宽 sandbox。4 项回归通过，覆盖真实可信工具、既有带注释配置保留、目录/文件链接拒绝和项目指定工具拒绝。新 core tree 57d9bc03a9f4e363444298352448b971f7ae186f4014418e19503cf09bb4ea71 已封存；正常组件 GUI 选择编译器实际创建配置，再从右上运行菜单运行，stdout 为 YNX configured C++ run，新程序 38648 字节；再次配置提示保留且 hash 不变。证据位于 ynx-cpp-build-tasks-verification-801d64c4d-20261005。此为单个当前源文件任务，不声称多文件项目构建、C 语言 GUI、C++ debugger 或最新完整 App 已通过；完整安装包仍为 46a。
