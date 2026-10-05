@@ -6,11 +6,14 @@ import { composedTreeDigest, verifyComposedRuntime } from '../../../services/cod
 import { bundleSolidityLanguageRuntime } from '../../../scripts/bundle-solidity-language-runtime.mjs';
 import { bundleSolidityFormatRuntime } from '../../../scripts/bundle-solidity-format-runtime.mjs';
 import { packageLanguagePack } from '../../../scripts/package-language-pack.mjs';
+import { reviewedMacNodeVersion } from '../../../scripts/bundle-local-node-runtime.mjs';
+import { inspectBinary, compareVersions } from '../../../scripts/verify-macos-compatibility.mjs';
 const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
 const cppInput = process.argv[4];
 const candidateRoot = join(developer, '.ynx-developer-candidates') + '/';
+if (process.platform === 'darwin' && !reviewedMacNodeVersion(process.version)) throw Error('Use an exact reviewed macOS Node version for runtime provenance.');
 if (!destination?.startsWith(candidateRoot) || resolve(destination) !== destination || !pluginsInput?.startsWith(candidateRoot))
   throw Error('Use new owned absolute candidate paths.');
 const plugins = await realpath(pluginsInput);
@@ -115,7 +118,33 @@ notices.push({ name: '@ynx/developer-workbench/view-container', license: 'EPL-2.
 if (cppReceipt) notices.push({ name: 'ynx.ynx-cpp', version: cppReceipt.version, license: 'MIT', components: cppReceipt.components,
   files: ['../plugins/ynx.ynx-cpp/NOTICE.txt', '../plugins/ynx.ynx-cpp/MICROSOFT-MIT-NOTICE.txt', '../plugins/ynx.ynx-cpp/ThirdPartyNotices.txt'] });
 await writeFile(join(destination, 'component-notices/index.json'), JSON.stringify(notices, null, 2));
+let macosCompatibility;
+if (process.platform === 'darwin') {
+  const binaries = [];
+  async function inspectTree(folder) {
+    for (const name of await readdir(folder)) {
+      const path = join(folder, name), stat = await lstat(path);
+      if (stat.isDirectory()) await inspectTree(path);
+      else if (stat.isFile()) {
+        const slices = inspectBinary(path);
+        if (!slices) continue;
+        for (const slice of slices) {
+          if (!slice.minimumOS || !['1','macos'].includes(slice.platform)) throw Error('Core Mach-O is missing its macOS target.');
+          compareVersions(slice.minimumOS, slice.minimumOS);
+        }
+        binaries.push({ path: path.slice(destination.length + 1), slices,
+          sha256: createHash('sha256').update(await readFile(path)).digest('hex') });
+      }
+    }
+  }
+  await inspectTree(destination);
+  if (!binaries.length) throw Error('Core macOS native closure is missing.');
+  const foreignArchitectureBinaries = binaries.filter(item => !item.slices.some(slice => slice.architecture === (process.arch === 'arm64' ? 'arm64' : 'x86_64'))).map(item => item.path);
+  macosCompatibility = { architecture: process.arch, minimumOS: binaries.flatMap(item => item.slices.map(slice => slice.minimumOS)).sort(compareVersions).at(-1),
+    nativeArchitectureComplete: foreignArchitectureBinaries.length === 0, foreignArchitectureBinaries, binaries };
+}
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
+  ...macosCompatibility ? { macosCompatibility } : {},
   nodeVersion: process.version, nodeOptions: ['--no-experimental-global-navigator', '--max-old-space-size=1024'],
   entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html',
   lockSha256: createHash('sha256').update(await readFile(join(destination, 'package-lock.json'))).digest('hex'),

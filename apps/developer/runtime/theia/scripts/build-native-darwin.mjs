@@ -17,15 +17,26 @@ if (!headers || !headers.startsWith('/')) throw Error('Provide the absolute inst
 await readFile(join(headers, 'node_api.h'));
 const sdk = '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk';
 const compilerRoot = '/Library/Developer/CommandLineTools/usr/bin';
-const output = join(dependency, 'build/Release');
-await mkdir(output, { recursive: true });
-const common = ['-fPIC', '-arch', process.arch === 'arm64' ? 'arm64' : 'x86_64', '-isysroot', sdk,
-  '-mmacosx-version-min=13.0', '-DNAPI_VERSION=8', '-I', headers, '-I', join(root, 'node_modules/node-addon-api'), '-I', dependency];
+const minimumOS = '13.5';
+const target = `-mmacosx-version-min=${minimumOS}`;
+const architecture = process.arch === 'arm64' ? 'arm64' : 'x86_64';
+// A separate small output supports compatibility qualification without changing
+// the compiled workbench or its source/cache receipt.
+const qualification = process.argv[3];
+if (qualification && (!qualification.startsWith(resolve(root, '../../.ynx-developer-candidates') + '/') || resolve(qualification) !== qualification)) throw Error('Use an owned native qualification output.');
+const output = qualification || join(dependency, 'build/Release');
+await mkdir(output, { recursive: !qualification });
+const common = ['-fPIC', '-arch', architecture, '-isysroot', sdk,
+  target, '-DNAPI_VERSION=8', '-I', headers, '-I', join(root, 'node_modules/node-addon-api'), '-I', dependency];
 const sources = ['src/drivelist.cpp', 'src/device-descriptor.cpp', 'src/darwin/list.mm', 'src/darwin/REDiskList.m'];
 const objects = [];
 function run(command, args) {
   const result = spawnSync(command, args, { cwd: dependency, encoding: 'utf8' });
   if (result.status !== 0) throw Error(`${command} failed: ${result.stderr || result.error}`);
+}
+function verifyTarget(path) {
+  const result = spawnSync('/usr/bin/otool', ['-arch', architecture, '-l', path], { encoding: 'utf8' });
+  if (result.status !== 0 || result.stdout.match(/\bminos ([\d.]+)/)?.[1] !== minimumOS) throw Error('Native image does not match its measured deployment target.');
 }
 for (let index = 0; index < sources.length; index++) {
   const object = join(output, `drivelist-${index}.o`);
@@ -34,17 +45,19 @@ for (let index = 0; index < sources.length; index++) {
   objects.push(object);
 }
 const artifact = join(output, 'drivelist.node');
-run(join(compilerRoot, 'clang++'), ['-bundle', '-undefined', 'dynamic_lookup', '-isysroot', sdk, '-stdlib=libc++', ...objects,
+run(join(compilerRoot, 'clang++'), ['-bundle', '-undefined', 'dynamic_lookup', '-isysroot', sdk, target, '-arch', architecture, '-stdlib=libc++', ...objects,
   '-framework', 'Carbon', '-framework', 'DiskArbitration', '-framework', 'Foundation', '-o', artifact]);
+verifyTarget(artifact);
 const sha256 = createHash('sha256').update(await readFile(artifact)).digest('hex');
 await writeFile(join(output, 'ynx-build-receipt.json'), JSON.stringify({ dependency: `${metadata.name}@${metadata.version}`, platform: process.platform,
-  arch: process.arch, node: process.version, napi: 8, sources, sha256, lifecycleScriptsExecuted: false }, null, 2));
+  arch: process.arch, node: process.version, napi: 8, minimumOS, sources, sha256, lifecycleScriptsExecuted: false }, null, 2));
 console.log(JSON.stringify({ artifact, sha256 }));
-const helper = join(root, 'lib/backend/ynx-process-tree');
+const helper = qualification ? join(qualification, 'ynx-process-tree') : join(root, 'lib/backend/ynx-process-tree');
 await mkdir(dirname(helper), { recursive: true });
 const helperSource = resolve(root, '../ynx-workbench/native/process-tree.c');
-run(join(compilerRoot, 'clang'), ['-std=c17', '-Wall', '-Wextra', '-Werror', '-isysroot', sdk, helperSource, '-o', helper]);
+run(join(compilerRoot, 'clang'), ['-std=c17', '-Wall', '-Wextra', '-Werror', '-isysroot', sdk, target, '-arch', architecture, helperSource, '-o', helper]);
+verifyTarget(helper);
 const helperHash = createHash('sha256').update(await readFile(helper)).digest('hex');
 await writeFile(`${helper}.receipt.json`, JSON.stringify({ source: helperSource, sourceSha256: createHash('sha256').update(await readFile(helperSource)).digest('hex'),
-  platform: process.platform, arch: process.arch, sha256: helperHash, elevatedPrivileges: false }, null, 2));
+  platform: process.platform, arch: process.arch, minimumOS, sha256: helperHash, elevatedPrivileges: false }, null, 2));
 console.log(JSON.stringify({ helper, sha256: helperHash }));

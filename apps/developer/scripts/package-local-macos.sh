@@ -21,16 +21,33 @@ local_node_runtime="${YNX_DEVELOPER_LOCAL_NODE_RUNTIME:-}"
 if [[ -n "$local_node_runtime" ]]; then
   [[ -n "${YNX_DEVELOPER_COMPOSED_ARTIFACT:-}" && -n "${YNX_DEVELOPER_COMPOSED_PIN:-}" ]] || { echo "Local workbench requires its exact composed payload and pin." >&2; exit 1; }
   macos_min_version=$(node --input-type=module - "$local_node_runtime" "$PWD/.ynx-developer-candidates" "$macos_min_version" <<'NODE'
-import {readFile,realpath,lstat} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
+import {readFile,realpath,lstat,readdir} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
+import {verifyComposedRuntime,validateRuntimeArtifact} from './services/codeoss-service/src/composed-runtime.mjs';
+import {inspectBinary,compareVersions} from './scripts/verify-macos-compatibility.mjs';
 const [input,candidates,baseline]=process.argv.slice(2),root=await realpath(input);
 if(root!==input||!root.startsWith(candidates+'/'))throw Error('Use the exact retained owned Node runtime.');
 const record=JSON.parse(await readFile(join(root,'distribution.json')));
-if(record.schemaVersion!==1||!record.executionVerified||!/^v26\./.test(record.version)||!/^\d+(?:\.\d+)*$/.test(record.minimumOS))throw Error('Reviewed Node 26 closure required.');
-for(const entry of record.files){if(!/^(node|lib\/[^/]+)$/.test(entry.path))throw Error('Invalid runtime file.');const path=join(root,entry.path);if(!(await lstat(path)).isFile())throw Error('Regular runtime input required.');if(createHash('sha256').update(await readFile(path)).digest('hex')!==entry.bundledSha256)throw Error('Runtime input changed.');}
+if(record.schemaVersion!==1||!record.executionVerified||!['v26.7.0','v24.19.0'].includes(record.version)||!/^\d+(?:\.\d+)*$/.test(record.minimumOS))throw Error('Exact reviewed macOS Node closure required.');
+if(record.version==='v24.19.0'&&(record.source!=='/usr/local/bin/node'||record.sourceSha256!=='1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35'||record.sourceKind!=='official-node-installer'||record.originalSigningClass!=='developer-id-nodejs-foundation'||record.licenseVerified!==true))throw Error('Official Node 24 source/signature/legal qualification is missing.');
+const runtimeFloors=[];
+for(const entry of record.files){if(!/^(node|lib\/[^/]+)$/.test(entry.path))throw Error('Invalid runtime file.');const path=join(root,entry.path);if(!(await lstat(path)).isFile())throw Error('Regular runtime input required.');if(createHash('sha256').update(await readFile(path)).digest('hex')!==entry.bundledSha256)throw Error('Runtime input changed.');const slice=inspectBinary(path)?.find(value=>value.architecture===(process.arch==='arm64'?'arm64':'x86_64'));if(!slice||!['1','macos'].includes(slice.platform))throw Error('Runtime image has no current macOS slice.');compareVersions(slice.minimumOS,slice.minimumOS);runtimeFloors.push(slice.minimumOS);}
 for(const entry of record.notices){if(!entry.path.startsWith('notices/')||entry.path.split('/').includes('..'))throw Error('Invalid runtime notice.');if(createHash('sha256').update(await readFile(join(root,entry.path))).digest('hex')!==entry.sha256)throw Error('Runtime notice changed.');}
 if(execFileSync(join(root,'node'),['--version'],{encoding:'utf8'}).trim()!==record.version)throw Error('Retained runtime version changed.');
 const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
-console.log(compare(record.minimumOS,baseline)>0?record.minimumOS:baseline);
+if(!runtimeFloors.length||record.minimumOS!==runtimeFloors.sort(compare).at(-1))throw Error('Runtime floor differs from its actual Mach-O bytes.');
+const core=await verifyComposedRuntime(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT,validateRuntimeArtifact(JSON.parse(await readFile(process.env.YNX_DEVELOPER_COMPOSED_PIN))));
+if(core.nodeVersion!==record.version)throw Error('Reviewed runtime does not match the exact composed Node build.');
+if(core.macosCompatibility&&(core.macosCompatibility.architecture!==process.arch||!/^\d+(?:\.\d+)*$/.test(core.macosCompatibility.minimumOS)||!Array.isArray(core.macosCompatibility.binaries)||!core.macosCompatibility.binaries.length))throw Error('Invalid sealed core Mach-O closure metadata.');
+if(record.version==='v24.19.0'&&(!core.macosCompatibility||core.macosCompatibility.architecture!==process.arch||!/^\d+(?:\.\d+)*$/.test(core.macosCompatibility.minimumOS)))throw Error('Node24 requires a newly measured sealed core Mach-O closure.');
+// Measure the verified archive source itself, including plugin native binaries;
+// a caller-written floor or outer-App-only scan cannot conceal archived minOS.
+const coreFloors=[];
+async function measure(folder){for(const name of await readdir(folder)){const path=join(folder,name),stat=await lstat(path);if(stat.isDirectory())await measure(path);else if(stat.isFile()){const slices=inspectBinary(path);if(!slices)continue;for(const slice of slices){if(!['1','macos'].includes(slice.platform))throw Error('Core image is not a macOS slice.');compareVersions(slice.minimumOS,slice.minimumOS);coreFloors.push(slice.minimumOS);}}}}
+await measure(process.env.YNX_DEVELOPER_COMPOSED_ARTIFACT);
+if(!coreFloors.length)throw Error('Verified core has no measurable macOS native closure.');
+const coreFloor=coreFloors.sort(compare).at(-1);
+if(core.macosCompatibility&&core.macosCompatibility.minimumOS!==coreFloor)throw Error('Sealed core floor differs from its actual Mach-O bytes.');
+console.log([baseline,record.minimumOS,coreFloor].sort(compare).at(-1));
 NODE
   )
 fi
