@@ -64,6 +64,11 @@ if (process.env.YNX_IDE_SOLIDITY_FORMAT_INPUT === 'retained') await bundleSolidi
 const brand = join(developer, 'native/ynx-brand');
 await assertRegularTree(brand);
 await cp(brand, join(destination, 'plugins/ynx.ynx-developer-brand'), { recursive: true, errorOnExist: true, force: false });
+const go = join(developer, 'native/ynx-go');
+await assertRegularTree(go);
+const goMetadata = JSON.parse(await readFile(join(go, 'package.json'), 'utf8'));
+if (goMetadata.publisher !== 'ynx' || goMetadata.name !== 'ynx-go') throw Error('Unexpected owned Go extension identity.');
+await cp(go, join(destination, 'plugins/ynx.ynx-go'), { recursive: true, errorOnExist: true, force: false });
 let languagePackReceipt;
 if (process.env.YNX_IDE_ZH_LANGUAGE_PACK_INPUT) {
   languagePackReceipt = await packageLanguagePack(process.env.YNX_IDE_ZH_LANGUAGE_PACK_INPUT,
@@ -84,6 +89,8 @@ await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringi
 // Missing notice files are recorded for release review, never silently waived.
 const lock = JSON.parse(await readFile(join(application, 'package-lock.json'), 'utf8'));
 const notices = [];
+notices.push({ name: 'ynx.ynx-go', version: goMetadata.version, license: goMetadata.license,
+  files: (await readdir(go)).filter(name => /^(licen[sc]e|notice|copying)(\.|$)/i.test(name)).map(name => `../plugins/ynx.ynx-go/${name}`) });
 if (languagePackReceipt) notices.push({ name: languagePackReceipt.extensionId, version: languagePackReceipt.version,
   license: 'MIT', files: ['../plugins/ms-ceintl.vscode-language-pack-zh-hans/LICENSE.md'] });
 await mkdir(join(destination, 'component-notices'), { mode: 0o700 });
@@ -152,6 +159,7 @@ const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${proces
   activitySourceSha256: createHash('sha256').update(helper).digest('hex'),
   ynxToolsVersion: JSON.parse(await readFile(join(tools, 'package.json'), 'utf8')).version,
   ynxBrandVersion: JSON.parse(await readFile(join(brand, 'package.json'), 'utf8')).version,
+  ynxGoVersion: goMetadata.version,
   ...languagePackReceipt ? { languagePack: { extensionId: languagePackReceipt.extensionId, version: languagePackReceipt.version,
     languageId: languagePackReceipt.languageId, sourceSha256: languagePackReceipt.sourceSha256 } } : {},
   ...cppReceipt ? { ynxCppInput: cppReceipt } : {},

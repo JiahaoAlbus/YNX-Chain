@@ -93,11 +93,12 @@ cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Re
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"
+  cp desktop/local-go-toolchain-supplier.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 fi
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.
 mkdir -p "$app/Contents/Resources/code/apps/developer/native"
-cp -R native/ynx-brand native/ynx-tools "$app/Contents/Resources/code/apps/developer/native/"
+cp -R native/ynx-brand native/ynx-tools native/ynx-go "$app/Contents/Resources/code/apps/developer/native/"
 mkdir -p "$app/Contents/Resources/code/apps/developer/scripts"
 cp scripts/compiler-worker.mjs scripts/compiler-pin.mjs scripts/solidity-semantic-index.mjs "$app/Contents/Resources/code/apps/developer/scripts/"
 if [[ -n "${YNX_DEVELOPER_SOLIDITY_INPUT:-}" ]]; then
