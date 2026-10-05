@@ -8,6 +8,7 @@ const RUN_ACTIONS = Object.freeze([
   { id: 'task:run:build', label: 'Run Build Task…' },
   { id: 'workbench.action.tasks.runTask', label: 'Run Task…' },
 ]);
+const CPP_ACTIONS = Object.freeze([{ id: 'ynx.cpp.runActive', label: 'Run C/C++ File' }, { id: 'ynx.cpp.debugActive', label: 'Debug C/C++ File' }]);
 const VIEWS = Object.freeze([
   { key: 'explorer', label: 'Explorer', icon: 'files', area: 'left', command: 'fileNavigator:toggle' },
   { key: 'search', label: 'Search', icon: 'search', area: 'left', command: 'search-in-workspace.toggle' },
@@ -47,17 +48,19 @@ class WorkbenchControlsContribution {
   // views: {key: native AbstractViewContribution}; terminal is found by widget
   // predicate since each PTY has its own widget. Supply EditorManager so toolbar
   // visibility uses actual EditorWidgets, not URI guesses.
-  constructor({ commands, shell, editors, views, messages, contextMenus, contextKeys, translate = (key, text) => text }) {
+  constructor({ commands, shell, editors, views, messages, contextMenus, contextKeys, debugConfigurations, translate = (key, text) => text }) {
     Object.assign(this, { commands, shell, editors, views: views || {}, messages, contextMenus });
     this.translate = (key, text) => {
       const translated = translate(key, text);
       return typeof translated === 'string' && translated.trim() ? translated : text;
     };
+    this.debugConfigurations = debugConfigurations;
     this.disposables = []; this.nodes = []; this.widgets = []; this.stopped = false;
     const { Emitter } = require('@theia/core/lib/common/event');
     this.changed = new Emitter();
     // Monaco supplies this key only in its focused editor scope. Extension
     // command-palette conditions also need the actual current editor language.
+    this.noSelectedDebug = contextKeys && contextKeys.createKey('ynxNoSelectedDebugConfiguration', !debugConfigurations?.current);
     this.editorLanguage = contextKeys && contextKeys.createKey('editorLangId', undefined);
   }
   state(id) {
@@ -70,7 +73,7 @@ class WorkbenchControlsContribution {
     return this.commands.executeCommand(id);
   }
   viewWidget(view) {
-    if (view.key === 'terminal') return this.shell.getWidgets('bottom').find(w => typeof w.id === 'string' && w.id.startsWith('terminal'));
+    if (view.key === 'terminal') return ['bottom', 'main', 'left', 'right'].flatMap(area => this.shell.getWidgets(area)).find(w => typeof w.id === 'string' && w.id.startsWith('terminal'));
     const native = this.views[view.key];
     return native && native.tryGetWidget();
   }
@@ -97,10 +100,10 @@ class WorkbenchControlsContribution {
     throw new Error('Native view contribution is unavailable');
   }
   report(error) { if (this.messages) this.messages.error(error.message || String(error)); }
-  async onDidInitializeLayout() {
-    // Restore the user's layout first. Attach actual static panel views to its
-    // existing tab group without activating/revealing them or creating a PTY.
-    // Existing views (including user-created split groups) stay where restored.
+  async initializeLayout() {
+    // Called only when the framework creates a default layout. Attach static
+    // native panel views in one tab group without activating or creating a PTY.
+    // Restored user layouts never pass through this hook.
     let reference = this.shell.getWidgets('bottom').find(widget => !widget.isDisposed);
     for (const view of VIEWS.filter(view => view.area === 'bottom' && view.key !== 'terminal')) {
       if (this.stopped) return;
@@ -116,7 +119,12 @@ class WorkbenchControlsContribution {
     }
     this.refresh();
   }
+  onDidInitializeLayout() { this.refresh(); }
   registerMenus(menus) {
+    for (const [index, action] of CPP_ACTIONS.entries()) this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'cpp'], {
+      commandId: action.id, label: this.translate(index ? 'debugCppFile' : 'runCppFile', action.label),
+      when: 'editorLangId == cpp || editorLangId == c', order: String(index),
+    }));
     RUN_ACTIONS.forEach((action, index) => this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'actions'], {
       commandId: action.id,
       label: this.translate(['runAndDebug', 'runWithoutDebugging', 'runBuildTask', 'runTask'][index], action.label),
@@ -149,24 +157,19 @@ class WorkbenchControlsContribution {
   }
   onStart() {
     const document = this.shell.node.ownerDocument;
-    const { Widget, BoxPanel, SplitPanel } = require('@theia/core/lib/browser/widgets');
-    for (const area of ['left', 'bottom']) {
+    const { Widget, SplitPanel } = require('@theia/core/lib/browser/widgets');
+    for (const area of ['left']) {
       const node = document.createElement('nav');
       node.className = `ynx-workbench-discovery ynx-workbench-discovery-${area}`;
       node.setAttribute('aria-label', area === 'left' ? this.translate('workbenchViewsAria', 'Workbench views') : this.translate('panelViewsAria', 'Panel views'));
       const widget = new Widget({ node }); widget.id = `ynx-discovery-${area}`;
-      if (area === 'bottom') {
-        BoxPanel.setStretch(widget, 0);
-        this.shell.layout.insertWidget(this.shell.layout.widgets.indexOf(this.shell.statusBar), widget);
-      } else {
-        SplitPanel.setStretch(widget, 0);
-        this.shell.leftPanelHandler.container.parent.layout.insertWidget(0, widget);
-      }
+      SplitPanel.setStretch(widget, 0);
+      this.shell.leftPanelHandler.container.parent.layout.insertWidget(0, widget);
       this.widgets.push(widget); this.nodes.push(node);
     }
     const refresh = () => this.refresh();
     for (const event of [this.commands.onCommandsChanged, this.shell.onDidAddWidget, this.shell.onDidRemoveWidget,
-      this.shell.onDidChangeCurrentWidget, this.shell.onDidChangeActiveWidget, this.editors.onCurrentEditorChanged]) {
+      this.shell.onDidChangeCurrentWidget, this.shell.onDidChangeActiveWidget, this.editors.onCurrentEditorChanged, this.debugConfigurations?.onDidChange]) {
       if (event) this.disposables.push(event(refresh));
     }
     // Tab overflow, panel collapse and resizing change discovery even without
@@ -178,9 +181,10 @@ class WorkbenchControlsContribution {
   }
   refresh() {
     if (this.stopped) return;
+    if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
-    const runState = RUN_ACTIONS.map(action => this.state(action.id).enabled).join('|');
+    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS].map(action => this.state(action.id).enabled).join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';
@@ -206,9 +210,10 @@ class WorkbenchControlsContribution {
   dispose() {
     this.stopped = true; if (this.popup) { this.popup.dispose(); this.popup = undefined; } clearInterval(this.timer); if (this.observer) this.observer.disconnect();
     if (this.editorLanguage) this.editorLanguage.reset();
+    if (this.noSelectedDebug) this.noSelectedDebug.reset();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
     for (const widget of this.widgets.splice(0)) widget.dispose();
     this.nodes.length = 0; this.changed.dispose();
   }
 }
-module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };
+module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, CPP_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };

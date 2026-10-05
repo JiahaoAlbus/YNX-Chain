@@ -2,7 +2,7 @@
   "name": "ynx-cpp",
   "displayName": "YNX C/C++",
   "publisher": "ynx",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "license": "MIT",
   "engines": {
     "vscode": "^1.82.0"
@@ -11,7 +11,9 @@
   "activationEvents": [
     "onLanguage:c",
     "onLanguage:cpp",
-    "onCommand:ynx.cpp.configureBuildTasks"
+    "onCommand:ynx.cpp.configureBuildTasks",
+    "onCommand:ynx.cpp.runActive",
+    "onCommand:ynx.cpp.debugActive"
   ],
   "extensionKind": [
     "workspace"
@@ -87,7 +89,25 @@
         "command": "ynx.cpp.configureBuildTasks",
         "title": "%configureBuildTasks%",
         "category": "YNX C/C++"
+      },
+      {
+        "command": "ynx.cpp.runActive",
+        "title": "%runActive%",
+        "category": "YNX C/C++"
+      },
+      {
+        "command": "ynx.cpp.debugActive",
+        "title": "%debugActive%",
+        "category": "YNX C/C++"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ynx.cpp.debugActive",
+        "key": "f5",
+        "when": "editorTextFocus && !inDebugMode && ynxNoSelectedDebugConfiguration && (editorLangId == cpp || editorLangId == c)"
       }
     ]
-  }
+  },
+  "l10n": "./l10n"
 }

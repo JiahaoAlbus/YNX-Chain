@@ -14,9 +14,9 @@ async function trusted(path, directory = false) {
   }
 }
 async function installedCompiler({ clangd, sysroot, language }) {
-  if (clangd !== join(CLT, 'usr/bin/clangd') || !isAbsolute(sysroot || ''))
+  if ((clangd && clangd !== join(CLT, 'usr/bin/clangd')) || !isAbsolute(sysroot || ''))
     throw Error('This runtime has no supported local C/C++ compiler.');
-  await trusted(clangd);
+  if (clangd) await trusted(clangd);
   const sdk = await realpath(sysroot);
   if (!sdk.startsWith(CLT + '/SDKs/')) throw Error('SDK is outside the installed system toolchain.');
   await trusted(sdk, true);
@@ -35,7 +35,7 @@ function taskConfiguration(tool) {
   const build = 'YNX: Build active ' + (tool.language === 'c' ? 'C' : 'C++');
   return { version: '2.0.0', tasks: [
     { label: build, type: 'process', command: tool.compiler,
-      args: [tool.language === 'c' ? '-std=c11' : '-std=c++17', '-fmessage-length=0', '-isysroot', tool.sdk,
+      args: [tool.language === 'c' ? '-std=c11' : '-std=c++17', '-fmessage-length=0', '-isysroot', tool.sdk, '-g', '-O0',
         '${file}', '-o', '${fileDirname}/${fileBasenameNoExtension}'],
       options: { cwd: '${fileDirname}' }, problemMatcher: ['$gcc'], group: { kind: 'build', isDefault: true },
       presentation: { reveal: 'always' } },
@@ -46,6 +46,8 @@ function taskConfiguration(tool) {
 }
 async function createBuildTasks(root, tool) {
   if (!isAbsolute(root || '') || await realpath(root) !== root) throw Error('Project root is not canonical.');
+  const selected = await existingConfiguration(root, 'tasks');
+  if (selected) return { path: selected, created: false };
   const folder = join(root, '.vscode');
   try { await mkdir(folder, { mode: 0o700 }); } catch (error) { if (error.code !== 'EEXIST') throw error; }
   const stat = await lstat(folder);
@@ -65,4 +67,33 @@ async function createBuildTasks(root, tool) {
   finally { await handle.close(); }
   return { path, created: true };
 }
-module.exports = { installedCompiler, taskConfiguration, createBuildTasks };
+async function existingConfiguration(root, name) {
+  for (const directory of ['.theia', '.vscode']) {
+    const folder = join(root, directory), path = join(folder, name + '.json');
+    try {
+      const parent = await lstat(folder);
+      if (!parent.isDirectory() || parent.isSymbolicLink() || await realpath(folder) !== folder)
+        throw Error('Configuration folder is outside this project.');
+      const stat = await lstat(path);
+      if (!stat.isFile() || stat.isSymbolicLink() || await realpath(path) !== path)
+        throw Error('Existing task configuration is not a regular project file.');
+      return path;
+    } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+}
+async function createLaunchConfiguration(root, tasksPath, language) {
+  const existing = await existingConfiguration(root, 'launch');
+  if (existing) return { path: existing, created: false };
+  const path = join(dirname(tasksPath), 'launch.json');
+  const configuration = { type: 'lldb-dap', request: 'launch', name: 'YNX: Debug active ' + (language === 'c' ? 'C' : 'C++'),
+    program: '${fileDirname}/${fileBasenameNoExtension}', cwd: '${fileDirname}',
+    preLaunchTask: 'YNX: Build active ' + (language === 'c' ? 'C' : 'C++'), stopOnEntry: false,
+    console: 'integratedTerminal' };
+  let handle;
+  try { handle = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
+  catch (error) { if (error.code !== 'EEXIST') throw error; return { path: await existingConfiguration(root, 'launch'), created: false }; }
+  try { await handle.writeFile(JSON.stringify({ version: '0.2.0', configurations: [configuration] }, null, 2) + '\n'); }
+  finally { await handle.close(); }
+  return { path, created: true, configuration };
+}
+module.exports = { installedCompiler, taskConfiguration, createBuildTasks, existingConfiguration, createLaunchConfiguration };

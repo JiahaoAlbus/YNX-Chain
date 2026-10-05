@@ -1,3 +1,5 @@
 {
-  "configureBuildTasks": "配置构建和运行任务"
+  "configureBuildTasks": "配置构建和运行任务",
+  "runActive": "运行 C/C++ 文件",
+  "debugActive": "调试 C/C++ 文件"
 }

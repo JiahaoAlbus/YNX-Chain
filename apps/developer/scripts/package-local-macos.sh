@@ -85,7 +85,7 @@ cp -R frontend/src "$app/Contents/Resources/code/apps/developer/frontend/src"
 cp -R protocol "$app/Contents/Resources/code/apps/developer/protocol"
 cp -R services "$app/Contents/Resources/code/apps/developer/services"
 mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
-cp desktop/local-workbench.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 # The packaged project preparer resolves these owned inputs relative to its
 # service module. The composed archive alone does not supply those paths.
 mkdir -p "$app/Contents/Resources/code/apps/developer/native"

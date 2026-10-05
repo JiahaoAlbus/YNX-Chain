@@ -78,16 +78,16 @@ test('visible native activity bar suppresses entire extra rail even when child w
 test('actual MenuModelRegistry resolves four native actions with meaningful labels and real dispatch/enablement', async () => {
   const f = fixture();
   const { MenuModelRegistry, GroupImpl, ActionMenuNode } = require('@theia/core/lib/common/menu');
-  const factory = { createGroup: (id, order, when) => new GroupImpl(id, order, when), createCommandMenu: action => new ActionMenuNode(action, f.commands, { getKeybindingsForCommand: () => [] }, { match: () => true }) };
+  const factory = { createGroup: (id, order, when) => new GroupImpl(id, order, when), createCommandMenu: action => new ActionMenuNode(action, f.commands, { getKeybindingsForCommand: () => [] }, { match: () => true, parseKeys: () => [] }) };
   const menus = new MenuModelRegistry({ getContributions: () => [] }, f.commands, factory);
   f.controls.registerMenus(menus);
-  const actions = menus.getMenu(RUN_MENU).children[0].children;
+  const actions = menus.getMenu(RUN_MENU).children.find(group => group.id.endsWith('actions')).children;
   assert.deepEqual(actions.map(action => action.label), Array.from(RUN_ACTIONS, action => action.label));
   for (const action of actions) { assert.equal(action.isEnabled(RUN_MENU), true); await action.run(RUN_MENU); }
   assert.deepEqual(f.calls.map(call => call[0]), Array.from(RUN_ACTIONS, action => action.id));
   assert.ok(f.calls.every(call => call[1].length === 0));
   f.commands.unregisterCommand(RUN_ACTIONS[0].id); assert.equal(actions[0].isEnabled(RUN_MENU), false);
-  f.controls.dispose(); assert.equal(menus.getMenu(RUN_MENU).children[0].children.length, 0);
+  f.controls.dispose(); assert.equal(menus.getMenu(RUN_MENU).children.find(group => group.id.endsWith('actions')).children.length, 0);
 });
 test('toolbar opens native context-menu overlay at button coordinates and disposes access, without inline details', () => {
   const f = fixture(); let item, options, disposed = 0;
@@ -114,7 +114,7 @@ test('restored panel initializes real static views in one tab group without acti
   for (const key of ['problems', 'output', 'console']) {
     f.views[key].openView = options => { f.calls.push([key, options]); const widget = { id: key }; widgets.push(widget); return widget; };
   }
-  await f.controls.onDidInitializeLayout();
+  await f.controls.initializeLayout();
   assert.deepEqual(f.calls.map(call => call[0]), ['problems', 'output', 'console']);
   assert.equal(f.calls[0][1].ref, terminal);
   assert.equal(f.calls[1][1].ref, widgets[0]);
@@ -130,12 +130,12 @@ test('panel initialization preserves restored split views, skips unavailable vie
   f.shell.getTabBarFor = widget => widget === restored ? {} : undefined;
   f.controls.messages = { error: error => errors.push(error) };
   f.views.output.openView = () => { throw new Error('output initialization failed'); };
-  await f.controls.onDidInitializeLayout();
+  await f.controls.initializeLayout();
   assert.deepEqual(errors, ['output initialization failed']);
   assert.equal(f.calls.length, 1); assert.equal(f.calls[0][0], 'console');
   assert.equal(f.calls[0][1].ref, restored);
   f.calls.length = 0; f.commands.unregisterCommand('debug:console:toggle');
-  f.controls.stopped = true; await f.controls.onDidInitializeLayout();
+  f.controls.stopped = true; await f.controls.initializeLayout();
   assert.equal(f.calls.length, 0);
 });
 
@@ -149,5 +149,24 @@ test('extension palette language conditions track actual editor, changes and dis
   editors.currentEditor.editor.document.languageId = 'cpp'; controls.refresh(); assert.equal(keys.get('editorLangId'), 'cpp');
   editors.currentEditor.isDisposed = true; controls.refresh(); assert.equal(keys.get('editorLangId'), undefined);
   editors.currentEditor = undefined; controls.refresh(); assert.equal(keys.get('editorLangId'), undefined);
-  assert.deepEqual([...keys.keys()], ['editorLangId']); controls.dispose();
+  assert.deepEqual([...keys.keys()], ['ynxNoSelectedDebugConfiguration', 'editorLangId']); controls.dispose();
+});
+
+test('restored layouts are untouched and a terminal moved to main is reused', async () => {
+ const f = fixture(), terminal = { id: 'terminal-main' };
+ f.shell.getWidgets = area => area === 'main' ? [terminal] : [];
+ f.shell.activateWidget = id => f.calls.push(['activate', id]);
+ await f.controls.onDidInitializeLayout(); assert.equal(f.calls.length, 0);
+ await f.controls.openView('terminal'); assert.deepEqual(f.calls, [['activate', terminal.id]]);
+ assert.ok(!source.includes("for (const area of ['left', 'bottom'])"));
+});
+
+test('first-use debug context follows real configuration selection and preserves a selected JS or compound target', () => {
+ const f = fixture(), values = new Map(), configuration = { current: undefined };
+ const controls = new WorkbenchControlsContribution({ ...f, editors: { all: [f.editor] }, debugConfigurations: configuration,
+ contextKeys: { createKey: (name, initial) => { values.set(name, initial); return { set: value => values.set(name, value), reset: () => values.delete(name) }; } } });
+ controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), true);
+ configuration.current = { configuration: { type: 'pwa-node' } }; controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), false);
+ configuration.current = { name: 'compound' }; controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), false);
+ configuration.current = undefined; controls.refresh(); assert.equal(values.get('ynxNoSelectedDebugConfiguration'), true); controls.dispose();
 });

@@ -22,6 +22,7 @@ const { CommandContribution, CommandRegistry } = require('@theia/core/lib/common
 const { nls } = require('@theia/core/lib/common/nls');
 const { MenuContribution } = require('@theia/core/lib/common/menu');
 const { ContextMenuRenderer } = require('@theia/core/lib/browser/context-menu-renderer');
+const { DebugConfigurationManager } = require('@theia/debug/lib/browser/debug-configuration-manager');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
 const { WorkspaceKeybindingsContribution, ShortcutSettings } = require('./workspace-keybindings');
@@ -91,6 +92,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
     contextKeys: context.container.get(ContextKeyService),
     editors: context.container.get(EditorManager), messages: context.container.get(MessageService),
+    debugConfigurations: context.container.get(DebugConfigurationManager),
     translate: translateWorkbench, contextMenus: context.container.get(ContextMenuRenderer),
     views: { explorer: context.container.get(FileNavigatorContribution), search: context.container.get(SearchInWorkspaceFrontendContribution),
       scm: context.container.get(ScmContribution), debug: context.container.get(DebugFrontendApplicationContribution),
