@@ -1,6 +1,6 @@
-import { desktopWalletBridge, developerWalletV2Device } from "./transport";
+import { developerWalletV2Bridge, developerWalletV2Device, type DeveloperWalletBridge, type NativeDeveloperWalletDevice } from "./transport";
 // @ts-ignore The accepted ESM package is vendored byte-for-byte under Developer ownership.
-import { createProductWalletConnection, PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN } from "../../../vendor/wallet-auth/src/index.js";
+import { createProductWalletConnection, PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN, walletConnectionChoices, PRODUCT_SESSION_CLIENT_STATE } from "../../../vendor/wallet-auth/src/index.js";
 import registry from "../../../vendor/wallet-auth/product-session-registry.json";
 
 const ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
@@ -17,7 +17,9 @@ export const DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
 export type DeveloperWalletV2Runtime = {
   connection: any;
   source: typeof DEVELOPER_WALLET_V2_SOURCE;
+  endNativeOperation: () => Promise<void>;
 };
+let explicitNativeOwner: symbol | null = null;
 
 /**
  * The only Developer-owned v2 construction point.  The accepted SDK fixes the
@@ -25,39 +27,118 @@ export type DeveloperWalletV2Runtime = {
  * endpoint, callback, session, clock or transport injection surface.
  */
 export async function createDeveloperWalletV2Runtime(): Promise<DeveloperWalletV2Runtime | null> {
-  const bridge = desktopWalletBridge();
-  if (!bridge?.protectedStorage) return null;
-  const availability = bridge.walletAvailability ? await bridge.walletAvailability() : { walletInstalled: false, schemeRegistered: false };
-  const device = await developerWalletV2Device();
-  const connection = createProductWalletConnection({
+  const bridge = developerWalletV2Bridge();
+  if (!bridge) return null;
+  return createNativeRuntime(bridge);
+}
+
+/** Explicit Connect factory. This asks for native consent and constructs the
+ * canonical SDK consumer; the UI then chooses beginYNX or an explicit restore.
+ * Inspection/Guest never call this function. No Wallet or HTTP request is sent
+ * by construction, and cancellation does not erase protected pending/session.
+ */
+export async function beginDeveloperWalletV2Connection(): Promise<DeveloperWalletV2Runtime> {
+  const bridge = developerWalletV2Bridge();
+  if (!bridge) throw new Error("A native OS-protected Developer Wallet device and storage bridge is required.");
+  if (explicitNativeOwner !== null) throw new Error("Finish the current native Developer Wallet operation before starting another.");
+  const owner = Symbol("native-wallet-operation"); explicitNativeOwner = owner;
+  try {
+    const grantedDevice = await bridge.beginConnection!();
+    const currentDevice = await developerWalletV2Device(bridge);
+    if (currentDevice.key !== grantedDevice?.key) throw new Error("Native Developer Wallet device changed during connection approval.");
+    return await createNativeRuntime(bridge, grantedDevice, owner);
+  } catch (error) {
+    try { await bridge.endConnection!(); } catch { /* Native navigation/expiry also revokes the short capability. Preserve protected state. */ }
+    if (explicitNativeOwner === owner) explicitNativeOwner = null;
+    throw error;
+  }
+}
+
+async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?: NativeDeveloperWalletDevice, owner?: symbol): Promise<DeveloperWalletV2Runtime> {
+  const nativeDevice = await developerWalletV2Device(bridge, grantedDevice);
+  const availability = await bridge.walletAvailability!();
+  if (!availability || typeof availability.walletInstalled !== "boolean" || typeof availability.schemeRegistered !== "boolean" || bridge !== developerWalletV2Bridge()) throw new Error("Native Developer Wallet availability or document binding is invalid.");
+  let active = grantedDevice !== undefined;
+  const assertActive = () => { if (!active || bridge !== developerWalletV2Bridge()) throw new Error("Explicit native Developer Wallet connection approval is required."); };
+  let pendingOperation = false;
+  let expirationTimer: ReturnType<typeof setTimeout> | undefined;
+  const releaseNativeOperation = async () => { if (!active) return; active = false; clearTimeout(expirationTimer); try { await bridge.endConnection!(); } finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; } };
+  const endNativeOperation = async () => { if (active && pendingOperation) sdk.setNetworkAvailable(false); await releaseNativeOperation(); };
+  const sdk = createProductWalletConnection({
     registry,
     productId: "developer",
     platform: "macos",
     walletInstalled: async () => availability.walletInstalled,
     schemeRegistered: async () => availability.schemeRegistered,
     gatewayTimeoutMs: 10_000,
-    storage: bridge.protectedStorage,
-    device,
+    storage: {
+      securityLevel: "os-protected",
+      get: (key: string) => bridge.protectedStorage!.get(key),
+      set: async (key: string, value: string) => { assertActive(); await bridge.protectedStorage!.set(key, value); },
+      remove: async (key: string) => { assertActive(); await bridge.protectedStorage!.remove(key); },
+    },
+    device: Object.freeze({ ...nativeDevice, sign: async (input: Parameters<typeof nativeDevice.sign>[0]) => { assertActive(); return nativeDevice.sign(input); } }),
     scope: window,
     discoveryWaitMs: 250,
     openWallet: async ({ url }: { url: string }) => {
-      try { await bridge.openAuthorization(url); return { opened: true }; }
-      catch { return { opened: false, code: "WALLET_NOT_INSTALLED" }; }
+      try { assertActive(); await bridge.openAuthorization(url); return { opened: true }; }
+      catch { return { opened: false, code: "WALLET_OPEN_FAILED" }; }
     },
     openTimeoutMs: 10_000,
   });
-  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE });
+  const operate = async (method: "beginYNX" | "retryYNX" | "restore" | "handleReturn" | "disconnect", args: unknown[], alwaysEnd = false) => {
+    assertActive();
+    if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before starting another.");
+    pendingOperation = true;
+    try {
+      const execute = sdk[method] as (...parameters: unknown[]) => Promise<any>;
+      const result = await execute.apply(sdk, args);
+      if (alwaysEnd || result?.status !== "wallet-opened") await releaseNativeOperation();
+      return result;
+    } catch (error) {
+      try { await releaseNativeOperation(); } catch { /* Keep the original SDK failure and protected recovery evidence. */ }
+      throw error;
+    } finally { pendingOperation = false; }
+  };
+  // A thin lifecycle fence around the real SDK, not another Auth state machine.
+  // In particular, readonly inspection cannot accidentally invoke SDK restore's
+  // automatic reconnect or its protected-state cleanup without native consent.
+  const connection = Object.freeze({
+    get current() { return sdk.current; },
+    get storageKey() { return sdk.storageKey; },
+    get connectionBinding() { return sdk.connectionBinding; },
+    options: () => sdk.options(),
+    enterGuest: async () => { if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before entering Guest."); const result = sdk.enterGuest(); await releaseNativeOperation(); return result; },
+    setNetworkAvailable: (available: boolean) => sdk.setNetworkAvailable(available),
+    beginYNX: () => operate("beginYNX", []),
+    retryYNX: () => operate("retryYNX", []),
+    restore: (networkAvailable = true) => operate("restore", [networkAvailable]),
+    handleReturn: (url: string) => operate("handleReturn", [url], true),
+    disconnect: () => operate("disconnect", [], true),
+  });
+  // Match the native five-minute upper bound and release the frontend owner
+  // too, so an abandoned review cannot permanently block explicit reconnect.
+  if (active) expirationTimer = setTimeout(() => { void endNativeOperation().catch(() => {}); }, 300_000);
+  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation });
 }
 
 export async function inspectDeveloperWalletV2Runtime() {
-  const runtime = await createDeveloperWalletV2Runtime();
-  if (!runtime) return Object.freeze({ available: false, reason: "A native OS-protected Developer Wallet storage bridge is required.", source: DEVELOPER_WALLET_V2_SOURCE });
-  const options = await runtime.connection.options();
-  return Object.freeze({ available: true, options, source: runtime.source });
+  try {
+    const runtime = await createDeveloperWalletV2Runtime();
+    if (!runtime) throw new Error("A native OS-protected Developer Wallet device and storage bridge is required.");
+    const options = await runtime.connection.options();
+    return Object.freeze({ available: true, options, source: runtime.source });
+  } catch (error) { return unavailable(error); }
 }
 
 export async function enterDeveloperWalletV2Guest() {
-  const runtime = await createDeveloperWalletV2Runtime();
-  if (!runtime) return Object.freeze({ available: false, reason: "A native OS-protected Developer Wallet storage bridge is required.", source: DEVELOPER_WALLET_V2_SOURCE });
-  return Object.freeze({ available: true, sessionState: runtime.connection.enterGuest(), source: runtime.source });
+  // Guest is a local development choice, independent of device provisioning.
+  // Consume the SDK's pure guest choice and limits without constructing a
+  // fictitious device/session or changing any existing Wallet connection.
+  const guest = walletConnectionChoices(registry, "developer", { ynxWalletInstalled: false, metaMaskAvailable: false }).find((choice: any) => choice.id === "guest");
+  if (!guest || guest.authoritative !== false || !Array.isArray(guest.limitations)) return unavailable(new Error("The accepted SDK did not provide a non-authoritative Guest choice."));
+  const sessionState = Object.freeze({ status: PRODUCT_SESSION_CLIENT_STATE.GUEST, message: guest.label, limitations: Object.freeze([...guest.limitations]) });
+  return Object.freeze({ available: true, connectionMode: "local-guest", authoritative: false, sessionState, source: DEVELOPER_WALLET_V2_SOURCE });
 }
+
+function unavailable(error: unknown) { return Object.freeze({ available: false, reason: error instanceof Error ? error.message : "Native Developer Wallet is unavailable.", requiresExplicitConnection: true, source: DEVELOPER_WALLET_V2_SOURCE }); }

@@ -6,12 +6,26 @@ import { encodeRequestDeepLink, parseAuthorizationCallbackURL, type Authorizatio
 export type DeveloperWalletBridge = {
   openAuthorization: (deepLink: string) => Promise<void>;
   walletAvailability?: () => Promise<{ walletInstalled: boolean; schemeRegistered: boolean }>;
+  device?: () => Promise<NativeDeveloperWalletDevice>;
+  beginConnection?: () => Promise<NativeDeveloperWalletDevice>;
+  endConnection?: () => Promise<void>;
   protectedStorage?: {
     securityLevel: "os-protected";
     get: (key: string) => Promise<string | null>;
     set: (key: string, value: string) => Promise<void>;
     remove: (key: string) => Promise<void>;
   };
+};
+
+export type DeveloperWalletV2SigningInput = { purpose: "challenge" | "http-proof"; algorithm: "p256-sha256"; deviceKey: string; payload: string };
+export type NativeDeveloperWalletDevice = {
+  id: string;
+  key: string;
+  algorithm: "p256-sha256";
+  securityLevel: "os-protected";
+  scopes: readonly string[];
+  purpose: string;
+  sign: (input: DeveloperWalletV2SigningInput) => Promise<string>;
 };
 
 declare global {
@@ -50,23 +64,59 @@ function base64url(bytes: Uint8Array) {
 }
 
 export function desktopWalletBridge(): DeveloperWalletBridge | undefined {
-  const candidate = window.ynxDesktopWallet;
+  const candidate = typeof window === "undefined" ? undefined : window.ynxDesktopWallet;
   return candidate && typeof candidate.openAuthorization === "function" ? candidate : undefined;
 }
 
-export async function developerWalletV2Device() {
-  const pair = await productDeviceKeyPair(), key = await productDevicePublicKey();
+export function developerWalletV2Bridge() {
+  const bridge = desktopWalletBridge(), storage = bridge?.protectedStorage;
+  if (!bridge || typeof bridge.device !== "function" || typeof bridge.beginConnection !== "function" || typeof bridge.endConnection !== "function" || typeof bridge.walletAvailability !== "function" || storage?.securityLevel !== "os-protected" || typeof storage.get !== "function" || typeof storage.set !== "function" || typeof storage.remove !== "function") return undefined;
+  return bridge;
+}
+
+// V2 has one native device identity. Inspection reads its public descriptor;
+// creation and a short signing capability require a separate native Connect.
+// The existing V1 IndexedDB device remains exclusively on the V1 path below.
+export async function developerWalletV2Device(bridge = developerWalletV2Bridge(), grantedDevice?: NativeDeveloperWalletDevice) {
+  if (!bridge || bridge !== developerWalletV2Bridge()) throw new Error("A native OS-protected Developer Wallet device bridge is required.");
+  const native = grantedDevice ?? await bridge.device!();
+  const purpose = "Connect YNX Developer to the approved testnet Developer account";
+  if (!native || native.id !== "ynx-developer-macos-device-v2" || native.algorithm !== "p256-sha256" || native.securityLevel !== "os-protected" || native.purpose !== purpose || typeof native.sign !== "function" || !Array.isArray(native.scopes) || native.scopes.length !== 2 || new Set(native.scopes).size !== 2 || !native.scopes.includes("account:read") || !native.scopes.includes("developer:deploy") || typeof native.key !== "string" || !/^[A-Za-z0-9_-]{44}$/.test(native.key)) throw new Error("Native Developer Wallet device identity or capability is invalid.");
+  const key = native.key, bytes = decodeBase64url(key);
+  if (bytes.length !== 33 || (bytes[0] !== 2 && bytes[0] !== 3) || base64url(bytes) !== key) throw new Error("Native Developer Wallet public key is not canonical compressed P256.");
+  if (bridge !== developerWalletV2Bridge()) throw new Error("The native Developer Wallet document changed while reading its device.");
   return Object.freeze({
-    id: "ynx-developer-macos-device-v2",
+    id: native.id,
     key,
     scopes: Object.freeze(["account:read", "developer:deploy"]),
-    purpose: "Connect YNX Developer through the canonical Wallet Product Session v2 factory.",
-    async sign(input: { purpose: "challenge" | "http-proof"; algorithm: "p256-sha256"; deviceKey: string; payload: string }) {
-      if ((input.purpose !== "challenge" && input.purpose !== "http-proof") || input.algorithm !== "p256-sha256" || input.deviceKey !== key) throw new Error("Developer Wallet v2 signer request is not bound to this device.");
-      const signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, pair.privateKey, decodeBase64url(input.payload)));
-      return base64url(derSignature(signature));
+    purpose,
+    async sign(input: DeveloperWalletV2SigningInput) {
+      if (bridge !== developerWalletV2Bridge() || !input || Object.keys(input).sort().join(",") !== "algorithm,deviceKey,payload,purpose" || (input.purpose !== "challenge" && input.purpose !== "http-proof") || input.algorithm !== "p256-sha256" || input.deviceKey !== key || typeof input.payload !== "string" || !/^[A-Za-z0-9_-]{1,10923}$/.test(input.payload)) throw new Error("Developer Wallet v2 signer request is not bound to this native device.");
+      const payload = decodeBase64url(input.payload), text = new TextDecoder("utf-8", { fatal: true }).decode(payload), domain = input.purpose === "challenge" ? "YNX_PRODUCT_SESSION_CHALLENGE_V2\n" : "YNX_PRODUCT_SESSION_HTTP_PROOF_V2\n";
+      if (payload.length > 8192 || base64url(payload) !== input.payload || !text.startsWith(domain)) throw new Error("Developer Wallet v2 signing domain or size is invalid.");
+      const signature = await native.sign(Object.freeze({ ...input }));
+      if (bridge !== developerWalletV2Bridge()) throw new Error("Native Developer Wallet document changed during signing.");
+      if (typeof signature !== "string" || !/^[A-Za-z0-9_-]{11,96}$/.test(signature)) throw new Error("Native Developer Wallet returned an invalid DER signature.");
+      const der = decodeBase64url(signature);
+      if (!canonicalP256DER(der) || base64url(der) !== signature) throw new Error("Native Developer Wallet returned a noncanonical DER signature.");
+      return signature;
     },
   });
+}
+
+function canonicalP256DER(der: Uint8Array) {
+  if (der.length < 8 || der.length > 72 || der[0] !== 0x30 || der[1] !== der.length - 2) return false;
+  const order = 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
+  let offset = 2;
+  for (let part = 0; part < 2; part++) {
+    if (offset + 2 > der.length || der[offset++] !== 0x02) return false;
+    const length = der[offset++];
+    if (length < 1 || length > 33 || offset + length > der.length || (der[offset] & 0x80) !== 0 || (length > 1 && der[offset] === 0 && (der[offset + 1] & 0x80) === 0)) return false;
+    let integer = 0n;
+    for (let i = 0; i < length; i++) integer = (integer << 8n) | BigInt(der[offset++]);
+    if (integer === 0n || integer >= order) return false;
+  }
+  return offset === der.length;
 }
 
 export async function openDeveloperWalletReview(bridge: DeveloperWalletBridge, now = new Date()) {
