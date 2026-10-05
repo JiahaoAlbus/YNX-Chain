@@ -56,16 +56,19 @@ case "$machine_arch" in
   arm64|x86_64) platform="macos-$([[ "$machine_arch" == arm64 ]] && printf arm64 || printf x64)" ;;
   *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
 esac
-candidate_root="$PWD/.ynx-developer-candidates"
+candidate_root=$(node scripts/build-output-root.mjs root)
 root="${YNX_DEVELOPER_MACOS_OUTPUT_DIR:-$candidate_root/${source_commit:0:12}-${platform}}"
 case "$root" in
   "$candidate_root"/*) ;;
   *) echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must stay under $candidate_root" >&2; exit 1 ;;
 esac
 [[ "$root" != *"/../"* && "$root" != */.. ]] || { echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must not contain parent traversal" >&2; exit 1; }
-[[ ! -e "$root" ]] || { echo "Refusing to overwrite existing macOS package candidate: $root" >&2; exit 1; }
+[[ ! -e "$root" && ! -L "$root" ]] || { echo "Refusing to overwrite existing macOS package candidate: $root" >&2; exit 1; }
 
 npm run code:build
+node scripts/build-output-root.mjs claim "$root"
+mkdir "$root/tmp"
+export TMPDIR="$root/tmp"
 app="$root/YNX Developer Testnet Preview.app"
 mkdir -p "$root" "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
 branding_root="$root/branding"
@@ -280,6 +283,7 @@ if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=no
   echo "Refusing local-package classification: expected only linker ad-hoc signing with no team identity." >&2
   exit 1
 fi
+node scripts/build-output-root.mjs verify "$root"
 node scripts/package-macos-branding.mjs verify-app "$app"
 /usr/bin/codesign --verify --deep --strict "$app"
 dmg_root="$root/dmg-root"
@@ -298,6 +302,7 @@ if ! COPYFILE_DISABLE=1 cp -cR "$app" "$dmg_root/"; then
   COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
 fi
 node scripts/package-macos-branding.mjs dmg "$dmg_root" "$branding_root" "$dmg"
+node scripts/build-output-root.mjs verify "$root"
 /usr/bin/shasum -a 256 "$dmg" | tee "$root/SHA256SUMS.txt"
 # Only a successful image's generated, holder-free staging duplicate is
 # disposable. Keep the original app, DMG and all failed/partial builds.

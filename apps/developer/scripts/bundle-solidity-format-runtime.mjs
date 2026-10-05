@@ -3,11 +3,13 @@ import {readFile, writeFile, readdir, mkdir, copyFile, realpath, lstat} from 'no
 import {join, dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
+import {assertBuildOutputDirectory} from './build-output-root.mjs';
 const developer=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 const require=createRequire(join(developer,'package.json'));
 export async function bundleSolidityFormatRuntime(target, rpcInput) {
   const tools=await realpath(target);
-  if(!tools.startsWith(join(developer,'.ynx-developer-candidates')+'/'))throw Error('Use an owned candidate extension.');
+  if(tools!==target)throw Error('Use the canonical output directory.');
+  await assertBuildOutputDirectory(tools);
   const output=join(tools,'formatter');await mkdir(output);await mkdir(join(output,'node_modules'));
   const packages=[], selected=new Map(), hashes={};
   const sha=bytes=>createHash('sha256').update(bytes).digest('hex');

@@ -8,13 +8,14 @@ import { bundleSolidityFormatRuntime } from '../../../scripts/bundle-solidity-fo
 import { packageLanguagePack } from '../../../scripts/package-language-pack.mjs';
 import { reviewedMacNodeVersion } from '../../../scripts/bundle-local-node-runtime.mjs';
 import { inspectBinary, compareVersions } from '../../../scripts/verify-macos-compatibility.mjs';
+import { claimBuildOutput, verifyBuildOutputIdentity } from '../../../scripts/build-output-root.mjs';
 const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
 const cppInput = process.argv[4];
 const candidateRoot = join(developer, '.ynx-developer-candidates') + '/';
 if (process.platform === 'darwin' && !reviewedMacNodeVersion(process.version)) throw Error('Use an exact reviewed macOS Node version for runtime provenance.');
-if (!destination?.startsWith(candidateRoot) || resolve(destination) !== destination || !pluginsInput?.startsWith(candidateRoot))
+if (!destination || resolve(destination) !== destination || !pluginsInput?.startsWith(candidateRoot))
   throw Error('Use new owned absolute candidate paths.');
 const plugins = await realpath(pluginsInput);
 if (!plugins.startsWith(candidateRoot)) throw Error('Plugin input escaped its owned candidate root.');
@@ -26,7 +27,7 @@ if (buildReceipt.workbenchTreeSha256 !== await composedTreeDigest(join(developer
   || buildReceipt.lockSha256 !== createHash('sha256').update(await readFile(join(application, 'package-lock.json'))).digest('hex')) {
   throw Error('Owned source/cache/build receipt differs. Run the owned offline build before packaging.');
 }
-await mkdir(destination, { mode: 0o700 }); // never replace an existing candidate
+const outputIdentity = await claimBuildOutput(destination); // never replace an existing candidate
 async function assertRegularTree(root) {
   for (const name of await readdir(root)) {
     const path = join(root, name), stat = await lstat(path);
@@ -160,6 +161,8 @@ const bytes = JSON.stringify(manifest, null, 2) + '\n';
 await writeFile(join(destination, 'YNX-COMPOSED-RUNTIME.json'), bytes, { flag: 'wx' });
 const pin = { kind: manifest.kind, version: manifest.version, architecture: manifest.architecture,
   lockSha256: manifest.lockSha256, treeSha256: manifest.treeSha256, manifestSha256: createHash('sha256').update(bytes).digest('hex') };
+await verifyBuildOutputIdentity(outputIdentity);
 await writeFile(`${destination}.pin.json`, JSON.stringify(pin, null, 2) + '\n', { flag: 'wx' });
 await verifyComposedRuntime(destination, pin);
+await verifyBuildOutputIdentity(outputIdentity);
 console.log(JSON.stringify({ destination, pin, noticeDeclarations: notices.length }));

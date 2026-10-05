@@ -4,10 +4,12 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { compilerReadiness, COMPILER_CLOSURE_SHA256 } from './compiler-pin.mjs';
 import { bundleSolidityImportParser } from './bundle-solidity-import-parser.mjs';
+import { assertBuildOutputDirectory } from './build-output-root.mjs';
 const developer = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export async function bundleSolidityLanguageRuntime(inputArg, toolsArg) {
   const input = await realpath(inputArg), tools = await realpath(toolsArg);
-  if (!tools.startsWith(join(developer, '.ynx-developer-candidates') + '/')) throw Error('Bundle only into an owned candidate extension.');
+  if (tools !== toolsArg) throw Error('Use the canonical output directory.');
+  await assertBuildOutputDirectory(tools);
   const state = compilerReadiness(input);
   if (!state.available || state.closureSha256 !== COMPILER_CLOSURE_SHA256) throw Error('Use the existing reviewed complete compiler closure.');
   const distribution = JSON.parse(await readFile(join(dirname(dirname(input)), 'distribution.json'), 'utf8'));

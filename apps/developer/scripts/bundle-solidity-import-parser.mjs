@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, writeFile, realpath, readdir, lstat } from 'node:f
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { assertBuildOutputDirectory } from './build-output-root.mjs';
 const developer = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 export const IMPORT_PARSER_CLOSURE = '4a71ce3d18805d970782045516bea34a305545cf9d535a5bfc99106aa2440ccb';
 const packages = [
@@ -24,7 +25,8 @@ async function tree(root, prefix = 'node_modules') {
 }
 export async function bundleSolidityImportParser(compilerArg) {
   const compiler = await realpath(compilerArg);
-  if (!compiler.startsWith(join(developer, '.ynx-developer-candidates') + '/')) throw Error('Use an owned candidate compiler output.');
+  if (compiler !== compilerArg) throw Error('Use the canonical compiler output directory.');
+  await assertBuildOutputDirectory(compiler);
   const parser = join(compiler, 'parser'); await mkdir(parser); await mkdir(join(parser, 'node_modules'));
   for (const expected of packages) {
     const source = await realpath(join(developer, 'node_modules', expected.name));
