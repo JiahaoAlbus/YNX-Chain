@@ -36,7 +36,15 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const { startLocalWorkbench } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'local-workbench.mjs')));
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) });
+    node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
+      // startLocalWorkbench has already stopped its own child before rejecting.
+      // Preserve the lock refusal across the launcher/native-host boundary.
+      if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
+        console.error(error.message);
+        process.exit(73);
+      }
+      throw error;
+    });
   console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
   const parent = process.ppid;
   const monitor = setInterval(() => { if (process.ppid !== parent) void workbench.stop(); }, 250);

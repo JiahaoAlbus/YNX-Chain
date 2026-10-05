@@ -183,7 +183,11 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   try {
     const deadline = Date.now() + readinessTimeoutMs;
     while (Date.now() < deadline) {
-      if (ended) throw failure || Error(exitCode === 73 ? 'This local project is already open in another YNX Developer window.' : 'Local workbench exited before becoming ready.');
+      if (ended) {
+        const error = failure || Error(exitCode === 73 ? 'This local project is already open in another YNX Developer window.' : 'Local workbench exited before becoming ready.');
+        if (!failure && exitCode === 73) error.code = 'YNX_LOCAL_PROJECT_ALREADY_OPEN';
+        throw error;
+      }
       try { const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(1000) }); if (response.ok) return { ...runtime, ...context, url, port, pid: child.pid, stop, exited }; } catch {}
       await new Promise(ok => setTimeout(ok, 150));
     }
