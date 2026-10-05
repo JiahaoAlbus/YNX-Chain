@@ -2,14 +2,14 @@
 const { BaseWidget } = require('@theia/core/lib/browser/widgets');
 const { CommonMenus } = require('@theia/core/lib/browser/common-menus');
 const { nls } = require('@theia/core/lib/common/nls');
-const { NativeWalletController, PAUSED_WALLET_ADMISSION } = require('./native-wallet-controller');
+const { NativeWalletController, MISSING_WALLET_ADMISSION } = require('./native-wallet-controller');
 const api = require('./native-wallet-sdk.generated');
 const ID = 'ynx-native-wallet';
 const { EN, ZH } = require('./native-wallet-localization');
 const t = key => nls.localize('ynx/nativeWallet/' + key, EN[key] || key);
 function element(document, tag, text) { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; return node; }
 class NativeWalletService {
-  constructor(target = window, admission = PAUSED_WALLET_ADMISSION) {
+  constructor(target = window, admission = MISSING_WALLET_ADMISSION) {
     this.target = target; this.listeners = new Set();
     this.controller = new NativeWalletController(api, state => { for (const fn of this.listeners) fn(state); }, admission);
     this.pagehide = () => { void this.controller.cancel(); };
@@ -38,9 +38,10 @@ class NativeWalletWidget extends BaseWidget {
   }
   renderState(state) {
     this.status.textContent = t(state.phase === 'guest' ? 'guestState' : state.phase);
-    this.session.textContent = `${t(state.sessionCurrent ? 'session' : 'historical')}: ${state.session.status}${state.session.account ? ' · ' + state.session.account : ''}`;
-    this.detail.textContent = state.phase === 'paused' ? t('paused') : state.message || state.session.message || (state.available === false ? t('unavailable') : '');
-    this.source.textContent = state.source ? `${state.source.gatewayOrigin} · ${state.source.sourceCommit}` : '';
+    this.session.textContent = `${t(state.sessionCurrent ? 'session' : 'historical')}: ${t(EN['sdk-' + state.session.status] ? 'sdk-' + state.session.status : 'sdk-unknown')}${state.session.account ? ' · ' + state.session.account : ''}`;
+    this.detail.textContent = state.available === false ? t('unavailable') : ['dependency-missing', 'paused', 'error'].includes(state.phase) ? t('retryAction') : '';
+    const configuration = { 'not-supplied': 'serviceMissing', paused: 'servicePaused', unverified: 'serviceUnverified', verified: 'serviceVerified' };
+    this.source.textContent = t(configuration[state.serviceConfiguration] || 'serviceUnverified') + (state.source ? ` · ${state.source.gatewayOrigin}` : '');
     for (const key of ['connect', 'restore', 'disconnect']) this.buttons[key].disabled = state.busy || state.awaitingCallback;
     this.buttons.returned.disabled = state.busy || state.awaitingCallback || !state.hasPendingReturn;
     this.buttons.cancel.disabled = !state.busy && !state.awaitingCallback;

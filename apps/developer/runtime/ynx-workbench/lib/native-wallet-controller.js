@@ -8,11 +8,13 @@ function publicSessionState(result, runtime) {
     account: state?.status === 'connected' && typeof state.session?.account === 'string' ? state.session.account : undefined,
     expiresAt: state?.status === 'connected' && typeof state.session?.expiresAt === 'string' ? state.session.expiresAt : undefined });
 }
+const MISSING_WALLET_ADMISSION = Object.freeze({ assertCurrent() { const error = Error('Wallet service has not been connected. Local development remains available.'); error.code = 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED'; throw error; } });
+// This code represents a pause reported by a trusted supplier, not its absence.
 const PAUSED_WALLET_ADMISSION = Object.freeze({ assertCurrent() { const error = Error('Wallet online connection is not open yet. Local development remains available.'); error.code = 'WALLET_ONLINE_ADMISSION_PAUSED'; throw error; } });
 class NativeWalletController {
-  constructor(api, emit = () => {}, admission = PAUSED_WALLET_ADMISSION) {
+  constructor(api, emit = () => {}, admission = MISSING_WALLET_ADMISSION) {
     this.api = api; this.admission = admission; this.emit = emit; this.epoch = 0; this.disposed = false; this.runtime = undefined; this.inFlight = undefined; this.callback = undefined;
-    this.state = Object.freeze({ phase: 'idle', busy: false, awaitingCallback: false, session: { status: 'disconnected', message: '' }, sessionCurrent: false, message: '', projectCapability: 'not-supplied' });
+    this.state = Object.freeze({ phase: 'idle', serviceConfiguration: admission === MISSING_WALLET_ADMISSION ? 'not-supplied' : 'unverified', busy: false, awaitingCallback: false, session: { status: 'disconnected', message: '' }, sessionCurrent: false, message: '', projectCapability: 'not-supplied' });
     this.unsubscribe = api.subscribeDeveloperWalletCallbacks(url => this.receiveCallback(url));
   }
   publish(patch) { if (!this.disposed) { this.state = Object.freeze({ ...this.state, ...patch, projectCapability: 'not-supplied' }); this.emit(this.state); } }
@@ -28,15 +30,16 @@ class NativeWalletController {
   run(action, existingRuntime) {
     if (this.disposed || this.inFlight || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
     const epoch = ++this.epoch;
-    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, message: '' });
+    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, sessionCurrent: false, message: '', failureCode: undefined });
     let runtime = existingRuntime;
     const method = action === 'connect' ? 'beginYNX' : action === 'return' ? 'handleReturn' : action;
     const admit = async () => {
       // This interface must be supplied by a trusted owner-bound service, never
       // a project file, browser global or SDK registry entry. No supplier exists
-      // in this package yet, so the default is an explicit paused dependency.
+      // in this package yet, so the default reports an unconnected dependency.
       const asserted = await this.admission.assertCurrent({ service: 'wallet-product-session-v2', productId: 'developer', platform: 'macos', gatewayOrigin: this.api.DEVELOPER_WALLET_V2_SOURCE.gatewayOrigin, operation: method });
-      if (asserted !== undefined && asserted !== true) throw Error('Wallet service admission was not verified.');
+      if (asserted !== undefined && asserted !== true) { const error = Error('Wallet service admission was not verified.'); error.code = 'WALLET_SERVICE_ADMISSION_INVALID'; throw error; }
+      if (epoch === this.epoch) this.publish({ serviceConfiguration: 'verified' });
     };
     const operation = Promise.resolve().then(async () => {
       await admit();
@@ -61,7 +64,10 @@ class NativeWalletController {
     }).catch(async error => {
       if (runtime) await runtime.endNativeOperation().catch(() => {});
       if (this.runtime === runtime) this.runtime = undefined;
-      if (epoch === this.epoch) this.publish({ phase: error.code === 'WALLET_ONLINE_ADMISSION_PAUSED' ? 'paused' : 'error', busy: false, awaitingCallback: false, sessionCurrent: false, message: error.message || 'Wallet operation failed.' });
+      if (epoch === this.epoch) {
+        const missing = error.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
+        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error.code === 'string' ? error.code : undefined, message: error.message || 'Wallet operation failed.' });
+      }
     }).finally(() => {
       if (this.inFlight === operation) this.inFlight = undefined;
       if (!this.disposed && epoch !== this.epoch) this.publish({ busy: false });
@@ -92,4 +98,4 @@ class NativeWalletController {
   }
   dispose() { if (this.disposed) return Promise.resolve(); const cleanup = this.cancel(); this.disposed = true; this.unsubscribe(); this.callback = undefined; return cleanup; }
 }
-module.exports = { NativeWalletController, publicSessionState, PAUSED_WALLET_ADMISSION };
+module.exports = { NativeWalletController, publicSessionState, MISSING_WALLET_ADMISSION, PAUSED_WALLET_ADMISSION };

@@ -6,7 +6,7 @@ import vm from 'node:vm';
 import { buildNativeWalletConsumer } from '../../ynx-workbench/scripts/build-native-wallet-consumer.mjs';
 import { PRODUCT_SESSION_CLIENT_STATE as STATES } from '../../../vendor/wallet-auth/src/product-session-recovery.js';
 const require = createRequire(import.meta.url); require('reflect-metadata');
-const { NativeWalletController, publicSessionState } = require('../../ynx-workbench/lib/native-wallet-controller.js');
+const { NativeWalletController, publicSessionState, PAUSED_WALLET_ADMISSION } = require('../../ynx-workbench/lib/native-wallet-controller.js');
 const actual = require('../../ynx-workbench/lib/native-wallet-sdk.generated.js');
 const binding = { productId: 'developer', platform: 'macos', applicationId: 'com.ynxweb4.developer.testnetpreview' };
 function deferred() { let resolve; const promise = new Promise(r => resolve = r); return { promise, resolve }; }
@@ -29,9 +29,9 @@ test('actual retained SDK Guest is local without native device or business trans
   await controller.guest(); assert.equal(controller.state.session.status, STATES.GUEST); assert.equal(controller.state.projectCapability, 'not-supplied'); await controller.dispose();
  } finally { globalThis.fetch = saved; }
 });
-test('production admission is paused: Connect, Restore and Disconnect stop before native factory/network', async () => {
+test('missing production supplier: Connect, Restore and Disconnect stop before native factory/network', async () => {
  const f = fixture(), controller = new NativeWalletController(f.api);
- await controller.connect(); await controller.restore(); await controller.disconnect(); assert.equal(controller.state.phase, 'paused'); assert.ok(!f.calls.includes('native-approval')); await controller.dispose();
+ await controller.connect(); await controller.restore(); await controller.disconnect(); assert.equal(controller.state.phase, 'dependency-missing'); assert.equal(controller.state.serviceConfiguration, 'not-supplied'); assert.ok(!f.calls.includes('native-approval')); await controller.dispose();
 });
 test('repeat Connect deduplicates and the exact callback uses the original runtime then releases capability', async () => {
  const f = fixture(), gate = deferred(); f.api.beginDeveloperWalletV2Connection = async () => { f.calls.push('native-approval'); await gate.promise; return f.runtime; };
@@ -95,4 +95,33 @@ test('actual LocalizationProvider loads every Wallet view key for zh-cn and reta
   for (const key of Object.keys(EN)) assert.equal(nls.localize('ynx/nativeWallet/' + key, EN[key]), ZH[key]);
   nls.localization = undefined; assert.equal(nls.localize('ynx/nativeWallet/connect', EN.connect), 'Connect YNX Wallet');
  } finally { nls.localization = previous; registration.dispose(); }
+});
+test('explicit trusted supplier pause stays separate from missing service; cleanup still works', async () => {
+ const f = fixture(), controller = new NativeWalletController(f.api, () => {}, PAUSED_WALLET_ADMISSION);
+ await controller.connect(); assert.equal(controller.state.phase, 'paused'); assert.equal(controller.state.serviceConfiguration, 'paused');
+ assert.ok(!f.calls.includes('native-approval')); await controller.dispose(); await f.controller.dispose();
+});
+test('old account is historical during restore; a new SDK observation replaces it without project authority', async () => {
+ const f = fixture();
+ f.runtime.connection.restore = async () => ({ sessionState: { status: STATES.CONNECTED, session: { account: 'first-account' } } });
+ await f.controller.restore(); assert.equal(f.controller.state.session.account, 'first-account');
+ const gate = deferred(); f.runtime.connection.restore = async () => { await gate.promise; return { sessionState: { status: STATES.CONNECTED, session: { account: 'second-account' } } }; };
+ const restoring = f.controller.restore(); assert.equal(f.controller.state.sessionCurrent, false); gate.resolve(); await restoring;
+ assert.equal(f.controller.state.session.account, 'second-account'); assert.equal(f.controller.state.projectCapability, 'not-supplied');
+ f.runtime.connection.restore = async () => { const error = Error('revoked'); error.code = 'SESSION_REVOKED'; throw error; };
+ await f.controller.restore(); assert.equal(f.controller.state.sessionCurrent, false); assert.equal(f.controller.state.failureCode, 'SESSION_REVOKED');
+ assert.ok(f.calls.includes('end')); await f.controller.dispose();
+});
+test('a false/null admission assertion never triggers native or SDK actions', async () => {
+ for (const result of [false, null, {}, 'true']) { const f = fixture(); f.admission.assertCurrent = () => result; await f.controller.connect(); assert.equal(f.controller.state.serviceConfiguration, 'unverified'); assert.ok(!f.calls.includes('native-approval')); await f.controller.dispose(); }
+});
+test('real retained SDK rejects caller endpoint/registry flags and unsupported native platform', async () => {
+ const { parseProductSessionRegistry, productPlatformBinding } = await import('../../../vendor/wallet-auth/src/product-session-registry.js');
+ const { createProductWalletConnection } = await import('../../../vendor/wallet-auth/src/product-wallet-connection.js');
+ const registry = JSON.parse(await readFile(new URL('../../../vendor/wallet-auth/product-session-registry.json', import.meta.url), 'utf8'));
+ assert.throws(() => parseProductSessionRegistry({ ...registry, enabled: true }), /fields|schema/i);
+ const parsed = parseProductSessionRegistry(registry); assert.equal(productPlatformBinding(parsed, 'developer', 'macos').applicationId, binding.applicationId);
+ assert.throws(() => productPlatformBinding(parsed, 'developer', 'linux'), /platform/i);
+ const config = Object.fromEntries(['registry', 'productId', 'platform', 'walletInstalled', 'schemeRegistered', 'gatewayTimeoutMs', 'storage', 'device', 'scope', 'discoveryWaitMs', 'openWallet', 'openTimeoutMs'].map(key => [key, undefined]));
+ assert.throws(() => createProductWalletConnection({ ...config, endpoint: 'https://example.invalid' }), /fields|schema/i);
 });
