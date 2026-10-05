@@ -8,6 +8,7 @@ import { promisify } from 'node:util';
 import { createLocalIpcSession, localIpcRoot } from './local-workbench-ipc.mjs';
 import { createDebugSessionSupervisor } from './local-debug-session.mjs';
 import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
+import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -80,21 +81,36 @@ export async function prepareLocalGitConfig(context) {
   if (stat.uid !== process.getuid() || stat.nlink !== 1 || (stat.mode & 0o777) !== 0o600) throw Error('Local Git configuration is not a private regular file. Existing configuration was retained.');
   return path;
 }
-export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor }) {
+const goAdmissions = new WeakMap();
+export async function admitLocalGoReadScope(toolchain, context) {
+  await assertAdmittedLocalGoToolchain(toolchain, context);
+  goAdmissions.set(toolchain, { id: context.id, workspace: context.workspace, profile: context.profile, temporary: context.temporary });
+  return toolchain;
+}
+function verifiedGo(toolchain, context) {
+  if (toolchain === undefined) return undefined;
+  const binding = goAdmissions.get(toolchain);
+  if (!binding || Object.entries(binding).some(([key, value]) => context[key] !== value)) throw Error('Go read scope requires this project’s verified native selection.');
+  return toolchain;
+}
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor, goToolchain }) {
+  const go = verifiedGo(goToolchain, context);
   const temporary = context.ipcTemporary || context.temporary;
-  return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
+  return { PATH: `${go ? dirname(go.entry) + ':' : ''}${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
+    ...(go ? { YNX_IDE_GO_ENTRY: go.entry, YNX_IDE_GO_ROOT: go.root, YNX_IDE_GO_VERSION: go.version, YNX_IDE_GO_SHA: go.sha } : {}),
     ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot } : {}) };
 }
-export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities = [] }) {
+export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities = [] }) {
+  const go = verifiedGo(goToolchain, context);
   const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
   const ipc = context.ipcTemporary;
   if (ipc && (!ipc.startsWith(localIpcRoot() + '/') || !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(ipc.slice(localIpcRoot().length + 1)) || Buffer.byteLength(ipc) > 48)) throw Error('Local IPC policy requires its owned short session directory.');
-  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(ipc ? [ipc] : [])];
+  const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(go ? [go.root] : []), ...(ipc ? [ipc] : [])];
   const pathsFor = path => pathIdentities.find(proof => proof.canonical === path)?.paths || [path];
   const ancestors = new Set(); for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
   for (const proof of pathIdentities) if (reads.includes(proof.canonical)) for (const ancestor of proof.ancestors) ancestors.add(ancestor);
@@ -105,8 +121,9 @@ export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context
     ...(ipc ? [`(allow network-bind (local unix-socket (subpath "${escape(ipc)}")))`, `(allow network-outbound (remote unix-socket (subpath "${escape(ipc)}")))`] : []),
     `(allow network-bind (local ip "localhost:${port}"))`, `(allow network-inbound (local ip "localhost:${port}"))`].join('\n');
 }
-export async function localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context, git }) {
-  const paths = [...new Set(['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(context.ipcTemporary ? [context.ipcTemporary] : [])])];
+export async function localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context, git, goToolchain }) {
+  const go = verifiedGo(goToolchain, context);
+  const paths = [...new Set(['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(go ? [go.root] : []), ...(context.ipcTemporary ? [context.ipcTemporary] : [])])];
   // Every alias is proved to be the same selected vnode, never an entire volume
   // substitution. The proof's ancestor access is metadata-only.
   const proofs = [];
@@ -203,7 +220,7 @@ export async function prepareLocalPlugins({ runtime, context }) {
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
   await regular(node);
@@ -214,6 +231,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const runtime = await prepareLocalRuntime({ payload, supportRoot });
   if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
   const context = await localProjectContext({ supportRoot, projectDirectory });
+  if (goToolchain !== undefined) await admitLocalGoReadScope(goToolchain, context);
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
   let debugSupervisor, jsDebugSupervisor;
@@ -226,16 +244,16 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const gitConfig = await prepareLocalGitConfig(context);
   const plugins = await prepareLocalPlugins({ runtime, context });
   const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
-  const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git });
-  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities });
+  const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });
+  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities });
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
-    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) });
+    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, goToolchain }) });
   jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor }),
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });

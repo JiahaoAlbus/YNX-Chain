@@ -30,7 +30,9 @@ const record=JSON.parse(await readFile(join(root,'distribution.json')));
 if(record.schemaVersion!==1||!record.executionVerified||!['v26.7.0','v24.19.0'].includes(record.version)||!/^\d+(?:\.\d+)*$/.test(record.minimumOS))throw Error('Exact reviewed macOS Node closure required.');
 if(record.version==='v24.19.0'&&(record.source!=='/usr/local/bin/node'||record.sourceSha256!=='1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35'||record.sourceKind!=='official-node-installer'||record.originalSigningClass!=='developer-id-nodejs-foundation'||record.licenseVerified!==true))throw Error('Official Node 24 source/signature/legal qualification is missing.');
 const runtimeFloors=[];
-for(const entry of record.files){if(!/^(node|lib\/[^/]+)$/.test(entry.path))throw Error('Invalid runtime file.');const path=join(root,entry.path);if(!(await lstat(path)).isFile())throw Error('Regular runtime input required.');if(createHash('sha256').update(await readFile(path)).digest('hex')!==entry.bundledSha256)throw Error('Runtime input changed.');const slice=inspectBinary(path)?.find(value=>value.architecture===(process.arch==='arm64'?'arm64':'x86_64'));if(!slice||!['1','macos'].includes(slice.platform))throw Error('Runtime image has no current macOS slice.');compareVersions(slice.minimumOS,slice.minimumOS);runtimeFloors.push(slice.minimumOS);}
+for(const entry of record.files){if(!/^(node|ynx-js-node|lib\/[^/]+)$/.test(entry.path))throw Error('Invalid runtime file.');const path=join(root,entry.path);if(!(await lstat(path)).isFile())throw Error('Regular runtime input required.');if(createHash('sha256').update(await readFile(path)).digest('hex')!==entry.bundledSha256)throw Error('Runtime input changed.');const slice=inspectBinary(path)?.find(value=>value.architecture===(process.arch==='arm64'?'arm64':'x86_64'));if(!slice||!['1','macos'].includes(slice.platform))throw Error('Runtime image has no current macOS slice.');compareVersions(slice.minimumOS,slice.minimumOS);runtimeFloors.push(slice.minimumOS);}
+const nodeEntry=record.files.find(entry=>entry.path==='node'),jsEntry=record.files.find(entry=>entry.path==='ynx-js-node');
+if(!nodeEntry||!jsEntry||jsEntry.derivedFrom!=='node'||jsEntry.bundledSha256!==nodeEntry.bundledSha256)throw Error('Exact sealed JavaScript Node entry is required.');
 for(const entry of record.notices){if(!entry.path.startsWith('notices/')||entry.path.split('/').includes('..'))throw Error('Invalid runtime notice.');if(createHash('sha256').update(await readFile(join(root,entry.path))).digest('hex')!==entry.sha256)throw Error('Runtime notice changed.');}
 if(execFileSync(join(root,'node'),['--version'],{encoding:'utf8'}).trim()!==record.version)throw Error('Retained runtime version changed.');
 const compare=(a,b)=>{const x=a.split('.').map(Number),y=b.split('.').map(Number);for(let i=0;i<Math.max(x.length,y.length);i++){const d=(x[i]||0)-(y[i]||0);if(d)return d;}return 0;};
@@ -93,7 +95,7 @@ cp desktop/local-workbench.mjs desktop/local-workbench-ipc.mjs "$app/Contents/Re
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"
-  cp desktop/local-go-toolchain-supplier.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
+  cp desktop/local-go-toolchain-supplier.mjs desktop/local-go-selection.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-js-debug-session.mjs desktop/local-js-debug-launcher.mjs desktop/local-js-debug-launcher.sh "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-js-debug-launcher.mjs desktop/local-js-debug-launcher.sh "$app/Contents/Resources/runtime/"
   chmod 0755 "$app/Contents/Resources/runtime/local-js-debug-launcher.sh"
@@ -152,7 +154,7 @@ if [[ -n "$local_node_runtime" ]]; then
 import {readFile,mkdir,copyFile,chmod} from 'node:fs/promises';import {join,dirname} from 'node:path';
 const [input,output]=process.argv.slice(2),record=JSON.parse(await readFile(join(input,'distribution.json')));
 for(const entry of [...record.files,...record.notices]){const target=join(output,entry.path);await mkdir(dirname(target),{recursive:true});await copyFile(join(input,entry.path),target);}
-await copyFile(join(input,'distribution.json'),join(output,'distribution.json'));await chmod(join(output,'node'),0o755);
+await copyFile(join(input,'distribution.json'),join(output,'distribution.json'));await chmod(join(output,'node'),0o755);await chmod(join(output,'ynx-js-node'),0o755);
 NODE
   node_binary="$local_node_runtime/node"
 else
