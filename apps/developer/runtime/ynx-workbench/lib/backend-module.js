@@ -12,6 +12,7 @@ const { LocalizationProvider } = require('@theia/core/lib/node/i18n/localization
 const { registerYnxLocalizations } = require('./ynx-localization');
 const { registerKeyboardShortcutsLocalizations } = require('./keyboard-shortcuts-localization');
 require('./gcc-resource-adapter').install();
+require('./plugin-vscode-lifecycle-adapter').install();
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged
 // native helper which accepts only descendants of this backend, verifies PID

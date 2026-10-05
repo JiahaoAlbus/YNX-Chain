@@ -20,6 +20,14 @@
 
 这仍是开发中的 IDE，不能称为 VSCode 同等成熟体验。Ports 需要真实服务发现、端口管理及明确的访问状态，不能仅添加空标签。在线市场、远程转发和服务接入须遵守现有暂停边界；不通过代理、出站放行或弱化隔离绕过。
 
+### 本轮测试功能实测
+
+be 完整包内工作台通过正常 Python: Configure Tests 配置 unittest，生成真实项目设置。包含两个测试的 test_wallet.py 在解释器中运行通过；原插件 discovery.py 返回 success 和两项测试，但 Testing 面板仍只有 Python Tests 根节点。相同封存 Node、解释器和生产隔离策略下的命名管道独立收发成功，不能据此把问题归因于网络出站限制。
+
+新增扩展 API 取消令牌兼容适配：dispose() 释放监听器但不自动取消，dispose(true) 和 cancel() 保留显式取消；框架内部的取消行为不改。4 项实际框架构造器回归通过，browser/node 构建通过。封存实验组件 tree 为 a3d4218e45e109c232f1fcbcea081565198a6bc150efd0d8878ecc570f704b17，manifest 为 706a17960371e550ff53d456ede7ffbdcc477400f4e09bbda1f74a2480412e41。新隔离项目 GUI 刷新测试后，发现子进程完成但测试树仍为空，所以这项适配不作为测试功能修复成功的证据，也没有重标旧完整包。
+
+诊断证据：/private/tmp/ynx-python-sandbox-fifo-evidence-20261005.json、/private/tmp/ynx-test-cancellation-ui-runtime-20261005.json、/private/tmp/ynx-test-cancellation-ui-FKHByf/server.log。下一步仍需定位发现结果到测试树的传递，再验收正常测试运行、失败定位和调试。
+
 ## 46a 完整包之后的新组件验证
 
 以下是 46a 之后的实施证据；这些代码已进入 be871826a 完整包，具体流程仍只按下列实际验证范围列为通过。

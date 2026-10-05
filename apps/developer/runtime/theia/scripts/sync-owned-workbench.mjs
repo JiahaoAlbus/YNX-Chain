@@ -25,6 +25,7 @@ const digest = await composedTreeDigest(source);
 assert.equal(await composedTreeDigest(cached), digest, 'Stale extra cache files must be reviewed before building.');
 console.log('Owned workbench source/cache SHA256 ' + digest);
 if (seal) {
+  await cp(join(source, 'lib/plugin-vscode-init-adapter.js'), join(runtime, 'lib/backend/ynx-plugin-vscode-init.js'));
   const hashFile = async name => createHash('sha256').update(await readFile(join(runtime, name))).digest('hex');
   await regular(join(runtime, 'lib'));
   await writeFile(join(runtime, '.ynx-owned-build.json'), JSON.stringify({
