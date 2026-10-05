@@ -8,6 +8,8 @@
 #import <sys/stat.h>
 #import <errno.h>
 #import <stdlib.h>
+#import <CoreServices/CoreServices.h>
+#import "ynx-wallet-device-bridge.h"
 
 static NSString *YNXCanonicalLocalDirectory(NSString *path) {
     if(![path isKindOfClass:NSString.class]||!path.isAbsolutePath)return nil;
@@ -581,6 +583,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic) BOOL recentWorkspaceRecorded;
 @property(nonatomic) BOOL localEditorDocumentLoaded;
 @property(nonatomic) BOOL localStartupFailed;
+@property(nonatomic,strong) YNXWalletDeviceBridge *localWalletBridge;
+@property(nonatomic,strong) NSAlert *localWalletConsent;
+@property(nonatomic) NSUInteger localWalletGeneration;
+@property(nonatomic,strong) NSMutableArray<NSURL *> *pendingNativeWalletURLs;
 @end
 
 @implementation YNXAppDelegate
@@ -610,10 +616,17 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _recordSelectedWorkspace=explicit&&[environment[@"YNX_LOCAL_WORKSPACE_SELECTION"] isEqual:@"native-panel"];
     _port=YNXAvailablePort();
     [self installLocalMenus];
-    // The normal local editor has no legacy Wallet, command or JSON-workspace
-    // message handlers. Its backend owns the selected OS-user workspace.
+    // The local editor receives only the finite native V2 device capability,
+    // never the legacy command/Wallet transaction or JSON-workspace handler.
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
+    _localWalletBridge=[[YNXWalletDeviceBridge alloc]initWithTag:@"com.ynxweb4.developer.native-device-p256-v2" storageService:YNXWalletStorageService lockDirectory:_localSupportRoot];
+    [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
+    NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(localWalletReturnReady:) name:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:_localWalletBridge.instanceID] object:nil];
+    NSArray<NSURL *> *pendingWalletURLs=[_pendingNativeWalletURLs copy];_pendingNativeWalletURLs=nil;
+    for(NSURL *callback in pendingWalletURLs){NSString *owner=[_localWalletBridge routeCallback:callback.absoluteString];if(owner)[NSDistributedNotificationCenter.defaultCenter postNotificationName:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:owner] object:nil userInfo:nil deliverImmediately:YES];}
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalLocaleSeedScript(_localLocale),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(YNXLocalAppearanceScript(),_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     _webView=[[WKWebView alloc]initWithFrame:NSMakeRect(0,0,1440,900) configuration:configuration];
@@ -661,7 +674,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];}
+    if(_localWorkbenchMode&&view==_webView){_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -869,7 +882,46 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode){_localStartupFailed=YES;[_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer could not open",message) baseURL:nil];return;}
     [_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer Testnet Preview",[NSString stringWithFormat:@"%@ No project, Wallet key, or deployment was changed.",message]) baseURL:nil];
 }
-- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"]);} }
+- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls {
+    NSString *configuredMode=NSProcessInfo.processInfo.environment[@"YNX_DEVELOPER_DESKTOP_MODE"]?:NSBundle.mainBundle.infoDictionary[@"YNXDesktopMode"];
+    if(!_localWalletBridge&&[configuredMode isEqual:@"local-workbench"]){if(!_pendingNativeWalletURLs)_pendingNativeWalletURLs=[NSMutableArray new];for(NSURL *url in urls)if(_pendingNativeWalletURLs.count<4&&url.absoluteString.length<=4096&&[url.scheme isEqual:@"ynxdeveloper"]&&[url.host isEqual:@"wallet-auth"]&&[url.path isEqual:@"/callback"])[_pendingNativeWalletURLs addObject:url];return;}
+    for(NSURL *url in urls){
+        if(_localWorkbenchMode){NSString *owner=[_localWalletBridge routeCallback:url.absoluteString];if(owner){[NSDistributedNotificationCenter.defaultCenter postNotificationName:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:owner] object:nil userInfo:nil deliverImmediately:YES];if([owner isEqual:_localWalletBridge.instanceID])[self localWalletReturnReady:nil];}continue;}
+        NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"]);
+    }
+}
+- (void)localWalletReturnReady:(NSNotification *)note {
+    if(!_localWorkbenchMode||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;NSString *url=[_localWalletBridge takeRoutedCallback];if(!url)return;
+    YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/')window.dispatchEvent(new CustomEvent('ynx-wallet-callback',{detail:%@}));",YNXJSON(url)]);
+}
+- (void)localWalletReply:(NSString *)identifier value:(id)value error:(NSError *)error {
+    NSDictionary *reply=error?@{@"id":identifier,@"ok":@NO,@"error":error.localizedDescription}:@{@"id":identifier,@"ok":@YES,@"value":value?:NSNull.null};
+    YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/')window.__ynxNativeWalletReply?.(%@);",YNXJSON(reply)]);
+}
+- (void)handleLocalWalletMessage:(id)value {
+    NSDictionary *body=[value isKindOfClass:NSDictionary.class]?value:nil;NSString *identifier=body[@"id"],*action=body[@"action"];
+    if(![identifier isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:identifier]||![action isKindOfClass:NSString.class])return;
+    NSDictionary *fields=@{@"availability":@"id action",@"begin-connection":@"id action",@"end-connection":@"id action",@"device-info":@"id action",@"device-sign":@"id action input",@"open-authorization":@"id action url",@"storage-get":@"id action key",@"storage-set":@"id action key value",@"storage-remove":@"id action key"};
+    NSError *error=nil;id result=nil;
+    if(!fields[action]||!YNXDeviceFields(body,fields[action])){error=[NSError errorWithDomain:@"YNXDeveloperNativeWallet" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Unsupported native Wallet request."}];}
+    else if([action isEqual:@"availability"]){NSString *handler=CFBridgingRelease(LSCopyDefaultHandlerForURLScheme(CFSTR("ynxwallet")));BOOL installed=handler&&[NSWorkspace.sharedWorkspace URLForApplicationWithBundleIdentifier:handler]!=nil;result=@{@"walletInstalled":@(installed),@"schemeRegistered":@(handler!=nil)};}
+    else if([action isEqual:@"begin-connection"]){
+        if(_localWalletConsent||_window.attachedSheet){error=[NSError errorWithDomain:@"YNXDeveloperNativeWallet" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Finish the current native dialog before connecting Wallet."}];}
+        else {NSURL *document=_webView.URL;NSAlert *alert=[NSAlert new];_localWalletConsent=alert;BOOL zh=[_localLocale isEqual:@"zh-cn"];alert.messageText=zh?@"连接 YNX Wallet？":@"Connect YNX Wallet?";alert.informativeText=zh?@"允许此 YNX Developer 窗口使用系统保护的设备密钥，完成登录审阅和会话查询/撤销。不会批准交易、部署或授予项目和扩展签名能力。":@"Allow this YNX Developer window to use its OS-protected device key for Wallet connection review and session introspection/revocation. This does not approve transactions, deployments, or project/extension signing.";[alert addButtonWithTitle:zh?@"连接":@"Connect"];[alert addButtonWithTitle:zh?@"取消":@"Cancel"];
+            [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse answer){self.localWalletConsent=nil;NSError *failure=nil;NSDictionary *device=nil;if(answer==NSAlertFirstButtonReturn&&[self.webView.URL isEqual:document]&&YNXLocalEditorDocumentURL(document,self.port)){device=[self.localWalletBridge beginUserOperation:&failure];if(device){NSUInteger generation=++self.localWalletGeneration;dispatch_after(dispatch_time(DISPATCH_TIME_NOW,300*NSEC_PER_SEC),dispatch_get_main_queue(),^{if(self.localWalletGeneration==generation)[self.localWalletBridge endUserOperation];});}}else failure=[NSError errorWithDomain:@"YNXDeveloperNativeWallet" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Native Wallet connection was cancelled."}];[self localWalletReply:identifier value:device error:failure];}];return;
+        }
+    }
+    else if([action isEqual:@"end-connection"]){_localWalletGeneration++;[_localWalletBridge endUserOperation];}
+    else if([action isEqual:@"device-info"]){NSString *key=_localWalletBridge.publicKey;if(key)result=@{@"id":@"ynx-developer-macos-device-v2",@"key":key,@"algorithm":@"p256-sha256",@"securityLevel":@"os-protected"};else error=[NSError errorWithDomain:@"YNXDeveloperNativeWallet" code:1 userInfo:@{NSLocalizedDescriptionKey:@"Connect Wallet explicitly to initialize the native device."}];}
+    else if([action isEqual:@"device-sign"]){result=[_localWalletBridge sign:body[@"input"] error:&error];}
+    else if([action isEqual:@"storage-get"]){result=[_localWalletBridge stored:body[@"key"] error:&error];}
+    else if([action isEqual:@"storage-set"]){[_localWalletBridge store:body[@"value"] key:body[@"key"] error:&error];}
+    else if([action isEqual:@"storage-remove"]){[_localWalletBridge remove:body[@"key"] error:&error];}
+    else if([action isEqual:@"open-authorization"]){
+        if([_localWalletBridge prepareAuthorizationURL:body[@"url"] error:&error]){NSURL *url=[NSURL URLWithString:body[@"url"]];if(![NSWorkspace.sharedWorkspace URLForApplicationToOpenURL:url]||![NSWorkspace.sharedWorkspace openURL:url])error=[NSError errorWithDomain:@"YNXDeveloperNativeWallet" code:1 userInfo:@{NSLocalizedDescriptionKey:@"YNX Wallet is unavailable or rejected this authorization route."}];}
+    }
+    [self localWalletReply:identifier value:result error:error];
+}
 - (void)click:(NSString *)selector { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector]); }
 - (NSMenuItem *)editItem:(NSMenu *)menu title:(NSString *)title command:(NSString *)command key:(NSString *)key {
     NSMenuItem *item=[menu addItemWithTitle:title action:@selector(desktopEdit:) keyEquivalent:key];
@@ -1000,6 +1052,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
     return NSTerminateLater;
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
+    if(_localWorkbenchMode&&[message.name isEqual:@"ynxLocalWallet"]){
+        if(YNXTrustedMessage(message,_webView,_port)&&YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port)) [self handleLocalWalletMessage:message.body];
+        return;
+    }
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
     if([body[@"action"] isEqual:@"locale"]){
