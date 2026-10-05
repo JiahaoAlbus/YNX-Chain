@@ -14,7 +14,8 @@ test('actual LocalizationProvider owns Chinese YNX keys without advertising a st
   assert.deepEqual(provider.getAvailableLanguages(), []);
   assert.deepEqual(provider.getAvailableLanguages(true), [{ languageId: 'zh-cn', languageName: 'Chinese (Simplified)', localizedLanguageName: '简体中文', languagePack: false }]);
   const result = await provider.loadLocalization('zh-cn'); assert.equal(result.languagePack, false);
-  assert.equal(Object.keys(result.translations).length, 25);
+  assert.equal(result.translations['ynx/workbench/runCppFile'], '运行 C/C++ 文件');
+  assert.equal(result.translations['ynx/workbench/debugCppFile'], '调试 C/C++ 文件');
   for (const key of Object.keys(EN_DEFAULTS)) assert.equal(result.translations[key], TRANSLATIONS[key]);
   assert.ok(Object.isFrozen(EN_DEFAULTS)); assert.ok(Object.isFrozen(TRANSLATIONS));
 });

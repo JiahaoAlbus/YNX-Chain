@@ -13,6 +13,8 @@ const entries = [
   ['nativeViewUnavailable', 'Native view contribution is unavailable', '原生视图组件不可用'],
   ['unknownView', 'Unknown workbench view', '未知的工作台视图'],
   ['runAndDebug', 'Run and Debug…', '运行与调试…'],
+  ['runCppFile', 'Run C/C++ File', '运行 C/C++ 文件'],
+  ['debugCppFile', 'Debug C/C++ File', '调试 C/C++ 文件'],
   ['runWithoutDebugging', 'Run Without Debugging', '无需调试直接运行'],
   ['runBuildTask', 'Run Build Task…', '运行生成任务…'],
   ['runTask', 'Run Task…', '运行任务…'],
