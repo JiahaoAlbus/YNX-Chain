@@ -40,7 +40,7 @@ test('exact generated config snapshot rejects extra fields, comments, changed by
  await writeFile(path,' '.repeat(65537));assert.equal(await readGeneratedTasks(root,path,tool),undefined);
  await writeFile(path,original);assert.equal((await readGeneratedTasks(root,path,tool,snapshot.digest)).digest,snapshot.digest);
 });
-test('only the native empty JSONC launch template permits a transient target without modifying either configuration directory',async()=>{
+test('the native empty JSONC launch template permits a transient target without modifying either configuration directory',async()=>{
  const {createLaunchConfiguration}=require('./build-tasks.cjs');
  const root=await mkdtemp('/private/tmp/ynx-cpp-empty-launch-');await mkdir(join(root,'.theia'));await mkdir(join(root,'.vscode'));
  const path=join(root,'.theia/launch.json'),tasksPath=join(root,'.vscode/tasks.json');
@@ -55,4 +55,24 @@ test('only the native empty JSONC launch template permits a transient target wit
  await unlink(path);
  await assert.rejects(createLaunchConfiguration(root,tasksPath,'cpp',true,result.digest),/configuration changed/);
  await assert.rejects(readFile(join(root,'.vscode/launch.json')),{code:'ENOENT'});
+});
+
+test('mixed-language transient launch preserves all bytes and rejects custom C++ targets, unknown types and changed snapshots',async()=>{
+ const {createLaunchConfiguration}=require('./build-tasks.cjs');
+ const root=await mkdtemp('/private/tmp/ynx-cpp-mixed-launch-');await mkdir(join(root,'.theia'));
+ const path=join(root,'.theia/launch.json'),tasksPath=join(root,'.vscode/tasks.json');
+ const original='// keep user comment\n{"version":"0.2.0","configurations":[{"type":"pwa-node","name":"JS"},{"type":"debugpy","name":"Python"}],}\n';
+ await writeFile(path,original);
+ const result=await createLaunchConfiguration(root,tasksPath,'cpp',true);
+ assert.equal(result.transient,true);assert.equal(result.configuration.type,'lldb-dap');assert.equal(await readFile(path,'utf8'),original);
+ assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',true,result.digest)).digest,result.digest);
+ assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',false)).configuration,undefined);
+ for(const type of ['lldb-dap','lldb','cppdbg','cppvsdbg','custom-user-adapter',undefined,null]) {
+  const preserved=JSON.stringify({version:'0.2.0',configurations:[{type:'node',name:'JS'},{type,name:'My target'}]});await writeFile(path,preserved);
+  assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',true)).configuration,undefined);
+  assert.equal(await readFile(path,'utf8'),preserved);
+  await assert.rejects(createLaunchConfiguration(root,tasksPath,'cpp',true,result.digest),/configuration changed/);
+ }
+ await writeFile(path,original);await mkdir(join(root,'.vscode'));await writeFile(join(root,'.vscode/launch.json'),'{"version":"0.2.0","configurations":[{"type":"lldb-dap","name":"lower-priority"}]}');
+ assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',true)).path,path);
 });

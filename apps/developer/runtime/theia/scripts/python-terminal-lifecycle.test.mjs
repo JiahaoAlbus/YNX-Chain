@@ -89,6 +89,19 @@ test('finished session still admits its bound trailing exit, but closed/foreign/
  await assert.rejects(f.lifecycle.prepare('one'),/current local/);f.sessions.get('two').options.workspaceFolderUri='file:///private/tmp/foreign';await assert.rejects(f.lifecycle.prepare('two'),/current local/);widget.close();f.lifecycle.onStop();
  const hosted=fixture('hosted');await assert.rejects(hosted.lifecycle.prepare('one'),/current local/);hosted.lifecycle.onStop();
 });
+test('official current-file Python command may omit folder but must resolve inside the admitted project',async()=>{
+ const f=fixture(),session=f.sessions.get('one');
+ session.options.workspaceFolderUri=undefined;
+ session.configuration.program='/private/tmp/project/hello.py';
+ const capability=await f.lifecycle.prepare('one');assert.ok(capability);f.lifecycle.abandon(capability);
+ for(const program of ['/private/tmp/project-other/hello.py','/private/tmp/project/../foreign/hello.py','hello.py']) {
+  session.configuration.program=program;await assert.rejects(f.lifecycle.prepare('one'),/current local/);
+ }
+ session.configuration.program='/private/tmp/project/hello.py';session.configuration.cwd='/private/tmp/foreign';
+ await assert.rejects(f.lifecycle.prepare('one'),/current local/);
+ session.configuration.cwd='/private/tmp/project';session.options.workspaceFolderUri='file:///private/tmp/foreign';
+ await assert.rejects(f.lifecycle.prepare('one'),/current local/);f.lifecycle.onStop();
+});
 test('ordinary real terminal disposal retains upstream behavior; shutdown drops only owned pending UI',async()=>{
  const f=fixture(),normal=f.create(undefined),cap=await f.lifecycle.prepare('one'),pending=f.create(cap);f.lifecycle.bind(cap,pending.id);
  let normalClose;normal.onTerminalDidClose(widget=>normalClose=widget.exitStatus);normal.dispose();assert.equal(normal.killCalls,1);assert.deepEqual(normalClose,{code:undefined,reason:4});

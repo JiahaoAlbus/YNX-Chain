@@ -231,13 +231,46 @@ test('native commented empty Theia launch plus VSCode process tasks debugs captu
  assert.equal(launches,2);assert.deepEqual(f.errors,[]);assert.equal(await readFile(launchPath,'utf8'),bytes);
  await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
 });
-test('unsaved or edited empty launch template never starts the transient debug target',async()=>{
- for(const duringBuild of [false,true]) {
-  const f=await fixture();await writeFile(f.path,'int main(){}');await mkdir(join(f.root,'.theia'));const path=join(f.root,'.theia/launch.json');await writeFile(path,'{"version":"0.2.0","configurations":[]}');
+test('unsaved or edited empty and JS launch configurations never start the transient debug target',async()=>{
+ for(const configurations of [[],[{type:'node',request:'launch',name:'JS',program:'${workspaceFolder}/hello.js'}]]) for(const duringBuild of [false,true]) {
+  const f=await fixture();await writeFile(f.path,'int main(){}');await mkdir(join(f.root,'.theia'));const path=join(f.root,'.theia/launch.json');await writeFile(path,JSON.stringify({version:'0.2.0',configurations}));
   f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
   let launched=false;f.vscode.debug.startDebugging=async()=>{launched=true;return true;};
   if(!duringBuild)f.vscode.workspace.textDocuments=[{uri:{scheme:'file',fsPath:path},isDirty:true}];
   else {const execute=f.vscode.tasks.executeTask;f.vscode.tasks.executeTask=async task=>{await writeFile(path,'{"version":"0.2.0","configurations":[{"name":"user target"}]}');return execute(task);};}
   await f.commands.get('ynx.cpp.debugActive')();assert.equal(launched,false);assert.equal(f.errors.length,1);
  }
+});
+
+test('mixed JS and existing custom LLDB configurations still select the explicit user target without replacing it',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){}');await mkdir(join(f.root,'.theia'));
+ const custom={type:'lldb-dap',name:'My C++ build',request:'launch',program:'${workspaceFolder}/custom/output',preLaunchTask:'My custom build',args:['user argument']};
+ const configurations=[{type:'node',name:'JS',program:'${workspaceFolder}/hello.js'},custom];
+ const path=join(f.root,'.theia/launch.json'),bytes=JSON.stringify({version:'0.2.0',configurations});await writeFile(path,bytes);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=section=>({get:()=>section==='lldb-dap'?'/Library/Developer/CommandLineTools/usr/bin/lldb-dap':configurations});
+ let selected,explicit=false;
+ f.vscode.window.showQuickPick=async(items,options)=>{if(options.title==='Select the existing project debug configuration'){explicit=true;assert.equal(items.length,1);assert.equal(items[0].configuration,custom);}return items[0];};
+ f.vscode.tasks.executeTask=async()=>{throw Error('custom target must keep its own build task');};
+ f.vscode.debug.startDebugging=async(_folder,configuration)=>{selected=configuration;return true;};
+ await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.equal(explicit,true);assert.equal(selected,custom);assert.equal(await readFile(path,'utf8'),bytes);
+});
+
+test('a mixed JS project can run and debug new C++ twice without replacing its existing launch configuration',async()=>{
+ const f=await fixture();await writeFile(f.path,'#include <iostream>\nint main(){std::cout << "MIXED CPP 42";}');await mkdir(join(f.root,'.theia'));
+ const launchPath=join(f.root,'.theia/launch.json'),bytes='// Existing JavaScript project\n{"version":"0.2.0","configurations":[{"type":"node","request":"launch","name":"Launch Program","program":"${workspaceFolder}/hello.js"}]}';await writeFile(launchPath,bytes);
+ const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=section=>({get:(_key,fallback)=>section==='lldb-dap'?'/Library/Developer/CommandLineTools/usr/bin/lldb-dap':fallback});
+ f.vscode.Uri={file:path=>({fsPath:path})};f.vscode.workspace.openTextDocument=async()=>({});f.vscode.window.showTextDocument=async()=>{};
+ let launches=0,emptyPickers=0,compilerChoices=0;
+ f.vscode.window.showQuickPick=async(items,options)=>{if(!items.length)emptyPickers++;if(options.title==='Select C/C++ compiler')compilerChoices++;return items[0];};
+ f.vscode.tasks.fetchTasks=async()=>{throw Error('unobserved task cache must not gate generated build');};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.type,'lldb-dap');assert.equal(configuration.program,join(f.root,'main'));assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ for(let i=0;i<2;i++) {
+  f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.runActive')();
+  f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'mixed'});
+ }
+ assert.deepEqual(f.errors,[]);assert.equal(emptyPickers,0);assert.equal(launches,2);assert.equal(compilerChoices,1);assert.equal(f.output.filter(text=>text==='MIXED CPP 42').length,2);
+ assert.equal(await readFile(launchPath,'utf8'),bytes);await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
 });

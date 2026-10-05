@@ -186,8 +186,8 @@ function registerCppRun(vscode, context, env) {
         let selected = launch.configuration;
         if (!selected) {
           const configurations = vscode.workspace.getConfiguration('launch', scope.folder.uri).get('configurations', []).filter(item => item.type === 'lldb-dap');
-          selected = (await vscode.window.showQuickPick(configurations.map(configuration => ({ label: configuration.name, configuration })), { title: t('launch') }))?.configuration;
           if (!configurations.length) { await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(launch.path))); throw Error(t('launchMissing')); }
+          selected = (await vscode.window.showQuickPick(configurations.map(configuration => ({ label: configuration.name, configuration })), { title: t('launch') }))?.configuration;
           if (!selected) return;
         }
         if (pair && selected.preLaunchTask === 'YNX: Build active ' + (scope.language === 'c' ? 'C' : 'C++') && selected.program === '${fileDirname}/${fileBasenameNoExtension}') {

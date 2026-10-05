@@ -113,7 +113,7 @@ async function readConfigurationSnapshot(path, expectedDigest) {
     return { bytes, digest };
   } finally { await handle.close(); }
 }
-async function createLaunchConfiguration(root, tasksPath, language, allowEmpty = false, expectedDigest) {
+async function createLaunchConfiguration(root, tasksPath, language, allowGenerated = false, expectedDigest) {
   const configuration = { type: 'lldb-dap', request: 'launch', name: 'YNX: Debug active ' + (language === 'c' ? 'C' : 'C++'),
     program: '${fileDirname}/${fileBasenameNoExtension}', cwd: '${fileDirname}',
     preLaunchTask: 'YNX: Build active ' + (language === 'c' ? 'C' : 'C++'), stopOnEntry: false,
@@ -121,15 +121,21 @@ async function createLaunchConfiguration(root, tasksPath, language, allowEmpty =
   const existing = await existingConfiguration(root, 'launch');
   if (existing) {
     const result = { path: existing, created: false };
-    if (!allowEmpty) return result;
+    if (!allowGenerated) return result;
     const snapshot = await readConfigurationSnapshot(existing, expectedDigest);
     if (!snapshot) return result;
     const errors = [];
     const value = parse(snapshot.bytes.toString('utf8'), errors, { allowTrailingComma: true });
-    // Native Debug creates a commented empty template. An in-memory target
-    // preserves it, while user targets, inputs and invalid JSONC stay authoritative.
+    // A normal mixed-language project may already have JS/Python targets. They
+    // cannot debug this source, but must remain intact. With verified generated
+    // build tasks, use an in-memory C/C++ target without creating a shadow file.
+    // C/C++ and unknown adapter types remain authoritative, as do malformed
+    // JSONC and top-level inputs/other custom fields. Recheck the byte digest
+    // before launching so an intervening user edit cannot be silently ignored.
+    const unrelatedTypes = new Set(['node', 'pwa-node', 'node-terminal', 'chrome', 'pwa-chrome', 'msedge', 'pwa-msedge', 'python', 'debugpy']);
     if (!errors.length && value?.version === '0.2.0' && Array.isArray(value.configurations) &&
-        value.configurations.length === 0 && Object.keys(value).every(key => ['version', 'configurations'].includes(key))) {
+        value.configurations.every(item => item && typeof item === 'object' && unrelatedTypes.has(item.type)) &&
+        Object.keys(value).every(key => ['version', 'configurations'].includes(key))) {
       if (await existingConfiguration(root, 'launch') !== existing) throw Error('Launch configuration changed.');
       return { ...result, configuration, transient: true, digest: snapshot.digest };
     }

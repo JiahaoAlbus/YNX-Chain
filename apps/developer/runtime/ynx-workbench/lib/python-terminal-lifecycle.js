@@ -2,6 +2,18 @@
 const URI = require('@theia/core/lib/common/uri').default;
 const { PythonTerminalWidget } = require('./python-terminal-widget');
 const COMMANDS = Object.freeze({ prepare: 'ynx.debug.terminal.prepare', bind: 'ynx.debug.terminal.bind', finish: 'ynx.debug.terminal.finish', abandon: 'ynx.debug.terminal.abandon' });
+function belongsToProject(session, workspace) {
+  const root = new URI().withScheme('file').withPath(workspace).normalizePath();
+  const explicit = session.options?.workspaceFolderUri;
+  if (explicit !== undefined && explicit !== null) return explicit === root.toString();
+  // The official Debug Python File command starts with an undefined folder.
+  // Admit its resolved file only within this project; the backend supervisor
+  // independently verifies real paths and sandbox permissions before launch.
+  const inside = path => typeof path === 'string' && path.startsWith('/') &&
+    root.isEqualOrParent(new URI().withScheme('file').withPath(path).normalizePath());
+  return inside(session.configuration.program) &&
+    (session.configuration.cwd === undefined || inside(session.configuration.cwd));
+}
 class PythonTerminalLifecycle {
   constructor(context, terminals, watcher, sessions) {
     this.context = context; this.terminals = terminals; this.watcher = watcher; this.sessions = sessions;
@@ -25,7 +37,7 @@ class PythonTerminalLifecycle {
     const session = this.sessions.getSession(sessionId);
     if (this.stopped || context?.mode !== 'local' || typeof context.workspace !== 'string' || !context.workspace.startsWith('/') ||
         !session || !['python','debugpy'].includes(session.configuration?.type) || session.configuration.request !== 'launch' ||
-        session.options?.workspaceFolderUri !== new URI(context.workspace).withScheme('file').toString()) throw Error('Python terminal needs the current local project launch.');
+        !belongsToProject(session, context.workspace)) throw Error('Python terminal needs the current local project launch.');
     if (this.entries.size >= 128) throw Error('Close a completed Python terminal before opening another.');
     const capability = globalThis.crypto.randomUUID();
     const entry = { sessionId, phase: 'prepared' };
