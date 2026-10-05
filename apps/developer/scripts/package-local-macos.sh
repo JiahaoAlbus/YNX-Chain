@@ -216,8 +216,19 @@ fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
 # explicit no-Team-ID ad-hoc class for every bundled Mach-O before sealing the
 # outer app.
 while IFS= read -r bundled_binary; do
+  # Signing the alias separately derives a filename-specific CodeDirectory and
+  # breaks the debug supervisor's exact-runtime check. Seal Node once, then
+  # derive its launcher alias from those signed bytes before recording hashes.
+  if [[ -n "$local_node_runtime" && "$bundled_binary" == "$app/Contents/Resources/runtime/ynx-js-node" ]]; then
+    continue
+  fi
   /usr/bin/codesign --force --sign - "$bundled_binary"
 done < <(node -e 'const fs=require("fs"),path=require("path"),app=process.argv[1],inventory=JSON.parse(fs.readFileSync(path.join(app,"Contents/Resources/macos-compatibility.json")));for(const binary of inventory.binaries)if(binary.path.startsWith("Contents/Resources/"))console.log(path.join(app,binary.path));' "$app")
+if [[ -n "$local_node_runtime" ]]; then
+  COPYFILE_DISABLE=1 cp -X "$app/Contents/Resources/runtime/node" "$app/Contents/Resources/runtime/ynx-js-node"
+  chmod 0755 "$app/Contents/Resources/runtime/ynx-js-node"
+  /usr/bin/codesign --verify --strict "$app/Contents/Resources/runtime/ynx-js-node"
+fi
 node --input-type=module - "$app/Contents/Resources" <<'NODE'
 import {readFile,writeFile} from 'node:fs/promises';import {join} from 'node:path';import {createHash} from 'node:crypto';import {execFileSync} from 'node:child_process';
 const resources=process.argv[2],runtime=join(resources,'runtime'),path=join(runtime,'distribution.json');let record;
@@ -279,6 +290,8 @@ const resources=process.argv[2],runtime=join(resources,'runtime');let bytes;
 try{bytes=await readFile(join(runtime,'distribution.json'));}catch(error){if(error.code==='ENOENT')process.exit(0);throw error;}
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex'),record=JSON.parse(bytes);
 for(const entry of record.files)if(sha(await readFile(join(runtime,entry.path)))!==entry.bundledSha256)throw Error('Outer signing changed recorded runtime bytes.');
+const nodeEntry=record.files.find(entry=>entry.path==='node'),jsEntry=record.files.find(entry=>entry.path==='ynx-js-node');
+if(!nodeEntry||!jsEntry||jsEntry.derivedFrom!=='node'||jsEntry.bundledSha256!==nodeEntry.bundledSha256)throw Error('Final signed JavaScript Node entry differs from the sealed runtime.');
 const provenance=JSON.parse(await readFile(join(resources,'build-provenance.json'),'utf8'));if(provenance.localNodeRuntime.sha256!==sha(bytes))throw Error('Signed runtime provenance differs.');
 const expected=['Contents/Resources/runtime/ynx-local-workbench-lock','Contents/Resources/runtime/workspace-path-identity','Contents/Resources/code/apps/developer/desktop/workspace-path-identity.mjs'];
 if(provenance.localWorkspaceHelpers?.schemaVersion!==1||provenance.localWorkspaceHelpers.files.length!==expected.length)throw Error('Native workspace helper ledger missing.');
