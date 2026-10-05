@@ -196,7 +196,10 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     launches.set(prepared.launchId, { timer });
     const mapping = prepared.sourceMapping;
     if (mapping && (configuration.localRoot || configuration.remoteRoot) && (configuration.localRoot !== mapping.localRoot || configuration.remoteRoot !== mapping.remoteRoot)) { await release(prepared.launchId); throw Error('Existing localRoot/remoteRoot conflicts with this verified local project alias. Configuration was retained.'); }
-    return { ...configuration, ...(!configuration.localRoot && !configuration.remoteRoot && mapping ? mapping : {}), runtimeExecutable: environment.YNX_JS_DEBUG_LAUNCHER, autoAttachChildProcesses: false, __ynxJsLaunch: prepared.launchId,
+    // The supervised noDebug target has no Inspector connection. The official
+    // default captures console calls through CDP and discards process stdout;
+    // select its native stdio capture so ordinary Run retains actual output.
+    return { ...configuration, ...(configuration.noDebug === true ? { outputCapture: 'std' } : {}), ...(!configuration.localRoot && !configuration.remoteRoot && mapping ? mapping : {}), runtimeExecutable: environment.YNX_JS_DEBUG_LAUNCHER, autoAttachChildProcesses: false, __ynxJsLaunch: prepared.launchId,
       env: { ...(configuration.env || {}), YNX_JS_DEBUG_SOCKET: environment.YNX_JS_DEBUG_SOCKET, YNX_JS_DEBUG_CREDENTIAL: environment.YNX_JS_DEBUG_CREDENTIAL,
         YNX_JS_DEBUG_LAUNCH: prepared.launchId, YNX_LOCAL_PROJECT_ID: environment.YNX_LOCAL_PROJECT_ID, YNX_WORKSPACE_MODE: 'local' } };
   }

@@ -11,8 +11,8 @@ function createSolidityBuild(api, language, environment, t = value => value) {
     if (environment.YNX_WORKSPACE_MODE !== 'local') return language.compileProject();
     const root = environment.YNX_LOCAL_WORKSPACE, projectId = environment.YNX_LOCAL_PROJECT_ID;
     const folder = api.workspace.workspaceFolders?.[0], document = api.window.activeTextEditor?.document;
-    const assertProject = async () => {
-      if (!root || !/^[a-f0-9-]{36}$/.test(projectId || '') || environment.YNX_WORKSPACE_MODE !== 'local' || environment.YNX_LOCAL_WORKSPACE !== root || environment.YNX_LOCAL_PROJECT_ID !== projectId || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || api.workspace.isTrusted !== true || api.workspace.workspaceFolders?.length !== 1 || api.workspace.workspaceFolders[0] !== folder || folder?.uri.scheme !== 'file' || !document || document.isClosed || api.window.activeTextEditor?.document !== document || document.uri.scheme !== 'file' || await realpath(root) !== root || await realpath(folder.uri.fsPath) !== root)
+    const assertProject = async (requireSourceFocus = true) => {
+      if (!root || !/^[a-f0-9-]{36}$/.test(projectId || '') || environment.YNX_WORKSPACE_MODE !== 'local' || environment.YNX_LOCAL_WORKSPACE !== root || environment.YNX_LOCAL_PROJECT_ID !== projectId || environment.YNX_CORE_SESSION_ID || environment.YNX_CORE_WORKSPACE || api.workspace.isTrusted !== true || api.workspace.workspaceFolders?.length !== 1 || api.workspace.workspaceFolders[0] !== folder || folder?.uri.scheme !== 'file' || !document || document.isClosed || (requireSourceFocus && api.window.activeTextEditor?.document !== document) || document.uri.scheme !== 'file' || await realpath(root) !== root || await realpath(folder.uri.fsPath) !== root)
         throw Error(t('Open one trusted local Solidity project to configure or build.'));
     };
     await assertProject();
@@ -41,7 +41,10 @@ function createSolidityBuild(api, language, environment, t = value => value) {
       }
     });
     if (result) {
-      await assertProject();
+      // The compiler deliberately opens its result document. Keep the project,
+      // trust and source lifetime checks without mistaking that focus change
+      // for a different project after a successful build.
+      await assertProject(false);
       await api.window.showInformationMessage(t(configureOnly ? 'Solidity build configured for this project. Run Compile Solidity Project to produce ABI and bytecode.' : 'Solidity compilation completed. ABI and bytecode are open. Deployment and contract calls require an admitted Chain and Wallet connection; compilation does not submit a transaction.'));
     }
     return result;

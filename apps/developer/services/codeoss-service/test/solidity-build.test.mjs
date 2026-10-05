@@ -76,6 +76,20 @@ test('project setting grammar is bounded and rejects inherited extra fields',()=
  for(const value of [{entryPath:'../A.sol',contractName:'A'},{entryPath:'A.sol',contractName:'a;delete'},{entryPath:'A.sol',contractName:'A',compiler:'untrusted'},null])assert.ok(!validBuild(value));
 });
 
+test('opening the real compiler artifact changes focus without rejecting the completed build',async t=>{
+ const h=await fixture(t), source=h.api.window.activeTextEditor.document;
+ h.api.window.showTextDocument=async input=>{h.shown=input;h.api.window.activeTextEditor={document:{uri:{scheme:'untitled'},isClosed:false}};};
+ const result=await h.build.compile();
+ assert.equal(result.ok,true);assert.ok(result.bytecode.length>20);assert.equal(h.artifact.length,1);
+ assert.equal(source.isClosed,false);assert.match(h.messages.at(-1),/does not submit a transaction/);
+});
+
+test('artifact focus change does not allow a changed project to report build success',async t=>{
+ const h=await fixture(t);
+ h.api.window.showTextDocument=async()=>{h.environment.YNX_LOCAL_PROJECT_ID='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';h.api.window.activeTextEditor={document:{uri:{scheme:'untitled'},isClosed:false}};};
+ await assert.rejects(h.build.compile(),/trusted local/);assert.equal(h.messages.length,0);
+});
+
 test('cancel while picker waits prevents its late reply from configuring or compiling',async t=>{
  const h=await fixture(t);let release;h.pickWait=new Promise(resolve=>{release=resolve;});const reached=new Promise(resolve=>{h.pickReached=resolve;});
  const task=h.build.compile();await reached;assert.equal(h.build.cancel(),true);assert.equal(h.pickToken.isCancellationRequested,true);assert.equal(await task,undefined);assert.equal(h.language.status().active,0);release();await new Promise(resolve=>setImmediate(resolve));
