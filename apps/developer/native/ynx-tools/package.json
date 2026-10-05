@@ -102,6 +102,14 @@
       {
         "command": "ynx.trackChainTransaction",
         "title": "%command.ynx.trackChainTransaction%"
+      },
+      {
+        "command": "ynx.configureSolidityBuild",
+        "title": "%command.ynx.configureSolidityBuild%"
+      },
+      {
+        "command": "ynx.cancelSolidityBuild",
+        "title": "%command.ynx.cancelSolidityBuild%"
       }
     ],
     "jsonValidation": [
@@ -174,7 +182,32 @@
         "language": "solidity",
         "path": "./languages/solidity.code-snippets"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "YNX Solidity",
+      "properties": {
+        "ynx.solidity.build": {
+          "type": "object",
+          "scope": "resource",
+          "additionalProperties": false,
+          "required": [
+            "entryPath",
+            "contractName"
+          ],
+          "properties": {
+            "entryPath": {
+              "type": "string",
+              "maxLength": 240
+            },
+            "contractName": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,127}$"
+            }
+          },
+          "description": "%configuration.solidity.build%"
+        }
+      }
+    }
   },
   "extensionKind": [
     "workspace"

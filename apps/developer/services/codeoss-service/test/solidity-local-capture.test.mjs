@@ -120,7 +120,7 @@ test('build progress covers blocked source capture; cancel stops it and a late e
  let signalEntered,lateReply,cancel,progressVisible=false,artifacts=0;
  const entered=new Promise(resolve=>signalEntered=resolve);
  h.vscode.ProgressLocation={Notification:15};
- h.vscode.window.withProgress=async(options,task)=>{assert.equal(options.cancellable,true);progressVisible=true;return task({}, {isCancellationRequested:false,onCancellationRequested(listener){cancel=listener;return{dispose(){cancel=undefined;}};}});};
+ h.vscode.window.withProgress=async(options,task)=>{assert.equal(options.cancellable,true);progressVisible=true;return task({report(message){assert.equal(typeof message.message,'string');}}, {isCancellationRequested:false,onCancellationRequested(listener){cancel=listener;return{dispose(){cancel=undefined;}};}});};
  h.vscode.workspace.openTextDocument=input=>{
    if(input.content!==undefined){artifacts++;return original(input);}
    if(input.fsPath===join(h.root,'Delayed.sol')){assert.equal(progressVisible,true);signalEntered();return new Promise(resolve=>lateReply=resolve);}

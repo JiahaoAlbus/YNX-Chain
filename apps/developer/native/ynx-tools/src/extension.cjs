@@ -3,6 +3,7 @@ const t = (message, ...args) => vscode.l10n?.t ? vscode.l10n.t(message, ...args)
 const { capture, validateChanges, assertWorkspacePath, assertWorkspaceDirectory } = require('./guards.cjs');
 function activate(context) {
   const solidityLanguage = require('./solidity-language.cjs').createSolidityLanguage(vscode, context, process.env);
+  const solidityBuild = require('./solidity-build.cjs').createSolidityBuild(vscode, solidityLanguage, process.env, t);
   require('./solidity-format.cjs').createSolidityFormatting(vscode, context, process.env);
   const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
@@ -34,6 +35,8 @@ function activate(context) {
     { label: t('Project'), children: [
       { label: t('Create Counter.sol'), command: 'ynx.createSolidityTemplate' },
       { label: t('Compile Solidity project'), command: 'ynx.compileSolidity' },
+      { label: t('Configure Solidity build'), command: 'ynx.configureSolidityBuild' },
+      { label: t('Cancel Solidity build'), command: 'ynx.cancelSolidityBuild' },
       { label: t('Import compiler diagnostics'), command: 'ynx.importSolidityDiagnostics' },
       { label: t('Solidity language status'), command: 'ynx.solidityAnalysisStatus' },
       { label: t('Configure Python for this project'), command: 'ynx.configurePython' },
@@ -121,7 +124,9 @@ function activate(context) {
     // document path or credentials enter the URL, and opening never sends AI.
     await vscode.env.openExternal(vscode.Uri.parse(`https://developer.ynxweb4.com/native-tools?sessionId=${encodeURIComponent(selected.sessionId)}#ai`));
   });
-  register('ynx.compileSolidity', () => solidityLanguage.compileProject());
+  register('ynx.compileSolidity', () => solidityBuild.compile());
+  register('ynx.configureSolidityBuild', () => solidityBuild.configure());
+  register('ynx.cancelSolidityBuild', () => solidityBuild.cancel());
   register('ynx.copySolidityProject', async () => {
     if (process.env.YNX_WORKSPACE_MODE === 'local') throw Error(t('Use Compile Solidity Project for local builds. Online Tools requires a connected YNX project.'));
     const reviewed = await require('./solidity-project.cjs').captureSolidityProject(vscode, process.env);

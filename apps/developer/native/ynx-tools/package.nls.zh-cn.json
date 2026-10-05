@@ -19,5 +19,8 @@
   "command.ynx.chainProject": "项目 Chain 工具",
   "command.ynx.configureChainProject": "配置当前项目 Chain",
   "command.ynx.chainProjectHistory": "打开已保存的 Chain 观察结果",
-  "command.ynx.trackChainTransaction": "记录交易查询引用"
+  "command.ynx.trackChainTransaction": "记录交易查询引用",
+  "command.ynx.configureSolidityBuild": "YNX：配置 Solidity 编译",
+  "command.ynx.cancelSolidityBuild": "YNX：取消 Solidity 编译",
+  "configuration.solidity.build": "使用固定本地编译器选择的项目入口和合约。此操作不会部署或执行合约。"
 }

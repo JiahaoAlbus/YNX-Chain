@@ -4,6 +4,7 @@ const { existsSync } = require('node:fs');
 const { captureSolidityProject } = require('./solidity-project.cjs');
 const { byteOffset } = require('./solidity-diagnostics.cjs');
 const { digest } = require('./guards.cjs');
+const { waitForSignal } = require('./capture-cancellation.cjs');
 
 function createSolidityLanguage(vscode, context, environment) {
   // Standard APIs are required; old test/host shims must not fake providers.
@@ -18,7 +19,7 @@ function createSolidityLanguage(vscode, context, environment) {
     diagnosticTimer = setTimeout(() => {
       // Passive diagnostics must not cancel an explicit project-wide rename
       // or references request while its larger inventory is being captured.
-      if (referenceCaptures || pending || renameAbort || completionPending) { scheduleDiagnostics(); return; }
+      if (referenceCaptures || pending || renameAbort || completionPending || compileAbort) { scheduleDiagnostics(); return; }
       const document = vscode.window?.activeTextEditor?.document || vscode.workspace.textDocuments.find(doc => doc.uri.fsPath.endsWith('.sol') && !doc.isClosed);
       if (document?.uri.fsPath.endsWith('.sol')) void current(document).catch(error => { lastError = error.code || 'analysis_error'; });
     }, 450);
@@ -54,6 +55,24 @@ function createSolidityLanguage(vscode, context, environment) {
       if (signal.aborted) abort();
     });
   }
+  function publishDiagnostics(state, result) {
+    const workspace = environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;
+    const documents = state.documents || new Map(Object.keys(state.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(workspace, ...name.split('/')))]));
+    if ([...documents.values()].some(doc => !doc || doc.isClosed)) throw Error('A compiled document is no longer open. Compile its current sources again.');
+    if (diagnostics) {
+      const rows = new Map([...documents.values()].map(doc => [doc, []]));
+      for (const row of (result.diagnostics || []).slice(0, 256)) {
+        const location = row.sourceLocation, doc = documents.get(location?.file);
+        if (!doc || !Number.isSafeInteger(location.start) || !Number.isSafeInteger(location.end) || location.start < 0 || location.end < location.start) continue;
+        const content = state.snapshot.sources[location.file].content;
+        const range = new vscode.Range(doc.positionAt(byteOffset(content, location.start)), doc.positionAt(byteOffset(content, location.end)));
+        const diagnostic = new vscode.Diagnostic(range, row.message, vscode.DiagnosticSeverity[row.severity === 'error' ? 'Error' : row.severity === 'warning' ? 'Warning' : 'Information']);
+        diagnostic.source = 'YNX Solidity'; diagnostic.code = row.errorCode;
+        rows.get(doc).push(diagnostic);
+      }
+      diagnostics.set([...rows].map(([doc, items]) => [doc.uri, items]));
+    }
+  }
   async function current(document, token, projectReferences = false) {
     projectReferences = projectReferences && environment.YNX_WORKSPACE_MODE === 'local';
     if (cancelled(token)) { phase = 'cancelled'; return undefined; }
@@ -82,19 +101,7 @@ function createSolidityLanguage(vscode, context, environment) {
         const workspace = environment.YNX_WORKSPACE_MODE === 'local' ? environment.YNX_LOCAL_WORKSPACE : environment.YNX_CORE_WORKSPACE;
         const documents = reviewed.documents || new Map(Object.keys(reviewed.snapshot.sources).map(name => [name, vscode.workspace.textDocuments.find(doc => doc.uri.fsPath === path.join(workspace, ...name.split('/')))]));
         if ([...documents.values()].some(doc => !doc || doc.isClosed)) return undefined;
-        if (diagnostics) {
-          const rows = new Map([...documents.values()].map(doc => [doc, []]));
-          for (const row of (result.diagnostics || []).slice(0, 256)) {
-            const location = row.sourceLocation, doc = documents.get(location?.file);
-            if (!doc || !Number.isSafeInteger(location.start) || !Number.isSafeInteger(location.end) || location.start < 0 || location.end < location.start) continue;
-            const content = reviewed.snapshot.sources[location.file].content;
-            const range = new vscode.Range(doc.positionAt(byteOffset(content, location.start)), doc.positionAt(byteOffset(content, location.end)));
-            const diagnostic = new vscode.Diagnostic(range, row.message, vscode.DiagnosticSeverity[row.severity === 'error' ? 'Error' : row.severity === 'warning' ? 'Warning' : 'Information']);
-            diagnostic.source = 'YNX Solidity'; diagnostic.code = row.errorCode;
-            rows.get(doc).push(diagnostic);
-          }
-          diagnostics.set([...rows].map(([doc, items]) => [doc.uri, items]));
-        }
+        publishDiagnostics(reviewed, result);
         if (!result.ok || result.semantics?.protocol !== 'ynx-solidity-semantics/v1') { phase = result.ok ? 'retired' : 'source_analysis_failed'; lastError = result.code || 'compiler_diagnostics'; return undefined; }
         cache = { fingerprint, snapshot: reviewed.snapshot, semantics: result.semantics, documents, verify: reviewed.verify };
         phase = 'ready'; lastError = undefined;
@@ -280,7 +287,7 @@ function createSolidityLanguage(vscode, context, environment) {
     if (vscode.window?.onDidChangeActiveTextEditor) context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(editor => { if (editor?.document.uri.fsPath.endsWith('.sol')) scheduleDiagnostics(); }));
     scheduleDiagnostics();
   }
-  async function compileProject() {
+  async function compileProject(options = {}) {
     const document = vscode.window.activeTextEditor?.document;
     if (!document?.uri.fsPath.endsWith('.sol')) throw Error('Open a Solidity file to compile its project.');
     if (disposed || vscode.workspace.isTrusted === false) throw Error('Trust this project before compiling its Solidity sources.');
@@ -290,23 +297,54 @@ function createSolidityLanguage(vscode, context, environment) {
     if (compileAbort) throw Error('A Solidity build is already running.');
     const abort = new AbortController(); compileAbort = abort;
     const task = async (_progress, token) => {
+      let progressFailure;
+      async function buildWorker(snapshot, mode, name, message) {
+        const work = analyze(snapshot, abort.signal, mode, name);
+        try { _progress?.report({ message }); }
+        catch (error) {
+          progressFailure = error; abort.abort();
+          await work.catch(() => {}); // Observe termination before retiring the build slot.
+          throw error;
+        }
+        return work;
+      }
       const cancellation = token?.onCancellationRequested?.(() => abort.abort());
+      const pickerCancellation = vscode.CancellationTokenSource ? new vscode.CancellationTokenSource() : undefined;
+      const cancelPicker = () => pickerCancellation?.cancel();
+      abort.signal.addEventListener('abort', cancelPicker, { once: true });
       try {
         if (token?.isCancellationRequested) abort.abort();
         abort.signal.throwIfAborted();
         const state = await captureSolidityProject(vscode, environment, document, { compiler, signal: abort.signal }), file = state.snapshot.entryPath;
         abort.signal.throwIfAborted();
-        const analysis = await analyze(state.snapshot, abort.signal);
+        const analysis = await buildWorker(state.snapshot, 'analysis', undefined, 'Checking Solidity sources');
         await state.verify();
-        if (!analysis.ok) throw Error('Fix the Solidity errors shown in Problems before building.');
+        abort.signal.throwIfAborted();
+        publishDiagnostics(state, analysis);
+        if (!analysis.ok) {
+          await vscode.commands?.executeCommand('workbench.actions.view.problems');
+          throw Error('Fix the Solidity errors shown in Problems before building.');
+        }
         const contracts = analysis.semantics.declarations.filter(row => row.location.file === file && row.kind === 'ContractDefinition');
         if (!contracts.length) throw Error('The active Solidity file has no contract or library to build.');
-        const chosen = contracts.length === 1 ? { label: contracts[0].name } : await vscode.window.showQuickPick(contracts.map(row => ({ label: row.name })), { placeHolder: 'Choose the contract or library to compile' });
-        if (!chosen || token?.isCancellationRequested) return;
+        const configured = options.contractName;
+        if (configured !== undefined && !contracts.some(row => row.name === configured)) throw Error('The saved contract is not in this entry file. Use Configure Solidity Build to choose its current contract.');
+        const chosen = configured ? { label: configured } : contracts.length === 1 && !options.configureOnly ? { label: contracts[0].name } : await waitForSignal(() => vscode.window.showQuickPick(contracts.map(row => ({ label: row.name })), { placeHolder: 'Choose the contract or library to compile' }, pickerCancellation?.token || token), abort.signal);
+        if (!chosen) return;
+        abort.signal.throwIfAborted();
         await state.verify();
-        const result = await analyze({ ...state.snapshot, entryPath: file }, abort.signal, 'compile', chosen.label);
+        const selection = { entryPath: file, contractName: chosen.label, compiler: analysis.compiler };
+        if (options.onContractChosen) {
+          await options.onContractChosen(selection, async () => { abort.signal.throwIfAborted(); await state.verify(); });
+          abort.signal.throwIfAborted();
+          await state.verify();
+        }
+        if (options.configureOnly) return selection;
+        const result = await buildWorker({ ...state.snapshot, entryPath: file }, 'compile', chosen.label, 'Producing ABI and bytecode');
         await state.verify();
-        if (disposed || token?.isCancellationRequested) return;
+        abort.signal.throwIfAborted();
+        if (disposed) return;
+        publishDiagnostics(state, result);
         if (!result.ok) throw Error(result.error || 'Solidity compilation failed.');
         // Open a normal artifact document. No clipboard, browser round trip,
         // source execution or Wallet request is needed for local compilation.
@@ -314,13 +352,13 @@ function createSolidityLanguage(vscode, context, environment) {
         await vscode.window.showTextDocument(artifact, { preview: false });
         return result;
       } catch (error) {
-        if (!abort.signal.aborted) throw error;
-      } finally { cancellation?.dispose(); }
+        if (!abort.signal.aborted || progressFailure) throw error;
+      } finally { cancellation?.dispose(); abort.signal.removeEventListener('abort', cancelPicker); pickerCancellation?.dispose(); }
     };
     try {
       return await (vscode.window.withProgress ? vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'Compiling Solidity project', cancellable: true }, task) : task());
     } finally { if (compileAbort === abort) compileAbort = undefined; }
   }
-  const lifetime = { compileProject, dispose() { disposed = true; retire(); compileAbort?.abort(); clearTimeout(diagnosticTimer); }, status: () => ({ registered: true, compilerAvailable: existsSync(path.join(compiler, 'distribution.json')), active: (pending ? 1 : 0) + (completionPending ? 1 : 0) + (renameAbort ? 1 : 0) + (compileAbort ? 1 : 0), cached: !!cache, phase, ...(lastError ? { errorCode: lastError } : {}) }) }; context.subscriptions.push(lifetime); return lifetime;
+  const lifetime = { compileProject, cancelCompileProject() { if (!compileAbort) return false; compileAbort.abort(); return true; }, dispose() { disposed = true; retire(); compileAbort?.abort(); clearTimeout(diagnosticTimer); }, status: () => ({ registered: true, compilerAvailable: existsSync(path.join(compiler, 'distribution.json')), active: (pending ? 1 : 0) + (completionPending ? 1 : 0) + (renameAbort ? 1 : 0) + (compileAbort ? 1 : 0), cached: !!cache, phase, ...(lastError ? { errorCode: lastError } : {}) }) }; context.subscriptions.push(lifetime); return lifetime;
 }
 module.exports = { createSolidityLanguage };

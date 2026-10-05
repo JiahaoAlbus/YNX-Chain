@@ -19,5 +19,8 @@
   "command.ynx.chainProject": "Chain project tools",
   "command.ynx.configureChainProject": "Configure Chain for this project",
   "command.ynx.chainProjectHistory": "Open saved Chain observations",
-  "command.ynx.trackChainTransaction": "Remember a transaction reference"
+  "command.ynx.trackChainTransaction": "Remember a transaction reference",
+  "command.ynx.configureSolidityBuild": "YNX: Configure Solidity Build",
+  "command.ynx.cancelSolidityBuild": "YNX: Cancel Solidity Build",
+  "configuration.solidity.build": "Project entry and contract selected using the pinned local compiler. This does not deploy or execute a contract."
 }
