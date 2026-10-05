@@ -138,4 +138,7 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 
 实际生产 15 秒截止时间测试让 Stalled.sol 的编辑器 openTextDocument 一直不回复。构建如期拒绝，错误明确指出 waiting for the editor to open Stalled.sol，活动构建归零、没有显示产物；迟到回复不恢复旧构建，随后正常重试成功并显示真实产物。新增诊断也区分解析器启动、源文件检查、编辑器读取、解析 import 和依赖解析阶段，仍只显示项目相对 source unit；时间、容量、路径和隔离限制未放宽。
 
-本轮两文件回归首跑 15 PASS、1 FAIL：失败来自测试恢复 openTextDocument 后移除了产物计数器，并非截止时间失败。改用持续的 showTextDocument 计数后，该项以真实 15 秒等待复跑 1 PASS；最终 16 个唯一测试通过、无跳过，语法与 diff 检查通过。Tools 0.2.24 尚未封入完整候选；已有 4141c5034 包仍为 0.2.23，其内容和 pin 未修改。原生进程确认存活，但原生操作工具仍返回不可用，Cocoa 超时根因仍 NOT_VERIFIED；没有把这一反馈当作用户实际锁屏的证明。
+本轮两文件回归首跑 15 PASS、1 FAIL：失败来自测试恢复 openTextDocument 后移除了产物计数器，并非截止时间失败。改用持续的 showTextDocument 计数后，该项以真实 15 秒等待复跑 1 PASS；最终 16 个唯一测试通过、无跳过，语法与 diff 检查通过。Tools 0.2.24 已封入 f49d141e5 完整候选；已有 4141c5034 包仍为 0.2.23，其内容和 pin 未修改。原生进程确认存活，但原生操作工具仍返回不可用，Cocoa 超时根因仍 NOT_VERIFIED；没有把这一反馈当作用户实际锁屏的证明。
+
+
+新版核心 pin 重验通过，包内相关四个模块与提交源码逐字节相同。完整 App/DMG 生产器退出 0，DMG SHA256 373ee4bf6b365ff67e70b6f0eb665b7bf7a5c317a995a97ed055422c47d414db，core tree 0812fe34b00531c9e59fd994d30f5f565927b6c798fe68fe5984d9d5a06aae5a。精确封存模块使用包内 Node v26.7.0，真实等待 15012 ms 后明确拒绝编辑器读取 Stalled.sol；迟到回复后新的双文件 capture 和 verify 通过。该证据是包内模块/API harness，未混报为 Cocoa 窗口、身份或真实 AI 验收。完整交接位于候选 SOURCE_BUILD_HANDOFF_20261005.md。
