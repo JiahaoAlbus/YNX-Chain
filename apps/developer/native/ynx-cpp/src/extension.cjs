@@ -4,12 +4,13 @@ const { spawn } = require('node:child_process');
 const { realpath, access } = require('node:fs/promises');
 const { isAbsolute } = require('node:path');
 const { constants } = require('node:fs');
+const { cppProjectRoot } = require('./project-root.cjs');
 let client, child;
 
 async function activate(context) {
   const folders = vscode.workspace.workspaceFolders;
   if (!vscode.workspace.isTrusted || folders?.length !== 1 || folders[0].uri.scheme !== 'file') return;
-  const root = process.env.YNX_CORE_WORKSPACE, entry = process.env.YNX_IDE_CLANGD_ENTRY;
+  const root = cppProjectRoot(process.env), entry = process.env.YNX_IDE_CLANGD_ENTRY;
   if (!root || !isAbsolute(root) || !entry || !isAbsolute(entry)) {
     vscode.window.showWarningMessage('C/C++ syntax is available. This workspace runtime has no configured Clangd language server.');
     return;

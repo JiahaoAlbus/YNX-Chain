@@ -53,6 +53,21 @@ export async function findTrustedLocalGit() {
   }
   return null;
 }
+// This CLT directory is already readable under the local sandbox. Never use
+// /usr/bin/clangd (an installation shim) or a project-selected executable.
+export async function inspectTrustedLocalClangd(root) {
+  if (root !== '/Library/Developer/CommandLineTools') return null;
+  const executable = join(root, 'usr/bin/clangd'), sysroot = join(root, 'SDKs/MacOSX.sdk');
+  try {
+    if (!await trustedSystemPath(executable)) return null;
+    const version = (await exec(executable, ['--version'], { env: { PATH: '/usr/bin:/bin' }, timeout: 5000, maxBuffer: 16384 })).stdout.trim();
+    if (!/^Apple clangd version \d+\.\d+\.\d+[^\n]*\n/.test(version)) return null;
+    // SDK aliases are OS-managed; validate their canonical target before use.
+    const sdk = await realpath(sysroot);
+    if (!sdk.startsWith(root + '/SDKs/') || !await trustedSystemPath(sdk, true)) return null;
+    return { executable, sysroot: sdk, version };
+  } catch { return null; }
+}
 export async function prepareLocalGitConfig(context) {
   await privateDirectory(context.profile);
   const path = join(context.profile, 'gitconfig');
@@ -61,11 +76,12 @@ export async function prepareLocalGitConfig(context) {
   if (stat.uid !== process.getuid() || stat.nlink !== 1 || (stat.mode & 0o777) !== 0o600) throw Error('Local Git configuration is not a private regular file. Existing configuration was retained.');
   return path;
 }
-export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig }) {
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) {
   return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: context.temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile };
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
+    ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot } : {}) };
 }
 export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git }) {
   const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
@@ -158,13 +174,14 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
   const git = await findTrustedLocalGit();
+  const clangd = await inspectTrustedLocalClangd('/Library/Developer/CommandLineTools');
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
   const plugins = join(runtime.root, 'plugins');
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig }),
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });

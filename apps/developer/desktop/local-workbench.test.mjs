@@ -8,7 +8,9 @@ import { once } from 'node:events';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
 import { createServer } from 'node:net';
-import { localProjectContext, prepareLocalRuntime, findTrustedLocalGit, inspectTrustedLocalGit, prepareLocalGitConfig, localWorkbenchSandboxPolicy, localWorkbenchEnvironment } from './local-workbench.mjs';
+import { localProjectContext, prepareLocalRuntime, findTrustedLocalGit, inspectTrustedLocalGit, inspectTrustedLocalClangd, prepareLocalGitConfig, localWorkbenchSandboxPolicy, localWorkbenchEnvironment } from './local-workbench.mjs';
+import { createRequire } from 'node:module';
+const { cppProjectRoot } = createRequire(import.meta.url)('../native/ynx-cpp/src/project-root.cjs');
 import { composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 async function fixture(task) {
@@ -43,6 +45,26 @@ test('local Git selector refuses arbitrary tool roots and never executes a proje
   await writeFile(join(root, 'usr/bin/git'), `#!/bin/sh\ntouch '${marker}'\n`, { mode: 0o700 });
   for (const candidate of [root, '/usr', '/Applications', '/Library/Developer/CommandLineTools/../CommandLineTools', null]) assert.equal(await inspectTrustedLocalGit(candidate), null);
   await assert.rejects(lstat(marker), { code: 'ENOENT' });
+}));
+test('local C/C++ selects only installed CLT Clangd and runs under the unchanged production sandbox', async () => fixture(async root => {
+  const marker = join(root, 'executed'); await mkdir(join(root, 'usr/bin'), { recursive: true });
+  await writeFile(join(root, 'usr/bin/clangd'), `#!/bin/sh\ntouch '${marker}'\n`, { mode: 0o700 });
+  for (const candidate of [root, '/usr', '/Applications/Xcode.app/Contents/Developer', '/Library/Developer/CommandLineTools/../CommandLineTools', null]) assert.equal(await inspectTrustedLocalClangd(candidate), null);
+  await assert.rejects(lstat(marker), { code: 'ENOENT' });
+  const clangd = await inspectTrustedLocalClangd('/Library/Developer/CommandLineTools'); assert.ok(clangd, 'Installed trusted CLT Clangd is required for this macOS check');
+  const workspace = join(root, 'project'); await mkdir(workspace);
+  const context = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: workspace });
+  const runtime = { root: join(root, 'runtime') }; await mkdir(runtime.root);
+  const input = { node: '/usr/bin/true', lockHelper: '/usr/bin/true', runtime, context, plugins: runtime.root, port: 43119 };
+  const env = localWorkbenchEnvironment({ ...input, clangd });
+  assert.equal(cppProjectRoot(env), workspace); assert.equal(env.YNX_CORE_WORKSPACE, undefined); assert.equal(env.YNX_CORE_SESSION_ID, undefined);
+  assert.equal(env.YNX_IDE_CLANGD_ENTRY, clangd.executable); assert.equal(env.YNX_IDE_CPP_SYSROOT, clangd.sysroot);
+  const policy = localWorkbenchSandboxPolicy(input); assert.equal(policy, localWorkbenchSandboxPolicy({ ...input, clangd }));
+  const run = spawnSync('/usr/bin/sandbox-exec', ['-p', policy, clangd.executable, '--version'], { cwd: workspace, env, encoding: 'utf8', timeout: 5000 });
+  assert.equal(run.status, 0, run.stderr); assert.match(run.stdout, /^Apple clangd version/);
+  for (const changed of [{ YNX_CORE_WORKSPACE: workspace }, { YNX_CORE_SESSION_ID: context.id }, { YNX_LOCAL_PROJECT_ID: 'invalid' }, { YNX_LOCAL_WORKSPACE: '../project' }]) assert.equal(cppProjectRoot({ ...env, ...changed }), undefined);
+  assert.equal(cppProjectRoot({ YNX_CORE_WORKSPACE: workspace }), workspace);
+  assert.equal(cppProjectRoot({ YNX_CORE_WORKSPACE: workspace, YNX_LOCAL_WORKSPACE: workspace }), undefined);
 }));
 test('private per-project Git configuration persists and damaged files are retained and refused', async () => fixture(async root => {
   const profile = join(root, 'profile'); await mkdir(profile, { mode: 0o700 });

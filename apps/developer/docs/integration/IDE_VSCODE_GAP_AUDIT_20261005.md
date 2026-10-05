@@ -145,3 +145,10 @@ VSCode 的任务与调试同样依赖项目配置、编译器和对应扩展，�
 
 
 f49d141e5 精确包内工作台正常用户流程：F12 从 Main.sol 调用跳转 Math.sol 定义；F2 answer→result 后 Save All，两份磁盘文件实际更新；新终端 pwd 为真实项目根、Node v26.7.0，cat 回读双方变更。重命名后的双文件项目真实编译并 Save As 为 RenamedMain.build.json，磁盘 ok=true、Main、含字节码，Problems 0。截图及输入错误纠正记录位于该候选 verification/navigation-rename-acceptance.json；这是包内浏览器 GUI 实测，不替代 Cocoa/Finder、统一身份或 AI 接入。
+
+
+## 本地 C/C++ 语言服务缺口与接线
+
+当前 f49d141e5 包中的 YNX C/C++ 0.1.0 仅取 YNX_CORE_WORKSPACE；本地监督器只提供 YNX_LOCAL_WORKSPACE 且未配置 Clangd，故不能把已有正式/受控 C++ 证据视作该本地包具备补全服务。新源码 YNX C/C++ 0.1.1 接受单一 local 模式、有效本地项目 ID 与规范绝对路径；拒绝混入 CORE_WORKSPACE/CORE_SESSION_ID。正式模式仍保留既有独立路径，真实 workspace root 校验继续执行。
+
+本地监督器仅选择已有 root-owned、不可组/全局写入、父路径无符号链接的 /Library/Developer/CommandLineTools/usr/bin/clangd，校验版本与 SDK 规范目标。不调用 /usr/bin/clangd 安装 shim，不使用项目指定执行程序、不下载、不改 sandbox/network 策略、不注入正式会话。当前机器 Apple Clangd 21.0.0 在原生产 sandbox 内启动通过；9 项本地 runtime 回归通过、无跳过，涵盖替代程序拒绝、Git/外部目录及网络拒绝、目录隔离、实际 fd 锁。新增源码尚未封包，C++ 补全/定义/诊断正常 GUI 流程仍待验收；f49d141e5 包保持原有版本和 pin。

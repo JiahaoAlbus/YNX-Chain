@@ -48,10 +48,11 @@ await writeFile(join(extension, 'ThirdPartyNotices.txt'), legal, { flag: 'wx' })
 await cp(join(clients, 'vscode-languageclient/License.txt'), join(extension, 'MICROSOFT-MIT-NOTICE.txt'), { errorOnExist: true, force: false });
 await writeFile(join(extension, 'NOTICE.txt'), 'YNX C/C++ uses local cached MIT/ISC language-client dependencies and MIT-declared VS Code C/C++ syntax. All original component notices and full installed syntax third-party notices are retained. No proprietary C/C++ extension or compiler binary is included.\n', { flag: 'wx' });
 if (await composedTreeDigest(syntax) !== syntaxTreeSha256) throw Error('Cached syntax changed during staging.');
-const receipt = { schema: 'ynx-cpp-offline-input/v1', version: '0.1.0', components,
+const extensionMetadata = JSON.parse(await readFile(join(extension, 'package.json'), 'utf8'));
+const receipt = { schema: 'ynx-cpp-offline-input/v1', version: extensionMetadata.version, components,
   syntax: { version: syntaxMetadata.version, license: syntaxMetadata.license, sourceTreeSha256: syntaxTreeSha256 },
   extensionTreeSha256: await composedTreeDigest(extension),
   source: 'Existing local dependency and syntax bytes only; no package/network download or package lifecycle execution.',
-  server: 'Operator provides an existing approved Clangd executable inside the admitted project execution domain; no automatic download.' };
+  server: 'Formal runtime requires an operator-provided approved Clangd. Local macOS may select the existing trusted CLT Clangd inside the unchanged project sandbox; no automatic download.' };
 await writeFile(join(destination, 'receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx' });
 console.log(JSON.stringify(receipt));
