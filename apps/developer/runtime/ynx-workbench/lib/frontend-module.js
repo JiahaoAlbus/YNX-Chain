@@ -1,5 +1,7 @@
 const { ContainerModule } = require('@theia/core/shared/inversify');
 require('./reconnection-lifecycle').install();
+const debugStatePersistence = require('./debug-state-persistence');
+debugStatePersistence.install();
 require('./test-range-adapter').install();
 require('./test-tree-state-adapter').install();
 require('./test-run-empty-state-adapter').install();
@@ -24,6 +26,8 @@ const { nls } = require('@theia/core/lib/common/nls');
 const { MenuContribution } = require('@theia/core/lib/common/menu');
 const { ContextMenuRenderer } = require('@theia/core/lib/browser/context-menu-renderer');
 const { DebugConfigurationManager } = require('@theia/debug/lib/browser/debug-configuration-manager');
+const { BreakpointManager } = require('@theia/debug/lib/browser/breakpoint/breakpoint-manager');
+const { DebugWatchManager } = require('@theia/debug/lib/browser/debug-watch-manager');
 const { DebugSelectionContribution } = require('./debug-selection');
 const { UserKeybindingsContribution } = require('./user-keybindings');
 const { WorkspaceKeybindingsContribution, ShortcutSettings } = require('./workspace-keybindings');
@@ -100,6 +104,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWindowClose(
     context.container.get(WindowService), window, context.container.get(ShellLayoutRestorer), context.container.get(LocalStorageService),
+    () => debugStatePersistence.persistDebugState([context.container.get(DebugConfigurationManager), context.container.get(BreakpointManager), context.container.get(DebugWatchManager)]),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
     context.container.get(CommandRegistry), window, nls.locale,

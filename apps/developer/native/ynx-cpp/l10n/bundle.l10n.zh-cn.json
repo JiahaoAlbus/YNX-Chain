@@ -17,5 +17,6 @@
   "C/C++ program exited with code {0}.": "C/C++ 程序已退出，退出码为 {0}。",
   "Run project task: {0}": "运行项目任务：{0}",
   "Project task {0} exited with code {1}.": "项目任务 {0} 已退出，退出码为 {1}。",
-  "Existing project configuration was preserved. Choose its target explicitly.": "已有项目配置已保留，请明确选择其中的目标。"
+  "Existing project configuration was preserved. Choose its target explicitly.": "已有项目配置已保留，请明确选择其中的目标。",
+  "C/C++ debugging uses Debug Console for output. Interactive program input is not supported in this mode; use Run C/C++ File for terminal input.": "C/C++ 调试输出显示在调试控制台。此模式暂不支持程序交互输入；需要终端输入时请使用“运行 C/C++ 文件”。"
 }

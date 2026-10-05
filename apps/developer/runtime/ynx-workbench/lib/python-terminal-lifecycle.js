@@ -17,7 +17,7 @@ function belongsToProject(session, workspace) {
 class PythonTerminalLifecycle {
   constructor(context, terminals, watcher, sessions) {
     this.context = context; this.terminals = terminals; this.watcher = watcher; this.sessions = sessions;
-    this.entries = new Map(); this.stopped = false; this.disposables = [];
+    this.entries = new Map(); this.threadLifecycles = new Map(); this.stopped = false; this.disposables = [];
   }
   registerCommands(registry) {
     for (const [operation, id] of Object.entries(COMMANDS)) this.disposables.push(registry.registerCommand({ id }, { execute: (...args) => this[operation](...args) }));
@@ -39,10 +39,58 @@ class PythonTerminalLifecycle {
         !session || !['python','debugpy'].includes(session.configuration?.type) || session.configuration.request !== 'launch' ||
         !belongsToProject(session, context.workspace)) throw Error('Python terminal needs the current local project launch.');
     if (this.entries.size >= 128) throw Error('Close a completed Python terminal before opening another.');
+    this.installThreadLifecycle(session);
     const capability = globalThis.crypto.randomUUID();
     const entry = { sessionId, phase: 'prepared' };
     entry.timeout = setTimeout(() => this.abandon(capability), 30000); entry.timeout.unref?.();
     this.entries.set(capability, entry); return capability;
+  }
+  installThreadLifecycle(session) {
+    if (this.threadLifecycles.has(session) || typeof session.handleThread !== 'function' || typeof session.scheduleUpdateThreads !== 'function') return;
+    const descriptor = Object.getOwnPropertyDescriptor(session, 'handleThread'), original = session.handleThread;
+    const scheduleDescriptor = Object.getOwnPropertyDescriptor(session, 'scheduleUpdateThreads');
+    if (descriptor && !descriptor.configurable || scheduleDescriptor && !scheduleDescriptor.configurable) return;
+    const record = { descriptor, scheduleDescriptor, active: new Set(), ended: false, disposables: [], waiting: [] };
+    record.cancel = () => { clearTimeout(record.timer); for (const resolve of record.waiting.splice(0)) resolve(); };
+    // Retained p-debounce has no cancellation API. Keep its 100 ms coalescing
+    // behavior, while making this admitted session's queued refresh retireable.
+    record.schedule = () => {
+      if (record.ended) return Promise.resolve();
+      clearTimeout(record.timer);
+      const pending = new Promise(resolve => record.waiting.push(resolve));
+      record.timer = setTimeout(() => { const result = session.updateThreads(undefined); for (const resolve of record.waiting.splice(0)) resolve(result); }, 100);
+      return pending;
+    };
+    const cancel = () => { record.ended = true; record.cancel(); };
+    record.wrapper = function(event) {
+      const { reason, threadId } = event.body;
+      if (reason === 'started') record.active.add(threadId);
+      else if (reason === 'exited') record.active.delete(threadId);
+      const result = original.call(this, event);
+      // Theia schedules a threads request 100 ms after a started event, but
+      // leaves that timer alive when a short Python process exits meanwhile.
+      // Retire that obsolete query; live-thread and breakpoint queries remain.
+      if (record.ended || reason === 'exited' && record.active.size === 0) record.cancel();
+      return result;
+    };
+    Object.defineProperty(session, 'handleThread', { configurable: true, writable: true, value: record.wrapper });
+    Object.defineProperty(session, 'scheduleUpdateThreads', { configurable: true, writable: true, value: record.schedule });
+    for (const event of ['exited', 'terminated']) if (session.connection?.on) record.disposables.push(session.connection.on(event, cancel));
+    if (session.onDispose) record.disposables.push(session.onDispose(() => this.releaseThreadLifecycle(session)));
+    this.threadLifecycles.set(session, record);
+  }
+  releaseThreadLifecycle(session) {
+    const record = this.threadLifecycles.get(session); if (!record) return;
+    this.threadLifecycles.delete(session); record.ended = true; record.cancel();
+    for (const disposable of record.disposables) disposable.dispose();
+    if (session.handleThread === record.wrapper) {
+      if (record.descriptor) Object.defineProperty(session, 'handleThread', record.descriptor);
+      else delete session.handleThread;
+    }
+    if (session.scheduleUpdateThreads === record.schedule) {
+      if (record.scheduleDescriptor) Object.defineProperty(session, 'scheduleUpdateThreads', record.scheduleDescriptor);
+      else delete session.scheduleUpdateThreads;
+    }
   }
   bind(capability, id) {
     const entry = this.entries.get(capability), widget = entry?.widget;
@@ -72,6 +120,7 @@ class PythonTerminalLifecycle {
   }
   onStop() {
     this.stopped = true; this.creationListener?.dispose();
+    for (const session of [...this.threadLifecycles.keys()]) this.releaseThreadLifecycle(session);
     for (const capability of [...this.entries.keys()]) this.abandon(capability);
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
   }

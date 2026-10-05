@@ -76,3 +76,10 @@ test('mixed-language transient launch preserves all bytes and rejects custom C++
  await writeFile(path,original);await mkdir(join(root,'.vscode'));await writeFile(join(root,'.vscode/launch.json'),'{"version":"0.2.0","configurations":[{"type":"lldb-dap","name":"lower-priority"}]}');
  assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',true)).path,path);
 });
+
+test('new debug defaults use supported direct launch while exact old integrated-terminal configurations remain authoritative',async()=>{
+ const {createLaunchConfiguration}=require('./build-tasks.cjs');const root=await mkdtemp('/private/tmp/ynx-cpp-console-default-');await mkdir(join(root,'.vscode'));
+ const tasksPath=join(root,'.vscode/tasks.json');const result=await createLaunchConfiguration(root,tasksPath,'cpp',true);assert.equal(result.configuration.console,'internalConsole');
+ const previous={version:'0.2.0',configurations:[{...result.configuration,console:'integratedTerminal'}]};const bytes=JSON.stringify(previous);await writeFile(result.path,bytes);
+ const preserved=await createLaunchConfiguration(root,tasksPath,'cpp',true);assert.equal(preserved.configuration,undefined);assert.equal(preserved.transient,undefined);assert.equal(await readFile(result.path,'utf8'),bytes);
+});

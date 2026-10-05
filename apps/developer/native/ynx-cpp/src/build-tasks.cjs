@@ -117,7 +117,10 @@ async function createLaunchConfiguration(root, tasksPath, language, allowGenerat
   const configuration = { type: 'lldb-dap', request: 'launch', name: 'YNX: Debug active ' + (language === 'c' ? 'C' : 'C++'),
     program: '${fileDirname}/${fileBasenameNoExtension}', cwd: '${fileDirname}',
     preLaunchTask: 'YNX: Build active ' + (language === 'c' ? 'C' : 'C++'), stopOnEntry: false,
-    console: 'integratedTerminal' };
+    // Apple's signed lldb-dap launcher cannot be attached to by debugserver
+    // (hardened binary without get-task-allow). Direct launch supports source
+    // debugging and console output; ordinary Run still uses the real terminal.
+    console: 'internalConsole' };
   const existing = await existingConfiguration(root, 'launch');
   if (existing) {
     const result = { path: existing, created: false };

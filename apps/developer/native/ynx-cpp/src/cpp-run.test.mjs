@@ -253,7 +253,28 @@ test('mixed JS and existing custom LLDB configurations still select the explicit
  f.vscode.window.showQuickPick=async(items,options)=>{if(options.title==='Select the existing project debug configuration'){explicit=true;assert.equal(items.length,1);assert.equal(items[0].configuration,custom);}return items[0];};
  f.vscode.tasks.executeTask=async()=>{throw Error('custom target must keep its own build task');};
  f.vscode.debug.startDebugging=async(_folder,configuration)=>{selected=configuration;return true;};
- await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.equal(explicit,true);assert.equal(selected,custom);assert.equal(await readFile(path,'utf8'),bytes);
+ await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.equal(explicit,true);assert.match(selected.__ynxCppRunId,/^[a-f0-9-]{36}$/);const {__ynxCppRunId,...actual}=selected;assert.deepEqual(actual,custom);assert.equal(custom.__ynxCppRunId,undefined);assert.equal(await readFile(path,'utf8'),bytes);
+});
+
+test('owned LLDB launch failures are shown without blocking or attributing unrelated same-project sessions',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){}');let factory,tracker,stoppingTracker;
+ f.vscode.debug.registerDebugAdapterTrackerFactory=(type,value)=>{assert.equal(type,'lldb-dap');factory=value;return{dispose(){}};};
+ registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
+ f.vscode.window.showInformationMessage=()=>new Promise(()=>{});
+ f.vscode.window.showErrorMessage=message=>{f.errors.push(message);return new Promise(()=>{});};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{
+  assert.equal(configuration.console,'internalConsole');
+  assert.equal(factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:{...configuration,__ynxCppRunId:'foreign'}}),undefined);
+  tracker=factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:structuredClone(configuration)});assert.ok(tracker);
+  stoppingTracker=factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:structuredClone(configuration)});return true;
+ };
+ await f.commands.get('ynx.cpp.debugActive')();assert.ok(tracker);
+ tracker.onDidSendMessage({type:'response',command:'launch',success:false,body:{error:{format:'native launch failure reason'}}});
+ tracker.onError(Error('follow-up connection close'));
+ assert.equal(f.errors.length,1);assert.match(f.errors[0],/native launch failure reason/);
+ stoppingTracker.onWillStopSession();stoppingTracker.onError(Error('normal disconnect'));assert.equal(f.errors.length,1);
 });
 
 test('a mixed JS project can run and debug new C++ twice without replacing its existing launch configuration',async()=>{

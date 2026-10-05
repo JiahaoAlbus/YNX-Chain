@@ -19,6 +19,7 @@ const TEXT = {
   launch: ['Select the existing project debug configuration', '选择已有项目调试配置'],
   launchMissing: ['No usable C/C++ launch target is configured. Existing files were preserved; configure a target in launch.json.', '尚未配置可用的 C/C++ 调试目标。已有文件已保留，请在 launch.json 中配置目标。'],
   launchFailed: ['The debugger did not start. Check Debug Console and Output.', '调试器未启动，请查看调试控制台和输出。'],
+  debugConsole: ['C/C++ debugging uses Debug Console for output. Interactive program input is not supported in this mode; use Run C/C++ File for terminal input.', 'C/C++ 调试输出显示在调试控制台。此模式暂不支持程序交互输入；需要终端输入时请使用“运行 C/C++ 文件”。'],
   busy: ['A C/C++ operation is already running in this project.', '本项目已有 C/C++ 操作正在运行。'],
   stopped: ['C/C++ operation stopped.', 'C/C++ 操作已停止。'],
   complete: ['C/C++ program exited with code {0}.', 'C/C++ 程序已退出，退出码为 {0}。'],
@@ -78,6 +79,21 @@ async function executeAndWait(vscode, task, token) {
 }
 function registerCppRun(vscode, context, env) {
   const t = translator(vscode), active = new Map();
+  if (vscode.debug.registerDebugAdapterTrackerFactory) context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('lldb-dap', {
+    createDebugAdapterTracker(session) {
+      if (![...active.values()].some(owner => owner.kind === 'debug' && owner.folder === session.workspaceFolder?.uri?.fsPath && owner.requestId === session.configuration?.__ynxCppRunId)) return;
+      let reported = false, stopping = false;
+      const report = detail => { if (!reported && !stopping) { reported = true; vscode.window.showErrorMessage(`${t('launchFailed')} ${String(detail || '').slice(0, 2000)}`); } };
+      return {
+        onDidSendMessage: message => {
+          if (message.type === 'response' && ['launch', 'attach'].includes(message.command) && message.success === false)
+            report(message.body?.error?.format || message.message);
+        },
+        onError: error => report(error.message),
+        onWillStopSession: () => { stopping = true; },
+      };
+    },
+  }));
   if (vscode.debug.onDidTerminateDebugSession) context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => {
     const root = session.workspaceFolder?.uri?.fsPath, owner = root && active.get(root);
     if (owner?.kind === 'debug' && (!owner.sessionId || owner.sessionId === session.id)) active.delete(root);
@@ -143,7 +159,8 @@ function registerCppRun(vscode, context, env) {
   async function operation(debug) {
     const scope = await sourceContext(vscode, env);
     if (active.has(scope.root) || (debug && vscode.debug.activeDebugSession?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath)) { vscode.window.showInformationMessage(t('busy')); return; }
-    active.set(scope.root, { kind: debug ? 'debug' : 'run' });
+    const owner = { kind: debug ? 'debug' : 'run', folder: scope.folder.uri.fsPath, requestId: randomUUID() };
+    active.set(scope.root, owner);
     let sessionAccepted = false;
     try {
       const config = await setup(scope); if (!config) return;
@@ -204,7 +221,8 @@ function registerCppRun(vscode, context, env) {
           const current = await createLaunchConfiguration(scope.root, config.path, scope.language, true, launch.digest);
           if (!current.transient || current.path !== launch.path || current.digest !== launch.digest) throw Error(t('launchMissing'));
         }
-        if (!await vscode.debug.startDebugging(scope.folder, selected)) throw Error(t('launchFailed'));
+        if (launch.configuration?.console === 'internalConsole') void vscode.window.showInformationMessage(t('debugConsole'));
+        if (!await vscode.debug.startDebugging(scope.folder, { ...selected, __ynxCppRunId: owner.requestId })) throw Error(t('launchFailed'));
         sessionAccepted = true;
         const session = vscode.debug.activeDebugSession;
         if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath && active.has(scope.root)) active.get(scope.root).sessionId = session.id;
