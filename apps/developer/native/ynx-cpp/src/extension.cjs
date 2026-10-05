@@ -27,7 +27,7 @@ async function activate(context) {
     const server = async () => {
       child = spawn(executable, ['--background-index=false', '--clang-tidy=false', '--header-insertion=never', '--log=error'], {
         cwd: root, shell: false, stdio: ['pipe', 'pipe', 'pipe'],
-        env: Object.fromEntries(['PATH', 'TMPDIR'].filter(key => process.env[key]).map(key => [key, process.env[key]])),
+        env: Object.fromEntries(['PATH', 'TMPDIR', 'DEVELOPER_DIR', 'SDKROOT'].filter(key => process.env[key]).map(key => [key, process.env[key]])),
       });
       child.stderr.on('data', chunk => output.append(String(chunk)));
       await new Promise((resolve, reject) => { child.once('spawn', resolve); child.once('error', reject); });

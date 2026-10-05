@@ -1,6 +1,7 @@
 const { ContainerModule } = require('@theia/core/shared/inversify');
 require('./reconnection-lifecycle').install();
 require('./debug-ui-trace').install();
+require('./tree-cycle-guard').install();
 const debugStatePersistence = require('./debug-state-persistence');
 debugStatePersistence.install();
 require('./test-range-adapter').install();

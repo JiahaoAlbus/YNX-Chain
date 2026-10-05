@@ -105,7 +105,12 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
     ...(go ? { YNX_IDE_GO_ENTRY: go.entry, YNX_IDE_GO_ROOT: go.root, YNX_IDE_GO_VERSION: go.version, YNX_IDE_GO_SHA: go.sha } : {}),
-    ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot } : {}) };
+    // CLT binaries are the admitted toolchain. Apple's LLDB/Clang helpers can
+    // otherwise consult xcode-select and resolve an unreadable Xcode install,
+    // triggering an installation prompt even though these tools are present.
+    // This is process-local; explicit per-task/debugger overrides still apply.
+    ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot,
+      DEVELOPER_DIR: '/Library/Developer/CommandLineTools', SDKROOT: clangd.sysroot } : {}) };
 }
 export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities = [] }) {
   const go = verifiedGo(goToolchain, context);

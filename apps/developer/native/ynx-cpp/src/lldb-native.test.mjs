@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities } from '../../../desktop/local-workbench.mjs';
+import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd } from '../../../desktop/local-workbench.mjs';
 import { createLocalIpcSession } from '../../../desktop/local-workbench-ipc.mjs';
 const require = createRequire(import.meta.url);
 const { createBuildTasks, createLaunchConfiguration, installedCompiler } = require('./build-tasks.cjs');
@@ -15,9 +15,9 @@ const appRuntime = process.env.YNX_QA_MACOS_APP_RUNTIME;
 
 // Real DAP transport to the installed Apple LLDB under the product sandbox.
 // This exercises the native debugger, not an App/UI acceptance substitute.
-function connect(policy, cwd, temporary) {
+function connect(policy, cwd, env) {
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, '/Library/Developer/CommandLineTools/usr/bin/lldb-dap'], {
-    cwd, env: { PATH: '/usr/bin:/bin', TMPDIR: temporary, TMP: temporary, TEMP: temporary, LANG: 'en_US.UTF-8' },
+    cwd, env,
   });
   let sequence = 0, buffer = Buffer.alloc(0), stderr = '', output = '';
   const pending = new Map(), events = [], waiters = [];
@@ -77,10 +77,13 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const pathIdentities = await localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port: 58999, pathIdentities });
   assert.ok(policy.includes('(deny network*)'));
+  const clangd = await inspectTrustedLocalClangd('/Library/Developer/CommandLineTools'); assert.ok(clangd);
+  const env = localWorkbenchEnvironment({ node, lockHelper, runtime, context, clangd });
+  assert.equal(env.DEVELOPER_DIR, '/Library/Developer/CommandLineTools'); assert.equal(env.SDKROOT, clangd.sysroot);
   const tool = await installedCompiler({ sysroot: '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', language: 'cpp' });
   const source = join(context.workspace, 'main.cpp'), program = join(context.workspace, 'main');
   await writeFile(source, '#include <iostream>\nint main() {\n  int value = 41;\n  value += 1;\n  std::cout << "Hello World " << value << std::endl;\n  return 0;\n}\n');
-  await exec('/usr/bin/sandbox-exec', ['-p', policy, tool.compiler, '-isysroot', tool.sdk, '-g', '-O0', source, '-o', program], { cwd: context.workspace, env: { PATH: '/usr/bin:/bin', TMPDIR: ipc.path } });
+  await exec('/usr/bin/sandbox-exec', ['-p', policy, tool.compiler, '-isysroot', tool.sdk, '-g', '-O0', source, '-o', program], { cwd: context.workspace, env });
   const tasks = await createBuildTasks(context.workspace, tool);
   const generated = await createLaunchConfiguration(context.workspace, tasks.path, 'cpp', true);
   const config = { ...generated.configuration, program, cwd: context.workspace }; delete config.preLaunchTask;
@@ -88,13 +91,13 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   try {
     // Negative control: the previous generated terminal default fails before
     // configurationDone; its failure cannot be counted as debugger startup.
-    const old = connect(policy, context.workspace, ipc.path); sessions.push(old);
+    const old = connect(policy, context.workspace, env); sessions.push(old);
     await success(old, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
     const failed = await old.request('launch', { ...config, console: 'integratedTerminal' });
     assert.equal(failed.success, false); assert.match(failed.body.error.format, /unique file name for runInTerminal/);
     await old.request('disconnect', { terminateDebuggee: true }); await old.closed;
     for (const mode of ['finish', 'stop', 'retry']) {
-      const session = connect(policy, context.workspace, ipc.path); sessions.push(session);
+      const session = connect(policy, context.workspace, env); sessions.push(session);
       await success(session, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
       await success(session, 'launch', config); await session.event('initialized');
       const breakpoints = await success(session, 'setBreakpoints', { source: { path: source }, breakpoints: [{ line: 4 }] }); assert.equal(breakpoints.breakpoints.length, 1);

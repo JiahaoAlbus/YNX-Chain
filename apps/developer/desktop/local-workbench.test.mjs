@@ -61,6 +61,9 @@ test('local C/C++ selects only installed CLT Clangd and runs under the unchanged
   const env = localWorkbenchEnvironment({ ...input, clangd });
   assert.equal(cppProjectRoot(env), workspace); assert.equal(env.YNX_CORE_WORKSPACE, undefined); assert.equal(env.YNX_CORE_SESSION_ID, undefined);
   assert.equal(env.YNX_IDE_CLANGD_ENTRY, clangd.executable); assert.equal(env.YNX_IDE_CPP_SYSROOT, clangd.sysroot);
+  assert.equal(env.DEVELOPER_DIR, '/Library/Developer/CommandLineTools'); assert.equal(env.SDKROOT, clangd.sysroot);
+  const withoutCompiler = localWorkbenchEnvironment(input);
+  assert.equal(withoutCompiler.DEVELOPER_DIR, undefined); assert.equal(withoutCompiler.SDKROOT, undefined);
   const policy = localWorkbenchSandboxPolicy(input); assert.equal(policy, localWorkbenchSandboxPolicy({ ...input, clangd }));
   const run = spawnSync('/usr/bin/sandbox-exec', ['-p', policy, clangd.executable, '--version'], { cwd: workspace, env, encoding: 'utf8', timeout: 5000 });
   assert.equal(run.status, 0, run.stderr); assert.match(run.stdout, /^Apple clangd version/);
