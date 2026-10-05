@@ -4,6 +4,7 @@ const { constants } = require('node:fs');
 const { join, dirname, isAbsolute } = require('node:path');
 const { isDeepStrictEqual } = require('node:util');
 const { createHash } = require('node:crypto');
+const { parse } = require('jsonc-parser');
 const CLT = '/Library/Developer/CommandLineTools';
 async function trusted(path, directory = false) {
   if (!isAbsolute(path) || await realpath(path) !== path) throw Error('Compiler path is not canonical.');
@@ -87,6 +88,14 @@ async function existingConfiguration(root, name) {
 // Extra user fields and commented/custom configurations remain user tasks.
 async function readGeneratedTasks(root, path, tool, expectedDigest) {
   if (await existingConfiguration(root, 'tasks') !== path) throw Error('Task configuration changed.');
+  const snapshot = await readConfigurationSnapshot(path, expectedDigest);
+  if (!snapshot) return undefined;
+  let configuration;
+  try { configuration = JSON.parse(snapshot.bytes.toString('utf8')); } catch { return undefined; }
+  if (!isDeepStrictEqual(configuration, taskConfiguration(tool))) return undefined;
+  return { configuration, digest: snapshot.digest };
+}
+async function readConfigurationSnapshot(path, expectedDigest) {
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   try {
     const before = await handle.stat();
@@ -101,20 +110,33 @@ async function readGeneratedTasks(root, path, tool, expectedDigest) {
       throw Error('Task configuration changed.');
     const digest = createHash('sha256').update(bytes).digest('hex');
     if (expectedDigest && digest !== expectedDigest) throw Error('Task configuration changed.');
-    let configuration;
-    try { configuration = JSON.parse(bytes.toString('utf8')); } catch { return undefined; }
-    if (!isDeepStrictEqual(configuration, taskConfiguration(tool))) return undefined;
-    return { configuration, digest };
+    return { bytes, digest };
   } finally { await handle.close(); }
 }
-async function createLaunchConfiguration(root, tasksPath, language) {
-  const existing = await existingConfiguration(root, 'launch');
-  if (existing) return { path: existing, created: false };
-  const path = join(dirname(tasksPath), 'launch.json');
+async function createLaunchConfiguration(root, tasksPath, language, allowEmpty = false, expectedDigest) {
   const configuration = { type: 'lldb-dap', request: 'launch', name: 'YNX: Debug active ' + (language === 'c' ? 'C' : 'C++'),
     program: '${fileDirname}/${fileBasenameNoExtension}', cwd: '${fileDirname}',
     preLaunchTask: 'YNX: Build active ' + (language === 'c' ? 'C' : 'C++'), stopOnEntry: false,
     console: 'integratedTerminal' };
+  const existing = await existingConfiguration(root, 'launch');
+  if (existing) {
+    const result = { path: existing, created: false };
+    if (!allowEmpty) return result;
+    const snapshot = await readConfigurationSnapshot(existing, expectedDigest);
+    if (!snapshot) return result;
+    const errors = [];
+    const value = parse(snapshot.bytes.toString('utf8'), errors, { allowTrailingComma: true });
+    // Native Debug creates a commented empty template. An in-memory target
+    // preserves it, while user targets, inputs and invalid JSONC stay authoritative.
+    if (!errors.length && value?.version === '0.2.0' && Array.isArray(value.configurations) &&
+        value.configurations.length === 0 && Object.keys(value).every(key => ['version', 'configurations'].includes(key))) {
+      if (await existingConfiguration(root, 'launch') !== existing) throw Error('Launch configuration changed.');
+      return { ...result, configuration, transient: true, digest: snapshot.digest };
+    }
+    return result;
+  }
+  if (expectedDigest) throw Error('Launch configuration changed.');
+  const path = join(dirname(tasksPath), 'launch.json');
   let handle;
   try { handle = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
   catch (error) { if (error.code !== 'EEXIST') throw error; return { path: await existingConfiguration(root, 'launch'), created: false }; }

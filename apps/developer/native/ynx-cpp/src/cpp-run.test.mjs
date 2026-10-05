@@ -217,3 +217,27 @@ test('real TasksExt early success preserves exit0 and native cancellation ends o
  const pending=executeAndWait({Task,tasks:ext},task,token);await new Promise(resolve=>setImmediate(resolve));
  token.isCancellationRequested=true;cancel.fire();assert.equal(await pending,undefined);assert.equal(kills,1);assert.equal(cancel.count(),0);
 });
+test('native commented empty Theia launch plus VSCode process tasks debugs captured source twice and preserves launch bytes',async()=>{
+ const f=await fixture();await writeFile(f.path,'int main(){return 0;}');await mkdir(join(f.root,'.theia'));
+ const launchPath=join(f.root,'.theia/launch.json'),bytes='{\n // Use IntelliSense to learn about possible attributes.\n "version":"0.2.0", "configurations":[]\n}';await writeFile(launchPath,bytes);
+ let launches=0;const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;
+ // Re-register to observe the real debug session completion lifecycle.
+ registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
+ f.vscode.tasks.fetchTasks=async()=>{throw Error('empty task discovery must not gate generated build');};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.program,join(f.root,'main'));assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ for(let i=0;i<2;i++) {f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'native'});}
+ assert.equal(launches,2);assert.deepEqual(f.errors,[]);assert.equal(await readFile(launchPath,'utf8'),bytes);
+ await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
+});
+test('unsaved or edited empty launch template never starts the transient debug target',async()=>{
+ for(const duringBuild of [false,true]) {
+  const f=await fixture();await writeFile(f.path,'int main(){}');await mkdir(join(f.root,'.theia'));const path=join(f.root,'.theia/launch.json');await writeFile(path,'{"version":"0.2.0","configurations":[]}');
+  f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
+  let launched=false;f.vscode.debug.startDebugging=async()=>{launched=true;return true;};
+  if(!duringBuild)f.vscode.workspace.textDocuments=[{uri:{scheme:'file',fsPath:path},isDirty:true}];
+  else {const execute=f.vscode.tasks.executeTask;f.vscode.tasks.executeTask=async task=>{await writeFile(path,'{"version":"0.2.0","configurations":[{"name":"user target"}]}');return execute(task);};}
+  await f.commands.get('ynx.cpp.debugActive')();assert.equal(launched,false);assert.equal(f.errors.length,1);
+ }
+});

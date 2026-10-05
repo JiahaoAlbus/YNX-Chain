@@ -3,10 +3,11 @@ import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { composedTreeDigest } from '../../../services/codeoss-service/src/composed-runtime.mjs';
 const developer = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
-const [destination, clientInput, syntaxInput, noticesInput] = process.argv.slice(2);
+const [destination, clientInput, syntaxInput, noticesInput, jsoncInput] = process.argv.slice(2);
 if (!destination?.startsWith(join(developer, '.ynx-developer-candidates') + '/') || resolve(destination) !== destination)
   throw Error('Use a new canonical owned candidate destination.');
 const clients = await realpath(clientInput), syntax = await realpath(syntaxInput);
+const parser = await realpath(jsoncInput);
 const versions = { 'vscode-languageclient': '9.0.1', minimatch: '5.1.7', semver: '7.5.4',
   'vscode-languageserver-protocol': '3.17.5', 'vscode-jsonrpc': '8.2.0', 'vscode-languageserver-types': '3.17.5',
   'brace-expansion': '2.0.2', 'balanced-match': '1.0.2', 'lru-cache': '6.0.0', yallist: '4.0.0', 'jsonc-parser': '3.3.1' };
@@ -19,7 +20,7 @@ async function regularTree(root) {
 }
 const components = [];
 for (const [name, version] of Object.entries(versions)) {
-  const source = join(clients, name), metadata = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'));
+  const source = name === 'jsonc-parser' ? parser : join(clients, name), metadata = JSON.parse(await readFile(join(source, 'package.json'), 'utf8'));
   if (metadata.name !== name || metadata.version !== version || !['MIT', 'ISC'].includes(metadata.license)) throw Error('Unexpected cached component.');
   for (const dependency of Object.keys(metadata.dependencies || {})) if (!versions[dependency]) throw Error('Unreviewed transitive dependency.');
   const notices = (await readdir(source)).filter(name => /^(licen[sc]e|notice|copying)(\.|$)/i.test(name));
@@ -39,7 +40,7 @@ await cp(join(developer, 'native/ynx-cpp'), extension, { recursive: true, errorO
 await mkdir(join(extension, 'node_modules'), { mode: 0o700 });
 for (const component of components) {
   const target = join(extension, 'node_modules', component.name);
-  await cp(join(clients, component.name), target, { recursive: true, errorOnExist: true, force: false });
+  await cp(component.name === 'jsonc-parser' ? parser : join(clients, component.name), target, { recursive: true, errorOnExist: true, force: false });
   if (await composedTreeDigest(target) !== component.sourceTreeSha256) throw Error('Cached dependency changed during staging.');
 }
 for (const name of ['syntaxes', 'language-configuration.json']) await cp(join(syntax, name), join(extension, name), { recursive: true, errorOnExist: true, force: false });

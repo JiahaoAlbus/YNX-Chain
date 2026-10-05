@@ -2,7 +2,7 @@
   "name": "ynx-cpp",
   "displayName": "YNX C/C++",
   "publisher": "ynx",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "engines": {
     "vscode": "^1.82.0"
@@ -24,7 +24,8 @@
     }
   },
   "dependencies": {
-    "vscode-languageclient": "9.0.1"
+    "vscode-languageclient": "9.0.1",
+    "jsonc-parser": "3.3.1"
   },
   "contributes": {
     "languages": [

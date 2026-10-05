@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, writeFile, mkdir, symlink, realpath } from 'node:fs/promises';
+import { mkdtemp, readFile, writeFile, mkdir, symlink, realpath, unlink } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 const require = createRequire(import.meta.url);
@@ -39,4 +39,20 @@ test('exact generated config snapshot rejects extra fields, comments, changed by
  await writeFile(path,'// user comment\n'+original);assert.equal(await readGeneratedTasks(root,path,tool),undefined);
  await writeFile(path,' '.repeat(65537));assert.equal(await readGeneratedTasks(root,path,tool),undefined);
  await writeFile(path,original);assert.equal((await readGeneratedTasks(root,path,tool,snapshot.digest)).digest,snapshot.digest);
+});
+test('only the native empty JSONC launch template permits a transient target without modifying either configuration directory',async()=>{
+ const {createLaunchConfiguration}=require('./build-tasks.cjs');
+ const root=await mkdtemp('/private/tmp/ynx-cpp-empty-launch-');await mkdir(join(root,'.theia'));await mkdir(join(root,'.vscode'));
+ const path=join(root,'.theia/launch.json'),tasksPath=join(root,'.vscode/tasks.json');
+ const bytes='{\n// native template\n"version":"0.2.0","configurations":[],\n}';await writeFile(path,bytes);
+ const result=await createLaunchConfiguration(root,tasksPath,'cpp',true);
+ assert.equal(result.transient,true);assert.equal(result.created,false);assert.equal(result.path,path);assert.equal(result.configuration.type,'lldb-dap');assert.equal(await readFile(path,'utf8'),bytes);
+ await assert.rejects(readFile(join(root,'.vscode/launch.json')), {code:'ENOENT'});
+ assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp')).configuration,undefined);
+ for(const preserved of ['{"version":"0.2.0","configurations":[{"name":"mine","type":"lldb-dap"}]}','{"version":"0.2.0","configurations":[],"inputs":[]}','{"version":"0.2.0","configurations":[], bad}', 'null']) {
+  await writeFile(path,preserved);assert.equal((await createLaunchConfiguration(root,tasksPath,'cpp',true)).configuration,undefined);assert.equal(await readFile(path,'utf8'),preserved);
+ }
+ await unlink(path);
+ await assert.rejects(createLaunchConfiguration(root,tasksPath,'cpp',true,result.digest),/configuration changed/);
+ await assert.rejects(readFile(join(root,'.vscode/launch.json')),{code:'ENOENT'});
 });

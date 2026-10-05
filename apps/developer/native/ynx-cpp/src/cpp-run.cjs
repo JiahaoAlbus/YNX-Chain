@@ -178,7 +178,11 @@ function registerCppRun(vscode, context, env) {
         if (!settings.get('executable-path')) await settings.update('executable-path', adapter, vscode.ConfigurationTarget.WorkspaceFolder);
         const pair = await generatedPair(scope, config);
         if (!pair && !await existingConfiguration(scope.root, 'launch')) throw Error(t('launchMissing'));
-        const launch = await createLaunchConfiguration(scope.root, config.path, scope.language);
+        const launchPath = await existingConfiguration(scope.root, 'launch');
+        for (const document of vscode.workspace.textDocuments || []) {
+          if (document.uri?.scheme === 'file' && document.isDirty && await realpath(document.uri.fsPath) === launchPath) throw Error(t('save'));
+        }
+        const launch = await createLaunchConfiguration(scope.root, config.path, scope.language, Boolean(pair));
         let selected = launch.configuration;
         if (!selected) {
           const configurations = vscode.workspace.getConfiguration('launch', scope.folder.uri).get('configurations', []).filter(item => item.type === 'lldb-dap');
@@ -193,6 +197,13 @@ function registerCppRun(vscode, context, env) {
           delete selected.preLaunchTask; // Captured source was already built successfully.
         }
         await validateScope(scope);
+        if (launch.transient) {
+          for (const document of vscode.workspace.textDocuments || []) {
+            if (document.uri?.scheme === 'file' && document.isDirty && await realpath(document.uri.fsPath) === launch.path) throw Error(t('save'));
+          }
+          const current = await createLaunchConfiguration(scope.root, config.path, scope.language, true, launch.digest);
+          if (!current.transient || current.path !== launch.path || current.digest !== launch.digest) throw Error(t('launchMissing'));
+        }
         if (!await vscode.debug.startDebugging(scope.folder, selected)) throw Error(t('launchFailed'));
         sessionAccepted = true;
         const session = vscode.debug.activeDebugSession;
