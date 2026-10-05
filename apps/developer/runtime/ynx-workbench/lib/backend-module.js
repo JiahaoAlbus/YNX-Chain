@@ -11,6 +11,7 @@ const { createWorkspaceFileJournalApi } = require('./workspace-file-journal-prot
 const { LocalizationProvider } = require('@theia/core/lib/node/i18n/localization-provider');
 const { registerYnxLocalizations } = require('./ynx-localization');
 const { registerKeyboardShortcutsLocalizations } = require('./keyboard-shortcuts-localization');
+const { registerNativeWalletLocalizations } = require('./native-wallet-localization');
 require('./gcc-resource-adapter').install();
 require('./plugin-vscode-lifecycle-adapter').install();
 
@@ -29,14 +30,15 @@ class YnxProcessUtils extends ProcessUtils {
 }
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
-  let localization, keyboardLocalization;
+  let localization, keyboardLocalization, walletLocalization;
   bind(BackendApplicationContribution).toDynamicValue(context => ({
     initialize() {
       const provider = context.container.get(LocalizationProvider);
       localization = registerYnxLocalizations(provider);
       keyboardLocalization = registerKeyboardShortcutsLocalizations(provider);
+      walletLocalization = registerNativeWalletLocalizations(provider);
     },
-    onStop() { localization?.dispose(); keyboardLocalization?.dispose(); },
+    onStop() { localization?.dispose(); keyboardLocalization?.dispose(); walletLocalization?.dispose(); },
   })).inSingletonScope();
   const drafts = new DraftRecoveryStore();
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),

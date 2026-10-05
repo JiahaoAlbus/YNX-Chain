@@ -19,6 +19,8 @@ await regular(source); await regular(cached);
 // npm caches file dependencies as copies. Refresh only this generated YNX
 // package; never run an installer, lifecycle hook or external fetch.
 const seal = process.argv[2] === '--seal-build';
+const { buildNativeWalletConsumer } = await import('../../ynx-workbench/scripts/build-native-wallet-consumer.mjs');
+await buildNativeWalletConsumer({ verify: seal });
 assert.ok(!process.argv[2] || seal);
 if (!seal) await cp(source, cached, { recursive: true, force: true });
 const digest = await composedTreeDigest(source);

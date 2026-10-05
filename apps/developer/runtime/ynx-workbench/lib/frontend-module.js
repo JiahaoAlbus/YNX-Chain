@@ -57,6 +57,7 @@ const { LocalStorageService } = require('@theia/core/lib/browser/storage-service
 const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-layout-restorer');
 const { LocalWorkbenchStorage } = require('./local-workbench-storage');
 const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
+const { NativeWalletService, NativeWalletWidget, NativeWalletContribution, NATIVE_WALLET_ID } = require('./native-wallet-view');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
 require('./quick-input-keybinding-label-adapter').install();
@@ -88,6 +89,12 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
     context.container.get(CommandRegistry), window, nls.locale,
   )).inSingletonScope();
+  bind(NativeWalletService).toDynamicValue(() => new NativeWalletService()).inSingletonScope();
+  bind(FrontendApplicationContribution).toService(NativeWalletService);
+  bind(WidgetFactory).toDynamicValue(context => ({ id: NATIVE_WALLET_ID, createWidget: () => new NativeWalletWidget(context.container.get(NativeWalletService)) }));
+  bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();
+  bind(CommandContribution).toService(NativeWalletContribution);
+  bind(MenuContribution).toService(NativeWalletContribution);
   bind(WorkbenchControlsContribution).toDynamicValue(context => new WorkbenchControlsContribution({
     commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
     contextKeys: context.container.get(ContextKeyService),
