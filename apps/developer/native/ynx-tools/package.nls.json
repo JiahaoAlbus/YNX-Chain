@@ -14,5 +14,6 @@
   "command.ynx.reviewSelection": "YNX: Review Selected Text",
   "command.ynx.importSolidityDiagnostics": "YNX: Import Solidity Compiler Diagnostics",
   "command.ynx.solidityAnalysisStatus": "YNX: Solidity Language Status",
-  "command.ynx.openLocalReview": "YNX: Open Local Change Review"
+  "command.ynx.openLocalReview": "YNX: Open Local Change Review",
+  "command.ynx.configurePython": "YNX: Configure Python for This Project"
 }

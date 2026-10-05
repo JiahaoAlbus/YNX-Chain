@@ -29,6 +29,7 @@ function activate(context) {
       { label: t('Compile Solidity project'), command: 'ynx.compileSolidity' },
       { label: t('Import compiler diagnostics'), command: 'ynx.importSolidityDiagnostics' },
       { label: t('Solidity language status'), command: 'ynx.solidityAnalysisStatus' },
+      { label: t('Configure Python for this project'), command: 'ynx.configurePython' },
     ] },
     { label: t('Network'), children: [
       { label: t('YNX Testnet · 6423 · YNXT'), description: t('Configured; not live checked'), command: 'ynx.testnetConfiguration' },
@@ -50,6 +51,7 @@ function activate(context) {
       ...(item.command ? { command: { command: item.command, title: item.label } } : {}) })
   }));
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
+  register('ynx.configurePython', () => require('./python-setup.cjs').configurePython(vscode, process.env, t));
   register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(t('Solidity language: {0}', JSON.stringify(solidityLanguage.status()))); });
   register('ynx.openLocalReview', () => openLocalReview(false));
   register('ynx.importSolidityDiagnostics', async () => {

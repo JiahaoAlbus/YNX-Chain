@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.24",
+  "version": "0.2.25",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -13,7 +13,8 @@
     "onLanguage:solidity",
     "onView:ynx.tools",
     "onCommand:ynx.reviewSelection",
-    "onStartupFinished"
+    "onStartupFinished",
+    "onCommand:ynx.configurePython"
   ],
   "contributes": {
     "viewsContainers": {
@@ -81,6 +82,10 @@
       {
         "command": "ynx.openLocalReview",
         "title": "%command.ynx.openLocalReview%"
+      },
+      {
+        "command": "ynx.configurePython",
+        "title": "%command.ynx.configurePython%"
       }
     ],
     "jsonValidation": [
