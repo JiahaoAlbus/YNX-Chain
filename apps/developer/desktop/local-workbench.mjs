@@ -6,6 +6,8 @@ import { createServer } from 'node:net';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { createLocalIpcSession, localIpcRoot } from './local-workbench-ipc.mjs';
+import { createDebugSessionSupervisor } from './local-debug-session.mjs';
+import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -77,26 +79,39 @@ export async function prepareLocalGitConfig(context) {
   if (stat.uid !== process.getuid() || stat.nlink !== 1 || (stat.mode & 0o777) !== 0o600) throw Error('Local Git configuration is not a private regular file. Existing configuration was retained.');
   return path;
 }
-export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) {
+export function localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor }) {
   const temporary = context.ipcTemporary || context.temporary;
   return { PATH: `${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
     YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile,
+    ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot } : {}) };
 }
-export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git }) {
+export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities = [] }) {
   const escape = value => value.replaceAll('\\', '\\\\').replaceAll('"', '\\"');
   const ipc = context.ipcTemporary;
   if (ipc && (!ipc.startsWith(localIpcRoot() + '/') || !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(ipc.slice(localIpcRoot().length + 1)) || Buffer.byteLength(ipc) > 48)) throw Error('Local IPC policy requires its owned short session directory.');
   const reads = ['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(ipc ? [ipc] : [])];
+  const pathsFor = path => pathIdentities.find(proof => proof.canonical === path)?.paths || [path];
   const ancestors = new Set(); for (const path of reads) for (let p = dirname(path); p !== '/'; p = dirname(p)) ancestors.add(p);
+  for (const proof of pathIdentities) if (reads.includes(proof.canonical)) for (const ancestor of proof.ancestors) ancestors.add(ancestor);
   return ['(version 1)', '(allow default)', '(deny network*)', '(deny process-exec (literal "/usr/bin/git"))', '(deny file-read*)', '(deny file-write*)', '(allow file-read* (literal "/"))',
-    ...reads.map(path => `(allow file-read* (subpath "${escape(path)}"))`),
+    ...reads.flatMap(pathsFor).map(path => `(allow file-read* (subpath "${escape(path)}"))`),
     ...[...ancestors].map(path => `(allow file-read-metadata (literal "${escape(path)}"))`),
-    ...[context.workspace, context.profile, context.temporary, '/dev', ...(ipc ? [ipc] : [])].map(path => `(allow file-write* (subpath "${escape(path)}"))`),
+    ...[context.workspace, context.profile, context.temporary, '/dev', ...(ipc ? [ipc] : [])].flatMap(pathsFor).map(path => `(allow file-write* (subpath "${escape(path)}"))`),
     ...(ipc ? [`(allow network-bind (local unix-socket (subpath "${escape(ipc)}")))`, `(allow network-outbound (remote unix-socket (subpath "${escape(ipc)}")))`] : []),
     `(allow network-bind (local ip "localhost:${port}"))`, `(allow network-inbound (local ip "localhost:${port}"))`].join('\n');
+}
+export async function localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context, git }) {
+  const paths = [...new Set(['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(context.ipcTemporary ? [context.ipcTemporary] : [])])];
+  // Every alias is proved to be the same selected vnode, never an entire volume
+  // substitution. The proof's ancestor access is metadata-only.
+  const proofs = [];
+  // /dev is the fixed OS pseudo-filesystem and needs no project-volume alias
+  // expansion. Keep its pre-existing literal boundary without new permissions.
+  for (const path of paths) if (path !== '/dev') proofs.push(await inspectWorkspacePathIdentity({ helper, path }));
+  return proofs;
 }
 
 // Only producer-sealed distribution bytes select executable content. Failed
@@ -199,6 +214,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const context = await localProjectContext({ supportRoot, projectDirectory });
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
+  let debugSupervisor;
   try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
@@ -206,12 +222,17 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const clangd = await inspectTrustedLocalClangd('/Library/Developer/CommandLineTools');
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
-  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git });
   const plugins = await prepareLocalPlugins({ runtime, context });
+  const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
+  const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git });
+  const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, pathIdentities });
+  debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
+    pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }) });
+  for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
-    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd }),
+    env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, debugSupervisor }),
   });
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
@@ -224,6 +245,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     const timer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 2500); try { await exited; } finally { clearTimeout(timer); } }
     // Also terminate any surviving descendants after backend exit.
     try { process.kill(-child.pid, 'SIGKILL'); } catch (error) { if (error.code !== 'ESRCH') throw error; }
+    await debugSupervisor.stop();
     if (cleanupError) throw Error('Local child cleanup could not be verified. Runtime state was retained.', { cause: cleanupError });
     if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
   })();
@@ -247,7 +269,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   } catch (error) {
     // Setup failures precede spawn, or the inner stop has already confirmed
     // exit. Unknown in-flight launch residue is deliberately retained.
-    try { await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
+    try { await debugSupervisor?.stop(); await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
     throw error;
   }
 }
