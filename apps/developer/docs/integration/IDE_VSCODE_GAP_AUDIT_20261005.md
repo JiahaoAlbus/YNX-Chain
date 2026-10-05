@@ -155,3 +155,6 @@ f49d141e5 精确包内工作台正常用户流程：F12 从 Main.sol 调用跳�
 
 
 本地 C/C++ 0.1.1 已封入 bcfac9f07 完整包，DMG SHA256 936440e2a0be114eb4cfa66ed437704b038f4971cdd0e190f0e79649dab278ab，core tree fc6476e3eb1e31d85f887f7f9cad8d1b914dcf3b0decba1cbe71d213d57cff70。包内真实 browser GUI 的 Trigger Suggest 返回未打开头文件中的 confirmedBalance/pendingBalance，F12 跳到实际 wallet.hpp 2:12；错误代码正常保存后 Problems 显示 YNX_UNDECLARED_CPP 1:21，恢复保存后问题清除、磁盘回读一致。首次原生 Ctrl+Space 输入未显示建议，未冒称该快捷键已验收；命令面板操作通过。9 项 runtime 测试和核心 pin 重验通过。新候选的跨文件 C++ rename/format、调试器及 Cocoa/Finder 流程仍待验。完整交接及截图保存在该候选 verification/ 与 SOURCE_BUILD_HANDOFF_20261005.md。
+
+
+bcfac9f07 同一精确包内工作台继续通过 C++ F2 跨文件语义重命名与 Save All、Clangd Format Document 按 .clang-format 生成双空格多行源码并落盘。正常终端 CLT clang++ 使用已配置 SDK 构建实际 33560 字节程序，执行输出 YNX C++ balance=5；包含标准库 cstdio。第一次原生 typeText 丢失命令开头斜杠导致找不到编译器；改为正常 paste 保留完整命令后构建运行成功，不作为产品编译错误。源文件、头文件、可执行产物及截图/hash 记录在候选 verification/cpp-rename-format-build-run.json；C++ debugger 和通用 Run Task 按钮链路没有因此被标成通过。
