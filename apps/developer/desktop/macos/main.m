@@ -80,6 +80,16 @@ static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port) {
     return port>0&&[url.scheme isEqual:@"http"]&&[url.host isEqual:@"127.0.0.1"]&&url.port.integerValue==port&&!url.user.length&&!url.password.length&&(!url.path.length||[url.path isEqual:@"/"]);
 }
 static BOOL YNXLocalStartupFailureMayExit(BOOL failed,BOOL editorDocumentLoaded) {return failed&&!editorDocumentLoaded;}
+static NSTimeInterval const YNXLocalReadinessBudget=180.0;
+typedef NS_ENUM(NSInteger,YNXLocalReadinessDecision){YNXLocalReadinessIgnore,YNXLocalReadinessWait,YNXLocalReadinessLoad,YNXLocalReadinessFail};
+static YNXLocalReadinessDecision YNXLocalReadinessState(NSUInteger generation,NSUInteger current,BOOL cancelled,BOOL complete,BOOL running,NSTimeInterval elapsed,BOOL responseReady,BOOL receiptReady){
+    if(generation!=current||cancelled||complete)return YNXLocalReadinessIgnore;
+    if(!running||elapsed>=YNXLocalReadinessBudget)return YNXLocalReadinessFail;
+    return responseReady&&receiptReady?YNXLocalReadinessLoad:YNXLocalReadinessWait;
+}
+static BOOL YNXLocalReadinessResponse(NSURLResponse *response,NSError *error,NSInteger port){
+    return !error&&[response isKindOfClass:NSHTTPURLResponse.class]&&[(NSHTTPURLResponse *)response statusCode]==200&&YNXLocalEditorDocumentURL(response.URL,port);
+}
 static NSSet<NSString *> *YNXLocalWorkbenchCommands(void) {
     static NSSet *commands;static dispatch_once_t once;dispatch_once(&once,^{commands=[NSSet setWithArray:@[
         @"workbench.action.files.newUntitledFile",@"workspace:openFile",@"core.save",@"file.saveAs",@"core.saveAll",@"core.close.tab",@"preferences:open",
@@ -583,6 +593,11 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic) BOOL recentWorkspaceRecorded;
 @property(nonatomic) BOOL localEditorDocumentLoaded;
 @property(nonatomic) BOOL localStartupFailed;
+@property(nonatomic) NSUInteger localReadyGeneration;
+@property(nonatomic) NSTimeInterval localReadyStarted;
+@property(nonatomic) BOOL localReadyComplete;
+@property(nonatomic,strong) NSURLSessionDataTask *localReadyTask;
+@property(nonatomic,copy) NSString *localReadyDiagnostic;
 @property(nonatomic,strong) YNXWalletDeviceBridge *localWalletBridge;
 @property(nonatomic,strong) NSAlert *localWalletConsent;
 @property(nonatomic) NSUInteger localWalletGeneration;
@@ -858,7 +873,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
         if(!directory||![NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:@{NSFilePosixPermissions:@0700} error:nil])return NO;
         NSString *name=[NSString stringWithFormat:@"desktop-local-%d-%@.log",NSProcessInfo.processInfo.processIdentifier,NSUUID.UUID.UUIDString.lowercaseString];
         _serverLogURL=[directory URLByAppendingPathComponent:name];
-        int fd=open(_serverLogURL.fileSystemRepresentation,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);
+        int fd=open(_serverLogURL.fileSystemRepresentation,O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC|O_APPEND,0600);
         if(fd<0)return NO;
         struct stat status;
         if(fstat(fd,&status)!=0||!S_ISREG(status.st_mode)||status.st_uid!=getuid()||status.st_nlink!=1||fchmod(fd,0600)!=0){close(fd);return NO;}
@@ -870,16 +885,73 @@ static NSString *YNXDesktopTitle(NSString *label) {
         [NSFileManager.defaultManager createDirectoryAtURL:directory withIntermediateDirectories:YES attributes:nil error:nil];
         [@"" writeToURL:_serverLogURL atomically:YES encoding:NSUTF8StringEncoding error:nil];_serverLog=[NSFileHandle fileHandleForWritingToURL:_serverLogURL error:nil];
     }
-    _server=[NSTask new]; _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode){environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench";environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]=_localSupportRoot;if(_localWorkspace)environment[@"YNX_LOCAL_WORKSPACE"]=_localWorkspace;else[environment removeObjectForKey:@"YNX_LOCAL_WORKSPACE"];} _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{if(weakSelf.localWorkbenchMode&&task.terminationStatus==73){[weakSelf showLocalProjectAlreadyOpen];return;}NSString *message=weakSelf.localWorkbenchMode?[NSString stringWithFormat:@"Local server exited with code %d. Log: %@",task.terminationStatus,weakSelf.serverLogURL.path?:@"unavailable"]:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus];[weakSelf showFailure:message];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
+    _server=[NSTask new]; _server.executableURL=self.nodeURL; _server.arguments=@[[[self resources] URLByAppendingPathComponent:@"server.mjs"].path]; NSMutableDictionary *environment=[NSProcessInfo.processInfo.environment mutableCopy]; environment[@"PORT"]=[NSString stringWithFormat:@"%ld",(long)_port]; if(_localWorkbenchMode){environment[@"YNX_DEVELOPER_DESKTOP_MODE"]=@"local-workbench";environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]=_localSupportRoot;if(_localWorkspace)environment[@"YNX_LOCAL_WORKSPACE"]=_localWorkspace;else[environment removeObjectForKey:@"YNX_LOCAL_WORKSPACE"];} _server.environment=environment; _server.standardOutput=_serverLog; _server.standardError=_serverLog; __weak typeof(self) weakSelf=self; _server.terminationHandler=^(NSTask *task){ if(task.terminationStatus!=0) dispatch_async(dispatch_get_main_queue(),^{if(task!=weakSelf.server||(weakSelf.localWorkbenchMode&&weakSelf.localStartupFailed&&!weakSelf.localEditorDocumentLoaded))return;if(weakSelf.localWorkbenchMode&&task.terminationStatus==73){[weakSelf showLocalProjectAlreadyOpen];return;}NSString *message=weakSelf.localWorkbenchMode?[NSString stringWithFormat:@"Local server exited with code %d. Log: %@",task.terminationStatus,weakSelf.serverLogURL.path?:@"unavailable"]:[NSString stringWithFormat:@"Local server exited with code %d. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log",task.terminationStatus];[weakSelf showFailure:message];});}; NSError *error=nil; return [_server launchAndReturnError:&error];
 }
-- (void)loadWhenReady:(NSInteger)attempt { if(_localWorkbenchMode&&_localStartupFailed)return; if(attempt>=60){[self showFailure:_localWorkbenchMode?[NSString stringWithFormat:@"Local server did not become ready. Log: %@",_serverLogURL.path?:@"unavailable"]:@"Local server did not become ready. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log"];return;} NSURL *url=[NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port]]; NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1]; [[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){dispatch_async(dispatch_get_main_queue(),^{if(self.localWorkbenchMode&&self.localStartupFailed)return;if([(NSHTTPURLResponse*)response statusCode]==200)[self.webView loadRequest:[NSURLRequest requestWithURL:url]];else dispatch_after(dispatch_time(DISPATCH_TIME_NOW,150*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self loadWhenReady:attempt+1];});});}]resume]; }
+- (void)cancelLocalReadiness {++_localReadyGeneration;[_localReadyTask cancel];_localReadyTask=nil;}
+- (void)stopUnopenedLocalServer {
+    // Startup has no admitted editor document yet. Stop only this window's
+    // supervisor; its normal SIGTERM handler releases its own children/lock.
+    // Once a document was loaded, standard editor close/veto remains required.
+    if(_localWorkbenchMode&&!_localEditorDocumentLoaded&&_server.running)[_server terminate];
+}
+- (BOOL)localReadinessReceiptMatched {
+    int fd=open(_serverLogURL.fileSystemRepresentation,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(fd<0)return NO;
+    struct stat status;BOOL valid=fstat(fd,&status)==0&&S_ISREG(status.st_mode)&&status.st_uid==getuid()&&status.st_nlink==1&&(status.st_mode&0077)==0;
+    NSMutableData *bytes=[NSMutableData dataWithLength:1024*1024];ssize_t count=valid?pread(fd,bytes.mutableBytes,bytes.length,0):-1;close(fd);if(count<=0)return NO;bytes.length=(NSUInteger)count;
+    NSString *output=[[NSString alloc]initWithData:bytes encoding:NSUTF8StringEncoding];
+    for(NSString *line in [output componentsSeparatedByString:@"\n"]){
+        NSString *prefix=@"YNX_LOCAL_WORKBENCH ";if(![line hasPrefix:prefix]||line.length>16384)continue;
+        id receipt=[NSJSONSerialization JSONObjectWithData:[[line substringFromIndex:prefix.length] dataUsingEncoding:NSUTF8StringEncoding] options:0 error:nil];
+        if(![receipt isKindOfClass:NSDictionary.class])continue;
+        NSString *workspace=_localWorkspace?:receipt[@"workspace"];
+        if(YNXCanonicalLocalDirectory(workspace)&&YNXMatchingLocalReadyReceipt(receipt,_localSupportRoot,workspace,YNXOrigin(_port)))return YES;
+    }
+    return NO;
+}
+- (void)pollLocalReadiness:(NSUInteger)generation attempt:(NSInteger)attempt {
+    NSTask *child=_server;NSTimeInterval elapsed=NSProcessInfo.processInfo.systemUptime-_localReadyStarted;
+    YNXLocalReadinessDecision state=YNXLocalReadinessState(generation,_localReadyGeneration,_localStartupFailed,_localReadyComplete,child.running,elapsed,NO,NO);
+    if(state==YNXLocalReadinessIgnore)return;
+    if(state==YNXLocalReadinessFail){[self showFailure:[NSString stringWithFormat:@"The local workbench could not finish starting. Log: %@",_serverLogURL.path?:@"unavailable"]];return;}
+    NSURL *url=[NSURL URLWithString:YNXOrigin(_port)];
+    NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1];
+    _localReadyTask=[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){
+        dispatch_async(dispatch_get_main_queue(),^{
+            if(generation!=self.localReadyGeneration||child!=self.server||self.localStartupFailed||self.localReadyComplete)return;
+            self.localReadyTask=nil;NSTimeInterval elapsed=NSProcessInfo.processInfo.systemUptime-self.localReadyStarted;
+            BOOL receipt=[self localReadinessReceiptMatched];NSInteger status=[response isKindOfClass:NSHTTPURLResponse.class]?[(NSHTTPURLResponse *)response statusCode]:0;
+            NSString *diagnostic=[NSString stringWithFormat:@"%ld|%@|%ld|%d",(long)status,error.domain?:@"none",(long)error.code,receipt];
+            if(![diagnostic isEqual:self.localReadyDiagnostic]||attempt%20==0){
+                self.localReadyDiagnostic=diagnostic;
+                NSDictionary *record=@{@"generation":@(generation),@"attempt":@(attempt),@"elapsedSeconds":@(elapsed),@"status":@(status),@"errorDomain":error.domain?:@"none",@"errorCode":@(error.code),@"receiptMatched":@(receipt),@"childRunning":@(child.running)};
+                NSData *json=[NSJSONSerialization dataWithJSONObject:record options:0 error:nil];NSString *line=[NSString stringWithFormat:@"YNX_NATIVE_READINESS %@\n",[[NSString alloc]initWithData:json encoding:NSUTF8StringEncoding]];
+                [self.serverLog writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
+            }
+            YNXLocalReadinessDecision state=YNXLocalReadinessState(generation,self.localReadyGeneration,self.localStartupFailed,self.localReadyComplete,child.running,elapsed,YNXLocalReadinessResponse(response,error,self.port),receipt);
+            if(state==YNXLocalReadinessLoad){self.localReadyComplete=YES;[self.webView loadRequest:[NSURLRequest requestWithURL:url]];return;}
+            if(state==YNXLocalReadinessFail){[self showFailure:[NSString stringWithFormat:@"The local workbench could not finish starting. Log: %@",self.serverLogURL.path?:@"unavailable"]];return;}
+            if(state==YNXLocalReadinessWait)dispatch_after(dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self pollLocalReadiness:generation attempt:attempt+1];});
+        });
+    }];[_localReadyTask resume];
+}
+- (void)loadWhenReady:(NSInteger)attempt {
+    if(_localWorkbenchMode){
+        if(_localStartupFailed)return;
+        [self cancelLocalReadiness];_localReadyStarted=NSProcessInfo.processInfo.systemUptime;_localReadyComplete=NO;_localReadyDiagnostic=nil;
+        [self pollLocalReadiness:_localReadyGeneration attempt:0];return;
+    }
+    if(attempt>=60){[self showFailure:@"Local server did not become ready. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log"];return;}
+    NSURL *url=[NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port]];NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1];
+    [[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){dispatch_async(dispatch_get_main_queue(),^{if([(NSHTTPURLResponse*)response statusCode]==200)[self.webView loadRequest:[NSURLRequest requestWithURL:url]];else dispatch_after(dispatch_time(DISPATCH_TIME_NOW,150*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self loadWhenReady:attempt+1];});});}]resume];
+}
 - (void)showLocalProjectAlreadyOpen {
+    [self cancelLocalReadiness];
     _localStartupFailed=YES;
     [_webView loadHTMLString:YNXLocalStatusPage(YNXLocalMenuLabel(@"Project already open",_localLocale),YNXLocalMenuLabel(@"This project is already open in another YNX Developer window. Continue in that window, or use File → Open Folder… to choose a different project. Your files and running terminal were preserved.",_localLocale)) baseURL:nil];
 }
 - (void)showFailure:(NSString *)message {
     if(_localWorkbenchMode&&_localEditorDocumentLoaded){NSAlert *alert=[NSAlert new];alert.messageText=@"The local workbench encountered a problem";alert.informativeText=message;[alert beginSheetModalForWindow:_window completionHandler:nil];return;}
-    if(_localWorkbenchMode){_localStartupFailed=YES;[_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer could not open",message) baseURL:nil];return;}
+    if(_localWorkbenchMode){[self cancelLocalReadiness];_localStartupFailed=YES;[self stopUnopenedLocalServer];[_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer could not open",message) baseURL:nil];return;}
     [_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer Testnet Preview",[NSString stringWithFormat:@"%@ No project, Wallet key, or deployment was changed.",message]) baseURL:nil];
 }
 - (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls {
@@ -1093,7 +1165,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
