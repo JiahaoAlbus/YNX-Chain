@@ -2,33 +2,34 @@
 
 日期：2026-10-05。用户目标：保留 YNX 品牌与主题，采用 VSCode 的按钮位置、操作逻辑、扩展机制，并增加 Chain 与 AI。
 
-## 当前完整功能差距（46a76d30c 完整包，2026-10-05）
+## 当前完整功能差距（be871826a 完整包，2026-10-05）
 
-最新完整 App/DMG 候选源码 46a76d30c02b16e589205afddb144406031451f0；封存 core 仍来自 dbe872115 工作台修复。下面区分真实流程证据、入口和缺失；旧版本记录保留在后文，不代表全部功能已在最新包复验。
+最新完整 App/DMG 候选源码 be871826ac71f449c7845db4a0265501ebe1a813；封存 core tree 为 09e5066a7d0d0cc0c46030db6a06fa54d6d1f7d136fc5e63fa33ba390bc4a42d，包含 Workbench 0.3.19、Tools 0.2.25、C/C++ 0.1.2 和保留的 Python 插件。包内启动器、Node 和监督器在新隔离项目运行，正常 GUI 通过 Python 首次配置、定义跳转、终端运行；此前的其他证据仍按实际版本标注，不代表全部功能已在最新包复验。
 
 | 功能 | 当前实际状态 | 与目标体验的差距 |
 | --- | --- | --- |
 | 底部面板 | 46a 完整包自己的启动器/Node 运行，Problems、Output、Debug Console、bash 同组切换及重载恢复通过；终端 pwd 返回真实项目 | Ports 缺失；更多面板分组管理和完整调试仍待验收 |
 | 文件与编辑 | 原生目录选择和新建保存重开有 7cb/967 证据；跨文件搜索替换撤销有 bf18 证据 | 不能把旧包证据当成最新包全量验收，更多工作区操作仍需覆盖 |
-| 运行与调试 | bcf 包右上菜单 Run Task 选择 C++ 任务，真实执行构建依赖再运行，输出 balance=5；任务配置为测试预置 | 仍依赖项目任务配置；C++ 断点、步进、变量尚未通过，其他语言不能据此算通过 |
-| 多语言 | bcf C++ 补全、定义、诊断、语义重命名、格式化及运行已验；Solidity 本地编译已有 f49 实测 | Python、Go、Rust、Java 等完整插件和运行调试流程尚未全面验收 |
+| 运行与调试 | C++ 0.1.2 组件正常配置任务再构建运行已验，已进入新完整包；be 包 Python 原生终端运行输出 balance=5 | 完整项目任务、C++/Python 断点、步进、变量尚未通过，其他语言不能据此算通过 |
+| 多语言 | bcf C++ 补全、定义、诊断、语义重命名、格式化及运行已验；Solidity 本地编译已有 f49 实测；be 包 Python 从无设置的项目正常配置 Jedi/解释器、跨文件 F12 和运行通过，前序 d089 组件成员补全通过 | Go、Rust、Java 等完整插件流程尚未验收；Python 测试发现、虚拟环境完整管理和调试仍未验收 |
 | 扩展生态 | 本地 VSIX 安装、启停、卸载已有记录 | 在线搜索下载更新仍失败；用户 63 个扩展尚未整体迁移、执行或证明兼容 |
 | 测试与远程开发 | 当前组合含任务及调试基础组件 | 完整测试发现、运行、覆盖率及 SSH、容器、WSL 流程尚未完成；不以组件依赖证明可用 |
 | 主题与界面语言 | 14 个主题有历史实际渲染；中文语言包识别切换有记录 | 所有自有页面的视觉一致性、中文覆盖及最新包复验仍未完成 |
 | Chain 与 AI | Solidity 模板、真实 ABI/bytecode、本地修改审阅已有证据 | 真实 Wallet 身份、签名部署交易和在线 AI 批准应用回读未闭环 |
-| 软件交付 | 46a App/DMG 已封存，资源、Logo、ad-hoc 签名和挂载检查通过；精确包内工作台 GUI 已复验 | 正式签名公证发布、最新 Cocoa/Finder 完整体验及 Windows/Linux 未验收；当前包最低 macOS 27.0 |
+| 软件交付 | be App/DMG 已封存，资源、Logo、ad-hoc 签名和挂载检查通过；精确包内启动器及 Python 工作台 GUI 已复验 | 正式签名公证发布、最新 Cocoa/Finder 完整体验及 Windows/Linux 未验收；当前包最低 macOS 27.0 |
 
 这仍是开发中的 IDE，不能称为 VSCode 同等成熟体验。Ports 需要真实服务发现、端口管理及明确的访问状态，不能仅添加空标签。在线市场、远程转发和服务接入须遵守现有暂停边界；不通过代理、出站放行或弱化隔离绕过。
 
 ## 46a 完整包之后的新组件验证
 
-以下修改尚未进入新的完整 App/DMG，不混报为 46a 已交付能力。
+以下是 46a 之后的实施证据；这些代码已进入 be871826a 完整包，具体流程仍只按下列实际验证范围列为通过。
 
 - C/C++ 0.1.2（801d64c4d）：正常命令选择受信 CLT 编译器，生成真实 `.vscode/tasks.json`，通过原生 Run Task 构建并运行当前 C++ 文件；再次配置保留已有任务文件。只覆盖单个当前文件，完整项目与断点调试仍待完成。
 - Python 组件（d0896c373）：本机保留的 MIT Python 2026.6.0、debugpy 2026.6.0 及 Python 语法扩展进入封存组件。正常 GUI 中解释器为 CLT Python 3.9.6，F12 从 main.py 跳到 wallet.py 的 WalletBalance；wallet. 提示 confirmed_balance/pending_balance；原生 Python: Run Python File in Terminal 命令实际输出 `YNX Python balance= 5`。删除测试输入、保存后磁盘恢复原文件，诊断回到零。
-- 这次 Python 项目预先配置 Jedi 和 CLT 解释器，首次安装后无需配置的引导尚未完成；debugpy 激活不算断点、步进或变量验收，其他语言、测试发现及用户全部扩展仍待验证。Pylance 和 Python Environments 没有打入组件。
+- d089 的 Python 项目预先配置 Jedi 和 CLT 解释器。后续 be871826a 新增正常项目配置入口，分别在无设置的组件项目和完整包项目选择 Jedi、原生解释器列表中的 CLT Python 3.9.6，真实生成项目 .theia/settings.json；组件重载后继续运行通过。完整包项目 F12 跨文件定义与终端输出 balance=5 通过。4 项设置范围、取消、信任/项目变化及现有环境扩展保留回归通过。debugpy 激活不算断点、步进或变量验收，其他语言、测试发现及用户全部扩展仍待验证。Pylance 和 Python Environments 没有打入组件。
 - 修复真实发现的三项问题：每次启动核验封存源插件并生成项目私有运行副本，避免 debugpy 在封存缓存写目录被拒；Jedi 启动器明确适配为只在监督器给定 TMPDIR 写缓存，保留原启动器及修改声明；命令面板 editorLangId 跟随真实当前编辑器，避免 Python 运行命令被错误隐藏。插件副本修复 11 项回归、命令上下文 12 项回归、工作台 browser/node 构建通过；未改变网络隔离策略。
 - 封存 core tree `8e66234a36dc7b3ad63e368669a68d0516a6bf1968d16c016ee3416db09a9243`，manifest `68f8c5ba513973d70c69a0a7f25582daa927a370d31aa23de55722fa4315751b`。证据位于 `.ynx-developer-candidates/ynx-python-editor-verification-d0896c373-20261005`。真实 Wallet、AI、签名部署和正式发布状态不变。
+- 新完整包位于 `.ynx-developer-candidates/ynx-python-setup-native-be871826a-20261005`，DMG SHA256 `859bfa4e85d7eb045d5a7177639786d8da36be3c3223d4013333bb02c29a3138`，source tree `5e648f8b6bec17357b4fdf52a5256c9b4f82aceb`。包内启动器和监督器与源码字节一致，封存 core 09e5066a7d0d0cc0c46030db6a06fa54d6d1f7d136fc5e63fa33ba390bc4a42d。安装器挂载资产、Logo、签名验证通过；这次未做 Cocoa/Finder GUI 验收。
 
 ## 历史原生候选补充（96779efe6）
 
