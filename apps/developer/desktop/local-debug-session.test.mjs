@@ -136,32 +136,46 @@ const { DebugExtImpl } = require('@theia/plugin-ext/lib/plugin/debug/debug-ext')
 const { PluginDebugAdapterCreator } = require('@theia/plugin-ext/lib/plugin/debug/plugin-debug-adapter-creator');
 const { PluginDebugAdapterSession } = require('@theia/plugin-ext/lib/plugin/debug/plugin-debug-adapter-session');
 const { TestControllerImpl } = require('@theia/plugin-ext/lib/plugin/tests');
-const { TerminalServiceExtImpl } = require('@theia/plugin-ext/lib/plugin/terminal-ext');
+const { compilePythonTerminalHost, PythonTerminalWidget, PythonTerminalLifecycle, TerminalWatcher, CommandRegistry, subscribeNativeExit } = await import('../runtime/theia/scripts/python-terminal-test-fixture.mjs');
+const { TerminalServiceExtImpl, adaptApi, adaptLocalDebugging, main: terminalMain } = await compilePythonTerminalHost();
 const { DebugAdapterExecutable, DebugAdapterInlineImplementation } = require('@theia/plugin-ext/lib/plugin/types-impl');
-const { adaptApi, adaptLocalDebugging } = createRequire(import.meta.url)('../runtime/ynx-workbench/lib/plugin-vscode-init-adapter');
+
 function actualApi(f) {
   const native = new DebugExtImpl(), output = [], ids = [], shown = [], starts = [], states = [];
   native.proxy = { $startDebugging(folder, configuration, options) { starts.push(configuration); return true; } };
   let terminalService;
+  const widgets=new Map(),created=new Emitter(),watcher=new TerminalWatcher();let terminalId=0;
+  const lifecycle=new PythonTerminalLifecycle({getContext:async()=>({mode:'local',workspace:f.project})},
+    {onDidCreateTerminal:created.event,getById:id=>widgets.get(id)},watcher,{getSession:id=>native.sessions.get(id)});
+  const commands=new CommandRegistry({getContributions:()=>[]});lifecycle.registerCommands(commands);lifecycle.initialize();
+  const main=Object.create(terminalMain);main.toIconClass=()=>undefined;main.getTerminalLocation=()=>undefined;
+  main.terminals={newTerminal:async options=>{
+    const widget=new PythonTerminalWidget();widget.id=options.id;widget.options=options;widget._terminalId=++terminalId;widget.terminalWatcher=watcher;widget.shellTerminalServer={close(){}};
+    subscribeNativeExit.call(widget);widget.term=new (require('xterm').Terminal)();widget.termOpened=true;widget._currentTerminalOutput=[];
+    widget.onDidDispose(()=>widget.term.dispose());
+    widget.start=()=>{terminalService.$terminalCreated(widget.id,options.title);terminalService.$terminalOpened(widget.id,undefined,widget.terminalId,80,24);};
+    widget.onTerminalDidClose(value=>terminalService.$terminalClosed(widget.id,value.exitStatus));
+    widget.onDidDispose(()=>widgets.delete(widget.id));widgets.set(widget.id,widget);created.fire(widget);return widget;
+  }};
   const proxy = {
-    $createTerminal(id, options, parent, pseudo) { assert.equal(pseudo, true); ids.push(id); setImmediate(() => { terminalService.$terminalCreated(id, options.name); terminalService.$terminalOpened(id, undefined, 1, 80, 24); }); },
-    $write(id, data) { assert.ok(ids.includes(id)); output.push(data); },
-    $show(id) { shown.push(id); },
-    $dispose(id) { terminalService.$terminalClosed(id, { reason: 2 }); },
+    $createTerminal(...args) { assert.equal(args[3],true);ids.push(args[0]);return main.$createTerminal(...args); },
+    $write(id,data){assert.ok(widgets.has(id));output.push(data);widgets.get(id).write(data);},
+    $show(id){shown.push(id);},
+    $dispose(id){widgets.get(id)?.close();},
   };
   terminalService = new TerminalServiceExtImpl({ getProxy: () => proxy });
   const debug = { registerDebugAdapterDescriptorFactory: native.registerDebugAdapterDescriptorFactory.bind(native),
     registerDebugAdapterTrackerFactory: native.registerDebugAdapterTrackerFactory.bind(native), startDebugging: native.startDebugging.bind(native),
     onDidTerminateDebugSession: native.onDidTerminateDebugSession };
-  const api = adaptApi({ CancellationTokenSource, EventEmitter: Emitter, DebugAdapterInlineImplementation, debug,
+  const api = adaptApi({ CancellationTokenSource, EventEmitter: Emitter, DebugAdapterInlineImplementation, debug, commands:{executeCommand:(...args)=>commands.executeCommand(...args)},
     tests: { createTestController: () => new TestControllerImpl(() => {}, new Proxy({}, { get: (_, key) => (...args) => { if (key === '$notifyTestStateChanged') states.push(...args[2]); } }), 'actual-python-tests', 'Python Tests') },
     window: { createTerminal: options => terminalService.createTerminal({ model: { id: 'ms-python.debugpy' } }, options) } });
   adaptLocalDebugging(api, { ...f.env, YNX_DEBUG_SOCKET: f.supervisor.path, YNX_DEBUG_CREDENTIAL: f.supervisor.credential, YNX_DEBUG_PROJECT: f.context.id });
   api.debug.registerDebugAdapterDescriptorFactory('debugpy', { createDebugAdapterDescriptor: () => new DebugAdapterExecutable(f.descriptor.command, f.descriptor.args) });
-  return { api, native, terminalService, output, ids, shown, starts, states };
+  return { api, native, terminalService, output, ids, shown, starts, states, widgets, lifecycle };
 }
 async function nativeSession(f, state, configuration = { type: 'debugpy', request: 'launch', console: 'integratedTerminal' }) {
-  const session = { id: randomUUID(), configuration }; state.native.sessions.set(session.id, session);
+  const session = { id: randomUUID(), configuration, options:{workspaceFolderUri:pathToFileURL(f.project).toString()} }; state.native.sessions.set(session.id, session);
   const adapter = await new PluginDebugAdapterCreator().createDebugAdapter(session, configuration, undefined, state.native.descriptorFactories.get('debugpy'));
   assert.equal(adapter.constructor.name, 'InlineDebugAdapter');
   const rpc = Object.create(Rpc.prototype); rpc.messages = []; rpc.seq = 0;
@@ -179,7 +193,9 @@ test('actual Theia descriptor/InlineDebugAdapter/PseudoTerminal subscribes befor
   await launch(f, 'integratedTerminal', rpc);
   assert.ok(state.output.join('').includes('fromTheia')); assert.equal(state.shown.length, 1);
   assert.match(state.output.join(''), /SIZE 101 37/);
-  assert.equal(state.terminalService.terminals.length, 0);
+  assert.equal(state.terminalService.terminals.length, 1);
+  const widget=state.widgets.get(state.ids[0]);assert.deepEqual(widget.exitStatus,{code:0,reason:2});
+  widget.close();assert.equal(state.terminalService.terminals.length,0);assert.equal(state.lifecycle.entries.size,0);
 }));
 test('actual TestRun and PluginDebugAdapterSession ends failed local launch, preserves cancellation, and does not end successful launch early', async () => fixture(async f => {
   const state = actualApi(f), controller = state.api.tests.createTestController();
@@ -200,7 +216,7 @@ test('actual TestRun and PluginDebugAdapterSession ends failed local launch, pre
   const pending = normal.rpc.request('launch', { type: 'debugpy', request: 'launch', console: 'integratedTerminal', program: join(f.project, 'target.py'), cwd: f.project, python });
   await normal.rpc.event('initialized'); await normal.rpc.request('setBreakpoints', { source: { path: join(f.project, 'target.py') }, breakpoints: [{ line: 2 }] }); await normal.rpc.request('configurationDone');
   assert.equal((await pending).success, true); await normal.rpc.event('stopped'); assert.equal(run.ended, undefined);
-  state.terminalService.$terminalClosed(state.ids.at(-1), { reason: 1 });
+  state.widgets.get(state.ids.at(-1)).close();
   await until(() => !f.supervisor.activeSessions()); assert.equal(run.ended, true); assert.equal(run.token.isCancellationRequested, true); normal.rpc.close();
   controller.dispose();
 }));
@@ -232,5 +248,35 @@ test('actual descriptor pending launch failure, native session termination, and 
   const second = await nativeSession(f, state);
   await state.native.$sessionDidDestroy(second.session.id); await until(() => !f.supervisor.activeSessions());
   rpc.close(); second.rpc.close();
+}));
+// Transport scheduling tests use explicit local protocol messages, not a fake
+// debugpy success claim. Creator, InlineAdapter, TerminalExt/Main and frontend
+// widget/watcher/commands remain the same retained classes as runtime tests.
+test('actual terminal bridge drains terminated-before-tail exit17 and closes failed/timeout widgets without invented status', async () => fixture(async f => {
+  for (const mode of ['tail', 'transport', 'timeout', 'finish-reject']) {
+    const path=join(f.ipc.path,'retention-'+mode+'.sock');let connection;
+    const server=createServer(socket=>{connection=socket;let buffer='';socket.setEncoding('utf8');socket.on('error',()=>{});socket.on('data',chunk=>{buffer+=chunk;for(let end;(end=buffer.indexOf('\n'))>=0;){const message=JSON.parse(buffer.slice(0,end));buffer=buffer.slice(end+1);if(message.op==='start')socket.write(JSON.stringify({kind:'ready'})+'\n');}});});
+    await new Promise((ok,bad)=>{server.once('error',bad);server.listen(path,ok);});
+    const state=actualApi({...f,supervisor:{path,credential:f.supervisor.credential}});
+    if(mode==='finish-reject'){const execute=state.api.commands.executeCommand;state.api.commands.executeCommand=(id,...args)=>id==='ynx.debug.terminal.finish'?Promise.reject(Error('actual frontend finish rejected')):execute(id,...args);}
+    const {rpc}=await nativeSession(f,state);
+    const send=value=>connection.write(JSON.stringify(value)+'\n');
+    send({kind:'dap',message:{type:'request',seq:1,command:'runInTerminal',arguments:{kind:'integrated',title:'Python',cwd:f.project,args:[python,join(f.project,'target.py')]}}});
+    await until(()=>state.shown.length);
+    const widget=state.widgets.get(state.ids[0]);send({kind:'terminalData',data:'actual retained transcript\r\n'});
+    await until(()=>state.output.join('').includes('transcript'));
+    if(mode==='tail') {
+      send({kind:'dap',message:{type:'event',event:'terminated',seq:2}});
+      send({kind:'terminalData',data:'last bytes before exit17\r\n'});
+      send({kind:'terminalExit',exitCode:17});connection.end();
+      await until(()=>widget.exitStatus?.code===17);assert.equal(widget.isDisposed,false);assert.match(state.output.join(''),/last bytes before exit17/);
+      await new Promise(ok=>widget.term.write('',ok));const buffer=widget.term.buffer.active;const transcript=Array.from({length:buffer.length},(_,i)=>buffer.getLine(i)?.translateToString()).join('\n');assert.match(transcript,/last bytes before exit17/);assert.match(transcript,/actual retained transcript/);
+      assert.deepEqual(widget.exitStatus,{code:17,reason:2});widget.close();
+    } else {
+      if(mode==='transport')connection.destroy();else if(mode==='finish-reject')send({kind:'terminalExit',exitCode:0});else send({kind:'dap',message:{type:'event',event:'terminated',seq:2}});
+      await until(()=>widget.isDisposed);assert.notEqual(widget.exitStatus?.reason,2);assert.equal(state.lifecycle.entries.size,0);assert.equal(state.terminalService.terminals.length,0);
+    }
+    rpc.close();connection.destroy();await new Promise(ok=>server.close(ok));state.lifecycle.onStop();
+  }
 }));
 test.after(async () => { await writeFile(join(artifacts, 'debug-session-receipt.json'), JSON.stringify({ retained: { extensionSource, runtimeRoot, python }, receipts, GUI: 'NOT_VERIFIED' }, null, 2)); });

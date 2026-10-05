@@ -41,6 +41,12 @@ const { NativeWindowClose } = require('./native-window-close');
 const { NativeWorkbenchCommands } = require('./native-workbench-commands');
 const { LocalWorkspaceContext } = require('./local-workspace-context');
 const { LocalTerminalDefaults } = require('./local-terminal-defaults');
+const { PythonTerminalLifecycle } = require('./python-terminal-lifecycle');
+const { PythonTerminalWidget } = require('./python-terminal-widget');
+const { TerminalWidget } = require('@theia/terminal/lib/browser/base/terminal-widget');
+const { TerminalService } = require('@theia/terminal/lib/browser/base/terminal-service');
+const { TerminalWatcher } = require('@theia/terminal/lib/common/terminal-watcher');
+const { DebugSessionManager } = require('@theia/debug/lib/browser/debug-session-manager');
 const { PreferenceSchemaService } = require('@theia/core/lib/common/preferences/preference-schema');
 const { WorkbenchControlsContribution } = require('./workbench-controls');
 const { ContextKeyService } = require('@theia/core/lib/browser/context-key-service');
@@ -73,6 +79,13 @@ const logo = require('../assets/ynx-logo.png');
 const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  require('./native-trash-file-service').bindNativeTrash(bind, rebind, LocalWorkspaceContextApi, window);
+  rebind(TerminalWidget).to(PythonTerminalWidget).inTransientScope();
+  bind(PythonTerminalLifecycle).toDynamicValue(context => new PythonTerminalLifecycle(
+    context.container.get(LocalWorkspaceContextApi), context.container.get(TerminalService), context.container.get(TerminalWatcher), context.container.get(DebugSessionManager),
+  )).inSingletonScope();
+  bind(CommandContribution).toService(PythonTerminalLifecycle);
+  bind(FrontendApplicationContribution).toService(PythonTerminalLifecycle);
   bind(LocalWorkspaceContextApi).toDynamicValue(context => WebSocketConnectionProvider.createProxy(
     context.container, '/services/ynx-local-workbench-context',
   )).inSingletonScope();
