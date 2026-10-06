@@ -8,9 +8,9 @@ function session(configuration=config(),folder='file:///project'){const value=ne
 function fixture(mode='local'){const manager=new DebugSessionManager(),contribution=new LocalJsDebugTerminalContribution({getContext:async()=>({mode,workspace:'/project'})},manager);contribution.initialize();return{manager,contribution};}
 test('real manager creation adapts only current local Node session, native runInTerminal retains execution and live shell PID',async()=>{
  const {manager,contribution}=fixture(),value=session(),shell=spawn('/bin/bash',['--noprofile','--norc'],{stdio:['pipe','pipe','pipe']});let executed;
- try{const terminal={title:{label:'Native test'},processId:Promise.resolve(shell.pid),hasChildProcesses:async()=>false,executeCommand:async options=>{executed=options;shell.stdin.write('printf ORIGINAL_EXECUTED\\n\n');}};value.terminalServer={all:[terminal],open:()=>{}};
+ try{const terminal={start:async()=>{},title:{label:'Native test'},processId:Promise.resolve(shell.pid),hasChildProcesses:async()=>false,executeCommand:async options=>{executed=options;shell.stdin.write('printf ORIGINAL_EXECUTED\\n\n');}};value.terminalServer={all:[terminal],newTerminal:async options=>{assert.deepEqual(options.env,{X:'preserved'});return terminal;},open:()=>{}};
  const original=value.runInTerminal;manager.onDidCreateDebugSessionEmitter.fire(value);assert.notEqual(value.runInTerminal,original);
- const args={kind:'integrated',title:'Native test',cwd:'/project',args:['node','main.js'],env:{X:'preserved'}};const result=await value.runInTerminal({arguments:args});assert.deepEqual(result,{shellProcessId:shell.pid});assert.equal(executed.args,args.args);assert.equal(executed.env,args.env);process.kill(shell.pid,0);
+ const args={kind:'integrated',title:'Native test',cwd:'/project',args:['node','main.js'],env:{X:'preserved'}};const result=await value.runInTerminal({arguments:args});assert.deepEqual(result,{shellProcessId:shell.pid});assert.equal(executed.args,args.args);assert.equal(executed.env,undefined);process.kill(shell.pid,0);
  manager.onDidDestroyDebugSessionEmitter.fire(value);assert.equal(value.runInTerminal,original);assert.equal(contribution.records.size,0);
  }finally{contribution.onStop();shell.stdin.end();await once(shell,'close');}
 });
@@ -21,7 +21,33 @@ test('hosted or another workspace keeps native PID response; ordinary and nonmar
 test('shutdown restores exact own descriptor and never overwrites another contribution',()=>{const {manager,contribution}=fixture(),value=session();const own=value.runInTerminal.bind(value);Object.defineProperty(value,'runInTerminal',{configurable:true,writable:true,value:own});manager.onDidCreateDebugSessionEmitter.fire(value);contribution.onStop();assert.equal(value.runInTerminal,own);contribution.onStop();const next=fixture(),other=session();next.manager.onDidCreateDebugSessionEmitter.fire(other);const replacement=()=>{};other.runInTerminal=replacement;next.contribution.onStop();assert.equal(other.runInTerminal,replacement);});
 test('supervised noDebug terminal never supplies a shell PID for adapter liveness or termination',async()=>{
  const {manager,contribution}=fixture(),value=session({...config(),noDebug:true});
- let executed=false;value.terminalServer={all:[{title:{label:'run'},processId:Promise.resolve(321),hasChildProcesses:async()=>false,executeCommand:async()=>{executed=true;}}],open(){}};
+ let executed=false;value.terminalServer={newTerminal:async()=>({start:async()=>{},processId:Promise.resolve(321),executeCommand:async()=>{executed=true;}}),open(){}};
  manager.onDidCreateDebugSessionEmitter.fire(value);
  assert.deepEqual(await value.runInTerminal({arguments:{kind:'integrated',title:'run',args:[]}}),{});assert.equal(executed,true);contribution.onStop();
+});
+
+test('real PTY receives launch env without shell command, output or history exposure; stdin and owned close remain usable',async()=>{
+ const {mkdtempSync,writeFileSync,readFileSync,rmSync}=await import('node:fs');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
+ const pty=r('node-pty'),{ShellCommandBuilder}=r('@theia/process/lib/common/shell-command-builder'),builder=new ShellCommandBuilder();
+ const root=mkdtempSync(join(tmpdir(),'ynx-js-private-terminal-')),history=join(root,'history'),target=join(root,'target.cjs');
+ const secret='f'.repeat(64);writeFileSync(target,`if(process.env.YNX_JS_DEBUG_CREDENTIAL!==${JSON.stringify(secret)}||process.env.NODE_OPTIONS!=='--no-warnings'||process.env.USER_CHOICE!=='kept')process.exit(19);console.log('ENV_OK');require('readline').createInterface({input:process.stdin}).once('line',line=>{console.log('INPUT_'+line);process.exit(0)});`);
+ const {manager,contribution}=fixture();const value=session();let processTerminal,output='',command,created=0,closed,backendClosed=0;
+ const until=async check=>{for(let i=0;i<200;i++){if(check())return;await new Promise(ok=>setTimeout(ok,10))}throw Error('PTY wait timed out')};
+ try{
+ value.terminalServer={newTerminal:async options=>{created++;processTerminal=pty.spawn('/bin/bash',['--noprofile','--norc','-i'],{cwd:root,env:{...process.env,...options.env,PS1:'QA> ',HISTFILE:history,HISTCONTROL:'',HISTSIZE:'100'},cols:120,rows:30});processTerminal.onData(data=>output+=data);closed=new Promise(ok=>processTerminal.onExit(ok));return{terminalId:1234,processId:Promise.resolve(processTerminal.pid),start:async()=>until(()=>output.includes('QA> ')),shellTerminalServer:{close:async id=>{assert.equal(id,1234);backendClosed++;processTerminal.kill('SIGHUP');}},executeCommand:async options=>{command=builder.buildCommand({executable:'/bin/bash'},options);processTerminal.write(command+'\n');}}},open(){},all:[{title:{label:'same'},hasChildProcesses:async()=>false}]};
+ manager.onDidCreateDebugSessionEmitter.fire(value);
+ const result=await value.runInTerminal({arguments:{kind:'integrated',title:'same',cwd:root,args:[process.execPath,target],env:{YNX_JS_DEBUG_CREDENTIAL:secret,NODE_OPTIONS:'--no-warnings',USER_CHOICE:'kept'}}});
+ assert.deepEqual(result,{shellProcessId:processTerminal.pid});assert.equal(created,1);await until(()=>output.includes('ENV_OK'));processTerminal.write('works\n');await until(()=>output.includes('INPUT_works'));processTerminal.write('history -w\n');await until(()=>output.includes('QA> ',output.indexOf('INPUT_works')));await new Promise(ok=>setTimeout(ok,50));
+ const stored=readFileSync(history,'utf8');for(const text of [command,output,stored]){assert.equal(text.includes(secret),false);assert.equal(text.includes('YNX_JS_DEBUG_CREDENTIAL'),false);assert.equal(text.includes('NODE_OPTIONS'),false)}
+ manager.onDidDestroyDebugSessionEmitter.fire(value);await closed;assert.equal(backendClosed,1);assert.ok(output.includes('INPUT_works'));
+ }finally{contribution.onStop();if(processTerminal){try{processTerminal.kill('SIGKILL')}catch{}await closed}rmSync(root,{recursive:true,force:true})}
+});
+test('destroy during terminal creation prevents start; destroy during start closes only owned shell without command',async()=>{
+ for(const phase of ['create','start']){
+ const {manager,contribution}=fixture(),value=session();let release,started=0,executed=0,disposed=0,closes=0;
+ const gate=new Promise(ok=>release=ok);const terminal={terminalId:456,processId:Promise.resolve(123),dispose(){disposed++},start:async()=>{started++;if(phase==='start')await gate},executeCommand:async()=>{executed++},shellTerminalServer:{close:async id=>{assert.equal(id,456);closes++}}};
+ value.terminalServer={newTerminal:async()=>{if(phase==='create')await gate;return terminal},open(){}};manager.onDidCreateDebugSessionEmitter.fire(value);
+ const pending=value.runInTerminal({arguments:{kind:'integrated',args:[],env:{}}});await new Promise(ok=>setTimeout(ok,0));manager.onDidDestroyDebugSessionEmitter.fire(value);release();await assert.rejects(pending,/has ended/);assert.equal(executed,0);
+ if(phase==='create'){assert.equal(started,0);assert.equal(disposed,1)}else assert.ok(closes>=1);contribution.onStop();
+ }
 });

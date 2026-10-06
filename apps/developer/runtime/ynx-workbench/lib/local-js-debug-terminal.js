@@ -6,7 +6,7 @@ const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{1
 // changes only the response for a current supervised local Node launch.
 // Correlation metadata is not an extension security boundary or a grant.
 class LocalJsDebugTerminalContribution {
-  constructor(context, sessions) { this.context = context; this.sessions = sessions; this.records = new Map(); this.stopped = false; }
+  constructor(context, sessions) { this.context = context; this.sessions = sessions; this.records = new Map(); this.closedTerminals = new WeakMap(); this.stopped = false; }
   initialize() {
     if (this.creation) return;
     this.creation = this.sessions.onDidCreateDebugSession(session => this.install(session));
@@ -20,13 +20,31 @@ class LocalJsDebugTerminalContribution {
         !configuration.runtimeExecutable?.endsWith('/local-js-debug-launcher.sh') || typeof session.runInTerminal !== 'function') return;
     const descriptor = Object.getOwnPropertyDescriptor(session, 'runInTerminal'), original = session.runInTerminal;
     if (descriptor && !descriptor.configurable) throw Error('Local Node terminal response cannot be adapted');
-    const owner = this;
+    const owner = this, record = { descriptor, wrapper: undefined, ended: false, terminals: new Set() };
     const wrapper = async function(request) {
       const context = await owner.context.getContext();
-      if (owner.stopped || context?.mode !== 'local' || typeof context.workspace !== 'string' ||
+      if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
+      if (context?.mode !== 'local' || typeof context.workspace !== 'string' ||
           session.options?.workspaceFolderUri !== new URI(context.workspace).withScheme('file').toString() ||
           request?.arguments?.kind !== 'integrated') return original.call(this, request);
-      const result = await original.call(this, request);
+      // A new shell receives DAP's current env at PTY creation only. Passing env
+      // again to executeCommand serializes credentials into visible shell text.
+      if (record.ended) throw Error('Local JavaScript terminal launch has ended');
+      const { title, cwd, args, env } = request.arguments;
+      const terminal = await this.terminalServer.newTerminal({ title, cwd, env, kind: 'debug', useServerTitle: false });
+      if (record.ended || owner.stopped) { terminal.dispose(); throw Error('Local JavaScript terminal launch has ended'); }
+      record.terminals.add(terminal);
+      let result;
+      try {
+        await terminal.start();
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
+        this.terminalServer.open(terminal);
+        await terminal.executeCommand({ cwd, args });
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
+        result = { processId: await terminal.processId };
+        if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
+        if (!Number.isSafeInteger(result.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
+      } catch (error) { await owner.closeTerminal(terminal); record.terminals.delete(terminal); throw error; }
       if (!Number.isSafeInteger(result?.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
       const { processId, ...remaining } = result;
       // No-debug targets have no Inspector telemetry. Their authenticated host
@@ -35,10 +53,21 @@ class LocalJsDebugTerminalContribution {
       return configuration.noDebug === true ? remaining : { ...remaining, shellProcessId: processId };
     };
     Object.defineProperty(session, 'runInTerminal', { configurable: true, writable: true, value: wrapper });
-    this.records.set(session, { descriptor, wrapper });
+    record.wrapper = wrapper; this.records.set(session, record);
+  }
+  async closeTerminal(terminal) {
+    // Closing the backend shell preserves the widget and its output evidence.
+    if (this.closedTerminals.has(terminal)) return this.closedTerminals.get(terminal);
+    if (Number.isSafeInteger(terminal.terminalId) && terminal.terminalId >= 0) {
+      const closed = Promise.resolve().then(() => terminal.shellTerminalServer.close(terminal.terminalId));
+      this.closedTerminals.set(terminal, closed);
+      try { await closed; } catch (error) { this.closedTerminals.delete(terminal); throw error; }
+    }
   }
   restore(session) {
     const record = this.records.get(session); if (!record) return;
+    record.ended = true;
+    for (const terminal of record.terminals) void this.closeTerminal(terminal).catch(error => session.logger?.error?.('Local JavaScript shell cleanup failed', error));
     if (session.runInTerminal === record.wrapper) {
       if (record.descriptor) Object.defineProperty(session, 'runInTerminal', record.descriptor);
       else delete session.runInTerminal;

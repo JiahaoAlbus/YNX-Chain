@@ -32,6 +32,7 @@ class YnxProcessUtils extends ProcessUtils {
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   if (process.env.YNX_WORKSPACE_MODE === 'local') {
+    require('./local-js-terminal-environment').install(require('@theia/terminal/lib/node/shell-terminal-server').ShellTerminalServer.prototype);
     require('./local-task-cancellation').install(require('@theia/task/lib/node/process/process-task').ProcessTask.prototype);
     const { HostedPluginProcess } = require('@theia/plugin-ext/lib/hosted/node/hosted-plugin-process');
     bind(BackendApplicationContribution).toConstantValue(require('./local-plugin-shutdown').install(HostedPluginProcess.prototype));
