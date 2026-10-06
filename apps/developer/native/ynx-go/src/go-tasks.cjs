@@ -82,20 +82,15 @@ function createGoTasks(api,context,environment,t=text=>text) {
   run.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Dedicated,clear:true};
   await binding.verify();return {build,run,output,cwd};
  }
- function execute(task,operation) {
-  return new Promise((resolve,reject)=>{
-   let done=false,execution;const matches=event=>event.execution.task.definition.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
-   const finish=(error,code)=>{if(done)return;done=true;processEnd.dispose();taskEnd.dispose();if(operation.execution===execution)operation.execution=undefined;error?reject(error):resolve(code);};
-   const processEnd=api.tasks.onDidEndTaskProcess(event=>{if(matches(event))finish(undefined,event.exitCode);});
-   const taskEnd=api.tasks.onDidEndTask(event=>{if(matches(event))finish(undefined,undefined);});
-   Promise.resolve().then(()=>api.tasks.executeTask(task)).then(value=>{execution=value;if(done)return;operation.execution=value;if(operation.cancelled)value.terminate();},error=>finish(error));
-  });
- }
+
  async function run() {
   if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
   let binding=await project(),config=readConfiguration(binding);
   if(!config) {config=await configure();if(!config)return;binding=await project();}
-  const operation={cancelled:false};active=operation;
+  // Recheck after asynchronous project/configuration reads: concurrent Run
+  // invocations must not both become owners of this workspace.
+  if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
+  const operation={cancelled:false};operation.onCleanup=()=>{if(active===operation)active=undefined;};active=operation;
   try {
    const prepared=await tasks(binding,config);
    if(operation.cancelled)return {cancelled:true};
@@ -105,16 +100,16 @@ function createGoTasks(api,context,environment,t=text=>text) {
     if(document.uri.scheme==='file' && document.uri.fsPath.endsWith('.go') && relative && !relative.startsWith('..'+path.sep) && !path.isAbsolute(relative) && document.isDirty && !await document.save())throw Error(t('Save the Go sources before running.'));
    }
    await binding.verify();if(operation.cancelled)return {cancelled:true};
-   const buildExit=await execute(prepared.build,operation);await binding.verify();
+   const buildExit=await executeGoTask(api,prepared.build,operation);await binding.verify();
    if(operation.cancelled)return {cancelled:true};
    if(buildExit===undefined)return {unknown:true};
    if(buildExit!==0)throw Error(t('Go build failed. Read the task terminal diagnostics, fix the sources or provide local dependencies, and run again.'));
    const stat=await fs.lstat(prepared.output);const header=await fs.open(prepared.output,require('node:fs').constants.O_RDONLY|require('node:fs').constants.O_NOFOLLOW);let magic;try{const bytes=Buffer.alloc(4);await header.read(bytes,0,4,0);magic=bytes.toString('hex');}finally{await header.close();}
    if(!stat.isFile() || stat.isSymbolicLink() || !(stat.mode&0o111) || !['cffaedfe','feedfacf','7f454c46'].includes(magic) && !magic.startsWith('4d5a'))throw Error(t('This Go package is a library, not a runnable main package. The build completed; no program was executed.'));
    if(operation.cancelled)return {cancelled:true};
-   const exitCode=await execute(prepared.run,operation);await binding.verify();
+   const exitCode=await executeGoTask(api,prepared.run,operation);await binding.verify();
    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
-  } finally {if(active===operation)active=undefined;}
+  } finally {if(active===operation && !operation.cleanupPending)active=undefined;}
  }
  const lifetime={configure,run,cancel(){if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.cancelled=true;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
  if(api.workspace.onDidChangeWorkspaceFolders)context.subscriptions.push(api.workspace.onDidChangeWorkspaceFolders(()=>lifetime.cancel()));
@@ -124,4 +119,23 @@ function createGoTasks(api,context,environment,t=text=>text) {
 function waitForSignal(start,signal) {
  signal.throwIfAborted();return new Promise((resolve,reject)=>{const stop=()=>reject(signal.reason);signal.addEventListener('abort',stop,{once:true});Promise.resolve().then(()=>{signal.throwIfAborted();return start();}).then(value=>{signal.removeEventListener('abort',stop);signal.aborted?reject(signal.reason):resolve(value);},error=>{signal.removeEventListener('abort',stop);reject(error);});});
 }
-module.exports={createGoTasks,validTarget};
+function executeGoTask(api,task,operation) {
+  return new Promise((resolve,reject)=>{
+   let done=false,execution;const matches=event=>event?.execution?.task?.definition?.runId===task.definition.runId && event.execution.task.definition.stage===task.definition.stage;
+   const cleanup=()=>{processEnd.dispose();taskEnd.dispose();if(operation.execution===execution)operation.execution=undefined;};
+   const finish=(error,code)=>{
+    if(done){if(!error && operation.cleanupPending){operation.cleanupPending=false;cleanup();operation.onCleanup?.();}return;}
+    done=true;
+    if(error && execution){operation.cleanupPending=true;reject(error);return;}
+    cleanup();error?reject(error):resolve(code);
+   };
+   const processEnd=api.tasks.onDidEndTaskProcess(event=>{if(matches(event))finish(undefined,event.exitCode);});
+   const taskEnd=api.tasks.onDidEndTask(event=>{if(matches(event))finish(undefined,undefined);});
+   Promise.resolve().then(()=>{if(operation.cancelled){finish(undefined,undefined);return;}return api.tasks.executeTask(task);}).then(value=>{
+    execution=value;if(done)return;
+    if(!value || typeof value.terminate!=='function'){execution=undefined;finish(Error('Go task did not return a live execution. Check its task terminal before retrying.'));return;}
+    operation.execution=value;if(operation.cancelled)value.terminate();
+   }).catch(error=>finish(error));
+  });
+ }
+module.exports={createGoTasks,validTarget,executeGoTask};

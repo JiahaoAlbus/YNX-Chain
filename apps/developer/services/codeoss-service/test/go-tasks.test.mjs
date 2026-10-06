@@ -57,3 +57,8 @@ test('workspace target escape and unsafe existing cache reject before any task',
  // Simulate a persisted setting edit and reopen through the normal API boundary.
  config['ynx.go.project'].target='../outside';await fs.writeFile(h.settingsPath,JSON.stringify(config));await h.reopen();await assert.rejects(h.workflow.run(),/configuration is invalid/);assert.equal(h.calls.length,0);
 });
+test('concurrent Run requests after configuration admit only one real build/run owner',{timeout:180000},async t=>{
+ const h=await fixture(t);await h.workflow.configure();const results=await Promise.allSettled([h.workflow.run(),h.workflow.run()]);
+ assert.equal(results.filter(value=>value.status==='fulfilled').length,1);assert.match(results.find(value=>value.status==='rejected').reason.message,/already running/);
+ assert.equal(h.calls.length,2);assert.match(h.output.join(''),/GO_FIRST_SUCCESS/);assert.equal(h.children.size,0);assert.equal(h.workflow.status().running,false);
+});
