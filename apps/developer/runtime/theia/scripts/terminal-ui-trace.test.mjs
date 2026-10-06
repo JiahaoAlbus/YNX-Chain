@@ -25,3 +25,22 @@ test('native sink failures preserve original result and errors',()=>{
  const f=fixture();f.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage=()=>{throw Error('sink unavailable')};assert.doesNotThrow(()=>f.widget.init());assert.equal(f.widget.open(),42);assert.equal(f.widget.write('x'),11);
  const error=Error('original');const proto={write(){throw error}};trace.traceTerminal(proto,f.target);assert.throws(()=>proto.write('x'),e=>e===error);
 });
+test('native diagnostic request observes an already opened terminal without restarting it',()=>{
+ const f=fixture(false),listeners=new Map();let registrations=0;
+ f.target.addEventListener=(name,callback)=>{registrations++;listeners.set(name,callback);};
+ f.widget.init();f.widget.open();const method=f.proto.write;
+ trace.armTerminalTrace(f.proto,f.target,6);trace.armTerminalTrace(f.proto,f.target,6);
+ assert.equal(registrations,1);assert.equal(f.proto.write,method);assert.equal(f.rows.length,0);
+ listeners.get('ynx-terminal-diagnostics')();const wrapped=f.proto.write;
+ f.widget.onAfterShow();assert.equal(f.widget.write('private output'),11);f.paint();f.timers[0]();
+ assert.equal(f.rows.at(-1).writes,1);assert.equal(f.rows.at(-1).renders,1);
+ assert.equal(JSON.stringify(f.rows).includes('private output'),false);
+ listeners.get('ynx-terminal-diagnostics')();assert.equal(f.proto.write,wrapped);
+ for(let i=0;i<20;i++){f.widget.write('x');f.paint();}assert.equal(f.rows.length,6);
+});
+test('ordinary browser cannot arm the native diagnostic bridge',()=>{
+ const f=fixture(false);let registrations=0;delete f.target.webkit;
+ f.target.addEventListener=()=>{registrations++;};const method=f.proto.write;
+ trace.armTerminalTrace(f.proto,f.target);f.widget.init();f.widget.open();f.widget.write('secret');
+ assert.equal(registrations,0);assert.equal(f.proto.write,method);assert.equal(f.rows.length,0);
+});

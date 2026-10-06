@@ -610,6 +610,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,copy) NSString *localCloseRequest;
 @property(nonatomic,strong) NSMutableDictionary<NSString *,NSString *> *pendingLocalCommands;
 @property(nonatomic) BOOL localCommandDocumentReady;
+@property(nonatomic) BOOL localTerminalTraceEnabled;
 @property(nonatomic,copy) NSString *localLocale;
 @property(nonatomic,strong) NSURL *serverLogURL;
 @property(nonatomic,copy) NSString *localSupportRoot;
@@ -666,6 +667,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)beginLocalWorkbench {
     _localLocale=YNXLocalStoredLocale([NSUserDefaults.standardUserDefaults objectForKey:@"YNXDeveloperDisplayLocale"]);
     NSDictionary *environment=NSProcessInfo.processInfo.environment;
+    _localTerminalTraceEnabled=[environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"];
     _localSupportRoot=environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"]?:[NSHomeDirectory() stringByAppendingPathComponent:@"Library/Application Support/YNXDeveloper"];
     NSString *explicit=environment[@"YNX_LOCAL_WORKSPACE"];
     _localWorkspace=YNXSelectedLocalWorkspace(explicit,_localSupportRoot);
@@ -684,7 +686,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
         NSString *traceScript=@"Object.defineProperty(window,'__ynxDebugUiTraceEnabled',{value:true});";
         [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(traceScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     }
-    if([environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"]){
+    if(_localTerminalTraceEnabled){
         NSString *terminalTraceScript=@"Object.defineProperty(window,'__ynxTerminalUiTraceEnabled',{value:true});";
         [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(terminalTraceScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     }
@@ -838,6 +840,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [windows addItemWithTitle:YNXLocalMenuLabel(@"Bring All to Front",_localLocale) action:@selector(arrangeInFront:) keyEquivalent:@""];
     NSMenu *help=[self localMenu:main title:@"Help"];NSApp.helpMenu=help;
     [self localCommandItem:help title:@"Show All Commands…" command:@"workbench.action.showCommands" key:@"" modifiers:0];
+    NSMenuItem *terminalDiagnostics=[help addItemWithTitle:[_localLocale isEqual:@"zh-cn"]?@"启用终端诊断":@"Enable Terminal Diagnostics" action:@selector(enableLocalTerminalDiagnostics:) keyEquivalent:@""];terminalDiagnostics.target=self;
     [help addItemWithTitle:YNXLocalMenuLabel(@"About YNX Developer",_localLocale) action:@selector(showAbout:) keyEquivalent:@""];
 }
 - (NSMenu *)localMenu:(NSMenu *)main title:(NSString *)title {
@@ -851,6 +854,16 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)localCommandUnavailable:(NSString *)message {
     if(!_window||_window.attachedSheet)return;NSAlert *alert=[NSAlert new];alert.messageText=YNXLocalMenuLabel(@"Action unavailable",_localLocale);alert.informativeText=YNXLocalMenuLabel(message.length?message:@"Wait for your workspace to finish opening, then try again.",_localLocale);[alert addButtonWithTitle:YNXLocalMenuLabel(@"OK",_localLocale)];
     [alert beginSheetModalForWindow:_window completionHandler:nil];
+}
+- (void)enableLocalTerminalDiagnostics:(id)sender {
+    if(!_localWorkbenchMode||NSApp.keyWindow!=_window||!_localCommandDocumentReady||!_server.running||!YNXLocalEditorDocumentURL(_webView.URL,_port)||_localCloseRequest||_localTerminalTraceEnabled)return;
+    // Only bounded counters are collected; no terminal content or settings.
+    // This is process-local and never writes a preference or grants admission.
+    _localTerminalTraceEnabled=YES;
+    // Keep this explicit choice through document reloads in the same process.
+    NSString *seed=@"Object.defineProperty(window,'__ynxTerminalUiTraceEnabled',{value:true});";
+    [_webView.configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(seed,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    YNXEvaluateTrustedScript(_webView,_port,@"window.dispatchEvent(new Event('ynx-terminal-diagnostics'));");
 }
 - (void)localWorkbenchCommand:(NSMenuItem *)sender {
     NSString *command=[sender.representedObject isKindOfClass:NSString.class]?sender.representedObject:nil;
@@ -1129,6 +1142,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)dispatchWorkbenchCommand:(NSDictionary *)detail { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)]); }
 - (void)openWalletProjects:(id)sender { if(!_hostedWorkspace)_hostedWorkspace=[YNXHostedWorkspace new];[_hostedWorkspace open]; }
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
+    if(item.action==@selector(enableLocalTerminalDiagnostics:))return _localWorkbenchMode&&NSApp.keyWindow==_window&&_localCommandDocumentReady&&_server.running&&YNXLocalEditorDocumentURL(_webView.URL,_port)&&!_localCloseRequest&&!_localTerminalTraceEnabled;
     if(item.action==@selector(localWorkbenchCommand:)){
         NSString *command=[item.representedObject isKindOfClass:NSString.class]?item.representedObject:nil;
         if(!_localWorkbenchMode||![YNXLocalWorkbenchCommands() containsObject:command])return NO;
@@ -1305,7 +1319,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
     if([body[@"action"] isEqual:@"terminal-ui-trace"]){
         static NSUInteger terminalTraceCount=0;
-        if(![NSProcessInfo.processInfo.environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"]||terminalTraceCount>=300||body.count!=17||
+        if(!_localTerminalTraceEnabled||terminalTraceCount>=300||body.count!=17||
            !YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
         if(![@[@"init",@"open",@"write",@"onAfterShow",@"onResize",@"render",@"observer",@"settled"] containsObject:body[@"event"]])return;
         for(NSString *key in @[@"seq",@"id",@"bytes",@"writes",@"renders",@"opened",@"visible",@"attached",@"rows",@"cols",@"paused",@"pending",@"renderer",@"disposed",@"docVisible"]){

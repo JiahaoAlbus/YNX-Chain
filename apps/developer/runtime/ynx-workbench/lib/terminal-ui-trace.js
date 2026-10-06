@@ -1,9 +1,11 @@
 // Opt-in diagnostic counters only. Never record terminal input/output, titles,
 // commands, paths, settings, environment values or errors.
 const installed = new WeakSet();
+const armed = new WeakSet();
+const requested = new WeakSet();
 function traceTerminal(prototype, target, limit = 300) {
   const bridge = target.webkit?.messageHandlers?.ynxLocalWorkbench;
-  if (target.__ynxTerminalUiTraceEnabled !== true || !bridge || installed.has(prototype)) return;
+  if ((target.__ynxTerminalUiTraceEnabled !== true && !requested.has(target)) || !bridge || installed.has(prototype)) return;
   installed.add(prototype);
   const states = new WeakMap(); let serial = 0, sequence = 0;
   const state = widget => {
@@ -48,8 +50,19 @@ function traceTerminal(prototype, target, limit = 300) {
     };
   }
 }
-function install(target = window) {
-  if (target.__ynxTerminalUiTraceEnabled !== true) return;
-  traceTerminal(require('@theia/terminal/lib/browser/terminal-widget-impl').TerminalWidgetImpl.prototype, target);
+function armTerminalTrace(prototype, target, limit = 300) {
+  if (!target.webkit?.messageHandlers?.ynxLocalWorkbench || armed.has(target)) return;
+  armed.add(target);
+  traceTerminal(prototype, target, limit);
+  // The native Help action enables the existing counters for this document.
+  // The native receiver independently refuses them until that action is used.
+  target.addEventListener?.('ynx-terminal-diagnostics', () => {
+    requested.add(target);
+    traceTerminal(prototype, target, limit);
+  });
 }
-module.exports = { traceTerminal, install };
+function install(target = window) {
+  if (!target.webkit?.messageHandlers?.ynxLocalWorkbench) return;
+  armTerminalTrace(require('@theia/terminal/lib/browser/terminal-widget-impl').TerminalWidgetImpl.prototype, target);
+}
+module.exports = { traceTerminal, armTerminalTrace, install };
