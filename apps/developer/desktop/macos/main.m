@@ -1332,10 +1332,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
     if([body[@"action"] isEqual:@"terminal-ui-trace"]){
         static NSUInteger terminalTraceCount=0;
-        if(!_localTerminalTraceEnabled||terminalTraceCount>=300||body.count!=17||
+        if(!_localTerminalTraceEnabled||terminalTraceCount>=300||body.count!=24||
            !YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
         if(![@[@"init",@"open",@"write",@"onAfterShow",@"onResize",@"render",@"observer",@"settled"] containsObject:body[@"event"]])return;
-        for(NSString *key in @[@"seq",@"id",@"bytes",@"writes",@"renders",@"opened",@"visible",@"attached",@"rows",@"cols",@"paused",@"pending",@"renderer",@"disposed",@"docVisible"]){
+        for(NSString *key in @[@"seq",@"id",@"bytes",@"writes",@"renders",@"opened",@"visible",@"attached",@"rows",@"cols",@"paused",@"pending",@"renderer",@"disposed",@"docVisible",@"frameAdapter",@"nativeWindowVisible",@"frameRequests",@"frameDeadlines",@"frameTimeouts",@"frameFallbacks",@"framePending"]){
             id value=body[key];if(![value isKindOfClass:NSNumber.class]||[value doubleValue]!=[value integerValue]||[value integerValue]<0||[value integerValue]>2147483647)return;
         }
         terminalTraceCount++;NSMutableDictionary *record=[body mutableCopy];

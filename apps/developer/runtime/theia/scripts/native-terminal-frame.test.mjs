@@ -19,7 +19,7 @@ vm.runInNewContext(require('esbuild').transformSync('export class RetainedObserv
 const retainedObserver = observerModule.exports.RetainedObserver.prototype._handleIntersectionChange;
 const ownedModule = { exports: {} };
 vm.runInNewContext(readFileSync(new URL('../../ynx-workbench/lib/native-terminal-frame.js', import.meta.url), 'utf8'), { module: ownedModule, Proxy, Reflect, Map, WeakSet, WeakMap });
-const { boundedFrames, installOn } = ownedModule.exports;
+const { boundedFrames, frameState, installOn } = ownedModule.exports;
 function fixture() {
   let serial = 0;
   const frames = new Map(), timers = new Map(), listeners = new Map();
@@ -134,4 +134,20 @@ test('actual retained intersection observer resumes a frame whose deadline expir
   render._handleIntersectionChange({ isIntersecting: true }); f.deadlines();
   assert.deepEqual(t.rows, [[0, 23]]);
   t.widget.toDispose[0].dispose(); assert.equal(render._handleIntersectionChange, retainedObserver);
+});
+test('count-only snapshot distinguishes missing adapter, stale proxy and false visibility from a delivered fallback', () => {
+  const f = fixture(), t = terminalFixture(f);
+  assert.equal(frameState(t.widget, {}).nativeWindowVisible, 0);
+  assert.equal(frameState(t.widget, f.parent).frameAdapter, 0);
+  installOn(t.prototype, f.parent); t.widget.open();
+  let state = frameState(t.widget, f.parent);
+  assert.equal(state.nativeWindowVisible, 2); assert.equal(state.frameAdapter, 1);
+  assert.equal(state.requests, 1); assert.equal(state.deadlines, 1); assert.equal(state.pending, 1);
+  f.deadlines(); state = frameState(t.widget, f.parent);
+  assert.equal(state.timeouts, 1); assert.equal(state.fallbacks, 1); assert.equal(state.pending, 0);
+  f.parent.__ynxNativeWindowVisible = false;
+  t.widget.term._core._renderService._renderDebouncer._parentWindow = f.parent;
+  assert.equal(frameState(t.widget, f.parent).nativeWindowVisible, 1);
+  assert.equal(frameState(t.widget, f.parent).frameAdapter, 2);
+  assert.equal(Object.values(state).every(value => typeof value === 'number'), true);
 });

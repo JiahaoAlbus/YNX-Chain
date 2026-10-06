@@ -1,8 +1,10 @@
 // WebKit can withhold a paint callback while the native window is visible.
 // Keep xterm's renderer/debouncer; bound only each terminal's pending frame.
 const installed = new WeakSet();
+const adapters = new WeakMap();
 function boundedFrames(parent, visible, timeout = 250) {
   const pending = new Map(); let next = 0, disposed = false;
+  const counts = { requests: 0, deadlines: 0, timeouts: 0, fallbacks: 0 };
   const cancel = id => {
     const entry = pending.get(id); if (!entry) return;
     pending.delete(id);
@@ -11,9 +13,11 @@ function boundedFrames(parent, visible, timeout = 250) {
   };
   const scheduleDeadline = (id, entry) => {
     if (entry.timer !== undefined || !visible()) return;
+    counts.deadlines++;
     entry.timer = parent.setTimeout(() => {
+      counts.timeouts++;
       entry.timer = undefined;
-      if (visible()) finish(id, entry, parent.performance.now());
+      if (!disposed && pending.get(id) === entry && visible()) { counts.fallbacks++; finish(id, entry, parent.performance.now()); }
     }, timeout);
   };
   const finish = (id, entry, time) => {
@@ -23,6 +27,7 @@ function boundedFrames(parent, visible, timeout = 250) {
   };
   const request = callback => {
     if (disposed) return 0;
+    counts.requests++;
     const id = ++next, entry = { callback };
     pending.set(id, entry);
     entry.frame = parent.requestAnimationFrame(time => finish(id, entry, time));
@@ -35,7 +40,7 @@ function boundedFrames(parent, visible, timeout = 250) {
     const value = Reflect.get(target, key, target);
     return typeof value === 'function' ? value.bind(target) : value;
   } });
-  return { window: proxy, resume() {
+  return { window: proxy, snapshot: () => ({ ...counts, pending: pending.size }), resume() {
     for (const [id, entry] of pending) scheduleDeadline(id, entry);
   }, dispose() {
     disposed = true;
@@ -57,6 +62,7 @@ function installOn(prototype, target) {
     const widget = this;
     const frames = boundedFrames(parent, () => !widget.isDisposed && widget.isAttached && widget.isVisible && !widget.term._core._renderService._isPaused && target.__ynxNativeWindowVisible === true);
     states.set(this, frames);
+    adapters.set(this, { frames, debouncer });
     const initialFrame = debouncer._animationFrame;
     if (initialFrame !== undefined) parent.cancelAnimationFrame(initialFrame);
     debouncer._animationFrame = undefined;
@@ -72,6 +78,7 @@ function installOn(prototype, target) {
     target.addEventListener('ynx-window-visibility', resume);
     this.toDispose.push({ dispose() {
       frames.dispose();
+      adapters.delete(widget);
       target.removeEventListener('ynx-window-visibility', resume);
       if (render._handleIntersectionChange === resumeObserver) render._handleIntersectionChange = observer;
       if (debouncer._parentWindow === frames.window) {
@@ -90,7 +97,13 @@ function installOn(prototype, target) {
     return result;
   };
 }
+function frameState(widget, target) {
+  const adapter = adapters.get(widget), value = target.__ynxNativeWindowVisible;
+  return { frameAdapter: adapter ? (adapter.debouncer._parentWindow === adapter.frames.window ? 1 : 2) : 0,
+    nativeWindowVisible: value === true ? 2 : value === false ? 1 : 0,
+    ...(adapter?.frames.snapshot() || { requests: 0, deadlines: 0, timeouts: 0, fallbacks: 0, pending: 0 }) };
+}
 function install(target = window) {
   installOn(require('@theia/terminal/lib/browser/terminal-widget-impl').TerminalWidgetImpl.prototype, target);
 }
-module.exports = { boundedFrames, installOn, install };
+module.exports = { boundedFrames, frameState, installOn, install };

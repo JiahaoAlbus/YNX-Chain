@@ -17,13 +17,17 @@ function traceTerminal(prototype, target, limit = 300) {
   const emit = (widget, event) => {
     if (sequence >= limit) return;
     const s = state(widget), render = widget.term?._core?._renderService;
+    const frames = require('./native-terminal-frame').frameState(widget, target);
     try { bridge.postMessage({ action: 'terminal-ui-trace', seq: ++sequence, event, id: s.id,
       bytes: number(s.bytes), writes: number(s.writes), renders: number(s.renders),
       opened: +!!widget.termOpened, visible: +!!widget.isVisible, attached: +!!widget.isAttached,
       rows: number(widget.term?.rows), cols: number(widget.term?.cols),
       paused: +!!(render?._isPaused), pending: +!!(render?._renderDebouncer?._animationFrame),
       docVisible: +(target.document?.visibilityState === 'visible'),
-      renderer: +!!render, disposed: +!!widget.isDisposed }); } catch { /* Preserve execution. */ }
+      renderer: +!!render, disposed: +!!widget.isDisposed,
+      frameAdapter: frames.frameAdapter, nativeWindowVisible: frames.nativeWindowVisible,
+      frameRequests: number(frames.requests), frameDeadlines: number(frames.deadlines),
+      frameTimeouts: number(frames.timeouts), frameFallbacks: number(frames.fallbacks), framePending: number(frames.pending) }); } catch { /* Preserve execution. */ }
   };
   for (const method of ['init', 'open', 'write', 'onAfterShow', 'onResize']) {
     const original = prototype[method]; if (typeof original !== 'function') continue;
