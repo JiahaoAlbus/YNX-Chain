@@ -10,7 +10,7 @@ import { createDebugSessionSupervisor } from './local-debug-session.mjs';
 import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
-import { preparePrivatePluginCopy } from './local-plugin-copy.mjs';
+import { preparePrivatePluginCopy, verifiedPluginSessionExit } from './local-plugin-copy.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -213,7 +213,7 @@ export async function localProjectContext({ supportRoot, projectDirectory }) {
   return { workspace: projectDirectory, profile, temporary, id };
 }
 
-export async function prepareLocalPlugins({ runtime, context }) {
+export async function prepareLocalPlugins({ runtime, context, lifecycle = false }) {
   // Extensions can keep runtime state beside their code (debugpy does this).
   // Fresh project-private copies permit that within the EXISTING temporary
   // write boundary; the shared sealed cache and network policy stay unchanged.
@@ -231,7 +231,7 @@ export async function prepareLocalPlugins({ runtime, context }) {
     throw Error('Extension copy changed before launch.');
   await writeFile(join(session, 'source.json'), JSON.stringify({ runtimeArtifact: runtime.pin, pluginTreeSha256: digest, projectId: context.id,
     scope: 'Fresh per-launch extension copy; source cache remains sealed. Runtime state is not reused as executable source.' }) + '\n', { flag: 'wx', mode: 0o600 });
-  });
+  }, { lifecycle });
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
@@ -249,7 +249,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   if (goToolchain !== undefined) await admitLocalGoReadScope(goToolchain, context);
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
-  let debugSupervisor, jsDebugSupervisor;
+  let debugSupervisor, jsDebugSupervisor, pluginCopy;
   try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
   port = reserve.address().port; await new Promise(ok => reserve.close(ok));
@@ -258,7 +258,8 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const python = await inspectTrustedLocalPython();
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
-  const plugins = await prepareLocalPlugins({ runtime, context });
+  pluginCopy = await prepareLocalPlugins({ runtime, context, lifecycle: true });
+  const plugins = pluginCopy.plugins;
   const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
   const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities });
@@ -266,6 +267,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
   jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
+  pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
@@ -274,10 +276,10 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
-  const stop = () => stopping ||= (async () => { let cleanupError; if (!ended) {
+  const stop = () => stopping ||= (async () => { let cleanupError, cleanupStdout; if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
     // verifies OS UID, ancestry and process start time before signalling them.
-    try { await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 }); } catch (error) { cleanupError = error; }
+    try { ({ stdout: cleanupStdout } = await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 })); } catch (error) { cleanupError = error; }
     try { await Promise.race([exited, new Promise((_, reject) => setTimeout(() => reject(Error('Local backend exit was not verified')), 5000).unref())]); }
     catch (error) { cleanupError ||= error; } }
     // The single native cleanup already owns TERM/escalation and identity
@@ -287,6 +289,8 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     if (debugErrors.length) throw new AggregateError(debugErrors, 'Local debug session cleanup could not be verified.');
     if (cleanupError) throw Error('Local child cleanup could not be verified. Runtime state was retained.', { cause: cleanupError });
     if (!await ipc.cleanup({ confirmedExited: ended })) throw Error('Local IPC cleanup could not be verified. Session residue was retained.');
+    // A backend close alone does not prove detached PTY descendants exited.
+    if (!await pluginCopy.cleanup({ confirmedSessionExited: verifiedPluginSessionExit({ backendClosed: ended, cleanupStdout }) })) log.write('YNX_LOCAL_PLUGIN_COPY_RETAINED: descendant exit was not verified.\n');
   })();
   try { if (child.pid) await ipc.attach(child.pid); } catch (error) { await stop(); throw error; }
   // Unexpected backend exit follows the same process/session cleanup as Stop.
@@ -308,7 +312,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   } catch (error) {
     // Setup failures precede spawn, or the inner stop has already confirmed
     // exit. Unknown in-flight launch residue is deliberately retained.
-    try { const results = await Promise.allSettled([debugSupervisor?.stop(), jsDebugSupervisor?.stop()]); const failures = results.filter(result => result.status === 'rejected').map(result => result.reason); if (failures.length) throw new AggregateError(failures, 'Local debug setup cleanup failed'); await ipc.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
+    try { const results = await Promise.allSettled([debugSupervisor?.stop(), jsDebugSupervisor?.stop()]); const failures = results.filter(result => result.status === 'rejected').map(result => result.reason); if (failures.length) throw new AggregateError(failures, 'Local debug setup cleanup failed'); await ipc.cleanup(); await pluginCopy?.cleanup(); } catch (cleanupError) { log.write(`YNX_LOCAL_IPC_CLEANUP_FAILED: ${cleanupError.message}\n`); }
     throw error;
   }
 }

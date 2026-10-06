@@ -138,5 +138,8 @@ int main(int argc, char **argv) {
     if (group == root) kill(-root, termination_signal);
     kill(root, termination_signal);
   }
+  // Root close is independently awaited by the caller. Initial ESRCH above
+  // deliberately emits no receipt: it captured no descendant identities.
+  if (graceful) puts("YNX_PROCESS_TREE_CLEANUP_VERIFIED");
   return 0;
 }

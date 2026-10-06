@@ -169,6 +169,19 @@ test('fresh verified project plugin copies allow runtime state under existing sa
   assert.notEqual(first, second); assert.equal(await readFile(join(second, 'example/extension.js'), 'utf8'), 'module.exports = {};');
   assert.equal(await composedTreeDigest(second), sourceDigest);
 }));
+test('plugin lifecycle releases one verified copy without removing sibling sessions', async () => fixture(async root => {
+  const runtime = await prepareLocalRuntime({ payload: await payload(root), supportRoot: join(root, 'support') });
+  const project = join(root, 'project'); await mkdir(project);
+  const context = await localProjectContext({ supportRoot: join(root, 'support'), projectDirectory: project });
+  const first = await prepareLocalPlugins({ runtime, context });
+  const second = await prepareLocalPlugins({ runtime, context });
+  const owned = await prepareLocalPlugins({ runtime, context, lifecycle: true });
+  owned.beginLaunch(); assert.equal(await owned.cleanup(), false);
+  assert.equal(await owned.cleanup({ confirmedSessionExited: true }), true);
+  await assert.rejects(lstat(owned.plugins), { code: 'ENOENT' });
+  assert.equal(await readFile(join(second, 'example/extension.js'), 'utf8'), 'module.exports = {};');
+  assert.equal(await readFile(join(first, 'example/extension.js'), 'utf8'), 'module.exports = {};');
+}));
 test('plugin copies reject foreign project bindings and corrupted source before launch', async () => fixture(async root => {
   const runtime = await prepareLocalRuntime({ payload: await payload(root), supportRoot: join(root, 'support') });
   const project = join(root, 'project'); await mkdir(project);
