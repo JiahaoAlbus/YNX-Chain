@@ -93,6 +93,7 @@ const logo = require('../assets/ynx-logo.png');
 const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  require('./shell-command-env').bindEnvironmentOrderedShellCommandBuilder(rebind);
   bind(FrontendApplicationContribution).toDynamicValue(context => new (require('./local-js-debug-terminal').LocalJsDebugTerminalContribution)(context.container.get(LocalWorkspaceContextApi), context.container.get(DebugSessionManager))).inSingletonScope();
   require('./native-trash-file-service').bindNativeTrash(bind, rebind, LocalWorkspaceContextApi, window);
   rebind(TerminalWidget).to(PythonTerminalWidget).inTransientScope();
