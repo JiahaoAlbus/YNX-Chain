@@ -52,8 +52,8 @@ test('inspection/options/SDK Guest are readonly; mutation and automatic restore 
 });
 
 test('first use with no native key cannot create one during inspection or Guest',async()=>{
-  const f=fixture({device:async()=>{throw Error('Connect explicitly to initialize native device');}});try {
-    const info=await adapter.inspectDeveloperWalletV2Runtime();assert.equal(info.available,false);assert.match(info.reason,/Connect explicitly/);assert.equal((await adapter.enterDeveloperWalletV2Guest()).available,true);assert.equal(f.calls.begin,0);assert.equal(f.calls.write,0);
+  let deviceReads=0;const f=fixture({device:async()=>{deviceReads++;throw Error('Connect explicitly to initialize native device');}});try {
+    const info=await adapter.inspectDeveloperWalletV2Runtime();assert.equal(info.available,true);assert.equal(info.bridgeContract,'present');assert.equal(info.deviceStatus,'not-observed');assert.equal(info.authoritative,false);assert.equal(info.requiresExplicitConnection,true);assert.equal((await adapter.enterDeveloperWalletV2Guest()).available,true);assert.equal(deviceReads,0);assert.equal(f.calls.begin,0);assert.equal(f.calls.write,0);
   }finally{await f.cleanup();}
 });
 

@@ -14,6 +14,11 @@ export type DeveloperWalletBridge = {
     get: (key: string) => Promise<string | null>;
     set: (key: string, value: string) => Promise<void>;
     remove: (key: string) => Promise<void>;
+    saveRevocationIntent?: (key: string, rawIntent: string) => Promise<string>;
+    finishRevocationIntentWithCompletion?: (key: string, expectedRawIntent: string, receiptRaw: string) => Promise<string>;
+    getRevocationCompletions?: (key: string) => Promise<string | null>;
+    getRevocationCompletion?: (key: string, intentId: string) => Promise<string | null>;
+    acknowledgeRevocationCompletion?: (key: string, expectedReceiptRaw: string) => Promise<void>;
   };
 };
 
