@@ -20,6 +20,14 @@ test('installed canonical CLT Python runs Hello World under the unchanged local 
     const context = { workspace: root, profile: root, temporary: root, id: 'python-default-test' }, runtime = { root };
     const env = localWorkbenchEnvironment({ node: process.execPath, runtime, context, plugins: root, gitConfig: '/dev/null', python });
     assert.equal(env.YNX_IDE_PYTHON_ENTRY, python.executable);
+    assert.equal(env.DEVELOPER_DIR, '/Library/Developer/CommandLineTools');
+    assert.equal(env.YNX_IDE_CLANGD_ENTRY, undefined);
+    assert.equal(env.SDKROOT, undefined);
+    const unavailable = localWorkbenchEnvironment({ node: process.execPath, runtime, context, plugins: root, gitConfig: '/dev/null', python: null, clangd: null });
+    assert.equal(unavailable.DEVELOPER_DIR, undefined);
+    const independentClangd = localWorkbenchEnvironment({ node: process.execPath, runtime, context, plugins: root, gitConfig: '/dev/null', clangd: { executable: '/Library/Developer/CommandLineTools/usr/bin/clangd', sysroot: '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk' } });
+    assert.equal(independentClangd.DEVELOPER_DIR, '/Library/Developer/CommandLineTools');
+    assert.equal(independentClangd.SDKROOT, '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk');
     const policy = localWorkbenchSandboxPolicy({ node: process.execPath, lockHelper: process.execPath, runtime, context, port: 43177 });
     assert.ok(policy.includes('(deny network*)'));
     assert.ok(!policy.includes('(allow file-write* (subpath "/var/folders'));

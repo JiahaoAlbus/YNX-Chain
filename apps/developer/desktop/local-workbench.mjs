@@ -112,7 +112,11 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
     // triggering an installation prompt even though these tools are present.
     // This is process-local; explicit per-task/debugger overrides still apply.
     ...(clangd ? { YNX_IDE_CLANGD_ENTRY: clangd.executable, YNX_IDE_CPP_SYSROOT: clangd.sysroot,
-      DEVELOPER_DIR: '/Library/Developer/CommandLineTools', SDKROOT: clangd.sysroot } : {}) };
+      SDKROOT: clangd.sysroot } : {}),
+    // Both selectors validate OS-owned canonical CLT binaries before launch.
+    // Python discovery must not fall back to the global Xcode selection merely
+    // because the independent language-server probe was unavailable.
+    ...(clangd || python ? { DEVELOPER_DIR: '/Library/Developer/CommandLineTools' } : {}) };
 }
 export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities = [] }) {
   const go = verifiedGo(goToolchain, context);
