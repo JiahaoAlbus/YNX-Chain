@@ -20,7 +20,7 @@ export async function buildNativeWalletConsumer({ verify = false } = {}) {
     return pin;
   }
   const esbuild = require('esbuild');
-  const result = await esbuild.build({ stdin: { contents: 'export * from "./frontend/src/wallet/product-session-v2.ts"; export { subscribeDeveloperWalletCallbacks } from "./frontend/src/wallet/transport.ts";', resolveDir: developer, sourcefile: 'ynx-native-wallet-consumer-entry.ts', loader: 'ts' },
+  const result = await esbuild.build({ stdin: { contents: 'export * from "./frontend/src/wallet/product-session-v2.ts"; export { captureResourceOperation, receiveResourceReturn, isDeveloperResourceReturn } from "./frontend/src/wallet/resource-approval-return.ts"; export { subscribeDeveloperWalletCallbacks } from "./frontend/src/wallet/transport.ts";', resolveDir: developer, sourcefile: 'ynx-native-wallet-consumer-entry.ts', loader: 'ts' },
     absWorkingDir: developer, platform: 'browser', format: 'cjs', bundle: true, write: false, metafile: true, target: 'es2022', legalComments: 'inline', logLevel: 'silent' });
   const inputs = [];
   for (const name of Object.keys(result.metafile.inputs).sort()) {

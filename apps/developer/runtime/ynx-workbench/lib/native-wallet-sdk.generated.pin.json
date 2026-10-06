@@ -7,8 +7,12 @@
       "sha256": "df2d682b4fd6c6e9c3917fac4fc029a3bed41417038a87947c5d01a080feed4e"
     },
     {
+      "path": "frontend/src/wallet/resource-approval-return.ts",
+      "sha256": "34dbbf9a718702d327267fdbd9618d0583b5c7bc3a2754c2ededf870200f130b"
+    },
+    {
       "path": "frontend/src/wallet/transport.ts",
-      "sha256": "901bb2cd4cba5f72613bd53ef5f62c4031f4df6908b213b0f3e064b4310e3f42"
+      "sha256": "b25437aa09664b83f39014348de3f055a26beccf3ade543e5b74d72471fdafa4"
     },
     {
       "path": "node_modules/@noble/curves/abstract/curve.js",
@@ -367,5 +371,5 @@
   ],
   "noticeSha256": "fa0512cf786c1a12bac9a8fd274fbebe246673507023e26e4f3fdc9ba17a76e7",
   "bundleFile": "lib/native-wallet-sdk.generated.js",
-  "bundleSha256": "0bb3e9ca4df4a6ab216c0891b6820151800b1dd75be1648f91c59025a37895f4"
+  "bundleSha256": "e073df2ae3d2b50818cc83158e19e4f7d9e22c64f3943ca8418bbeb4fdbd870d"
 }

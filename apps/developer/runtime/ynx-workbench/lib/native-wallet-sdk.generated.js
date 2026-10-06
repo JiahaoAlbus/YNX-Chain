@@ -21,12 +21,97 @@ var ynx_native_wallet_consumer_entry_exports = {};
 __export(ynx_native_wallet_consumer_entry_exports, {
   DEVELOPER_WALLET_V2_SOURCE: () => DEVELOPER_WALLET_V2_SOURCE,
   beginDeveloperWalletV2Connection: () => beginDeveloperWalletV2Connection,
+  captureResourceOperation: () => captureResourceOperation,
   createDeveloperWalletV2Runtime: () => createDeveloperWalletV2Runtime,
   enterDeveloperWalletV2Guest: () => enterDeveloperWalletV2Guest,
   inspectDeveloperWalletV2Runtime: () => inspectDeveloperWalletV2Runtime,
+  isDeveloperResourceReturn: () => isDeveloperResourceReturn,
+  receiveResourceReturn: () => receiveResourceReturn,
   subscribeDeveloperWalletCallbacks: () => subscribeDeveloperWalletCallbacks
 });
 module.exports = __toCommonJS(ynx_native_wallet_consumer_entry_exports);
+
+// frontend/src/wallet/resource-approval-return.ts
+var callback = "ynxdeveloper://wallet-auth/callback?developerResourceResult=";
+var expectedFields = "account deviceId sessionBinding projectId projectDigest resourceOrigin resourceId action bodyDigest";
+var unsignedFields = expectedFields + " version purpose accountPublicKey productClientId bundleId platform origin requiredScope nonce issuedAt expiresAt";
+var captured = /* @__PURE__ */ new WeakSet();
+var fail = () => {
+  throw new Error("DEVELOPER_RESOURCE_RETURN_INVALID");
+};
+var canonical = (v) => v && typeof v === "object" ? Array.isArray(v) ? "[" + v.map(canonical).join(",") + "]" : "{" + Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + canonical(v[k])).join(",") + "}" : JSON.stringify(v);
+function fields(v, list) {
+  if (!v || Array.isArray(v) || typeof v !== "object" || Object.keys(v).sort().join(" ") !== list.split(" ").sort().join(" ")) fail();
+}
+function parse(raw, limit) {
+  if (typeof raw !== "string" || raw.length > limit || new TextEncoder().encode(raw).length > limit) fail();
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fail();
+  }
+}
+function decode(raw, limit) {
+  if (typeof raw !== "string" || raw.length > limit || !/^[A-Za-z0-9_-]+$/.test(raw)) fail();
+  try {
+    const bytes = Uint8Array.from(atob(raw.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+    const encoded = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    if (encoded !== raw) fail();
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return fail();
+  }
+}
+function captureResourceOperation(input) {
+  fields(input, "operationId unsigned expected nonce reviewDigest projectId projectDigest bodyDigest");
+  if (typeof input.operationId !== "string" || !/^[A-Za-z0-9._:-]{1,128}$/.test(input.operationId) || !/^([0-9a-f]{64})$/.test(input.reviewDigest)) fail();
+  if (typeof input.nonce !== "string" || input.nonce.length !== 43) fail();
+  decode(input.nonce, 43);
+  const u = parse(input.unsigned, 8192), e = parse(input.expected, 4096);
+  fields(u, unsignedFields);
+  fields(e, expectedFields);
+  if (canonical(u) !== input.unsigned || canonical(e) !== input.expected) fail();
+  for (const k of expectedFields.split(" ")) if (typeof e[k] !== "string" || u[k] !== e[k]) fail();
+  if (u.version !== 1 || u.purpose !== "developer-project-resource/v1" || u.nonce !== input.nonce || u.productClientId !== "ynx-developer-v1" || u.bundleId !== "com.ynxweb4.developer.testnetpreview" || u.platform !== "macos" || u.origin !== "app://macos/com.ynxweb4.developer.testnetpreview") fail();
+  for (const k of ["projectId", "projectDigest", "bodyDigest"]) if (u[k] !== input[k]) fail();
+  const result = Object.freeze({ ...input });
+  captured.add(result);
+  return result;
+}
+function receiveResourceReturn(url2, pending, current) {
+  if (!captured.has(pending) || !captured.has(current) || current !== pending) fail();
+  if (typeof url2 !== "string" || url2.length > 16e3 || !url2.startsWith(callback)) fail();
+  const text3 = decode(url2.slice(callback.length), 15900), packet = parse(text3, 12e3);
+  fields(packet, "version purpose nonce reviewDigest status approval readOnly");
+  if (JSON.stringify(packet) !== text3 || packet.version !== 1 || packet.purpose !== "developer-project-resource/v1" || packet.nonce !== pending.nonce || packet.reviewDigest !== pending.reviewDigest || typeof packet.readOnly !== "boolean" || !["signed", "rejected", "declined"].includes(packet.status)) fail();
+  if (packet.status === "signed") {
+    const proof = parse(packet.approval, 8192);
+    fields(proof, unsignedFields + " signature");
+    if (canonical(proof) !== packet.approval || typeof proof.signature !== "string" || !/^[0-9a-f]{128}$/.test(proof.signature)) fail();
+    const { signature, ...unsigned } = proof;
+    if (canonical(unsigned) !== pending.unsigned) fail();
+  } else if (packet.approval !== null) fail();
+  return Object.freeze({
+    operationId: pending.operationId,
+    status: packet.status,
+    readOnly: packet.readOnly,
+    approval: packet.approval,
+    verification: packet.status === "signed" ? "supplier-unavailable" : "not-applicable",
+    authorityGranted: false,
+    projectResourceApproved: false,
+    productSessionCreated: false,
+    effectAllowed: false,
+    settlesPending: false
+  });
+}
+function isDeveloperResourceReturn(url2) {
+  if (typeof url2 !== "string") return false;
+  try {
+    return new URL(url2).searchParams.has("developerResourceResult") || url2.includes("developerResourceResult");
+  } catch {
+    return url2.includes("developerResourceResult");
+  }
+}
 
 // node_modules/@noble/hashes/utils.js
 function isBytes(a) {
@@ -626,7 +711,7 @@ function createHmacDrbg(hashLen, qByteLen, hmacFn) {
   };
   return genUntil;
 }
-function validateObject(object2, fields = {}, optFields = {}) {
+function validateObject(object2, fields2 = {}, optFields = {}) {
   if (Object.prototype.toString.call(object2) !== "[object Object]")
     throw new TypeError("expected valid options object");
   function checkField(fieldName, expectedType, isOpt) {
@@ -640,7 +725,7 @@ function validateObject(object2, fields = {}, optFields = {}) {
       throw new TypeError(`param "${fieldName}" is invalid: expected ${expectedType}, got ${current}`);
   }
   const iter = (f, isOpt) => Object.entries(f).forEach(([k, v]) => checkField(k, v, isOpt));
-  iter(fields, false);
+  iter(fields2, false);
   iter(optFields, true);
 }
 
@@ -2853,10 +2938,16 @@ function canonicalP256DER(der) {
   }
   return offset === der.length;
 }
-function subscribeDeveloperWalletCallbacks(listener) {
+function subscribeDeveloperWalletCallbacks(listener, resourceListener) {
   const handler = (event) => {
     const detail = event.detail;
-    if (typeof detail === "string") listener(detail);
+    if (typeof detail === "string") {
+      if (isDeveloperResourceReturn(detail)) {
+        resourceListener?.(detail);
+        return;
+      }
+      listener(detail);
+    }
   };
   window.addEventListener("ynx-wallet-callback", handler);
   return () => window.removeEventListener("ynx-wallet-callback", handler);
@@ -3003,21 +3094,21 @@ var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "htt
 function parseProductSessionRegistry2(input) {
   exactFields2(input, DOCUMENT_FIELDS, "Product Session router registry");
   if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
+    fail2("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
   }
   exactFields2(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
-  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
+  const authorizeCallback = callback2(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
   const authorize = new URL(authorizeCallback);
   if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
-    fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
+    fail2("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
   }
   const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
   const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
   if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
-    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+    fail2("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
   }
   if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
+    fail2("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
   }
   const products = input.products.map(parseProduct);
   uniqueSorted(products.map((item) => item.productId), "productId");
@@ -3038,10 +3129,10 @@ ${item.productId}`));
 }
 function productPlatformBinding2(registryInput, productId, platform) {
   const registry = parseProductSessionRegistry2(registryInput);
-  if (!PRODUCT_SESSION_PLATFORMS2.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
+  if (!PRODUCT_SESSION_PLATFORMS2.includes(platform)) fail2("INVALID_PLATFORM", "Product Session platform is unsupported");
   const product = registry.products.find((item) => item.productId === productId);
-  if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
-  if (product.platforms && !product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is not registered for this product");
+  if (!product) fail2("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (product.platforms && !product.platforms.includes(platform)) fail2("INVALID_PLATFORM", "Product Session platform is not registered for this product");
   const web = platform === "web";
   return Object.freeze({
     chainId: registry.chainId,
@@ -3067,7 +3158,7 @@ function parseProduct(input) {
   const hasWebCallback = input !== null && typeof input === "object" && Object.hasOwn(input, "webCallback");
   exactFields2(input, [...PRODUCT_FIELDS2, ...hasPlatforms ? ["platforms"] : [], ...hasWebCallback ? ["webCallback"] : []], "Product Session product registration");
   const platforms = hasPlatforms ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS2.length, (value) => {
-    if (!PRODUCT_SESSION_PLATFORMS2.includes(value)) fail("INVALID_ROUTER_REGISTRY", "Product platform is unsupported");
+    if (!PRODUCT_SESSION_PLATFORMS2.includes(value)) fail2("INVALID_ROUTER_REGISTRY", "Product platform is unsupported");
     return value;
   }) : PRODUCT_SESSION_PLATFORMS2;
   const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
@@ -3077,33 +3168,33 @@ function parseProduct(input) {
   const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
   let webCallback;
   if (hasWebCallback) {
-    webCallback = callback(input.webCallback, "webCallback", { allowHttps: true });
+    webCallback = callback2(input.webCallback, "webCallback", { allowHttps: true });
     const target = new URL(webCallback);
     if (!platforms.includes("web") || target.protocol !== "https:" || target.origin !== webOrigin || target.search || target.hash || target.pathname === "/" || target.pathname.split("/").some((part) => part === "." || part === "..") || target.pathname.includes("%")) {
-      fail("INVALID_ROUTER_REGISTRY", "Web callback requires an exact same-origin registered Web client route");
+      fail2("INVALID_ROUTER_REGISTRY", "Web callback requires an exact same-origin registered Web client route");
     }
   }
   let nativeCallback, legacyCallbacks;
   if (!platforms.some((platform) => platform !== "web")) {
     if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
-      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+      fail2("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
     }
     nativeCallback = null;
     legacyCallbacks = [];
   } else {
-    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+    nativeCallback = callback2(input.nativeCallback, "nativeCallback", { allowHttps: false });
     const native = new URL(nativeCallback);
     if (native.search || native.hash || native.username || native.password || !native.hostname) {
-      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+      fail2("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
     }
     legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
-    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
+    if (!legacyCallbacks.includes(nativeCallback)) fail2("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
   }
   const scopes2 = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (scopes2.some((scope2) => scope2.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
-  if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
+  if (scopes2.some((scope2) => scope2.includes("*"))) fail2("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
+  if (typeof input.evmCompatible !== "boolean") fail2("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
   if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
+    fail2("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
   }
   return Object.freeze({
     productId,
@@ -3120,19 +3211,19 @@ function parseProduct(input) {
     sessionDurationSeconds: input.sessionDurationSeconds
   });
 }
-function callback(value, label, options) {
+function callback2(value, label, options) {
   const normalized = text(value, label, 3, 512);
   let parsed;
   try {
     parsed = new URL(normalized);
   } catch {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
+    fail2("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
   }
   if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
+    fail2("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
   }
-  if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
-  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+  if (parsed.protocol === "https:" && !options.allowHttps) fail2("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
+  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail2("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
   return normalized;
 }
 function httpsURL(value, label, originOnly) {
@@ -3141,36 +3232,36 @@ function httpsURL(value, label, originOnly) {
   try {
     parsed = new URL(normalized);
   } catch {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+    fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
   }
   if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
-    fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
+    fail2("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
   }
   return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
 }
 function stringList(value, label, minimum, maximum, normalize) {
-  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail2("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
   const result = value.map(normalize);
   uniqueSorted(result, label);
   return result;
 }
 function uniqueSorted(values, label) {
   unique(values, label);
-  if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
+  if ([...values].sort().join("\n") !== values.join("\n")) fail2("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
 }
 function unique(values, label) {
-  if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
+  if (new Set(values).size !== values.length) fail2("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
 }
 function pattern(value, label, regex) {
   const result = text(value, label, 1, 512);
-  if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  if (!regex.test(result)) fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
   return result;
 }
 function text(value, label, minimum, maximum) {
-  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
   return value;
 }
-function fail(code, message) {
+function fail2(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -3182,7 +3273,7 @@ var FIELDS = ["profile", "issuedAt", "expiresAt", "durationSeconds"];
 var SCOPES = /* @__PURE__ */ new Set(["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"]);
 var PLATFORMS = /* @__PURE__ */ new Set(["android", "ios", "linux", "macos", "web", "windows"]);
 function createFinanceFiniteServiceConsent(context, durationSeconds = FINANCE_FINITE_CONSENT_DEFAULT_SECONDS) {
-  if (!Number.isInteger(durationSeconds) || durationSeconds < 300 || durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS) fail2("INVALID_SERVICE_CONSENT_TIME");
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 300 || durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS) fail3("INVALID_SERVICE_CONSENT_TIME");
   const issued = iso(context.issuedAt);
   return parseFinanceFiniteServiceConsent(context, {
     profile: FINANCE_FINITE_CONSENT_PROFILE,
@@ -3193,18 +3284,18 @@ function createFinanceFiniteServiceConsent(context, durationSeconds = FINANCE_FI
 }
 function parseFinanceFiniteServiceConsent(context, input, { requestIssuedAt } = {}) {
   exactFields2(input, FIELDS, "Finite Product Session service consent");
-  if (input.profile !== FINANCE_FINITE_CONSENT_PROFILE) fail2("UNKNOWN_SERVICE_CONSENT_PROFILE");
+  if (input.profile !== FINANCE_FINITE_CONSENT_PROFILE) fail3("UNKNOWN_SERVICE_CONSENT_PROFILE");
   const web = context.platform === "web";
-  if (context.chainId !== "ynx_6423-1" || context.productId !== "finance" || context.clientId !== "ynx-finance-v1" || !PLATFORMS.has(context.platform) || context.applicationId !== (web ? "com.ynxweb4.finance.web" : "com.ynxweb4.finance") || context.origin !== (web ? "https://finance.ynxweb4.com" : `app://${context.platform}/com.ynxweb4.finance`) || context.callback !== (web ? "https://finance.ynxweb4.com/wallet-auth/callback" : "ynxfinance://wallet-auth/callback") || !Array.isArray(context.scopes) || !context.scopes.length || context.scopes.some((scope2) => !SCOPES.has(scope2))) fail2("SERVICE_CONSENT_BINDING_MISMATCH");
+  if (context.chainId !== "ynx_6423-1" || context.productId !== "finance" || context.clientId !== "ynx-finance-v1" || !PLATFORMS.has(context.platform) || context.applicationId !== (web ? "com.ynxweb4.finance.web" : "com.ynxweb4.finance") || context.origin !== (web ? "https://finance.ynxweb4.com" : `app://${context.platform}/com.ynxweb4.finance`) || context.callback !== (web ? "https://finance.ynxweb4.com/wallet-auth/callback" : "ynxfinance://wallet-auth/callback") || !Array.isArray(context.scopes) || !context.scopes.length || context.scopes.some((scope2) => !SCOPES.has(scope2))) fail3("SERVICE_CONSENT_BINDING_MISMATCH");
   const issuedAt = iso(input.issuedAt), expiresAt = iso(input.expiresAt);
-  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 300 || input.durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS || Date.parse(expiresAt) - Date.parse(issuedAt) !== input.durationSeconds * 1e3 || requestIssuedAt !== void 0 && issuedAt !== requestIssuedAt) fail2("INVALID_SERVICE_CONSENT_TIME");
+  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 300 || input.durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS || Date.parse(expiresAt) - Date.parse(issuedAt) !== input.durationSeconds * 1e3 || requestIssuedAt !== void 0 && issuedAt !== requestIssuedAt) fail3("INVALID_SERVICE_CONSENT_TIME");
   return Object.freeze({ profile: input.profile, issuedAt, expiresAt, durationSeconds: input.durationSeconds });
 }
 function iso(value) {
-  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) fail2("INVALID_SERVICE_CONSENT_TIME");
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) fail3("INVALID_SERVICE_CONSENT_TIME");
   return value;
 }
-function fail2(code) {
+function fail3(code) {
   throw new WalletAuthError2(code, "Finite private service consent is outside the reviewed Finance policy");
 }
 
@@ -3342,7 +3433,7 @@ function createProductSessionRequest2(registryInput, input, at = /* @__PURE__ */
 function parseProductSessionRequest2(registryInput, input, at = /* @__PURE__ */ new Date()) {
   exactFields2(input, consentFields(input, REQUEST_FIELDS), "Product Session request");
   const now = validDate(at);
-  if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS2.includes(input.platform)) fail3("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
+  if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS2.includes(input.platform)) fail4("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
   const binding2 = productPlatformBinding2(registryInput, input.productId, input.platform);
   const request = Object.freeze({
     version: input.version,
@@ -3368,12 +3459,12 @@ function parseProductSessionRequest2(registryInput, input, at = /* @__PURE__ */ 
   });
   validatePlatformIdentifiers(request);
   for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
-    if (request[field] !== binding2[field]) fail3("SESSION_BINDING_MISMATCH", `Product Session request ${field} does not match the registry`);
+    if (request[field] !== binding2[field]) fail4("SESSION_BINDING_MISMATCH", `Product Session request ${field} does not match the registry`);
   }
   const issued = Date.parse(request.issuedAt), expires = Date.parse(request.expiresAt);
-  if (expires <= issued || expires - issued > REQUEST_MAX_LIFETIME_MS2) fail3("INVALID_EXPIRY", "Product Session request lifetime is invalid");
-  if (issued > now.getTime() + 3e4) fail3("ISSUED_IN_FUTURE", "Product Session request was issued in the future");
-  if (expires <= now.getTime()) fail3("SESSION_EXPIRED", "Product Session request expired");
+  if (expires <= issued || expires - issued > REQUEST_MAX_LIFETIME_MS2) fail4("INVALID_EXPIRY", "Product Session request lifetime is invalid");
+  if (issued > now.getTime() + 3e4) fail4("ISSUED_IN_FUTURE", "Product Session request was issued in the future");
+  if (expires <= now.getTime()) fail4("SESSION_EXPIRED", "Product Session request expired");
   return request;
 }
 function productSessionRequestDigest(registryInput, request, at = /* @__PURE__ */ new Date()) {
@@ -3408,17 +3499,17 @@ function parseProductSessionApproval2(registryInput, requestInput, input, at = /
     walletSignature: pattern2(input.walletSignature, "walletSignature", /^[0-9a-f]{128}$/)
   });
   validatePlatformIdentifiers(approval);
-  if (canonicalJSON3(approval.serviceConsent ?? null) !== canonicalJSON3(request.serviceConsent ?? null)) fail3("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet service consent differs from the signed request");
+  if (canonicalJSON3(approval.serviceConsent ?? null) !== canonicalJSON3(request.serviceConsent ?? null)) fail4("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet service consent differs from the signed request");
   const boundFields = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state"];
-  if (approval.requestDigest !== productSessionRequestDigest(registryInput, request, at) || boundFields.some((field) => approval[field] !== request[field]) || approval.scopes.join("\n") !== request.scopes.join("\n")) fail3("SESSION_BINDING_MISMATCH", "Wallet approval does not match the exact Product Session request");
-  if (approval.issuedAt < request.issuedAt || approval.issuedAt > validDate(at).toISOString() || approval.expiresAt > request.expiresAt || approval.expiresAt <= validDate(at).toISOString()) fail3("INVALID_APPROVAL_TIME", "Wallet approval is outside the request lifetime");
+  if (approval.requestDigest !== productSessionRequestDigest(registryInput, request, at) || boundFields.some((field) => approval[field] !== request[field]) || approval.scopes.join("\n") !== request.scopes.join("\n")) fail4("SESSION_BINDING_MISMATCH", "Wallet approval does not match the exact Product Session request");
+  if (approval.issuedAt < request.issuedAt || approval.issuedAt > validDate(at).toISOString() || approval.expiresAt > request.expiresAt || approval.expiresAt <= validDate(at).toISOString()) fail4("INVALID_APPROVAL_TIME", "Wallet approval is outside the request lifetime");
   let valid = false;
   try {
     valid = secp256k1.verify(hexToBytes(approval.walletSignature), sha256(utf8ToBytes(approvalSignBytes3(unsignedApproval3(approval)))), hexToBytes(approval.accountPublicKey), { prehash: false, format: "compact", lowS: true });
   } catch {
     valid = false;
   }
-  if (!valid || walletIdentityFromPublicKey2(approval.accountPublicKey) !== approval.account) fail3("INVALID_SIGNATURE", "Wallet approval signature is invalid");
+  if (!valid || walletIdentityFromPublicKey2(approval.accountPublicKey) !== approval.account) fail4("INVALID_SIGNATURE", "Wallet approval signature is invalid");
   return approval;
 }
 function createProductSessionChallenge2(registryInput, requestInput, approvalInput, input, at = /* @__PURE__ */ new Date()) {
@@ -3459,28 +3550,28 @@ function createProductSessionChallenge2(registryInput, requestInput, approvalInp
 function signProductSessionChallenge2(challengeInput, deviceSecretInput) {
   const challenge = parseChallenge(challengeInput);
   const secret = deviceSecret(deviceSecretInput);
-  if (encodeBase64url2(p256.getPublicKey(secret, true)) !== challenge.deviceKey) fail3("DEVICE_CHANGED", "Product device key changed before session completion");
+  if (encodeBase64url2(p256.getPublicKey(secret, true)) !== challenge.deviceKey) fail4("DEVICE_CHANGED", "Product device key changed before session completion");
   const signature = p256.sign(utf8ToBytes(challengeSignBytes(challenge)), secret, { format: "der" });
   return Object.freeze({ challenge, deviceSignature: encodeBase64url2(signature) });
 }
 async function signProductSessionChallengeWith2(challengeInput, signer) {
   const challenge = parseChallenge(challengeInput);
-  if (typeof signer !== "function") fail3("INVALID_DEVICE", "Product Session requires a platform device signer");
+  if (typeof signer !== "function") fail4("INVALID_DEVICE", "Product Session requires a platform device signer");
   const payload = encodeBase64url2(utf8ToBytes(challengeSignBytes(challenge)));
   let deviceSignature;
   try {
     deviceSignature = await signer(Object.freeze({ purpose: "challenge", algorithm: "p256-sha256", deviceKey: challenge.deviceKey, payload }));
   } catch {
-    fail3("DEVICE_SIGNING_FAILED", "Platform device signing failed closed");
+    fail4("DEVICE_SIGNING_FAILED", "Platform device signing failed closed");
   }
-  if (typeof deviceSignature !== "string") fail3("INVALID_DEVICE_PROOF", "Platform device signature is invalid");
+  if (typeof deviceSignature !== "string") fail4("INVALID_DEVICE_PROOF", "Platform device signature is invalid");
   let valid = false;
   try {
     valid = p256.verify(decodeBase64url3(deviceSignature, "deviceSignature"), decodeBase64url3(payload, "device signing payload"), decodeBase64url3(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
   } catch {
     valid = false;
   }
-  if (!valid) fail3("INVALID_DEVICE_PROOF", "Platform device signature does not match the registered device key");
+  if (!valid) fail4("INVALID_DEVICE_PROOF", "Platform device signature does not match the registered device key");
   return Object.freeze({ challenge, deviceSignature });
 }
 function parseProductSessionChallenge2(input) {
@@ -3498,9 +3589,9 @@ var ProductSessionAuthority2 = class {
     const request = parseProductSessionRequest2(this.#registry, input.request, at);
     const approval = parseProductSessionApproval2(this.#registry, request, input.approval, at);
     this.#assertApprovalNotRevoked(request, approval);
-    if (this.#state.consumedRequests.includes(approval.requestDigest)) fail3("REPLAY", "Product Session request already completed; recover its original completion or obtain a new Wallet approval");
+    if (this.#state.consumedRequests.includes(approval.requestDigest)) fail4("REPLAY", "Product Session request already completed; recover its original completion or obtain a new Wallet approval");
     const challenge = createProductSessionChallenge2(this.#registry, request, approval, { challenge: input.challenge }, at);
-    if (this.#state.issuedChallenges.some((item) => item.challenge === challenge.challenge) || this.#state.consumedChallenges.includes(challenge.challenge)) fail3("REPLAY", "Product Session challenge already exists");
+    if (this.#state.issuedChallenges.some((item) => item.challenge === challenge.challenge) || this.#state.consumedChallenges.includes(challenge.challenge)) fail4("REPLAY", "Product Session challenge already exists");
     const next = clone(this.#state);
     next.issuedChallenges.push(challenge);
     sortSnapshot(next);
@@ -3515,18 +3606,18 @@ var ProductSessionAuthority2 = class {
     exactFields2(input.completion, COMPLETION_FIELDS, "Product Session device completion");
     const challenge = parseChallenge(input.completion.challenge);
     const expected = createProductSessionChallenge2(this.#registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
-    if (canonicalJSON3(challenge) !== canonicalJSON3(expected)) fail3("SESSION_BINDING_MISMATCH", "Gateway challenge fields were substituted");
+    if (canonicalJSON3(challenge) !== canonicalJSON3(expected)) fail4("SESSION_BINDING_MISMATCH", "Gateway challenge fields were substituted");
     const issued = this.#state.issuedChallenges.find((item) => item.challenge === challenge.challenge);
-    if (!issued || canonicalJSON3(issued) !== canonicalJSON3(challenge)) fail3("CHALLENGE_NOT_ISSUED", "Product Session challenge was not issued by this Gateway");
-    if (challenge.expiresAt <= validDate(at).toISOString()) fail3("SESSION_EXPIRED", "Product Session challenge expired");
+    if (!issued || canonicalJSON3(issued) !== canonicalJSON3(challenge)) fail4("CHALLENGE_NOT_ISSUED", "Product Session challenge was not issued by this Gateway");
+    if (challenge.expiresAt <= validDate(at).toISOString()) fail4("SESSION_EXPIRED", "Product Session challenge expired");
     let valid = false;
     try {
       valid = p256.verify(decodeBase64url3(input.completion.deviceSignature, "deviceSignature"), utf8ToBytes(challengeSignBytes(challenge)), decodeBase64url3(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
     } catch {
       valid = false;
     }
-    if (!valid) fail3("INVALID_DEVICE_PROOF", "Product Session device proof is invalid");
-    if (this.#state.consumedNonces.includes(request.nonce) || this.#state.consumedStates.includes(request.state) || this.#state.consumedRequests.includes(approval.requestDigest) || this.#state.consumedChallenges.includes(challenge.challenge)) fail3("REPLAY", "Product Session request, state or challenge was already consumed");
+    if (!valid) fail4("INVALID_DEVICE_PROOF", "Product Session device proof is invalid");
+    if (this.#state.consumedNonces.includes(request.nonce) || this.#state.consumedStates.includes(request.state) || this.#state.consumedRequests.includes(approval.requestDigest) || this.#state.consumedChallenges.includes(challenge.challenge)) fail4("REPLAY", "Product Session request, state or challenge was already consumed");
     const session = parseSession({
       version: PRODUCT_SESSION_PROTOCOL_VERSION,
       sessionBinding: digestHex2("YNX_PRODUCT_SESSION_BINDING_V2", challenge),
@@ -3567,21 +3658,21 @@ var ProductSessionAuthority2 = class {
   introspect(sessionBindingInput, context, at = /* @__PURE__ */ new Date()) {
     exactFields2(context, ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey", "requiredScopes"], "Product Session introspection context");
     const session = this.#state.sessions.find((item) => item.sessionBinding === digest(sessionBindingInput, "sessionBinding"));
-    if (!session) fail3("SESSION_NOT_FOUND", "Product Session was not found");
+    if (!session) fail4("SESSION_NOT_FOUND", "Product Session was not found");
     const now = validDate(at).toISOString();
-    if (session.issuedAt > now) fail3("ISSUED_IN_FUTURE", "Product Session was issued in the future");
-    if (session.expiresAt <= now) fail3("SESSION_EXPIRED", "Product Session expired");
-    if (this.#state.revokedSessions.includes(session.sessionBinding) || this.#state.revokedDevices.includes(session.deviceBinding) || this.#state.revokedAccounts.some((item) => item.account === session.account && session.issuedAt <= item.before)) fail3("SESSION_REVOKED", "Product Session was revoked");
+    if (session.issuedAt > now) fail4("ISSUED_IN_FUTURE", "Product Session was issued in the future");
+    if (session.expiresAt <= now) fail4("SESSION_EXPIRED", "Product Session expired");
+    if (this.#state.revokedSessions.includes(session.sessionBinding) || this.#state.revokedDevices.includes(session.deviceBinding) || this.#state.revokedAccounts.some((item) => item.account === session.account && session.issuedAt <= item.before)) fail4("SESSION_REVOKED", "Product Session was revoked");
     validatePlatformIdentifiers(context, "CROSS_PRODUCT_SESSION");
     const exact = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey"];
-    if (exact.some((field) => context[field] !== session[field])) fail3("CROSS_PRODUCT_SESSION", "Product Session cannot cross product, account, origin, callback or device boundaries");
+    if (exact.some((field) => context[field] !== session[field])) fail4("CROSS_PRODUCT_SESSION", "Product Session cannot cross product, account, origin, callback or device boundaries");
     const required = requiredScopes(context.requiredScopes, session.scopes);
-    if (required.some((scope2) => !session.scopes.includes(scope2))) fail3("SCOPE_WIDENING", "Product Session scope cannot be widened");
+    if (required.some((scope2) => !session.scopes.includes(scope2))) fail4("SCOPE_WIDENING", "Product Session scope cannot be widened");
     return Object.freeze({ active: true, session });
   }
   revokeSession(sessionBindingInput) {
     const value = digest(sessionBindingInput, "sessionBinding");
-    if (!this.#state.sessions.some((item) => item.sessionBinding === value)) fail3("SESSION_NOT_FOUND", "Product Session was not found");
+    if (!this.#state.sessions.some((item) => item.sessionBinding === value)) fail4("SESSION_NOT_FOUND", "Product Session was not found");
     this.#revoke("revokedSessions", value);
     return value;
   }
@@ -3605,10 +3696,10 @@ var ProductSessionAuthority2 = class {
     return freezeSnapshot(clone(this.#state));
   }
   #assertApprovalNotRevoked(request, approval) {
-    if (this.#state.revokedDevices.includes(deviceBinding(request, approval.account)) || this.#state.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail3("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
+    if (this.#state.revokedDevices.includes(deviceBinding(request, approval.account)) || this.#state.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail4("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
   }
   #revoke(field, value) {
-    if (this.#state[field].includes(value)) fail3("ALREADY_REVOKED", "Product Session revocation already exists");
+    if (this.#state[field].includes(value)) fail4("ALREADY_REVOKED", "Product Session revocation already exists");
     const next = clone(this.#state);
     next[field].push(value);
     sortSnapshot(next);
@@ -3629,25 +3720,25 @@ function parseChallenge(input) {
   const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern2(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
   validatePlatformIdentifiers(value);
   const serviceValid = value.serviceConsent ? value.sessionExpiresAt === value.serviceConsent.expiresAt && value.issuedAt >= value.serviceConsent.issuedAt && Date.parse(value.expiresAt) <= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS2 : Date.parse(value.sessionExpiresAt) - Date.parse(value.issuedAt) <= REQUEST_MAX_LIFETIME_MS2;
-  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || !serviceValid) fail3("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
+  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || !serviceValid) fail4("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
   return value;
 }
 function parseSession(input) {
   exactFields2(input, consentFields(input, SESSION_FIELDS), "Product Session");
   const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern2(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") });
   validatePlatformIdentifiers(value);
-  if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS2)) fail3("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window");
-  if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail3("INVALID_SESSION", "Product Session security binding or lifetime is invalid");
+  if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS2)) fail4("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window");
+  if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail4("INVALID_SESSION", "Product Session security binding or lifetime is invalid");
   return value;
 }
 function parseSnapshot(input) {
   exactFields2(input, SNAPSHOT_FIELDS2, "Product Session authority snapshot");
-  if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail3("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported");
+  if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail4("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported");
   const value = { schemaVersion: input.schemaVersion, sessions: sortedUnique(input.sessions.map(parseSession), (item) => item.sessionBinding, "sessions"), issuedChallenges: sortedUnique(input.issuedChallenges.map(parseChallenge), (item) => item.challenge, "issuedChallenges"), consumedNonces: stringSet(input.consumedNonces, /^[A-Za-z0-9_-]{32,64}$/, "consumedNonces"), consumedStates: stringSet(input.consumedStates, /^[A-Za-z0-9_-]{32,64}$/, "consumedStates"), consumedRequests: stringSet(input.consumedRequests, /^[0-9a-f]{64}$/, "consumedRequests"), consumedChallenges: stringSet(input.consumedChallenges, /^[A-Za-z0-9_-]{32,64}$/, "consumedChallenges"), revokedSessions: stringSet(input.revokedSessions, /^[0-9a-f]{64}$/, "revokedSessions"), revokedDevices: stringSet(input.revokedDevices, /^[0-9a-f]{64}$/, "revokedDevices"), revokedAccounts: sortedUnique(input.revokedAccounts.map((item) => {
     exactFields2(item, ["account", "before"], "revoked account");
     return Object.freeze({ account: pattern2(item.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: time(item.before, "before") });
   }), (item) => item.account, "revokedAccounts") };
-  if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail3("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap");
+  if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail4("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap");
   return freezeSnapshot(value);
 }
 function emptySnapshot() {
@@ -3666,16 +3757,16 @@ function freezeSnapshot(value) {
   return Object.freeze({ ...value, sessions: Object.freeze(value.sessions), issuedChallenges: Object.freeze(value.issuedChallenges), consumedNonces: Object.freeze(value.consumedNonces), consumedStates: Object.freeze(value.consumedStates), consumedRequests: Object.freeze(value.consumedRequests), consumedChallenges: Object.freeze(value.consumedChallenges), revokedSessions: Object.freeze(value.revokedSessions), revokedDevices: Object.freeze(value.revokedDevices), revokedAccounts: Object.freeze(value.revokedAccounts) });
 }
 function stringSet(value, regex, label) {
-  if (!Array.isArray(value) || value.length > 1e4 || value.some((item) => typeof item !== "string" || !regex.test(item))) fail3("INVALID_SESSION_STORE", `${label} is invalid`);
+  if (!Array.isArray(value) || value.length > 1e4 || value.some((item) => typeof item !== "string" || !regex.test(item))) fail4("INVALID_SESSION_STORE", `${label} is invalid`);
   return sortedUnique(value, (item) => item, label);
 }
 function sortedUnique(value, key, label) {
   const keys = value.map(key);
-  if (new Set(keys).size !== keys.length || [...keys].sort().join("\n") !== keys.join("\n")) fail3("INVALID_SESSION_STORE", `${label} must be unique and sorted`);
+  if (new Set(keys).size !== keys.length || [...keys].sort().join("\n") !== keys.join("\n")) fail4("INVALID_SESSION_STORE", `${label} must be unique and sorted`);
   return Object.freeze(value);
 }
-function consentFields(value, fields) {
-  return [...fields, ...Object.hasOwn(value, "serviceConsent") ? ["serviceConsent"] : []];
+function consentFields(value, fields2) {
+  return [...fields2, ...Object.hasOwn(value, "serviceConsent") ? ["serviceConsent"] : []];
 }
 function parseConsent(value, requestIssuedAt) {
   return Object.hasOwn(value, "serviceConsent") ? { serviceConsent: parseFinanceFiniteServiceConsent(value, value.serviceConsent, { requestIssuedAt }) } : {};
@@ -3693,13 +3784,13 @@ function challengeSignBytes(value) {
 ${canonicalJSON3(value)}`;
 }
 function scopes(value, allowlist) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 8) fail3("INVALID_SCOPES", "Product Session scopes are invalid");
+  if (!Array.isArray(value) || value.length < 1 || value.length > 8) fail4("INVALID_SCOPES", "Product Session scopes are invalid");
   const result = value.map((item) => pattern2(item, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (new Set(result).size !== result.length || [...result].sort().join("\n") !== result.join("\n") || result.some((item) => !allowlist.includes(item))) fail3("SCOPE_WIDENING", "Product Session scope is duplicated, unsorted or outside the registry");
+  if (new Set(result).size !== result.length || [...result].sort().join("\n") !== result.join("\n") || result.some((item) => !allowlist.includes(item))) fail4("SCOPE_WIDENING", "Product Session scope is duplicated, unsorted or outside the registry");
   return result;
 }
 function requiredScopes(value, allowlist) {
-  if (!Array.isArray(value) || value.length > 8) fail3("INVALID_SCOPES", "Required Product Session scopes are invalid");
+  if (!Array.isArray(value) || value.length > 8) fail4("INVALID_SCOPES", "Required Product Session scopes are invalid");
   if (value.length === 0) return [];
   return scopes(value, allowlist);
 }
@@ -3709,7 +3800,7 @@ function platformIdentity(value, label) {
 function validatePlatformIdentifiers(value, errorCode = "SESSION_BINDING_MISMATCH") {
   const expectsBundle = value.platform === "ios" || value.platform === "macos";
   const expectsPackage = value.platform === "android" || value.platform === "linux" || value.platform === "windows";
-  if (value.bundleId !== null !== expectsBundle || value.packageId !== null !== expectsPackage || value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId) fail3(errorCode, "Product Session bundleId/packageId does not match its registered platform identity");
+  if (value.bundleId !== null !== expectsBundle || value.packageId !== null !== expectsPackage || value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId) fail4(errorCode, "Product Session bundleId/packageId does not match its registered platform identity");
 }
 function canonicalOrigin(value) {
   const normalized = text2(value, "origin", 8, 512);
@@ -3717,11 +3808,11 @@ function canonicalOrigin(value) {
   try {
     parsed = new URL(normalized);
   } catch {
-    fail3("INVALID_ORIGIN", "Product Session origin is invalid");
+    fail4("INVALID_ORIGIN", "Product Session origin is invalid");
   }
   if (parsed.protocol === "https:" && parsed.origin === normalized && !parsed.port) return normalized;
   if (parsed.protocol === "app:" && /^app:\/\/(android|ios|linux|macos|windows)\/[A-Za-z][A-Za-z0-9.-]{2,127}$/.test(normalized)) return normalized;
-  fail3("INVALID_ORIGIN", "Product Session origin must be an exact HTTPS or registered native origin");
+  fail4("INVALID_ORIGIN", "Product Session origin must be an exact HTTPS or registered native origin");
 }
 function canonicalCallback(value) {
   const normalized = text2(value, "callback", 8, 512);
@@ -3729,25 +3820,25 @@ function canonicalCallback(value) {
   try {
     parsed = new URL(normalized);
   } catch {
-    fail3("CALLBACK_MISMATCH", "Product Session callback is invalid");
+    fail4("CALLBACK_MISMATCH", "Product Session callback is invalid");
   }
-  if (["data:", "file:", "http:", "javascript:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.hash || parsed.search || parsed.toString() !== normalized) fail3("CALLBACK_MISMATCH", "Product Session callback is unsafe or non-canonical");
+  if (["data:", "file:", "http:", "javascript:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.hash || parsed.search || parsed.toString() !== normalized) fail4("CALLBACK_MISMATCH", "Product Session callback is unsafe or non-canonical");
   return normalized;
 }
 function deviceKey(value) {
   const normalized = pattern2(value, "deviceKey", /^[A-Za-z0-9_-]{44}$/);
   const bytes = decodeBase64url3(normalized, "deviceKey");
-  if (bytes.length !== 33 || encodeBase64url2(bytes) !== normalized) fail3("INVALID_DEVICE_KEY", "Product Session device key is invalid");
+  if (bytes.length !== 33 || encodeBase64url2(bytes) !== normalized) fail4("INVALID_DEVICE_KEY", "Product Session device key is invalid");
   try {
     p256.Point.fromBytes(bytes);
   } catch {
-    fail3("INVALID_DEVICE_KEY", "Product Session device key is not P-256");
+    fail4("INVALID_DEVICE_KEY", "Product Session device key is not P-256");
   }
   return normalized;
 }
 function deviceSecret(value) {
   const bytes = decodeBase64url3(value, "deviceSecret");
-  if (bytes.length !== 32 || !p256.utils.isValidSecretKey(bytes)) fail3("INVALID_SECRET", "Product device secret is invalid");
+  if (bytes.length !== 32 || !p256.utils.isValidSecretKey(bytes)) fail4("INVALID_SECRET", "Product device secret is invalid");
   return bytes;
 }
 function token(value, label) {
@@ -3761,26 +3852,26 @@ function digest(value, label) {
 }
 function pattern2(value, label, regex) {
   const normalized = text2(value, label, 1, 512);
-  if (!regex.test(normalized)) fail3("INVALID_FIELD", `${label} is invalid`);
+  if (!regex.test(normalized)) fail4("INVALID_FIELD", `${label} is invalid`);
   return normalized;
 }
 function text2(value, label, minimum, maximum) {
-  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail3("INVALID_FIELD", `${label} is invalid`);
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail4("INVALID_FIELD", `${label} is invalid`);
   return value;
 }
 function time(value, label) {
   const normalized = pattern2(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail3("INVALID_TIME", `${label} is invalid`);
+  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail4("INVALID_TIME", `${label} is invalid`);
   return normalized;
 }
 function validDate(value) {
-  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail3("INVALID_TIME", "Product Session time is invalid");
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail4("INVALID_TIME", "Product Session time is invalid");
   return value;
 }
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
 }
-function fail3(code, message) {
+function fail4(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -3791,7 +3882,7 @@ function createProductSessionProofV22(sessionInput, input, deviceSecretInput) {
   const session = parseProductSession2(sessionInput);
   exactFields2(input, INPUT_FIELDS, "Product Session v2 proof input");
   const secret = decodeBase64url3(deviceSecretInput, "deviceSecret");
-  if (secret.length !== 32 || encodeBase64url2(p256.getPublicKey(secret, true)) !== session.deviceKey) fail4("DEVICE_CHANGED", "Product Session proof device changed");
+  if (secret.length !== 32 || encodeBase64url2(p256.getPublicKey(secret, true)) !== session.deviceKey) fail5("DEVICE_CHANGED", "Product Session proof device changed");
   const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
   const signature = encodeBase64url2(p256.sign(utf8ToBytes(productSessionProofV2SignBytes(unsigned)), secret, { format: "der" }));
   return parseProductSessionProofV22({ ...unsigned, signature });
@@ -3799,14 +3890,14 @@ function createProductSessionProofV22(sessionInput, input, deviceSecretInput) {
 async function createProductSessionProofV2With2(sessionInput, input, signer) {
   const session = parseProductSession2(sessionInput);
   exactFields2(input, INPUT_FIELDS, "Product Session v2 proof input");
-  if (typeof signer !== "function") fail4("INVALID_DEVICE", "Product Session proof requires a platform device signer");
+  if (typeof signer !== "function") fail5("INVALID_DEVICE", "Product Session proof requires a platform device signer");
   const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
   const payload = encodeBase64url2(utf8ToBytes(productSessionProofV2SignBytes(unsigned)));
   let signature;
   try {
     signature = await signer(Object.freeze({ purpose: "http-proof", algorithm: "p256-sha256", deviceKey: session.deviceKey, payload }));
   } catch {
-    fail4("DEVICE_SIGNING_FAILED", "Platform device proof signing failed closed");
+    fail5("DEVICE_SIGNING_FAILED", "Platform device proof signing failed closed");
   }
   const proof = parseProductSessionProofV22({ ...unsigned, signature });
   let valid = false;
@@ -3815,14 +3906,14 @@ async function createProductSessionProofV2With2(sessionInput, input, signer) {
   } catch {
     valid = false;
   }
-  if (!valid) fail4("INVALID_DEVICE_PROOF", "Platform device proof signature does not match the registered device key");
+  if (!valid) fail5("INVALID_DEVICE_PROOF", "Platform device proof signature does not match the registered device key");
   return proof;
 }
 function parseProductSessionProofV22(input) {
   exactFields2(input, PROOF_FIELDS, "Product Session v2 proof");
   const { signature, ...unsigned } = input;
   const bytes = decodeBase64url3(pattern3(signature, "signature", /^[A-Za-z0-9_-]{90,96}$/), "signature");
-  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url2(bytes) !== signature) fail4("INVALID_DEVICE_PROOF", "Product Session proof signature is invalid");
+  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url2(bytes) !== signature) fail5("INVALID_DEVICE_PROOF", "Product Session proof signature is invalid");
   return Object.freeze({ ...parseUnsigned(unsigned), signature });
 }
 function productSessionProofV2SignBytes(input) {
@@ -3832,8 +3923,8 @@ ${canonicalJSON3(parseUnsigned(input))}`;
 function parseUnsigned(input) {
   exactFields2(input, PROOF_FIELDS.filter((field) => field !== "signature"), "Unsigned Product Session v2 proof");
   const value = Object.freeze({ version: pattern3(input.version, "version", /^2$/), sessionBinding: digest2(input.sessionBinding, "sessionBinding"), productId: pattern3(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern3(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), applicationId: pattern3(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: nullableIdentity(input.bundleId, "bundleId"), packageId: nullableIdentity(input.packageId, "packageId"), origin: url(input.origin, "origin"), callback: url(input.callback, "callback"), account: pattern3(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: pattern3(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/), deviceKey: pattern3(input.deviceKey, "deviceKey", /^[A-Za-z0-9_-]{44}$/), method: method(input.method), path: path(input.path), bodyDigest: digest2(input.bodyDigest, "bodyDigest"), nonce: pattern3(input.nonce, "nonce", /^[A-Za-z0-9_-]{32,64}$/), issuedAt: time2(input.issuedAt, "issuedAt"), expiresAt: time2(input.expiresAt, "expiresAt") });
-  if (value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId || value.bundleId !== null && value.packageId !== null) fail4("INVALID_FIELD", "Product Session proof application identity is inconsistent");
-  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 6e4) fail4("INVALID_EXPIRY", "Product Session proof lifetime must be at most sixty seconds");
+  if (value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId || value.bundleId !== null && value.packageId !== null) fail5("INVALID_FIELD", "Product Session proof application identity is inconsistent");
+  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 6e4) fail5("INVALID_EXPIRY", "Product Session proof lifetime must be at most sixty seconds");
   return value;
 }
 function url(value, label) {
@@ -3842,10 +3933,10 @@ function url(value, label) {
   try {
     parsed = new URL(normalized);
   } catch {
-    fail4("INVALID_FIELD", `${label} is invalid`);
+    fail5("INVALID_FIELD", `${label} is invalid`);
   }
-  const canonical = label === "origin" && parsed.protocol === "https:" ? parsed.origin === normalized : parsed.toString() === normalized;
-  if (!canonical || ["http:", "file:", "javascript:", "data:"].includes(parsed.protocol)) fail4("INVALID_FIELD", `${label} is unsafe`);
+  const canonical2 = label === "origin" && parsed.protocol === "https:" ? parsed.origin === normalized : parsed.toString() === normalized;
+  if (!canonical2 || ["http:", "file:", "javascript:", "data:"].includes(parsed.protocol)) fail5("INVALID_FIELD", `${label} is unsafe`);
   return normalized;
 }
 function method(value) {
@@ -3853,7 +3944,7 @@ function method(value) {
 }
 function path(value) {
   const normalized = pattern3(value, "path", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/);
-  if (normalized.includes("//") || normalized.endsWith("/") || normalized.includes("?") || normalized.includes("#")) fail4("INVALID_PATH", "Product Session proof path is non-canonical");
+  if (normalized.includes("//") || normalized.endsWith("/") || normalized.includes("?") || normalized.includes("#")) fail5("INVALID_PATH", "Product Session proof path is non-canonical");
   return normalized;
 }
 function digest2(value, label) {
@@ -3863,15 +3954,15 @@ function nullableIdentity(value, label) {
   return value === null ? null : pattern3(value, label, /^[A-Za-z][A-Za-z0-9.-]{2,131}$/);
 }
 function pattern3(value, label, regex) {
-  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail4("INVALID_FIELD", `${label} is invalid`);
+  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail5("INVALID_FIELD", `${label} is invalid`);
   return value;
 }
 function time2(value, label) {
   const normalized = pattern3(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail4("INVALID_TIME", `${label} is invalid`);
+  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail5("INVALID_TIME", `${label} is invalid`);
   return normalized;
 }
-function fail4(code, message) {
+function fail5(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -3920,10 +4011,10 @@ var SESSION_V1_FIELDS = [...SESSION_V1_BASE_FIELDS, "accountPublicKey"];
 
 // vendor/wallet-auth-c5/src/session-proof.js
 function httpBodyDigest2(body) {
-  if (typeof body !== "string" && !(body instanceof Uint8Array)) fail5("INVALID_BODY", "HTTP proof body must be a string or bytes");
+  if (typeof body !== "string" && !(body instanceof Uint8Array)) fail6("INVALID_BODY", "HTTP proof body must be a string or bytes");
   return bytesToHex(sha256(typeof body === "string" ? utf8ToBytes(body) : body));
 }
-function fail5(code, message) {
+function fail6(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -3940,8 +4031,8 @@ var ProductSessionGatewayFetchAdapter2 = class {
   constructor(config) {
     exactFields2(config, ["endpoint", "fetch", "walletInstalled", "schemeRegistered", "timeoutMs"], "Product Session Gateway fetch adapter configuration");
     this.#endpoint = endpoint(config.endpoint);
-    if (typeof config.fetch !== "function" || typeof config.walletInstalled !== "function" || typeof config.schemeRegistered !== "function") fail6("INVALID_GATEWAY", "Product Session Gateway fetch adapter dependencies are invalid");
-    if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 1e3 || config.timeoutMs > 3e4) fail6("INVALID_GATEWAY", "Product Session Gateway timeout must be between one and thirty seconds");
+    if (typeof config.fetch !== "function" || typeof config.walletInstalled !== "function" || typeof config.schemeRegistered !== "function") fail7("INVALID_GATEWAY", "Product Session Gateway fetch adapter dependencies are invalid");
+    if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 1e3 || config.timeoutMs > 3e4) fail7("INVALID_GATEWAY", "Product Session Gateway timeout must be between one and thirty seconds");
     this.#fetch = config.fetch;
     this.#walletInstalled = config.walletInstalled;
     this.#schemeRegistered = config.schemeRegistered;
@@ -3962,11 +4053,11 @@ var ProductSessionGatewayFetchAdapter2 = class {
       const result = await this.#request(input.requestId, "/v2/product-sessions/time", null, null, "GET");
       exactFields2(result, ["serverTime"], "Product Session Gateway time response");
       const now = new Date(result.serverTime);
-      if (typeof result.serverTime !== "string" || !Number.isFinite(now.getTime()) || now.toISOString() !== result.serverTime) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway time is invalid");
+      if (typeof result.serverTime !== "string" || !Number.isFinite(now.getTime()) || now.toISOString() !== result.serverTime) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway time is invalid");
       return now;
     } catch (error) {
       if (error instanceof WalletAuthError2 && error.code === "NETWORK_UNAVAILABLE") throw error;
-      fail6("CLOCK_UNAVAILABLE", "Product Session authority time could not be verified; Retry when Auth is available");
+      fail7("CLOCK_UNAVAILABLE", "Product Session authority time could not be verified; Retry when Auth is available");
     }
   }
   async challenge(input) {
@@ -3980,17 +4071,17 @@ var ProductSessionGatewayFetchAdapter2 = class {
   async introspect(input) {
     exactFields2(input, ["requestId", "sessionBinding", "requiredScopes", "proof"], "Product Session Gateway introspection request");
     const proof = parseProductSessionProofV22(input.proof);
-    if (proof.sessionBinding !== input.sessionBinding) fail6("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
+    if (proof.sessionBinding !== input.sessionBinding) fail7("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
     return this.#request(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
   }
   async revoke(input) {
     exactFields2(input, ["requestId", "sessionBinding", "proof"], "Product Session Gateway revoke request");
     const proof = parseProductSessionProofV22(input.proof);
-    if (proof.sessionBinding !== input.sessionBinding) fail6("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
+    if (proof.sessionBinding !== input.sessionBinding) fail7("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
     return this.#request(input.requestId, "/v2/product-sessions/revoke", {}, proof);
   }
   async #request(requestId, path2, body, proof, method2 = "POST") {
-    if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail6("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
+    if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail7("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
     const encodedBody = method2 === "GET" ? void 0 : canonicalJSON3(body);
     const headers = { "accept": "application/json", "x-request-id": requestId };
     if (method2 === "POST") headers["content-type"] = "application/json";
@@ -4003,38 +4094,38 @@ var ProductSessionGatewayFetchAdapter2 = class {
       response = await fetch2(`${this.#endpoint}${path2}`, { method: method2, headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
     } catch {
       clearTimeout(timeout);
-      fail6("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
+      fail7("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
     }
     try {
-      if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
+      if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
       const contentType = response.headers.get("content-type") ?? "";
       const responseRequestId = response.headers.get("x-request-id");
       const cacheControl = response.headers.get("cache-control") ?? "";
       const contentLength = response.headers.get("content-length");
-      if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
-      if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
+      if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
       let text3;
       try {
         text3 = await response.text();
       } catch {
-        fail6("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted");
+        fail7("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted");
       }
-      if (new TextEncoder().encode(text3).length > MAX_RESPONSE_BYTES) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      if (new TextEncoder().encode(text3).length > MAX_RESPONSE_BYTES) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
       let payload;
       try {
         payload = JSON.parse(text3);
       } catch {
-        fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON");
+        fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON");
       }
-      if (canonicalJSON3(payload) !== text3) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
+      if (canonicalJSON3(payload) !== text3) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
       if (response.status >= 200 && response.status < 300) {
         exactFields2(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
-        if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
+        if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
         return payload.result;
       }
       exactFields2(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
       exactFields2(payload.error, ["code", "message"], "Product Session Gateway public error");
-      if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2 || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
+      if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2 || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail7("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
       throw new WalletAuthError2(payload.error.code, payload.error.message);
     } finally {
       clearTimeout(timeout);
@@ -4044,25 +4135,25 @@ var ProductSessionGatewayFetchAdapter2 = class {
 function encodeProductSessionGatewayProofHeaderV2(value) {
   const proof = parseProductSessionProofV22(value);
   const encoded = encodeBase64url2(new TextEncoder().encode(canonicalJSON3(proof)));
-  if (encoded.length > 16384) fail6("INVALID_PROOF_HEADER", "Product Session proof header exceeds policy");
+  if (encoded.length > 16384) fail7("INVALID_PROOF_HEADER", "Product Session proof header exceeds policy");
   return encoded;
 }
 function endpoint(value) {
-  if (typeof value !== "string" || value.length > 512) fail6("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
+  if (typeof value !== "string" || value.length > 512) fail7("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
   let parsed;
   try {
     parsed = new URL(value);
   } catch {
-    fail6("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
+    fail7("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
   }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail6("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin");
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail7("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin");
   return parsed.origin;
 }
 function capability(value, label) {
-  if (typeof value !== "boolean") fail6("INVALID_GATEWAY", `${label} must return a boolean`);
+  if (typeof value !== "boolean") fail7("INVALID_GATEWAY", `${label} must return a boolean`);
   return value;
 }
-function fail6(code, message) {
+function fail7(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -4079,9 +4170,9 @@ var WALLET_ROUTE_STATUS2 = Object.freeze({
 function walletConnectionChoices2(registryInput, productId, availability) {
   const registry = parseProductSessionRegistry2(registryInput);
   exactFields2(availability, ["ynxWalletInstalled", "metaMaskAvailable"], "Wallet availability");
-  if (typeof availability.ynxWalletInstalled !== "boolean" || typeof availability.metaMaskAvailable !== "boolean") fail7("INVALID_WALLET_AVAILABILITY", "Wallet availability flags must be boolean");
+  if (typeof availability.ynxWalletInstalled !== "boolean" || typeof availability.metaMaskAvailable !== "boolean") fail8("INVALID_WALLET_AVAILABILITY", "Wallet availability flags must be boolean");
   const product = registry.products.find((item) => item.productId === productId);
-  if (!product) fail7("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
+  if (!product) fail8("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
   const choices = [];
   if (availability.ynxWalletInstalled) {
     choices.push(Object.freeze({ id: "ynx-wallet", action: "open", label: "Open YNX Wallet", authoritative: true }));
@@ -4164,18 +4255,18 @@ function decodeJSON(value, label) {
     const bytes = decodeBase64url3(value ?? "", label);
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
   } catch {
-    fail7("INVALID_ROUTE_PAYLOAD", `${label} encoding is invalid`);
+    fail8("INVALID_ROUTE_PAYLOAD", `${label} encoding is invalid`);
   }
 }
 function safeURL(value, code, message) {
-  if (typeof value !== "string" || value.length > 4096) fail7(code, message);
+  if (typeof value !== "string" || value.length > 4096) fail8(code, message);
   try {
     return new URL(value);
   } catch {
-    fail7(code, message);
+    fail8(code, message);
   }
 }
-function fail7(code, message) {
+function fail8(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -4185,17 +4276,17 @@ function createRevocationIntent(binding2, device2, intentId, session) {
   return parseRevocationIntent(canonicalJSON3({ version: 1, intentId, scope: scope(binding2, device2), session }), binding2, device2);
 }
 function parseRevocationIntent(raw, binding2, device2) {
-  if (typeof raw !== "string" || raw.length > 16384) fail8("INVALID_SESSION_STORE", "Pending revocation intent is invalid");
+  if (typeof raw !== "string" || raw.length > 16384) fail9("INVALID_SESSION_STORE", "Pending revocation intent is invalid");
   let value;
   try {
     value = JSON.parse(raw);
   } catch {
-    fail8("INVALID_SESSION_STORE", "Pending revocation intent is not valid JSON");
+    fail9("INVALID_SESSION_STORE", "Pending revocation intent is not valid JSON");
   }
   exactFields2(value, ["version", "intentId", "scope", "session"], "Pending Product Session revocation intent");
-  if (value.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(value.intentId) || value.scope !== scope(binding2, device2)) fail8("CROSS_PRODUCT_SESSION", "Pending revocation intent does not match this product device");
+  if (value.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(value.intentId) || value.scope !== scope(binding2, device2)) fail9("CROSS_PRODUCT_SESSION", "Pending revocation intent does not match this product device");
   const session = value.session === null ? null : parseProductSession2(value.session);
-  if (session && (BINDING_FIELDS.some((field) => session[field] !== binding2[field]) || session.deviceId !== device2.id || session.deviceKey !== device2.key || canonicalJSON3(session.scopes) !== canonicalJSON3(device2.scopes))) fail8("CROSS_PRODUCT_SESSION", "Pending revocation target does not match this product device");
+  if (session && (BINDING_FIELDS.some((field) => session[field] !== binding2[field]) || session.deviceId !== device2.id || session.deviceKey !== device2.key || canonicalJSON3(session.scopes) !== canonicalJSON3(device2.scopes))) fail9("CROSS_PRODUCT_SESSION", "Pending revocation target does not match this product device");
   return Object.freeze({ version: 1, intentId: value.intentId, scope: value.scope, session });
 }
 function revocationSessionMatches(raw, session) {
@@ -4209,7 +4300,7 @@ function revocationSessionMatches(raw, session) {
 function scope(binding2, device2) {
   return digestHex2("YNX_PRODUCT_SESSION_LOCAL_REVOCATION_SCOPE_V1", { ...Object.fromEntries(BINDING_FIELDS.map((field) => [field, binding2[field]])), deviceId: device2.id, deviceKey: device2.key, scopes: device2.scopes });
 }
-function fail8(code, message) {
+function fail9(code, message) {
   throw new WalletAuthError2(code, message);
 }
 function createRevocationCompletion(rawIntent, binding2, device2, outcome) {
@@ -4225,33 +4316,33 @@ function createRevocationCompletion(rawIntent, binding2, device2, outcome) {
   return parseRevocationCompletion(raw, binding2, device2);
 }
 function parseRevocationCompletion(raw, binding2, device2) {
-  if (typeof raw !== "string" || raw.length > 2048) fail8("INVALID_SESSION_STORE", "Revocation completion is invalid");
+  if (typeof raw !== "string" || raw.length > 2048) fail9("INVALID_SESSION_STORE", "Revocation completion is invalid");
   let v;
   try {
     v = JSON.parse(raw);
   } catch {
-    fail8("INVALID_SESSION_STORE", "Revocation completion is not JSON");
+    fail9("INVALID_SESSION_STORE", "Revocation completion is not JSON");
   }
   exactFields2(v, ["version", "intentId", "scope", "targetDigest", "sessionBinding", "outcome"], "Revocation completion");
-  if (v.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(v.intentId) || v.scope !== scope(binding2, device2) || !["server-revoked", "authority-expired", "local-only"].includes(v.outcome)) fail8("CROSS_PRODUCT_SESSION", "Revocation completion crosses its original intent or scope");
-  if (v.outcome === "local-only" ? v.targetDigest !== null || v.sessionBinding !== null : typeof v.targetDigest !== "string" || !/^[0-9a-f]{64}$/.test(v.targetDigest) || typeof v.sessionBinding !== "string" || !/^[0-9a-f]{64}$/.test(v.sessionBinding)) fail8("INVALID_SESSION_STORE", "Revocation completion target is invalid");
-  if (canonicalJSON3(v) !== raw) fail8("INVALID_SESSION_STORE", "Revocation completion is not canonical");
+  if (v.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(v.intentId) || v.scope !== scope(binding2, device2) || !["server-revoked", "authority-expired", "local-only"].includes(v.outcome)) fail9("CROSS_PRODUCT_SESSION", "Revocation completion crosses its original intent or scope");
+  if (v.outcome === "local-only" ? v.targetDigest !== null || v.sessionBinding !== null : typeof v.targetDigest !== "string" || !/^[0-9a-f]{64}$/.test(v.targetDigest) || typeof v.sessionBinding !== "string" || !/^[0-9a-f]{64}$/.test(v.sessionBinding)) fail9("INVALID_SESSION_STORE", "Revocation completion target is invalid");
+  if (canonicalJSON3(v) !== raw) fail9("INVALID_SESSION_STORE", "Revocation completion is not canonical");
   return Object.freeze(v);
 }
 function readRevocationCompletions(raw, binding2, device2) {
   if (raw === null) return [];
-  if (typeof raw !== "string" || raw.length > 131072) fail8("INVALID_SESSION_STORE", "Revocation completion history is invalid");
+  if (typeof raw !== "string" || raw.length > 131072) fail9("INVALID_SESSION_STORE", "Revocation completion history is invalid");
   let values;
   try {
     values = JSON.parse(raw);
   } catch {
-    fail8("INVALID_SESSION_STORE", "Revocation history is not JSON");
+    fail9("INVALID_SESSION_STORE", "Revocation history is not JSON");
   }
-  if (!Array.isArray(values) || values.length > 64 || canonicalJSON3(values) !== raw) fail8("INVALID_SESSION_STORE", "Revocation completion history is not bounded canonical JSON");
+  if (!Array.isArray(values) || values.length > 64 || canonicalJSON3(values) !== raw) fail9("INVALID_SESSION_STORE", "Revocation completion history is not bounded canonical JSON");
   const seen = /* @__PURE__ */ new Set();
   return values.map((value) => {
     const parsed = parseRevocationCompletion(canonicalJSON3(value), binding2, device2);
-    if (seen.has(parsed.intentId)) fail8("INVALID_SESSION_STORE", "Duplicate revocation completion");
+    if (seen.has(parsed.intentId)) fail9("INVALID_SESSION_STORE", "Duplicate revocation completion");
     seen.add(parsed.intentId);
     return parsed;
   });
@@ -4259,12 +4350,12 @@ function readRevocationCompletions(raw, binding2, device2) {
 
 // vendor/wallet-auth-c5/src/product-session-completion-record.js
 function parseCompletionRecord(registry, raw, at) {
-  if (typeof raw !== "string" || raw.length > 16384) fail9("INVALID_SESSION_STORE", "Protected completion record is invalid");
+  if (typeof raw !== "string" || raw.length > 16384) fail10("INVALID_SESSION_STORE", "Protected completion record is invalid");
   let value;
   try {
     value = JSON.parse(raw);
   } catch {
-    fail9("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
+    fail10("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
   }
   exactFields2(value, ["request", "approval", "completion"], "Protected Product Session completion");
   const request = parseProductSessionRequest2(registry, value.request, at);
@@ -4272,7 +4363,7 @@ function parseCompletionRecord(registry, raw, at) {
   exactFields2(value.completion, ["challenge", "deviceSignature"], "Protected Product Session device completion");
   const challenge = parseProductSessionChallenge2(value.completion.challenge);
   const expected = createProductSessionChallenge2(registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
-  if (canonicalJSON3(challenge) !== canonicalJSON3(expected)) fail9("SESSION_BINDING_MISMATCH", "Protected completion challenge changed");
+  if (canonicalJSON3(challenge) !== canonicalJSON3(expected)) fail10("SESSION_BINDING_MISMATCH", "Protected completion challenge changed");
   let valid = false;
   try {
     valid = p256.verify(decodeBase64url3(value.completion.deviceSignature, "deviceSignature"), new TextEncoder().encode(`YNX_PRODUCT_SESSION_CHALLENGE_V2
@@ -4280,7 +4371,7 @@ ${canonicalJSON3(challenge)}`), decodeBase64url3(challenge.deviceKey, "deviceKey
   } catch {
     valid = false;
   }
-  if (!valid) fail9("INVALID_DEVICE_PROOF", "Protected completion signature is invalid");
+  if (!valid) fail10("INVALID_DEVICE_PROOF", "Protected completion signature is invalid");
   return Object.freeze({ request, approval, completion: Object.freeze({ challenge, deviceSignature: value.completion.deviceSignature }) });
 }
 function deriveCompletionTarget(registry, raw) {
@@ -4288,7 +4379,7 @@ function deriveCompletionTarget(registry, raw) {
   try {
     value = JSON.parse(raw);
   } catch {
-    fail9("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
+    fail10("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
   }
   const at = new Date(value?.completion?.challenge?.issuedAt);
   const record = parseCompletionRecord(registry, raw, at);
@@ -4296,7 +4387,7 @@ function deriveCompletionTarget(registry, raw) {
   verifier.issueChallenge({ request: record.request, approval: record.approval, challenge: record.completion.challenge.challenge }, at);
   return verifier.complete(record, at);
 }
-function fail9(code, message) {
+function fail10(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -4342,7 +4433,7 @@ var RecoverableProductSessionClient2 = class {
     this.#tokens = tokenFactory(config.tokenFactory);
     this.#clock = clock(config.clock);
     if (Object.hasOwn(config, "finiteServiceSeconds")) {
-      if (!Number.isInteger(config.finiteServiceSeconds) || config.finiteServiceSeconds < 300 || config.finiteServiceSeconds > 7200) fail10("INVALID_SERVICE_CONSENT_TIME", "Explicit finite service duration is outside the approved bounds");
+      if (!Number.isInteger(config.finiteServiceSeconds) || config.finiteServiceSeconds < 300 || config.finiteServiceSeconds > 7200) fail11("INVALID_SERVICE_CONSENT_TIME", "Explicit finite service duration is outside the approved bounds");
       this.#finiteServiceSeconds = config.finiteServiceSeconds;
     }
     this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.DISCONNECTED, "No authoritative Product Session is active");
@@ -4371,9 +4462,9 @@ var RecoverableProductSessionClient2 = class {
       [walletInstalled, schemeRegistered] = await Promise.all([this.#gateway.walletInstalled(), this.#gateway.schemeRegistered()]);
     } catch (error) {
       if (error instanceof WalletAuthError2) throw error;
-      fail10("WALLET_UNAVAILABLE", "Wallet availability detection failed closed");
+      fail11("WALLET_UNAVAILABLE", "Wallet availability detection failed closed");
     }
-    if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail10("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
+    if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail11("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
     return Object.freeze({ walletInstalled, schemeRegistered });
   }
   async beginDetected(automatic = false) {
@@ -4455,19 +4546,19 @@ var RecoverableProductSessionClient2 = class {
     };
     let request;
     try {
-      if (typeof raw !== "string" || raw.length > 16384) fail10("INVALID_SESSION_STORE", "Pending Wallet request exceeds policy");
+      if (typeof raw !== "string" || raw.length > 16384) fail11("INVALID_SESSION_STORE", "Pending Wallet request exceeds policy");
       const input = JSON.parse(raw);
       request = parseProductSessionRequest2(this.#registry, input, new Date(input?.issuedAt));
       for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
-        if (request[field] !== this.#binding[field]) fail10("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another product binding");
+        if (request[field] !== this.#binding[field]) fail11("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another product binding");
       }
-      if (request.deviceId !== this.#device.id || request.deviceKey !== this.#device.key || canonicalJSON3(request.scopes) !== canonicalJSON3(this.#device.scopes)) fail10("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another device or scope selection");
+      if (request.deviceId !== this.#device.id || request.deviceKey !== this.#device.key || canonicalJSON3(request.scopes) !== canonicalJSON3(this.#device.scopes)) fail11("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another device or scope selection");
     } catch {
       return retained("The saved Wallet request is invalid or belongs to another binding; it was retained. Start a new explicit request to replace it.");
     }
     let now;
     try {
-      if (typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Pending request recovery requires authority time");
+      if (typeof this.#gateway.currentTime !== "function") fail11("CLOCK_UNAVAILABLE", "Pending request recovery requires authority time");
       now = await this.#now();
     } catch {
       if (epoch !== this.#beginEpoch) return this.current;
@@ -4511,7 +4602,7 @@ var RecoverableProductSessionClient2 = class {
     const networkEpoch = this.#networkEpoch;
     let now;
     try {
-      if (explicit && typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Explicit Wallet opening requires the authority-time adapter");
+      if (explicit && typeof this.#gateway.currentTime !== "function") fail11("CLOCK_UNAVAILABLE", "Explicit Wallet opening requires the authority-time adapter");
       now = await this.#now();
     } catch (error) {
       if (epoch !== this.#beginEpoch) return this.current;
@@ -4555,7 +4646,7 @@ var RecoverableProductSessionClient2 = class {
         if (epoch !== this.#beginEpoch) return cancelled();
         const stored = await this.#storage.get(key);
         if (epoch !== this.#beginEpoch) return cancelled();
-        if (stored !== raw) fail10("INSECURE_STORAGE", "Pending Wallet request did not read back exactly");
+        if (stored !== raw) fail11("INSECURE_STORAGE", "Pending Wallet request did not read back exactly");
         if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
         const route = explicit ? prepareWalletAttempt(this.#registry, request, now) : prepareWalletOpen2(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
         this.#state = route.status === WALLET_ROUTE_STATUS2.READY ? state(PRODUCT_SESSION_CLIENT_STATE2.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic, ...explicit ? { installation: "unverified" } : {} }) : state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, route.message, { request, route, automatic, actions: route.actions });
@@ -4571,7 +4662,7 @@ var RecoverableProductSessionClient2 = class {
   }
   async handleReturn(url2) {
     if (this.#returnOperation !== null) {
-      if (this.#returnOperation.url !== url2) fail10("CONCURRENT_CALLBACK", "A different Wallet callback is already being verified");
+      if (this.#returnOperation.url !== url2) fail11("CONCURRENT_CALLBACK", "A different Wallet callback is already being verified");
       await this.#returnOperation.promise;
       return this.current;
     }
@@ -4636,15 +4727,15 @@ var RecoverableProductSessionClient2 = class {
       let completion;
       if (storedCompletion !== null) {
         const record = parseCompletionRecord(this.#registry, storedCompletion, now);
-        if (canonicalJSON3(record.request) !== canonicalJSON3(request) || canonicalJSON3(record.approval) !== canonicalJSON3(returned.approval) || record.completion.challenge.deviceId !== this.#device.id || record.completion.challenge.deviceKey !== this.#device.key) fail10("SESSION_BINDING_MISMATCH", "Protected completion belongs to another exact Wallet approval");
-        if (record.completion.challenge.sessionExpiresAt <= now.toISOString()) fail10("SESSION_EXPIRED", "Previously completed Product Session has expired");
+        if (canonicalJSON3(record.request) !== canonicalJSON3(request) || canonicalJSON3(record.approval) !== canonicalJSON3(returned.approval) || record.completion.challenge.deviceId !== this.#device.id || record.completion.challenge.deviceKey !== this.#device.key) fail11("SESSION_BINDING_MISMATCH", "Protected completion belongs to another exact Wallet approval");
+        if (record.completion.challenge.sessionExpiresAt <= now.toISOString()) fail11("SESSION_EXPIRED", "Previously completed Product Session has expired");
         completion = record.completion;
       } else {
         const challenge = parseProductSessionChallenge2(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
         if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
         const expectedChallenge = createProductSessionChallenge2(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
-        if (canonicalJSON3(challenge) !== canonicalJSON3(expectedChallenge)) fail10("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
-        if (challenge.expiresAt <= (await this.#now()).toISOString()) fail10("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
+        if (canonicalJSON3(challenge) !== canonicalJSON3(expectedChallenge)) fail11("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
+        if (challenge.expiresAt <= (await this.#now()).toISOString()) fail11("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
         if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading challenge time; protected callback was retained for Retry");
         if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
         completion = this.#device.sign ? await signProductSessionChallengeWith2(challenge, this.#device.sign) : signProductSessionChallenge2(challenge, this.#device.secret);
@@ -4770,16 +4861,16 @@ var RecoverableProductSessionClient2 = class {
     if (session !== null) {
       try {
         const networkEpoch = this.#networkEpoch;
-        if (!this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
+        if (!this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
         const now = await this.#now();
-        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed while reading revocation authority time");
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network changed while reading revocation authority time");
         sessionExpired = typeof this.#gateway.currentTime === "function" && session.expiresAt <= now.toISOString();
         if (!sessionExpired) {
           const body = {};
           const proof = await this.#proof(session, "/v2/product-sessions/revoke", body, now);
-          if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session revocation signing");
+          if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network changed during Product Session revocation signing");
           const result = await this.#gateway.revoke({ requestId: gatewayRequestId("r", proof.nonce), sessionBinding: session.sessionBinding, proof });
-          if (result?.revoked !== session.sessionBinding) fail10("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
+          if (result?.revoked !== session.sessionBinding) fail11("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
         }
       } catch (error) {
         if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while revoking the Product Session; protected state was retained for Retry");
@@ -4809,15 +4900,15 @@ var RecoverableProductSessionClient2 = class {
   async createSocialAudienceProof(input) {
     exactFields2(input, ["path", "body"], "Social audience action");
     const path2 = input.path, raw = input.body;
-    if (this.#binding.productId !== "social" || !["/social/v3/matrix/audience/resolve", "/social/v3/matrix/audience/authorize"].includes(path2)) fail10("HTTP_BINDING_MISMATCH", "Social audience proof requires an exact registered action path");
-    if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 16384) fail10("INVALID_FIELD", "Social action body must be bounded canonical JSON");
+    if (this.#binding.productId !== "social" || !["/social/v3/matrix/audience/resolve", "/social/v3/matrix/audience/authorize"].includes(path2)) fail11("HTTP_BINDING_MISMATCH", "Social audience proof requires an exact registered action path");
+    if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 16384) fail11("INVALID_FIELD", "Social action body must be bounded canonical JSON");
     let body;
     try {
       body = JSON.parse(raw);
     } catch {
-      fail10("INVALID_FIELD", "Social action body is invalid JSON");
+      fail11("INVALID_FIELD", "Social action body is invalid JSON");
     }
-    if (body === null || typeof body !== "object" || Array.isArray(body) || canonicalJSON3(body) !== raw) fail10("INVALID_FIELD", "Social action body must be a canonical JSON object");
+    if (body === null || typeof body !== "object" || Array.isArray(body) || canonicalJSON3(body) !== raw) fail11("INVALID_FIELD", "Social action body must be a canonical JSON object");
     assertActionUnicode(body);
     return this.#createAPIProof(["social.contacts", "social.feed", "social.messaging", "social.profile"], Object.freeze({ path: path2, body }));
   }
@@ -4827,10 +4918,10 @@ var RecoverableProductSessionClient2 = class {
   async createBusinessProof(input) {
     exactFields2(input, ["method", "path", "body", "requiredScopes"], "Product business request");
     const method2 = input.method, path2 = input.path, raw = input.body instanceof Uint8Array ? Uint8Array.from(input.body) : input.body;
-    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail10("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
-    if (typeof raw !== "string" && !(raw instanceof Uint8Array) || (typeof raw === "string" ? new TextEncoder().encode(raw).length : raw.length) > 16777216) fail10("INVALID_FIELD", "Business request body is not bounded");
+    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail11("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if (typeof raw !== "string" && !(raw instanceof Uint8Array) || (typeof raw === "string" ? new TextEncoder().encode(raw).length : raw.length) > 16777216) fail11("INVALID_FIELD", "Business request body is not bounded");
     if (method2 === "GET") {
-      if (raw.length !== 0) fail10("HTTP_BINDING_MISMATCH", "GET business proof binds an empty HTTP body");
+      if (raw.length !== 0) fail11("HTTP_BINDING_MISMATCH", "GET business proof binds an empty HTTP body");
     }
     return this.#createAPIProof(input.requiredScopes, Object.freeze({ method: method2, path: path2, body: null, rawBody: raw }));
   }
@@ -4840,61 +4931,61 @@ var RecoverableProductSessionClient2 = class {
   async createBusinessProofCommitment(input) {
     exactFields2(input, ["method", "path", "bodyDigest", "bodyBytes", "requiredScopes"], "Product business commitment");
     const { method: method2, path: path2, bodyDigest, bodyBytes } = input;
-    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail10("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
-    if (typeof bodyDigest !== "string" || !/^[0-9a-f]{64}$/.test(bodyDigest) || !Number.isSafeInteger(bodyBytes) || bodyBytes < 0 || bodyBytes > 536870912) fail10("INVALID_FIELD", "Commitment requires SHA-256 and bounded final wire byte count");
-    if (method2 === "GET" && (bodyBytes !== 0 || bodyDigest !== httpBodyDigest2(""))) fail10("HTTP_BINDING_MISMATCH", "GET commitment must bind an empty body");
+    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail11("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if (typeof bodyDigest !== "string" || !/^[0-9a-f]{64}$/.test(bodyDigest) || !Number.isSafeInteger(bodyBytes) || bodyBytes < 0 || bodyBytes > 536870912) fail11("INVALID_FIELD", "Commitment requires SHA-256 and bounded final wire byte count");
+    if (method2 === "GET" && (bodyBytes !== 0 || bodyDigest !== httpBodyDigest2(""))) fail11("HTTP_BINDING_MISMATCH", "GET commitment must bind an empty body");
     return this.#createAPIProof(input.requiredScopes, Object.freeze({ method: method2, path: path2, body: null, bodyDigest, bodyBytes }));
   }
   async #createAPIProof(requiredScopes2, action = null) {
     const expected = this.current, epoch = this.#beginEpoch, networkEpoch = this.#networkEpoch;
     const active = () => {
-      if (this.#revocationRequested || this.#disconnectPromise !== null) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
-      if (!this.#networkAvailable || networkEpoch !== this.#networkEpoch) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session API authorization");
-      if (this.current !== expected || epoch !== this.#beginEpoch || expected.status !== PRODUCT_SESSION_CLIENT_STATE2.CONNECTED || !expected.session) fail10("SESSION_INACTIVE", "Connect and verify the same Product Session before signing an API proof");
+      if (this.#revocationRequested || this.#disconnectPromise !== null) fail11("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      if (!this.#networkAvailable || networkEpoch !== this.#networkEpoch) fail11("NETWORK_UNAVAILABLE", "Network changed during Product Session API authorization");
+      if (this.current !== expected || epoch !== this.#beginEpoch || expected.status !== PRODUCT_SESSION_CLIENT_STATE2.CONNECTED || !expected.session) fail11("SESSION_INACTIVE", "Connect and verify the same Product Session before signing an API proof");
     };
     active();
     const session = parseProductSession2(expected.session);
     for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
-      if (session[field] !== this.#binding[field]) fail10("SESSION_BINDING_MISMATCH", "API proof session belongs to another product binding");
+      if (session[field] !== this.#binding[field]) fail11("SESSION_BINDING_MISMATCH", "API proof session belongs to another product binding");
     }
-    if (session.deviceId !== this.#device.id || session.deviceKey !== this.#device.key) fail10("SESSION_BINDING_MISMATCH", "API proof session belongs to another product device");
+    if (session.deviceId !== this.#device.id || session.deviceKey !== this.#device.key) fail11("SESSION_BINDING_MISMATCH", "API proof session belongs to another product device");
     const scopeCount = Array.isArray(requiredScopes2) ? requiredScopes2.length : 0;
-    if (!Number.isInteger(scopeCount) || scopeCount < 1 || scopeCount > 8) fail10("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    if (!Number.isInteger(scopeCount) || scopeCount < 1 || scopeCount > 8) fail11("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
     const scopes2 = Object.freeze(Array.from({ length: scopeCount }, (_, index) => requiredScopes2[index]));
-    if (scopes2.some((scope2) => typeof scope2 !== "string" || !session.scopes.includes(scope2) || !this.#device.scopes.includes(scope2) || !this.#binding.scopes.includes(scope2)) || new Set(scopes2).size !== scopes2.length || [...scopes2].sort().join("\n") !== scopes2.join("\n")) fail10("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    if (scopes2.some((scope2) => typeof scope2 !== "string" || !session.scopes.includes(scope2) || !this.#device.scopes.includes(scope2) || !this.#binding.scopes.includes(scope2)) || new Set(scopes2).size !== scopes2.length || [...scopes2].sort().join("\n") !== scopes2.join("\n")) fail11("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
     const body = Object.freeze({ requiredScopes: scopes2 });
     let originalRaw;
     const readback = async () => {
       active();
-      if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      if (await this.#loadRevocationIntent()) fail11("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
       active();
       const raw = await this.#storage.get(this.storageKey);
       active();
       let stored;
       try {
-        if (typeof raw !== "string" || raw.length > 16384) fail10("SESSION_INACTIVE", "Stored Product Session is unavailable");
+        if (typeof raw !== "string" || raw.length > 16384) fail11("SESSION_INACTIVE", "Stored Product Session is unavailable");
         stored = parseProductSession2(JSON.parse(raw));
       } catch {
-        fail10("SESSION_INACTIVE", "Stored Product Session is invalid; no API proof was released");
+        fail11("SESSION_INACTIVE", "Stored Product Session is invalid; no API proof was released");
       }
-      if (canonicalJSON3(stored) !== canonicalJSON3(session) || originalRaw !== void 0 && raw !== originalRaw) fail10("SESSION_INACTIVE", "Stored Product Session changed during API authorization");
+      if (canonicalJSON3(stored) !== canonicalJSON3(session) || originalRaw !== void 0 && raw !== originalRaw) fail11("SESSION_INACTIVE", "Stored Product Session changed during API authorization");
       originalRaw = raw;
-      if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Sign-out started during Product Session API authorization");
+      if (await this.#loadRevocationIntent()) fail11("REVOCATION_PENDING", "Sign-out started during Product Session API authorization");
       active();
     };
     await readback();
     active();
-    if (typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Product Session API proofs require authority time");
+    if (typeof this.#gateway.currentTime !== "function") fail11("CLOCK_UNAVAILABLE", "Product Session API proofs require authority time");
     let now;
     try {
       now = new Date((await this.#now()).getTime());
     } catch (error) {
       active();
       if (isNetworkUnavailable(error)) throw error;
-      fail10("CLOCK_UNAVAILABLE", "Product Session authority time is unavailable");
+      fail11("CLOCK_UNAVAILABLE", "Product Session authority time is unavailable");
     }
     active();
-    if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail10("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
+    if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail11("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body, now, { active, readback });
     const result = Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: gatewayRequestId("i", this.#tokens()), body: canonicalJSON3(body) });
     const actionProof = action === null ? null : await this.#proof(session, action.path, action.body, now, { active, readback }, action.method ?? "POST", action.rawBody ?? null, action.bodyDigest ?? null);
@@ -4904,24 +4995,24 @@ var RecoverableProductSessionClient2 = class {
     return result;
   }
   async #introspect(session) {
-    if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
+    if (await this.#loadRevocationIntent()) fail11("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
-    if (!this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
+    if (!this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
     const body = { requiredScopes: session.scopes };
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
-    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
     const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
-    if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Sign-out started during Product Session authorization");
-    if (result?.active !== true || canonicalJSON3(parseProductSession2(result.session)) !== canonicalJSON3(session)) fail10("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
+    if (await this.#loadRevocationIntent()) fail11("REVOCATION_PENDING", "Sign-out started during Product Session authorization");
+    if (result?.active !== true || canonicalJSON3(parseProductSession2(result.session)) !== canonicalJSON3(session)) fail11("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;
   }
   async #proof(session, path2, body, authorityTime, guard = null, method2 = "POST", rawBody = null, committedDigest = null) {
-    if (path2 !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
+    if (path2 !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail11("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
     const now = authorityTime ?? await this.#now();
-    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail11("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
     const expiresAt = new Date(Math.min(now.getTime() + 3e4, Date.parse(session.expiresAt))).toISOString();
-    if (expiresAt <= now.toISOString()) fail10("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
+    if (expiresAt <= now.toISOString()) fail11("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
     const input = {
       method: method2,
       path: path2,
@@ -4943,7 +5034,7 @@ var RecoverableProductSessionClient2 = class {
   }
   async #now() {
     const value = typeof this.#gateway.currentTime === "function" ? await this.#gateway.currentTime({ requestId: gatewayRequestId("t", this.#tokens()) }) : this.#clock();
-    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail10("CLOCK_UNAVAILABLE", "Product Session authority time is invalid");
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail11("CLOCK_UNAVAILABLE", "Product Session authority time is invalid");
     return value;
   }
   async #restoreStoredSession(epoch) {
@@ -5022,31 +5113,31 @@ var RecoverableProductSessionClient2 = class {
       this.#revocationIntent = parseRevocationIntent(await this.#storage.saveRevocationIntent(key, raw), this.#binding, this.#device);
     } else {
       await this.#storage.set(key, raw);
-      if (await this.#storage.get(key) !== raw) fail10("INSECURE_STORAGE", "Pending sign-out intent did not read back exactly");
+      if (await this.#storage.get(key) !== raw) fail11("INSECURE_STORAGE", "Pending sign-out intent did not read back exactly");
       this.#revocationIntent = intent;
     }
   }
   async getRevocationCompletions() {
-    if (typeof this.#storage.getRevocationCompletions !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion history");
+    if (typeof this.#storage.getRevocationCompletions !== "function") fail11("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion history");
     return Object.freeze(readRevocationCompletions(await this.#storage.getRevocationCompletions(`${this.storageKey}:revoke-completions`), this.#binding, this.#device));
   }
   async getRevocationCompletion(intentId) {
-    if (typeof intentId !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(intentId)) fail10("INVALID_FIELD", "Original revocation intent ID is required");
-    if (typeof this.#storage.getRevocationCompletion !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion readback");
+    if (typeof intentId !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(intentId)) fail11("INVALID_FIELD", "Original revocation intent ID is required");
+    if (typeof this.#storage.getRevocationCompletion !== "function") fail11("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion readback");
     const raw = await this.#storage.getRevocationCompletion(`${this.storageKey}:revoke-completions`, intentId);
     if (raw === null) return null;
     const receipt = parseRevocationCompletion(raw, this.#binding, this.#device);
-    if (receipt.intentId !== intentId) fail10("REVOCATION_CHANGED", "Completion readback returned another intent");
+    if (receipt.intentId !== intentId) fail11("REVOCATION_CHANGED", "Completion readback returned another intent");
     return receipt;
   }
   async acknowledgeRevocationCompletion(receipt) {
     const raw = canonicalJSON3(receipt);
     parseRevocationCompletion(raw, this.#binding, this.#device);
-    if (typeof this.#storage.acknowledgeRevocationCompletion !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This runtime cannot acknowledge an exact completion");
+    if (typeof this.#storage.acknowledgeRevocationCompletion !== "function") fail11("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This runtime cannot acknowledge an exact completion");
     const parsed = parseRevocationCompletion(raw, this.#binding, this.#device);
     const current = await this.getRevocationCompletion(parsed.intentId);
     if (current === null) return;
-    if (canonicalJSON3(current) !== raw) fail10("REVOCATION_CHANGED", "Cannot acknowledge a different original completion");
+    if (canonicalJSON3(current) !== raw) fail11("REVOCATION_CHANGED", "Cannot acknowledge a different original completion");
     await this.#storage.acknowledgeRevocationCompletion(`${this.storageKey}:revoke-completions`, raw);
   }
   async #finishRevocationIntent(outcome) {
@@ -5054,11 +5145,11 @@ var RecoverableProductSessionClient2 = class {
     if (typeof this.#storage.finishRevocationIntentWithCompletion === "function") {
       const receiptRaw = canonicalJSON3(createRevocationCompletion(raw, this.#binding, this.#device, outcome));
       const saved = await this.#storage.finishRevocationIntentWithCompletion(key, raw, receiptRaw);
-      if (saved !== receiptRaw || canonicalJSON3(await this.getRevocationCompletion(intent.intentId)) !== receiptRaw) fail10("REVOCATION_CHANGED", "Atomic cleanup did not preserve the exact completion");
+      if (saved !== receiptRaw || canonicalJSON3(await this.getRevocationCompletion(intent.intentId)) !== receiptRaw) fail11("REVOCATION_CHANGED", "Atomic cleanup did not preserve the exact completion");
       return parseRevocationCompletion(receiptRaw, this.#binding, this.#device);
     }
     if (typeof this.#storage.finishRevocationIntent === "function") return this.#storage.finishRevocationIntent(key, raw);
-    if (await this.#storage.get(key) !== raw) fail10("REVOCATION_CHANGED", "Pending sign-out target changed during confirmation");
+    if (await this.#storage.get(key) !== raw) fail11("REVOCATION_CHANGED", "Pending sign-out target changed during confirmation");
     if (revocationSessionMatches(await this.#storage.get(this.storageKey), intent.session)) await this.#storage.remove(this.storageKey);
     await this.#clearPending();
     await this.#storage.remove(key);
@@ -5093,34 +5184,34 @@ function state(status, message, extra = {}) {
 function secureStorage(value, platform, device2) {
   const nativeProtected = value && ["hardware-backed", "os-protected"].includes(value.securityLevel);
   const browserProtected = value?.securityLevel === "webcrypto-nonextractable" && platform === "web" && typeof device2?.sign === "function" && !("secret" in device2);
-  if (!nativeProtected && !browserProtected || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail10("INSECURE_STORAGE", "Product Sessions require OS/hardware protection or a Web-only non-extractable device signer");
+  if (!nativeProtected && !browserProtected || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail11("INSECURE_STORAGE", "Product Sessions require OS/hardware protection or a Web-only non-extractable device signer");
   return value;
 }
 function gateway(value) {
-  if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail10("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter");
+  if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail11("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter");
   return value;
 }
 function device(value) {
-  const fields = Object.keys(value ?? {}).sort().join("\n");
+  const fields2 = Object.keys(value ?? {}).sort().join("\n");
   const secretFields = ["id", "key", "secret", "scopes", "purpose"].sort().join("\n");
   const signerFields = ["id", "key", "sign", "scopes", "purpose"].sort().join("\n");
-  if (fields !== secretFields && fields !== signerFields) fail10("UNKNOWN_OR_MISSING_FIELD", "Product Session device configuration fields do not match the protocol schema");
-  if (typeof value.id !== "string" || typeof value.key !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string" || (fields === secretFields ? typeof value.secret !== "string" : typeof value.sign !== "function")) fail10("INVALID_DEVICE", "Product Session device configuration is invalid");
+  if (fields2 !== secretFields && fields2 !== signerFields) fail11("UNKNOWN_OR_MISSING_FIELD", "Product Session device configuration fields do not match the protocol schema");
+  if (typeof value.id !== "string" || typeof value.key !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string" || (fields2 === secretFields ? typeof value.secret !== "string" : typeof value.sign !== "function")) fail11("INVALID_DEVICE", "Product Session device configuration is invalid");
   return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) });
 }
 function tokenFactory(value) {
-  if (typeof value !== "function") fail10("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory");
+  if (typeof value !== "function") fail11("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory");
   return () => {
     const token2 = value();
-    if (typeof token2 !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token2)) fail10("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token");
+    if (typeof token2 !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token2)) fail11("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token");
     return token2;
   };
 }
 function clock(value) {
-  if (typeof value !== "function") fail10("INVALID_TIME", "Product Session client requires a clock");
+  if (typeof value !== "function") fail11("INVALID_TIME", "Product Session client requires a clock");
   return () => {
     const result = value();
-    if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail10("INVALID_TIME", "Product Session clock returned invalid time");
+    if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail11("INVALID_TIME", "Product Session clock returned invalid time");
     return result;
   };
 }
@@ -5130,7 +5221,7 @@ function isNetworkUnavailable(error) {
 function gatewayRequestId(kind, token2) {
   return `req_ps_${kind}_${token2}`;
 }
-function fail10(code, message) {
+function fail11(code, message) {
   throw new WalletAuthError2(code, message);
 }
 function assertActionUnicode(value) {
@@ -5139,8 +5230,8 @@ function assertActionUnicode(value) {
       const code = value.charCodeAt(i);
       if (code >= 55296 && code <= 56319) {
         const next = value.charCodeAt(++i);
-        if (!(next >= 56320 && next <= 57343)) fail10("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
-      } else if (code >= 56320 && code <= 57343) fail10("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+        if (!(next >= 56320 && next <= 57343)) fail11("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+      } else if (code >= 56320 && code <= 57343) fail11("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
     }
   } else if (Array.isArray(value)) {
     for (const child of value) assertActionUnicode(child);
@@ -5178,17 +5269,17 @@ var MetaMaskEvmConnectionAdapter2 = class {
     exactFields2(config, ["registry", "productId", "provider"], "MetaMask EVM adapter configuration");
     const registry = parseProductSessionRegistry2(config.registry);
     const product = registry.products.find((item) => item.productId === config.productId);
-    if (!product) fail11("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
-    if (!product.evmCompatible) fail11("EVM_NOT_SUPPORTED", "Product is not registered for an EVM Wallet connection");
-    if (typeof config.productId !== "string") fail11("INVALID_METAMASK_CONFIG", "MetaMask productId is invalid");
+    if (!product) fail12("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
+    if (!product.evmCompatible) fail12("EVM_NOT_SUPPORTED", "Product is not registered for an EVM Wallet connection");
+    if (typeof config.productId !== "string") fail12("INVALID_METAMASK_CONFIG", "MetaMask productId is invalid");
     this.#productId = product.productId;
     this.#provider = config.provider;
   }
   async connect() {
     const provider = this.#provider;
-    if (provider === null || provider === void 0) fail11("METAMASK_NOT_INSTALLED", "MetaMask EIP-1193 provider was not detected");
+    if (provider === null || provider === void 0) fail12("METAMASK_NOT_INSTALLED", "MetaMask EIP-1193 provider was not detected");
     if (!isExplicitMetaMaskProvider(provider)) {
-      fail11("INVALID_METAMASK_PROVIDER", "Detected provider is not an explicit MetaMask EIP-1193 provider");
+      fail12("INVALID_METAMASK_PROVIDER", "Detected provider is not an explicit MetaMask EIP-1193 provider");
     }
     let chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
     if (chainId !== METAMASK_EVM_CHAIN_ID) {
@@ -5200,16 +5291,16 @@ var MetaMaskEvmConnectionAdapter2 = class {
           await providerRequest(provider, "wallet_addEthereumChain", [METAMASK_EVM_CHAIN2]);
         } catch (addError) {
           if (addError instanceof WalletAuthError2 && addError.code === "USER_REJECTED") throw addError;
-          fail11("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 could not be added to MetaMask");
+          fail12("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 could not be added to MetaMask");
         }
         await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY2 }], true);
       }
       chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
     }
-    if (chainId !== METAMASK_EVM_CHAIN_ID) fail11("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
+    if (chainId !== METAMASK_EVM_CHAIN_ID) fail12("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
     const address = firstAccount(await providerRequest(provider, "eth_requestAccounts"));
     chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
-    if (chainId !== METAMASK_EVM_CHAIN_ID) fail11("WRONG_NETWORK", "MetaMask changed networks during account approval");
+    if (chainId !== METAMASK_EVM_CHAIN_ID) fail12("WRONG_NETWORK", "MetaMask changed networks during account approval");
     return Object.freeze({
       status: METAMASK_EVM_CONNECTION_STATUS2.CONNECTED,
       wallet: "metamask",
@@ -5231,10 +5322,10 @@ async function providerRequest(provider, method2, params, switching = false) {
   } catch (error) {
     if (error instanceof WalletAuthError2) throw error;
     const code = providerErrorCode(error);
-    if (code === 4001 || code === "4001") fail11("USER_REJECTED", "MetaMask connection was rejected by the user");
-    if (switching && (code === 4902 || code === "4902")) fail11("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 is not configured in MetaMask");
-    if (code === 4900 || code === "4900" || code === 4901 || code === "4901") fail11("WALLET_UNAVAILABLE", "MetaMask is disconnected from the requested chain");
-    fail11("WALLET_UNAVAILABLE", "MetaMask EIP-1193 request failed closed");
+    if (code === 4001 || code === "4001") fail12("USER_REJECTED", "MetaMask connection was rejected by the user");
+    if (switching && (code === 4902 || code === "4902")) fail12("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 is not configured in MetaMask");
+    if (code === 4900 || code === "4900" || code === 4901 || code === "4901") fail12("WALLET_UNAVAILABLE", "MetaMask is disconnected from the requested chain");
+    fail12("WALLET_UNAVAILABLE", "MetaMask EIP-1193 request failed closed");
   }
 }
 function isExplicitMetaMaskProvider(provider) {
@@ -5256,28 +5347,28 @@ function providerErrorCode(error) {
 }
 function parseChainQuantity(value) {
   if (typeof value !== "string" || !/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value)) {
-    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned a non-canonical chain quantity");
+    fail12("INVALID_WALLET_RESPONSE", "MetaMask returned a non-canonical chain quantity");
   }
   const chainId = Number(BigInt(value));
-  if (!Number.isSafeInteger(chainId)) fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an unsupported chain quantity");
+  if (!Number.isSafeInteger(chainId)) fail12("INVALID_WALLET_RESPONSE", "MetaMask returned an unsupported chain quantity");
   return chainId;
 }
 function normalizeAddress(value) {
   if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)) {
-    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid EVM account address");
+    fail12("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid EVM account address");
   }
   return value.toLowerCase();
 }
 function firstAccount(value) {
   try {
-    if (!Array.isArray(value) || value.length < 1 || value.length > 1024) fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
+    if (!Array.isArray(value) || value.length < 1 || value.length > 1024) fail12("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
     return normalizeAddress(value[0]);
   } catch (error) {
     if (error instanceof WalletAuthError2) throw error;
-    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
+    fail12("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
   }
 }
-function fail11(code, message) {
+function fail12(code, message) {
   throw new WalletAuthError2(code, message);
 }
 
@@ -5452,12 +5543,12 @@ var WalletConnectionCoordinator2 = class {
   constructor(config) {
     exactFields2(config, ["registry", "productId", "sessionClient", "scope", "discoveryWaitMs", "openWallet", "openTimeoutMs"], "Wallet connection coordinator configuration");
     this.#registry = parseProductSessionRegistry2(config.registry);
-    if (typeof config.productId !== "string" || !this.#registry.products.some((item) => item.productId === config.productId)) fail12("UNKNOWN_PRODUCT", "Wallet connection product is not registered");
-    if (!(config.sessionClient instanceof RecoverableProductSessionClient2) || config.sessionClient.connectionBinding.productId !== config.productId) fail12("CROSS_PRODUCT_REUSE", "Wallet connection coordinator requires the exact product session client");
-    if (typeof config.scope !== "object" && typeof config.scope !== "function" || config.scope === null) fail12("INVALID_WALLET_SCOPE", "Wallet provider discovery scope is invalid");
-    if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2e3) fail12("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
-    if (typeof config.openWallet !== "function") fail12("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");
-    if (!Number.isSafeInteger(config.openTimeoutMs) || config.openTimeoutMs < 10 || config.openTimeoutMs > 3e4) fail12("INVALID_WALLET_OPENER", "Wallet opener timeout is invalid");
+    if (typeof config.productId !== "string" || !this.#registry.products.some((item) => item.productId === config.productId)) fail13("UNKNOWN_PRODUCT", "Wallet connection product is not registered");
+    if (!(config.sessionClient instanceof RecoverableProductSessionClient2) || config.sessionClient.connectionBinding.productId !== config.productId) fail13("CROSS_PRODUCT_REUSE", "Wallet connection coordinator requires the exact product session client");
+    if (typeof config.scope !== "object" && typeof config.scope !== "function" || config.scope === null) fail13("INVALID_WALLET_SCOPE", "Wallet provider discovery scope is invalid");
+    if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2e3) fail13("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
+    if (typeof config.openWallet !== "function") fail13("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");
+    if (!Number.isSafeInteger(config.openTimeoutMs) || config.openTimeoutMs < 10 || config.openTimeoutMs > 3e4) fail13("INVALID_WALLET_OPENER", "Wallet opener timeout is invalid");
     this.#productId = config.productId;
     this.#client = config.sessionClient;
     this.#scope = config.scope;
@@ -5545,7 +5636,7 @@ var WalletConnectionCoordinator2 = class {
     try {
       const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
       exactFields2(result, result?.opened === true ? ["opened"] : ["opened", "code"], "Wallet opener result");
-      if (result.opened !== true) fail12(openerCode(result.code), "Platform did not open the registered Wallet route");
+      if (result.opened !== true) fail13(openerCode(result.code), "Platform did not open the registered Wallet route");
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.WALLET_OPENED, requestId, url: route.url, automatic: sessionState.automatic === true, sessionState });
     } catch (error) {
       const code = error instanceof WalletAuthError2 ? error.code : "WALLET_OPEN_FAILED";
@@ -5583,7 +5674,7 @@ function frozen(input) {
   if (Array.isArray(output.actions)) output.actions = Object.freeze([...output.actions]);
   return Object.freeze(output);
 }
-function fail12(code, message) {
+function fail13(code, message) {
   throw new WalletAuthError2(code, message);
 }
 

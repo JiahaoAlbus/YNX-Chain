@@ -15,7 +15,7 @@ class NativeWalletController {
   constructor(api, emit = () => {}, admission = MISSING_WALLET_ADMISSION) {
     this.api = api; this.admission = admission; this.emit = emit; this.epoch = 0; this.disposed = false; this.runtime = undefined; this.inFlight = undefined; this.callback = undefined;
     this.state = Object.freeze({ phase: 'idle', serviceConfiguration: admission === MISSING_WALLET_ADMISSION ? 'not-supplied' : 'unverified', busy: false, awaitingCallback: false, session: { status: 'disconnected', message: '' }, sessionCurrent: false, message: '', projectCapability: 'not-supplied' });
-    this.unsubscribe = api.subscribeDeveloperWalletCallbacks(url => this.receiveCallback(url));
+    this.unsubscribe = api.subscribeDeveloperWalletCallbacks(url => this.receiveCallback(url), url => this.receiveResourceCallback(url));
   }
   publish(patch) { if (!this.disposed) { this.state = Object.freeze({ ...this.state, ...patch, projectCapability: 'not-supplied' }); this.emit(this.state); } }
   async inspect() {
@@ -75,7 +75,24 @@ class NativeWalletController {
     });
     this.inFlight = operation; return operation;
   }
+  // Called only by the original request producer before review, never a return.
+  setResourcePending(snapshot) {
+    if (this.disposed || this.resourcePending) throw Error('An original resource operation is already pending or unavailable.');
+    this.resourcePending = this.api.captureResourceOperation(snapshot);
+    return this.resourcePending;
+  }
+  receiveResourceCallback(url) {
+    if (this.disposed) return;
+    if (!this.resourcePending) { this.publish({ resourceReturnStatus: 'rejected', resourceReturnError: 'No original resource operation is pending.' }); return; }
+    try {
+      const result = this.api.receiveResourceReturn(url, this.resourcePending, this.resourcePending);
+      // A public observation only. Never overwrite Session callback, settle the
+      // pending operation or present an unverified signature as service access.
+      this.publish({ resourceReturnStatus: result.status, resourceReturnError: result.verification === 'supplier-unavailable' ? 'Resource signature verification is unavailable.' : '', resourceEffectAllowed: false });
+    } catch { this.publish({ resourceReturnStatus: 'rejected', resourceReturnError: 'Resource return does not match the original operation.', resourceEffectAllowed: false }); }
+  }
   receiveCallback(url) {
+    if (this.api.isDeveloperResourceReturn?.(url)) { this.receiveResourceCallback(url); return; }
     if (this.disposed || typeof url !== 'string' || url.length > 4096 || !url.length) return;
     // Never decode an approval or infer identity in the UI. The SDK owns the
     // exact registered route, nonce, binding, expiry and signature checks.

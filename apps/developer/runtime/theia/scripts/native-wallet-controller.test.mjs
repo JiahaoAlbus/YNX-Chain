@@ -161,3 +161,39 @@ test('real view rendering keeps bridge presence, unobserved device and explicit 
  module.exports.NativeWalletWidget.prototype.renderState.call(widget, { ...state, phase: 'error', message: '/private/internal/keychain error' }); assert.match(widget.detail.textContent, /operation failed/); assert.doesNotMatch(widget.detail.textContent, /private|Keychain|interface is unavailable/);
  module.exports.NativeWalletWidget.prototype.renderState.call(widget, { ...state, available: false, bridgeContract: 'missing' }); assert.match(widget.detail.textContent, /interface is unavailable/);
 });
+
+test('NEW resource callback cannot enter Session, create pending or acquire admission',async()=>{
+ const f=fixture();
+ try {
+  const before=f.calls.length;
+  for(const url of ['ynxdeveloper://wallet-auth/callback?developerResourceResult=bad','ynxdeveloper://wallet-auth/callback?developerResourceResult=bad&result=approved','ynxdeveloper://wallet-auth/callback?developer%52esourceResult=bad'])f.callback(url);
+  assert.equal(f.controller.callback,undefined);assert.equal(f.controller.resourcePending,undefined);
+  assert.equal(f.controller.state.resourceReturnStatus,'rejected');assert.equal(f.calls.length,before);
+ }finally{await f.controller.dispose();}
+});
+
+test('actual EventTarget transport classifies mixed/invalid NEW packets before Session subscription',()=>{
+ const previous=globalThis.window;globalThis.window=new EventTarget();const session=[],resource=[];
+ const unsubscribe=actual.subscribeDeveloperWalletCallbacks(url=>session.push(url),url=>resource.push(url));
+ try {
+  for(const url of ['ynxdeveloper://wallet-auth/callback?developerResourceResult=bad','ynxdeveloper://wallet-auth/callback?developer%52esourceResult=x&result=approved','ynxdeveloper://wallet-auth/callback?result=rejected']){
+   const event=new Event('ynx-wallet-callback');Object.defineProperty(event,'detail',{value:url});window.dispatchEvent(event);
+  }
+  assert.equal(resource.length,2);assert.deepEqual(session,['ynxdeveloper://wallet-auth/callback?result=rejected']);
+ }finally{unsubscribe();globalThis.window=previous;}
+});
+
+test('original project snapshot receives decline without replacing a Session return or settling resource',async()=>{
+ const f=fixture(),canonical=v=>v&&typeof v==='object'?'{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+canonical(v[k])).join(',')+'}':JSON.stringify(v);
+ const e={account:'qa',deviceId:'device1234567890',sessionBinding:'a'.repeat(64),projectId:'p',projectDigest:'b'.repeat(64),resourceOrigin:'https://web4.ynxweb4.com',resourceId:'file',action:'file-content-save',bodyDigest:'c'.repeat(64)};
+ const nonce=Buffer.alloc(32,1).toString('base64url'),reviewDigest='e'.repeat(64),u={...e,version:1,purpose:'developer-project-resource/v1',accountPublicKey:'02'+'d'.repeat(64),productClientId:'ynx-developer-v1',bundleId:'com.ynxweb4.developer.testnetpreview',platform:'macos',origin:'app://macos/com.ynxweb4.developer.testnetpreview',requiredScope:'developer:resource:cloud-file-content',nonce,issuedAt:'2026-10-06T00:00:00.000Z',expiresAt:'2026-10-06T00:00:30.000Z'};
+ try {
+  f.callback('ynxdeveloper://wallet-auth/callback?result=rejected');const sessionURL=f.controller.callback;
+  const pending=f.controller.setResourcePending({operationId:'original-op',unsigned:canonical(u),expected:canonical(e),nonce,reviewDigest,projectId:e.projectId,projectDigest:e.projectDigest,bodyDigest:e.bodyDigest});
+  const packet={version:1,purpose:u.purpose,nonce,reviewDigest,status:'declined',approval:null,readOnly:false};
+  f.callback('ynxdeveloper://wallet-auth/callback?developerResourceResult='+Buffer.from(JSON.stringify(packet)).toString('base64url'));
+  assert.equal(f.controller.state.resourceReturnStatus,'declined');assert.equal(f.controller.state.resourceEffectAllowed,false);
+  assert.equal(f.controller.callback,sessionURL);assert.equal(f.controller.resourcePending,pending);assert.equal(f.calls.length,0);
+  assert.throws(()=>f.controller.setResourcePending({...pending,operationId:'replacement'}));
+ }finally{await f.controller.dispose();}
+});

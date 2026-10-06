@@ -47,3 +47,10 @@ export function receiveResourceReturn(url: string, pending: ResourceOperationSna
   approval:packet.approval as string|null,verification:packet.status==='signed'?'supplier-unavailable':'not-applicable',
   authorityGranted:false,projectResourceApproved:false,productSessionCreated:false,effectAllowed:false,settlesPending:false});
 }
+
+/** Classification only: malformed/mixed NEW packets must never reach Session. */
+export function isDeveloperResourceReturn(url: string): boolean {
+ if(typeof url !== 'string') return false;
+ try { return new URL(url).searchParams.has('developerResourceResult') || url.includes('developerResourceResult'); }
+ catch { return url.includes('developerResourceResult'); }
+}

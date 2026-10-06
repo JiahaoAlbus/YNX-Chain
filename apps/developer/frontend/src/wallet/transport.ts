@@ -1,3 +1,4 @@
+import { isDeveloperResourceReturn } from './resource-approval-return';
 // Central canonical authorize source: 46386ae8eeaa7633923ae762a5a9634b5eac98d9.
 // The app must only use these root exports; no product code may construct a
 // Wallet authorize URL or decode an authorization callback itself.
@@ -148,10 +149,13 @@ type StoredDevice = { version: 1; privateKey: CryptoKey; publicKey: CryptoKey };
 const DATABASE = "ynx-code-wallet-v1", STORE = "product-device-keys", KEY = "ynx-developer-v1";
 const PENDING_REQUEST = "ynx-code-wallet-pending-v1";
 
-export function subscribeDeveloperWalletCallbacks(listener: (callbackURL: string) => void) {
+export function subscribeDeveloperWalletCallbacks(listener: (callbackURL: string) => void, resourceListener?: (callbackURL: string) => void) {
   const handler = (event: Event) => {
     const detail = (event as CustomEvent<unknown>).detail;
-    if (typeof detail === "string") listener(detail);
+    if (typeof detail === "string") {
+      if (isDeveloperResourceReturn(detail)) { resourceListener?.(detail); return; }
+      listener(detail);
+    }
   };
   window.addEventListener("ynx-wallet-callback", handler);
   return () => window.removeEventListener("ynx-wallet-callback", handler);
