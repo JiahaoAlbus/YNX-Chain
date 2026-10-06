@@ -89,6 +89,13 @@ static BOOL YNXRecordRecentLocalWorkspace(NSString *support,NSString *workspace)
 static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port) {
     return port>0&&[url.scheme isEqual:@"http"]&&[url.host isEqual:@"127.0.0.1"]&&url.port.integerValue==port&&!url.user.length&&!url.password.length&&(!url.path.length||[url.path isEqual:@"/"]);
 }
+static BOOL YNXLocalWindowRenderEligible(BOOL visible,BOOL miniaturized,BOOL viewInWindow,BOOL viewHidden,NSWindowOcclusionState occlusion,BOOL appActive,BOOL keyWindow,BOOL onActiveSpace,BOOL appHidden) {
+    if(!visible||miniaturized||!viewInWindow||viewHidden||!onActiveSpace||appHidden)return NO;
+    // Normal AppKit visibility remains the preferred signal. A focused,
+    // interactive window is also eligible when WebKit/AppKit omit that bit.
+    // Unknown occlusion bits alone never enable drawing or grant authority.
+    return (occlusion&NSWindowOcclusionStateVisible)!=0||(appActive&&keyWindow);
+}
 static BOOL YNXLocalGoPayload(id body) {
     return [body isKindOfClass:NSDictionary.class]&&[body count]==2&&[body[@"action"] isEqual:@"select-go-toolchain"]&&[body[@"requestId"] isKindOfClass:NSString.class]&&[[NSUUID alloc]initWithUUIDString:body[@"requestId"]];
 }
@@ -735,15 +742,20 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [_webView layoutSubtreeIfNeeded];[_window displayIfNeeded];
     [self updateLocalWindowVisibility];
 }
+- (void)applicationDidResignActive:(NSNotification *)note { [self updateLocalWindowVisibility]; }
+- (void)applicationDidHide:(NSNotification *)note { [self updateLocalWindowVisibility]; }
+- (void)applicationDidUnhide:(NSNotification *)note { [self updateLocalWindowVisibility]; }
 - (void)updateLocalWindowVisibility {
     if(!_localWorkbenchMode||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
-    BOOL visible=_window.isVisible&&(_window.occlusionState&NSWindowOcclusionStateVisible)&&_webView.window==_window&&!_webView.isHiddenOrHasHiddenAncestor;
+    BOOL visible=YNXLocalWindowRenderEligible(_window.isVisible,_window.isMiniaturized,_webView.window==_window,_webView.isHiddenOrHasHiddenAncestor,_window.occlusionState,NSApp.isActive,_window.isKeyWindow,_window.isOnActiveSpace,NSApp.isHidden);
     NSString *script=[NSString stringWithFormat:@"window.__ynxNativeWindowVisible=%@;window.dispatchEvent(new Event('ynx-window-visibility'));",visible?@"true":@"false"];
     YNXEvaluateTrustedScript(_webView,_port,script);
 }
 - (void)windowDidChangeOcclusionState:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)windowDidMiniaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)windowDidDeminiaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
+- (void)windowDidBecomeKey:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
+- (void)windowDidResignKey:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation {
     if(_localWorkbenchMode&&view==_webView)_localCommandDocumentReady=YNXLocalEditorDocumentURL(view.URL,_port);
     if(_localWorkbenchMode&&view==_webView)[self updateLocalWindowVisibility];
@@ -1342,6 +1354,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
         record[@"nativeVisible"]=@(_window.isVisible);record[@"nativeOcclusion"]=@(_window.occlusionState);
         record[@"nativeViewInWindow"]=@(_webView.window==_window);record[@"nativeViewHidden"]=@(_webView.isHiddenOrHasHiddenAncestor);
         record[@"nativeKeyWindow"]=@(_window.isKeyWindow);record[@"nativeAppActive"]=@(NSApp.isActive);
+        record[@"nativeOnActiveSpace"]=@(_window.isOnActiveSpace);record[@"nativeMiniaturized"]=@(_window.isMiniaturized);record[@"nativeAppHidden"]=@(NSApp.isHidden);
         NSData *data=[NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys error:nil];
         NSString *line=[NSString stringWithFormat:@"[terminal-ui-trace] %@\n",[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding]];
         @try{[_serverLog writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];}@catch(NSException *exception){}

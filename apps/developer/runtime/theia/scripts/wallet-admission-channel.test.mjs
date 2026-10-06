@@ -114,9 +114,7 @@ test('actual child fd3 transports four-op assertion without network or shared gr
   const seen=[];const owner=channel.serveAdmission(child.stdio[3],{assertCurrent(v){seen.push(v);}});
   try{const[code]=await once(child,'exit');assert.equal(code,0);assert.deepEqual(seen,[input]);}finally{owner.close();}
 });
-test('production missing successor selection fails closed', {
-  skip: 'Shared supplier execution is not approved; source/copy checks remain separate.'
-},async()=>{
+test('production fixed-null successor selection fails closed',async()=>{
   const { openBundledWalletAdmission } = await import('../../../desktop/wallet-admission-startup.mjs');
   const admission=await openBundledWalletAdmission();assert.throws(()=>admission.assertCurrent(input),{code:'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED'});
 });

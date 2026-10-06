@@ -56,13 +56,13 @@ test('actual package copy commands retain the startup and launcher admission dep
   }
 });
 
-test('packaged supplier missing-selection runtime remains a separate unapproved execution gate', {
-  skip: 'Shared supplier execution is not approved; pinned source/copy checks do not grant execution.'
-}, async () => {
+test('packaged fixed-null supplier refuses admission without configured authority', async () => {
   const { fixture, root } = await packagedFixture();
   try {
     const startup = await import(pathToFileURL(join(root, 'desktop/wallet-admission-startup.mjs')));
-    const admission = await startup.openBundledWalletAdmission();
-    assert.throws(() => admission.assertCurrent({}), { code: 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED' });
+    const admission = await startup.openBundledWalletAdmission(pathToFileURL(join(root, '../../../server.mjs')).href);
+    for (const operation of ['beginYNX', 'handleReturn', 'restore', 'disconnect']) {
+      assert.throws(() => admission.assertCurrent({ operation }), { code: 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED' });
+    }
   } finally { await rm(fixture, { recursive: true, force: true }); }
 });
