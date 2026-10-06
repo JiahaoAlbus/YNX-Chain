@@ -69,6 +69,9 @@ function activate(context) {
   register('ynx.configureChainProject', () => projectChain().configure());
   register('ynx.chainProjectHistory', () => projectChain().saved());
   register('ynx.trackChainTransaction', () => projectChain().track());
+  const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env);
+  register('ynx.js.runActive', () => jsCurrentFile(true));
+  register('ynx.js.debugActive', () => jsCurrentFile(false));
   register('ynx.configurePython', () => require('./python-setup.cjs').configurePython(vscode, process.env, t));
   register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(t('Solidity language: {0}', JSON.stringify(solidityLanguage.status()))); });
   register('ynx.openLocalReview', () => openLocalReview(false));

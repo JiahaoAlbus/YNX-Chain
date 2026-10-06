@@ -29,7 +29,10 @@ class LocalJsDebugTerminalContribution {
       const result = await original.call(this, request);
       if (!Number.isSafeInteger(result?.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
       const { processId, ...remaining } = result;
-      return { ...remaining, shellProcessId: processId };
+      // No-debug targets have no Inspector telemetry. Their authenticated host
+      // observer ends the session; never give the adapter the long-lived shell
+      // PID to poll or kill as though it were the target.
+      return configuration.noDebug === true ? remaining : { ...remaining, shellProcessId: processId };
     };
     Object.defineProperty(session, 'runInTerminal', { configurable: true, writable: true, value: wrapper });
     this.records.set(session, { descriptor, wrapper });

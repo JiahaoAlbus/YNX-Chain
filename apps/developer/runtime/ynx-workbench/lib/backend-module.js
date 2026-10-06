@@ -13,6 +13,7 @@ const { registerYnxLocalizations } = require('./ynx-localization');
 const { registerKeyboardShortcutsLocalizations } = require('./keyboard-shortcuts-localization');
 const { registerNativeWalletLocalizations } = require('./native-wallet-localization');
 require('./gcc-resource-adapter').install();
+require('./macos-bash-input').install(require('@theia/process/lib/node/terminal-process').TerminalProcess.prototype);
 require('./plugin-vscode-lifecycle-adapter').install();
 
 // macOS sandbox-exec refuses the setgid system ps binary. Use a nonprivileged

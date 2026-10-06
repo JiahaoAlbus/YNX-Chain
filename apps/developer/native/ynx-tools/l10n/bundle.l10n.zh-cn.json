@@ -158,5 +158,13 @@
   "The approved Chain identity changed or expired.": "获准的 Chain 身份已变化或过期。",
   "Connected endpoint is not the canonical YNX Testnet.": "连接的服务不是正确的 YNX 测试网。",
   "Saved query reference has no chain evidence yet": "保存的查询引用尚无链观察结果",
-  "Execution, indexing and source verification remain separate": "执行、索引和源码验证是独立状态"
+  "Execution, indexing and source verification remain separate": "执行、索引和源码验证是独立状态",
+  "Trust this project before running JavaScript.": "请先信任此项目，再运行 JavaScript。",
+  "Open a saved JavaScript file (.js, .mjs or .cjs).": "请打开已保存的 JavaScript 文件（.js、.mjs 或 .cjs）。",
+  "The active file changed. Run the intended JavaScript file again.": "活动文件已更改，请重新运行目标 JavaScript 文件。",
+  "Open this file in its active local project before running it.": "请在当前本地项目中打开此文件，再运行。",
+  "This file belongs to another local project.": "此文件属于另一个本地项目。",
+  "Install and enable the JavaScript Debugger extension before running this file.": "请先安装并启用 JavaScript Debugger 扩展，再运行此文件。",
+  "JavaScript launch was cancelled or failed. Check the debug output and retry.": "JavaScript 启动已取消或失败，请查看调试输出后重试。",
+  "The file changed after saving. Save and run it again.": "文件在保存后发生了更改，请保存后重新运行。"
 }

@@ -19,3 +19,9 @@ test('hosted or another workspace keeps native PID response; ordinary and nonmar
  for(const changed of [{__ynxJsLaunch:undefined},{type:'debugpy'},{request:'attach'},{console:'externalTerminal'},{env:{}}]){const {manager,contribution}=fixture(),value=session({...config(),...changed}),original=value.runInTerminal;manager.onDidCreateDebugSessionEmitter.fire(value);assert.equal(value.runInTerminal,original);contribution.onStop();}
 });
 test('shutdown restores exact own descriptor and never overwrites another contribution',()=>{const {manager,contribution}=fixture(),value=session();const own=value.runInTerminal.bind(value);Object.defineProperty(value,'runInTerminal',{configurable:true,writable:true,value:own});manager.onDidCreateDebugSessionEmitter.fire(value);contribution.onStop();assert.equal(value.runInTerminal,own);contribution.onStop();const next=fixture(),other=session();next.manager.onDidCreateDebugSessionEmitter.fire(other);const replacement=()=>{};other.runInTerminal=replacement;next.contribution.onStop();assert.equal(other.runInTerminal,replacement);});
+test('supervised noDebug terminal never supplies a shell PID for adapter liveness or termination',async()=>{
+ const {manager,contribution}=fixture(),value=session({...config(),noDebug:true});
+ let executed=false;value.terminalServer={all:[{title:{label:'run'},processId:Promise.resolve(321),hasChildProcesses:async()=>false,executeCommand:async()=>{executed=true;}}],open(){}};
+ manager.onDidCreateDebugSessionEmitter.fire(value);
+ assert.deepEqual(await value.runInTerminal({arguments:{kind:'integrated',title:'run',args:[]}}),{});assert.equal(executed,true);contribution.onStop();
+});

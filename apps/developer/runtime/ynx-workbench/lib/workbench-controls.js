@@ -9,6 +9,7 @@ const RUN_ACTIONS = Object.freeze([
   { id: 'workbench.action.tasks.runTask', label: 'Run Task…' },
 ]);
 const CPP_ACTIONS = Object.freeze([{ id: 'ynx.cpp.runActive', label: 'Run C/C++ File' }, { id: 'ynx.cpp.debugActive', label: 'Debug C/C++ File' }]);
+const JS_ACTIONS = Object.freeze([{ id: 'ynx.js.runActive', label: 'Run JavaScript File' }, { id: 'ynx.js.debugActive', label: 'Debug JavaScript File' }]);
 const VIEWS = Object.freeze([
   { key: 'explorer', label: 'Explorer', icon: 'files', area: 'left', command: 'fileNavigator:toggle' },
   { key: 'search', label: 'Search', icon: 'search', area: 'left', command: 'search-in-workspace.toggle' },
@@ -133,6 +134,10 @@ class WorkbenchControlsContribution {
       commandId: action.id, label: this.translate(index ? 'debugCppFile' : 'runCppFile', action.label),
       when: 'editorLangId == cpp || editorLangId == c', order: String(index),
     }));
+    for (const [index, action] of JS_ACTIONS.entries()) this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'javascript'], {
+      commandId: action.id, label: this.translate(index ? 'debugJsFile' : 'runJsFile', action.label),
+      when: 'editorLangId == javascript', order: String(index),
+    }));
     RUN_ACTIONS.forEach((action, index) => this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'actions'], {
       commandId: action.id,
       label: this.translate(['runAndDebug', 'runWithoutDebugging', 'runBuildTask', 'runTask'][index], action.label),
@@ -192,7 +197,7 @@ class WorkbenchControlsContribution {
     if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
-    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS].map(action => this.state(action.id).enabled).join('|');
+    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS].map(action => this.state(action.id).enabled).join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';

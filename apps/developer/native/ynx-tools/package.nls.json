@@ -22,5 +22,7 @@
   "command.ynx.trackChainTransaction": "Remember a transaction reference",
   "command.ynx.configureSolidityBuild": "YNX: Configure Solidity Build",
   "command.ynx.cancelSolidityBuild": "YNX: Cancel Solidity Build",
-  "configuration.solidity.build": "Project entry and contract selected using the pinned local compiler. This does not deploy or execute a contract."
+  "configuration.solidity.build": "Project entry and contract selected using the pinned local compiler. This does not deploy or execute a contract.",
+  "command.ynx.js.runActive": "Run JavaScript File",
+  "command.ynx.js.debugActive": "Debug JavaScript File"
 }

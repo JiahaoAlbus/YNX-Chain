@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.27",
+  "version": "0.2.28",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -14,7 +14,9 @@
     "onView:ynx.tools",
     "onCommand:ynx.reviewSelection",
     "onStartupFinished",
-    "onCommand:ynx.configurePython"
+    "onCommand:ynx.configurePython",
+    "onCommand:ynx.js.runActive",
+    "onCommand:ynx.js.debugActive"
   ],
   "contributes": {
     "viewsContainers": {
@@ -110,6 +112,14 @@
       {
         "command": "ynx.cancelSolidityBuild",
         "title": "%command.ynx.cancelSolidityBuild%"
+      },
+      {
+        "command": "ynx.js.runActive",
+        "title": "%command.ynx.js.runActive%"
+      },
+      {
+        "command": "ynx.js.debugActive",
+        "title": "%command.ynx.js.debugActive%"
       }
     ],
     "jsonValidation": [
@@ -146,6 +156,26 @@
           "command": "ynx.importSolidityDiagnostics",
           "when": "resourceScheme == file && resourceExtname == .sol",
           "group": "ynx@4"
+        },
+        {
+          "command": "ynx.js.runActive",
+          "when": "resourceScheme == file && editorLangId == javascript",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.js.debugActive",
+          "when": "resourceScheme == file && editorLangId == javascript",
+          "group": "ynx@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ynx.js.runActive",
+          "when": "resourceScheme == file && editorLangId == javascript"
+        },
+        {
+          "command": "ynx.js.debugActive",
+          "when": "resourceScheme == file && editorLangId == javascript"
         }
       ]
     },

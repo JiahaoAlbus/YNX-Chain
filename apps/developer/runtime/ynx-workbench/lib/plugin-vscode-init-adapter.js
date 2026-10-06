@@ -171,7 +171,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   });
   function release(id) {
     const record = launches.get(id); if (!record) return;
-    clearTimeout(record.timer); launches.delete(id);
+    clearTimeout(record.timer); record.observation?.dispose(); launches.delete(id);
     const task = request({ op: 'cancel', launchId: id }); pendingCleanup.add(task);
     task.then(() => pendingCleanup.delete(task), error => { pendingCleanup.delete(task); cleanupErrors.push(error); }); return task;
   }
@@ -198,6 +198,17 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
       return null;
     }
   };
+  function finishObservedLaunch(id, record) {
+    if (launches.get(id) !== record || !record.session || !record.ended || record.finishing) return;
+    record.finishing = true;
+    if (record.ended.error || record.ended.cancelled) notify('showErrorMessage', record.ended.error || 'JavaScript launch did not complete normally. Check Terminal and retry.');
+    else if (record.ended.code) notify('showErrorMessage', 'JavaScript program exited with code ' + record.ended.code);
+    const task = Promise.resolve().then(() => {
+      if (launches.get(id) === record) return debug.stopDebugging(record.session);
+    });
+    pendingCleanup.add(task);
+    task.then(() => pendingCleanup.delete(task), error => { pendingCleanup.delete(task); cleanupErrors.push(error); notify('showErrorMessage', 'JavaScript session cleanup failed. Stop the session and retry.'); });
+  }
   async function configure(configuration, choice) {
     if (!configuration || configuration.request !== 'launch' || configuration.__pendingTargetId) return configuration;
     if (configuration.__ynxJsLaunch) { if (!launches.has(configuration.__ynxJsLaunch)) throw Error('Unknown local JavaScript launch correlation'); return configuration; }
@@ -213,7 +224,17 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     const prepared = await request({ op: 'prepare', console: configuration.console || 'internalConsole', noDebug: configuration.noDebug === true, program: configuration.program, cwd: configuration.cwd });
     if (prepared.kind !== 'prepared' || !/^[a-f0-9-]{36}$/.test(prepared.launchId || '')) throw Error('Invalid JavaScript launch admission');
     const timer = setTimeout(() => { release(prepared.launchId)?.catch(error => console.error('JavaScript launch expiry:', error)); }, 30000); timer.unref?.();
-    launches.set(prepared.launchId, { timer });
+    const record = { timer };
+    launches.set(prepared.launchId, record);
+    if (configuration.noDebug === true && configuration.console === 'integratedTerminal') {
+      try {
+        record.observation = await require('./local-js-launch-observer').observeLocalJsLaunch(environment, prepared.launchId, result => {
+          if (launches.get(prepared.launchId) !== record) return;
+          record.ended = result;
+          finishObservedLaunch(prepared.launchId, record);
+        });
+      } catch (error) { await release(prepared.launchId); throw error; }
+    }
     const mapping = prepared.sourceMapping;
     if (mapping && (configuration.localRoot || configuration.remoteRoot) && (configuration.localRoot !== mapping.localRoot || configuration.remoteRoot !== mapping.remoteRoot)) { await release(prepared.launchId); throw Error('Existing localRoot/remoteRoot conflicts with this verified local project alias. Configuration was retained.'); }
     // The supervised noDebug target has no Inspector connection. The official
@@ -257,7 +278,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   };
   debug.onDidStartDebugSession?.(session => {
     const record = launches.get(session.configuration?.__ynxJsLaunch);
-    if (record) clearTimeout(record.timer);
+    if (record) { clearTimeout(record.timer); record.session = session; finishObservedLaunch(session.configuration.__ynxJsLaunch, record); }
   });
   debug.onDidTerminateDebugSession?.(session => {
     release(session.configuration?.__ynxJsLaunch)?.catch(error => console.error('JavaScript debug cleanup:', error));

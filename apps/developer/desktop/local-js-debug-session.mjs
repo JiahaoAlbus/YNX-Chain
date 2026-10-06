@@ -67,6 +67,8 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
         }
       entry.data?.dispose();entry.exit?.dispose();
       launches.delete(entry.id);if(!failure)leased.delete(entry.port);
+      for(const observer of entry.observers||[]){if(!observer.destroyed)observer.end(JSON.stringify({kind:'ended',code:entry.targetExit?.code??null,cancelled:!entry.targetExit,...(failure?{error:'JavaScript process cleanup could not be verified'}:entry.targetExit?.error?{error:'JavaScript target could not be started'}:{})})+'\n');}
+      entry.observers?.clear();
       if(failure){faulted=true;throw Error('JavaScript cleanup is unverified; endpoint lease retained: '+failure.message);}
     })();return entry.stopping;
   }
@@ -89,8 +91,22 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           if(message.op==='guard'){
             entry=launches.get(message.launchId);if(!entry||entry.phase!=='running'||entry.guard||entry.child?.pid!==message.pid)throw Error('JavaScript guardian binding was refused');entry.guard=socket;guard=true;reply({kind:'target',args:entry.targetArgs,cwd:entry.targetCwd,env:entry.targetEnv,executable:entry.noDebug?process.execPath:alias});return;
           }
+          if(message.op==='observe'){const selected=launches.get(message.launchId);if(!selected||selected.stopping||!selected.noDebug||selected.consoleMode!=='integratedTerminal'||selected.observers?.size)throw Error('JavaScript launch observation was refused');selected.observers ||= new Set();selected.observers.add(socket);socket.once('close',()=>selected.observers.delete(socket));reply({kind:'observing'});return;}
           if(message.op==='cancel'){const selected=launches.get(message.launchId);if(selected)await retire(selected);reply({kind:'cancelled'});return;}
-          if(message.op==='prepare'){if(sourceMapping && message.program){const supplied=resolve(message.cwd||context.workspace,message.program);const root=workspaceProof.paths.find(path=>inside(path,supplied));if(!root)throw Error('JavaScript entry source is outside its verified project');const unit=relative(root,supplied);const a=await projectSource(sourceMapping.localRoot,unit),b=await projectSource(sourceMapping.remoteRoot,unit);if(a.isSymbolicLink()||b.isSymbolicLink()||!a.isFile()||!b.isFile()||a.dev!==b.dev||a.ino!==b.ino)throw Error('JavaScript entry source alias changed');await assertWorkspacePathIdentity(workspaceProof);}const prepared=await prepare(message.console,message.noDebug);reply({kind:'prepared',launchId:prepared.id,sourceMapping});return;}
+          if(message.op==='prepare'){
+            if(message.program!==undefined){
+              if(typeof message.program!=='string'||!message.program||message.program.includes('\0')||message.cwd!==undefined&&typeof message.cwd!=='string')throw Error('Invalid JavaScript entry source');
+              await assertWorkspacePathIdentity(workspaceProof);
+              const supplied=resolve(message.cwd||context.workspace,message.program);
+              const root=workspaceProof.paths.find(path=>inside(path,supplied));
+              if(!root)throw Error('JavaScript entry source is outside its verified project');
+              const unit=relative(root,supplied),source=await projectSource(root,unit);
+              const canonicalSource=await projectSource(context.workspace,unit);
+              if(source.dev!==canonicalSource.dev||source.ino!==canonicalSource.ino)throw Error('JavaScript entry source alias changed');
+              await assertWorkspacePathIdentity(workspaceProof);
+            }
+            const prepared=await prepare(message.console,message.noDebug);reply({kind:'prepared',launchId:prepared.id,sourceMapping});return;
+          }
           if(message.op!=='start')throw Error('Invalid JavaScript debug request');
           entry=launches.get(message.launchId);if(!entry||entry.phase!=='prepared')throw Error('JavaScript launch request expired or was replayed');
           let cwd=await realpath(message.cwd);
@@ -127,7 +143,7 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           reply({kind:'ready',pid:entry.child.pid});return;
         }
         if(!entry||entry.phase!=='running')throw Error('JavaScript target is not active');
-        if(guard){if(message.op!=='target-exit'||entry.targetExit)throw Error('Invalid guardian result');if(!(message.code===null||Number.isInteger(message.code)&&message.code>=0&&message.code<=255)&&!message.error)throw Error('Invalid guardian exit code');entry.targetExit={code:message.code,signal:message.signal};await retire(entry);return;}
+        if(guard){if(message.op!=='target-exit'||entry.targetExit)throw Error('Invalid guardian result');if(!(message.code===null||Number.isInteger(message.code)&&message.code>=0&&message.code<=255)&&!message.error)throw Error('Invalid guardian exit code');entry.targetExit={code:message.code,signal:message.signal,...(message.error?{error:true}:{})};await retire(entry);return;}
         if(message.op==='stop'){await retire(entry);return;}
         if(message.op==='input'){if(typeof message.data!=='string'||message.data.length>131072||!/^[A-Za-z0-9+/]*={0,2}$/.test(message.data))throw Error('Invalid JavaScript target input');const bytes=Buffer.from(message.data,'base64');if(entry.consoleMode==='integratedTerminal')entry.child.write(bytes.toString('utf8'));else entry.child.stdin.write(bytes);return;}
         if(message.op==='resize'){if(!Number.isInteger(message.columns)||!Number.isInteger(message.rows)||message.columns<1||message.columns>1000||message.rows<1||message.rows>1000)throw Error('Invalid JavaScript terminal size');if(entry.consoleMode==='integratedTerminal')entry.child.resize(message.columns,message.rows);return;}

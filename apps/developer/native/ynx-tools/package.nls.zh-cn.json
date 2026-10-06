@@ -22,5 +22,7 @@
   "command.ynx.trackChainTransaction": "记录交易查询引用",
   "command.ynx.configureSolidityBuild": "YNX：配置 Solidity 编译",
   "command.ynx.cancelSolidityBuild": "YNX：取消 Solidity 编译",
-  "configuration.solidity.build": "使用固定本地编译器选择的项目入口和合约。此操作不会部署或执行合约。"
+  "configuration.solidity.build": "使用固定本地编译器选择的项目入口和合约。此操作不会部署或执行合约。",
+  "command.ynx.js.runActive": "运行 JavaScript 文件",
+  "command.ynx.js.debugActive": "调试 JavaScript 文件"
 }
