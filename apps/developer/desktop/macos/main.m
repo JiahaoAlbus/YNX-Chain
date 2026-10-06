@@ -154,7 +154,7 @@ static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
         @"Undo":@"撤销",@"Redo":@"重做",@"Cut":@"剪切",@"Copy":@"复制",@"Paste":@"粘贴",@"Find":@"查找",@"Replace":@"替换",@"Toggle Line Comment":@"切换行注释",@"Format Document":@"格式化文档",
         @"Select All":@"全选",@"Expand Selection":@"扩大选区",@"Shrink Selection":@"缩小选区",@"Select All Occurrences":@"选择所有匹配项",@"Add Cursor Above":@"在上方添加光标",@"Add Cursor Below":@"在下方添加光标",
         @"Command Palette…":@"命令面板…",@"Explorer":@"资源管理器",@"Search":@"搜索",@"Source Control":@"源代码管理",@"Run and Debug":@"运行和调试",@"Extensions":@"扩展",@"Problems":@"问题",@"Output":@"输出",@"Outline":@"大纲",
-        @"Toggle Primary Side Bar":@"切换主侧边栏",@"Toggle Panel":@"切换面板",@"Color Theme…":@"颜色主题…",
+        @"Toggle Primary Side Bar":@"切换主侧边栏",@"Toggle Panel":@"切换面板",@"Color Theme…":@"颜色主题…",@"Toggle Full Screen":@"切换全屏",
         @"Go to File…":@"转到文件…",@"Go to Line/Column…":@"转到行/列…",@"Go to Definition":@"转到定义",@"Go to References":@"转到引用",@"Back":@"后退",@"Forward":@"前进",
         @"Start Debugging":@"启动调试",@"Run Without Debugging":@"运行而不调试",@"Stop Debugging":@"停止调试",@"Restart Debugging":@"重新启动调试",@"Open Configurations…":@"打开配置…",
         @"New Terminal":@"新建终端",@"Toggle Terminal":@"切换终端",@"Split Terminal":@"拆分终端",@"Clear Terminal":@"清除终端",@"Run Build Task…":@"运行生成任务…",@"Run Task…":@"运行任务…",
@@ -719,6 +719,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
     _window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
     _window.backgroundColor=YNXLocalBackgroundColor(@"#111214");
+    // Bring a reopened editor to the user's current Space when activated.
+    // Keep its saved frame and other collection behavior intact.
+    _window.collectionBehavior|=NSWindowCollectionBehaviorMoveToActiveSpace|NSWindowCollectionBehaviorFullScreenPrimary;
     NSString *project=_localWorkspace;
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
@@ -835,6 +838,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [self localCommandItem:view title:@"Toggle Primary Side Bar" command:@"core.toggle.left.panel" key:@"b" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:view title:@"Toggle Panel" command:@"core.toggle.bottom.panel" key:@"j" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:view title:@"Color Theme…" command:@"workbench.action.selectTheme" key:@"" modifiers:0];
+    [view addItem:[NSMenuItem separatorItem]];
+    NSMenuItem *fullScreen=[view addItemWithTitle:YNXLocalMenuLabel(@"Toggle Full Screen",_localLocale) action:@selector(toggleFullScreen:) keyEquivalent:@"f"];
+    fullScreen.target=nil;fullScreen.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagControl;
     NSMenu *go=[self localMenu:main title:@"Go"];
     [self localCommandItem:go title:@"Go to File…" command:@"file-search.openFile" key:@"p" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:go title:@"Go to Line/Column…" command:@"editor.action.gotoLine" key:@"g" modifiers:NSEventModifierFlagControl];
