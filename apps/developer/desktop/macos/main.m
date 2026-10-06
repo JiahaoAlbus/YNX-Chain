@@ -722,6 +722,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // Bring a reopened editor to the user's current Space when activated.
     // Keep its saved frame and other collection behavior intact.
     _window.collectionBehavior|=NSWindowCollectionBehaviorMoveToActiveSpace|NSWindowCollectionBehaviorFullScreenPrimary;
+    [NSWorkspace.sharedWorkspace.notificationCenter addObserver:self selector:@selector(localActiveSpaceDidChange:) name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];
     NSString *project=_localWorkspace;
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
@@ -742,8 +743,14 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (void)applicationDidBecomeActive:(NSNotification *)note {
     if(!_localWorkbenchMode||!_window)return;
+    // MoveToActiveSpace takes effect when presenting the activated editor.
+    // Preserve minimized windows and the focus of native dialogs/other windows.
+    NSWindow *key=NSApp.keyWindow;
+    if(NSApp.isActive&&!NSApp.isHidden&&_window.isVisible&&!_window.isMiniaturized&&
+       !_window.attachedSheet&&!_localFolderPanel&&!_localGoPanel&&(!key||key==_window))
+        [_window makeKeyAndOrderFront:nil];
     [_webView layoutSubtreeIfNeeded];[_window displayIfNeeded];
-    [self updateLocalWindowVisibility];
+    [self synchronizeLocalWindowVisibility];
 }
 - (void)applicationDidResignActive:(NSNotification *)note { [self updateLocalWindowVisibility]; }
 - (void)applicationDidHide:(NSNotification *)note { [self updateLocalWindowVisibility]; }
@@ -754,6 +761,19 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSString *script=[NSString stringWithFormat:@"window.__ynxNativeWindowVisible=%@;window.dispatchEvent(new Event('ynx-window-visibility'));",visible?@"true":@"false"];
     YNXEvaluateTrustedScript(_webView,_port,script);
 }
+- (void)synchronizeLocalWindowVisibility {
+    [self updateLocalWindowVisibility];
+    // AppKit can notify before a Space/full-screen transition has settled.
+    // Re-sample actual eligibility; never cache or force a visible result.
+    dispatch_async(dispatch_get_main_queue(),^{[self updateLocalWindowVisibility];});
+}
+- (void)localActiveSpaceDidChange:(NSNotification *)note {
+    // Space changes are passive: refresh visibility without raising a window.
+    if(!NSThread.isMainThread){dispatch_async(dispatch_get_main_queue(),^{[self synchronizeLocalWindowVisibility];});return;}
+    [self synchronizeLocalWindowVisibility];
+}
+- (void)windowDidEnterFullScreen:(NSNotification *)note { if(note.object==_window)[self synchronizeLocalWindowVisibility]; }
+- (void)windowDidExitFullScreen:(NSNotification *)note { if(note.object==_window)[self synchronizeLocalWindowVisibility]; }
 - (void)windowDidChangeOcclusionState:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)windowDidMiniaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)windowDidDeminiaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
@@ -1423,7 +1443,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
