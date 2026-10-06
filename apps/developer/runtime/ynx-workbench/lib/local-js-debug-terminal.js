@@ -1,5 +1,21 @@
 'use strict';
 const URI = require('@theia/core/lib/common/uri').default;
+// Theia finalizes output when both the process and its output channel close,
+// then unconditionally disposes the widget. Retain that finalization sequence
+// for this owned terminal, but use its existing wait-on-exit close interaction.
+function retainTerminalOutput(terminal) {
+  if (typeof terminal.finalizeAndDispose !== 'function') return;
+  let finalized = false;
+  terminal.finalizeAndDispose = function () {
+    if (finalized) return;
+    finalized = true;
+    this.term.write('', () => {
+      if (this.isDisposed) return;
+      if (this._commandHistoryState?.currentCommand) this.finishCurrentCommand();
+      this.waitOnExit(true);
+    });
+  };
+}
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 // Theia 1.76 runInTerminal returns the persistent terminal's processId.
 // DAP distinguishes that shell PID from the debuggee PID. This owned adapter
@@ -33,6 +49,7 @@ class LocalJsDebugTerminalContribution {
       const { title, cwd, args, env } = request.arguments;
       const terminal = await this.terminalServer.newTerminal({ title, cwd, env, kind: 'debug', useServerTitle: false });
       if (record.ended || owner.stopped) { terminal.dispose(); throw Error('Local JavaScript terminal launch has ended'); }
+      retainTerminalOutput(terminal);
       record.terminals.add(terminal);
       let result;
       try {
@@ -77,3 +94,5 @@ class LocalJsDebugTerminalContribution {
   onStop() { this.stopped = true; this.creation?.dispose(); this.destruction?.dispose(); for (const session of [...this.records.keys()]) this.restore(session); }
 }
 exports.LocalJsDebugTerminalContribution = LocalJsDebugTerminalContribution;
+
+exports.retainTerminalOutput = retainTerminalOutput;

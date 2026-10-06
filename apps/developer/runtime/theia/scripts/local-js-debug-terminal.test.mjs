@@ -51,3 +51,14 @@ test('destroy during terminal creation prevents start; destroy during start clos
  if(phase==='create'){assert.equal(started,0);assert.equal(disposed,1)}else assert.ok(closes>=1);contribution.onStop();
  }
 });
+
+test('actual Theia deferred process/channel exit drains output and retains owned widget until explicit close',()=>{
+ const {TerminalWidgetImpl}=r('@theia/terminal/lib/browser/terminal-widget-impl');
+ const {retainTerminalOutput}=r('../../ynx-workbench/lib/local-js-debug-terminal');
+ function widget(){const value=Object.create(TerminalWidgetImpl.prototype);let disposed=0,finished=0,closeKey;const writes=[];Object.defineProperty(value,'isDisposed',{get:()=>disposed>0});value.term={textarea:{},write:(text,callback)=>writes.push(callback)};value.dispose=()=>disposed++;value.finishCurrentCommand=()=>finished++;value._commandHistoryState={currentCommand:'launcher target.js'};value.addKeyListener=(_element,_key,callback)=>closeKey=callback;return{value,writes,get disposed(){return disposed},get finished(){return finished},pressClose:()=>closeKey()}}
+ // Negative control is the framework implementation that caused the native loss.
+ const baseline=widget();baseline.value.connectionClosed=true;baseline.value.deferredFinalizeCommandHistory();baseline.writes.shift()();assert.equal(baseline.disposed,1);
+ for(const alreadyClosed of [true,false]){const owned=widget();retainTerminalOutput(owned.value);owned.value.connectionClosed=alreadyClosed;owned.value.deferredFinalizeCommandHistory();if(!alreadyClosed){assert.equal(owned.value.waitingForConnectionCloseToDispose,true);owned.value.connectionClosed=true;owned.value.finalizeAndDispose()}
+ assert.equal(owned.disposed,0);assert.equal(owned.finished,0);owned.writes.shift()();assert.equal(owned.finished,1);assert.equal(owned.disposed,0);assert.equal(owned.value.isAttachedCloseListener,true);owned.value.finalizeAndDispose();assert.equal(owned.writes.length,0);owned.pressClose();assert.equal(owned.disposed,1);
+ }
+});
