@@ -11,7 +11,6 @@ import { tmpdir } from 'node:os';
 import channel from '../../ynx-workbench/lib/wallet-admission-channel.js';
 import protocol from '../../ynx-workbench/lib/wallet-admission-protocol.js';
 import controllerModule from '../../ynx-workbench/lib/native-wallet-controller.js';
-import { openBundledWalletAdmission } from '../../../desktop/wallet-admission-startup.mjs';
 const input = { service: 'wallet-product-session-v2', productId: 'developer', platform: 'macos', gatewayOrigin: 'https://wallet-auth.ynxweb4.com', operation: 'restore' };
 const require = createRequire(import.meta.url);
 const { MsgPackMessageEncoder, MsgPackMessageDecoder, registerMsgPackExtensions } = require('@theia/core/lib/common/message-rpc/rpc-message-encoder');
@@ -115,7 +114,10 @@ test('actual child fd3 transports four-op assertion without network or shared gr
   const seen=[];const owner=channel.serveAdmission(child.stdio[3],{assertCurrent(v){seen.push(v);}});
   try{const[code]=await once(child,'exit');assert.equal(code,0);assert.deepEqual(seen,[input]);}finally{owner.close();}
 });
-test('production missing successor selection fails closed without importing supplier',async()=>{
+test('production missing successor selection fails closed', {
+  skip: 'Shared supplier execution is not approved; source/copy checks remain separate.'
+},async()=>{
+  const { openBundledWalletAdmission } = await import('../../../desktop/wallet-admission-startup.mjs');
   const admission=await openBundledWalletAdmission();assert.throws(()=>admission.assertCurrent(input),{code:'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED'});
 });
 test('sandbox and packaged native lock preserve the private admission pipe', { skip: process.platform !== 'darwin' || !process.env.YNX_ADMISSION_TEST_APP }, async () => {

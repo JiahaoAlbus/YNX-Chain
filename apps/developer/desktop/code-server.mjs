@@ -42,7 +42,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   try{goStore=await createLocalGoSelectionStore({supportRoot,context,pathIdentityHelper:join(resources,'runtime','workspace-path-identity')});goToolchain=await goStore.load();}
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   const { openBundledWalletAdmission } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
-  const walletAdmission = await openBundledWalletAdmission();
+  const walletAdmission = await openBundledWalletAdmission(import.meta.url);
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
     walletAdmission, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
