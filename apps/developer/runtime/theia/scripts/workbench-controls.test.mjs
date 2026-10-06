@@ -179,3 +179,23 @@ test('JavaScript menu exposes explicit official-extension current-file commands 
  assert.deepEqual(js.map(x=>x.item.commandId),['ynx.js.runActive','ynx.js.debugActive']);
  assert.ok(js.every(x=>x.item.when==='editorLangId == javascript'));
 });
+test('Go menu dispatches existing project Run/Cancel commands without file or shell arguments', async () => {
+ const f=fixture(),items=[];
+ f.controls.registerMenus({registerMenuAction:(path,item)=>{items.push({path,item});return{dispose(){}};}});
+ const go=items.filter(x=>x.path.includes('go'));
+ assert.deepEqual(go.map(x=>x.item.commandId),['ynx.go.run','ynx.go.cancel']);
+ assert.ok(go.every(x=>x.item.when==='editorLangId == go'));
+ for(const {item} of go){
+  await assert.rejects(f.controls.run(item.commandId),/Unavailable in this runtime/);
+  const registration=f.commands.registerCommand({id:item.commandId},{execute:(...args)=>{assert.deepEqual(args,[]);f.calls.push(item.commandId);}});
+  await f.controls.run(item.commandId);registration.dispose();
+ }
+ assert.deepEqual(f.calls,['ynx.go.run','ynx.go.cancel']);f.controls.dispose();
+});
+test('Go command registration and enablement changes refresh toolbar state',()=>{
+ const f=fixture();let changed=0,enabled=true;
+ f.controls.changed.event(()=>changed++);f.controls.refresh();const before=changed;
+ const registration=f.commands.registerCommand({id:'ynx.go.run'},{execute(){},isEnabled:()=>enabled});
+ f.controls.refresh();assert.equal(changed,before+1);enabled=false;f.controls.refresh();assert.equal(changed,before+2);
+ enabled=true;f.controls.refresh();registration.dispose();f.controls.refresh();assert.equal(changed,before+4);f.controls.dispose();
+});
