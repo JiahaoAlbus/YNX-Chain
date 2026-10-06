@@ -32,10 +32,15 @@ if (seal) {
     await buildProcessHelper();
   }
   await cp(join(source, 'lib/plugin-vscode-init-adapter.js'), join(runtime, 'lib/backend/ynx-plugin-vscode-init.js'));
-  const terminalHelper = await lstat(join(source, 'lib/python-terminal-creation.js'));
-  assert.ok(terminalHelper.isFile() && !terminalHelper.isSymbolicLink(), 'Only the regular owned Python terminal helper is admitted.');
-  await cp(join(source, 'lib/python-terminal-creation.js'), join(runtime, 'lib/backend/python-terminal-creation.js'));
-  assert.deepEqual(await readFile(join(runtime, 'lib/backend/python-terminal-creation.js')), await readFile(join(source, 'lib/python-terminal-creation.js')));
+  // These helpers are required dynamically by the external plugin-host adapter.
+  // Bundling the frontend does not carry them into lib/backend.
+  for (const helper of ['python-terminal-creation.js', 'local-js-launch-observer.js']) {
+    const input = join(source, 'lib', helper), output = join(runtime, 'lib/backend', helper);
+    const stat = await lstat(input);
+    assert.ok(stat.isFile() && !stat.isSymbolicLink(), 'Only regular owned plugin-host helpers are admitted.');
+    await cp(input, output);
+    assert.deepEqual(await readFile(output), await readFile(input));
+  }
   const hashFile = async name => createHash('sha256').update(await readFile(join(runtime, name))).digest('hex');
   await regular(join(runtime, 'lib'));
   await writeFile(join(runtime, '.ynx-owned-build.json'), JSON.stringify({

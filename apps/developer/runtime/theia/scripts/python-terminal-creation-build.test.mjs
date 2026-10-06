@@ -65,12 +65,15 @@ test('actual producer seal block copies helper and its receipt detects missing o
  const { composedTreeDigest }=await import('../../../services/codeoss-service/src/composed-runtime.mjs');
  const fs=await import('node:fs/promises'),crypto=await import('node:crypto');
  const runtime=await mkdtemp('/private/tmp/ynx-python-terminal-seal-'),source=join(runtime,'source');await mkdir(join(source,'lib'),{recursive:true});await mkdir(join(runtime,'lib/backend'),{recursive:true});
- for(const name of ['plugin-vscode-init-adapter','python-terminal-creation'])await copyFile(new URL('../../ynx-workbench/lib/'+name+'.js',import.meta.url),join(source,'lib',name+'.js'));
+ for(const name of ['plugin-vscode-init-adapter','python-terminal-creation','local-js-launch-observer'])await copyFile(new URL('../../ynx-workbench/lib/'+name+'.js',import.meta.url),join(source,'lib',name+'.js'));
  await fs.writeFile(join(runtime,'package.json'),'{}');await fs.writeFile(join(runtime,'package-lock.json'),'{}');
  const script=await readFile(new URL('./sync-owned-workbench.mjs',import.meta.url),'utf8');const block=script.slice(script.indexOf('if (seal) {')+12,script.lastIndexOf('}'));
  const regular=async path=>{for(const name of await fs.readdir(path)){const stat=await fs.lstat(join(path,name));assert.ok(!stat.isSymbolicLink()&&(stat.isDirectory()||stat.isFile()));if(stat.isDirectory())await regular(join(path,name));}};
  const seal=new (Object.getPrototypeOf(async function(){}).constructor)('assert','cp','lstat','readFile','writeFile','createHash','join','runtime','source','digest','regular','composedTreeDigest',block);
  await seal(assert,fs.cp,fs.lstat,fs.readFile,fs.writeFile,crypto.createHash,join,runtime,source,'owned-test-source',regular,composedTreeDigest);
+ const packagedRequire=createRequire(join(runtime,'lib/backend/ynx-plugin-vscode-init.js'));
+ assert.equal(typeof packagedRequire('./local-js-launch-observer').observeLocalJsLaunch,'function');
+ assert.deepEqual(await readFile(join(runtime,'lib/backend/local-js-launch-observer.js')),await readFile(join(source,'lib/local-js-launch-observer.js')));
  const receipt=JSON.parse(await readFile(join(runtime,'.ynx-owned-build.json'),'utf8'));assert.equal(receipt.compiledTreeSha256,await composedTreeDigest(join(runtime,'lib')));
  await unlink(join(runtime,'lib/backend/python-terminal-creation.js'));assert.notEqual(receipt.compiledTreeSha256,await composedTreeDigest(join(runtime,'lib')));
  await fs.writeFile(join(runtime,'lib/backend/python-terminal-creation.js'),'wrong');assert.notEqual(receipt.compiledTreeSha256,await composedTreeDigest(join(runtime,'lib')));
