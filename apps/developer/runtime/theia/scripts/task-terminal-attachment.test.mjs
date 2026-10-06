@@ -41,3 +41,20 @@ test('failure notification dismissal never blocks rejection or cleanup',async()=
  setNotification(()=>{notices++;return new Promise(()=>{});});
  try{const f=fixture({kind:'user',connect:false,timeout:10});await assert.rejects(f.widget.start(17),/timed out/);assert.equal(notices,1);}finally{setNotification(()=>{});}
 });
+test('real listen open failure reaches Deferred; late successful channel closes without handler',async()=>{
+ const {Deferred}=require('@theia/core/lib/common/promise-util');
+ for(const late of [false,true]){
+  const f=fixture({kind:'debug',connect:false,timeout:10});let handler,closed=0,handled=0;
+  f.widget.connectionProvider={openChannel:async(_path,fn)=>{if(!late)throw Error('channel already open');handler=fn;},listen(){throw Error('not used');}};
+  f.widget.connectTerminalProcess=function(){this.waitForConnection=new Deferred();this.connectionProvider.listen('/services/terminals/17',()=>{handled++;this.waitForConnection.resolve();},false);};
+  await assert.rejects(f.widget.start(17),late?/timed out/:/channel already open/);
+  if(late)handler('/services/terminals/17',{close(){closed++;}});
+  assert.equal(handled,0);assert.equal(closed,late?1:0);
+ }
+});
+test('old open rejection cannot reject replacement start Deferred',async()=>{
+ const {Deferred}=require('@theia/core/lib/common/promise-util');const f=fixture({kind:'user',connect:false,timeout:10});let rejectOld;let attempt=0;
+ f.widget.connectionProvider={openChannel:(_path,handler)=>++attempt===1?new Promise((_r,reject)=>{rejectOld=reject;}):Promise.resolve().then(()=>handler('/services/terminals/17',{close(){}}))};
+ f.widget.connectTerminalProcess=function(){this.waitForConnection=new Deferred();this.connectionProvider.listen('/services/terminals/17',()=>this.waitForConnection.resolve(),false);};
+ await assert.rejects(f.widget.start(17),/timed out/);f.widget.attachTerminal=async()=>17;const next=f.widget.start(17);rejectOld(Error('late old failure'));await next;assert.equal(attempt,2);
+});
