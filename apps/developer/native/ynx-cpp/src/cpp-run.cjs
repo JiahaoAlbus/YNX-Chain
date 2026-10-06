@@ -94,12 +94,23 @@ function registerCppRun(vscode, context, env) {
       // Return cancellation immediately; a notification's dismissal must never
       // keep an F5 admission pending. Actions are explicit later user choices.
       const python = document?.languageId === 'python';
+      const sourceUri = document?.uri;
       Promise.resolve(vscode.window.showErrorMessage(t('mismatch'), ...(python ? [t('pythonDebug')] : []), t('debugView'))).then(async action => {
-        if (!action || vscode.window.activeTextEditor?.document !== document) return;
+        if (!action) return;
         const command = python && action === t('pythonDebug') ? 'debugpy.debugInTerminal' : action === t('debugView') ? 'workbench.view.debug' : undefined;
+        if (command === 'debugpy.debugInTerminal') {
+          if (!vscode.workspace.isTrusted || vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0] !== folder || cppProjectRoot(env) !== root) return;
+          // This explicit notification action applies to the original source,
+          // even if a configuration or another editor has since gained focus.
+          const editor = await vscode.window.showTextDocument(sourceUri, { preview: false, preserveFocus: false });
+          if (!vscode.workspace.isTrusted || vscode.workspace.workspaceFolders?.length !== 1 || vscode.workspace.workspaceFolders[0] !== folder || cppProjectRoot(env) !== root || editor.document.languageId !== 'python' ||
+              editor.document.uri.fsPath !== sourceUri.fsPath || vscode.window.activeTextEditor?.document !== editor.document) return;
+        }
         if (command) await vscode.commands.executeCommand(command);
       }).catch(error => vscode.window.showErrorMessage(error.message));
-      return null;
+      // Theia/VS Code reserve null for cancellation AND opening launch.json.
+      // Undefined cancels without stealing the active source editor's focus.
+      return undefined;
     },
   }));
   if (vscode.debug.registerDebugAdapterTrackerFactory) context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('lldb-dap', {

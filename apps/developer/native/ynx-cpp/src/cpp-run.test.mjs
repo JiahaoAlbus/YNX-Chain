@@ -302,7 +302,8 @@ test('F5 generated C++ target rejects a Python editor before build and offers it
  const originalTasks=await readFile(tasks.path),originalLaunch=await readFile(launch.path);let provider,choose;const executed=[];
  f.vscode.debug.registerDebugConfigurationProvider=(type,value)=>{assert.equal(type,'lldb-dap');provider=value;return{dispose(){}};};
  f.vscode.window.showErrorMessage=(_message,...actions)=>{assert.ok(actions.includes('Debug Python File'));return new Promise(resolve=>choose=resolve);};
- f.vscode.commands.executeCommand=async name=>executed.push(name);
+ f.vscode.commands.executeCommand=async name=>{assert.equal(f.vscode.window.activeTextEditor.document,f.document);executed.push(name);};
+ const revealed=[];f.vscode.window.showTextDocument=async(uri,options)=>{assert.equal(uri,f.document.uri);assert.equal(options.preserveFocus,false);revealed.push(uri);const editor={document:f.document};f.vscode.window.activeTextEditor=editor;return editor;};
  registerCppRun(f.vscode,{subscriptions:[]},f.env);
  f.document.languageId='python';f.document.uri.fsPath=join(f.root,'hello.py');await writeFile(f.document.uri.fsPath,'print(42)');await writeFile(join(f.root,'hello'),'KEEP PREVIOUS OUTPUT');
  // Exercise retained Theia's exact F5 noDebug=false injection and resolver
@@ -314,9 +315,19 @@ test('F5 generated C++ target rejects a Python editor before build and offers it
  const chain=method(service,'    async resolveDebugConfigurationByResolversChain(config, workspaceFolderUri, resolvers) {','    registerDebugger(').resolveDebugConfigurationByResolversChain;
  let incoming,result;
  await start.call({configurations:{current:{configuration:launch.configuration}},manager:{start:async options=>{incoming=options.configuration;result=await chain.call({logger:{error:e=>{throw e}}},incoming,f.folder,[(folder,config)=>provider.resolveDebugConfiguration(folder,{...config,__sessionId:'framework',debugAdapterExecutable:'/official/lldb-dap'})]);}}},false);
- assert.equal(incoming.noDebug,false);assert.equal(result,null);
+ assert.equal(incoming.noDebug,false);assert.equal(result,undefined);
+ const managerSource=await readFile(runtimeRequire.resolve('@theia/debug/lib/browser/debug-session-manager'),'utf8');
+ const managerStart=vm.runInNewContext('({' + managerSource.slice(managerSource.indexOf('    async startConfiguration(options) {'),managerSource.indexOf('    async startCompound(options) {')) + '})', {core_1:{nls:{localizeByDefault:value=>value}}}).startConfiguration;
+ let opened=0;
+ const manager={workspaceTrustService:{requestWorkspaceTrust:async()=>true},progressService:{withProgress:(_title,_area,fn)=>fn()},saveAll:async()=>true,fireWillStartDebugSession:async()=>{},resolveConfiguration:async()=>result,debugConfigurationManager:{openConfiguration:()=>opened++}};
+ await managerStart.call(manager,{configuration:incoming});assert.equal(opened,0);
+ // Prove this executes the retained manager's null/open behavior as well.
+ await managerStart.call({...manager,resolveConfiguration:async()=>null},{configuration:incoming});assert.equal(opened,1);
  assert.equal(await readFile(join(f.root,'hello'),'utf8'),'KEEP PREVIOUS OUTPUT');assert.equal(executed.length,0);
- choose('Debug Python File');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(executed,['debugpy.debugInTerminal']);
+ f.vscode.window.activeTextEditor={document:{languageId:'jsonc',uri:{fsPath:launch.path}}};
+ choose('Debug Python File');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(executed,['debugpy.debugInTerminal']);assert.equal(revealed.length,1);
+ // A later user action must not start work after trust/workspace changes.
+ await provider.resolveDebugConfiguration(f.folder,launch.configuration);f.vscode.workspace.isTrusted=false;choose('Debug Python File');await new Promise(resolve=>setImmediate(resolve));assert.equal(executed.length,1);assert.equal(revealed.length,1);f.vscode.workspace.isTrusted=true;
  assert.deepEqual(await readFile(tasks.path),originalTasks);assert.deepEqual(await readFile(launch.path),originalLaunch);
  f.document.languageId='cpp';assert.equal(await provider.resolveDebugConfiguration(f.folder,launch.configuration),launch.configuration);
  const custom={...launch.configuration,program:'/explicit/project/target'};f.document.languageId='python';assert.equal(await provider.resolveDebugConfiguration(f.folder,custom),custom);
