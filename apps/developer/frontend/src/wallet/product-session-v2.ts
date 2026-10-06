@@ -1,15 +1,18 @@
 import { developerWalletV2Bridge, developerWalletV2Device, type DeveloperWalletBridge, type NativeDeveloperWalletDevice } from "./transport";
 // @ts-ignore The accepted ESM package is vendored byte-for-byte under Developer ownership.
-import { createProductWalletConnection, PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN, walletConnectionChoices, PRODUCT_SESSION_CLIENT_STATE } from "../../../vendor/wallet-auth/src/index.js";
-import registry from "../../../vendor/wallet-auth/product-session-registry.json";
+import { createProductWalletConnection, PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN } from "../../../vendor/wallet-auth-c5/src/product-wallet-connection.js";
+import { walletConnectionChoices } from "../../../vendor/wallet-auth-c5/src/product-session-router.js";
+import { PRODUCT_SESSION_CLIENT_STATE } from "../../../vendor/wallet-auth-c5/src/product-session-recovery.js";
+import registry from "../../../vendor/wallet-auth-c5/product-session-registry.json";
 
 const ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 if (PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN !== ACCEPTED_PUBLIC_GATEWAY_ORIGIN) throw new Error("The accepted Wallet Product Session v2 origin was not preserved.");
 
 export const DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
-  sourceCommit: "203be5e108be468350591615a64d5d36ab87a8f1",
-  sourceTree: "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
-  packageTree: "02eb7176e2de175a68cf5a5ef27e55968cc17fea",
+  sourceCommit: "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  sourceTree: "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  sourceClosure: "4c7196b1d2156d13565e528fd7fd623a2fd4c61c91602fef81e2b50d79df5d9c",
+  factorySource: "3d35e858f68d39a142e8a7798670b8d4a09e8f41f21476e3e692e3a06128f1f7",
   gatewayOrigin: ACCEPTED_PUBLIC_GATEWAY_ORIGIN,
   migrated: false,
 });
@@ -76,6 +79,11 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
       get: (key: string) => bridge.protectedStorage!.get(key),
       set: async (key: string, value: string) => { assertActive(); await bridge.protectedStorage!.set(key, value); },
       remove: async (key: string) => { assertActive(); await bridge.protectedStorage!.remove(key); },
+      saveRevocationIntent: async (key: string, rawIntent: string) => { assertActive(); const method = bridge.protectedStorage!.saveRevocationIntent; if (!method) throw new Error("Native Wallet atomic completion support requires an updated app."); return method(key, rawIntent); },
+      finishRevocationIntentWithCompletion: async (key: string, expectedRawIntent: string, receiptRaw: string) => { assertActive(); const method = bridge.protectedStorage!.finishRevocationIntentWithCompletion; if (!method) throw new Error("Native Wallet atomic completion support requires an updated app."); return method(key, expectedRawIntent, receiptRaw); },
+      getRevocationCompletions: async (key: string) => { const method = bridge.protectedStorage!.getRevocationCompletions; if (!method) throw new Error("Native Wallet atomic completion support requires an updated app."); return method(key); },
+      getRevocationCompletion: async (key: string, intentId: string) => { const method = bridge.protectedStorage!.getRevocationCompletion; if (!method) throw new Error("Native Wallet atomic completion support requires an updated app."); return method(key, intentId); },
+      acknowledgeRevocationCompletion: async (key: string, expectedReceiptRaw: string) => { assertActive(); const method = bridge.protectedStorage!.acknowledgeRevocationCompletion; if (!method) throw new Error("Native Wallet atomic completion support requires an updated app."); await method(key, expectedReceiptRaw); },
     },
     device: Object.freeze({ ...nativeDevice, sign: async (input: Parameters<typeof nativeDevice.sign>[0]) => { assertActive(); return nativeDevice.sign(input); } }),
     scope: window,

@@ -5,11 +5,13 @@ import { mkdtemp, writeFile, rm, readFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { p256 } from '@noble/curves/nist.js';
-import { createProductSessionRequest, signProductSessionApproval, createProductSessionChallenge, signProductSessionChallengeWith } from '../vendor/wallet-auth/src/product-session-v2.js';
+import { canonicalJSON } from '../vendor/wallet-auth-c5/src/canonical.js';
+import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from '../vendor/wallet-auth-c5/src/product-session-gateway.js';
+import { createProductSessionRequest, signProductSessionApproval, createProductSessionChallenge, signProductSessionChallengeWith } from '../vendor/wallet-auth-c5/src/product-session-v2.js';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const temporary = await mkdtemp('/private/tmp/ynx-wallet-adapter-test-');
-const registry = JSON.parse(await readFile(join(root,'vendor/wallet-auth/product-session-registry.json'),'utf8'));
+const registry = JSON.parse(await readFile(join(root,'vendor/wallet-auth-c5/product-session-registry.json'),'utf8'));
 async function compile(name) {
   const result = await build({entryPoints:[join(root,`frontend/src/wallet/${name}.ts`)],bundle:true,platform:'node',format:'esm',write:false,
     plugins:[{name:'retained-sdk',setup(builder){builder.onResolve({filter:/vendor\/wallet-auth\/src\/index\.js$/},args=>({path:resolve(args.resolveDir,args.path),external:true}));}}]});
@@ -29,9 +31,9 @@ function fixture(overrides={}) {
     protectedStorage:{securityLevel:'os-protected',get:async key=>stored.get(key)??null,set:async(key,value)=>{assert.ok(active);calls.write++;stored.set(key,value);},remove:async key=>{assert.ok(active);calls.write++;stored.delete(key);}},...overrides};
   const window=new EventTarget();window.ynxDesktopWallet=bridge;
   const previousWindow=globalThis.window, previousFetch=globalThis.fetch, previousIDB=Object.getOwnPropertyDescriptor(globalThis,'indexedDB');
-  globalThis.window=window;globalThis.fetch=async()=>{calls.fetch++;throw Error('No network permitted in adapter fixture');};
+  globalThis.window=window;globalThis.fetch=async(url,options)=>{calls.fetch++;assert.equal(url,'https://wallet-auth.ynxweb4.com/v2/product-sessions/time');assert.equal(options.method,'GET');const requestId=options.headers['x-request-id'];return new Response(canonicalJSON({ok:true,requestId,result:{serverTime:'2026-10-06T00:00:00.000Z'},schemaVersion:PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION}),{headers:{'content-type':'application/json','x-request-id':requestId,'cache-control':'no-store'}});}; // Controlled clock response only; no external request.
   Object.defineProperty(globalThis,'indexedDB',{configurable:true,get(){calls.indexedDB++;throw Error('V2 may never access the legacy IndexedDB signer');}});
-  return {bridge,descriptor,calls,stored,window,async cleanup(runtime){await runtime?.endNativeOperation();globalThis.window=previousWindow;globalThis.fetch=previousFetch;if(previousIDB)Object.defineProperty(globalThis,'indexedDB',previousIDB);else delete globalThis.indexedDB;assert.equal(calls.indexedDB,0);assert.equal(calls.fetch,0);}};
+  return {bridge,descriptor,calls,stored,window,async cleanup(runtime){await runtime?.endNativeOperation();globalThis.window=previousWindow;globalThis.fetch=previousFetch;if(previousIDB)Object.defineProperty(globalThis,'indexedDB',previousIDB);else delete globalThis.indexedDB;assert.equal(calls.indexedDB,0);}};
 }
 
 test('missing or legacy-only bridge makes V2 explicitly unavailable without a browser-key fallback',async()=>{
@@ -138,10 +140,81 @@ test('explicit cancellation fences a delayed SDK begin before it can write a new
   const f=fixture();let runtime,finishRemove;try {
     runtime=await adapter.beginDeveloperWalletV2Connection();f.stored.set(base,'original-session');
     f.bridge.protectedStorage.remove=()=>new Promise(resolve=>finishRemove=resolve);
-    const pending=runtime.connection.beginYNX();while(!finishRemove)await new Promise(resolve=>setImmediate(resolve));
+    const pending=runtime.connection.beginYNX();for(let attempt=0;!finishRemove&&attempt<1000;attempt++)await new Promise(resolve=>setTimeout(resolve,1));assert.equal(typeof finishRemove,'function','SDK must reach protected cleanup');
     await runtime.endNativeOperation();finishRemove();
     // The SDK finishes its second cleanup call, which the frontend fence rejects
     // before it can reach the now-ended native capability.
     await assert.rejects(pending,/Explicit native/);assert.equal(f.calls.end,1);assert.equal(f.stored.get(base),'original-session');assert.equal(f.stored.has(`${base}:pending`),false);assert.equal(f.calls.open,0);
+  }finally{await f.cleanup(runtime);}
+});
+
+test('authority time failure preserves protected evidence, releases consent and permits an explicit retry', async () => {
+  const f=fixture();let runtime;
+  const clock=globalThis.fetch;
+  try {
+    f.stored.set(base,'preserved-existing-state');
+    f.stored.set(`${base}:pending`,'preserved-pending-evidence');
+    globalThis.fetch=async()=>{throw Error('Controlled authority unavailable');};
+    runtime=await adapter.beginDeveloperWalletV2Connection();
+    const result=await runtime.connection.beginYNX();
+    assert.notEqual(result.status,'wallet-opened');
+    assert.equal(f.calls.open,0);assert.equal(f.calls.write,0);assert.equal(f.calls.end,1);
+    assert.equal(f.stored.get(base),'preserved-existing-state');
+    assert.equal(f.stored.get(`${base}:pending`),'preserved-pending-evidence');
+    await assert.rejects(runtime.connection.beginYNX(),/Explicit native/);
+    globalThis.fetch=clock;
+    runtime=await adapter.beginDeveloperWalletV2Connection();
+    const retried=await runtime.connection.beginYNX();
+    assert.equal(retried.status,'wallet-opened');assert.equal(f.calls.open,1);
+    assert.equal(f.stored.get(base),'preserved-existing-state');
+  } finally { await f.cleanup(runtime); }
+});
+
+// Controlled storage port fixture only; native locking/Keychain guarantees are
+// tested separately by the Objective-C fixture and eventual installed App QA.
+function atomicPorts(f, { unknownOnce = false } = {}) {
+  const seen={saved:[],finished:[],read:[]}, receipts=new Map();
+  Object.assign(f.bridge.protectedStorage,{
+    saveRevocationIntent:async(key,raw)=>{seen.saved.push([key,raw]);const old=f.stored.get(key);if(old)return old;f.stored.set(key,raw);return raw;},
+    finishRevocationIntentWithCompletion:async(key,raw,receipt)=>{seen.finished.push([key,raw,receipt]);assert.equal(f.stored.get(key),raw);if(unknownOnce){unknownOnce=false;throw Error('UNKNOWN: controlled protected write result');}const intent=JSON.parse(raw);assert.equal(intent.session,null);for(const suffix of ['pending','return','completion','revoke'])f.stored.delete(`${base}:${suffix}`);receipts.set(intent.intentId,receipt);return receipt;},
+    getRevocationCompletions:async()=>canonicalJSON([...receipts.values()].map(JSON.parse)),
+    getRevocationCompletion:async(key,id)=>{seen.read.push([key,id]);return receipts.get(id)??null;},
+    acknowledgeRevocationCompletion:async(key,raw)=>{const id=JSON.parse(raw).intentId;assert.equal(receipts.get(id),raw);receipts.delete(id);},
+  });
+  return seen;
+}
+
+test('real c5 pending-only disconnect forwards exact atomic intent and completion readback', async()=>{
+  const f=fixture(),seen=atomicPorts(f);let runtime;
+  try{
+    runtime=await adapter.beginDeveloperWalletV2Connection();
+    await runtime.connection.beginYNX();assert.ok(f.stored.has(`${base}:pending`));
+    const result=await runtime.connection.disconnect();
+    assert.equal(result.sessionState.status,'disconnected');
+    assert.equal(result.sessionState.revocationConfirmed,false);
+    assert.equal(result.sessionState.revocationCompletion.outcome,'local-only');
+    assert.equal(seen.saved.length,1);assert.equal(seen.finished.length,1);
+    assert.equal(seen.saved[0][0],`${base}:revoke`);
+    assert.equal(seen.finished[0][1],seen.saved[0][1]);
+    assert.equal(seen.read[0][0],`${base}:revoke-completions`);
+    assert.equal(f.stored.has(`${base}:pending`),false);assert.equal(f.calls.end,1);
+    await assert.rejects(runtime.connection.disconnect(),/Explicit native/);
+    assert.equal(seen.finished.length,1,'ended capability cannot perform another write');
+  }finally{await f.cleanup(runtime);}
+});
+
+test('UNKNOWN atomic finish retains the same intent for a fresh explicitly approved retry',async()=>{
+  const f=fixture(),seen=atomicPorts(f,{unknownOnce:true});let runtime;
+  try{
+    runtime=await adapter.beginDeveloperWalletV2Connection();await runtime.connection.beginYNX();
+    const failed=await runtime.connection.disconnect();
+    assert.notEqual(failed.sessionState.status,'disconnected');
+    const original=f.stored.get(`${base}:revoke`);assert.ok(original);assert.equal(f.calls.end,1);
+    assert.ok(f.stored.has(`${base}:pending`));
+    runtime=await adapter.beginDeveloperWalletV2Connection();
+    const result=await runtime.connection.disconnect();
+    assert.equal(result.sessionState.status,'disconnected');
+    assert.equal(seen.finished.length,2);assert.equal(seen.finished[1][1],original);
+    assert.equal(seen.finished[1][2],seen.finished[0][2]);assert.equal(f.calls.end,2);
   }finally{await f.cleanup(runtime);}
 });
