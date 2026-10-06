@@ -681,6 +681,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // never the legacy command/Wallet transaction or JSON-workspace handler.
     WKWebViewConfiguration *configuration=[WKWebViewConfiguration new];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWorkbench"];
+    NSString *visibilityScript=@"Object.defineProperty(window,'__ynxNativeWindowVisible',{value:false,writable:true});";
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(visibilityScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     // Bounded native QA tracing is disabled in ordinary launches.
     if([environment[@"YNX_IDE_DEBUG_UI_TRACE"] isEqual:@"1"]){
         NSString *traceScript=@"Object.defineProperty(window,'__ynxDebugUiTraceEnabled',{value:true});";
@@ -731,9 +733,20 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)applicationDidBecomeActive:(NSNotification *)note {
     if(!_localWorkbenchMode||!_window)return;
     [_webView layoutSubtreeIfNeeded];[_window displayIfNeeded];
+    [self updateLocalWindowVisibility];
 }
+- (void)updateLocalWindowVisibility {
+    if(!_localWorkbenchMode||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
+    BOOL visible=_window.isVisible&&(_window.occlusionState&NSWindowOcclusionStateVisible)&&_webView.window==_window&&!_webView.isHiddenOrHasHiddenAncestor;
+    NSString *script=[NSString stringWithFormat:@"window.__ynxNativeWindowVisible=%@;window.dispatchEvent(new Event('ynx-window-visibility'));",visible?@"true":@"false"];
+    YNXEvaluateTrustedScript(_webView,_port,script);
+}
+- (void)windowDidChangeOcclusionState:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
+- (void)windowDidMiniaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
+- (void)windowDidDeminiaturize:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation {
     if(_localWorkbenchMode&&view==_webView)_localCommandDocumentReady=YNXLocalEditorDocumentURL(view.URL,_port);
+    if(_localWorkbenchMode&&view==_webView)[self updateLocalWindowVisibility];
     if(_localWorkbenchMode&&view==_webView&&YNXLocalEditorDocumentURL(view.URL,_port))_localEditorDocumentLoaded=YES;
     if(!_localWorkbenchMode||!_recordSelectedWorkspace||_recentWorkspaceRecorded||view!=_webView||!_server.running||![view.URL.absoluteString hasPrefix:[YNXOrigin(_port) stringByAppendingString:@"/"]]||!YNXCanonicalLocalDirectory(_localWorkspace)||!YNXPrivateLocalDirectory(_localSupportRoot))return;
     int fd=open(_serverLogURL.fileSystemRepresentation,O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(fd<0)return;
@@ -1327,6 +1340,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
         }
         terminalTraceCount++;NSMutableDictionary *record=[body mutableCopy];
         record[@"nativeVisible"]=@(_window.isVisible);record[@"nativeOcclusion"]=@(_window.occlusionState);
+        record[@"nativeViewInWindow"]=@(_webView.window==_window);record[@"nativeViewHidden"]=@(_webView.isHiddenOrHasHiddenAncestor);
+        record[@"nativeKeyWindow"]=@(_window.isKeyWindow);record[@"nativeAppActive"]=@(NSApp.isActive);
         NSData *data=[NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys error:nil];
         NSString *line=[NSString stringWithFormat:@"[terminal-ui-trace] %@\n",[[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding]];
         @try{[_serverLog writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];}@catch(NSException *exception){}
