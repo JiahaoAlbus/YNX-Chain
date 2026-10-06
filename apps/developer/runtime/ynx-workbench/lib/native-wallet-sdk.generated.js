@@ -491,67 +491,6 @@ var sha256 = /* @__PURE__ */ createHasher(
   /* @__PURE__ */ oidNist(1)
 );
 
-// vendor/wallet-auth/src/canonical.js
-function isPlainObject(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
-}
-function exactFields(value, expected, label) {
-  if (!isPlainObject(value)) throw new WalletAuthError("INVALID_SHAPE", `${label} must be a JSON object`);
-  const actual = Object.keys(value).sort();
-  const wanted = [...expected].sort();
-  if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
-}
-function canonicalJSON(value) {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number") {
-    if (!Number.isSafeInteger(value)) throw new WalletAuthError("INVALID_NUMBER", "Protocol numbers must be safe integers");
-    return JSON.stringify(value);
-  }
-  if (Array.isArray(value)) return `[${value.map(canonicalJSON).join(",")}]`;
-  if (!isPlainObject(value)) throw new WalletAuthError("INVALID_SHAPE", "Protocol value is not canonical JSON");
-  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON(value[key])}`).join(",")}}`;
-}
-function digestHex(domain, value) {
-  return bytesToHex(sha256(utf8ToBytes(`${domain}
-${canonicalJSON(value)}`)));
-}
-var WalletAuthError = class extends Error {
-  constructor(code, message) {
-    super(message);
-    this.name = "WalletAuthError";
-    this.code = code;
-  }
-};
-
-// vendor/wallet-auth/src/base64url.js
-var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-function encodeBase64url(bytes) {
-  if (!(bytes instanceof Uint8Array)) throw new WalletAuthError("INVALID_ENCODING", "Base64url input must be bytes");
-  let output = "";
-  for (let index = 0; index < bytes.length; index += 3) {
-    const a = bytes[index] ?? 0, b = bytes[index + 1] ?? 0, c = bytes[index + 2] ?? 0;
-    const value = a << 16 | b << 8 | c;
-    output += ALPHABET[value >>> 18 & 63] + ALPHABET[value >>> 12 & 63] + (index + 1 < bytes.length ? ALPHABET[value >>> 6 & 63] : "=") + (index + 2 < bytes.length ? ALPHABET[value & 63] : "=");
-  }
-  return output.replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-}
-function decodeBase64url(value, label = "base64url value") {
-  if (typeof value !== "string" || !/[A-Za-z0-9_-]/.test(value) || !/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) throw new WalletAuthError("INVALID_ENCODING", `${label} is invalid`);
-  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
-  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
-  const output = [];
-  for (let index = 0; index < padded.length; index += 4) {
-    const chars = [padded[index], padded[index + 1], padded[index + 2], padded[index + 3]];
-    const values = chars.map((character) => character === "=" ? 0 : ALPHABET.indexOf(character));
-    if (values.some((item) => item < 0)) throw new WalletAuthError("INVALID_ENCODING", `${label} is invalid`);
-    const combined = values[0] << 18 | values[1] << 12 | values[2] << 6 | values[3];
-    output.push(combined >>> 16 & 255);
-    if (chars[2] !== "=") output.push(combined >>> 8 & 255);
-    if (chars[3] !== "=") output.push(combined & 255);
-  }
-  return Uint8Array.from(output);
-}
-
 // node_modules/@noble/curves/utils.js
 /*! noble-curves - MIT License (c) 2022 Paul Miller (paulmillr.com) */
 var abytes2 = (value, length, title) => abytes(value, length, title);
@@ -2605,197 +2544,8 @@ var Keccak = class _Keccak {
 var genKeccak = (suffix, blockLen, outputLen, info = {}) => createHasher(() => new Keccak(blockLen, suffix, outputLen), info);
 var keccak_256 = /* @__PURE__ */ genKeccak(1, 136, 32);
 
-// vendor/wallet-auth/src/crypto.js
-var CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-function walletIdentityFromPublicKey(publicKeyHex) {
-  const point = secp256k1.Point.fromBytes(hexToBytes(publicKeyHex));
-  const digest3 = keccak_256(point.toBytes(false).slice(1));
-  return encodeYNX(digest3.slice(-20));
-}
-function encodeYNX(payload) {
-  const data = convertBits(payload, 8, 5, true);
-  const values = [...hrpExpand("ynx"), ...data, 0, 0, 0, 0, 0, 0];
-  const checksum = polymod(values) ^ 1;
-  const tail = Array.from({ length: 6 }, (_, index) => checksum >>> 5 * (5 - index) & 31);
-  return `ynx1${[...data, ...tail].map((item) => CHARSET[item]).join("")}`;
-}
-function convertBits(data, fromBits, toBits, pad) {
-  let accumulator = 0, bits = 0;
-  const result = [], maxValue = (1 << toBits) - 1, maxAccumulator = (1 << fromBits + toBits - 1) - 1;
-  for (const value of data) {
-    accumulator = (accumulator << fromBits | value) & maxAccumulator;
-    bits += fromBits;
-    while (bits >= toBits) {
-      bits -= toBits;
-      result.push(accumulator >> bits & maxValue);
-    }
-  }
-  if (pad && bits > 0) result.push(accumulator << toBits - bits & maxValue);
-  return result;
-}
-function hrpExpand(hrp) {
-  return [...hrp].map((c) => c.charCodeAt(0) >> 5).concat([0], [...hrp].map((c) => c.charCodeAt(0) & 31));
-}
-function polymod(values) {
-  const generators = [996825010, 642813549, 513874426, 1027748829, 705979059];
-  let checksum = 1;
-  for (const value of values) {
-    const top = checksum >>> 25;
-    checksum = ((checksum & 33554431) << 5 ^ value) >>> 0;
-    generators.forEach((generator, index) => {
-      if (top >>> index & 1) checksum = (checksum ^ generator) >>> 0;
-    });
-  }
-  return checksum >>> 0;
-}
-
 // vendor/wallet-auth/src/wallet-provider-discovery.js
-var WALLET_PROVIDER_DISCOVERY_AUTHORITY = "unverified-injected-candidate";
 var WALLET_PROVIDER_KIND = Object.freeze({ YNX: "ynx-wallet", METAMASK: "metamask" });
-var YNX_RDNS = /* @__PURE__ */ new Set(["com.ynx.wallet", "com.ynx.wallet.companion"]);
-var METAMASK_RDNS = /* @__PURE__ */ new Set(["io.metamask", "io.metamask.flask"]);
-var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-function discoverInjectedWalletProviders(scope = globalThis) {
-  const ethereum = safely(() => scope?.ethereum);
-  const declaredProviders = safely(() => ethereum?.providers);
-  const raw = Array.isArray(declaredProviders) ? declaredProviders : ethereum === void 0 ? [] : [ethereum];
-  return selectWalletProviderCandidates(raw.map((provider) => candidate(provider, safely(() => provider?.providerInfo), "legacy-injected")).filter(Boolean));
-}
-async function discoverEip6963WalletProviders(scope = globalThis, waitMs = 160) {
-  validWait(waitMs);
-  const add = safely(() => scope?.addEventListener), remove = safely(() => scope?.removeEventListener), dispatch = safely(() => scope?.dispatchEvent);
-  if (typeof add !== "function" || typeof remove !== "function" || typeof dispatch !== "function") return selectWalletProviderCandidates([]);
-  const byUuid = /* @__PURE__ */ new Map(), conflicted = /* @__PURE__ */ new Set();
-  const listener = (event) => {
-    const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
-    const item = candidate(provider, info, "eip6963");
-    const uuid = canonicalUuid(safely(() => info?.uuid));
-    if (!item || uuid === null || conflicted.has(uuid)) return;
-    const previous = byUuid.get(uuid);
-    if (previous && previous.provider !== provider) {
-      byUuid.delete(uuid);
-      conflicted.add(uuid);
-      return;
-    }
-    byUuid.set(uuid, item);
-  };
-  let registered = false;
-  try {
-    add.call(scope, "eip6963:announceProvider", listener);
-    registered = true;
-    const EventConstructor = safely(() => scope?.Event) ?? globalThis.Event;
-    if (typeof EventConstructor !== "function") return selectWalletProviderCandidates([]);
-    dispatch.call(scope, new EventConstructor("eip6963:requestProvider"));
-    await new Promise((resolve) => setTimeout(resolve, waitMs));
-  } catch {
-    return selectWalletProviderCandidates([]);
-  } finally {
-    if (registered) try {
-      remove.call(scope, "eip6963:announceProvider", listener);
-    } catch {
-    }
-  }
-  return selectWalletProviderCandidates([...byUuid.values()], conflicted.size);
-}
-async function discoverWalletProviders(scope = globalThis, waitMs = 160) {
-  const announced = await discoverEip6963WalletProviders(scope, waitMs);
-  const injected = discoverInjectedWalletProviders(scope);
-  return selectWalletProviderCandidates(uniqueProviders([
-    announced.ynx,
-    announced.metamask,
-    ...announced.candidates,
-    injected.ynx,
-    injected.metamask,
-    ...injected.candidates
-  ].filter(Boolean)), announced.conflictedAnnouncements + injected.conflictedAnnouncements);
-}
-function selectWalletProviderCandidates(input, conflictedAnnouncements = 0) {
-  if (!Array.isArray(input) || !Number.isSafeInteger(conflictedAnnouncements) || conflictedAnnouncements < 0) throw new TypeError("Wallet provider candidates are invalid");
-  const candidates = uniqueProviders(input.filter(validCandidate));
-  const ynxCandidates = candidates.filter((item) => item.kind === WALLET_PROVIDER_KIND.YNX);
-  const metaMaskCandidates = candidates.filter((item) => item.kind === WALLET_PROVIDER_KIND.METAMASK);
-  const ambiguities = [];
-  if (ynxCandidates.length > 1) ambiguities.push(WALLET_PROVIDER_KIND.YNX);
-  if (metaMaskCandidates.length > 1) ambiguities.push(WALLET_PROVIDER_KIND.METAMASK);
-  return Object.freeze({
-    ynx: ynxCandidates.length === 1 ? ynxCandidates[0] : null,
-    metamask: metaMaskCandidates.length === 1 ? metaMaskCandidates[0] : null,
-    candidates: Object.freeze(candidates),
-    ambiguities: Object.freeze(ambiguities),
-    conflictedAnnouncements,
-    authority: WALLET_PROVIDER_DISCOVERY_AUTHORITY
-  });
-}
-function walletAvailabilityFromDiscovery(discovery) {
-  if (!validDiscovery(discovery)) throw new TypeError("Wallet provider discovery result is invalid");
-  return Object.freeze({ ynxWalletInstalled: discovery.ynx !== null, metaMaskAvailable: discovery.metamask !== null });
-}
-function candidate(provider, info, source) {
-  if (!validProvider(provider) || source !== "eip6963" && source !== "legacy-injected") return null;
-  const providerInfo = object(info) ? info : null;
-  const announcedRdns = canonicalRdns(safely(() => providerInfo?.rdns));
-  const embeddedRdns = canonicalRdns(safely(() => provider?.providerInfo?.rdns) ?? safely(() => provider?.rdns));
-  if (source === "eip6963" && announcedRdns !== null && embeddedRdns !== null && announcedRdns !== embeddedRdns) return null;
-  const rdns = source === "eip6963" ? announcedRdns : embeddedRdns;
-  const ynxFlag = safely(() => provider?.isYNXWallet) === true || safely(() => provider?.isYnxWallet) === true;
-  const metaMaskFlag = safely(() => provider?.isMetaMask) === true;
-  if (rdns !== null && YNX_RDNS.has(rdns) && !ynxFlag || rdns !== null && METAMASK_RDNS.has(rdns) && ynxFlag) return null;
-  const ynx = rdns !== null && YNX_RDNS.has(rdns) && ynxFlag;
-  const metamask = !ynx && !ynxFlag && (rdns !== null && METAMASK_RDNS.has(rdns) || metaMaskFlag);
-  if (!ynx && !metamask) return null;
-  if (ynxFlag && metaMaskFlag) return null;
-  const uuid = source === "eip6963" ? canonicalUuid(safely(() => providerInfo?.uuid)) : null;
-  if (source === "eip6963" && uuid === null) return null;
-  return Object.freeze({
-    kind: ynx ? WALLET_PROVIDER_KIND.YNX : WALLET_PROVIDER_KIND.METAMASK,
-    provider,
-    source,
-    uuid,
-    rdns,
-    name: canonicalName(safely(() => providerInfo?.name)),
-    authority: WALLET_PROVIDER_DISCOVERY_AUTHORITY
-  });
-}
-function uniqueProviders(input) {
-  const seen = /* @__PURE__ */ new Set(), output = [];
-  for (const item of input) if (validCandidate(item) && !seen.has(item.provider)) {
-    seen.add(item.provider);
-    output.push(item);
-  }
-  return output;
-}
-function validCandidate(value) {
-  return object(value) && validProvider(safely(() => value.provider)) && Object.values(WALLET_PROVIDER_KIND).includes(safely(() => value.kind)) && safely(() => value.authority) === WALLET_PROVIDER_DISCOVERY_AUTHORITY;
-}
-function validDiscovery(value) {
-  const ynx = safely(() => value?.ynx), metamask = safely(() => value?.metamask), ambiguities = safely(() => value?.ambiguities), authority = safely(() => value?.authority), conflicts = safely(() => value?.conflictedAnnouncements);
-  return object(value) && (ynx === null || validCandidate(ynx) && ynx.kind === WALLET_PROVIDER_KIND.YNX) && (metamask === null || validCandidate(metamask) && metamask.kind === WALLET_PROVIDER_KIND.METAMASK) && Array.isArray(ambiguities) && new Set(ambiguities).size === ambiguities.length && ambiguities.every((item) => Object.values(WALLET_PROVIDER_KIND).includes(item)) && Number.isSafeInteger(conflicts) && conflicts >= 0 && authority === WALLET_PROVIDER_DISCOVERY_AUTHORITY;
-}
-function validProvider(value) {
-  return object(value) && typeof safely(() => value.request) === "function";
-}
-function canonicalUuid(value) {
-  return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
-}
-function canonicalRdns(value) {
-  return typeof value === "string" && value === value.toLowerCase() && /^[a-z0-9]+(?:[.-][a-z0-9]+){1,15}$/.test(value) && value.length <= 253 ? value : null;
-}
-function canonicalName(value) {
-  return typeof value === "string" && value.length >= 1 && value.length <= 64 && value.trim() === value ? value : null;
-}
-function validWait(value) {
-  if (!Number.isSafeInteger(value) || value < 0 || value > 2e3) throw new TypeError("Wallet provider discovery wait must be between 0 and 2000 milliseconds");
-}
-function object(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function safely(read) {
-  try {
-    return read();
-  } catch {
-    return void 0;
-  }
-}
 
 // vendor/wallet-auth/src/authorize-launcher.js
 var AUTHORIZATION_LAUNCH_PLATFORM_MATRIX = Object.freeze({
@@ -2846,15 +2596,6 @@ var ALLOWED = Object.freeze({
   "professional-classification-reference": ["accredited", "professional", "not-classified"]
 });
 
-// vendor/wallet-auth/src/session-proof.js
-function httpBodyDigest(body) {
-  if (typeof body !== "string" && !(body instanceof Uint8Array)) fail("INVALID_BODY", "HTTP proof body must be a string or bytes");
-  return bytesToHex(sha256(typeof body === "string" ? utf8ToBytes(body) : body));
-}
-function fail(code, message) {
-  throw new WalletAuthError(code, message);
-}
-
 // vendor/wallet-auth/src/gateway-adapter.js
 var SNAPSHOT_V1_FIELDS = ["schemaVersion", "registryVersion", "sessionStore", "consumedProductProofs"];
 var SNAPSHOT_FIELDS = [...SNAPSHOT_V1_FIELDS, "mandateStore"];
@@ -2882,10 +2623,7 @@ var ROUTES = Object.freeze({
 });
 
 // vendor/wallet-auth/src/product-session-registry.js
-var PRODUCT_SESSION_REGISTRY_VERSION = 2;
 var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "macos", "web", "windows"]);
-var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
-var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
 var PRODUCT_FIELDS = [
   "productId",
   "clientId",
@@ -2899,584 +2637,9 @@ var PRODUCT_FIELDS = [
   "sessionDurationSeconds"
 ];
 var EXPLICIT_WEB_PRODUCT_FIELDS = [...PRODUCT_FIELDS, "platforms", "webApplicationId", "webCallback"];
-var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
-function parseProductSessionRegistry(input) {
-  exactFields(input, DOCUMENT_FIELDS, "Product Session router registry");
-  if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
-    fail2("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
-  }
-  exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
-  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
-  const authorize = new URL(authorizeCallback);
-  if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
-    fail2("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
-  }
-  const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
-  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
-  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
-    fail2("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
-  }
-  if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
-    fail2("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
-  }
-  const products = input.products.map(parseProduct);
-  uniqueSorted(products.map((item) => item.productId), "productId");
-  unique(products.map((item) => item.clientId), "clientId");
-  unique(products.map((item) => item.applicationId), "applicationId");
-  unique(products.map((item) => item.webApplicationId), "web applicationId");
-  unique(products.map((item) => item.webOrigin), "webOrigin");
-  unique(products.map((item) => item.webCallback), "web callback");
-  unique(products.map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
-  const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
-${item.productId}`));
-  const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
-  unique(legacyNames, "legacy callback");
-  return Object.freeze({
-    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
-    chainId: input.chainId,
-    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
-    products: Object.freeze(products)
-  });
-}
-function productPlatformBinding(registryInput, productId, platform) {
-  const registry = parseProductSessionRegistry(registryInput);
-  if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail2("INVALID_PLATFORM", "Product Session platform is unsupported");
-  const product = registry.products.find((item) => item.productId === productId);
-  if (!product) fail2("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
-  if (!product.platforms.includes(platform)) fail2("INVALID_PLATFORM", "Product is not registered for Product Sessions on this platform");
-  const web = platform === "web";
-  return Object.freeze({
-    chainId: registry.chainId,
-    productId: product.productId,
-    clientId: product.clientId,
-    displayName: product.displayName,
-    platform,
-    applicationId: web ? product.webApplicationId : product.applicationId,
-    bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
-    packageId: ["android", "windows"].includes(platform) ? product.applicationId : null,
-    origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
-    callback: web ? product.webCallback : product.nativeCallback,
-    scopes: product.scopes,
-    evmCompatible: product.evmCompatible,
-    sessionDurationSeconds: product.sessionDurationSeconds,
-    walletAuthorizeCallback: registry.wallet.authorizeCallback,
-    walletDownloadUrl: registry.wallet.downloadUrl,
-    metaMaskDownloadUrl: registry.wallet.metaMaskDownloadUrl
-  });
-}
-function migrateLegacyCallback(registryInput, legacyValue, context) {
-  const registry = parseProductSessionRegistry(registryInput);
-  exactFields(context, ["productId", "platform"], "Legacy callback migration context");
-  if (typeof legacyValue !== "string" || legacyValue.length < 3 || legacyValue.length > 512 || legacyValue.trim() !== legacyValue) {
-    fail2("UNKNOWN_LEGACY_SCHEME", "Legacy callback is not registered");
-  }
-  const product = registry.products.find((item) => item.productId === context.productId);
-  if (!product || !product.legacyCallbacks.includes(legacyValue)) {
-    fail2("UNKNOWN_LEGACY_SCHEME", "Legacy callback is not registered for this product");
-  }
-  const target = productPlatformBinding(registry, context.productId, context.platform);
-  if (context.platform === "web" && legacyValue !== target.callback) {
-    fail2("CALLBACK_MISMATCH", "A native legacy callback cannot be migrated into a Web origin");
-  }
-  return Object.freeze({
-    migrated: legacyValue !== target.callback,
-    legacyValue,
-    callback: target.callback,
-    productId: target.productId,
-    clientId: target.clientId,
-    platform: target.platform
-  });
-}
-function parseProduct(input) {
-  const explicitWeb = Object.hasOwn(input, "platforms") || Object.hasOwn(input, "webApplicationId") || Object.hasOwn(input, "webCallback");
-  exactFields(input, explicitWeb ? EXPLICIT_WEB_PRODUCT_FIELDS : PRODUCT_FIELDS, "Product Session product registration");
-  const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
-  const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
-  const displayName = text(input.displayName, "displayName", 2, 64);
-  const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
-  const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
-  const platforms = explicitWeb ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS.length, (value) => {
-    const platform = text(value, "platform", 3, 16);
-    if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail2("INVALID_ROUTER_REGISTRY", "Product Session platform is unsupported");
-    return platform;
-  }) : [...PRODUCT_SESSION_PLATFORMS];
-  const webApplicationId = explicitWeb ? pattern(input.webApplicationId, "webApplicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/) : `${applicationId}.web`;
-  const webCallback = explicitWeb ? callback(input.webCallback, "webCallback", { allowHttps: true }) : `${webOrigin}/wallet-auth/callback`;
-  const parsedWebCallback = new URL(webCallback);
-  if (parsedWebCallback.protocol !== "https:" || parsedWebCallback.origin !== webOrigin || parsedWebCallback.search) {
-    fail2("INVALID_ROUTER_REGISTRY", "Web callback must be an exact HTTPS path on the registered Web origin");
-  }
-  const nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
-  const native = new URL(nativeCallback);
-  if (native.search || native.hash || native.username || native.password || !native.hostname) {
-    fail2("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
-  }
-  const legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
-  if (!legacyCallbacks.includes(nativeCallback)) fail2("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
-  const scopes2 = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (scopes2.some((scope) => scope.includes("*"))) fail2("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
-  if (typeof input.evmCompatible !== "boolean") fail2("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
-  if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
-    fail2("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
-  }
-  return Object.freeze({
-    productId,
-    clientId,
-    displayName,
-    applicationId,
-    webOrigin,
-    nativeCallback,
-    platforms: Object.freeze(platforms),
-    webApplicationId,
-    webCallback,
-    legacyCallbacks: Object.freeze(legacyCallbacks),
-    scopes: Object.freeze(scopes2),
-    evmCompatible: input.evmCompatible,
-    sessionDurationSeconds: input.sessionDurationSeconds
-  });
-}
-function callback(value, label, options) {
-  const normalized = text(value, label, 3, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail2("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
-  }
-  if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
-    fail2("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
-  }
-  if (parsed.protocol === "https:" && !options.allowHttps) fail2("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
-  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail2("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
-  return normalized;
-}
-function httpsURL(value, label, originOnly) {
-  const normalized = text(value, label, 8, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
-    fail2("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
-  }
-  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
-}
-function stringList(value, label, minimum, maximum, normalize) {
-  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail2("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
-  const result = value.map(normalize);
-  uniqueSorted(result, label);
-  return result;
-}
-function uniqueSorted(values, label) {
-  unique(values, label);
-  if ([...values].sort().join("\n") !== values.join("\n")) fail2("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
-}
-function unique(values, label) {
-  if (new Set(values).size !== values.length) fail2("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
-}
-function pattern(value, label, regex) {
-  const result = text(value, label, 1, 512);
-  if (!regex.test(result)) fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  return result;
-}
-function text(value, label, minimum, maximum) {
-  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail2("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  return value;
-}
-function fail2(code, message) {
-  throw new WalletAuthError(code, message);
-}
 
 // vendor/wallet-auth/src/product-session-v2.js
-var PRODUCT_SESSION_PROTOCOL_VERSION = "2";
 var REQUEST_MAX_LIFETIME_MS = 5 * 6e4;
-var CHALLENGE_MAX_LIFETIME_MS = 6e4;
-var REQUEST_FIELDS = [
-  "version",
-  "chainId",
-  "productId",
-  "clientId",
-  "platform",
-  "applicationId",
-  "bundleId",
-  "packageId",
-  "origin",
-  "callback",
-  "deviceId",
-  "deviceAlgorithm",
-  "deviceKey",
-  "nonce",
-  "state",
-  "scopes",
-  "purpose",
-  "issuedAt",
-  "expiresAt"
-];
-var APPROVAL_FIELDS = [
-  "version",
-  "result",
-  "requestDigest",
-  "chainId",
-  "productId",
-  "clientId",
-  "platform",
-  "applicationId",
-  "bundleId",
-  "packageId",
-  "origin",
-  "callback",
-  "deviceId",
-  "deviceAlgorithm",
-  "deviceKey",
-  "nonce",
-  "state",
-  "account",
-  "accountPublicKey",
-  "scopes",
-  "issuedAt",
-  "expiresAt",
-  "walletSignature"
-];
-var CHALLENGE_FIELDS = [
-  "version",
-  "challenge",
-  "requestDigest",
-  "approvalDigest",
-  "chainId",
-  "productId",
-  "clientId",
-  "platform",
-  "applicationId",
-  "bundleId",
-  "packageId",
-  "origin",
-  "callback",
-  "deviceId",
-  "deviceAlgorithm",
-  "deviceKey",
-  "nonce",
-  "state",
-  "account",
-  "scopes",
-  "issuedAt",
-  "expiresAt",
-  "sessionExpiresAt"
-];
-var SESSION_FIELDS = [
-  "version",
-  "sessionBinding",
-  "chainId",
-  "productId",
-  "clientId",
-  "platform",
-  "applicationId",
-  "bundleId",
-  "packageId",
-  "origin",
-  "callback",
-  "account",
-  "deviceId",
-  "deviceAlgorithm",
-  "deviceKey",
-  "deviceBinding",
-  "nonce",
-  "state",
-  "scopes",
-  "requestDigest",
-  "approvalDigest",
-  "issuedAt",
-  "expiresAt"
-];
-function createProductSessionRequest(registryInput, input, at = /* @__PURE__ */ new Date()) {
-  exactFields(input, ["productId", "platform", "deviceId", "deviceKey", "scopes", "purpose", "nonce", "state"], "Product Session request input");
-  const binding2 = productPlatformBinding(registryInput, input.productId, input.platform);
-  const now = validDate(at);
-  const request = {
-    version: PRODUCT_SESSION_PROTOCOL_VERSION,
-    chainId: binding2.chainId,
-    productId: binding2.productId,
-    clientId: binding2.clientId,
-    platform: binding2.platform,
-    applicationId: binding2.applicationId,
-    bundleId: binding2.bundleId,
-    packageId: binding2.packageId,
-    origin: binding2.origin,
-    callback: binding2.callback,
-    deviceId: opaque(input.deviceId, "deviceId"),
-    deviceAlgorithm: "p256-sha256",
-    deviceKey: deviceKey(input.deviceKey),
-    nonce: token(input.nonce, "nonce"),
-    state: token(input.state, "state"),
-    scopes: scopes(input.scopes, binding2.scopes),
-    purpose: text2(input.purpose, "purpose", 1, 180),
-    issuedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + REQUEST_MAX_LIFETIME_MS).toISOString()
-  };
-  return parseProductSessionRequest(registryInput, request, now);
-}
-function parseProductSessionRequest(registryInput, input, at = /* @__PURE__ */ new Date()) {
-  exactFields(input, REQUEST_FIELDS, "Product Session request");
-  const now = validDate(at);
-  if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS.includes(input.platform)) fail3("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
-  const binding2 = productPlatformBinding(registryInput, input.productId, input.platform);
-  const request = Object.freeze({
-    version: input.version,
-    chainId: input.chainId,
-    productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/),
-    clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/),
-    platform: input.platform,
-    applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/),
-    bundleId: platformIdentity(input.bundleId, "bundleId"),
-    packageId: platformIdentity(input.packageId, "packageId"),
-    origin: canonicalOrigin(input.origin),
-    callback: canonicalCallback(input.callback),
-    deviceId: opaque(input.deviceId, "deviceId"),
-    deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/),
-    deviceKey: deviceKey(input.deviceKey),
-    nonce: token(input.nonce, "nonce"),
-    state: token(input.state, "state"),
-    scopes: Object.freeze(scopes(input.scopes, binding2.scopes)),
-    purpose: text2(input.purpose, "purpose", 1, 180),
-    issuedAt: time(input.issuedAt, "issuedAt"),
-    expiresAt: time(input.expiresAt, "expiresAt")
-  });
-  validatePlatformIdentifiers(request);
-  for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
-    if (request[field] !== binding2[field]) fail3("SESSION_BINDING_MISMATCH", `Product Session request ${field} does not match the registry`);
-  }
-  const issued = Date.parse(request.issuedAt), expires = Date.parse(request.expiresAt);
-  if (expires <= issued || expires - issued > REQUEST_MAX_LIFETIME_MS) fail3("INVALID_EXPIRY", "Product Session request lifetime is invalid");
-  if (issued > now.getTime() + 3e4) fail3("ISSUED_IN_FUTURE", "Product Session request was issued in the future");
-  if (expires <= now.getTime()) fail3("SESSION_EXPIRED", "Product Session request expired");
-  return request;
-}
-function productSessionRequestDigest(registryInput, request, at = /* @__PURE__ */ new Date()) {
-  return digestHex("YNX_PRODUCT_SESSION_REQUEST_V2", parseProductSessionRequest(registryInput, request, at));
-}
-function parseProductSessionApproval(registryInput, requestInput, input, at = /* @__PURE__ */ new Date()) {
-  const request = parseProductSessionRequest(registryInput, requestInput, at);
-  exactFields(input, APPROVAL_FIELDS, "Product Session approval");
-  const approval = Object.freeze({
-    ...input,
-    version: pattern2(input.version, "version", /^2$/),
-    result: pattern2(input.result, "result", /^approved$/),
-    requestDigest: digest(input.requestDigest, "requestDigest"),
-    productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/),
-    clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/),
-    applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/),
-    bundleId: platformIdentity(input.bundleId, "bundleId"),
-    packageId: platformIdentity(input.packageId, "packageId"),
-    origin: canonicalOrigin(input.origin),
-    callback: canonicalCallback(input.callback),
-    deviceId: opaque(input.deviceId, "deviceId"),
-    deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/),
-    deviceKey: deviceKey(input.deviceKey),
-    nonce: token(input.nonce, "nonce"),
-    state: token(input.state, "state"),
-    account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
-    accountPublicKey: pattern2(input.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/),
-    scopes: Object.freeze(scopes(input.scopes, request.scopes)),
-    issuedAt: time(input.issuedAt, "issuedAt"),
-    expiresAt: time(input.expiresAt, "expiresAt"),
-    walletSignature: pattern2(input.walletSignature, "walletSignature", /^[0-9a-f]{128}$/)
-  });
-  validatePlatformIdentifiers(approval);
-  const boundFields = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state"];
-  if (approval.requestDigest !== productSessionRequestDigest(registryInput, request, at) || boundFields.some((field) => approval[field] !== request[field]) || approval.scopes.join("\n") !== request.scopes.join("\n")) fail3("SESSION_BINDING_MISMATCH", "Wallet approval does not match the exact Product Session request");
-  if (approval.issuedAt < request.issuedAt || approval.issuedAt > validDate(at).toISOString() || approval.expiresAt > request.expiresAt || approval.expiresAt <= validDate(at).toISOString()) fail3("INVALID_APPROVAL_TIME", "Wallet approval is outside the request lifetime");
-  let valid = false;
-  try {
-    valid = secp256k1.verify(hexToBytes(approval.walletSignature), sha256(utf8ToBytes(approvalSignBytes2(unsignedApproval2(approval)))), hexToBytes(approval.accountPublicKey), { prehash: false, format: "compact", lowS: true });
-  } catch {
-    valid = false;
-  }
-  if (!valid || walletIdentityFromPublicKey(approval.accountPublicKey) !== approval.account) fail3("INVALID_SIGNATURE", "Wallet approval signature is invalid");
-  return approval;
-}
-function createProductSessionChallenge(registryInput, requestInput, approvalInput, input, at = /* @__PURE__ */ new Date()) {
-  exactFields(input, ["challenge"], "Product Session challenge input");
-  const request = parseProductSessionRequest(registryInput, requestInput, at);
-  const approval = parseProductSessionApproval(registryInput, request, approvalInput, at);
-  const binding2 = productPlatformBinding(registryInput, request.productId, request.platform);
-  const now = validDate(at);
-  const expiresAt = new Date(Math.min(now.getTime() + CHALLENGE_MAX_LIFETIME_MS, Date.parse(approval.expiresAt))).toISOString();
-  const sessionExpiresAt = new Date(Math.min(Date.parse(approval.expiresAt), now.getTime() + binding2.sessionDurationSeconds * 1e3)).toISOString();
-  return parseChallenge({
-    version: PRODUCT_SESSION_PROTOCOL_VERSION,
-    challenge: token(input.challenge, "challenge"),
-    requestDigest: approval.requestDigest,
-    approvalDigest: productSessionApprovalDigest(approval),
-    chainId: request.chainId,
-    productId: request.productId,
-    clientId: request.clientId,
-    platform: request.platform,
-    applicationId: request.applicationId,
-    bundleId: request.bundleId,
-    packageId: request.packageId,
-    origin: request.origin,
-    callback: request.callback,
-    deviceId: request.deviceId,
-    deviceAlgorithm: request.deviceAlgorithm,
-    deviceKey: request.deviceKey,
-    nonce: request.nonce,
-    state: request.state,
-    account: approval.account,
-    scopes: approval.scopes,
-    issuedAt: now.toISOString(),
-    expiresAt,
-    sessionExpiresAt
-  });
-}
-function signProductSessionChallenge(challengeInput, deviceSecretInput) {
-  const challenge = parseChallenge(challengeInput);
-  const secret = deviceSecret(deviceSecretInput);
-  if (encodeBase64url(p256.getPublicKey(secret, true)) !== challenge.deviceKey) fail3("DEVICE_CHANGED", "Product device key changed before session completion");
-  const signature = p256.sign(utf8ToBytes(challengeSignBytes(challenge)), secret, { format: "der" });
-  return Object.freeze({ challenge, deviceSignature: encodeBase64url(signature) });
-}
-async function signProductSessionChallengeWith(challengeInput, signer) {
-  const challenge = parseChallenge(challengeInput);
-  if (typeof signer !== "function") fail3("INVALID_DEVICE", "Product Session requires a platform device signer");
-  const payload = encodeBase64url(utf8ToBytes(challengeSignBytes(challenge)));
-  let deviceSignature;
-  try {
-    deviceSignature = await signer(Object.freeze({ purpose: "challenge", algorithm: "p256-sha256", deviceKey: challenge.deviceKey, payload }));
-  } catch {
-    fail3("DEVICE_SIGNING_FAILED", "Platform device signing failed closed");
-  }
-  if (typeof deviceSignature !== "string") fail3("INVALID_DEVICE_PROOF", "Platform device signature is invalid");
-  let valid = false;
-  try {
-    valid = p256.verify(decodeBase64url(deviceSignature, "deviceSignature"), decodeBase64url(payload, "device signing payload"), decodeBase64url(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
-  } catch {
-    valid = false;
-  }
-  if (!valid) fail3("INVALID_DEVICE_PROOF", "Platform device signature does not match the registered device key");
-  return Object.freeze({ challenge, deviceSignature });
-}
-function parseProductSessionChallenge(input) {
-  return parseChallenge(input);
-}
-function parseProductSession(input) {
-  return parseSession(input);
-}
-function productSessionApprovalDigest(approval) {
-  return digestHex("YNX_PRODUCT_SESSION_APPROVAL_V2", approval);
-}
-function deviceBinding(requestOrSession, account) {
-  return digestHex("YNX_PRODUCT_SESSION_DEVICE_V2", { chainId: requestOrSession.chainId, productId: requestOrSession.productId, clientId: requestOrSession.clientId, platform: requestOrSession.platform, applicationId: requestOrSession.applicationId, bundleId: requestOrSession.bundleId, packageId: requestOrSession.packageId, origin: requestOrSession.origin, callback: requestOrSession.callback, account, deviceId: requestOrSession.deviceId, deviceAlgorithm: requestOrSession.deviceAlgorithm, deviceKey: requestOrSession.deviceKey });
-}
-function parseChallenge(input) {
-  exactFields(input, CHALLENGE_FIELDS, "Product Session challenge");
-  const value = Object.freeze({ ...input, version: pattern2(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
-  validatePlatformIdentifiers(value);
-  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || Date.parse(value.sessionExpiresAt) - Date.parse(value.issuedAt) > REQUEST_MAX_LIFETIME_MS) fail3("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
-  return value;
-}
-function parseSession(input) {
-  exactFields(input, SESSION_FIELDS, "Product Session");
-  const value = Object.freeze({ ...input, version: pattern2(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") });
-  validatePlatformIdentifiers(value);
-  if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail3("INVALID_SESSION", "Product Session security binding or lifetime is invalid");
-  return value;
-}
-function unsignedApproval2(value) {
-  const { walletSignature: _signature, ...unsigned } = value;
-  return unsigned;
-}
-function approvalSignBytes2(value) {
-  return `YNX_PRODUCT_SESSION_APPROVAL_V2
-${canonicalJSON(value)}`;
-}
-function challengeSignBytes(value) {
-  return `YNX_PRODUCT_SESSION_CHALLENGE_V2
-${canonicalJSON(value)}`;
-}
-function scopes(value, allowlist) {
-  if (!Array.isArray(value) || value.length < 1 || value.length > 8) fail3("INVALID_SCOPES", "Product Session scopes are invalid");
-  const result = value.map((item) => pattern2(item, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (new Set(result).size !== result.length || [...result].sort().join("\n") !== result.join("\n") || result.some((item) => !allowlist.includes(item))) fail3("SCOPE_WIDENING", "Product Session scope is duplicated, unsorted or outside the registry");
-  return result;
-}
-function platformIdentity(value, label) {
-  return value === null ? null : pattern2(value, label, /^[A-Za-z][A-Za-z0-9.-]{2,131}$/);
-}
-function validatePlatformIdentifiers(value, errorCode = "SESSION_BINDING_MISMATCH") {
-  const expectsBundle = value.platform === "ios" || value.platform === "macos";
-  const expectsPackage = value.platform === "android" || value.platform === "windows";
-  if (value.bundleId !== null !== expectsBundle || value.packageId !== null !== expectsPackage || value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId) fail3(errorCode, "Product Session bundleId/packageId does not match its registered platform identity");
-}
-function canonicalOrigin(value) {
-  const normalized = text2(value, "origin", 8, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail3("INVALID_ORIGIN", "Product Session origin is invalid");
-  }
-  if (parsed.protocol === "https:" && parsed.origin === normalized && !parsed.port) return normalized;
-  if (parsed.protocol === "app:" && /^app:\/\/(android|ios|macos|windows)\/[A-Za-z][A-Za-z0-9.-]{2,127}$/.test(normalized)) return normalized;
-  fail3("INVALID_ORIGIN", "Product Session origin must be an exact HTTPS or registered native origin");
-}
-function canonicalCallback(value) {
-  const normalized = text2(value, "callback", 8, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail3("CALLBACK_MISMATCH", "Product Session callback is invalid");
-  }
-  if (["data:", "file:", "http:", "javascript:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.hash || parsed.search || parsed.toString() !== normalized) fail3("CALLBACK_MISMATCH", "Product Session callback is unsafe or non-canonical");
-  return normalized;
-}
-function deviceKey(value) {
-  const normalized = pattern2(value, "deviceKey", /^[A-Za-z0-9_-]{44}$/);
-  const bytes = decodeBase64url(normalized, "deviceKey");
-  if (bytes.length !== 33 || encodeBase64url(bytes) !== normalized) fail3("INVALID_DEVICE_KEY", "Product Session device key is invalid");
-  try {
-    p256.Point.fromBytes(bytes);
-  } catch {
-    fail3("INVALID_DEVICE_KEY", "Product Session device key is not P-256");
-  }
-  return normalized;
-}
-function deviceSecret(value) {
-  const bytes = decodeBase64url(value, "deviceSecret");
-  if (bytes.length !== 32 || !p256.utils.isValidSecretKey(bytes)) fail3("INVALID_SECRET", "Product device secret is invalid");
-  return bytes;
-}
-function token(value, label) {
-  return pattern2(value, label, /^[A-Za-z0-9_-]{32,64}$/);
-}
-function opaque(value, label) {
-  return pattern2(value, label, /^[A-Za-z0-9._:-]{8,128}$/);
-}
-function digest(value, label) {
-  return pattern2(value, label, /^[0-9a-f]{64}$/);
-}
-function pattern2(value, label, regex) {
-  const normalized = text2(value, label, 1, 512);
-  if (!regex.test(normalized)) fail3("INVALID_FIELD", `${label} is invalid`);
-  return normalized;
-}
-function text2(value, label, minimum, maximum) {
-  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail3("INVALID_FIELD", `${label} is invalid`);
-  return value;
-}
-function time(value, label) {
-  const normalized = pattern2(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail3("INVALID_TIME", `${label} is invalid`);
-  return normalized;
-}
-function validDate(value) {
-  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail3("INVALID_TIME", "Product Session time is invalid");
-  return value;
-}
-function fail3(code, message) {
-  throw new WalletAuthError(code, message);
-}
 
 // vendor/wallet-auth/src/product-session-router.js
 var WALLET_ROUTE_STATUS = Object.freeze({
@@ -3488,103 +2651,11 @@ var WALLET_ROUTE_STATUS = Object.freeze({
   USER_REJECTED: "user-rejected",
   NETWORK_UNAVAILABLE: "network-unavailable"
 });
-function walletConnectionChoices(registryInput, productId, availability) {
-  const registry = parseProductSessionRegistry(registryInput);
-  exactFields(availability, ["ynxWalletInstalled", "metaMaskAvailable"], "Wallet availability");
-  if (typeof availability.ynxWalletInstalled !== "boolean" || typeof availability.metaMaskAvailable !== "boolean") fail4("INVALID_WALLET_AVAILABILITY", "Wallet availability flags must be boolean");
-  const product = registry.products.find((item) => item.productId === productId);
-  if (!product) fail4("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
-  const choices = [];
-  if (availability.ynxWalletInstalled) {
-    choices.push(Object.freeze({ id: "ynx-wallet", action: "open", label: "Open YNX Wallet", authoritative: true }));
-  } else {
-    choices.push(Object.freeze({ id: "download-ynx-wallet", action: "download", label: "Download YNX Wallet", url: registry.wallet.downloadUrl, authoritative: true }));
-    if (product.evmCompatible) choices.push(Object.freeze(availability.metaMaskAvailable ? { id: "metamask", action: "open-evm", label: "Use MetaMask", chainId: 6423, installed: true, authoritative: true, connectionMode: "evm-only", authority: "eip-1193-provider-only", ynxProductSession: false } : { id: "metamask", action: "download-evm-wallet", label: "Use MetaMask (install if needed)", url: registry.wallet.metaMaskDownloadUrl, chainId: 6423, installed: false, authoritative: true, connectionMode: "evm-only", authority: "none", ynxProductSession: false }));
-  }
-  choices.push(Object.freeze({
-    id: "guest",
-    action: "guest",
-    label: "Continue in Guest / Try mode",
-    authoritative: false,
-    limitations: Object.freeze(["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"])
-  }));
-  return Object.freeze(choices);
-}
-function encodeProductSessionWalletURL(registryInput, requestInput, at = /* @__PURE__ */ new Date()) {
-  const registry = parseProductSessionRegistry(registryInput);
-  const request = parseProductSessionRequest(registry, requestInput, at);
-  const target = new URL(registry.wallet.authorizeCallback);
-  target.searchParams.set("request", encodeBase64url(new TextEncoder().encode(canonicalJSON(request))));
-  return target.toString();
-}
-function prepareWalletOpen(registryInput, requestInput, environment, at = /* @__PURE__ */ new Date()) {
-  exactFields(environment, ["networkAvailable", "walletInstalled", "schemeRegistered"], "Wallet open environment");
-  if (!environment.networkAvailable) return routeState(WALLET_ROUTE_STATUS.NETWORK_UNAVAILABLE, "Retry when network connectivity returns", ["retry", "return-to-product"]);
-  let request;
-  try {
-    request = parseProductSessionRequest(registryInput, requestInput, at);
-  } catch (error) {
-    if (error instanceof WalletAuthError && (error.code === "SESSION_EXPIRED" || error.code === "EXPIRED")) return routeState(WALLET_ROUTE_STATUS.SESSION_EXPIRED, "Start a new Wallet connection request", ["retry", "return-to-product"]);
-    throw error;
-  }
-  if (!environment.walletInstalled) return routeState(WALLET_ROUTE_STATUS.WALLET_NOT_INSTALLED, "Install YNX Wallet or return to Guest / Try mode", ["download", "guest", "return-to-product"]);
-  if (!environment.schemeRegistered) return routeState(WALLET_ROUTE_STATUS.SCHEME_NOT_REGISTERED, "Repair or reinstall YNX Wallet, then retry", ["download", "retry", "return-to-product"]);
-  return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, url: encodeProductSessionWalletURL(registryInput, request, at), request, actions: Object.freeze([]) });
-}
-function parseProductSessionReturnURL(registryInput, pendingRequest, url2, at = /* @__PURE__ */ new Date()) {
-  let request;
-  try {
-    request = parseProductSessionRequest(registryInput, pendingRequest, at);
-  } catch (error) {
-    if (error instanceof WalletAuthError && error.code === "SESSION_EXPIRED") return routeState(WALLET_ROUTE_STATUS.SESSION_EXPIRED, "The Wallet approval request expired", ["retry", "return-to-product"]);
-    throw error;
-  }
-  const parsed = safeURL(url2, "CALLBACK_MISMATCH", "Wallet callback is invalid");
-  const expected = new URL(request.callback);
-  const result = parsed.searchParams.get("result");
-  const allowed = result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];
-  const keys = [...parsed.searchParams.keys()].sort();
-  parsed.search = "";
-  if (parsed.toString() !== expected.toString() || parsed.hash || parsed.username || parsed.password || keys.join("\n") !== allowed.join("\n") || parsed.protocol === "http:" || parsed.protocol === "file:" || parsed.protocol === "javascript:") return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Return to the product and start a new Wallet request", ["retry", "return-to-product"]);
-  if (new URL(url2).searchParams.get("nonce") !== request.nonce || new URL(url2).searchParams.get("state") !== request.state) return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet callback nonce or state did not match", ["retry", "return-to-product"]);
-  if (result === "rejected" && new URL(url2).searchParams.get("reason") === "user_rejected") return routeState(WALLET_ROUTE_STATUS.USER_REJECTED, "No Product Session was created", ["guest", "retry", "return-to-product"]);
-  if (result !== "approved") return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet callback result was not recognized", ["retry", "return-to-product"]);
-  try {
-    const approval = parseProductSessionApproval(registryInput, request, decodeJSON(new URL(url2).searchParams.get("approval"), "Wallet approval"), at);
-    return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, request, approval, actions: Object.freeze([]) });
-  } catch (error) {
-    if (error instanceof WalletAuthError) return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet approval did not match the pending product request", ["retry", "return-to-product"]);
-    throw error;
-  }
-}
-function routeState(status, message, actions) {
-  return Object.freeze({ status, message, actions: Object.freeze(actions) });
-}
-function decodeJSON(value, label) {
-  try {
-    const bytes = decodeBase64url(value ?? "", label);
-    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-  } catch {
-    fail4("INVALID_ROUTE_PAYLOAD", `${label} encoding is invalid`);
-  }
-}
-function safeURL(value, code, message) {
-  if (typeof value !== "string" || value.length > 4096) fail4(code, message);
-  try {
-    return new URL(value);
-  } catch {
-    fail4(code, message);
-  }
-}
-function fail4(code, message) {
-  throw new WalletAuthError(code, message);
-}
 
 // vendor/wallet-auth/src/metamask-evm-adapter.js
 var METAMASK_EVM_CONNECTION_STATUS = Object.freeze({
   CONNECTED: "connected-evm"
 });
-var METAMASK_EVM_CHAIN_ID = 6423;
 var METAMASK_EVM_CHAIN_QUANTITY = "0x1917";
 var METAMASK_EVM_CHAIN = Object.freeze({
   chainId: METAMASK_EVM_CHAIN_QUANTITY,
@@ -3599,112 +2670,6 @@ var LIMITATIONS = Object.freeze([
   "no-wallet-ai-gateway-session",
   "no-native-ynx-account-authority"
 ]);
-var MetaMaskEvmConnectionAdapter = class {
-  #productId;
-  #provider;
-  constructor(config) {
-    exactFields(config, ["registry", "productId", "provider"], "MetaMask EVM adapter configuration");
-    const registry = parseProductSessionRegistry(config.registry);
-    const product = registry.products.find((item) => item.productId === config.productId);
-    if (!product) fail5("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
-    if (!product.evmCompatible) fail5("EVM_NOT_SUPPORTED", "Product is not registered for an EVM Wallet connection");
-    if (typeof config.productId !== "string") fail5("INVALID_METAMASK_CONFIG", "MetaMask productId is invalid");
-    this.#productId = product.productId;
-    this.#provider = config.provider;
-  }
-  async connect() {
-    const provider = this.#provider;
-    if (provider === null || provider === void 0) fail5("METAMASK_NOT_INSTALLED", "MetaMask EIP-1193 provider was not detected");
-    if (!isExplicitMetaMaskProvider(provider)) {
-      fail5("INVALID_METAMASK_PROVIDER", "Detected provider is not an explicit MetaMask EIP-1193 provider");
-    }
-    let chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
-    if (chainId !== METAMASK_EVM_CHAIN_ID) {
-      try {
-        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY }], true);
-      } catch (error) {
-        if (!(error instanceof WalletAuthError) || error.code !== "CHAIN_NOT_AVAILABLE") throw error;
-        try {
-          await providerRequest(provider, "wallet_addEthereumChain", [METAMASK_EVM_CHAIN]);
-        } catch (addError) {
-          if (addError instanceof WalletAuthError && addError.code === "USER_REJECTED") throw addError;
-          fail5("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 could not be added to MetaMask");
-        }
-        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY }], true);
-      }
-      chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
-    }
-    if (chainId !== METAMASK_EVM_CHAIN_ID) fail5("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
-    const address = firstAccount(await providerRequest(provider, "eth_requestAccounts"));
-    return Object.freeze({
-      status: METAMASK_EVM_CONNECTION_STATUS.CONNECTED,
-      wallet: "metamask",
-      connectionMode: "evm-only",
-      authority: "eip-1193-provider-only",
-      productId: this.#productId,
-      chainId: METAMASK_EVM_CHAIN_ID,
-      chainQuantity: METAMASK_EVM_CHAIN_QUANTITY,
-      address,
-      ynxProductSession: false,
-      productSession: null,
-      limitations: LIMITATIONS
-    });
-  }
-};
-async function providerRequest(provider, method2, params, switching = false) {
-  try {
-    return await provider.request(params === void 0 ? { method: method2 } : { method: method2, params });
-  } catch (error) {
-    if (error instanceof WalletAuthError) throw error;
-    const code = providerErrorCode(error);
-    if (code === 4001 || code === "4001") fail5("USER_REJECTED", "MetaMask connection was rejected by the user");
-    if (switching && (code === 4902 || code === "4902")) fail5("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 is not configured in MetaMask");
-    if (code === 4900 || code === "4900" || code === 4901 || code === "4901") fail5("WALLET_UNAVAILABLE", "MetaMask is disconnected from the requested chain");
-    fail5("WALLET_UNAVAILABLE", "MetaMask EIP-1193 request failed closed");
-  }
-}
-function isExplicitMetaMaskProvider(provider) {
-  if (typeof provider !== "object" || provider === null) return false;
-  try {
-    return typeof provider.request === "function" && provider.isMetaMask === true;
-  } catch {
-    return false;
-  }
-}
-function providerErrorCode(error) {
-  if (typeof error !== "object" || error === null) return void 0;
-  try {
-    return error.code;
-  } catch {
-    return void 0;
-  }
-}
-function parseChainQuantity(value) {
-  if (typeof value !== "string" || !/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value)) {
-    fail5("INVALID_WALLET_RESPONSE", "MetaMask returned a non-canonical chain quantity");
-  }
-  const chainId = Number(BigInt(value));
-  if (!Number.isSafeInteger(chainId)) fail5("INVALID_WALLET_RESPONSE", "MetaMask returned an unsupported chain quantity");
-  return chainId;
-}
-function normalizeAddress(value) {
-  if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)) {
-    fail5("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid EVM account address");
-  }
-  return value.toLowerCase();
-}
-function firstAccount(value) {
-  try {
-    if (!Array.isArray(value) || value.length < 1 || value.length > 1024) fail5("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
-    return normalizeAddress(value[0]);
-  } catch (error) {
-    if (error instanceof WalletAuthError) throw error;
-    fail5("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
-  }
-}
-function fail5(code, message) {
-  throw new WalletAuthError(code, message);
-}
 
 // vendor/wallet-auth/src/standard-wallet-connect-state.js
 var STANDARD_WALLET_CONNECT_STATUS = Object.freeze({
@@ -3791,100 +2756,6 @@ var ALIASES = Object.freeze({
   UNSUPPORTED_VERSION: "VERSION_INCOMPATIBLE"
 });
 
-// vendor/wallet-auth/src/product-session-proof-v2.js
-var PROOF_FIELDS = ["version", "sessionBinding", "productId", "clientId", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey", "method", "path", "bodyDigest", "nonce", "issuedAt", "expiresAt", "signature"];
-var INPUT_FIELDS = ["method", "path", "bodyDigest", "nonce", "issuedAt", "expiresAt"];
-function createProductSessionProofV2(sessionInput, input, deviceSecretInput) {
-  const session = parseProductSession(sessionInput);
-  exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
-  const secret = decodeBase64url(deviceSecretInput, "deviceSecret");
-  if (secret.length !== 32 || encodeBase64url(p256.getPublicKey(secret, true)) !== session.deviceKey) fail6("DEVICE_CHANGED", "Product Session proof device changed");
-  const unsigned = unsignedProof(session, input);
-  const signature = encodeBase64url(p256.sign(utf8ToBytes(productSessionProofV2SignBytes(unsigned)), secret, { format: "der" }));
-  return parseProductSessionProofV2({ ...unsigned, signature });
-}
-async function createProductSessionProofV2With(sessionInput, input, signer) {
-  const session = parseProductSession(sessionInput);
-  exactFields(input, INPUT_FIELDS, "Product Session v2 proof input");
-  if (typeof signer !== "function") fail6("INVALID_DEVICE", "Product Session proof requires a platform device signer");
-  const unsigned = unsignedProof(session, input);
-  const payload = encodeBase64url(utf8ToBytes(productSessionProofV2SignBytes(unsigned)));
-  let signature;
-  try {
-    signature = await signer(Object.freeze({ purpose: "http-proof", algorithm: "p256-sha256", deviceKey: session.deviceKey, payload }));
-  } catch {
-    fail6("DEVICE_SIGNING_FAILED", "Platform device proof signing failed closed");
-  }
-  const proof = parseProductSessionProofV2({ ...unsigned, signature });
-  let valid = false;
-  try {
-    valid = p256.verify(decodeBase64url(proof.signature, "signature"), decodeBase64url(payload, "device signing payload"), decodeBase64url(session.deviceKey, "deviceKey"), { format: "der", lowS: false });
-  } catch {
-    valid = false;
-  }
-  if (!valid) fail6("INVALID_DEVICE_PROOF", "Platform device proof signature does not match the registered device key");
-  return proof;
-}
-function parseProductSessionProofV2(input) {
-  exactFields(input, PROOF_FIELDS, "Product Session v2 proof");
-  const { signature, ...unsigned } = input;
-  const bytes = decodeBase64url(pattern3(signature, "signature", /^[A-Za-z0-9_-]{90,96}$/), "signature");
-  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url(bytes) !== signature) fail6("INVALID_DEVICE_PROOF", "Product Session proof signature is invalid");
-  return Object.freeze({ ...parseUnsigned(unsigned), signature });
-}
-function productSessionProofV2SignBytes(input) {
-  return `YNX_PRODUCT_SESSION_HTTP_PROOF_V2
-${canonicalJSON(parseUnsigned(input))}`;
-}
-function unsignedProof(session, input) {
-  return parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
-}
-function parseUnsigned(input) {
-  exactFields(input, PROOF_FIELDS.filter((field) => field !== "signature"), "Unsigned Product Session v2 proof");
-  const value = Object.freeze({ version: pattern3(input.version, "version", /^2$/), sessionBinding: digest2(input.sessionBinding, "sessionBinding"), productId: pattern3(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern3(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), applicationId: pattern3(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: nullableIdentity(input.bundleId, "bundleId"), packageId: nullableIdentity(input.packageId, "packageId"), origin: url(input.origin, "origin"), callback: url(input.callback, "callback"), account: pattern3(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: pattern3(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/), deviceKey: pattern3(input.deviceKey, "deviceKey", /^[A-Za-z0-9_-]{44}$/), method: method(input.method), path: path(input.path), bodyDigest: digest2(input.bodyDigest, "bodyDigest"), nonce: pattern3(input.nonce, "nonce", /^[A-Za-z0-9_-]{32,64}$/), issuedAt: time2(input.issuedAt, "issuedAt"), expiresAt: time2(input.expiresAt, "expiresAt") });
-  if (value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId || value.bundleId !== null && value.packageId !== null) fail6("INVALID_FIELD", "Product Session proof application identity is inconsistent");
-  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 6e4) fail6("INVALID_EXPIRY", "Product Session proof lifetime must be at most sixty seconds");
-  return value;
-}
-function url(value, label) {
-  const normalized = pattern3(value, label, /^(https|app|[a-z][a-z0-9+.-]*):\/\/[^\s#?]+$/);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail6("INVALID_FIELD", `${label} is invalid`);
-  }
-  const canonical = label === "origin" && parsed.protocol === "https:" ? parsed.origin === normalized : parsed.toString() === normalized;
-  if (!canonical || ["http:", "file:", "javascript:", "data:"].includes(parsed.protocol)) fail6("INVALID_FIELD", `${label} is unsafe`);
-  return normalized;
-}
-function method(value) {
-  return pattern3(value, "method", /^(DELETE|GET|PATCH|POST|PUT)$/);
-}
-function path(value) {
-  const normalized = pattern3(value, "path", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/);
-  if (normalized.includes("//") || normalized.endsWith("/") || normalized.includes("?") || normalized.includes("#")) fail6("INVALID_PATH", "Product Session proof path is non-canonical");
-  return normalized;
-}
-function digest2(value, label) {
-  return pattern3(value, label, /^[0-9a-f]{64}$/);
-}
-function nullableIdentity(value, label) {
-  return value === null ? null : pattern3(value, label, /^[A-Za-z][A-Za-z0-9.-]{2,131}$/);
-}
-function pattern3(value, label, regex) {
-  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail6("INVALID_FIELD", `${label} is invalid`);
-  return value;
-}
-function time2(value, label) {
-  const normalized = pattern3(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
-  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail6("INVALID_TIME", `${label} is invalid`);
-  return normalized;
-}
-function fail6(code, message) {
-  throw new WalletAuthError(code, message);
-}
-
 // vendor/wallet-auth/src/product-session-recovery.js
 var PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   DISCONNECTED: "disconnected",
@@ -3894,361 +2765,6 @@ var PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   NETWORK_UNAVAILABLE: "network-unavailable",
   RETRY_REQUIRED: "retry-required"
 });
-var RecoverableProductSessionClient = class {
-  #registry;
-  #binding;
-  #storage;
-  #gateway;
-  #device;
-  #tokens;
-  #clock;
-  #state;
-  #autoReconnectAttempted;
-  #networkAvailable;
-  #networkEpoch;
-  #disconnectPromise;
-  #returnOperation;
-  #recoveryPromise;
-  constructor(config) {
-    exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
-    this.#registry = parseProductSessionRegistry(config.registry);
-    this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
-    this.#storage = secureStorage(config.storage);
-    this.#gateway = gateway(config.gateway);
-    this.#device = device(config.device);
-    this.#tokens = tokenFactory(config.tokenFactory);
-    this.#clock = clock(config.clock);
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "No authoritative Product Session is active");
-    this.#autoReconnectAttempted = false;
-    this.#networkAvailable = true;
-    this.#networkEpoch = 0;
-    this.#disconnectPromise = null;
-    this.#returnOperation = null;
-    this.#recoveryPromise = null;
-  }
-  get current() {
-    return this.#state;
-  }
-  get storageKey() {
-    return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`;
-  }
-  get connectionBinding() {
-    return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId });
-  }
-  async detectWalletEnvironment() {
-    let walletInstalled, schemeRegistered;
-    try {
-      [walletInstalled, schemeRegistered] = await Promise.all([this.#gateway.walletInstalled(), this.#gateway.schemeRegistered()]);
-    } catch (error) {
-      if (error instanceof WalletAuthError) throw error;
-      fail7("WALLET_UNAVAILABLE", "Wallet availability detection failed closed");
-    }
-    if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail7("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
-    return Object.freeze({ walletInstalled, schemeRegistered });
-  }
-  async beginDetected(automatic = false) {
-    return this.begin(await this.detectWalletEnvironment(), automatic);
-  }
-  async retryDetected() {
-    return this.retry(await this.detectWalletEnvironment());
-  }
-  async restore(networkAvailable = true) {
-    return this.#recover(() => this.#restore(networkAvailable));
-  }
-  async #restore(networkAvailable) {
-    this.#networkAvailable = Boolean(networkAvailable);
-    if (!this.#networkAvailable) return this.#offline();
-    const restored = await this.#restoreStoredSession();
-    if (restored !== null) return restored;
-    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
-    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
-    if (!this.#autoReconnectAttempted) {
-      this.#autoReconnectAttempted = true;
-      return this.beginDetected(true);
-    }
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Stored Product Session is invalid; explicit Retry is required", { actions: ["retry", "guest"] });
-    return this.#state;
-  }
-  async begin(environment, automatic = false) {
-    exactFields(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
-    if (!this.#networkAvailable) return this.#offline();
-    const networkEpoch = this.#networkEpoch;
-    const now = this.#clock();
-    const request = createProductSessionRequest(this.#registry, {
-      productId: this.#binding.productId,
-      platform: this.#binding.platform,
-      deviceId: this.#device.id,
-      deviceKey: this.#device.key,
-      scopes: this.#device.scopes,
-      purpose: this.#device.purpose,
-      nonce: this.#tokens(),
-      state: this.#tokens()
-    }, now);
-    await this.#clearPending();
-    if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
-    await this.#storage.set(`${this.storageKey}:pending`, JSON.stringify(request));
-    if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
-    const route = prepareWalletOpen(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
-    this.#state = route.status === WALLET_ROUTE_STATUS.READY ? state(PRODUCT_SESSION_CLIENT_STATE.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic }) : state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, route.message, { request, route, automatic, actions: route.actions });
-    return this.#state;
-  }
-  async handleReturn(url2) {
-    if (this.#returnOperation !== null) {
-      if (this.#returnOperation.url !== url2) fail7("CONCURRENT_CALLBACK", "A different Wallet callback is already being verified");
-      return this.#returnOperation.promise;
-    }
-    const operation = this.#handleReturn(url2);
-    this.#returnOperation = { url: url2, promise: operation };
-    try {
-      return await operation;
-    } finally {
-      if (this.#returnOperation?.promise === operation) this.#returnOperation = null;
-    }
-  }
-  async #handleReturn(url2) {
-    if (!this.#networkAvailable) return this.#offline();
-    const networkEpoch = this.#networkEpoch;
-    const raw = await this.#storage.get(`${this.storageKey}:pending`);
-    if (raw === null) {
-      await this.#storage.remove(`${this.storageKey}:return`);
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] });
-      return this.#state;
-    }
-    let request;
-    try {
-      request = parseProductSessionRequest(this.#registry, JSON.parse(raw), this.#clock());
-    } catch {
-      await this.#clearPending();
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] });
-      return this.#state;
-    }
-    const returned = parseProductSessionReturnURL(this.#registry, request, url2, this.#clock());
-    if (returned.status === WALLET_ROUTE_STATUS.USER_REJECTED) {
-      await this.#clearPending();
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions });
-      return this.#state;
-    }
-    if (returned.status !== WALLET_ROUTE_STATUS.READY) {
-      await this.#storage.remove(`${this.storageKey}:return`);
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions });
-      return this.#state;
-    }
-    await this.#storage.set(`${this.storageKey}:return`, url2);
-    try {
-      const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
-      const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
-      if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail7("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
-      if (challenge.expiresAt <= this.#clock().toISOString()) fail7("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
-      const completion = this.#device.sign ? await signProductSessionChallengeWith(challenge, this.#device.sign) : signProductSessionChallenge(challenge, this.#device.secret);
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during platform challenge signing; protected callback was retained for Retry");
-      const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
-      await this.#storage.set(this.storageKey, JSON.stringify(session));
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
-      try {
-        await this.#introspect(session);
-      } catch (error) {
-        if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while confirming the issued Product Session; protected state was retained for Retry");
-        throw error;
-      }
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while confirming the Product Session; authoritative Retry is required");
-      await this.#clearPending();
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session connected", { session });
-      return this.#state;
-    } catch (error) {
-      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
-      await this.#storage.remove(this.storageKey);
-      await this.#clearPending();
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
-      return this.#state;
-    }
-  }
-  async retry(environment) {
-    return this.#recover(() => this.#retry(environment));
-  }
-  async #retry(environment) {
-    this.#networkAvailable = true;
-    const restored = await this.#restoreStoredSession();
-    if (restored !== null) return restored;
-    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
-    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
-    this.#autoReconnectAttempted = false;
-    return this.begin(environment, false);
-  }
-  async #recover(run) {
-    if (this.#disconnectPromise !== null) return this.#disconnectPromise;
-    if (this.#recoveryPromise !== null) return this.#recoveryPromise;
-    const operation = run();
-    this.#recoveryPromise = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.#recoveryPromise === operation) this.#recoveryPromise = null;
-    }
-  }
-  connectionChoices(availability) {
-    return walletConnectionChoices(this.#registry, this.#binding.productId, availability);
-  }
-  setNetworkAvailable(available) {
-    this.#networkEpoch += 1;
-    this.#networkAvailable = Boolean(available);
-    if (!this.#networkAvailable) return this.#offline();
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] });
-    return this.#state;
-  }
-  enterGuest() {
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] });
-    return this.#state;
-  }
-  async disconnect() {
-    if (this.#disconnectPromise !== null) return this.#disconnectPromise;
-    const operation = this.#disconnect();
-    this.#disconnectPromise = operation;
-    try {
-      return await operation;
-    } finally {
-      if (this.#disconnectPromise === operation) this.#disconnectPromise = null;
-    }
-  }
-  async #disconnect() {
-    const pendingRecovery = this.#recoveryPromise;
-    if (pendingRecovery !== null) {
-      try {
-        await pendingRecovery;
-      } catch {
-      }
-    }
-    const pendingReturn = this.#returnOperation?.promise ?? null;
-    if (pendingReturn !== null) {
-      try {
-        await pendingReturn;
-      } catch {
-      }
-    }
-    let session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
-    if (session === null) {
-      const raw = await this.#storage.get(this.storageKey);
-      if (raw !== null) {
-        try {
-          session = parseProductSession(JSON.parse(raw));
-        } catch {
-        }
-      }
-    }
-    if (session !== null && session.expiresAt > this.#clock().toISOString()) {
-      try {
-        const networkEpoch = this.#networkEpoch;
-        if (!this.#networkAvailable) fail7("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
-        const body = {};
-        const proof = await this.#proof(session, "/v2/product-sessions/revoke", body);
-        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail7("NETWORK_UNAVAILABLE", "Network changed during Product Session revocation signing");
-        const result = await this.#gateway.revoke({ requestId: gatewayRequestId("r", proof.nonce), sessionBinding: session.sessionBinding, proof });
-        if (result?.revoked !== session.sessionBinding) fail7("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
-      } catch (error) {
-        if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while revoking the Product Session; protected state was retained for Retry");
-        if (!(error instanceof WalletAuthError) || error.code !== "SESSION_REVOKED") {
-          this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not confirm Product Session revocation; protected state was retained", { actions: ["retry"] });
-          return this.#state;
-        }
-      }
-    }
-    await this.#storage.remove(this.storageKey);
-    await this.#clearPending();
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, session === null ? "Product Session removed from secure storage" : "Authoritative Product Session revoked and removed from secure storage");
-    return this.#state;
-  }
-  async #introspect(session) {
-    const networkEpoch = this.#networkEpoch;
-    if (!this.#networkAvailable) fail7("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
-    const body = { requiredScopes: session.scopes };
-    const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
-    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail7("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
-    const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
-    if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail7("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
-    return result;
-  }
-  async #proof(session, path2, body) {
-    const now = this.#clock();
-    const expiresAt = new Date(Math.min(now.getTime() + 3e4, Date.parse(session.expiresAt))).toISOString();
-    if (expiresAt <= now.toISOString()) fail7("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
-    const input = { method: "POST", path: path2, bodyDigest: httpBodyDigest(canonicalJSON(body)), nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt };
-    return this.#device.sign ? createProductSessionProofV2With(session, input, this.#device.sign) : createProductSessionProofV2(session, input, this.#device.secret);
-  }
-  async #restoreStoredSession() {
-    const raw = await this.#storage.get(this.storageKey);
-    if (raw === null) return null;
-    const networkEpoch = this.#networkEpoch;
-    try {
-      const session = parseProductSession(JSON.parse(raw));
-      await this.#introspect(session);
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during Product Session re-introspection; protected state was retained for Retry");
-      await this.#clearPending();
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while restoring the Product Session; protected state was retained for Retry");
-      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session });
-      return this.#state;
-    } catch (error) {
-      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable during Product Session re-introspection; protected state was retained but is not authoritative");
-      await this.#storage.remove(this.storageKey);
-      return null;
-    }
-  }
-  async #clearPending() {
-    await this.#storage.remove(`${this.storageKey}:pending`);
-    await this.#storage.remove(`${this.storageKey}:return`);
-  }
-  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") {
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] });
-    return this.#state;
-  }
-  #networkTransition(message) {
-    if (!this.#networkAvailable) return this.#offline(message);
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] });
-    return this.#state;
-  }
-};
-function state(status, message, extra = {}) {
-  return Object.freeze({ status, message, ...extra, ...extra.actions ? { actions: Object.freeze(extra.actions) } : {}, ...extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {} });
-}
-function secureStorage(value) {
-  if (!value || !["hardware-backed", "os-protected"].includes(value.securityLevel) || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail7("INSECURE_STORAGE", "Product Sessions require injected OS-protected or hardware-backed storage");
-  return value;
-}
-function gateway(value) {
-  if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail7("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter");
-  return value;
-}
-function device(value) {
-  const fields = Object.keys(value ?? {}).sort().join("\n");
-  const secretFields = ["id", "key", "secret", "scopes", "purpose"].sort().join("\n"), signerFields = ["id", "key", "sign", "scopes", "purpose"].sort().join("\n");
-  if (fields !== secretFields && fields !== signerFields) fail7("INVALID_DEVICE", "Product Session device configuration fields are invalid");
-  if (typeof value.id !== "string" || typeof value.key !== "string" || !value.sign && typeof value.secret !== "string" || value.sign && typeof value.sign !== "function" || !Array.isArray(value.scopes) || typeof value.purpose !== "string") fail7("INVALID_DEVICE", "Product Session device configuration is invalid");
-  return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) });
-}
-function tokenFactory(value) {
-  if (typeof value !== "function") fail7("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory");
-  return () => {
-    const token2 = value();
-    if (typeof token2 !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token2)) fail7("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token");
-    return token2;
-  };
-}
-function clock(value) {
-  if (typeof value !== "function") fail7("INVALID_TIME", "Product Session client requires a clock");
-  return () => {
-    const result = value();
-    if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail7("INVALID_TIME", "Product Session clock returned invalid time");
-    return result;
-  };
-}
-function isNetworkUnavailable(error) {
-  return error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE";
-}
-function gatewayRequestId(kind, token2) {
-  return `req_ps_${kind}_${token2}`;
-}
-function fail7(code, message) {
-  throw new WalletAuthError(code, message);
-}
 
 // vendor/wallet-auth/src/wallet-connection-coordinator.js
 var WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
@@ -4260,310 +2776,6 @@ var WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
   EVM_CONNECTED: "evm-connected",
   EVM_UNAVAILABLE: "evm-unavailable"
 });
-var WalletConnectionCoordinator = class {
-  #registry;
-  #productId;
-  #client;
-  #scope;
-  #waitMs;
-  #openWallet;
-  #openTimeoutMs;
-  constructor(config) {
-    exactFields(config, ["registry", "productId", "sessionClient", "scope", "discoveryWaitMs", "openWallet", "openTimeoutMs"], "Wallet connection coordinator configuration");
-    this.#registry = parseProductSessionRegistry(config.registry);
-    if (typeof config.productId !== "string" || !this.#registry.products.some((item) => item.productId === config.productId)) fail8("UNKNOWN_PRODUCT", "Wallet connection product is not registered");
-    if (!(config.sessionClient instanceof RecoverableProductSessionClient) || config.sessionClient.connectionBinding.productId !== config.productId) fail8("CROSS_PRODUCT_REUSE", "Wallet connection coordinator requires the exact product session client");
-    if (typeof config.scope !== "object" && typeof config.scope !== "function" || config.scope === null) fail8("INVALID_WALLET_SCOPE", "Wallet provider discovery scope is invalid");
-    if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2e3) fail8("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
-    if (typeof config.openWallet !== "function") fail8("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");
-    if (!Number.isSafeInteger(config.openTimeoutMs) || config.openTimeoutMs < 10 || config.openTimeoutMs > 3e4) fail8("INVALID_WALLET_OPENER", "Wallet opener timeout is invalid");
-    this.#productId = config.productId;
-    this.#client = config.sessionClient;
-    this.#scope = config.scope;
-    this.#waitMs = config.discoveryWaitMs;
-    this.#openWallet = config.openWallet;
-    this.#openTimeoutMs = config.openTimeoutMs;
-  }
-  get current() {
-    return this.#client.current;
-  }
-  get storageKey() {
-    return this.#client.storageKey;
-  }
-  get connectionBinding() {
-    return this.#client.connectionBinding;
-  }
-  async options() {
-    const [discovery, environment] = await Promise.all([discoverWalletProviders(this.#scope, this.#waitMs), this.#client.detectWalletEnvironment()]);
-    const injected = walletAvailabilityFromDiscovery(discovery);
-    const availability = Object.freeze({ ynxWalletInstalled: environment.walletInstalled || injected.ynxWalletInstalled, metaMaskAvailable: injected.metaMaskAvailable });
-    const choices = this.#client.connectionChoices(availability);
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_READY, discovery, environment, availability, choices });
-  }
-  async restore(networkAvailable = true) {
-    return this.#openIfConnecting(await this.#client.restore(networkAvailable));
-  }
-  async beginYNX() {
-    return this.#openIfConnecting(await this.#client.beginDetected(false));
-  }
-  async beginLegacyYNX(legacyCallback) {
-    const migration = migrateLegacyCallback(this.#registry, legacyCallback, { productId: this.#productId, platform: this.#client.connectionBinding.platform });
-    return frozen({ ...await this.beginYNX(), migration });
-  }
-  async retryYNX() {
-    return this.#openIfConnecting(await this.#client.retryDetected());
-  }
-  async handleReturn(url2) {
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url2) });
-  }
-  setNetworkAvailable(available) {
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) });
-  }
-  enterGuest() {
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() });
-  }
-  async disconnect() {
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() });
-  }
-  async connectMetaMask() {
-    const optionState = await this.options(), { discovery, environment, choices } = optionState;
-    if (environment.walletInstalled || discovery.ynx !== null) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED, code: "YNX_WALLET_PREFERRED", message: "YNX Wallet is available and remains the preferred Wallet", actions: ["open-ynx-wallet", "guest", "return-to-product"], discovery, environment, choices });
-    if (discovery.metamask === null) {
-      const ambiguous = discovery.ambiguities.includes("metamask"), download = choices.find((item) => item.id === "metamask" && item.action === "download-evm-wallet");
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code: ambiguous ? "AMBIGUOUS_WALLET_PROVIDER" : "METAMASK_NOT_INSTALLED", message: ambiguous ? "Multiple MetaMask providers require an explicit platform chooser" : "MetaMask is not installed", actions: ambiguous ? ["retry", "guest", "return-to-product"] : ["download-metamask", "guest", "return-to-product"], ...download ? { downloadUrl: download.url } : {}, discovery, environment, choices });
-    }
-    try {
-      const connection = await new MetaMaskEvmConnectionAdapter({ registry: this.#registry, productId: this.#productId, provider: discovery.metamask.provider }).connect();
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED, connection, discovery, environment, choices });
-    } catch (error) {
-      const code = error instanceof WalletAuthError ? error.code : "WALLET_UNAVAILABLE";
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), discovery, environment, choices });
-    }
-  }
-  async #openIfConnecting(sessionState) {
-    if (sessionState.status !== PRODUCT_SESSION_CLIENT_STATE.CONNECTING) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState });
-    const route = sessionState.route, requestId = `req_ps_open_${sessionState.request.nonce}`;
-    try {
-      const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
-      exactFields(result, result?.opened === true ? ["opened"] : ["opened", "code"], "Wallet opener result");
-      if (result.opened !== true) fail8(openerCode(result.code), "Platform did not open the registered Wallet route");
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED, requestId, url: route.url, automatic: sessionState.automatic === true, sessionState });
-    } catch (error) {
-      const code = error instanceof WalletAuthError ? error.code : "WALLET_OPEN_FAILED";
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPEN_FAILED, requestId, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), sessionState });
-    }
-  }
-};
-function openerCode(value) {
-  return ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED"].includes(value) ? value : "WALLET_OPEN_FAILED";
-}
-function coordinatorActions(code) {
-  if (code === "WALLET_NOT_INSTALLED" || code === "METAMASK_NOT_INSTALLED") return ["download", "guest", "return-to-product"];
-  if (code === "SCHEME_NOT_REGISTERED") return ["download", "retry", "return-to-product"];
-  if (code === "USER_REJECTED") return ["guest", "retry", "return-to-product"];
-  return ["retry", "return-to-product"];
-}
-function coordinatorErrorMessage(code) {
-  return { WALLET_NOT_INSTALLED: "Wallet is not installed", SCHEME_NOT_REGISTERED: "Wallet scheme is not registered", NETWORK_UNAVAILABLE: "Network is unavailable", USER_REJECTED: "Wallet connection was rejected; no session was created", WALLET_OPEN_TIMEOUT: "Wallet did not answer before the platform timeout", METAMASK_NOT_INSTALLED: "MetaMask is not installed", AMBIGUOUS_WALLET_PROVIDER: "Wallet provider selection is ambiguous", EVM_NOT_SUPPORTED: "This product is not registered for an EVM Wallet connection", WRONG_NETWORK: "Wallet did not switch to YNX EVM chain 6423", WALLET_UNAVAILABLE: "Wallet provider is unavailable" }[code] ?? "Wallet route could not be opened";
-}
-async function withTimeout(promise, timeoutMs) {
-  let timer;
-  try {
-    return await Promise.race([Promise.resolve(promise), new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new WalletAuthError("WALLET_OPEN_TIMEOUT", "Wallet opener timed out")), timeoutMs);
-    })]);
-  } finally {
-    clearTimeout(timer);
-  }
-}
-function frozen(input) {
-  const output = { ...input };
-  if (Array.isArray(output.actions)) output.actions = Object.freeze([...output.actions]);
-  return Object.freeze(output);
-}
-function fail8(code, message) {
-  throw new WalletAuthError(code, message);
-}
-
-// vendor/wallet-auth/src/product-session-gateway.js
-var PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION = 2;
-
-// vendor/wallet-auth/src/product-session-gateway-client.js
-var PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 = "x-ynx-product-session-proof-v2";
-var MAX_RESPONSE_BYTES = 1048576;
-var ProductSessionGatewayFetchAdapter = class {
-  #endpoint;
-  #fetch;
-  #walletInstalled;
-  #schemeRegistered;
-  #timeoutMs;
-  constructor(config) {
-    exactFields(config, ["endpoint", "fetch", "walletInstalled", "schemeRegistered", "timeoutMs"], "Product Session Gateway fetch adapter configuration");
-    this.#endpoint = endpoint(config.endpoint);
-    if (typeof config.fetch !== "function" || typeof config.walletInstalled !== "function" || typeof config.schemeRegistered !== "function") fail9("INVALID_GATEWAY", "Product Session Gateway fetch adapter dependencies are invalid");
-    if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 1e3 || config.timeoutMs > 3e4) fail9("INVALID_GATEWAY", "Product Session Gateway timeout must be between one and thirty seconds");
-    this.#fetch = config.fetch;
-    this.#walletInstalled = config.walletInstalled;
-    this.#schemeRegistered = config.schemeRegistered;
-    this.#timeoutMs = config.timeoutMs;
-  }
-  async walletInstalled() {
-    return capability(await this.#walletInstalled(), "Wallet installation detection");
-  }
-  async schemeRegistered() {
-    return capability(await this.#schemeRegistered(), "Wallet scheme detection");
-  }
-  async challenge(input) {
-    exactFields(input, ["requestId", "request", "approval"], "Product Session Gateway challenge request");
-    return this.#post(input.requestId, "/v2/product-sessions/challenge", { request: input.request, approval: input.approval }, null);
-  }
-  async complete(input) {
-    exactFields(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
-    return this.#post(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
-  }
-  async introspect(input) {
-    exactFields(input, ["requestId", "sessionBinding", "requiredScopes", "proof"], "Product Session Gateway introspection request");
-    const proof = parseProductSessionProofV2(input.proof);
-    if (proof.sessionBinding !== input.sessionBinding) fail9("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
-    return this.#post(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
-  }
-  async revoke(input) {
-    exactFields(input, ["requestId", "sessionBinding", "proof"], "Product Session Gateway revoke request");
-    const proof = parseProductSessionProofV2(input.proof);
-    if (proof.sessionBinding !== input.sessionBinding) fail9("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
-    return this.#post(input.requestId, "/v2/product-sessions/revoke", {}, proof);
-  }
-  async #post(requestId, path2, body, proof) {
-    if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail9("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
-    const encodedBody = canonicalJSON(body);
-    const headers = { "accept": "application/json", "content-type": "application/json", "x-request-id": requestId };
-    if (proof !== null) headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] = encodeProductSessionGatewayProofHeaderV2(proof);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
-    let response;
-    try {
-      response = await this.#fetch(`${this.#endpoint}${path2}`, { method: "POST", headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
-    } catch {
-      fail9("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
-    } finally {
-      clearTimeout(timeout);
-    }
-    if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
-    const contentType = response.headers.get("content-type") ?? "";
-    const responseRequestId = response.headers.get("x-request-id");
-    const cacheControl = response.headers.get("cache-control") ?? "";
-    const contentLength = response.headers.get("content-length");
-    if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
-    if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
-    let text3;
-    try {
-      text3 = await response.text();
-    } catch {
-      fail9("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted");
-    }
-    if (new TextEncoder().encode(text3).length > MAX_RESPONSE_BYTES) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
-    let payload;
-    try {
-      payload = JSON.parse(text3);
-    } catch {
-      fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON");
-    }
-    if (canonicalJSON(payload) !== text3) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
-    if (response.status >= 200 && response.status < 300) {
-      exactFields(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
-      if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
-      return payload.result;
-    }
-    exactFields(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
-    exactFields(payload.error, ["code", "message"], "Product Session Gateway public error");
-    if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail9("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
-    throw new WalletAuthError(payload.error.code, payload.error.message);
-  }
-};
-function encodeProductSessionGatewayProofHeaderV2(value) {
-  const proof = parseProductSessionProofV2(value);
-  const encoded = encodeBase64url(new TextEncoder().encode(canonicalJSON(proof)));
-  if (encoded.length > 16384) fail9("INVALID_PROOF_HEADER", "Product Session proof header exceeds policy");
-  return encoded;
-}
-function endpoint(value) {
-  if (typeof value !== "string" || value.length > 512) fail9("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
-  let parsed;
-  try {
-    parsed = new URL(value);
-  } catch {
-    fail9("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
-  }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail9("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin");
-  return parsed.origin;
-}
-function capability(value, label) {
-  if (typeof value !== "boolean") fail9("INVALID_GATEWAY", `${label} must return a boolean`);
-  return value;
-}
-function fail9(code, message) {
-  throw new WalletAuthError(code, message);
-}
-
-// vendor/wallet-auth/src/product-wallet-connection.js
-var CONFIG_FIELDS = [
-  "registry",
-  "productId",
-  "platform",
-  "walletInstalled",
-  "schemeRegistered",
-  "gatewayTimeoutMs",
-  "storage",
-  "device",
-  "scope",
-  "discoveryWaitMs",
-  "openWallet",
-  "openTimeoutMs"
-];
-var PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
-function createProductWalletConnection(config) {
-  exactFields(config, CONFIG_FIELDS, "Product Wallet connection configuration");
-  assertProductRuntime();
-  exactFields(config.device, ["id", "key", "sign", "scopes", "purpose"], "Product Wallet secure device signer");
-  if (typeof config.device.sign !== "function") throw new WalletAuthError("INVALID_DEVICE", "Product Wallet connection requires a platform secure device signer");
-  const gateway2 = new ProductSessionGatewayFetchAdapter({
-    endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
-    fetch: globalThis.fetch.bind(globalThis),
-    walletInstalled: config.walletInstalled,
-    schemeRegistered: config.schemeRegistered,
-    timeoutMs: config.gatewayTimeoutMs
-  });
-  const sessionClient = new RecoverableProductSessionClient({
-    registry: config.registry,
-    productId: config.productId,
-    platform: config.platform,
-    storage: config.storage,
-    gateway: gateway2,
-    device: config.device,
-    tokenFactory: secureToken,
-    clock: systemClock
-  });
-  return new WalletConnectionCoordinator({
-    registry: config.registry,
-    productId: config.productId,
-    sessionClient,
-    scope: config.scope,
-    discoveryWaitMs: config.discoveryWaitMs,
-    openWallet: config.openWallet,
-    openTimeoutMs: config.openTimeoutMs
-  });
-}
-function secureToken() {
-  assertProductRuntime();
-  return encodeBase64url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
-}
-function systemClock() {
-  return /* @__PURE__ */ new Date();
-}
-function assertProductRuntime() {
-  if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") throw new WalletAuthError("INVALID_RANDOM_SOURCE", "Product Wallet connection requires a cryptographic runtime");
-  if (typeof globalThis.fetch !== "function") throw new WalletAuthError("INVALID_GATEWAY", "Product Wallet connection requires the platform HTTPS transport");
-}
 
 // frontend/src/wallet/transport.ts
 var binding = Object.freeze({
@@ -4651,7 +2863,2770 @@ function decodeBase64url2(value) {
   return bytes;
 }
 
-// vendor/wallet-auth/product-session-registry.json
+// vendor/wallet-auth-c5/src/canonical.js
+function isPlainObject2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value) && Object.getPrototypeOf(value) === Object.prototype;
+}
+function exactFields2(value, expected, label) {
+  if (!isPlainObject2(value)) throw new WalletAuthError2("INVALID_SHAPE", `${label} must be a JSON object`);
+  const actual = Object.keys(value).sort();
+  const wanted = [...expected].sort();
+  if (actual.join("\n") !== wanted.join("\n")) throw new WalletAuthError2("UNKNOWN_OR_MISSING_FIELD", `${label} fields do not match the protocol schema`);
+}
+function canonicalJSON2(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value)) throw new WalletAuthError2("INVALID_NUMBER", "Protocol numbers must be safe integers");
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJSON2).join(",")}]`;
+  if (!isPlainObject2(value)) throw new WalletAuthError2("INVALID_SHAPE", "Protocol value is not canonical JSON");
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJSON2(value[key])}`).join(",")}}`;
+}
+function digestHex2(domain, value) {
+  return bytesToHex(sha256(utf8ToBytes(`${domain}
+${canonicalJSON2(value)}`)));
+}
+var WalletAuthError2 = class extends Error {
+  constructor(code, message) {
+    super(message);
+    this.name = "WalletAuthError";
+    this.code = code;
+  }
+};
+
+// vendor/wallet-auth-c5/src/base64url.js
+var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+function encodeBase64url2(bytes) {
+  if (!(bytes instanceof Uint8Array)) throw new WalletAuthError2("INVALID_ENCODING", "Base64url input must be bytes");
+  let output = "";
+  for (let index = 0; index < bytes.length; index += 3) {
+    const a = bytes[index] ?? 0, b = bytes[index + 1] ?? 0, c = bytes[index + 2] ?? 0;
+    const value = a << 16 | b << 8 | c;
+    output += ALPHABET[value >>> 18 & 63] + ALPHABET[value >>> 12 & 63] + (index + 1 < bytes.length ? ALPHABET[value >>> 6 & 63] : "=") + (index + 2 < bytes.length ? ALPHABET[value & 63] : "=");
+  }
+  return output.replace(/=+$/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+}
+function decodeBase64url3(value, label = "base64url value") {
+  if (typeof value !== "string" || !/[A-Za-z0-9_-]/.test(value) || !/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1) throw new WalletAuthError2("INVALID_ENCODING", `${label} is invalid`);
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized + "=".repeat((4 - normalized.length % 4) % 4);
+  const output = [];
+  for (let index = 0; index < padded.length; index += 4) {
+    const chars = [padded[index], padded[index + 1], padded[index + 2], padded[index + 3]];
+    const values = chars.map((character) => character === "=" ? 0 : ALPHABET.indexOf(character));
+    if (values.some((item) => item < 0)) throw new WalletAuthError2("INVALID_ENCODING", `${label} is invalid`);
+    const combined = values[0] << 18 | values[1] << 12 | values[2] << 6 | values[3];
+    output.push(combined >>> 16 & 255);
+    if (chars[2] !== "=") output.push(combined >>> 8 & 255);
+    if (chars[3] !== "=") output.push(combined & 255);
+  }
+  return Uint8Array.from(output);
+}
+
+// vendor/wallet-auth-c5/src/protocol.js
+var MAX_REQUEST_LIFETIME_MS2 = 5 * 60 * 1e3;
+
+// vendor/wallet-auth-c5/src/crypto.js
+var CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
+function walletIdentityFromPublicKey2(publicKeyHex) {
+  const point = secp256k1.Point.fromBytes(hexToBytes(publicKeyHex));
+  const digest3 = keccak_256(point.toBytes(false).slice(1));
+  return encodeYNX(digest3.slice(-20));
+}
+function encodeYNX(payload) {
+  const data = convertBits(payload, 8, 5, true);
+  const values = [...hrpExpand("ynx"), ...data, 0, 0, 0, 0, 0, 0];
+  const checksum = polymod(values) ^ 1;
+  const tail = Array.from({ length: 6 }, (_, index) => checksum >>> 5 * (5 - index) & 31);
+  return `ynx1${[...data, ...tail].map((item) => CHARSET[item]).join("")}`;
+}
+function convertBits(data, fromBits, toBits, pad) {
+  let accumulator = 0, bits = 0;
+  const result = [], maxValue = (1 << toBits) - 1, maxAccumulator = (1 << fromBits + toBits - 1) - 1;
+  for (const value of data) {
+    accumulator = (accumulator << fromBits | value) & maxAccumulator;
+    bits += fromBits;
+    while (bits >= toBits) {
+      bits -= toBits;
+      result.push(accumulator >> bits & maxValue);
+    }
+  }
+  if (pad && bits > 0) result.push(accumulator << toBits - bits & maxValue);
+  return result;
+}
+function hrpExpand(hrp) {
+  return [...hrp].map((c) => c.charCodeAt(0) >> 5).concat([0], [...hrp].map((c) => c.charCodeAt(0) & 31));
+}
+function polymod(values) {
+  const generators = [996825010, 642813549, 513874426, 1027748829, 705979059];
+  let checksum = 1;
+  for (const value of values) {
+    const top = checksum >>> 25;
+    checksum = ((checksum & 33554431) << 5 ^ value) >>> 0;
+    generators.forEach((generator, index) => {
+      if (top >>> index & 1) checksum = (checksum ^ generator) >>> 0;
+    });
+  }
+  return checksum >>> 0;
+}
+
+// vendor/wallet-auth-c5/src/product-session-registry.js
+var PRODUCT_SESSION_REGISTRY_VERSION = 2;
+var PRODUCT_SESSION_PLATFORMS2 = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
+var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
+var PRODUCT_FIELDS2 = [
+  "productId",
+  "clientId",
+  "displayName",
+  "applicationId",
+  "webOrigin",
+  "nativeCallback",
+  "legacyCallbacks",
+  "scopes",
+  "evmCompatible",
+  "sessionDurationSeconds"
+];
+var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
+function parseProductSessionRegistry2(input) {
+  exactFields2(input, DOCUMENT_FIELDS, "Product Session router registry");
+  if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
+  }
+  exactFields2(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
+  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
+  const authorize = new URL(authorizeCallback);
+  if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
+  }
+  const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
+  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
+  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+  }
+  if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
+  }
+  const products = input.products.map(parseProduct);
+  uniqueSorted(products.map((item) => item.productId), "productId");
+  unique(products.map((item) => item.clientId), "clientId");
+  unique(products.map((item) => item.applicationId), "applicationId");
+  unique(products.filter((item) => !item.platforms || item.platforms.includes("web")).map((item) => item.webOrigin), "webOrigin");
+  unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
+  const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
+${item.productId}`));
+  const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
+  unique(legacyNames, "legacy callback");
+  return Object.freeze({
+    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+    chainId: input.chainId,
+    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
+    products: Object.freeze(products)
+  });
+}
+function productPlatformBinding2(registryInput, productId, platform) {
+  const registry = parseProductSessionRegistry2(registryInput);
+  if (!PRODUCT_SESSION_PLATFORMS2.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
+  const product = registry.products.find((item) => item.productId === productId);
+  if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (product.platforms && !product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is not registered for this product");
+  const web = platform === "web";
+  return Object.freeze({
+    chainId: registry.chainId,
+    productId: product.productId,
+    clientId: product.clientId,
+    displayName: product.displayName,
+    platform,
+    applicationId: web ? `${product.applicationId}.web` : product.applicationId,
+    bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
+    packageId: ["android", "linux", "windows"].includes(platform) ? product.applicationId : null,
+    origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
+    callback: web ? product.webCallback ?? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
+    scopes: product.scopes,
+    evmCompatible: product.evmCompatible,
+    sessionDurationSeconds: product.sessionDurationSeconds,
+    walletAuthorizeCallback: registry.wallet.authorizeCallback,
+    walletDownloadUrl: registry.wallet.downloadUrl,
+    metaMaskDownloadUrl: registry.wallet.metaMaskDownloadUrl
+  });
+}
+function parseProduct(input) {
+  const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
+  const hasWebCallback = input !== null && typeof input === "object" && Object.hasOwn(input, "webCallback");
+  exactFields2(input, [...PRODUCT_FIELDS2, ...hasPlatforms ? ["platforms"] : [], ...hasWebCallback ? ["webCallback"] : []], "Product Session product registration");
+  const platforms = hasPlatforms ? stringList(input.platforms, "platforms", 1, PRODUCT_SESSION_PLATFORMS2.length, (value) => {
+    if (!PRODUCT_SESSION_PLATFORMS2.includes(value)) fail("INVALID_ROUTER_REGISTRY", "Product platform is unsupported");
+    return value;
+  }) : PRODUCT_SESSION_PLATFORMS2;
+  const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
+  const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
+  const displayName = text(input.displayName, "displayName", 2, 64);
+  const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
+  const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+  let webCallback;
+  if (hasWebCallback) {
+    webCallback = callback(input.webCallback, "webCallback", { allowHttps: true });
+    const target = new URL(webCallback);
+    if (!platforms.includes("web") || target.protocol !== "https:" || target.origin !== webOrigin || target.search || target.hash || target.pathname === "/" || target.pathname.split("/").some((part) => part === "." || part === "..") || target.pathname.includes("%")) {
+      fail("INVALID_ROUTER_REGISTRY", "Web callback requires an exact same-origin registered Web client route");
+    }
+  }
+  let nativeCallback, legacyCallbacks;
+  if (!platforms.some((platform) => platform !== "web")) {
+    if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
+      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+    }
+    nativeCallback = null;
+    legacyCallbacks = [];
+  } else {
+    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+    const native = new URL(nativeCallback);
+    if (native.search || native.hash || native.username || native.password || !native.hostname) {
+      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+    }
+    legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
+    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
+  }
+  const scopes2 = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
+  if (scopes2.some((scope2) => scope2.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
+  if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
+  if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
+  }
+  return Object.freeze({
+    productId,
+    clientId,
+    displayName,
+    applicationId,
+    webOrigin,
+    nativeCallback,
+    ...hasPlatforms ? { platforms: Object.freeze(platforms) } : {},
+    ...hasWebCallback ? { webCallback } : {},
+    legacyCallbacks: Object.freeze(legacyCallbacks),
+    scopes: Object.freeze(scopes2),
+    evmCompatible: input.evmCompatible,
+    sessionDurationSeconds: input.sessionDurationSeconds
+  });
+}
+function callback(value, label, options) {
+  const normalized = text(value, label, 3, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
+  }
+  if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
+  }
+  if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
+  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+  return normalized;
+}
+function httpsURL(value, label, originOnly) {
+  const normalized = text(value, label, 8, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
+  }
+  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
+}
+function stringList(value, label, minimum, maximum, normalize) {
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
+  const result = value.map(normalize);
+  uniqueSorted(result, label);
+  return result;
+}
+function uniqueSorted(values, label) {
+  unique(values, label);
+  if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
+}
+function unique(values, label) {
+  if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
+}
+function pattern(value, label, regex) {
+  const result = text(value, label, 1, 512);
+  if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return result;
+}
+function text(value, label, minimum, maximum) {
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return value;
+}
+function fail(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-finite-consent.js
+var FINANCE_FINITE_CONSENT_PROFILE = "finance-private-finite-v1";
+var FINANCE_FINITE_CONSENT_DEFAULT_SECONDS = 7200;
+var FINANCE_FINITE_CONSENT_MAX_SECONDS = 7200;
+var FIELDS = ["profile", "issuedAt", "expiresAt", "durationSeconds"];
+var SCOPES = /* @__PURE__ */ new Set(["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"]);
+var PLATFORMS = /* @__PURE__ */ new Set(["android", "ios", "linux", "macos", "web", "windows"]);
+function createFinanceFiniteServiceConsent(context, durationSeconds = FINANCE_FINITE_CONSENT_DEFAULT_SECONDS) {
+  if (!Number.isInteger(durationSeconds) || durationSeconds < 300 || durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS) fail2("INVALID_SERVICE_CONSENT_TIME");
+  const issued = iso(context.issuedAt);
+  return parseFinanceFiniteServiceConsent(context, {
+    profile: FINANCE_FINITE_CONSENT_PROFILE,
+    issuedAt: issued,
+    expiresAt: new Date(Date.parse(issued) + durationSeconds * 1e3).toISOString(),
+    durationSeconds
+  }, { requestIssuedAt: issued });
+}
+function parseFinanceFiniteServiceConsent(context, input, { requestIssuedAt } = {}) {
+  exactFields2(input, FIELDS, "Finite Product Session service consent");
+  if (input.profile !== FINANCE_FINITE_CONSENT_PROFILE) fail2("UNKNOWN_SERVICE_CONSENT_PROFILE");
+  const web = context.platform === "web";
+  if (context.chainId !== "ynx_6423-1" || context.productId !== "finance" || context.clientId !== "ynx-finance-v1" || !PLATFORMS.has(context.platform) || context.applicationId !== (web ? "com.ynxweb4.finance.web" : "com.ynxweb4.finance") || context.origin !== (web ? "https://finance.ynxweb4.com" : `app://${context.platform}/com.ynxweb4.finance`) || context.callback !== (web ? "https://finance.ynxweb4.com/wallet-auth/callback" : "ynxfinance://wallet-auth/callback") || !Array.isArray(context.scopes) || !context.scopes.length || context.scopes.some((scope2) => !SCOPES.has(scope2))) fail2("SERVICE_CONSENT_BINDING_MISMATCH");
+  const issuedAt = iso(input.issuedAt), expiresAt = iso(input.expiresAt);
+  if (!Number.isInteger(input.durationSeconds) || input.durationSeconds < 300 || input.durationSeconds > FINANCE_FINITE_CONSENT_MAX_SECONDS || Date.parse(expiresAt) - Date.parse(issuedAt) !== input.durationSeconds * 1e3 || requestIssuedAt !== void 0 && issuedAt !== requestIssuedAt) fail2("INVALID_SERVICE_CONSENT_TIME");
+  return Object.freeze({ profile: input.profile, issuedAt, expiresAt, durationSeconds: input.durationSeconds });
+}
+function iso(value) {
+  if (typeof value !== "string" || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) fail2("INVALID_SERVICE_CONSENT_TIME");
+  return value;
+}
+function fail2(code) {
+  throw new WalletAuthError2(code, "Finite private service consent is outside the reviewed Finance policy");
+}
+
+// vendor/wallet-auth-c5/src/product-session-v2.js
+var PRODUCT_SESSION_PROTOCOL_VERSION = "2";
+var PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION = 2;
+var REQUEST_MAX_LIFETIME_MS2 = 5 * 6e4;
+var CHALLENGE_MAX_LIFETIME_MS = 6e4;
+var REQUEST_FIELDS = [
+  "version",
+  "chainId",
+  "productId",
+  "clientId",
+  "platform",
+  "applicationId",
+  "bundleId",
+  "packageId",
+  "origin",
+  "callback",
+  "deviceId",
+  "deviceAlgorithm",
+  "deviceKey",
+  "nonce",
+  "state",
+  "scopes",
+  "purpose",
+  "issuedAt",
+  "expiresAt"
+];
+var APPROVAL_FIELDS = [
+  "version",
+  "result",
+  "requestDigest",
+  "chainId",
+  "productId",
+  "clientId",
+  "platform",
+  "applicationId",
+  "bundleId",
+  "packageId",
+  "origin",
+  "callback",
+  "deviceId",
+  "deviceAlgorithm",
+  "deviceKey",
+  "nonce",
+  "state",
+  "account",
+  "accountPublicKey",
+  "scopes",
+  "issuedAt",
+  "expiresAt",
+  "walletSignature"
+];
+var CHALLENGE_FIELDS = [
+  "version",
+  "challenge",
+  "requestDigest",
+  "approvalDigest",
+  "chainId",
+  "productId",
+  "clientId",
+  "platform",
+  "applicationId",
+  "bundleId",
+  "packageId",
+  "origin",
+  "callback",
+  "deviceId",
+  "deviceAlgorithm",
+  "deviceKey",
+  "nonce",
+  "state",
+  "account",
+  "scopes",
+  "issuedAt",
+  "expiresAt",
+  "sessionExpiresAt"
+];
+var COMPLETION_FIELDS = ["challenge", "deviceSignature"];
+var SESSION_FIELDS = [
+  "version",
+  "sessionBinding",
+  "chainId",
+  "productId",
+  "clientId",
+  "platform",
+  "applicationId",
+  "bundleId",
+  "packageId",
+  "origin",
+  "callback",
+  "account",
+  "deviceId",
+  "deviceAlgorithm",
+  "deviceKey",
+  "deviceBinding",
+  "nonce",
+  "state",
+  "scopes",
+  "requestDigest",
+  "approvalDigest",
+  "issuedAt",
+  "expiresAt"
+];
+var SNAPSHOT_FIELDS2 = ["schemaVersion", "sessions", "issuedChallenges", "consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges", "revokedSessions", "revokedDevices", "revokedAccounts"];
+function createProductSessionRequest2(registryInput, input, at = /* @__PURE__ */ new Date()) {
+  exactFields2(input, ["productId", "platform", "deviceId", "deviceKey", "scopes", "purpose", "nonce", "state", ...Object.hasOwn(input, "finiteServiceSeconds") ? ["finiteServiceSeconds"] : []], "Product Session request input");
+  const binding2 = productPlatformBinding2(registryInput, input.productId, input.platform);
+  const now = validDate(at);
+  const request = {
+    version: PRODUCT_SESSION_PROTOCOL_VERSION,
+    chainId: binding2.chainId,
+    productId: binding2.productId,
+    clientId: binding2.clientId,
+    platform: binding2.platform,
+    applicationId: binding2.applicationId,
+    bundleId: binding2.bundleId,
+    packageId: binding2.packageId,
+    origin: binding2.origin,
+    callback: binding2.callback,
+    deviceId: opaque(input.deviceId, "deviceId"),
+    deviceAlgorithm: "p256-sha256",
+    deviceKey: deviceKey(input.deviceKey),
+    nonce: token(input.nonce, "nonce"),
+    state: token(input.state, "state"),
+    scopes: scopes(input.scopes, binding2.scopes),
+    purpose: text2(input.purpose, "purpose", 1, 180),
+    issuedAt: now.toISOString(),
+    expiresAt: new Date(now.getTime() + REQUEST_MAX_LIFETIME_MS2).toISOString()
+  };
+  if (Object.hasOwn(input, "finiteServiceSeconds")) request.serviceConsent = createFinanceFiniteServiceConsent(request, input.finiteServiceSeconds);
+  return parseProductSessionRequest2(registryInput, request, now);
+}
+function parseProductSessionRequest2(registryInput, input, at = /* @__PURE__ */ new Date()) {
+  exactFields2(input, consentFields(input, REQUEST_FIELDS), "Product Session request");
+  const now = validDate(at);
+  if (input.version !== PRODUCT_SESSION_PROTOCOL_VERSION || input.chainId !== "ynx_6423-1" || !PRODUCT_SESSION_PLATFORMS2.includes(input.platform)) fail3("INVALID_SESSION_REQUEST", "Product Session protocol, chain or platform is unsupported");
+  const binding2 = productPlatformBinding2(registryInput, input.productId, input.platform);
+  const request = Object.freeze({
+    version: input.version,
+    chainId: input.chainId,
+    productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/),
+    clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/),
+    platform: input.platform,
+    applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/),
+    bundleId: platformIdentity(input.bundleId, "bundleId"),
+    packageId: platformIdentity(input.packageId, "packageId"),
+    origin: canonicalOrigin(input.origin),
+    callback: canonicalCallback(input.callback),
+    deviceId: opaque(input.deviceId, "deviceId"),
+    deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/),
+    deviceKey: deviceKey(input.deviceKey),
+    nonce: token(input.nonce, "nonce"),
+    state: token(input.state, "state"),
+    scopes: Object.freeze(scopes(input.scopes, binding2.scopes)),
+    purpose: text2(input.purpose, "purpose", 1, 180),
+    ...parseConsent(input, input.issuedAt),
+    issuedAt: time(input.issuedAt, "issuedAt"),
+    expiresAt: time(input.expiresAt, "expiresAt")
+  });
+  validatePlatformIdentifiers(request);
+  for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
+    if (request[field] !== binding2[field]) fail3("SESSION_BINDING_MISMATCH", `Product Session request ${field} does not match the registry`);
+  }
+  const issued = Date.parse(request.issuedAt), expires = Date.parse(request.expiresAt);
+  if (expires <= issued || expires - issued > REQUEST_MAX_LIFETIME_MS2) fail3("INVALID_EXPIRY", "Product Session request lifetime is invalid");
+  if (issued > now.getTime() + 3e4) fail3("ISSUED_IN_FUTURE", "Product Session request was issued in the future");
+  if (expires <= now.getTime()) fail3("SESSION_EXPIRED", "Product Session request expired");
+  return request;
+}
+function productSessionRequestDigest(registryInput, request, at = /* @__PURE__ */ new Date()) {
+  return digestHex2("YNX_PRODUCT_SESSION_REQUEST_V2", parseProductSessionRequest2(registryInput, request, at));
+}
+function parseProductSessionApproval2(registryInput, requestInput, input, at = /* @__PURE__ */ new Date()) {
+  const request = parseProductSessionRequest2(registryInput, requestInput, at);
+  exactFields2(input, [...APPROVAL_FIELDS, ...request.serviceConsent ? ["serviceConsent"] : []], "Product Session approval");
+  const approval = Object.freeze({
+    ...input,
+    version: pattern2(input.version, "version", /^2$/),
+    result: pattern2(input.result, "result", /^approved$/),
+    requestDigest: digest(input.requestDigest, "requestDigest"),
+    productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/),
+    clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/),
+    applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/),
+    bundleId: platformIdentity(input.bundleId, "bundleId"),
+    packageId: platformIdentity(input.packageId, "packageId"),
+    origin: canonicalOrigin(input.origin),
+    callback: canonicalCallback(input.callback),
+    deviceId: opaque(input.deviceId, "deviceId"),
+    deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/),
+    deviceKey: deviceKey(input.deviceKey),
+    nonce: token(input.nonce, "nonce"),
+    state: token(input.state, "state"),
+    account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
+    accountPublicKey: pattern2(input.accountPublicKey, "accountPublicKey", /^(02|03)[0-9a-f]{64}$/),
+    scopes: Object.freeze(scopes(input.scopes, request.scopes)),
+    ...parseConsent(input, request.issuedAt),
+    issuedAt: time(input.issuedAt, "issuedAt"),
+    expiresAt: time(input.expiresAt, "expiresAt"),
+    walletSignature: pattern2(input.walletSignature, "walletSignature", /^[0-9a-f]{128}$/)
+  });
+  validatePlatformIdentifiers(approval);
+  if (canonicalJSON2(approval.serviceConsent ?? null) !== canonicalJSON2(request.serviceConsent ?? null)) fail3("SERVICE_CONSENT_BINDING_MISMATCH", "Wallet service consent differs from the signed request");
+  const boundFields = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "deviceId", "deviceAlgorithm", "deviceKey", "nonce", "state"];
+  if (approval.requestDigest !== productSessionRequestDigest(registryInput, request, at) || boundFields.some((field) => approval[field] !== request[field]) || approval.scopes.join("\n") !== request.scopes.join("\n")) fail3("SESSION_BINDING_MISMATCH", "Wallet approval does not match the exact Product Session request");
+  if (approval.issuedAt < request.issuedAt || approval.issuedAt > validDate(at).toISOString() || approval.expiresAt > request.expiresAt || approval.expiresAt <= validDate(at).toISOString()) fail3("INVALID_APPROVAL_TIME", "Wallet approval is outside the request lifetime");
+  let valid = false;
+  try {
+    valid = secp256k1.verify(hexToBytes(approval.walletSignature), sha256(utf8ToBytes(approvalSignBytes3(unsignedApproval3(approval)))), hexToBytes(approval.accountPublicKey), { prehash: false, format: "compact", lowS: true });
+  } catch {
+    valid = false;
+  }
+  if (!valid || walletIdentityFromPublicKey2(approval.accountPublicKey) !== approval.account) fail3("INVALID_SIGNATURE", "Wallet approval signature is invalid");
+  return approval;
+}
+function createProductSessionChallenge2(registryInput, requestInput, approvalInput, input, at = /* @__PURE__ */ new Date()) {
+  exactFields2(input, ["challenge"], "Product Session challenge input");
+  const request = parseProductSessionRequest2(registryInput, requestInput, at);
+  const approval = parseProductSessionApproval2(registryInput, request, approvalInput, at);
+  const binding2 = productPlatformBinding2(registryInput, request.productId, request.platform);
+  const now = validDate(at);
+  const expiresAt = new Date(Math.min(now.getTime() + CHALLENGE_MAX_LIFETIME_MS, Date.parse(approval.expiresAt))).toISOString();
+  const sessionExpiresAt = request.serviceConsent ? request.serviceConsent.expiresAt : new Date(Math.min(Date.parse(approval.expiresAt), now.getTime() + binding2.sessionDurationSeconds * 1e3)).toISOString();
+  return parseChallenge({
+    version: PRODUCT_SESSION_PROTOCOL_VERSION,
+    ...parseConsent(request, request.issuedAt),
+    challenge: token(input.challenge, "challenge"),
+    requestDigest: approval.requestDigest,
+    approvalDigest: productSessionApprovalDigest(approval),
+    chainId: request.chainId,
+    productId: request.productId,
+    clientId: request.clientId,
+    platform: request.platform,
+    applicationId: request.applicationId,
+    bundleId: request.bundleId,
+    packageId: request.packageId,
+    origin: request.origin,
+    callback: request.callback,
+    deviceId: request.deviceId,
+    deviceAlgorithm: request.deviceAlgorithm,
+    deviceKey: request.deviceKey,
+    nonce: request.nonce,
+    state: request.state,
+    account: approval.account,
+    scopes: approval.scopes,
+    issuedAt: now.toISOString(),
+    expiresAt,
+    sessionExpiresAt
+  });
+}
+function signProductSessionChallenge2(challengeInput, deviceSecretInput) {
+  const challenge = parseChallenge(challengeInput);
+  const secret = deviceSecret(deviceSecretInput);
+  if (encodeBase64url2(p256.getPublicKey(secret, true)) !== challenge.deviceKey) fail3("DEVICE_CHANGED", "Product device key changed before session completion");
+  const signature = p256.sign(utf8ToBytes(challengeSignBytes(challenge)), secret, { format: "der" });
+  return Object.freeze({ challenge, deviceSignature: encodeBase64url2(signature) });
+}
+async function signProductSessionChallengeWith2(challengeInput, signer) {
+  const challenge = parseChallenge(challengeInput);
+  if (typeof signer !== "function") fail3("INVALID_DEVICE", "Product Session requires a platform device signer");
+  const payload = encodeBase64url2(utf8ToBytes(challengeSignBytes(challenge)));
+  let deviceSignature;
+  try {
+    deviceSignature = await signer(Object.freeze({ purpose: "challenge", algorithm: "p256-sha256", deviceKey: challenge.deviceKey, payload }));
+  } catch {
+    fail3("DEVICE_SIGNING_FAILED", "Platform device signing failed closed");
+  }
+  if (typeof deviceSignature !== "string") fail3("INVALID_DEVICE_PROOF", "Platform device signature is invalid");
+  let valid = false;
+  try {
+    valid = p256.verify(decodeBase64url3(deviceSignature, "deviceSignature"), decodeBase64url3(payload, "device signing payload"), decodeBase64url3(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
+  } catch {
+    valid = false;
+  }
+  if (!valid) fail3("INVALID_DEVICE_PROOF", "Platform device signature does not match the registered device key");
+  return Object.freeze({ challenge, deviceSignature });
+}
+function parseProductSessionChallenge2(input) {
+  return parseChallenge(input);
+}
+var ProductSessionAuthority2 = class {
+  #registry;
+  #state;
+  constructor(registryInput, snapshot = emptySnapshot()) {
+    this.#registry = parseProductSessionRegistry2(registryInput);
+    this.#state = parseSnapshot(snapshot);
+  }
+  issueChallenge(input, at = /* @__PURE__ */ new Date()) {
+    exactFields2(input, ["request", "approval", "challenge"], "Product Session challenge issuance");
+    const request = parseProductSessionRequest2(this.#registry, input.request, at);
+    const approval = parseProductSessionApproval2(this.#registry, request, input.approval, at);
+    this.#assertApprovalNotRevoked(request, approval);
+    if (this.#state.consumedRequests.includes(approval.requestDigest)) fail3("REPLAY", "Product Session request already completed; recover its original completion or obtain a new Wallet approval");
+    const challenge = createProductSessionChallenge2(this.#registry, request, approval, { challenge: input.challenge }, at);
+    if (this.#state.issuedChallenges.some((item) => item.challenge === challenge.challenge) || this.#state.consumedChallenges.includes(challenge.challenge)) fail3("REPLAY", "Product Session challenge already exists");
+    const next = clone(this.#state);
+    next.issuedChallenges.push(challenge);
+    sortSnapshot(next);
+    this.#state = parseSnapshot(next);
+    return challenge;
+  }
+  complete(input, at = /* @__PURE__ */ new Date()) {
+    exactFields2(input, ["request", "approval", "completion"], "Product Session completion");
+    const request = parseProductSessionRequest2(this.#registry, input.request, at);
+    const approval = parseProductSessionApproval2(this.#registry, request, input.approval, at);
+    this.#assertApprovalNotRevoked(request, approval);
+    exactFields2(input.completion, COMPLETION_FIELDS, "Product Session device completion");
+    const challenge = parseChallenge(input.completion.challenge);
+    const expected = createProductSessionChallenge2(this.#registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+    if (canonicalJSON2(challenge) !== canonicalJSON2(expected)) fail3("SESSION_BINDING_MISMATCH", "Gateway challenge fields were substituted");
+    const issued = this.#state.issuedChallenges.find((item) => item.challenge === challenge.challenge);
+    if (!issued || canonicalJSON2(issued) !== canonicalJSON2(challenge)) fail3("CHALLENGE_NOT_ISSUED", "Product Session challenge was not issued by this Gateway");
+    if (challenge.expiresAt <= validDate(at).toISOString()) fail3("SESSION_EXPIRED", "Product Session challenge expired");
+    let valid = false;
+    try {
+      valid = p256.verify(decodeBase64url3(input.completion.deviceSignature, "deviceSignature"), utf8ToBytes(challengeSignBytes(challenge)), decodeBase64url3(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
+    } catch {
+      valid = false;
+    }
+    if (!valid) fail3("INVALID_DEVICE_PROOF", "Product Session device proof is invalid");
+    if (this.#state.consumedNonces.includes(request.nonce) || this.#state.consumedStates.includes(request.state) || this.#state.consumedRequests.includes(approval.requestDigest) || this.#state.consumedChallenges.includes(challenge.challenge)) fail3("REPLAY", "Product Session request, state or challenge was already consumed");
+    const session = parseSession({
+      version: PRODUCT_SESSION_PROTOCOL_VERSION,
+      sessionBinding: digestHex2("YNX_PRODUCT_SESSION_BINDING_V2", challenge),
+      chainId: request.chainId,
+      productId: request.productId,
+      clientId: request.clientId,
+      platform: request.platform,
+      applicationId: request.applicationId,
+      bundleId: request.bundleId,
+      packageId: request.packageId,
+      origin: request.origin,
+      callback: request.callback,
+      account: approval.account,
+      deviceId: request.deviceId,
+      deviceAlgorithm: request.deviceAlgorithm,
+      deviceKey: request.deviceKey,
+      deviceBinding: deviceBinding(request, approval.account),
+      nonce: request.nonce,
+      state: request.state,
+      scopes: approval.scopes,
+      requestDigest: approval.requestDigest,
+      approvalDigest: challenge.approvalDigest,
+      issuedAt: challenge.issuedAt,
+      expiresAt: challenge.sessionExpiresAt,
+      ...parseConsent(request, request.issuedAt)
+    });
+    const next = clone(this.#state);
+    next.issuedChallenges = next.issuedChallenges.filter((item) => item.challenge !== challenge.challenge);
+    next.sessions.push(session);
+    next.consumedNonces.push(request.nonce);
+    next.consumedStates.push(request.state);
+    next.consumedRequests.push(approval.requestDigest);
+    next.consumedChallenges.push(challenge.challenge);
+    sortSnapshot(next);
+    this.#state = parseSnapshot(next);
+    return session;
+  }
+  introspect(sessionBindingInput, context, at = /* @__PURE__ */ new Date()) {
+    exactFields2(context, ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey", "requiredScopes"], "Product Session introspection context");
+    const session = this.#state.sessions.find((item) => item.sessionBinding === digest(sessionBindingInput, "sessionBinding"));
+    if (!session) fail3("SESSION_NOT_FOUND", "Product Session was not found");
+    const now = validDate(at).toISOString();
+    if (session.issuedAt > now) fail3("ISSUED_IN_FUTURE", "Product Session was issued in the future");
+    if (session.expiresAt <= now) fail3("SESSION_EXPIRED", "Product Session expired");
+    if (this.#state.revokedSessions.includes(session.sessionBinding) || this.#state.revokedDevices.includes(session.deviceBinding) || this.#state.revokedAccounts.some((item) => item.account === session.account && session.issuedAt <= item.before)) fail3("SESSION_REVOKED", "Product Session was revoked");
+    validatePlatformIdentifiers(context, "CROSS_PRODUCT_SESSION");
+    const exact = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey"];
+    if (exact.some((field) => context[field] !== session[field])) fail3("CROSS_PRODUCT_SESSION", "Product Session cannot cross product, account, origin, callback or device boundaries");
+    const required = requiredScopes(context.requiredScopes, session.scopes);
+    if (required.some((scope2) => !session.scopes.includes(scope2))) fail3("SCOPE_WIDENING", "Product Session scope cannot be widened");
+    return Object.freeze({ active: true, session });
+  }
+  revokeSession(sessionBindingInput) {
+    const value = digest(sessionBindingInput, "sessionBinding");
+    if (!this.#state.sessions.some((item) => item.sessionBinding === value)) fail3("SESSION_NOT_FOUND", "Product Session was not found");
+    this.#revoke("revokedSessions", value);
+    return value;
+  }
+  revokeDevice(deviceBindingInput) {
+    const value = digest(deviceBindingInput, "deviceBinding");
+    this.#revoke("revokedDevices", value);
+    return value;
+  }
+  revokeAccount(account, at = /* @__PURE__ */ new Date()) {
+    const record = { account: pattern2(account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: validDate(at).toISOString() };
+    const previous = this.#state.revokedAccounts.find((item) => item.account === record.account);
+    if (previous && previous.before >= record.before) return Object.freeze({ ...previous });
+    const next = clone(this.#state);
+    next.revokedAccounts = next.revokedAccounts.filter((item) => item.account !== record.account);
+    next.revokedAccounts.push(record);
+    sortSnapshot(next);
+    this.#state = parseSnapshot(next);
+    return Object.freeze(record);
+  }
+  snapshot() {
+    return freezeSnapshot(clone(this.#state));
+  }
+  #assertApprovalNotRevoked(request, approval) {
+    if (this.#state.revokedDevices.includes(deviceBinding(request, approval.account)) || this.#state.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail3("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
+  }
+  #revoke(field, value) {
+    if (this.#state[field].includes(value)) fail3("ALREADY_REVOKED", "Product Session revocation already exists");
+    const next = clone(this.#state);
+    next[field].push(value);
+    sortSnapshot(next);
+    this.#state = parseSnapshot(next);
+  }
+};
+function parseProductSession2(input) {
+  return parseSession(input);
+}
+function productSessionApprovalDigest(approval) {
+  return digestHex2("YNX_PRODUCT_SESSION_APPROVAL_V2", approval);
+}
+function deviceBinding(requestOrSession, account) {
+  return digestHex2("YNX_PRODUCT_SESSION_DEVICE_V2", { chainId: requestOrSession.chainId, productId: requestOrSession.productId, clientId: requestOrSession.clientId, platform: requestOrSession.platform, applicationId: requestOrSession.applicationId, bundleId: requestOrSession.bundleId, packageId: requestOrSession.packageId, origin: requestOrSession.origin, callback: requestOrSession.callback, account, deviceId: requestOrSession.deviceId, deviceAlgorithm: requestOrSession.deviceAlgorithm, deviceKey: requestOrSession.deviceKey });
+}
+function parseChallenge(input) {
+  exactFields2(input, consentFields(input, CHALLENGE_FIELDS), "Product Session challenge");
+  const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern2(input.version, "version", /^2$/), challenge: token(input.challenge, "challenge"), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), scopes: Object.freeze(scopes(input.scopes, input.scopes)), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt"), sessionExpiresAt: time(input.sessionExpiresAt, "sessionExpiresAt") });
+  validatePlatformIdentifiers(value);
+  const serviceValid = value.serviceConsent ? value.sessionExpiresAt === value.serviceConsent.expiresAt && value.issuedAt >= value.serviceConsent.issuedAt && Date.parse(value.expiresAt) <= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS2 : Date.parse(value.sessionExpiresAt) - Date.parse(value.issuedAt) <= REQUEST_MAX_LIFETIME_MS2;
+  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > CHALLENGE_MAX_LIFETIME_MS || value.sessionExpiresAt < value.expiresAt || !serviceValid) fail3("INVALID_EXPIRY", "Product Session challenge or session lifetime is invalid");
+  return value;
+}
+function parseSession(input) {
+  exactFields2(input, consentFields(input, SESSION_FIELDS), "Product Session");
+  const value = Object.freeze({ ...input, ...parseConsent(input), version: pattern2(input.version, "version", /^2$/), sessionBinding: digest(input.sessionBinding, "sessionBinding"), chainId: pattern2(input.chainId, "chainId", /^ynx_6423-1$/), productId: pattern2(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern2(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), platform: pattern2(input.platform, "platform", /^(android|ios|linux|macos|web|windows)$/), applicationId: pattern2(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: platformIdentity(input.bundleId, "bundleId"), packageId: platformIdentity(input.packageId, "packageId"), origin: canonicalOrigin(input.origin), callback: canonicalCallback(input.callback), account: pattern2(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: opaque(input.deviceId, "deviceId"), deviceAlgorithm: pattern2(input.deviceAlgorithm, "deviceAlgorithm", /^p256-sha256$/), deviceKey: deviceKey(input.deviceKey), deviceBinding: digest(input.deviceBinding, "deviceBinding"), nonce: token(input.nonce, "nonce"), state: token(input.state, "state"), scopes: Object.freeze(scopes(input.scopes, input.scopes)), requestDigest: digest(input.requestDigest, "requestDigest"), approvalDigest: digest(input.approvalDigest, "approvalDigest"), issuedAt: time(input.issuedAt, "issuedAt"), expiresAt: time(input.expiresAt, "expiresAt") });
+  validatePlatformIdentifiers(value);
+  if (value.serviceConsent && (value.expiresAt !== value.serviceConsent.expiresAt || value.issuedAt < value.serviceConsent.issuedAt || Date.parse(value.issuedAt) >= Date.parse(value.serviceConsent.issuedAt) + REQUEST_MAX_LIFETIME_MS2)) fail3("INVALID_SERVICE_CONSENT_TIME", "Stored finite service session is outside its approved window");
+  if (value.expiresAt <= value.issuedAt || value.deviceBinding !== deviceBinding(value, value.account)) fail3("INVALID_SESSION", "Product Session security binding or lifetime is invalid");
+  return value;
+}
+function parseSnapshot(input) {
+  exactFields2(input, SNAPSHOT_FIELDS2, "Product Session authority snapshot");
+  if (input.schemaVersion !== PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION) fail3("INVALID_SESSION_STORE", "Product Session authority snapshot version is unsupported");
+  const value = { schemaVersion: input.schemaVersion, sessions: sortedUnique(input.sessions.map(parseSession), (item) => item.sessionBinding, "sessions"), issuedChallenges: sortedUnique(input.issuedChallenges.map(parseChallenge), (item) => item.challenge, "issuedChallenges"), consumedNonces: stringSet(input.consumedNonces, /^[A-Za-z0-9_-]{32,64}$/, "consumedNonces"), consumedStates: stringSet(input.consumedStates, /^[A-Za-z0-9_-]{32,64}$/, "consumedStates"), consumedRequests: stringSet(input.consumedRequests, /^[0-9a-f]{64}$/, "consumedRequests"), consumedChallenges: stringSet(input.consumedChallenges, /^[A-Za-z0-9_-]{32,64}$/, "consumedChallenges"), revokedSessions: stringSet(input.revokedSessions, /^[0-9a-f]{64}$/, "revokedSessions"), revokedDevices: stringSet(input.revokedDevices, /^[0-9a-f]{64}$/, "revokedDevices"), revokedAccounts: sortedUnique(input.revokedAccounts.map((item) => {
+    exactFields2(item, ["account", "before"], "revoked account");
+    return Object.freeze({ account: pattern2(item.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: time(item.before, "before") });
+  }), (item) => item.account, "revokedAccounts") };
+  if (value.sessions.length !== value.consumedNonces.length || value.sessions.length !== value.consumedStates.length || value.sessions.length !== value.consumedRequests.length || value.sessions.length !== value.consumedChallenges.length || value.issuedChallenges.some((item) => value.consumedChallenges.includes(item.challenge))) fail3("INVALID_SESSION_STORE", "Issued and consumed records must exactly cover Product Sessions without overlap");
+  return freezeSnapshot(value);
+}
+function emptySnapshot() {
+  return { schemaVersion: PRODUCT_SESSION_AUTHORITY_SCHEMA_VERSION, sessions: [], issuedChallenges: [], consumedNonces: [], consumedStates: [], consumedRequests: [], consumedChallenges: [], revokedSessions: [], revokedDevices: [], revokedAccounts: [] };
+}
+function sortSnapshot(value) {
+  value.sessions.sort((a, b) => compareSnapshotKey(a.sessionBinding, b.sessionBinding));
+  value.issuedChallenges.sort((a, b) => compareSnapshotKey(a.challenge, b.challenge));
+  for (const field of ["consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges", "revokedSessions", "revokedDevices"]) value[field].sort();
+  value.revokedAccounts.sort((a, b) => compareSnapshotKey(a.account, b.account));
+}
+function compareSnapshotKey(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+function freezeSnapshot(value) {
+  return Object.freeze({ ...value, sessions: Object.freeze(value.sessions), issuedChallenges: Object.freeze(value.issuedChallenges), consumedNonces: Object.freeze(value.consumedNonces), consumedStates: Object.freeze(value.consumedStates), consumedRequests: Object.freeze(value.consumedRequests), consumedChallenges: Object.freeze(value.consumedChallenges), revokedSessions: Object.freeze(value.revokedSessions), revokedDevices: Object.freeze(value.revokedDevices), revokedAccounts: Object.freeze(value.revokedAccounts) });
+}
+function stringSet(value, regex, label) {
+  if (!Array.isArray(value) || value.length > 1e4 || value.some((item) => typeof item !== "string" || !regex.test(item))) fail3("INVALID_SESSION_STORE", `${label} is invalid`);
+  return sortedUnique(value, (item) => item, label);
+}
+function sortedUnique(value, key, label) {
+  const keys = value.map(key);
+  if (new Set(keys).size !== keys.length || [...keys].sort().join("\n") !== keys.join("\n")) fail3("INVALID_SESSION_STORE", `${label} must be unique and sorted`);
+  return Object.freeze(value);
+}
+function consentFields(value, fields) {
+  return [...fields, ...Object.hasOwn(value, "serviceConsent") ? ["serviceConsent"] : []];
+}
+function parseConsent(value, requestIssuedAt) {
+  return Object.hasOwn(value, "serviceConsent") ? { serviceConsent: parseFinanceFiniteServiceConsent(value, value.serviceConsent, { requestIssuedAt }) } : {};
+}
+function unsignedApproval3(value) {
+  const { walletSignature: _signature, ...unsigned } = value;
+  return unsigned;
+}
+function approvalSignBytes3(value) {
+  return `YNX_PRODUCT_SESSION_APPROVAL_V2
+${canonicalJSON2(value)}`;
+}
+function challengeSignBytes(value) {
+  return `YNX_PRODUCT_SESSION_CHALLENGE_V2
+${canonicalJSON2(value)}`;
+}
+function scopes(value, allowlist) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 8) fail3("INVALID_SCOPES", "Product Session scopes are invalid");
+  const result = value.map((item) => pattern2(item, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
+  if (new Set(result).size !== result.length || [...result].sort().join("\n") !== result.join("\n") || result.some((item) => !allowlist.includes(item))) fail3("SCOPE_WIDENING", "Product Session scope is duplicated, unsorted or outside the registry");
+  return result;
+}
+function requiredScopes(value, allowlist) {
+  if (!Array.isArray(value) || value.length > 8) fail3("INVALID_SCOPES", "Required Product Session scopes are invalid");
+  if (value.length === 0) return [];
+  return scopes(value, allowlist);
+}
+function platformIdentity(value, label) {
+  return value === null ? null : pattern2(value, label, /^[A-Za-z][A-Za-z0-9.-]{2,131}$/);
+}
+function validatePlatformIdentifiers(value, errorCode = "SESSION_BINDING_MISMATCH") {
+  const expectsBundle = value.platform === "ios" || value.platform === "macos";
+  const expectsPackage = value.platform === "android" || value.platform === "linux" || value.platform === "windows";
+  if (value.bundleId !== null !== expectsBundle || value.packageId !== null !== expectsPackage || value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId) fail3(errorCode, "Product Session bundleId/packageId does not match its registered platform identity");
+}
+function canonicalOrigin(value) {
+  const normalized = text2(value, "origin", 8, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail3("INVALID_ORIGIN", "Product Session origin is invalid");
+  }
+  if (parsed.protocol === "https:" && parsed.origin === normalized && !parsed.port) return normalized;
+  if (parsed.protocol === "app:" && /^app:\/\/(android|ios|linux|macos|windows)\/[A-Za-z][A-Za-z0-9.-]{2,127}$/.test(normalized)) return normalized;
+  fail3("INVALID_ORIGIN", "Product Session origin must be an exact HTTPS or registered native origin");
+}
+function canonicalCallback(value) {
+  const normalized = text2(value, "callback", 8, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail3("CALLBACK_MISMATCH", "Product Session callback is invalid");
+  }
+  if (["data:", "file:", "http:", "javascript:"].includes(parsed.protocol) || parsed.username || parsed.password || parsed.hash || parsed.search || parsed.toString() !== normalized) fail3("CALLBACK_MISMATCH", "Product Session callback is unsafe or non-canonical");
+  return normalized;
+}
+function deviceKey(value) {
+  const normalized = pattern2(value, "deviceKey", /^[A-Za-z0-9_-]{44}$/);
+  const bytes = decodeBase64url3(normalized, "deviceKey");
+  if (bytes.length !== 33 || encodeBase64url2(bytes) !== normalized) fail3("INVALID_DEVICE_KEY", "Product Session device key is invalid");
+  try {
+    p256.Point.fromBytes(bytes);
+  } catch {
+    fail3("INVALID_DEVICE_KEY", "Product Session device key is not P-256");
+  }
+  return normalized;
+}
+function deviceSecret(value) {
+  const bytes = decodeBase64url3(value, "deviceSecret");
+  if (bytes.length !== 32 || !p256.utils.isValidSecretKey(bytes)) fail3("INVALID_SECRET", "Product device secret is invalid");
+  return bytes;
+}
+function token(value, label) {
+  return pattern2(value, label, /^[A-Za-z0-9_-]{32,64}$/);
+}
+function opaque(value, label) {
+  return pattern2(value, label, /^[A-Za-z0-9._:-]{8,128}$/);
+}
+function digest(value, label) {
+  return pattern2(value, label, /^[0-9a-f]{64}$/);
+}
+function pattern2(value, label, regex) {
+  const normalized = text2(value, label, 1, 512);
+  if (!regex.test(normalized)) fail3("INVALID_FIELD", `${label} is invalid`);
+  return normalized;
+}
+function text2(value, label, minimum, maximum) {
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail3("INVALID_FIELD", `${label} is invalid`);
+  return value;
+}
+function time(value, label) {
+  const normalized = pattern2(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail3("INVALID_TIME", `${label} is invalid`);
+  return normalized;
+}
+function validDate(value) {
+  if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail3("INVALID_TIME", "Product Session time is invalid");
+  return value;
+}
+function clone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+function fail3(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-proof-v2.js
+var PROOF_FIELDS = ["version", "sessionBinding", "productId", "clientId", "applicationId", "bundleId", "packageId", "origin", "callback", "account", "deviceId", "deviceKey", "method", "path", "bodyDigest", "nonce", "issuedAt", "expiresAt", "signature"];
+var INPUT_FIELDS = ["method", "path", "bodyDigest", "nonce", "issuedAt", "expiresAt"];
+function createProductSessionProofV22(sessionInput, input, deviceSecretInput) {
+  const session = parseProductSession2(sessionInput);
+  exactFields2(input, INPUT_FIELDS, "Product Session v2 proof input");
+  const secret = decodeBase64url3(deviceSecretInput, "deviceSecret");
+  if (secret.length !== 32 || encodeBase64url2(p256.getPublicKey(secret, true)) !== session.deviceKey) fail4("DEVICE_CHANGED", "Product Session proof device changed");
+  const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
+  const signature = encodeBase64url2(p256.sign(utf8ToBytes(productSessionProofV2SignBytes(unsigned)), secret, { format: "der" }));
+  return parseProductSessionProofV22({ ...unsigned, signature });
+}
+async function createProductSessionProofV2With2(sessionInput, input, signer) {
+  const session = parseProductSession2(sessionInput);
+  exactFields2(input, INPUT_FIELDS, "Product Session v2 proof input");
+  if (typeof signer !== "function") fail4("INVALID_DEVICE", "Product Session proof requires a platform device signer");
+  const unsigned = parseUnsigned({ version: "2", sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, ...input });
+  const payload = encodeBase64url2(utf8ToBytes(productSessionProofV2SignBytes(unsigned)));
+  let signature;
+  try {
+    signature = await signer(Object.freeze({ purpose: "http-proof", algorithm: "p256-sha256", deviceKey: session.deviceKey, payload }));
+  } catch {
+    fail4("DEVICE_SIGNING_FAILED", "Platform device proof signing failed closed");
+  }
+  const proof = parseProductSessionProofV22({ ...unsigned, signature });
+  let valid = false;
+  try {
+    valid = p256.verify(decodeBase64url3(proof.signature, "signature"), decodeBase64url3(payload, "device signing payload"), decodeBase64url3(session.deviceKey, "deviceKey"), { format: "der", lowS: false });
+  } catch {
+    valid = false;
+  }
+  if (!valid) fail4("INVALID_DEVICE_PROOF", "Platform device proof signature does not match the registered device key");
+  return proof;
+}
+function parseProductSessionProofV22(input) {
+  exactFields2(input, PROOF_FIELDS, "Product Session v2 proof");
+  const { signature, ...unsigned } = input;
+  const bytes = decodeBase64url3(pattern3(signature, "signature", /^[A-Za-z0-9_-]{90,96}$/), "signature");
+  if (bytes.length < 68 || bytes.length > 72 || encodeBase64url2(bytes) !== signature) fail4("INVALID_DEVICE_PROOF", "Product Session proof signature is invalid");
+  return Object.freeze({ ...parseUnsigned(unsigned), signature });
+}
+function productSessionProofV2SignBytes(input) {
+  return `YNX_PRODUCT_SESSION_HTTP_PROOF_V2
+${canonicalJSON2(parseUnsigned(input))}`;
+}
+function parseUnsigned(input) {
+  exactFields2(input, PROOF_FIELDS.filter((field) => field !== "signature"), "Unsigned Product Session v2 proof");
+  const value = Object.freeze({ version: pattern3(input.version, "version", /^2$/), sessionBinding: digest2(input.sessionBinding, "sessionBinding"), productId: pattern3(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/), clientId: pattern3(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/), applicationId: pattern3(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,131}$/), bundleId: nullableIdentity(input.bundleId, "bundleId"), packageId: nullableIdentity(input.packageId, "packageId"), origin: url(input.origin, "origin"), callback: url(input.callback, "callback"), account: pattern3(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), deviceId: pattern3(input.deviceId, "deviceId", /^[A-Za-z0-9._:-]{8,128}$/), deviceKey: pattern3(input.deviceKey, "deviceKey", /^[A-Za-z0-9_-]{44}$/), method: method(input.method), path: path(input.path), bodyDigest: digest2(input.bodyDigest, "bodyDigest"), nonce: pattern3(input.nonce, "nonce", /^[A-Za-z0-9_-]{32,64}$/), issuedAt: time2(input.issuedAt, "issuedAt"), expiresAt: time2(input.expiresAt, "expiresAt") });
+  if (value.bundleId !== null && value.bundleId !== value.applicationId || value.packageId !== null && value.packageId !== value.applicationId || value.bundleId !== null && value.packageId !== null) fail4("INVALID_FIELD", "Product Session proof application identity is inconsistent");
+  if (value.expiresAt <= value.issuedAt || Date.parse(value.expiresAt) - Date.parse(value.issuedAt) > 6e4) fail4("INVALID_EXPIRY", "Product Session proof lifetime must be at most sixty seconds");
+  return value;
+}
+function url(value, label) {
+  const normalized = pattern3(value, label, /^(https|app|[a-z][a-z0-9+.-]*):\/\/[^\s#?]+$/);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail4("INVALID_FIELD", `${label} is invalid`);
+  }
+  const canonical = label === "origin" && parsed.protocol === "https:" ? parsed.origin === normalized : parsed.toString() === normalized;
+  if (!canonical || ["http:", "file:", "javascript:", "data:"].includes(parsed.protocol)) fail4("INVALID_FIELD", `${label} is unsafe`);
+  return normalized;
+}
+function method(value) {
+  return pattern3(value, "method", /^(DELETE|GET|PATCH|POST|PUT)$/);
+}
+function path(value) {
+  const normalized = pattern3(value, "path", /^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/);
+  if (normalized.includes("//") || normalized.endsWith("/") || normalized.includes("?") || normalized.includes("#")) fail4("INVALID_PATH", "Product Session proof path is non-canonical");
+  return normalized;
+}
+function digest2(value, label) {
+  return pattern3(value, label, /^[0-9a-f]{64}$/);
+}
+function nullableIdentity(value, label) {
+  return value === null ? null : pattern3(value, label, /^[A-Za-z][A-Za-z0-9.-]{2,131}$/);
+}
+function pattern3(value, label, regex) {
+  if (typeof value !== "string" || value.trim() !== value || !regex.test(value)) fail4("INVALID_FIELD", `${label} is invalid`);
+  return value;
+}
+function time2(value, label) {
+  const normalized = pattern3(value, label, /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
+  if (!Number.isFinite(Date.parse(normalized)) || new Date(normalized).toISOString() !== normalized) fail4("INVALID_TIME", `${label} is invalid`);
+  return normalized;
+}
+function fail4(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-gateway-snapshot-v2.js
+var PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2 = 2;
+
+// vendor/wallet-auth-c5/src/wallet-session-control.js
+var WALLET_SESSION_CONTROL_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions", "/v2/product-sessions/wallet/sessions/revoke"]);
+var WALLET_SESSION_CONTROL_INTENT_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions/revoke-all", "/v2/product-sessions/wallet/devices/revoke"]);
+var CLOCK_ANCHOR_PREFIX = "e4ab6187c05d932f";
+var CLOCK_ANCHOR_PATTERN = new RegExp(`^${CLOCK_ANCHOR_PREFIX}[0-9a-f]{12}0{36}$`);
+
+// vendor/wallet-auth-c5/src/product-session-control-capacity.js
+var DEFAULT_PRODUCT_SESSION_CONTROL_CAPACITY_POLICY = Object.freeze({ maxOwners: 256, intentsPerOwner: 32 });
+
+// vendor/wallet-auth-c5/src/product-session-control-intent.js
+var PATHS = Object.freeze({
+  "account-logout": "/v2/product-sessions/wallet/sessions/revoke-all",
+  "device-logout": "/v2/product-sessions/wallet/devices/revoke"
+});
+
+// vendor/wallet-auth-c5/src/integration.js
+var REGISTRY_V2_FIELDS = ["schemaVersion", "productClientId", "requestingProduct", "bundleId", "callbacks", "scopes", "maxScopes", "productDeviceAlgorithms"];
+var REGISTRY_V3_FIELDS = [...REGISTRY_V2_FIELDS, "origins"];
+var SESSION_V1_BASE_FIELDS = [
+  "verifierVersion",
+  "sessionBinding",
+  "chainId",
+  "requestingProduct",
+  "productClientId",
+  "bundleId",
+  "callback",
+  "productDeviceAlgorithm",
+  "productDeviceKey",
+  "deviceBinding",
+  "account",
+  "scopes",
+  "nonce",
+  "purpose",
+  "requestDigest",
+  "approvalDigest",
+  "issuedAt",
+  "expiresAt"
+];
+var SESSION_V1_FIELDS = [...SESSION_V1_BASE_FIELDS, "accountPublicKey"];
+
+// vendor/wallet-auth-c5/src/session-proof.js
+function httpBodyDigest2(body) {
+  if (typeof body !== "string" && !(body instanceof Uint8Array)) fail5("INVALID_BODY", "HTTP proof body must be a string or bytes");
+  return bytesToHex(sha256(typeof body === "string" ? utf8ToBytes(body) : body));
+}
+function fail5(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-gateway-client.js
+var PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 = "x-ynx-product-session-proof-v2";
+var MAX_RESPONSE_BYTES = 1048576;
+var gatewayAuthorities = /* @__PURE__ */ new WeakMap();
+var ProductSessionGatewayFetchAdapter2 = class {
+  #endpoint;
+  #fetch;
+  #walletInstalled;
+  #schemeRegistered;
+  #timeoutMs;
+  constructor(config) {
+    exactFields2(config, ["endpoint", "fetch", "walletInstalled", "schemeRegistered", "timeoutMs"], "Product Session Gateway fetch adapter configuration");
+    this.#endpoint = endpoint(config.endpoint);
+    if (typeof config.fetch !== "function" || typeof config.walletInstalled !== "function" || typeof config.schemeRegistered !== "function") fail6("INVALID_GATEWAY", "Product Session Gateway fetch adapter dependencies are invalid");
+    if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 1e3 || config.timeoutMs > 3e4) fail6("INVALID_GATEWAY", "Product Session Gateway timeout must be between one and thirty seconds");
+    this.#fetch = config.fetch;
+    this.#walletInstalled = config.walletInstalled;
+    this.#schemeRegistered = config.schemeRegistered;
+    this.#timeoutMs = config.timeoutMs;
+    gatewayAuthorities.set(this, this.#endpoint);
+  }
+  async walletInstalled() {
+    return capability(await this.#walletInstalled(), "Wallet installation detection");
+  }
+  async schemeRegistered() {
+    return capability(await this.#schemeRegistered(), "Wallet scheme detection");
+  }
+  // Use a fresh HTTPS authority sample, without extrapolating the device clock or
+  // adding half the network RTT. This instant has already passed at the authority.
+  async currentTime(input) {
+    exactFields2(input, ["requestId"], "Product Session Gateway time request");
+    try {
+      const result = await this.#request(input.requestId, "/v2/product-sessions/time", null, null, "GET");
+      exactFields2(result, ["serverTime"], "Product Session Gateway time response");
+      const now = new Date(result.serverTime);
+      if (typeof result.serverTime !== "string" || !Number.isFinite(now.getTime()) || now.toISOString() !== result.serverTime) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway time is invalid");
+      return now;
+    } catch (error) {
+      if (error instanceof WalletAuthError2 && error.code === "NETWORK_UNAVAILABLE") throw error;
+      fail6("CLOCK_UNAVAILABLE", "Product Session authority time could not be verified; Retry when Auth is available");
+    }
+  }
+  async challenge(input) {
+    exactFields2(input, ["requestId", "request", "approval"], "Product Session Gateway challenge request");
+    return this.#request(input.requestId, "/v2/product-sessions/challenge", { request: input.request, approval: input.approval }, null);
+  }
+  async complete(input) {
+    exactFields2(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
+    return this.#request(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
+  }
+  async introspect(input) {
+    exactFields2(input, ["requestId", "sessionBinding", "requiredScopes", "proof"], "Product Session Gateway introspection request");
+    const proof = parseProductSessionProofV22(input.proof);
+    if (proof.sessionBinding !== input.sessionBinding) fail6("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
+    return this.#request(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
+  }
+  async revoke(input) {
+    exactFields2(input, ["requestId", "sessionBinding", "proof"], "Product Session Gateway revoke request");
+    const proof = parseProductSessionProofV22(input.proof);
+    if (proof.sessionBinding !== input.sessionBinding) fail6("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
+    return this.#request(input.requestId, "/v2/product-sessions/revoke", {}, proof);
+  }
+  async #request(requestId, path2, body, proof, method2 = "POST") {
+    if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail6("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
+    const encodedBody = method2 === "GET" ? void 0 : canonicalJSON2(body);
+    const headers = { "accept": "application/json", "x-request-id": requestId };
+    if (method2 === "POST") headers["content-type"] = "application/json";
+    if (proof !== null) headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] = encodeProductSessionGatewayProofHeaderV2(proof);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
+    let response;
+    try {
+      const fetch2 = this.#fetch;
+      response = await fetch2(`${this.#endpoint}${path2}`, { method: method2, headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
+    } catch {
+      clearTimeout(timeout);
+      fail6("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
+    }
+    try {
+      if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
+      const contentType = response.headers.get("content-type") ?? "";
+      const responseRequestId = response.headers.get("x-request-id");
+      const cacheControl = response.headers.get("cache-control") ?? "";
+      const contentLength = response.headers.get("content-length");
+      if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
+      if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      let text3;
+      try {
+        text3 = await response.text();
+      } catch {
+        fail6("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted");
+      }
+      if (new TextEncoder().encode(text3).length > MAX_RESPONSE_BYTES) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      let payload;
+      try {
+        payload = JSON.parse(text3);
+      } catch {
+        fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON");
+      }
+      if (canonicalJSON2(payload) !== text3) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
+      if (response.status >= 200 && response.status < 300) {
+        exactFields2(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
+        if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
+        return payload.result;
+      }
+      exactFields2(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
+      exactFields2(payload.error, ["code", "message"], "Product Session Gateway public error");
+      if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION2 || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail6("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
+      throw new WalletAuthError2(payload.error.code, payload.error.message);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+};
+function encodeProductSessionGatewayProofHeaderV2(value) {
+  const proof = parseProductSessionProofV22(value);
+  const encoded = encodeBase64url2(new TextEncoder().encode(canonicalJSON2(proof)));
+  if (encoded.length > 16384) fail6("INVALID_PROOF_HEADER", "Product Session proof header exceeds policy");
+  return encoded;
+}
+function endpoint(value) {
+  if (typeof value !== "string" || value.length > 512) fail6("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
+  let parsed;
+  try {
+    parsed = new URL(value);
+  } catch {
+    fail6("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid");
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail6("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin");
+  return parsed.origin;
+}
+function capability(value, label) {
+  if (typeof value !== "boolean") fail6("INVALID_GATEWAY", `${label} must return a boolean`);
+  return value;
+}
+function fail6(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-router.js
+var WALLET_ROUTE_STATUS2 = Object.freeze({
+  READY: "ready",
+  WALLET_NOT_INSTALLED: "wallet-not-installed",
+  SCHEME_NOT_REGISTERED: "scheme-not-registered",
+  SESSION_EXPIRED: "session-expired",
+  CALLBACK_MISMATCH: "callback-mismatch",
+  USER_REJECTED: "user-rejected",
+  NETWORK_UNAVAILABLE: "network-unavailable"
+});
+function walletConnectionChoices2(registryInput, productId, availability) {
+  const registry = parseProductSessionRegistry2(registryInput);
+  exactFields2(availability, ["ynxWalletInstalled", "metaMaskAvailable"], "Wallet availability");
+  if (typeof availability.ynxWalletInstalled !== "boolean" || typeof availability.metaMaskAvailable !== "boolean") fail7("INVALID_WALLET_AVAILABILITY", "Wallet availability flags must be boolean");
+  const product = registry.products.find((item) => item.productId === productId);
+  if (!product) fail7("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
+  const choices = [];
+  if (availability.ynxWalletInstalled) {
+    choices.push(Object.freeze({ id: "ynx-wallet", action: "open", label: "Open YNX Wallet", authoritative: true }));
+  } else {
+    choices.push(Object.freeze({ id: "download-ynx-wallet", action: "download", label: "Download YNX Wallet", url: registry.wallet.downloadUrl, authoritative: true }));
+  }
+  if (product.evmCompatible) choices.push(Object.freeze(availability.metaMaskAvailable ? { id: "metamask", action: "open-evm", label: "Use MetaMask", chainId: 6423, installed: true, authoritative: true, connectionMode: "evm-only", authority: "eip-1193-provider-only", ynxProductSession: false } : { id: "metamask", action: "download-evm-wallet", label: "Use MetaMask (install if needed)", url: registry.wallet.metaMaskDownloadUrl, chainId: 6423, installed: false, authoritative: true, connectionMode: "evm-only", authority: "none", ynxProductSession: false }));
+  choices.push(Object.freeze({
+    id: "guest",
+    action: "guest",
+    label: "Continue in Guest / Try mode",
+    authoritative: false,
+    limitations: Object.freeze(["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"])
+  }));
+  return Object.freeze(choices);
+}
+function encodeProductSessionWalletURL(registryInput, requestInput, at = /* @__PURE__ */ new Date()) {
+  const registry = parseProductSessionRegistry2(registryInput);
+  const request = parseProductSessionRequest2(registry, requestInput, at);
+  const target = new URL(registry.wallet.authorizeCallback);
+  target.searchParams.set("request", encodeBase64url2(new TextEncoder().encode(canonicalJSON2(request))));
+  return target.toString();
+}
+function prepareWalletOpen2(registryInput, requestInput, environment, at = /* @__PURE__ */ new Date()) {
+  exactFields2(environment, ["networkAvailable", "walletInstalled", "schemeRegistered"], "Wallet open environment");
+  if (!environment.networkAvailable) return routeState(WALLET_ROUTE_STATUS2.NETWORK_UNAVAILABLE, "Retry when network connectivity returns", ["retry", "return-to-product"]);
+  let request;
+  try {
+    request = parseProductSessionRequest2(registryInput, requestInput, at);
+  } catch (error) {
+    if (error instanceof WalletAuthError2 && (error.code === "SESSION_EXPIRED" || error.code === "EXPIRED")) return routeState(WALLET_ROUTE_STATUS2.SESSION_EXPIRED, "Start a new Wallet connection request", ["retry", "return-to-product"]);
+    throw error;
+  }
+  if (!environment.walletInstalled) return routeState(WALLET_ROUTE_STATUS2.WALLET_NOT_INSTALLED, "Install YNX Wallet or return to Guest / Try mode", ["download", "guest", "return-to-product"]);
+  if (!environment.schemeRegistered) return routeState(WALLET_ROUTE_STATUS2.SCHEME_NOT_REGISTERED, "Repair or reinstall YNX Wallet, then retry", ["download", "retry", "return-to-product"]);
+  return Object.freeze({ status: WALLET_ROUTE_STATUS2.READY, url: encodeProductSessionWalletURL(registryInput, request, at), request, actions: Object.freeze([]) });
+}
+function prepareWalletAttempt(registryInput, requestInput, at = /* @__PURE__ */ new Date()) {
+  const request = parseProductSessionRequest2(registryInput, requestInput, at);
+  return Object.freeze({
+    status: WALLET_ROUTE_STATUS2.READY,
+    url: encodeProductSessionWalletURL(registryInput, request, at),
+    request,
+    installation: "unverified",
+    automatic: false,
+    actions: Object.freeze([])
+  });
+}
+function parseProductSessionReturnURL2(registryInput, pendingRequest, url2, at = /* @__PURE__ */ new Date()) {
+  let request;
+  try {
+    request = parseProductSessionRequest2(registryInput, pendingRequest, at);
+  } catch (error) {
+    if (error instanceof WalletAuthError2 && error.code === "SESSION_EXPIRED") return routeState(WALLET_ROUTE_STATUS2.SESSION_EXPIRED, "The Wallet approval request expired", ["retry", "return-to-product"]);
+    throw error;
+  }
+  const parsed = safeURL(url2, "CALLBACK_MISMATCH", "Wallet callback is invalid");
+  const expected = new URL(request.callback);
+  const result = parsed.searchParams.get("result");
+  const allowed = result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];
+  const keys = [...parsed.searchParams.keys()].sort();
+  parsed.search = "";
+  if (parsed.toString() !== expected.toString() || parsed.hash || parsed.username || parsed.password || keys.join("\n") !== allowed.join("\n") || parsed.protocol === "http:" || parsed.protocol === "file:" || parsed.protocol === "javascript:") return routeState(WALLET_ROUTE_STATUS2.CALLBACK_MISMATCH, "Return to the product and start a new Wallet request", ["retry", "return-to-product"]);
+  if (new URL(url2).searchParams.get("nonce") !== request.nonce || new URL(url2).searchParams.get("state") !== request.state) return routeState(WALLET_ROUTE_STATUS2.CALLBACK_MISMATCH, "Wallet callback nonce or state did not match", ["retry", "return-to-product"]);
+  if (result === "rejected" && new URL(url2).searchParams.get("reason") === "user_rejected") return routeState(WALLET_ROUTE_STATUS2.USER_REJECTED, "No Product Session was created", ["guest", "retry", "return-to-product"]);
+  if (result !== "approved") return routeState(WALLET_ROUTE_STATUS2.CALLBACK_MISMATCH, "Wallet callback result was not recognized", ["retry", "return-to-product"]);
+  try {
+    const approval = parseProductSessionApproval2(registryInput, request, decodeJSON(new URL(url2).searchParams.get("approval"), "Wallet approval"), at);
+    return Object.freeze({ status: WALLET_ROUTE_STATUS2.READY, request, approval, actions: Object.freeze([]) });
+  } catch (error) {
+    if (error instanceof WalletAuthError2) return routeState(WALLET_ROUTE_STATUS2.CALLBACK_MISMATCH, "Wallet approval did not match the pending product request", ["retry", "return-to-product"]);
+    throw error;
+  }
+}
+function routeState(status, message, actions) {
+  return Object.freeze({ status, message, actions: Object.freeze(actions) });
+}
+function decodeJSON(value, label) {
+  try {
+    const bytes = decodeBase64url3(value ?? "", label);
+    return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+  } catch {
+    fail7("INVALID_ROUTE_PAYLOAD", `${label} encoding is invalid`);
+  }
+}
+function safeURL(value, code, message) {
+  if (typeof value !== "string" || value.length > 4096) fail7(code, message);
+  try {
+    return new URL(value);
+  } catch {
+    fail7(code, message);
+  }
+}
+function fail7(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-revocation-intent.js
+var BINDING_FIELDS = ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"];
+function createRevocationIntent(binding2, device2, intentId, session) {
+  return parseRevocationIntent(canonicalJSON2({ version: 1, intentId, scope: scope(binding2, device2), session }), binding2, device2);
+}
+function parseRevocationIntent(raw, binding2, device2) {
+  if (typeof raw !== "string" || raw.length > 16384) fail8("INVALID_SESSION_STORE", "Pending revocation intent is invalid");
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    fail8("INVALID_SESSION_STORE", "Pending revocation intent is not valid JSON");
+  }
+  exactFields2(value, ["version", "intentId", "scope", "session"], "Pending Product Session revocation intent");
+  if (value.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(value.intentId) || value.scope !== scope(binding2, device2)) fail8("CROSS_PRODUCT_SESSION", "Pending revocation intent does not match this product device");
+  const session = value.session === null ? null : parseProductSession2(value.session);
+  if (session && (BINDING_FIELDS.some((field) => session[field] !== binding2[field]) || session.deviceId !== device2.id || session.deviceKey !== device2.key || canonicalJSON2(session.scopes) !== canonicalJSON2(device2.scopes))) fail8("CROSS_PRODUCT_SESSION", "Pending revocation target does not match this product device");
+  return Object.freeze({ version: 1, intentId: value.intentId, scope: value.scope, session });
+}
+function revocationSessionMatches(raw, session) {
+  if (raw === null || session === null) return false;
+  try {
+    return canonicalJSON2(parseProductSession2(JSON.parse(raw))) === canonicalJSON2(session);
+  } catch {
+    return false;
+  }
+}
+function scope(binding2, device2) {
+  return digestHex2("YNX_PRODUCT_SESSION_LOCAL_REVOCATION_SCOPE_V1", { ...Object.fromEntries(BINDING_FIELDS.map((field) => [field, binding2[field]])), deviceId: device2.id, deviceKey: device2.key, scopes: device2.scopes });
+}
+function fail8(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+function createRevocationCompletion(rawIntent, binding2, device2, outcome) {
+  const intent = parseRevocationIntent(rawIntent, binding2, device2);
+  const raw = canonicalJSON2({
+    version: 1,
+    intentId: intent.intentId,
+    scope: intent.scope,
+    targetDigest: intent.session === null ? null : digestHex2("YNX_PRODUCT_SESSION_REVOKED_TARGET_V1", intent.session),
+    sessionBinding: intent.session?.sessionBinding ?? null,
+    outcome
+  });
+  return parseRevocationCompletion(raw, binding2, device2);
+}
+function parseRevocationCompletion(raw, binding2, device2) {
+  if (typeof raw !== "string" || raw.length > 2048) fail8("INVALID_SESSION_STORE", "Revocation completion is invalid");
+  let v;
+  try {
+    v = JSON.parse(raw);
+  } catch {
+    fail8("INVALID_SESSION_STORE", "Revocation completion is not JSON");
+  }
+  exactFields2(v, ["version", "intentId", "scope", "targetDigest", "sessionBinding", "outcome"], "Revocation completion");
+  if (v.version !== 1 || !/^[A-Za-z0-9_-]{32,64}$/.test(v.intentId) || v.scope !== scope(binding2, device2) || !["server-revoked", "authority-expired", "local-only"].includes(v.outcome)) fail8("CROSS_PRODUCT_SESSION", "Revocation completion crosses its original intent or scope");
+  if (v.outcome === "local-only" ? v.targetDigest !== null || v.sessionBinding !== null : typeof v.targetDigest !== "string" || !/^[0-9a-f]{64}$/.test(v.targetDigest) || typeof v.sessionBinding !== "string" || !/^[0-9a-f]{64}$/.test(v.sessionBinding)) fail8("INVALID_SESSION_STORE", "Revocation completion target is invalid");
+  if (canonicalJSON2(v) !== raw) fail8("INVALID_SESSION_STORE", "Revocation completion is not canonical");
+  return Object.freeze(v);
+}
+function readRevocationCompletions(raw, binding2, device2) {
+  if (raw === null) return [];
+  if (typeof raw !== "string" || raw.length > 131072) fail8("INVALID_SESSION_STORE", "Revocation completion history is invalid");
+  let values;
+  try {
+    values = JSON.parse(raw);
+  } catch {
+    fail8("INVALID_SESSION_STORE", "Revocation history is not JSON");
+  }
+  if (!Array.isArray(values) || values.length > 64 || canonicalJSON2(values) !== raw) fail8("INVALID_SESSION_STORE", "Revocation completion history is not bounded canonical JSON");
+  const seen = /* @__PURE__ */ new Set();
+  return values.map((value) => {
+    const parsed = parseRevocationCompletion(canonicalJSON2(value), binding2, device2);
+    if (seen.has(parsed.intentId)) fail8("INVALID_SESSION_STORE", "Duplicate revocation completion");
+    seen.add(parsed.intentId);
+    return parsed;
+  });
+}
+
+// vendor/wallet-auth-c5/src/product-session-completion-record.js
+function parseCompletionRecord(registry, raw, at) {
+  if (typeof raw !== "string" || raw.length > 16384) fail9("INVALID_SESSION_STORE", "Protected completion record is invalid");
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    fail9("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
+  }
+  exactFields2(value, ["request", "approval", "completion"], "Protected Product Session completion");
+  const request = parseProductSessionRequest2(registry, value.request, at);
+  const approval = parseProductSessionApproval2(registry, request, value.approval, at);
+  exactFields2(value.completion, ["challenge", "deviceSignature"], "Protected Product Session device completion");
+  const challenge = parseProductSessionChallenge2(value.completion.challenge);
+  const expected = createProductSessionChallenge2(registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+  if (canonicalJSON2(challenge) !== canonicalJSON2(expected)) fail9("SESSION_BINDING_MISMATCH", "Protected completion challenge changed");
+  let valid = false;
+  try {
+    valid = p256.verify(decodeBase64url3(value.completion.deviceSignature, "deviceSignature"), new TextEncoder().encode(`YNX_PRODUCT_SESSION_CHALLENGE_V2
+${canonicalJSON2(challenge)}`), decodeBase64url3(challenge.deviceKey, "deviceKey"), { format: "der", lowS: false });
+  } catch {
+    valid = false;
+  }
+  if (!valid) fail9("INVALID_DEVICE_PROOF", "Protected completion signature is invalid");
+  return Object.freeze({ request, approval, completion: Object.freeze({ challenge, deviceSignature: value.completion.deviceSignature }) });
+}
+function deriveCompletionTarget(registry, raw) {
+  let value;
+  try {
+    value = JSON.parse(raw);
+  } catch {
+    fail9("INVALID_SESSION_STORE", "Protected completion record is not valid JSON");
+  }
+  const at = new Date(value?.completion?.challenge?.issuedAt);
+  const record = parseCompletionRecord(registry, raw, at);
+  const verifier = new ProductSessionAuthority2(registry);
+  verifier.issueChallenge({ request: record.request, approval: record.approval, challenge: record.completion.challenge.challenge }, at);
+  return verifier.complete(record, at);
+}
+function fail9(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-session-recovery.js
+var PRODUCT_SESSION_CLIENT_STATE2 = Object.freeze({
+  DISCONNECTED: "disconnected",
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  GUEST: "guest",
+  EXPIRED: "expired",
+  NETWORK_UNAVAILABLE: "network-unavailable",
+  RETRY_REQUIRED: "retry-required"
+});
+var REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Product Session revocation is pending; API authorization is suspended", { actions: ["retry"], revocationPending: true });
+var RecoverableProductSessionClient2 = class {
+  #finiteServiceSeconds;
+  #registry;
+  #binding;
+  #storage;
+  #gateway;
+  #device;
+  #tokens;
+  #clock;
+  #state;
+  #autoReconnectAttempted;
+  #networkAvailable;
+  #networkEpoch;
+  #disconnectPromise;
+  #returnOperation;
+  #recoveryPromise;
+  #revocationRequested = false;
+  #revocationIntent = null;
+  #beginEpoch = 0;
+  #beginMutation = Promise.resolve();
+  constructor(config) {
+    exactFields2(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock", ...Object.hasOwn(config ?? {}, "finiteServiceSeconds") ? ["finiteServiceSeconds"] : []], "Recoverable Product Session client configuration");
+    this.#registry = parseProductSessionRegistry2(config.registry);
+    this.#binding = productPlatformBinding2(this.#registry, config.productId, config.platform);
+    this.#storage = secureStorage(config.storage, config.platform, config.device);
+    this.#revocationRequested = this.#storage.revocationRequested?.() === true;
+    this.#gateway = gateway(config.gateway);
+    this.#device = device(config.device);
+    this.#tokens = tokenFactory(config.tokenFactory);
+    this.#clock = clock(config.clock);
+    if (Object.hasOwn(config, "finiteServiceSeconds")) {
+      if (!Number.isInteger(config.finiteServiceSeconds) || config.finiteServiceSeconds < 300 || config.finiteServiceSeconds > 7200) fail10("INVALID_SERVICE_CONSENT_TIME", "Explicit finite service duration is outside the approved bounds");
+      this.#finiteServiceSeconds = config.finiteServiceSeconds;
+    }
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.DISCONNECTED, "No authoritative Product Session is active");
+    this.#autoReconnectAttempted = false;
+    this.#networkAvailable = true;
+    this.#networkEpoch = 0;
+    this.#disconnectPromise = null;
+    this.#returnOperation = null;
+    this.#recoveryPromise = null;
+  }
+  // Suspend outward authority as soon as disconnect starts, including while its
+  // clock lookup or a prior recovery is pending. Keep protected state for Retry.
+  get current() {
+    if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true;
+    return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE2.DISCONNECTED, PRODUCT_SESSION_CLIENT_STATE2.CONNECTED, PRODUCT_SESSION_CLIENT_STATE2.CONNECTING, PRODUCT_SESSION_CLIENT_STATE2.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state;
+  }
+  get storageKey() {
+    return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`;
+  }
+  get connectionBinding() {
+    return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId });
+  }
+  async detectWalletEnvironment() {
+    let walletInstalled, schemeRegistered;
+    try {
+      [walletInstalled, schemeRegistered] = await Promise.all([this.#gateway.walletInstalled(), this.#gateway.schemeRegistered()]);
+    } catch (error) {
+      if (error instanceof WalletAuthError2) throw error;
+      fail10("WALLET_UNAVAILABLE", "Wallet availability detection failed closed");
+    }
+    if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail10("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
+    return Object.freeze({ walletInstalled, schemeRegistered });
+  }
+  async beginDetected(automatic = false) {
+    const epoch = ++this.#beginEpoch;
+    let environment;
+    try {
+      environment = await this.detectWalletEnvironment();
+    } catch (error) {
+      if (epoch !== this.#beginEpoch) return this.current;
+      throw error;
+    }
+    if (epoch !== this.#beginEpoch) return this.current;
+    return this.#begin(environment, automatic, false, epoch);
+  }
+  async beginExplicit() {
+    return this.#begin(null, false, true, ++this.#beginEpoch);
+  }
+  async retryDetected() {
+    const epoch = ++this.#beginEpoch;
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) {
+      this.#networkAvailable = true;
+      return this.disconnect();
+    }
+    let environment;
+    try {
+      environment = await this.detectWalletEnvironment();
+    } catch (error) {
+      if (epoch !== this.#beginEpoch) return this.current;
+      throw error;
+    }
+    if (epoch !== this.#beginEpoch) return this.current;
+    return this.retry(environment);
+  }
+  async restore(networkAvailable = true) {
+    const epoch = this.#beginEpoch;
+    await this.#recover(() => this.#restore(networkAvailable, epoch));
+    return this.current;
+  }
+  async #restore(networkAvailable, epoch) {
+    this.#networkAvailable = Boolean(networkAvailable);
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) return this.#pendingRevocation();
+    if (!this.#networkAvailable) return this.#offline();
+    const restored = await this.#restoreStoredSession(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (restored !== null) return restored;
+    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
+    const pending = await this.#restorePendingRequest(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pending !== null) return pending;
+    if (!this.#autoReconnectAttempted) {
+      this.#autoReconnectAttempted = true;
+      return this.beginDetected(true);
+    }
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Stored Product Session is invalid; explicit Retry is required", { actions: ["retry", "guest"] });
+    return this.#state;
+  }
+  async begin(environment, automatic = false) {
+    exactFields2(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
+    return this.#begin(environment, automatic, false, ++this.#beginEpoch);
+  }
+  async #restorePendingRequest(epoch) {
+    await this.#beginMutation;
+    if (epoch !== this.#beginEpoch) return this.current;
+    const key = `${this.storageKey}:pending`, raw = await this.#storage.get(key);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (raw === null) return null;
+    if (this.#revocationRequested) return this.#pendingRevocation();
+    if (!this.#networkAvailable) return this.#offline();
+    const networkEpoch = this.#networkEpoch;
+    const retained = (message) => {
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, message, { actions: ["retry", "guest"] });
+      return this.#state;
+    };
+    let request;
+    try {
+      if (typeof raw !== "string" || raw.length > 16384) fail10("INVALID_SESSION_STORE", "Pending Wallet request exceeds policy");
+      const input = JSON.parse(raw);
+      request = parseProductSessionRequest2(this.#registry, input, new Date(input?.issuedAt));
+      for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
+        if (request[field] !== this.#binding[field]) fail10("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another product binding");
+      }
+      if (request.deviceId !== this.#device.id || request.deviceKey !== this.#device.key || canonicalJSON2(request.scopes) !== canonicalJSON2(this.#device.scopes)) fail10("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another device or scope selection");
+    } catch {
+      return retained("The saved Wallet request is invalid or belongs to another binding; it was retained. Start a new explicit request to replace it.");
+    }
+    let now;
+    try {
+      if (typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Pending request recovery requires authority time");
+      now = await this.#now();
+    } catch {
+      if (epoch !== this.#beginEpoch) return this.current;
+      return this.#offline("Authority time is unavailable; the original Wallet request was retained for Retry");
+    }
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while checking the original Wallet request; it was retained for Retry");
+    try {
+      request = parseProductSessionRequest2(this.#registry, request, now);
+    } catch {
+      return retained("The saved Wallet request expired or is invalid; it was retained. Start a new explicit request to replace it.");
+    }
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) return this.#pendingRevocation();
+    const readback = await this.#storage.get(key);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading the original Wallet request; explicit Retry is required");
+    if (readback !== raw) return retained("The saved Wallet request changed during recovery; no replacement request was created");
+    const route = prepareWalletAttempt(this.#registry, request, now);
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.CONNECTING, "The original Wallet approval is still pending; explicitly open the same request", { request, route, automatic: false, installation: "unverified" });
+    return this.#state;
+  }
+  async #begin(environment, automatic, explicit, epoch) {
+    try {
+      return await this.#beginRequest(environment, automatic, explicit, epoch);
+    } catch (error) {
+      if (epoch !== this.#beginEpoch) return this.current;
+      throw error;
+    }
+  }
+  async #beginRequest(environment, automatic, explicit, epoch) {
+    if (this.#finiteServiceSeconds !== void 0 && automatic) {
+      if (this.#state.status !== PRODUCT_SESSION_CLIENT_STATE2.EXPIRED) this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Finite service access requires explicit Wallet approval", { actions: ["retry", "guest"] });
+      return this.current;
+    }
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) return this.#pendingRevocation();
+    if (!this.#networkAvailable) return this.#offline();
+    const networkEpoch = this.#networkEpoch;
+    let now;
+    try {
+      if (explicit && typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Explicit Wallet opening requires the authority-time adapter");
+      now = await this.#now();
+    } catch (error) {
+      if (epoch !== this.#beginEpoch) return this.current;
+      if (isNetworkUnavailable(error) || explicit && !(error instanceof WalletAuthError2)) return this.#offline("Authority time is unavailable; Retry before opening Wallet");
+      throw error;
+    }
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading authority time; explicit Retry is required");
+    const pendingRevocation = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pendingRevocation) return this.#pendingRevocation();
+    const request = createProductSessionRequest2(this.#registry, {
+      productId: this.#binding.productId,
+      platform: this.#binding.platform,
+      deviceId: this.#device.id,
+      deviceKey: this.#device.key,
+      scopes: this.#device.scopes,
+      purpose: this.#device.purpose,
+      nonce: this.#tokens(),
+      state: this.#tokens(),
+      ...this.#finiteServiceSeconds === void 0 ? {} : { finiteServiceSeconds: this.#finiteServiceSeconds }
+    }, now);
+    const mutation = this.#beginMutation.then(async () => {
+      if (epoch !== this.#beginEpoch) return this.current;
+      if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
+      const key = `${this.storageKey}:pending`, raw = canonicalJSON2(request);
+      let wrote = false;
+      const cancelled = async () => {
+        if (wrote && await this.#storage.get(key) === raw) await this.#storage.remove(key);
+        return this.current;
+      };
+      try {
+        for (const suffix of ["pending", "return", "completion"]) {
+          if (epoch !== this.#beginEpoch) return cancelled();
+          await this.#storage.remove(`${this.storageKey}:${suffix}`);
+        }
+        if (epoch !== this.#beginEpoch) return cancelled();
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
+        wrote = true;
+        await this.#storage.set(key, raw);
+        if (epoch !== this.#beginEpoch) return cancelled();
+        const stored = await this.#storage.get(key);
+        if (epoch !== this.#beginEpoch) return cancelled();
+        if (stored !== raw) fail10("INSECURE_STORAGE", "Pending Wallet request did not read back exactly");
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
+        const route = explicit ? prepareWalletAttempt(this.#registry, request, now) : prepareWalletOpen2(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
+        this.#state = route.status === WALLET_ROUTE_STATUS2.READY ? state(PRODUCT_SESSION_CLIENT_STATE2.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic, ...explicit ? { installation: "unverified" } : {} }) : state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, route.message, { request, route, automatic, actions: route.actions });
+        return this.#state;
+      } catch (error) {
+        if (epoch !== this.#beginEpoch) return cancelled();
+        throw error;
+      }
+    });
+    this.#beginMutation = mutation.catch(() => {
+    });
+    return mutation;
+  }
+  async handleReturn(url2) {
+    if (this.#returnOperation !== null) {
+      if (this.#returnOperation.url !== url2) fail10("CONCURRENT_CALLBACK", "A different Wallet callback is already being verified");
+      await this.#returnOperation.promise;
+      return this.current;
+    }
+    const operation = this.#handleReturn(url2);
+    this.#returnOperation = { url: url2, promise: operation };
+    try {
+      await operation;
+      return this.current;
+    } finally {
+      if (this.#returnOperation?.promise === operation) this.#returnOperation = null;
+    }
+  }
+  async #handleReturn(url2) {
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
+    if (!this.#networkAvailable) {
+      if (typeof url2 === "string" && url2.length <= 16384 && await this.#storage.get(`${this.storageKey}:pending`) !== null) await this.#storage.set(`${this.storageKey}:return`, url2);
+      return this.#offline();
+    }
+    const networkEpoch = this.#networkEpoch;
+    const raw = await this.#storage.get(`${this.storageKey}:pending`);
+    if (raw === null) {
+      await this.#storage.remove(`${this.storageKey}:return`);
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] });
+      return this.#state;
+    }
+    let now;
+    try {
+      now = await this.#now();
+    } catch (error) {
+      if (isNetworkUnavailable(error)) {
+        if (typeof url2 === "string" && url2.length <= 16384) await this.#storage.set(`${this.storageKey}:return`, url2);
+        return this.#offline("Authority time is unavailable; the pending Wallet callback was retained for Retry");
+      }
+      throw error;
+    }
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) {
+      if (typeof url2 === "string" && url2.length <= 16384) await this.#storage.set(`${this.storageKey}:return`, url2);
+      return this.#networkTransition("Network changed while reading authority time; Wallet callback was retained for Retry");
+    }
+    let request;
+    try {
+      request = parseProductSessionRequest2(this.#registry, JSON.parse(raw), now);
+    } catch {
+      await this.#clearPending();
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Pending Wallet request expired or is invalid", { actions: ["retry", "guest"] });
+      return this.#state;
+    }
+    const returned = parseProductSessionReturnURL2(this.#registry, request, url2, now);
+    if (returned.status === WALLET_ROUTE_STATUS2.USER_REJECTED) {
+      await this.#clearPending();
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.DISCONNECTED, "Wallet approval was rejected; no session was created", { actions: returned.actions });
+      return this.#state;
+    }
+    if (returned.status !== WALLET_ROUTE_STATUS2.READY) {
+      await this.#storage.remove(`${this.storageKey}:return`);
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, returned.message, { actions: returned.actions });
+      return this.#state;
+    }
+    await this.#storage.set(`${this.storageKey}:return`, url2);
+    try {
+      const storedCompletion = await this.#storage.get(`${this.storageKey}:completion`);
+      let completion;
+      if (storedCompletion !== null) {
+        const record = parseCompletionRecord(this.#registry, storedCompletion, now);
+        if (canonicalJSON2(record.request) !== canonicalJSON2(request) || canonicalJSON2(record.approval) !== canonicalJSON2(returned.approval) || record.completion.challenge.deviceId !== this.#device.id || record.completion.challenge.deviceKey !== this.#device.key) fail10("SESSION_BINDING_MISMATCH", "Protected completion belongs to another exact Wallet approval");
+        if (record.completion.challenge.sessionExpiresAt <= now.toISOString()) fail10("SESSION_EXPIRED", "Previously completed Product Session has expired");
+        completion = record.completion;
+      } else {
+        const challenge = parseProductSessionChallenge2(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
+        if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
+        const expectedChallenge = createProductSessionChallenge2(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+        if (canonicalJSON2(challenge) !== canonicalJSON2(expectedChallenge)) fail10("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
+        if (challenge.expiresAt <= (await this.#now()).toISOString()) fail10("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading challenge time; protected callback was retained for Retry");
+        if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
+        completion = this.#device.sign ? await signProductSessionChallengeWith2(challenge, this.#device.sign) : signProductSessionChallenge2(challenge, this.#device.secret);
+        await this.#storage.set(`${this.storageKey}:completion`, canonicalJSON2({ request, approval: returned.approval, completion }));
+      }
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during platform challenge signing; protected callback was retained for Retry");
+      if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
+      const session = parseProductSession2(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
+      await this.#storage.set(this.storageKey, JSON.stringify(session));
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
+      try {
+        await this.#introspect(session);
+      } catch (error) {
+        if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while confirming the issued Product Session; protected state was retained for Retry");
+        throw error;
+      }
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while confirming the Product Session; authoritative Retry is required");
+      await this.#clearPending();
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.CONNECTED, "Authoritative Product Session connected", { session });
+      return this.#state;
+    } catch (error) {
+      if (this.#revocationRequested || error?.code === "REVOCATION_PENDING") return this.#pendingRevocation();
+      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
+      await this.#storage.remove(this.storageKey);
+      await this.#clearPending();
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
+      return this.#state;
+    }
+  }
+  async retry(environment) {
+    const epoch = ++this.#beginEpoch;
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) {
+      this.#networkAvailable = true;
+      return this.disconnect();
+    }
+    await this.#recover(() => this.#retry(environment, epoch));
+    return this.current;
+  }
+  async #retry(environment, epoch) {
+    this.#networkAvailable = true;
+    const restored = await this.#restoreStoredSession(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (restored !== null) return restored;
+    const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pendingReturn !== null) return this.handleReturn(pendingReturn);
+    const pending = await this.#restorePendingRequest(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pending !== null) return pending;
+    this.#autoReconnectAttempted = false;
+    return this.begin(environment, false);
+  }
+  connectionChoices(availability) {
+    return walletConnectionChoices2(this.#registry, this.#binding.productId, availability);
+  }
+  setNetworkAvailable(available) {
+    this.#networkEpoch += 1;
+    this.#networkAvailable = Boolean(available);
+    if (!this.#networkAvailable) return this.#offline();
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] });
+    return this.#state;
+  }
+  enterGuest() {
+    this.#beginEpoch += 1;
+    if (this.#revocationRequested) return this.#pendingRevocation();
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] });
+    return this.#state;
+  }
+  async disconnect() {
+    if (this.#disconnectPromise !== null) return this.#disconnectPromise;
+    this.#beginEpoch += 1;
+    this.#revocationRequested = true;
+    try {
+      this.#storage.requestRevocation?.();
+    } catch {
+      return this.#pendingRevocation("Sign-out could not be saved synchronously; authorization remains suspended.");
+    }
+    const operation = this.#disconnect();
+    this.#disconnectPromise = operation;
+    try {
+      return await operation;
+    } finally {
+      if (this.#disconnectPromise === operation) this.#disconnectPromise = null;
+    }
+  }
+  async #disconnect() {
+    try {
+      await this.#prepareRevocationIntent();
+    } catch {
+      return this.#pendingRevocation("Sign-out could not be saved securely; authorization remains suspended. Retry to save the same target.");
+    }
+    await this.#beginMutation;
+    const pendingRecovery = this.#recoveryPromise;
+    if (pendingRecovery !== null) {
+      try {
+        await pendingRecovery;
+      } catch {
+      }
+    }
+    const pendingReturn = this.#returnOperation?.promise ?? null;
+    if (pendingReturn !== null) {
+      try {
+        await pendingReturn;
+      } catch {
+      }
+    }
+    await this.#loadRevocationIntent();
+    let session = this.#revocationIntent.session;
+    if (session === null) {
+      const raw = await this.#storage.get(this.storageKey);
+      if (raw !== null) {
+        try {
+          session = parseProductSession2(JSON.parse(raw));
+        } catch {
+          return this.#pendingRevocation("The pending sign-out target is unavailable; secure storage requires repair.");
+        }
+        await this.#saveRevocationIntent(createRevocationIntent(this.#binding, this.#device, this.#revocationIntent.intentId, session));
+      }
+    }
+    let sessionExpired = false;
+    if (session !== null) {
+      try {
+        const networkEpoch = this.#networkEpoch;
+        if (!this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
+        const now = await this.#now();
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed while reading revocation authority time");
+        sessionExpired = typeof this.#gateway.currentTime === "function" && session.expiresAt <= now.toISOString();
+        if (!sessionExpired) {
+          const body = {};
+          const proof = await this.#proof(session, "/v2/product-sessions/revoke", body, now);
+          if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session revocation signing");
+          const result = await this.#gateway.revoke({ requestId: gatewayRequestId("r", proof.nonce), sessionBinding: session.sessionBinding, proof });
+          if (result?.revoked !== session.sessionBinding) fail10("INVALID_GATEWAY_RESPONSE", "Gateway did not confirm the exact Product Session revocation");
+        }
+      } catch (error) {
+        if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while revoking the Product Session; protected state was retained for Retry");
+        if (!(error instanceof WalletAuthError2) || error.code !== "SESSION_REVOKED") {
+          this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, "Gateway did not confirm Product Session revocation; protected state was retained", { actions: ["retry"] });
+          return this.#state;
+        }
+      }
+    }
+    if (session === null && await this.#storage.get(`${this.storageKey}:return`) !== null) return this.#pendingRevocation("A prior completion has not yielded its exact target; sign-out confirmation is still pending.");
+    let revocationCompletion;
+    try {
+      revocationCompletion = await this.#finishRevocationIntent(session === null ? "local-only" : sessionExpired ? "authority-expired" : "server-revoked");
+    } catch {
+      return this.#pendingRevocation("The authority result was received but secure cleanup is pending; Retry the same sign-out target.");
+    }
+    this.#revocationRequested = false;
+    this.#revocationIntent = null;
+    this.#state = state(sessionExpired ? PRODUCT_SESSION_CLIENT_STATE2.EXPIRED : PRODUCT_SESSION_CLIENT_STATE2.DISCONNECTED, session === null ? "No authoritative Product Session was present; local connection request was removed" : sessionExpired ? "Auth confirmed that the exact Product Session expired; no revocation receipt was claimed" : "Auth confirmed revocation of the exact Product Session", { ...revocationCompletion ? { revocationCompletion } : {}, revocationConfirmed: session !== null && !sessionExpired, ...session ? { sessionBinding: session.sessionBinding } : {} });
+    return this.#state;
+  }
+  async createIntrospectionProof(requiredScopes2) {
+    return this.#createAPIProof(requiredScopes2);
+  }
+  // Two separate proofs: fresh identity introspection and the exact business body.
+  // The server must atomically consume the action nonce with its own transaction.
+  async createSocialAudienceProof(input) {
+    exactFields2(input, ["path", "body"], "Social audience action");
+    const path2 = input.path, raw = input.body;
+    if (this.#binding.productId !== "social" || !["/social/v3/matrix/audience/resolve", "/social/v3/matrix/audience/authorize"].includes(path2)) fail10("HTTP_BINDING_MISMATCH", "Social audience proof requires an exact registered action path");
+    if (typeof raw !== "string" || new TextEncoder().encode(raw).length > 16384) fail10("INVALID_FIELD", "Social action body must be bounded canonical JSON");
+    let body;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      fail10("INVALID_FIELD", "Social action body is invalid JSON");
+    }
+    if (body === null || typeof body !== "object" || Array.isArray(body) || canonicalJSON2(body) !== raw) fail10("INVALID_FIELD", "Social action body must be a canonical JSON object");
+    assertActionUnicode(body);
+    return this.#createAPIProof(["social.contacts", "social.feed", "social.messaging", "social.profile"], Object.freeze({ path: path2, body }));
+  }
+  // Generic business request proof: independent from one-shot introspection.
+  // The server supplies route-required scopes and consumes the returned nonce
+  // with its original actor/object transaction; proof alone is not permission.
+  async createBusinessProof(input) {
+    exactFields2(input, ["method", "path", "body", "requiredScopes"], "Product business request");
+    const method2 = input.method, path2 = input.path, raw = input.body instanceof Uint8Array ? Uint8Array.from(input.body) : input.body;
+    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail10("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if (typeof raw !== "string" && !(raw instanceof Uint8Array) || (typeof raw === "string" ? new TextEncoder().encode(raw).length : raw.length) > 16777216) fail10("INVALID_FIELD", "Business request body is not bounded");
+    if (method2 === "GET") {
+      if (raw.length !== 0) fail10("HTTP_BINDING_MISMATCH", "GET business proof binds an empty HTTP body");
+    }
+    return this.#createAPIProof(input.requiredScopes, Object.freeze({ method: method2, path: path2, body: null, rawBody: raw }));
+  }
+  // Hash FINAL wire serialization, including multipart boundaries. The server
+  // hashes its bounded actual incoming stream before accepting the proof.
+  // A caller-supplied hash is never evidence that actual bytes were delivered.
+  async createBusinessProofCommitment(input) {
+    exactFields2(input, ["method", "path", "bodyDigest", "bodyBytes", "requiredScopes"], "Product business commitment");
+    const { method: method2, path: path2, bodyDigest, bodyBytes } = input;
+    if (typeof method2 !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(method2) || typeof path2 !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(path2) || path2.includes("//") || path2.endsWith("/") || path2.split("/").some((part) => part === "." || part === "..") || path2.startsWith("/v2/product-sessions/") || path2.startsWith("/v2/browser-sessions/")) fail10("HTTP_BINDING_MISMATCH", "Business proof requires an exact product route");
+    if (typeof bodyDigest !== "string" || !/^[0-9a-f]{64}$/.test(bodyDigest) || !Number.isSafeInteger(bodyBytes) || bodyBytes < 0 || bodyBytes > 536870912) fail10("INVALID_FIELD", "Commitment requires SHA-256 and bounded final wire byte count");
+    if (method2 === "GET" && (bodyBytes !== 0 || bodyDigest !== httpBodyDigest2(""))) fail10("HTTP_BINDING_MISMATCH", "GET commitment must bind an empty body");
+    return this.#createAPIProof(input.requiredScopes, Object.freeze({ method: method2, path: path2, body: null, bodyDigest, bodyBytes }));
+  }
+  async #createAPIProof(requiredScopes2, action = null) {
+    const expected = this.current, epoch = this.#beginEpoch, networkEpoch = this.#networkEpoch;
+    const active = () => {
+      if (this.#revocationRequested || this.#disconnectPromise !== null) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      if (!this.#networkAvailable || networkEpoch !== this.#networkEpoch) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session API authorization");
+      if (this.current !== expected || epoch !== this.#beginEpoch || expected.status !== PRODUCT_SESSION_CLIENT_STATE2.CONNECTED || !expected.session) fail10("SESSION_INACTIVE", "Connect and verify the same Product Session before signing an API proof");
+    };
+    active();
+    const session = parseProductSession2(expected.session);
+    for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
+      if (session[field] !== this.#binding[field]) fail10("SESSION_BINDING_MISMATCH", "API proof session belongs to another product binding");
+    }
+    if (session.deviceId !== this.#device.id || session.deviceKey !== this.#device.key) fail10("SESSION_BINDING_MISMATCH", "API proof session belongs to another product device");
+    const scopeCount = Array.isArray(requiredScopes2) ? requiredScopes2.length : 0;
+    if (!Number.isInteger(scopeCount) || scopeCount < 1 || scopeCount > 8) fail10("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    const scopes2 = Object.freeze(Array.from({ length: scopeCount }, (_, index) => requiredScopes2[index]));
+    if (scopes2.some((scope2) => typeof scope2 !== "string" || !session.scopes.includes(scope2) || !this.#device.scopes.includes(scope2) || !this.#binding.scopes.includes(scope2)) || new Set(scopes2).size !== scopes2.length || [...scopes2].sort().join("\n") !== scopes2.join("\n")) fail10("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    const body = Object.freeze({ requiredScopes: scopes2 });
+    let originalRaw;
+    const readback = async () => {
+      active();
+      if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      active();
+      const raw = await this.#storage.get(this.storageKey);
+      active();
+      let stored;
+      try {
+        if (typeof raw !== "string" || raw.length > 16384) fail10("SESSION_INACTIVE", "Stored Product Session is unavailable");
+        stored = parseProductSession2(JSON.parse(raw));
+      } catch {
+        fail10("SESSION_INACTIVE", "Stored Product Session is invalid; no API proof was released");
+      }
+      if (canonicalJSON2(stored) !== canonicalJSON2(session) || originalRaw !== void 0 && raw !== originalRaw) fail10("SESSION_INACTIVE", "Stored Product Session changed during API authorization");
+      originalRaw = raw;
+      if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Sign-out started during Product Session API authorization");
+      active();
+    };
+    await readback();
+    active();
+    if (typeof this.#gateway.currentTime !== "function") fail10("CLOCK_UNAVAILABLE", "Product Session API proofs require authority time");
+    let now;
+    try {
+      now = new Date((await this.#now()).getTime());
+    } catch (error) {
+      active();
+      if (isNetworkUnavailable(error)) throw error;
+      fail10("CLOCK_UNAVAILABLE", "Product Session authority time is unavailable");
+    }
+    active();
+    if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail10("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
+    const proof = await this.#proof(session, "/v2/product-sessions/introspect", body, now, { active, readback });
+    const result = Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: gatewayRequestId("i", this.#tokens()), body: canonicalJSON2(body) });
+    const actionProof = action === null ? null : await this.#proof(session, action.path, action.body, now, { active, readback }, action.method ?? "POST", action.rawBody ?? null, action.bodyDigest ?? null);
+    await readback();
+    active();
+    if (actionProof !== null) return Object.freeze({ introspection: result, proof: actionProof, proofHeader: encodeProductSessionGatewayProofHeaderV2(actionProof), body: action.bodyDigest ? null : action.rawBody ?? canonicalJSON2(action.body), ...action.bodyDigest ? { commitment: Object.freeze({ bodyDigest: action.bodyDigest, bodyBytes: action.bodyBytes }) } : {} });
+    return result;
+  }
+  async #introspect(session) {
+    if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
+    const networkEpoch = this.#networkEpoch;
+    if (!this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
+    const body = { requiredScopes: session.scopes };
+    const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
+    const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
+    if (await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Sign-out started during Product Session authorization");
+    if (result?.active !== true || canonicalJSON2(parseProductSession2(result.session)) !== canonicalJSON2(session)) fail10("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
+    return result;
+  }
+  async #proof(session, path2, body, authorityTime, guard = null, method2 = "POST", rawBody = null, committedDigest = null) {
+    if (path2 !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail10("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
+    const networkEpoch = this.#networkEpoch;
+    const now = authorityTime ?? await this.#now();
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail10("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
+    const expiresAt = new Date(Math.min(now.getTime() + 3e4, Date.parse(session.expiresAt))).toISOString();
+    if (expiresAt <= now.toISOString()) fail10("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
+    const input = {
+      method: method2,
+      path: path2,
+      bodyDigest: committedDigest ?? httpBodyDigest2(rawBody ?? canonicalJSON2(body)),
+      nonce: this.#tokens(),
+      issuedAt: now.toISOString(),
+      expiresAt
+    };
+    if (guard !== null) {
+      await guard.readback();
+      guard.active();
+    }
+    const proof = this.#device.sign ? await createProductSessionProofV2With2(session, input, this.#device.sign) : createProductSessionProofV22(session, input, this.#device.secret);
+    if (guard !== null) {
+      await guard.readback();
+      guard.active();
+    }
+    return proof;
+  }
+  async #now() {
+    const value = typeof this.#gateway.currentTime === "function" ? await this.#gateway.currentTime({ requestId: gatewayRequestId("t", this.#tokens()) }) : this.#clock();
+    if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail10("CLOCK_UNAVAILABLE", "Product Session authority time is invalid");
+    return value;
+  }
+  async #restoreStoredSession(epoch) {
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) return this.#pendingRevocation();
+    const raw = await this.#storage.get(this.storageKey);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (raw === null) return null;
+    const networkEpoch = this.#networkEpoch;
+    try {
+      const session = parseProductSession2(JSON.parse(raw));
+      await this.#introspect(session);
+      if (epoch !== this.#beginEpoch) return this.current;
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during Product Session re-introspection; protected state was retained for Retry");
+      await this.#clearPending(epoch);
+      if (epoch !== this.#beginEpoch) return this.current;
+      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while restoring the Product Session; protected state was retained for Retry");
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.CONNECTED, "Authoritative Product Session restored", { session });
+      return this.#state;
+    } catch (error) {
+      if (epoch !== this.#beginEpoch) return this.current;
+      if (this.#revocationRequested || error?.code === "REVOCATION_PENDING") return this.#pendingRevocation();
+      if (isNetworkUnavailable(error)) return this.#offline("Network unavailable during Product Session re-introspection; protected state was retained but is not authoritative");
+      await this.#storage.remove(this.storageKey);
+      return null;
+    }
+  }
+  async #clearPending(epoch) {
+    const mutation = this.#beginMutation.then(async () => {
+      for (const suffix of ["pending", "return", "completion"]) {
+        if (epoch !== void 0 && epoch !== this.#beginEpoch) return;
+        await this.#storage.remove(`${this.storageKey}:${suffix}`);
+      }
+    });
+    this.#beginMutation = mutation.catch(() => {
+    });
+    return mutation;
+  }
+  async #loadRevocationIntent() {
+    if (this.#storage.revocationRequested?.() === true) this.#revocationRequested = true;
+    const raw = await this.#storage.get(`${this.storageKey}:revoke`);
+    if (raw !== null) {
+      this.#revocationRequested = true;
+      this.#revocationIntent = parseRevocationIntent(raw, this.#binding, this.#device);
+    }
+    return this.#revocationRequested;
+  }
+  async #prepareRevocationIntent() {
+    await this.#loadRevocationIntent();
+    if (this.#revocationIntent !== null) {
+      let intent2 = this.#revocationIntent;
+      if (intent2.session === null) {
+        const completion = await this.#storage.get(`${this.storageKey}:completion`);
+        if (completion !== null) intent2 = createRevocationIntent(this.#binding, this.#device, intent2.intentId, deriveCompletionTarget(this.#registry, completion));
+      }
+      await this.#saveRevocationIntent(intent2);
+      return;
+    }
+    let session = this.#state.session ?? null;
+    if (session === null) {
+      const raw = await this.#storage.get(this.storageKey);
+      if (raw !== null) session = parseProductSession2(JSON.parse(raw));
+    }
+    if (session === null) {
+      const raw = await this.#storage.get(`${this.storageKey}:completion`);
+      if (raw !== null) session = deriveCompletionTarget(this.#registry, raw);
+    }
+    const intent = createRevocationIntent(this.#binding, this.#device, this.#tokens(), session);
+    this.#revocationIntent = intent;
+    await this.#saveRevocationIntent(intent);
+  }
+  async #saveRevocationIntent(intent) {
+    const raw = canonicalJSON2(intent), key = `${this.storageKey}:revoke`;
+    if (typeof this.#storage.saveRevocationIntent === "function") {
+      this.#revocationIntent = parseRevocationIntent(await this.#storage.saveRevocationIntent(key, raw), this.#binding, this.#device);
+    } else {
+      await this.#storage.set(key, raw);
+      if (await this.#storage.get(key) !== raw) fail10("INSECURE_STORAGE", "Pending sign-out intent did not read back exactly");
+      this.#revocationIntent = intent;
+    }
+  }
+  async getRevocationCompletions() {
+    if (typeof this.#storage.getRevocationCompletions !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion history");
+    return Object.freeze(readRevocationCompletions(await this.#storage.getRevocationCompletions(`${this.storageKey}:revoke-completions`), this.#binding, this.#device));
+  }
+  async getRevocationCompletion(intentId) {
+    if (typeof intentId !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(intentId)) fail10("INVALID_FIELD", "Original revocation intent ID is required");
+    if (typeof this.#storage.getRevocationCompletion !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This protected runtime has no atomic completion readback");
+    const raw = await this.#storage.getRevocationCompletion(`${this.storageKey}:revoke-completions`, intentId);
+    if (raw === null) return null;
+    const receipt = parseRevocationCompletion(raw, this.#binding, this.#device);
+    if (receipt.intentId !== intentId) fail10("REVOCATION_CHANGED", "Completion readback returned another intent");
+    return receipt;
+  }
+  async acknowledgeRevocationCompletion(receipt) {
+    const raw = canonicalJSON2(receipt);
+    parseRevocationCompletion(raw, this.#binding, this.#device);
+    if (typeof this.#storage.acknowledgeRevocationCompletion !== "function") fail10("DURABLE_REVOCATION_COMPLETION_UNSUPPORTED", "This runtime cannot acknowledge an exact completion");
+    const parsed = parseRevocationCompletion(raw, this.#binding, this.#device);
+    const current = await this.getRevocationCompletion(parsed.intentId);
+    if (current === null) return;
+    if (canonicalJSON2(current) !== raw) fail10("REVOCATION_CHANGED", "Cannot acknowledge a different original completion");
+    await this.#storage.acknowledgeRevocationCompletion(`${this.storageKey}:revoke-completions`, raw);
+  }
+  async #finishRevocationIntent(outcome) {
+    const intent = this.#revocationIntent, key = `${this.storageKey}:revoke`, raw = canonicalJSON2(intent);
+    if (typeof this.#storage.finishRevocationIntentWithCompletion === "function") {
+      const receiptRaw = canonicalJSON2(createRevocationCompletion(raw, this.#binding, this.#device, outcome));
+      const saved = await this.#storage.finishRevocationIntentWithCompletion(key, raw, receiptRaw);
+      if (saved !== receiptRaw || canonicalJSON2(await this.getRevocationCompletion(intent.intentId)) !== receiptRaw) fail10("REVOCATION_CHANGED", "Atomic cleanup did not preserve the exact completion");
+      return parseRevocationCompletion(receiptRaw, this.#binding, this.#device);
+    }
+    if (typeof this.#storage.finishRevocationIntent === "function") return this.#storage.finishRevocationIntent(key, raw);
+    if (await this.#storage.get(key) !== raw) fail10("REVOCATION_CHANGED", "Pending sign-out target changed during confirmation");
+    if (revocationSessionMatches(await this.#storage.get(this.storageKey), intent.session)) await this.#storage.remove(this.storageKey);
+    await this.#clearPending();
+    await this.#storage.remove(key);
+  }
+  #pendingRevocation(message = "Sign-out confirmation is pending; only explicit Retry may contact Auth. Product authorization is suspended.") {
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, message, { actions: ["retry"], revocationPending: true });
+    return this.#state;
+  }
+  async #recover(operation) {
+    if (this.#recoveryPromise !== null) return this.#recoveryPromise;
+    const pending = operation();
+    this.#recoveryPromise = pending;
+    try {
+      return await pending;
+    } finally {
+      if (this.#recoveryPromise === pending) this.#recoveryPromise = null;
+    }
+  }
+  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") {
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.NETWORK_UNAVAILABLE, message, { actions: this.#revocationRequested ? ["retry"] : ["retry", "guest"], ...this.#revocationRequested ? { revocationPending: true } : {} });
+    return this.#state;
+  }
+  #networkTransition(message) {
+    if (!this.#networkAvailable) return this.#offline(message);
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE2.RETRY_REQUIRED, message, { actions: ["retry", "guest"] });
+    return this.#state;
+  }
+};
+function state(status, message, extra = {}) {
+  return Object.freeze({ status, message, ...extra, ...extra.actions ? { actions: Object.freeze(extra.actions) } : {}, ...extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {} });
+}
+function secureStorage(value, platform, device2) {
+  const nativeProtected = value && ["hardware-backed", "os-protected"].includes(value.securityLevel);
+  const browserProtected = value?.securityLevel === "webcrypto-nonextractable" && platform === "web" && typeof device2?.sign === "function" && !("secret" in device2);
+  if (!nativeProtected && !browserProtected || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail10("INSECURE_STORAGE", "Product Sessions require OS/hardware protection or a Web-only non-extractable device signer");
+  return value;
+}
+function gateway(value) {
+  if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail10("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter");
+  return value;
+}
+function device(value) {
+  const fields = Object.keys(value ?? {}).sort().join("\n");
+  const secretFields = ["id", "key", "secret", "scopes", "purpose"].sort().join("\n");
+  const signerFields = ["id", "key", "sign", "scopes", "purpose"].sort().join("\n");
+  if (fields !== secretFields && fields !== signerFields) fail10("UNKNOWN_OR_MISSING_FIELD", "Product Session device configuration fields do not match the protocol schema");
+  if (typeof value.id !== "string" || typeof value.key !== "string" || !Array.isArray(value.scopes) || typeof value.purpose !== "string" || (fields === secretFields ? typeof value.secret !== "string" : typeof value.sign !== "function")) fail10("INVALID_DEVICE", "Product Session device configuration is invalid");
+  return Object.freeze({ ...value, scopes: Object.freeze([...value.scopes]) });
+}
+function tokenFactory(value) {
+  if (typeof value !== "function") fail10("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory");
+  return () => {
+    const token2 = value();
+    if (typeof token2 !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token2)) fail10("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token");
+    return token2;
+  };
+}
+function clock(value) {
+  if (typeof value !== "function") fail10("INVALID_TIME", "Product Session client requires a clock");
+  return () => {
+    const result = value();
+    if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail10("INVALID_TIME", "Product Session clock returned invalid time");
+    return result;
+  };
+}
+function isNetworkUnavailable(error) {
+  return error instanceof WalletAuthError2 && ["NETWORK_UNAVAILABLE", "CLOCK_UNAVAILABLE"].includes(error.code);
+}
+function gatewayRequestId(kind, token2) {
+  return `req_ps_${kind}_${token2}`;
+}
+function fail10(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+function assertActionUnicode(value) {
+  if (typeof value === "string") {
+    for (let i = 0; i < value.length; i++) {
+      const code = value.charCodeAt(i);
+      if (code >= 55296 && code <= 56319) {
+        const next = value.charCodeAt(++i);
+        if (!(next >= 56320 && next <= 57343)) fail10("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+      } else if (code >= 56320 && code <= 57343) fail10("INVALID_FIELD", "Social action body contains an unpaired Unicode surrogate");
+    }
+  } else if (Array.isArray(value)) {
+    for (const child of value) assertActionUnicode(child);
+  } else if (value !== null && typeof value === "object") {
+    for (const key of Object.keys(value)) {
+      assertActionUnicode(key);
+      assertActionUnicode(value[key]);
+    }
+  }
+}
+
+// vendor/wallet-auth-c5/src/metamask-evm-adapter.js
+var METAMASK_EVM_CONNECTION_STATUS2 = Object.freeze({
+  CONNECTED: "connected-evm"
+});
+var METAMASK_EVM_CHAIN_ID = 6423;
+var METAMASK_EVM_CHAIN_QUANTITY2 = "0x1917";
+var METAMASK_EVM_CHAIN2 = Object.freeze({
+  chainId: METAMASK_EVM_CHAIN_QUANTITY2,
+  chainName: "YNX Testnet",
+  nativeCurrency: Object.freeze({ name: "YNX Testnet", symbol: "YNXT", decimals: 18 }),
+  rpcUrls: Object.freeze(["https://rpc-testnet.ynxweb4.com", "https://evm.ynxweb4.com"]),
+  blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"])
+});
+var LIMITATIONS2 = Object.freeze([
+  "evm-provider-only",
+  "no-ynx-product-session",
+  "no-wallet-ai-gateway-session",
+  "no-native-ynx-account-authority"
+]);
+var MetaMaskEvmConnectionAdapter2 = class {
+  #productId;
+  #provider;
+  constructor(config) {
+    exactFields2(config, ["registry", "productId", "provider"], "MetaMask EVM adapter configuration");
+    const registry = parseProductSessionRegistry2(config.registry);
+    const product = registry.products.find((item) => item.productId === config.productId);
+    if (!product) fail11("UNKNOWN_PRODUCT", "Product is not registered for Wallet connection");
+    if (!product.evmCompatible) fail11("EVM_NOT_SUPPORTED", "Product is not registered for an EVM Wallet connection");
+    if (typeof config.productId !== "string") fail11("INVALID_METAMASK_CONFIG", "MetaMask productId is invalid");
+    this.#productId = product.productId;
+    this.#provider = config.provider;
+  }
+  async connect() {
+    const provider = this.#provider;
+    if (provider === null || provider === void 0) fail11("METAMASK_NOT_INSTALLED", "MetaMask EIP-1193 provider was not detected");
+    if (!isExplicitMetaMaskProvider(provider)) {
+      fail11("INVALID_METAMASK_PROVIDER", "Detected provider is not an explicit MetaMask EIP-1193 provider");
+    }
+    let chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
+    if (chainId !== METAMASK_EVM_CHAIN_ID) {
+      try {
+        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY2 }], true);
+      } catch (error) {
+        if (!(error instanceof WalletAuthError2) || error.code !== "CHAIN_NOT_AVAILABLE") throw error;
+        try {
+          await providerRequest(provider, "wallet_addEthereumChain", [METAMASK_EVM_CHAIN2]);
+        } catch (addError) {
+          if (addError instanceof WalletAuthError2 && addError.code === "USER_REJECTED") throw addError;
+          fail11("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 could not be added to MetaMask");
+        }
+        await providerRequest(provider, "wallet_switchEthereumChain", [{ chainId: METAMASK_EVM_CHAIN_QUANTITY2 }], true);
+      }
+      chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
+    }
+    if (chainId !== METAMASK_EVM_CHAIN_ID) fail11("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
+    const address = firstAccount(await providerRequest(provider, "eth_requestAccounts"));
+    chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
+    if (chainId !== METAMASK_EVM_CHAIN_ID) fail11("WRONG_NETWORK", "MetaMask changed networks during account approval");
+    return Object.freeze({
+      status: METAMASK_EVM_CONNECTION_STATUS2.CONNECTED,
+      wallet: "metamask",
+      connectionMode: "evm-only",
+      authority: "eip-1193-provider-only",
+      productId: this.#productId,
+      chainId: METAMASK_EVM_CHAIN_ID,
+      chainQuantity: METAMASK_EVM_CHAIN_QUANTITY2,
+      address,
+      ynxProductSession: false,
+      productSession: null,
+      limitations: LIMITATIONS2
+    });
+  }
+};
+async function providerRequest(provider, method2, params, switching = false) {
+  try {
+    return await provider.request(params === void 0 ? { method: method2 } : { method: method2, params });
+  } catch (error) {
+    if (error instanceof WalletAuthError2) throw error;
+    const code = providerErrorCode(error);
+    if (code === 4001 || code === "4001") fail11("USER_REJECTED", "MetaMask connection was rejected by the user");
+    if (switching && (code === 4902 || code === "4902")) fail11("CHAIN_NOT_AVAILABLE", "YNX EVM chain 6423 is not configured in MetaMask");
+    if (code === 4900 || code === "4900" || code === 4901 || code === "4901") fail11("WALLET_UNAVAILABLE", "MetaMask is disconnected from the requested chain");
+    fail11("WALLET_UNAVAILABLE", "MetaMask EIP-1193 request failed closed");
+  }
+}
+function isExplicitMetaMaskProvider(provider) {
+  if (typeof provider !== "object" || provider === null) return false;
+  try {
+    const rdns = provider.providerInfo?.rdns ?? provider.rdns;
+    return typeof provider.request === "function" && provider.isMetaMask === true && provider.isYNXWallet !== true && provider.isYnxWallet !== true && (rdns === void 0 || rdns === "io.metamask" || rdns === "io.metamask.flask");
+  } catch {
+    return false;
+  }
+}
+function providerErrorCode(error) {
+  if (typeof error !== "object" || error === null) return void 0;
+  try {
+    return error.code;
+  } catch {
+    return void 0;
+  }
+}
+function parseChainQuantity(value) {
+  if (typeof value !== "string" || !/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value)) {
+    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned a non-canonical chain quantity");
+  }
+  const chainId = Number(BigInt(value));
+  if (!Number.isSafeInteger(chainId)) fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an unsupported chain quantity");
+  return chainId;
+}
+function normalizeAddress(value) {
+  if (typeof value !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value)) {
+    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid EVM account address");
+  }
+  return value.toLowerCase();
+}
+function firstAccount(value) {
+  try {
+    if (!Array.isArray(value) || value.length < 1 || value.length > 1024) fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
+    return normalizeAddress(value[0]);
+  } catch (error) {
+    if (error instanceof WalletAuthError2) throw error;
+    fail11("INVALID_WALLET_RESPONSE", "MetaMask returned an invalid account list");
+  }
+}
+function fail11(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/wallet-provider-discovery.js
+var WALLET_PROVIDER_DISCOVERY_AUTHORITY = "unverified-injected-candidate";
+var WALLET_PROVIDER_KIND2 = Object.freeze({ YNX: "ynx-wallet", METAMASK: "metamask" });
+var YNX_RDNS = /* @__PURE__ */ new Set(["com.ynx.wallet", "com.ynx.wallet.companion"]);
+var METAMASK_RDNS = /* @__PURE__ */ new Set(["io.metamask", "io.metamask.flask"]);
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+var discoveryStates = /* @__PURE__ */ new WeakMap();
+function discoverInjectedWalletProviders(scope2 = globalThis) {
+  const ethereum = safely(() => scope2?.ethereum);
+  const declaredProviders = safely(() => ethereum?.providers);
+  const raw = Array.isArray(declaredProviders) ? declaredProviders : ethereum === void 0 ? [] : [ethereum];
+  return selectWalletProviderCandidates(raw.map((provider) => candidate(provider, safely(() => provider?.providerInfo), "legacy-injected")).filter(Boolean));
+}
+async function discoverEip6963WalletProviders(scope2 = globalThis, waitMs = 160) {
+  validWait(waitMs);
+  const add = safely(() => scope2?.addEventListener), dispatch = safely(() => scope2?.dispatchEvent);
+  if (typeof add !== "function" || typeof dispatch !== "function") return selectWalletProviderCandidates([]);
+  let state2 = discoveryStates.get(scope2);
+  try {
+    if (!state2) {
+      state2 = { byUuid: /* @__PURE__ */ new Map(), conflicted: /* @__PURE__ */ new Set(), announcedProviders: /* @__PURE__ */ new WeakSet() };
+      const { byUuid, conflicted, announcedProviders } = state2;
+      const listener = (event) => {
+        const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
+        if (validProvider(provider)) announcedProviders.add(provider);
+        const item = candidate(provider, info, "eip6963");
+        const uuid = canonicalUuid(safely(() => info?.uuid));
+        if (!item || uuid === null || conflicted.has(uuid)) return;
+        const previous = byUuid.get(uuid);
+        if (previous && previous.provider !== provider) {
+          byUuid.delete(uuid);
+          conflicted.add(uuid);
+          return;
+        }
+        byUuid.set(uuid, item);
+      };
+      add.call(scope2, "eip6963:announceProvider", listener);
+      discoveryStates.set(scope2, state2);
+    }
+    const EventConstructor = safely(() => scope2?.Event) ?? globalThis.Event;
+    if (typeof EventConstructor !== "function") return selectWalletProviderCandidates([]);
+    dispatch.call(scope2, new EventConstructor("eip6963:requestProvider"));
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+  } catch {
+    return selectWalletProviderCandidates([]);
+  }
+  return selectWalletProviderCandidates([...state2.byUuid.values()], state2.conflicted.size);
+}
+async function discoverWalletProviders2(scope2 = globalThis, waitMs = 160) {
+  const announced = await discoverEip6963WalletProviders(scope2, waitMs);
+  const injected = discoverInjectedWalletProviders(scope2);
+  const announcedProviders = discoveryStates.get(scope2)?.announcedProviders;
+  return selectWalletProviderCandidates(uniqueProviders([
+    announced.ynx,
+    announced.metamask,
+    ...announced.candidates,
+    ...injected.candidates.filter((item) => !announcedProviders?.has(item.provider))
+  ].filter(Boolean)), announced.conflictedAnnouncements + injected.conflictedAnnouncements);
+}
+function selectWalletProviderCandidates(input, conflictedAnnouncements = 0) {
+  if (!Array.isArray(input) || !Number.isSafeInteger(conflictedAnnouncements) || conflictedAnnouncements < 0) throw new TypeError("Wallet provider candidates are invalid");
+  const candidates = uniqueProviders(input.filter(validCandidate));
+  const ynxCandidates = candidates.filter((item) => item.kind === WALLET_PROVIDER_KIND2.YNX);
+  const metaMaskCandidates = candidates.filter((item) => item.kind === WALLET_PROVIDER_KIND2.METAMASK);
+  const ambiguities = [];
+  if (ynxCandidates.length > 1) ambiguities.push(WALLET_PROVIDER_KIND2.YNX);
+  if (metaMaskCandidates.length > 1) ambiguities.push(WALLET_PROVIDER_KIND2.METAMASK);
+  return Object.freeze({
+    ynx: ynxCandidates.length === 1 ? ynxCandidates[0] : null,
+    metamask: metaMaskCandidates.length === 1 ? metaMaskCandidates[0] : null,
+    candidates: Object.freeze(candidates),
+    ambiguities: Object.freeze(ambiguities),
+    conflictedAnnouncements,
+    authority: WALLET_PROVIDER_DISCOVERY_AUTHORITY
+  });
+}
+function walletAvailabilityFromDiscovery2(discovery) {
+  if (!validDiscovery(discovery)) throw new TypeError("Wallet provider discovery result is invalid");
+  return Object.freeze({ ynxWalletInstalled: discovery.ynx !== null, metaMaskAvailable: discovery.metamask !== null });
+}
+function candidate(provider, info, source) {
+  if (!validProvider(provider) || source !== "eip6963" && source !== "legacy-injected") return null;
+  const providerInfo = object(info) ? info : null;
+  const announcedRdns = canonicalRdns(safely(() => providerInfo?.rdns));
+  const embeddedRdnsValue = safely(() => provider?.providerInfo?.rdns) ?? safely(() => provider?.rdns);
+  const embeddedRdns = canonicalRdns(embeddedRdnsValue);
+  if (embeddedRdnsValue !== void 0 && embeddedRdnsValue !== null && embeddedRdns === null) return null;
+  if (source === "eip6963" && announcedRdns !== null && embeddedRdns !== null && announcedRdns !== embeddedRdns) return null;
+  const rdns = source === "eip6963" ? announcedRdns : embeddedRdns;
+  const ynxFlag = safely(() => provider?.isYNXWallet) === true || safely(() => provider?.isYnxWallet) === true;
+  const metaMaskFlag = safely(() => provider?.isMetaMask) === true;
+  if (rdns !== null && YNX_RDNS.has(rdns) && !ynxFlag || rdns !== null && METAMASK_RDNS.has(rdns) && ynxFlag) return null;
+  const ynx = rdns !== null && YNX_RDNS.has(rdns) && ynxFlag;
+  const metamask = !ynx && !ynxFlag && (rdns !== null && METAMASK_RDNS.has(rdns) || source === "legacy-injected" && rdns === null && metaMaskFlag);
+  if (!ynx && !metamask) return null;
+  if (ynxFlag && metaMaskFlag) return null;
+  const uuid = source === "eip6963" ? canonicalUuid(safely(() => providerInfo?.uuid)) : null;
+  if (source === "eip6963" && uuid === null) return null;
+  return Object.freeze({
+    kind: ynx ? WALLET_PROVIDER_KIND2.YNX : WALLET_PROVIDER_KIND2.METAMASK,
+    provider,
+    source,
+    uuid,
+    rdns,
+    name: canonicalName(safely(() => providerInfo?.name)),
+    authority: WALLET_PROVIDER_DISCOVERY_AUTHORITY
+  });
+}
+function uniqueProviders(input) {
+  const seen = /* @__PURE__ */ new Set(), output = [];
+  for (const item of input) if (validCandidate(item) && !seen.has(item.provider)) {
+    seen.add(item.provider);
+    output.push(item);
+  }
+  return output;
+}
+function validCandidate(value) {
+  return object(value) && validProvider(safely(() => value.provider)) && Object.values(WALLET_PROVIDER_KIND2).includes(safely(() => value.kind)) && safely(() => value.authority) === WALLET_PROVIDER_DISCOVERY_AUTHORITY;
+}
+function validDiscovery(value) {
+  const ynx = safely(() => value?.ynx), metamask = safely(() => value?.metamask), ambiguities = safely(() => value?.ambiguities), authority = safely(() => value?.authority), conflicts = safely(() => value?.conflictedAnnouncements);
+  return object(value) && (ynx === null || validCandidate(ynx) && ynx.kind === WALLET_PROVIDER_KIND2.YNX) && (metamask === null || validCandidate(metamask) && metamask.kind === WALLET_PROVIDER_KIND2.METAMASK) && Array.isArray(ambiguities) && new Set(ambiguities).size === ambiguities.length && ambiguities.every((item) => Object.values(WALLET_PROVIDER_KIND2).includes(item)) && Number.isSafeInteger(conflicts) && conflicts >= 0 && authority === WALLET_PROVIDER_DISCOVERY_AUTHORITY;
+}
+function validProvider(value) {
+  return object(value) && typeof safely(() => value.request) === "function";
+}
+function canonicalUuid(value) {
+  return typeof value === "string" && UUID.test(value) ? value.toLowerCase() : null;
+}
+function canonicalRdns(value) {
+  return typeof value === "string" && value === value.toLowerCase() && /^[a-z0-9]+(?:[.-][a-z0-9]+){1,15}$/.test(value) && value.length <= 253 ? value : null;
+}
+function canonicalName(value) {
+  return typeof value === "string" && value.length >= 1 && value.length <= 64 && value.trim() === value ? value : null;
+}
+function validWait(value) {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 2e3) throw new TypeError("Wallet provider discovery wait must be between 0 and 2000 milliseconds");
+}
+function object(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function safely(read) {
+  try {
+    return read();
+  } catch {
+    return void 0;
+  }
+}
+
+// vendor/wallet-auth-c5/src/wallet-connection-coordinator.js
+var WALLET_CONNECTION_COORDINATOR_STATUS2 = Object.freeze({
+  OPTIONS_READY: "options-ready",
+  SESSION_STATE: "session-state",
+  WALLET_OPENED: "wallet-opened",
+  WALLET_OPEN_FAILED: "wallet-open-failed",
+  YNX_WALLET_PREFERRED: "ynx-wallet-preferred",
+  EVM_CONNECTED: "evm-connected",
+  EVM_UNAVAILABLE: "evm-unavailable"
+});
+var WalletConnectionCoordinator2 = class {
+  #registry;
+  #productId;
+  #client;
+  #scope;
+  #waitMs;
+  #openWallet;
+  #openTimeoutMs;
+  #evmGeneration = 0;
+  constructor(config) {
+    exactFields2(config, ["registry", "productId", "sessionClient", "scope", "discoveryWaitMs", "openWallet", "openTimeoutMs"], "Wallet connection coordinator configuration");
+    this.#registry = parseProductSessionRegistry2(config.registry);
+    if (typeof config.productId !== "string" || !this.#registry.products.some((item) => item.productId === config.productId)) fail12("UNKNOWN_PRODUCT", "Wallet connection product is not registered");
+    if (!(config.sessionClient instanceof RecoverableProductSessionClient2) || config.sessionClient.connectionBinding.productId !== config.productId) fail12("CROSS_PRODUCT_REUSE", "Wallet connection coordinator requires the exact product session client");
+    if (typeof config.scope !== "object" && typeof config.scope !== "function" || config.scope === null) fail12("INVALID_WALLET_SCOPE", "Wallet provider discovery scope is invalid");
+    if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2e3) fail12("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
+    if (typeof config.openWallet !== "function") fail12("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");
+    if (!Number.isSafeInteger(config.openTimeoutMs) || config.openTimeoutMs < 10 || config.openTimeoutMs > 3e4) fail12("INVALID_WALLET_OPENER", "Wallet opener timeout is invalid");
+    this.#productId = config.productId;
+    this.#client = config.sessionClient;
+    this.#scope = config.scope;
+    this.#waitMs = config.discoveryWaitMs;
+    this.#openWallet = config.openWallet;
+    this.#openTimeoutMs = config.openTimeoutMs;
+  }
+  get current() {
+    return this.#client.current;
+  }
+  get storageKey() {
+    return this.#client.storageKey;
+  }
+  get connectionBinding() {
+    return this.#client.connectionBinding;
+  }
+  async options() {
+    const [discovery, environment] = await Promise.all([discoverWalletProviders2(this.#scope, this.#waitMs), this.#client.detectWalletEnvironment()]);
+    const injected = walletAvailabilityFromDiscovery2(discovery);
+    const availability = Object.freeze({ ynxWalletInstalled: environment.walletInstalled || injected.ynxWalletInstalled, metaMaskAvailable: injected.metaMaskAvailable });
+    const choices = this.#client.connectionChoices(availability);
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.OPTIONS_READY, discovery, environment, availability, choices });
+  }
+  async restore(networkAvailable = true) {
+    const sessionState = await this.#client.restore(networkAvailable);
+    if (sessionState.automatic !== true) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState });
+    return this.#openIfConnecting(sessionState);
+  }
+  async beginYNX() {
+    this.#evmGeneration += 1;
+    return this.#openIfConnecting(await this.#client.beginDetected(false));
+  }
+  async retryYNX() {
+    this.#evmGeneration += 1;
+    return this.#openIfConnecting(await this.#client.retryDetected());
+  }
+  async handleReturn(url2) {
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: await this.#client.handleReturn(url2) });
+  }
+  setNetworkAvailable(available) {
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) });
+  }
+  enterGuest() {
+    this.#evmGeneration += 1;
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: this.#client.enterGuest() });
+  }
+  async disconnect() {
+    this.#evmGeneration += 1;
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: await this.#client.disconnect() });
+  }
+  async connectMetaMask() {
+    const generation = ++this.#evmGeneration;
+    const discovery = await discoverWalletProviders2(this.#scope, this.#waitMs);
+    const environment = null;
+    const choices = this.#client.connectionChoices(walletAvailabilityFromDiscovery2(discovery));
+    if (generation !== this.#evmGeneration) return cancelledEvmConnection();
+    if (discovery.metamask === null) {
+      const ambiguous = discovery.ambiguities.includes("metamask"), download = choices.find((item) => item.id === "metamask" && item.action === "download-evm-wallet");
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.EVM_UNAVAILABLE, code: ambiguous ? "AMBIGUOUS_WALLET_PROVIDER" : "METAMASK_NOT_INSTALLED", message: ambiguous ? "Multiple MetaMask providers require an explicit platform chooser" : "MetaMask is not installed", actions: ambiguous ? ["retry", "guest", "return-to-product"] : ["download-metamask", "guest", "return-to-product"], ...download ? { downloadUrl: download.url } : {}, discovery, environment, choices });
+    }
+    try {
+      const connection = await new MetaMaskEvmConnectionAdapter2({ registry: this.#registry, productId: this.#productId, provider: discovery.metamask.provider }).connect();
+      if (generation !== this.#evmGeneration) return cancelledEvmConnection();
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.EVM_CONNECTED, connection, discovery, environment, choices });
+    } catch (error) {
+      if (generation !== this.#evmGeneration) return cancelledEvmConnection();
+      const code = error instanceof WalletAuthError2 ? error.code : "WALLET_UNAVAILABLE";
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.EVM_UNAVAILABLE, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), discovery, environment, choices });
+    }
+  }
+  async #openIfConnecting(sessionState) {
+    if (sessionState.status !== PRODUCT_SESSION_CLIENT_STATE2.CONNECTING) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState });
+    const route = sessionState.route, requestId = `req_ps_open_${sessionState.request.nonce}`;
+    try {
+      const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
+      exactFields2(result, result?.opened === true ? ["opened"] : ["opened", "code"], "Wallet opener result");
+      if (result.opened !== true) fail12(openerCode(result.code), "Platform did not open the registered Wallet route");
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.WALLET_OPENED, requestId, url: route.url, automatic: sessionState.automatic === true, sessionState });
+    } catch (error) {
+      const code = error instanceof WalletAuthError2 ? error.code : "WALLET_OPEN_FAILED";
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.WALLET_OPEN_FAILED, requestId, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), sessionState });
+    }
+  }
+};
+function cancelledEvmConnection() {
+  return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.EVM_UNAVAILABLE, code: "WALLET_CONNECTION_CANCELLED", message: "Wallet connection was cancelled", actions: ["retry", "return-to-product"] });
+}
+function openerCode(value) {
+  return ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED"].includes(value) ? value : "WALLET_OPEN_FAILED";
+}
+function coordinatorActions(code) {
+  if (code === "WALLET_NOT_INSTALLED" || code === "METAMASK_NOT_INSTALLED") return ["download", "guest", "return-to-product"];
+  if (code === "SCHEME_NOT_REGISTERED") return ["download", "retry", "return-to-product"];
+  if (code === "USER_REJECTED") return ["guest", "retry", "return-to-product"];
+  return ["retry", "return-to-product"];
+}
+function coordinatorErrorMessage(code) {
+  return { WALLET_NOT_INSTALLED: "Wallet is not installed", SCHEME_NOT_REGISTERED: "Wallet scheme is not registered", NETWORK_UNAVAILABLE: "Network is unavailable", USER_REJECTED: "Wallet connection was rejected; no session was created", WALLET_OPEN_TIMEOUT: "Wallet did not answer before the platform timeout", METAMASK_NOT_INSTALLED: "MetaMask is not installed", AMBIGUOUS_WALLET_PROVIDER: "Wallet provider selection is ambiguous", EVM_NOT_SUPPORTED: "This product is not registered for an EVM Wallet connection", WRONG_NETWORK: "Wallet did not switch to YNX EVM chain 6423", WALLET_UNAVAILABLE: "Wallet provider is unavailable" }[code] ?? "Wallet route could not be opened";
+}
+async function withTimeout(promise, timeoutMs) {
+  let timer;
+  try {
+    return await Promise.race([Promise.resolve(promise), new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new WalletAuthError2("WALLET_OPEN_TIMEOUT", "Wallet opener timed out")), timeoutMs);
+    })]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function frozen(input) {
+  const output = { ...input };
+  if (Array.isArray(output.actions)) output.actions = Object.freeze([...output.actions]);
+  return Object.freeze(output);
+}
+function fail12(code, message) {
+  throw new WalletAuthError2(code, message);
+}
+
+// vendor/wallet-auth-c5/src/product-wallet-connection.js
+var CONFIG_FIELDS = [
+  "registry",
+  "productId",
+  "platform",
+  "walletInstalled",
+  "schemeRegistered",
+  "gatewayTimeoutMs",
+  "storage",
+  "device",
+  "scope",
+  "discoveryWaitMs",
+  "openWallet",
+  "openTimeoutMs"
+];
+var PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
+function createProductWalletConnection(config) {
+  exactFields2(config, CONFIG_FIELDS, "Product Wallet connection configuration");
+  assertProductRuntime();
+  exactFields2(config.device, ["id", "key", "sign", "scopes", "purpose"], "Product Wallet secure device signer");
+  if (typeof config.device.sign !== "function") throw new WalletAuthError2("INVALID_DEVICE", "Product Wallet connection requires a platform secure device signer");
+  const gateway2 = new ProductSessionGatewayFetchAdapter2({
+    endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
+    fetch: globalThis.fetch.bind(globalThis),
+    walletInstalled: config.walletInstalled,
+    schemeRegistered: config.schemeRegistered,
+    timeoutMs: config.gatewayTimeoutMs
+  });
+  if (typeof gateway2.currentTime !== "function") throw new WalletAuthError2("CLOCK_UNAVAILABLE", "Product Wallet connection requires the authority-time adapter");
+  const sessionClient = new RecoverableProductSessionClient2({
+    registry: config.registry,
+    productId: config.productId,
+    platform: config.platform,
+    storage: config.storage,
+    gateway: gateway2,
+    device: config.device,
+    tokenFactory: secureToken,
+    clock: authorityClockRequired
+  });
+  return new WalletConnectionCoordinator2({
+    registry: config.registry,
+    productId: config.productId,
+    sessionClient,
+    scope: config.scope,
+    discoveryWaitMs: config.discoveryWaitMs,
+    openWallet: config.openWallet,
+    openTimeoutMs: config.openTimeoutMs
+  });
+}
+function secureToken() {
+  assertProductRuntime();
+  return encodeBase64url2(globalThis.crypto.getRandomValues(new Uint8Array(32)));
+}
+function authorityClockRequired() {
+  throw new WalletAuthError2("CLOCK_UNAVAILABLE", "Product Wallet connection requires verified Gateway authority time");
+}
+function assertProductRuntime() {
+  if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") throw new WalletAuthError2("INVALID_RANDOM_SOURCE", "Product Wallet connection requires a cryptographic runtime");
+  if (typeof globalThis.fetch !== "function") throw new WalletAuthError2("INVALID_GATEWAY", "Product Wallet connection requires the platform HTTPS transport");
+}
+
+// vendor/wallet-auth-c5/product-session-registry.json
 var product_session_registry_default = {
   schemaVersion: 2,
   chainId: "ynx_6423-1",
@@ -4662,14 +5637,41 @@ var product_session_registry_default = {
   },
   products: [
     {
+      productId: "ai",
+      clientId: "ynx-ai-v1",
+      displayName: "YNX AI",
+      applicationId: "com.ynxweb4.ai",
+      webOrigin: "https://assistant.ynxweb4.com",
+      nativeCallback: "ynxai://wallet-auth/callback",
+      legacyCallbacks: [
+        "ynxai://wallet-auth/callback"
+      ],
+      scopes: [
+        "ai:actions",
+        "ai:attachments",
+        "ai:conversations",
+        "ai:data-control",
+        "ai:generate",
+        "ai:permissions"
+      ],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
       productId: "calendar",
       clientId: "ynx-calendar-v1",
       displayName: "YNX Calendar",
       applicationId: "com.ynxweb4.calendar",
       webOrigin: "https://calendar.ynxweb4.com",
       nativeCallback: "ynxcalendar://wallet-auth/callback",
-      legacyCallbacks: ["ynxcalendar", "ynxcalendar://wallet-auth/callback"],
-      scopes: ["calendar:account", "calendar:recover"],
+      legacyCallbacks: [
+        "ynxcalendar",
+        "ynxcalendar://wallet-auth/callback"
+      ],
+      scopes: [
+        "calendar:account",
+        "calendar:recover"
+      ],
       evmCompatible: false,
       sessionDurationSeconds: 240
     },
@@ -4680,20 +5682,55 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.card",
       webOrigin: "https://card.ynxweb4.com",
       nativeCallback: "ynxcard://wallet-auth/callback",
-      legacyCallbacks: ["ynxcard", "ynxcard://wallet-auth/callback"],
-      scopes: ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
+      legacyCallbacks: [
+        "ynxcard",
+        "ynxcard://wallet-auth/callback"
+      ],
+      scopes: [
+        "account:read",
+        "card:application:write",
+        "card:controls:write",
+        "card:dispute:write",
+        "card:simulation:write",
+        "card:topup:write"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 180
+    },
+    {
+      productId: "cloud",
+      clientId: "ynx-cloud-web-v1",
+      displayName: "YNX Cloud",
+      applicationId: "com.ynxweb4.cloud",
+      webOrigin: "https://web4.ynxweb4.com",
+      platforms: [
+        "web"
+      ],
+      nativeCallback: null,
+      legacyCallbacks: [],
+      scopes: [
+        "files.read",
+        "files.write"
+      ],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
     },
     {
       productId: "creator-studio",
       clientId: "ynx-creator-studio-web-v1",
       displayName: "YNX Creator Studio",
-      applicationId: "com.ynxweb4.creator-studio.web",
+      applicationId: "com.ynxweb4.creator-studio",
       webOrigin: "https://creator.ynxweb4.com",
       nativeCallback: "ynxcreator://wallet-auth/callback",
-      legacyCallbacks: ["ynxcreator", "ynxcreator://wallet-auth/callback"],
-      scopes: ["creator:account", "creator:publish", "creator:revenue"],
+      legacyCallbacks: [
+        "ynxcreator",
+        "ynxcreator://wallet-auth/callback"
+      ],
+      scopes: [
+        "creator:account",
+        "creator:publish",
+        "creator:revenue"
+      ],
       evmCompatible: false,
       sessionDurationSeconds: 240
     },
@@ -4704,8 +5741,14 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.developer.testnetpreview",
       webOrigin: "https://developer.ynxweb4.com",
       nativeCallback: "ynxdeveloper://wallet-auth/callback",
-      legacyCallbacks: ["ynxdeveloper", "ynxdeveloper://wallet-auth/callback"],
-      scopes: ["account:read", "developer:deploy"],
+      legacyCallbacks: [
+        "ynxdeveloper",
+        "ynxdeveloper://wallet-auth/callback"
+      ],
+      scopes: [
+        "account:read",
+        "developer:deploy"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 180
     },
@@ -4716,10 +5759,36 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.dex",
       webOrigin: "https://dex.ynxweb4.com",
       nativeCallback: "ynxdex://wallet-auth/callback",
-      legacyCallbacks: ["ynxdex", "ynxdex://wallet-auth/callback"],
-      scopes: ["dex:account", "dex:orders", "dex:trade"],
+      legacyCallbacks: [
+        "ynxdex",
+        "ynxdex://wallet-auth/callback"
+      ],
+      scopes: [
+        "dex:account",
+        "dex:orders",
+        "dex:trade"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 180
+    },
+    {
+      productId: "docs",
+      clientId: "ynx-docs-mobile-v1",
+      displayName: "YNX Docs",
+      applicationId: "com.ynxweb4.docs",
+      webOrigin: "https://docs.ynxweb4.com",
+      nativeCallback: "ynxdocs://wallet-auth/callback",
+      legacyCallbacks: [
+        "ynxdocs://wallet-auth/callback"
+      ],
+      scopes: [
+        "docs.read",
+        "docs.write",
+        "files.read",
+        "files.write"
+      ],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
     },
     {
       productId: "exchange",
@@ -4728,8 +5797,17 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.exchange",
       webOrigin: "https://exchange.ynxweb4.com",
       nativeCallback: "ynxexchange://wallet-auth/callback",
-      legacyCallbacks: ["ynxexchange", "ynxexchange://wallet-auth/callback"],
-      scopes: ["exchange:ai", "exchange:deposit", "exchange:read", "exchange:trade", "exchange:withdrawal-review"],
+      legacyCallbacks: [
+        "ynxexchange",
+        "ynxexchange://wallet-auth/callback"
+      ],
+      scopes: [
+        "exchange:ai",
+        "exchange:deposit",
+        "exchange:read",
+        "exchange:trade",
+        "exchange:withdrawal-review"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 180
     },
@@ -4740,10 +5818,60 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.finance",
       webOrigin: "https://finance.ynxweb4.com",
       nativeCallback: "ynxfinance://wallet-auth/callback",
-      legacyCallbacks: ["ynxfinance", "ynxfinance://wallet-auth/callback"],
-      scopes: ["finance.ai.draft", "finance.pay.read", "finance.portfolio.read", "finance.profile.write"],
+      legacyCallbacks: [
+        "ynxfinance",
+        "ynxfinance://wallet-auth/callback"
+      ],
+      scopes: [
+        "finance.ai.draft",
+        "finance.pay.read",
+        "finance.portfolio.read",
+        "finance.profile.write"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 240
+    },
+    {
+      productId: "mail",
+      clientId: "ynx-mail-v1",
+      displayName: "YNX Mail",
+      applicationId: "com.ynxweb4.mail",
+      webOrigin: "https://mail.ynxweb4.com",
+      nativeCallback: "ynxmail://wallet-auth/callback",
+      legacyCallbacks: [
+        "ynxmail://wallet-auth/callback"
+      ],
+      scopes: [
+        "mail:account",
+        "mail:recover"
+      ],
+      evmCompatible: false,
+      sessionDurationSeconds: 240
+    },
+    {
+      productId: "music",
+      clientId: "ynx-music-v1",
+      displayName: "YNX Music",
+      applicationId: "com.ynxweb4.music",
+      webOrigin: "https://music.ynxweb4.com",
+      platforms: [
+        "android",
+        "ios",
+        "macos",
+        "web"
+      ],
+      nativeCallback: "ynxmusic://auth/callback",
+      legacyCallbacks: [
+        "ynxmusic://auth/callback"
+      ],
+      scopes: [
+        "music.creator",
+        "music.library",
+        "music.playback",
+        "music.profile"
+      ],
+      evmCompatible: false,
+      sessionDurationSeconds: 300
     },
     {
       productId: "pay",
@@ -4752,10 +5880,43 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.pay",
       webOrigin: "https://pay.ynxweb4.com",
       nativeCallback: "ynxpay://wallet-auth/callback",
-      legacyCallbacks: ["ynxpay", "ynxpay://wallet-auth/callback"],
-      scopes: ["account:read", "pay:case:create", "pay:settlement:submit"],
+      legacyCallbacks: [
+        "ynxpay",
+        "ynxpay://wallet-auth/callback"
+      ],
+      scopes: [
+        "account:read",
+        "pay:case:create",
+        "pay:settlement:submit"
+      ],
       evmCompatible: true,
-      sessionDurationSeconds: 180
+      sessionDurationSeconds: 180,
+      platforms: [
+        "android",
+        "ios",
+        "linux",
+        "macos",
+        "windows"
+      ]
+    },
+    {
+      productId: "pay-merchant",
+      clientId: "ynx-merchant-console-v1",
+      displayName: "YNX Merchant Console",
+      applicationId: "com.ynxweb4.merchant-console",
+      webOrigin: "https://pay.ynxweb4.com",
+      webCallback: "https://pay.ynxweb4.com/merchant/wallet-auth/callback",
+      platforms: [
+        "web"
+      ],
+      nativeCallback: null,
+      legacyCallbacks: [],
+      scopes: [
+        "account:read",
+        "merchant:session:create"
+      ],
+      evmCompatible: true,
+      sessionDurationSeconds: 240
     },
     {
       productId: "quant",
@@ -4764,8 +5925,18 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.quant",
       webOrigin: "https://quant.ynxweb4.com",
       nativeCallback: "ynxquant://wallet-auth/callback",
-      legacyCallbacks: ["ynxquant", "ynxquant://wallet-auth/callback"],
-      scopes: ["quant:account", "quant:mandate:create", "quant:mandate:execute", "quant:mandate:revoke"],
+      legacyCallbacks: [
+        "ynxquant",
+        "ynxquant://wallet-auth/callback"
+      ],
+      scopes: [
+        "quant:account",
+        "quant:mandate:create",
+        "quant:mandate:execute",
+        "quant:mandate:revoke",
+        "quant:paper:workspace",
+        "quant:records:read"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 180
     },
@@ -4776,8 +5947,16 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.shop",
       webOrigin: "https://shop.ynxweb4.com",
       nativeCallback: "ynxshop://wallet-auth/callback",
-      legacyCallbacks: ["ynxshop", "ynxshop://wallet-auth/callback"],
-      scopes: ["account:read", "shop:orders:write", "shop:profile:write"],
+      legacyCallbacks: [
+        "ynxshop",
+        "ynxshop://wallet-auth/callback"
+      ],
+      scopes: [
+        "account:read",
+        "shop:orders:write",
+        "shop:profile:write",
+        "shop:seller:operate"
+      ],
       evmCompatible: true,
       sessionDurationSeconds: 240
     },
@@ -4788,8 +5967,19 @@ var product_session_registry_default = {
       applicationId: "com.ynx.social",
       webOrigin: "https://social.ynxweb4.com",
       nativeCallback: "ynx-social://com.ynx.social",
-      legacyCallbacks: ["ynx-social", "ynx-social://com.ynx.social"],
-      scopes: ["account:read", "profile:link"],
+      legacyCallbacks: [
+        "ynx-social",
+        "ynx-social://com.ynx.social"
+      ],
+      scopes: [
+        "account:read",
+        "profile:link",
+        "social.ai",
+        "social.contacts",
+        "social.feed",
+        "social.messaging",
+        "social.profile"
+      ],
       evmCompatible: false,
       sessionDurationSeconds: 240
     },
@@ -4800,25 +5990,17 @@ var product_session_registry_default = {
       applicationId: "com.ynxweb4.video",
       webOrigin: "https://video.ynxweb4.com",
       nativeCallback: "ynxvideo://wallet-auth/callback",
-      legacyCallbacks: ["ynxvideo", "ynxvideo://wallet-auth/callback"],
-      scopes: ["video:account", "video:library", "video:playback"],
+      legacyCallbacks: [
+        "ynxvideo",
+        "ynxvideo://wallet-auth/callback"
+      ],
+      scopes: [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
       evmCompatible: false,
       sessionDurationSeconds: 300
-    },
-    {
-      productId: "wallet-web-companion",
-      clientId: "ynx-wallet-web-companion-v1",
-      displayName: "YNX Wallet Web Companion",
-      applicationId: "web.ynx.wallet.companion",
-      webOrigin: "https://www.ynxweb4.com",
-      nativeCallback: "ynxwalletcompanion://wallet-auth/callback",
-      legacyCallbacks: ["ynxwalletcompanion://wallet-auth/callback"],
-      scopes: ["account:read", "chain:network:add", "chain:network:switch", "wallet:session:request"],
-      evmCompatible: true,
-      sessionDurationSeconds: 180,
-      platforms: ["web"],
-      webApplicationId: "web.ynx.wallet.companion",
-      webCallback: "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
     }
   ]
 };
@@ -4827,9 +6009,10 @@ var product_session_registry_default = {
 var ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 if (PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN !== ACCEPTED_PUBLIC_GATEWAY_ORIGIN) throw new Error("The accepted Wallet Product Session v2 origin was not preserved.");
 var DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
-  sourceCommit: "203be5e108be468350591615a64d5d36ab87a8f1",
-  sourceTree: "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
-  packageTree: "02eb7176e2de175a68cf5a5ef27e55968cc17fea",
+  sourceCommit: "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  sourceTree: "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  sourceClosure: "4c7196b1d2156d13565e528fd7fd623a2fd4c61c91602fef81e2b50d79df5d9c",
+  factorySource: "3d35e858f68d39a142e8a7798670b8d4a09e8f41f21476e3e692e3a06128f1f7",
   gatewayOrigin: ACCEPTED_PUBLIC_GATEWAY_ORIGIN,
   migrated: false
 });
@@ -4900,6 +6083,34 @@ async function createNativeRuntime(bridge, grantedDevice, owner) {
       remove: async (key) => {
         assertActive();
         await bridge.protectedStorage.remove(key);
+      },
+      saveRevocationIntent: async (key, rawIntent) => {
+        assertActive();
+        const method2 = bridge.protectedStorage.saveRevocationIntent;
+        if (!method2) throw new Error("Native Wallet atomic completion support requires an updated app.");
+        return method2(key, rawIntent);
+      },
+      finishRevocationIntentWithCompletion: async (key, expectedRawIntent, receiptRaw) => {
+        assertActive();
+        const method2 = bridge.protectedStorage.finishRevocationIntentWithCompletion;
+        if (!method2) throw new Error("Native Wallet atomic completion support requires an updated app.");
+        return method2(key, expectedRawIntent, receiptRaw);
+      },
+      getRevocationCompletions: async (key) => {
+        const method2 = bridge.protectedStorage.getRevocationCompletions;
+        if (!method2) throw new Error("Native Wallet atomic completion support requires an updated app.");
+        return method2(key);
+      },
+      getRevocationCompletion: async (key, intentId) => {
+        const method2 = bridge.protectedStorage.getRevocationCompletion;
+        if (!method2) throw new Error("Native Wallet atomic completion support requires an updated app.");
+        return method2(key, intentId);
+      },
+      acknowledgeRevocationCompletion: async (key, expectedReceiptRaw) => {
+        assertActive();
+        const method2 = bridge.protectedStorage.acknowledgeRevocationCompletion;
+        if (!method2) throw new Error("Native Wallet atomic completion support requires an updated app.");
+        await method2(key, expectedReceiptRaw);
       }
     },
     device: Object.freeze({ ...nativeDevice, sign: async (input) => {
@@ -4995,9 +6206,9 @@ async function inspectDeveloperWalletV2Runtime() {
   }
 }
 async function enterDeveloperWalletV2Guest() {
-  const guest = walletConnectionChoices(product_session_registry_default, "developer", { ynxWalletInstalled: false, metaMaskAvailable: false }).find((choice) => choice.id === "guest");
+  const guest = walletConnectionChoices2(product_session_registry_default, "developer", { ynxWalletInstalled: false, metaMaskAvailable: false }).find((choice) => choice.id === "guest");
   if (!guest || guest.authoritative !== false || !Array.isArray(guest.limitations)) return unavailable(new Error("The accepted SDK did not provide a non-authoritative Guest choice."));
-  const sessionState = Object.freeze({ status: PRODUCT_SESSION_CLIENT_STATE.GUEST, message: guest.label, limitations: Object.freeze([...guest.limitations]) });
+  const sessionState = Object.freeze({ status: PRODUCT_SESSION_CLIENT_STATE2.GUEST, message: guest.label, limitations: Object.freeze([...guest.limitations]) });
   return Object.freeze({ available: true, connectionMode: "local-guest", authoritative: false, sessionState, source: DEVELOPER_WALLET_V2_SOURCE });
 }
 function unavailable(error) {
