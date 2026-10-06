@@ -31,7 +31,7 @@ test('actual package copy commands retain the startup and launcher admission dep
     const startup = await import(pathToFileURL(join(root, 'desktop/wallet-admission-startup.mjs')));
     const admission = await startup.openBundledWalletAdmission();
     assert.throws(() => admission.assertCurrent({}), { code: 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED' });
-    for (const path of ['desktop/wallet-admission-startup.mjs', 'runtime/ynx-workbench/lib/wallet-admission-channel.js', 'runtime/ynx-workbench/package.json']) {
+    for (const path of ['desktop/wallet-admission-startup.mjs', 'runtime/ynx-workbench/lib/wallet-admission-channel.js', 'runtime/ynx-workbench/lib/wallet-admission-protocol.js', 'runtime/ynx-workbench/package.json']) {
       const file = join(root, path), retained = file + '.retained';
       await rename(file, retained);
       await assert.rejects(verifyPackagedLocalImports(root));

@@ -105,7 +105,7 @@ mkdir -p "$app/Contents/Resources/code/apps/developer/desktop"
 cp desktop/local-workbench.mjs desktop/local-plugin-copy.mjs desktop/local-workbench-ipc.mjs desktop/local-python-toolchain.mjs desktop/wallet-admission-startup.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
-cp runtime/ynx-workbench/lib/wallet-admission-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
+cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 if [[ -n "$local_node_runtime" ]]; then
   cp desktop/workspace-path-identity.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
   cp desktop/local-debug-session.mjs desktop/local-debugpy-bootstrap.py "$app/Contents/Resources/code/apps/developer/desktop/"

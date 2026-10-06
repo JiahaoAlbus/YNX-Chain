@@ -52,7 +52,8 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   const walletAdmission = process.env.YNX_WORKSPACE_MODE === 'local'
     ? require('./wallet-admission-channel').inheritedAdmission()
     : { assertCurrent: async () => { throw require('./wallet-admission-channel').missing(); }, close() {} };
-  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-wallet-admission', () => Object.freeze({ assertCurrent: value => walletAdmission.assertCurrent(value) })));
+  const walletAdmissionRpc = require('./wallet-admission-protocol').createAdmissionRpc(walletAdmission);
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-wallet-admission', () => walletAdmissionRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => walletAdmission.close() });
   const drafts = new DraftRecoveryStore();
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
