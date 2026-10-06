@@ -39,7 +39,11 @@ async function sourceContext(vscode, env) {
   if (!document || !['c', 'cpp'].includes(document.languageId) || document.uri.scheme !== 'file' || document.isUntitled) throw Error(t('source'));
   const path = await realpath(document.uri.fsPath), within = relative(root, path);
   if (!within || within === '..' || within.startsWith('../') || isAbsolute(within)) throw Error(t('source'));
-  if (document.isDirty && !await document.save()) throw Error(t('save'));
+  // The extension's dirty bit is an asynchronous mirror of the editor. Always
+  // cross its save RPC before selecting/building a target, even when that mirror
+  // still looks clean after formatting. No delay or implicit source replacement.
+  if (!await document.save()) throw Error(t('save'));
+  if (document.isClosed || document.isDirty) throw Error(t('save'));
   return { root, path, version: document.version, folder: folders[0], document, language: document.languageId };
 }
 // Subscribe before executeTask: short native tasks may finish before its RPC promise.

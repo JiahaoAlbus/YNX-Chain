@@ -1,7 +1,7 @@
 import test from 'node:test';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, readFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -332,4 +332,20 @@ test('F5 generated C++ target rejects a Python editor before build and offers it
  f.document.languageId='cpp';assert.equal(await provider.resolveDebugConfiguration(f.folder,launch.configuration),launch.configuration);
  const custom={...launch.configuration,program:'/explicit/project/target'};f.document.languageId='python';assert.equal(await provider.resolveDebugConfiguration(f.folder,custom),custom);
  const config=JSON.parse(originalTasks);config.tasks[0].args[config.tasks[0].args.indexOf('${file}')]='main.cpp';await writeFile(tasks.path,JSON.stringify(config));assert.equal(await provider.resolveDebugConfiguration(f.folder,launch.configuration),launch.configuration);
+});
+
+test('clean extension mirror still crosses actual document save RPC before compiling current visible source',async t=>{
+ const f=await fixture();t.after(()=>rm(f.root,{recursive:true,force:true}));await writeFile(f.path,'#include <iostream>\nint main(){std::cout<<"STALE_DISK";}');
+ const {DocumentDataExt}=runtimeRequire('@theia/plugin-ext/lib/plugin/document-data');
+ let enter,release,saves=0,executions=0;const reached=new Promise(ok=>enter=ok),gate=new Promise(ok=>release=ok);
+ f.document.save=()=>DocumentDataExt.prototype.save.call({disposed:false,uri:f.document.uri,proxy:{$trySaveDocument:async()=>{saves++;enter();await gate;await writeFile(f.path,'#include <iostream>\nint main(){std::cout<<"CURRENT_EDITOR";}');f.document.version++;return true;}}});
+ const execute=f.vscode.tasks.executeTask;f.vscode.tasks.executeTask=task=>{executions++;return execute(task)};
+ const running=f.commands.get('ynx.cpp.runActive')();
+ // No timing sleep: the first observable boundary must be the save RPC.
+ await Promise.race([reached,running.then(()=>{throw Error('Run skipped current editor save RPC')})]);
+ assert.equal(executions,0);assert.equal(f.document.isDirty,false);release();await running;
+ assert.equal(saves,1);assert.deepEqual(f.errors,[]);assert.ok(f.output.includes('CURRENT_EDITOR'));assert.ok(!f.output.includes('STALE_DISK'));
+});
+test('save cancellation or failure never compiles an old file even when extension mirror says clean',async t=>{
+ for(const kind of ['cancel','failure']){const f=await fixture();t.after(()=>rm(f.root,{recursive:true,force:true}));await writeFile(f.path,'int main(){}');let executions=0;f.document.save=async()=>{if(kind==='failure')throw Error('Save permission failure');return false};f.vscode.tasks.executeTask=async()=>{executions++;throw Error('Unexpected compile')};await f.commands.get('ynx.cpp.runActive')();assert.equal(executions,0);assert.equal(f.errors.length,1);}
 });
