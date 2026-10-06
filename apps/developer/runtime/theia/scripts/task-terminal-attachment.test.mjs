@@ -29,6 +29,15 @@ test('task connection timeout and terminal disposal reject and release retained 
  const timeout=fixture({connect:false,timeout:10});await assert.rejects(timeout.widget.start(17),/timed out/);assert.equal(timeout.records.size,0);
  const closed=fixture({connect:false});const pending=closed.widget.start(17);await Promise.resolve();closed.close();await assert.rejects(pending,/closed/);assert.equal(closed.records.size,0);
 });
-test('interactive shell preserves original immediate attachment behavior',async()=>{
- const f=fixture({kind:'user',connect:false});await f.widget.start(17);assert.deepEqual(f.events,['unregister']);
+test("interactive and debug shells wait for connection; existing attachment timeout does not close process",async()=>{for(const kind of ["user","debug"]){const f=fixture({kind,connect:false,timeout:10});let closes=0;f.widget.shellTerminalServer.close=async()=>{closes++;};await assert.rejects(f.widget.start(17),/timed out/);assert.equal(closes,0);const good=fixture({kind});await good.widget.start(17);assert.ok(good.events.includes("Hello C++ 42\r\n"));}});
+test('new shell timeout closes only own process and late connection cannot continue run',async()=>{
+ const f=fixture({kind:'debug',connect:false,timeout:10});let closes=[],runs=0;const output=[];
+ f.widget.createTerminal=async()=>17;f.widget.shellTerminalServer.close=async id=>{closes.push(id);};f.widget.writeLine=text=>output.push(text);
+ await assert.rejects(f.widget.start().then(()=>{runs++;}),/timed out/);
+ f.open();await Promise.resolve();assert.equal(runs,0);assert.deepEqual(closes,[17]);assert.match(output[0],/retry/);
+});
+test('failure notification dismissal never blocks rejection or cleanup',async()=>{
+ const {setNotification}=require('../../ynx-workbench/lib/task-terminal-attachment');let notices=0;
+ setNotification(()=>{notices++;return new Promise(()=>{});});
+ try{const f=fixture({kind:'user',connect:false,timeout:10});await assert.rejects(f.widget.start(17),/timed out/);assert.equal(notices,1);}finally{setNotification(()=>{});}
 });

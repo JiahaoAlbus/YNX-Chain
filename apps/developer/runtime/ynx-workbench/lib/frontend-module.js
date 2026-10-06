@@ -106,7 +106,11 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     context.container, '/services/ynx-local-workbench-context',
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
-    onStart() { workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message)); },
+    onStart() {
+      workspaceTextEdits.setNotification(message => context.container.get(MessageService).warn(message));
+      require('./task-terminal-attachment').setNotification(() => context.container.get(MessageService).error(
+        String(nls.locale || '').startsWith('zh') ? '终端输出连接失败，请关闭该终端后重试。' : 'Terminal output could not connect. Close this terminal and retry.'));
+    },
   })).inSingletonScope();
   bind(OriginalProcessTaskResolver).to(ProcessTaskResolver).inSingletonScope();
   rebind(ProcessTaskResolver).toDynamicValue(context => new GeneratedCppTaskGuard(

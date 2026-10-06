@@ -55,7 +55,7 @@ class LocalJsDebugTerminalContribution {
       try {
         await terminal.start();
         if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
-        this.terminalServer.open(terminal);
+        await this.terminalServer.open(terminal);
         await terminal.executeCommand({ cwd, args });
         if (record.ended || owner.stopped) throw Error('Local JavaScript terminal launch has ended');
         result = { processId: await terminal.processId };
