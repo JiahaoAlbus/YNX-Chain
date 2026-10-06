@@ -10,6 +10,7 @@ import { createDebugSessionSupervisor } from './local-debug-session.mjs';
 import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
+import { preparePrivatePluginCopy } from './local-plugin-copy.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -223,13 +224,14 @@ export async function prepareLocalPlugins({ runtime, context }) {
     throw Error('Extension state belongs to a different project.');
   await verifyComposedRuntime(runtime.root, runtime.pin);
   const source = join(runtime.root, 'plugins'), digest = await composedTreeDigest(source);
-  const session = await mkdtemp(join(context.temporary, 'extensions-')), plugins = join(session, 'plugins');
+  return preparePrivatePluginCopy(context.temporary, async session => {
+  const plugins = join(session, 'plugins');
   await cp(source, plugins, { recursive: true, errorOnExist: true, force: false, mode: constants.COPYFILE_FICLONE });
   if (await composedTreeDigest(plugins) !== digest || await composedTreeDigest(source) !== digest)
     throw Error('Extension copy changed before launch.');
   await writeFile(join(session, 'source.json'), JSON.stringify({ runtimeArtifact: runtime.pin, pluginTreeSha256: digest, projectId: context.id,
     scope: 'Fresh per-launch extension copy; source cache remains sealed. Runtime state is not reused as executable source.' }) + '\n', { flag: 'wx', mode: 0o600 });
-  return plugins;
+  });
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
