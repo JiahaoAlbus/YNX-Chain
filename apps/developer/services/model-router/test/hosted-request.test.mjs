@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createModelRouter } from '../src/router.mjs';
+import { createMockHostedRouter as createModelRouter } from './stream-fixture.mjs';
 import { streamText } from './stream-fixture.mjs';
 import { existingHostedRequest, validatedModelAttachments } from '../src/hosted-request.mjs';
 const session = '3428bfc8-c20a-4b6c-b738-a606d0d68278';

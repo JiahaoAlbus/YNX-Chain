@@ -1,7 +1,7 @@
 import { streamResponse } from './stream-fixture.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createModelRouter } from "../src/router.mjs";
+import { createMockHostedRouter as createModelRouter } from './stream-fixture.mjs';
 
 const tick = () => new Promise(resolve => setImmediate(resolve));
 function controlled(options = {}) {

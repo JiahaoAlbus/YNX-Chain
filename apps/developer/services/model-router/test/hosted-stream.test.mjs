@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import http from 'node:http';
-import { createModelRouter } from '../src/router.mjs';
+import { createMockHostedRouter as createModelRouter } from './stream-fixture.mjs';
 import { streamText } from './stream-fixture.mjs';
 
 const response = raw => new Response(raw, { headers: { 'content-type': 'text/event-stream' } });

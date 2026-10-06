@@ -51,7 +51,7 @@ test("model catalog admits a verified Wallet without a guest cookie and accepts 
   const f = await fixture(t);
   const response = await f.get(f.binding());
   assert.equal(response.status, 200);
-  assert.equal((await response.json()).hosted.model, "fixture-private-model");
+  assert.equal((await response.json()).hosted.configuredModel, "fixture-private-model");
   assert.equal(f.guestCalls(), 0); assert.equal(f.healthCalls(), 1);
 });
 

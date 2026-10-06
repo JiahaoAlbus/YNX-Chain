@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
 import { fault } from './central-identity.mjs';
 import { reviewedHostedPrompt } from '../../model-router/src/hosted-request.mjs';
@@ -16,8 +16,9 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
   const tickets = new Map(), proposals = new Map();
   function configuredModel() {
     const hosted = modelRouter?.catalog?.()?.hosted;
-    return hosted?.id === 'ynx-hosted' && typeof hosted.model === 'string' &&
-      /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(hosted.model) ? hosted.model : null;
+    const model = hosted?.configuredModel ?? hosted?.model;
+    return hosted?.id === 'ynx-hosted' && typeof model === 'string' &&
+      /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/.test(model) ? model : null;
   }
   function requireModel(expected) {
     const model = configuredModel();
@@ -40,7 +41,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         // cannot mint approvals or exhaust the one-use review ticket budget.
         const csrf = url.searchParams.get('checkOnly') === '1' ? undefined : token(tickets, { bound, expires });
         json(response, 200, { csrf, account: admission.identity.account, projectId: admission.context.projectId,
-          expiresAt: expires, sessionExpiresAt: admission.expiresAt, model: configuredModel(), signingAvailable: false }); return true;
+          expiresAt: expires, sessionExpiresAt: admission.expiresAt, model: null, configuredModel: configuredModel(), modelConfidence: 'unknown', signingAvailable: false }); return true;
       }
       if (request.method === 'GET' && url.pathname.startsWith('/runtime/native-tools/ai/conversations')) {
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
@@ -91,6 +92,20 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         aiStore.remove(admission.context.owner, admission.context.projectId, removeConversation[1]);
         json(response, 200, { deleted: true }); return true;
       }
+      const recoverConversation = /^\/runtime\/native-tools\/ai\/conversations\/([a-f0-9-]{36})\/recover$/.exec(url.pathname);
+      if (recoverConversation) {
+        exact(body, ['csrf']);
+        if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
+        const conversation = aiStore.get(admission.context.owner, admission.context.projectId, recoverConversation[1]);
+        if (!conversation) throw fault('Saved request is unavailable.', 'tools_ai_record', 404);
+        if (conversation.review && (conversation.review.binding !== bound || conversation.review.sessionId !== sessionId))
+          throw fault('Recovery requires the original workspace session and review. The saved request remains available.', 'tools_ai_recovery_binding_changed', 409);
+        // The producer requires original persisted actor/project/current and
+        // independent terminal authority. None has been supplied to this host.
+        // A conversation UUID, service key or current replacement session must
+        // not be used to manufacture that read permission or resend the prompt.
+        throw fault('Remote status recovery is unavailable because the original service authorization and current binding have not been supplied. The remote outcome remains UNKNOWN; this request was not resent.', 'tools_ai_recovery_unavailable', 503);
+      }
       if (url.pathname === '/runtime/native-tools/chain/contracts/call') {
         exact(body, ['csrf', 'address', 'function']);
         const forward = Readable.from([Buffer.from(JSON.stringify({ protocolVersion: 'ynx-code-chain/v1', address: body.address, function: body.function }))]);
@@ -111,9 +126,10 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         const selection = body.mode === 'selected-edit' ? reviewedSelection(body.context, sessionId) : null;
         const wirePrompt = reviewedHostedPrompt(selection ? EDIT_SYSTEM : AI_SYSTEM, selectedPrompt(body));
         const model = requireModel();
-        const proposalId = token(proposals, { bound, expires, prompt: body.prompt, context: body.context, selection, model });
+        const requestDigest = createHash('sha256').update(wirePrompt).digest('hex');
+        const proposalId = token(proposals, { bound, expires, prompt: body.prompt, context: body.context, selection, model, requestDigest });
         const csrf = token(tickets, { bound, expires });
-        json(response, 200, { proposalId, csrf, prompt: body.prompt, context: body.context, mode: selection ? 'selected-edit' : 'plan', contextBytes: Buffer.byteLength(body.context), wirePrompt, requestBytes: Buffer.byteLength(wirePrompt), model, expiresAt: expires }); return true;
+        json(response, 200, { proposalId, csrf, prompt: body.prompt, context: body.context, mode: selection ? 'selected-edit' : 'plan', contextBytes: Buffer.byteLength(body.context), wirePrompt, requestBytes: Buffer.byteLength(wirePrompt), model, modelConfidence: 'configuration-only', expiresAt: expires }); return true;
       }
       if (url.pathname === '/runtime/native-tools/approve') {
         exact(body, ['csrf', 'proposalId', 'approval']);
@@ -121,9 +137,12 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         if (!proposal || proposal.bound !== bound || proposal.expires <= now() || body.approval !== 'send-reviewed-context-once') throw fault('The reviewed request is not available.', 'tools_proposal', 409);
         proposals.delete(body.proposalId); // One-use, including failures. Never auto-retry a model request.
         requireModel(proposal.model);
+        if (modelRouter?.catalog?.()?.hosted?.generationAvailable === false)
+          throw fault('Hosted AI generation is unavailable because service authentication and original project/current authorization have not been supplied.', 'tools_model_service_authorization', 503);
         if (!aiStore) throw fault('Saved AI requests are not configured for this workspace.', 'tools_ai_store_unavailable', 503);
         const conversation = aiStore.create({ owner: admission.context.owner, projectId: admission.context.projectId, prompt: proposal.prompt,
-          context: proposal.selection ? JSON.stringify({ kind: SELECTION_KIND, context: proposal.context }) : proposal.context, model: proposal.model });
+          context: proposal.selection ? JSON.stringify({ kind: SELECTION_KIND, context: proposal.context }) : proposal.context, model: proposal.model,
+          review: { binding: bound, sessionId, proposalId: body.proposalId, requestDigest: proposal.requestDigest } });
         const controller = new AbortController(), timer = setTimeout(() => controller.abort(fault('Wallet session expired during generation.', 'tools_identity_changed', 401)), Math.max(1, admission.expiresAt - now()));
         const assertCurrent = async () => {
           requireModel(proposal.model);
@@ -144,20 +163,25 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         try {
           const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: proposal.model,
             hostedSession: conversation.id, prompt: selectedPrompt(proposal),
-            system: proposal.selection ? EDIT_SYSTEM : AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal, assertCurrent }), controller.signal);
+            system: proposal.selection ? EDIT_SYSTEM : AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal, assertCurrent,
+            onDispatch() { if (controller.signal.aborted) throw controller.signal.reason; aiStore.markDispatched(admission.context.owner, admission.context.projectId, conversation.id); },
+            onOperation(operation) { if (!controller.signal.aborted) aiStore.noteOperation(admission.context.owner, admission.context.projectId, conversation.id, operation); },
+          }), controller.signal);
           await assertCurrent();
+          if (result.operation) aiStore.noteOperation(admission.context.owner, admission.context.projectId, conversation.id, result.operation);
           if (result.model !== proposal.model) throw fault('The model response does not match the approved model. No edit was offered.', 'tools_model_response_mismatch', 502);
           const edit = proposal.selection ? reviewedReplacement(result.text, proposal.selection) : null;
-          aiStore.complete(admission.context.owner, admission.context.projectId, conversation.id, { text: result.text, model: result.model });
-          json(response, 200, { text: result.text, ...(edit ? { edit } : {}), model: result.model, conversationId: conversation.id, saved: true, applied: false, signed: false });
+          aiStore.complete(admission.context.owner, admission.context.projectId, conversation.id, { text: result.text, model: result.model, operation: result.operation });
+          json(response, 200, { text: result.text, ...(edit ? { edit } : {}), model: result.model, ...(result.operation ? { operation: result.operation } : {}), conversationId: conversation.id, saved: true, applied: false, signed: false });
         } catch (error) {
           aiStore.fail(admission.context.owner, admission.context.projectId, conversation.id, { code: typeof error.code === 'string' && /^[a-z][a-z0-9_]{0,95}$/.test(error.code) ? error.code : 'model_request_failed' });
+          error.conversationId = conversation.id;
           if (error.code === 'provider_auth_failed') throw fault('The hosted model service is not authorized for this product yet.', 'tools_model_service_authorization', 503);
           throw error;
         } finally { clearTimeout(timer); clearInterval(check); response.removeListener('close', disconnect); } return true;
       }
       throw fault('This tool action is not supported.', 'tools_route', 405);
-    } catch (error) { json(response, error.status || 503, { code: error.code || 'tools_unavailable', error: error.message || 'Tools are unavailable.' }); return true; }
+    } catch (error) { json(response, error.status || 503, { code: error.code || 'tools_unavailable', error: error.message || 'Tools are unavailable.', ...(error.conversationId ? { conversationId: error.conversationId } : {}) }); return true; }
   }
   return { handler };
 }

@@ -1,7 +1,8 @@
-import { streamResponse } from './stream-fixture.mjs';
+import { createMockHostedRouter, streamResponse } from './stream-fixture.mjs';
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createModelRouter } from "../src/router.mjs";
+import { readHostedCompletion } from "../src/hosted-completion.mjs";
 
 const jsonResponse = (value, init = {}) => new Response(JSON.stringify(value), {
   status: 200,
@@ -47,8 +48,8 @@ test("hosted adapter parses bounded SSE and reports live capacity", async () => 
       : streamResponse('hello world'),
   });
   const health = await router.hostedHealth();
-  assert.deepEqual(health, { available: true, provider: "ynx-local-open-model", model: "qwen3:4b", active: 1, queued: 2 });
-  const result = await router.generate({ provider: "ynx-hosted", system: "Review code.", prompt: "Review this file." });
+  assert.equal(health.available, false); assert.equal(health.model, null); assert.equal(health.configuredModel, "qwen3:4b"); assert.equal(health.serviceReachable, true);
+  const result = await readHostedCompletion(streamResponse("hello world"));
   assert.equal(result.text, "hello world");
   assert.equal(result.model, "qwen3:4b");
 });
@@ -56,7 +57,7 @@ test("hosted adapter parses bounded SSE and reports live capacity", async () => 
 test("queue is bounded and invalid providers and credentials fail closed", async () => {
   let release;
   const gate = new Promise((resolve) => { release = resolve; });
-  const router = createModelRouter({
+  const router = createMockHostedRouter({
     hostedBaseURL: "http://127.0.0.1:18111/ai-build",
     maxConcurrent: 1,
     maxQueued: 1,
@@ -75,7 +76,7 @@ test("client cancellation removes queued work and releases running capacity", as
   let releaseFirst;
   const firstGate = new Promise((resolve) => { releaseFirst = resolve; });
   let calls = 0;
-  const router = createModelRouter({
+  const router = createMockHostedRouter({
     hostedBaseURL: "http://127.0.0.1:18111/ai-build",
     maxConcurrent: 1,
     maxQueued: 2,

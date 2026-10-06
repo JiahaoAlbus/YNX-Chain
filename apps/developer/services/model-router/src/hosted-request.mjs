@@ -1,6 +1,8 @@
+import { assertNoSelectedSecrets } from './context-secrets.mjs';
 // Exact existing AI Gateway contract. Selected pasted text is prompt content,
 // never represented as an owned file or implicitly included history.
 export function reviewedHostedPrompt(system, prompt) {
+  assertNoSelectedSecrets(system, prompt);
   const value = `${system}\n\n${prompt}`;
   if (Buffer.byteLength(value) > 8000)
     throw Object.assign(new Error('The reviewed request exceeds the existing model service limit of 8000 UTF-8 bytes. Shorten the request or selected text.'), { code: 'model_prompt_limit', status: 413 });
@@ -34,6 +36,7 @@ export function validatedModelAttachments(value = []) {
       typeof file.text !== 'string' || !file.text.length || file.text.includes('\0') || Buffer.byteLength(file.text) > 262144)
       throw invalidAttachments();
     seen.add(file.name);
+    assertNoSelectedSecrets(file.text);
     return { id: file.id, name: file.name, mimeType: file.mimeType, text: file.text };
   });
 }

@@ -8,7 +8,7 @@ import test from "node:test";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
 import { createNativeAIStore } from "../../codeoss-service/src/native-ai-store.mjs";
 import { createAgentOrchestrator } from "../src/service.mjs";
-import { createModelRouter } from "../../model-router/src/router.mjs";
+import { createMockHostedRouter as createModelRouter } from "../../model-router/test/stream-fixture.mjs";
 import { streamText } from "../../model-router/test/stream-fixture.mjs";
 const source = 'export const greeting = "old"; // TRUSTED_SELECTED_SOURCE\n';
 const digest = text => createHash("sha256").update(text).digest("hex");

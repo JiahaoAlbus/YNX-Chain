@@ -1,6 +1,7 @@
 import { createFairQueue } from "./fair-queue.mjs";
-import { readHostedStream } from "./hosted-stream.mjs";
+import { readHostedCompletion } from './hosted-completion.mjs';
 import { existingHostedRequest, validatedModelAttachments } from "./hosted-request.mjs";
+import { assertNoSelectedSecrets } from './context-secrets.mjs';
 import { assertExpectedIdentity, consumerIdentityBinding } from "../../codeoss-service/src/identity-consumer-binding.mjs";
 
 const PROTOCOL = "ynx-code-model-router/v1";
@@ -72,10 +73,14 @@ export function createModelRouter({
       hosted: {
         id: "ynx-hosted",
         label: "YNX hosted open model",
-        model: hostedModel,
+        model: null,
+        configuredModel: hostedModel,
+        modelConfidence: 'unknown',
+        generationAuthority: 'NOT_SUPPLIED',
+        generationAvailable: false,
         managedSession: true,
         credentialMode: "server-managed",
-        availability: "health-check-required",
+        availability: 'generation-authority-not-supplied',
       },
       bringYourOwnKey: Object.entries(PROVIDERS).map(([id, value]) => ({
         id,
@@ -91,27 +96,31 @@ export function createModelRouter({
   }
 
   async function hostedHealth() {
+    const unavailable = reason => ({ available: false, serviceReachable: false,
+      providerConfigured: null, provider: null, configuredModel: null, model: null, actualModel: null,
+      modelConfidence: 'unknown', generationAuthority: 'NOT_SUPPLIED', active: null, queued: null, reason });
     try {
       const response = await fetchImpl(`${stripSlash(hostedBaseURL)}/health`, {
         headers: { accept: "application/json" },
         signal: AbortSignal.timeout(Math.min(timeoutMs, 2_500)),
       });
-      const value = await response.json().catch(() => ({}));
-      return {
-        available: response.ok && value.available !== false,
-        provider: String(value.provider || "ynx-local-open-model").slice(0, 120),
-        model: String(value.model || hostedModel).slice(0, 120),
-        active: Number(value.active || 0),
-        queued: Number(value.queued || 0),
-      };
-    } catch {
+      if (!response.ok) return unavailable('health_request_failed');
+      const value = await response.json().catch(() => null);
+      if (!value || typeof value !== 'object' || Array.isArray(value)) return unavailable('health_invalid');
+      const model = typeof value.model === 'string' && MODEL_PATTERN.test(value.model) ? value.model : null;
       return {
         available: false,
-        provider: "ynx-local-open-model",
-        model: hostedModel,
-        active: 0,
-        queued: 0,
+        serviceReachable: true,
+        providerConfigured: typeof value.providerConfigured === 'boolean' ? value.providerConfigured : null,
+        provider: typeof value.provider === 'string' && value.provider.length > 0 && value.provider.length <= 120 ? value.provider : null,
+        configuredModel: model,
+        model: null, actualModel: null, modelConfidence: 'unknown', generationAuthority: 'NOT_SUPPLIED',
+        active: Number.isSafeInteger(value.active) && value.active >= 0 ? value.active : null,
+        queued: Number.isSafeInteger(value.queued) && value.queued >= 0 ? value.queued : null,
+        reason: 'generation_authority_not_supplied',
       };
+    } catch {
+      return unavailable('health_unavailable');
     }
   }
 
@@ -119,6 +128,15 @@ export function createModelRouter({
     const input = validateRequest(request);
     if (ownerForRequest && !input.ownerId)
       throw fault("An authenticated AI owner is required.", "model_owner_required", 401);
+    if (input.provider === 'ynx-hosted') {
+      // Source/schema checks are independent of generation admission. A Wallet
+      // owner or assertCurrent callback is not the missing producer ai:generate
+      // principal/project/current authority, and must not open this boundary.
+      if (input.hostedSession) {
+        try { existingHostedRequest(input); } catch (error) { return Promise.reject(error); }
+      }
+      return Promise.reject(fault('Hosted AI service authentication and original generation/project/current authority have not been supplied.', 'model_supply_not_supplied', 503));
+    }
     const schedule = (signal) => queue.schedule({ ...input, ownerId: input.ownerId || "internal",
       signal: signal ? (input.signal ? AbortSignal.any([signal, input.signal]) : signal) : input.signal });
     return activity ? activity.operation("ai", schedule) : schedule();
@@ -134,6 +152,7 @@ export function createModelRouter({
         ? await hosted(input)
         : await bringYourOwnKey(input);
     return {
+      ...result,
       protocolVersion: PROTOCOL,
       provider: input.provider,
       model: result.model,
@@ -155,6 +174,8 @@ export function createModelRouter({
       responseFormat: input.responseFormat,
     };
     try {
+      if (signal.aborted) throw signal.reason;
+      input.onDispatch?.();
       response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
         method: "POST",
         headers: {
@@ -170,13 +191,7 @@ export function createModelRouter({
     }
     if (!response.ok)
       throw upstreamFault(response.status, "YNX hosted model");
-    let text;
-    try { text = await readHostedStream(response, signal, input.hostedSession); }
-    catch (error) {
-      if (typeof error?.code === "string" && error.code.startsWith("model_")) throw error;
-      throw modelConnectionFault(error, input.signal, "YNX hosted model");
-    }
-    return output(text, response.headers.get("x-ynx-ai-model") || hostedModel);
+    return readHostedCompletion(response, { signal, callerSignal: input.signal, sessionId: input.hostedSession, onOperation: input.onOperation });
   }
 
   async function bringYourOwnKey(input) {
@@ -236,7 +251,7 @@ export function createModelRouter({
   return { protocolVersion: PROTOCOL, catalog, hostedHealth, generate, handler };
 }
 
-function validateRequest(value) {
+export function validateRequest(value) {
   if (!value || typeof value !== "object")
     throw fault("Model request is required.", "invalid_model_request", 400);
   const provider = String(value.provider || "ynx-hosted").toLowerCase();
@@ -249,6 +264,7 @@ function validateRequest(value) {
   const system = typeof value.system === "string" ? value.system.trim() : "";
   if (prompt.trim().length < 4 || prompt.length > 96 * 1024 || system.length > 16 * 1024)
     throw fault("AI context exceeds its bounded request size.", "invalid_model_context", 400);
+  assertNoSelectedSecrets(prompt, system);
   const apiKey = typeof value.apiKey === "string" ? value.apiKey : "";
   if (provider !== "ynx-hosted" && (apiKey.length < 12 || apiKey.length > 512))
     throw fault("A request-only provider API key is required.", "provider_key_required", 401);
@@ -263,7 +279,7 @@ function validateRequest(value) {
     hostedSession: value.hostedSession,
     ownerId: typeof value.ownerId === "string" && value.ownerId.length > 0 && value.ownerId.length <= 256
       ? value.ownerId : undefined,
-    model: requestedModel || (provider === "ynx-hosted" ? "qwen3:4b" : PROVIDERS[provider].defaultModel),
+    model: requestedModel || (provider === "ynx-hosted" ? null : PROVIDERS[provider].defaultModel),
     apiKey,
     prompt,
     system,
@@ -274,6 +290,8 @@ function validateRequest(value) {
     responseFormat: value.responseFormat === "json" ? "json" : undefined,
     signal: isAbortSignal(value.signal) ? value.signal : undefined,
     assertCurrent: typeof value.assertCurrent === 'function' ? value.assertCurrent : undefined,
+    onDispatch: typeof value.onDispatch === 'function' ? value.onDispatch : undefined,
+    onOperation: typeof value.onOperation === 'function' ? value.onOperation : undefined,
   };
 }
 
@@ -380,7 +398,7 @@ function output(text, model, usage = { inputTokens: null, outputTokens: null }) 
     throw fault("Model provider returned no usable text.", "empty_model_output", 502);
   if (Buffer.byteLength(text) > 2 * 1024 * 1024)
     throw fault("Model output exceeded the response boundary.", "model_output_too_large", 502);
-  return { text, model: String(model).slice(0, 120), usage };
+  return { text, model: model === null ? null : String(model).slice(0, 120), usage };
 }
 function normalizeUsage(value) {
   return {

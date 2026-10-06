@@ -1,6 +1,6 @@
 // Existing AI Gateway emits metadata -> token(s) -> done after completion.
 // A token or EOF alone is never a completed answer or persistence receipt.
-export async function readHostedStream(response, signal, expectedSession) {
+export async function readHostedStream(response, signal, expectedSession, { onMetadata, details = false } = {}) {
   const invalid = () => Object.assign(new Error("YNX hosted model returned an invalid or incomplete stream."), { code: "model_stream_invalid", status: 502 });
   const tooLarge = () => Object.assign(new Error("Model output exceeded the response boundary."), { code: "model_output_too_large", status: 502 });
   if (!/^text\/event-stream(?:;|$)/i.test(response.headers.get("content-type") || "") || !response.body) throw invalid();
@@ -22,7 +22,11 @@ export async function readHostedStream(response, signal, expectedSession) {
     if (!value || typeof value !== "object" || Array.isArray(value)) throw invalid();
     const exact = keys => Object.keys(value).sort().join() === keys.sort().join();
     const id = value => typeof value === "string" && value.length > 0 && value.length <= 256;
-    if (event === "metadata" && !metadata && exact(["requestId", "sessionId"]) && id(value.requestId) && id(value.sessionId) && (!expectedSession || value.sessionId === expectedSession)) metadata = value;
+    if (event === "metadata" && !metadata && exact(["requestId", "sessionId"]) && id(value.requestId) && id(value.sessionId) && (!expectedSession || value.sessionId === expectedSession)) {
+      if (signal?.aborted) throw signal.reason;
+      metadata = value;
+      onMetadata?.({ ...metadata });
+    }
     else if (event === "token" && metadata && exact(["text"]) && typeof value.text === "string") {
       outputBytes += Buffer.byteLength(value.text);
       if (outputBytes > 2 * 1024 * 1024) throw tooLarge();
@@ -64,7 +68,7 @@ export async function readHostedStream(response, signal, expectedSession) {
     try { consume(decoder.decode()); } catch (error) { if (error.code) throw error; throw invalid(); }
     if (!done || pending.trim() || !text.trim()) throw invalid();
     complete = true;
-    return text;
+    return details ? { text, ...metadata } : text;
   } finally {
     if (!complete) void reader.cancel().catch(() => {});
     reader.releaseLock();

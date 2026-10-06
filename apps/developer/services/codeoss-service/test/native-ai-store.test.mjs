@@ -59,7 +59,7 @@ test('terminal responses are immutable and close/reopen marks unfinished request
   const failed = store.create(input()); store.fail('verified-owner-A', 'project-A', failed.id, { code: 'model_timeout' });
   const pending = store.create(input()); store.close();
   const reopened = f.open();
-  assert.equal(reopened.get('verified-owner-A', 'project-A', pending.id).status, 'interrupted');
+  assert.equal(reopened.get('verified-owner-A', 'project-A', pending.id).status, 'unknown');
   assert.equal(reopened.get('verified-owner-A', 'project-A', pending.id).text, undefined);
   assert.equal(reopened.get('verified-owner-A', 'project-A', failed.id).code, 'model_timeout');
   for (const id of [completed.id, failed.id, pending.id]) {
@@ -93,7 +93,7 @@ test('key permissions, symlinks, wrong lengths and wrong key bytes fail without 
   assert.throws(() => createNativeAIStore(f.options), { code: 'native_ai_store_configuration' });
   assert.deepEqual(readFileSync(outsideKey), key);
   unlinkSync(f.options.keyPath); writeFileSync(f.options.keyPath, key, { mode: 0o600 });
-  assert.equal(f.open().get('verified-owner-A', 'project-A', value.id).status, 'interrupted');
+  assert.equal(f.open().get('verified-owner-A', 'project-A', value.id).status, 'unknown');
 });
 
 test('ciphertext cannot be moved across owner, project or conversation AAD bindings', t => {
@@ -141,7 +141,7 @@ test('live child owner blocks takeover; a dead child generation is interrupted o
   try { assert.equal(db.prepare('SELECT status FROM native_ai_conversations WHERE id=?').get(id).status, 'generating'); } finally { db.close(); }
   const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited; stopped = true;
   const recovered = f.open();
-  assert.equal(recovered.get('verified-owner-A', 'project-A', id).status, 'interrupted');
+  assert.equal(recovered.get('verified-owner-A', 'project-A', id).status, 'unknown');
   assert.throws(() => recovered.complete('verified-owner-A', 'project-A', id, { text: 'late answer', model: 'qwen3:4b' }), { code: 'native_ai_conversation_terminal' });
 });
 
@@ -178,7 +178,7 @@ test('owner can delete terminal conversations while live, cross-owner and cross-
   const reopened = f.open();
   assert.equal(reopened.get('verified-owner-A', 'project-A', completed.id), null);
   assert.equal(reopened.get('verified-owner-A', 'project-A', failed.id), null);
-  assert.equal(reopened.get('verified-owner-A', 'project-A', pending.id).status, 'interrupted');
+  assert.equal(reopened.get('verified-owner-A', 'project-A', pending.id).status, 'unknown');
   assert.equal(reopened.remove('verified-owner-A', 'project-A', pending.id), true);
   reopened.close();
   assert.deepEqual(f.open().list('verified-owner-A', 'project-A'), []);
@@ -200,4 +200,46 @@ test('record and byte reservations are bounded, preserve existing data and relea
   assert.equal(store.create(input()).status, 'generating', 'explicit deletion frees a full project slot');
   assert.equal(store.list('verified-owner-A', 'project-A').length, NATIVE_AI_LIMITS.projectRecords);
   assert.equal(store.create(input({ projectId: 'project-B' })).status, 'generating');
+});
+
+test('version one migration preserves encrypted answers and marks unfinished remote outcome UNKNOWN', t => {
+  const f = fixture(t), store = f.open(), completed = store.create(input());
+  store.complete('verified-owner-A', 'project-A', completed.id, { text: 'preserved answer', model: 'qwen3:4b' });
+  const pending = store.create(input()); store.close();
+  const db = new DatabaseSync(f.options.filename);
+  let original;
+  try {
+    original = Buffer.from(db.prepare('SELECT sealed FROM native_ai_conversations WHERE id=?').get(completed.id).sealed);
+    db.exec(`BEGIN IMMEDIATE; ALTER TABLE native_ai_conversations RENAME TO old_v2;
+      CREATE TABLE native_ai_conversations(owner TEXT NOT NULL,project_id TEXT NOT NULL,id TEXT NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('generating','completed','failed','interrupted')),created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,model TEXT NOT NULL,sealed BLOB NOT NULL,storage_bytes INTEGER NOT NULL,PRIMARY KEY(owner,project_id,id));
+      INSERT INTO native_ai_conversations SELECT * FROM old_v2; DROP TABLE old_v2;
+      CREATE INDEX native_ai_owner ON native_ai_conversations(owner,project_id,created_at DESC);
+      UPDATE native_ai_meta SET version=1; COMMIT;`);
+  } finally { db.close(); }
+  const recovered = f.open();
+  assert.equal(recovered.get('verified-owner-A', 'project-A', completed.id).text, 'preserved answer');
+  const unknown = recovered.get('verified-owner-A', 'project-A', pending.id);
+  assert.equal(unknown.status, 'unknown'); assert.equal(unknown.operation.remoteOutcome, 'UNKNOWN'); assert.equal(unknown.model, null);
+  const readback = new DatabaseSync(f.options.filename);
+  try {
+    assert.equal(readback.prepare('SELECT version FROM native_ai_meta').get().version, 2);
+    assert.deepEqual(Buffer.from(readback.prepare('SELECT sealed FROM native_ai_conversations WHERE id=?').get(completed.id).sealed), original);
+  } finally { readback.close(); }
+});
+
+test('same-operation receipt survives interruption and cannot be replaced by a late completion', t => {
+  const store = fixture(t).open(), record = store.create(input());
+  const operation = { requestId: 'ai-0123456789abcdef01234567', sessionId: record.id, model: 'qwen3:4b', modelConfidence: 'provider_reported',
+    usage: { inputTokens: 0, outputTokens: null, totalTokens: null }, usageConfidence: 'provider_reported', costConfidence: 'unknown',
+    state: 'UNKNOWN', remoteOutcome: 'UNKNOWN', delivery: 'UNKNOWN', nodeFinality: 'UNKNOWN', cancellation: 'unsupported' };
+  store.markDispatched('verified-owner-A', 'project-A', record.id); store.noteOperation('verified-owner-A', 'project-A', record.id, operation);
+  assert.throws(() => store.complete('verified-owner-A', 'project-A', record.id, { text: 'wrong operation', model: 'qwen3:4b', operation: { ...operation, requestId: 'ai-ffffffffffffffffffffffff' } }), { code: 'native_ai_store_input' });
+  store.fail('verified-owner-A', 'project-A', record.id, { code: 'model_timeout' });
+  const unknown = store.get('verified-owner-A', 'project-A', record.id);
+  assert.equal(unknown.status, 'unknown'); assert.equal(unknown.operation.requestId, operation.requestId); assert.equal(unknown.operation.usage.inputTokens, 0);
+  assert.equal(unknown.operation.usage.outputTokens, null); assert.equal(unknown.text, undefined);
+  assert.throws(() => store.noteOperation('verified-owner-A', 'project-A', record.id, operation), { code: 'native_ai_conversation_terminal' });
+  assert.throws(() => store.complete('verified-owner-A', 'project-A', record.id, { text: 'late answer', model: 'qwen3:4b' }), { code: 'native_ai_conversation_terminal' });
 });

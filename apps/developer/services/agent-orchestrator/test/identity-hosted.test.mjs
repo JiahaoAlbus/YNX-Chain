@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import { createWorkspaceStore } from '../../workspace-manager/src/store.mjs';
 import { createNativeAIStore } from '../../codeoss-service/src/native-ai-store.mjs';
-import { createModelRouter } from '../../model-router/src/router.mjs';
+import { createMockHostedRouter as createModelRouter } from '../../model-router/test/stream-fixture.mjs';
 import { streamText } from '../../model-router/test/stream-fixture.mjs';
 import { createAgentOrchestrator } from '../src/service.mjs';
 import { consumerIdentityBinding } from '../../codeoss-service/src/identity-consumer-binding.mjs';
