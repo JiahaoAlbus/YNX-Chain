@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "a80-r2",
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-a80ed8c10-r2-20261006",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not the packaged source commit",
+    "automaticGitHubSourceArchives": "publication carrier only; cannot rebuild this package"
+  },
+  "packagedSource": {
+    "commit": "a80ed8c10d9cac889772301278ef0f2954f14417",
+    "tree": "a64357edae0547cfccaf860e62ee40d28a24d3ac",
+    "remoteSourceCommitPublished": false,
+    "claimScope": "packaged source identity and corresponding packaged code; not a complete published Git source archive"
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-a80-r2-macos-arm64-unsigned.dmg",
+    "bytes": 316461806,
+    "sha256": "d9974724a255375cf4046e5a11e3063de4575cc5ab7e8d44bddd46be29a419ab",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "27.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "retains an x86_64 macos-trash backend fallback; native Cocoa Trash path present, all deletion paths not verified"
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "node": "26.7.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "83eb4d3d0c424584964ea52291b9fc3b0de2ca04979713dc40d9475d56aebe2a"
+  },
+  "integrity": {
+    "nativeMainSha256": "a3589bd750aa7c6282e64a25c31c1c557b867d31c66797c427a4caec5ee580d5",
+    "packagingProvenanceSha256": "7778924dbace2375a029a52efbae6611f92cdd9169ba0969e45a4dc37d42499a",
+    "sbomSha256": "efc59b64cdad7a34cda1b552eb275325d0ae09ddb691fd7c9779acef03d9c252"
+  },
+  "signing": {
+    "kind": "unsigned ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "packageIntegrity": "PASS",
+    "sourceAndPackagedCodeIdentity": "PASS",
+    "nativeStartupAndAboutSourceIdentity": "PASS",
+    "newProjectRunDebugStopReopen": "NOT_VERIFIED",
+    "cppPythonJsFullNativeJourneys": "NOT_VERIFIED",
+    "allOtherLanguages": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "walletAuthChainExplorerDeployment": "NOT_VERIFIED",
+    "realOnlineAI": "NOT_VERIFIED",
+    "cloudEcosystem": "NOT_VERIFIED",
+    "all63ExtensionsAndRemoteDevelopment": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "fullIDEGoalComplete": false,
+    "hostedAIGenerateAndRecovery": "CLOSED_NOT_SUPPLIED"
+  },
+  "dataProtection": {
+    "instruction": "Preserve projects, settings and extensions. Keep earlier packages for rollback. This QA release does not reset user or Chain data."
+  }
+}
