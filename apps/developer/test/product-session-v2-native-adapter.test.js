@@ -218,3 +218,66 @@ test('UNKNOWN atomic finish retains the same intent for a fresh explicitly appro
     assert.equal(seen.finished[1][2],seen.finished[0][2]);assert.equal(f.calls.end,2);
   }finally{await f.cleanup(runtime);}
 });
+
+test('cold runtime reads retained receipts without restore, signing, network or acknowledgement',async()=>{
+ const f=fixture();atomicPorts(f);let runtime;
+ try {
+  runtime=await adapter.beginDeveloperWalletV2Connection();
+  const result=await runtime.connection.disconnect();const receipt=result.sessionState.revocationCompletion;
+  const before={...f.calls};runtime=await adapter.createDeveloperWalletV2Runtime();
+  assert.deepEqual(await runtime.connection.getRevocationCompletions(),[receipt]);
+  assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+  assert.equal(f.calls.fetch,before.fetch);assert.equal(f.calls.sign,before.sign);assert.equal(f.calls.write,before.write);
+  await assert.rejects(runtime.connection.acknowledgeRevocationCompletion(receipt),/Explicit native/);
+  runtime=await adapter.beginDeveloperWalletV2Connection();
+  await assert.rejects(runtime.connection.acknowledgeRevocationCompletion(receipt),/durable Developer/);
+  assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+ }finally{await f.cleanup(runtime);}
+});
+
+test('acknowledgement requires successful exact durable journal readback before SDK removal',async()=>{
+ const f=fixture();atomicPorts(f);let runtime;let saved=null,mode='fail';
+ const journal={persist:async receipt=>{if(mode==='fail')throw Error('journal commit failed');saved=structuredClone(receipt);},read:async()=>mode==='mismatch'?null:saved};
+ try{
+  runtime=await adapter.beginDeveloperWalletV2Connection();const receipt=(await runtime.connection.disconnect()).sessionState.revocationCompletion;
+  runtime=await adapter.beginDeveloperWalletV2Connection(journal);
+  await assert.rejects(runtime.connection.acknowledgeRevocationCompletion(receipt),/journal commit failed/);
+  assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+  mode='mismatch';await assert.rejects(runtime.connection.acknowledgeRevocationCompletion(receipt),/exact durable/);
+  assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+  mode='ok';await runtime.connection.acknowledgeRevocationCompletion(receipt);
+  assert.deepEqual(saved,receipt);assert.equal(await runtime.connection.getRevocationCompletion(receipt.intentId),null);
+ }finally{await f.cleanup(runtime);}
+});
+
+test('native capability ending during journal commit cannot acknowledge retained receipt',async()=>{
+ const f=fixture();atomicPorts(f);let runtime,finish;let saved;
+ const journal={persist:receipt=>{saved=structuredClone(receipt);return new Promise(resolve=>{finish=resolve;});},read:async()=>saved};
+ try{
+  runtime=await adapter.beginDeveloperWalletV2Connection();const receipt=(await runtime.connection.disconnect()).sessionState.revocationCompletion;
+  runtime=await adapter.beginDeveloperWalletV2Connection(journal);
+  const ack=runtime.connection.acknowledgeRevocationCompletion(receipt);const rejected=assert.rejects(ack,/Explicit native/);
+  while(!finish)await new Promise(resolve=>setImmediate(resolve));
+  await runtime.endNativeOperation();finish();await rejected;
+  assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+ }finally{await f.cleanup(runtime);}
+});
+
+test('default connection consumes real native journal ports before acknowledgement; bad commit retains SDK receipt',async()=>{
+ const f=fixture();atomicPorts(f);let runtime;const journal=new Map(),events=[];let bad=true;
+ Object.assign(f.bridge.protectedStorage,{
+  consumerJournalPersist:async raw=>{events.push('persist');if(bad)return '{}';journal.set(JSON.parse(raw).intentId,raw);return raw;},
+  consumerJournalRead:async id=>{events.push('read');return journal.get(id)??null;},
+ });
+ const ack=f.bridge.protectedStorage.acknowledgeRevocationCompletion;
+ f.bridge.protectedStorage.acknowledgeRevocationCompletion=async(...args)=>{events.push('ack');return ack(...args);};
+ try {
+  runtime=await adapter.beginDeveloperWalletV2Connection();const receipt=(await runtime.connection.disconnect()).sessionState.revocationCompletion;
+  runtime=await adapter.beginDeveloperWalletV2Connection();
+  await assert.rejects(runtime.connection.acknowledgeRevocationCompletion(receipt),/exact receipt/);
+  assert.deepEqual(events,['persist']);assert.deepEqual(await runtime.connection.getRevocationCompletion(receipt.intentId),receipt);
+  events.length=0;bad=false;await runtime.connection.acknowledgeRevocationCompletion(receipt);
+  assert.deepEqual(events,['persist','read','ack']);assert.equal(journal.get(receipt.intentId),canonicalJSON(receipt));
+  assert.equal(await runtime.connection.getRevocationCompletion(receipt.intentId),null);
+ }finally{await f.cleanup(runtime);}
+});

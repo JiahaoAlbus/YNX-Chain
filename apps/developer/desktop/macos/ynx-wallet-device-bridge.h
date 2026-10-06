@@ -40,7 +40,7 @@ static BOOL YNXDeviceStorageAllowed(id key) {return [key isKindOfClass:NSString.
 static NSArray *YNXAtomicKeys(void) {return @[YNXDeviceStorageBase,[YNXDeviceStorageBase stringByAppendingString:@":pending"],[YNXDeviceStorageBase stringByAppendingString:@":return"],[YNXDeviceStorageBase stringByAppendingString:@":completion"],[YNXDeviceStorageBase stringByAppendingString:@":revoke"],[YNXDeviceStorageBase stringByAppendingString:@":revoke-completions"]];}
 static id YNXAtomicJSON(NSString *s) {return [s isKindOfClass:NSString.class]?[NSJSONSerialization JSONObjectWithData:[s dataUsingEncoding:NSUTF8StringEncoding] options:NSJSONReadingFragmentsAllowed error:nil]:nil;}
 static BOOL YNXAtomicASCII(NSString *s,NSUInteger max) {return [s isKindOfClass:NSString.class]&&s.length<=max&&[s canBeConvertedToEncoding:NSASCIIStringEncoding];}
-static BOOL YNXAtomicKey(id key) {return [YNXAtomicKeys() containsObject:key]||YNXDevicePattern(key,@"^native-session-anchor:[0-9a-f]{64}$");}
+static BOOL YNXAtomicKey(id key) {return [YNXAtomicKeys() containsObject:key]||YNXDevicePattern(key,@"^native-session-anchor:[0-9a-f]{64}$")||YNXDevicePattern(key,@"^native-consumer-journal:[A-Za-z0-9_-]{32,64}$");}
 static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 @interface YNXWalletDeviceBridge : NSObject
 @property(nonatomic,readonly) NSString *publicKey;
@@ -52,6 +52,8 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 - (NSString *)getRevocationCompletions:(NSString *)key error:(NSError **)error;
 - (NSString *)getRevocationCompletion:(NSString *)key intentId:(NSString *)intentID error:(NSError **)error;
 - (BOOL)acknowledgeRevocationCompletion:(NSString *)key expectedReceiptRaw:(NSString *)raw error:(NSError **)error;
+- (NSString *)consumerJournalPersist:(NSString *)raw error:(NSError **)error;
+- (NSString *)consumerJournalRead:(NSString *)intentID error:(NSError **)error;
 - (void)endUserOperation;
 - (BOOL)prepareAuthorizationURL:(NSString *)url error:(NSError **)error;
 - (BOOL)acceptCallbackURL:(NSString *)url;
@@ -175,6 +177,7 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 - (BOOL)validateAtomicRecords:(NSDictionary *)r error:(NSError **)error {
     for(NSString *key in r){NSString *raw=r[key];BOOL ok=NO;id v=YNXAtomicJSON(raw);
         if(YNXDevicePattern(key,@"^native-session-anchor:[0-9a-f]{64}$"))ok=YNXDevicePattern(raw,@"^[0-9a-f]{64}$");
+        else if(YNXDevicePattern(key,@"^native-consumer-journal:[A-Za-z0-9_-]{32,64}$")){NSDictionary *receipt=[self revocationReceipt:raw];ok=receipt&&[key isEqual:[@"native-consumer-journal:" stringByAppendingString:receipt[@"intentId"]]];}
         else if([key isEqual:YNXAtomicKeys()[0]])ok=[self revocationSession:v];
         else if([key isEqual:YNXAtomicKeys()[1]])ok=YNXDeviceFields(v,@"version chainId productId clientId platform applicationId bundleId packageId origin callback deviceId deviceAlgorithm deviceKey nonce state scopes purpose issuedAt expiresAt")&&[self fullBinding:v]&&[self tokens:v]&&[self scopes:v[@"scopes"]]&&[v[@"purpose"] isKindOfClass:NSString.class]&&[v[@"purpose"] length]>0&&[v[@"purpose"] length]<=180&&YNXDeviceDate(v[@"issuedAt"])&&YNXDeviceDate(v[@"expiresAt"])&&[YNXDeviceDate(v[@"expiresAt"]) timeIntervalSinceDate:YNXDeviceDate(v[@"issuedAt"])]>0;
         else if([key isEqual:YNXAtomicKeys()[2]]){NSURLComponents *u=[NSURLComponents componentsWithString:raw];NSMutableDictionary *q=[NSMutableDictionary new];BOOL unique=YES;for(NSURLQueryItem *i in u.queryItems){if(!i.value||q[i.name]){unique=NO;break;}q[i.name]=i.value;}u.query=nil;ok=unique&&raw.length<=4096&&[u.URL.absoluteString isEqual:@"ynxdeveloper://wallet-auth/callback"]&&[self tokens:q]&&((YNXDeviceFields(q,@"result nonce state reason")&&[q[@"result"] isEqual:@"rejected"]&&[q[@"reason"] isEqual:@"user_rejected"])||(YNXDeviceFields(q,@"result nonce state approval")&&[q[@"result"] isEqual:@"approved"]&&[self fullBinding:[self decodeObject:q[@"approval"]]]));}
@@ -270,6 +273,22 @@ static NSString *const YNXAtomicFormat=@"ynx-developer-protected-state/v1";
 - (BOOL)acknowledgeRevocationCompletion:(NSString *)key expectedReceiptRaw:(NSString *)raw error:(NSError **)error {
     NSDictionary *v=[self revocationReceipt:raw];if(![key isEqual:YNXAtomicKeys()[5]]||![self consented]||!v)return [self fail:error reason:@"Invalid or unapproved completion acknowledgement."];
     return [[self atomicOperation:^id(NSMutableDictionary *r,NSError **e){NSArray *history=[self revocationHistory:r[key]];if(!history){[self fail:e reason:@"Corrupt history; preserved."];return nil;}NSMutableArray *next=[history mutableCopy];for(NSDictionary *old in history)if([old[@"intentId"] isEqual:v[@"intentId"]]){if(![YNXDeviceCanonical(old) isEqual:raw]){[self fail:e reason:@"REVOCATION_CHANGED: acknowledgement differs."];return nil;}[next removeObject:old];r[key]=YNXDeviceCanonical(next);break;}return @YES;} error:error] boolValue];
+}
+
+- (NSString *)consumerJournalPersist:(NSString *)raw error:(NSError **)error {
+    NSDictionary *receipt=[self revocationReceipt:raw];
+    if(!receipt||![self consented]){[self fail:error reason:@"A bound receipt and native consent are required for the consumer journal."];return nil;}
+    return [self atomicOperation:^id(NSMutableDictionary *r,NSError **e){
+        NSString *key=[@"native-consumer-journal:" stringByAppendingString:receipt[@"intentId"]],*old=r[key];
+        if(old){if(![old isEqual:raw]){[self fail:e reason:@"REVOCATION_CHANGED: consumer journal differs."];return nil;}return old;}
+        BOOL found=NO;for(NSDictionary *v in [self revocationHistory:r[YNXAtomicKeys()[5]]])if([YNXDeviceCanonical(v) isEqual:raw]){found=YES;break;}
+        if(!found){[self fail:e reason:@"REVOCATION_CHANGED: exact protected completion is unavailable."];return nil;}
+        r[key]=raw;return raw;
+    } error:error];
+}
+- (NSString *)consumerJournalRead:(NSString *)intentID error:(NSError **)error {
+    if(!YNXDevicePattern(intentID,@"^[A-Za-z0-9_-]{32,64}$")){[self fail:error reason:@"Invalid consumer journal intent ID."];return nil;}
+    return [self atomicOperation:^id(NSMutableDictionary *r,NSError **e){return r[[@"native-consumer-journal:" stringByAppendingString:intentID]];} error:error];
 }
 
 - (NSString *)stored:(NSString *)key error:(NSError **)error {if(![YNXAtomicKeys() containsObject:key]){[self fail:error reason:@"Storage key is outside the Developer Product Session."];return nil;}return [self rawStored:key error:error];}

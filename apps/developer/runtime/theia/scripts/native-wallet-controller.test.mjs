@@ -78,7 +78,7 @@ test('actual CommandRegistry and menu contribution open/reuse the registered Wid
  await commands.executeCommand(menu.action.commandId); await commands.executeCommand(menu.action.commandId); assert.deepEqual(calls, ['left', widget.id, widget.id]);
 });
 test('source pin verifies the single original TS/vendor/crypto closure and full legal notices', async () => {
- const pin = await buildNativeWalletConsumer({ verify: true }); assert.equal(pin.licenseInputs.length, 3); assert.ok(pin.licenseInputs.some(item => item.name === '@ynx-chain/wallet-auth' && item.license === 'UNLICENSED'));
+ const pin = await buildNativeWalletConsumer({ verify: true }); assert.deepEqual(pin.licenseInputs.map(item => item.path).sort(), ['node_modules/@noble/curves/LICENSE', 'node_modules/@noble/hashes/LICENSE', 'vendor/wallet-auth-c5/package.json', 'vendor/wallet-auth/package.json'].sort()); assert.ok(pin.licenseInputs.some(item => item.name === '@ynx-chain/wallet-auth' && item.license === 'UNLICENSED'));
  const notices = await readFile(new URL('../../ynx-workbench/NOTICE.native-wallet-consumer.txt', import.meta.url), 'utf8'); assert.match(notices, /@noble\/curves 2\.2\.0 MIT/); assert.match(notices, /@noble\/hashes 2\.2\.0 MIT/);
 });
 

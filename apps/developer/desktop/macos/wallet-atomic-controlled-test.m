@@ -53,6 +53,24 @@ int main(int argc,const char **argv){@autoreleasepool{assert(argc>=3);NSString *
     NSDictionary *state=YNXAtomicJSON([b protectedRead:YNXDeviceStorageBase error:&e]);NSMutableDictionary *records=[state[@"records"] mutableCopy];records[YNXAtomicKeys()[5]]=@"[] ";NSMutableDictionary *corrupt=[state mutableCopy];corrupt[@"records"]=records;assert([b protectedReplace:YNXDeviceCanonical(corrupt) key:YNXDeviceStorageBase error:&e]);writes=b.writes;assert(![b getRevocationCompletions:YNXAtomicKeys()[5] error:&e]);assert(e&&writes==b.writes);
     [b endUserOperation];puts("MIGRATION_CORRUPTION_PASS");return 0;
  }
+ if([mode isEqual:@"journal"]){
+   NSString *iD=token(@"journal"),*raw=intent(b,iD,nil),*done=receipt(b,iD,nil,@"local-only");
+   assert(![b consumerJournalPersist:done error:&e]);assert(e);e=nil;assert(![b consumerJournalRead:iD error:&e]);assert(!e);
+   assert([b beginUserOperation:&e]);assert(![b consumerJournalPersist:done error:&e]);assert(e);e=nil;
+   assert([b saveRevocationIntent:YNXAtomicKeys()[4] rawIntent:raw error:&e]);assert([b finishRevocationIntentWithCompletion:YNXAtomicKeys()[4] expectedRawIntent:raw receiptRaw:done error:&e]);
+   NSString *nextIntent=intent(b,token(@"next-journal"),nil);assert([b saveRevocationIntent:YNXAtomicKeys()[4] rawIntent:nextIntent error:&e]);
+   NSUInteger writes=b.writes;b.failBeforeWrite=YES;assert(![b consumerJournalPersist:done error:&e]);assert([e.localizedDescription hasPrefix:@"UNKNOWN"]);b.failBeforeWrite=NO;e=nil;
+   assert(![b consumerJournalRead:iD error:&e]);assert(b.writes==writes);assert([[b getRevocationCompletion:YNXAtomicKeys()[5] intentId:iD error:&e] isEqual:done]);
+   b.failReadback=YES;assert(![b consumerJournalPersist:done error:&e]);assert([e.localizedDescription hasPrefix:@"UNKNOWN"]);e=nil;
+   assert([[b consumerJournalRead:iD error:&e] isEqual:done]);writes=b.writes;assert([[b consumerJournalPersist:done error:&e] isEqual:done]);assert(b.writes==writes);
+   NSString *different=receipt(b,iD,session(b,@"different"),@"authority-expired");assert(![b consumerJournalPersist:different error:&e]);assert([e.localizedDescription hasPrefix:@"REVOCATION_CHANGED"]);e=nil;
+   NSMutableDictionary *foreign=[YNXAtomicJSON(done) mutableCopy];foreign[@"scope"]=YNXDeviceHash(@"another-device");assert(![b consumerJournalPersist:YNXDeviceCanonical(foreign) error:&e]);e=nil;assert(b.writes==writes);
+   // No automatic SDK acknowledgement; it remains until the consumer explicitly acts.
+   assert([[b getRevocationCompletion:YNXAtomicKeys()[5] intentId:iD error:&e] isEqual:done]);assert([b acknowledgeRevocationCompletion:YNXAtomicKeys()[5] expectedReceiptRaw:done error:&e]);
+   assert([[b stored:YNXAtomicKeys()[4] error:&e] isEqual:nextIntent]);
+   [b endUserOperation];ControlledBridge *cold=bridge(root);assert([[cold consumerJournalRead:iD error:&e] isEqual:done]);assert(cold.writes==0);assert(![cold consumerJournalPersist:done error:&e]);assert(e);e=nil;
+   assert(![cold consumerJournalRead:@"../../foreign" error:&e]);assert(e);puts("CONSUMER_JOURNAL_PASS");return 0;
+ }
  assert([b beginUserOperation:&e]);assert(!e);
  // An independent process cannot mutate/read during the original physical lock.
  NSTask *child=[NSTask new];child.executableURL=[NSURL fileURLWithPath:@(argv[0])];child.arguments=@[@"locked",root];assert([child launchAndReturnError:&e]);[child waitUntilExit];assert(child.terminationStatus==0);

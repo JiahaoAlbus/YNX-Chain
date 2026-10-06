@@ -55,9 +55,9 @@
     },
     {
       "path": "packages/wallet-auth/src/index.d.ts",
-      "origin": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
-      "bytes": 104342,
-      "sha256": "a1214e68b1af5d286e779fb03f8167b729bb6ca192aca61e788f01daf7b301c4"
+      "origin": "A isolated completion public delegation successor",
+      "bytes": 104796,
+      "sha256": "a1e536e321e7cab7d32809227f6a9aea2e4c2316325b5acebeb7e37c45ca648c"
     },
     {
       "path": "packages/wallet-auth/src/integration.js",
@@ -181,9 +181,9 @@
     },
     {
       "path": "packages/wallet-auth/src/wallet-connection-coordinator.js",
-      "origin": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
-      "bytes": 10016,
-      "sha256": "b5828a38e8f968a83709448980a0e762900d43b1c37244f02eb7c3abc99ceb56"
+      "origin": "A isolated completion public delegation successor",
+      "bytes": 10482,
+      "sha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
     },
     {
       "path": "packages/wallet-auth/src/wallet-provider-discovery.js",
@@ -197,5 +197,10 @@
       "bytes": 8185,
       "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
     }
+  ],
+  "parentClosureManifest": "4b6d325aef0ae0933d8e61a32e058564a93cf3d24809c145103a439df7da80d1",
+  "sourceDelta": [
+    "packages/wallet-auth/src/wallet-connection-coordinator.js",
+    "packages/wallet-auth/src/index.d.ts"
   ]
 }

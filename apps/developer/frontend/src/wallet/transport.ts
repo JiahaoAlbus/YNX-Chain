@@ -19,6 +19,8 @@ export type DeveloperWalletBridge = {
     getRevocationCompletions?: (key: string) => Promise<string | null>;
     getRevocationCompletion?: (key: string, intentId: string) => Promise<string | null>;
     acknowledgeRevocationCompletion?: (key: string, expectedReceiptRaw: string) => Promise<void>;
+    consumerJournalPersist?: (receiptRaw: string) => Promise<string>;
+    consumerJournalRead?: (intentId: string) => Promise<string | null>;
   };
 };
 

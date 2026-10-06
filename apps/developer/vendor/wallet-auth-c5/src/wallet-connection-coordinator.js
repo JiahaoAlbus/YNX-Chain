@@ -55,6 +55,12 @@ export class WalletConnectionCoordinator {
   enterGuest() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
   async disconnect() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() }); }
 
+  // Passive protected receipt readback: preserve the original client validation
+  // and exact consumer-journal acknowledgement; no disconnect or new authority.
+  async getRevocationCompletions() { return this.#client.getRevocationCompletions(); }
+  async getRevocationCompletion(intentId) { return this.#client.getRevocationCompletion(intentId); }
+  async acknowledgeRevocationCompletion(receipt) { return this.#client.acknowledgeRevocationCompletion(receipt); }
+
   async connectMetaMask() {
     const generation = ++this.#evmGeneration;
     // Explicit EVM selection does not depend on private YNX Gateway detection.

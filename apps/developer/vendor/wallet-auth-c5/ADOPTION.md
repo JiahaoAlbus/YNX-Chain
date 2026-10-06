@@ -1,3 +1,5 @@
 This directory preserves the supplied c5 direct-import closure byte for byte. It is a partial source closure, not a published npm package. The original vendor/wallet-auth remains unchanged. Only explicitly migrated consumers may import the three supplied entry points. Source integration does not prove service admission, native storage or online Wallet success.
 
 Developer-owned additions: src/product-session-router.d.ts and src/product-session-recovery.d.ts re-export the two consumed declarations from the unchanged supplier index.d.ts. They contain no runtime code and are not represented as supplied bytes. SOURCE_CLOSURE.json pins all actual supplied files. The frontend consumer's migrated:false remains a release/online acceptance limitation, not a statement that the old factory is still imported.
+
+Successor supplier manifest 501c20f6c3a81617a1c3e69fa0ceb3749fb20072d2b8b0589948f2463b7f3aff changes only coordinator and index declarations, exposing receipt queries and acknowledgement. Consumer acknowledgement requires a durable Developer journal; no production journal provider is supplied by this source adoption.

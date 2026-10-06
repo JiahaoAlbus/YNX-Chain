@@ -1,17 +1,28 @@
 {
-  "schema": "ynx-ide-direct-import-source/v1",
-  "parentManifest": "a690ef33d635c423a1a5d96a504c2cfb78ae76310425472d8df42503998a3c2b",
+  "schema": "ynx-ide-revocation-completion-source/v1",
+  "parentManifest": "76719efcc4ce85ece9197df2116bec355df183183db10bbd6521f3501380d431",
   "sourceOnly": true,
+  "contentRoot": "21320064b47c85a59a1fd4772d6479664b21bcaea0f3e3f79691088439be64d8",
   "files": [
     {
       "path": "ADOPTION.md",
-      "bytes": 1124,
-      "sha256": "4a0eb6c9ce5d4844c689a1377878e2a6da9ef25a1f1816611900463ca4419c19"
+      "bytes": 1694,
+      "sha256": "b8b6470e34bcaee14db6429bd1797820e0cf298400a2c01625c098c715d1fe77"
+    },
+    {
+      "path": "HANDOFF.md",
+      "bytes": 692,
+      "sha256": "a712ba4009b1db653d1ba06e884876875d8b25fca418c3a562322a3715665a7d"
     },
     {
       "path": "IMPORT_CLOSURE.json",
-      "bytes": 7932,
-      "sha256": "4c7196b1d2156d13565e528fd7fd623a2fd4c61c91602fef81e2b50d79df5d9c"
+      "bytes": 8176,
+      "sha256": "1a64e5483a4b9c895e19ff36aec17de3e8433cab455d19e13d0a349179c17f29"
+    },
+    {
+      "path": "STATIC_RECEIPT.json",
+      "bytes": 144,
+      "sha256": "07e84559e326238131b4549dd2abd3d3000821896571458fefcde93b86eba185"
     },
     {
       "path": "source/packages/wallet-auth/package-lock.json",
@@ -50,8 +61,8 @@
     },
     {
       "path": "source/packages/wallet-auth/src/index.d.ts",
-      "bytes": 104342,
-      "sha256": "a1214e68b1af5d286e779fb03f8167b729bb6ca192aca61e788f01daf7b301c4"
+      "bytes": 104796,
+      "sha256": "a1e536e321e7cab7d32809227f6a9aea2e4c2316325b5acebeb7e37c45ca648c"
     },
     {
       "path": "source/packages/wallet-auth/src/integration.js",
@@ -155,8 +166,8 @@
     },
     {
       "path": "source/packages/wallet-auth/src/wallet-connection-coordinator.js",
-      "bytes": 10016,
-      "sha256": "b5828a38e8f968a83709448980a0e762900d43b1c37244f02eb7c3abc99ceb56"
+      "bytes": 10482,
+      "sha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
     },
     {
       "path": "source/packages/wallet-auth/src/wallet-provider-discovery.js",

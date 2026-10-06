@@ -15,7 +15,9 @@ test('native Wallet completion bridge transports exact CAS inputs and propagates
  ['finishRevocationIntentWithCompletion',['key','intent','receipt'],'storage-finish-intent',{key:'key',expectedRawIntent:'intent',receiptRaw:'receipt'},'receipt'],
  ['getRevocationCompletions',['history'],'storage-get-completions',{key:'history'},'[]'],
  ['getRevocationCompletion',['history','id'],'storage-get-completion',{key:'history',intentId:'id'},null],
- ['acknowledgeRevocationCompletion',['history','receipt'],'storage-ack-completion',{key:'history',expectedReceiptRaw:'receipt'},null]];
+ ['acknowledgeRevocationCompletion',['history','receipt'],'storage-ack-completion',{key:'history',expectedReceiptRaw:'receipt'},null],
+ ['consumerJournalPersist',['receipt'],'consumer-journal-persist',{receiptRaw:'receipt'},'receipt'],
+ ['consumerJournalRead',['id'],'consumer-journal-read',{intentId:'id'},null]];
  for(const [name,args,action,body,result]of operations){
   const promise=storage[name](...args),message=messages.pop();assert.equal(message.action,action);
   const {id,...rest}=message;assert.deepEqual(JSON.parse(JSON.stringify(rest)),{action,...body});
