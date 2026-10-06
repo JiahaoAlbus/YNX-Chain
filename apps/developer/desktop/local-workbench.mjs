@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, constants } from 'node:fs';
-import { mkdir, lstat, realpath, readFile, writeFile, rename, mkdtemp, cp } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { mkdir, lstat, realpath, readFile, writeFile, rename, mkdtemp } from 'node:fs/promises';
 import { join, dirname, resolve, isAbsolute } from 'node:path';
 import { createServer } from 'node:net';
 import { spawn, execFile } from 'node:child_process';
@@ -10,7 +10,7 @@ import { createDebugSessionSupervisor } from './local-debug-session.mjs';
 import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
-import { preparePrivatePluginCopy, verifiedPluginSessionExit } from './local-plugin-copy.mjs';
+import { copyPrivatePluginTree, preparePrivatePluginCopy, verifiedPluginSessionExit } from './local-plugin-copy.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
@@ -226,12 +226,12 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
   const source = join(runtime.root, 'plugins'), digest = await composedTreeDigest(source);
   return preparePrivatePluginCopy(context.temporary, async session => {
   const plugins = join(session, 'plugins');
-  await cp(source, plugins, { recursive: true, errorOnExist: true, force: false, mode: constants.COPYFILE_FICLONE });
+  await copyPrivatePluginTree(source, plugins, { helper: join(runtime.root, 'lib/backend/ynx-process-tree') });
   if (await composedTreeDigest(plugins) !== digest || await composedTreeDigest(source) !== digest)
     throw Error('Extension copy changed before launch.');
   await writeFile(join(session, 'source.json'), JSON.stringify({ runtimeArtifact: runtime.pin, pluginTreeSha256: digest, projectId: context.id,
     scope: 'Fresh per-launch extension copy; source cache remains sealed. Runtime state is not reused as executable source.' }) + '\n', { flag: 'wx', mode: 0o600 });
-  }, { lifecycle });
+  }, { lifecycle, source });
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
@@ -258,7 +258,10 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const python = await inspectTrustedLocalPython();
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
-  pluginCopy = await prepareLocalPlugins({ runtime, context, lifecycle: true });
+  pluginCopy = await prepareLocalPlugins({ runtime, context, lifecycle: true }).catch(error => {
+    if (error.code === 'ENOSPC' || error.code === 'YNX_PLUGIN_COPY_SPACE') error.pluginPreparationSpace = true;
+    throw error;
+  });
   const plugins = pluginCopy.plugins;
   const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
   const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });

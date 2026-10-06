@@ -9,7 +9,68 @@
 #include <stdlib.h>
 #include <string.h>
 
-// No elevated privileges, executable arguments, filesystem access or signals
+#include <sys/clonefile.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <dirent.h>
+#include <limits.h>
+
+// Filesystem operation is separate from process cleanup. It has no fallback:
+// callers must budget a full copy before handling unsupported clone filesystems.
+static int clone_entries(int source, int target, unsigned depth, unsigned *count) {
+  if (depth > 128) { errno = ELOOP; return -1; }
+  DIR *entries = fdopendir(dup(source));
+  if (!entries) return -1;
+  struct dirent *entry; int result = 0;
+  while (1) {
+    errno = 0; entry = readdir(entries);
+    if (!entry) { if (errno) result = -1; break; }
+    if (!strcmp(entry->d_name, ".") || !strcmp(entry->d_name, "..")) continue;
+    if (++*count > 100000) { errno = EFBIG; result = -1; break; }
+    int fd = openat(source, entry->d_name, O_RDONLY | O_NOFOLLOW | O_NONBLOCK);
+    struct stat stat;
+    if (fd < 0 || fstat(fd, &stat)) { if (fd >= 0) close(fd); result = -1; break; }
+    if (S_ISDIR(stat.st_mode)) {
+      if (mkdirat(target, entry->d_name, 0700)) result = -1;
+      else {
+        int child = openat(target, entry->d_name, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+        if (child < 0) result = -1;
+        else { result = clone_entries(fd, child, depth + 1, count); if (!result && fchmod(child, stat.st_mode & 0777)) result = -1; int saved = errno; close(child); errno = saved; }
+      }
+    } else if (S_ISREG(stat.st_mode)) {
+      result = fclonefileat(fd, target, entry->d_name, CLONE_NOOWNERCOPY);
+      if (!result) {
+        struct stat copied;
+        if (fstatat(target, entry->d_name, &copied, AT_SYMLINK_NOFOLLOW) || !S_ISREG(copied.st_mode) ||
+            (copied.st_dev == stat.st_dev && copied.st_ino == stat.st_ino)) { errno = EINVAL; result = -1; }
+      }
+    } else { errno = EINVAL; result = -1; }
+    int saved = errno; close(fd); errno = saved;
+    if (result) break;
+  }
+  int saved = errno; closedir(entries); errno = saved; return result;
+}
+static int clone_plugins(const char *source, const char *target) {
+  char canonical[PATH_MAX];
+  if (source[0] != '/' || target[0] != '/' || !realpath(source, canonical) || strcmp(canonical, source) ||
+      !realpath(target, canonical) || strcmp(canonical, target)) return 77;
+  int src = open(source, O_RDONLY | O_DIRECTORY | O_NOFOLLOW), dst = open(target, O_RDONLY | O_DIRECTORY | O_NOFOLLOW);
+  struct stat a, b; int result = 77;
+  if (src < 0 || dst < 0 || fstat(src, &a) || fstat(dst, &b) || b.st_uid != getuid() || (b.st_mode & 0777) != 0700 ||
+      (a.st_dev == b.st_dev && a.st_ino == b.st_ino)) goto finish;
+  DIR *entries = fdopendir(dup(dst));
+  if (!entries) goto finish;
+  struct dirent *entry; int empty = 1;
+  while ((entry = readdir(entries))) if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) { empty = 0; break; }
+  closedir(entries); if (!empty) goto finish;
+  unsigned count = 0;
+  if (clone_entries(src, dst, 0, &count)) { int error = errno; result = error == EXDEV || error == ENOTSUP || error == ENOSYS ? 78 : error == ENOSPC ? 73 : 1; }
+  else { puts("YNX_PLUGIN_CLONE_VERIFIED"); result = 0; }
+finish:
+  if (src >= 0) close(src); if (dst >= 0) close(dst); return result;
+}
+
+// No elevated privileges, executable arguments or signals
 // to unrelated processes. The helper's parent is the owning Node backend.
 static int info(pid_t pid, struct proc_bsdinfo *out) {
   return proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, out, sizeof(*out)) == sizeof(*out);
@@ -29,6 +90,7 @@ static int deepest_first(const void *left, const void *right) {
   return ((const struct child_record *)right)->depth - ((const struct child_record *)left)->depth;
 }
 int main(int argc, char **argv) {
+  if (argc == 4 && !strcmp(argv[1], "--clone-plugins")) return clone_plugins(argv[2], argv[3]);
   int children_only = argc == 3 && strcmp(argv[2], "--children") == 0;
   int force = argc == 3 && strcmp(argv[2], "--force") == 0;
   int graceful = argc == 3 && strcmp(argv[2], "--graceful-root") == 0;

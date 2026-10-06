@@ -50,6 +50,10 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
         console.error(error.message);
         process.exit(73);
       }
+      if (error.pluginPreparationSpace === true && (error.code === 'ENOSPC' || error.code === 'YNX_PLUGIN_COPY_SPACE')) {
+        console.error(error.message);
+        process.exit(74);
+      }
       throw error;
     });
   let goChannel;
