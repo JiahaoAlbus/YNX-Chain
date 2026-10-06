@@ -128,7 +128,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
     context.container.get(CommandRegistry), window, nls.locale,
   )).inSingletonScope();
-  bind(NativeWalletService).toDynamicValue(() => new NativeWalletService()).inSingletonScope();
+  bind(NativeWalletService).toDynamicValue(context => new NativeWalletService(window, WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission'))).inSingletonScope();
   bind(FrontendApplicationContribution).toService(NativeWalletService);
   bind(WidgetFactory).toDynamicValue(context => ({ id: NATIVE_WALLET_ID, createWidget: () => new NativeWalletWidget(context.container.get(NativeWalletService)) }));
   bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();

@@ -89,6 +89,40 @@ test('first start retains synchronous creation; immediate dispose prevents queue
 });
 const sendBegin=source.indexOf('    sendText(text) {'),sendEnd=source.indexOf('    async executeCommand(',sendBegin);
 const actualSendText=vm.runInNewContext('({'+source.slice(sendBegin,sendEnd)+'})').sendText;
+const connectBegin=source.indexOf('    connectTerminalProcess() {'),connectEnd=source.indexOf('    async reconnectTerminalProcess(',connectBegin);
+const actualConnect=vm.runInNewContext('({'+source.slice(connectBegin,connectEnd)+'})',{
+ promise_util_1:require('@theia/core/lib/common/promise-util'),
+ terminal_protocol_1:require('@theia/terminal/lib/common/terminal-protocol'),
+ core_1:require('@theia/core/lib/common/disposable'),
+}).connectTerminalProcess;
+function missingTaskFixture({patch=true}={}){
+ const{DisposableCollection}=require('@theia/core/lib/common/disposable');
+ const records=new Map(),paths=[],writes=[],attachments=[];let failures=0;
+ const server=new BaseTerminalServer({get:id=>records.get(id),onDelete:()=>({dispose(){}})},{warn(){}});
+ server.onAttachAttempted=async id=>{attachments.push(id);};
+ const channel={onMessage(){},onClose(){},getWriteBuffer:()=>({writeString(text){writes.push(text);return this;},commit(){}})};
+ const provider={async openChannel(path,handler){paths.push(path);handler(path,channel);},listen(path,handler){void this.openChannel(path,handler);}};
+ class Widget{}Widget.prototype.start=actualStart;Widget.prototype.sendText=actualSendText;Widget.prototype.connectTerminalProcess=actualConnect;
+ if(patch)installOn(Widget.prototype);
+ const widget=new Widget();Object.assign(widget,{kind:'task',options:{},shellTerminalServer:server,connectionProvider:provider,
+  attachTerminal:id=>server.attach(id),resizeTerminalProcess(){},onDidOpenEmitter:{fire(){}},onDidOpenFailureEmitter:{fire(){failures++;}},
+  toDispose:[],toDisposeOnConnect:new DisposableCollection(),term:{onData:()=>({dispose(){}}),onBinary:()=>({dispose(){}})},write(){},
+ });Object.defineProperty(widget,'terminalId',{get(){return this._terminalId;}});
+ return{widget,records,paths,writes,attachments,get failures(){return failures;}};
+}
+test('retained start negative control opens a channel for a missing task before rejecting',async()=>{
+ const f=missingTaskFixture({patch:false});await assert.rejects(f.widget.start(99),/Failed to start terminal/);
+ assert.deepEqual(f.paths,['/services/terminals/-1']);assert.equal(f.failures,1);
+});
+test('missing task attachment opens no invalid channel, settles input and permits a valid retry',async()=>{
+ const f=missingTaskFixture();await assert.rejects(f.widget.start(99),/Failed to start terminal/);
+ await assert.rejects(f.widget.waitForConnection.promise,/Terminal process was not found/);
+ assert.equal(f.failures,1);assert.deepEqual(f.paths,[]);assert.deepEqual(f.attachments,[]);
+ f.widget.sendText('must-not-send-to-missing-task');await flush();assert.deepEqual(f.writes,[]);
+ const terminal=Object.create(TaskTerminalProcess.prototype);terminal.id=17;f.records.set(17,terminal);
+ assert.equal(await f.widget.start(17),17);f.widget.sendText('valid-retry');await flush();
+ assert.deepEqual(f.paths,['/services/terminals/17']);assert.deepEqual(f.attachments,[17]);assert.deepEqual(f.writes,['valid-retry']);
+});
 function textFixture(){class Widget{}Widget.prototype.start=async()=>{};Widget.prototype.sendText=actualSendText;installOn(Widget.prototype);const widget=new Widget();widget.options={};return widget;}
 test('actual sendText negative control rejects derived promise unhandled',async()=>{
  const{spawnSync}=await import('node:child_process');

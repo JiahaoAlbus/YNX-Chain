@@ -41,6 +41,18 @@ function installOn(prototype, timeoutMs = 10000) {
       return (path, handler, reconnect) => {
         if (reconnect) return target.listen(path, handler, reconnect);
         const pending = widget.waitForConnection;
+        // The retained start calls connect before checking attach's -1
+        // failure result. There is no process behind that channel: leave
+        // start to emit its normal failure, and settle queued input now.
+        if (widget.terminalId === -1) {
+          failed = true;
+          if (pending) {
+            failedConnections.add(pending);
+            void pending.promise.catch(() => {});
+            pending.reject?.(Error('Terminal process was not found'));
+          }
+          return;
+        }
         void target.openChannel(path, (openedPath, channel) => {
           if (failed || widget.isDisposed || widget.waitForConnection !== pending) { channel.close(); return; }
           handler(openedPath, channel);

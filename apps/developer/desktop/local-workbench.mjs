@@ -1,3 +1,4 @@
+import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, lstat, realpath, readFile, writeFile, rename, mkdtemp } from 'node:fs/promises';
@@ -235,7 +236,7 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
   await regular(node);
@@ -273,9 +274,12 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe'], cwd: context.workspace,
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
+  const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
+  child.once('close', () => admissionPipe.close());
+  child.once('error', () => admissionPipe.close());
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;

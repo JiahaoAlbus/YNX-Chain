@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url';
 // executing imports, contacting a registry, or changing the signed payload.
 export async function verifyPackagedLocalImports(root) {
   const result = await build({
-    entryPoints: [resolve(root, 'desktop/local-workbench.mjs')],
+    entryPoints: [resolve(root, 'desktop/local-workbench.mjs'), resolve(root, 'desktop/wallet-admission-startup.mjs')],
+    outdir: resolve(root, '.import-verification'),
     absWorkingDir: resolve(root), bundle: true, write: false,
     platform: 'node', format: 'esm', packages: 'external',
     metafile: true, logLevel: 'silent',
