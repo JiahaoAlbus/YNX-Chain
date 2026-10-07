@@ -1,13 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync, copyFileSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
+// Candidate mode uses the exact retained process helper corresponding to the
+// sealed App archive. The Theia/PTY harness and adapter still come from source;
+// this is not a packaged-workbench or native button acceptance substitute.
+const candidateCore = process.env.YNX_TASK_TEST_RUNTIME;
 const require = createRequire(new URL('../package.json', import.meta.url));
 require('reflect-metadata');
 const pty = require('node-pty');
@@ -19,8 +23,14 @@ const root = mkdtempSync(join(tmpdir(), 'ynx-task-cancel-'));
 test.after(() => rmSync(root, { recursive: true, force: true }));
 const backend = join(root, 'lib/backend'); mkdirSync(backend, { recursive: true });
 if (process.platform === 'darwin') {
+ if (candidateCore) {
+  const helper = join(candidateCore, 'lib/backend/ynx-process-tree');
+  copyFileSync(helper, join(backend, 'ynx-process-tree'));
+  assert.deepEqual(readFileSync(join(backend, 'ynx-process-tree')), readFileSync(helper));
+ } else {
   const result = spawnSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', fileURLToPath(new URL('../../ynx-workbench/native/process-tree.c', import.meta.url)), '-o', join(backend, 'ynx-process-tree')], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
+ }
 }
 const sleep = ms => new Promise(ok => setTimeout(ok, ms));
 const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
