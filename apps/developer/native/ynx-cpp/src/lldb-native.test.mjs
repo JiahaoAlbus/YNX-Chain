@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd } from '../../../desktop/local-workbench.mjs';
+import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd, isSupportedLocalNodeVersion } from '../../../desktop/local-workbench.mjs';
 import { createLocalIpcSession } from '../../../desktop/local-workbench-ipc.mjs';
 const require = createRequire(import.meta.url);
 const { createBuildTasks, createLaunchConfiguration, installedCompiler } = require('./build-tasks.cjs');
@@ -72,7 +72,8 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const context = { workspace: join(root, 'project'), profile: join(root, 'profile'), temporary: join(root, 'tmp'), id: randomUUID() };
   const ipc = await createLocalIpcSession(context); context.ipcTemporary = ipc.path;
   const node = join(appRuntime, 'node'), helper = join(appRuntime, 'workspace-path-identity');
-  assert.equal((await exec(node, ['--version'])).stdout.trim(), 'v26.7.0');
+  assert.ok(isSupportedLocalNodeVersion(process.version), 'Use an exact reviewed Node runtime.');
+  assert.equal((await exec(node, ['--version'])).stdout.trim(), process.version);
   const runtime = { root }, lockHelper = helper;
   const pathIdentities = await localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port: 58999, pathIdentities });
