@@ -28,12 +28,13 @@ test('executor bounds actual streaming responses and never follows redirects', a
   t.after(() => { https.request = original; });
   const good = Buffer.from('{"extensions":[],"offset":0}');
   for (const bad of [
-    { status: 302, headers: { location: 'https://example.org' }, bytes: good },
-    { status: 500, bytes: good }, { type: 'text/html', bytes: good },
-    { bytes: Buffer.from([255]) }, { bytes: Buffer.from('{"extensions":[null]}') },
-    { bytes: Buffer.alloc(catalogLimits.maxBytes + 1) },
-    { headers: { 'content-encoding': 'gzip' }, bytes: gzipSync(Buffer.alloc(catalogLimits.maxBytes + 1)) },
-  ]) { fixture = bad; const before = calls; await assert.rejects(fetchCatalog('search', {})); assert.equal(calls, before + 1); }
+    { status: 302, headers: { location: 'https://example.org' }, bytes: good, category: 'HTTP_3XX' },
+    { status: 401, bytes: good, category: 'HTTP_4XX' },
+    { status: 500, bytes: good, category: 'HTTP_5XX' }, { type: 'text/html', bytes: good, category: 'RESPONSE_DECODE' },
+    { bytes: Buffer.from([255]), category: 'RESPONSE_DECODE' }, { bytes: Buffer.from('{"extensions":[null]}'), category: 'RESPONSE_DECODE' },
+    { bytes: Buffer.alloc(catalogLimits.maxBytes + 1), category: 'RESPONSE_SIZE' },
+    { headers: { 'content-encoding': 'gzip' }, bytes: gzipSync(Buffer.alloc(catalogLimits.maxBytes + 1)), category: 'RESPONSE_SIZE' },
+  ]) { fixture = bad; const before = calls; await assert.rejects(fetchCatalog('search', {}), error => error.catalogCategory === bad.category); assert.equal(calls, before + 1); }
   fixture = { headers: { 'content-encoding': 'gzip' }, bytes: gzipSync(good) };
   assert.deepEqual(await fetchCatalog('search', {}), { extensions: [], offset: 0 });
 });

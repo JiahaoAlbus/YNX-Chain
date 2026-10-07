@@ -23,7 +23,36 @@ test('nested aggregate errors expose only safe diagnostic codes', async () => {
   for (const operation of ['search', 'query']) await assert.rejects(service[operation]({ query: privateText }), error => {
     assert.equal(error.cause, undefined); assert.match(error.message, /EPERM/); assert.ok(!error.message.includes(privateText)); return true;
   });
-  assert.deepEqual(messages, ['YNX_MARKETPLACE operation=search codes=EPERM', 'YNX_MARKETPLACE operation=query codes=EPERM']);
+  assert.deepEqual(messages, ['YNX_MARKETPLACE operation=search codes=TRANSPORT_FAILURE,EPERM', 'YNX_MARKETPLACE operation=query codes=TRANSPORT_FAILURE,EPERM']);
+});
+
+test('actual retained compatibility filter query preserves category and safe nested code across the pipe and RPC codec', async () => {
+  const require = createRequire(new URL('../runtime/theia/package.json', import.meta.url));
+  const { VSXRegistryServiceImpl } = require('@theia/vsx-registry/lib/node/vsx-registry-service-impl');
+  const { OVSXApiFilterImpl } = require('@theia/ovsx-client/lib/ovsx-api-filter');
+  const { defaultMsgPack } = require('@theia/core/lib/common/message-rpc/rpc-message-encoder');
+  const { duplexPair } = await import('node:stream');
+  const channel = (await import('../runtime/ynx-workbench/lib/marketplace-channel.js')).default;
+  const [parent, child] = duplexPair();
+  const secret = 'https://user:private-token@example.org/?query=private-project';
+  let calls = 0;
+  const server = channel.serveCatalog(parent, async (operation, options) => {
+    calls++; assert.equal(operation, 'query'); assert.equal(options.size, 5);
+    throw new Error(secret, { cause: Object.assign(new Error(secret), { code: 'ETIMEDOUT' }) });
+  });
+  const client = channel.catalogClient(child), service = new VSXRegistryServiceImpl(), logs = [];
+  diagnostics.installOn(VSXRegistryServiceImpl.prototype);
+  service.filterProvider = async () => new OVSXApiFilterImpl({ query: options => client.request('query', options) }, '1.96.0');
+  service.logger = { warn: message => logs.push(message) };
+  try {
+    await assert.rejects(service.findLatestCompatibleExtension({ extensionId: 'test.sample', targetPlatform: 'darwin-arm64' }), error => {
+      assert.match(error.message, /findLatestCompatibleExtension.*TRANSPORT_FAILURE,ETIMEDOUT/);
+      const bytes = defaultMsgPack.encode({ type: 4, id: 1, err: error });
+      assert.ok(!Buffer.from(bytes).includes(Buffer.from(secret)));
+      assert.equal(defaultMsgPack.decode(bytes).err.cause, undefined); return true;
+    });
+    assert.equal(calls, 1); assert.deepEqual(logs, ['YNX_MARKETPLACE operation=findLatestCompatibleExtension codes=TRANSPORT_FAILURE,ETIMEDOUT']);
+  } finally { client.close(); server.close(); }
 });
 
 test('unknown errors remain failures and failed logging does not mask them', async () => {

@@ -30,7 +30,7 @@ test('timeout retires a session and late provider results cannot revive it', asy
   const server = channel.serveCatalog(parent, () => new Promise(resolve => { complete = resolve; }));
   const client = channel.catalogClient(child, 15);
   try {
-    await assert.rejects(client.request('search'), /unavailable/);
+    await assert.rejects(client.request('search'), error => error.catalogCategory === 'TIMEOUT');
     complete?.({ extensions: [] });
     await assert.rejects(client.request('query'), /unavailable/);
   } finally { server.close(); client.close(); }
@@ -51,7 +51,35 @@ test('per-session concurrency is bounded without a request queue', async () => {
   const server = channel.serveCatalog(parent, async () => { calls++; return new Promise(() => {}); });
   const client = channel.catalogClient(child);
   const requests = Array.from({ length: 4 }, () => assert.rejects(client.request('search')));
-  await assert.rejects(client.request('query'));
+  await assert.rejects(client.request('query'), error => error.catalogCategory === 'QUOTA');
   await new Promise(resolve => setImmediate(resolve)); assert.equal(calls, 4);
   server.close(); client.close(); await Promise.all(requests);
+});
+
+test('provider failure wire contains only versioned allowlisted categories and nested codes', async () => {
+  const [parent, child] = duplexPair(); const frames = [];
+  child.on('data', bytes => frames.push(bytes.toString()));
+  const server = channel.serveCatalog(parent, async () => {
+    throw new Error('secret URL', { cause: Object.assign(new Error('private credential'), { code: 'EPERM' }) });
+  });
+  const client = channel.catalogClient(child);
+  try {
+    await assert.rejects(client.request('query'), error => error.catalogCategory === 'TRANSPORT_FAILURE' && error.catalogCodes.join() === 'EPERM' && error.cause === undefined);
+    const wire = frames.join(''); assert.ok(!/secret|credential/.test(wire));
+    assert.deepEqual(JSON.parse(wire), { id: 1, ok: false, error: { version: 1, category: 'TRANSPORT_FAILURE', codes: ['EPERM'] } });
+  } finally { client.close(); server.close(); }
+});
+
+test('unknown versions, categories, codes and extra error fields retire the channel fail closed', async () => {
+  for (const error of [
+    { version: 2, category: 'QUOTA', codes: [] }, { version: 1, category: 'secret', codes: [] },
+    { version: 1, category: 'QUOTA', codes: ['secret'] }, { version: 1, category: 'QUOTA', codes: [], url: 'secret' },
+  ]) {
+    const [parent, child] = duplexPair(); const client = channel.catalogClient(child);
+    try {
+      const pending = assert.rejects(client.request('search'), value => value.catalogCategory === 'PROTOCOL');
+      parent.write(JSON.stringify({ id: 1, ok: false, error }) + '\n'); await pending;
+      await assert.rejects(client.request('query'), value => value.catalogCategory === 'CHANNEL_UNAVAILABLE');
+    } finally { client.close(); parent.destroy(); }
+  }
 });
