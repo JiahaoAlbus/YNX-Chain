@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "e2e92d385",
+  "packagedSource": {
+    "commit": "e2e92d38511d3350143fe27315db6f20a3f1af3f",
+    "tree": "3e0484e085604bf23fee126e313cc3660b200ce7",
+    "remoteSourceCommitPublished": false
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-e2e92d385-macos-arm64-unsigned.dmg",
+    "bytes": 316486151,
+    "sha256": "9f163fe119678d29d4dcd7e30d8bf851cef4ab0ab603a3ffb3230ab3945cc32c",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "27.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "retains x86_64 macos-trash fallback; all deletion paths not verified"
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "ynxWorkbench": "0.3.46",
+    "ynxTools": "0.2.29",
+    "cpp": "0.3.7",
+    "node": "26.7.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "db1999ef1dec36465c35975c23c5bebb4bffc2ea74ede210653b595c704dc593"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "f62d90bbc25d855945d19ddc3470d86f7d72029595b724446422ec7f5a78deec",
+    "serverEntrySha256": "df700e1a596781b5ccac2189b79f2b0333bebe90adb7a8aaeed7f13eb52dc070",
+    "sbomSha256": "0bc6298d20b7d67dda4a67048c339b6ab2e1a2cbbd0132d1ff19a7f469064f6c"
+  },
+  "signing": {
+    "kind": "ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "standardApplicationsInstallStartup": "PASS normal Finder install and launch",
+    "nativeChainConfigureApproveReadPersist": "PASS chainId6423 height1833313; public read only",
+    "nativeChainDisplayAndReopen": "NOT_VERIFIED native control unavailable",
+    "samePackageCppPythonJsFullJourney": "NOT_VERIFIED",
+    "evmFoundryHardhatActualExecution": "NOT_VERIFIED",
+    "walletSigningDeployment": "NOT_SUPPLIED",
+    "onlineAI": "NOT_SUPPLIED",
+    "marketplaceFullLifecycle": "NOT_PASSED",
+    "all63Extensions": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "fullIDEGoalComplete": false
+  },
+  "dataProtection": {
+    "instruction": "Preserve user projects, settings, extensions and Chain data. Earlier QA package retained for rollback."
+  },
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-e2e92d385-20261007",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not packaged source",
+    "automaticGitHubSourceArchives": "publication metadata only; cannot rebuild package"
+  }
+}
