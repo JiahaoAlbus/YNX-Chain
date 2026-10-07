@@ -37,7 +37,7 @@ export async function inspectBundledRuntimePathIdentity({ helper, path }) {
   if (!modulePath.endsWith(suffix)) return inspectWorkspacePathIdentity({ helper, path });
   const app = modulePath.slice(0, -suffix.length), resources = join(app, 'Contents/Resources');
   const runtime = join(resources, 'runtime');
-  if (path !== runtime && path !== join(runtime, 'ynx-local-workbench-lock'))
+  if (path !== runtime && path !== join(runtime, 'ynx-local-workbench-lock') && path !== join(dirname(modulePath), 'local-debugpy-bootstrap.py'))
     throw Error('Bundled path proof is restricted to read-only runtime inputs.');
   if (helper !== join(runtime, 'workspace-path-identity') || await realpath(app) !== app)
     throw Error('Bundled path proof requires its own canonical package.');

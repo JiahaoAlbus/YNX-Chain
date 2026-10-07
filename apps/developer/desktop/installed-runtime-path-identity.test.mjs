@@ -23,6 +23,8 @@ test('installed read-only runtime admits standard Applications; projects and wri
   await copyFile(helper, join(runtime, 'ynx-local-workbench-lock'));
   await copyFile(helper, join(installed, 'Contents/MacOS/Fixture'));
   await copyFile(fileURLToPath(new URL('./workspace-path-identity.mjs', import.meta.url)), modulePath);
+  const bootstrap = join(resources, 'code/apps/developer/desktop/local-debugpy-bootstrap.py');
+  await copyFile(fileURLToPath(new URL('./local-debugpy-bootstrap.py', import.meta.url)), bootstrap);
   const workbenchSource = await readFile(new URL('./local-workbench.mjs', import.meta.url), 'utf8');
   const workbenchModule = join(resources, 'code/apps/developer/desktop/local-workbench.mjs');
   // Preserve production function bodies; route sibling dependencies to their
@@ -37,6 +39,8 @@ test('installed read-only runtime admits standard Applications; projects and wri
   await assert.rejects(workbench.localWorkbenchPathIdentities({helper, node:join(runtime,'node'), lockHelper:join(runtime,'ynx-local-workbench-lock'), runtime:{root:'/System'}, context:{workspace:runtime,profile:'/System',temporary:'/System'}}), /unsafe writable/);
   const proof = await shipped.inspectBundledRuntimePathIdentity({helper,path:runtime});
   await shipped.assertWorkspacePathIdentity(proof);
+  const bootstrapProof = await shipped.inspectBundledRuntimePathIdentity({helper,path:bootstrap});
+  await shipped.assertWorkspacePathIdentity(bootstrapProof);
   await assert.rejects(shipped.inspectBundledRuntimePathIdentity({helper,path:resources}), /restricted/);
   await assert.rejects(shipped.inspectWorkspacePathIdentity({helper,path:resources,installationParent:proof.identity}), /unsafe writable/);
   const old = await lstat(runtime);

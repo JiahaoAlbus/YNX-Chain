@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { createRequire } from 'node:module';
 import { dirname, join, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
+import { inspectWorkspacePathIdentity, inspectBundledRuntimePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), MAX_FRAME = 8 * 1024 * 1024;
@@ -141,7 +141,9 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
   let stopped = false, faulted = false, preparing = 0;
   const cleanupErrors = [];
   const reportCleanup = error => { if (!cleanupErrors.includes(error)) { cleanupErrors.push(error); try { warn(error); } catch {} } };
-  const bootstrapProof = pathIdentityHelper ? await inspectWorkspacePathIdentity({ helper: pathIdentityHelper, path: bootstrap }) : undefined;
+  const bundledBootstrap = fileURLToPath(new URL('./local-debugpy-bootstrap.py', import.meta.url));
+  const inspectBootstrap = bootstrap === bundledBootstrap ? inspectBundledRuntimePathIdentity : inspectWorkspacePathIdentity;
+  const bootstrapProof = pathIdentityHelper ? await inspectBootstrap({ helper: pathIdentityHelper, path: bootstrap }) : undefined;
   async function interpreter(path) {
     // Project virtualenv symlinks to the already readable trusted CLT Python
     // qualify by canonical target; other interpreters need their own admission.
