@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "15ca39042",
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-15ca39042-20261007",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not the packaged source commit",
+    "automaticGitHubSourceArchives": "publication carrier only; cannot rebuild this package"
+  },
+  "packagedSource": {
+    "commit": "15ca39042754da1f6396b9f72333717e5c0f4a63",
+    "tree": "54292a7c2396847ca9fdb043ab78366748e17379",
+    "remoteSourceCommitPublished": false,
+    "claimScope": "packaged source identity and corresponding packaged code; not a complete published Git source archive"
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-15ca39042-macos-arm64-unsigned.dmg",
+    "bytes": 316448275,
+    "sha256": "6d14aea6221cb2a8792bb4af7905c8f70a4226a9fef020b49d49aedc85cb6dcb",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "27.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "retains an x86_64 macos-trash backend fallback; native Cocoa Trash path present, all deletion paths not verified"
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "node": "26.7.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "83eb4d3d0c424584964ea52291b9fc3b0de2ca04979713dc40d9475d56aebe2a"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "8de16f20d816dab114e147e8843890308c5660430b8965c5484d1b11e84eb9ff",
+    "sbomSha256": "f40687b85d3c2a9a5833fb27ad43acce616bff2e211c5f1428b8ce0dbc984974"
+  },
+  "signing": {
+    "kind": "unsigned ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "packageIntegrity": "PASS",
+    "sourceAndPackagedCodeIdentity": "PASS",
+    "nativeStartupAndAboutSourceIdentity": "NOT_REPEATED_ABOUT; installed provenance/source verified",
+    "newProjectRunDebugStopReopen": "NOT_VERIFIED",
+    "cppPythonJsFullNativeJourneys": "NOT_VERIFIED",
+    "allOtherLanguages": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "walletAuthChainExplorerDeployment": "NOT_VERIFIED",
+    "realOnlineAI": "NOT_VERIFIED",
+    "cloudEcosystem": "NOT_VERIFIED",
+    "all63ExtensionsAndRemoteDevelopment": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "fullIDEGoalComplete": false,
+    "hostedAIGenerateAndRecovery": "CLOSED_NOT_SUPPLIED",
+    "standardApplicationsInstallStartup": "PASS on QA Mac; Finder installed actual DMG",
+    "nativeJsCreateSaveRunQuitReopenRun": "PASS; mouse/keyboard; Hello World output and shell prompt returned",
+    "permissionRegressionTests": "18/18 PASS, zero skipped",
+    "fullBreakpointVariablesStepJourney": "NOT_VERIFIED"
+  },
+  "dataProtection": {
+    "instruction": "Preserve projects, settings and extensions. Keep earlier packages for rollback. This QA release does not reset user or Chain data."
+  },
+  "fix": "Correct own signed bundled runtime and Python bootstrap read-path validation under /Applications; preserve workspace write and signature checks. No system permission mutation or bypass command."
+}
