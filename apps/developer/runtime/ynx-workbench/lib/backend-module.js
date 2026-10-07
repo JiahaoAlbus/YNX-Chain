@@ -32,6 +32,15 @@ class YnxProcessUtils extends ProcessUtils {
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   if (process.env.YNX_WORKSPACE_MODE === 'local') {
+    // This dedicated inherited endpoint belongs to this launch only. Ordinary
+    // child stdio does not inherit it; no credential is placed in environment.
+    const { OVSXClientProvider } = require('@theia/vsx-registry/lib/common/ovsx-client-provider');
+    const catalog = require('./marketplace-channel').inheritedCatalog();
+    rebind(OVSXClientProvider).toConstantValue(async () => ({
+      search: options => catalog.request('search', options),
+      query: options => catalog.request('query', options),
+    }));
+    bind(BackendApplicationContribution).toConstantValue({ onStop: () => catalog.close() });
     require('./marketplace-diagnostics').installOn(require('@theia/vsx-registry/lib/node/vsx-registry-service-impl').VSXRegistryServiceImpl.prototype);
     require('./local-terminal-channel-diagnostics').install();
     require('./local-js-terminal-environment').install(require('@theia/terminal/lib/node/shell-terminal-server').ShellTerminalServer.prototype);
@@ -78,6 +87,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       // then select browser-only capabilities inside this Node host. Skip that
       // getter while disabling Node's experimental browser global at startup.
       env.THEIA_SUPPORT_NODE_GLOBAL_NAVIGATOR = 'true';
+      delete env.YNX_MARKETPLACE_PIPE;
       if (Number(process.versions.node.split('.')[0]) >= 21)
         env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
     },

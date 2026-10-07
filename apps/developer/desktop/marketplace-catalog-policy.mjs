@@ -33,5 +33,9 @@ export function decodeCatalogResponse(bytes, contentType) {
   if (!/^application\/json(?:\s*;|$)/i.test(contentType || '')) throw Error('Catalog returned a non-JSON response.');
   const result = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
   if (!result || typeof result !== 'object' || !Array.isArray(result.extensions) || result.extensions.length > 100) throw Error('Invalid catalog result.');
+  for (const key of ['offset', 'totalSize']) if (result[key] !== undefined && (!Number.isSafeInteger(result[key]) || result[key] < 0)) throw Error('Invalid catalog pagination.');
+  for (const entry of result.extensions) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.name !== 'string' || typeof entry.namespace !== 'string' || entry.name.length > 256 || entry.namespace.length > 256) throw Error('Invalid catalog entry.');
+  }
   return result;
 }

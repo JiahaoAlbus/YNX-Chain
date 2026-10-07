@@ -34,7 +34,9 @@ function installOn(prototype) {
         // Diagnostics must not change successful requests or replace the
         // original failure when a logger is unavailable during shutdown.
         try { this.logger?.warn(`YNX_MARKETPLACE operation=${operation} codes=${detail}`); } catch { /* retain request failure */ }
-        throw new Error(`Extension registry ${operation} failed (${detail}). Check the IDE connection diagnostics and retry.`, { cause });
+        // Do not retain cause on the cross-RPC error: different codec setups
+        // can serialize nested errors, including provider URLs and credentials.
+        throw new Error(`Extension registry ${operation} failed (${detail}). Check the IDE connection diagnostics and retry.`);
       }
     };
   }
