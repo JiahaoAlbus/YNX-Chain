@@ -4,10 +4,11 @@ export const READ_RPC_METHODS: readonly string[];
 export function validateChainStatus(value: unknown): any;
 export function validateReadRpc(value: unknown): void;
 export function validateChainTransaction(value: unknown, hash: string): any;
-export function createChainReader(request: (path: string, options?: { method: string; body: string }) => Promise<any>): {
-  status(): Promise<any>;
-  compiler(): Promise<any>;
-  rpc(method: string, params?: unknown[]): Promise<any>;
-  transaction(hash: string): Promise<any>;
-  block(id: string): Promise<any>;
+export type ChainReadOptions = { signal?: AbortSignal };
+export function createChainReader(request: (path: string, options?: { method?: string; body?: string; signal?: AbortSignal }) => Promise<any>): {
+  status(options?: ChainReadOptions): Promise<any>;
+  compiler(options?: ChainReadOptions): Promise<any>;
+  rpc(method: string, params?: unknown[], options?: ChainReadOptions): Promise<any>;
+  transaction(hash: string, options?: ChainReadOptions): Promise<any>;
+  block(id: string, options?: ChainReadOptions): Promise<any>;
 };

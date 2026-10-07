@@ -76,3 +76,43 @@ test('transport rejection propagates without a fallback endpoint, retry or fabri
   await assert.rejects(reader.status(), error => error === denied);
   assert.equal(requests, 1);
 });
+
+test('cancelled project reads never start transport or accept a late transport result', async () => {
+  const controller = new AbortController(); controller.abort(); let calls = 0;
+  const reader = createChainReader(async () => { calls++; });
+  const options = { signal: controller.signal };
+  for (const read of [() => reader.status(options), () => reader.compiler(options),
+    () => reader.rpc('eth_chainId', [], options), () => reader.transaction('0x' + 'a'.repeat(64), options), () => reader.block('42', options)])
+    await assert.rejects(read(), { name: 'AbortError' });
+  assert.equal(calls, 0);
+  const pendingController = new AbortController(); let complete;
+  const lateReader = createChainReader((_path, transportOptions) => {
+    assert.equal(transportOptions.signal, pendingController.signal);
+    return new Promise(resolve => { complete = resolve; });
+  });
+  const pending = lateReader.status({ signal: pendingController.signal });
+  pendingController.abort(); complete({ protocolVersion: CHAIN_PROTOCOL, status });
+  await assert.rejects(pending, { name: 'AbortError' });
+});
+
+test('project cancellation closes an actual in-flight HTTP response and preserves fixed RPC request fields', async t => {
+  let started, closed;
+  const beginning = new Promise(resolve => { started = resolve; });
+  const ending = new Promise(resolve => { closed = resolve; });
+  const server = createServer((_request, response) => {
+    response.on('close', closed); response.writeHead(200, { 'content-type': 'application/json' });
+    response.flushHeaders(); started();
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const controller = new AbortController();
+  const reader = createChainReader(async (path, options) => (await fetch(`http://127.0.0.1:${server.address().port}${path}`, options)).json());
+  const pending = assert.rejects(reader.status({ signal: controller.signal }), { name: 'AbortError' });
+  await beginning; controller.abort(); await pending; await ending;
+  const fixed = createChainReader(async (path, options) => {
+    assert.equal(path, '/rpc'); assert.equal(options.method, 'POST'); assert.equal(options.headers, undefined);
+    assert.equal(JSON.parse(options.body).method, 'eth_chainId');
+    return { protocolVersion: CHAIN_PROTOCOL, method: 'eth_chainId', result: '0x1917' };
+  });
+  assert.equal(await fixed.rpc('eth_chainId', [], { method: 'DELETE', body: 'private', headers: { authorization: 'secret' } }), '0x1917');
+});

@@ -41,34 +41,43 @@ export function validateChainTransaction(value, hash) {
 }
 export function createChainReader(request) {
   if (typeof request !== 'function') throw new TypeError('An admitted Chain transport is required.');
+  async function send(path, base, options) {
+    const signal = options?.signal;
+    signal?.throwIfAborted();
+    // Only cancellation crosses this API. Callers cannot replace the admitted
+    // endpoint, credentials, headers, method or validated request body.
+    const value = await request(path, signal ? { ...base, signal } : base);
+    signal?.throwIfAborted();
+    return value;
+  }
   return Object.freeze({
-    async status() { return validateChainStatus(envelope(await request('/status')).status); },
-    async compiler() {
-      const value = envelope(await request('/compiler'));
+    async status(options) { return validateChainStatus(envelope(await send('/status', undefined, options)).status); },
+    async compiler(options) {
+      const value = envelope(await send('/compiler', undefined, options));
       if (!value.compiler || typeof value.compiler !== 'object' || Array.isArray(value.compiler))
         throw fault('Chain compiler capabilities are unavailable.', 'chain_capabilities_unavailable', 502);
       // Preserve the owner payload and limitations; do not infer full EVM.
       return value.compiler;
     },
-    async rpc(method, params = []) {
+    async rpc(method, params = [], options) {
       const body = { protocolVersion: CHAIN_PROTOCOL, method, params };
       validateReadRpc(body);
-      const value = envelope(await request('/rpc', { method: 'POST', body: JSON.stringify(body) }));
+      const value = envelope(await send('/rpc', { method: 'POST', body: JSON.stringify(body) }, options));
       if (value.method !== method || !Object.hasOwn(value, 'result'))
         throw fault('YNX RPC response does not match the request.', 'chain_rpc_response_mismatch', 502);
       if (method === 'eth_chainId' && value.result !== '0x1917')
         throw fault('Connected endpoint is not the canonical YNX Testnet.', 'chain_identity_mismatch', 502);
       return value.result;
     },
-    async transaction(hash) {
+    async transaction(hash, options) {
       if (!/^0x[0-9a-fA-F]{64}$/.test(hash || ''))
         throw fault('A transaction hash is required.', 'chain_transaction_invalid', 400);
-      return validateChainTransaction(await request(`/transactions/${encodeURIComponent(hash)}`), hash);
+      return validateChainTransaction(await send(`/transactions/${encodeURIComponent(hash)}`, undefined, options), hash);
     },
-    async block(id) {
+    async block(id, options) {
       if (!/^(0x[0-9a-fA-F]{64}|[0-9]{1,20})$/.test(String(id)))
         throw fault('A block height or hash is required.', 'chain_block_invalid', 400);
-      const value = envelope(await request(`/blocks/${encodeURIComponent(id)}`));
+      const value = envelope(await send(`/blocks/${encodeURIComponent(id)}`, undefined, options));
       if (value.id !== String(id)) throw fault('Block response does not match the request.', 'chain_block_mismatch', 502);
       return value;
     },
