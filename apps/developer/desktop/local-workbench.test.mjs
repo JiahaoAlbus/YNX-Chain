@@ -22,6 +22,10 @@ async function payload(root, unsafe = false) {
   await writeFile(join(source, 'package-lock.json'), '{}');
   await mkdir(join(source, 'plugins/example'), { recursive: true });
   await writeFile(join(source, 'plugins/example/extension.js'), 'module.exports = {};');
+  if (process.platform === 'darwin') {
+    await mkdir(join(source, 'lib/backend'), { recursive: true });
+    execFileSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX27.0.sdk', '-Wall', '-Wextra', '-Werror', fileURLToPath(new URL('../runtime/ynx-workbench/native/process-tree.c', import.meta.url)), '-o', join(source, 'lib/backend/ynx-process-tree')]);
+  }
   if (unsafe) await symlink('/etc/passwd', join(source, 'escape'));
   const pin = { kind: 'ynx-theia', version: '1.76.0', architecture: `darwin-${process.arch}`, lockSha256: digest('{}'), treeSha256: unsafe ? 'a'.repeat(64) : await composedTreeDigest(source) };
   const manifest = { ...pin, entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html', nodeVersion: '26.0.0' };

@@ -12,7 +12,7 @@ import { createJsDebugSessionSupervisor } from './local-js-debug-session.mjs';
 import { assertAdmittedLocalGoToolchain } from './local-go-selection.mjs';
 import { inspectTrustedLocalPython } from './local-python-toolchain.mjs';
 import { copyPrivatePluginTree, preparePrivatePluginCopy, verifiedPluginSessionExit } from './local-plugin-copy.mjs';
-import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
+import { inspectWorkspacePathIdentity, inspectBundledRuntimePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
 import { verifyComposedRuntime, validateRuntimeArtifact, sameRuntimeArtifact, composedTreeDigest } from '../services/codeoss-service/src/composed-runtime.mjs';
 
 const exec = promisify(execFile), UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/;
@@ -144,7 +144,10 @@ export async function localWorkbenchPathIdentities({ helper, node, lockHelper, r
   const proofs = [];
   // /dev is the fixed OS pseudo-filesystem and needs no project-volume alias
   // expansion. Keep its pre-existing literal boundary without new permissions.
-  for (const path of paths) if (path !== '/dev') proofs.push(await inspectWorkspacePathIdentity({ helper, path }));
+  for (const path of paths) if (path !== '/dev') {
+    const inspect = path === dirname(node) || path === lockHelper ? inspectBundledRuntimePathIdentity : inspectWorkspacePathIdentity;
+    proofs.push(await inspect({ helper, path }));
+  }
   return proofs;
 }
 
