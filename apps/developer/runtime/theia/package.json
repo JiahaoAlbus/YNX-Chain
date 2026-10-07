@@ -41,6 +41,7 @@
         "defaultTheme": "YNX Klein",
         "defaultIconTheme": "theia-file-icons",
         "preferences": {
+          "window.menuBarVisibility": "visible",
           "telemetry.telemetryLevel": "off",
           "files.autoSave": "off",
           "editor.fontSize": 13,
