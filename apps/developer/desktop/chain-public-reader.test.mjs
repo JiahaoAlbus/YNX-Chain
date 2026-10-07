@@ -22,7 +22,8 @@ test('write actions and malformed request are rejected before network; fixed cha
  f.setFetch(async(url,options)=>url.endsWith('/status')?Response.json(status):Response.json({jsonrpc:'2.0',id:JSON.parse(options.body).id,result:'0x1'}));await assert.rejects(f.host.read('status',[]),/canonical YNX/);
 }));
 test('host rejects changed project identity and closed launch',()=>fixture(async f=>{
- await f.host.current();await rename(f.context.workspace,f.context.workspace+'-old');await mkdir(f.context.workspace);await assert.rejects(f.host.current(),/directory changed/);assert.equal(f.calls.length,0);f.host.close();await assert.rejects(f.host.current(),/stopped/);
+ // Replace before even the first current/read, not only after lazy capture.
+ await rename(f.context.workspace,f.context.workspace+'-old');await mkdir(f.context.workspace);await assert.rejects(f.host.current(),/directory changed/);assert.equal(f.calls.length,0);f.host.close();await assert.rejects(f.host.current(),/stopped/);
 }));
 test('oversized and redirected responses are refused',()=>fixture(async f=>{
  f.setFetch(async()=>new Response('{}',{headers:{'content-length':String(2*1024*1024+1)}}));await assert.rejects(f.host.read('status',[]),/too large/);
