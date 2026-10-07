@@ -91,11 +91,12 @@ static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port) {
     return port>0&&[url.scheme isEqual:@"http"]&&[url.host isEqual:@"127.0.0.1"]&&url.port.integerValue==port&&!url.user.length&&!url.password.length&&(!url.path.length||[url.path isEqual:@"/"]);
 }
 static BOOL YNXLocalWindowRenderEligible(BOOL visible,BOOL miniaturized,BOOL viewInWindow,BOOL viewHidden,NSWindowOcclusionState occlusion,BOOL appActive,BOOL keyWindow,BOOL onActiveSpace,BOOL appHidden) {
-    if(!visible||miniaturized||!viewInWindow||viewHidden||!onActiveSpace||appHidden)return NO;
-    // Normal AppKit visibility remains the preferred signal. A focused,
-    // interactive window is also eligible when WebKit/AppKit omit that bit.
+    if(!visible||miniaturized||!viewInWindow||viewHidden||appHidden)return NO;
+    // AppKit can report a stale active-Space/occlusion pair for a new window.
+    // Active application + key window is an independent positive signal;
+    // background windows still need both Space and documented visibility.
     // Unknown occlusion bits alone never enable drawing or grant authority.
-    return (occlusion&NSWindowOcclusionStateVisible)!=0||(appActive&&keyWindow);
+    return (appActive&&keyWindow)||(onActiveSpace&&(occlusion&NSWindowOcclusionStateVisible)!=0);
 }
 static BOOL YNXLocalGoPayload(id body) {
     return [body isKindOfClass:NSDictionary.class]&&[body count]==2&&[body[@"action"] isEqual:@"select-go-toolchain"]&&[body[@"requestId"] isKindOfClass:NSString.class]&&[[NSUUID alloc]initWithUUIDString:body[@"requestId"]];

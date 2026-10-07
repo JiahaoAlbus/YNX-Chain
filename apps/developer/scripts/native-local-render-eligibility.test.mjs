@@ -28,7 +28,18 @@ test('native drawing eligibility supports an interactive window without treating
       assert(!YNXLocalWindowRenderEligible(YES,YES,YES,NO,NSWindowOcclusionStateVisible,YES,YES,YES,NO));
       assert(!YNXLocalWindowRenderEligible(YES,NO,NO,NO,NSWindowOcclusionStateVisible,YES,YES,YES,NO));
       assert(!YNXLocalWindowRenderEligible(YES,NO,YES,YES,NSWindowOcclusionStateVisible,YES,YES,YES,NO));
-      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,NSWindowOcclusionStateVisible,YES,YES,NO,NO));
+      // Actual first-use failure: foreground/key window with stale Space=false.
+      assert(YNXLocalWindowRenderEligible(YES,NO,YES,NO,8192,YES,YES,NO,NO));
+      assert(YNXLocalWindowRenderEligible(YES,NO,YES,NO,NSWindowOcclusionStateVisible,YES,YES,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,NSWindowOcclusionStateVisible,NO,NO,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,8192,YES,NO,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,8192,NO,YES,NO,NO));
+      // Focus cannot override physical hidden/minimized/detached state.
+      assert(!YNXLocalWindowRenderEligible(NO,NO,YES,NO,8192,YES,YES,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,YES,YES,NO,8192,YES,YES,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,NO,NO,8192,YES,YES,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,YES,8192,YES,YES,NO,NO));
+      assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,8192,YES,YES,NO,YES));
       assert(!YNXLocalWindowRenderEligible(YES,NO,YES,NO,NSWindowOcclusionStateVisible,YES,YES,YES,YES));
       return 0;
     }`);
