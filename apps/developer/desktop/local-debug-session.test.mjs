@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer, connect } from 'node:net';
 import { mkdtemp, mkdir, cp, writeFile, readFile, realpath, rm } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { createLocalIpcSession } from './local-workbench-ipc.mjs';
@@ -15,6 +15,11 @@ const runtimeRoot = process.env.YNX_DEBUG_TEST_RUNTIME;
 const artifacts = process.env.YNX_DEBUG_QA_ROOT;
 const packagedDesktop = process.env.YNX_DEBUG_TEST_DESKTOP;
 assert.ok(extensionSource && runtimeRoot && artifacts && packagedDesktop, 'Explicit retained debug extension, runtime, packaged desktop and owned external QA root are required; never download test inputs');
+// A packaged supervisor must consume its own executable inputs, just as the
+// native launcher does. Mixing a Homebrew Node or temporary helper into an App
+// fixture correctly fails the production package boundary before debugging.
+const bundledRuntime = packagedDesktop.endsWith('/Contents/Resources/code/apps/developer/desktop')
+  ? resolve(packagedDesktop, '../../../../runtime') : undefined;
 const { createDebugSessionSupervisor, debugSessionPolicy, dapDecoder, DEBUGPY_PINS } = await import(pathToFileURL(join(packagedDesktop, 'local-debug-session.mjs')));
 const { localProjectContext, localWorkbenchEnvironment, localWorkbenchSandboxPolicy, localWorkbenchPathIdentities } = await import(pathToFileURL(join(packagedDesktop, 'local-workbench.mjs')));
 const tick = () => new Promise(ok => setTimeout(ok, 20));
@@ -29,10 +34,14 @@ async function fixture(task, budget = {}) {
   const extension = join(plugins, 'ms-python.debugpy-2026.6.0'); await mkdir(extension);
   await cp(join(extensionSource, 'bundled'), join(extension, 'bundled'), { recursive: true, force: false });
   await cp(join(extensionSource, 'package.json'), join(extension, 'package.json'));
-  const helper = join(root, 'workspace-path-identity');
-  const compile = spawnSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', join(desktop, 'macos/workspace-path-identity.c'), '-o', helper], { encoding: 'utf8' });
-  assert.equal(compile.status, 0, compile.stderr);
-  const input = { node: process.execPath, lockHelper: helper, runtime: { root: runtimeRoot }, context, port: 43119, plugins };
+  const helper = bundledRuntime ? join(bundledRuntime, 'workspace-path-identity') : join(root, 'workspace-path-identity');
+  if (!bundledRuntime) {
+    const compile = spawnSync('/Library/Developer/CommandLineTools/usr/bin/clang', ['-isysroot', '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', join(desktop, 'macos/workspace-path-identity.c'), '-o', helper], { encoding: 'utf8' });
+    assert.equal(compile.status, 0, compile.stderr);
+  }
+  const input = { node: bundledRuntime ? join(bundledRuntime, 'node') : process.execPath,
+    lockHelper: bundledRuntime ? join(bundledRuntime, 'ynx-local-workbench-lock') : helper,
+    runtime: { root: runtimeRoot }, context, port: 43119, plugins };
   const pathIdentities = await localWorkbenchPathIdentities({ ...input, helper });
   const basePolicy = localWorkbenchSandboxPolicy({ ...input, pathIdentities });
   const env = localWorkbenchEnvironment(input);
