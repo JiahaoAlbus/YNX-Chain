@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "7c0587760",
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-7c0587760-20261007",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not the packaged source commit",
+    "automaticGitHubSourceArchives": "publication carrier only; cannot rebuild this package"
+  },
+  "packagedSource": {
+    "commit": "7c058776044e5374d1df0d714971398f2facbe70",
+    "tree": "a94b6eded511bfd6dc6538c562fc2ec31ece39cd",
+    "remoteSourceCommitPublished": false,
+    "claimScope": "packaged source identity and corresponding packaged code; not a complete published Git source archive"
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-7c0587760-macos-arm64-unsigned.dmg",
+    "bytes": 316437783,
+    "sha256": "bb452cc7f46145020641603566a7be030e57fdb4b7bd757f6e359c9d4b741789",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "27.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "retains an x86_64 macos-trash backend fallback; native Cocoa Trash path present, all deletion paths not verified"
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "node": "26.7.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "c3cc7fabef98eeb4a10c3c82e022fab3ee28d08ba207e800d320be8fb2ae11d5"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "112af60deed0aa4079ac96fdebf4f3030b4739bcf61ea1cb2c07301652f65bd8",
+    "sbomSha256": "3f87406b3885b4faa5a3a7e1d09001d027bbdf5c0f7efc41bae6bfbbae65fa7a"
+  },
+  "signing": {
+    "kind": "unsigned ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "packageIntegrity": "PASS",
+    "sourceAndPackagedCodeIdentity": "PASS",
+    "nativeStartupAndAboutSourceIdentity": "NOT_REPEATED_ABOUT; installed provenance/source verified",
+    "newProjectRunDebugStopReopen": "NOT_VERIFIED",
+    "cppPythonJsFullNativeJourneys": "NOT_VERIFIED",
+    "allOtherLanguages": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "walletAuthChainExplorerDeployment": "NOT_VERIFIED",
+    "realOnlineAI": "NOT_VERIFIED",
+    "cloudEcosystem": "NOT_VERIFIED",
+    "all63ExtensionsAndRemoteDevelopment": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "fullIDEGoalComplete": false,
+    "hostedAIGenerateAndRecovery": "CLOSED_NOT_SUPPLIED",
+    "standardApplicationsInstallStartup": "PASS on QA Mac; Finder installed actual DMG",
+    "nativeJsCreateSaveRunQuitReopenRun": "NOT_REPEATED complete create/run journey in this package",
+    "permissionRegressionTests": "Focused marketplace tests 17/17 plus DNS 5/5; native picker suite7/7 and frontend/localization6/6. Not full security certification",
+    "fullBreakpointVariablesStepJourney": "NOT_VERIFIED",
+    "topMenuNormalFullscreenReopen": "PASS normal and reopen; fullscreen not repeated",
+    "extensionMarketplace": "Native catalog search Chinese PASS; metadata detail observed in prior candidate only, not counted here. README/install/update/execute/language download NOT_PASSED",
+    "nativeJsConfiguredDebug": "PASS: reopened existing QA project, breakpoint line2 value41, F10 line3 value42, F5 Hello JavaScript42, shell prompt and cleared session",
+    "nativeFilePicker": "PASS native OS Open File selection opens same-project file; OS workspace picker native; embedded menu folder selection opens separate project; outside-file consent Cancel preserves project; pending picker Quit then Cancel preserves draft and picker retries; save QA draft; quit/reopen restores project",
+    "workspaceFileAndForeignFileAccept": "NOT_VERIFIED actual workspace-file load and outside-file consent accept; multi-root unsupported",
+    "shortcutOpen": "NOT_VERIFIED; CUA Cmd+O opened quick-search, existing keybindings not reset"
+  },
+  "dataProtection": {
+    "instruction": "Preserve projects, settings and extensions. Keep earlier packages for rollback. This QA release does not reset user or Chain data."
+  },
+  "fix": "Native macOS file/folder/workspace selection for open commands; picker cancellation/retry lifecycle; restricted Open VSX catalog search. Retains default top menu. Full marketplace and multi-language install lifecycle remain incomplete."
+}
