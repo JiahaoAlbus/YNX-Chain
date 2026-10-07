@@ -5,6 +5,14 @@ const path = require('node:path');
 function createEvmProject(api, context, environment, t = value => value) {
   let active, starting = false, generation = 0, disposed = false;
   const ended = new WeakSet();
+  const stopping = new WeakSet();
+  function stopExecution(task) {
+    if (!task || ended.has(task)) return;
+    // Keep the workspace busy until the task service confirms this exact
+    // execution ended. terminate() is a request, not exit confirmation.
+    active = task;
+    if (!stopping.has(task)) { stopping.add(task); task.terminate(); }
+  }
   async function scope() {
     const folders = api.workspace.workspaceFolders;
     if (disposed || environment.YNX_WORKSPACE_MODE !== 'local' || api.workspace.isTrusted !== true
@@ -60,18 +68,18 @@ function createEvmProject(api, context, environment, t = value => value) {
       const started = await api.tasks.executeTask(task);
       // Cancellation may win while executeTask is resolving. Terminate only
       // the execution created here, never another project's task/process.
-      if (disposed || epoch !== generation) { started.terminate(); return; }
+      if (disposed || epoch !== generation) { stopExecution(started); return; }
       try {
         const live = await scope(); current();
         if (live.root !== project.root || live.identity !== project.identity || live.folder !== project.folder) throw Error(t('The EVM project changed. Run the command again.'));
-      } catch (error) { started.terminate(); throw error; }
+      } catch (error) { stopExecution(started); throw error; }
       if (!ended.has(started)) active = started;
     } catch (error) {
       if (error.code === 'ENOENT') throw Error(t('The project tool is not installed locally. No packages were downloaded. Configure the toolchain, then retry.'));
       throw error;
     } finally { starting = false; }
   }
-  function cancel() { generation++; const task = active; active = undefined; task?.terminate(); }
+  function cancel() { generation++; stopExecution(active); }
   context.subscriptions.push(api.tasks.onDidEndTask(event => { ended.add(event.execution); if (event.execution === active) active = undefined; }),
     { dispose() { disposed = true; cancel(); } });
   return { build: () => run('build'), test: () => run('test'), cancel };

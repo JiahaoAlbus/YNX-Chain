@@ -29,7 +29,7 @@ test('early task exit cannot leave a permanent active task',()=>fixture(async f=
 }));
 test('cancel during execute terminates only late owned result, then retry works',()=>fixture(async f=>{
  await writeFile(join(f.root,'foundry.toml'),'');const execute=f.api.tasks.executeTask;let resolve;
- f.api.tasks.executeTask=async task=>{const e=await execute(task);return new Promise(r=>resolve=()=>r(e));};const pending=f.app.build();while(!resolve)await new Promise(r=>setImmediate(r));f.app.cancel();resolve();await pending;assert.equal(f.calls[0].terminated,1);f.api.tasks.executeTask=execute;await f.app.build();assert.equal(f.calls.length,2);
+ f.api.tasks.executeTask=async task=>{const e=await execute(task);return new Promise(r=>resolve=()=>r(e));};const pending=f.app.build();while(!resolve)await new Promise(r=>setImmediate(r));f.app.cancel();resolve();await pending;assert.equal(f.calls[0].terminated,1);f.api.tasks.executeTask=execute;await assert.rejects(f.app.build(),/already running/);f.end(f.calls[0]);await f.app.build();assert.equal(f.calls.length,2);
 }));
 test('trust revoked while task starts terminates the owned execution',()=>fixture(async f=>{
  await writeFile(join(f.root,'foundry.toml'),'');const execute=f.api.tasks.executeTask;f.api.tasks.executeTask=async task=>{const e=await execute(task);f.api.workspace.isTrusted=false;return e;};await assert.rejects(f.app.build(),/trusted/);assert.equal(f.calls[0].terminated,1);
@@ -39,4 +39,8 @@ test('missing project, missing package, rejected save and trust do not launch ta
 }));
 test('Hardhat executable symlink outside project is refused',()=>fixture(async f=>{
  await f.hardhat();const cli=join(f.root,'node_modules/hardhat/cli.cjs');await rm(cli);await symlink(process.execPath,cli);await assert.rejects(f.app.build(),/outside its package/);assert.equal(f.calls.length,0);
+}));
+
+test('Stop waits for matching end; unrelated end cannot unlock the project',()=>fixture(async f=>{
+ await writeFile(join(f.root,'foundry.toml'),'');await f.app.build();f.app.cancel();f.app.cancel();assert.equal(f.calls[0].terminated,1);await assert.rejects(f.app.test(),/already running/);f.end({terminate(){}});await assert.rejects(f.app.build(),/already running/);f.end(f.calls[0]);await f.app.test();assert.equal(f.calls.length,2);
 }));
