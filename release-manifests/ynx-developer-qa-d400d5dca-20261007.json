@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "d400d5dca",
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-d400d5dca-20261007",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not the packaged source commit",
+    "automaticGitHubSourceArchives": "publication carrier only; cannot rebuild this package"
+  },
+  "packagedSource": {
+    "commit": "d400d5dca4a171c95b69072970a2a89fe517590a",
+    "tree": "24ce2f320e4d5ceeb1d138080b2c0572e8d7bb09",
+    "remoteSourceCommitPublished": false,
+    "claimScope": "packaged source identity and corresponding packaged code; not a complete published Git source archive"
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-d400d5dca-macos-arm64-unsigned.dmg",
+    "bytes": 316453187,
+    "sha256": "aec87da20be84854e4d7383b05c97963fd4e1afc247a8557bd6b534c33c54809",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "27.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "retains an x86_64 macos-trash backend fallback; native Cocoa Trash path present, all deletion paths not verified"
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "node": "26.7.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "9981ed416387f83e6fad7750d4187a1d83f81bbe8c2562025ff44e5a46fc37d6"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "dc8d963f07ade2ce4d4ca3cc60dcec149baa330de97cce021aab5884e6ab4fde",
+    "sbomSha256": "a68f99e52ed8c10cfda19b9754b0266adb9f0391c0aaed40b07f6e0809495c53"
+  },
+  "signing": {
+    "kind": "unsigned ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "packageIntegrity": "PASS",
+    "sourceAndPackagedCodeIdentity": "PASS",
+    "nativeStartupAndAboutSourceIdentity": "NOT_REPEATED_ABOUT; installed provenance/source verified",
+    "newProjectRunDebugStopReopen": "NOT_VERIFIED",
+    "cppPythonJsFullNativeJourneys": "NOT_VERIFIED",
+    "allOtherLanguages": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "walletAuthChainExplorerDeployment": "NOT_VERIFIED",
+    "realOnlineAI": "NOT_VERIFIED",
+    "cloudEcosystem": "NOT_VERIFIED",
+    "all63ExtensionsAndRemoteDevelopment": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "fullIDEGoalComplete": false,
+    "hostedAIGenerateAndRecovery": "CLOSED_NOT_SUPPLIED",
+    "standardApplicationsInstallStartup": "PASS on QA Mac; Finder installed actual DMG",
+    "nativeJsCreateSaveRunQuitReopenRun": "PASS on QA Mac via native CUA: create/save, Run JavaScript File output, normal quit, Finder reopen, same file, rerun output and shell prompt returned; numeric exit code not separately checked",
+    "permissionRegressionTests": "Prior production security implementation unchanged from 15ca; previous results not counted as this package tests",
+    "fullBreakpointVariablesStepJourney": "NOT_VERIFIED",
+    "topMenuNormalFullscreenReopen": "PASS on QA Mac via native CUA: eight top menus visible normally, fullscreen and after reopen; File and Run menus opened",
+    "extensionMarketplace": "KNOWN_FETCH_FAILURE; separate second release"
+  },
+  "dataProtection": {
+    "instruction": "Preserve projects, settings and extensions. Keep earlier packages for rollback. This QA release does not reset user or Chain data."
+  },
+  "fix": "Default full top menu visible, including fullscreen. Explicit user preferences preserved. Retains 15ca installation-path fix. Marketplace fix is a separate subsequent release, not included."
+}
