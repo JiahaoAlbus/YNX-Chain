@@ -630,6 +630,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,copy) NSString *localWorkspace;
 @property(nonatomic,strong) NSOpenPanel *localFolderPanel;
 @property(nonatomic,strong) NSOpenPanel *localFilePanel;
+@property(nonatomic,strong) NSAlert *localFileConsent;
+@property(nonatomic) NSUInteger localFileGeneration;
 @property(nonatomic,copy) NSString *localInitialFile;
 @property(nonatomic,strong) NSOpenPanel *localGoPanel;
 @property(nonatomic,strong) NSAlert *localGoProgress;
@@ -807,7 +809,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){NSOpenPanel *cancelledPanel=_localFilePanel;_localFilePanel=nil;[cancelledPanel cancel:nil];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){[self cancelLocalFileSelection];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -973,16 +975,23 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSMutableDictionary *reply=[value mutableCopy];reply[@"requestId"]=request;if([reply[@"error"] isKindOfClass:NSString.class])reply[@"error"]=YNXLocalMenuLabel(reply[@"error"],_localLocale);
     [_webView callAsyncJavaScript:@"window.__ynxNativeFileReply?.(reply)" arguments:@{@"reply":reply} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:nil];
 }
+- (void)cancelLocalFileSelection {
+    _localFileGeneration++;
+    NSOpenPanel *panel=_localFilePanel;_localFilePanel=nil;[panel cancel:nil];
+    NSAlert *consent=_localFileConsent;_localFileConsent=nil;
+    if(consent)[_window endSheet:consent.window returnCode:NSModalResponseCancel];
+}
 - (void)pickLocalFile:(NSDictionary *)body {
     NSString *request=body[@"requestId"],*kind=body[@"kind"],*document=_webView.URL.absoluteString;
     if(!YNXNativePickerPayload(body))return;
     if(!_localCommandDocumentReady||!_server.running||_localCloseRequest||_window.attachedSheet||_localFolderPanel||_localFilePanel){[self replyLocalFile:request document:document value:@{@"error":@"Finish the current dialog before opening another file."}];return;}
+    NSUInteger generation=++_localFileGeneration;
     NSOpenPanel *panel=[NSOpenPanel openPanel];_localFilePanel=panel;
     panel.canChooseFiles=![kind isEqual:@"folder"];panel.canChooseDirectories=[kind isEqual:@"folder"]||[kind isEqual:@"any"];panel.allowsMultipleSelection=NO;panel.canCreateDirectories=panel.canChooseDirectories;
     panel.title=YNXLocalMenuLabel([kind isEqual:@"workspace"]?@"Open Workspace from File…":[kind isEqual:@"folder"]?@"Open Folder…":@"Open File…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
     if([kind isEqual:@"workspace"])panel.allowedFileTypes=@[@"theia-workspace",@"code-workspace"];
     [panel beginWithCompletionHandler:^(NSModalResponse result){
-        if(self.localFilePanel!=panel)return;
+        if(self.localFilePanel!=panel||self.localFileGeneration!=generation)return;
         self.localFilePanel=nil;
         if(![document isEqual:self.webView.URL.absoluteString])return;
         if(result!=NSModalResponseOK){[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];return;}
@@ -1000,14 +1009,14 @@ static NSString *YNXDesktopTitle(NSString *label) {
         if(S_ISREG(st.st_mode))environment[@"YNX_LOCAL_INITIAL_FILE"]=selected;
         configuration.environment=environment;
         void (^launch)(void)=^{
-            if(![document isEqual:self.webView.URL.absoluteString])return;
+            if(self.localFileGeneration!=generation||!self.localCommandDocumentReady||!self.server.running||self.localCloseRequest||![document isEqual:self.webView.URL.absoluteString])return;
             [NSWorkspace.sharedWorkspace openApplicationAtURL:NSBundle.mainBundle.bundleURL configuration:configuration completionHandler:^(NSRunningApplication *application,NSError *error){dispatch_async(dispatch_get_main_queue(),^{[self replyLocalFile:request document:document value:error?@{@"error":@"The selected project could not be opened."}:@{@"openedInNewWindow":@YES}];});}];
         };
         if(S_ISREG(st.st_mode)){
-            NSAlert *consent=[NSAlert new];consent.messageText=YNXLocalMenuLabel(@"Open the containing folder as a project?",self.localLocale);
+            NSAlert *consent=[NSAlert new];self.localFileConsent=consent;consent.messageText=YNXLocalMenuLabel(@"Open the containing folder as a project?",self.localLocale);
             consent.informativeText=[NSString stringWithFormat:[self.localLocale isEqual:@"zh-cn"]?@"文件位于当前项目之外。继续将在独立窗口中打开以下文件夹，并允许 IDE 编辑该文件夹中的文件及运行项目任务：\n%@\n取消不会更改当前项目。":@"This file is outside the current project. Continuing opens its containing folder in a separate window and permits the IDE to edit files and run project tasks in that folder:\n%@\nCancel leaves your current project unchanged.",newRoot];
             [consent addButtonWithTitle:YNXLocalMenuLabel(@"Open Folder…",self.localLocale)];[consent addButtonWithTitle:[self.localLocale isEqual:@"zh-cn"]?@"取消":@"Cancel"];
-            [consent beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse answer){if(answer==NSAlertFirstButtonReturn)launch();else[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];}];
+            [consent beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse answer){if(self.localFileConsent!=consent||self.localFileGeneration!=generation)return;self.localFileConsent=nil;if(answer==NSAlertFirstButtonReturn)launch();else[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];}];
         }else launch();
     }];
 }
@@ -1349,7 +1358,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=[NSString stringWithFormat:@"Version: %@\nPackaged source: %@\n%@Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.",NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"]?:@"unverified",YNXPackagedSource(),NSProcessInfo.processInfo.environment[@"YNX_CODE_DESKTOP_SUPPORT_DIR"].length?@"QA profile — not the normal user profile.\n":@""];[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
-    if(_localWorkbenchMode){[self cancelLocalGoSelection];[self cancelLocalTrashConsent];}
+    if(_localWorkbenchMode){[self cancelLocalFileSelection];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];}
     if(_localWorkbenchMode){
         if(YNXLocalStartupFailureMayExit(_localStartupFailed,_localEditorDocumentLoaded))return NSTerminateNow;
         if(_localCloseRequest)return NSTerminateCancel;
@@ -1503,7 +1512,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
