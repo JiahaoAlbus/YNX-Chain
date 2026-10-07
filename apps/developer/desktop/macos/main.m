@@ -1410,16 +1410,20 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // the backend has created it and supplied its admitted readiness receipt.
     struct stat initial;if(lstat(root.fileSystemRepresentation,&initial)||!S_ISDIR(initial.st_mode))return;
     _localTrashBoundaryAttempted=YES;NSUInteger generation=++_localTrashBoundaryGeneration;
-    NSData *identity=[NSData dataWithBytes:&initial length:sizeof(initial)];
+    NSDictionary *proof=[YNXNativeTrashRequest captureRootProof:root];if(!proof)return;
+    struct stat selected;[proof[root] getBytes:&selected length:sizeof(selected)];if(!YNXTrashSame(initial,selected))return;
     __weak typeof(self) weakSelf=self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
         YNXNativeTrashRequest *boundary=[YNXNativeTrashRequest bindRoot:root excluded:excluded error:nil];
-        if(![boundary matchesRootIdentity:identity])boundary=nil;
+        if(![boundary matchesRootProof:proof])boundary=nil;
         dispatch_async(dispatch_get_main_queue(),^{
             typeof(self) owner=weakSelf;if(!owner||generation!=owner.localTrashBoundaryGeneration)return;
-            owner.localTrashBoundary=boundary;
+            owner.localTrashBoundary=[boundary matchesRootProof:proof]?boundary:nil;
         });
     });
+}
+- (void)invalidateLocalTrashBoundary {
+    _localTrashBoundaryGeneration++;_localTrashBoundary=nil;
 }
 - (void)captureLocalTrashBoundary {
     // Capture admitted root/ancestor descriptors once, before the editor can
@@ -1540,7 +1544,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{_localTrashBoundaryGeneration++;[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[self invalidateLocalTrashBoundary];[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}

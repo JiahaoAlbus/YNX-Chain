@@ -3,6 +3,7 @@
 #import <sys/stat.h>
 #import <unistd.h>
 #import <stdio.h>
+#import <stdlib.h>
 
 // Native-owned, one-request approval snapshot. No page/extension supplies a
 // descriptor, staging location, absolute path, or replacement authorization.
@@ -34,6 +35,8 @@ static BOOL YNXTrashPayload(id body){return [body isKindOfClass:NSDictionary.cla
 + (instancetype)prepareRoot:(NSString *)root relative:(NSString *)relative excluded:(NSArray<NSString *> *)excluded error:(NSError **)error;
 - (BOOL)commitApproved:(BOOL)approved error:(NSError **)error;
 - (BOOL)matchesRootIdentity:(NSData *)identity;
++ (NSDictionary<NSString *,NSData *> *)captureRootProof:(NSString *)root;
+- (BOOL)matchesRootProof:(NSDictionary<NSString *,NSData *> *)proof;
 @end
 @implementation YNXNativeTrashRequest
 - (instancetype)init {if((self=[super init])){_chain=[NSMutableArray new];_aliases=[NSMutableArray new];_rootFD=_parentFD=_stageParentFD=-1;}return self;}
@@ -52,6 +55,31 @@ static BOOL YNXTrashPayload(id body){return [body isKindOfClass:NSDictionary.cla
     if(identity.length!=sizeof(struct stat)||!_chain.count)return NO;
     struct stat expected,current;[identity getBytes:&expected length:sizeof(expected)];
     return !fstat(_rootFD,&current)&&YNXTrashSame(expected,current)&&[self validateDirectories];
+}
+// Capture only metadata before dispatch. A queued worker cannot adopt new
+// parent or alias identities when it later opens directory descriptors.
++ (NSDictionary<NSString *,NSData *> *)captureRootProof:(NSString *)root {
+    if(![root isKindOfClass:NSString.class]||![root hasPrefix:@"/"]||[root isEqual:@"/"]||!YNXTrashRelative([root substringFromIndex:1]))return nil;
+    NSMutableDictionary *proof=[NSMutableDictionary new];
+    char canonical[PATH_MAX];if(!realpath(root.fileSystemRepresentation,canonical))return nil;
+    for(NSString *start in @[root,[NSString stringWithUTF8String:canonical]]){
+        for(NSString *path=start;;path=path.stringByDeletingLastPathComponent){
+            struct stat st;if(lstat(path.fileSystemRepresentation,&st)||!S_ISDIR(st.st_mode)||S_ISLNK(st.st_mode)||((st.st_mode&0022)&&!(st.st_uid==0&&(st.st_mode&S_ISVTX))))return nil;
+            NSData *prior=proof[path];if(prior){struct stat old;[prior getBytes:&old length:sizeof(old)];if(!YNXTrashSame(old,st))return nil;}
+            proof[path]=[NSData dataWithBytes:&st length:sizeof(st)];if([path isEqual:@"/"])break;
+        }
+    }
+    return [proof copy];
+}
+- (BOOL)matchesRootProof:(NSDictionary<NSString *,NSData *> *)proof {
+    if(!proof.count||!_chain.count||!proof[_root])return NO;
+    for(NSString *path in proof){NSData *data=proof[path];struct stat old,current;if(data.length!=sizeof(old))return NO;[data getBytes:&old length:sizeof(old)];if(lstat(path.fileSystemRepresentation,&current)||!YNXTrashSame(old,current))return NO;}
+    for(NSDictionary *entry in [_chain arrayByAddingObjectsFromArray:_aliases]){
+        NSData *expected=proof[entry[@"path"]];if(expected.length!=sizeof(struct stat))return NO;
+        struct stat original,bound;[expected getBytes:&original length:sizeof(original)];[entry[@"stat"] getBytes:&bound length:sizeof(bound)];if(!YNXTrashSame(original,bound))return NO;
+        if(entry[@"kernel"]){NSData *alias=proof[entry[@"kernel"]];if(alias.length!=sizeof(original))return NO;[alias getBytes:&original length:sizeof(original)];if(!YNXTrashSame(original,bound))return NO;}
+    }
+    return [self validateDirectories];
 }
 + (instancetype)bindRoot:(NSString *)root excluded:(NSArray<NSString *> *)excluded error:(NSError **)error {
     if(![root isKindOfClass:NSString.class]||![root hasPrefix:@"/"]||[root isEqual:@"/"]||!YNXTrashRelative([root substringFromIndex:1])){if(error)*error=YNXTrashError(1,@"Select an existing item inside the current project.");return nil;}

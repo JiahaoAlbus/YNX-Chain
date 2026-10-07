@@ -91,3 +91,43 @@ test('actual native compile and bridge source contract retain exact origin/mainf
  await exec('/usr/bin/clang',['-fsyntax-only','-fobjc-arc','-fblocks','-mmacosx-version-min=13.5',join(developer,'desktop/macos/main.m')]);
  const source=await readFile(join(developer,'desktop/macos/main.m'),'utf8');assert.match(source,/YNXTrustedMessage\(message,_webView,_port\)/);assert.match(source,/YNXLocalEditorDocumentURL\(message.frameInfo.request.URL,_port\).*handleLocalTrashMessage/);assert.match(source,/YNXMatchingLocalReadyReceipt\(receipt,_localSupportRoot,workspace,YNXOrigin\(_port\)\)/);assert.match(source,/self.server==child&&child.running&&generation==self.localReadyGeneration/);assert.match(source,/\[self cancelLocalTrashConsent\];_localCommandDocumentReady=NO/);assert.match(source,/- \(NSApplicationTerminateReply\)applicationShouldTerminate:[\s\S]*?if\(_localWorkbenchMode\)\{\[self cancelLocalFileSelection:YES\];\[self cancelLocalGoSelection\];\[self cancelLocalTrashConsent\];\}/);assert.ok(source.includes('_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"]'));assert.match(source,/YNXTrashBoundReceipt\(receipt,_localSupportRoot,workspace,_localTrashBindingID\)/);assert.match(source,/Object.defineProperty\(window,'ynxDesktopTrash'/);
 });
+
+// Compile and drive the actual App scheduling methods, with queues held until
+// the fixture performs its filesystem changes. No duplicate scheduler model.
+test('actual async boundary scheduler rejects queue-window replacement and late completion',async()=>{
+ const start=mainSource.indexOf('- (void)beginLocalTrashBoundaryForRoot:'),end=mainSource.indexOf('- (void)captureLocalTrashBoundary {',start);
+ assert.ok(start>0&&end>start);const methods=mainSource.slice(start,end);
+ assert.match(mainSource,/applicationWillTerminate:\(NSNotification \*\)note\{\[self invalidateLocalTrashBoundary\]/);
+ const file=join(scratch,'scheduler.m'),program=join(scratch,'scheduler');
+ await writeFile(file,`#import "${header}"
+#import <dispatch/dispatch.h>
+static NSMutableArray *workers,*completions;
+static void queued(dispatch_queue_t queue,dispatch_block_t block){[(queue==dispatch_get_main_queue()?completions:workers) addObject:[block copy]];}
+#define dispatch_async queued
+@interface BoundaryHarness:NSObject
+@property(nonatomic,strong) YNXNativeTrashRequest *localTrashBoundary;
+@property(nonatomic) BOOL localTrashBoundaryAttempted;
+@property(nonatomic) NSUInteger localTrashBoundaryGeneration;
+@end
+@implementation BoundaryHarness
+${methods}
+@end
+int main(int argc,const char **argv){@autoreleasepool{
+ (void)YNXTrashPayload(nil);if(argc!=3)return 2;NSString *root=[NSString stringWithUTF8String:argv[1]],*mode=[NSString stringWithUTF8String:argv[2]];workers=[NSMutableArray new];completions=[NSMutableArray new];BoundaryHarness *owner=[BoundaryHarness new];
+ [owner beginLocalTrashBoundaryForRoot:root excluded:@[]];[owner beginLocalTrashBoundaryForRoot:root excluded:@[]];NSUInteger attempts=workers.count;
+ void(^replaceParent)(void)=^{NSString *parent=root.stringByDeletingLastPathComponent,*old=[parent stringByAppendingString:@"-old"];if(rename(parent.fileSystemRepresentation,old.fileSystemRepresentation)||mkdir(parent.fileSystemRepresentation,0700)||rename([[old stringByAppendingPathComponent:root.lastPathComponent] fileSystemRepresentation],root.fileSystemRepresentation))abort();};
+ if([mode isEqual:@"parent-before"])replaceParent();
+ if([mode isEqual:@"root-before"]){if(rename(root.fileSystemRepresentation,[root stringByAppendingString:@"-old"].fileSystemRepresentation)||mkdir(root.fileSystemRepresentation,0700))abort();}
+ for(dispatch_block_t work in [workers copy])work();
+ if([mode isEqual:@"parent-after"])replaceParent();
+ if([mode isEqual:@"terminate"])[owner invalidateLocalTrashBoundary];
+ for(dispatch_block_t completion in [completions copy])completion();
+ NSDictionary *answer=@{@"attempts":@(attempts),@"adopted":@((BOOL)(owner.localTrashBoundary!=nil)),@"completionCount":@(completions.count)};NSData *data=[NSJSONSerialization dataWithJSONObject:answer options:0 error:nil];fwrite(data.bytes,1,data.length,stdout);return 0;
+}}
+`);
+ await exec('/usr/bin/clang',['-fobjc-arc','-fblocks','-Wall','-Wextra','-Werror','-mmacosx-version-min=13.5',file,'-framework','Foundation','-o',program]);
+ for(const mode of ['normal','parent-before','root-before','parent-after','terminate']){
+  const home=join(scratch,randomUUID()),parent=join(home,'parent'),root=join(parent,'project');await mkdir(root,{recursive:true,mode:0o700});
+  const {stdout}=await exec(program,[root,mode]);const result=JSON.parse(stdout);assert.equal(result.attempts,1,mode);assert.equal(result.completionCount,1,mode);assert.equal(result.adopted,mode==='normal',mode);assert.deepEqual(await stages(parent),[],mode);
+ }
+});
