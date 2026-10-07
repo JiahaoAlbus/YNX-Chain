@@ -661,6 +661,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic) NSUInteger localWalletGeneration;
 @property(nonatomic,strong) NSMutableArray<NSURL *> *pendingNativeWalletURLs;
 @property(nonatomic,strong) YNXNativeTrashRequest *localTrashBoundary;
+@property(nonatomic) BOOL localTrashBoundaryAttempted;
+@property(nonatomic) NSUInteger localTrashBoundaryGeneration;
 @property(nonatomic,strong) NSAlert *localTrashConsent;
 @property(nonatomic,copy) NSString *localTrashRequestID;
 @property(nonatomic,copy) NSString *localTrashBindingID;
@@ -693,7 +695,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _localWorkspace=YNXSelectedLocalWorkspace(explicit,_localSupportRoot);
     NSString *trashRoot=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
     NSString *trashProfile=YNXTrashExpectedProfile(_localSupportRoot,trashRoot);
-    _localTrashBoundary=[YNXNativeTrashRequest bindRoot:trashRoot excluded:@[trashProfile,[trashProfile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"],@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]] error:nil];
+    [self beginLocalTrashBoundaryForRoot:trashRoot excluded:@[trashProfile,[trashProfile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"],@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]]];
     _localInitialFile=YNXNativeInitialFile(environment[@"YNX_LOCAL_INITIAL_FILE"],_localWorkspace,environment[@"YNX_LOCAL_WORKSPACE_SELECTION"]);
     _recordSelectedWorkspace=explicit&&[environment[@"YNX_LOCAL_WORKSPACE_SELECTION"] isEqual:@"native-panel"];
     _port=YNXAvailablePort();
@@ -1401,12 +1403,30 @@ static NSString *YNXDesktopTitle(NSString *label) {
         if(YNXTrashBoundReceipt(receipt,_localSupportRoot,workspace,_localTrashBindingID)&&YNXCanonicalLocalDirectory(workspace)&&YNXMatchingLocalReadyReceipt(receipt,_localSupportRoot,workspace,YNXOrigin(_port)))return receipt;
     }return nil;
 }
+- (void)beginLocalTrashBoundaryForRoot:(NSString *)root excluded:(NSArray<NSString *> *)excluded {
+    if(_localTrashBoundaryAttempted)return;
+    // Preserve the selected root before dispatch; a delayed completion cannot
+    // silently admit a replacement. An absent default root can be checked once
+    // the backend has created it and supplied its admitted readiness receipt.
+    struct stat initial;if(lstat(root.fileSystemRepresentation,&initial)||!S_ISDIR(initial.st_mode))return;
+    _localTrashBoundaryAttempted=YES;NSUInteger generation=++_localTrashBoundaryGeneration;
+    NSData *identity=[NSData dataWithBytes:&initial length:sizeof(initial)];
+    __weak typeof(self) weakSelf=self;
+    dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0),^{
+        YNXNativeTrashRequest *boundary=[YNXNativeTrashRequest bindRoot:root excluded:excluded error:nil];
+        if(![boundary matchesRootIdentity:identity])boundary=nil;
+        dispatch_async(dispatch_get_main_queue(),^{
+            typeof(self) owner=weakSelf;if(!owner||generation!=owner.localTrashBoundaryGeneration)return;
+            owner.localTrashBoundary=boundary;
+        });
+    });
+}
 - (void)captureLocalTrashBoundary {
     // Capture admitted root/ancestor descriptors once, before the editor can
     // issue a request. Reload never re-admits a replaced project pathname.
     if(_localTrashBindingID)return;NSDictionary *binding=[self localTrashAdmittedBinding];if(!binding)return;
     _localTrashBindingID=[binding[@"projectId"] copy];NSString *profile=binding[@"profile"],*temporary=[profile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"];
-    if(!_localTrashBoundary)_localTrashBoundary=[YNXNativeTrashRequest bindRoot:binding[@"workspace"] excluded:@[profile,temporary,@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]] error:nil];
+    [self beginLocalTrashBoundaryForRoot:binding[@"workspace"] excluded:@[profile,temporary,@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]]];
 }
 - (void)cancelLocalTrashConsent {
     if(_localTrashConsent){NSAlert *alert=_localTrashConsent;NSString *identifier=_localTrashRequestID;if(identifier&&_localCommandDocumentReady&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self localTrashReply:identifier error:YNXTrashError(5,@"Move to Trash was cancelled.") recovery:nil];_localTrashConsent=nil;_localTrashRequestID=nil;[_window endSheet:alert.window returnCode:NSModalResponseCancel];}
@@ -1520,7 +1540,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{_localTrashBoundaryGeneration++;[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}

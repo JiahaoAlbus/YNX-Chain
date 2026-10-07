@@ -67,7 +67,7 @@ async function value(session, threadId) {
 }
 
 test('Apple LLDB generated debug target really pauses, exposes variables, steps, exits, stops and retries under the packaged local policy', { skip: process.platform !== 'darwin' || !appRuntime, timeout: 60000 }, async () => {
-  const root = await mkdtemp('/private/tmp/ynx-cpp-native-dap-');
+  const root = await mkdtemp(join(process.env.YNX_QA_PROJECT_PARENT || '/private/tmp', 'ynx-cpp-native-dap-'));
   for (const name of ['project', 'profile', 'tmp']) await mkdir(join(root, name), { mode: 0o700 });
   const context = { workspace: join(root, 'project'), profile: join(root, 'profile'), temporary: join(root, 'tmp'), id: randomUUID() };
   const ipc = await createLocalIpcSession(context); context.ipcTemporary = ipc.path;

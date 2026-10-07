@@ -95,6 +95,13 @@ export async function prepareLocalGoToolchain({selectedRoot,supportRoot,writable
  for(const write of writes)if(support.ancestors.some(r=>r.dev===write.identity.dev&&r.ino===write.identity.ino))throw Error('App support is covered by a project writable root.');
  const toolchains=await privateChild(supportRoot,'toolchains'),parent=await privateChild(toolchains,'go');const parentProof=await outside(parent);
  const plan=await scan(selectedRoot,signal),license=await sourceLicense(selectedRoot,signal);await assertProof(source);check(signal);
+ const assertSourceUnchanged=async phase=>{
+  const current=await scan(selectedRoot,signal);
+  const changed=current.find((row,index)=>!equal(row,plan[index]));
+  if(changed||current.length!==plan.length)throw Error(`Go source inventory changed ${phase}: ${changed?.path||plan[current.length]?.path||'.'}.`);
+  const currentLicense=await readRegular(license.path,signal);
+  if(!equal(currentLicense.identity,license.identity)||currentLicense.sha256!==license.sha256)throw Error(`Go LICENSE changed ${phase}.`);
+ };
  for(const name of ['bin/go','src/runtime/runtime.go','src/fmt/print.go',`pkg/tool/darwin_arm64/compile`,`pkg/tool/darwin_arm64/link`])if(!plan.some(row=>row.path===name&&row.kind==='file'))throw Error('Choose a complete installed macOS ARM64 Go toolchain.');
  const expected=content(plan);if(!expected.some(row=>row.path==='LICENSE'))expected.push({path:'LICENSE',kind:'file',mode:license.identity.mode,sha256:license.sha256,size:license.identity.size});expected.sort((a,b)=>order(a,b));
  const treeSha256=sha(JSON.stringify(expected)),destination=path.join(parent,treeSha256);
@@ -102,7 +109,7 @@ export async function prepareLocalGoToolchain({selectedRoot,supportRoot,writable
  // Sorting is independent of filesystem enumeration and receipt parsing.
  const verifyContents=async directory=>{const rows=content(await scan(directory,signal));if(!equal(rows,expected))throw Error('Go copied closure does not match its selected source.');};
  let existing=false;try{await fs.lstat(destination);existing=true;}catch(error){if(error.code!=='ENOENT')throw error;}
- if(existing){await assertProof(source);if(!equal(await scan(selectedRoot,signal),plan)||!equal((await readRegular(license.path,signal)).identity,license.identity)||(await readRegular(license.path,signal)).sha256!==license.sha256)throw Error('Go source inventory or LICENSE changed.');await assertProof(parentProof);
+ if(existing){await assertProof(source);await assertSourceUnchanged('before reuse');await assertProof(parentProof);
   return await validateSnapshot(destination,expected,signal,pathIdentityHelper);
  }
  const staging=await fs.mkdtemp(path.join(parent,'.pending-'));await fs.chmod(staging,0o700);const stageProof=await rootProof(staging,true),goroot=await privateChild(staging,'goroot');let claim,published=false;
@@ -124,10 +131,10 @@ export async function prepareLocalGoToolchain({selectedRoot,supportRoot,writable
   }
   if(!plan.some(row=>row.path==='LICENSE')){await writeOwned(path.join(goroot,'LICENSE'),license.bytes,license.identity.mode);await remember(path.join(goroot,'LICENSE'));}
   await onProgress?.({phase:'copied'});check(signal);await assertProof(source);
-  if(!equal(await scan(selectedRoot,signal),plan)||!equal((await readRegular(license.path,signal)).identity,license.identity)||(await readRegular(license.path,signal)).sha256!==license.sha256)throw Error('Go source inventory or LICENSE changed during copying.');
+  await assertSourceUnchanged('during copying');
   await verifyContents(goroot);const actual=await version(goroot,signal,pathIdentityHelper);await verifyContents(goroot);check(signal);await assertProof(parentProof);await outside(parent);
   await onProgress?.({phase:'before-publish'});check(signal);await assertProof(parentProof);await assertProof(source);
-  if(!equal(await scan(selectedRoot,signal),plan)||!equal((await readRegular(license.path,signal)).identity,license.identity)||(await readRegular(license.path,signal)).sha256!==license.sha256)throw Error('Go source inventory or LICENSE changed before publication.');
+  await assertSourceUnchanged('before publication');
   await verifyContents(goroot);await outside(parent);
   // mkdir is the no-replace claim. Another invocation's directory is never
   // overwritten by rename, including a failed or incomplete prior claim.

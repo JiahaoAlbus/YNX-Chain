@@ -33,6 +33,7 @@ static BOOL YNXTrashPayload(id body){return [body isKindOfClass:NSDictionary.cla
 + (instancetype)prepareBoundary:(YNXNativeTrashRequest *)boundary relative:(NSString *)relative error:(NSError **)error;
 + (instancetype)prepareRoot:(NSString *)root relative:(NSString *)relative excluded:(NSArray<NSString *> *)excluded error:(NSError **)error;
 - (BOOL)commitApproved:(BOOL)approved error:(NSError **)error;
+- (BOOL)matchesRootIdentity:(NSData *)identity;
 @end
 @implementation YNXNativeTrashRequest
 - (instancetype)init {if((self=[super init])){_chain=[NSMutableArray new];_aliases=[NSMutableArray new];_rootFD=_parentFD=_stageParentFD=-1;}return self;}
@@ -47,11 +48,19 @@ static BOOL YNXTrashPayload(id body){return [body isKindOfClass:NSDictionary.cla
     for(NSDictionary *entry in _chain){struct stat expected,current;[entry[@"stat"] getBytes:&expected length:sizeof(expected)];int fd=[entry[@"fd"] intValue];if(fstat(fd,&current)||!YNXTrashSame(expected,current)||![YNXTrashFDPath(fd) isEqual:entry[@"kernel"]])return NO;struct stat byPath;if(lstat([entry[@"path"] fileSystemRepresentation],&byPath)||!YNXTrashSame(expected,byPath))return NO;}
     for(NSDictionary *entry in _aliases){struct stat old,current;[entry[@"stat"] getBytes:&old length:sizeof(old)];if(lstat([entry[@"path"] fileSystemRepresentation],&current)||!YNXTrashSame(old,current))return NO;}return YES;
 }
+- (BOOL)matchesRootIdentity:(NSData *)identity {
+    if(identity.length!=sizeof(struct stat)||!_chain.count)return NO;
+    struct stat expected,current;[identity getBytes:&expected length:sizeof(expected)];
+    return !fstat(_rootFD,&current)&&YNXTrashSame(expected,current)&&[self validateDirectories];
+}
 + (instancetype)bindRoot:(NSString *)root excluded:(NSArray<NSString *> *)excluded error:(NSError **)error {
     if(![root isKindOfClass:NSString.class]||![root hasPrefix:@"/"]||[root isEqual:@"/"]||!YNXTrashRelative([root substringFromIndex:1])){if(error)*error=YNXTrashError(1,@"Select an existing item inside the current project.");return nil;}
     YNXNativeTrashRequest *request=[self new];request->_root=[root copy];
-    int fd=open("/",O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);if(![request retainDirectory:fd path:@"/" error:error])return nil;NSString *path=@"/";
-    for(NSString *part in [root componentsSeparatedByString:@"/"]){if(!part.length)continue;int next=openat(fd,part.fileSystemRepresentation,O_RDONLY|O_DIRECTORY|O_NOFOLLOW|O_CLOEXEC);path=[path stringByAppendingPathComponent:part];if(![request retainDirectory:next path:path error:error])return nil;fd=next;}
+    // Retain traversal authority, not directory-listing access to every parent
+    // of a project selected in NSOpenPanel (for example the user's Desktop).
+    // Vnode, ownership, alias and no-follow checks remain unchanged.
+    int fd=open("/",O_SEARCH|O_NOFOLLOW|O_CLOEXEC);if(![request retainDirectory:fd path:@"/" error:error])return nil;NSString *path=@"/";
+    for(NSString *part in [root componentsSeparatedByString:@"/"]){if(!part.length)continue;int next=openat(fd,part.fileSystemRepresentation,O_SEARCH|O_NOFOLLOW|O_CLOEXEC);path=[path stringByAppendingPathComponent:part];if(![request retainDirectory:next path:path error:error])return nil;fd=next;}
     request->_rootFD=fd;request->_stageParent=root.stringByDeletingLastPathComponent;
     NSDictionary *parentEntry=request->_chain[request->_chain.count-2];request->_stageParentFD=[parentEntry[@"fd"] intValue];struct stat rootStat,parentStat;
     if(fstat(fd,&rootStat)||fstat(request->_stageParentFD,&parentStat)||rootStat.st_uid!=getuid()||parentStat.st_uid!=getuid()||(parentStat.st_mode&0022)||rootStat.st_dev!=parentStat.st_dev){if(error)*error=YNXTrashError(3,@"A private staging directory on this project's volume is unavailable. The file was retained.");return nil;}
