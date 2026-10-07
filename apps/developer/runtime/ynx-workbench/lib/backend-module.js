@@ -32,6 +32,7 @@ class YnxProcessUtils extends ProcessUtils {
 decorate(injectable(), YnxProcessUtils);
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   if (process.env.YNX_WORKSPACE_MODE === 'local') {
+    require('./marketplace-diagnostics').installOn(require('@theia/vsx-registry/lib/node/vsx-registry-service-impl').VSXRegistryServiceImpl.prototype);
     require('./local-terminal-channel-diagnostics').install();
     require('./local-js-terminal-environment').install(require('@theia/terminal/lib/node/shell-terminal-server').ShellTerminalServer.prototype);
     require('./local-task-cancellation').install(require('@theia/task/lib/node/process/process-task').ProcessTask.prototype);
