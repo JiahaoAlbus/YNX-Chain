@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "d4d03912f-r2",
+  "packagedSource": {
+    "commit": "d4d03912f7cd04ca1304c4938d72a9e3729851bc",
+    "tree": "5fe3df650b508044d50a2d2693950e6fc24023ca",
+    "remoteSourceCommitPublished": false
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-d4d03912f-macos-arm64-unsigned.dmg",
+    "bytes": 359711928,
+    "sha256": "2d58e7e87c1640a6ff7782c414ca88e9668d1ba34849ba14b90f68f068db9aa0",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "15.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "Retains x86_64 macos-trash fallback; all deletion paths not verified. macOS15 execution not verified."
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "ynxWorkbench": "0.3.46",
+    "ynxTools": "0.2.29",
+    "cpp": "0.3.7",
+    "node": "24.19.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "cf08fafeb0d0110faaf9dfcdb25cabb81565de9aff2f73362ca4b103737a0900",
+    "go": "0.1.2"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "6d9f096f238924eb9ec0cc6805fc22724fe60d9237ebb39b9db50bd68cf11582",
+    "serverEntrySha256": "df700e1a596781b5ccac2189b79f2b0333bebe90adb7a8aaeed7f13eb52dc070",
+    "sbomSha256": "e0a8f4a075852ff04ccf3abde766e6727d0de9bc221a50538345bba27baf8f39"
+  },
+  "signing": {
+    "kind": "ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "standardApplicationsInstallStartup": "NOT_VERIFIED for this candidate",
+    "nativeChainConfigureApproveReadPersist": "NOT_VERIFIED for this candidate; earlier e2e public read is separate evidence",
+    "nativeChainDisplayAndReopen": "NOT_VERIFIED",
+    "samePackageCppPythonJsFullJourney": "NOT_VERIFIED",
+    "olderMacOSExecution": "NOT_VERIFIED",
+    "evmFoundryHardhatActualExecution": "NOT_VERIFIED",
+    "walletSigningDeployment": "NOT_SUPPLIED",
+    "onlineAI": "NOT_SUPPLIED",
+    "marketplaceFullLifecycle": "NOT_PASSED",
+    "all63Extensions": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "fullIDEGoalComplete": false
+  },
+  "engineeringEvidence": {
+    "actualBinaryAndDeclaredFloor": "15.0",
+    "codesignDeepStrict": "PASS EXIT0",
+    "dmgChecksum": "PASS EXIT0",
+    "goSourceOuterArchive": "identical 0.1.2 with zh-CN runtime language bundle",
+    "taskCleanup": "5/5 PASS sealed d4 Node/runtime helper + source Theia/PTY adapter harness; not native GUI",
+    "otherLanguageRegressions": "Earlier f116 engineering results retained separately; not d4 native acceptance"
+  },
+  "dataProtection": {
+    "instruction": "Preserve user projects/settings/extensions/Chain and Wallet data. Earlier e2e QA asset and routes retained for rollback."
+  },
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-d4d03912f-20261007",
+    "publicCarrierParentCommit": "b5c44d3549be3cd22a9d33dd98927e32be4922ee",
+    "tagPurpose": "metadata-only publication carrier; not packaged source",
+    "automaticGitHubSourceArchives": "publication metadata only; cannot rebuild package"
+  }
+}
