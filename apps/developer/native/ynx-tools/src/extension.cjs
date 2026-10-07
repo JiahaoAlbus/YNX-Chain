@@ -7,6 +7,7 @@ function activate(context) {
   require('./solidity-format.cjs').createSolidityFormatting(vscode, context, process.env);
   const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
+  const evmProject = require('./evm-project.cjs').createEvmProject(vscode, context, process.env, t);
   let localReviewPanel;
   const openLocalReview = capture => {
     if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to review local changes.'));
@@ -14,11 +15,11 @@ function activate(context) {
     return localReviewPanel.open(capture);
   };
   let chainProject;
+  const publicConnectionForProject = require('./chain-public-connection.cjs').createPublicConnection(vscode, context);
   const projectChain = () => {
     if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to configure its Chain tools.'));
-    // No network transport is discovered from project files or environment.
-    // A future admitted host binding must be supplied by its unique owner.
-    return chainProject ||= require('./chain-project-ui.cjs').createChainProjectUI(vscode, context, process.env, t);
+    // Fixed-purpose host public reads carry no Wallet or deployment authority.
+    return chainProject ||= require('./chain-project-ui.cjs').createChainProjectUI(vscode, context, process.env, t, { connectionForProject: publicConnectionForProject });
   };
   // The host context menu lives outside Monaco's scoped DOM context. Publish
   // our own selection state through the extension API so both hosts can render
@@ -37,6 +38,9 @@ function activate(context) {
       { label: t('Compile Solidity project'), command: 'ynx.compileSolidity' },
       { label: t('Configure Solidity build'), command: 'ynx.configureSolidityBuild' },
       { label: t('Cancel Solidity build'), command: 'ynx.cancelSolidityBuild' },
+      { label: t('Build EVM project'), command: 'ynx.evm.build' },
+      { label: t('Test EVM project'), command: 'ynx.evm.test' },
+      { label: t('Stop EVM task'), command: 'ynx.evm.cancel' },
       { label: t('Import compiler diagnostics'), command: 'ynx.importSolidityDiagnostics' },
       { label: t('Solidity language status'), command: 'ynx.solidityAnalysisStatus' },
       { label: t('Configure Python for this project'), command: 'ynx.configurePython' },
@@ -44,7 +48,7 @@ function activate(context) {
     { label: t('Network'), children: [
       { label: t('YNX Testnet · 6423 · YNXT'), description: t('Configured; not live checked'), command: 'ynx.testnetConfiguration' },
       { label: t('Configure Chain for this project'), command: 'ynx.configureChainProject' },
-      { label: t('Chain project tools'), description: t('Read transport not connected'), command: 'ynx.chainProject' },
+      { label: t('Chain project tools'), description: t('Public read; approve each query'), command: 'ynx.chainProject' },
       { label: t('Open saved observations'), command: 'ynx.chainProjectHistory' },
       { label: t('Remember a transaction reference'), command: 'ynx.trackChainTransaction' },
       { label: t('Create read-only SDK starter'), command: 'ynx.createTemplate' },
@@ -66,6 +70,9 @@ function activate(context) {
   }));
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
   register('ynx.chainProject', () => projectChain().open());
+  register('ynx.evm.build', () => evmProject.build());
+  register('ynx.evm.test', () => evmProject.test());
+  register('ynx.evm.cancel', () => evmProject.cancel());
   register('ynx.configureChainProject', () => projectChain().configure());
   register('ynx.chainProjectHistory', () => projectChain().saved());
   register('ynx.trackChainTransaction', () => projectChain().track());

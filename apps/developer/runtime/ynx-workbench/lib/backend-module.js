@@ -63,6 +63,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     ? require('./wallet-admission-channel').inheritedAdmission()
     : { assertCurrent: async () => { throw require('./wallet-admission-channel').missing(); }, close() {} };
   const walletAdmissionRpc = require('./wallet-admission-protocol').createAdmissionRpc(walletAdmission);
+  const publicChainRpc = require('./chain-public-channel').createPublicChainRpc(require('./chain-public-channel').inheritedPublicChain());
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-public-chain', () => publicChainRpc));
+  bind(BackendApplicationContribution).toConstantValue({ onStop: () => publicChainRpc.close() });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-wallet-admission', () => walletAdmissionRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => walletAdmission.close() });
   const drafts = new DraftRecoveryStore();
@@ -88,6 +91,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       // getter while disabling Node's experimental browser global at startup.
       env.THEIA_SUPPORT_NODE_GLOBAL_NAVIGATOR = 'true';
       delete env.YNX_MARKETPLACE_PIPE;
+      delete env.YNX_PUBLIC_CHAIN_PIPE;
       if (Number(process.versions.node.split('.')[0]) >= 21)
         env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
     },

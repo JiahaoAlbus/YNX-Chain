@@ -136,7 +136,8 @@ function createChainProject(vscode, environment, { connectionForProject } = {}) 
       const connection=await race(connectionForProject(await scope(),{signal:controller.signal}),controller.signal);cancelled();
       // service is a source label, not an endpoint or network permission. This
       // module cannot fetch it; the admitted owner supplies the shared reader.
-      if(!connection||connection.protocolVersion!==PROTOCOL||connection.projectId!==projectId||connection.workspace!==root||!connection.reader||typeof connection.assertCurrent!=='function'||typeof connection.sourceVersion!=='string'||!connection.sourceVersion||connection.sourceVersion.length>160||typeof connection.service!=='string'||!/^https:\/\/developer\.ynxweb4\.com\/runtime\/chain$/.test(connection.service))
+      const publicRead=connection?.protocolVersion==='ynx-code-chain-public/v1'&&connection.access==='public-read';
+      if(!connection||!(connection.protocolVersion===PROTOCOL&&!connection.access||publicRead)||connection.projectId!==projectId||connection.workspace!==root||!connection.reader||typeof connection.assertCurrent!=='function'||typeof connection.sourceVersion!=='string'||!connection.sourceVersion||connection.sourceVersion.length>160||typeof connection.service!=='string'||!/^https:\/\/developer\.ynxweb4\.com\/runtime\/chain$/.test(connection.service))
         throw fail('The approved Chain connection does not match this project.', 'chain_admission_mismatch');
       const check=async()=>{cancelled();await scope();if(vscode.workspace.isTrusted!==true)throw fail('Project trust was revoked during the Chain read.', 'chain_project_untrusted');
         if((await configuration())?.digest!==config.digest)throw fail('Chain configuration changed. Approve a new read.', 'chain_configuration_changed');
@@ -156,7 +157,7 @@ function createChainProject(vscode, environment, { connectionForProject } = {}) 
       if(operation.kind==='balance')evidence={address:operation.address,value:await race(reader.rpc('eth_getBalance',[operation.address,'latest'],{signal:controller.signal}),controller.signal),unit:'base-unit',symbol:'YNXT'};
       if(operation.kind==='transaction')evidence=await race(reader.transaction(operation.hash,{signal:controller.signal}),controller.signal);
       await check();
-      return await saveRecord(operation,evidence,{kind:'admitted-chain-read',protocolVersion:PROTOCOL,service:connection.service,sourceVersion:connection.sourceVersion,networkCheckedAt:new Date().toISOString()},check);
+      return await saveRecord(operation,evidence,{kind:publicRead?'public-chain-read':'admitted-chain-read',protocolVersion:connection.protocolVersion,service:connection.service,sourceVersion:connection.sourceVersion,...publicRead?{access:'public-read',rest:'https://rpc.ynxweb4.com',evm:'https://evm.ynxweb4.com'}:{},networkCheckedAt:new Date().toISOString()},check);
     } finally {clearTimeout(timer);signal?.removeEventListener('abort',abort);controllers.delete(controller);if(active===controller)active=undefined;}
   }
   return {configuration,configure,history,trackTransaction,query,scope,

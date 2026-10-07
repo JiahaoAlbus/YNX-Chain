@@ -166,5 +166,21 @@
   "This file belongs to another local project.": "此文件属于另一个本地项目。",
   "Install and enable the JavaScript Debugger extension before running this file.": "请先安装并启用 JavaScript Debugger 扩展，再运行此文件。",
   "JavaScript launch was cancelled or failed. Check the debug output and retry.": "JavaScript 启动已取消或失败，请查看调试输出后重试。",
-  "The file changed after saving. Save and run it again.": "文件在保存后发生了更改，请保存后重新运行。"
+  "The file changed after saving. Save and run it again.": "文件在保存后发生了更改，请保存后重新运行。",
+  "Build EVM project": "构建 EVM 项目",
+  "Test EVM project": "测试 EVM 项目",
+  "Stop EVM task": "停止 EVM 任务",
+  "Open one trusted local EVM project.": "请打开一个已信任的本地 EVM 项目。",
+  "The EVM project changed. Run the command again.": "EVM 项目已变更，请重新运行命令。",
+  "No Foundry or Hardhat project was found. Open its project folder; a standalone Solidity file can use Compile Solidity Project.": "未找到 Foundry 或 Hardhat 项目。请打开其项目文件夹；单个 Solidity 文件可使用“编译 Solidity 项目”。",
+  "The Hardhat tool is outside this project. Preserve its files and select a project-local installation.": "Hardhat 工具位于此项目之外。请保留现有文件并选择项目内的安装。",
+  "This Hardhat installation is not supported. Use a project-local Hardhat 2 or 3 installation.": "此 Hardhat 安装不受支持，请使用项目内的 Hardhat 2 或 3。",
+  "The Hardhat executable is outside its package.": "Hardhat 可执行文件位于其软件包之外。",
+  "Choose Build or Test for this EVM project.": "请为此 EVM 项目选择构建或测试。",
+  "An EVM task is already running. Stop it before starting another.": "已有 EVM 任务正在运行，请先停止它。",
+  "The EVM task was cancelled.": "EVM 任务已取消。",
+  "Select EVM project tool": "选择 EVM 项目工具",
+  "Save the project files before running EVM tasks.": "请先保存项目文件，再运行 EVM 任务。",
+  "The project tool is not installed locally. No packages were downloaded. Configure the toolchain, then retry.": "本地未安装项目工具，未下载任何软件包。请配置工具链后重试。",
+  "Public read; approve each query": "公开只读；逐次批准查询"
 }

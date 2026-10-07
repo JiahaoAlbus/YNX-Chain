@@ -141,6 +141,11 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
     context.container.get(CommandRegistry), window, nls.locale,
   )).inSingletonScope();
+  bind(CommandContribution).toDynamicValue(context => ({ registerCommands(commands) {
+    const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-public-chain');
+    commands.registerCommand({ id: 'ynx.internal.publicChainRead' }, { execute: (id, action, params) => rpc.read(id, action, params) });
+    commands.registerCommand({ id: 'ynx.internal.publicChainCancel' }, { execute: id => rpc.cancel(id) });
+  } }));
   bind(NativeWalletService).toDynamicValue(context => new NativeWalletService(window,
     require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')))).inSingletonScope();
   bind(FrontendApplicationContribution).toService(NativeWalletService);
