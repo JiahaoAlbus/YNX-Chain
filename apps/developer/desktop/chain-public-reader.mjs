@@ -4,10 +4,10 @@ import {lstatSync,realpathSync} from 'node:fs';
 import {createChainReader,CHAIN_PROTOCOL,validateReadRpc} from '../services/chain-service/src/chain-reader.mjs';
 const REST='https://rpc.ynxweb4.com/', EVM='https://evm.ynxweb4.com/';
 const LIMIT=2*1024*1024;
-export function createPublicChainHost(context,{fetcher=fetch,sourceVersion='ynx-native-public-read/v1'}={}){
+export function createPublicChainHost(context,{fetcher=fetch,sourceVersion='ynx-native-public-read/v1',expectedIdentity,assertPathCurrent}={}){
  context=Object.freeze({id:context.id,workspace:context.workspace});
  const initial=lstatSync(context.workspace);
- if(!initial.isDirectory()||initial.isSymbolicLink()||realpathSync(context.workspace)!==context.workspace)throw Error('Chain project directory changed.');
+ if(!expectedIdentity||typeof assertPathCurrent!=='function'||String(initial.dev)!==String(expectedIdentity.dev)||String(initial.ino)!==String(expectedIdentity.ino)||!initial.isDirectory()||initial.isSymbolicLink()||realpathSync(context.workspace)!==context.workspace)throw Error('Chain project directory changed.');
  // Capture at host creation, before exposing the pipe. A replacement before
  // the first request must not acquire the original project's read binding.
  const identity=`${initial.dev}:${initial.ino}`,launch=randomUUID();let closed=false;
@@ -15,6 +15,7 @@ export function createPublicChainHost(context,{fetcher=fetch,sourceVersion='ynx-
   if(closed)throw Error('Chain host has stopped.');
   const stat=await lstat(context.workspace),key=`${stat.dev}:${stat.ino}`;
   if(!stat.isDirectory()||stat.isSymbolicLink()||await realpath(context.workspace)!==context.workspace||identity&&identity!==key)throw Error('Chain project directory changed.');
+  await assertPathCurrent();
   if(closed)throw Error('Chain host has stopped.');
   return {protocolVersion:'ynx-code-chain-public/v1',projectId:context.id,workspace:context.workspace,launch,sourceVersion};
  }

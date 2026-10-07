@@ -282,6 +282,10 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
     pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
   jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
+  const workspaceProof = pathIdentities.find(proof => proof.canonical === context.workspace);
+  const publicChainHost = createPublicChainHost(context, {
+    expectedIdentity: workspaceProof?.identity, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof),
+  });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
@@ -290,7 +294,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
-  const publicChainPipe = publicChainChannel.servePublicChain(child.stdio[5], createPublicChainHost(context));
+  const publicChainPipe = publicChainChannel.servePublicChain(child.stdio[5], publicChainHost);
   child.once('close', () => publicChainPipe.close());
   child.once('error', () => publicChainPipe.close());
   const catalogPipe = marketplaceChannel.serveCatalog(child.stdio[4], async (operation, options, signal) => {

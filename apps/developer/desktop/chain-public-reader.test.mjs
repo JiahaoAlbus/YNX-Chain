@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,realpath,rm,rename,mkdir} from 'node:fs/promises';
+import {mkdtemp,realpath,rm,rename,mkdir,lstat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {Duplex} from 'node:stream';
@@ -10,7 +10,8 @@ const {servePublicChain,publicChainClient}=createRequire(import.meta.url)('../ru
 const status={chainId:6423,nativeCurrencySymbol:'YNXT',network:'YNX Testnet',publicNetwork:true,height:27};
 async function fixture(fn){const workspace=await realpath(await mkdtemp(join(tmpdir(),'ynx-public-chain-'))),context={id:'12345678-1234-1234-1234-123456789abc',workspace};const calls=[];let override;
  const fetcher=async(url,options)=>{calls.push({url,options});if(override)return override(url,options);if(url.endsWith('/status'))return Response.json(status);if(url.endsWith('/ide/compiler'))return Response.json({runtimeMode:'restricted',limitations:['no arbitrary Solidity execution']});const request=JSON.parse(options.body);return Response.json({jsonrpc:'2.0',id:request.id,result:request.method==='eth_chainId'?'0x1917':request.method==='eth_getBalance'?'0xa':null});};
- const host=createPublicChainHost(context,{fetcher});try{await fn({host,context,calls,setFetch:value=>override=value});}finally{host.close();await rm(workspace,{recursive:true,force:true});await rm(workspace+'-old',{recursive:true,force:true});}}
+ const stat=await lstat(workspace),expectedIdentity={dev:String(stat.dev),ino:String(stat.ino)},assertPathCurrent=async()=>{const now=await lstat(workspace);if(String(now.dev)!==expectedIdentity.dev||String(now.ino)!==expectedIdentity.ino)throw Error('Chain project directory changed.');};
+ const host=createPublicChainHost(context,{fetcher,expectedIdentity,assertPathCurrent});try{await fn({host,context,calls,expectedIdentity,assertPathCurrent,setFetch:value=>override=value});}finally{host.close();await rm(workspace,{recursive:true,force:true});await rm(workspace+'-old',{recursive:true,force:true});}}
 function pipes(){let left,right;left=new Duplex({read(){},write(chunk,enc,done){right.push(chunk);done();}});right=new Duplex({read(){},write(chunk,enc,done){left.push(chunk);done();}});return[left,right];}
 test('public host uses only fixed REST and canonical EVM endpoints, shared validation and no credentials',()=>fixture(async f=>{
  const initial=await f.host.current();assert.equal(initial.protocolVersion,'ynx-code-chain-public/v1');assert.equal(await f.host.read('balance',['0x'+'1'.repeat(40)]),'0xa');assert.equal((await f.host.read('compiler',[])).runtimeMode,'restricted');
@@ -38,4 +39,8 @@ test('dedicated pipe returns real host contract, aborts only cancelled operation
  let received;f.setFetch((url,options)=>new Promise((resolve,reject)=>{received=options.signal;options.signal.addEventListener('abort',()=>reject(Error('aborted')),{once:true});}));
  const controller=new AbortController(),pending=client.request('status',[],controller.signal);while(!received)await new Promise(r=>setImmediate(r));controller.abort();await assert.rejects(pending,/unavailable/);await new Promise(r=>setImmediate(r));assert.equal(received.aborted,true);f.setFetch(undefined);assert.equal((await client.request('status')).height,27);
  }finally{client.close();server.close();}
+}));
+
+test('launch proof cannot bind replacement which existed before host construction',()=>fixture(async f=>{
+ await rename(f.context.workspace,f.context.workspace+'-old');await mkdir(f.context.workspace);assert.throws(()=>createPublicChainHost(f.context,{expectedIdentity:f.expectedIdentity,assertPathCurrent:f.assertPathCurrent}),/directory changed/);assert.equal(f.calls.length,0);
 }));
