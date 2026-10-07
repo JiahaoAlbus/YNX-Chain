@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, mkdtemp, access } from 'node:fs/promises';
+import { readFile, mkdtemp } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
-import { reviewedMacNodeVersion, inspectReviewedNodeInput, bundleLocalNodeRuntime } from './bundle-local-node-runtime.mjs';
+import { reviewedMacNodeVersion, inspectReviewedNodeInput, reviewedNodeInputs, validateReviewedNodeLicense } from './bundle-local-node-runtime.mjs';
 import { isSupportedLocalNodeVersion } from '../desktop/local-workbench.mjs';
 const developer = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const official = '/usr/local/bin/node';
@@ -25,10 +25,13 @@ test('installed official Node input matches original digest, signer, receipt and
 test('an arbitrary system executable is refused before execution', async () => {
   await assert.rejects(inspectReviewedNodeInput('/bin/echo'), /exact reviewed/);
 });
-test('missing exact Node24 legal input refuses distribution before creating output', async () => {
-  const output = join(developer, '.ynx-developer-candidates', 'node24-unadmitted-' + process.pid + '-' + Date.now());
-  await assert.rejects(bundleLocalNodeRuntime(official, output), /full LICENSE input is missing/);
-  await assert.rejects(access(output), { code: 'ENOENT' });
+test('supplied exact Node24 legal input is intact; missing or altered input stays refused', async () => {
+  const license = reviewedNodeInputs[official].license;
+  assert.equal((await readFile(license.path)).length, 157606);
+  await validateReviewedNodeLicense(license);
+  await assert.rejects(validateReviewedNodeLicense(null), /full LICENSE input is missing/);
+  await assert.rejects(validateReviewedNodeLicense({ ...license, sha256: '0'.repeat(64) }), /legal input changed/);
+  await assert.rejects(validateReviewedNodeLicense({ ...license, path: license.path + '.absent' }), { code: 'ENOENT' });
 });
 test('Node24 provides memory SQLite and retained NAPI/PTY/watcher loaders without writes', () => {
   const anchor = join(developer, 'runtime/theia/package.json');

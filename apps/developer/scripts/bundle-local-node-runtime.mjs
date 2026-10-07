@@ -14,8 +14,13 @@ const system=path=>path.startsWith('/usr/lib/')||path.startsWith('/System/');
 // permission to select arbitrary installed runtimes on other platforms.
 export const reviewedNodeInputs=Object.freeze({
  '/opt/homebrew/Cellar/node/26.7.0/bin/node':Object.freeze({version:'v26.7.0',sha256:'1ef99ea25fe70c9b67e7efe768ef8ee22148d3cabc703db6131b57aeb617d040',kind:'retained-homebrew'}),
- '/usr/local/bin/node':Object.freeze({version:'v24.19.0',sha256:'1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35',kind:'official-node-installer',license:null})
+ '/usr/local/bin/node':Object.freeze({version:'v24.19.0',sha256:'1f08f0e5b8d9a0136c6219f4cea4d3b4fb8ffa4d96e0ff64869ce0dda6dd6a35',kind:'official-node-installer',license:Object.freeze({path:join(developer,'runtime/legal/node-v24.19.0-LICENSE'),sha256:'148eacf7863ef4329224a29398623077200a27194aa075569faf4a0a85566ca5'})})
 });
+export async function validateReviewedNodeLicense(license) {
+ if(!license)throw Error('Reviewed Node 24.19.0 full LICENSE input is missing; offline distribution is not admitted.');
+ if(await realpath(license.path)!==license.path||!(await lstat(license.path)).isFile()||sha(await readFile(license.path))!==license.sha256)throw Error('Reviewed Node 24 legal input changed.');
+ return license;
+}
 export function reviewedMacNodeVersion(version){return version==='v24.19.0'||version==='v26.7.0';}
 export async function inspectReviewedNodeInput(input) {
  if(process.platform!=='darwin')throw Error('macOS runtime input required.');
@@ -38,9 +43,9 @@ export async function bundleLocalNodeRuntime(input,outputArg) {
  const reviewed=await inspectReviewedNodeInput(input),source=reviewed.source,output=resolve(outputArg);
  if(!output.startsWith(join(developer,'.ynx-developer-candidates')+'/'))throw Error('Use a fresh owned candidate output.');
  const version=reviewed.version;
- // The installed official pkg does not retain the full Node 24 third-party
- // license bundle. Do not substitute Node 26's different component notices.
- if(reviewed.kind==='official-node-installer'&&!reviewed.license)throw Error('Reviewed Node 24.19.0 full LICENSE input is missing; offline distribution is not admitted.');
+ // Validate the supplied unmodified upstream version-specific full license
+ // before creating output; never substitute another runtime's notices.
+ if(reviewed.kind==='official-node-installer')await validateReviewedNodeLicense(reviewed.license);
  await mkdir(output);await mkdir(join(output,'lib'));await mkdir(join(output,'notices'));
  const selected=new Map(),names=new Map(),packages=new Map();
  async function resolveDependency(dependency,owner) {
@@ -67,8 +72,7 @@ export async function bundleLocalNodeRuntime(input,outputArg) {
  }
  for(const [formula,root]of packages)await retainNotices(root,formula);
  if(reviewed.kind==='official-node-installer'){
-  const license=reviewed.license;
-  if(await realpath(license.path)!==license.path||sha(await readFile(license.path))!==license.sha256)throw Error('Reviewed Node 24 legal input changed.');
+  const license=await validateReviewedNodeLicense(reviewed.license);
   for(const [name,bytes]of [['NODE-LICENSE.txt',await readFile(license.path)],['original-signature.txt',reviewed.originalSignature],['installer-receipt.plist',reviewed.installerReceipt]]){const path='notices/node24/'+name;await mkdir(dirname(join(output,path)),{recursive:true});await writeFile(join(output,path),bytes,{flag:'wx'});notices.push({path,sha256:sha(bytes)});}
  }
  for(const entry of selected.values()) {
