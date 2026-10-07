@@ -1,7 +1,7 @@
 {
   "name": "ynx-go",
   "publisher": "ynx",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "displayName": "%displayName%",
   "description": "%description%",
   "license": "MIT",
@@ -9,6 +9,7 @@
     "vscode": "^1.109.0"
   },
   "main": "./src/extension.cjs",
+  "l10n": "./l10n",
   "extensionKind": [
     "workspace"
   ],
