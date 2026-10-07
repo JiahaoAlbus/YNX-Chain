@@ -98,3 +98,25 @@ NSMutableDictionary *bad=[body mutableCopy];bad[@"path"]=file;assert(!YNXNativeP
     assert.equal(ran.status, 0, ran.stderr);
   } finally { await rm(directory, { recursive: true, force: true }); }
 });
+
+test('injected picker bridge settles cancellation and ignores late replies before retry', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { runInNewContext } = await import('node:vm');
+  const source = await readFile(new URL('./macos/main.m', import.meta.url), 'utf8');
+  const injected = source.match(/NSString \*fileScript=\[NSString stringWithFormat:@"(.*)",YNXJSON/)[1].replace('%@', 'null');
+  const requests = [], listeners = {};
+  let sequence = 0;
+  const window = { webkit: { messageHandlers: { ynxLocalWorkbench: { postMessage: value => requests.push(value) } } } };
+  runInNewContext(injected, { window, location: { pathname: '/' }, crypto: { randomUUID: () => String(++sequence) }, addEventListener: (name, fn) => { listeners[name] = fn; } });
+  const first = window.ynxDesktopFiles.open({ kind: 'file' });
+  window.__ynxNativeFileReply({ requestId: requests[0].requestId, cancelled: true });
+  assert.equal((await first).cancelled, true);
+  const second = window.ynxDesktopFiles.open({ kind: 'folder' });
+  window.__ynxNativeFileReply({ requestId: requests[0].requestId, uris: ['file:///wrong'] });
+  window.__ynxNativeFileReply({ requestId: requests[1].requestId, cancelled: true });
+  assert.equal((await second).cancelled, true);
+  const third = window.ynxDesktopFiles.open({ kind: 'workspace' });
+  listeners.pagehide();
+  await assert.rejects(third, /document closed/);
+  assert.equal(requests.length, 3);
+});
