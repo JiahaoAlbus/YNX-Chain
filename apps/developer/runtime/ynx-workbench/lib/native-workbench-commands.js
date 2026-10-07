@@ -1,7 +1,7 @@
 // The local Cocoa menu delegates to the same registry as the workbench menus.
 // It accepts command IDs only, never command arguments or shell text.
 const NATIVE_COMMANDS = new Set([
-  'workbench.action.files.newUntitledFile', 'workspace:openFile', 'core.save', 'file.saveAs', 'core.saveAll', 'core.close.tab', 'preferences:open',
+  'workbench.action.files.newUntitledFile', 'workspace:openFile', 'workspace:openWorkspace', 'core.save', 'file.saveAs', 'core.saveAll', 'core.close.tab', 'preferences:open',
   'core.undo', 'core.redo', 'core.cut', 'core.copy', 'core.paste', 'core.find', 'core.replace', 'editor.action.commentLine', 'editor.action.formatDocument',
   'core.selectAll', 'editor.action.smartSelect.expand', 'editor.action.smartSelect.shrink', 'editor.action.selectHighlights', 'editor.action.insertCursorAbove', 'editor.action.insertCursorBelow',
   'workbench.action.showCommands', 'fileNavigator:toggle', 'search-in-workspace.toggle', 'scmView:toggle', 'debug:toggle', 'vsxExtensions.toggle',

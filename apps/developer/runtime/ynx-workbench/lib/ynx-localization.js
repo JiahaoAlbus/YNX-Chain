@@ -5,6 +5,12 @@
 // to be a complete display language on its own.
 const entries = [
   ['noTestRuns', 'No test runs yet. Run a test from Test Explorer to see results here.', '尚未运行测试。请在测试资源管理器中运行测试，在此查看结果。'],
+  ['openFile', 'Open File…', '打开文件…'],
+  ['nativeWorkspaceScope', 'This workspace must contain only the current project root. Open other folders in separate windows; multi-root isolation is not yet supported.', '此工作区只能包含当前项目根目录。请在独立窗口中打开其他文件夹；多根目录隔离尚未支持。'],
+  ['nativeWorkspaceTooLarge', 'Choose a workspace file smaller than 2 MiB.', '请选择小于 2 MiB 的工作区文件。'],
+  ['nativeSelectedFileMissing', 'The selected file is no longer available.', '所选文件已不可用。'],
+  ['nativeOpenFailed', 'The selected file could not be opened.', '无法打开所选文件。'],
+  ['nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.', '无法打开所选文件，现有项目已保留。'],
   ['openFolder', 'Open Folder…', '打开文件夹…'],
   ['returnToProject', 'Return to Open Project', '返回已打开的项目'],
   ['workspaceMismatch', 'This window is connected to a different project folder. Use Open Folder to open another project; changing the URL does not change the writable project.', '此窗口连接到了不同的项目文件夹。请使用“打开文件夹”打开其他项目；更改网址不会改变可写入的项目。'],

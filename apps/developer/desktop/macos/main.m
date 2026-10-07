@@ -12,6 +12,7 @@
 #import "ynx-wallet-device-bridge.h"
 #import "ynx-native-trash-broker.h"
 #import "ynx-startup-failure.h"
+#import "ynx-native-file-picker.h"
 #import <CommonCrypto/CommonDigest.h>
 
 static NSString *YNXTrashExpectedProfile(NSString *support,NSString *workspace) {
@@ -125,7 +126,7 @@ static BOOL YNXLocalReadinessResponse(NSURLResponse *response,NSError *error,NSI
 }
 static NSSet<NSString *> *YNXLocalWorkbenchCommands(void) {
     static NSSet *commands;static dispatch_once_t once;dispatch_once(&once,^{commands=[NSSet setWithArray:@[
-        @"workbench.action.files.newUntitledFile",@"workspace:openFile",@"core.save",@"file.saveAs",@"core.saveAll",@"core.close.tab",@"preferences:open",
+        @"workbench.action.files.newUntitledFile",@"workspace:openFile",@"workspace:openWorkspace",@"core.save",@"file.saveAs",@"core.saveAll",@"core.close.tab",@"preferences:open",
         @"core.undo",@"core.redo",@"core.cut",@"core.copy",@"core.paste",@"core.find",@"core.replace",@"editor.action.commentLine",@"editor.action.formatDocument",
         @"core.selectAll",@"editor.action.smartSelect.expand",@"editor.action.smartSelect.shrink",@"editor.action.selectHighlights",@"editor.action.insertCursorAbove",@"editor.action.insertCursorBelow",
         @"workbench.action.showCommands",@"fileNavigator:toggle",@"search-in-workspace.toggle",@"scmView:toggle",@"debug:toggle",@"vsxExtensions.toggle",@"problemsView:toggle",@"output:toggle",@"outlineView:toggle",@"core.toggle.left.panel",@"core.toggle.bottom.panel",@"workbench.action.selectTheme",
@@ -150,7 +151,7 @@ static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
     static NSDictionary *labels;static dispatch_once_t once;dispatch_once(&once,^{labels=@{
         @"File":@"文件",@"Edit":@"编辑",@"Selection":@"选择",@"View":@"视图",@"Go":@"转到",@"Run":@"运行",@"Terminal":@"终端",@"Window":@"窗口",@"Help":@"帮助",
         @"About YNX Developer":@"关于 YNX Developer",@"Settings…":@"设置…",@"Quit YNX Developer":@"退出 YNX Developer",
-        @"New Text File":@"新建文本文件",@"Open File…":@"打开文件…",@"Open Folder…":@"打开文件夹…",@"Save":@"保存",@"Save As…":@"另存为…",@"Save All":@"全部保存",@"Close Editor":@"关闭编辑器",
+        @"New Text File":@"新建文本文件",@"Open File…":@"打开文件…",@"Open Folder…":@"打开文件夹…",@"Open Workspace from File…":@"从文件打开工作区…",@"Save":@"保存",@"Save As…":@"另存为…",@"Save All":@"全部保存",@"Close Editor":@"关闭编辑器",
         @"Undo":@"撤销",@"Redo":@"重做",@"Cut":@"剪切",@"Copy":@"复制",@"Paste":@"粘贴",@"Find":@"查找",@"Replace":@"替换",@"Toggle Line Comment":@"切换行注释",@"Format Document":@"格式化文档",
         @"Select All":@"全选",@"Expand Selection":@"扩大选区",@"Shrink Selection":@"缩小选区",@"Select All Occurrences":@"选择所有匹配项",@"Add Cursor Above":@"在上方添加光标",@"Add Cursor Below":@"在下方添加光标",
         @"Command Palette…":@"命令面板…",@"Explorer":@"资源管理器",@"Search":@"搜索",@"Source Control":@"源代码管理",@"Run and Debug":@"运行和调试",@"Extensions":@"扩展",@"Problems":@"问题",@"Output":@"输出",@"Outline":@"大纲",
@@ -161,6 +162,11 @@ static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
         @"Minimize":@"最小化",@"Bring All to Front":@"全部前置",@"Show All Commands…":@"显示所有命令…",
         @"Project already open":@"项目已打开",@"This project is already open in another YNX Developer window. Continue in that window, or use File → Open Folder… to choose a different project. Your files and running terminal were preserved.":@"此项目已在另一个 YNX Developer 窗口中打开。请在已有窗口中继续，或通过“文件 → 打开文件夹…”选择其他项目。文件和运行中的终端已保留。",
         @"Open":@"打开",@"OK":@"确定",@"Action unavailable":@"操作不可用",@"Wait for your workspace to finish opening, then try again.":@"请等待工作区打开完成后重试。",
+        @"Open the containing folder as a project?":@"是否将文件所在文件夹作为项目打开？",
+        @"Finish the current dialog before opening another file.":@"请先完成当前对话框，再打开其他文件。",
+        @"The selected file or folder is no longer available.":@"所选文件或文件夹已不可用。",
+        @"Open the workspace file's containing folder first. Other project roots require a separate isolated window.":@"请先打开工作区文件所在文件夹。其他项目根目录需要在独立窗口中打开。",
+        @"The selected project could not be opened.":@"无法打开所选项目。",
         @"Finish the current actions before starting another one.":@"请先完成当前操作，再开始其他操作。",@"This action is not available in the current editor.":@"此操作在当前编辑器中不可用。",
         @"This command is unavailable or could not complete. Check the workbench notifications and project configuration.":@"此命令不可用或未能完成，请查看工作台通知和项目配置。",@"This menu command is not supported.":@"不支持此菜单命令。",@"This command is unavailable in the current editor.":@"此命令在当前编辑器中不可用。"
     };});return labels[label]?:label;
@@ -623,6 +629,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,copy) NSString *localSupportRoot;
 @property(nonatomic,copy) NSString *localWorkspace;
 @property(nonatomic,strong) NSOpenPanel *localFolderPanel;
+@property(nonatomic,strong) NSOpenPanel *localFilePanel;
+@property(nonatomic,copy) NSString *localInitialFile;
 @property(nonatomic,strong) NSOpenPanel *localGoPanel;
 @property(nonatomic,strong) NSAlert *localGoProgress;
 @property(nonatomic,strong) NSTimer *localGoPoll;
@@ -681,6 +689,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSString *trashRoot=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
     NSString *trashProfile=YNXTrashExpectedProfile(_localSupportRoot,trashRoot);
     _localTrashBoundary=[YNXNativeTrashRequest bindRoot:trashRoot excluded:@[trashProfile,[trashProfile.stringByDeletingLastPathComponent stringByAppendingPathComponent:@"tmp"],@"/dev",[NSString stringWithFormat:@"/private/tmp/yi-%u",getuid()]] error:nil];
+    _localInitialFile=YNXNativeInitialFile(environment[@"YNX_LOCAL_INITIAL_FILE"],_localWorkspace,environment[@"YNX_LOCAL_WORKSPACE_SELECTION"]);
     _recordSelectedWorkspace=explicit&&[environment[@"YNX_LOCAL_WORKSPACE_SELECTION"] isEqual:@"native-panel"];
     _port=YNXAvailablePort();
     [self installLocalMenus];
@@ -705,6 +714,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    NSString *fileScript=[NSString stringWithFormat:@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();let initial=%@;Object.defineProperty(window,'__ynxNativeFileReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.error?j.reject(new Error(r.error)):j.resolve(r);}});Object.defineProperty(window,'ynxDesktopFiles',{value:Object.freeze({takeInitialFile(){const value=initial;initial=null;return value;},open(options){if(!options||!['file','folder','workspace','any'].includes(options.kind)||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'pick-file',requestId,kind:options.kind});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('File selection document closed.'));jobs.clear();},{once:true});})();",YNXJSON(_localInitialFile?[NSURL fileURLWithPath:_localInitialFile].absoluteString:NSNull.null)];
+    [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(fileScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *trashScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeTrashReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.ok?j.resolve():j.reject(Object.assign(new Error(r.error||'Move to Trash failed.'),{cancelled:r.cancelled===true,recoveryPath:r.recoveryPath}));}});Object.defineProperty(window,'ynxDesktopTrash',{value:Object.freeze({trash(relativePath){return new Promise((resolve,reject)=>{if(typeof relativePath!=='string'||jobs.size>=32){reject(new Error('Invalid or excessive native Trash requests.'));return;}const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'trash',requestId,relativePath});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Native Trash document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(trashScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [NSDistributedNotificationCenter.defaultCenter addObserver:self selector:@selector(localWalletReturnReady:) name:[@"com.ynxweb4.developer.wallet-return." stringByAppendingString:_localWalletBridge.instanceID] object:nil];
@@ -796,7 +807,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){NSOpenPanel *cancelledPanel=_localFilePanel;_localFilePanel=nil;[cancelledPanel cancel:nil];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -813,6 +824,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSMenu *file=[self localMenu:main title:@"File"];
     [self localCommandItem:file title:@"New Text File" command:@"workbench.action.files.newUntitledFile" key:@"n" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:file title:@"Open File…" command:@"workspace:openFile" key:@"o" modifiers:NSEventModifierFlagCommand];
+    [self localCommandItem:file title:@"Open Workspace from File…" command:@"workspace:openWorkspace" key:@"" modifiers:0];
     NSMenuItem *open=[file addItemWithTitle:YNXLocalMenuLabel(@"Open Folder…",_localLocale) action:@selector(openLocalFolder:) keyEquivalent:@"o"];open.target=self;open.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;
     [file addItem:[NSMenuItem separatorItem]];
     [self localCommandItem:file title:@"Save" command:@"core.save" key:@"s" modifiers:NSEventModifierFlagCommand];
@@ -936,7 +948,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
         }];
 }
 - (void)openLocalFolder:(id)sender {
-    if(!_localWorkbenchMode||!_window||_window.attachedSheet||_localFolderPanel)return;
+    if(!_localWorkbenchMode||!_window||_window.attachedSheet||_localFolderPanel||_localFilePanel)return;
     NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=NO;panel.canChooseDirectories=YES;panel.allowsMultipleSelection=NO;panel.canCreateDirectories=YES;
     panel.title=YNXLocalMenuLabel(@"Open Folder…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
     // Keep selection asynchronous without attaching a sheet: on the supported
@@ -952,6 +964,51 @@ static NSString *YNXDesktopTitle(NSString *label) {
         [NSWorkspace.sharedWorkspace openApplicationAtURL:NSBundle.mainBundle.bundleURL configuration:configuration completionHandler:^(NSRunningApplication *application,NSError *error){
             if(error)dispatch_async(dispatch_get_main_queue(),^{NSAlert *alert=[NSAlert new];alert.messageText=@"The folder could not be opened";alert.informativeText=error.localizedDescription?:@"Try opening the folder again.";[alert beginSheetModalForWindow:self.window completionHandler:nil];});
         }];
+    }];
+}
+// Selection is made by the OS, never by a path supplied by JavaScript. A file
+// outside the admitted root opens a new isolated project at its parent.
+- (void)replyLocalFile:(NSString *)request document:(NSString *)document value:(NSDictionary *)value {
+    if(![document isEqual:_webView.URL.absoluteString]||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
+    NSMutableDictionary *reply=[value mutableCopy];reply[@"requestId"]=request;if([reply[@"error"] isKindOfClass:NSString.class])reply[@"error"]=YNXLocalMenuLabel(reply[@"error"],_localLocale);
+    [_webView callAsyncJavaScript:@"window.__ynxNativeFileReply?.(reply)" arguments:@{@"reply":reply} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:nil];
+}
+- (void)pickLocalFile:(NSDictionary *)body {
+    NSString *request=body[@"requestId"],*kind=body[@"kind"],*document=_webView.URL.absoluteString;
+    if(!YNXNativePickerPayload(body))return;
+    if(!_localCommandDocumentReady||!_server.running||_localCloseRequest||_window.attachedSheet||_localFolderPanel||_localFilePanel){[self replyLocalFile:request document:document value:@{@"error":@"Finish the current dialog before opening another file."}];return;}
+    NSOpenPanel *panel=[NSOpenPanel openPanel];_localFilePanel=panel;
+    panel.canChooseFiles=![kind isEqual:@"folder"];panel.canChooseDirectories=[kind isEqual:@"folder"]||[kind isEqual:@"any"];panel.allowsMultipleSelection=NO;panel.canCreateDirectories=panel.canChooseDirectories;
+    panel.title=YNXLocalMenuLabel([kind isEqual:@"workspace"]?@"Open Workspace from File…":[kind isEqual:@"folder"]?@"Open Folder…":@"Open File…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
+    if([kind isEqual:@"workspace"])panel.allowedFileTypes=@[@"theia-workspace",@"code-workspace"];
+    [panel beginWithCompletionHandler:^(NSModalResponse result){
+        if(self.localFilePanel!=panel)return;
+        self.localFilePanel=nil;
+        if(![document isEqual:self.webView.URL.absoluteString])return;
+        if(result!=NSModalResponseOK){[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];return;}
+        NSString *selected=YNXNativePickedPath(panel.URL);struct stat st;
+        if(!selected||lstat(selected.fileSystemRepresentation,&st)!=0||(!S_ISREG(st.st_mode)&&!S_ISDIR(st.st_mode))){[self replyLocalFile:request document:document value:@{@"error":@"The selected file or folder is no longer available."}];return;}
+        NSString *root=[self localTrashAdmittedBinding][@"workspace"];
+        BOOL inside=YNXNativePathInside(selected,root);
+        if([kind isEqual:@"workspace"]&&(!inside||!S_ISREG(st.st_mode))){[self replyLocalFile:request document:document value:@{@"error":@"Open the workspace file's containing folder first. Other project roots require a separate isolated window."}];return;}
+        if(S_ISREG(st.st_mode)&&inside){[self replyLocalFile:request document:document value:@{@"uris":@[[NSURL fileURLWithPath:selected].absoluteString],@"rootUri":[NSURL fileURLWithPath:root].absoluteString}];return;}
+        if(S_ISDIR(st.st_mode)&&[selected isEqual:root]){[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];return;}
+        NSString *newRoot=S_ISDIR(st.st_mode)?selected:selected.stringByDeletingLastPathComponent;
+        if(!YNXCanonicalLocalDirectory(newRoot)||!YNXPrivateLocalDirectory(self.localSupportRoot)){[self replyLocalFile:request document:document value:@{@"error":@"The selected project could not be opened."}];return;}
+        NSWorkspaceOpenConfiguration *configuration=[NSWorkspaceOpenConfiguration configuration];configuration.activates=YES;configuration.createsNewApplicationInstance=YES;configuration.allowsRunningApplicationSubstitution=NO;
+        NSMutableDictionary *environment=[@{@"YNX_DEVELOPER_DESKTOP_MODE":@"local-workbench",@"YNX_LOCAL_WORKSPACE":newRoot,@"YNX_CODE_DESKTOP_SUPPORT_DIR":self.localSupportRoot,@"YNX_LOCAL_WORKSPACE_SELECTION":@"native-panel"}mutableCopy];
+        if(S_ISREG(st.st_mode))environment[@"YNX_LOCAL_INITIAL_FILE"]=selected;
+        configuration.environment=environment;
+        void (^launch)(void)=^{
+            if(![document isEqual:self.webView.URL.absoluteString])return;
+            [NSWorkspace.sharedWorkspace openApplicationAtURL:NSBundle.mainBundle.bundleURL configuration:configuration completionHandler:^(NSRunningApplication *application,NSError *error){dispatch_async(dispatch_get_main_queue(),^{[self replyLocalFile:request document:document value:error?@{@"error":@"The selected project could not be opened."}:@{@"openedInNewWindow":@YES}];});}];
+        };
+        if(S_ISREG(st.st_mode)){
+            NSAlert *consent=[NSAlert new];consent.messageText=YNXLocalMenuLabel(@"Open the containing folder as a project?",self.localLocale);
+            consent.informativeText=[NSString stringWithFormat:[self.localLocale isEqual:@"zh-cn"]?@"文件位于当前项目之外。继续将在独立窗口中打开以下文件夹，并允许 IDE 编辑该文件夹中的文件及运行项目任务：\n%@\n取消不会更改当前项目。":@"This file is outside the current project. Continuing opens its containing folder in a separate window and permits the IDE to edit files and run project tasks in that folder:\n%@\nCancel leaves your current project unchanged.",newRoot];
+            [consent addButtonWithTitle:YNXLocalMenuLabel(@"Open Folder…",self.localLocale)];[consent addButtonWithTitle:[self.localLocale isEqual:@"zh-cn"]?@"取消":@"Cancel"];
+            [consent beginSheetModalForWindow:self.window completionHandler:^(NSModalResponse answer){if(answer==NSAlertFirstButtonReturn)launch();else[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];}];
+        }else launch();
     }];
 }
 - (NSString *)localGoControlDirectory {return [[_localSupportRoot stringByAppendingPathComponent:@"native-go-controls"]stringByAppendingPathComponent:_localGoInstance?:@"unavailable"];}
@@ -1417,6 +1474,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
             // menu tracking before replacing only this local window's labels.
             [NSApp.mainMenu cancelTrackingWithoutAnimation];[self installLocalMenus];
         }return;
+    }
+    if([body[@"action"] isEqual:@"pick-file"]){
+        if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self pickLocalFile:body];return;
     }
     if([body[@"action"] isEqual:@"open-folder"]){
         // Only the genuine OS picker may select a new workspace. A page/hash

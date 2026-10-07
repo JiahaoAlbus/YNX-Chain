@@ -93,8 +93,20 @@ require('../style/workbench-controls.css');
 const logo = require('../assets/ynx-logo.png');
 const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
+const nativeFilePicker = require('./native-file-picker');
+const NativeFileURI = require('@theia/core/lib/common/uri').default;
+nativeFilePicker.install({
+  Contribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
+  URI: NativeFileURI, open: require('@theia/core/lib/browser').open,
+  parse: require('jsonc-parser').parse, target: window, localize: translateWorkbench,
+  fileOpenMenu: require('@theia/core/lib/browser').CommonMenus.FILE_OPEN,
+  commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
+});
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   require('./shell-command-env').bindEnvironmentOrderedShellCommandBuilder(rebind);
+  bind(FrontendApplicationContribution).toDynamicValue(context => new nativeFilePicker.NativeInitialFile(
+    context.container.get(EditorManager), context.container.get(WorkspaceService), context.container.get(MessageService), window, NativeFileURI, translateWorkbench,
+  )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new (require('./local-js-debug-terminal').LocalJsDebugTerminalContribution)(context.container.get(LocalWorkspaceContextApi), context.container.get(DebugSessionManager))).inSingletonScope();
   require('./native-trash-file-service').bindNativeTrash(bind, rebind, LocalWorkspaceContextApi, window);
   rebind(TerminalWidget).to(PythonTerminalWidget).inTransientScope();
