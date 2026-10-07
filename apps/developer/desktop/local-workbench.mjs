@@ -138,15 +138,19 @@ export function localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context
 }
 export async function localWorkbenchPathIdentities({ helper, node, lockHelper, runtime, context, git, goToolchain }) {
   const go = verifiedGo(goToolchain, context);
-  const paths = [...new Set(['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), dirname(node), lockHelper, runtime.root, context.workspace, context.profile, context.temporary, ...(go ? [go.root] : []), ...(context.ipcTemporary ? [context.ipcTemporary] : [])])];
+  const paths = [...new Set(['/System', '/usr', '/bin', '/sbin', '/dev', '/Library/Developer/CommandLineTools', ...(git?.readPaths || []), runtime.root, context.workspace, context.profile, context.temporary, ...(go ? [go.root] : []), ...(context.ipcTemporary ? [context.ipcTemporary] : [])])];
   // Every alias is proved to be the same selected vnode, never an entire volume
   // substitution. The proof's ancestor access is metadata-only.
   const proofs = [];
   // /dev is the fixed OS pseudo-filesystem and needs no project-volume alias
   // expansion. Keep its pre-existing literal boundary without new permissions.
   for (const path of paths) if (path !== '/dev') {
-    const inspect = path === dirname(node) || path === lockHelper ? inspectBundledRuntimePathIdentity : inspectWorkspacePathIdentity;
-    proofs.push(await inspect({ helper, path }));
+    proofs.push(await inspectWorkspacePathIdentity({ helper, path }));
+  }
+  // Validate every data role strictly before adding read-only installation
+  // evidence. A caller cannot relabel the same path as a runtime read root.
+  for (const path of new Set([dirname(node), lockHelper])) {
+    if (!proofs.some(proof => proof.canonical === path)) proofs.push(await inspectBundledRuntimePathIdentity({ helper, path }));
   }
   return proofs;
 }

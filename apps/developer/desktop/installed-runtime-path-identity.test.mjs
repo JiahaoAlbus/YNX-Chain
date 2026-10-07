@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, copyFile, writeFile, chmod, rename, chown, lstat } from 'node:fs/promises';
+import { mkdtemp, mkdir, copyFile, writeFile, readFile, chmod, rename, chown, lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFile } from 'node:child_process';
@@ -23,11 +23,18 @@ test('installed read-only runtime admits standard Applications; projects and wri
   await copyFile(helper, join(runtime, 'ynx-local-workbench-lock'));
   await copyFile(helper, join(installed, 'Contents/MacOS/Fixture'));
   await copyFile(fileURLToPath(new URL('./workspace-path-identity.mjs', import.meta.url)), modulePath);
+  const workbenchSource = await readFile(new URL('./local-workbench.mjs', import.meta.url), 'utf8');
+  const workbenchModule = join(resources, 'code/apps/developer/desktop/local-workbench.mjs');
+  // Preserve production function bodies; route sibling dependencies to their
+  // real source, while the installed path verifier remains the signed fixture.
+  await writeFile(workbenchModule, workbenchSource.replace(/from '([^']+)'/g, (whole, specifier) => specifier.startsWith('.') && specifier !== './workspace-path-identity.mjs' ? `from '${new URL(specifier, new URL('./local-workbench.mjs', import.meta.url)).href}'` : whole));
   await writeFile(join(resources, 'build-provenance.json'), JSON.stringify({productId:'ynx-developer-v1',sourceDirty:false,platform:`macos-${process.arch}`}));
   await writeFile(join(installed, 'Contents/Info.plist'), '<?xml version="1.0"?><plist version="1.0"><dict><key>CFBundleIdentifier</key><string>org.ynx.path-fixture</string><key>CFBundleExecutable</key><string>Fixture</string><key>CFBundlePackageType</key><string>APPL</string></dict></plist>');
   await exec('/usr/bin/codesign', ['--force','--deep','--sign','-',installed]);
   const shipped = await import(pathToFileURL(modulePath));
   await assert.rejects(shipped.inspectWorkspacePathIdentity({helper,path:runtime}), /unsafe writable/);
+  const workbench = await import(pathToFileURL(workbenchModule));
+  await assert.rejects(workbench.localWorkbenchPathIdentities({helper, node:join(runtime,'node'), lockHelper:join(runtime,'ynx-local-workbench-lock'), runtime:{root:'/System'}, context:{workspace:runtime,profile:'/System',temporary:'/System'}}), /unsafe writable/);
   const proof = await shipped.inspectBundledRuntimePathIdentity({helper,path:runtime});
   await shipped.assertWorkspacePathIdentity(proof);
   await assert.rejects(shipped.inspectBundledRuntimePathIdentity({helper,path:resources}), /restricted/);
