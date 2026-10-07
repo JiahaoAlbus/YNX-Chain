@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "releaseKind": "qa-prerelease",
+  "product": "YNX Developer",
+  "productVersion": "0.2.0",
+  "candidate": "418305964",
+  "packagedSource": {
+    "commit": "4183059649fd0808e9fd55ce4c07a6bf5bce1dcf",
+    "tree": "0fae8fa39f25596a305092c38c64ac0279b5a244",
+    "remoteSourceCommitPublished": false
+  },
+  "artifact": {
+    "filename": "ynx-developer-0.2.0-qa-418305964-macos-arm64-unsigned.dmg",
+    "bytes": 359627670,
+    "sha256": "81c4d6ab2ca86fba4027fd57a07fe0a95fd84ec0af6406123f31abbb9ab2e86b",
+    "mime": "application/x-apple-diskimage"
+  },
+  "platform": {
+    "os": "macOS",
+    "mainArchitecture": "arm64",
+    "minimumVersion": "15.0",
+    "nativeArchitectureComplete": false,
+    "limitation": "Retains x86_64 macos-trash fallback; all deletion paths not verified. macOS15 execution not verified."
+  },
+  "components": {
+    "workbench": "Theia 1.76.0",
+    "ynxWorkbench": "0.3.46",
+    "ynxTools": "0.2.29",
+    "cpp": "0.3.7",
+    "node": "24.19.0",
+    "solc": "0.8.24",
+    "retainedCoreTree": "cf08fafeb0d0110faaf9dfcdb25cabb81565de9aff2f73362ca4b103737a0900",
+    "go": "0.1.2"
+  },
+  "integrity": {
+    "packagingProvenanceSha256": "e5f634468e51727a14e4b82d4c1ecc83d6f42bcc456e56d54b8cbca1f670bc2f",
+    "serverEntrySha256": "df700e1a596781b5ccac2189b79f2b0333bebe90adb7a8aaeed7f13eb52dc070",
+    "sbomSha256": "17bb8d6d7491e5dd7ad5310baa29c4e4a11af4491965e65f9065c189e8b3a198"
+  },
+  "signing": {
+    "kind": "ad-hoc local build",
+    "developerIdSigned": false,
+    "notarized": false
+  },
+  "verification": {
+    "standardApplicationsInstallStartup": "NOT_INSTALLED / GUI_NOT_VERIFIED for 418; earlier d4 install and JS/Python/C++ observations are separate",
+    "nativeChainConfigureApproveReadPersist": "NOT_VERIFIED for this candidate; earlier e2e public read is separate evidence",
+    "nativeChainDisplayAndReopen": "NOT_VERIFIED",
+    "samePackageCppPythonJsFullJourney": "NOT_VERIFIED for 418; prior d4 C++ Desktop source breakpoint failure remains unresolved",
+    "olderMacOSExecution": "NOT_VERIFIED",
+    "evmFoundryHardhatActualExecution": "NOT_VERIFIED",
+    "walletSigningDeployment": "NOT_SUPPLIED",
+    "onlineAI": "NOT_SUPPLIED",
+    "marketplaceFullLifecycle": "NOT_PASSED",
+    "all63Extensions": "NOT_VERIFIED",
+    "windowsLinux": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "fullIDEGoalComplete": false,
+    "goActualRunCancelReopen": "NOT_VERIFIED"
+  },
+  "engineeringEvidence": {
+    "actualBinaryAndDeclaredFloor": "15.0; older-system launch NOT_VERIFIED",
+    "codesignDeepStrict": "PASS EXIT0",
+    "dmgChecksum": "PASS EXIT0",
+    "trashRegression": "16/16 PASS EXIT0; actual broker + extracted App queue scheduler, not native GUI",
+    "sourceAndBuildCustodyReview": "Matching 418 source/candidate review closed the specific ancestor identity P2; no new must-fix. Not installed/GUI not verified.",
+    "startupChange": "Optional Trash directory descriptor binding dispatched off main thread; original literal/canonical ancestor metadata proof retained before dispatch and revalidated before adoption. Metadata syscalls can still wait; real App startup fix not yet verified.",
+    "goSupplier": "Strict source inventory/LICENSE comparison preserved; diagnostic path/phase added. Earlier engineering regression retained separately; actual 418 Go run/cancel unverified.",
+    "retainedCore": "Unchanged d4 sealed workbench/core/Node24; old native successes are not counted as 418 acceptance",
+    "knownCppFailure": "Previous d4 real Desktop debug target stalled before reaching source breakpoint; unresolved"
+  },
+  "dataProtection": {
+    "instruction": "Preserve user projects/settings/extensions/Chain and Wallet data. Earlier d4 and e2e QA assets/routes retained for rollback."
+  },
+  "publication": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "tag": "ynx-developer-qa-418305964-20261007",
+    "publicCarrierParentCommit": "17bd4abc0ed868da5b48b4e4747c79febd1f0adb",
+    "tagPurpose": "metadata-only publication carrier; not packaged source",
+    "automaticGitHubSourceArchives": "publication metadata only; cannot rebuild package"
+  }
+}
