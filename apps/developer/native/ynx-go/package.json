@@ -1,7 +1,7 @@
 {
   "name": "ynx-go",
   "publisher": "ynx",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "displayName": "%displayName%",
   "description": "%description%",
   "license": "MIT",
@@ -93,6 +93,33 @@
           "message": 4
         }
       }
-    ]
-  }
+    ],
+    "languages": [
+      {
+        "id": "go",
+        "extensions": [
+          ".go"
+        ],
+        "aliases": [
+          "Go"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "go",
+        "scopeName": "source.go",
+        "path": "./syntaxes/go.tmLanguage.json"
+      }
+    ],
+    "configurationDefaults": {
+      "[go]": {
+        "editor.insertSpaces": false
+      }
+    }
+  },
+  "categories": [
+    "Programming Languages"
+  ]
 }

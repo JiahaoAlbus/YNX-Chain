@@ -77,9 +77,12 @@ function createGoTasks(api,context,environment,t=text=>text) {
   const env={GOROOT:toolchain.root,GOPROXY:'off',GOSUMDB:'off',GOTOOLCHAIN:'local',GOENV:'off',GOWORK:'off',GOFLAGS:'',GOPATH:dirs.gopath,GOMODCACHE:dirs.modules,GOCACHE:dirs.cache,TMPDIR:dirs.tmp,CGO_ENABLED:'0',GO111MODULE:config.mode==='module'?'on':'off'};
   const definition=stage=>({type:'ynx-go',stage,runId,target:config.target});
   const build=new api.Task(definition('build'),binding.folder,t('Build Go package'),'YNX Go',new api.ProcessExecution(toolchain.executable,['build',...(config.mode==='module'?['-mod=readonly']:[]),'-o',output,'.'],{cwd,env}),['$ynx-go-compile']);
-  build.group=api.TaskGroup.Build;build.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Dedicated,clear:true};
+  // runId must stay unique for cancellation/event ownership. Dedicated panels
+  // compare that ID and therefore allocate a new terminal on every retry.
+  // Shared task panels reuse only idle task terminals, never a running task.
+  build.group=api.TaskGroup.Build;build.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Shared,clear:true};
   const run=new api.Task(definition('run'),binding.folder,t('Run Go package'),'YNX Go',new api.ProcessExecution(output,[],{cwd,env}),[]);
-  run.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Dedicated,clear:true};
+  run.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Shared,clear:false};
   await binding.verify();return {build,run,output,cwd};
  }
 
