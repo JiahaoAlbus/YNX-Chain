@@ -453,10 +453,22 @@ function renderWalletConnect(payload) {
   pairCancel.hidden = !status?.pairing;
   pairButton.disabled = !status?.started || status?.pairing === true;
   const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
-  walletConnectTitle.textContent = startupFailed ? "WalletConnect unavailable" : status?.relayConnected ? "Ready to connect an app" : status?.started ? "Connecting to WalletConnect…" : status?.configured ? "WalletConnect unavailable" : "Cross-device connections are coming";
-  walletConnectDetail.textContent = status?.relayConnected && !startupFailed
-    ? `${status.activeSessionCount} connected app${status.activeSessionCount === 1 ? "" : "s"}. You review every signature and transaction.`
-    : status?.configured ? "The connection service is unavailable. Your wallet and accounts remain accessible." : "WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.";
+  // Unproved Relay connectivity is not a startup failure. Keep title/detail
+  // on the same branch without changing pairing or authorization readiness.
+  if(startupFailed){
+    walletConnectTitle.textContent="WalletConnect unavailable";
+    walletConnectDetail.textContent="The connection service is unavailable. Your wallet and accounts remain accessible.";
+  }else if(status?.relayConnected){
+    walletConnectTitle.textContent="Ready to connect an app";
+    walletConnectDetail.textContent=`${status.activeSessionCount} connected app${status.activeSessionCount === 1 ? "" : "s"}. You review every signature and transaction.`;
+  }else if(status?.configured){
+    if(status.started)walletConnectTitle.textContent="Connecting to WalletConnect…";
+    else copyUI(walletConnectTitle,"WalletConnect not started");
+    copyUI(walletConnectDetail,"The Relay connection is not yet confirmed. Your wallet and accounts remain accessible.");
+  }else{
+    walletConnectTitle.textContent="Cross-device connections are coming";
+    walletConnectDetail.textContent="WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.";
+  }
   pairButton.disabled = !status?.started || startupFailed || status?.pairing === true;
   const pairPhase = status?.pair?.phase;
   if(pairPhase === "pairing")copyUI(walletConnectDetail,"Connecting… You can cancel this pairing attempt.");
