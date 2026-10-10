@@ -21,27 +21,29 @@ function createGoTasks(api,context,environment,t=text=>text) {
   if(!value || Object.keys(value).sort().join()!=='mode,target,toolchain' || !validTarget(value.target) || !['module','package'].includes(value.mode))throw Error(t('The Go project configuration is invalid. Configure Go for this project again.'));
   return value;
  }
- async function configure() {
-  if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before configuring.'));
+ async function configure(request,binding) {
+  if(active && active!==request || configuring)throw Error(t('A Go operation is already running. Cancel it before configuring.'));
   configuring=true; const abort=new AbortController(); configurationAbort=abort;
   const pickerCancellation=new api.CancellationTokenSource(); const stopPicker=()=>pickerCancellation.cancel(); abort.signal.addEventListener('abort',stopPicker,{once:true});
   try {
-   const binding=await project();
+   binding=binding||await project();
+   const verify=async()=>{await binding.verify();abort.signal.throwIfAborted();if(request)await request.verify();};
+   await verify();
    let toolchain;
    try {toolchain=await admittedToolchain(environment);}
    catch(error) {
     if(error.code!=='YNX_GO_SELECTION_REQUIRED')throw error;
     // Use the existing native picker and parent admission channel. A selected
     // path cannot expand this running sandbox; the host explains normal reopen.
-    await binding.verify();abort.signal.throwIfAborted();
+    await verify();
     await waitForSignal(()=>api.commands.executeCommand('ynx.workbench.selectGoToolchain'),abort.signal);
-    await binding.verify();abort.signal.throwIfAborted();return;
+    await verify();return;
    }
-   await binding.verify();abort.signal.throwIfAborted();
+   await verify();
    const chosen=await waitForSignal(()=>api.window.showQuickPick([{label:toolchain.version,description:toolchain.root,toolchain}],{title:t('Choose the installed Go toolchain'),placeHolder:t('Local compilation and running; language service and debugging are separate.')},pickerCancellation.token),abort.signal);
    if(!chosen)return;abort.signal.throwIfAborted();
-   await binding.verify();await verifyToolchain(toolchain,environment);
-   const editor=api.window.activeTextEditor?.document;
+   await verify();await verifyToolchain(toolchain,environment);await verify();
+   const editor=request?.document||api.window.activeTextEditor?.document;
    if(!editor || editor.uri.scheme!=='file' || !editor.uri.fsPath.endsWith('.go'))throw Error(t('Open a Go source file inside this project to choose its package.'));
    const directory=path.dirname(editor.uri.fsPath),target=path.relative(binding.root,directory).split(path.sep).join('/')||'.';
    if(!validTarget(target) || await fs.realpath(editor.uri.fsPath)!==editor.uri.fsPath)throw Error(t('Select a regular Go file inside this project.'));
@@ -53,9 +55,10 @@ function createGoTasks(api,context,environment,t=text=>text) {
     try {const stat=await fs.lstat(path.join(item,'go.mod'));if(!stat.isFile() || stat.isSymbolicLink())throw Error(t('go.mod must be a regular project file.'));mode='module';break;}catch(error){if(error.code!=='ENOENT')throw error;}
     if(item===binding.root)break;
    }
-   const config={toolchain,target,mode};await binding.verify();abort.signal.throwIfAborted();
-   await settings(binding).update('project',config,api.ConfigurationTarget.WorkspaceFolder);await binding.verify();abort.signal.throwIfAborted();
+   const config={toolchain,target,mode};await verify();
+   await settings(binding).update('project',config,api.ConfigurationTarget.WorkspaceFolder);await verify();
    await cacheDirectories(binding,true);
+   await verify();
    // A notification without actions may remain unresolved until dismissed.
    // It must not hold configuration ownership or delay the first Run.
    void Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined);
@@ -100,13 +103,20 @@ function createGoTasks(api,context,environment,t=text=>text) {
 
  async function run() {
   if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
-  let binding=await project(),config=readConfiguration(binding);
-  if(!config) {config=await configure();if(!config)return;binding=await project();}
-  // Recheck after asynchronous project/configuration reads: concurrent Run
-  // invocations must not both become owners of this workspace.
-  if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
-  const operation={cancelled:false};operation.onCleanup=()=>{if(active===operation)active=undefined;};active=operation;
+  // Claim the original request before the first asynchronous read. Configuration
+  // and execution share this owner; callbacks cannot create a second Run.
+  const operation={cancelled:false,preparing:true,document:api.window?.activeTextEditor?.document};
+  operation.onCleanup=()=>{if(active===operation)active=undefined;};active=operation;
   try {
+   const binding=await project();
+   operation.verify=async()=>{
+    await binding.verify();
+    if(active!==operation || operation.cancelled || api.window?.activeTextEditor?.document!==operation.document)throw Error(t('The Go project changed. Configure or run it again.'));
+   };
+   if(operation.cancelled)return {cancelled:true};await operation.verify();
+   let config=readConfiguration(binding);
+   if(!config){config=await configure(operation,binding);if(!config)return;}
+   if(operation.cancelled)return {cancelled:true};await operation.verify();
    const prepared=await tasks(binding,config);
    if(operation.cancelled)return {cancelled:true};
    // Saving uses the normal editor API; no task silently ignores unsaved code.
@@ -114,7 +124,7 @@ function createGoTasks(api,context,environment,t=text=>text) {
     const relative=path.relative(binding.root,document.uri.fsPath||'');
     if(document.uri.scheme==='file' && document.uri.fsPath.endsWith('.go') && relative && !relative.startsWith('..'+path.sep) && !path.isAbsolute(relative) && document.isDirty && !await document.save())throw Error(t('Save the Go sources before running.'));
    }
-   await binding.verify();if(operation.cancelled)return {cancelled:true};
+   if(operation.cancelled)return {cancelled:true};await operation.verify();operation.preparing=false;
    const buildExit=await executeGoTask(api,prepared.build,operation);await binding.verify();
    if(operation.cancelled)return {cancelled:true};
    if(buildExit===undefined)return {unknown:true};
@@ -126,8 +136,11 @@ function createGoTasks(api,context,environment,t=text=>text) {
    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
   } finally {if(active===operation && !operation.cleanupPending)active=undefined;}
  }
- const lifetime={configure,run,cancel(){if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.cancelled=true;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
+ const lifetime={configure,run,cancel(){if(active)active.cancelled=true;if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
  if(api.workspace.onDidChangeWorkspaceFolders)context.subscriptions.push(api.workspace.onDidChangeWorkspaceFolders(()=>lifetime.cancel()));
+ if(api.window?.onDidChangeActiveTextEditor)context.subscriptions.push(api.window.onDidChangeActiveTextEditor(editor=>{
+  if(active?.preparing && editor?.document!==active.document){active.cancelled=true;configurationAbort?.abort();}
+ }));
  context.subscriptions.push(api.tasks.registerTaskProvider('ynx-go',{async provideTasks(){const binding=await project(),config=readConfiguration(binding);if(!config)return [];const prepared=await tasks(binding,config,randomUUID(),false);return [prepared.build];},async resolveTask(){return undefined;}}),lifetime);
  return lifetime;
 }
