@@ -46,7 +46,9 @@ function createGoTasks(api,context,environment,t=text=>text) {
    const config={toolchain,target,mode};await binding.verify();abort.signal.throwIfAborted();
    await settings(binding).update('project',config,api.ConfigurationTarget.WorkspaceFolder);await binding.verify();abort.signal.throwIfAborted();
    await cacheDirectories(binding,true);
-   await api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'));
+   // A notification without actions may remain unresolved until dismissed.
+   // It must not hold configuration ownership or delay the first Run.
+   void Promise.resolve(api.window.showInformationMessage(t('Go project configured. Run Go Project builds and runs this package with local dependencies only. Cgo, language services and debugging are not configured by this command.'))).catch(()=>undefined);
    return config;
   } catch(error) {if(!abort.signal.aborted)throw error;}
   finally {abort.signal.removeEventListener('abort',stopPicker);pickerCancellation.dispose();if(configurationAbort===abort)configurationAbort=undefined;configuring=false;}

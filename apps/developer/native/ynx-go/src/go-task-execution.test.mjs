@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
-import {readFile,mkdtemp,mkdir,realpath,rm} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import vm from 'node:vm';
+import {readFile,writeFile,mkdtemp,mkdir,realpath,rm} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import vm from 'node:vm';
 const {executeGoTask}=createRequire(import.meta.url)('./go-tasks.cjs');
 function fixture(execute){const listeners=new Set(),task={definition:{runId:'owned',stage:'build'}},operation={cancelled:false};const api={tasks:{onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:execute}};return{task,api,operation,end:code=>{for(const f of listeners)f({execution:{task},exitCode:code});},listeners};}
 test('cancel before queued launch never starts a task',async()=>{let calls=0;const f=fixture(()=>{calls++;});const pending=executeGoTask(f.api,f.task,f.operation);f.operation.cancelled=true;assert.equal(await pending,undefined);assert.equal(calls,0);assert.equal(f.listeners.size,0);});
@@ -34,4 +34,37 @@ test('repeated package task enumeration retains unique execution IDs and uses re
   assert.equal(first.execution.options.env.GOTOOLCHAIN,'local');
   workflow.dispose();
  } finally {await rm(root,{recursive:true,force:true});}
+});
+
+test('first Go run proceeds while its informational notification stays open or rejects',{timeout:2000},async()=>{
+ for(const notification of [()=>new Promise(()=>{}),()=>Promise.reject(Error('notification unavailable'))]) {
+  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-first-run-')));
+  const require=createRequire(import.meta.url),module={exports:{}};
+  try {
+   const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'};
+   const helpers=require('./go-toolchain.cjs');
+   const source=await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8');
+   vm.runInNewContext(source,{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
+   const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
+   const folder={uri:{scheme:'file',fsPath:root}},listeners=new Set();let saved,launches=0,notices=0;
+   class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
+   class ProcessExecution {constructor(command,args,options){Object.assign(this,{command,args,options});}}
+   const api={
+    workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;}})},
+    window:{activeTextEditor:{document:{uri:{scheme:'file',fsPath:file}}},showQuickPick:async items=>items[0],showInformationMessage:()=>{notices++;return notification();}},
+    CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},
+    tasks:{registerTaskProvider:()=>({dispose(){}}),onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{launches++;const execution={task,terminate(){}};setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:1});});return execution;}},
+    Task,ProcessExecution,TaskGroup:{Build:'build'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1,Dedicated:2}
+   };
+   const workflow=module.exports.createGoTasks(api,{subscriptions:[]},{YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'});
+   // A deliberate compiler failure proves the real first-run continuation
+   // reaches task execution, settles and can retry without closing the toast.
+   await assert.rejects(workflow.run(),/Go build failed/);
+   assert.equal(notices,1);assert.equal(launches,1);
+   assert.equal(workflow.status().configuring,false);assert.equal(workflow.status().running,false);
+   await assert.rejects(workflow.run(),/Go build failed/);
+   assert.equal(notices,1);assert.equal(launches,2);assert.equal(listeners.size,0);
+   workflow.dispose();
+  } finally {await rm(root,{recursive:true,force:true});}
+ }
 });
