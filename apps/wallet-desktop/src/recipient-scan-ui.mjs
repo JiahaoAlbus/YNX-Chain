@@ -17,7 +17,12 @@ export function createRecipientScanUI({document:doc,getContext,image,onChoose=()
     const current=getContext();
     if(!current.open||current.locked||!current.account)return;
     onChoose();
-    chooser.invalidate();intent={...current};panel.hidden=false;chooser.focus();
+    // onChoose retires the previous draft. Capture its successor, but never
+    // borrow an account/key change that happened during that retirement.
+    const after=getContext();
+    intent=null;chooser.invalidate();panel.hidden=true;
+    if(!after.open||after.locked||after.account!==current.account||after.keyRevision!==current.keyRevision)return;
+    intent={...after};panel.hidden=false;chooser.focus();
   });
   return Object.freeze({invalidate});
 }

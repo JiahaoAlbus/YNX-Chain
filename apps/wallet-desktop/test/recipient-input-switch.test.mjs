@@ -10,12 +10,12 @@ const address="ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt";
 const result={ok:true,value:{ynxAccount:address,chainId:"ynx_6423-1",asset:"YNXT"}};
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 function deferred(){let resolve;const promise=new Promise(done=>{resolve=done});return {promise,resolve}}
-function mounted({decode=async()=>result,parse=async()=>result}={}){
+function mounted({decode=async()=>result,parse=async()=>result,onStop=()=>{}}={}){
   const nodes=new Map();
   function node(){return {listeners:{},value:"",files:[],open:true,hidden:true,addEventListener(type,fn){this.listeners[type]=fn},focus(){}}}
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,node());return nodes.get(selector)};
   nodes.set("#recipient-qr-file",fileInputDOM(node(),next=>nodes.set("#recipient-qr-file",next)));
-  const events=[],camera={starts:0,stops:0,start(){this.starts++},stop(){this.stops++}};
+  const events=[],camera={starts:0,stops:0,start(){this.starts++},stop(){this.stops++;onStop(context)}};
   const document={querySelector:get,createElement:()=>({}),addEventListener(){},hasFocus:()=>true,visibilityState:"visible"};
   const source=readFileSync(new URL("../src/renderer.js",import.meta.url),"utf8");
   const start=source.indexOf("let paymentDraftRevision = 0;"),end=source.indexOf("// Public metadata was identity-checked",start);
@@ -54,6 +54,27 @@ test("fresh chooser result still fills only recipient and requires a new amount/
   input.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];input.listeners.change();await tick();
   assert.equal(h.get("#transfer-to").value,address);assert.equal(h.get("#transfer-amount").value,"");
   assert.equal(h.context.transferReview,null);assert.equal(h.camera.starts,0);
+});
+test("Scan entry file return without another input click uses the newly retired draft",async()=>{
+  const h=mounted();h.get("#transfer-amount").value="27";h.choose();
+  const input=h.get("#recipient-qr-file");
+  input.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];input.listeners.change();await tick();
+  assert.equal(h.get("#transfer-to").value,address);assert.equal(h.get("#transfer-amount").value,"");
+  assert.equal(h.context.transferReview,null);assert.equal(h.camera.starts,0);
+});
+test("Scan entry cannot borrow identity or availability changed synchronously by onChoose",async()=>{
+  for(const mutate of [
+    c=>{c.accountState.account="other-public"},c=>{c.keyState.revision++},
+    c=>{c.keyState.locked=true},c=>{c.keyState.authenticating=true},
+    c=>{c.document.querySelector("#send-sheet").open=false}
+  ]){
+    let decodes=0;
+    const h=mounted({onStop:mutate,decode:async()=>{decodes++;return result}});
+    h.choose();const input=h.get("#recipient-qr-file");
+    input.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];input.listeners.change();await tick();
+    assert.equal(decodes,0);assert.equal(h.get("#transfer-to").value,"");
+    assert.equal(h.get("#recipient-scan-panel").hidden,true);
+  }
 });
 test("starting camera retires an outstanding native chooser before its file returns",async()=>{
   let decodes=0;
