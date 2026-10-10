@@ -60,6 +60,23 @@ const { PythonTerminalLifecycle } = require('./python-terminal-lifecycle');
 const { PythonTerminalWidget } = require('./python-terminal-widget');
 const { TerminalWidget } = require('@theia/terminal/lib/browser/base/terminal-widget');
 const { TerminalService } = require('@theia/terminal/lib/browser/base/terminal-service');
+const { TerminalCreationHandler } = require('@theia/terminal/lib/browser/terminal-creation-handler');
+const { TerminalFrontendContribution } = require('@theia/terminal/lib/browser/terminal-frontend-contribution');
+const terminalPanel = require('./terminal-panel');
+const TerminalPanel = terminalPanel.createTerminalPanelClass({
+  ...require('@theia/core/lib/browser/widgets'), Emitter: require('@theia/core/lib/common/event').Emitter,
+});
+class GroupedTerminalFrontendContribution extends TerminalFrontendContribution {
+  async initializeLayout() {
+    await this.preferenceService.ready;
+    try {
+      const terminal = await this.newTerminal({});
+      await terminal.start();
+      await this.open(terminal, { mode: 'open', widgetOptions: { area: 'bottom' } });
+    } catch (error) { this.logger.error('Failed to initialize terminal in default layout', error); }
+  }
+}
+require('@theia/core/shared/inversify').decorate(require('@theia/core/shared/inversify').injectable(), GroupedTerminalFrontendContribution);
 const { TerminalWatcher } = require('@theia/terminal/lib/common/terminal-watcher');
 const { DebugSessionManager } = require('@theia/debug/lib/browser/debug-session-manager');
 const { PreferenceSchemaService } = require('@theia/core/lib/common/preferences/preference-schema');
@@ -90,6 +107,7 @@ require('./search-replace-transaction').install();
 require('../style/brand.css');
 require('../style/keyboard-shortcuts.css');
 require('../style/workbench-controls.css');
+require('../style/terminal-panel.css');
 const logo = require('../assets/ynx-logo.png');
 const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
@@ -103,6 +121,11 @@ nativeFilePicker.install({
   commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
 });
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  rebind(TerminalFrontendContribution).to(GroupedTerminalFrontendContribution).inSingletonScope();
+  bind(WidgetFactory).toDynamicValue(() => ({ id: terminalPanel.TERMINAL_PANEL_ID, createWidget: () => new TerminalPanel(translateWorkbench) }));
+  bind(TerminalCreationHandler).toDynamicValue(context => new terminalPanel.TerminalPanelHandler(
+    context.container.get(ApplicationShell), context.container.get(WidgetManager),
+  )).inSingletonScope();
   require('./shell-command-env').bindEnvironmentOrderedShellCommandBuilder(rebind);
   bind(FrontendApplicationContribution).toDynamicValue(context => new nativeFilePicker.NativeInitialFile(
     context.container.get(EditorManager), context.container.get(WorkspaceService), context.container.get(MessageService), window, NativeFileURI, translateWorkbench,

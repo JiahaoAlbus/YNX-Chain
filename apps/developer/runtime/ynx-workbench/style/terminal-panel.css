@@ -1,0 +1,5 @@
+.ynx-terminal-panel { display: flex; flex-direction: column; min-height: 0; }
+.ynx-terminal-panel-header { flex: 0 0 auto; display: flex; justify-content: flex-end; gap: 6px; padding: 4px 8px; }
+.ynx-terminal-panel-header select { max-width: 360px; background: var(--theia-dropdown-background); color: var(--theia-dropdown-foreground); border: 1px solid var(--theia-dropdown-border); }
+.ynx-terminal-panel-header button { background: transparent; color: var(--theia-foreground); border: 0; cursor: pointer; }
+.ynx-terminal-panel > .terminal-container { flex: 1 1 auto; min-height: 0; }
