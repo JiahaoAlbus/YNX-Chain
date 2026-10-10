@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   retryTransaction: hash => ipcRenderer.invoke("wallet:retry-transaction", hash),
   prepareTransfer: input => ipcRenderer.invoke("wallet:prepare-transfer", input),
   transferAction: (id, action) => ipcRenderer.invoke("wallet:transfer-action", id, action),
+  transferAttempts: account => ipcRenderer.invoke("wallet:transfer-attempts", account),
+  onTransferAttempt: callback => ipcRenderer.on("wallet:transfer-attempt", (_event, value) => callback(value)),
   saveBackup: password => ipcRenderer.invoke("wallet:save-backup", password),
   addAccount: () => ipcRenderer.invoke("wallet:add-account"),
   selectAccount: account => ipcRenderer.invoke("wallet:select-account", account),

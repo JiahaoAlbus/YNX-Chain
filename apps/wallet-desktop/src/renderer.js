@@ -14,6 +14,7 @@ import { createRecipientScanUI } from "./recipient-scan-ui.mjs";
 import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-ui.mjs";
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
+import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
@@ -23,7 +24,13 @@ const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
   status: document.querySelector("#receive-qr-status"),
   requestCode: account => window.ynxWallet.receiveCode(account),
+  exportButton: document.querySelector("#download-receiving-png"),
+  getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount,keyRevision:keyState.revision}),
+  savePNG:(dataURL,fileName)=>{const anchor=document.createElement("a");anchor.href=dataURL;anchor.download=fileName;document.body.append(anchor);try{anchor.click()}finally{anchor.remove()}},
 });
+document.querySelector("#download-receiving-png")?.addEventListener("click",()=>receiveCodeUI.exportPNG());
+const transferAttemptUI=createTransferAttemptUI({node:document.querySelector("#transfer-attempt-status"),getAccount:()=>activeAccount,request:account=>window.ynxWallet.transferAttempts?.(account)});
+window.ynxWallet.onTransferAttempt?.(record=>transferAttemptUI.receive(record));
 const receiveShareUI=createReceiveShareUI({
   getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount,keyRevision:keyState.revision}),
   requestCode:account=>window.ynxWallet.receiveCode(account),
@@ -295,6 +302,7 @@ function renderAccount(payload) {
   if (payload?.ok === false) {
     accountState = null;
     activeAccount = null; transactionHistoryUI.clear();
+    if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
     receiveCodeUI.clear();
     document.querySelector("#receive-address").value = "";
     document.querySelector("#receive-evm-address").value = "";
@@ -310,6 +318,7 @@ function renderAccount(payload) {
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
+  if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
   if (previousAccount !== activeAccount) {
     document.querySelector("#transfer-to").value = "";
     document.querySelector("#transfer-amount").value = "";
@@ -867,7 +876,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     transferReview = result.value;
     const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
     for (const [label, value] of [["From", transferReview.ynxFrom], ["To", transferReview.ynxTo], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
-      const term = document.createElement("dt"), description = document.createElement("dd"); copyUI(term,label); description.textContent = value; description.dir = "ltr"; summary.append(term, description);
+      const term = document.createElement("dt"), description = document.createElement("dd"); copyUI(term,label); if(label==="Fee and budget")copyUI(description,value);else description.textContent=value; description.dir = "ltr"; summary.append(term, description);
     }
     document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});
     document.querySelector("#transfer-review").hidden = false;
@@ -972,6 +981,8 @@ document.addEventListener("keydown", event => {
 
 function renderKeyDetail() {
   const detail = document.querySelector("#key-security-detail"), state = keyState;
+  const lockReason=document.querySelector("#wallet-lock-reason");
+  if(lockReason){lockReason.hidden=!state.locked||!Number.isSafeInteger(state.lockedAt);if(!lockReason.hidden)copyUI(lockReason,"Wallet locked: {reason} · {time}",{reason:state.lockReason,time:new Date(state.lockedAt).toLocaleTimeString()});else lockReason.textContent="";}
   const send = document.querySelector("#open-send");
   copyUI(send,state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT");
   send.disabled = !accountState?.initialized || state.authenticating || state.locked && !state.unlockAvailable;

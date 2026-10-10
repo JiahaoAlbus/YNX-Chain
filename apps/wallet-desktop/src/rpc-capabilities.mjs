@@ -39,5 +39,6 @@ export function validateTransactionCapabilities(transaction, model) {
 }
 export function feeReview(model, transaction) {
   const maximum = BigInt(transaction.gasLimit) * BigInt(transaction.gasPrice ?? transaction.maxFeePerGas);
-  return Object.freeze({ modelVersion: model.version, fullEVM: model.fullEVM, actualFee: model.fullEVM ? null : formatEther(model.feeWei), maximumFee: formatEther(maximum), feeExplanation: model.fullEVM ? "The maximum fee is a budget; the receipt determines the actual fee." : "The native transfer fee is 1 YNXT. The larger maximum budget reserves headroom and must be covered by your balance; it is not the actual fee." });
+  if (!model.fullEVM && maximum < BigInt(model.feeWei)) throw capabilityError("RPC_FIXED_FEE_MISMATCH", "The maximum fee budget cannot cover the fixed native transfer fee.");
+  return Object.freeze({ modelVersion: model.version, fullEVM: model.fullEVM, actualFee: model.fullEVM ? null : formatEther(model.feeWei), maximumFee: formatEther(maximum), feeExplanation: model.fullEVM ? "The maximum fee is a budget; the receipt determines the actual fee." : maximum === BigInt(model.feeWei) ? "The maximum fee budget equals the fixed native transfer fee. No extra fee headroom is reserved." : "The maximum fee budget includes headroom above the fixed native transfer fee. It must be covered by your balance; it is not the actual fee." });
 }

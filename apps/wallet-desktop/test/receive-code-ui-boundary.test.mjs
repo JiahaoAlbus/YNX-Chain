@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import QRCode from "qrcode";
 import jsQR from "jsqr";
+import {PNG} from "pngjs";
 import {drawReceiveCode, createReceiveCodeUI} from "../src/receive-code-ui.mjs";
 
 // Public fixture only: no account-status, wallet-auth, custody or signing provider.
@@ -21,13 +22,24 @@ function pixelsCanvas(beforeContext = () => {}) {
       pixels.set(color, (row * canvas.width + column) * 4);
     }
   }};
-  const canvas = {getContext() {beforeContext(); return context;}};
+  const canvas = {getContext() {beforeContext(); return context;},toDataURL(type){
+    assert.equal(type,"image/png");
+    return `data:image/png;base64,${PNG.sync.write({width:this.width,height:this.height,data:Buffer.from(pixels)}).toString("base64")}`;
+  }};
   return {canvas, decode: () => jsQR(pixels, canvas.width, canvas.height)?.data};
 }
 
 test("dense public matrix renders an independently decodable exact Testnet URI", () => {
   const h = pixelsCanvas(); drawReceiveCode(h.canvas, code(), account);
   assert.equal(h.decode(), uri);
+});
+test("normal public QR export bytes decode back to the exact current receiving URI", async()=>{
+  const h=pixelsCanvas(),context={open:true,account,keyRevision:5},saved=[];
+  const ui=createReceiveCodeUI({canvas:h.canvas,status:{textContent:""},requestCode:async()=>({ok:true,value:code()}),getContext:()=>context,savePNG:(...args)=>saved.push(args)});
+  await ui.refresh(account);ui.exportPNG();assert.equal(saved.length,1);
+  const png=PNG.sync.read(Buffer.from(saved[0][0].split(",")[1],"base64"));
+  assert.equal(jsQR(new Uint8ClampedArray(png.data),png.width,png.height)?.data,uri);
+  assert.equal(saved[0][1],`YNX-Testnet-receive-${account}.png`);
 });
 for (const sparse of ["all holes", "one missing module", "inherited module"]) {
   test(`rejects ${sparse} before changing canvas dimensions`, () => {

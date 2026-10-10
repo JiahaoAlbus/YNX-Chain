@@ -18,25 +18,26 @@ export class DesktopKeyLifecycle {
   #context = new AsyncLocalStorage();
   #generation = 0; #locked = true; #account = null; #focused = false;
   #authenticating = false; #ownedDialog = false; #active = null; #listeners = new Set(); #expiry = null; #unlockDeadline = 0;
+  #lockReason = "initial"; #lockedAt = null;
   constructor({ authorizer = nativeDesktopAuthorizer(), now = Date.now, focused = () => this.#focused, ttlMs = 120_000, unlockTtlMs = 120_000, schedule = setTimeout, unschedule = clearTimeout } = {}) {
     this.authorizer = authorizer; this.now = now; this.focused = focused; this.ttlMs = ttlMs;
     this.unlockTtlMs = unlockTtlMs; this.schedule = schedule; this.unschedule = unschedule;
   }
   status() {
     let available = false; try { available = this.authorizer.available() === true; } catch {}
-    return Object.freeze({ locked: this.#locked, revision: this.#generation, authenticating: this.#authenticating, account: this.#account, unlockAvailable: available, unlockMethod: this.authorizer.method, hardwareBound: false });
+    return Object.freeze({ locked: this.#locked, revision: this.#generation, authenticating: this.#authenticating, account: this.#account, unlockAvailable: available, unlockMethod: this.authorizer.method, hardwareBound: false, lockReason: this.#lockReason, lockedAt: this.#lockedAt, unlockExpiresAt: this.#locked ? null : this.#unlockDeadline });
   }
   subscribe(listener) { this.#listeners.add(listener); return () => this.#listeners.delete(listener); }
   #notify() { for (const listener of this.#listeners) listener(this.status()); }
-  lock() { this.#locked = true; this.#generation++; this.#unlockDeadline = 0; this.unschedule(this.#expiry); this.#expiry = null; this.authorizer.invalidate?.(); this.#notify(); }
+  lock(reason = "manual") { this.#lockReason = ["initial","manual","account-changed","focus-lost","unlock-expired","unlock-failed","custody","minimized","closed","suspend","lock-screen","unlock-replaced"].includes(reason) ? reason : "manual"; this.#lockedAt = this.now(); this.#locked = true; this.#generation++; this.#unlockDeadline = 0; this.unschedule(this.#expiry); this.#expiry = null; this.authorizer.invalidate?.(); this.#notify(); }
   cancelOperations() { this.#generation++; this.#notify(); }
-  setAccount(account) { if (this.#account !== account) { this.#account = account; this.lock(); } }
-  setFocused(value) { this.#focused = value === true; if (!value && !(this.#authenticating && this.authorizer.inProcess !== true) && !this.#ownedDialog) this.lock(); }
+  setAccount(account) { if (this.#account !== account) { this.#account = account; this.lock("account-changed"); } }
+  setFocused(value) { this.#focused = value === true; if (!value && !(this.#authenticating && this.authorizer.inProcess !== true) && !this.#ownedDialog) this.lock("focus-lost"); }
   async unlock(credentials) {
     if (this.#authenticating || this.#active) throw keyAccessError("WALLET_OPERATION_BUSY");
     if (!this.status().unlockAvailable) throw keyAccessError("SECURE_UNLOCK_UNAVAILABLE");
     if (!this.focused()) throw keyAccessError();
-    if (!this.#locked) this.lock();
+    if (!this.#locked) this.lock("unlock-replaced");
     let generation = this.#generation;
     const deadline = this.now() + this.ttlMs;
     let candidate;
@@ -54,22 +55,22 @@ export class DesktopKeyLifecycle {
       }
       this.#locked = false;
       this.#unlockDeadline = this.now() + this.unlockTtlMs;
-      this.#expiry = this.schedule(() => this.lock(), this.unlockTtlMs); this.#expiry?.unref?.();
+      this.#expiry = this.schedule(() => this.lock("unlock-expired"), this.unlockTtlMs); this.#expiry?.unref?.();
       return this.status();
     } catch (error) {
       candidate?.discard?.();
       // A late KDF result no longer owns a generation cancelled by the user.
       // Re-locking it would erase a new local draft through the UI notification.
-      if (generation === this.#generation) this.lock();
+      if (generation === this.#generation) this.lock("unlock-failed");
       throw error?.data?.code ? error : keyAccessError("UNLOCK_CANCELLED");
     }
     finally { this.#authenticating = false; this.#notify(); }
   }
-  assertUnlocked() { if (!this.#locked && this.now() >= this.#unlockDeadline) this.lock(); if (this.#locked || this.#authenticating || !this.focused()) throw keyAccessError(); }
+  assertUnlocked() { if (!this.#locked && this.now() >= this.#unlockDeadline) this.lock("unlock-expired"); if (this.#locked || this.#authenticating || !this.focused()) throw keyAccessError(); }
   /** Setup/recovery authority stays locked and never installs a signing context. */
   async custody(operation) {
     if (this.#active || this.#authenticating) throw keyAccessError("WALLET_OPERATION_BUSY");
-    if (!this.#locked) this.lock();
+    if (!this.#locked) this.lock("custody");
     if (!this.focused()) throw keyAccessError();
     const generation = this.#generation, deadline = this.now() + this.ttlMs;
     const guard = Object.freeze({ revision: generation, assert: () => {
@@ -119,6 +120,6 @@ export class DesktopKeyLifecycle {
   async withOwnedDialog(operation) {
     const lease = this.current(); this.#ownedDialog = true;
     try { const result = await operation(); lease.assert(); return result; }
-    finally { this.#ownedDialog = false; if (!this.focused()) this.lock(); }
+    finally { this.#ownedDialog = false; if (!this.focused()) this.lock("focus-lost"); }
   }
 }

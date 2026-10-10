@@ -234,7 +234,16 @@ handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async
   return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
 }));
 handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
-handleWalletIPC("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
+handleWalletIPC("wallet:transfer-action", async (_event, id, action) => {
+  const attempt=nativeWallet.beginTransferAttempt(id,action);
+  const result=await sensitiveIPC(() => nativeWallet.transferAction(id, action));
+  nativeWallet.finishTransferAttempt(attempt,result);
+  return result;
+});
+handleWalletIPC("wallet:transfer-attempts", (_event, account) => safeIPC(async () => {
+  if(account!==(await walletAuthority.vault.status()).account)throw Object.assign(new Error("Selected account changed"),{code:4100,data:{code:"ACCOUNT_CHANGED"}});
+  return nativeWallet.transferAttempts(account);
+}));
 handleWalletIPC("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
   const status = await walletAuthority.accountStatus();
   if (!status.initialized) throw new Error("Create or import an account first");
@@ -420,7 +429,7 @@ async function custodyChange(change) {
       // readback. Revoke only that live commit, still before publishing new keys.
       return change(guard, () => guard.step(() => walletAuthority.permissions.revokeAll()));
     });
-    keyAccess.setAccount(status.account); keyAccess.lock();
+    keyAccess.setAccount(status.account); keyAccess.lock("account-changed");
     mainWindow?.webContents.send("wallet:account-status-result", status);
     const remoteDisconnectFailures = [];
     for (const session of walletConnect?.sessions?.() ?? []) {
@@ -465,7 +474,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), intentStore: new FileTransactionIntentStore({ filePath: path.join(userData, "transaction-intents-v1.json") }) })
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
-  nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });
+  nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });
   let pairConfig, pairConfigurationError = null;
   try { pairConfig = await loadPublicWalletConnectConfig({ resourcesPath: process.resourcesPath }); }
   catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }
@@ -502,9 +511,9 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     callback(permission === "media" ? recipientCameraPermission.allows(contents, permission, details) : permission !== "display-capture"));
   window.on("blur", () => keyAccess.setFocused(false));
   window.on("focus", () => keyAccess.setFocused(true));
-  window.on("minimize", () => keyAccess.lock());
-  window.on("close", () => keyAccess.lock());
-  for (const event of ["suspend", "lock-screen"]) powerMonitor.on(event, () => keyAccess.lock());
+  window.on("minimize", () => keyAccess.lock("minimized"));
+  window.on("close", () => keyAccess.lock("closed"));
+  for (const event of ["suspend", "lock-screen"]) powerMonitor.on(event, () => keyAccess.lock(event));
   const initialAccount = await safeIPC(() => walletAuthority.accountStatus());
   if (initialAccount.ok) keyAccess.setAccount(initialAccount.value.account);
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));

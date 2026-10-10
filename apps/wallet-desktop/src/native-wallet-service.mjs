@@ -85,11 +85,36 @@ export class CanonicalAccountNetwork {
 }
 
 export class NativeWalletService {
-  constructor({ vault, network = new CanonicalAccountNetwork(), sender, clock = () => Date.now(), requestId = randomUUID }) {
+  constructor({ vault, network = new CanonicalAccountNetwork(), sender, clock = () => Date.now(), requestId = randomUUID, onTransferAttempt = () => {} }) {
     this.vault = vault; this.network = network; this.sender = sender; this.clock = clock; this.requestId = requestId;
     this.pending = new Map();
+    this.attemptSequence=0;this.attempts=new Map();this.onTransferAttempt=onTransferAttempt;
   }
   clear() { this.pending.clear(); }
+  beginTransferAttempt(id, action) {
+    const review=this.pending.get(id);
+    if(action!=="approve"||!review||this.attempts.get(id)?.state==="in-progress")return null;
+    const record={attempt:++this.attemptSequence,account:review.account,startedAt:this.clock(),updatedAt:this.clock(),stage:"approval-gate",state:"in-progress",code:null,hash:null};
+    this.attempts.set(id,record);
+    while(this.attempts.size>32)this.attempts.delete(this.attempts.keys().next().value);
+    this.publishTransferAttempt(record);return record;
+  }
+  transferAttempts(account) { return [...this.attempts.values()].filter(record=>record.account===account).map(record=>Object.freeze({...record})); }
+  publishTransferAttempt(record) { try { this.onTransferAttempt(Object.freeze({...record})); } catch {} }
+  transferStage(id,stage) {const record=this.attempts.get(id);if(record?.state==="in-progress"){record.stage=stage;record.updatedAt=this.clock();this.publishTransferAttempt(record)}}
+  finishTransferAttempt(record,result) {
+    if(!record||![...this.attempts.values()].includes(record))return;
+    const hash=result?.ok===true&&result.value?.hash;
+    if(typeof hash==="string"&&/^0x[0-9a-f]{64}$/.test(hash)){record.state="submitted";record.hash=hash;record.code=null}
+    else {
+      const code=result?.error?.data?.code??result?.error?.code;
+      record.code=["WALLET_LOCKED","WALLET_OPERATION_CANCELLED","WALLET_OPERATION_BUSY","REQUEST_EXPIRED","UNKNOWN_OR_EXPIRED_REQUEST","ACCOUNT_CHANGED","RPC_CHAIN_MISMATCH","TRANSACTION_RESOLUTION_REQUIRED","EXTERNAL_OUTCOME_UNKNOWN","RPC_TRANSACTION_REJECTED"].includes(code)?code:"TRANSFER_FAILED";
+      // Before entering sender.send there is no signing or outward submission.
+      // Once the sender is entered, its original journal/receipt owns the answer.
+      record.state=record.stage==="submitting"?"result-unconfirmed":record.stage==="approval-gate"?"rejected-before-key-access":"rejected-before-submission";
+    }
+    record.updatedAt=this.clock();this.publishTransferAttempt(record);
+  }
   async balance() {
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create or import an account first");
@@ -129,6 +154,7 @@ export class NativeWalletService {
     return { id, account: status.account, to: recipient, ynxFrom: ynxAddressFromEVM(status.account), ynxTo: ynxAddressFromEVM(recipient), amount: formatEther(value), ...this.sender.reviewDetails?.(snapshot), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
   }
   async transferAction(id, action) {
+    this.transferStage(id,"review-check");
     if (!["approve", "reject"].includes(action)) throw providerError(-32602, "INVALID_TRANSFER_ACTION", "Choose approve or reject");
     const request = this.pending.get(id);
     this.pending.delete(id);
@@ -137,9 +163,12 @@ export class NativeWalletService {
     if (this.clock() - request.createdAt >= REVIEW_TTL) throw providerError(4100, "REQUEST_EXPIRED", "The transfer review expired. Check the current fee and try again.");
     const status = await this.vault.status();
     if (status.account !== request.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the transfer again.");
+    this.transferStage(id,"verifying-network");
     await this.network.verifyChain();
+    this.transferStage(id,"key-access");
     const hash = await this.vault.withSecret(async (secret, identity, guard) => {
       if (identity.account !== request.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed");
+      this.transferStage(id,"submitting");
       return this.sender.send(new Wallet(`0x${secret}`), request.transaction, guard);
     });
     return { hash, status: "submitted", confirmed: false, account: request.account, to: request.transaction.to, amount: formatEther(request.transaction.value) };

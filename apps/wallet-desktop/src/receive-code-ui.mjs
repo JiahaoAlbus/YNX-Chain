@@ -34,10 +34,12 @@ export function drawReceiveCode(canvas, code, expectedAccount) {
   }
 }
 
-export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawReceiveCode }) {
-  let revision = 0;
+export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawReceiveCode, exportButton, getContext, savePNG }) {
+  let revision = 0, rendered = null;
   function clear() {
     revision++;
+    rendered = null;
+    if (exportButton) exportButton.disabled = true;
     canvas.hidden = true;
     canvas.width = canvas.height = 1;
     status.textContent = "";
@@ -58,6 +60,9 @@ export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawRe
       // A retired request cannot make the canvas visible or publish success.
       if (current !== revision) return;
       canvas.hidden = false;
+      const context = getContext?.();
+      rendered = {revision:current,account,keyRevision:context?.keyRevision};
+      if (exportButton) exportButton.disabled = !(context?.open===true&&context.account===account&&typeof savePNG==="function");
       setWalletCopy(status,"Scan with a Wallet that supports YNX Testnet.");
     } catch {
       if (current !== revision) return;
@@ -65,5 +70,16 @@ export function createReceiveCodeUI({ canvas, status, requestCode, draw = drawRe
       setWalletCopy(status,"The receiving code is unavailable. Reopen Receive to try again.");
     }
   }
-  return { clear, refresh };
+  function exportPNG() {
+    const before=rendered;
+    const live=()=>{const context=getContext?.();return before&&rendered===before&&before.revision===revision&&!canvas.hidden&&context?.open===true&&context.account===before.account&&context.keyRevision===before.keyRevision};
+    if (!live() || typeof savePNG !== "function") return;
+    try {
+      const dataURL=canvas.toDataURL("image/png");
+      if (!live() || typeof dataURL!=="string" || dataURL.length>8*1024*1024 || !/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(dataURL) || !/^ynx1[a-z0-9]+$/.test(before.account)) return;
+      savePNG(dataURL,`YNX-Testnet-receive-${before.account}.png`);
+      if(live())setWalletCopy(status,"Receiving PNG download started. It contains only your public receiving information.");
+    } catch { if(live())setWalletCopy(status,"Receiving PNG download could not start. Reopen Receive and try again."); }
+  }
+  return { clear, refresh, exportPNG };
 }
