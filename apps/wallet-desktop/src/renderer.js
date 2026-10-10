@@ -125,8 +125,11 @@ recipientCameraUI=createRecipientCameraUI({
   decode:input=>window.ynxWallet.paymentQR(input),apply:address=>paymentRecipientUI.text(address),
   report:value=>copyUI(document.querySelector("#recipient-status"),value),
 });
-const recipientScanUI=createRecipientScanUI({document,getContext:recipientScanContext,image:file=>paymentRecipientUI.image(file),onChoose:()=>recipientCameraUI.stop(),onInvalidate:()=>recipientCameraUI.stop()});
-document.querySelector("#start-recipient-camera").addEventListener("click",()=>void recipientCameraUI.start());
+// A new chooser/camera intent retires already-reading images and paste/decoder
+// replies, not only the native chooser node or the old camera stream. Preserve
+// visible input while advancing the draft fence used by transfer review.
+const recipientScanUI=createRecipientScanUI({document,getContext:recipientScanContext,image:file=>paymentRecipientUI.image(file),onChoose:()=>{paymentDraftRevision++;paymentRecipientUI.invalidate();recipientCameraUI.stop();},onInvalidate:()=>recipientCameraUI.stop()});
+document.querySelector("#start-recipient-camera").addEventListener("click",()=>{paymentDraftRevision++;paymentRecipientUI.invalidate();recipientScanUI.invalidate();void recipientCameraUI.start();});
 document.querySelector("#stop-recipient-camera").addEventListener("click",()=>{recipientCameraUI.stop();copyUI(document.querySelector("#recipient-status"),"Camera stopped.");});
 window.addEventListener("blur",()=>recipientCameraUI.stop());
 window.addEventListener("pagehide",()=>recipientCameraUI.stop());
