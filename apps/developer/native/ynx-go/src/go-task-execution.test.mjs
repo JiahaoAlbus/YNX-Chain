@@ -1,7 +1,35 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {createRequire} from 'node:module';
 import {readFile,writeFile,mkdtemp,mkdir,realpath,rm} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import vm from 'node:vm';
 const {executeGoTask}=createRequire(import.meta.url)('./go-tasks.cjs');
+const {selectNativeGoToolchain}=createRequire(import.meta.url)('../../../runtime/ynx-workbench/lib/native-workbench-commands.js');
 function fixture(execute){const listeners=new Set(),task={definition:{runId:'owned',stage:'build'}},operation={cancelled:false};const api={tasks:{onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:execute}};return{task,api,operation,end:code=>{for(const f of listeners)f({execution:{task},exitCode:code});},listeners};}
+test('first-use Go uses native admission without granting or launching in the old sandbox',async()=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-native-first-use-')));
+ try {
+  const {createGoTasks}=createRequire(import.meta.url)('./go-tasks.cjs');
+  let selections=0,launches=0,writes=0;
+  const api={workspace:{isTrusted:true,workspaceFolders:[{uri:{scheme:'file',fsPath:root}}],getConfiguration:()=>({inspect:()=>({}),update:()=>{writes++;}})},
+   CancellationTokenSource:class{token={};cancel(){}dispose(){}},
+   commands:{executeCommand:async id=>{assert.equal(id,'ynx.workbench.selectGoToolchain');selections++;return selectNativeGoToolchain({ynxDesktopGo:{selectToolchain:async()=>({effective:'after-reopen',version:'go version go1.25.7 darwin/arm64'})}});}},
+   tasks:{registerTaskProvider:()=>({dispose(){}}),executeTask:()=>{launches++;}}};
+  const environment={YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'};
+  const workflow=createGoTasks(api,{subscriptions:[]},environment);
+  await workflow.run();assert.equal(selections,1);assert.equal(launches,0);assert.equal(writes,0);assert.equal(environment.YNX_IDE_GO_ROOT,undefined);assert.deepEqual(workflow.status(),{running:false,configuring:false});
+  api.workspace.isTrusted=false;await assert.rejects(workflow.run(),/trusted/);assert.equal(selections,1);
+  api.workspace.isTrusted=true;environment.YNX_IDE_GO_ROOT='/partial-unverified';await assert.rejects(workflow.run(),/verified Go toolchain/);assert.equal(selections,1);
+  delete environment.YNX_IDE_GO_ROOT;
+  let reply;api.commands.executeCommand=()=>new Promise(resolve=>reply=resolve);
+  const pending=workflow.run();while(!reply)await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(workflow.cancel(),true);await pending;reply({effective:'after-reopen',version:'late'});await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(launches,0);assert.equal(writes,0);assert.deepEqual(workflow.status(),{running:false,configuring:false});workflow.dispose();
+ } finally {await rm(root,{recursive:true,force:true});}
+});
+test('native Go selection rejects absent bridge, supplied paths and unverified responses',async()=>{
+ let calls=0;const target={ynxDesktopGo:{selectToolchain:async()=>{calls++;return{};}}};
+ await assert.rejects(selectNativeGoToolchain({}),/native YNX/);
+ await assert.rejects(selectNativeGoToolchain(target,'/supplied/path'),/no supplied paths/);assert.equal(calls,0);
+ await assert.rejects(selectNativeGoToolchain(target),/verified selection/);assert.equal(calls,1);
+});
 test('cancel before queued launch never starts a task',async()=>{let calls=0;const f=fixture(()=>{calls++;});const pending=executeGoTask(f.api,f.task,f.operation);f.operation.cancelled=true;assert.equal(await pending,undefined);assert.equal(calls,0);assert.equal(f.listeners.size,0);});
 test('missing or rejected execution settles instead of keeping Running',async()=>{for(const execute of [async()=>undefined,async()=>{throw Error('launch failed')}]){const f=fixture(execute);await assert.rejects(executeGoTask(f.api,f.task,f.operation),/execution|launch failed/);assert.equal(f.listeners.size,0);}});
 test('late execution after cancellation is terminated and cannot advance before process end',async()=>{let reply,calls=0;const f=fixture(()=>new Promise(r=>reply=r));let settled=false;const pending=executeGoTask(f.api,f.task,f.operation).then(value=>{settled=true;return value;});await Promise.resolve();f.operation.cancelled=true;reply({terminate(){calls++;}});await new Promise(r=>setImmediate(r));assert.equal(calls,1);assert.equal(settled,false);f.end(undefined);await pending;assert.equal(f.listeners.size,0);});

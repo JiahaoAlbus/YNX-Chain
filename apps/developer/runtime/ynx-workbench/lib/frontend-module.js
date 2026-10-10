@@ -53,7 +53,7 @@ const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { WindowService } = require('@theia/core/lib/browser/window/window-service');
 const { NativeWindowClose } = require('./native-window-close');
-const { NativeWorkbenchCommands } = require('./native-workbench-commands');
+const { NativeWorkbenchCommands, selectNativeGoToolchain } = require('./native-workbench-commands');
 const { LocalWorkspaceContext } = require('./local-workspace-context');
 const { LocalTerminalDefaults } = require('./local-terminal-defaults');
 const { PythonTerminalLifecycle } = require('./python-terminal-lifecycle');
@@ -190,6 +190,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   )).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => ({
     registerCommands(registry) {
+      registry.registerCommand({ id: 'ynx.workbench.selectGoToolchain' }, {
+        execute: (...args) => selectNativeGoToolchain(window, ...args),
+      });
       registry.registerCommand({ id: 'ynx.workbench.reloadWindow', category: 'Developer', label: 'Reload Window' }, {
         execute: () => registry.executeCommand('workbench.action.reloadWindow'),
       });

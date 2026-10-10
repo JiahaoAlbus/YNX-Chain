@@ -27,7 +27,17 @@ function createGoTasks(api,context,environment,t=text=>text) {
   const pickerCancellation=new api.CancellationTokenSource(); const stopPicker=()=>pickerCancellation.cancel(); abort.signal.addEventListener('abort',stopPicker,{once:true});
   try {
    const binding=await project();
-   const toolchain=await admittedToolchain(environment);await binding.verify();abort.signal.throwIfAborted();
+   let toolchain;
+   try {toolchain=await admittedToolchain(environment);}
+   catch(error) {
+    if(error.code!=='YNX_GO_SELECTION_REQUIRED')throw error;
+    // Use the existing native picker and parent admission channel. A selected
+    // path cannot expand this running sandbox; the host explains normal reopen.
+    await binding.verify();abort.signal.throwIfAborted();
+    await waitForSignal(()=>api.commands.executeCommand('ynx.workbench.selectGoToolchain'),abort.signal);
+    await binding.verify();abort.signal.throwIfAborted();return;
+   }
+   await binding.verify();abort.signal.throwIfAborted();
    const chosen=await waitForSignal(()=>api.window.showQuickPick([{label:toolchain.version,description:toolchain.root,toolchain}],{title:t('Choose the installed Go toolchain'),placeHolder:t('Local compilation and running; language service and debugging are separate.')},pickerCancellation.token),abort.signal);
    if(!chosen)return;abort.signal.throwIfAborted();
    await binding.verify();await verifyToolchain(toolchain,environment);

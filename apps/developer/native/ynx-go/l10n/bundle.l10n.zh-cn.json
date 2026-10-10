@@ -1,4 +1,5 @@
 {
+  "Select an installed Go toolchain for this project before running.": "运行前，请为此项目选择已安装的 Go 工具链。",
   "Open one trusted local Go project.": "请打开一个受信任的本地 Go 项目。",
   "The Go project changed. Configure or run it again.": "Go 项目已变化，请重新配置或运行。",
   "The Go project configuration is invalid. Configure Go for this project again.": "Go 项目配置无效，请重新配置此项目的 Go 工具链。",

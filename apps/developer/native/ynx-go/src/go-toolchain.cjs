@@ -28,6 +28,7 @@ async function inspectToolchain(root) {
 }
 async function admittedToolchain(environment) {
   const root=environment.YNX_IDE_GO_ROOT,executable=environment.YNX_IDE_GO_ENTRY,version=environment.YNX_IDE_GO_VERSION,binarySha256=environment.YNX_IDE_GO_SHA;
+  if(!root && !executable && !version && !binarySha256)throw Object.assign(Error('Select an installed Go toolchain for this project before running.'),{code:'YNX_GO_SELECTION_REQUIRED'});
   if(!root || executable!==path.join(root,'bin/go') || typeof version!=='string' || !/^[a-f0-9]{64}$/.test(binarySha256||''))throw Error('This runtime has no verified Go toolchain supplier. Local Go may already be installed; reopen with a runtime that supports Go toolchain selection. No download or installation was performed.');
   const actual=await inspectToolchain(root);
   if(actual.executable!==executable || actual.version!==version || actual.binarySha256!==binarySha256)throw Error('The runtime Go toolchain metadata does not match the installed binary. Reopen the project after configuring its toolchain.');

@@ -36,4 +36,12 @@ class NativeWorkbenchCommands {
   }
   onStop() { if (this.target.__ynxLocalWorkbenchCommand === this.dispatch) delete this.target.__ynxLocalWorkbenchCommand; }
 }
-module.exports = { NativeWorkbenchCommands, NATIVE_COMMANDS };
+async function selectNativeGoToolchain(target, ...args) {
+  if(args.length)throw Error('Go toolchain selection accepts no supplied paths or arguments.');
+  const bridge=target.ynxDesktopGo;
+  if(!bridge || typeof bridge.selectToolchain!=='function')throw Error('Go toolchain selection requires the native YNX Developer App.');
+  const result=await bridge.selectToolchain();
+  if(result?.effective!=='after-reopen' || typeof result.version!=='string')throw Error('Go toolchain selection did not return a verified selection.');
+  return result;
+}
+module.exports = { NativeWorkbenchCommands, NATIVE_COMMANDS, selectNativeGoToolchain };
