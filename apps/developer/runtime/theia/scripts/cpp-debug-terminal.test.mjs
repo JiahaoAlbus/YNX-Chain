@@ -13,7 +13,7 @@ function setup() {
   class URI { constructor(value) { this.value = value; } withScheme() { return this; } toString() { return 'file://' + this.value; } }
   const terminals = { async newTerminal() { return terminal; }, async open() { opens++; } };
   const context = { async getContext() { return { mode: 'local', workspace: '/project' }; }, async getCppTerminalDevice() { return { device: '/dev/ttys001' }; } };
-  const contribution = new CppDebugTerminalContribution(context, terminals, { onDidCreateDebugSession: fn => created.subscribe(fn), onDidDestroyDebugSession: fn => destroyed.subscribe(fn) }, URI, () => {}); contribution.initialize();
+  const contribution = new CppDebugTerminalContribution(context, terminals, { debug:{terminateDebugSession:async()=>{}}, onDidCreateDebugSession: fn => created.subscribe(fn), onDidDestroyDebugSession: fn => destroyed.subscribe(fn) }, URI, () => {}); contribution.initialize();
   return { contribution, terminals, terminal, context, created, destroyed, closed, disposed, counts: () => ({close, opens}) };
 }
 test('real terminal endpoint is scoped to the current owned non-pseudo process', async () => {
@@ -42,13 +42,13 @@ test('cancellation during PTY start closes its eventual backend process exactly 
 });
 test('session destruction closes only its matching terminal and preserves the widget output', async () => {
   const h=setup(); await h.contribution.prepare(id,'/project'); let stops=0;
-  const session = { configuration:{type:'lldb-dap',__ynxCppRunId:id}, options:{workspaceFolderUri:'file:///project'}, isStopping:true, async stop(){stops++;} };
+  const session = { id:'owned-fixture', configuration:{type:'lldb-dap',__ynxCppRunId:id}, options:{workspaceFolderUri:'file:///project'}, isStopping:true, async stop(){stops++;} };
   h.created.fire(session); h.destroyed.fire({...session}); await Promise.resolve(); assert.equal(h.counts().close,0);
   h.destroyed.fire(session); await h.contribution.release(id); assert.equal(h.counts().close,1); assert.equal(stops,0); assert.equal(h.contribution.records.size,0);
 });
 test('closing the owned terminal stops its associated debug session and permits retry', async () => {
   const h=setup(); await h.contribution.prepare(id,'/project'); let stops=0;
-  const session = { configuration:{type:'lldb-dap',__ynxCppRunId:id}, options:{workspaceFolderUri:'file:///project'}, async stop(){stops++; this.isStopping=true;} };
+  const session = { id:'owned-fixture', configuration:{type:'lldb-dap',__ynxCppRunId:id}, options:{workspaceFolderUri:'file:///project'}, async stop(){stops++; this.isStopping=true;} };
   h.created.fire(session); h.closed.fire(); await h.contribution.release(id);
   assert.equal(stops,1); assert.equal(h.counts().close,1); await h.contribution.prepare(id,'/project'); await h.contribution.release(id); assert.equal(h.counts().close,2);
 });
@@ -62,5 +62,30 @@ test('duplicate concurrent requests cannot create a second terminal while contex
 });
 
 test('closing before session creation retains an ended owner and stops the late debugger', async () => {
- const h=setup();await h.contribution.prepare(id,'/project');await h.contribution.release(id);let stops=0;const session={configuration:{type:'lldb-dap',__ynxCppRunId:id},options:{workspaceFolderUri:'file:///project'},async stop(){stops++;this.isStopping=true;}};h.created.fire(session);await Promise.resolve();assert.equal(stops,1);h.destroyed.fire(session);await h.contribution.release(id,true);assert.equal(h.contribution.records.size,0);assert.equal(h.counts().close,1);
+ const h=setup();await h.contribution.prepare(id,'/project');await h.contribution.release(id);let stops=0;const session={id:'owned-fixture',configuration:{type:'lldb-dap',__ynxCppRunId:id},options:{workspaceFolderUri:'file:///project'},async stop(){stops++;this.isStopping=true;}};h.created.fire(session);await Promise.resolve();assert.equal(stops,1);h.destroyed.fire(session);await h.contribution.release(id,true);assert.equal(h.contribution.records.size,0);assert.equal(h.counts().close,1);
+});
+
+async function retainedStop() {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../node_modules/@theia/debug/lib/browser/debug-session.js', import.meta.url), 'utf8');
+  const start=source.indexOf('    async stop(isRestart, callback) {'), end=source.indexOf('    /**',start);
+  assert.ok(start>0 && end>start);
+  return Function('return ({'+source.slice(start,end).trim()+'})')().stop;
+}
+function realStopSession(stop, extra={}) {
+  return { configuration:{type:'lldb-dap',__ynxCppRunId:id},options:{workspaceFolderUri:'file:///project'},initialized:true, capabilities:{supportsTerminateDebuggee:true},stopTimeout:1000,canTerminate:()=>false,sendRequest:async()=>({}),handleDisconnectError:error=>{throw error;},stop,...extra };
+}
+test('retained Theia stop callback contract terminates exact backend and closes owned PTY', async () => {
+  const h=setup();let terminated=[];h.contribution.sessions.debug={terminateDebugSession:async sessionId=>terminated.push(sessionId)};
+  await h.contribution.prepare(id,'/project');const session=realStopSession(await retainedStop(),{id:'owned-real-stop'});h.created.fire(session);
+  await h.contribution.release(id);assert.deepEqual(terminated,['owned-real-stop']);assert.equal(h.counts().close,1);
+});
+test('retained Theia late session stop callback reaches exact backend after prior terminal closure', async () => {
+  const h=setup();let terminated=[],errors=[];h.contribution.sessions.debug={terminateDebugSession:async sessionId=>terminated.push(sessionId)};
+  await h.contribution.prepare(id,'/project');await h.contribution.release(id);const session=realStopSession(await retainedStop(),{id:'owned-late-stop',logger:{error:error=>errors.push(error)}});h.created.fire(session);
+  await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(terminated,['owned-late-stop']);assert.deepEqual(errors,[]);assert.equal(h.counts().close,1);
+});
+
+test('a failed stop still closes the holder and preserves owned cleanup obligation for retry', async () => {
+ const h=setup();await h.contribution.prepare(id,'/project');let fail=true;const session={id:'owned-failed-stop',configuration:{type:'lldb-dap',__ynxCppRunId:id},options:{workspaceFolderUri:'file:///project'},async stop(_restart,callback){if(fail)throw Error('stop failed');callback();}};h.created.fire(session);await assert.rejects(h.contribution.release(id),/stop failed/);assert.equal(h.counts().close,1);assert.equal(h.contribution.records.has(id),true);fail=false;await h.contribution.release(id);assert.equal(h.contribution.records.has(id),false);assert.equal(h.counts().close,1);
 });
