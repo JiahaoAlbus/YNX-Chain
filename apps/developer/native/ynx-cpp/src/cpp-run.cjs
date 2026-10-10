@@ -33,7 +33,10 @@ const TEXT = {
   existing: ['Existing project configuration was preserved. Choose its target explicitly.', '已有项目配置已保留，请明确选择其中的目标。'],
 };
 const CPP_TRANSLATIONS = Object.fromEntries(Object.values(TEXT));
-function translator(vscode) { return key => { const [en, zh] = TEXT[key]; return vscode.l10n?.t ? vscode.l10n.t(en) : /^zh\b/i.test(vscode.env.language || '') ? zh : en; }; }
+function translator(vscode) { return key => {
+  const [en, zh] = TEXT[key], translated = vscode.l10n?.t?.(en);
+  return translated && translated !== en ? translated : /^zh\b/i.test(vscode.env.language || '') ? zh : en;
+}; }
 async function sourceContext(vscode, env) {
   const root = cppProjectRoot(env), folders = vscode.workspace.workspaceFolders, document = vscode.window.activeTextEditor?.document;
   const t = translator(vscode);
