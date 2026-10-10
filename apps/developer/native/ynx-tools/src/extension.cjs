@@ -62,12 +62,7 @@ function activate(context) {
       { label: t('Apply reviewed text changes'), command: 'ynx.applyReviewedDiff' },
     ] },
   ];
-  context.subscriptions.push(vscode.window.registerTreeDataProvider('ynx.tools', {
-    getChildren: item => item ? item.children || [] : entries,
-    getTreeItem: item => ({ label: item.label, description: item.description, tooltip: item.tooltip,
-      collapsibleState: item.children ? 2 : 0,
-      ...(item.command ? { command: { command: item.command, title: item.label } } : {}) })
-  }));
+  require('./project-views.cjs').registerProjectViews(vscode, context, entries);
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
   register('ynx.chainProject', () => projectChain().open());
   register('ynx.evm.build', () => evmProject.build());
@@ -89,7 +84,7 @@ function activate(context) {
   register('ynx.openTools', async () => {
     const id = process.env.YNX_CORE_SESSION_ID;
     if (!/^[a-f0-9-]{36}$/.test(id || '')) {
-      await vscode.commands.executeCommand('ynx.tools.focus');
+      await vscode.commands.executeCommand('ynx.contracts.focus');
       return;
     }
     // Only an opaque session locator. No context or credentials in the URL.

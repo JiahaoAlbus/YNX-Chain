@@ -11,6 +11,13 @@ const RUN_ACTIONS = Object.freeze([
 const CPP_ACTIONS = Object.freeze([{ id: 'ynx.cpp.runActive', label: 'Run C/C++ File' }, { id: 'ynx.cpp.debugActive', label: 'Debug C/C++ File' }]);
 const JS_ACTIONS = Object.freeze([{ id: 'ynx.js.runActive', label: 'Run JavaScript File' }, { id: 'ynx.js.debugActive', label: 'Debug JavaScript File' }]);
 const GO_ACTIONS = Object.freeze([{ id: 'ynx.go.run', label: 'Run Go Project' }, { id: 'ynx.go.cancel', label: 'Cancel Go Task' }]);
+const PROJECT_ACTIONS = Object.freeze([
+  { id: 'core.save', label: 'Save', icon: 'save' },
+  { id: 'task:run:build', label: 'Build', icon: 'tools' },
+  { id: 'testing.runAll', label: 'Test', icon: 'beaker' },
+  { id: 'ynx.contracts.focus', label: 'Contracts', icon: 'symbol-class' },
+  { id: 'ynx.network.focus', label: 'Chain and Results', icon: 'link' },
+]);
 const VIEWS = Object.freeze([
   { key: 'explorer', label: 'Explorer', icon: 'files', area: 'left', command: 'fileNavigator:toggle' },
   { key: 'search', label: 'Search', icon: 'search', area: 'left', command: 'search-in-workspace.toggle' },
@@ -176,6 +183,28 @@ class WorkbenchControlsContribution {
   onStart() {
     const document = this.shell.node.ownerDocument;
     const { Widget, SplitPanel } = require('@theia/core/lib/browser/widgets');
+    const actions = document.createElement('nav');
+    actions.className = 'ynx-project-actions';
+    actions.setAttribute('aria-label', this.translate('projectActions', 'Project actions'));
+    this.projectButtons = [];
+    for (const action of PROJECT_ACTIONS) {
+      const button = document.createElement('button'); button.type = 'button';
+      const label = this.translate(action.id, action.label);
+      button.setAttribute('aria-label', label);
+      const icon = document.createElement('span'); icon.className = `codicon codicon-${action.icon}`; icon.setAttribute('aria-hidden', 'true');
+      button.append(icon, document.createTextNode(label));
+      button.addEventListener('mousedown', event => event.preventDefault());
+      button.addEventListener('click', () => this.run(action.id).catch(error => this.report(error)));
+      actions.appendChild(button); this.projectButtons.push({ button, action, label });
+    }
+    const run = document.createElement('button'); run.type = 'button';
+    run.textContent = this.translate('runAndDebug', 'Run and Debug…');
+    run.setAttribute('aria-haspopup', 'menu');
+    run.addEventListener('mousedown', event => event.preventDefault());
+    run.addEventListener('click', () => { try { this.openRunMenu(run, this.editors.currentEditor); } catch (error) { this.report(error); } });
+    actions.insertBefore(run, actions.children[1]); this.projectRun = run;
+    const actionsWidget = new Widget({ node: actions }); actionsWidget.id = 'ynx-project-actions';
+    this.shell.topPanel.addWidget(actionsWidget); this.widgets.push(actionsWidget);
     for (const area of ['left']) {
       const node = document.createElement('nav');
       node.className = `ynx-workbench-discovery ynx-workbench-discovery-${area}`;
@@ -199,6 +228,11 @@ class WorkbenchControlsContribution {
   }
   refresh() {
     if (this.stopped) return;
+    for (const { button, action, label } of this.projectButtons || []) {
+      const state = this.state(action.id); button.disabled = !state.enabled;
+      button.title = state.enabled ? label : `${label}: ${state.reason}`;
+    }
+    if (this.projectRun) this.projectRun.disabled = !this.editors.currentEditor || !this.contextMenus;
     if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
@@ -234,4 +268,4 @@ class WorkbenchControlsContribution {
     this.nodes.length = 0; this.changed.dispose();
   }
 }
-module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, CPP_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };
+module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, CPP_ACTIONS, PROJECT_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };

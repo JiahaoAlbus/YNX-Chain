@@ -27,5 +27,11 @@
   "command.ynx.js.debugActive": "Debug JavaScript File",
   "command.ynx.evm.build": "YNX: Build EVM Project",
   "command.ynx.evm.test": "YNX: Test EVM Project",
-  "command.ynx.evm.cancel": "YNX: Stop EVM Task"
+  "command.ynx.evm.cancel": "YNX: Stop EVM Task",
+  "container.contracts": "Contracts",
+  "container.network": "Chain and Results",
+  "container.review": "Change Review",
+  "view.contracts": "Project Development",
+  "view.network": "Project Chain",
+  "view.review": "Reviewed Changes"
 }

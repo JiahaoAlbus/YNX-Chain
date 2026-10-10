@@ -27,5 +27,11 @@
   "command.ynx.js.debugActive": "调试 JavaScript 文件",
   "command.ynx.evm.build": "YNX：构建 EVM 项目",
   "command.ynx.evm.test": "YNX：测试 EVM 项目",
-  "command.ynx.evm.cancel": "YNX：停止 EVM 任务"
+  "command.ynx.evm.cancel": "YNX：停止 EVM 任务",
+  "container.contracts": "合约开发",
+  "container.network": "链与结果",
+  "container.review": "改动审阅",
+  "view.contracts": "项目开发",
+  "view.network": "项目链连接",
+  "view.review": "已审阅改动"
 }

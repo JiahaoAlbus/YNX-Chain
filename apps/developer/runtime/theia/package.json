@@ -38,7 +38,7 @@
     "frontend": {
       "config": {
         "applicationName": "YNX Developer",
-        "defaultTheme": "YNX Klein",
+        "defaultTheme": "YNX Klein Light",
         "defaultIconTheme": "theia-file-icons",
         "preferences": {
           "window.menuBarVisibility": "visible",

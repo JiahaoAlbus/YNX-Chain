@@ -13,3 +13,9 @@
 .ynx-workbench-discovery-left .codicon { font-size: 22px; }
 .ynx-workbench-discovery-bottom { min-height: 28px; max-height: 56px; display: flex; flex-wrap: wrap; border-top: 1px solid var(--theia-panel-border); }
 .ynx-workbench-discovery-bottom button { font-size: 11px; text-transform: uppercase; letter-spacing: .3px; }
+.ynx-project-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 7px 12px; background: var(--theia-titleBar-activeBackground); border-bottom: 1px solid var(--theia-panel-border); }
+.ynx-project-actions button { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border: 1px solid var(--theia-panel-border); border-radius: 7px; color: var(--theia-foreground); background: var(--theia-editor-background); font: inherit; cursor: pointer; }
+.ynx-project-actions button:hover { background: var(--theia-toolbar-hoverBackground); }
+.ynx-project-actions button:focus-visible { outline: 2px solid var(--theia-focusBorder); outline-offset: 2px; }
+.ynx-project-actions button:disabled { opacity: .45; cursor: default; }
+.theia-light .ynx-project-actions { background: rgba(248, 248, 247, .92); backdrop-filter: blur(14px); }

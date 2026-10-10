@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.29",
+  "version": "0.2.30",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -11,28 +11,52 @@
   "main": "./src/extension.cjs",
   "activationEvents": [
     "onLanguage:solidity",
-    "onView:ynx.tools",
     "onCommand:ynx.reviewSelection",
     "onStartupFinished",
     "onCommand:ynx.configurePython",
     "onCommand:ynx.js.runActive",
-    "onCommand:ynx.js.debugActive"
+    "onCommand:ynx.js.debugActive",
+    "onView:ynx.contracts",
+    "onView:ynx.network",
+    "onView:ynx.review"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ynx",
-          "title": "%container.ynx%",
+          "id": "ynx-contracts",
+          "title": "%container.contracts%",
+          "icon": "activity.svg"
+        },
+        {
+          "id": "ynx-network",
+          "title": "%container.network%",
+          "icon": "activity.svg"
+        },
+        {
+          "id": "ynx-review",
+          "title": "%container.review%",
           "icon": "activity.svg"
         }
       ]
     },
     "views": {
-      "ynx": [
+      "ynx-contracts": [
         {
-          "id": "ynx.tools",
-          "name": "%view.ynx.tools%"
+          "id": "ynx.contracts",
+          "name": "%view.contracts%"
+        }
+      ],
+      "ynx-network": [
+        {
+          "id": "ynx.network",
+          "name": "%view.network%"
+        }
+      ],
+      "ynx-review": [
+        {
+          "id": "ynx.review",
+          "name": "%view.review%"
         }
       ]
     },

@@ -2,11 +2,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 13px;
+  padding: 9px 16px;
   border-bottom: 1px solid var(--theia-panel-border);
   font-size: 13px;
   color: var(--theia-foreground);
   background: var(--theia-titleBar-activeBackground);
+  backdrop-filter: blur(14px);
 }
 .ynx-workbench-brand img {
   width: 22px;
@@ -19,4 +20,10 @@
 }
 .theia-dark .ynx-workbench-brand img {
   filter: brightness(0) invert(1);
+}
+.theia-light .ynx-workbench-brand {
+  background: rgba(248, 248, 247, .92);
+}
+.theia-light #theia-left-content-panel {
+  border-right: 1px solid var(--theia-sideBar-border);
 }

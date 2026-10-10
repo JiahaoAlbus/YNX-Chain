@@ -9,7 +9,7 @@ const { CommandRegistry } = require('@theia/core/lib/common/command');
 const source = readFileSync(new URL('../../ynx-workbench/lib/workbench-controls.js', import.meta.url), 'utf8');
 const module = { exports: {} };
 vm.runInNewContext(source, { module, require, setInterval, clearInterval });
-const { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, VIEWS, nativeEntryVisible } = module.exports;
+const { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, PROJECT_ACTIONS, VIEWS, nativeEntryVisible } = module.exports;
 function fixture() {
   const commands = new CommandRegistry(), calls = [], views = {}, editor = {};
   for (const action of RUN_ACTIONS) commands.registerCommand({ id: action.id }, { execute: (...args) => calls.push([action.id, args]) });
@@ -21,6 +21,28 @@ function fixture() {
   const shell = { getWidgets: () => [], getTabBarFor: () => undefined };
   return { commands, calls, views, editor, shell, controls: new WorkbenchControlsContribution({ commands, shell, views, editors: { all: [editor] } }) };
 }
+test('project toolbar dispatches registered commands without manufacturing runtime or chain authority', async () => {
+  const f = fixture();
+  for (const action of PROJECT_ACTIONS) {
+    if (!f.commands.getCommand(action.id)) f.commands.registerCommand({ id: action.id }, { execute: (...args) => f.calls.push([action.id, args]) });
+    await f.controls.run(action.id);
+  }
+  assert.deepEqual(f.calls.map(call => call[0]), Array.from(PROJECT_ACTIONS, action => action.id));
+  assert.ok(PROJECT_ACTIONS.every(action => !/sign|deploy|approve|wallet.connect/.test(action.id)));
+  const registration = f.commands.registerCommand({ id: 'temporarily-disabled' }, { isEnabled: () => false, execute: () => assert.fail('disabled action executed') });
+  await assert.rejects(f.controls.run('temporarily-disabled'), /Currently unavailable/);
+  registration.dispose();
+});
+test('project toolbar tracks actual command readiness and retires after disposal', () => {
+  const f = fixture(), button = {};
+  f.controls.editors.currentEditor = undefined;
+  f.controls.projectButtons = [{button,action:{id:'ynx.network.focus'},label:'Chain'}];
+  f.controls.refresh(); assert.equal(button.disabled,true);
+  const registration=f.commands.registerCommand({id:'ynx.network.focus'}, {execute(){}});
+  f.controls.refresh(); assert.equal(button.disabled,false);
+  registration.dispose(); f.controls.refresh(); assert.equal(button.disabled,true);
+  f.controls.dispose(); button.disabled=false; f.controls.refresh(); assert.equal(button.disabled,false);
+});
 test('real CommandRegistry dispatches only native debug and task IDs with no file/shell arguments', async () => {
   const f = fixture();
   for (const action of RUN_ACTIONS) await f.controls.run(action.id);
