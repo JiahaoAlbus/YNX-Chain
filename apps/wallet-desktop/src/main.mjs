@@ -265,6 +265,17 @@ handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
   return result;
 }));
 handleWalletIPC("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
+handleWalletIPC("wallet:prepare-mnemonic-account", (_event,input) => sensitiveIPC(() => walletAuthority.vault.prepareMnemonicAccount(input)));
+handleWalletIPC("wallet:cancel-mnemonic-account", () => safeIPC(() => {walletAuthority.vault.cancelMnemonicAccount();return {cancelled:true}}));
+handleWalletIPC("wallet:commit-mnemonic-account", (_event,input) => safeIPC(async()=>{
+  const commit=walletAuthority.vault.consumeMnemonicCommit(input,true);
+  let result;
+  try{result=await changeActiveAccount(commit)}finally{commit.dispose()}
+  const review=await authorizationController.refreshAccount();
+  if(review?.acceptedForReview)mainWindow?.webContents.send("wallet:authorization-request",review);
+  return result;
+}));
+handleWalletIPC("wallet:recovery-phrase", (_event,password) => sensitiveIPC(() => walletAuthority.vault.recoveryPhrase(password)));
 handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus())));
 handleWalletIPC("wallet:payment-recipient", (_event, input) => safeIPC(() => parsePaymentRecipient(input)));
 handleWalletIPC("wallet:payment-qr", (_event, input) => safeIPC(() => {

@@ -15,6 +15,7 @@ import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
+import {createMnemonicUI} from './mnemonic-ui.mjs';
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
@@ -271,6 +272,7 @@ document.querySelector("#reject-auth").addEventListener("click", () => act("reje
 document.querySelector("#approve-auth").addEventListener("click", () => act("approve"));
 document.querySelector("#auth-create-account").addEventListener("click", async () => {
   if (creatingAuthorizationAccount || approvalQueue.busy || approvalQueue.current?.type !== "authorization" || approvalQueue.current.review.account) return;
+  if(typeof mnemonicUI!=="undefined"&&window.ynxWallet.prepareMnemonicAccount){authorization.close();mnemonicUI.openCreate();return}
   creatingAuthorizationAccount = true;
   const operation=beginAccountOperation(document.querySelector("#auth-create-account"));
   presentApproval();
@@ -290,7 +292,12 @@ const signingShort = document.querySelector("#signing-short");
 const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
+const mnemonicUI=createMnemonicUI({document,api:window.ynxWallet,getState:()=>keyState,getAccount:()=>activeAccount,onAccount:renderAccount});
+const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton.id='show-recovery-phrase';mnemonicBackupButton.type='button';copyUI(mnemonicBackupButton,'Show recovery phrase');
+document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
+mnemonicBackupButton.addEventListener('click',()=>mnemonicUI.openBackup());
 function renderAccount(payload) {
+  if(typeof mnemonicUI!=="undefined")mnemonicUI.invalidate();
   clearAssetBalance();
   clearTransactionResolution();
   invalidateWalletConnectSessions();
@@ -400,6 +407,7 @@ function finishAccountOperation(operation,selected=false){
   if(pendingImportOperation===operation)pendingImportOperation=null;
 }
 createAccount.addEventListener("click", async () => {
+  if(typeof mnemonicUI!=="undefined"&&window.ynxWallet.prepareMnemonicAccount){mnemonicUI.openCreate();return}
   const operation = beginAccountOperation(createAccount);
   createAccount.disabled = true;
   try {
@@ -411,6 +419,7 @@ createAccount.addEventListener("click", async () => {
   finally {finishAccountOperation(operation);}
 });
 addAccount.addEventListener("click", async () => {
+  if(typeof mnemonicUI!=="undefined"&&window.ynxWallet.prepareMnemonicAccount){mnemonicUI.openCreate();return}
   const operation = beginAccountOperation(addAccount);
   addAccount.disabled = true;
   try {
@@ -980,6 +989,7 @@ document.addEventListener("keydown", event => {
 });
 
 function renderKeyDetail() {
+  if(typeof mnemonicBackupButton!=="undefined"){mnemonicBackupButton.hidden=!accountState?.initialized;mnemonicBackupButton.disabled=keyState.locked||keyState.authenticating;}
   const detail = document.querySelector("#key-security-detail"), state = keyState;
   const lockReason=document.querySelector("#wallet-lock-reason");
   if(lockReason){lockReason.hidden=!state.locked||!Number.isSafeInteger(state.lockedAt);if(!lockReason.hidden)copyUI(lockReason,"Wallet locked: {reason} · {time}",{reason:state.lockReason,time:new Date(state.lockedAt).toLocaleTimeString()});else lockReason.textContent="";}
@@ -998,6 +1008,7 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
+  if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
   copyUI(title,state.locked ? "Wallet locked" : "Wallet unlocked");
   renderKeyDetail();

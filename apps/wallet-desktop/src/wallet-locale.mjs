@@ -20,6 +20,7 @@ import {SESSION_COPY} from "./wallet-locale-sessions.mjs";
 import {CAMERA_COPY} from "./wallet-locale-camera.mjs";
 import {CONTRACT_COPY} from "./wallet-locale-contracts.mjs";
 import {DIAGNOSTIC_COPY} from "./wallet-locale-diagnostics.mjs";
+import {MNEMONIC_COPY} from "./wallet-locale-mnemonic.mjs";
 export const WALLET_LOCALE_KEY = "ynx-wallet-locale-v1";
 export const WALLET_LOCALES = Object.freeze(["en","zh-Hans","zh-Hant","ja","ko","es","fr","de","pt","ru","ar","id"]);
 export const WALLET_LANGUAGE_NAMES = Object.freeze({en:"English","zh-Hans":"简体中文","zh-Hant":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"});
@@ -52,7 +53,7 @@ keys.push(zoomKey);for(const locale of WALLET_LOCALES)rows[locale]+="|"+zoomRows
 export const WALLET_COPY = Object.freeze(Object.fromEntries(WALLET_LOCALES.map(locale=>{
   const values=rows[locale].split("|");
   if(values.length!==keys.length||values.some(value=>!value))throw Error(`Incomplete Wallet copy: ${locale}`);
-  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale],...CONTRACT_COPY[locale],...DIAGNOSTIC_COPY[locale]})];
+  return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...TRANSFER_COPY[locale],...RECIPIENT_COPY[locale],...RECOVERY_COPY[locale],...PASSWORD_COPY[locale],...ACCOUNT_LABEL_COPY[locale],...ACCOUNT_STATE_COPY[locale],...RECEIVE_COPY[locale],...BACKUP_COPY[locale],...FLOW_NOTICE_COPY[locale],...TRANSACTION_COPY[locale],...RECEIPT_COPY[locale],...HISTORY_COPY[locale],...TRANSACTION_NOTICE_COPY[locale],...PAY_COPY[locale],...PAY_NOTICE_COPY[locale],...PERMISSION_COPY[locale],...BALANCE_COPY[locale],...SESSION_COPY[locale],...CAMERA_COPY[locale],...CONTRACT_COPY[locale],...DIAGNOSTIC_COPY[locale],...MNEMONIC_COPY[locale]})];
 })));
 export function systemWalletLocale(languages=[]) {
   for(const tag of languages){if(typeof tag!=="string")continue;const value=tag.toLowerCase();if(value.startsWith("zh"))return /(?:hant|tw|hk|mo)/.test(value)?"zh-Hant":"zh-Hans";const locale=WALLET_LOCALES.find(item=>value===item.toLowerCase()||value.startsWith(item.toLowerCase()+"-"));if(locale)return locale}

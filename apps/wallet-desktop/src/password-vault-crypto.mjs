@@ -1,5 +1,6 @@
 import { createHash, webcrypto } from "node:crypto";
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
+import {mnemonicAccountFromEntropy,MNEMONIC_ACCOUNT_PATH} from './mnemonic-account.mjs';
 
 export const PASSWORD_VAULT_CRYPTO_SUITE = "ynx-desktop-password-v1";
 export const PASSWORD_VAULT_KDF_ITERATIONS = 600_000;
@@ -20,6 +21,7 @@ const messages = {
   PASSWORD_VAULT_RECOVERY_REQUIRED: "Restore this account from its offline backup.",
   PASSWORD_VAULT_REVISION_INVALID: "The Wallet revision changed. Reload before continuing.",
   PASSWORD_VAULT_CRYPTO_FAILED: "Wallet encryption could not complete.",
+  MNEMONIC_NOT_AVAILABLE: "This account was created from a private key, not a recovery phrase. Keep its original offline backup.",
   WALLET_OPERATION_CANCELLED: "This Wallet operation was cancelled.",
 };
 function fail(code) { throw Object.assign(new Error(messages[code] ?? messages.PASSWORD_VAULT_INVALID), { code, data: { code } }); }
@@ -96,11 +98,17 @@ export function parsePasswordVault(value) {
   const protectedAccounts = accounts.filter(item => item.state === "protected");
   if (value.records.length !== protectedAccounts.length) fail("PASSWORD_VAULT_INVALID");
   const records = value.records.map((record, index) => {
-    exact(record, ["account", "cipher"]);
+    exact(record, Object.hasOwn(record??{},"mnemonic") ? ["account", "cipher", "mnemonic"] : ["account", "cipher"]);
     if (record.account !== protectedAccounts[index].account) fail("PASSWORD_VAULT_INVALID");
-    return { account: record.account, cipher: cipher(record.cipher, 32) };
+    let mnemonic;
+    if(Object.hasOwn(record,"mnemonic")){
+      exact(record.mnemonic,["version","path","wordlist","entropyBytes","cipher"]);
+      if(record.mnemonic.version!==1||record.mnemonic.path!==MNEMONIC_ACCOUNT_PATH||record.mnemonic.wordlist!=="en"||![16,20,24,28,32].includes(record.mnemonic.entropyBytes))fail("PASSWORD_VAULT_INVALID");
+      mnemonic={version:1,path:MNEMONIC_ACCOUNT_PATH,wordlist:"en",entropyBytes:record.mnemonic.entropyBytes,cipher:cipher(record.mnemonic.cipher,record.mnemonic.entropyBytes)};
+    }
+    return { account: record.account, cipher: cipher(record.cipher, 32),...(mnemonic?{mnemonic}:{}) };
   });
-  const catalogCipher = cipher(value.catalogCipher, 0), ivs = [catalogCipher.iv, ...records.map(record => record.cipher.iv)];
+  const catalogCipher = cipher(value.catalogCipher, 0), ivs = [catalogCipher.iv, ...records.flatMap(record => [record.cipher.iv,...(record.mnemonic?[record.mnemonic.cipher.iv]:[])])];
   if (new Set(ivs).size !== ivs.length) fail("PASSWORD_VAULT_INVALID");
   const result = { schemaVersion: 3, cryptoSuite: PASSWORD_VAULT_CRYPTO_SUITE, vaultId: value.vaultId, revision: value.revision, activeAccount: value.activeAccount, accounts, passwordWrap: { kdf: { name: kdf.name, hash: kdf.hash, iterations: kdf.iterations, salt: kdf.salt }, cipher: cipher(value.passwordWrap.cipher, 32) }, catalogCipher, records };
   if (Buffer.byteLength(canonical(result)) > MAX_BYTES) fail("PASSWORD_VAULT_INVALID");
@@ -153,6 +161,7 @@ async function wrapperKey(password, kdf, options) {
 }
 function wrapAAD(vault) { return { domain: "YNX_DESKTOP_PASSWORD_WRAP_V3", schemaVersion: 3, cryptoSuite: vault.cryptoSuite, vaultId: vault.vaultId, kdf: vault.passwordWrap.kdf }; }
 function recordAAD(vault, account) { return { domain: "YNX_DESKTOP_ACCOUNT_RECORD_V3", schemaVersion: 3, vaultId: vault.vaultId, account: account.account, ynxAccount: account.ynxAccount, publicKey: account.publicKey }; }
+function mnemonicAAD(vault,meta,record) {const {cipher,...format}=record;return {domain:"YNX_DESKTOP_MNEMONIC_RECORD_V1",vaultId:vault.vaultId,account:meta.account,publicKey:meta.publicKey,...format};}
 function catalogAAD(vault) { const { catalogCipher, ...header } = vault; return { domain: "YNX_DESKTOP_ACCOUNT_CATALOG_V3", ...header }; }
 async function encrypt(key, bytes, aad, usedIVs, options, stage) {
   let iv;
@@ -175,14 +184,18 @@ function identity(secretHex) {
 function accountInputs(values, oldVault = null) {
   list(values);
   return values.map(input => {
-    inputObject(input, [...META_KEYS, "secretHex"]);
+    inputObject(input, [...META_KEYS, "secretHex", "mnemonicEntropyHex"]);
     for (const field of META_KEYS) if (Object.hasOwn(input, field) && input[field] === null) fail("PASSWORD_VAULT_INVALID");
     const old = oldVault?.accounts.find(item => item.account === input.account);
     const derived = input.secretHex === undefined ? null : identity(input.secretHex);
+    if(input.mnemonicEntropyHex!==undefined){
+      let mnemonic;try{mnemonic=mnemonicAccountFromEntropy(input.mnemonicEntropyHex)}catch{fail("PASSWORD_VAULT_IDENTITY_MISMATCH")}
+      if(!derived||mnemonic.secretHex!==input.secretHex)fail("PASSWORD_VAULT_IDENTITY_MISMATCH");
+    }
     for (const key of ["account", "ynxAccount", "publicKey"]) if (derived && input[key] !== undefined && input[key] !== derived[key]) fail("PASSWORD_VAULT_IDENTITY_MISMATCH");
     const meta = publicMetadata({ account: input.account ?? derived?.account ?? old?.account, ynxAccount: input.ynxAccount ?? derived?.ynxAccount ?? old?.ynxAccount, publicKey: input.publicKey ?? derived?.publicKey ?? old?.publicKey, label: input.label ?? old?.label ?? "", createdAt: input.createdAt ?? old?.createdAt ?? new Date().toISOString(), state: input.state ?? (derived ? "protected" : old?.state) });
     if (meta.state === "recovery-required" && (derived || old?.state === "protected") || meta.state === "protected" && !derived && old?.state !== "protected") fail("PASSWORD_VAULT_INVALID");
-    return { meta, secretHex: input.secretHex };
+    return { meta, secretHex: input.secretHex, mnemonicEntropyHex:input.mnemonicEntropyHex };
   });
 }
 function handle(vault, key) {
@@ -211,23 +224,42 @@ async function secretForRecord(vault, account, key, options) {
     checkpoint(options, "record-identity:after"); return secret;
   } finally { bytes.fill(0); }
 }
+async function mnemonicForRecord(vault,account,key,options) {
+  const meta=vault.accounts.find(item=>item.account===account),record=vault.records.find(item=>item.account===account)?.mnemonic;
+  if(!meta||meta.state!=="protected")fail("PASSWORD_VAULT_RECOVERY_REQUIRED");
+  if(!record)fail("MNEMONIC_NOT_AVAILABLE");
+  const bytes=await decrypt(key,record.cipher,record.entropyBytes,mnemonicAAD(vault,meta,record),options,"mnemonic-decrypt");
+  try{
+    const result=mnemonicAccountFromEntropy(Buffer.from(bytes).toString("hex"),()=>checkpoint(options,"mnemonic-identity"));
+    if(["account","ynxAccount","publicKey"].some(field=>result[field]!==meta[field]))fail("PASSWORD_VAULT_IDENTITY_MISMATCH");
+    return result;
+  }finally{bytes.fill(0)}
+}
 async function verifyCatalog(vault, key, options) {
   const plaintext = await decrypt(key, vault.catalogCipher, 0, catalogAAD(vault), options, "catalog-decrypt"); plaintext.fill(0);
 }
 async function assemble(vault, inputs, key, options, oldVault = null) {
-  const used = new Set(oldVault ? [oldVault.catalogCipher.iv, ...oldVault.records.map(item => item.cipher.iv)] : []), records = [];
-  for (const { meta, secretHex } of inputs) {
+  const used = new Set(oldVault ? [oldVault.catalogCipher.iv, ...oldVault.records.flatMap(item => [item.cipher.iv,...(item.mnemonic?[item.mnemonic.cipher.iv]:[])])] : []), records = [];
+  for (const { meta, secretHex, mnemonicEntropyHex } of inputs) {
     checkpoint(options, "record-prepare:before");
     if (meta.state === "recovery-required") continue;
     if (secretHex === undefined) { records.push(oldVault.records.find(item => item.account === meta.account)); continue; }
     const bytes = Buffer.from(secretHex, "hex");
-    try { records.push({ account: meta.account, cipher: await encrypt(key, bytes, recordAAD(vault, meta), used, options, "record-encrypt") }); } finally { bytes.fill(0); }
+    try {
+      const record={account:meta.account,cipher:await encrypt(key,bytes,recordAAD(vault,meta),used,options,"record-encrypt")};
+      if(mnemonicEntropyHex!==undefined){
+        const entropy=Buffer.from(mnemonicEntropyHex,"hex"),format={version:1,path:MNEMONIC_ACCOUNT_PATH,wordlist:"en",entropyBytes:entropy.length};
+        try{record.mnemonic={...format,cipher:await encrypt(key,entropy,mnemonicAAD(vault,meta,format),used,options,"mnemonic-encrypt")}}finally{entropy.fill(0)}
+      }else if(oldVault?.records.find(item=>item.account===meta.account)?.mnemonic){record.mnemonic=oldVault.records.find(item=>item.account===meta.account).mnemonic;}
+      records.push(record);
+    } finally { bytes.fill(0); }
   }
   vault.records = records;
   vault.catalogCipher = await encrypt(key, new Uint8Array(), catalogAAD(vault), used, options, "catalog-encrypt");
   const parsed = requiredVault(vault); await verifyCatalog(parsed, key, options);
   if (parsed.accounts.find(item => item.account === parsed.activeAccount)?.state === "protected") await secretForRecord(parsed, parsed.activeAccount, key, options);
   for (const { meta, secretHex } of inputs) if (secretHex !== undefined && meta.account !== parsed.activeAccount) await secretForRecord(parsed, meta.account, key, options);
+  for(const record of parsed.records)if(record.mnemonic)await mnemonicForRecord(parsed,record.account,key,options);
   checkpoint(options, "candidate:ready"); return parsed;
 }
 
@@ -245,7 +277,7 @@ export async function createPasswordVault(input, options = {}) {
     let key; try { key = await cryptoStep(() => webcrypto.subtle.importKey("raw", verifiedDEK, "AES-GCM", false, ["encrypt", "decrypt"]), options, "dek-import"); } finally { verifiedDEK.fill(0); }
     const parsed = await assemble(vault, inputs, key, options);
     checkpoint(options, "create:ready"); return Object.freeze({ vault: parsed, session: handle(parsed, key) });
-  } finally { dek.fill(0); for (const item of inputs) item.secretHex = null; }
+  } finally { dek.fill(0); for (const item of inputs) {item.secretHex = null;item.mnemonicEntropyHex=null;} }
 }
 
 /** Verifies wrapper, complete catalog and active protected identity before returning an opaque key handle. */
@@ -265,6 +297,12 @@ export async function decryptPasswordVaultRecord(value, account, session, option
   const secret = await secretForRecord(vault, account, key, scoped);
   checkpoint(scoped, "read:ready"); return secret;
 }
+export async function decryptPasswordVaultMnemonic(value,account,session,options={}) {
+  checkpoint(options,"mnemonic-read:start");const vault=requiredVault(value),scoped=guardedSession(vault,session,options),key=sessionKey(vault,session);
+  await verifyCatalog(vault,key,scoped);
+  const result=await mnemonicForRecord(vault,account,key,scoped);
+  checkpoint(scoped,"mnemonic-read:ready");return {phrase:result.phrase,path:result.path,wordCount:result.wordCount};
+}
 
 /** Returns a staged next revision. Old session stays valid until the owner commits and closes it. */
 export async function rewritePasswordVault(value, changes, session, options = {}) {
@@ -280,5 +318,5 @@ export async function rewritePasswordVault(value, changes, session, options = {}
     await verifyCatalog(old, key, scoped);
     const next = await assemble({ ...old, revision: nextRevision, activeAccount, accounts }, inputs, key, scoped, old);
     checkpoint(scoped, "rewrite:ready"); return Object.freeze({ vault: next, session: handle(next, key) });
-  } finally { for (const item of inputs) item.secretHex = null; }
+  } finally { for (const item of inputs) {item.secretHex = null;item.mnemonicEntropyHex=null;} }
 }

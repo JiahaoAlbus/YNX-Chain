@@ -1,11 +1,12 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { Wallet } from "ethers";
+import { Wallet, HDNodeWallet } from "ethers";
+import {createMnemonicAccount as generateMnemonicAccount,importMnemonicAccount} from './mnemonic-account.mjs';
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
 import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
-import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, closePasswordVaultSession } from "./password-vault-crypto.mjs";
+import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -37,12 +38,60 @@ const publicLegacy = ({ encryptedSecret, ...record }) => record;
 /** Password-encrypted V3 custody. OS storage is read only during explicit migration. */
 export class PasswordWalletVault {
   #session = null; #digest = null; #preview = null; #previewEpoch = 0; #mutations = Promise.resolve();
+  #mnemonicDraft = null; #mnemonicEpoch = 0;
   constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
   }
   authorizer() { return Object.freeze({ available: () => true, method: "local-password-encrypted-vault", inProcess: true, authenticate: (input, guard) => this.authenticate(input, guard), invalidate: () => this.lock() }); }
-  lock() { closePasswordVaultSession(this.#session); this.#session = null; this.#digest = null; this.cancelRecovery(); }
+  lock() { closePasswordVaultSession(this.#session); this.#session = null; this.#digest = null; this.cancelRecovery(); this.cancelMnemonicAccount(); }
+  cancelMnemonicAccount() {this.#mnemonicEpoch++;const draft=this.#mnemonicDraft;this.#mnemonicDraft=null;if(draft){clearTimeout(draft.timer);draft.phrase=null;draft.secretHex=null;draft.entropyHex=null;}}
+  async prepareMnemonicAccount(input={}) {
+    const guard=this.authorization.current();this.cancelMnemonicAccount();const epoch=this.#mnemonicEpoch;
+    return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard);
+      if(epoch!==this.#mnemonicEpoch)throw cancelled();
+      if(current.vault.accounts.length>=32)fail("ACCOUNT_LIMIT","This Wallet supports up to 32 accounts.");
+      const material=generateMnemonicAccount(input,()=>guard.assert()),id=randomUUID(),expiresAt=this.now()+120_000;
+      const indexes=[0,Math.floor(material.wordCount/2),material.wordCount-1];
+      const security=this.authorization.status();
+      const draft={...material,id,indexes,expiresAt,scopeAccount:security.account,scopeRevision:security.revision,digest:current.snapshot.digest};
+      draft.timer=setTimeout(()=>{if(this.#mnemonicDraft===draft)this.cancelMnemonicAccount()},120_000);draft.timer.unref?.();
+      this.#mnemonicDraft=draft;guard.assert();
+      return {id,phrase:material.phrase,path:material.path,wordCount:material.wordCount,account:material.account,ynxAccount:material.ynxAccount,indexes,expiresAt};
+    });
+  }
+  consumeMnemonicCommit({id,words}={},advanceRevision=false) {
+    const draft=this.#mnemonicDraft;
+    if(!draft||draft.id!==id||this.now()>=draft.expiresAt)fail("MNEMONIC_REVIEW_EXPIRED","Reopen new Wallet and back up a fresh recovery phrase.");
+    this.authorization.assertUnlocked();
+    const security=this.authorization.status();
+    if(security.account!==draft.scopeAccount||security.revision!==draft.scopeRevision)throw cancelled();
+    if(!Array.isArray(words)||words.length!==3||words.some((word,index)=>typeof word!=="string"||word.trim()!==draft.phrase.split(" ")[draft.indexes[index]]))fail("MNEMONIC_BACKUP_NOT_CONFIRMED","The recovery words do not match. Check your offline backup.");
+    const reviewed={secretHex:draft.secretHex,entropyHex:draft.entropyHex,digest:draft.digest,expiresAt:draft.expiresAt,account:draft.scopeAccount,revision:draft.scopeRevision+(advanceRevision?1:0)};
+    this.cancelMnemonicAccount();let used=false;
+    // Internal single-use handoff through the existing account-change cancellation.
+    // No renderer token, fresh unlock, arbitrary generation or changed account can use it.
+    let retirement;
+    const dispose=()=>{used=true;clearTimeout(retirement);reviewed.secretHex=null;reviewed.entropyHex=null};
+    const commit=async()=>{
+      if(used)throw cancelled();used=true;
+      try{return await this.#add({kind:"private-key",value:reviewed.secretHex},false,reviewed.entropyHex,reviewed.digest,reviewed)}finally{dispose()}
+    };
+    retirement=setTimeout(dispose,Math.max(0,reviewed.expiresAt-this.now()));retirement.unref?.();
+    Object.defineProperty(commit,"dispose",{value:dispose});
+    return commit;
+  }
+  async commitMnemonicAccount(input) {return this.consumeMnemonicCommit(input)();}
+  async recoveryPhrase(password) {
+    const guard=this.authorization.current(),current=await this.#readUnlocked(guard);let session;
+    try{
+      session=await unlockPasswordVault(current.snapshot.text,password,options(guard));
+      await this.files.assertCurrent(current.snapshot.digest,guard);
+      const result=await decryptPasswordVaultMnemonic(current.vault,current.vault.activeAccount,session,options(guard));
+      guard.assert();return result;
+    }finally{closePasswordVaultSession(session);password=null}
+  }
   cancelRecovery() { this.#previewEpoch++; if (this.#preview) { clearTimeout(this.#preview.timer); closePasswordVaultSession(this.#preview.candidate.session); this.#preview = null; } }
   async #legacy() {
     const sources = [];
@@ -148,20 +197,25 @@ export class PasswordWalletVault {
   async createAccount() { return this.#add(null, true); }
   async addAccountAndSelect() { return this.#add(null, false); }
   async importAccount(input) { return this.#add(input, false); }
-  async #add(input, onlyFirst) {
-    const guard = this.authorization.current();
+  async #add(input, onlyFirst, reviewedEntropy, expectedDigest, review) {
+    const lease = this.authorization.current();
+    const guard=review?{...lease,assert:()=>{lease.assert();if(lease.account!==review.account||this.authorization.status().revision!==review.revision||this.now()>=review.expiresAt)throw cancelled()}}:lease;
     return this.#serialize(async () => {
       const current = await this.#readUnlocked(guard);
+      if(expectedDigest!==undefined&&current.snapshot.digest!==expectedDigest)fail("MNEMONIC_REVIEW_EXPIRED","This Wallet changed. Prepare a fresh recovery phrase.");
       if (onlyFirst && current.vault.accounts.length) return this.#readStatus();
       if (current.vault.accounts.length >= 32) fail("ACCOUNT_LIMIT", "This Wallet supports up to 32 accounts.");
-      let secret;
+      let secret,material;
       try {
-        secret = input ? await importSecret(input, guard) : this.randomSecret(); guard.assert();
+        if(input?.kind==="recovery-phrase")material=importMnemonicAccount({phrase:input.value,passphrase:input.passphrase??""},()=>guard.assert());
+        else if(input)material=await importSecret(input,guard,true);
+        secret = material?.secretHex ?? this.randomSecret(); guard.assert();
         const identity = identityFor(secret);
         if (current.vault.accounts.some(record => record.account === identity.account)) fail("DUPLICATE_ACCOUNT", "This account already exists. Use explicit recovery to restore its key.");
-        const candidate = await rewritePasswordVault(current.vault, { accounts: [...current.vault.accounts, { secretHex: secret }], activeAccount: identity.account }, current.session, options(guard));
+        const entropy=material?.entropyHex??reviewedEntropy;
+        const candidate = await rewritePasswordVault(current.vault, { accounts: [...current.vault.accounts, { secretHex: secret,...(entropy?{mnemonicEntropyHex:entropy}:{}) }], activeAccount: identity.account }, current.session, options(guard));
         await this.#publish(candidate, current.snapshot.digest, guard, true); return this.#readStatus();
-      } finally { secret = null; }
+      } finally { secret = null;if(material){material.secretHex=null;material.entropyHex=null;material.phrase=null} }
     });
   }
   async selectAccount(account) {
@@ -187,7 +241,13 @@ export class PasswordWalletVault {
   }
   async encryptedBackup(password) {
     if (typeof password !== "string" || password.length < 12 || password.length > 1024) fail("BACKUP_PASSWORD_REQUIRED", "Use a backup password of at least 12 characters.");
-    return this.withSecret(secret => new Wallet(`0x${secret}`).encrypt(password));
+    return this.withSecret(async secret => {
+      const guard=this.authorization.current(),current=await this.#readUnlocked(guard);
+      const record=current.vault.records.find(item=>item.account===current.vault.activeAccount);
+      if(!record?.mnemonic)return new Wallet(`0x${secret}`).encrypt(password);
+      const backup=await decryptPasswordVaultMnemonic(current.vault,current.vault.activeAccount,current.session,options(guard));
+      try{return await HDNodeWallet.fromPhrase(backup.phrase,"",backup.path).encrypt(password)}finally{backup.phrase=null}
+    });
   }
   async recoveryHistory() {
     const current = await this.status(), result = [];
@@ -208,23 +268,27 @@ export class PasswordWalletVault {
     const catalog = snapshot ? readPasswordVaultPublicMetadata(snapshot.text) : legacy;
     const record = catalog.accounts.find(item => item.account === input.account);
     if (!record) fail("UNKNOWN_WALLET_ACCOUNT", "Recovery must match an existing public account.");
-    let secret, candidate, currentSession;
+    let secret, candidate, currentSession, material;
     try {
       if (input.kind === "previous-password") {
         const archived = await this.files.readHistory(input.value); guard.assert();
         let oldSession;
-        try { oldSession = await unlockPasswordVault(archived.text, input.backupPassword, options(guard)); secret = await decryptPasswordVaultRecord(archived.text, record.account, oldSession, options(guard)); }
+        try {
+          oldSession = await unlockPasswordVault(archived.text, input.backupPassword, options(guard)); secret = await decryptPasswordVaultRecord(archived.text, record.account, oldSession, options(guard));
+          if(parsePasswordVault(archived.text).records.find(item=>item.account===record.account)?.mnemonic){const backup=await decryptPasswordVaultMnemonic(archived.text,record.account,oldSession,options(guard));material=importMnemonicAccount({phrase:backup.phrase},()=>guard.assert());backup.phrase=null;}
+        }
         finally { closePasswordVaultSession(oldSession); }
-      } else secret = await importSecret({ kind: input.kind, value: input.value, password: input.backupPassword ?? "" }, guard);
+      } else {material=await importSecret({ kind: input.kind, value: input.value, password: input.backupPassword ?? "",passphrase:input.passphrase??"" }, guard,true);secret=material.secretHex;}
       if (identityFor(secret).account !== record.account) fail("PASSWORD_VAULT_IDENTITY_MISMATCH", "This backup belongs to a different account. Existing accounts were kept.");
       if (input.resetPassword === true) {
+        if(snapshot&&parsePasswordVault(snapshot.text).records.find(item=>item.account===record.account)?.mnemonic&&!material?.entropyHex)fail("MNEMONIC_BACKUP_REQUIRED","This account has a recovery phrase. Use that phrase or its mnemonic-preserving encrypted backup to reset the password without losing it.");
         passwordPair(input.newPassword, input.confirmation);
-        candidate = await createPasswordVault({ password: input.newPassword, revision: (catalog.revision ?? 0) + 1, activeAccount: record.account, accounts: catalog.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret } : { ...item, state: "recovery-required" }) }, options(guard));
+        candidate = await createPasswordVault({ password: input.newPassword, revision: (catalog.revision ?? 0) + 1, activeAccount: record.account, accounts: catalog.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret,...(material?.entropyHex?{mnemonicEntropyHex:material.entropyHex}:{}) } : { ...item, state: "recovery-required" }) }, options(guard));
       } else {
         if (!snapshot) fail("PASSWORD_VAULT_NOT_CONFIGURED", "Set a new local password when recovering an OS-protected Wallet.");
         const vault = parsePasswordVault(snapshot.text);
         currentSession = await unlockPasswordVault(vault, input.currentPassword, options(guard));
-        candidate = await rewritePasswordVault(vault, { accounts: vault.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret } : item), activeAccount: record.account }, currentSession, options(guard));
+        candidate = await rewritePasswordVault(vault, { accounts: vault.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret,...(material?.entropyHex?{mnemonicEntropyHex:material.entropyHex}:{}) } : item), activeAccount: record.account }, currentSession, options(guard));
       }
       await this.files.assertCurrent(snapshot?.digest ?? null, guard);
       const previewId = randomUUID(), expiresAt = this.now() + 60_000;
@@ -233,7 +297,7 @@ export class PasswordWalletVault {
       preview.timer = setTimeout(() => { if (this.#preview === preview) this.cancelRecovery(); }, 60_000); preview.timer.unref?.();
       return Object.freeze({ previewId, account: record.account, resetPassword: preview.resetPassword, recoveryRequiredAccounts: candidate.vault.accounts.filter(item => item.state === "recovery-required").map(item => item.account), expiresAt });
     } catch (error) { closePasswordVaultSession(candidate?.session); throw error; }
-    finally { closePasswordVaultSession(currentSession); secret = null; }
+    finally { closePasswordVaultSession(currentSession); secret = null;if(material){material.secretHex=null;material.entropyHex=null;material.phrase=null;} }
   }
   async commitRecovery(previewId, guard, { beforePublish } = {}) {
     return this.#serialize(async () => {
@@ -259,22 +323,23 @@ export class PasswordWalletVault {
 }
 
 /** Bounded import parser. Passwords and plaintext never enter public errors or journals. */
-async function importSecret({ kind, value, password = "" } = {}, guard) {
+async function importSecret({ kind, value, password = "", passphrase="" } = {}, guard, includeMnemonic=false) {
   guard.assert();
   if (typeof value !== "string" || value.length < 1 || value.length > 100_000 || typeof password !== "string" || password.length > 1024) fail("INVALID_IMPORT", "Enter a valid Wallet backup.");
-  let secret;
+  let secret,entropyHex;
   try {
     if (kind === "private-key" && /^(0x)?[0-9a-fA-F]{64}$/.test(value.trim())) secret = new Wallet(value.trim().replace(/^(?!0x)/, "0x")).privateKey.slice(2);
-    else if (kind === "recovery-phrase" && [12, 15, 18, 21, 24].includes(value.trim().split(/\s+/).length)) secret = Wallet.fromPhrase(value.trim().replace(/\s+/g, " ")).privateKey.slice(2);
+    else if (kind === "recovery-phrase") {const material=importMnemonicAccount({phrase:value,passphrase},()=>guard.assert());secret=material.secretHex;entropyHex=material.entropyHex;}
     else if (kind === "encrypted-json") {
       const json = JSON.parse(value), crypto = json.crypto ?? json.Crypto, kdf = crypto?.kdfparams;
       if (json.version !== 3 || crypto?.cipher !== "aes-128-ctr" || !/^[0-9a-f]{64}$/i.test(crypto.ciphertext) || !/^[0-9a-f]{32}$/i.test(crypto.cipherparams?.iv) || !/^[0-9a-f]{64}$/i.test(crypto.mac) || !/^[0-9a-f]{32,128}$/i.test(kdf?.salt) || kdf.salt.length % 2 || kdf.dklen !== 32) throw new Error();
       if (crypto.kdf === "scrypt") { if (!Number.isSafeInteger(kdf.n) || kdf.n < 2 || kdf.n > 262_144 || (kdf.n & (kdf.n - 1)) !== 0 || !Number.isSafeInteger(kdf.r) || kdf.r < 1 || kdf.r > 8 || !Number.isSafeInteger(kdf.p) || kdf.p < 1 || kdf.p > 4 || kdf.n * kdf.r * kdf.p > 2_097_152) throw new Error(); }
       else if (crypto.kdf === "pbkdf2") { if (kdf.prf !== "hmac-sha256" || !Number.isSafeInteger(kdf.c) || kdf.c < 1 || kdf.c > 1_000_000) throw new Error(); }
       else throw new Error();
-      secret = (await Wallet.fromEncryptedJson(value, password)).privateKey.slice(2);
+      const wallet=await Wallet.fromEncryptedJson(value,password);secret=wallet.privateKey.slice(2);
+      if(wallet.mnemonic){const material=importMnemonicAccount({phrase:wallet.mnemonic.phrase,passphrase:wallet.mnemonic.password},()=>guard.assert());if(wallet.path!==material.path||material.secretHex!==secret)throw new Error();entropyHex=material.entropyHex;}
     } else throw new Error();
-    guard.assert(); return secret;
+    guard.assert(); return includeMnemonic?{secretHex:secret,entropyHex}:secret;
   } catch (error) { if (error?.data?.code === "WALLET_OPERATION_CANCELLED") throw error; fail("INVALID_IMPORT", "The backup is invalid, uses unsupported encryption parameters, or its password is incorrect."); }
-  finally { secret = null; }
+  finally { secret = null;entropyHex=null; }
 }
