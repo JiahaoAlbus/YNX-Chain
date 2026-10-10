@@ -96,8 +96,12 @@ class TerminalPanelHandler {
     return true;
   }
   async onWillOpenTerminal(terminal, options = {}) {
+    // Claim retirement, rather than declining into TerminalShellHandler,
+    // which would otherwise attach this disposed widget as a fresh tab.
+    if (terminal.isDisposed) return true;
     if (!this.canGroup(terminal, options)) return false;
     const panel = await this.widgetManager.getOrCreateWidget(TERMINAL_PANEL_ID);
+    if (terminal.isDisposed) return true;
     if (!this.canGroup(terminal, options) || panel.isDisposed) return false;
     panel.addTerminal(terminal);
     if (!panel.isAttached) this.shell.addWidget(panel, { ...options.widgetOptions, area: 'bottom' });

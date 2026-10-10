@@ -78,9 +78,31 @@ test('canonical handler consolidates concurrent runs without reusing PTY or wide
  assert.equal(await handler.onWillOpenTerminal(terminal('main'),{widgetOptions:{area:'main'}}),false);
  assert.equal(await handler.onWillOpenTerminal(terminal('split'),{widgetOptions:{mode:'split-right'}}),false);
  const attached=terminal('legacy');Object.defineProperty(attached,'isAttached',{value:true,configurable:true});assert.equal(await handler.onWillOpenTerminal(attached),false);delete attached.isAttached;attached.dispose();
- const dead=terminal('dead');dead.dispose();assert.equal(await handler.onWillOpenTerminal(dead),false);assert.equal(factories,2);delete panel.isAttached;panel.dispose();
+ const dead=terminal('dead');dead.dispose();assert.equal(await handler.onWillOpenTerminal(dead),true);assert.equal(factories,2);delete panel.isAttached;panel.dispose();
 });
 test('completion during asynchronous factory acquisition cannot attach a disposed terminal',async()=>{
  let resolve;const pending=new Promise(r=>resolve=r),panel=new TerminalPanel(),t=terminal('cancelled');const handler=new TerminalPanelHandler({addWidget(){assert.fail('attached');}},{getOrCreateWidget:()=>pending});
- const open=handler.onWillOpenTerminal(t);t.dispose();resolve(panel);assert.equal(await open,false);assert.equal(panel.getTrackableWidgets().length,0);panel.dispose();
+ const open=handler.onWillOpenTerminal(t);t.dispose();resolve(panel);assert.equal(await open,true);assert.equal(panel.getTrackableWidgets().length,0);panel.dispose();
+});
+const { TerminalFrontendContribution } = require('@theia/terminal/lib/browser/terminal-frontend-contribution');
+const { TerminalShellHandler } = require('@theia/terminal/lib/browser/terminal-shell-handler');
+function dispatchFixture(manager) {
+ const calls = [], shell = { addWidget:(w,o)=>calls.push(['add',w.id,o.area]), activateWidget:id=>calls.push(['activate',id]), revealWidget:id=>calls.push(['reveal',id]), getWidgets:()=>[] };
+ const grouped = new TerminalPanelHandler(shell, manager), fallback = new TerminalShellHandler();
+ fallback.shell = shell; fallback.terminalService = { getById:()=>undefined };
+ return { calls, open:(w,o)=>TerminalFrontendContribution.prototype.open.call({terminalCreationHandlers:{getContributions:()=>[fallback,grouped]}},w,o) };
+}
+for(const during of [false,true]) test('real handler dispatch consumes retirement '+(during?'during deferred creation':'before creation')+', never invokes shell fallback',async()=>{
+  let resolve;const pending=new Promise(r=>resolve=r),panel=new TerminalPanel(),t=terminal('retired-chain');
+  const f=dispatchFixture({getOrCreateWidget:()=>pending});
+  if(!during)t.dispose();const run=f.open(t);if(during)t.dispose();resolve(panel);await run;
+  assert.deepEqual(f.calls,[],during?'disposed during factory wait reached fallback':'initial disposed reached fallback');
+  assert.equal(panel.getTrackableWidgets().length,0);panel.dispose();
+});
+test('real handler dispatch preserves live explicit editor and split fallback',async()=>{
+ const f=dispatchFixture({getOrCreateWidget:()=>assert.fail('explicit terminal acquired panel')});
+ const editor=terminal('editor-chain');editor.location=2;await f.open(editor);
+ assert.deepEqual(f.calls.slice(0,2),[['add','editor-chain','main'],['activate','editor-chain']]);
+ const split=terminal('split-chain');split.location={parentTerminal:'parent'};await f.open(split);
+ assert.deepEqual(f.calls.slice(2),[['add','split-chain','bottom'],['activate','split-chain']]);editor.dispose();split.dispose();
 });
