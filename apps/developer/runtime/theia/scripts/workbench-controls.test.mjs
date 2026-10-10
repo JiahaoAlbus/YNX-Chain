@@ -10,6 +10,77 @@ const source = readFileSync(new URL('../../ynx-workbench/lib/workbench-controls.
 const module = { exports: {} };
 vm.runInNewContext(source, { module, require, setInterval, clearInterval });
 const { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, PROJECT_ACTIONS, VIEWS, nativeEntryVisible } = module.exports;
+// Execute the installed framework's mouseup and dispatch implementation. The
+// fixture supplies geometry, not a replacement command or click implementation.
+const luminoSource = readFileSync(require.resolve('@lumino/widgets'), 'utf8');
+function frameworkMethod(name) {
+  const start = luminoSource.indexOf('        ' + name + '(');
+  assert.ok(start >= 0, 'installed framework method must exist');
+  let end = luminoSource.indexOf('{', start) + 1, depth = 1;
+  for (; depth; end++) { if (luminoSource[end] === '{') depth++; else if (luminoSource[end] === '}') depth--; }
+  return vm.runInNewContext('({' + luminoSource.slice(start, end) + '}).' + name, { console });
+}
+const frameworkMouseUp = frameworkMethod('_evtMouseUp');
+const frameworkTrigger = frameworkMethod('triggerActiveItem');
+function popupFixture() {
+  const f = fixture(), accesses = [], pending = [];
+  f.controls.editors.currentEditor = f.editor;
+  f.controls.contextMenus = { render(options) {
+    const listeners = new Map();
+    const node = { addEventListener(type, fn) { listeners.set(type, fn); }, removeEventListener(type, fn) { if (listeners.get(type) === fn) listeners.delete(type); } };
+    const menu = { node, isAttached: true, activeIndex: -1,
+      contentNode: { children: [{ getBoundingClientRect: () => ({ left: 10, right: 110, top: 20, bottom: 50 }) }] },
+      get activeItem() { return this.activeIndex === 0 ? { type: 'command', command: RUN_ACTIONS[0].id, args: [] } : undefined; },
+      _cancelOpenTimer() {}, _cancelCloseTimer() {}, triggerActiveItem: frameworkTrigger,
+      commands: { isEnabled: id => f.commands.isEnabled(id), execute: id => {
+        const dispatched = f.controls.run(id); pending.push(dispatched); return dispatched;
+      } },
+      rootMenu: { close() { menu.isAttached = false; options.onHide(); } },
+    };
+    const access = { menu, listeners, disposed: false, dispose() { this.disposed = true; menu.isAttached = false; options.onHide(); }, options };
+    accesses.push(access); return access;
+  } };
+  const button = { getBoundingClientRect: () => ({ left: 10, bottom: 20 }) };
+  return { ...f, accesses, pending, open: () => { f.controls.openRunMenu(button, f.editor); return accesses.at(-1); },
+    down(access, overrides = {}) { access.listeners.get('mousedown')?.({ button: 0, clientX: 30, clientY: 30, ...overrides }); },
+    up(access, overrides = {}) { frameworkMouseUp.call(access.menu, { button: 0, preventDefault() {}, stopPropagation() {}, ...overrides }); } };
+}
+test('direct Run menu click without mousemove uses normal framework dispatch exactly once', async () => {
+  const f = popupFixture(), access = f.open();
+  f.down(access); f.down(access); assert.equal(f.calls.length, 0);
+  f.up(access); f.up(access);
+  await Promise.all(f.pending);
+  assert.equal(f.calls.length, 1); assert.equal(f.calls[0][0], RUN_ACTIONS[0].id);
+  assert.equal(access.listeners.size, 0, 'closing menu retires pointer listener');
+  f.controls.dispose();
+});
+test('Run popup retains disabled, non-left and outside-item framework boundaries', () => {
+  const f = popupFixture();
+  let access = f.open(); f.down(access, { button: 2 }); f.up(access, { button: 2 }); assert.equal(f.calls.length, 0);
+  f.down(access, { clientX: 200 }); f.up(access); assert.equal(f.calls.length, 0);
+  f.commands.unregisterCommand(RUN_ACTIONS[0].id);
+  f.commands.registerCommand({ id: RUN_ACTIONS[0].id }, { isEnabled: () => false, execute: () => assert.fail('disabled dispatch') });
+  access = f.open(); f.down(access); f.up(access); assert.equal(f.calls.length, 0);
+  f.controls.dispose();
+});
+test('old popup hide, editor switch and stop cannot dispatch or retire a newer popup', () => {
+  const f = popupFixture(), old = f.open(), current = f.open();
+  old.options.onHide(); assert.equal(f.controls.popup, current);
+  assert.equal(old.listeners.size, 0);
+  f.down(old); f.up(old); assert.equal(f.calls.length, 0);
+  f.controls.editors.currentEditor = {}; f.controls.refresh();
+  assert.equal(current.disposed, true); assert.equal(current.listeners.size, 0);
+  f.down(current); f.up(current); assert.equal(f.calls.length, 0);
+  f.controls.editors.currentEditor = f.editor; const final = f.open(); f.controls.dispose();
+  f.down(final); f.up(final); assert.equal(f.calls.length, 0); assert.equal(final.listeners.size, 0);
+});
+test('document replacement and command revocation between down and up cannot run a stale request', () => {
+  const f = popupFixture(); f.editor.editor = { document: { uri: 'file:///first.cpp' } };
+  let access = f.open(); f.editor.editor.document = { uri: 'file:///second.cpp' };
+  f.down(access); f.up(access); assert.equal(f.calls.length, 0); assert.equal(access.disposed, true);
+  access = f.open(); f.down(access); f.commands.unregisterCommand(RUN_ACTIONS[0].id);
+  f.up(access); assert.equal(f.calls.length, 0); f.controls.dispose();
+});
 function fixture() {
   const commands = new CommandRegistry(), calls = [], views = {}, editor = {};
   for (const action of RUN_ACTIONS) commands.registerCommand({ id: action.id }, { execute: (...args) => calls.push([action.id, args]) });

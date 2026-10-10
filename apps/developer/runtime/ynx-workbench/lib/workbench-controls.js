@@ -157,13 +157,52 @@ class WorkbenchControlsContribution {
     })));
   }
   openRunMenu(button, widget) {
+    if (this.stopped) return;
     if (!this.contextMenus) throw new Error(this.translate('unavailableRuntime', 'Unavailable in this runtime'));
-    if (this.popup) this.popup.dispose();
+    this.closeRunMenu();
     const rect = button.getBoundingClientRect();
-    this.popup = this.contextMenus.render({ menuPath: RUN_MENU, anchor: { x: rect.left, y: rect.bottom },
+    let access, cleanup = () => {};
+    const retire = () => {
+      cleanup();
+      // A delayed hide from a previous popup must not retire its successor.
+      if (this.popup === access) {
+        this.popup = undefined; this.popupCleanup = undefined;
+        this.popupEditor = undefined; this.popupDocument = undefined;
+      }
+    };
+    access = this.contextMenus.render({ menuPath: RUN_MENU, anchor: { x: rect.left, y: rect.bottom },
       context: widget && widget.node || button, args: [], includeAnchorArg: false,
-      onHide: () => { this.popup = undefined; },
+      onHide: retire,
     });
+    this.popup = access; this.popupCleanup = retire;
+    this.popupEditor = widget; this.popupDocument = widget?.editor?.document;
+    const menu = access.menu;
+    if (menu?.node && menu.contentNode) {
+      const select = event => {
+        if (this.stopped || this.popup !== access || access.disposed || !menu.isAttached) return;
+        if (widget && (widget.isDisposed || this.editors.currentEditor !== widget
+          || widget.editor?.document !== this.popupDocument)) { this.closeRunMenu(); return; }
+        if (event.button !== 0) return;
+        // Remote and accessibility clicks may contain no mousemove. Select the
+        // actual hit row before Lumino's normal mouseup handler executes it.
+        // The framework still owns selectable/disabled checks and dispatch.
+        menu.activeIndex = Array.from(menu.contentNode.children).findIndex(node => {
+          const bounds = node.getBoundingClientRect();
+          return event.clientX >= bounds.left && event.clientX < bounds.right
+            && event.clientY >= bounds.top && event.clientY < bounds.bottom;
+        });
+      };
+      menu.node.addEventListener('mousedown', select, true);
+      const disposed = access.onDispose?.(retire);
+      cleanup = () => { menu.node.removeEventListener('mousedown', select, true); disposed?.dispose(); };
+    }
+  }
+  closeRunMenu() {
+    const access = this.popup;
+    this.popupCleanup?.();
+    this.popup = undefined; this.popupCleanup = undefined;
+    this.popupEditor = undefined; this.popupDocument = undefined;
+    access?.dispose();
   }
   registerToolbarItems(toolbar) {
     const React = require('react');
@@ -228,6 +267,9 @@ class WorkbenchControlsContribution {
   }
   refresh() {
     if (this.stopped) return;
+    if (this.popup && this.popupEditor && (this.popupEditor.isDisposed
+      || this.editors.currentEditor !== this.popupEditor
+      || this.popupEditor.editor?.document !== this.popupDocument)) this.closeRunMenu();
     for (const { button, action, label } of this.projectButtons || []) {
       const state = this.state(action.id); button.disabled = !state.enabled;
       button.title = state.enabled ? label : `${label}: ${state.reason}`;
@@ -260,7 +302,7 @@ class WorkbenchControlsContribution {
   }
   onStop() { this.dispose(); }
   dispose() {
-    this.stopped = true; if (this.popup) { this.popup.dispose(); this.popup = undefined; } clearInterval(this.timer); if (this.observer) this.observer.disconnect();
+    this.stopped = true; this.closeRunMenu(); clearInterval(this.timer); if (this.observer) this.observer.disconnect();
     if (this.editorLanguage) this.editorLanguage.reset();
     if (this.noSelectedDebug) this.noSelectedDebug.reset();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
