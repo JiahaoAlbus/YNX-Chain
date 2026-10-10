@@ -72,9 +72,12 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
     upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-draft-recovery', () => draftApi));
-  const contextApi = Object.freeze({ getContext: () => process.env.YNX_WORKSPACE_MODE === 'local'
+  const contextApi = processManager => Object.freeze({ getCppTerminalDevice: require('./cpp-terminal-device').createCppTerminalDevice(processManager, require('@theia/process/lib/node').TerminalProcess), getContext: () => process.env.YNX_WORKSPACE_MODE === 'local'
     ? { mode: 'local', workspace: process.env.YNX_LOCAL_WORKSPACE, pythonDefault: process.env.YNX_IDE_PYTHON_ENTRY } : { mode: 'hosted' } });
-  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-local-workbench-context', () => contextApi));
+  bind(ConnectionHandler).toDynamicValue(context => {
+    const api = contextApi(context.container.get(require('@theia/process/lib/node').ProcessManager));
+    return new RpcConnectionHandler('/services/ynx-local-workbench-context', () => api);
+  });
   if (process.env.YNX_WORKSPACE_MODE === 'local') {
     const storage = new LocalWorkbenchStorageStore();
     const api = Object.freeze({ getData: key => storage.getData(key), setData: (key, value, remove) => storage.setData(key, value, remove), flush: () => storage.flush() });

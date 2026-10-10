@@ -3,6 +3,7 @@ const { realpath, access } = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { relative, isAbsolute, dirname, basename, join } = require('node:path');
 const { randomUUID } = require('node:crypto');
+const { isDeepStrictEqual } = require('node:util');
 const { isGeneratedActiveDebug, launchConfiguration, installedCompiler, createBuildTasks, createLaunchConfiguration, existingConfiguration, readGeneratedTasks } = require('./build-tasks.cjs');
 const { cppProjectRoot } = require('./project-root.cjs');
 const TEXT = {
@@ -256,7 +257,8 @@ function registerCppRun(vscode, context, env) {
         // Existing explicit user adapter choice stays authoritative and is validated.
         const selectedAdapter = settings.get('executable-path') || adapter;
         if (!isAbsolute(selectedAdapter)) throw Error(t('debugger'));
-        try { await access(await realpath(selectedAdapter), constants.X_OK); } catch { throw Error(t('debugger')); }
+        let resolvedAdapter;
+        try { resolvedAdapter = await realpath(selectedAdapter); await access(resolvedAdapter, constants.X_OK); } catch { throw Error(t('debugger')); }
         if (!settings.get('executable-path')) await settings.update('executable-path', adapter, vscode.ConfigurationTarget.WorkspaceFolder);
         const pair = await generatedPair(scope, config);
         if (!pair && !await existingConfiguration(scope.root, 'launch')) throw Error(t('launchMissing'));
@@ -272,6 +274,7 @@ function registerCppRun(vscode, context, env) {
           selected = (await vscode.window.showQuickPick(configurations.map(configuration => ({ label: configuration.name, configuration })), { title: t('launch') }))?.configuration;
           if (!selected) return;
         }
+        const terminalDefault = Boolean(pair) && isDeepStrictEqual(selected, launchConfiguration(scope.language)) && resolvedAdapter === adapter;
         if (pair && selected.preLaunchTask === 'YNX: Build active ' + (scope.language === 'c' ? 'C' : 'C++') && selected.program === '${fileDirname}/${fileBasenameNoExtension}') {
           const target = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'C/C++', cancellable: true }, (_progress, token) => buildCaptured(scope, token, config, pair.digest));
           if (!target) { vscode.window.showInformationMessage(t('stopped')); return; }
@@ -286,8 +289,20 @@ function registerCppRun(vscode, context, env) {
           const current = await createLaunchConfiguration(scope.root, config.path, scope.language, true, launch.digest);
           if (!current.transient || current.path !== launch.path || current.digest !== launch.digest) throw Error(t('launchMissing'));
         }
-        if (launch.configuration?.console === 'internalConsole') void vscode.window.showInformationMessage(t('debugConsole'));
+        if (terminalDefault) {
+          owner.terminalPrepared = true; // Finally releases any failed or cancelled preparation.
+          const terminal = await vscode.commands.executeCommand('ynx.cpp.prepareDebugTerminal', owner.requestId, scope.root);
+          if (!/^\/dev\/ttys[0-9]+$/.test(terminal?.device || '')) throw Error(t('launchFailed'));
+          await validateScope(scope);
+          // Standard LLDB redirection sends program stdin/stdout to the genuine
+          // Theia PTY. Debug Console remains adapter diagnostics, not program I/O.
+          selected = { ...selected, console: 'internalConsole', launchCommands: [
+            'process launch --stop-at-entry --stdin ' + terminal.device + ' --stdout ' + terminal.device + ' --stderr ' + terminal.device,
+          ] };
+        }
+        if (!terminalDefault && launch.configuration?.console === 'internalConsole') void vscode.window.showInformationMessage(t('debugConsole'));
         const timeout = new Promise(resolve => { owner.onLaunchTimeout = resolve; });
+        owner.debugStartRequested = true;
         const started = await Promise.race([vscode.debug.startDebugging(scope.folder, { ...selected, __ynxCppRunId: owner.requestId }), timeout]);
         sessionAccepted = Boolean(started) || owner.launchTimedOut;
         if (owner.launchTimedOut) return; // A late launch completion cannot revive this run.
@@ -295,7 +310,12 @@ function registerCppRun(vscode, context, env) {
         const session = vscode.debug.activeDebugSession;
         if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath && active.get(scope.root) === owner) owner.sessionId = session.id;
       }
-    } finally { if (!sessionAccepted && active.get(scope.root) === owner) active.delete(scope.root); }
+    } finally {
+      if (!sessionAccepted) {
+        if (owner.terminalPrepared) await vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal', owner.requestId, !owner.debugStartRequested);
+        if (active.get(scope.root) === owner) active.delete(scope.root);
+      }
+    }
   }
   function command(id, callback) { context.subscriptions.push(vscode.commands.registerCommand(id, () => callback().catch(error => vscode.window.showErrorMessage(error.message)))); }
   command('ynx.cpp.runActive', () => operation(false));

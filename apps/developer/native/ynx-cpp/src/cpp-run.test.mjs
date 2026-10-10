@@ -22,7 +22,11 @@ async function fixture() {
  const vscode = { Task, ProcessExecution, ProgressLocation: { Notification: 15 }, env: { language: 'en' }, debug: {}, workspace: { workspaceFolders: [folder], isTrusted: true },
  window: { activeTextEditor: { document }, showQuickPick: async items => { vscode.window.activeTextEditor = { document: { languageId: 'markdown' } }; return items[0]; },
  showInformationMessage: text => output.push(text), showErrorMessage: text => errors.push(text), withProgress: (_options, action) => action({}, token) },
- commands: { registerCommand: (id, handler) => { commands.set(id, handler); return { dispose() {} }; } },
+ commands: { executeCommand: async (id, request, workspace) => {
+  assert.match(request,/^[a-f0-9-]{36}$/);
+  if (id === 'ynx.cpp.prepareDebugTerminal') { assert.equal(workspace,root); return {device:'/dev/ttys001'}; }
+  assert.equal(id,'ynx.cpp.releaseDebugTerminal');
+ }, registerCommand: (id, handler) => { commands.set(id, handler); return { dispose() {} }; } },
  tasks: { onDidEndTaskProcess: end.event, onDidEndTask: ended.event, fetchTasks: async () => {
   const config = JSON.parse(await readFile(join(root, '.vscode/tasks.json'), 'utf8'));
   return config.tasks.map(item => new Task({ type: 'process' }, folder, item.label, 'Workspace', new ProcessExecution(item.command, item.args || [], item.options || {}), item.problemMatcher || []));

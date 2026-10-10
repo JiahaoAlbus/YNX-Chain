@@ -131,6 +131,12 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     context.container.get(EditorManager), context.container.get(WorkspaceService), context.container.get(MessageService), window, NativeFileURI, translateWorkbench,
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new (require('./local-js-debug-terminal').LocalJsDebugTerminalContribution)(context.container.get(LocalWorkspaceContextApi), context.container.get(DebugSessionManager))).inSingletonScope();
+  const CppDebugTerminal = Symbol('YNXCppDebugTerminal');
+  bind(CppDebugTerminal).toDynamicValue(context => new (require('./cpp-debug-terminal').CppDebugTerminalContribution)(
+    context.container.get(LocalWorkspaceContextApi), context.container.get(TerminalService), context.container.get(DebugSessionManager), NativeFileURI, require('./local-js-debug-terminal').retainTerminalOutput,
+  )).inSingletonScope();
+  bind(CommandContribution).toService(CppDebugTerminal);
+  bind(FrontendApplicationContribution).toService(CppDebugTerminal);
   require('./native-trash-file-service').bindNativeTrash(bind, rebind, LocalWorkspaceContextApi, window);
   rebind(TerminalWidget).to(PythonTerminalWidget).inTransientScope();
   bind(PythonTerminalLifecycle).toDynamicValue(context => new PythonTerminalLifecycle(
