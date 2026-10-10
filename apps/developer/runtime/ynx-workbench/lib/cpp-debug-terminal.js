@@ -28,7 +28,7 @@ class CppDebugTerminalContribution {
       record.terminal = await this.terminals.newTerminal({ title: 'C/C++ Debug', cwd: new this.URI(workspace).withScheme('file'), shellPath: '/usr/bin/tail', shellArgs: ['-f', '/dev/null'], env: { YNX_CPP_DEBUG_TERMINAL: id }, kind: 'debug', useServerTitle: false });
       this.retainOutput(record.terminal);
       record.closeListener = record.terminal.onTerminalDidClose(() => { void this.release(id).catch(error => this.reportCleanup(record, error)); });
-      record.disposeListener = record.terminal.onDidDispose(() => { void this.release(id); });
+      record.disposeListener = record.terminal.onDidDispose(() => { void this.release(id).catch(error => this.reportCleanup(record, error)); });
       if (!current()) throw Error('C/C++ terminal request ended');
       await record.terminal.start();
       if (!current()) throw Error('C/C++ terminal request ended');

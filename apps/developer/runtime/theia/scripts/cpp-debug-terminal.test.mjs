@@ -89,3 +89,18 @@ test('retained Theia late session stop callback reaches exact backend after prio
 test('a failed stop still closes the holder and preserves owned cleanup obligation for retry', async () => {
  const h=setup();await h.contribution.prepare(id,'/project');let fail=true;const session={id:'owned-failed-stop',configuration:{type:'lldb-dap',__ynxCppRunId:id},options:{workspaceFolderUri:'file:///project'},async stop(_restart,callback){if(fail)throw Error('stop failed');callback();}};h.created.fire(session);await assert.rejects(h.contribution.release(id),/stop failed/);assert.equal(h.counts().close,1);assert.equal(h.contribution.records.has(id),true);fail=false;await h.contribution.release(id);assert.equal(h.contribution.records.has(id),false);assert.equal(h.counts().close,1);
 });
+
+test('disposal reports retained Theia backend termination rejection and retries only its owned session', async () => {
+ const h=setup(),reported=[],terminated=[];let fail=true;
+ h.contribution.messages={error:message=>reported.push(message)};
+ h.contribution.sessions.debug={terminateDebugSession:async sessionId=>{terminated.push(sessionId);if(fail)throw Error('owned backend termination rejected');}};
+ await h.contribution.prepare(id,'/project');
+ h.created.fire(realStopSession(await retainedStop(),{id:'owned-disposal-rejection'}));
+ h.disposed.fire();await new Promise(resolve=>setImmediate(resolve));
+ assert.deepEqual(reported,['C/C++ debug cleanup failed: owned backend termination rejected']);
+ assert.equal(h.counts().close,1);assert.equal(h.contribution.records.has(id),true);
+ assert.equal(h.contribution.records.get(id).cleanupError.message,'owned backend termination rejected');
+ fail=false;await h.contribution.release(id);
+ assert.deepEqual(terminated,['owned-disposal-rejection','owned-disposal-rejection']);
+ assert.equal(h.counts().close,1);assert.equal(h.contribution.records.size,0);
+});
