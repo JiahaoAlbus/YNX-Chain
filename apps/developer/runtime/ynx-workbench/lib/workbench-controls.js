@@ -64,7 +64,7 @@ class WorkbenchControlsContribution {
       return typeof translated === 'string' && translated.trim() ? translated : text;
     };
     this.debugConfigurations = debugConfigurations;
-    this.disposables = []; this.nodes = []; this.widgets = []; this.stopped = false;
+    this.disposables = []; this.nodes = []; this.widgets = []; this.discoveryWidgets = []; this.stopped = false;
     const { Emitter } = require('@theia/core/lib/common/event');
     this.changed = new Emitter();
     // Monaco supplies this key only in its focused editor scope. Extension
@@ -212,7 +212,7 @@ class WorkbenchControlsContribution {
       const widget = new Widget({ node }); widget.id = `ynx-discovery-${area}`;
       SplitPanel.setStretch(widget, 0);
       this.shell.leftPanelHandler.container.parent.layout.insertWidget(0, widget);
-      this.widgets.push(widget); this.nodes.push(node);
+      this.widgets.push(widget); this.discoveryWidgets.push(widget); this.nodes.push(node);
     }
     const refresh = () => this.refresh();
     for (const event of [this.commands.onCommandsChanged, this.shell.onDidAddWidget, this.shell.onDidRemoveWidget,
@@ -242,7 +242,7 @@ class WorkbenchControlsContribution {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';
       const missing = this.missingViews(area);
       const signature = missing.map(v => `${v.key}:${this.state(v.command).enabled}:${!!this.views[v.key]}`).join('|');
-      this.widgets[i].setHidden(missing.length === 0);
+      this.discoveryWidgets[i].setHidden(missing.length === 0);
       if (node.dataset.signature === signature) continue;
       node.dataset.signature = signature; node.replaceChildren();
       for (const view of missing) {
@@ -265,7 +265,7 @@ class WorkbenchControlsContribution {
     if (this.noSelectedDebug) this.noSelectedDebug.reset();
     for (const disposable of this.disposables.splice(0)) disposable.dispose();
     for (const widget of this.widgets.splice(0)) widget.dispose();
-    this.nodes.length = 0; this.changed.dispose();
+    this.nodes.length = 0; this.discoveryWidgets.length = 0; this.changed.dispose();
   }
 }
 module.exports = { WorkbenchControlsContribution, RUN_MENU, RUN_ACTIONS, CPP_ACTIONS, PROJECT_ACTIONS, VIEWS, commandState, nativeEntryVisible, nativeLeftBarVisible };

@@ -43,6 +43,36 @@ test('project toolbar tracks actual command readiness and retires after disposal
   registration.dispose(); f.controls.refresh(); assert.equal(button.disabled,true);
   f.controls.dispose(); button.disabled=false; f.controls.refresh(); assert.equal(button.disabled,false);
 });
+test('normal startup refresh keeps project toolbar visible while hiding only redundant discovery', () => {
+  const f = fixture(), widgets = new Map();
+  const document = {defaultView:{},createTextNode:text=>({text}),createElement:()=>({
+    ownerDocument:document,children:[],dataset:{},setAttribute(){},addEventListener(){},
+    append(...children){this.children.push(...children);},appendChild(child){this.children.push(child);},
+    insertBefore(child,reference){this.children.splice(this.children.indexOf(reference),0,child);},
+    replaceChildren(){this.children=[];},
+  })};
+  class Widget {
+    constructor({node}){this.node=node;this.hidden=false;this.isDisposed=false;}
+    setHidden(value){this.hidden=value;}
+    dispose(){this.isDisposed=true;}
+  }
+  const local = {exports:{}};
+  vm.runInNewContext(source,{module:local,require:id=>id==='@theia/core/lib/browser/widgets'?{Widget,SplitPanel:{setStretch(){}}}:require(id),setInterval,clearInterval});
+  const controls = new local.exports.WorkbenchControlsContribution({commands:f.commands,shell:f.shell,views:f.views,editors:{all:[f.editor]}});
+  f.shell.node={ownerDocument:document};
+  f.shell.topPanel={addWidget:widget=>widgets.set(widget.id,widget)};
+  const bar={isVisible:true,node:{getBoundingClientRect:()=>({width:40,height:600})}};
+  f.shell.leftPanelHandler={tabBar:bar,container:{parent:{layout:{insertWidget(index,widget){widgets.set(widget.id,widget);}}}}};
+  try {
+    controls.onStart();
+    assert.equal(widgets.get('ynx-project-actions').hidden,false,'toolbar must survive initial refresh');
+    assert.equal(widgets.get('ynx-discovery-left').hidden,true,'native rail already supplies discovery');
+    bar.isVisible=false;controls.refresh();
+    assert.equal(widgets.get('ynx-project-actions').hidden,false);
+    assert.equal(widgets.get('ynx-discovery-left').hidden,false);
+  } finally {controls.dispose();}
+  assert.ok([...widgets.values()].every(widget=>widget.isDisposed));
+});
 test('real CommandRegistry dispatches only native debug and task IDs with no file/shell arguments', async () => {
   const f = fixture();
   for (const action of RUN_ACTIONS) await f.controls.run(action.id);
