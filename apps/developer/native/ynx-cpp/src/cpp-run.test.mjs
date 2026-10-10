@@ -268,8 +268,8 @@ test('owned LLDB launch failures are shown without blocking or attributing unrel
  f.vscode.debug.startDebugging=async(folder,configuration)=>{
   assert.equal(configuration.console,'internalConsole');
   assert.equal(factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:{...configuration,__ynxCppRunId:'foreign'}}),undefined);
-  tracker=factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:structuredClone(configuration)});assert.ok(tracker);
-  stoppingTracker=factory.createDebugAdapterTracker({workspaceFolder:folder,configuration:structuredClone(configuration)});return true;
+  tracker=factory.createDebugAdapterTracker({id:'owned-launch',workspaceFolder:folder,configuration:structuredClone(configuration)});assert.ok(tracker);
+  stoppingTracker=factory.createDebugAdapterTracker({id:'owned-launch',workspaceFolder:folder,configuration:structuredClone(configuration)});return true;
  };
  await f.commands.get('ynx.cpp.debugActive')();assert.ok(tracker);
  tracker.onDidSendMessage({type:'response',command:'launch',success:false,body:{error:{format:'native launch failure reason'}}});
@@ -348,4 +348,57 @@ test('clean extension mirror still crosses actual document save RPC before compi
 });
 test('save cancellation or failure never compiles an old file even when extension mirror says clean',async t=>{
  for(const kind of ['cancel','failure']){const f=await fixture();t.after(()=>rm(f.root,{recursive:true,force:true}));await writeFile(f.path,'int main(){}');let executions=0;f.document.save=async()=>{if(kind==='failure')throw Error('Save permission failure');return false};f.vscode.tasks.executeTask=async()=>{executions++;throw Error('Unexpected compile')};await f.commands.get('ynx.cpp.runActive')();assert.equal(executions,0);assert.equal(f.errors.length,1);}
+});
+
+test('unanswered owned LLDB launch stops exactly that session and late completion cannot revive or overwrite a retry', {timeout:10000}, async t => {
+ const f=await fixture();await writeFile(f.path,'int main(){}');const terminated=emitter();let factory,tracker,session,resolveLate,reached;
+ f.vscode.debug.onDidTerminateDebugSession=terminated.event;
+ f.vscode.debug.registerDebugAdapterTrackerFactory=(_type,value)=>{factory=value;return{dispose(){}};};
+ const state=registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=section=>({get:()=>section==='lldb-dap'?'/Library/Developer/CommandLineTools/usr/bin/lldb-dap':JSON.parse(require('node:fs').readFileSync(join(f.root,'.vscode/launch.json'),'utf8')).configurations});
+ const ready=new Promise(resolve=>{reached=resolve;});let launches=0;const stops=[];
+ f.vscode.debug.stopDebugging=async value=>{stops.push(value);};
+ f.vscode.debug.startDebugging=(folder,configuration)=>{
+  launches++;session={id:'owned-'+launches,workspaceFolder:folder,configuration};
+  if(launches===1)t.mock.timers.enable({apis:['setTimeout']});
+  assert.equal(factory.createDebugAdapterTracker({...session,id:undefined}),undefined);assert.equal(factory.createDebugAdapterTracker({...session,configuration:{...configuration,__ynxCppRunId:'foreign'}}),undefined);
+  tracker=factory.createDebugAdapterTracker(session);tracker.onWillReceiveMessage({type:'request',command:'launch',seq:launches});
+  if(launches===1){reached();return new Promise(resolve=>{resolveLate=resolve;});}
+  tracker.onDidSendMessage({type:'response',command:'launch',request_seq:launches,success:true});return Promise.resolve(true);
+ };
+ const pending=f.commands.get('ynx.cpp.debugActive')();await ready;const first=session;
+ // An unrelated response cannot disarm the owned request deadline.
+ tracker.onDidSendMessage({type:'response',command:'launch',request_seq:999,success:true});
+ t.mock.timers.tick(30000);await pending;await Promise.resolve();
+ assert.deepEqual(stops,[first]);assert.match(f.errors[0],/startup timed out/);assert.equal(state.active.size,1,'retain ownership until actual termination');
+ tracker.onDidSendMessage({type:'response',command:'launch',request_seq:1,success:true});assert.equal(stops.length,1);
+ terminated.fire(first);assert.equal(state.active.size,0);
+ f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();
+ assert.equal(state.active.size,1,JSON.stringify({errors:f.errors,output:f.output}));assert.equal(state.active.get(f.root).sessionId,'owned-2');resolveLate(true);await Promise.resolve();await Promise.resolve();
+ assert.equal(state.active.get(f.root).sessionId,'owned-2');terminated.fire(first);assert.equal(state.active.size,1);
+ t.mock.timers.tick(60000);assert.equal(stops.length,1,'successful retry cleared its deadline');terminated.fire(session);
+});
+
+test('owned LLDB deadline is cancelled on success, stop or exit; stop rejection keeps the owned operation blocked', async t => {
+ const f=await fixture();await writeFile(f.path,'int main(){}');let factory,reached,tracker,session,mode='success';
+ f.vscode.debug.registerDebugAdapterTrackerFactory=(_type,value)=>{factory=value;return{dispose(){}};};
+ const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;
+ const state=registerCppRun(f.vscode,{subscriptions:[]},f.env);f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=section=>({get:()=>section==='lldb-dap'?'/Library/Developer/CommandLineTools/usr/bin/lldb-dap':JSON.parse(require('node:fs').readFileSync(join(f.root,'.vscode/launch.json'),'utf8')).configurations});
+ let enabled=false,stops=0;
+ f.vscode.debug.stopDebugging=async()=>{stops++;throw Error('owned stop failed');};
+ f.vscode.debug.startDebugging=(folder,configuration)=>{
+  if(!enabled){t.mock.timers.enable({apis:['setTimeout']});enabled=true;}
+  session={id:'session-'+mode,workspaceFolder:folder,configuration};tracker=factory.createDebugAdapterTracker(session);
+  tracker.onWillReceiveMessage({type:'request',command:'attach',seq:2});
+  if(mode==='success')tracker.onDidSendMessage({type:'response',command:'attach',request_seq:2,success:true});
+  else if(mode==='stop')tracker.onWillStopSession();else if(mode==='exit')tracker.onExit();
+  if(mode==='failure'){reached();return new Promise(()=>{});}return Promise.resolve(true);
+ };
+ for(mode of ['success','stop','exit']){f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();t.mock.timers.tick(60000);assert.equal(stops,0);terminated.fire(session);}
+ mode='failure';const ready=new Promise(resolve=>{reached=resolve;});f.vscode.window.activeTextEditor={document:f.document};const pending=f.commands.get('ynx.cpp.debugActive')();await ready;t.mock.timers.tick(30000);await pending;await Promise.resolve();await Promise.resolve();
+ assert.equal(stops,1);assert.equal(state.active.size,1);assert.ok(f.errors.some(text=>/could not be stopped/.test(text)));
+ f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();assert.ok(f.output.some(text=>/already running/.test(text)));
+ terminated.fire(session);assert.equal(state.active.size,0);
 });

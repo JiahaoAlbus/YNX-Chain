@@ -22,6 +22,8 @@ const TEXT = {
   launch: ['Select the existing project debug configuration', '选择已有项目调试配置'],
   launchMissing: ['No usable C/C++ launch target is configured. Existing files were preserved; configure a target in launch.json.', '尚未配置可用的 C/C++ 调试目标。已有文件已保留，请在 launch.json 中配置目标。'],
   launchFailed: ['The debugger did not start. Check Debug Console and Output.', '调试器未启动，请查看调试控制台和输出。'],
+  launchTimeout: ['C/C++ debugger startup timed out. Stopping this debug session. Check Debug Console and any pending macOS permission request before retrying.', 'C/C++ 调试器启动超时，正在停止本次调试。请检查调试控制台及待处理的 macOS 授权请求，再重试。'],
+  launchStopFailed: ['The timed-out C/C++ debug session could not be stopped. Use Stop Debugging and check Output before retrying.', '未能停止启动超时的 C/C++ 调试会话。请使用“停止调试”并检查输出，再重试。'],
   debugConsole: ['C/C++ debugging uses Debug Console for output. Interactive program input is not supported in this mode; use Run C/C++ File for terminal input.', 'C/C++ 调试输出显示在调试控制台。此模式暂不支持程序交互输入；需要终端输入时请使用“运行 C/C++ 文件”。'],
   busy: ['A C/C++ operation is already running in this project.', '本项目已有 C/C++ 操作正在运行。'],
   stopped: ['C/C++ operation stopped.', 'C/C++ 操作已停止。'],
@@ -119,16 +121,38 @@ function registerCppRun(vscode, context, env) {
   }));
   if (vscode.debug.registerDebugAdapterTrackerFactory) context.subscriptions.push(vscode.debug.registerDebugAdapterTrackerFactory('lldb-dap', {
     createDebugAdapterTracker(session) {
-      if (![...active.values()].some(owner => owner.kind === 'debug' && owner.folder === session.workspaceFolder?.uri?.fsPath && owner.requestId === session.configuration?.__ynxCppRunId)) return;
-      let reported = false, stopping = false;
+      const owner = [...active.values()].find(owner => owner.kind === 'debug' && owner.folder === session.workspaceFolder?.uri?.fsPath && owner.requestId === session.configuration?.__ynxCppRunId);
+      // Theia interprets stopDebugging with a missing id as "stop all".
+      if (!owner || typeof session.id !== 'string' || !session.id || (owner.sessionId && owner.sessionId !== session.id)) return;
+      owner.sessionId = session.id;
+      let reported = false, stopping = false, timer, requestSequence;
+      const owns = () => active.get(owner.folder) === owner && (!owner.sessionId || owner.sessionId === session.id);
+      const clearDeadline = () => { clearTimeout(timer); timer = undefined; };
       const report = detail => { if (!reported && !stopping) { reported = true; vscode.window.showErrorMessage(`${t('launchFailed')} ${String(detail || '').slice(0, 2000)}`); } };
       return {
-        onDidSendMessage: message => {
-          if (message.type === 'response' && ['launch', 'attach'].includes(message.command) && message.success === false)
-            report(message.body?.error?.format || message.message);
+        onWillReceiveMessage: message => {
+          if (message.type !== 'request' || !['launch', 'attach'].includes(message.command) || stopping || !owns()) return;
+          clearDeadline(); requestSequence = message.seq;
+          timer = setTimeout(() => {
+            if (stopping || !owns()) return;
+            clearDeadline(); owner.launchTimedOut = true;
+            owner.onLaunchTimeout?.(false);
+            report(t('launchTimeout')); stopping = true;
+            // Keep ownership until the actual termination event. A stop failure
+            // must not permit another run over a still-live debugger.
+            Promise.resolve().then(() => vscode.debug.stopDebugging(session)).catch(() => vscode.window.showErrorMessage(t('launchStopFailed')));
+          }, 30000);
+          timer.unref?.();
         },
-        onError: error => report(error.message),
-        onWillStopSession: () => { stopping = true; },
+        onDidSendMessage: message => {
+          if (message.type === 'response' && ['launch', 'attach'].includes(message.command)) {
+            if (message.request_seq === requestSequence) clearDeadline();
+            if (message.success === false) report(message.body?.error?.format || message.message);
+          }
+        },
+        onError: error => { clearDeadline(); report(error.message); },
+        onWillStopSession: () => { clearDeadline(); stopping = true; },
+        onExit: () => { clearDeadline(); stopping = true; },
       };
     },
   }));
@@ -260,12 +284,15 @@ function registerCppRun(vscode, context, env) {
           if (!current.transient || current.path !== launch.path || current.digest !== launch.digest) throw Error(t('launchMissing'));
         }
         if (launch.configuration?.console === 'internalConsole') void vscode.window.showInformationMessage(t('debugConsole'));
-        if (!await vscode.debug.startDebugging(scope.folder, { ...selected, __ynxCppRunId: owner.requestId })) throw Error(t('launchFailed'));
-        sessionAccepted = true;
+        const timeout = new Promise(resolve => { owner.onLaunchTimeout = resolve; });
+        const started = await Promise.race([vscode.debug.startDebugging(scope.folder, { ...selected, __ynxCppRunId: owner.requestId }), timeout]);
+        sessionAccepted = Boolean(started) || owner.launchTimedOut;
+        if (owner.launchTimedOut) return; // A late launch completion cannot revive this run.
+        if (!started) throw Error(t('launchFailed'));
         const session = vscode.debug.activeDebugSession;
-        if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath && active.has(scope.root)) active.get(scope.root).sessionId = session.id;
+        if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath && active.get(scope.root) === owner) owner.sessionId = session.id;
       }
-    } finally { if (!sessionAccepted) active.delete(scope.root); }
+    } finally { if (!sessionAccepted && active.get(scope.root) === owner) active.delete(scope.root); }
   }
   function command(id, callback) { context.subscriptions.push(vscode.commands.registerCommand(id, () => callback().catch(error => vscode.window.showErrorMessage(error.message)))); }
   command('ynx.cpp.runActive', () => operation(false));

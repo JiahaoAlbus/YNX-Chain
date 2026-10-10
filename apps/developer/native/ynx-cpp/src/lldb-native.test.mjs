@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, readFile } from 'node:fs/promises';
 import { spawn, execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkbenchEnvironment, inspectTrustedLocalClangd, isSupportedLocalNodeVersion } from '../../../desktop/local-workbench.mjs';
@@ -70,6 +70,11 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const root = await mkdtemp(join(process.env.YNX_QA_PROJECT_PARENT || '/private/tmp', 'ynx-cpp-native-dap-'));
   for (const name of ['project', 'profile', 'tmp']) await mkdir(join(root, name), { mode: 0o700 });
   const context = { workspace: join(root, 'project'), profile: join(root, 'profile'), temporary: join(root, 'tmp'), id: randomUUID() };
+  // Reuse the helper from this exact App, while its root is still our child.
+  // Killing only the adapter first can reparent a detached debugserver.
+  const cleanupHelper = join(context.temporary, 'ynx-process-tree');
+  const helperBytes = (await exec('/usr/bin/tar', ['-xOf', join(dirname(appRuntime), 'composed-core/workbench.tar'), './lib/backend/ynx-process-tree'], { encoding: 'buffer', maxBuffer: 1024 * 1024 })).stdout;
+  await writeFile(cleanupHelper, helperBytes, { flag: 'wx', mode: 0o700 });
   const ipc = await createLocalIpcSession(context); context.ipcTemporary = ipc.path;
   const node = join(appRuntime, 'node'), helper = join(appRuntime, 'workspace-path-identity');
   assert.ok(isSupportedLocalNodeVersion(process.version), 'Use an exact reviewed Node runtime.');
@@ -115,7 +120,8 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
     console.log(JSON.stringify({ root, actualNode: node, adapter: '/Library/Developer/CommandLineTools/usr/bin/lldb-dap', checks: ['previous integrated terminal rejected', 'real source breakpoint', 'value 41', 'step to 42', 'stdout and exit0', 'stop own debuggee', 'retry'], limitations: ['Debug Console has no program stdin', 'native App UI remains a separate required check'] }));
     assert.equal(JSON.parse(await readFile(generated.path)).configurations[0].console, 'internalConsole');
   } finally {
-    for (const session of sessions) if (session.child.exitCode === null && session.child.signalCode === null) session.child.kill();
+    for (const session of sessions) if (session.child.exitCode === null && session.child.signalCode === null)
+      await exec(cleanupHelper, [String(session.child.pid), '--force'], { timeout: 5000 });
     await Promise.all(sessions.map(session => session.closed)); await ipc.cleanup({ confirmedExited: true });
   }
 });
