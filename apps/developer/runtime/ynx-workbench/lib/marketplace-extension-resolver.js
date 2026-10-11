@@ -5,8 +5,8 @@ const path = require('node:path');
 const { createHash } = require('node:crypto');
 function inspectArchive(handle, size, selection) {
   return new Promise((resolve, reject) => {
-    let zip, finished = false, manifest, entries = 0, expanded = 0;
-    const names = new Set();
+    let zip, finished = false, manifest, vsixRoot = false, entries = 0, expanded = 0;
+    const names = new Set(), destinations = new Map();
     const finish = error => {
       if (finished) return; finished = true; clearTimeout(timer); zip?.close();
       if (error) reject(error); else resolve();
@@ -38,7 +38,7 @@ function inspectArchive(handle, size, selection) {
       zip = archive; if (finished) { zip.close(); return; }
       zip.on('error', finish);
       zip.on('end', () => {
-        if (!manifest || manifest.publisher !== selection.namespace || manifest.name !== selection.name || manifest.version !== selection.version)
+        if (!vsixRoot || !manifest || manifest.publisher !== selection.namespace || manifest.name !== selection.name || manifest.version !== selection.version)
           return finish(Error('Extension package identity does not match the selected publisher, name and version.'));
         finish();
       });
@@ -50,6 +50,25 @@ function inspectArchive(handle, size, selection) {
             || entry.generalPurposeBitFlag & 1 || (mode & 0o170000) === 0o120000 || mode & 0o7000
             || name.includes('\0') || names.has(name) || name.startsWith('/') || name.split('/').includes('..')) throw Error('Extension archive entry or expanded size refused.');
           names.add(name);
+          // Match the retained unpacker/loader, including macOS case-insensitive
+          // and Unicode-equivalent destinations. A trailing directory slash is
+          // standard ZIP; internal empty/dot segments are never canonical.
+          const directory = name.endsWith('/'), destination = directory ? name.slice(0, -1) : name;
+          const parts = destination.split('/');
+          if (parts.some(part => !part || part === '.') || name.includes('\\')) throw Error('Extension archive destination refused.');
+          for (let i = 1; i <= parts.length; i++) {
+            const spelling = parts.slice(0, i).join('/'), key = spelling.normalize('NFC').toLowerCase();
+            const type = i < parts.length || directory ? 'directory' : 'file';
+            const previous = destinations.get(key), explicit = i === parts.length;
+            if (previous && (previous.spelling !== spelling || previous.type !== type || explicit && previous.explicit)) throw Error('Extension archive destination collision refused.');
+            destinations.set(key, { spelling, type, explicit: explicit || previous?.explicit || false });
+          }
+          const destinationKey = destination.normalize('NFC').toLowerCase();
+          if (destinationKey === 'package.json' || destinationKey === 'package/package.json') throw Error('Extension archive competing package root refused.');
+          if (destination === 'extension.vsixmanifest') {
+            if (directory) throw Error('Extension archive VSIX root refused.');
+            vsixRoot = true;
+          }
           if (name !== 'extension/package.json') { zip.readEntry(); return; }
           if (entry.uncompressedSize > 1024 * 1024) throw Error('Extension manifest is oversized.');
           zip.openReadStream(entry, (streamError, stream) => {

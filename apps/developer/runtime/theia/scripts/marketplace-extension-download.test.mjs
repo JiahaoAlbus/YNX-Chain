@@ -28,7 +28,8 @@ async function fixture(t, manifest = selection) {
   const directory = `${root}/extension-abcdef`; await mkdir(directory, { mode: 0o700 });
   const source = `${root}/source`; await mkdir(`${source}/extension`, { recursive: true });
   await writeFile(`${source}/extension/package.json`, JSON.stringify({ publisher: manifest.namespace, name: manifest.name, version: manifest.version, engines: { vscode: '^1.80.0' } }));
-  execFileSync('/usr/bin/zip', ['-q', '-r', '../fixture.vsix', 'extension'], { cwd: source });
+  await writeFile(`${source}/extension.vsixmanifest`, '<PackageManifest/>');
+  execFileSync('/usr/bin/zip', ['-q', '-r', '../fixture.vsix', 'extension', 'extension.vsixmanifest'], { cwd: source });
   const path = `${directory}/archive.vsix`, bytes = await readFile(`${root}/fixture.vsix`);
   await writeFile(path, bytes, { mode: 0o600 }); const identity = await lstat(path);
   return { root, source, path, receipt: { selection, path, sha256: createHash('sha256').update(bytes).digest('hex'), bytes: bytes.length, dev: identity.dev, ino: identity.ino } };
@@ -37,6 +38,79 @@ async function restage(f, bytes) {
   await writeFile(f.path, bytes); const identity = await lstat(f.path);
   return { ...f.receipt, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), dev: identity.dev, ino: identity.ino };
 }
+// Stored ZIP fixture preserves noncanonical names that command-line zip cleans.
+function archiveFixture(members) {
+  let offset = 0; const local = [], central = [];
+  for (const [name, content = ''] of members) {
+    const filename = Buffer.from(name), data = Buffer.from(content);
+    let crc = 0xffffffff;
+    for (const byte of data) { crc ^= byte; for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0); }
+    crc = (crc ^ 0xffffffff) >>> 0;
+    const header = Buffer.alloc(30), record = Buffer.alloc(46);
+    header.writeUInt32LE(0x04034b50); header.writeUInt16LE(20, 4); header.writeUInt16LE(0x800, 6);
+    header.writeUInt32LE(crc, 14); header.writeUInt32LE(data.length, 18); header.writeUInt32LE(data.length, 22); header.writeUInt16LE(filename.length, 26);
+    record.writeUInt32LE(0x02014b50); record.writeUInt16LE(20, 4); record.writeUInt16LE(20, 6); record.writeUInt16LE(0x800, 8);
+    record.writeUInt32LE(crc, 16); record.writeUInt32LE(data.length, 20); record.writeUInt32LE(data.length, 24); record.writeUInt16LE(filename.length, 28); record.writeUInt32LE(offset, 42);
+    if (name.endsWith('/')) record.writeUInt32LE(0x10, 38);
+    local.push(header, filename, data); central.push(record, filename); offset += header.length + filename.length + data.length;
+  }
+  const index = Buffer.concat(central), end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50); end.writeUInt16LE(members.length, 8); end.writeUInt16LE(members.length, 10);
+  end.writeUInt32LE(index.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...local, index, end]);
+}
+const selectedManifest = JSON.stringify({ publisher: selection.namespace, name: selection.name, version: selection.version, engines: { vscode: '^1.80.0' } });
+const competingManifest = JSON.stringify({ publisher: 'other', name: 'other', version: '9.0.0', engines: { vscode: '^1.80.0' } });
+function standardMembers() { return [['extension.vsixmanifest', '<PackageManifest/>'], ['extension/', ''], ['extension/package.json', selectedManifest]]; }
+async function kernelLoad(f, suffix) {
+  const { unpackToDeploymentDir } = require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-utils');
+  const { PluginVsCodeDirectoryHandler } = require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-directory-handler');
+  const { FileUri } = require('@theia/core/lib/common/file-uri');
+  const deployed = await unpackToDeploymentDir({ getDeploymentDirUri: async () => FileUri.create(`${f.root}/${suffix}`) }, f.path, 'example.language@1.2.3');
+  let currentPath = deployed; const values = new Map();
+  const plugin = { path: () => currentPath, id: () => 'example.language@1.2.3', getValue: key => values.get(key), storeValue: (key, value) => values.set(key, value), updatePath: value => { currentPath = value; } };
+  const handler = new PluginVsCodeDirectoryHandler(); handler.logger = { debug() {} };
+  assert.equal(await handler.attemptResolution(plugin), true);
+  return { manifest: values.get('package.json'), path: currentPath };
+}
+test('parent accepts competing root and path aliases that retained loader can consume', async t => {
+  const module = { exports: {} };
+  const source = execFileSync('/usr/bin/git', ['show', 'b55d2048a290eb69cfcfeba30b4c0423a0946211:apps/developer/runtime/ynx-workbench/lib/marketplace-extension-resolver.js'], { encoding: 'utf8', cwd: dirname(fileURLToPath(import.meta.url)) });
+  vm.runInNewContext(source, { module, require, process, Buffer, setTimeout, clearTimeout });
+  const f = await fixture(t);
+  // Without the VSIX marker, the actual loader unambiguously selects root.
+  const rootReceipt = await restage(f, archiveFixture([['extension/package.json', selectedManifest], ['package.json', competingManifest]]));
+  await module.exports.verifyReceipt(rootReceipt, selection, f.root);
+  assert.equal((await kernelLoad(f, 'parent-root')).manifest.name, 'other');
+  for (const alias of ['extension/./package.json', 'extension//package.json']) {
+    await module.exports.verifyReceipt(await restage(f, archiveFixture([...standardMembers(), [alias, competingManifest]])), selection, f.root);
+    const loaded = await kernelLoad(f, alias.includes('//') ? 'parent-empty' : 'parent-dot');
+    assert.equal(loaded.path, `${f.root}/${alias.includes('//') ? 'parent-empty' : 'parent-dot'}/example.language@1.2.3/extension`);
+    assert.ok(['language', 'other'].includes(loaded.manifest.name));
+  }
+});
+test('standard VSIX keeps one selected manifest through actual directory loader', async t => {
+  const f = await fixture(t); await verifyReceipt(await restage(f, archiveFixture(standardMembers())), selection, f.root);
+  const loaded = await kernelLoad(f, 'fixed-standard');
+  assert.equal(loaded.manifest.publisher, selection.namespace); assert.equal(loaded.manifest.name, selection.name); assert.equal(loaded.manifest.version, selection.version);
+});
+test('competing roots and noncanonical or equivalent destinations are refused before unpack writes', async t => {
+  const f = await fixture(t);
+  const cases = [
+    [['package.json', competingManifest]], [['package/package.json', competingManifest]], [['Package.json', competingManifest]],
+    [['extension/./package.json', competingManifest]], [['extension//package.json', competingManifest]],
+    [['extension/PACKAGE.JSON', competingManifest]], [['extension/package.json/', '']],
+    [['extension/assets', 'file'], ['extension/assets/icon.svg', 'child']],
+    [['extension/Cafe\u0301.txt', 'one'], ['extension/Caf\u00e9.txt', 'two']],
+  ];
+  for (const extra of cases) {
+    const receipt = await restage(f, archiveFixture([...standardMembers(), ...extra])); let unpackStarted = false;
+    await assert.rejects((async () => { await verifyReceipt(receipt, selection, f.root); unpackStarted = true; await kernelLoad(f, 'fixed-rejected'); })(), /archive.*refused/);
+    assert.equal(unpackStarted, false);
+  }
+  await assert.rejects(verifyReceipt(await restage(f, archiveFixture([['extension/package.json', selectedManifest]])), selection, f.root), /package identity/);
+  await assert.rejects(lstat(`${f.root}/fixed-rejected`), { code: 'ENOENT' });
+});
 test('kernel resolver uses exact compatibility selection and hands verified artifact to original deployer context', async t => {
   const fixtureData = await fixture(t), prior = process.env.TMPDIR;
   process.env.TMPDIR = fixtureData.root;
