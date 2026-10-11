@@ -6,10 +6,12 @@ import {walletPayInvoiceID} from "./wallet-pay-invoice-reference-id.mjs";
 const fail=code=>{throw Object.assign(new Error(code),{code})};
 const stage=entry=>entry.settlement?"settled":entry.settlementAttempted?"settlement_unknown":entry.evidence?"settlement_pending":"transfer_unconfirmed";
 function summary(entry,status=stage(entry)){
+  if(entry.signingUnknown)return Object.freeze({account:entry.account,hash:null,signingUnknown:true,status:"transfer_unconfirmed",checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false});
+  if(entry.nativeOnly)return Object.freeze({account:entry.account,hash:entry.hash,nativeOnly:true,localRetention:entry.localRetention,status:"transfer_unconfirmed",checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false});
   const {record}=entry;
   return Object.freeze({account:record.account,hash:record.transfer.hash,invoiceId:record.invoice.id,merchant:record.invoice.merchantName,recipient:record.invoice.payoutAddress,
     amount:record.invoice.amount,fee:record.invoice.fee,total:record.intent.total,status,checkpointVerified:!!entry.evidence,settlementVerified:!!entry.settlement,
-    settlementAttempted:entry.settlementAttempted,broadcastAttempted:entry.broadcastAttempted,consensusFinality:false});
+    settlementAttempted:entry.settlementAttempted,broadcastAttempted:entry.broadcastAttempted,consensusFinality:false,...(entry.localRetention?{localRetention:entry.localRetention}:{})});
 }
 /** Main-only service. compose() is deliberately NOT exposed to IPC, renderer,
  * command-line args or env. A must supply admitted real ports in its normal
@@ -73,6 +75,7 @@ export function createDesktopPayService({getContext,getIdentity,getRuntime,now=D
         return {kind:"original",original:summary({record:approved.record,broadcastAttempted:true,evidence:null,settlementAttempted:false,settlement:null})};
       }
       const restored=await flow.restore(selected.account);guard();
+      if(restored?.entry.localRetention||restored?.entry.signingUnknown)fail("PAY_LOCAL_ORIGINAL_REVIEW_ONLY");
       if(!restored&&input.action==="done"){
         const archived=await flow.done(selected.account,input.id);guard();return {kind:"archived",original:summary(archived,"archived")};
       }

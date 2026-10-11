@@ -10,6 +10,10 @@ import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/ethereum-block-marker.json",import.meta.url),"utf8"));
 const receipt=literal.recoveredReceipt,account=receipt.from,hash=receipt.transactionHash;
 const context={account,hash};
+test("r4 unknown signing DTO never implies available raw bytes or retry permission",()=>{
+ const row={hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true};assert.equal(projectPendingTransactions({ok:true,value:[row]},account)[0].signingUnknown,true);
+ for(const extra of [{raw:'0xsigned'},{canRetryExact:true},{hash},{signingUnknown:'true'}])assert.throws(()=>projectPendingTransactions({ok:true,value:[{...row,...extra}]},account));
+});
 const model=parseFeeModel({version:"ynx-ethereum-native-v1",enabled:true,chainId:"0x1917",transactionType:"0x0",feeYNXT:"1",feeWei:"0xde0b6b3a7640000",gas:"0x61a8",gasPrice:"0x246139ca8000",decimals:18,amountQuantumWei:"0xde0b6b3a7640000",scope:"whole-YNXT plain native transfers",fullEVM:false,eip1559:false,durability:DURABILITY_MODEL});
 const completed=()=>({hash,account,status:"confirmed",confirmed:true,successful:true,actualFee:"1.0",blockNumber:"0x1",confirmationScope:"local-snapshot",consensusFinality:false,canRetryExact:false});
 test("display projection detaches verified primitive facts from mutable response",()=>{const value=completed(),view=projectTransactionResolution({ok:true,value},context);value.actualFee="999.0";assert.equal(view.actualFee,"1.0");assert.equal(Object.isFrozen(view),true);});

@@ -18,6 +18,22 @@ function harness(){
   const ui=createDesktopPayUI({api,getContext:()=>({open:true,account,keyRevision:1,locked:false}),render:value=>views.push(value)});
   return {ui,views,calls,status:value=>status=value,response:value=>response=value};
 }
+test("r4 Pay UI retains safe local original across independent history failure and refuses all actions",async()=>{
+ const views=[],calls=[];const dto={...archived(),status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,localRetention:{scope:'operation-memory',durable:false,originalCause:null,storageCause:{name:'Error',code:null,message:'QA_SAVE'}}};
+ const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payHistory:async()=>{throw Error('QA_HISTORY')},payAction:async value=>{calls.push(value);throw Error('must not dispatch')}};
+ const ui=createDesktopPayUI({api,getContext:()=>({open:true,account,keyRevision:1,locked:false}),render:view=>views.push(view)});await ui.open();await ui.history();assert.equal(views.at(-1).original.hash,dto.hash);assert.equal(views.at(-1).original.localRetention.storageCause.message,'QA_SAVE');assert.ok(views.at(-1).error);
+ for(const action of ['check','settle','receipt','done'])await ui.action(action);assert.equal(calls.length,0);
+});
+for(const kind of ['full','native-only','unknown'])test(`r4 actual mounted Pay warning and action suppression for ${kind}`,async()=>{
+ const nodes=new Map(),get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
+ const retention={scope:'operation-memory',durable:false,originalCause:{name:'Error',code:null,message:'QA_ORIGINAL_CAUSE'},storageCause:{name:'Error',code:null,message:'QA_STORAGE_CAUSE'}};
+ const flags={status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false};
+ const dto=kind==='full'?{...archived(),...flags,localRetention:retention}:kind==='native-only'?{account,hash:'0x'+'c'.repeat(64),...flags,nativeOnly:true,localRetention:retention}:{account,hash:null,...flags,signingUnknown:true};let actions=0;
+ const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payAction:async()=>{actions++},onSecurityState:()=>{},onAccountStatus:()=>{}};
+ mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:'',children:[],append(...items){this.children.push(...items)}})},api,getContext:()=>({account,keyRevision:1,locked:false})});get('#open-protected-pay').emit('click');await new Promise(resolve=>setImmediate(resolve));
+ const facts=get('#protected-pay-facts').children.map(x=>x.textContent).join(' ');assert.match(facts,kind==='unknown'?/result unknown/:/Keep Wallet running/);if(kind!=='unknown'){assert.match(facts,/QA_ORIGINAL_CAUSE/);assert.match(facts,/QA_STORAGE_CAUSE/)}if(kind==='native-only')assert.match(facts,/no complete Pay result/);
+ for(const action of ['check','settle','receipt','done'])assert.equal(get('#protected-pay-'+action).hidden,true);assert.equal(actions,0);
+});
 test("Pay readiness requires literal boolean success, never truthy status",async()=>{
   for(const ok of [1,"true",{},[]]){
     const h=harness();h.status({ok,value:{available:true,paymentAuthorized:false}});await h.ui.open();

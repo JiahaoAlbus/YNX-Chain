@@ -15,6 +15,12 @@ import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlem
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
 const invalid = () => capabilityError("TRANSACTION_JOURNAL_INVALID", "The local transaction journal cannot be verified. New transactions are blocked; preserve the journal and check any known transaction hashes.");
+export const ORIGINAL_OWNER_LIMIT=8;
+const owners=new WeakMap();
+const owner=store=>{let slots=owners.get(store);if(!slots){slots=new Map();owners.set(store,slots)}return slots};
+const freezePublic=value=>{if(value&&typeof value==="object"){for(const child of Object.values(value))freezePublic(child);Object.freeze(value)}return value};
+export function publicOriginalCause(error){return error?Object.freeze({name:String(error.name??"Error").slice(0,128),code:typeof error.code==="string"?error.code.slice(0,128):null,message:String(error.message??"Operation failed").slice(0,2048)}):null}
+export function originalRetention(slot){return Object.freeze({scope:"operation-memory",durable:false,originalCause:publicOriginalCause(slot.originalCause),storageCause:publicOriginalCause(slot.storageCause)})}
 function validateIntent(record, legacy = false) {
   const keys = legacy ? "account,attempts,capabilities,chainId,hash,nonce,to,value" : "account,attempts,capabilities,chainId,hash,nonce,origin,raw,to,value";
   if (!record || Object.keys(record).sort().join() !== keys || typeof record.account !== "string" || !ACCOUNT.test(record.account) || typeof record.to !== "string" || !ACCOUNT.test(record.to) || record.to === record.account || typeof record.hash !== "string" || !HASH.test(record.hash) || record.chainId !== "0x1917" || !quantity(record.nonce) || !quantity(record.value) || BigInt(record.value) <= 0n || !Number.isSafeInteger(record.attempts) || record.attempts < 1) throw invalid();
@@ -40,16 +46,20 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if(data.schemaVersion===5){
+    if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
+    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!["native","pay"].includes(marker.kind))throw invalid();
+  }
   if(signed){
     if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
     try{data.signedPayments.forEach(assertDesktopSignedPayStorage)}catch{throw invalid()}
     if(new Set(data.signedPayments.map(record=>record.account)).size!==data.signedPayments.length||new Set(data.signedPayments.map(record=>record.transfer.hash)).size!==data.signedPayments.length||data.signedPayments.some(record=>data.records.some(entry=>entry.account===evmAddressFromYNX(record.account))))throw invalid();
   }
-  if(data.schemaVersion===4){
+  if(data.schemaVersion>=4){
     if(!Array.isArray(data.payProgress)||!Array.isArray(data.payHistory)||data.payProgress.length!==data.signedPayments.length||data.payHistory.length>1024)throw invalid();
     try{[...data.payProgress,...data.payHistory].forEach(assertDesktopPayProgress)}catch{throw invalid()}
     if(new Set(data.payProgress.map(entry=>entry.record.transfer.hash)).size!==data.payProgress.length||
@@ -80,14 +90,39 @@ const empty = () => ({ schemaVersion: 2, records: [], rejections: [], resolution
 const payEntry=(record,broadcastAttempted=true)=>({version:1,record,broadcastAttempted,evidence:null,settlementAttempted:false,settlement:null,consensusFinality:false});
 // Earlier schemas cannot prove that an outward effect did NOT start. Migration
 // conservatively fences a second POST, and never happens on a read alone.
-const paySuccessor=state=>state.schemaVersion===4?state:{...state,schemaVersion:4,signedPayments:state.signedPayments??[],payProgress:(state.signedPayments??[]).map(record=>payEntry(record)),payHistory:[]};
+const paySuccessor=state=>state.schemaVersion>=4?state:{...state,schemaVersion:4,signedPayments:state.signedPayments??[],payProgress:(state.signedPayments??[]).map(record=>payEntry(record)),payHistory:[]};
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
   constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
+  localOriginal(account){return owner(this).get(account)??null}
+  async unresolvedPreparation(account){return (await this.#read()).preparations?.find(x=>x.account===account)??null}
+  async assertNoPreparation(account){
+    if(owner(this).has(account)||(await this.#read()).preparations?.some(x=>x.account===account))throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","An original signing operation remains unresolved. Do not sign or send a replacement.");
+  }
+  async reserveOriginal(account,kind){
+    if(!ACCOUNT.test(account??"")||!["native","pay"].includes(kind))throw invalid();
+    const slots=owner(this);if(slots.has(account)||slots.size>=ORIGINAL_OWNER_LIMIT)throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original operation capacity or account conflict; nothing new was signed.");
+    const slot={account,kind,native:null,pay:null,originalCause:null,storageCause:null};slots.set(account,slot);
+    try{await this.#mutate(async()=>{
+      const state=paySuccessor(await this.#read());
+      if(state.preparations?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
+      await this.#write({...state,schemaVersion:5,preparations:[...(state.preparations??[]),{account,kind}]});
+    });return slot}catch(error){slots.delete(account);throw error}
+  }
+  captureOriginal(account,value,kind){
+    const slot=owner(this).get(account);if(!slot)throw invalid();
+    const captured=freezePublic(JSON.parse(JSON.stringify(value)));
+    if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
+    else{if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
+    return slot;
+  }
+  originalFailed(account,error,{storage=false}={}){const slot=owner(this).get(account);if(slot){if(storage)slot.storageCause=error;else if(!slot.originalCause&&error!==slot.storageCause&&error?.cause!==slot.storageCause)slot.originalCause=error}}
+  originalSaved(account){owner(this).delete(account)}
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
   async assertNoSignedPayment(account){
+    await this.assertNoPreparation(account);
     const records=(await this.#read()).signedPayments??[];
     if(records.some(record=>evmAddressFromYNX(record.account)===account))throw capabilityError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW","A signed Pay original remains retained. Review its original hash and settlement; do not create a replacement transaction.");
   }
@@ -103,9 +138,10 @@ export class FileTransactionIntentStore {
       if(prior){if(canonicalJSON(prior)!==canonicalJSON(saved))throw invalid();return parseDesktopSignedPayRecord(canonicalJSON(prior),saved.account,policy,guard)}
       if(state.records.some(value=>value.account===evmAddressFromYNX(saved.account)))throw capabilityError("TRANSACTION_RESOLUTION_REQUIRED","The existing transaction must be resolved before signed Pay.");
       if((state.payHistory??[]).some(entry=>entry.record.account===saved.account&&entry.record.invoice.id===saved.invoice.id))throw capabilityError("PAY_INVOICE_ALREADY_PAID","This invoice already has a retained paid receipt.");
-      const next=forBroadcast||state.schemaVersion===4?paySuccessor(state):{...state,schemaVersion:3,signedPayments:state.signedPayments??[]};
+      const next=forBroadcast||state.schemaVersion>=4?paySuccessor(state):{...state,schemaVersion:3,signedPayments:state.signedPayments??[]};
       next.signedPayments=[...next.signedPayments,saved];
-      if(next.schemaVersion===4)next.payProgress=[...next.payProgress,payEntry(saved,!forBroadcast)];
+      if(next.schemaVersion>=4)next.payProgress=[...next.payProgress,payEntry(saved,!forBroadcast)];
+      if(next.preparations)next.preparations=next.preparations.filter(x=>x.account!==evmAddressFromYNX(saved.account));
       await this.#write(next);guard();
       const readback=await this.signedPayment(saved.account,policy,guard);guard();
       if(!readback||canonicalJSON(readback)!==canonicalJSON(saved))throw invalid();return readback;
@@ -116,6 +152,8 @@ export class FileTransactionIntentStore {
     return (state.payHistory??[]).filter(entry=>entry.record.account===account).map(entry=>this.#verifiedPayEntry(entry,account,policy,guard));
   }
   async signedPayProgress(account,policy,guard){
+    const slot=owner(this).get(evmAddressFromYNX(account));
+    if(slot?.pay){guard();const record=parseDesktopSignedPayRecord(canonicalJSON(slot.pay),account,policy,guard);return {...payEntry(record,false),localRetention:originalRetention(slot)}}
     guard();const state=await this.#read();guard();const record=(state.signedPayments??[]).find(value=>value.account===account);
     if(!record)return null;
     return this.#verifiedPayEntry((state.payProgress??[]).find(entry=>entry.record.account===account)??payEntry(record),account,policy,guard);
@@ -199,6 +237,7 @@ export class FileTransactionIntentStore {
         if (retry || state.resolutions.some(entry => entry.intent.hash === intent.hash)) throw invalid();
         state.records.push({ ...intent, attempts: 1 });
       }
+      if(state.preparations)state.preparations=state.preparations.filter(x=>x.account!==intent.account);
       await this.#write(state);
     });
   }
@@ -232,8 +271,8 @@ export class FileTransactionIntentStore {
       if (capabilityFingerprint(await this.#read(temporary)) !== capabilityFingerprint(state)) throw invalid();
       await this.filePolicy.replace(temporary, this.filePath);
       if (capabilityFingerprint(await this.#read()) !== capabilityFingerprint(state)) throw invalid();
-    } catch {
-      throw capabilityError("TRANSACTION_JOURNAL_WRITE_FAILED", "The transaction journal could not be saved durably. No new broadcast may start; preserve any existing unresolved entry.");
-    } finally { await file?.close(); await this.io.unlink(temporary).catch(() => {}); }
+    } catch (cause) {
+      throw Object.assign(capabilityError("TRANSACTION_JOURNAL_WRITE_FAILED", "The transaction journal could not be saved durably. No new broadcast may start; preserve any existing unresolved entry."),{cause});
+    } finally { try{await file?.close()}catch{} await this.io.unlink(temporary).catch(() => {}); }
   }
 }

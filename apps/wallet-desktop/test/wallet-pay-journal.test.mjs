@@ -4,7 +4,7 @@ import {mkdtemp,readFile,writeFile,stat} from "node:fs/promises";
 import {join} from "node:path";
 import {tmpdir} from "node:os";
 import {canonicalJSON,createSignedNativeTransfer,createSignedPayPaymentResult,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
-import {FileTransactionIntentStore} from "../src/transaction-intent-store.mjs";
+import {FileTransactionIntentStore,ORIGINAL_OWNER_LIMIT} from "../src/transaction-intent-store.mjs";
 import {TransactionSubmissions} from "../src/transaction-submissions.mjs";
 import {parseDesktopSignedPayRecord} from "../src/wallet-pay-record.mjs";
 import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
@@ -24,6 +24,30 @@ function packet(version=1,nonce=2){
   return {...f,record:{version:2,account:f.identity.account,origin:CANONICAL_RPC_URL,invoice:f.input.rawInvoice,intent:f.input.rawIntent,session:f.authority.session,transfer,paymentResult}};
 }
 async function fixture(){const directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-journal-")),filePath=join(directory,"journal.json");return{filePath,store:new FileTransactionIntentStore({filePath})}}
+test("r4 durable preparing marker blocks cold replacement and capacity rejects before producer",async()=>{
+ const {store,filePath}=await fixture();for(let i=1;i<=ORIGINAL_OWNER_LIMIT;i++)await store.reserveOriginal('0x'+i.toString(16).padStart(40,'0'),'native');
+ await assert.rejects(store.reserveOriginal('0x'+"9".repeat(40),'native'));assert.equal((JSON.parse(await readFile(filePath))).preparations.length,8);
+ const cold=new FileTransactionIntentStore({filePath});for(let i=1;i<=8;i++){assert.equal(cold.localOriginal('0x'+i.toString(16).padStart(40,'0')),null);await assert.rejects(cold.assertNoPreparation('0x'+i.toString(16).padStart(40,'0')))}
+ await assert.rejects(store.reserveOriginal('0x'+"1".padStart(40,'0'),'native'));
+});
+test("r4 failed initial marker readback blocks signing and cold owner without deleting marker",async()=>{
+ const {store,filePath}=await fixture(),replace=store.filePolicy.replace.bind(store.filePolicy);store.filePolicy.replace=async(...args)=>{await replace(...args);throw Error('QA_MARKER_ACK')};const account='0x'+"1".repeat(40);await assert.rejects(store.reserveOriginal(account,'native'));assert.equal(store.localOriginal(account),null);
+ const cold=new FileTransactionIntentStore({filePath});await assert.rejects(cold.assertNoPreparation(account));const rows=await new TransactionSubmissions({intentStore:cold}).list(account);assert.equal(rows[0].signingUnknown,true);assert.equal(rows[0].hash,null);
+});
+test("r4 signed publication failure preserves complete Pay owner and separate cause, never raw renderer DTO",async()=>{
+ const f=packet(),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');
+ store.originalFailed(account,Error('QA_PRODUCER_CAUSE'));store.originalFailed(account,Error('QA_SAVE_CAUSE'),{storage:true});
+ const entry=await store.signedPayProgress(f.identity.account,f.input.policy,()=>{});assert.equal(canonicalJSON(entry.record),canonicalJSON(f.record));assert.equal(entry.localRetention.originalCause.message,'QA_PRODUCER_CAUSE');assert.equal(entry.localRetention.storageCause.message,'QA_SAVE_CAUSE');
+ assert.equal(Object.isFrozen(store.localOriginal(account).pay.paymentResult),true);const cold=new FileTransactionIntentStore({filePath});assert.equal(await cold.signedPayProgress(f.identity.account,f.input.policy,()=>{}),null);await assert.rejects(cold.assertNoPreparation(account));
+});
+test("r4 conflicting duplicate capture cannot overwrite original public packet",async()=>{
+ const f=packet(),{store}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');const before=canonicalJSON(store.localOriginal(account).pay);assert.throws(()=>store.captureOriginal(account,packet(1,3).record,'pay'));assert.equal(canonicalJSON(store.localOriginal(account).pay),before);await assert.rejects(store.reserveOriginal(account,'pay'));
+});
+test("r4 schema successor preserves old private original and does not invent a no-broadcast proof",async()=>{
+ const f=packet(),{store,filePath}=await fixture();await store.retainSignedPayment(f.record,f.input.policy,()=>{});const old=JSON.parse(await readFile(filePath));assert.equal(old.schemaVersion,3);
+ await store.reserveOriginal('0x'+"3".repeat(40),'native');const current=JSON.parse(await readFile(filePath));assert.equal(current.schemaVersion,5);assert.equal(canonicalJSON(current.signedPayments[0]),canonicalJSON(old.signedPayments[0]));assert.equal(current.payProgress[0].broadcastAttempted,true);assert.equal(current.preparations.length,1);
+ const cold=new FileTransactionIntentStore({filePath});assert.equal(canonicalJSON((await cold.signedPayProgress(f.identity.account,f.input.policy,()=>{})).record),canonicalJSON(f.record));await assert.rejects(cold.assertNoSignedPayment(evmAddressFromYNX(f.identity.account)));
+});
 for(const version of [1,2,3,4,5])test(`Desktop v${version} saves immutable signed packet in original private journal and re-verifies after restart/expiry`,async()=>{
   const f=packet(version),{filePath,store}=await fixture();await store.retainSignedPayment(f.record,f.input.policy,()=>{});
   const raw=await readFile(filePath,"utf8"),saved=JSON.parse(raw);assert.equal(saved.schemaVersion,3);assert.equal(saved.signedPayments.length,1);assert.deepEqual(saved.records,[]);assert.equal((await stat(filePath)).mode&0o777,0o600);

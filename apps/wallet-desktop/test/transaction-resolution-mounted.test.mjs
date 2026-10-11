@@ -20,6 +20,11 @@ function harness(){
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
+test("r4 actual renderer shows local-only original and no actionable retry/check buttons",async()=>{
+ const h=harness(),localRetention={scope:'operation-memory',durable:false,originalCause:{name:'Error',code:null,message:'QA_PRODUCER'},storageCause:{name:'Error',code:null,message:'QA_STORAGE'}};
+ const buttons=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention}]});assert.deepEqual(buttons,[]);
+ const content=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(content,/Keep Wallet running|keep Wallet running/);assert.match(content,/QA_PRODUCER/);assert.match(content,/QA_STORAGE/);assert.equal(h.actions.length,0);
+});
 test("account event clears stale resolution entry and original journal remains untouched",()=>{assert.ok(/function renderAccount\(payload\) \{\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);/.test(source));const h=harness();h.get("#transaction-resolution-result").textContent="old";h.context.clearTransactionResolution();assert.equal(h.get("#transaction-resolution-result").textContent,"");assert.equal(h.get("#transaction-resolution").hidden,true);assert.equal(h.actions.length,0);});
 test("missing account never requests a transaction journal",async()=>{const h=harness();h.context.activeAccount=null;const pending=h.context.refreshTransactions();h.reads[0]?.resolve({ok:true,value:[]});await pending;assert.equal(h.reads.length,0);});
 test("late journal exceptions cannot update another account",async()=>{const h=harness(),pending=h.context.refreshTransactions();h.context.activeAccount="other";h.reads[0].reject(Error("old"));await pending;assert.equal(h.get("#transaction-resolution-result").textContent,"");});

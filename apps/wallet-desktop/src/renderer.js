@@ -751,7 +751,13 @@ async function refreshTransactions() {
     if (records===null) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
     for (const record of records) {
       const row = document.createElement("div"), description = document.createElement("p");
+      if(record.signingUnknown){description.textContent="An interrupted signing operation has an unknown result. No complete original is available to this view. New signatures and retries remain blocked; preserve the journal.";row.append(description);list.append(row);continue}
       copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);
+      if(record.localRetention){
+        const warning=document.createElement("p");warning.textContent="Original signed transaction retained only in this running Wallet. Durable saving is unresolved; keep Wallet running. Do not resend or sign a replacement.";row.append(warning);
+        for(const cause of [record.localRetention.originalCause,record.localRetention.storageCause])if(cause){const detail=document.createElement("p");detail.textContent=cause.message;row.append(detail)}
+        list.append(row);continue;
+      }
       for (const retry of [false, ...(record.canRetryExact ? [true] : [])]) {
         const button = document.createElement("button"); button.type = "button";
         copyUI(button,retry ? "Retry identical signed transaction" : "Check receipt");

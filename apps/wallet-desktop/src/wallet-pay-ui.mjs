@@ -12,7 +12,7 @@ function snapshotPayDisplay(value){
   function copy(value,depth=0){
     if(++visits>4096||depth>8)throw Error("Oversized Pay display");
     if(value===null||typeof value==="boolean")return value;
-    if(typeof value==="string"){if(value.length>512)throw Error("Oversized Pay display");return value;}
+    if(typeof value==="string"){if(value.length>2048)throw Error("Oversized Pay display");return value;}
     if(typeof value==="number"&&Number.isFinite(value))return value;
     if(!value||typeof value!=="object"||active.has(value))throw Error("Invalid Pay display");
     if(memo.has(value))return memo.get(value);
@@ -30,6 +30,12 @@ function snapshotPayDisplay(value){
   return copy(value);
 }
 function original(value,account){
+  if(value?.signingUnknown===true){if(value.account!==account||value.hash!==null||value.status!=="transfer_unconfirmed"||value.checkpointVerified!==false||value.settlementVerified!==false||value.broadcastAttempted!==false||value.settlementAttempted!==false||value.consensusFinality!==false||Object.keys(value).sort().join()!=="account,broadcastAttempted,checkpointVerified,consensusFinality,hash,settlementAttempted,settlementVerified,signingUnknown,status")throw Error("Invalid signing unknown");return Object.freeze({...value})}
+  if(value?.localRetention){
+    const r=value.localRetention;if(r.scope!=="operation-memory"||r.durable!==false)throw Error("Invalid local retention");
+    for(const cause of [r.originalCause,r.storageCause])if(cause!==null&&(!cause||typeof cause.message!=="string"||cause.message.length>2048||typeof cause.name!=="string"||cause.name.length>128||cause.code!==null&&(typeof cause.code!=="string"||cause.code.length>128)))throw Error("Invalid local cause");
+  }
+  if(value?.nativeOnly===true){if(value.account!==account||!hash(value.hash)||!value.localRetention||value.status!=="transfer_unconfirmed"||value.checkpointVerified!==false||value.settlementVerified!==false||value.broadcastAttempted!==false||value.settlementAttempted!==false||value.consensusFinality!==false||["record","session","payload","raw","paymentResult","intent","signature","privateKey"].some(k=>k in value))throw Error("Invalid native-only result");return Object.freeze({...value})}
   if(!value||value.account!==account||!hash(value.hash)||!invoice(value.invoiceId)||!text(value.merchant)||!text(value.recipient)||!Number.isSafeInteger(value.amount)||value.amount<=0||value.fee!==1||value.total!==value.amount+1||!Number.isSafeInteger(value.total)||value.consensusFinality!==false||
     !["transfer_unconfirmed","settlement_pending","settlement_unknown","settled","archived"].includes(value.status)||
     ["checkpointVerified","settlementVerified","settlementAttempted","broadcastAttempted"].some(key=>typeof value[key]!=="boolean")||
@@ -76,6 +82,7 @@ export function createDesktopPayUI({getContext,api,render}){
     async restore(){return request(()=>api.payRestore(),acceptOriginal,{notice:"Reading the original saved on this device…"})},
     async action(action){
       if(!available||!retained||busy)return;
+      if(retained.localRetention||retained.signingUnknown)return;
       if(action==="settle"&&(settleBlocked||!retained.checkpointVerified||retained.settlementAttempted||retained.settlementVerified)||action==="receipt"&&!retained.checkpointVerified||action==="done"&&!retained.settlementVerified||!["check","settle","receipt","done"].includes(action))return;
       if(action==="settle")settleBlocked=true;
       const expected=retained.hash;return request(()=>api.payAction({action,id:expected}),(value,account)=>{const next=original(value?.original,account);if(next.hash!==expected||value.kind!==(action==="done"?"archived":"original"))throw Error("Substituted original");retained=next;review=null},
@@ -100,7 +107,10 @@ export function mountDesktopPayUI({document,api,getContext}){
   const ui=createDesktopPayUI({getContext:()=>({...getContext(),open:sheet.open}),api,render:view=>{
     setWalletCopy(status,view.error??view.notice??"");facts.replaceChildren();
     const item=view.review??view.original;
-    if(item){for(const [label,value] of [["Invoice",item.invoiceId],["Merchant",item.merchant],["Paying account",item.account],["Recipient",item.recipient],["Amount",`${item.amount} YNXT`],["Network fee",`${item.fee} YNXT`],["Total",`${item.total} YNXT`],...(view.review?[["Quote expires",item.expiresAt],["Quote digest",item.intentDigest]]:[["Original hash",item.hash],["Saved state",item.status],["Native local checkpoint",item.checkpointVerified?"Verified, not consensus finality":"Unconfirmed"],["Pay settlement receipt",item.settlementVerified?"Verified":"Not verified"]])]){
+    if(item?.signingUnknown){const warning=document.createElement("p");warning.textContent="Interrupted signing result unknown; no complete original is available in this process. Preserve the journal. Do not sign or send a replacement.";facts.append(warning)}
+    if(item?.localRetention){const warning=document.createElement("p");warning.textContent="Original signed output retained only in this running Wallet; durable publication is unresolved. Keep Wallet running. No resend, replacement signature or settlement is permitted.";facts.append(warning);for(const cause of [item.localRetention.originalCause,item.localRetention.storageCause])if(cause){const detail=document.createElement("p");detail.textContent=cause.message;facts.append(detail)}}
+    if(item?.nativeOnly){const detail=document.createElement("p");detail.textContent=`Native signature only; no complete Pay result was produced. Original hash: ${item.hash}`;facts.append(detail)}
+    if(item&&!item.nativeOnly&&!item.signingUnknown){for(const [label,value] of [["Invoice",item.invoiceId],["Merchant",item.merchant],["Paying account",item.account],["Recipient",item.recipient],["Amount",`${item.amount} YNXT`],["Network fee",`${item.fee} YNXT`],["Total",`${item.total} YNXT`],...(view.review?[["Quote expires",item.expiresAt],["Quote digest",item.intentDigest]]:[["Original hash",item.hash],["Saved state",item.status],["Native local checkpoint",item.checkpointVerified?"Verified, not consensus finality":"Unconfirmed"],["Pay settlement receipt",item.settlementVerified?"Verified":"Not verified"]])]){
       const dt=document.createElement("dt"),dd=document.createElement("dd");setWalletCopy(dt,label);
       if(label==="Saved state")setWalletCopy(dd,payStateCopy[value]);
       else if(label==="Native local checkpoint"||label==="Pay settlement receipt")setWalletCopy(dd,value);
@@ -109,7 +119,7 @@ export function mountDesktopPayUI({document,api,getContext}){
     }}
     buttons.review.disabled=view.busy||!view.available||!!view.original;reference.disabled=view.busy||!!view.original;
     buttons.approve.hidden=!view.review;buttons.approve.disabled=view.busy||!view.review;
-    for(const action of ["check","settle","receipt","done"]){buttons[action].hidden=!view.original||view.original.status==="archived";buttons[action].disabled=view.busy||!view.original}
+    for(const action of ["check","settle","receipt","done"]){buttons[action].hidden=!view.original||view.original.status==="archived"||!!view.original.localRetention||!!view.original.signingUnknown;buttons[action].disabled=view.busy||!view.original||!!view.original.localRetention||!!view.original.signingUnknown}
     buttons.settle.disabled||=view.settleBlocked||!view.original?.checkpointVerified||view.original?.settlementAttempted||view.original?.settlementVerified;
     buttons.receipt.disabled||=!view.original?.checkpointVerified||view.original?.settlementVerified;
     buttons.done.disabled||=!view.original?.settlementVerified;

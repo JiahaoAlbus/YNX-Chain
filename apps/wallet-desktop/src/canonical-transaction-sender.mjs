@@ -65,6 +65,7 @@ export class CanonicalTransactionSender {
     return feeReview(capabilities, transaction);
   }
   async send(wallet, transaction, guard) {
+    let reservation=null;
     try {
       guard?.assert();
       if (!transaction || !this.#prepared.has(transaction)) fail("UNREVIEWED_TRANSACTION", "Prepare and review a complete transaction before signing");
@@ -85,7 +86,12 @@ export class CanonicalTransactionSender {
       const fields = signingFields(transaction), expectedUnsigned = Transaction.from(fields).unsignedSerialized;
       // signTransaction never populates network fields; the exact reviewed bytes are broadcast directly.
       guard?.assert();
+      reservation=await this.submissions.reserveOriginal(transaction);
+      guard?.assert();
       const signed = await wallet.signTransaction(fields);
+      const original = Transaction.from(signed);
+      if(original.unsignedSerialized!==expectedUnsigned||original.from?.toLowerCase()!==transaction.from)fail("TRANSACTION_SNAPSHOT_MISMATCH","Signed transaction does not match the approved snapshot");
+      this.submissions.retainOriginal(signed,transaction,this.#quotes.get(transaction));
       guard?.assert();
       assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
       await this.network.verifyChain();
@@ -95,6 +101,7 @@ export class CanonicalTransactionSender {
       guard?.assert();
       return await this.submissions.submit(signed, transaction, this.#quotes.get(transaction), guard);
     } catch (error) {
+      if(reservation)this.submissions.originalFailed(transaction.from,error);
       throw normalizeFailure(error, "TRANSACTION_SUBMISSION_FAILED", "Canonical YNX Testnet transaction submission failed closed");
     }
   }

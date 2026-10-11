@@ -2,6 +2,7 @@ import { Transaction, formatEther } from "ethers";
 import { assertSameCapabilities, assertCompatibleIntentCapabilities, capabilityError } from "./rpc-capabilities.mjs";
 import { parseDurabilityModel, parseDurabilityProof, validateDurableReceipt } from "./transaction-durability.mjs";
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
+import {originalRetention} from "./transaction-intent-store.mjs";
 
 const HASH = /^0x[0-9a-f]{64}$/;
 const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
@@ -17,8 +18,17 @@ export class TransactionSubmissions {
     return this.intentStore.snapshot();
   }
   async list(account) {
+    const local=this.intentStore?.localOriginal(account);
+    if(local?.kind==="native"&&local.native){const record=local.native;return [{hash:record.hash,account,status:"signed_unpersisted",canRetryExact:false,to:record.transaction.to,amount:formatEther(record.transaction.value),localRetention:originalRetention(local)}]}
+    if(local?.kind==="native"||await this.intentStore?.unresolvedPreparation?.(account))return [{hash:null,account,status:"signing_unknown",canRetryExact:false,to:null,amount:null,signingUnknown:true}];
     return (await this.#intents()).filter(record => record.account === account).map(record => ({ hash: record.hash, account, status: this.#records.get(record.hash)?.status ?? "uncertain", canRetryExact: Boolean(record.raw ?? this.#records.get(record.hash)?.raw), to: record.to, amount: formatEther(record.value) }));
   }
+  async reserveOriginal(transaction){
+    if(typeof this.intentStore?.reserveOriginal!=="function")throw failure("TRANSACTION_JOURNAL_UNAVAILABLE","A durable pre-sign preparation barrier is required.");
+    return this.intentStore.reserveOriginal(transaction.from,"native");
+  }
+  retainOriginal(raw,transaction,capabilities){const decoded=Transaction.from(raw);if(!decoded.isSigned()||decoded.from?.toLowerCase()!==transaction.from)throw failure("TRANSACTION_SNAPSHOT_MISMATCH","The original signature is invalid");this.intentStore.captureOriginal(transaction.from,{hash:decoded.hash,raw,transaction,capabilities},"native")}
+  originalFailed(account,error){this.intentStore?.originalFailed(account,error)}
   async history(account, cursor = null, limit = 20) {
     if (!/^0x[0-9a-f]{40}$/.test(account ?? "") || cursor !== null && !HASH.test(cursor) || !Number.isInteger(limit) || limit < 1 || limit > 50) throw failure("INVALID_HISTORY_PAGE", "Select an account and a valid transaction history page.");
     if (typeof this.intentStore?.resolutions !== "function") throw failure("TRANSACTION_JOURNAL_UNAVAILABLE", "The saved transaction history is unavailable. Preserve the original journal.");
@@ -52,8 +62,9 @@ export class TransactionSubmissions {
     const intent = { account: record.account, chainId: record.transaction.chainId, nonce: record.transaction.nonce, hash: record.hash, to: record.transaction.to, value: record.transaction.value, capabilities: record.capabilities, raw: record.raw, origin: CANONICAL_RPC_URL };
     // Persist intent before entering the outward-effect boundary. A crash or
     // lock after this write still leaves a conservative unresolved marker.
-    await this.intentStore.add(intent, { retry });
+    try{await this.intentStore.add(intent, { retry })}catch(error){this.intentStore.originalFailed?.(record.account,error.cause??error,{storage:true});throw error}
     this.#records.set(record.hash, record);
+    this.intentStore.originalSaved?.(record.account);
     await this.verifyChain();
     assertSameCapabilities(record.capabilities, await this.capabilities());
     await this.verifyChain();
@@ -84,6 +95,7 @@ export class TransactionSubmissions {
     return this.#exclusive(account, () => this.#check(hash, account));
   }
   async #check(hash, account) {
+    if(this.intentStore?.localOriginal(account))throw failure("TRANSACTION_SIGNING_RESULT_UNKNOWN","The original is retained locally but publication is unresolved. Keep Wallet running; do not retry.");
     if (!HASH.test(hash) || typeof account !== "string") throw failure("INVALID_TRANSACTION_HASH", "Enter a valid transaction hash.");
     const intent = (await this.#intents()).find(record => record.hash === hash);
     const historical = !intent && this.intentStore.resolutions ? (await this.intentStore.resolutions()).find(entry => entry.intent.hash === hash) : null;
@@ -114,6 +126,7 @@ export class TransactionSubmissions {
     return this.#exclusive(account, () => this.#retry(hash, account, guard));
   }
   async #retry(hash, account, guard) {
+    if(this.intentStore?.localOriginal(account))throw failure("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original persistence is unresolved; no retry is permitted.");
     guard.assert();
     if (guard.account !== account) throw failure("ACCOUNT_CHANGED", "Unlock the account that signed these exact bytes.");
     let record = this.#records.get(hash);

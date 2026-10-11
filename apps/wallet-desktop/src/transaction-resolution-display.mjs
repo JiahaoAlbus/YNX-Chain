@@ -22,9 +22,17 @@ export function projectPendingTransactions(response,account){
   const records=[];
   for(let index=0;index<length;index++){
     if(!descriptors[index]||!Object.hasOwn(descriptors[index],"value"))throw Error("Invalid pending row");
-    const record=values(descriptors[index].value,["hash","account","status","canRetryExact","to","amount"]);
+    const source=descriptors[index].value,local=Object.getOwnPropertyDescriptor(source??{},"localRetention"),unknown=Object.getOwnPropertyDescriptor(source??{},"signingUnknown");
+    if(unknown){const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown"]);if(row.account!==account||row.hash!==null||row.to!==null||row.amount!==null||row.status!=="signing_unknown"||row.canRetryExact!==false||row.signingUnknown!==true)throw Error("Invalid unknown signing display");records.push(Object.freeze(row));continue}
+    const record=values(source,["hash","account","status","canRetryExact","to","amount",...(local?["localRetention"]:[])]);
+    if(local){
+      const retention=values(record.localRetention,["scope","durable","originalCause","storageCause"]);
+      if(retention.scope!=="operation-memory"||retention.durable!==false||record.status!=="signed_unpersisted"||record.canRetryExact!==false)throw Error("Invalid local original");
+      for(const cause of [retention.originalCause,retention.storageCause])if(cause!==null){const c=values(cause,["name","code","message"]);if(typeof c.name!=="string"||c.name.length>128||typeof c.message!=="string"||c.message.length>2048||c.code!==null&&(typeof c.code!=="string"||c.code.length>128))throw Error("Invalid local cause")}
+      record.localRetention=Object.freeze(retention);
+    }
     if(record.account!==account||typeof record.hash!=="string"||!HASH.test(record.hash)||typeof record.to!=="string"||!ACCOUNT.test(record.to)||record.to===account||typeof record.canRetryExact!=="boolean"||
-      !["broadcasting","submitted","uncertain","confirmed","failed"].includes(record.status)||typeof record.amount!=="string"||!/^[1-9][0-9]{0,18}\.0$/.test(record.amount)||BigInt(record.amount.slice(0,-2))>9223372036854775807n)throw Error("Unbound pending row");
+      !["broadcasting","submitted","uncertain","confirmed","failed",...(local?["signed_unpersisted"]:[])].includes(record.status)||typeof record.amount!=="string"||!/^[1-9][0-9]{0,18}\.0$/.test(record.amount)||BigInt(record.amount.slice(0,-2))>9223372036854775807n)throw Error("Unbound pending row");
     records.push(Object.freeze(record));
   }
   return Object.freeze(records);

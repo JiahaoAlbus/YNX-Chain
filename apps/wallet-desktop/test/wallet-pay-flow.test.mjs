@@ -45,6 +45,24 @@ async function fixture(version=1){
   const flow=createProtectedDesktopPayFlow(integration);
   return {...f,flow,integration,store,lifecycle,filePath,calls,state,response,decryptions:()=>decryptions,approve:()=>flow.approve(f.input)};
 }
+test("r4 full Pay before-write publication rejection is restored from original owner without financial actions",async()=>{
+ const f=await fixture();f.store.retainSignedPayment=async()=>{throw Object.assign(Error('QA_SAVE_FAILURE'),{cause:Error('QA_DISK_CAUSE')})};
+ await assert.rejects(f.approve(),/QA_SAVE_FAILURE/);f.lifecycle.lock();await f.lifecycle.unlock();
+ const restored=await f.flow.restore(f.identity.account);assert.ok(restored.entry.record.paymentResult.walletSignature);assert.equal(restored.entry.localRetention.storageCause.message,'QA_DISK_CAUSE');
+ await assert.rejects(f.flow.checkOriginal(f.identity.account),/REVIEW_ONLY/);await assert.rejects(f.flow.settleOriginal(f.identity.account),/REVIEW_ONLY/);await assert.rejects(f.flow.done(f.identity.account),/REVIEW_ONLY/);await assert.rejects(f.approve());
+ assert.equal(f.decryptions(),1);assert.equal(f.calls.filter(x=>x.url?.endsWith('/transactions/broadcast')).length,0);const cold=new FileTransactionIntentStore({filePath:f.filePath});await assert.rejects(cold.assertNoPreparation(evmAddressFromYNX(f.identity.account)));f.lifecycle.lock();
+});
+test("r4 native-only Pay output survives key lock and never becomes a complete payment result",async()=>{
+ const f=await fixture(),capture=f.store.captureOriginal.bind(f.store);f.store.captureOriginal=(...args)=>{const result=capture(...args);if(args[2]==='native')f.lifecycle.lock();return result};
+ await assert.rejects(f.approve());await f.lifecycle.unlock();const restored=await f.flow.restore(f.identity.account);assert.equal(restored.entry.nativeOnly,true);assert.ok(restored.entry.hash);assert.equal('record' in restored.entry,false);assert.equal(await f.store.signedPayProgress(f.identity.account,f.input.policy,()=>{}),null);
+ assert.equal(f.calls.filter(x=>x.url?.endsWith('/transactions/broadcast')).length,0);await assert.rejects(f.approve());f.lifecycle.lock();
+});
+for(const boundary of ['persisted-ack','readback'])test(`r4 full Pay publication ${boundary} keeps same complete owner and actual cold record`,async()=>{
+ const f=await fixture(),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let writes=0;f.store.filePolicy.replace=async(...args)=>{writes++;await replace(...args);if(boundary==='persisted-ack'&&writes===2)throw Error('QA_PAY_PERSISTED_ACK')};
+ if(boundary==='readback'){const available=f.store.filePolicy.available.bind(f.store.filePolicy);f.store.filePolicy.available=async p=>{if(writes===2&&p===f.filePath)throw Error('QA_PAY_READBACK');return available(p)}}
+ await assert.rejects(f.approve());const entry=(await f.flow.restore(f.identity.account)).entry;assert.ok(entry.record.paymentResult.walletSignature);assert.equal(entry.localRetention.durable,false);assert.ok(entry.localRetention.storageCause.message.startsWith('QA_PAY_'));
+ const cold=new FileTransactionIntentStore({filePath:f.filePath});const actual=await cold.signedPayProgress(f.identity.account,f.input.policy,()=>{});if(actual)assert.equal(canonicalJSON(actual.record),canonicalJSON(entry.record));else assert.ok(await cold.unresolvedPreparation(evmAddressFromYNX(f.identity.account)));await assert.rejects(cold.assertNoSignedPayment(evmAddressFromYNX(f.identity.account)));assert.equal(f.calls.filter(x=>x.url?.endsWith('/transactions/broadcast')).length,0);f.lifecycle.lock();
+});
 for(const version of [1,2,3,4,5])test(`Desktop v${version} existing vault → durable attempt → one POST → original proof → settlement → atomic paid history`,async()=>{
   const f=await fixture(version),approved=await f.approve();assert.equal(approved.durabilityConfirmed,false);assert.equal(f.decryptions(),1);
   await assert.rejects(f.flow.done(f.identity.account),/PAY_ORIGINAL_SETTLEMENT_REQUIRED/);

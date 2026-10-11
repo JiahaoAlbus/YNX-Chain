@@ -18,7 +18,8 @@ export function assertDesktopPaySession(session,intent,account){
  * The caller must persist/read back the returned public packet in the original
  * private journal before dispatch and revalidate authority at its POST boundary.
  */
-export async function prepareDesktopSignedPayTransfer({rawInvoice,rawIntent,reviewedIntentDigest,review,policy,authority,vault,client,guard,now=Date.now}){
+export async function prepareDesktopSignedPayTransfer({rawInvoice,rawIntent,reviewedIntentDigest,review,policy,authority,vault,client,guard,retainNative,retainProduced,now=Date.now}){
+  if(typeof retainNative!=="function"||typeof retainProduced!=="function")fail("PAY_ORIGINAL_OWNER_REQUIRED");
   if(!guard||typeof guard.assert!=="function")fail("PAY_PROTECTED_OPERATION_REQUIRED");guard.assert();
   if(!authority||typeof authority.assertCurrent!=="function"||typeof authority.refresh!=="function"||typeof authority.verifyInvoicePayable!=="function")fail("PAY_CURRENT_AUTHORITY_REQUIRED");
   if(!vault||typeof vault.withSecret!=="function"||typeof client?.account!=="function"||typeof client?.requireDurabilityCapability!=="function")fail("PAY_NATIVE_PROTECTED_ADAPTER_REQUIRED");
@@ -45,11 +46,12 @@ export async function prepareDesktopSignedPayTransfer({rawInvoice,rawIntent,revi
     // The real vault has already re-read/decrypted/validated its stored identity
     // and does not expose the key outside this callback. No second key access.
     await refresh();await payable();keyCurrent();
-    const signed=createSignedNativeTransfer({accountSecret:secret,to:request.to,amount:request.amount,nonce:remote.nonce+1});keyCurrent();
-    const at=now(),result=createSignedPayPaymentResult({accountSecret:secret,intent:quote.intent,transferPayload:signed.payload,issuedAt:new Date(at).toISOString()},new Date(at));keyCurrent();
-    const paymentResult=verifyPayPaymentResult(result,quote.intent,request.account,new Date(now()));keyCurrent();
+    const signed=createSignedNativeTransfer({accountSecret:secret,to:request.to,amount:request.amount,nonce:remote.nonce+1});retainNative(signed);keyCurrent();
+    const at=now(),result=createSignedPayPaymentResult({accountSecret:secret,intent:quote.intent,transferPayload:signed.payload,issuedAt:new Date(at).toISOString()},new Date(at));
+    const paymentResult=verifyPayPaymentResult(result,quote.intent,request.account,new Date(now()));
     if(paymentResult.transactionHash!==signed.hash||paymentResult.accountPublicKey!==request.accountPublicKey)fail("PAY_SIGNED_RESULT_MISMATCH");
-    return Object.freeze({...signed,paymentResult,invoice:quote.invoice,intent:quote.intent,session:captured});
+    const produced=Object.freeze({...signed,paymentResult,invoice:quote.invoice,intent:quote.intent,session:captured});retainProduced(produced);keyCurrent();
+    return produced;
   });
   current();return prepared;
 }

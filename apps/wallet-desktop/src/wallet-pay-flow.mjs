@@ -2,6 +2,7 @@ import {canonicalJSON,evmAddressFromYNX,parseProductSession} from "@ynx-chain/wa
 import {CANONICAL_RPC_URL} from "./rpc.mjs";
 import {assertDesktopPaySession,prepareDesktopSignedPayTransfer} from "./wallet-pay-prepare.mjs";
 import {parseDesktopPaySettlementResponse,desktopPayIdempotencyKey} from "./wallet-pay-settlement.mjs";
+import {originalRetention} from "./transaction-intent-store.mjs";
 const fail=code=>{throw Object.assign(new Error(code),{code})};
 const queues=new WeakMap();
 function serialized(store,action){const result=(queues.get(store)??Promise.resolve()).then(action);queues.set(store,result.catch(()=>{}));return result}
@@ -16,6 +17,7 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
     typeof store?.signedPayProgress!=="function"||client?.origin!==CANONICAL_RPC_URL||typeof client?.broadcast!=="function"||typeof client?.checkTransferDurability!=="function"||
     typeof authorityForReview!=="function"||typeof authorityForOriginal!=="function"||typeof settlementTransport?.submitOriginal!=="function"||typeof settlementTransport?.readOriginal!=="function")fail("PAY_PROTECTED_INTEGRATION_REQUIRED");
   const load=async(account,guard)=>{
+    if(store.localOriginal?.(evmAddressFromYNX(account)))fail("PAY_LOCAL_ORIGINAL_REVIEW_ONLY");
     guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
     const entry=await store.signedPayProgress(account,policy,guard.assert);guard.assert();if(!entry)fail("PAY_SIGNED_ORIGINAL_REQUIRED");return entry;
   };
@@ -37,6 +39,9 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
   return Object.freeze({
     async restore(account){return run(async guard=>{
       guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
+      const slot=store.localOriginal(evmAddressFromYNX(account));
+      if(slot?.native&&!slot.pay)return Object.freeze({entry:{nativeOnly:true,account,hash:slot.native.hash,localRetention:originalRetention(slot)},state:"transfer_unconfirmed",currentAuthorityVerified:false,consensusFinality:false});
+      if(!slot?.pay&&await store.unresolvedPreparation(evmAddressFromYNX(account))){guard.assert();return Object.freeze({entry:{signingUnknown:true,account,hash:null},state:"transfer_unconfirmed",currentAuthorityVerified:false,consensusFinality:false})}
       const entry=await store.signedPayProgress(account,policy,guard.assert);guard.assert();
       return entry?Object.freeze({entry,state:entry.settlement?"settled":entry.settlementAttempted?"settlement_unknown":entry.evidence?"settlement_pending":"transfer_unconfirmed",currentAuthorityVerified:false,consensusFinality:false}):null;
     })},
@@ -45,15 +50,23 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
       return run(async guard=>{
         guard.assert();const account=captured.review?.account;
         if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
+        await store.assertNoPreparation(evmAddressFromYNX(account));guard.assert();
         if(await store.signedPayProgress(account,policy,guard.assert))fail("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");
         if((await store.payHistory(account,policy,guard.assert)).some(entry=>entry.record.invoice.id===captured.rawInvoice?.id))fail("PAY_INVOICE_ALREADY_PAID");
         const authority=await authorityForReview(structuredClone(captured));guard.assert();
-        const prepared=await prepareDesktopSignedPayTransfer({...captured,policy,authority,vault,client,guard,now});guard.assert();
+        await store.reserveOriginal(evmAddressFromYNX(account),"pay");guard.assert();
+        const retainNative=signed=>store.captureOriginal(evmAddressFromYNX(account),signed,"native");
+        const retainProduced=prepared=>store.captureOriginal(evmAddressFromYNX(account),{version:2,account,origin:CANONICAL_RPC_URL,invoice:prepared.invoice,intent:prepared.intent,paymentResult:prepared.paymentResult,session:prepared.session,transfer:{payload:prepared.payload,hash:prepared.hash,transaction:prepared.transaction}},"pay");
+        let prepared;
+        try{prepared=await prepareDesktopSignedPayTransfer({...captured,policy,authority,vault,client,guard,now,retainNative,retainProduced});guard.assert()}
+        catch(error){store.originalFailed(evmAddressFromYNX(account),error);throw error}
         const record={version:2,account,origin:CANONICAL_RPC_URL,invoice:prepared.invoice,intent:prepared.intent,paymentResult:prepared.paymentResult,session:prepared.session,
           transfer:{payload:prepared.payload,hash:prepared.hash,transaction:prepared.transaction}};
         // Immutable original first, full readback, then durable attempt marker.
         // No late ACK, lost response or restart can reopen a signing/POST path.
-        await store.retainSignedPayment(record,policy,guard.assert,{forBroadcast:true});guard.assert();
+        try{await store.retainSignedPayment(record,policy,guard.assert,{forBroadcast:true});store.originalSaved(evmAddressFromYNX(account))}
+        catch(error){store.originalFailed(evmAddressFromYNX(account),error.cause??error,{storage:true});throw error}
+        guard.assert();
         const {current}=await originalAuthority(record,guard,{captured:true});
         if(now()>=Date.parse(record.intent.quoteExpiresAt))fail("PAY_CURRENT_AUTHORITY_EXPIRED");
         await authority.verifyInvoicePayable(record.invoice,record.intent);current();
@@ -98,6 +111,7 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
       return store.signedPayProgress(account,policy,current);
     })},
     async done(account,expectedHash){return run(async guard=>{
+      if(store.localOriginal?.(evmAddressFromYNX(account)))fail("PAY_LOCAL_ORIGINAL_REVIEW_ONLY");
       guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
       const entry=await store.signedPayProgress(account,policy,guard.assert);guard.assert();
       if(!entry){

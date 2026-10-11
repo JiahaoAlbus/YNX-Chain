@@ -17,8 +17,13 @@ async function fixture(version=1,expectedPayerHash){
   const vault=new DesktopWalletVault({authorization:fixtureKeyAuthorization,filePath:join(directory,"vault.json"),randomSecret:()=>payTestSecret,safeStorage:{isEncryptionAvailable:()=>true,encryptString:value=>Buffer.from(value).reverse(),decryptStringAsync:async bytes=>{reads++;await action();return {result:Buffer.from(bytes).reverse().toString()}}}});
   // Synthetic account setup only. Signing uses the REAL lifecycle and vault.
   await vault.createAccount();vault.authorization=lifecycle;lifecycle.setAccount(evmAddressFromYNX(f.identity.account));await lifecycle.unlock();
-  return {...f,lifecycle,vault,reads:()=>reads,onKey:fn=>{action=fn},prepare:()=>lifecycle.run(guard=>prepareDesktopSignedPayTransfer({...f.input,vault,guard}))};
+  const outputs={native:null,full:null};
+  return {...f,lifecycle,vault,outputs,reads:()=>reads,onKey:fn=>{action=fn},prepare:()=>lifecycle.run(guard=>prepareDesktopSignedPayTransfer({...f.input,vault,guard,retainNative:value=>outputs.native=value,retainProduced:value=>outputs.full=value}))};
 }
+test("r4 full Pay output reaches owning callback before late vault lock rejects",async()=>{
+ const f=await fixture(),original=f.vault.withSecret.bind(f.vault);f.vault.withSecret=async action=>{const result=await original(action);f.lifecycle.lock();return result};
+ await assert.rejects(f.prepare());assert.ok(f.outputs.native?.hash);assert.ok(f.outputs.full?.paymentResult.walletSignature);assert.equal(f.outputs.full.hash,f.outputs.native.hash);assert.equal(f.reads(),1);
+});
 for(const version of [1,2,3,4,5])test(`Desktop v${version} uses existing encrypted vault once and binds exact native transfer/result`,async()=>{
   const f=await fixture(version),signed=await f.prepare();assert.equal(f.reads(),1);
   const tx=parseSignedNativeTransfer(signed.payload);assert.equal(tx.nonce,2);assert.equal(tx.amount,25);assert.equal(tx.fee,1);

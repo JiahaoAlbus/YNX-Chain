@@ -80,6 +80,15 @@ async function harness({configured=true}={}){
   const api={payStatus:()=>invoke("wallet:pay-status"),payReview:reference=>invoke("wallet:pay-review",reference),payAction:input=>invoke("wallet:pay-action",input),payRestore:()=>invoke("wallet:pay-restore"),payHistory:cursor=>invoke("wallet:pay-history",cursor),payCancel:()=>invoke("wallet:pay-cancel"),invoiceReferenceQR:async()=>({ok:true,value:{invoiceID:f.input.rawInvoice.id,decodedLocally:true,uploaded:false}}),onSecurityState:fn=>securityListeners.push(fn),onAccountStatus:()=>{}};
   return {...f,service,integration,store,lifecycle,vault,state,api,calls,handlers,frame,contents,event,decryptions:()=>decryptions,posts:()=>posts,submits:()=>submits};
 }
+test("r4 normal Pay IPC restores publication-failed owner using safe summary and forbids action",async()=>{
+ const f=await harness(),review=(await f.api.payReview(f.input.rawInvoice.id)).value.review;f.store.retainSignedPayment=async()=>{throw Error('QA_PUBLICATION')};
+ assert.equal((await f.api.payAction({action:'approve',id:review.id})).ok,false);
+ const restored=await f.api.payRestore();assert.equal(restored.ok,true);const dto=restored.value.original;assert.equal(dto.localRetention.durable,false);assert.equal(dto.localRetention.storageCause.message,'QA_PUBLICATION');for(const k of ['raw','payload','record','paymentResult','session','signature'])assert.equal(k in dto,false);
+ for(const action of ['check','settle','receipt','done'])assert.equal((await f.api.payAction({action,id:dto.hash})).ok,false);assert.equal(f.posts(),0);assert.equal(f.submits(),0);assert.equal(f.decryptions(),1);f.lifecycle.lock();
+});
+test("r4 default uncomposed protected Pay remains unavailable with zero key and POST",async()=>{
+ const f=await harness({configured:false});const status=await f.api.payStatus();assert.equal(status.value.available,false);assert.equal(status.value.paymentAuthorized,false);assert.equal((await f.api.payRestore()).ok,false);assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);f.lifecycle.lock();
+});
 test("Desktop normal IPC service never accepts renderer quote/authority or exposes original signed bytes/session",async()=>{
   const f=await harness(),review=await f.api.payReview(f.input.rawInvoice.id);assert.equal(review.ok,true);assert.equal(review.value.kind,"review");assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);
   const token=review.value.review.id;const injected=await f.api.payAction({action:"approve",id:token,rawInvoice:f.input.rawInvoice,session:f.authority.session});assert.equal(injected.ok,false);assert.equal(f.decryptions(),0);

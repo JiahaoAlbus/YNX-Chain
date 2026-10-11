@@ -7,6 +7,12 @@ import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.
 import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wallet-service.mjs";
 import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "../src/permission-lease.mjs";
+import {mkdtemp,readFile} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import {join} from "node:path";
+import {FileTransactionIntentStore} from "../src/transaction-intent-store.mjs";
+import {TransactionSubmissions} from "../src/transaction-submissions.mjs";
+import {parseFeeModel} from "../src/rpc-capabilities.mjs";
 
 // Public scalar-one fixture. All RPC calls are simulated; no network or real funds.
 const wallet = new Wallet(`0x${"1".padStart(64, "0")}`);
@@ -24,11 +30,35 @@ function fixture(t, overrides = {}) {
   };
   const network = new CanonicalAccountNetwork({ fetchImpl });
   network.capabilities = async () => fixtureEVMCapabilities;
-  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), fetchImpl, network });
+  // Generic serializer-only tests retain their explicit in-memory journal.
+  // Model the new original-owner contract; this is NOT durable marker evidence.
+  const store=new FixtureIntentStore();let local=null;
+  store.reserveOriginal=async account=>{if(local)throw Error('fixture original conflict');return local={account,kind:'native',native:null,originalCause:null,storageCause:null}};
+  store.captureOriginal=(_account,value)=>{local.native=value};store.localOriginal=()=>local;
+  store.originalFailed=(_account,error)=>{if(local)local.originalCause=error};store.originalSaved=()=>{local=null};
+  store.assertNoSignedPayment=async()=>{if(local)throw Error('fixture original unresolved')};
+  const sender = new CanonicalTransactionSender({ intentStore: store, fetchImpl, network });
   const signer = { address: wallet.address, async signTransaction(fields) { state.signs++; return wallet.signTransaction(fields); }, connect() { throw new Error("must never connect and populate after review"); }, sendTransaction() { throw new Error("must never populate after review"); } };
   t.after(() => sender.provider.destroy());
   return { sender, signer, state };
 }
+for(const boundary of ['initial-marker','after-sign-lock','before-write','persisted-ack','readback'])test(`r4 actual sender original retention at ${boundary}`,async t=>{
+ const f=fixture(t,{balance:toQuantity(100n*10n**18n),gasPrice:'0x246139ca8000',estimate:'0x61a8'}),directory=await mkdtemp(join(tmpdir(),'ynx-r4-sender-')),filePath=join(directory,'journal.json'),store=new FileTransactionIntentStore({filePath});f.sender.submissions.intentStore=store;
+ const proof=JSON.parse(await readFile(new URL('./fixtures/transaction-durability/native-json-contract-fixture.json',import.meta.url),'utf8'));
+ const caps=parseFeeModel({version:'ynx-ethereum-native-v1',enabled:true,chainId:'0x1917',transactionType:'0x0',feeYNXT:'1',feeWei:'0xde0b6b3a7640000',gas:'0x61a8',gasPrice:'0x246139ca8000',decimals:18,amountQuantumWei:'0xde0b6b3a7640000',scope:'whole-YNXT plain native transfers',fullEVM:false,eip1559:false,durability:proof.capability});f.sender.network.capabilities=async()=>caps;
+ const reviewed=await f.sender.prepare(account,{from:account,to:recipient,value:'0xde0b6b3a7640000',data:'0x'});let live=true,wire=null;
+ const sign=f.signer.signTransaction.bind(f.signer);f.signer.signTransaction=async fields=>{wire=await sign(fields);if(boundary==='after-sign-lock')live=false;return wire};
+ const guard={assert:()=>{if(!live)throw Error('QA_LOCKED')},submit:async fn=>{guard.assert();return fn()}};
+ const replace=store.filePolicy.replace.bind(store.filePolicy);let writes=0;store.filePolicy.replace=async(...args)=>{writes++;if(boundary==='initial-marker'||boundary==='before-write'&&writes===2)throw Error('QA_BEFORE_WRITE');await replace(...args);if(boundary==='persisted-ack'&&writes===2)throw Error('QA_PERSISTED_ACK')};
+ if(boundary==='readback'){const available=store.filePolicy.available.bind(store.filePolicy);store.filePolicy.available=async p=>{if(writes===2&&p===filePath)throw Error('QA_READBACK');return available(p)}}
+ await assert.rejects(f.sender.send(f.signer,reviewed,guard));assert.equal(f.state.broadcasts,0);
+ if(boundary==='initial-marker'){assert.equal(f.state.signs,0);assert.equal(store.localOriginal(account),null);return}
+ assert.equal(f.state.signs,1);assert.equal(store.localOriginal(account).native.raw,wire);assert.equal(Object.isFrozen(store.localOriginal(account).native.transaction),true);
+ const rows=await f.sender.submissions.list(account);assert.equal(rows.length,1);assert.equal(rows[0].status,'signed_unpersisted');assert.equal(rows[0].canRetryExact,false);assert.equal(rows[0].localRetention.durable,false);assert.equal('raw' in rows[0],false);
+ if(boundary==='after-sign-lock')assert.equal(rows[0].localRetention.originalCause.message,'QA_LOCKED');else assert.ok(rows[0].localRetention.storageCause.message.startsWith('QA_'));
+ await assert.rejects(f.sender.submissions.retry(rows[0].hash,account,guard));await assert.rejects(f.sender.prepare(account,{from:account,to:recipient,value:'0xde0b6b3a7640000',data:'0x'}));
+ const cold=new FileTransactionIntentStore({filePath});assert.equal(cold.localOriginal(account),null);await assert.rejects(new TransactionSubmissions({intentStore:cold}).assertResolved(account));assert.equal(f.state.signs,1);
+});
 
 for(const phase of ["before-sign","after-sign","before-broadcast","unrevoked"])test(`real sender and existing lifecycle permission guard at ${phase}`,async t=>{
   const f=fixture(t),snapshot=await f.sender.prepare(account,input()),epoch=new PermissionEpoch(),origin="https://sender-permission.invalid";
