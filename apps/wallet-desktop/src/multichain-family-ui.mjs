@@ -18,7 +18,10 @@ export function createFamilyUI({document, api, getContext}) {
   const genesisLabel = make('label', 'Genesis block hash'), genesis = make('input'); genesis.id = 'family-genesis'; genesis.autocomplete = 'off'; genesis.dir = 'ltr'; genesisLabel.htmlFor = genesis.id;
   const save = make('button', 'Verify and save network'); save.type = 'button'; settings.append(summary, rpcLabel, rpc, genesisLabel, genesis, save);
   const refresh = make('button', 'Refresh'), balance = make('p'); refresh.type = 'button'; balance.setAttribute('role', 'status'); content.append(settings, refresh, balance);
-  function invalidate() { epoch++; busy = false; address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; }
+  const tokenSection = make('details'), tokenTitle = make('summary', 'Import TRC20 token'), tokenLabel = make('label', 'Token contract'), tokenContract = make('input'), importToken = make('button', 'Import TRC20 token');
+  tokenContract.id = 'family-token-contract'; tokenContract.autocomplete = 'off'; tokenContract.dir = 'ltr'; tokenLabel.htmlFor = tokenContract.id; importToken.type = 'button';
+  tokenSection.append(tokenTitle, tokenLabel, tokenContract, importToken); content.append(tokenSection);
+  function invalidate() { epoch++; busy = false; address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
   function networks() {
     invalidate(); network.replaceChildren();
     for (const value of family.value === 'bitcoin' ? ['mainnet', 'testnet3', 'testnet4', 'signet'] : ['mainnet', 'shasta', 'nile']) { const option = make('option'); option.value = value; option.textContent = value; network.append(option); }
@@ -31,6 +34,19 @@ export function createFamilyUI({document, api, getContext}) {
   }
   family.addEventListener('change', networks); network.addEventListener('change', () => {invalidate(); void readSettings();});
   rpc.addEventListener('input', invalidate); genesis.addEventListener('input', invalidate);
+  tokenContract.addEventListener('input', invalidate);
+  importToken.addEventListener('click', async () => {
+    if (busy || getContext().locked || family.value !== 'tron') return;
+    const token = ++epoch, context = {...getContext()}; busy = true; importToken.disabled = true; setWalletCopy(status, 'Checking account…');
+    try {
+      const reply = await api.familyToken({family: 'tron', network: network.value, contract: tokenContract.value.trim()});
+      const current = getContext(); if (token !== epoch || !sheet.open || current.locked || current.account !== context.account || current.revision !== context.revision) return;
+      if (!reply.ok) {status.textContent = reply.error?.code ?? 'FAMILY_TOKEN_READ_FAILED'; return;}
+      if (reply.value.family !== 'tron' || reply.value.network !== network.value) {status.textContent = 'FAMILY_ACCOUNT_CHANGED'; return;}
+      status.textContent = `${reply.value.name} (${reply.value.symbol}) · ${reply.value.decimals}`; tokenContract.value = ''; tokenSection.open = false;
+    } catch (error) {if (token === epoch) status.textContent = error.code ?? 'FAMILY_TOKEN_READ_FAILED';}
+    finally {if (token === epoch) {busy = false; importToken.disabled = Boolean(getContext().locked);}}
+  });
   save.addEventListener('click', async () => {
     invalidate(); const token = epoch; save.disabled = true;
     try { const reply = await api.familyNetwork({family: family.value, network: network.value, rpcUrl: rpc.value.trim(), genesis: family.value === 'bitcoin' ? null : genesis.value.trim().toLowerCase()}); if (token !== epoch || !sheet.open) return; if (!reply.ok) status.textContent = reply.error?.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; else { setWalletCopy(status, 'Verify and save network'); settings.open = false; } } catch (error) { if (token === epoch) status.textContent = error.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; } finally { save.disabled = false; }
@@ -43,7 +59,7 @@ export function createFamilyUI({document, api, getContext}) {
       const current = getContext(); if (token !== epoch || !sheet.open || current.locked || current.account !== context.account || current.revision !== context.revision) return;
       if (!reply.ok) { status.textContent = reply.error?.code ?? 'FAMILY_BALANCE_UNAVAILABLE'; return; }
       if (reply.value.vaultAccount !== context.account || reply.value.family !== family.value || reply.value.network !== network.value) {status.textContent = 'FAMILY_ACCOUNT_CHANGED'; return;}
-      balance.textContent = reply.value.assets.map(asset => `${asset.display} ${asset.symbol}`).join(' · ');
+      balance.textContent = [...reply.value.assets.map(asset => `${asset.display} ${asset.symbol}`), ...(reply.value.errors ?? []).map(error => `${error.symbol}: ${error.code}`)].join(' · ');
       address.value = reply.value.account; status.textContent = reply.value.assets.map(asset => asset.verification).join(' · ');
     } catch (error) { if (token === epoch) status.textContent = error.code ?? 'FAMILY_BALANCE_UNAVAILABLE'; }
     finally { if (token === epoch) {busy = false; refresh.disabled = Boolean(getContext().locked);} }

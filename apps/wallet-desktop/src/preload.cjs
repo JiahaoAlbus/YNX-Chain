@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("ynxWallet", {
   familyAccount: input => ipcRenderer.invoke('wallet:family-account', input),
   familyNetworks: () => ipcRenderer.invoke('wallet:family-networks'),
+  familyToken: input => ipcRenderer.invoke('wallet:family-token', input),
   familyNetwork: input => ipcRenderer.invoke('wallet:family-network', input),
   familyBalances: input => ipcRenderer.invoke('wallet:family-balances', input),
   multichainSnapshot:()=>ipcRenderer.invoke('wallet:multichain-snapshot'),

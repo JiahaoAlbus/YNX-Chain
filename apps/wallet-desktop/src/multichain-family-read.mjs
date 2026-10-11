@@ -9,7 +9,7 @@ async function adapter(network) {
   const {TronReadAdapter} = await import('./multichain-tron.mjs'); return new TronReadAdapter({network: {id: network.network, genesisBlockId: network.genesis}, transport});
 }
 export class FamilyRead {
-  constructor({networks, accounts, getContext, createAdapter = adapter}) { Object.assign(this, {networks, accounts, getContext, createAdapter}); }
+  constructor({networks, tokens, accounts, getContext, createAdapter = adapter}) { Object.assign(this, {networks, tokens, accounts, getContext, createAdapter}); }
   async snapshot() { return effectiveFamilyNetworks(await this.networks.read()); }
   async configure(input) {
     const network = validateFamilyNetwork(input), context = await this.getContext(), before = await this.networks.read();
@@ -18,6 +18,21 @@ export class FamilyRead {
     if (current.account !== context.account || current.revision !== context.revision || (await this.networks.read()).revision !== before.revision) throw changed();
     return this.networks.put(network, before.revision);
   }
+  async importToken(input) {
+    exactObject(input, ['family', 'network', 'contract']);
+    if (input.family !== 'tron' || !this.tokens) throw multiError('FAMILY_TOKEN_UNSUPPORTED', 'Select a TRON network and TRC20 contract.');
+    const context = await this.getContext(), before = await this.networks.read(), catalog = await this.tokens.read();
+    const network = effectiveFamilyNetworks(before).networks.find(n => n.family === input.family && n.network === input.network);
+    if (!network) throw multiError('FAMILY_NETWORK_REQUIRED', 'Configure the selected chain endpoint first.');
+    const account = await this.accounts.account({family: input.family, network: input.network});
+    const {tronAddress} = await import('./multichain-tron.mjs'), contract = tronAddress(input.contract);
+    const reader = await this.createAdapter(network), metadata = await reader.tokenMetadata(account.address, contract.hex);
+    if (metadata.networkId !== network.network || metadata.networkGenesis !== network.genesis || metadata.contractHex !== contract.hex || metadata.contractAddress !== contract.base58 || metadata.verification !== 'provider-reported-not-consensus') throw changed();
+    const current = await this.getContext();
+    if (current.locked || current.account !== context.account || current.revision !== context.revision || (await this.networks.read()).revision !== before.revision) throw changed();
+    const token = {family: 'tron', network: network.network, genesis: network.genesis, contract: contract.hex, name: metadata.name, symbol: metadata.symbol, decimals: metadata.decimals};
+    await this.tokens.put(token, catalog.revision); return token;
+  }
   async balances(input) {
     exactObject(input, ['family', 'network']);
     const context = await this.getContext(), before = await this.networks.read();
@@ -25,7 +40,8 @@ export class FamilyRead {
     if (!network) throw multiError('FAMILY_NETWORK_REQUIRED', 'Configure and verify the selected chain endpoint first.');
     const account = await this.accounts.account(input), reader = await this.createAdapter(network);
     await reader.verify();
-    let assets;
+    const catalog = this.tokens ? await this.tokens.read() : {revision: 0, tokens: []};
+    let assets; const errors = [];
     if (input.family === 'bitcoin') {
       const {formatBitcoinAmount} = await import('./multichain-bitcoin.mjs');
       const read = await reader.readAddress(account.address);
@@ -34,9 +50,19 @@ export class FamilyRead {
       const {tronDisplay} = await import('./multichain-tron.mjs');
       const amount = await reader.balance(account.address);
       assets = [{symbol: 'TRX', decimals: 6, amount: amount.sun, display: tronDisplay(amount.sun, 6), activated: amount.activated, verification: 'provider-reported-not-consensus'}];
+      for (const token of catalog.tokens.filter(t => t.family === 'tron' && t.network === network.network)) {
+        try {
+          const active = await this.getContext();
+          if (active.locked || active.account !== context.account || active.revision !== context.revision || (await this.networks.read()).revision !== before.revision || (await this.tokens.read()).revision !== catalog.revision) throw changed();
+          if (token.genesis !== network.genesis) throw multiError('FAMILY_TOKEN_NETWORK_CHANGED', 'Token was imported on another genesis.');
+          const read = await reader.tokenRead(account.address, token.contract);
+          if (read.networkId !== network.network || read.networkGenesis !== network.genesis || read.contractHex !== token.contract || read.accountAddress !== account.address || read.name !== token.name || read.symbol !== token.symbol || read.decimals !== token.decimals || read.verification !== 'provider-reported-not-consensus') throw multiError('FAMILY_TOKEN_METADATA_CHANGED', 'Token metadata changed. Recheck the contract.');
+          assets.push({contract: token.contract, name: token.name, symbol: token.symbol, decimals: token.decimals, amount: read.units, display: read.display, verification: read.verification});
+        } catch (error) {if (error.code === 'MULTICHAIN_CONTEXT_CHANGED') throw error; errors.push({contract: token.contract, symbol: token.symbol, code: typeof error.code === 'string' ? error.code : 'FAMILY_TOKEN_READ_FAILED'});}
+      }
     }
     const current = await this.getContext();
-    if (current.account !== context.account || current.revision !== context.revision || current.locked || (await this.networks.read()).revision !== before.revision) throw changed();
-    return {family: input.family, network: input.network, account: account.address, vaultAccount: context.account, configRevision: before.revision, assets};
+    if (current.account !== context.account || current.revision !== context.revision || current.locked || (await this.networks.read()).revision !== before.revision || this.tokens && (await this.tokens.read()).revision !== catalog.revision) throw changed();
+    return {family: input.family, network: input.network, account: account.address, vaultAccount: context.account, configRevision: before.revision, assets, errors};
   }
 }

@@ -73,4 +73,5 @@ const rows = {
     "Alamat penerimaan tidak memverifikasi jaringan atau saldo. Jangan kirim aset melalui jaringan lain."
   ]
 };
-export const FAMILY_COPY = Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale, values]) => [locale, Object.freeze(Object.fromEntries(keys.map((key, index) => [key, values[index]])))])));
+const tokenImport = {en: 'Import TRC20 token', 'zh-Hans': '导入 TRC20 代币', 'zh-Hant': '匯入 TRC20 代幣', ja: 'TRC20 トークンを追加', ko: 'TRC20 토큰 가져오기', es: 'Importar token TRC20', fr: 'Importer un jeton TRC20', de: 'TRC20-Token importieren', pt: 'Importar token TRC20', ru: 'Импортировать токен TRC20', ar: 'استيراد رمز TRC20', id: 'Impor token TRC20'};
+export const FAMILY_COPY = Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale, values]) => [locale, Object.freeze({...Object.fromEntries(keys.map((key, index) => [key, values[index]])), 'Import TRC20 token': tokenImport[locale]})])));
