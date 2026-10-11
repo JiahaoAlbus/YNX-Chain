@@ -3,6 +3,7 @@ import {MultiConfigStore} from './multichain-config.mjs';
 import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
 import {MultichainService,installMultichainIPC} from './multichain-service.mjs';
+import {FamilyAccounts} from './multichain-family-accounts.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
@@ -70,6 +71,7 @@ let lastCallback = null;
 let walletAuthority;
 let nativeWallet;
 let multichain;
+let familyAccounts;
 let multichainSecurityContext=null;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
@@ -100,6 +102,10 @@ keyAccess.subscribe(state => {
   if (!state.locked && !state.authenticating) void drainWalletConnectInbox();
 });
 const sensitiveIPC = (action, options) => safeIPC(() => keyAccess.run(action, options));
+handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
+  if (!familyAccounts) throw new Error('Wallet is starting.');
+  return familyAccounts.account(input);
+}));
 installMultichainIPC({handle:handleWalletIPC,safe:safeIPC,sensitive:sensitiveIPC,getGuard:()=>keyAccess.current(),service:new Proxy({}, {get:(_target,name)=>(...args)=>{if(!multichain)throw new Error('Wallet is starting.');return multichain[name](...args)}})});
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
@@ -487,6 +493,21 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
+  familyAccounts = new FamilyAccounts({
+    getContext: async () => ({ account: (await passwordVault.status()).account, ...keyAccess.status() }),
+    deriveBitcoin: async (derivation, context) => {
+      const {deriveBitcoinMnemonicAccount} = await import('./multichain-bitcoin.mjs');
+      const result = await deriveBitcoinMnemonicAccount({withMnemonic: (action, permission) => passwordVault.withMnemonic(action, permission), expectedVaultAccount: context.account, derivation: {...derivation, changeIndex: derivation.index}});
+      return {address: result.address, path: result.senderPath, publicKey: result.publicKey, changeAddress: result.changeAddress, changePath: result.changePath, changePublicKey: result.changePublicKey};
+    },
+    deriveTron: async (derivation, context) => {
+      const {tronMnemonicAddress, tronDerivationPath} = await import('./multichain-tron.mjs');
+      return passwordVault.withMnemonic((phrase, identity, guard) => {
+        guard.assert(); if (identity.account !== context.account) throw new Error('FAMILY_ACCOUNT_CHANGED');
+        return {address: tronMnemonicAddress(phrase, derivation.index).base58, path: tronDerivationPath(derivation.index)};
+      });
+    }
+  });
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
     vault: passwordVault,
