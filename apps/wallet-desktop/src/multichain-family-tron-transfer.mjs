@@ -7,7 +7,7 @@ import {tronAddress,tronIntentPreview,buildTronUnsigned,TronSignReview} from './
 const fail=code=>{throw multiError(code,'Review the original TRON request and its network.');};
 export class FamilyTronTransfer {
   #reviews=new Map();
-  constructor({networks,tokens,accounts,journal,getContext,withMnemonic,getGuard,gate=new FamilyOperationGate(),now=Date.now,id=randomUUID,createPreflight=async network=>{const {TronPreflight}=await import('./multichain-tron-preflight.mjs');return new TronPreflight({network:{id:network.network,genesisBlockId:network.genesis},transport:createFamilyReadTransport({family:'tron',networkId:network.network,baseURL:network.rpcUrl}),now});}}){Object.assign(this,{networks,tokens,accounts,journal,getContext,withMnemonic,getGuard,gate,now,id,createPreflight});}
+  constructor({networks,tokens,accounts,journal,getContext,withMnemonic,getGuard,gate=new FamilyOperationGate(),now=Date.now,id=randomUUID,createTransport=createFamilyReadTransport,createPreflight=async network=>{const {TronPreflight}=await import('./multichain-tron-preflight.mjs');const transport=createTransport({family:'tron',networkId:network.network,baseURL:network.rpcUrl});return new TronPreflight({network:{id:network.network,genesisBlockId:network.genesis},transport:(route,body,chain)=>transport(chain,route,body),now});}}){Object.assign(this,{networks,tokens,accounts,journal,getContext,withMnemonic,getGuard,gate,now,id,createPreflight});}
   async prepare(input){return this.gate.run(()=>this.#prepare(input));}
   async #prepare(input){
     exactObject(input,['network','to','amount','asset','contract','feeLimitSun','maxFeeSun']);const original=structuredClone(input);
