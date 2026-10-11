@@ -129,6 +129,12 @@ export class FileTransactionIntentStore {
       if(state.preparations?.some(x=>x.account===account))throw invalid();
       const native=state.records.find(x=>x.account===account&&x.hash===hash),pay=state.signedPayments?.find(x=>evmAddressFromYNX(x.account)===account&&x.transfer.hash===hash);
       if(!native&&!pay)throw invalid();
+      // Legacy reads may retain hash-only intents. They cannot prove custody
+      // of a complete signed original, even for an idempotent save request.
+      if(native){
+        if(typeof native.raw!=="string")throw capabilityError("ORIGINAL_SAVE_UNAVAILABLE","The original signed bytes are unavailable. Preserve the journal and check its hash; do not recreate a signature.");
+        validateIntent(native);
+      }
       if(pay)parseDesktopSignedPayRecord(canonicalJSON(pay),pay.account,policy,guard);
       guard();return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
     });

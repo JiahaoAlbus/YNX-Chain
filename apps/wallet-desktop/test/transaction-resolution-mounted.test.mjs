@@ -25,6 +25,24 @@ test('r5 actual normal renderer saves original without check retry or signer and
  const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});assert.match(save.textContent,/Save original locally/);const pending=save.click();await save.click();assert.equal(saves.length,1);assert.equal(saves[0].value,hash);assert.equal(h.actions.length,0);
  saves[0].resolve({ok:true,value:{account,hash,savedLocally:true,submitted:false,confirmed:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/Saved locally/);assert.equal(h.context.assetRefreshes,0);assert.equal(h.actions.length,0);h.reads.at(-1)?.resolve({ok:true,value:[{...record,canRetryExact:false}]});
 });
+test('r6 actual save finally refresh does not confuse retry denial with missing signature',async()=>{
+ const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};
+ h.context.window.ynxWallet.saveTransactionOriginal=value=>new Promise(resolve=>saves.push({value,resolve}));
+ const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});
+ const pending=save.click();saves[0].resolve({ok:true,value:{account,hash,savedLocally:true,submitted:false,confirmed:false}});await pending;
+ assert.equal(h.reads.length,2,'the actual save finally schedules the normal inventory refresh');
+ h.reads[1].resolve({ok:true,value:[{...record,canRetryExact:false}]});await new Promise(resolve=>setImmediate(resolve));
+ const row=h.get('#pending-transactions').children[0],text=row.children.map(x=>x.textContent).join(' ');
+ assert.doesNotMatch(text,/no original signed bytes|signature.*missing|签名.*丢|没有原签名/i);
+ assert.match(text,/retry.*unavailable|不允许.*重试/i);assert.match(h.get('#transaction-resolution-result').textContent,/Saved locally/);
+ assert.equal(row.children.filter(x=>typeof x.click==='function').length,1);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
+});
+test('r6 legacy check-only row uses truthful neutral no-retry wording without dispatch',async()=>{
+ const h=harness(),buttons=await h.load({ok:true,value:[{...record,canRetryExact:false}]});
+ const text=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');
+ assert.doesNotMatch(text,/no original signed bytes|signature.*missing/i);assert.match(text,/retry.*unavailable|不允许.*重试/i);
+ assert.equal(buttons.length,1);assert.equal(h.actions.length,0);
+});
 for(const boundary of ['lock','account','failure'])test(`r5 actual save button ${boundary} never replaces original with false success`,async()=>{
  const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};h.context.window.ynxWallet.saveTransactionOriginal=()=>new Promise(resolve=>saves.push(resolve));
  const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});const pending=save.click();

@@ -802,7 +802,7 @@ async function refreshTransactions() {
         });
         row.append(button);
       }
-      if (!record.canRetryExact) { const note = document.createElement("p"); copyUI(note,"This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."); row.append(note); }
+      if (!record.canRetryExact) { const note = document.createElement("p"); copyUI(note,"Retry is unavailable for this record. Check the saved hash; do not recreate or resend the transaction. / 此记录不允许直接重试。请核查已保存的交易哈希，不要重新签名或发送。"); row.append(note); }
       list.append(row);
     }
   } catch { if (current()) { list.replaceChildren(); panel.hidden = false; copyUI(document.querySelector("#transaction-resolution-result"),"The local transaction journal is unavailable. New transfers remain blocked."); } }

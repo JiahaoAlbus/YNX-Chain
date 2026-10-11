@@ -7,7 +7,7 @@ import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.
 import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wallet-service.mjs";
 import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "../src/permission-lease.mjs";
-import {mkdtemp,readFile} from "node:fs/promises";
+import {mkdtemp,readFile,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {FileTransactionIntentStore} from "../src/transaction-intent-store.mjs";
@@ -49,6 +49,31 @@ test('r5 native duplicate save is serialized and hostile binding has no effect',
  const replace=f.store.filePolicy.replace.bind(f.store.filePolicy),entered=Promise.withResolvers(),resume=Promise.withResolvers();f.store.filePolicy.replace=async(...args)=>{entered.resolve();await resume.promise;return replace(...args)};
  const first=f.sender.submissions.saveOriginal(f.hash,account,f.guard);await entered.promise;await assert.rejects(f.sender.submissions.saveOriginal(f.hash,account,f.guard));resume.resolve();await first;
  assert.equal((await f.store.snapshot())[0].attempts,1);assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
+});
+for(const schemaVersion of [1,2,5])test(`r6 cold schema${schemaVersion} no-raw original cannot acknowledge save`,async t=>{
+ const f=await r5HeldNative(t),held=f.store.localOriginal(account).native;
+ const legacy={account,chainId:held.transaction.chainId,nonce:held.transaction.nonce,hash:f.hash,to:held.transaction.to,value:held.transaction.value,capabilities:held.capabilities,attempts:1};
+ const intent=schemaVersion===1?legacy:{...legacy,origin:'https://rpc-testnet.ynxweb4.com',raw:null};
+ // Only this disposable PUBLIC fixture file is replaced. No user journal is read.
+ const journal={schemaVersion,records:[intent],rejections:[],...(schemaVersion===1?{}:{resolutions:[]}),...(schemaVersion===5?{signedPayments:[],payProgress:[],payHistory:[],preparations:[]}:{})};
+ await writeFile(f.filePath,JSON.stringify(journal),{mode:0o600});const before=await readFile(f.filePath,'utf8');
+ const cold=new FileTransactionIntentStore({filePath:f.filePath});f.sender.submissions.intentStore=cold;
+ assert.equal((await cold.snapshot())[0].raw,null);assert.equal(cold.localOriginal(account),null);
+ await assert.rejects(f.sender.submissions.saveOriginal(f.hash,account,f.guard));
+ assert.equal(await readFile(f.filePath,'utf8'),before);assert.equal((await cold.snapshot())[0].raw,null);
+ assert.equal((await f.sender.submissions.list(account))[0].canRetryExact,false);
+ assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
+});
+test('r6 cold complete duplicate save validates original binding without rewriting or effects',async t=>{
+ const f=await r5HeldNative(t);await f.sender.submissions.saveOriginal(f.hash,account,f.guard);
+ const before=await readFile(f.filePath,'utf8'),cold=new FileTransactionIntentStore({filePath:f.filePath});f.sender.submissions.intentStore=cold;
+ for(let i=0;i<2;i++)assert.deepEqual(await f.sender.submissions.saveOriginal(f.hash,account,f.guard),{account,hash:f.hash,savedLocally:true,submitted:false,confirmed:false});
+ assert.equal((await cold.snapshot())[0].raw,f.raw);assert.equal(await readFile(f.filePath,'utf8'),before);
+ await assert.rejects(f.sender.submissions.saveOriginal('0x'+'f'.repeat(64),account,f.guard));
+ await assert.rejects(f.sender.submissions.saveOriginal(f.hash,recipient,{account:recipient,assert(){}}));
+ await assert.rejects(f.sender.submissions.saveOriginal(f.hash,account,{account,assert(){throw Error('QA_R6_LOCK')}}));
+ assert.equal(await readFile(f.filePath,'utf8'),before);assert.equal((await f.sender.submissions.list(account))[0].canRetryExact,false);
+ await assert.rejects(f.sender.submissions.retry(f.hash,account,f.guard));assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
 });
 function fixture(t, overrides = {}) {
   const state = { chain: "0x1917", nonce: "0x0", balance: toQuantity(10n ** 18n), gasPrice: "0x3b9aca00", estimate: "0x5208", calls: [], signs: 0, broadcasts: 0, ...overrides };
