@@ -15,7 +15,7 @@ import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
-import {createMnemonicUI} from './mnemonic-ui.mjs';
+import {createMnemonicUI,createMnemonicImportUI} from './mnemonic-ui.mjs';
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
@@ -293,11 +293,13 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 const mnemonicUI=createMnemonicUI({document,api:window.ynxWallet,getState:()=>keyState,getAccount:()=>activeAccount,onAccount:renderAccount});
+const mnemonicImportUI=createMnemonicImportUI({document,getState:()=>keyState,getAccount:()=>activeAccount});
 const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton.id='show-recovery-phrase';mnemonicBackupButton.type='button';copyUI(mnemonicBackupButton,'Show recovery phrase');
 document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
 mnemonicBackupButton.addEventListener('click',()=>mnemonicUI.openBackup());
 function renderAccount(payload) {
   if(typeof mnemonicUI!=="undefined")mnemonicUI.invalidate();
+  if(typeof mnemonicImportUI!=="undefined")mnemonicImportUI.invalidate();
   clearAssetBalance();
   clearTransactionResolution();
   invalidateWalletConnectSessions();
@@ -813,6 +815,8 @@ document.querySelector("#refresh-balance").addEventListener("click", refreshAsse
 document.querySelector("#copy-receiving-link").addEventListener("click",()=>void receiveShareUI.copyLink());
 document.querySelector("#copy-address").addEventListener("click",()=>void receiveShareUI.copyAddress());
 document.querySelector("#import-kind").addEventListener("change", event => {
+  // The modal editor owns format changes and clears every secret field.
+  if(typeof mnemonicImportUI!=="undefined")return;
   const encrypted = event.target.value === "encrypted-json";
   document.querySelector("#import-value").hidden = encrypted;
   document.querySelector('label[for="import-value"]').hidden = encrypted;
@@ -824,23 +828,29 @@ document.querySelector("#import-kind").addEventListener("change", event => {
 });
 document.querySelector("#import-form").addEventListener("submit", async event => {
   event.preventDefault();
-  const button = event.target.querySelector("button"); button.disabled = true;
+  const editor=typeof mnemonicImportUI!=="undefined"?mnemonicImportUI:null;
+  const editorToken=editor?.beginSubmission();if(editor&&!editorToken)return;
+  const button = event.target.querySelector('button[type="submit"]'); button.disabled = true;
   const operation=beginAccountOperation(button,"import");
   const output = document.querySelector("#import-result");
   const kind = document.querySelector("#import-kind").value;
-  let value = document.querySelector("#import-value").value;
+  let value = editor?editor.value():document.querySelector("#import-value").value;
   let password = document.querySelector("#import-password").value;
+  const selectedFile=document.querySelector("#import-file").files?.[0];
   document.querySelector("#import-value").value = "";
   document.querySelector("#import-password").value = "";
+  editor?.clearSecrets();
   copyUI(output,"Importing and protecting the account…");
+  if(editor)copyUI(document.querySelector('#import-editor-result'),"Importing and protecting the account…");
   try {
     if (kind === "encrypted-json") {
-      const file = document.querySelector("#import-file").files?.[0];
+      const file = selectedFile;
       if (!file || file.size > 100_000) throw new Error("Choose an encrypted JSON backup smaller than 100 KB.");
       value = await file.text();
     }
-    if (keyState.locked || !accountOperationCurrent(operation)) return;
+    if (keyState.locked || !accountOperationCurrent(operation) || editor&&!editor.accepts(editorToken)) return;
     const result = await window.ynxWallet.importAccount({ kind, value, password });
+    if(editor&&!editor.accepts(editorToken))return;
     if(!accountOperationCurrent(operation)){
       // The normal main-process commit publishes its account event before the
       // IPC receipt. Acknowledge that exact current commit without rendering its
@@ -849,9 +859,10 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
       return;
     }
     if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else if(!renderPermissionError(output,result.error))output.textContent=errorText(result);
+    if(editor&&!result.ok)document.querySelector('#import-editor-result').textContent=output.textContent;
     if (result.ok) renderAccount(result);
-  } catch (error) { if(accountOperationCurrent(operation))copyUI(output,error.message ?? "Unable to import the account."); }
-  finally { value = null; password = null; if(accountOperationCurrent(operation))document.querySelector("#import-file").value = "";finishAccountOperation(operation); }
+  } catch (error) { if(accountOperationCurrent(operation)&&(!editor||editor.accepts(editorToken))){copyUI(output,"Unable to import the account. Check the backup and try again.");if(editor)copyUI(document.querySelector('#import-editor-result'),"Unable to import the account. Check the backup and try again.");} }
+  finally { value = null; password = null; if(accountOperationCurrent(operation))document.querySelector("#import-file").value = "";finishAccountOperation(operation);editor?.finish(editorToken); }
 });
 document.querySelector("#backup-form").addEventListener("submit", async event => {
   event.preventDefault();
@@ -1017,6 +1028,7 @@ function renderKeyState(state) {
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   copyUI(signingShort,state.locked ? "Locked" : "Approval required");
   for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) {const owner=accountOperationOwners.get(element);element.disabled = state.locked || element.dataset.account === activeAccount || !!(owner&&accountOperationCurrent(owner)&&(owner.kind!=="transfer"||owner.draft===paymentDraftRevision));}
+  if(typeof mnemonicImportUI!=="undefined")mnemonicImportUI.render();
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) {

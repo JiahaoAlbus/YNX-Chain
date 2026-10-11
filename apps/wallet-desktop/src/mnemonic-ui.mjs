@@ -1,5 +1,34 @@
 import {setWalletCopy} from './wallet-locale.mjs';
 
+/** Local import editor only; custody and BIP39 validation remain in importAccount. */
+export function createMnemonicImportUI({document:doc,getState,getAccount}) {
+  const $=id=>doc.querySelector(id),sheet=$('#import-sheet');
+  let context=null,fields=[],visible=false,pending=null;
+  function conceal(){visible=false;for(const field of fields)field.type='password';$('#import-show-words').setAttribute('aria-pressed','false');setWalletCopy($('#import-show-words'),'Show words');}
+  function clear(){for(const field of fields)field.value='';for(const id of ['#import-value','#import-password','#import-file'])$(id).value='';$('#import-editor-result').textContent='';conceal();}
+  function valid(){const state=getState();return context&&!state.locked&&!state.authenticating&&state.revision===context.revision&&getAccount()===context.account;}
+  function close(dismissed=true){if(dismissed&&pending)pending.dismissed=true;context=null;clear();if(sheet.open)sheet.close();}
+  function controls(){for(const node of doc.querySelectorAll('#import-form input,#import-form select,#import-form button'))node.disabled=!!pending||!valid();$('#import-close').disabled=false;$('#open-import').disabled=!!pending||getState().locked||getState().authenticating;}
+  function grid(){clear();fields=[];const count=Number($('#import-word-count').value);if(![12,15,18,21,24].includes(count))return;
+    const cells=[];for(let i=0;i<count;i++){const label=doc.createElement('label'),caption=doc.createElement('span'),input=doc.createElement('input');input.id='import-word-'+(i+1);input.type='password';input.autocomplete='off';input.spellcheck=false;input.autocapitalize='none';input.dir='ltr';input.required=true;input.maxLength=32;input.pattern='[A-Za-z]+';label.htmlFor=input.id;setWalletCopy(caption,'Word {number}',{number:i+1});label.append(caption,input);cells.push(label);fields.push(input)}$('#import-word-grid').replaceChildren(...cells);controls();}
+  function format(){clear();const kind=$('#import-kind').value,phrase=kind==='recovery-phrase',encrypted=kind==='encrypted-json';$('#import-word-group').hidden=!phrase;$('#import-value').hidden=phrase||encrypted;$('#import-value').required=kind==='private-key';$('label[for="import-value"]').hidden=phrase||encrypted;$('#import-file-group').hidden=!encrypted;$('#import-password-group').hidden=!encrypted;for(const field of fields)field.required=phrase;controls();}
+  $('#open-import').addEventListener('click',()=>{if(pending||getState().locked||getState().authenticating||doc.querySelector('dialog[open]'))return;clear();context={revision:getState().revision,account:getAccount()};$('#import-kind').value='recovery-phrase';$('#import-word-count').value='12';$('#import-result').textContent='';grid();format();sheet.showModal();fields[0]?.focus();});
+  $('#import-kind').addEventListener('change',format);$('#import-word-count').addEventListener('change',()=>{grid();format()});
+  $('#import-show-words').addEventListener('click',()=>{if(pending||!valid())return;visible=!visible;for(const field of fields)field.type=visible?'text':'password';$('#import-show-words').setAttribute('aria-pressed',String(visible));setWalletCopy($('#import-show-words'),visible?'Hide words':'Show words');});
+  $('#import-close').addEventListener('click',()=>close());sheet.addEventListener('cancel',event=>{event.preventDefault();close()});sheet.addEventListener('close',()=>{if(context)close()});
+  doc.defaultView?.addEventListener('blur',()=>{close();controls()});
+  doc.addEventListener?.('visibilitychange',()=>{if(doc.visibilityState!=='visible'){close();controls()}});
+  return {
+    beginSubmission(){if(pending||!valid()||!sheet.open)return null;pending={dismissed:false};controls();return pending},
+    value(){return $('#import-kind').value==='recovery-phrase'?fields.map(field=>field.value.trim().toLowerCase()).join(' '):$('#import-value').value},
+    clearSecrets:clear,
+    accepts(token){return token===pending&&!token.dismissed},
+    finish(token,success=false){if(token!==pending)return;if(success)close(false);pending=null;controls()},
+    invalidate(){close(false);controls()},
+    render(){if(context&&!valid())close(false);controls()}
+  };
+}
+
 /** Secret-bearing normal UI. No clipboard, screenshots, telemetry or persistence adapters. */
 export function createMnemonicUI({document:doc,api,getState,getAccount,onAccount}) {
   const $=id=>doc.querySelector(id),sheet=$('#mnemonic-sheet');

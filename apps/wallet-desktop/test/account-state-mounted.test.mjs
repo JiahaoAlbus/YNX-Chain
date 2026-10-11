@@ -3,17 +3,19 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {runInNewContext} from "node:vm";
 import {renderPermissionError} from "../src/permission-error-ui.mjs";
+import {createMnemonicImportUI} from "../src/mnemonic-ui.mjs";
 const source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
 const account="0x"+"11".repeat(20),other="0x"+"22".repeat(20);
 const status=(selected=account)=>({ok:true,value:{initialized:true,passwordConfigured:true,account:selected,ynxAccount:selected,accounts:[account,other].map(value=>({account:value,ynxAccount:value}))}});
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
 function harness(){
   const nodes=new Map(),requests=new Map();let eventHandler,elementId=0;
-  const get=selector=>{if(!nodes.has(selector)){const listeners=new Map();nodes.set(selector,{value:"",textContent:"",hidden:false,disabled:false,dataset:{},children:[],files:[],
-    addEventListener(type,listener){listeners.set(type,listener);},emit(type){return listeners.get(type)?.({preventDefault(){},target:this});},
+  const get=selector=>{if(!nodes.has(selector)){const listeners=new Map();nodes.set(selector,{value:"",textContent:"",hidden:false,disabled:false,open:false,dataset:{},children:[],files:[],attributes:new Map(),
+    addEventListener(type,listener){const list=listeners.get(type)??[];list.push(listener);listeners.set(type,list);},emit(type){let result;for(const listener of listeners.get(type)??[])result=listener({preventDefault(){},target:this});return result;},
+    setAttribute(key,value){this.attributes.set(key,value)},getAttribute(key){return this.attributes.get(key)},showModal(){this.open=true},
     append(...children){this.children.push(...children);},replaceChildren(...children){this.children=children;},
-    querySelector(){return get(selector+" button");},close(){},focus(){}});}return nodes.get(selector);};
-  const document={querySelector:get,querySelectorAll:()=>[],createElement:()=>get("element-"+(++elementId))};
+    querySelector(){return get(selector+" button");},close(){this.open=false;this.emit('close')},focus(){}});}return nodes.get(selector);};
+  const document={querySelector:selector=>selector==='dialog[open]'?[...nodes.values()].find(node=>node.open)??null:get(selector),querySelectorAll:()=>[],createElement:()=>get("element-"+(++elementId))};
   const api={onAccountStatus(handler){eventHandler=handler;}};
   for(const method of ["accountStatus","createAccount","addAccount","selectAccount","importAccount","saveBackup"]){requests.set(method,[]);api[method]=(...args)=>new Promise((resolve,reject)=>requests.get(method).push({args,resolve,reject}));}
   const context={document,window:{ynxWallet:api},activeAccount:null,accountState:null,accountViewRevision:0,keyState:{locked:false,revision:1},renderPermissionError,
@@ -23,7 +25,7 @@ function harness(){
   const importStart=source.indexOf('document.querySelector("#import-kind").addEventListener'),importEnd=source.indexOf('document.querySelector("#transfer-form").addEventListener',importStart);
   assert.ok(start>=0&&end>start&&importStart>=0&&importEnd>importStart);
   runInNewContext(source.match(/^function copyUI\([^\n]+/m)[0]+"\n"+source.match(/^function showAccountError\([^\n]+/m)[0]+"\n"+source.slice(start,end)+source.slice(importStart,importEnd),context);
-  return{get,context,requests,event:payload=>eventHandler(payload)};
+  return{get,context,requests,event:payload=>eventHandler(payload),enableEditor(){context.mnemonicImportUI=createMnemonicImportUI({document,getState:()=>context.keyState,getAccount:()=>context.activeAccount});return context.mnemonicImportUI;}};
 }
 for(const response of ["success","failure","throw"])test(`actual initial status ${response} cannot overwrite a newer account event`,async()=>{
   const h=harness();h.event(status(other));
@@ -70,4 +72,24 @@ test("ordinary import own account event is acknowledged without rereading or rep
   const view=h.context.accountViewRevision;h.requests.get("importAccount")[0].resolve(status(other));await pending;
   assert.equal(h.context.activeAccount,other);assert.equal(h.context.accountViewRevision,view);
   assert.equal(h.get("#import-result").textContent,"Account imported. Save a backup and keep it safe.");
+});
+
+for(const count of [12,24])test(`actual modal ${count}-word editor submits ordered public fixture once and acknowledges its exact own commit`,async()=>{
+ const h=harness(),editor=h.enableEditor();h.event(status());h.get('#open-import').emit('click');h.get('#import-word-count').value=String(count);h.get('#import-word-count').emit('change');
+ const words=Array(count).fill('abandon');words[count-1]=count===12?'about':'art';const inputs=h.get('#import-word-grid').children.map(label=>label.children[1]);assert.equal(inputs.length,count);inputs.forEach((input,i)=>input.value=words[i]);
+ const pending=h.get('#import-form').emit('submit');h.get('#import-form').emit('submit');assert.equal(h.requests.get('importAccount').length,1);assert.equal(h.requests.get('importAccount')[0].args[0].kind,'recovery-phrase');assert.equal(h.requests.get('importAccount')[0].args[0].value,words.join(' '));assert.ok(inputs.every(input=>input.value===''));
+ h.context.keyState={locked:true,revision:2,account:other,authenticating:false};h.event(status(other));const view=h.context.accountViewRevision;h.requests.get('importAccount')[0].resolve(status(other));await pending;
+ assert.equal(h.context.accountViewRevision,view);assert.equal(h.get('#import-result').textContent,'Account imported. Save a backup and keep it safe.');assert.equal(h.get('#import-sheet').open,false);assert.equal(editor.beginSubmission(),null);
+});
+for(const response of ['success','failure','throw'])test(`actual modal cancel retires late ${response} without another import or notice`,async()=>{
+ const h=harness();h.enableEditor();h.event(status());h.get('#open-import').emit('click');h.get('#import-word-grid').children.forEach(label=>label.children[1].value='abandon');const pending=h.get('#import-form').emit('submit');h.get('#import-close').emit('click');h.get('#open-import').emit('click');assert.equal(h.get('#import-sheet').open,false);h.get('#import-result').textContent='newer journey';
+ const request=h.requests.get('importAccount')[0];if(response==='throw')request.reject(Error('public transport error'));else request.resolve(response==='success'?status(other):{ok:false,error:{message:'public invalid phrase'}});await pending;
+ assert.equal(h.get('#import-result').textContent,'newer journey');assert.equal(h.requests.get('importAccount').length,1);h.get('#open-import').emit('click');assert.equal(h.get('#import-sheet').open,true);assert.ok(h.get('#import-word-grid').children.every(label=>label.children[1].value===''));
+});
+test('actual modal current import failure is visible inside the dialog; private key and encrypted JSON remain normal import inputs',async()=>{
+ const h=harness();h.enableEditor();h.event(status());h.get('#open-import').emit('click');h.get('#import-kind').value='private-key';h.get('#import-kind').emit('change');h.get('#import-value').value='public-not-a-key';const pending=h.get('#import-form').emit('submit');assert.equal(h.requests.get('importAccount')[0].args[0].value,'public-not-a-key');h.requests.get('importAccount')[0].resolve({ok:false,error:{code:'INVALID',message:'Invalid private key'}});await pending;assert.equal(h.get('#import-editor-result').textContent,'Invalid private key');assert.equal(h.get('#import-sheet').open,true);
+ h.get('#import-kind').value='encrypted-json';h.get('#import-kind').emit('change');h.get('#import-file').files=[{size:2,text:async()=> '{}'}];h.get('#import-password').value='public-test-backup-password';const next=h.get('#import-form').emit('submit');await settle();const request=h.requests.get('importAccount')[1];assert.equal(request.args[0].value,'{}');assert.equal(request.args[0].password,'public-test-backup-password');assert.equal(h.get('#import-password').value,'');request.resolve({ok:false,error:{code:'INVALID',message:'Invalid backup'}});await next;
+});
+test('cancel during an encrypted-file read prevents the later import IPC, without retrying',async()=>{
+ const h=harness();h.enableEditor();h.event(status());h.get('#open-import').emit('click');h.get('#import-kind').value='encrypted-json';h.get('#import-kind').emit('change');let finishRead;h.get('#import-file').files=[{size:2,text:()=>new Promise(resolve=>finishRead=resolve)}];const pending=h.get('#import-form').emit('submit');h.get('#import-close').emit('click');finishRead('{}');await pending;assert.equal(h.requests.get('importAccount').length,0);assert.equal(h.get('#import-sheet').open,false);
 });
