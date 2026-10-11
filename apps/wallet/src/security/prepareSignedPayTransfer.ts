@@ -60,6 +60,9 @@ export async function prepareSignedPayTransfer(input:Readonly<{
   policy:ReturnType<typeof createPayInvoiceSignerPolicy>;authority:WalletPayAuthorityLease|null;
   lease:WalletOperationLease;client:Pick<NativeChainClient,"account"|"requireDurabilityCapability">;
   repository:Pick<WalletRepository,"accountSecret">;authorize:()=>Promise<void>;now?:()=>number;
+  /** Retain a verified public original before any late lease assertion.
+   * This observer grants no key access or submission authority. */
+  retainProduced?:(signed:SignedPayTransferPrepared)=>Promise<void>;
 }>):Promise<SignedPayTransferPrepared>{
   const {lease,authority}=input,now=input.now??Date.now;
   lease.assert();if(!authority||typeof authority.refresh!=="function"||typeof authority.assertCurrent!=="function")return fail("PAY_CURRENT_AUTHORITY_REQUIRED");
@@ -95,8 +98,10 @@ export async function prepareSignedPayTransfer(input:Readonly<{
       // signed. Both signatures use the same existing key read and lease.
       await refresh();await payable();keyGuard();
       const result=createSignedPayPaymentResult({accountSecret:secret,intent:quote.intent,transferPayload:signed.payload,issuedAt:new Date(now()).toISOString()},new Date(now()));
-      keyGuard();const paymentResult=verifyPayPaymentResult(result,quote.intent,review.account,new Date(now()));keyGuard();
+      const paymentResult=verifyPayPaymentResult(result,quote.intent,review.account,new Date(now()));
       if(paymentResult.transactionHash!==signed.hash||paymentResult.accountPublicKey!==review.accountPublicKey)return fail("PAY_SIGNED_RESULT_MISMATCH");
-      return Object.freeze({...signed,paymentResult});
+      const prepared=Object.freeze({...signed,paymentResult});
+      if(input.retainProduced)await input.retainProduced(prepared);
+      keyGuard();return prepared;
     });
 }

@@ -2,7 +2,7 @@ import {canonicalJSON,evmAddressFromYNX,parseProductSession} from "@ynx-chain/wa
 import type {createPayInvoiceSignerPolicy} from "@ynx-chain/wallet-auth";
 import type {SecureStorageAdapter} from "../storage/walletRepository";
 import type {NativeChainClient} from "../chain/nativeTransfer";
-import {NativeTransferOutbox,type NativeTransferOutboxEntry} from "../chain/nativeTransferOutbox";
+import {NativeTransferOutbox,NativePreparationFailure,type NativeTransferPrepared,type NativeTransferOutboxEntry} from "../chain/nativeTransferOutbox";
 import {verifyNativeDurability} from "../chain/nativeDurability";
 import {verifyWalletPayQuote} from "../chain/walletPayQuote";
 import {prepareSignedPayTransfer,assertSignedPayProductSession,assertSignedPaySessionBinding,type WalletPayAuthorityLease} from "../security/prepareSignedPayTransfer";
@@ -45,20 +45,25 @@ export class WalletSignedPayFlow{
     };
     const quote=verifyWalletPayQuote(input.rawInvoice,input.rawIntent,policy,guard,now()),review=Object.freeze({...input.review});
     if(quote.intentDigest!==input.reviewedIntentDigest)throw Error("PAY_EXPLICIT_REVIEW_MISMATCH");
-    const preparedInput={...input,review,rawInvoice:quote.invoice,rawIntent:quote.intent,client:input.chain};
+    assertSignedPaySessionBinding(captured,quote.intent,account);
     guard();if(await this.load(account,policy,guard))throw Error("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");guard();
     if(await this.legacy.read(account))throw Error("PAY_LEGACY_ORIGINAL_REQUIRES_REVIEW");guard();
     if(await this.storage.getItem(SIGNED_PAY_PAID_INVOICE_PREFIX+account+"."+quote.invoice.id)!==null||await this.legacy.hasPaidInvoice(account,quote.invoice.id))throw Error("PAY_INVOICE_ALREADY_PAID");guard();
     let retained:WalletSignedPayRecord|null=null;
-    const dispatchGuard=()=>{guard();if(retained&&now()>=Date.parse(retained.intent.quoteExpiresAt))throw Error("PAY_QUOTE_EXPIRED")};
-    return this.outbox.sendNew(account,input.chain,dispatchGuard,async()=>{
-      const signed=await prepareSignedPayTransfer(preparedInput);dispatchGuard();
+    let produced:NativeTransferPrepared|null=null;
+    const retainProduced=async(signed:Awaited<ReturnType<typeof prepareSignedPayTransfer>>)=>{
+      produced=signed;
       const record={version:2,account,origin:input.chain.origin,invoice:quote.invoice,intent:quote.intent,paymentResult:signed.paymentResult,session:captured,
         transfer:{payload:signed.payload,hash:signed.hash,transaction:signed.transaction}};
-      // Normalize the signed invoice first: unsigned status/descriptions/remote
-      // settlement cannot contaminate immutable retained evidence.
-      const raw=canonicalJSON(record);retained=parseWalletSignedPayRecord(raw,account,policy,dispatchGuard);
-      await this.save(retained,policy,dispatchGuard);dispatchGuard();return retained.transfer;
+      // Historical cryptographic validation is not current dispatch authority.
+      retained=parseWalletSignedPayRecord(canonicalJSON(record),account,policy,()=>{});
+      await this.save(retained,policy,()=>{});
+    };
+    const preparedInput={...input,review,rawInvoice:quote.invoice,rawIntent:quote.intent,client:input.chain,retainProduced};
+    const dispatchGuard=()=>{guard();if(retained&&now()>=Date.parse(retained.intent.quoteExpiresAt))throw Error("PAY_QUOTE_EXPIRED")};
+    return this.outbox.sendNew(account,input.chain,dispatchGuard,async()=>{
+      try{const signed=await prepareSignedPayTransfer(preparedInput);dispatchGuard();return {payload:signed.payload,hash:signed.hash,transaction:signed.transaction}}
+      catch(error){if(produced)throw new NativePreparationFailure(error,produced);throw error}
     },async()=>{
       dispatchGuard();const fresh=await authority.refresh();dispatchGuard();
       if(canonicalJSON(parseProductSession(fresh))!==session)throw Error("PAY_CURRENT_SESSION_CHANGED");
@@ -73,7 +78,7 @@ export class WalletSignedPayFlow{
   })}
   recovery(account:string,policy:Policy,guard:()=>void):Promise<SignedPayRecovery|null>{return this.serial(async()=>{
     const record=await this.load(account,policy,guard);guard();if(!record)return null;
-    const original=await this.outbox.read(account);guard();
+    const original=await this.outbox.readOriginal(account,record.transfer.hash);guard();
     if(original&&(original.hash!==record.transfer.hash||original.payload!==record.transfer.payload||original.origin!==record.origin))throw Error("PAY_SIGNED_ORIGINAL_MISMATCH");
     const durable=!!original&&["accepted","done"].includes(original.phase)&&verifyNativeDurability(original.durabilityEvidence,original.transaction,original.hash,original.origin);
     const state=durable?await this.loadSettlement(record,original!,policy,guard):null;guard();
@@ -149,7 +154,7 @@ export class WalletSignedPayFlow{
   })}
   private async originalForSettlement(account:string,policy:Policy,guard:()=>void){
     const record=await this.load(account,policy,guard);guard();if(!record)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");
-    const original=await this.outbox.read(account);guard();if(!original)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");assertSignedPayOriginal(record,original);return {record,original};
+    const original=await this.outbox.readOriginal(account,record.transfer.hash);guard();if(!original)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");assertSignedPayOriginal(record,original);return {record,original};
   }
   private settlementAuthority(record:WalletSignedPayRecord,transport:WalletSignedSettlementTransport,guard:()=>void,submit:boolean){
     if(!transport?.authority||typeof transport.authority.refresh!=="function"||typeof transport.authority.assertCurrent!=="function"||typeof transport.readOriginal!=="function"||typeof transport.submitOriginal!=="function")throw Error("PAY_CURRENT_SETTLEMENT_AUTHORITY_REQUIRED");
@@ -202,7 +207,7 @@ export class WalletSignedPayFlow{
   }
   checkOriginal(account:string,policy:Policy,chain:NativeChainClient,guard:()=>void):Promise<NativeTransferOutboxEntry>{return this.serial(async()=>{
     const record=await this.load(account,policy,guard);guard();if(!record)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");
-    let original=await this.outbox.read(account);guard();
+    let original=await this.outbox.readOriginal(account,record.transfer.hash);guard();
     if(chain.origin!==record.origin)throw Error("PAY_SIGNED_ORIGINAL_MISMATCH");
     if(!original){original=await this.outbox.retainUnknown(account,record.origin,record.transfer,record.paymentResult.issuedAt,guard);guard()}
     if(original.hash!==record.transfer.hash||original.payload!==record.transfer.payload||original.origin!==record.origin)throw Error("PAY_SIGNED_ORIGINAL_MISMATCH");

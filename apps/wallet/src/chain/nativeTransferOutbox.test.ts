@@ -3,7 +3,7 @@ import test from "node:test";
 import { createSignedNativeTransfer, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { NativeBroadcastUnknown, NativeChainClient } from "./nativeTransfer";
 import { NATIVE_DURABILITY_MODEL,createNativeDurabilityEvidence } from "./nativeDurability";
-import { NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX,NATIVE_OUTBOX_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
+import { NATIVE_PREPARATION_PREFIX,NativePreparationFailure,NativeSigningResultUnknown,NATIVE_OUTBOX_PREFIX,NATIVE_HISTORY_PREFIX,NATIVE_OUTBOX_HISTORY_PREFIX, NativeOutboxBlocked, NativeOutboxStorageError, NativeTransferOutbox } from "./nativeTransferOutbox";
 import { WalletOperationLifecycle } from "../security/operationLifecycle";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
 import {WalletRepository,WalletSecretRecoveryRequired} from "../storage/walletRepository";
@@ -12,10 +12,52 @@ const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"),to
 const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:25,nonce:7});
 const storageKey=NATIVE_OUTBOX_PREFIX+account;
 const noGuard=()=>{};
+test("durable preparation persisted marker ACK loss never invokes a signer and blocks after cold reopen",async()=>{
+ const storage=new MemoryStorage();storage.setItem=async(k,v)=>{storage.values.set(k,v);throw Error('marker persisted but acknowledgement lost')};let signs=0;
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);
+ await assert.rejects(new NativeTransferOutbox(storage).read(account),NativeSigningResultUnknown);
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeSigningResultUnknown);assert.equal(signs,0);
+});
+test("durable preparation typed native-only failure blocks retry without prompting or POST",async()=>{
+ const storage=new MemoryStorage();let posts=0,prompts=0;
+ const remote=client(async()=>{posts++;throw Error('unexpected')});
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,remote,noGuard,async()=>{throw new NativePreparationFailure(Error('Pay binding failed'),signed)}));
+ const cold=new NativeTransferOutbox(storage);assert.equal((await cold.read(account))?.hash,signed.hash);
+ await assert.rejects(cold.retry(account,signed.hash,remote,noGuard,async()=>{prompts++}),NativeOutboxBlocked);
+ assert.equal(prompts,0);assert.equal(posts,0);
+});
+test("durable preparation marker rejection prevents even the first signer invocation",async()=>{
+ const storage=new MemoryStorage();storage.setItem=async()=>{throw Error('preparation marker denied')};let signs=0,posts=0;
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{posts++;throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);
+ assert.equal(signs,0);assert.equal(posts,0);
+});
+test("durable preparation process death and cold null block replacement signing",async()=>{
+ const storage=new MemoryStorage();let signs=0;
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;throw Error('simulated process death after unknown producer result')}));
+ assert.equal(storage.values.has(storageKey),false);assert.ok(storage.values.has(NATIVE_PREPARATION_PREFIX+account));
+ await assert.rejects(new NativeTransferOutbox(storage).read(account),NativeSigningResultUnknown);
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeSigningResultUnknown);
+ assert.equal(signs,1);
+});
+test("durable preparation late lock and producer error retain public original without POST",async()=>{
+ for(const typed of [false,true]){
+  const storage=new MemoryStorage();let locked=false,posts=0;
+  await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{posts++;throw Error('unexpected')}),()=>{if(locked)throw Error('locked')},async()=>{locked=true;if(typed)throw new NativePreparationFailure(Error('locked'),signed);return signed}));
+  const retained=await new NativeTransferOutbox(storage).read(account);assert.equal(retained?.phase,'prepared');assert.equal(retained?.hash,signed.hash);assert.equal(posts,0);
+ }
+});
+test("durable preparation signed-record write rejection preserves UNKNOWN barrier after restart",async()=>{
+ const storage=new MemoryStorage();storage.failWrite=1;let signs=0;
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);
+ await assert.rejects(new NativeTransferOutbox(storage).read(account),NativeSigningResultUnknown);
+ await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeSigningResultUnknown);assert.equal(signs,1);
+});
 class MemoryStorage implements SecureStorageAdapter {
   values=new Map<string,string>();events:string[]=[];writes=0;failWrite=0;failRead=0;reads=0;afterRead:(key:string)=>void=()=>{};
-  async getItem(key:string){this.events.push("read");const value=this.values.get(key)??null;this.afterRead(key);if(++this.reads===this.failRead)throw new Error("synthetic read failure");return value}
-  async setItem(key:string,value:string){this.events.push("write");if(++this.writes===this.failWrite)throw new Error("synthetic write failure");this.values.set(key,value)}
+  // Legacy numbered fault injection remains scoped to original outbox/history
+  // I/O. The new preparation namespace has separate targeted fault controls.
+  async getItem(key:string){const preparation=key.startsWith(NATIVE_PREPARATION_PREFIX);if(!preparation)this.events.push("read");const value=this.values.get(key)??null;if(!preparation)this.afterRead(key);if(!preparation&&++this.reads===this.failRead)throw new Error("synthetic read failure");return value}
+  async setItem(key:string,value:string){const preparation=key.startsWith(NATIVE_PREPARATION_PREFIX);if(!preparation){this.events.push("write");if(++this.writes===this.failWrite)throw new Error("synthetic write failure")}this.values.set(key,value)}
   async deleteItem(){throw new Error("Outbox must never delete the record")}
 }
 function response(value:unknown,status=200){return new Response(JSON.stringify(value),{status,headers:{"Content-Type":"application/json"}})}
@@ -263,7 +305,8 @@ test("confirmed result requires explicit Done before any new signature, includin
   await assert.rejects(()=>restarted.acknowledge(account,"0x"+"0".repeat(64),noGuard),NativeOutboxBlocked);
   assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");
   assert.equal((await restarted.read(account))?.hash,signed.hash,"acknowledgement retains the last original receipt");
-  let signedAgain=false;await restarted.sendNew(account,remote,noGuard,async()=>{signedAgain=true;return signed});assert.equal(signedAgain,true);
+  const next=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:25,nonce:8});
+  let signedAgain=false;await restarted.sendNew(account,remote,noGuard,async()=>{signedAgain=true;return next});assert.equal(signedAgain,true);
 });
 
 test("identity-extended receipt recovers a saved transfer, survives restart, and Done releases the next preparation without rebroadcast",async()=>{
@@ -282,7 +325,7 @@ test("identity-extended receipt recovers a saved transfer, survives restart, and
   const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"accepted");
   assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");
   let preparations=0;const stop=new Error("stop at next preparation; do not sign or send");
-  await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{preparations++;throw stop}),error=>error===stop);
+  await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{preparations++;throw new NativePreparationFailure(stop,null)}),error=>error instanceof NativePreparationFailure&&error.failure===stop);
   assert.equal(preparations,1);assert.equal(broadcasts,0);assert.equal((await restarted.read(account))?.hash,signed.hash);
 });
 
@@ -309,7 +352,8 @@ test("persisted accepted/done bits without a presently verified proof never rele
 for(const fail of ["prepared write","prepared readback","dispatch write","dispatch readback"] as const)test(`${fail} failure stops network dispatch and does not remove a stored original`,async()=>{
   const storage=new MemoryStorage();if(fail==="prepared write")storage.failWrite=1;if(fail==="dispatch write")storage.failWrite=2;if(fail==="prepared readback")storage.failRead=2;if(fail==="dispatch readback")storage.failRead=3;
   let broadcasts=0;await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,client(async()=>{broadcasts++;return response(success())}),noGuard,async()=>signed),NativeOutboxStorageError);assert.equal(broadcasts,0);
-  const record=await fixtureOutbox(storage).read(account);if(fail!=="prepared write"){assert.equal(record?.hash,signed.hash);assert.equal(record?.payload,signed.payload)}
+  if(fail==="prepared write")await assert.rejects(fixtureOutbox(storage).read(account),NativeSigningResultUnknown);
+  else{const record=await fixtureOutbox(storage).read(account);assert.equal(record?.hash,signed.hash);assert.equal(record?.payload,signed.payload)}
 });
 
 test("observed ACK storage failure leaves the durable unknown marker and blocks new signing",async()=>{
@@ -361,7 +405,9 @@ test("unsafe whole-YNXT totals and mismatched locally signed identity stop befor
   const storage=new MemoryStorage();
   await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>excessive),/identity/);
   await assert.rejects(()=>fixtureOutbox(storage).sendNew(to,remote,noGuard,async()=>signed),/identity/);
-  assert.equal(calls,0);assert.equal(storage.values.size,0);
+  assert.equal(calls,0);assert.equal(storage.values.has(storageKey),false);assert.equal(storage.values.has(NATIVE_OUTBOX_PREFIX+to),false);
+  await assert.rejects(fixtureOutbox(storage).read(account),NativeSigningResultUnknown);
+  await assert.rejects(fixtureOutbox(storage).read(to),NativeSigningResultUnknown);
 });
 
 test("body-read timeout remains unknown even if fetch ignores abort",async t=>{

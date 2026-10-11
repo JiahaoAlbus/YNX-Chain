@@ -1,6 +1,6 @@
 import {createSignedNativeTransfer,evmAddressFromYNX,walletIdentity} from "@ynx-chain/wallet-auth";
 import type {NativeChainClient} from "../chain/nativeTransfer";
-import type {NativeTransferPrepared} from "../chain/nativeTransferOutbox";
+import {NativePreparationFailure,type NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import type {WalletRepository} from "../storage/walletRepository";
 import type {WalletOperationLease} from "./operationLifecycle";
 
@@ -23,6 +23,8 @@ export async function prepareNativeTransferWithBinding<T>(review:NativeTransferR
   repository:Pick<WalletRepository,"accountSecret">,authorize:()=>Promise<void>,assertBinding:()=>void,
   bind:(signed:NativeTransferPrepared,secret:string,guard:()=>void)=>T|Promise<T>):Promise<T>{
   const guard=()=>{lease.assert();assertBinding()};
+  let produced:NativeTransferPrepared|null=null;
+  try{
   const step=async<R>(operation:()=>Promise<R>)=>{guard();const result=await operation();guard();return result};
   const request=Object.freeze({...review});guard();
   if(lease.account!==request.account)throw new Error("Signing account changed after review");
@@ -34,10 +36,12 @@ export async function prepareNativeTransferWithBinding<T>(review:NativeTransferR
   if(remote.balance<request.amount+1)throw new Error("Insufficient YNXT to cover the reviewed amount and 1 YNXT fee");
   if(!Number.isSafeInteger(remote.nonce+1))throw new Error("The next account nonce exceeds the supported range");
   await step(()=>client.requireDurabilityCapability());
-  return lease.withSecret(()=>{guard();return repository.accountSecret(request.account,guard,{allowLegacyMigration:true})},async secret=>{
+  return await lease.withSecret(()=>{guard();return repository.accountSecret(request.account,guard,{allowLegacyMigration:true})},async secret=>{
     guard();const identity=walletIdentity(secret);
     if(identity.account!==request.account||identity.accountPublicKey!==request.accountPublicKey)throw new Error("Signing account changed after review");
     const signed=createSignedNativeTransfer({accountSecret:secret,to:request.to,amount:request.amount,nonce:remote.nonce+1});
+    produced=signed;
     guard();const result=await bind(signed,secret,guard);guard();return result;
   });
+  }catch(error){throw new NativePreparationFailure(error,produced)}
 }

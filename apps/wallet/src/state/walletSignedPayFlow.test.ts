@@ -26,6 +26,17 @@ function fixture(){
   const input={...f.input,chain};
   return{...f,storage,account,policy,chain,outbox,legacy,flow,input,broadcasts:()=>broadcasts};
 }
+test("durable preparation lock during signed Pay publication retains both originals and blocks duplicate callback",async()=>{
+ const f=fixture();try{
+  const set=f.storage.setItem.bind(f.storage);
+  f.storage.setItem=async(k,v)=>{await set(k,v);if(k.startsWith(SIGNED_PAY_BINDING_PREFIX))f.operations.lock()};
+  await assert.rejects(f.flow.payReviewed(f.input),/cancelled/);
+  const record=await f.flow.read(f.account,f.policy,()=>{}),native=await f.outbox.read(f.account);
+  assert.ok(record);assert.equal(native?.hash,record.transfer.hash);assert.equal(native?.phase,'prepared');
+  assert.equal(f.operations.isUnlocked(),false);assert.equal(f.broadcasts(),0);assert.equal(f.counts().reads,1);
+  await assert.rejects(f.flow.payReviewed(f.input));assert.equal(f.counts().reads,1);assert.equal(f.broadcasts(),0);
+ }finally{f.lease.finish()}
+});
 test("signed Pay retains original invoice/intent/result before native dispatch; lost ACK recovers without signing again",async()=>{
   const f=fixture();try{
     const result=await f.flow.payReviewed(f.input);assert.equal(result.phase,"unknown");assert.equal(f.broadcasts(),1);
@@ -57,7 +68,7 @@ test("signed record readback failure never dispatches and preserves attempted pu
     f.storage.setItem=async(key,value)=>{f.storage.values.set(key,value);if(key.startsWith(SIGNED_PAY_BINDING_PREFIX))written=true};
     f.storage.getItem=async key=>written&&key.startsWith(SIGNED_PAY_BINDING_PREFIX)?null:get(key);
     await assert.rejects(f.flow.payReviewed(f.input),/RECORD_UNAVAILABLE/);
-    assert.equal(f.broadcasts(),0);assert.equal(await f.outbox.read(f.account),null);
+    assert.equal(f.broadcasts(),0);const original=await f.outbox.read(f.account);assert.equal(original?.phase,"prepared");assert.ok(original?.hash);
     assert.ok(f.storage.values.has(SIGNED_PAY_BINDING_PREFIX+f.account));
   }finally{f.lease.finish()}
 });

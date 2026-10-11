@@ -9,6 +9,8 @@ export const NATIVE_HISTORY_PREFIX="ynx.wallet.native-history.v1.";
 export const NATIVE_OUTBOX_HISTORY_PREFIX="ynx.wallet.native-outbox-history.v1.";
 const HISTORY_HEAD_PREFIX="ynx.wallet.native-history-head.v1.";
 const HISTORY_NODE_PREFIX="ynx.wallet.native-history-node.v1.";
+export const NATIVE_PREPARATION_PREFIX="ynx.wallet.native-preparation.v1.";
+type PreparationMarker=Readonly<{version:1;account:string;origin:string;createdAt:string;previousHash:string|null;phase:"preparing"|"unsigned_failed"|"signed"|"signed_failed";hash:string|null}>;
 export type NativeTransferOutboxEntry=Readonly<{
   version:1;account:string;origin:string;payload:string;hash:string;transaction:SignedNativeTransfer;
   phase:"prepared"|"unknown"|"observed"|"accepted"|"done"|"pending_durable"|"uncertain"|"memory_only"|"not_found"|"unsupported";
@@ -22,7 +24,23 @@ export type NativeTransferHistory=Readonly<{records:readonly NativeTransferHisto
 type Guard=()=>void;
 const queues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
 export class NativeOutboxBlocked extends Error {readonly code="NATIVE_OUTBOX_BLOCKED";constructor(){super("A stored transfer needs your review before this account can sign another transfer.")}}
-export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBOX_STORAGE_FAILED";constructor(){super("The transfer record could not be stored and verified. Sending is paused. Reopen the stored transfer to check its state.")}}
+export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBOX_STORAGE_FAILED";constructor(readonly retainedOriginal:NativeTransferPrepared|null=null){super("The transfer record could not be stored and verified. Sending is paused. Reopen the stored transfer to check its state.")}}
+/** Local handoff of public signed bytes, not a signing/broadcast capability. */
+export class NativePreparationFailure extends Error {
+  readonly signed:NativeTransferPrepared|null;
+  readonly code:string;
+  constructor(readonly failure:unknown,signed:NativeTransferPrepared|null){
+    super(failure instanceof Error?failure.message:"Native preparation failed");
+    this.name="NativePreparationFailure";
+    this.code=typeof (failure as {code?:unknown})?.code==="string"?(failure as {code:string}).code:"NATIVE_PREPARATION_FAILED";
+    this.signed=signed?Object.freeze({payload:signed.payload,hash:signed.hash,transaction:parseSignedNativeTransfer(signed.payload)}):null;
+    if(this.signed&&nativeTransferHash(this.signed.payload)!==this.signed.hash)throw new NativeOutboxStorageError();
+  }
+}
+export class NativeSigningResultUnknown extends Error {
+  readonly code="NATIVE_SIGNING_RESULT_UNKNOWN";
+  constructor(readonly preparation:PreparationMarker){super("An interrupted signing operation requires review. Its result is unknown; do not sign or send a replacement.")}
+}
 
 /** Contains signed public wire bytes, never account keys. The ordinary SecureStore
  * namespace keeps this available for review after key invalidation or Wallet lock.
@@ -31,6 +49,11 @@ export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBO
 export class NativeTransferOutbox {
   constructor(private readonly storage:SecureStorageAdapter,private readonly now:()=>Date=()=>new Date()){}
   read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(()=>this.load(account))}
+  /** A separately verified Pay journal may inspect an exact historical hash.
+   * Missing bytes here never clear the signing barrier or authorize dispatch. */
+  readOriginal(account:string,reviewedHash:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(async()=>{
+    historyKey(account,reviewedHash);return this.load(account,true);
+  })}
   /** Known-hash lookup, not an enumeration claim: SecureStore has no key listing.
    * Both archive generations are signature/checkpoint verified, read-only. */
   resolution(account:string,hash:string):Promise<NativeTransferResolution|null>{return this.serial(async()=>{
@@ -55,7 +78,9 @@ export class NativeTransferOutbox {
    * process death happened between the two storage writes. Missing outbox never
    * proves non-submission: restore uncertain, not new/unsent, and never POST. */
   retainUnknown(account:string,origin:string,signed:NativeTransferPrepared,createdAt:string,assertCurrent:Guard):Promise<NativeTransferOutboxEntry>{return this.serial(async()=>{
-    assertCurrent();const existing=await this.load(account);assertCurrent();
+    assertCurrent();const existing=await this.load(account,true);assertCurrent();
+    const pending=await this.storage.getItem(NATIVE_PREPARATION_PREFIX+account);assertCurrent();
+    if(pending!==null){const marker=parsePreparation(pending,account);if(marker.phase!=="unsigned_failed"&&(!["signed","signed_failed"].includes(marker.phase)||marker.hash!==signed.hash||marker.origin!==origin))throw new NativeSigningResultUnknown(marker)}
     if(existing){if(existing.payload!==signed.payload||existing.hash!==signed.hash||existing.origin!==origin)throw new NativeOutboxBlocked();return existing}
     const recovered=parse({version:1,account,origin,...signed,phase:"uncertain",attempts:0,createdAt,updatedAt:this.now().toISOString(),replayed:null,durabilityEvidence:null},account);
     let archived:string|null;
@@ -95,9 +120,29 @@ export class NativeTransferOutbox {
       if(existing&&existing.phase!=="done")throw new NativeOutboxBlocked();
       if(existing)await this.archive(existing,assertCurrent);
       await client.requireDurabilityCapability();assertCurrent();
-      const signed=await prepare();assertCurrent();
       const time=this.now().toISOString();
+      const marker:PreparationMarker=Object.freeze({version:1,account,origin:client.origin,createdAt:time,previousHash:existing?.hash??null,phase:"preparing",hash:null});
+      // Verified durable intent MUST precede the opaque preparation callback.
+      // Death or an unclassified callback failure is not proof of no signature.
+      await this.savePreparation(marker);
+      try{assertCurrent()}catch(error){await this.savePreparation({...marker,phase:"unsigned_failed"});throw error}
+      let signed:NativeTransferPrepared;
+      try{signed=await prepare()}catch(error){
+        if(error instanceof NativePreparationFailure){
+          if(error.signed){
+            if(existing?.hash===error.signed.hash){await this.savePreparation({...marker,phase:"signed",hash:existing.hash});throw error}
+            const original=parse({version:1,account,origin:client.origin,...error.signed,phase:"prepared",attempts:0,createdAt:time,updatedAt:this.now().toISOString(),replayed:null,durabilityEvidence:null},account);
+            await this.savePreparation({...marker,phase:"signed_failed",hash:original.hash});
+            await this.save(original);
+          }else await this.savePreparation({...marker,phase:"unsigned_failed"});
+        }
+        throw error;
+      }
       const record=parse({version:1,account,origin:client.origin,...signed,phase:"prepared",attempts:0,createdAt:time,updatedAt:time,replayed:null,durabilityEvidence:null},account);
+      if(existing?.hash===record.hash){await this.savePreparation({...marker,phase:"signed",hash:existing.hash});throw new NativeOutboxBlocked()}
+      // Saving a produced public result is independent of the secret lease.
+      // Current authority remains mandatory before ANY outward effect.
+      await this.savePreparation({...marker,phase:"signed",hash:record.hash});
       await this.save(record);assertCurrent();
       return this.dispatch(record,client,assertCurrent,true,beforeBroadcast);
     });
@@ -124,6 +169,8 @@ export class NativeTransferOutbox {
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase==="done"||record.phase==="accepted")throw new NativeOutboxBlocked();
       if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before retrying.");
+      const pending=await this.storage.getItem(NATIVE_PREPARATION_PREFIX+account);assertCurrent();
+      if(pending!==null&&parsePreparation(pending,account).phase==="signed_failed")throw new NativeOutboxBlocked();
       await authorize();assertCurrent();
       // No nonce lookup, account-secret read, or signing call exists on this path.
       return this.dispatch(record,client,assertCurrent);
@@ -158,8 +205,24 @@ export class NativeTransferOutbox {
     await this.save(outcome);
     return outcome;
   }
-  private async load(account:string):Promise<NativeTransferOutboxEntry|null>{
-    try{const raw=await this.storage.getItem(key(account));if(raw===null)return null;if(raw.length>8192)throw new Error();return parse(JSON.parse(raw),account)}catch{throw new NativeOutboxStorageError()}
+  private async load(account:string,historicalOnly=false):Promise<NativeTransferOutboxEntry|null>{
+    try{
+      const raw=await this.storage.getItem(key(account));
+      if(raw!==null&&raw.length>8192)throw new Error();
+      const record=raw===null?null:parse(JSON.parse(raw),account);
+      const pending=await this.storage.getItem(NATIVE_PREPARATION_PREFIX+account);
+      if(pending!==null){
+        const marker=parsePreparation(pending,account);
+        if(marker.phase!=="unsigned_failed"){
+          const original=record&&record.origin===marker.origin&&(["signed","signed_failed"].includes(marker.phase)?marker.hash===record.hash:record.createdAt===marker.createdAt&&record.hash!==marker.previousHash);
+          if(!original&&!historicalOnly)throw new NativeSigningResultUnknown(marker);
+        }
+      }
+      return record;
+    }catch(error){if(error instanceof NativeSigningResultUnknown)throw error;throw new NativeOutboxStorageError()}
+  }
+  private async savePreparation(marker:PreparationMarker):Promise<void>{
+    try{const encoded=JSON.stringify(marker),k=NATIVE_PREPARATION_PREFIX+marker.account;parsePreparation(encoded,marker.account);await this.storage.setItem(k,encoded);const actual=await this.storage.getItem(k);if(actual!==encoded)throw new Error();parsePreparation(actual,marker.account)}catch{throw new NativeOutboxStorageError()}
   }
   /** Publish immutable original + linked node + verified head BEFORE Done.
    * Interrupted publication is resumed, never pruned or overwritten. */
@@ -191,12 +254,19 @@ export class NativeTransferOutbox {
   }
   private async save(record:NativeTransferOutboxEntry):Promise<void>{
     const encoded=JSON.stringify(record),storageKey=key(record.account);
-    try{if(encoded.length>8192)throw new Error();await this.storage.setItem(storageKey,encoded);const readback=await this.storage.getItem(storageKey);if(readback!==encoded)throw new Error();parse(JSON.parse(readback),record.account)}catch{throw new NativeOutboxStorageError()}
+    try{if(encoded.length>8192)throw new Error();await this.storage.setItem(storageKey,encoded);const readback=await this.storage.getItem(storageKey);if(readback!==encoded)throw new Error();parse(JSON.parse(readback),record.account)}catch{throw new NativeOutboxStorageError(Object.freeze({payload:record.payload,hash:record.hash,transaction:record.transaction}))}
   }
   private serial<T>(work:()=>Promise<T>):Promise<T>{const pending=(queues.get(this.storage)??Promise.resolve()).catch(()=>{}).then(work);queues.set(this.storage,pending);return pending}
 }
 
 function key(account:string):string{evmAddressFromYNX(account);return NATIVE_OUTBOX_PREFIX+account}
+function parsePreparation(raw:string,account:string):PreparationMarker{
+  if(raw.length>1024)throw new Error();const m=JSON.parse(raw);
+  if(!m||Object.keys(m).sort().join(",")!=="account,createdAt,hash,origin,phase,previousHash,version"||m.version!==1||m.account!==account||!["preparing","unsigned_failed","signed","signed_failed"].includes(m.phase))throw new Error();
+  key(account);if(new NativeChainClient(m.origin).origin!==m.origin||typeof m.createdAt!=="string"||new Date(m.createdAt).toISOString()!==m.createdAt)throw new Error();
+  for(const hash of [m.hash,m.previousHash])if(hash!==null&&(typeof hash!=="string"||!/^0x[0-9a-f]{64}$/.test(hash)))throw new Error();
+  if(["signed","signed_failed"].includes(m.phase)!==(m.hash!==null))throw new Error();return Object.freeze(m);
+}
 function historyKey(account:string,hash:string):string{key(account);if(!/^0x[0-9a-f]{64}$/.test(hash))throw new Error("Invalid saved native hash");return NATIVE_HISTORY_PREFIX+account+"."+hash}
 function parseHistoryNode(raw:string,account:string,hash:string):string|null{
   if(raw.length>512)throw new Error();const value=JSON.parse(raw);

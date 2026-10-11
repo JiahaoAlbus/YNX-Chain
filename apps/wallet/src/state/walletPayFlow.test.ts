@@ -56,7 +56,7 @@ test("Pay binding storage readback failure prevents broadcast and cannot erase n
   storage.setItem=async(key,value)=>{if(key.startsWith("ynx.wallet.pay-binding"))return;await set(key,value)};
   const f=setup(storage);
   await assert.rejects(()=>f.flow.payReviewed(invoice,account,f.chain,guard,async()=>signed),/PAY_BINDING_STORAGE_UNAVAILABLE/);
-  assert.equal(f.broadcasts(),0);assert.equal(await f.outbox.read(account),null);
+  assert.equal(f.broadcasts(),0);const original=await f.outbox.read(account);assert.equal(original?.phase,"prepared");assert.equal(original?.hash,signed.hash);
 });
 async function durableFixture(f:ReturnType<typeof setup>,reviewed=invoice,prepared=signed){
   const invoice=reviewed,signed=prepared;

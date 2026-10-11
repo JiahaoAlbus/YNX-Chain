@@ -2,10 +2,20 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {evmAddressFromYNX,walletIdentity,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
 import {WalletOperationLifecycle} from "./operationLifecycle";
-import {prepareNativeTransfer} from "./prepareNativeTransfer";
+import {prepareNativeTransfer,prepareNativeTransferWithBinding} from "./prepareNativeTransfer";
+import {NativePreparationFailure} from "../chain/nativeTransferOutbox";
 
 const seed="01".repeat(32),identity=walletIdentity(seed),to=ynxAddressFromEVM("0x"+"2".repeat(40));
 const review={account:identity.account,accountPublicKey:identity.accountPublicKey,to,amount:25};
+test("durable preparation handoff retains actual native signature after binding locks the secret lease",async()=>{
+ const f=fixture();let original:any;
+ try{
+  await assert.rejects(prepareNativeTransferWithBinding(review,f.lease,f.client,f.repository,f.authorize,()=>{},async signed=>{original=signed;f.operations.lock();await Promise.resolve();return signed}),error=>{
+   assert.ok(error instanceof NativePreparationFailure);assert.equal(error.signed?.hash,original.hash);assert.equal(error.signed?.payload,original.payload);assert.equal('accountSecret' in error.signed!,false);return true;
+  });
+  assert.equal(f.operations.isUnlocked(),false);assert.equal(f.calls.filter(c=>c==='protected-key').length,1);
+ }finally{f.lease.finish()}
+});
 function fixture(){
   const operations=new WalletOperationLifecycle();operations.setAccount(identity.account);
   const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();

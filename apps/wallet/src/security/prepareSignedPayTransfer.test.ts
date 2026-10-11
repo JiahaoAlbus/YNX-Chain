@@ -2,8 +2,18 @@ import {test} from "node:test";
 import assert from "node:assert/strict";
 import {verifyPayPaymentResult,walletIdentity,ynxAddressFromEVM} from "@ynx-chain/wallet-auth";
 import {prepareSignedPayTransfer} from "./prepareSignedPayTransfer";
+import {NativePreparationFailure} from "../chain/nativeTransferOutbox";
 import {signedPayFixture as fixture} from "./signedPayTestFixture";
 const at=Date.parse("2026-10-03T01:00:00.000Z"),identity=walletIdentity("01".repeat(32));
+test("durable preparation native-only Pay retains native original but never reports both signatures ready",async()=>{
+ const f=fixture();let publications=0;const refresh=f.authority.refresh;
+ f.authority.refresh=async()=>{if(f.counts().reads>0)throw Error('controlled post-native authority failure');return refresh()};
+ try{
+  await assert.rejects(prepareSignedPayTransfer({...f.input,retainProduced:async()=>{publications++}}),error=>{
+   assert.ok(error instanceof NativePreparationFailure);assert.ok(error.signed);assert.equal(error.signed.transaction.amount,25);assert.equal(error.signed.transaction.nonce,2);assert.equal('paymentResult' in error.signed,false);return true;
+  });assert.equal(publications,0);assert.equal(f.counts().reads,1);
+ }finally{f.lease.finish()}
+});
 for(const version of [2,3,4,5])test(`V${version} preparation preserves the original signed invoice restrictions`,async()=>{
   const f=fixture(version);try{const signed=await prepareSignedPayTransfer(f.input);assert.equal(signed.paymentResult.invoiceId,f.input.rawInvoice.id);assert.equal(signed.transaction.amount,25);assert.equal(f.counts().reads,1)}finally{f.lease.finish()}
 });

@@ -4,7 +4,7 @@ import {bytesToHex} from "@noble/hashes/utils.js";
 import type {SecureStorageAdapter} from "../storage/walletRepository";
 import {NativeChainClient} from "../chain/nativeTransfer";
 import {verifyNativeDurability} from "../chain/nativeDurability";
-import {NativeTransferOutbox,type NativeTransferOutboxEntry,type NativeTransferPrepared} from "../chain/nativeTransferOutbox";
+import {NativeTransferOutbox,NativePreparationFailure,type NativeTransferOutboxEntry,type NativeTransferPrepared} from "../chain/nativeTransferOutbox";
 import {WalletPayInvoiceClient,WalletPayError,assertWalletPayReview,parseWalletPayInvoice,parseWalletPaySettlement,type WalletPayInvoice,type WalletPaySettlement} from "../chain/walletPayInvoice";
 import {buildWalletPayReview,type WalletPayReview} from "./walletPayReview";
 import {SIGNED_PAY_BINDING_PREFIX} from "./walletSignedPayRecord";
@@ -44,7 +44,7 @@ export class WalletPayFlow {
    * queries a QR origin, signs, resends or creates a settlement session. */
   recovery(account:string,guard:Guard):Promise<WalletPayReview|null>{return this.serial(async()=>{
     guard();const binding=await this.load(account);guard();if(!binding)return null;
-    const original=await this.outbox.read(account);guard();
+    const original=await this.outbox.readOriginal(account,binding.hash);guard();
     return buildWalletPayReview(account,binding.invoice,binding,original,this.now());
   })}
   receipt(account:string,hash:string):Promise<WalletPayReceipt|null>{return this.serial(async()=>{
@@ -78,7 +78,7 @@ export class WalletPayFlow {
     return this.serial(async()=>{
       guard();const binding=await this.load(account);guard();
       if(!binding||binding.hash!==reviewedHash||binding.phase!=="settled")throw new WalletPayError("PAY_SETTLED_REVIEW_REQUIRED");
-      const original=await this.outbox.read(account);guard();
+      const original=await this.outbox.readOriginal(account,binding.hash);guard();
       if(!original||original.hash!==binding.hash||original.origin!==binding.origin)throw new WalletPayError("PAY_ORIGINAL_TRANSFER_MISSING");
       parseWalletPaySettlement(binding.settlement,binding.invoice,account,original);
       const receipt=Object.freeze({binding,transfer:original}),raw=JSON.stringify(receipt),key=this.receiptKey(account,reviewedHash);
@@ -121,7 +121,9 @@ export class WalletPayFlow {
       // inherited from an old QR or from an earlier version of the invoice.
       if(JSON.stringify(fresh)!==JSON.stringify(invoice))throw new WalletPayError("PAY_INVOICE_CHANGED_REVIEW_AGAIN");
       return this.outbox.sendNew(account,chain,guard,async()=>{
-        guard();assertWalletPayReview(fresh,account,this.now());const signed=await prepare(fresh);guard();
+        let produced:NativeTransferPrepared|null=null;
+        try{
+        guard();assertWalletPayReview(fresh,account,this.now());const signed=await prepare(fresh);produced=signed;guard();
         const tx=parseSignedNativeTransfer(signed.payload);
         if(JSON.stringify(tx)!==JSON.stringify(signed.transaction)||nativeTransferHash(signed.payload)!==signed.hash||
           tx.from!==evmAddressFromYNX(account)||tx.to!==evmAddressFromYNX(fresh.payoutAddress)||tx.amount!==fresh.amount||tx.fee!==1)
@@ -133,6 +135,7 @@ export class WalletPayFlow {
         const idempotencyKey="wallet-pay-"+bytesToHex(sha256(new TextEncoder().encode(JSON.stringify([account,fresh.id,signed.hash]))));
         await this.save(Object.freeze({version:1,account,invoice:fresh,origin:chain.origin,hash:signed.hash,phase:"prepared",idempotencyKey,settlement:null}));
         guard();return signed;
+        }catch(error){if(produced)throw new NativePreparationFailure(error,produced);throw error}
       });
     });
   }
@@ -150,7 +153,7 @@ export class WalletPayFlow {
   async settleOriginal(account:string,guard:Guard,submit:(binding:WalletPayBinding)=>Promise<unknown>):Promise<WalletPayBinding>{
     return this.serial(async()=>{
       guard();const binding=await this.load(account);guard();if(!binding)throw new WalletPayError("PAY_ORIGINAL_PAYMENT_MISSING");
-      const original=await this.outbox.read(account);guard();
+      const original=await this.outbox.readOriginal(account,binding.hash);guard();
       if(!original||original.hash!==binding.hash||original.origin!==binding.origin)throw new WalletPayError("PAY_ORIGINAL_TRANSFER_MISSING");
       if(binding.phase==="settled"){
         parseWalletPaySettlement(binding.settlement,binding.invoice,account,original);return binding;
