@@ -39,3 +39,24 @@ dialog{border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);
 #wallet-details button{border-color:transparent;background:#fff;font-size:.8125rem;box-shadow:0 2px 8px #002fa708}
 #wallet-switch{color:var(--blue)}
 @media(max-width:700px){.private-account{padding:14px}.private-account header{gap:4px}.private-account header span{width:100%}.private-account .private-actions>*{flex:1 1 130px}.account-management summary{min-height:44px}#wallet-dialog{padding:22px 18px}#wallet-details{padding:12px}#wallet-details button{width:100%;margin:4px 0}}
+/* A single typography/control rhythm for the account overview and Wallet.
+   Compact does not remove disclosures, error states or touch targets. */
+.private-account{padding:12px 16px;margin-bottom:16px}
+.private-account header{gap:4px 12px;margin-bottom:4px}
+.private-account .state-box{padding:8px 10px;margin-bottom:8px}
+.account-overview-actions{gap:6px}
+.account-management{margin-top:2px}
+.account-management summary{min-height:44px;padding-block:6px}
+#browser-identity{gap:6px;margin-top:6px;padding-top:8px}
+.private-account button,.private-account a,#wallet-dialog button{font-family:inherit;line-height:1.4}
+#wallet-dialog{padding:24px;max-width:480px}
+#wallet-dialog h2{font-size:1.25rem;margin-bottom:12px}
+#wallet-state{font-size:.8125rem;line-height:1.5;padding:10px 12px;margin-bottom:14px}
+#wallet-choices{gap:8px}
+#wallet-dialog .wallet-provider{min-height:64px;font-size:.875rem;line-height:1.4;padding-block:12px;padding-inline-start:68px}
+#wallet-dialog .wallet-provider::before{width:36px;height:36px;background-size:28px}
+#wallet-dialog .provider-ynx::before,#wallet-dialog .provider-web::before{background-size:30px auto}
+#wallet-details{margin-top:14px;padding:12px}
+#wallet-details p{margin:6px 0;line-height:1.5}
+#wallet-details button{margin:4px 4px 0 0}
+@media(max-width:700px){.private-account{padding:12px}.account-overview-actions{display:flex;flex-wrap:wrap}.account-overview-actions>*{width:auto;min-width:0}.account-overview-actions #private-begin{flex-basis:100%}#wallet-dialog{padding:20px 16px}#wallet-details button{margin:4px 0;width:100%}}

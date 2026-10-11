@@ -39,6 +39,14 @@ test('precise source checks still reject credential persistence and extra or per
 });
 test('standard Wallet switches or adds the accepted shared 0x1917 chain before requesting an account',()=>{for(const marker of ['wallet_switchEthereumChain','wallet_addEthereumChain','STANDARD_WALLET_CHAIN_ID','METAMASK_EVM_CHAIN','current.connect()','connection.restore()','reduceStandardWalletConnectState'])assert.ok(walletEntry.includes(marker),marker);assert.ok(walletEntry.indexOf('wallet_switchEthereumChain')<walletEntry.indexOf('current.connect()'));assert.doesNotMatch(walletEntry,/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/);for(const forbidden of ['ynxwallet:','iframe','window.open','location.assign','location.href='])assert.equal(walletEntry.includes(forbidden),false,forbidden)});
 test('accepted RPC probe degradation cannot clear a completed standard Wallet connection',()=>{const account='0x0123456789abcdef0123456789abcdef01234567';let value=createStandardWalletConnectState();value=reduceStandardWalletConnectState(value,{type:'BEGIN',pendingIntent:'exchangeconnectintent_20260821'});value=reduceStandardWalletConnectState(value,{type:'PROVIDER_SELECTED',providerKind:'metamask'});value=reduceStandardWalletConnectState(value,{type:'ACCOUNT_APPROVED',account});value=reduceStandardWalletConnectState(value,{type:'CHAIN_CONFIRMED',chainId:'0x1917'});assert.throws(()=>reduceStandardWalletConnectState(value,{type:'RPC_PROBE_DEGRADED',probeTransport:'direct-browser-rpc-fetch',code:'RPC_UNAVAILABLE'}),{code:'UNSAFE_BROWSER_RPC_PROBE'});value=reduceStandardWalletConnectState(value,{type:'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,code:'RPC_UNAVAILABLE'});assert.equal(value.status,'connected');assert.equal(value.rpcProbe,STANDARD_WALLET_RPC_PROBE.DEGRADED);assert.equal(value.chooserOpen,false);assert.equal(value.pendingIntent,null)});
+test('compact blue-white UI keeps account actions and independent wallet identities',()=>{
+  assert.match(html,/class="private-actions account-overview-actions"/);
+  for(const id of ['private-begin','private-retry','private-refresh','private-disconnect','wallet-disconnect','wallet-revoke','wallet-switch','connect-ynx-wallet','connect-hosted-ynx','connect-metamask'])assert.ok(html.includes(`id="${id}"`),id);
+  assert.match(css,/\.private-account button,\.private-account a,#wallet-dialog button\{font-family:inherit;line-height:1\.4\}/);
+  assert.match(css,/#wallet-dialog \.wallet-provider\{min-height:64px/);
+  assert.match(css,/\.account-management summary\{min-height:44px/);
+  assert.doesNotMatch(css,/font:\s*600 13px inherit/);
+});
 test('Exchange HTML and its static module graph bind final asset bytes, not unversioned cache keys',()=>{
   const readAsset=name=>fs.readFileSync(new URL(`../web/${name}`,import.meta.url));
   assert.deepEqual(verifyExchangeVersionedAssets(html,js,readAsset),{status:'pass',pageAssets:4,moduleAssets:7});

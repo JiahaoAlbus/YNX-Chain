@@ -20,6 +20,53 @@ const chooser=app.slice(app.indexOf('function openWalletChooser()'),app.indexOf(
 const ownedTimes=app.slice(app.indexOf('function ownedRecordInstant('),app.indexOf('function renderBalances('));
 const activity=ownedTimes+app.slice(app.indexOf('function renderActivity()'),app.indexOf('function renderPublicMarket()'));
 const privateReadRender=app.slice(app.indexOf('function renderPrivateAccount('),app.indexOf('function renderPrivateReadMetadata('));
+test('compact blue-white UI at 390 and 1280 keeps chooser keyboard focus and account disclosures',async()=>{
+  const browser=await chromium.launch(await financeBrowserLaunchOptions());
+  try{
+    const logo=await readFile(new URL('../web/ynx-logo.png',import.meta.url)),metamask=await readFile(new URL('../web/assets/metamask.svg',import.meta.url));
+    for(const width of [390,1280]){
+      const page=await browser.newPage({viewport:{width,height:900}}),errors=[];
+      page.on('pageerror',error=>errors.push(error.message));
+      await page.route('**/*',route=>{
+        const path=new URL(route.request().url()).pathname;
+        if(path==='/ynx-logo.png')return route.fulfill({body:logo,contentType:'image/png'});
+        if(path==='/assets/metamask.svg')return route.fulfill({body:metamask,contentType:'image/svg+xml'});
+        return route.abort();
+      });
+      await page.setContent(html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace('<head>','<head><base href="https://exchange.ynxweb4.com/">'));
+      await page.addStyleTag({content:css});
+      // Actual existing chooser function; no provider or approval invoked.
+      await page.addScriptTag({content:`const $=s=>document.querySelector(s);const state={standardWallet:null};let browserIdentityExplicitIntent=false,browserIdentityRestoreDeferred=false,browserIdentityEpoch=0;function showWalletFallback(show){$('#wallet-fallback').hidden=!show};${chooser.split('\n')[0]};$('#connect').addEventListener('click',openWalletChooser);`});
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
+      const card=await page.locator('#private-account').boundingBox();
+      assert.ok(card.height<(width===390?330:250),`compact guest card ${width}: ${card.height}`);
+      if(process.env.EXCHANGE_COMPACT_UI_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.EXCHANGE_COMPACT_UI_SCREENSHOT_DIR}/guest-${width}.png`,fullPage:false});
+      const summary=page.locator('.account-management summary');
+      await summary.focus();await page.keyboard.press('Enter');
+      assert.equal(await page.locator('.account-management').evaluate(el=>el.open),true);
+      assert.equal(await page.locator('#private-disconnect').isVisible(),true);
+      await page.keyboard.press('Enter');
+      assert.equal(await page.locator('.account-management').evaluate(el=>el.open),false);
+      await page.locator('#connect').click();
+      assert.equal(await page.locator('#wallet-dialog').evaluate(el=>el.open),true);
+      for(const id of ['connect-ynx-wallet','connect-hosted-ynx','connect-metamask']){
+        const item=page.locator(`#${id}`),rect=await item.boundingBox();
+        assert.ok(rect.height>=44&&rect.x>=0&&rect.x+rect.width<=width,id);
+        assert.equal(await item.evaluate(el=>getComputedStyle(el).fontFamily),await page.locator('#private-begin').evaluate(el=>getComputedStyle(el).fontFamily));
+        assert.equal(await item.evaluate(el=>getComputedStyle(el).borderTopStyle),'solid');
+        await item.focus();assert.equal(await item.evaluate(el=>el===document.activeElement),true);
+      }
+      assert.equal(await page.locator('#wallet-dialog').evaluate(el=>el.scrollWidth<=el.clientWidth),true);
+      if(process.env.EXCHANGE_COMPACT_UI_SCREENSHOT_DIR)await page.screenshot({path:`${process.env.EXCHANGE_COMPACT_UI_SCREENSHOT_DIR}/chooser-${width}.png`,fullPage:false});
+      await page.keyboard.press('Escape');
+      assert.equal(await page.locator('#wallet-dialog').evaluate(el=>el.open),false);
+      assert.equal(await page.locator('#connect').evaluate(el=>el===document.activeElement),true);
+      await page.locator('#connect').click();await page.locator('#wallet-dialog .close').click();
+      assert.equal(await page.locator('#wallet-dialog').evaluate(el=>el.open),false);
+      assert.deepEqual(errors,[]);await page.close();
+    }
+  }finally{await browser.close()}
+});
 test('guest 401 or unavailable rechecks preserve URL, chart period and drafts; only explicit login navigates',async()=>{
   const browser=await chromium.launch(await financeBrowserLaunchOptions());
   try{
