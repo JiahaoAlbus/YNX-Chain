@@ -83,9 +83,48 @@ export function tronBalance(response, account) {
   const sun = integer(response.balance ?? '0').toString(); return Object.freeze({sun, display: tronDisplay(sun), activated: true});
 }
 export function trc20Balance(response, decimals) {
-  if (!response?.result || response.result.result !== true || !Array.isArray(response.constant_result) || response.constant_result.length !== 1) fail('TRON_CONTRACT_FAILED');
-  const amount = BigInt('0x' + hex(response.constant_result[0], 32)).toString();
+  const amount = BigInt('0x' + hex(trc20ConstantResult(response, 64), 32)).toString();
   return Object.freeze({units: amount, display: tronDisplay(amount, decimals)});
+}
+export const TRC20_METADATA_SELECTORS = Object.freeze({name: 'name()', symbol: 'symbol()', decimals: 'decimals()'});
+export const TRC20_METADATA_LIMITS = deepFreezeMetadata({name: {codepoints: 64, utf8Bytes: 128}, symbol: {codepoints: 16, utf8Bytes: 32}});
+function deepFreezeMetadata(value) { Object.values(value).forEach(Object.freeze); return Object.freeze(value); }
+function trc20ConstantResult(response, maxHexLength) {
+  if (!response || typeof response !== 'object' || Array.isArray(response) || Object.hasOwn(response, 'Error') ||
+    !response.result || typeof response.result !== 'object' || Array.isArray(response.result) || response.result.result !== true ||
+    (response.result.code !== undefined && response.result.code !== 'SUCCESS' && response.result.code !== 0) ||
+    !Array.isArray(response.constant_result) || response.constant_result.length !== 1) fail('TRON_CONTRACT_FAILED');
+  const ret = response.transaction?.ret;
+  if (ret !== undefined) {
+    if (!Array.isArray(ret) || ret.length !== 1 || !ret[0] || typeof ret[0] !== 'object' || Array.isArray(ret[0])) fail('TRON_CONTRACT_FAILED');
+    const status = ret[0];
+    if (status.ret === undefined && status.contractRet === undefined) fail('TRON_CONTRACT_FAILED');
+    if (status.ret !== undefined && status.ret !== 'SUCCESS' && status.ret !== 'SUCESS') fail('TRON_CONTRACT_FAILED');
+    if (status.contractRet !== undefined && status.contractRet !== 'SUCCESS') fail('TRON_CONTRACT_FAILED');
+  }
+  const value = response.constant_result[0];
+  if (typeof value !== 'string' || value.length > maxHexLength || !/^(?:[a-fA-F0-9]{2})+$/.test(value)) fail('TRON_TOKEN_RESULT_INVALID');
+  return value.toLowerCase();
+}
+export function trc20Decimals(response) {
+  const value = BigInt('0x' + hex(trc20ConstantResult(response, 64), 32));
+  if (value > 255n) fail('TRON_DECIMALS_INVALID'); return Number(value);
+}
+export function trc20Text(response, field) {
+  if (!Object.hasOwn(TRC20_METADATA_LIMITS, field)) fail('TRON_METADATA_FIELD_INVALID');
+  const limits = TRC20_METADATA_LIMITS[field], encoded = trc20ConstantResult(response, (64 + Math.ceil(limits.utf8Bytes / 32) * 32) * 2);
+  // Canonical single ABI string: offset=32, exact length word, aligned body,
+  // zero-only padding, no trailing hidden payload/offset/bytes32 guessing.
+  if (encoded.length < 128 || BigInt('0x' + encoded.slice(0, 64)) !== 32n) fail('TRON_TOKEN_ABI_INVALID');
+  const length = BigInt('0x' + encoded.slice(64, 128));
+  if (length < 1n || length > BigInt(limits.utf8Bytes)) fail('TRON_TOKEN_TEXT_INVALID');
+  const n = Number(length), padded = Math.ceil(n / 32) * 32;
+  if (encoded.length !== (64 + padded) * 2 || !/^0*$/.test(encoded.slice(128 + n * 2))) fail('TRON_TOKEN_ABI_INVALID');
+  let value;
+  try { value = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(Buffer.from(encoded.slice(128, 128 + n * 2), 'hex')); }
+  catch { fail('TRON_TOKEN_TEXT_INVALID'); }
+  if ([...value].length > limits.codepoints || !value || value.trim() !== value || /[\p{Cc}\p{Cf}<>]/u.test(value)) fail('TRON_TOKEN_TEXT_INVALID');
+  return value;
 }
 export function tronResources(response) {
   if (!response || typeof response !== 'object' || Array.isArray(response)) fail('TRON_RPC_INVALID');
@@ -138,9 +177,35 @@ export class TronReadAdapter {
   }
   async balance(account) { const owner = tronAddress(account); await this.verify(); return tronBalance(await this.#transport(this.network, '/wallet/getaccount', {address: owner.hex, visible: false}), owner.hex); }
   async tokenBalance(account, contract, decimals) {
-    const owner = tronAddress(account), token = tronAddress(contract); await this.verify();
+    const owner = tronAddress(account), token = tronAddress(contract);
+    if (!Number.isInteger(decimals) || decimals < 0 || decimals > 255) fail('TRON_DECIMALS_INVALID'); await this.verify();
     const response = await this.#transport(this.network, '/wallet/triggerconstantcontract', {owner_address: owner.hex, contract_address: token.hex, function_selector: 'balanceOf(address)', parameter: owner.hex.slice(2).padStart(64, '0'), visible: false});
     return trc20Balance(response, decimals);
+  }
+  async #metadata(owner, token) {
+    const responses = {};
+    for (const field of ['decimals', 'symbol', 'name']) {
+      responses[field] = await this.#transport(this.network, '/wallet/triggerconstantcontract',
+        {owner_address: owner.hex, contract_address: token.hex, function_selector: TRC20_METADATA_SELECTORS[field], parameter: '', visible: false});
+      // Validate each response immediately: no successful partial object/fallback
+      // and no extra node calls after a failed/malicious value.
+      responses[field] = field === 'decimals' ? trc20Decimals(responses[field]) : trc20Text(responses[field], field);
+    }
+    return Object.freeze({networkId: this.network.id, networkGenesis: this.network.genesisBlockId,
+      contractHex: token.hex, contractAddress: token.base58, name: responses.name, symbol: responses.symbol,
+      decimals: responses.decimals, verification: 'provider-reported-not-consensus'});
+  }
+  async tokenMetadata(account, contract) {
+    const owner = tronAddress(account), token = tronAddress(contract); await this.verify();
+    return this.#metadata(owner, token);
+  }
+  async tokenRead(account, contract) {
+    const owner = tronAddress(account), token = tronAddress(contract); await this.verify();
+    const metadata = await this.#metadata(owner, token);
+    const response = await this.#transport(this.network, '/wallet/triggerconstantcontract',
+      {owner_address: owner.hex, contract_address: token.hex, function_selector: 'balanceOf(address)', parameter: owner.hex.slice(2).padStart(64, '0'), visible: false});
+    const balance = trc20Balance(response, metadata.decimals);
+    return Object.freeze({...metadata, accountHex: owner.hex, accountAddress: owner.base58, units: balance.units, display: balance.display});
   }
   async resources(account) { const owner = tronAddress(account); await this.verify(); return tronResources(await this.#transport(this.network, '/wallet/getaccountresource', {address: owner.hex, visible: false})); }
   sign() { fail('TRON_SIGNING_DISABLED'); }

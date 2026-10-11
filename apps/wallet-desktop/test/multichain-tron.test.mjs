@@ -3,11 +3,13 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {utils as tronUtils} from 'tronweb';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
+import {AbiCoder} from 'ethers';
 import {tronAddress, tronUnits, tronDisplay, tronNetwork, tronDerivationPath,
   tronMnemonicAddress, trc20Parameter, tronBalance, trc20Balance, tronResources,
   tronResourceEstimate, tronIntentPreview, inspectTronEnvelope, TronReadAdapter,
   TRON_CAPABILITIES, buildTronUnsigned, verifyTronUnsigned, verifyTronSigned,
-  TronSignReview, normalizeTronReceipt, TronTransactionQuery, TRON_QUERY_ENDPOINTS} from '../src/multichain-tron.mjs';
+  TronSignReview, normalizeTronReceipt, TronTransactionQuery, TRON_QUERY_ENDPOINTS,
+  trc20Decimals, trc20Text, TRC20_METADATA_SELECTORS, TRC20_METADATA_LIMITS} from '../src/multichain-tron.mjs';
 // PUBLIC vectors only; never use these phrases/addresses for funded accounts.
 const A = 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8';
 const H = '415cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb';
@@ -221,6 +223,98 @@ test('R3 original binding mismatch rejects before query, in-flight mutation cann
   const originalTxID = f.original.txID, pending = q.check(f); f.original.txID = 'ff'.repeat(32); f.intent.to = H;
   // Mutable caller input cannot alter the internally captured original.
   const result = await pending; assert.equal(result.txid, originalTxID); assert.equal(result.state, 'included');
+});
+
+const abi = AbiCoder.defaultAbiCoder();
+const constant = value => ({result: {result: true}, constant_result: [value]});
+const word = n => BigInt(n).toString(16).padStart(64, '0');
+const text = value => abi.encode(['string'], [value]).slice(2);
+function r4Transport({decimals = 6, name = 'TRON QA Token', symbol = 'QAT', balance = '1000001', mutate = () => {}} = {}) {
+  const calls = [];
+  return {calls, transport: async (chain, endpoint, request) => {
+    calls.push({chain, endpoint, request: structuredClone(request)});
+    const response = endpoint === '/wallet/getblockbynum' ? {blockID: chain.genesisBlockId, block_header: {raw_data: {number: 0}}}
+      : constant(request.function_selector === 'decimals()' ? word(decimals)
+        : request.function_selector === 'name()' ? text(name)
+          : request.function_selector === 'symbol()' ? text(symbol) : word(balance));
+    const changed = mutate(endpoint, request, response); return changed === undefined ? response : changed;
+  }};
+}
+test('R4 metadata and tokenRead bind exact contract/network/account and exact base units', async () => {
+  const rpc = r4Transport(), adapter = new TronReadAdapter({network, transport: rpc.transport});
+  const read = await adapter.tokenRead(A, B);
+  assert.deepEqual(read, {networkId: 'shasta', networkGenesis: network.genesisBlockId,
+    contractHex: tronAddress(B).hex, contractAddress: B, name: 'TRON QA Token', symbol: 'QAT', decimals: 6,
+    verification: 'provider-reported-not-consensus', accountHex: H, accountAddress: A, units: '1000001', display: '1.000001'});
+  assert.equal(rpc.calls.length, 5); assert.equal(Object.isFrozen(read), true);
+  assert.deepEqual(rpc.calls.slice(1).map(c => c.request.function_selector), ['decimals()', 'symbol()', 'name()', 'balanceOf(address)']);
+  for (const call of rpc.calls.slice(1)) { assert.equal(call.request.contract_address, tronAddress(B).hex); assert.equal(call.request.owner_address, H); assert.equal(call.request.visible, false); }
+  assert.ok(rpc.calls.slice(1,4).every(c => c.request.parameter === ''));
+  assert.equal(rpc.calls[4].request.parameter, H.slice(2).padStart(64, '0'));
+  assert.deepEqual(TRC20_METADATA_SELECTORS, {name: 'name()', symbol: 'symbol()', decimals: 'decimals()'});
+});
+test('R4 metadata decimal0/255 and uint256 balances preserve units, no float/rounding', async () => {
+  for (const decimals of [0, 255]) {
+    const units = ((1n << 256n) - 1n).toString(), rpc = r4Transport({decimals, balance: units});
+    const read = await new TronReadAdapter({network, transport: rpc.transport}).tokenRead(A, B);
+    assert.equal(read.decimals, decimals); assert.equal(read.units, units); assert.equal(read.display, tronDisplay(units, decimals));
+  }
+  const zero = r4Transport({balance: '0'}); assert.equal((await new TronReadAdapter({network, transport: zero.transport}).tokenRead(A, B)).display, '0');
+});
+test('R4 optional metadata failure/invalid decimals fail without guessed fallback or later calls', async () => {
+  const cases = [{result: {result: false}, constant_result: [word(6)]}, {Error: 'contract unavailable'}, constant(word(256)), constant('00'), constant(word(6) + word(0))];
+  for (const response of cases) {
+    const rpc = r4Transport({mutate: (_, request) => request.function_selector === 'decimals()' ? response : undefined});
+    await assert.rejects(new TronReadAdapter({network, transport: rpc.transport}).tokenMetadata(A, B));
+    assert.equal(rpc.calls.length, 2);
+  }
+  assert.equal(trc20Decimals(constant(word(0))), 0);
+  assert.equal(trc20Decimals(constant(word(255))), 255);
+});
+test('R4 canonical string ABI rejects wrong offset/padding/trailing/bytes32/invalid UTF8', () => {
+  const canonical = text('QA');
+  const malformed = [word(64) + canonical.slice(64), canonical.slice(0,-2) + '01', canonical + word(0), word(0x5141),
+    word(32) + word(2) + 'c328' + '00'.repeat(30), word(32) + word((1n << 255n)) + word(0)];
+  for (const raw of malformed) assert.throws(() => trc20Text(constant(raw), 'symbol'));
+  assert.equal(trc20Text(constant(text('测试代币')), 'name'), '测试代币');
+  assert.throws(() => trc20Text(constant(canonical), 'arbitrary'));
+});
+test('R4 bounded metadata text rejects controls/bidi/markup/empty and byte/codepoint limits', () => {
+  for (const bad of ['', ' QA', 'QA ', 'QA\u0000', 'QA\n', 'QA\u202e', 'QA\u200b', '<script>', '\ufeffQA', 'A'.repeat(17), '测'.repeat(11)]) assert.throws(() => trc20Text(constant(text(bad)), 'symbol'));
+  assert.equal(trc20Text(constant(text('A'.repeat(16))), 'symbol'), 'A'.repeat(16));
+  assert.equal(trc20Text(constant(text('A'.repeat(64))), 'name'), 'A'.repeat(64));
+  assert.throws(() => trc20Text(constant(text('A'.repeat(65))), 'name'));
+  assert.throws(() => trc20Text(constant(text('测'.repeat(43))), 'name'));
+  assert.deepEqual(TRC20_METADATA_LIMITS, {name: {codepoints: 64, utf8Bytes: 128}, symbol: {codepoints: 16, utf8Bytes: 32}});
+  assert.equal(Object.isFrozen(TRC20_METADATA_LIMITS.name), true);
+});
+test('R4 API success with VM failure/contradiction or malformed output is not a zero balance', async () => {
+  const bad = [constant('00'), {result: {result: true}, constant_result: [word(0), word(1)]},
+    {...constant(word(0)), result: {result: true, code: 'CONTRACT_EXE_ERROR'}},
+    {...constant(word(0)), transaction: {ret: [{ret: 'REVERT'}]}},
+    {...constant(word(0)), transaction: {ret: [{ret: 'SUCCESS', contractRet: 'REVERT'}]}},
+    {...constant(word(0)), transaction: {ret: []}}, {...constant(word(0)), Error: ''}];
+  for (const response of bad) {
+    const rpc = r4Transport({mutate: (_, request) => request.function_selector === 'balanceOf(address)' ? response : undefined});
+    await assert.rejects(new TronReadAdapter({network, transport: rpc.transport}).tokenRead(A, B));
+    assert.equal(rpc.calls.length, 5);
+  }
+});
+test('R4 invalid account/contract/decimals and wrong genesis reject before metadata request', async () => {
+  const rpc = r4Transport(), reader = new TronReadAdapter({network, transport: rpc.transport});
+  await assert.rejects(reader.tokenMetadata('invalid', B)); await assert.rejects(reader.tokenMetadata(A, H.slice(2)));
+  await assert.rejects(reader.tokenBalance(A, B, 256)); assert.equal(rpc.calls.length, 0);
+  const wrong = r4Transport({mutate: endpoint => endpoint === '/wallet/getblockbynum' ? {blockID: 'ff'.repeat(32), block_header: {raw_data: {number: 0}}} : undefined});
+  await assert.rejects(new TronReadAdapter({network, transport: wrong.transport}).tokenRead(A, B), code('TRON_NETWORK_MISMATCH'));
+  assert.equal(wrong.calls.length, 1);
+});
+test('R4 metadata transport failures propagate once, with no retry/partial metadata/sign/send', async () => {
+  let calls = 0;
+  const reader = new TronReadAdapter({network, transport: async (_, endpoint) => {
+    calls++; if(endpoint === '/wallet/getblockbynum')return {blockID: network.genesisBlockId, block_header: {raw_data: {number: 0}}};
+    throw Object.assign(Error('offline'), {code: 'FIXTURE_OFFLINE'});
+  }});
+  await assert.rejects(reader.tokenRead(A, B), code('FIXTURE_OFFLINE')); assert.equal(calls, 2);
 });
 test('TRON sun and TRC20 exact integer conversions reject rounding/unsafe numeric inputs', () => {
   assert.equal(tronUnits('1.000001'), '1000001'); assert.equal(tronDisplay('1000001'), '1.000001');
