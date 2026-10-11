@@ -2,6 +2,7 @@
 // The existing JavaScript caller resolves paths and invokes at most 1000 items.
 #import <Foundation/Foundation.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 int main(int argc, const char *argv[]) {
@@ -11,6 +12,10 @@ int main(int argc, const char *argv[]) {
             return 64;
         }
         int status = 0;
+        const char *qaFlag = getenv("YNX_NATIVE_TRASH_QA_RECEIPT");
+        // Observability only: ordinary callers remain silent, and even an
+        // inherited QA flag cannot produce 1000 success receipts per chunk.
+        BOOL emitReceipt = argc == 2 && qaFlag && strcmp(qaFlag, "1") == 0;
         for (int i = 1; i < argc; i++) {
             @autoreleasepool {
                 if (strnlen(argv[i], 4097) > 4096) {
@@ -32,11 +37,12 @@ int main(int argc, const char *argv[]) {
                         (error.localizedDescription ?: @"No recoverable trash URL returned").UTF8String);
                     status = 1; continue;
                 }
-                // Structured success permits exact-object QA without listing Trash.
+                if (!emitReceipt) continue;
+                // One explicitly requested, bounded exact-object QA receipt.
                 NSData *receipt = [NSJSONSerialization dataWithJSONObject:
                     @{ @"source": path, @"resultingPath": result.path }
                     options:0 error:&error];
-                if (!receipt || fwrite(receipt.bytes, 1, receipt.length, stdout) != receipt.length ||
+                if (!receipt || receipt.length > 65536 || fwrite(receipt.bytes, 1, receipt.length, stdout) != receipt.length ||
                     fputc('\n', stdout) == EOF) { status = 1; }
             }
         }

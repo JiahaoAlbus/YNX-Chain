@@ -56,27 +56,29 @@ async function qualify(base, resources, inherited) {
   // All operation/readback runs inside the same sandbox and native profile lock.
   const driver = join(runtime.root, 'driver.cjs');
   await writeFile(driver, `const fs=require('node:fs'),cp=require('node:child_process');
-const [helper,file,expected]=process.argv.slice(2);
-const run=cp.spawnSync(helper,[file],{encoding:'utf8',timeout:10000});
+const [helper,file,expected,mode]=process.argv.slice(2);
+const run=cp.spawnSync(helper,[file],{encoding:'utf8',timeout:10000,env:{...process.env,YNX_NATIVE_TRASH_QA_RECEIPT:mode==='receipt'?'1':'0'}});
 let retained=false,recoverable=false,receiptError=null;
 try{retained=fs.readFileSync(file,'utf8')===expected}catch(e){if(e.code!=='ENOENT')throw e}
-if(run.status===0){try{const receipt=JSON.parse(run.stdout.trim());
+if(run.status===0&&mode==='receipt'){try{if(Buffer.byteLength(run.stdout)>65537)throw Error('Oversize QA receipt');const receipt=JSON.parse(run.stdout.trim());
  if(receipt.source!==file)throw Error('Wrong source receipt');
  recoverable=fs.readFileSync(receipt.resultingPath,'utf8')===expected;
  }catch(e){receiptError=e.message}}
 console.log(JSON.stringify({status:run.status,signal:run.signal,error:run.error?.message,stdout:run.stdout,stderr:run.stderr,retained,recoverable,receiptError}));
 `, { flag: 'wx' });
   const results = [];
-  for (const [label, helper] of [['inherited', previous], ['candidate', next]]) {
+  for (const [label, helper, mode] of [['inherited', previous, 'production'], ['candidate', next, 'receipt'], ['production', next, 'production']]) {
     const file = join(context.workspace, `${label}-${randomUUID()}.txt`), expected = `YNX QA ${randomUUID()}\n`;
     await writeFile(file, expected, { flag: 'wx' });
-    const run = spawnSync('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, driver, helper, file, expected],
+    const run = spawnSync('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, driver, helper, file, expected, mode],
       { cwd: context.workspace, env: { ...process.env, TMPDIR: context.temporary }, encoding: 'utf8', timeout: 20000 });
     await writeFile(join(root, `${label}.raw.json`), JSON.stringify({ status: run.status, signal: run.signal, error: run.error?.message, stdout: run.stdout, stderr: run.stderr }, null, 2), { flag: 'wx' });
     assert.equal(run.status, 0, run.stderr || String(run.error));
     const result = JSON.parse(run.stdout.trim());
     if (result.status !== 0) assert.equal(result.retained, true, 'Trash failure must preserve the source bytes');
-    results.push({ label, source: file, helperSha256: hash(await readFile(helper)), ...result,
+    if (label === 'production') assert.equal(result.stdout, '', 'Ordinary helper must emit no success receipt');
+    if (label === 'candidate') assert.ok(Buffer.byteLength(result.stdout || '') <= 65537, 'Single QA receipt must fit the unchanged caller buffer');
+    results.push({ label, mode, source: file, helperSha256: hash(await readFile(helper)), ...result,
       accepted: result.status === 0 && result.recoverable && !result.retained });
   }
   // Per-item failure must not silently succeed or remove another item in the
@@ -86,7 +88,7 @@ console.log(JSON.stringify({status:run.status,signal:run.signal,error:run.error?
   const mixedDriver = join(runtime.root, 'mixed.cjs');
   await writeFile(mixedDriver, `const fs=require('node:fs'),cp=require('node:child_process');
 const [helper,file,expected]=process.argv.slice(2);
-const result=cp.spawnSync(helper,[file+'.absent',file],{encoding:'utf8',timeout:10000});
+const result=cp.spawnSync(helper,[file+'.absent',file],{encoding:'utf8',timeout:10000,env:{...process.env,YNX_NATIVE_TRASH_QA_RECEIPT:'1'}});
 console.log(JSON.stringify({status:result.status,signal:result.signal,stdout:result.stdout,stderr:result.stderr,retained:fs.readFileSync(file,'utf8')===expected}));
 `, { flag: 'wx' });
   // Only meaningful when the previous system operation was denied. If it was
@@ -98,10 +100,13 @@ console.log(JSON.stringify({status:result.status,signal:result.signal,stdout:res
     await writeFile(join(root, 'mixed.raw.json'), JSON.stringify({ status: run.status, signal: run.signal, stdout: run.stdout, stderr: run.stderr }, null, 2), { flag: 'wx' });
     assert.equal(run.status, 0, run.stderr || String(run.error)); mixed = JSON.parse(run.stdout.trim());
     assert.equal(mixed.status, 1); assert.equal(mixed.retained, true);
+    assert.equal(mixed.stdout, '', 'Multi-item invocation must not emit QA receipts even with its flag set');
     assert.ok(mixed.stderr.includes(mixedFile + '.absent') && mixed.stderr.includes(mixedFile), 'Each failed item must be reported');
   }
   const report = { root, build, policySha256: hash(policy), unchangedSandbox: true, results,
     mixedItemFailure: mixed,
+    outputContract: { productionSuccess: 'silent', QA: 'argc2 and exact explicit flag only; <=65536 receipt bytes plus newline',
+      successfulBulkExecution: 'NOT_VERIFIED; denied controls cannot prove successful Trash', nonzeroMeansNoEffect: false },
     normalNativeAppAcceptance: 'NOT_VERIFIED', operationalTrash: results[1].accepted ? 'RECOVERABLE' : 'BLOCKED_OR_NOT_VERIFIED' };
   await writeFile(join(root, 'report.json'), JSON.stringify(report, null, 2), { flag: 'wx' });
   console.log(JSON.stringify(report, null, 2));
