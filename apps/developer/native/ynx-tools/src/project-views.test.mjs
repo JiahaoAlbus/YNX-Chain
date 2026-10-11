@@ -19,6 +19,10 @@ test('every project area has a contributed view, startup activation and bilingua
   const manifest=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
   const views=Object.values(manifest.contributes.views).flat();
   for (const id of PROJECT_VIEWS) {assert.ok(views.some(v=>v.id===id));assert.ok(manifest.activationEvents.includes('onView:'+id));}
+  for (const id of ['ynx.chain.status', 'ynx.chain.capabilities', 'ynx.chain.balance', 'ynx.chain.transaction']) {
+    assert.ok(manifest.contributes.commands.some(command=>command.command===id));
+    assert.ok(manifest.activationEvents.includes('onCommand:'+id));
+  }
   for (const locale of ['package.nls.json','package.nls.zh-cn.json']) {
     const labels=JSON.parse(readFileSync(new URL('../'+locale,import.meta.url)));
     for (const view of views)assert.ok(labels[view.name.slice(1,-1)]);
@@ -30,6 +34,8 @@ test('contract and review workflows belong to built-in project areas without a c
   const manifest=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
   assert.ok(manifest.contributes.views.explorer.some(view=>view.id==='ynx.contracts'));
   assert.ok(manifest.contributes.views.scm.some(view=>view.id==='ynx.review'));
+  assert.ok(manifest.contributes.views['ynx-network'].some(view=>view.id==='ynx.chainResults'));
+  assert.equal(Object.values(manifest.contributes.views).flat().filter(view=>view.id==='ynx.chainResults').length,1);
   assert.equal(Object.values(manifest.contributes.views).flat().filter(view=>view.id==='ynx.contracts').length,1);
   assert.equal(Object.values(manifest.contributes.views).flat().filter(view=>view.id==='ynx.review').length,1);
   assert.ok(!manifest.contributes.viewsContainers.activitybar.some(row=>['ynx-contracts','ynx-review'].includes(row.id)));

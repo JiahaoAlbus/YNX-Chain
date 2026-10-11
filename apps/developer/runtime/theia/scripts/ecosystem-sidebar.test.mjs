@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-function node() { return { style: {}, children: [], listeners: {}, append(...items) { this.children.push(...items); }, addEventListener(type, fn) { this.listeners[type] = fn; }, focus() {} }; }
+function node() { return { style: {}, classList: { add() {} }, attributes: {}, children: [], listeners: {}, setAttribute(key, value) { this.attributes[key] = value; }, append(...items) { this.children.push(...items); }, addEventListener(type, fn) { this.listeners[type] = fn; }, focus() {} }; }
 const document = { createElement: node };
 class BaseWidget { constructor() { this.node = node(); this.node.ownerDocument = document; this.title = {}; this.toDispose = []; } onActivateRequest() {} }
 const module = { exports: {} };

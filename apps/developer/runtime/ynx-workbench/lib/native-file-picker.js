@@ -66,4 +66,26 @@ class NativeInitialFile {
     catch { await this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.')); }
   }
 }
-module.exports = { install, workspaceMatchesRoot, NativeInitialFile };
+// Only supply a missing Save As start folder; the standard dialog still owns
+// destination selection, cancellation, overwrite confirmation and saving.
+function installProjectSaveDefault({ dialogs, editors, workspace, fileService }) {
+  const original = dialogs.showSaveDialog.bind(dialogs);
+  dialogs.showSaveDialog = async (props, folder) => {
+    if (folder) return original(props, folder);
+    const roots = workspace.tryGetRoots();
+    const root = roots[0];
+    if (!root) return original(props, folder);
+    const editor = editors.currentEditor;
+    const document = editor?.editor?.document;
+    const uri = editor?.editor?.uri;
+    let start = root;
+    // Debugger/untitled URIs must never be coerced to file: paths. Existing
+    // saved files can start in their own directory within the current project.
+    if (uri?.scheme === 'file' && roots.some(item => item.resource.isEqualOrParent(uri))) {
+      try { start = await fileService.resolve(uri.parent); } catch { start = root; }
+    }
+    if (workspace.tryGetRoots()[0] !== root || editors.currentEditor !== editor || editor?.editor?.document !== document) return undefined;
+    return original(props, start);
+  };
+}
+module.exports = { install, workspaceMatchesRoot, NativeInitialFile, installProjectSaveDefault };

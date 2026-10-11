@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.33",
+  "version": "0.2.34",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -21,7 +21,11 @@
     "onView:ynx.review",
     "onView:ynx.chainResults",
     "onCommand:ynx.ts.runActive",
-    "onCommand:ynx.ts.debugActive"
+    "onCommand:ynx.ts.debugActive",
+    "onCommand:ynx.chain.status",
+    "onCommand:ynx.chain.capabilities",
+    "onCommand:ynx.chain.balance",
+    "onCommand:ynx.chain.transaction"
   ],
   "contributes": {
     "viewsContainers": {
@@ -31,13 +35,6 @@
           "title": "%container.network%",
           "icon": "activity.svg"
         }
-      ],
-      "panel": [
-        {
-          "id": "ynx-chain-results",
-          "title": "%container.chainResults%",
-          "icon": "activity.svg"
-        }
       ]
     },
     "views": {
@@ -45,6 +42,10 @@
         {
           "id": "ynx.network",
           "name": "%view.network%"
+        },
+        {
+          "id": "ynx.chainResults",
+          "name": "%view.chainResults%"
         }
       ],
       "explorer": [
@@ -57,12 +58,6 @@
         {
           "id": "ynx.review",
           "name": "%view.review%"
-        }
-      ],
-      "ynx-chain-results": [
-        {
-          "id": "ynx.chainResults",
-          "name": "%view.chainResults%"
         }
       ]
     },
@@ -124,6 +119,10 @@
         "command": "ynx.chainProject",
         "title": "%command.ynx.chainProject%"
       },
+      { "command": "ynx.chain.status", "title": "%command.chain.status%" },
+      { "command": "ynx.chain.capabilities", "title": "%command.chain.capabilities%" },
+      { "command": "ynx.chain.balance", "title": "%command.chain.balance%" },
+      { "command": "ynx.chain.transaction", "title": "%command.chain.transaction%" },
       {
         "command": "ynx.configureChainProject",
         "title": "%command.ynx.configureChainProject%"

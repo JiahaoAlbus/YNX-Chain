@@ -1,5 +1,5 @@
 'use strict';
-const { realpath, access } = require('node:fs/promises');
+const { realpath, access, mkdir, lstat } = require('node:fs/promises');
 const { constants } = require('node:fs');
 const { relative, isAbsolute, dirname, basename, join } = require('node:path');
 const { randomUUID } = require('node:crypto');
@@ -89,6 +89,42 @@ async function executeAndWait(vscode, task, token) {
     return await result;
   } catch (error) { rejectResult(error); await result.catch(() => {}); throw error; }
   finally { end.dispose(); terminal.dispose(); cancel.dispose(); }
+}
+function terminalLaunchConfiguration(selected, device) {
+  if (!/^\/dev\/ttys[0-9]+$/.test(device || '')) throw Error('C/C++ terminal device is invalid');
+  return { ...selected, console: 'internalConsole', launchCommands: [
+    'process launch --stop-at-entry --stdin ' + device + ' --stdout ' + device + ' --stderr ' + device,
+  ] };
+}
+async function createDebugBuildTarget(env, request) {
+  const session = env.TMPDIR;
+  const parent = '/private/tmp/yi-' + process.getuid();
+  if (env.YNX_WORKSPACE_MODE !== 'local' || typeof session !== 'string' || dirname(session) !== parent ||
+      !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(basename(session)) ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(request || ''))
+    throw Error('C/C++ debug build requires its owned local session');
+  const check = async path => {
+    const stat = await lstat(path);
+    if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o077) || await realpath(path) !== path)
+      throw Error('C/C++ debug output directory changed');
+    return stat;
+  };
+  await check(parent); const sessionStat = await check(session);
+  const directory = join(session, 'cpp-' + request);
+  await mkdir(directory, { mode: 0o700 }); // Exclusive per request, no reuse.
+  const outputStat = await check(directory);
+  const binary = join(directory, 'program');
+  return { binary, async validate(requireBinary = false) {
+    const currentSession = await check(session), currentOutput = await check(directory);
+    if (currentSession.dev !== sessionStat.dev || currentSession.ino !== sessionStat.ino ||
+        currentOutput.dev !== outputStat.dev || currentOutput.ino !== outputStat.ino)
+      throw Error('C/C++ debug output directory was replaced');
+    if (requireBinary) {
+      const stat = await lstat(binary);
+      if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o022) || await realpath(binary) !== binary)
+        throw Error('C/C++ debug executable changed');
+    }
+  } };
 }
 function registerCppRun(vscode, context, env) {
   const t = translator(vscode), active = new Map();
@@ -205,21 +241,29 @@ function registerCppRun(vscode, context, env) {
     const item = await vscode.window.showQuickPick(tasks.map(task => ({ label: task.name, description: task.source, detail: t('existing'), task })), { title: t('tasks') });
     return item && { task: item.task, generated: false };
   }
-  async function buildCaptured(scope, token, config, digest) {
+  async function buildCaptured(scope, token, config, digest, debugOutput) {
     await validateScope(scope);
     const build = (await generatedPair(scope, config, digest))?.build;
     if (!build || !(build.execution instanceof vscode.ProcessExecution)) throw Error(t('missing'));
     const file = scope.path, folder = dirname(file), stem = basename(file).replace(/\.[^.]+$/, '');
     const substitute = value => String(value).replaceAll('${fileDirname}', folder).replaceAll('${fileBasenameNoExtension}', stem).replaceAll('${file}', file).replaceAll('${workspaceFolder}', scope.root);
     const version = scope.document.version;
+    const args = build.execution.args.map(substitute);
+    if (debugOutput) {
+      await debugOutput.validate();
+      const outputIndex = args.indexOf('-o');
+      if (outputIndex < 0 || args.lastIndexOf('-o') !== outputIndex || args[outputIndex + 1] !== join(folder, stem)) throw Error(t('missing'));
+      args[outputIndex + 1] = debugOutput.binary;
+    }
     const concreteBuild = new vscode.Task(build.definition, scope.folder, build.name, build.source,
-      new vscode.ProcessExecution(substitute(build.execution.process), build.execution.args.map(substitute), { ...build.execution.options, cwd: substitute(build.execution.options?.cwd || folder) }), build.problemMatchers);
+      new vscode.ProcessExecution(substitute(build.execution.process), args, { ...build.execution.options, cwd: substitute(build.execution.options?.cwd || folder) }), build.problemMatchers);
     const built = await executeAndWait(vscode, concreteBuild, token);
     if (token.isCancellationRequested) return undefined;
     if (built !== 0) throw Error(t('failed'));
     if (scope.document.version !== version || scope.document.isDirty) throw Error(t('save'));
     await generatedPair(scope, config, digest);
-    const binary = join(folder, stem); await access(binary, constants.X_OK);
+    if (debugOutput) await debugOutput.validate(true);
+    const binary = debugOutput?.binary || join(folder, stem); await access(binary, constants.X_OK);
     return { binary, folder };
   }
   async function operation(debug) {
@@ -276,7 +320,12 @@ function registerCppRun(vscode, context, env) {
         }
         const terminalDefault = Boolean(pair) && isDeepStrictEqual(selected, launchConfiguration(scope.language)) && resolvedAdapter === adapter;
         if (pair && selected.preLaunchTask === 'YNX: Build active ' + (scope.language === 'c' ? 'C' : 'C++') && selected.program === '${fileDirname}/${fileBasenameNoExtension}') {
-          const target = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'C/C++', cancellable: true }, (_progress, token) => buildCaptured(scope, token, config, pair.digest));
+          // Keep default debug products in the existing admitted session. The
+          // source/cwd and user-authored task/launch configuration stay intact.
+          // Session cleanup removes these only after all descendants exit.
+          const debugOutput = terminalDefault ? await createDebugBuildTarget(env, owner.requestId) : undefined;
+          owner.debugOutput = debugOutput;
+          const target = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: 'C/C++', cancellable: true }, (_progress, token) => buildCaptured(scope, token, config, pair.digest, debugOutput));
           if (!target) { vscode.window.showInformationMessage(t('stopped')); return; }
           selected = { ...selected, program: target.binary, cwd: target.folder };
           delete selected.preLaunchTask; // Captured source was already built successfully.
@@ -296,12 +345,11 @@ function registerCppRun(vscode, context, env) {
           await validateScope(scope);
           // Standard LLDB redirection sends program stdin/stdout to the genuine
           // Theia PTY. Debug Console remains adapter diagnostics, not program I/O.
-          selected = { ...selected, console: 'internalConsole', launchCommands: [
-            'process launch --stop-at-entry --stdin ' + terminal.device + ' --stdout ' + terminal.device + ' --stderr ' + terminal.device,
-          ] };
+          selected = terminalLaunchConfiguration(selected, terminal.device);
         }
         if (!terminalDefault && launch.configuration?.console === 'internalConsole') void vscode.window.showInformationMessage(t('debugConsole'));
         const timeout = new Promise(resolve => { owner.onLaunchTimeout = resolve; });
+        await owner.debugOutput?.validate(true);
         owner.debugStartRequested = true;
         const started = await Promise.race([vscode.debug.startDebugging(scope.folder, { ...selected, __ynxCppRunId: owner.requestId }), timeout]);
         sessionAccepted = Boolean(started) || owner.launchTimedOut;
@@ -323,4 +371,4 @@ function registerCppRun(vscode, context, env) {
   command('ynx.cpp.configureBuildTasks', async () => { const scope = await sourceContext(vscode, env), config = await setup(scope); if (config) await vscode.window.showTextDocument(await vscode.workspace.openTextDocument(vscode.Uri.file(config.path))); });
   return { active };
 }
-module.exports = { registerCppRun, sourceContext, executeAndWait, CPP_TRANSLATIONS };
+module.exports = { registerCppRun, sourceContext, executeAndWait, terminalLaunchConfiguration, createDebugBuildTarget, CPP_TRANSLATIONS };

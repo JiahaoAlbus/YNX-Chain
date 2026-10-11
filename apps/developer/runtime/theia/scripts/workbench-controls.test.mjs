@@ -54,6 +54,14 @@ test('direct Run menu click without mousemove uses normal framework dispatch exa
   assert.equal(access.listeners.size, 0, 'closing menu retires pointer listener');
   f.controls.dispose();
 });
+test('accessibility click without mouse down/up uses framework dispatch once and retires popup', async () => {
+  const f = popupFixture(), access = f.open();
+  const activate = access.listeners.get('click');
+  activate({ button: 0, target: access.menu.contentNode.children[0], clientX: 0, clientY: 0 });
+  activate({ button: 0, target: access.menu.contentNode.children[0], clientX: 0, clientY: 0 });
+  await Promise.all(f.pending); assert.equal(f.calls.length, 1); assert.equal(access.listeners.size, 0);
+  f.controls.dispose();
+});
 test('Run popup retains disabled, non-left and outside-item framework boundaries', () => {
   const f = popupFixture();
   let access = f.open(); f.down(access, { button: 2 }); f.up(access, { button: 2 }); assert.equal(f.calls.length, 0);

@@ -46,6 +46,7 @@ const { JsonSchemaPolicyStatus } = require('./json-schema-policy-status');
 const { PreferenceService } = require('@theia/core/lib/common/preferences');
 const { StatusBar } = require('@theia/core/lib/browser/status-bar/status-bar');
 const { FileService } = require('@theia/filesystem/lib/browser/file-service');
+const { FileDialogService } = require('@theia/filesystem/lib/browser/file-dialog/file-dialog-service');
 const { EnvVariablesServer } = require('@theia/core/lib/common/env-variables/env-variables-protocol');
 const { KeybindingRegistry } = require('@theia/core/lib/browser/keybinding');
 const { YnxKeybindingRegistry } = require('./keybinding-registry');
@@ -122,6 +123,14 @@ nativeFilePicker.install({
   commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
 });
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
+  bind(FrontendApplicationContribution).toDynamicValue(context => ({
+    onStart() {
+      nativeFilePicker.installProjectSaveDefault({
+        dialogs: context.container.get(FileDialogService), editors: context.container.get(EditorManager),
+        workspace: context.container.get(WorkspaceService), fileService: context.container.get(FileService),
+      });
+    },
+  }));
   rebind(TerminalFrontendContribution).to(GroupedTerminalFrontendContribution).inSingletonScope();
   bind(WidgetFactory).toDynamicValue(() => ({ id: terminalPanel.TERMINAL_PANEL_ID, createWidget: () => new TerminalPanel(translateWorkbench) }));
   bind(TerminalCreationHandler).toDynamicValue(context => new terminalPanel.TerminalPanelHandler(
@@ -258,7 +267,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(KeybindingContribution).toService(KeyboardShortcutsContribution);
   bind(MenuContribution).toService(KeyboardShortcutsContribution);
   bind(CommandContribution).toDynamicValue(context => new DebugSelectionContribution(
-    context.container.get(CommandRegistry),
+    context.container.get(CommandRegistry), context.container.get(EditorManager), context.container.get(DebugConfigurationManager),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     async onStart() {

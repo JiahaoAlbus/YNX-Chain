@@ -35,7 +35,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     // This dedicated inherited endpoint belongs to this launch only. Ordinary
     // child stdio does not inherit it; no credential is placed in environment.
     const { OVSXClientProvider } = require('@theia/vsx-registry/lib/common/ovsx-client-provider');
-    const catalog = require('./marketplace-channel').inheritedCatalog();
+    const catalog = require('./catalog-scheduler').scheduleCatalog(require('./marketplace-channel').inheritedCatalog());
     rebind(OVSXClientProvider).toConstantValue(async () => ({
       search: options => catalog.request('search', options),
       query: options => catalog.request('query', options),

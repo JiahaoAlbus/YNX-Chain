@@ -8,6 +8,7 @@ const entries = [
   ['debugTsFile', 'Debug TypeScript File', '调试 TypeScript 文件'],
   ['cancelTsBuild', 'Cancel TypeScript Build', '取消 TypeScript 编译'],
   ['ecosystemTitle', 'YNX Ecosystem', 'YNX 生态'],
+  ['ecosystemProjectHint', 'Develop contracts, connect a project network and revisit transaction results.', '开发合约、连接项目网络，并查询交易结果。'],
   ['ynx.workbench.ecosystem', 'YNX Ecosystem', 'YNX 生态'],
   ['ecosystemContracts', 'Contract development', '合约开发'],
   ['ecosystemOpenContracts', 'Open project contracts', '打开项目合约'],

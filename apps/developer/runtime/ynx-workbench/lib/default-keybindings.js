@@ -9,5 +9,9 @@ function registerDefaultKeybindings(registry, closeMainTabId) {
   // The pinned Problems contribution overrides registerKeybindings without
   // calling its view superclass, so its advertised toggle key is absent.
   registry.registerKeybinding({ command: 'problemsView:toggle', keybinding: 'ctrlcmd+shift+m' });
+  // Default scope preserves user overrides and an active session's Continue.
+  const when = 'editorTextFocus && resourceScheme == file && !inDebugMode && (editorLangId == cpp || editorLangId == c || editorLangId == javascript || editorLangId == python)';
+  registry.registerKeybinding({ command: 'ynx.workbench.runCurrentFile', keybinding: 'ctrl+f5', when });
+  registry.registerKeybinding({ command: 'ynx.workbench.debugCurrentFile', keybinding: 'f5', when });
 }
 module.exports = { registerDefaultKeybindings };

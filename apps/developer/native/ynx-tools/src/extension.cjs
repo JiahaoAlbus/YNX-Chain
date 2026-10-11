@@ -51,7 +51,10 @@ function activate(context) {
     { label: t('Network'), children: [
       { label: t('YNX Testnet · 6423 · YNXT'), description: t('Configured; not live checked'), command: 'ynx.testnetConfiguration' },
       { label: t('Configure Chain for this project'), command: 'ynx.configureChainProject' },
-      { label: t('Chain project tools'), description: t('Public read; approve each query'), command: 'ynx.chainProject' },
+      { label: t('Inspect network identity'), command: 'ynx.chain.status' },
+      { label: t('Inspect contract capabilities'), command: 'ynx.chain.capabilities' },
+      { label: t('Read account balance'), command: 'ynx.chain.balance' },
+      { label: t('Query a transaction'), command: 'ynx.chain.transaction' },
       { label: t('Open saved observations'), command: 'ynx.chainProjectHistory' },
       { label: t('Remember a transaction reference'), command: 'ynx.trackChainTransaction' },
       { label: t('Create read-only SDK starter'), command: 'ynx.createTemplate' },
@@ -68,6 +71,10 @@ function activate(context) {
   require('./project-views.cjs').registerProjectViews(vscode, context, entries);
   const register = (name, action) => context.subscriptions.push(vscode.commands.registerCommand(name, async () => { try { await action(); } catch (error) { vscode.window.showErrorMessage(t(error.message)); } }));
   register('ynx.chainProject', () => projectChain().open());
+  register('ynx.chain.status', () => projectChain().status());
+  register('ynx.chain.capabilities', () => projectChain().capabilities());
+  register('ynx.chain.balance', () => projectChain().balance());
+  register('ynx.chain.transaction', () => projectChain().transaction());
   register('ynx.evm.build', () => evmProject.build());
   register('ynx.evm.test', () => evmProject.test());
   register('ynx.evm.cancel', () => evmProject.cancel());

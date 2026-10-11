@@ -142,6 +142,8 @@ function createChainProjectUI(vscode,context,environment,t,options={}) {
     return display(record);
   }
   return {open:()=>guarded(open),configure:()=>guarded(configure),saved:()=>guarded(saved),track:()=>guarded(()=>input('track')),
+    status:()=>guarded(()=>read({kind:'status'})),capabilities:()=>guarded(()=>read({kind:'compiler'})),
+    balance:()=>guarded(()=>input('balance')),transaction:()=>guarded(()=>input('transaction')),
     observations:()=>project.history(),openObservation:reference=>guarded(()=>openObservation(reference))};
 }
 module.exports={createChainProjectUI,CHAIN_PROJECT_TRANSLATIONS};

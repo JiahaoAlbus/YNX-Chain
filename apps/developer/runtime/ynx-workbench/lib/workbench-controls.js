@@ -3,8 +3,8 @@
 // never runners for arbitrary editor text or shell commands.
 const RUN_MENU = Object.freeze(['ynx-workbench-run']);
 const RUN_ACTIONS = Object.freeze([
-  { id: 'workbench.action.debug.selectandstart', label: 'Run and Debug…' },
-  { id: 'workbench.action.debug.run', label: 'Run Without Debugging' },
+  { id: 'ynx.workbench.debugCurrentFile', label: 'Run and Debug…' },
+  { id: 'ynx.workbench.runCurrentFile', label: 'Run Without Debugging' },
   { id: 'task:run:build', label: 'Run Build Task…' },
   { id: 'workbench.action.tasks.runTask', label: 'Run Task…' },
 ]);
@@ -190,22 +190,29 @@ class WorkbenchControlsContribution {
     const menu = access.menu;
     if (menu?.node && menu.contentNode) {
       const select = event => {
-        if (this.stopped || this.popup !== access || access.disposed || !menu.isAttached) return;
+        if (this.stopped || this.popup !== access || access.disposed || !menu.isAttached) return false;
         if (widget && (widget.isDisposed || this.editors.currentEditor !== widget
-          || widget.editor?.document !== this.popupDocument)) { this.closeRunMenu(); return; }
-        if (event.button !== 0) return;
+          || widget.editor?.document !== this.popupDocument)) { this.closeRunMenu(); return false; }
+        if (event.button !== 0) return false;
         // Remote and accessibility clicks may contain no mousemove. Select the
         // actual hit row before Lumino's normal mouseup handler executes it.
         // The framework still owns selectable/disabled checks and dispatch.
         menu.activeIndex = Array.from(menu.contentNode.children).findIndex(node => {
+          if (event.target && (node === event.target || node.contains?.(event.target))) return true;
           const bounds = node.getBoundingClientRect();
           return event.clientX >= bounds.left && event.clientX < bounds.right
             && event.clientY >= bounds.top && event.clientY < bounds.bottom;
         });
+        return menu.activeIndex >= 0;
       };
+      // WebKit accessibility may emit click without pointer down/up. Reuse the
+      // framework dispatcher for that normal activation. A physical mouseup
+      // already closes the popup, so its subsequent click cannot dispatch twice.
+      const activate = event => { if (select(event)) menu.triggerActiveItem(); };
       menu.node.addEventListener('mousedown', select, true);
+      menu.node.addEventListener('click', activate, true);
       const disposed = access.onDispose?.(retire);
-      cleanup = () => { menu.node.removeEventListener('mousedown', select, true); disposed?.dispose(); };
+      cleanup = () => { menu.node.removeEventListener('mousedown', select, true); menu.node.removeEventListener('click', activate, true); disposed?.dispose(); };
     }
   }
   closeRunMenu() {

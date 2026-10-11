@@ -3,6 +3,13 @@ const { BaseWidget } = require('@theia/core/lib/browser/widgets');
 const { CommonMenus } = require('@theia/core/lib/browser/common-menus');
 const ID = 'ynx-ecosystem-sidebar';
 const COMMAND = 'ynx.workbench.ecosystem';
+const ACTION_ICONS = Object.freeze({
+  'ynx.contracts.focus': 'symbol-class',
+  'ynx.network.focus': 'globe',
+  'ynx.workbench.wallet': 'account',
+  'ynx.chainResults.focus': 'history',
+  'ynx.review.focus': 'diff',
+});
 // Navigation uses the current project's existing contributions. Opening this
 // view never queries a network, approves a service or submits a transaction.
 const SECTIONS = Object.freeze([
@@ -26,6 +33,7 @@ class EcosystemSidebarWidget extends BaseWidget {
     this.id = ID; this.title.label = translate('ecosystemTitle', 'YNX Ecosystem');
     this.title.caption = this.title.label; this.title.iconClass = 'codicon codicon-link';
     this.title.closable = false; this.node.tabIndex = -1;
+    this.node.classList.add('ynx-ecosystem-navigation');
     const document = this.node.ownerDocument;
     const heading = document.createElement('h3'); heading.textContent = this.title.label;
     this.node.append(heading); this.buttons = [];
@@ -35,8 +43,12 @@ class EcosystemSidebarWidget extends BaseWidget {
       group.append(label);
       for (const [command, key, text] of section.actions) {
         const button = document.createElement('button'); button.type = 'button';
-        button.className = 'theia-button secondary'; button.textContent = translate(key, text);
-        button.style.display = 'block'; button.style.margin = '8px 0';
+        button.className = 'ynx-ecosystem-navigation-action';
+        const icon = document.createElement('span');
+        icon.className = `codicon codicon-${ACTION_ICONS[command]}`;
+        icon.setAttribute('aria-hidden', 'true');
+        const caption = document.createElement('span'); caption.textContent = translate(key, text);
+        button.append(icon, caption);
         button.addEventListener('click', async () => {
           // Recheck at the click, rather than retaining a project's old grant.
           try {
@@ -49,8 +61,8 @@ class EcosystemSidebarWidget extends BaseWidget {
       this.node.append(group);
     }
     const note = document.createElement('p');
-    note.textContent = translate('ecosystemAuthority', 'Connections and approvals are managed in their own views. Opening this sidebar grants no access.');
-    this.node.append(note); this.node.style.padding = '12px'; this.node.style.overflow = 'auto';
+    note.textContent = translate('ecosystemProjectHint', 'Develop contracts, connect a project network and revisit transaction results.');
+    this.node.append(note);
     const refresh = () => this.refresh();
     if (commands.onCommandsChanged) this.toDispose.push(commands.onCommandsChanged(refresh));
     this.refresh();

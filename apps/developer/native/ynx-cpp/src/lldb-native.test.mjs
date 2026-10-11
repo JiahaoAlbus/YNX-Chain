@@ -10,6 +10,8 @@ import { localWorkbenchSandboxPolicy, localWorkbenchPathIdentities, localWorkben
 import { createLocalIpcSession } from '../../../desktop/local-workbench-ipc.mjs';
 const require = createRequire(import.meta.url);
 const { createBuildTasks, createLaunchConfiguration, installedCompiler } = require('./build-tasks.cjs');
+const { terminalLaunchConfiguration, createDebugBuildTarget } = require('./cpp-run.cjs');
+const runtimeRequire = createRequire(new URL('../../../runtime/theia/package.json', import.meta.url));
 const exec = promisify(execFile);
 const appRuntime = process.env.YNX_QA_MACOS_APP_RUNTIME;
 
@@ -41,17 +43,17 @@ function connect(policy, cwd, env) {
       }
     }
   });
-  const timeout = promise => Promise.race([promise, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('LLDB DAP timed out')), 12000); timer.unref(); promise.finally(() => clearTimeout(timer)).catch(() => {}); })]);
+  const timeout = (promise, label) => Promise.race([promise, new Promise((_, reject) => { const timer = setTimeout(() => reject(Error('LLDB DAP timed out: ' + label + '; output=' + output + '; stderr=' + stderr)), 12000); timer.unref(); promise.finally(() => clearTimeout(timer)).catch(() => {}); })]);
   return {
     child, closed, output: () => output,
     request(command, args = {}) {
       const seq = ++sequence, bytes = Buffer.from(JSON.stringify({ seq, type: 'request', command, arguments: args }));
       const promise = new Promise((resolve, reject) => pending.set(seq, { resolve, reject }));
-      child.stdin.write(`Content-Length: ${bytes.length}\r\n\r\n`); child.stdin.write(bytes); return timeout(promise);
+      child.stdin.write(`Content-Length: ${bytes.length}\r\n\r\n`); child.stdin.write(bytes); return timeout(promise, command);
     },
     event(name) {
       const index = events.findIndex(item => item.event === name); if (index >= 0) return Promise.resolve(events.splice(index, 1)[0]);
-      return timeout(new Promise(resolve => waiters.push({ name, resolve })));
+      return timeout(new Promise(resolve => waiters.push({ name, resolve })), 'event ' + name);
     },
   };
 }
@@ -87,13 +89,15 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
   const env = localWorkbenchEnvironment({ node, lockHelper, runtime, context, clangd });
   assert.equal(env.DEVELOPER_DIR, '/Library/Developer/CommandLineTools'); assert.equal(env.SDKROOT, clangd.sysroot);
   const tool = await installedCompiler({ sysroot: '/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk', language: 'cpp' });
-  const source = join(context.workspace, 'main.cpp'), program = join(context.workspace, 'main');
-  await writeFile(source, '#include <iostream>\nint main() {\n  int value = 41;\n  value += 1;\n  std::cout << "Hello World " << value << std::endl;\n  return 0;\n}\n');
+  const debugOutput = process.env.YNX_QA_CPP_SHORT_EXECUTABLE === '1' ? await createDebugBuildTarget(env, randomUUID()) : undefined;
+  const source = join(context.workspace, 'main.cpp'), program = debugOutput?.binary || join(context.workspace, 'main');
+  await writeFile(source, '#include <iostream>\nint main(int argc, char **argv) {\n  int value = 41;\n  value += 1;\n  std::cout << "Hello World " << value << std::endl;\n  int input = 0; if (argc > 1 && std::cin >> input) std::cout << "Input " << input << std::endl;\n  return 0;\n}\n');
   await exec('/usr/bin/sandbox-exec', ['-p', policy, tool.compiler, '-isysroot', tool.sdk, '-g', '-O0', source, '-o', program], { cwd: context.workspace, env });
+  await debugOutput?.validate();
   const tasks = await createBuildTasks(context.workspace, tool);
   const generated = await createLaunchConfiguration(context.workspace, tasks.path, 'cpp', true);
   const config = { ...generated.configuration, program, cwd: context.workspace }; delete config.preLaunchTask;
-  const sessions = [];
+  const sessions = [], holders = [];
   try {
     // Negative control: the previous generated terminal default fails before
     // configurationDone; its failure cannot be counted as debugger startup.
@@ -102,24 +106,36 @@ test('Apple LLDB generated debug target really pauses, exposes variables, steps,
     const failed = await old.request('launch', { ...config, console: 'integratedTerminal' });
     assert.equal(failed.success, false); assert.match(failed.body.error.format, /unique file name for runInTerminal/);
     await old.request('disconnect', { terminateDebuggee: true }); await old.closed;
-    for (const mode of ['finish', 'stop', 'retry']) {
+    for (const mode of ['finish', 'stop', 'retry', 'pty-finish', 'pty-stop', 'pty-retry']) {
+      console.log(JSON.stringify({ nativeDapMode: mode, workspace: context.workspace }));
+      let terminalOutput = '', holder;
+      if (mode.startsWith('pty')) {
+        const pty = runtimeRequire('node-pty');
+        holder = pty.spawn('/usr/bin/sandbox-exec', ['-p', policy, '/usr/bin/tail', '-f', '/dev/null'], { cwd: context.workspace, env, cols: 80, rows: 24 });
+        holders.push(holder); holder.onData(data => { terminalOutput += data; });
+        assert.match(holder.ptsName, /^\/dev\/ttys[0-9]+$/);
+        holder.write('7\n');
+      }
       const session = connect(policy, context.workspace, env); sessions.push(session);
       await success(session, 'initialize', { adapterID: 'lldb-dap', clientID: 'theia', pathFormat: 'path', linesStartAt1: true, columnsStartAt1: true, supportsRunInTerminalRequest: true });
-      await success(session, 'launch', config); await session.event('initialized');
+      await success(session, 'launch', holder ? terminalLaunchConfiguration({ ...config, args: ['input'] }, holder.ptsName) : config); await session.event('initialized');
       const breakpoints = await success(session, 'setBreakpoints', { source: { path: source }, breakpoints: [{ line: 4 }] }); assert.equal(breakpoints.breakpoints.length, 1);
       await success(session, 'configurationDone'); const stopped = await session.event('stopped'); assert.equal(stopped.body.reason, 'breakpoint');
       assert.equal(await value(session, stopped.body.threadId), '41');
-      if (mode !== 'stop') {
+      if (!mode.endsWith('stop')) {
         await success(session, 'next', { threadId: stopped.body.threadId }); await session.event('stopped');
         assert.equal(await value(session, stopped.body.threadId), '42');
         await success(session, 'continue', { threadId: stopped.body.threadId });
-        const exited = await session.event('exited'); assert.equal(exited.body.exitCode, 0); assert.match(session.output(), /Hello World 42/);
+        const exited = await session.event('exited'); assert.equal(exited.body.exitCode, 0);
+        if (holder) { assert.match(terminalOutput, /Hello World 42/); assert.match(terminalOutput, /Input 7/); }
+        else assert.match(session.output(), /Hello World 42/);
       }
       await success(session, 'disconnect', { terminateDebuggee: true }); const closed = await session.closed; assert.equal(closed.code, 0);
     }
-    console.log(JSON.stringify({ root, actualNode: node, adapter: '/Library/Developer/CommandLineTools/usr/bin/lldb-dap', checks: ['previous integrated terminal rejected', 'real source breakpoint', 'value 41', 'step to 42', 'stdout and exit0', 'stop own debuggee', 'retry'], limitations: ['Debug Console has no program stdin', 'native App UI remains a separate required check'] }));
+    console.log(JSON.stringify({ root, actualNode: node, adapter: '/Library/Developer/CommandLineTools/usr/bin/lldb-dap', checks: ['previous integrated terminal rejected', 'real source breakpoint', 'value 41', 'step to 42', 'stdout and exit0', 'stop own debuggee', 'retry', 'product PTY launchCommands finish/stop/retry', 'PTY stdin 7 and output'], limitations: ['native App UI remains a separate required check'] }));
     assert.equal(JSON.parse(await readFile(generated.path)).configurations[0].console, 'internalConsole');
   } finally {
+    for (const holder of holders) { try { holder.kill(); } catch {} }
     for (const session of sessions) if (session.child.exitCode === null && session.child.signalCode === null)
       await exec(cleanupHelper, [String(session.child.pid), '--force'], { timeout: 5000 });
     await Promise.all(sessions.map(session => session.closed)); await ipc.cleanup({ confirmedExited: true });

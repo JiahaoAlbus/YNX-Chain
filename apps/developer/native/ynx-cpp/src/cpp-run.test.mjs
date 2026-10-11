@@ -1,12 +1,16 @@
-import test from 'node:test';
+import test, { after } from 'node:test';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-import { mkdtemp, writeFile, readFile, mkdir, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, readFile, mkdir, rm, rename, symlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { randomUUID } from 'node:crypto';
+import { createLocalIpcSession } from '../../../desktop/local-workbench-ipc.mjs';
 const require = createRequire(import.meta.url);
-const { registerCppRun, sourceContext, executeAndWait } = require('./cpp-run.cjs');
+const { registerCppRun, sourceContext, executeAndWait, createDebugBuildTarget } = require('./cpp-run.cjs');
+const ipcSessions = [];
+after(async () => { for (const ipc of ipcSessions) await ipc.cleanup({ confirmedExited: true }); });
 const { createBuildTasks, createLaunchConfiguration, installedCompiler } = require('./build-tasks.cjs');
 function emitter() { const listeners = new Set(); return { event: fn => { listeners.add(fn); return { dispose: () => listeners.delete(fn) }; }, fire: event => { for (const fn of listeners) fn(event); }, count: () => listeners.size }; }
 const runtimeRequire = createRequire(new URL('../../../runtime/theia/package.json', import.meta.url));
@@ -39,9 +43,20 @@ async function fixture() {
   return execution;
  } } };
  const env = { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: root, YNX_LOCAL_PROJECT_ID: '12345678-1234-1234-1234-123456789abc' };
+ const ipc = await createLocalIpcSession({ workspace: root, id: env.YNX_LOCAL_PROJECT_ID }); ipcSessions.push(ipc); env.TMPDIR = ipc.path;
  const context = { subscriptions: [] }; registerCppRun(vscode, context, env);
  return { root, path, document, folder, vscode, env, errors, output, commands, end, ended };
 }
+test('default debug output is exclusive to request and rejects foreign, reused or replaced directories', async () => {
+ const f = await fixture(), request = randomUUID();
+ const output = await createDebugBuildTarget(f.env, request); await output.validate();
+ assert.equal(output.binary, join(f.env.TMPDIR, 'cpp-' + request, 'program'));
+ await assert.rejects(createDebugBuildTarget(f.env, request), { code: 'EEXIST' });
+ await assert.rejects(createDebugBuildTarget({ ...f.env, TMPDIR: f.root }, randomUUID()), /owned local session/);
+ const directory = join(f.env.TMPDIR, 'cpp-' + request);
+ await rename(directory, directory + '-retained'); await symlink(directory + '-retained', directory);
+ await assert.rejects(output.validate(), /directory changed/);
+});
 test('normal first-use command chooses actual compiler, captures source despite editor welcome focus, and repeats a fresh build', async () => {
  const f = await fixture(); await writeFile(f.path, '#include <iostream>\nint main(){std::cout << "YNX first 42";}\n');
  await f.commands.get('ynx.cpp.runActive')(); assert.deepEqual(f.errors, []); assert.ok(f.output.includes('YNX first 42'));
@@ -145,7 +160,7 @@ test('first-use debug uses same persisted process build without task discovery a
  f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
  f.vscode.tasks.fetchTasks=async()=>{throw Error('task cache must not gate first debug');};
  f.vscode.debug.startDebugging=async(folder,configuration)=>{assert.equal(folder,f.folder);selected=configuration;return true;};
- await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.equal(selected.program,join(f.root,'main'));
+ await f.commands.get('ynx.cpp.debugActive')();assert.deepEqual(f.errors,[]);assert.ok(selected.program.startsWith(f.env.TMPDIR+'/cpp-'));
  assert.equal(selected.cwd,f.root);assert.equal(selected.preLaunchTask,undefined);assert.ok((await readFile(selected.program)).length>0);
 });
 test('real TasksExt early process/end lifecycle recreates public execution but settles 127 without kill',async()=>{
@@ -231,7 +246,7 @@ test('native commented empty Theia launch plus VSCode process tasks debugs captu
  f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
  f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
  f.vscode.tasks.fetchTasks=async()=>{throw Error('empty task discovery must not gate generated build');};
- f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.program,join(f.root,'main'));assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
  for(let i=0;i<2;i++) {f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'native'});}
  assert.equal(launches,2);assert.deepEqual(f.errors,[]);assert.equal(await readFile(launchPath,'utf8'),bytes);
  await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
@@ -292,7 +307,7 @@ test('a mixed JS project can run and debug new C++ twice without replacing its e
  let launches=0,emptyPickers=0,compilerChoices=0;
  f.vscode.window.showQuickPick=async(items,options)=>{if(!items.length)emptyPickers++;if(options.title==='Select C/C++ compiler')compilerChoices++;return items[0];};
  f.vscode.tasks.fetchTasks=async()=>{throw Error('unobserved task cache must not gate generated build');};
- f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.type,'lldb-dap');assert.equal(configuration.program,join(f.root,'main'));assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.type,'lldb-dap');assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
  for(let i=0;i<2;i++) {
   f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.runActive')();
   f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'mixed'});

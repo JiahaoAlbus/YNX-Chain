@@ -1,4 +1,8 @@
 {
+  "command.chain.status": "YNX：查询网络身份",
+  "command.chain.capabilities": "YNX：查询合约能力",
+  "command.chain.balance": "YNX：读取账户余额",
+  "command.chain.transaction": "YNX：查询交易",
   "displayName": "YNX 工具",
   "description": "本地 Solidity 项目工具、测试网配置和已审查的连接工作流。",
   "container.ynx": "YNX",

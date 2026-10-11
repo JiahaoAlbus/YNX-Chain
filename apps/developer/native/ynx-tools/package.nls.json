@@ -1,4 +1,8 @@
 {
+  "command.chain.status": "YNX: Inspect network identity",
+  "command.chain.capabilities": "YNX: Inspect contract capabilities",
+  "command.chain.balance": "YNX: Read account balance",
+  "command.chain.transaction": "YNX: Query a transaction",
   "displayName": "YNX Tools",
   "description": "Local Solidity project tools, Testnet configuration and reviewed connected workflows.",
   "container.ynx": "YNX",

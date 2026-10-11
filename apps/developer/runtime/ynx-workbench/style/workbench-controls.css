@@ -19,3 +19,13 @@
 .ynx-project-actions button:focus-visible { outline: 2px solid var(--theia-focusBorder); outline-offset: 2px; }
 .ynx-project-actions button:disabled { opacity: .45; cursor: default; }
 .theia-light .ynx-project-actions { background: rgba(248, 248, 247, .92); backdrop-filter: blur(14px); }
+.ynx-ecosystem-navigation { padding: 16px 12px; overflow: auto; color: var(--theia-foreground); }
+.ynx-ecosystem-navigation h3 { margin: 0 4px 20px; font-size: 15px; font-weight: 600; }
+.ynx-ecosystem-navigation section { margin-bottom: 18px; }
+.ynx-ecosystem-navigation h4 { margin: 0 8px 6px; font-size: 11px; color: var(--theia-descriptionForeground); font-weight: 600; }
+.ynx-ecosystem-navigation-action { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 36px; padding: 8px; border: 0; border-radius: 7px; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ynx-ecosystem-navigation-action:hover { background: var(--theia-list-hoverBackground); }
+.ynx-ecosystem-navigation-action:focus-visible { outline: 2px solid var(--theia-focusBorder); outline-offset: -2px; }
+.ynx-ecosystem-navigation-action:disabled { opacity: .45; cursor: default; }
+.ynx-ecosystem-navigation-action .codicon { color: var(--theia-textLink-foreground); flex: 0 0 18px; }
+.ynx-ecosystem-navigation p { margin: 20px 8px 0; line-height: 1.6; color: var(--theia-descriptionForeground); font-size: 12px; }
