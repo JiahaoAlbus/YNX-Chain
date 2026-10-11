@@ -276,3 +276,124 @@ export class TronSignReview {
     }
   }
 }
+
+export const TRON_QUERY_ENDPOINTS = Object.freeze(['/wallet/getblockbynum', '/wallet/gettransactionbyid', '/wallet/gettransactioninfobyid']);
+const failures = new Set(['REVERT', 'BAD_JUMP_DESTINATION', 'OUT_OF_MEMORY', 'PRECOMPILED_CONTRACT',
+  'STACK_TOO_SMALL', 'STACK_TOO_LARGE', 'ILLEGAL_OPERATION', 'STACK_OVERFLOW', 'OUT_OF_ENERGY',
+  'OUT_OF_TIME', 'JVM_STACK_OVER_FLOW', 'TRANSFER_FAILED', 'INVALID_CODE']);
+function sortedJSON(value) {
+  if (Array.isArray(value)) return '[' + value.map(sortedJSON).join(',') + ']';
+  if (value && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + sortedJSON(value[k])).join(',') + '}';
+  return JSON.stringify(value);
+}
+function isMissing(response) { return response && typeof response === 'object' && !Array.isArray(response) && Object.keys(response).length === 0; }
+function resultState(network, original, state = 'unknown', receipt = null, evidence = null) {
+  return deepFreeze({networkId: network.id, txid: original.txID, state, receipt, ...(evidence ? {evidence} : {})});
+}
+function assertOriginalTronTuple(network, original, intent, context) {
+  if (!original || original.network?.id !== network.id || original.network?.genesisBlockId !== network.genesisBlockId ||
+    original.owner !== intent.owner || original.binding !== intent.binding || original.txID !== original.transaction?.txID ||
+    original.raw_data_hex !== original.transaction?.raw_data_hex || original.signature !== original.transaction?.signature?.[0]) fail('TRON_ORIGINAL_TUPLE_MISMATCH');
+  // Query can happen after expiry. Verify the original signed transaction at
+  // its original timestamp, not by inventing a fresh transaction lifetime.
+  verifyTronSigned(original.transaction, intent, context, context.timestamp);
+}
+function assertQueriedTronBody(body, original) {
+  exactKeys(body, ['visible', 'txID', 'raw_data', 'raw_data_hex', 'signature', 'ret']);
+  if (body.visible !== undefined && body.visible !== false) fail('TRON_QUERY_BODY_MISMATCH');
+  if (hex(body.txID, 32) !== original.txID || typeof body.raw_data_hex !== 'string' || body.raw_data_hex.toLowerCase() !== original.raw_data_hex ||
+    !Array.isArray(body.signature) || body.signature.length !== 1 || hex(body.signature[0], 65) !== hex(original.signature, 65)) fail('TRON_QUERY_BODY_MISMATCH');
+  const raw = structuredClone(body.raw_data);
+  exactKeys(raw, ['contract', 'ref_block_bytes', 'ref_block_hash', 'timestamp', 'expiration', 'fee_limit']);
+  if (!Array.isArray(raw.contract) || raw.contract.length !== 1) fail('TRON_QUERY_BODY_MISMATCH');
+  for (const key of ['timestamp', 'expiration']) raw[key] = safeInteger(raw[key]);
+  if (raw.fee_limit !== undefined) raw.fee_limit = safeInteger(raw.fee_limit);
+  if (raw.fee_limit === 0) delete raw.fee_limit;
+  const contract = raw.contract[0]; exactKeys(contract, ['parameter', 'type', 'Permission_id']);
+  if (contract.Permission_id === 0) delete contract.Permission_id;
+  exactKeys(contract.parameter, ['type_url', 'value']);
+  const value = contract.parameter.value;
+  if (original.transaction.raw_data.contract[0].type === 'TransferContract') {
+    exactKeys(value, ['owner_address', 'to_address', 'amount']); value.amount = safeInteger(value.amount);
+  } else {
+    exactKeys(value, ['owner_address', 'contract_address', 'data', 'call_value', 'call_token_value', 'token_id']);
+    value.call_value = safeInteger(value.call_value ?? 0);
+    for (const key of ['call_token_value', 'token_id']) if (value[key] !== undefined) { if (safeInteger(value[key]) !== 0) fail('TRON_QUERY_BODY_MISMATCH'); delete value[key]; }
+  }
+  // Supported fields and values must equal the immutable original; object key
+  // order and hex casing in FullNode JSON are representation-only differences.
+  for (const key of ['ref_block_bytes', 'ref_block_hash']) if (typeof raw[key] === 'string') raw[key] = raw[key].toLowerCase();
+  for (const key of ['owner_address', 'to_address', 'contract_address', 'data']) if (typeof contract.parameter.value?.[key] === 'string') contract.parameter.value[key] = contract.parameter.value[key].toLowerCase();
+  if (sortedJSON(raw) !== sortedJSON(original.transaction.raw_data)) fail('TRON_QUERY_BODY_MISMATCH');
+  if (!tronUtils.transaction.txCheck({visible: false, txID: original.txID, raw_data: raw, raw_data_hex: original.raw_data_hex})) fail('TRON_QUERY_BODY_MISMATCH');
+  if (body.ret === undefined) return null;
+  if (!Array.isArray(body.ret) || body.ret.length !== 1) fail('TRON_QUERY_BODY_MISMATCH');
+  const ret = body.ret[0];
+  // TRC20/native execution result only. Other contract families remain blocked.
+  exactKeys(ret, ['contractRet', 'fee']); if (ret.fee !== undefined) integer(ret.fee);
+  if (ret.contractRet !== 'SUCCESS' && !failures.has(ret.contractRet)) fail('TRON_QUERY_EXECUTION_UNKNOWN');
+  return ret.contractRet;
+}
+export function normalizeTronReceipt({network, original, intent, context, body, info, block}) {
+  const chain = tronNetwork(network); assertOriginalTronTuple(chain, original, intent, context);
+  if (isMissing(body)) return resultState(chain, original);
+  const contractRet = assertQueriedTronBody(body, original);
+  if (isMissing(info)) return resultState(chain, original, 'unknown', null, {bodyMatched: true, receiptMissing: true});
+  if (!info || typeof info !== 'object' || Array.isArray(info) || info.Error || hex(info.id, 32) !== original.txID) fail('TRON_QUERY_RECEIPT_MISMATCH');
+  const height = safeInteger(info.blockNumber);
+  const blockHash = hex(block?.blockID, 32);
+  if (BigInt('0x' + blockHash.slice(0, 16)) !== BigInt(height) || safeInteger(block?.block_header?.raw_data?.number) !== height ||
+    !Array.isArray(block.transactions) || block.transactions.length > 20000) fail('TRON_QUERY_BLOCK_MISMATCH');
+  const matches = block.transactions.filter(t => typeof t?.txID === 'string' && t.txID.toLowerCase() === original.txID);
+  if (matches.length !== 1) fail('TRON_QUERY_BLOCK_MISMATCH');
+  const includedRet = assertQueriedTronBody(matches[0], original);
+  if (!contractRet || includedRet !== contractRet) fail('TRON_QUERY_EXECUTION_UNKNOWN');
+  if (info.receipt !== undefined && (!info.receipt || typeof info.receipt !== 'object' || Array.isArray(info.receipt))) fail('TRON_QUERY_RECEIPT_MISMATCH');
+  const receiptResult = info.receipt?.result ?? null, infoResult = info.result ?? null;
+  if (infoResult !== null && infoResult !== 'SUCESS' && infoResult !== 'FAILED') fail('TRON_QUERY_EXECUTION_UNKNOWN');
+  let success;
+  if (contractRet === 'SUCCESS') {
+    if (infoResult === 'FAILED' || (receiptResult !== null && receiptResult !== 'SUCCESS') || (intent.asset === 'trc20' && receiptResult !== 'SUCCESS')) fail('TRON_QUERY_EXECUTION_CONFLICT');
+    success = true;
+  } else {
+    // Failure requires the same included original tuple and explicit agreeing
+    // node execution status, never an RPC error/timeout/not-found/expiry guess.
+    if (infoResult === 'SUCESS' || (receiptResult !== null && receiptResult !== contractRet) || (receiptResult === null && infoResult !== 'FAILED')) fail('TRON_QUERY_EXECUTION_CONFLICT');
+    success = false;
+  }
+  const evidence = {contractRet, receiptResult, infoResult};
+  if (info.resMessage !== undefined) {
+    if (typeof info.resMessage !== 'string' || info.resMessage.length > 4096 || !/^(?:[a-fA-F0-9]{2})*$/.test(info.resMessage)) fail('TRON_QUERY_RECEIPT_MISMATCH');
+    evidence.resMessageHex = info.resMessage.toLowerCase();
+  }
+  return resultState(chain, original, success ? 'included' : 'failed',
+    {txid: original.txID, blockHash, blockHeight: height, success, confirmationScope: 'rpc-block-inclusion'}, evidence);
+}
+export class TronTransactionQuery {
+  #network; #transport;
+  constructor({network, transport}) { this.#network = tronNetwork(network); this.#transport = transport; }
+  async check({original, intent, context}) {
+    // Freeze original signed tuple before the first asynchronous query. No
+    // mutable UI owner/intent can change a pending query or its returned txid.
+    const snapshot = structuredClone({original, intent, context});
+    assertOriginalTronTuple(this.#network, snapshot.original, snapshot.intent, snapshot.context);
+    try {
+      if (typeof this.#transport !== 'function') fail('TRON_TRANSPORT_UNAVAILABLE');
+      const genesis = await this.#transport(this.#network, '/wallet/getblockbynum', {num: 0});
+      if (!genesis?.block_header?.raw_data || (genesis.block_header.raw_data.number ?? 0) !== 0 || hex(genesis.blockID, 32) !== this.#network.genesisBlockId) fail('TRON_NETWORK_MISMATCH');
+      const request = {value: snapshot.original.txID};
+      const body = await this.#transport(this.#network, '/wallet/gettransactionbyid', request);
+      if (isMissing(body)) return resultState(this.#network, snapshot.original);
+      assertQueriedTronBody(body, snapshot.original);
+      const info = await this.#transport(this.#network, '/wallet/gettransactioninfobyid', request);
+      if (isMissing(info)) return resultState(this.#network, snapshot.original, 'unknown', null, {bodyMatched: true, receiptMissing: true});
+      if (!info || info.Error || hex(info.id, 32) !== snapshot.original.txID) fail('TRON_QUERY_RECEIPT_MISMATCH');
+      const block = await this.#transport(this.#network, '/wallet/getblockbynum', {num: safeInteger(info.blockNumber)});
+      return normalizeTronReceipt({...snapshot, network: this.#network, body, info, block});
+    } catch (error) {
+      // Preserve original signed custody. Query error is not transaction fail.
+      return resultState(this.#network, snapshot.original, 'unknown', null,
+        {queryError: typeof error.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : 'TRON_QUERY_UNAVAILABLE'});
+    }
+  }
+}

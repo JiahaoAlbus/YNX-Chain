@@ -7,7 +7,7 @@ import {tronAddress, tronUnits, tronDisplay, tronNetwork, tronDerivationPath,
   tronMnemonicAddress, trc20Parameter, tronBalance, trc20Balance, tronResources,
   tronResourceEstimate, tronIntentPreview, inspectTronEnvelope, TronReadAdapter,
   TRON_CAPABILITIES, buildTronUnsigned, verifyTronUnsigned, verifyTronSigned,
-  TronSignReview} from '../src/multichain-tron.mjs';
+  TronSignReview, normalizeTronReceipt, TronTransactionQuery, TRON_QUERY_ENDPOINTS} from '../src/multichain-tron.mjs';
 // PUBLIC vectors only; never use these phrases/addresses for funded accounts.
 const A = 'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8';
 const H = '415cbdd86a2fa8dc4bddd8a8f69dba48572eec07fb';
@@ -126,6 +126,101 @@ test('R2 guarded mnemonic callback derives TRON 195 key internally with no priva
   assert.equal(verifyTronSigned(result.transaction, intent, context, 1200).owner, tronAddress(B).hex);
   assert.equal('privateKey' in result, false); assert.equal('mnemonic' in result, false);
   await assert.rejects(review.signMnemonic({withMnemonic() {}, guard: {assert() {}}, onProduced() {}, now: () => 1200}), code('TRON_REVIEW_CONSUMED'));
+});
+function r3Fixture(token = false, success = true) {
+  const f = r2Fixture(token);
+  // PUBLIC deterministic fixture signing only, not a user approval or broadcast.
+  const transaction = tronUtils.crypto.signTransaction(PUBLIC_SCALAR_ONE, structuredClone(f.transaction));
+  const original = {network, owner: f.intent.owner, binding: f.intent.binding, txID: transaction.txID,
+    raw_data_hex: transaction.raw_data_hex, signature: transaction.signature[0], transaction};
+  const body = {...structuredClone(transaction), ret: [{contractRet: success ? 'SUCCESS' : 'REVERT'}]};
+  const info = {id: transaction.txID, blockNumber: 77, ...(token || !success ? {receipt: {result: success ? 'SUCCESS' : 'REVERT'}} : {}),
+    ...(!success ? {result: 'FAILED', resMessage: '726576657274'} : {})};
+  const block = {blockID: '000000000000004d' + 'bb'.repeat(24), block_header: {raw_data: {number: 77}}, transactions: [structuredClone(body)]};
+  return {...f, original, body, info, block};
+}
+function r3Transport(f, mutate = () => {}) {
+  const calls = []; const transport = async (n, endpoint, request) => {
+    calls.push({network: n, endpoint, request: structuredClone(request)});
+    let response = endpoint === '/wallet/getblockbynum' ? (request.num === 0 ? {blockID: n.genesisBlockId, block_header: {raw_data: {number: 0}}} : structuredClone(f.block))
+      : endpoint === '/wallet/gettransactionbyid' ? structuredClone(f.body) : structuredClone(f.info);
+    const changed = mutate(endpoint, response, request); return changed === undefined ? response : changed;
+  };
+  return {calls, transport};
+}
+test('R3 included native/TRC20 original tuple yields only RPC block inclusion, never finality', async () => {
+  for (const token of [false, true]) {
+    const f = r3Fixture(token), rpc = r3Transport(f), before = JSON.stringify(f.original);
+    const result = await new TronTransactionQuery({network, transport: rpc.transport}).check(f);
+    assert.deepEqual(result.receipt, {txid: f.original.txID, blockHash: f.block.blockID, blockHeight: 77, success: true, confirmationScope: 'rpc-block-inclusion'});
+    assert.equal(result.txid, f.original.txID); assert.equal(result.networkId, 'shasta'); assert.equal(result.state, 'included');
+    assert.equal('finality' in result, false); assert.equal(JSON.stringify(f.original), before);
+    assert.equal(rpc.calls.length, 4); assert.ok(rpc.calls.every(c => TRON_QUERY_ENDPOINTS.includes(c.endpoint)));
+  }
+});
+test('R3 FullNode JSON order, default zero, hex case/int64 strings normalize without changing original bytes', () => {
+  const f = r3Fixture(true); const remote = structuredClone(f.body);
+  delete remote.visible; remote.raw_data.contract[0].Permission_id = 0;
+  delete remote.raw_data.contract[0].parameter.value.call_value;
+  remote.raw_data.contract[0].parameter.value.call_token_value = 0;
+  remote.raw_data.contract[0].parameter.value.token_id = 0;
+  remote.raw_data.contract[0].parameter.value.owner_address = remote.raw_data.contract[0].parameter.value.owner_address.toUpperCase();
+  remote.raw_data.timestamp = String(remote.raw_data.timestamp); remote.raw_data.expiration = String(remote.raw_data.expiration);
+  remote.raw_data = Object.fromEntries(Object.entries(remote.raw_data).reverse());
+  assert.equal(normalizeTronReceipt({...f, network, body: remote}).state, 'included');
+});
+test('R3 failed requires original included tuple and agreeing explicit node execution evidence', () => {
+  const f = r3Fixture(true, false), result = normalizeTronReceipt({...f, network});
+  assert.equal(result.state, 'failed'); assert.equal(result.receipt.success, false);
+  assert.deepEqual(result.evidence, {contractRet: 'REVERT', receiptResult: 'REVERT', infoResult: 'FAILED', resMessageHex: '726576657274'});
+  assert.throws(() => normalizeTronReceipt({...f, network, info: {...f.info, receipt: {result: 'SUCCESS'}}}));
+  const success = r3Fixture(true);
+  assert.throws(() => normalizeTronReceipt({...success, network, info: {...success.info, result: 'FAILED'}}));
+});
+test('R3 missing/expired query and disconnect are UNKNOWN, no retry/re-sign/broadcast/cancellation', async () => {
+  const f = r3Fixture();
+  const missing = r3Transport(f, endpoint => endpoint === '/wallet/gettransactionbyid' ? {} : undefined);
+  const result = await new TronTransactionQuery({network, transport: missing.transport}).check(f);
+  assert.equal(result.state, 'unknown'); assert.equal(result.receipt, null); assert.equal(missing.calls.length, 2);
+  let calls = 0; const query = new TronTransactionQuery({network, transport: async () => {calls++; throw Error('offline');}});
+  const offline = await query.check(f); assert.equal(offline.state, 'unknown'); assert.equal(calls, 1);
+  assert.equal(offline.evidence.queryError, 'TRON_QUERY_UNAVAILABLE');
+  assert.equal(normalizeTronReceipt({...f, network}).state, 'included'); // original lifetime, not wall-clock resign
+});
+test('R3 body matched but missing execution receipt remains UNKNOWN, not inferred submitted/included', async () => {
+  const f = r3Fixture(), rpc = r3Transport(f, endpoint => endpoint === '/wallet/gettransactioninfobyid' ? {} : undefined);
+  const result = await new TronTransactionQuery({network, transport: rpc.transport}).check(f);
+  assert.equal(result.state, 'unknown'); assert.equal(result.receipt, null); assert.equal(result.evidence.bodyMatched, true); assert.equal(result.evidence.receiptMissing, true); assert.equal(rpc.calls.length, 3);
+});
+test('R3 wrong network/body/hash/signature/receipt/block/unknown result cannot create terminal success/fail', async () => {
+  const f = r3Fixture();
+  const cases = [
+    (ep, r, req) => {if(ep === '/wallet/getblockbynum' && req.num === 0)r.blockID = 'ff'.repeat(32);},
+    (ep, r) => {if(ep === '/wallet/gettransactionbyid')r.raw_data.contract[0].parameter.value.to_address = H;},
+    (ep, r) => {if(ep === '/wallet/gettransactionbyid')r.signature[0] = '00'.repeat(65);},
+    (ep, r) => {if(ep === '/wallet/gettransactionbyid')r.raw_data_hex += '00';},
+    (ep, r) => {if(ep === '/wallet/gettransactioninfobyid')r.id = 'ff'.repeat(32);},
+    (ep, r, req) => {if(ep === '/wallet/getblockbynum' && req.num === 77)r.transactions = [];},
+    (ep, r, req) => {if(ep === '/wallet/getblockbynum' && req.num === 77)r.transactions.push(structuredClone(r.transactions[0]));},
+    (ep, r) => {if(ep === '/wallet/gettransactionbyid')r.ret[0].contractRet = 'DEFAULT';},
+    ep => ep === '/wallet/gettransactioninfobyid' ? {Error: 'node temporarily unavailable'} : undefined
+  ];
+  for (const mutate of cases) {
+    const rpc = r3Transport(f, mutate), result = await new TronTransactionQuery({network, transport: rpc.transport}).check(f);
+    assert.equal(result.state, 'unknown'); assert.equal(result.receipt, null); assert.equal(result.txid, f.original.txID);
+    assert.ok(rpc.calls.length <= 4);
+  }
+});
+test('R3 original binding mismatch rejects before query, in-flight mutation cannot replace snapshot', async () => {
+  const f = r3Fixture(); let calls = 0;
+  const bad = {...f.original, txID: 'ff'.repeat(32)};
+  await assert.rejects(new TronTransactionQuery({network, transport: async () => {calls++;}}).check({...f, original: bad}), code('TRON_ORIGINAL_TUPLE_MISMATCH'));
+  assert.equal(calls, 0);
+  f.intent = structuredClone(f.intent);
+  const rpc = r3Transport(f); const q = new TronTransactionQuery({network, transport: rpc.transport});
+  const originalTxID = f.original.txID, pending = q.check(f); f.original.txID = 'ff'.repeat(32); f.intent.to = H;
+  // Mutable caller input cannot alter the internally captured original.
+  const result = await pending; assert.equal(result.txid, originalTxID); assert.equal(result.state, 'included');
 });
 test('TRON sun and TRC20 exact integer conversions reject rounding/unsafe numeric inputs', () => {
   assert.equal(tronUnits('1.000001'), '1000001'); assert.equal(tronDisplay('1000001'), '1.000001');
