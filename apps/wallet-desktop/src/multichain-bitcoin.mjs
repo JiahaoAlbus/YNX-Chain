@@ -4,6 +4,8 @@
 import { createHash } from 'node:crypto';
 import { Psbt, Transaction, payments, networks } from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
+import { HDNodeWallet, SigningKey } from 'ethers';
+import { ECPairFactory } from 'ecpair';
 
 const MAX = 2100000000000000n;
 const ALPHABET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -186,7 +188,7 @@ function ownedAddress(key, address, id) {
 // returned PSBT/result in protected wallet storage, under the original operation.
 // Provider unspent status is not cryptographic chain inclusion/SPV evidence.
 export class BitcoinSigningAdapter {
-  #operations = new Map(); #now;
+  #operations = new Map(); #now; #mnemonicAttempts = new Set();
   constructor({ now = () => Date.now() } = {}) { this.#now = now; }
   prepare({ request, publicKey: senderKey, changePublicKey, previousTransactions, unspentChecks, expiresAt, maxFeeSats }) {
     if (!request || this.#operations.has(request.requestId)) fail('BTC_REQUEST_ALREADY_EXISTS');
@@ -220,11 +222,11 @@ export class BitcoinSigningAdapter {
   #operation(id) { return this.#operations.get(id) || fail('BTC_REQUEST_NOT_FOUND'); }
   status(id) {
     const r = this.#operation(id);
-    return freeze({ requestId: id, state: r.state, expiresAt: r.expiresAt, originalRequest: r.preview.originalRequest, requestDigest: r.preview.requestDigest, unsignedPsbt: r.unsignedPsbt, partialPsbt: r.partialPsbt || null, result: r.result, error: r.error, persistence: 'parent-protected-store-required' });
+    return freeze({ requestId: id, state: r.state, expiresAt: r.expiresAt, originalRequest: r.preview.originalRequest, requestDigest: r.preview.requestDigest, unsignedPsbt: r.unsignedPsbt, partialPsbt: r.partialPsbt || null, result: r.result, error: r.error, seedBinding: r.seedBinding || null, persistence: 'parent-protected-store-required' });
   }
   cancel(id) {
     const r = this.#operation(id);
-    if (r.state !== 'prepared') fail('BTC_SIGNING_OUTCOME_NOT_CANCELLABLE');
+    if (r.state !== 'prepared' || this.#mnemonicAttempts.has(id)) fail('BTC_SIGNING_OUTCOME_NOT_CANCELLABLE');
     r.state = 'cancelled'; return this.status(id);
   }
   async sign(id, options = {}) {
@@ -272,4 +274,77 @@ export class BitcoinSigningAdapter {
     }
   }
   broadcast() { fail('BTC_BROADCAST_NOT_IMPLEMENTED'); }
+  async prepareMnemonic({ withMnemonic, permission, expectedVaultAccount, derivation, ...prepared } = {}) {
+    if (typeof withMnemonic !== 'function' || typeof expectedVaultAccount !== 'string' || !expectedVaultAccount) fail('BTC_MNEMONIC_CUSTODY_REQUIRED');
+    const d = normalizeDerivation(derivation);
+    if (prepared.request?.network !== d.network) fail('BTC_REQUEST_NETWORK_MISMATCH');
+    return withMnemonic((phrase, identity, guard) => {
+      guard.assert();
+      if (identity?.account !== expectedVaultAccount) fail('BTC_VAULT_ACCOUNT_MISMATCH');
+      const keys = deriveKeys(phrase, d);
+      // Supplied public keys must never substitute another account/path.
+      if (prepared.publicKey && !Buffer.from(prepared.publicKey).equals(Buffer.from(keys.senderPublic))) fail('BTC_DERIVATION_BINDING');
+      if (prepared.changePublicKey && !Buffer.from(prepared.changePublicKey).equals(Buffer.from(keys.changePublic))) fail('BTC_DERIVATION_BINDING');
+      const status = this.prepare({ ...prepared, publicKey: keys.senderPublic, changePublicKey: keys.changePublic });
+      const r = this.#operation(status.requestId);
+      r.seedBinding = freeze({ ...d, vaultAccount: expectedVaultAccount, senderPath: keys.senderPath, changePath: keys.changePath, senderPublicKey: Buffer.from(keys.senderPublic).toString('hex'), changePublicKey: Buffer.from(keys.changePublic).toString('hex') });
+      return freeze({ ...this.status(status.requestId), seedBinding: r.seedBinding });
+    }, permission);
+  }
+  async signMnemonic(id, { withMnemonic, permission, expectedVaultAccount, persistSigningAttempt, onProduced } = {}) {
+    const r = this.#operation(id);
+    if (!r.seedBinding || typeof withMnemonic !== 'function' || typeof persistSigningAttempt !== 'function' || typeof onProduced !== 'function') fail('BTC_MNEMONIC_CUSTODY_REQUIRED');
+    if (r.seedBinding.vaultAccount !== expectedVaultAccount) fail('BTC_VAULT_ACCOUNT_MISMATCH');
+    if (r.state !== 'prepared' || this.#mnemonicAttempts.has(id)) fail('BTC_SIGNING_ALREADY_ATTEMPTED');
+    this.#mnemonicAttempts.add(id);
+    try {
+      return await withMnemonic(async (phrase, identity, guard) => {
+        guard.assert();
+        if (identity?.account !== r.seedBinding.vaultAccount) fail('BTC_VAULT_ACCOUNT_MISMATCH');
+        const keys = deriveKeys(phrase, r.seedBinding);
+        if (Buffer.from(keys.senderPublic).toString('hex') !== r.seedBinding.senderPublicKey || Buffer.from(keys.changePublic).toString('hex') !== r.seedBinding.changePublicKey) fail('BTC_DERIVATION_BINDING');
+        // Durable original signing-attempt fence/outpoints MUST ACK before signer.
+        if (this.#now() >= r.expiresAt) fail('BTC_REQUEST_EXPIRED');
+        const ack = await guard.step(() => persistSigningAttempt(freeze({ ...this.status(id), seedBinding: r.seedBinding, state: 'signing-attempt' })));
+        if (!ack || ack.durable !== true || ack.state !== 'signing-attempt' || ack.requestId !== id || ack.requestDigest !== r.preview.requestDigest) fail('BTC_SIGNING_FENCE_ACK_REQUIRED');
+        guard.assert();
+        const bytes = Buffer.from(keys.sender.privateKey.slice(2), 'hex');
+        try {
+          const signer = ECPairFactory(ecc).fromPrivateKey(bytes, { network: btcNetwork(r.seedBinding.network), compressed: true });
+          return await this.sign(id, { signer, guard, onProduced });
+        } finally { bytes.fill(0); }
+      }, permission);
+    } catch (error) {
+      if (!r.result && r.state === 'prepared') r.state = 'unknown';
+      if (!r.error) r.error = { code: error.code || 'BTC_MNEMONIC_OPERATION_FAILED', message: 'Original operation retained; no automatic retry.' };
+      throw error;
+    }
+  }
+}
+
+function normalizeDerivation(input = {}) {
+  if (!input || Object.keys(input).some(k => !['network', 'account', 'index', 'changeIndex'].includes(k))) fail('BTC_DERIVATION_INVALID');
+  const { network: id, account = 0, index = 0, changeIndex = 0 } = input;
+  network(id); integer(account, 2147483647n); integer(index, 2147483647n); integer(changeIndex, 2147483647n);
+  return freeze({ network: id, account: Number(account), index: Number(index), changeIndex: Number(changeIndex) });
+}
+function deriveKeys(phrase, d) {
+  if (typeof phrase !== 'string' || ![12, 24].includes(phrase.trim().split(/\s+/).length)) fail('BTC_MNEMONIC_REQUIRED');
+  const senderPath = bitcoinDerivationPath(d.network, { account: d.account, change: 0, index: d.index });
+  const changePath = bitcoinDerivationPath(d.network, { account: d.account, change: 1, index: d.changeIndex });
+  let sender, change;
+  try { sender = HDNodeWallet.fromPhrase(phrase, '', senderPath); change = HDNodeWallet.fromPhrase(phrase, '', changePath); } catch { fail('BTC_MNEMONIC_INVALID'); }
+  const senderPublic = Uint8Array.from(Buffer.from(SigningKey.computePublicKey(sender.privateKey, true).slice(2), 'hex'));
+  const changePublic = Uint8Array.from(Buffer.from(SigningKey.computePublicKey(change.privateKey, true).slice(2), 'hex'));
+  return { sender, senderPublic, changePublic, senderPath, changePath };
+}
+export async function deriveBitcoinMnemonicAccount({ withMnemonic, permission, expectedVaultAccount, derivation } = {}) {
+  if (typeof withMnemonic !== 'function' || typeof expectedVaultAccount !== 'string' || !expectedVaultAccount) fail('BTC_MNEMONIC_CUSTODY_REQUIRED');
+  const d = normalizeDerivation(derivation);
+  return withMnemonic((phrase, identity, guard) => {
+    guard.assert();
+    if (identity?.account !== expectedVaultAccount) fail('BTC_VAULT_ACCOUNT_MISMATCH');
+    const keys = deriveKeys(phrase, d);
+    return freeze({ ...d, vaultAccount: expectedVaultAccount, senderPath: keys.senderPath, changePath: keys.changePath, publicKey: Buffer.from(keys.senderPublic).toString('hex'), changePublicKey: Buffer.from(keys.changePublic).toString('hex'), address: payments.p2wpkh({ pubkey: keys.senderPublic, network: btcNetwork(d.network) }).address, changeAddress: payments.p2wpkh({ pubkey: keys.changePublic, network: btcNetwork(d.network) }).address });
+  }, permission);
 }

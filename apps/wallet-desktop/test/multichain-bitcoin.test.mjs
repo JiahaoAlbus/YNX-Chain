@@ -5,6 +5,13 @@ import { BitcoinSigningAdapter } from '../src/multichain-bitcoin.mjs';
 import { Transaction, payments, networks } from 'bitcoinjs-lib';
 import { ECPairFactory } from 'ecpair';
 import * as ecc from 'tiny-secp256k1';
+import { deriveBitcoinMnemonicAccount } from '../src/multichain-bitcoin.mjs';
+import * as fs from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { HDNodeWallet } from 'ethers';
+import bs58check from 'bs58check';
 // PUBLIC BIP84 receiving/change address vectors. No human keys/phrases.
 const FROM = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
 const TO = 'bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g';
@@ -160,4 +167,80 @@ test('BTC R2 explicit read proof fetch is network-bound GET-only and rejects spe
   assert.ok(calls.every(r => r.method === 'GET'));
   const spent = new BitcoinReadAdapter({ network: 'mainnet', request: async r => r.path === '/block-height/0' ? GENESIS : r.path.endsWith('/hex') ? f.previous.toHex() : { spent: true } });
   await assert.rejects(spent.fetchPrevoutProofs(f.req.utxos), { code: 'BTC_UNSPENT_CHECK_REQUIRED' });
+});
+
+const PUBLIC_BIP84_PHRASE = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
+function fakeMnemonicCustody(phrase = PUBLIC_BIP84_PHRASE) {
+  const guard = { assert() {}, async step(action) { return action(); } };
+  return { guard, withMnemonic: (action, permission) => { assert.equal(permission, 'fixture-permission'); return action(phrase, { account: 'public-vault-account' }, guard); }, expectedVaultAccount: 'public-vault-account', permission: 'fixture-permission' };
+}
+test('BTC R3 complete BIP84 public receive 0/1 and change vector path/pubkey/address', async () => {
+  const c = fakeMnemonicCustody();
+  const publicZpub = path => { const hd = HDNodeWallet.fromPhrase(PUBLIC_BIP84_PHRASE, '', path).neuter(); const payload = Buffer.from(bs58check.decode(hd.extendedKey)); payload.writeUInt32BE(0x04b24746); return bs58check.encode(payload); };
+  assert.equal(publicZpub('m'), 'zpub6jftahH18ngZxLmXaKw3GSZzZsszmt9WqedkyZdezFtWRFBZqsQH5hyUmb4pCEeZGmVfQuP5bedXTB8is6fTv19U1GQRyQUKQGUTzyHACMF');
+  assert.equal(publicZpub("m/84'/0'/0'"), 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs');
+  const first = await deriveBitcoinMnemonicAccount({ ...c, derivation: { network: 'mainnet' } });
+  assert.equal(first.senderPath, "m/84'/0'/0'/0/0"); assert.equal(first.changePath, "m/84'/0'/0'/1/0");
+  assert.equal(first.publicKey, '0330d54fd0dd420a6e5f8d3624f5f3482cae350f79d5f0753bf5beef9c2d91af3c');
+  assert.equal(first.changePublicKey, '03025324888e429ab8e3dbaf1f7802648b9cd01e9b418485c5fa4c1b9b5700e1a6');
+  assert.equal(first.address, FROM); assert.equal(first.changeAddress, CHANGE);
+  const second = await deriveBitcoinMnemonicAccount({ ...c, derivation: { network: 'mainnet', index: 1 } });
+  assert.equal(second.senderPath, "m/84'/0'/0'/0/1"); assert.equal(second.address, TO);
+  assert.equal(second.publicKey, '03e775fd51f0dfb8cd865d9ff1cca2a158cf651fe997fdc9fee9c1d3b5e995ea77');
+  for (const output of [first, second]) { assert.equal(Object.hasOwn(output, 'privateKey'), false); assert.equal(Object.hasOwn(output, 'phrase'), false); }
+  const testnet = await deriveBitcoinMnemonicAccount({ ...c, derivation: { network: 'testnet4', account: 2, index: 3, changeIndex: 4 } });
+  assert.equal(testnet.senderPath, "m/84'/1'/2'/0/3"); assert.equal(testnet.changePath, "m/84'/1'/2'/1/4");
+  assert.match(testnet.address, /^tb1/); assert.notEqual(testnet.publicKey, first.publicKey);
+});
+async function mnemonicSigningFixture(custody = fakeMnemonicCustody()) {
+  const d = { network: 'mainnet', account: 0, index: 0, changeIndex: 0 };
+  const address = await deriveBitcoinMnemonicAccount({ ...custody, derivation: d });
+  const previous = new Transaction(); previous.version = 2; previous.addInput(new Uint8Array(32), 0xffffffff);
+  previous.addOutput(Buffer.from(validateBitcoinAddress(address.address, 'mainnet').scriptPubKey, 'hex'), 100000n);
+  const txid = previous.getId(), adapter = new BitcoinSigningAdapter({ now: () => 1 });
+  const req = { ...request(), from: address.address, changeAddress: address.changeAddress, utxos: [{ ...utxo(), txid }] };
+  const input = { ...custody, derivation: d, request: req, previousTransactions: [{ txid, hex: previous.toHex() }], unspentChecks: [{ network: 'mainnet', txid, vout: 0, spent: false }], expiresAt: 120000, maxFeeSats: '500' };
+  await adapter.prepareMnemonic(input);
+  return { adapter, req, input, custody };
+}
+test('BTC R3 mnemonic sign requires durable fence ACK before onProduced and returns no secret', async () => {
+  const f = await mnemonicSigningFixture(), events = [];
+  const result = await f.adapter.signMnemonic(f.req.requestId, { ...f.custody, persistSigningAttempt: r => { events.push('persist-attempt'); assert.equal(r.state, 'signing-attempt'); assert.equal(r.seedBinding.senderPath, "m/84'/0'/0'/0/0"); return { requestId: r.requestId, requestDigest: r.requestDigest, state: r.state, durable: true }; }, onProduced: r => { events.push('capture-raw'); assert.equal(r.originalRequest.from, FROM); } });
+  assert.deepEqual(events, ['persist-attempt', 'capture-raw']); assert.equal(result.txid, Transaction.fromHex(result.rawTransaction).getId());
+  assert.equal(JSON.stringify(result).includes(PUBLIC_BIP84_PHRASE), false); assert.equal(Object.hasOwn(result, 'privateKey'), false);
+  await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, persistSigningAttempt() {}, onProduced() {} }), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' });
+  const noAck = await mnemonicSigningFixture();
+  await assert.rejects(noAck.adapter.signMnemonic(noAck.req.requestId, { ...noAck.custody, persistSigningAttempt() {}, onProduced() { assert.fail('no-op journal cannot authorize signature'); } }), { code: 'BTC_SIGNING_FENCE_ACK_REQUIRED' });
+});
+test('BTC R3 rejects ETH scalar seed, foreign account/path/address and missing journal ACK', async () => {
+  await assert.rejects(deriveBitcoinMnemonicAccount({ ...fakeMnemonicCustody('1'.padStart(64, '0')), derivation: { network: 'mainnet' } }), { code: 'BTC_MNEMONIC_REQUIRED' });
+  const f = await mnemonicSigningFixture();
+  await assert.rejects(new BitcoinSigningAdapter({ now: () => 1 }).prepareMnemonic({ ...f.input, derivation: { network: 'mainnet', index: 1 } }), { code: 'BTC_OWNERSHIP_BINDING' });
+  await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, expectedVaultAccount: 'foreign', persistSigningAttempt() {}, onProduced() {} }), { code: 'BTC_VAULT_ACCOUNT_MISMATCH' });
+  await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, onProduced() {} }), { code: 'BTC_MNEMONIC_CUSTODY_REQUIRED' });
+  let capture = 0;
+  await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, persistSigningAttempt() { throw new Error('durability ACK failed'); }, onProduced() { capture++; } }));
+  assert.equal(capture, 0); assert.equal(f.adapter.status(f.req.requestId).state, 'unknown');
+  await assert.rejects(f.adapter.signMnemonic(f.req.requestId, { ...f.custody, persistSigningAttempt() {}, onProduced() {} }), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' });
+});
+async function actualMnemonicVault(t) {
+  if (!process.env.BTC_MNEMONIC_HARNESS_SOURCE) throw new Error('Explicit isolated actual 9bdd mnemonic-vault harness required');
+  const base = join(process.env.BTC_MNEMONIC_HARNESS_SOURCE, 'apps/wallet-desktop/src');
+  const [{ PasswordWalletVault }, { PasswordVaultFile }, { DesktopKeyLifecycle }] = await Promise.all(['password-wallet-vault.mjs', 'password-vault-file.mjs', 'key-lifecycle.mjs'].map(file => import(pathToFileURL(join(base, file)).href)));
+  const directory = await fs.mkdtemp(join(tmpdir(), 'ynx-btc-public-mnemonic-r3-')); t.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const filePath = join(directory, 'wallet-vault-v3.json'), life = new DesktopKeyLifecycle(); life.setFocused(true);
+  const store = new PasswordVaultFile(filePath), vault = new PasswordWalletVault({ filePath, legacyFilePaths: [], safeStorage: { isEncryptionAvailable: () => true }, authorization: life, fileStore: store });
+  life.authorizer = vault.authorizer(); t.after(() => life.lock());
+  const password = 'PUBLIC independent BTC fixture password 2026';
+  await life.custody(guard => vault.setup({ password, confirmation: password }, guard)); await life.unlock({ password });
+  const status = await life.run(() => vault.importAccount({ kind: 'recovery-phrase', value: PUBLIC_BIP84_PHRASE })); life.setAccount(status.account); await life.unlock({ password });
+  return { directory, filePath, life, vault, custody: { expectedVaultAccount: status.account, withMnemonic: (...args) => vault.withMnemonic(...args) } };
+}
+test('BTC R3 actual protected withMnemonic and lifecycle retain original raw when focus locks post-action', async t => {
+  const v = await actualMnemonicVault(t), before = await fs.readFile(v.filePath);
+  const f = await v.life.run(() => mnemonicSigningFixture(v.custody)); let capture;
+  await assert.rejects(v.life.run(() => f.adapter.signMnemonic(f.req.requestId, { ...v.custody, persistSigningAttempt: r => { assert.equal(r.seedBinding.vaultAccount, v.life.status().account); return { requestId: r.requestId, requestDigest: r.requestDigest, state: r.state, durable: true }; }, onProduced: r => { capture = r; v.life.setFocused(false); } })));
+  assert.ok(capture.rawTransaction); assert.equal(f.adapter.status(f.req.requestId).result, capture);
+  assert.equal(f.adapter.status(f.req.requestId).state, 'signed-unsubmitted'); assert.equal(v.life.status().locked, true);
+  assert.deepEqual(await fs.readFile(v.filePath), before); assert.equal(f.adapter.status(f.req.requestId).seedBinding.publicKey, undefined);
 });
