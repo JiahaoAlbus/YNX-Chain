@@ -87,11 +87,11 @@ export function createFamilyUI({document, api, getContext}) {
   async function readSettings() {
     // Address/history reads have their own action epoch and must not cancel
     // settings for the same selection. Edits and lifecycle changes still fence it.
-    const token = settingsRevision, context = {...getContext()}, selected = {family: family.value, network: network.value};
+    const token = settingsRevision, actionEpoch = epoch, context = {...getContext()}, selected = {family: family.value, network: network.value};
     const current = () => { const active = getContext(); return token === settingsRevision && sheet.open && !active.locked && active.account === context.account && active.revision === context.revision && family.value === selected.family && network.value === selected.network; };
     rpc.value = ''; genesis.value = ''; genesis.hidden = genesisLabel.hidden = family.value === 'bitcoin';
     if (!api.familyNetworks) return;
-    try { const reply = await api.familyNetworks(); if (!current() || !reply.ok) return; const saved = reply.value.networks.find(n => n.family === selected.family && n.network === selected.network); if (saved) {rpc.value = saved.rpcUrl; genesis.value = saved.genesis ?? '';} } catch { if (current()) status.textContent = 'FAMILY_NETWORK_UNAVAILABLE'; }
+    try { const reply = await api.familyNetworks(); if (!current() || !reply.ok) return; const saved = reply.value.networks.find(n => n.family === selected.family && n.network === selected.network); if (saved) {rpc.value = saved.rpcUrl; genesis.value = saved.genesis ?? '';} } catch { if (current() && actionEpoch === epoch) status.textContent = 'FAMILY_NETWORK_UNAVAILABLE'; }
   }
   family.addEventListener('change', networks); network.addEventListener('change', () => {invalidate(); void readSettings();});
   rpc.addEventListener('input', invalidate); genesis.addEventListener('input', invalidate);
