@@ -1,4 +1,5 @@
 import {setWalletCopy} from './wallet-locale.mjs';
+import {EVM_NETWORK_PRESETS} from './multichain-evm-presets.mjs';
 
 const formatted=(value,decimals)=>{if(!decimals)return value;const text=value.padStart(decimals+1,'0'),fraction=text.slice(-decimals).replace(/0+$/,'');return text.slice(0,-decimals)+(fraction?'.'+fraction:'')};
 /** All RPC strings use textContent. No keys, DApp grants or YNX selector changes. */
@@ -19,6 +20,10 @@ export function createMultichainUI({document,api,getContext,copy=setWalletCopy})
   const editButton=button('Edit network',root,()=>{const n=snapshot?.networks.find(n=>n.id===networks.value);if(n){name.value=n.name;rpc.value=n.rpcUrl;chain.value=n.chainId;symbol.value=n.symbol;genesis.value=n.genesis;networkDetails.open=true}});
   const removeButton=button('Remove network',root,()=>{if(!snapshot?.selected)return;return run(()=>api.multichainRemove(networks.value),refresh)});
   const networkDetails=document.createElement('details');root.append(networkDetails);text('summary','Add or edit EVM network',networkDetails);
+  text('p','Use a network template',networkDetails);
+  text('p','Templates fill the form only. Verify and save before using the network.',networkDetails);
+  const templates=document.createElement('div');networkDetails.append(templates);
+  for(const preset of EVM_NETWORK_PRESETS){const control=data('button',preset.name,templates);control.type='button';controls.add(control);control.addEventListener('click',()=>{if(busy||reading)return;name.value=preset.name;rpc.value=preset.rpcUrl;chain.value=preset.chainId;symbol.value=preset.symbol;genesis.value=preset.genesis;networkDetails.open=true})}
   const networkForm=document.createElement('form');networkDetails.append(networkForm);
   const name=field('Network name',networkForm),rpc=field('HTTPS RPC',networkForm),chain=field('Chain ID',networkForm),symbol=field('Native symbol',networkForm),genesis=field('Genesis block hash',networkForm);
   button('Verify and save network',networkForm,()=>{if(!networkForm.reportValidity())return;return run(()=>api.multichainNetwork({name:name.value,rpcUrl:rpc.value,chainId:chain.value,symbol:symbol.value,genesis:genesis.value.toLowerCase(),decimals:18}),async()=>{networkDetails.open=false;await refresh()})});networkForm.addEventListener('submit',e=>e.preventDefault());

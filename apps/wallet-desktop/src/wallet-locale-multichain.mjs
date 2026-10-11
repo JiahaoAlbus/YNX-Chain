@@ -13,4 +13,19 @@ ru:'Другие сети EVM|Другие сети не меняют разре
 ar:'شبكات EVM أخرى|الشبكات الأخرى لا تغير أذونات YNX. تحقق من RPC والرمز بشكل مستقل.|اختر شبكة EVM أو أضفها.|تعديل الشبكة|إزالة الشبكة|إضافة أو تعديل شبكة EVM|اسم الشبكة|HTTPS RPC|معرف السلسلة|رمز العملة الأصلية|تجزئة كتلة التكوين|التحقق والحفظ|استيراد رمز ERC-20|عقد الرمز|اسم الرمز|اختصار الرمز|المنازل العشرية|أدخل البيانات الناقصة يدوياً. لا تخمن المنازل العشرية.|إرسال عبر الشبكة المختارة|المستلم|المبلغ|إزالة الرمز|عنوان استقبال EVM|أقصى رسوم|Nonce|حد الغاز|سعر الغاز|بيانات المعاملة|الإدراج بحسب RPC ليس نهائية الإجماع. المعاملات المجهولة تُفحص ولا تُعاد تلقائياً.|فشل طلب الشبكة: {code}|راجع الشبكة والمستلم والمبلغ وأقصى رسوم بدقة.|حالة المعاملة: {state}|فحص المعاملة الأصلية|تأكيد وإرسال',
 id:'Jaringan EVM lainnya|Jaringan lain tidak mengubah izin YNX. Verifikasi RPC dan token secara terpisah.|Pilih atau tambah jaringan EVM.|Edit jaringan|Hapus jaringan|Tambah atau edit jaringan EVM|Nama jaringan|RPC HTTPS|ID chain|Simbol koin asli|Hash blok genesis|Verifikasi dan simpan|Impor token ERC-20|Kontrak token|Nama token|Simbol token|Desimal token|Isi metadata yang tidak tersedia. Jangan menebak desimal token.|Kirim di jaringan terpilih|Penerima|Jumlah|Hapus token|Alamat penerima EVM|Biaya maksimum|Nonce|Batas gas|Harga gas|Data transaksi|Pencantuman blok RPC bukan finalitas konsensus. Transaksi tak diketahui hanya diperiksa, tidak dikirim ulang otomatis.|Permintaan jaringan gagal: {code}|Periksa jaringan, penerima, jumlah, dan biaya maksimum yang tepat.|Status transaksi: {state}|Periksa transaksi asli|Konfirmasi dan kirim'
 };
-export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value))throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze(Object.fromEntries(keys.map((key,index)=>[key,values[index]])))]})));
+const presetKeys=['Use a network template','Templates fill the form only. Verify and save before using the network.'];
+const presetRows={
+en:presetKeys,
+'zh-Hans':['使用网络模板','模板只填写表单。验证并保存后才能使用该网络。'],
+'zh-Hant':['使用網路範本','範本只填寫表單。驗證並儲存後才能使用該網路。'],
+ja:['ネットワークのテンプレートを使う','テンプレートはフォームへの入力のみです。検証して保存してから使用してください。'],
+ko:['네트워크 템플릿 사용','템플릿은 양식만 채웁니다. 검증하고 저장한 후 사용하세요.'],
+es:['Usar una plantilla de red','Las plantillas solo rellenan el formulario. Verifica y guarda antes de usar la red.'],
+fr:['Utiliser un modèle de réseau','Les modèles remplissent uniquement le formulaire. Vérifiez et enregistrez avant utilisation.'],
+de:['Netzwerkvorlage verwenden','Vorlagen füllen nur das Formular aus. Vor Nutzung prüfen und speichern.'],
+pt:['Usar um modelo de rede','Os modelos apenas preenchem o formulário. Verifique e salve antes de usar a rede.'],
+ru:['Использовать шаблон сети','Шаблон только заполняет форму. Перед использованием проверьте и сохраните сеть.'],
+ar:['استخدام قالب شبكة','القوالب تملأ النموذج فقط. تحقق واحفظ قبل استخدام الشبكة.'],
+id:['Gunakan templat jaringan','Templat hanya mengisi formulir. Verifikasi dan simpan sebelum menggunakan jaringan.']
+};
+export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value)||presetRows[locale]?.length!==presetKeys.length)throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(presetKeys.map((key,index)=>[key,presetRows[locale][index]]))})]})));
