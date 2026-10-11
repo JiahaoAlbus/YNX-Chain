@@ -17,6 +17,12 @@ function extensionDisplayName(id, name) {
 // confirmation; enabling never silently reloads or modifies project contents.
 class YnxVSXExtension extends VSXExtension {
   get displayName() { return extensionDisplayName(this.id, super.displayName); }
+  install(options) {
+    // Capture the version at the user's click, before kernel confirmation waits.
+    const version = options?.version || this.version;
+    if (!version) return Promise.reject(Error('Select an extension version before installation.'));
+    return super.install({ ...options, version });
+  }
   runTask(name, task) {
     if (this._currentTask) return Promise.reject('busy');
     this._currentTaskName = name;

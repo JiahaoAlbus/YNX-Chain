@@ -1,5 +1,7 @@
 import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
 import marketplaceChannel from '../runtime/ynx-workbench/lib/marketplace-channel.js';
+import artifactChannel from '../runtime/ynx-workbench/lib/marketplace-artifact-channel.js';
+import { createArtifactDownloader } from './marketplace-artifact-transport.mjs';
 import publicChainChannel from '../runtime/ynx-workbench/lib/chain-public-channel.js';
 import { createPublicChainHost } from './chain-public-reader.mjs';
 import marketplaceDiagnostics from '../runtime/ynx-workbench/lib/marketplace-diagnostics.js';
@@ -109,7 +111,7 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
   return { PATH: `${go ? dirname(go.entry) + ':' : ''}${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', LANG: 'en_US.UTF-8', LC_CTYPE: 'en_US.UTF-8', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5',
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6',
     ...(python ? { YNX_IDE_PYTHON_ENTRY: python.executable } : {}),
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
@@ -290,10 +292,25 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
+  let artifactsRetired = false;
+  const artifactsPipe = artifactChannel.serveArtifacts(child.stdio[6], createArtifactDownloader({
+    directory: ipc.path,
+    async assertCurrent() {
+      if (artifactsRetired) throw Error('Extension download session ended.');
+      await assertWorkspacePathIdentity(workspaceProof);
+      if (artifactsRetired) throw Error('Extension download session ended.');
+    },
+  }));
+  const retireArtifacts = () => {
+    artifactsRetired = true;
+    return artifactsPipe.close();
+  };
+  child.once('close', () => retireArtifacts().catch(() => log.write('YNX_EXTENSION_STAGING_CLEANUP_FAILED\n')));
+  child.once('error', () => retireArtifacts().catch(() => log.write('YNX_EXTENSION_STAGING_CLEANUP_FAILED\n')));
   const publicChainPipe = publicChainChannel.servePublicChain(child.stdio[5], publicChainHost);
   child.once('close', () => publicChainPipe.close());
   child.once('error', () => publicChainPipe.close());
@@ -308,7 +325,9 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
-  const stop = () => stopping ||= (async () => { publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout; if (!ended) {
+  const stop = () => stopping ||= (async () => { publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout;
+    try { await retireArtifacts(); } catch (error) { cleanupError = error; }
+    if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
     // verifies OS UID, ancestry and process start time before signalling them.
     try { ({ stdout: cleanupStdout } = await exec(join(runtime.root, 'lib/backend/ynx-process-tree'), [String(child.pid), '--graceful-root'], { timeout: 15000 })); } catch (error) { cleanupError = error; }

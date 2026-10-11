@@ -41,6 +41,10 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       query: options => catalog.request('query', options),
     }));
     bind(BackendApplicationContribution).toConstantValue({ onStop: () => catalog.close() });
+    const artifacts = require('./marketplace-artifact-channel').inheritedArtifacts();
+    const { VSXExtensionResolver } = require('@theia/vsx-registry/lib/node/vsx-extension-resolver');
+    rebind(VSXExtensionResolver).to(require('./marketplace-extension-resolver').artifactResolverClass(VSXExtensionResolver, artifacts)).inSingletonScope();
+    bind(BackendApplicationContribution).toConstantValue({ onStop: () => artifacts.close() });
     require('./marketplace-diagnostics').installOn(require('@theia/vsx-registry/lib/node/vsx-registry-service-impl').VSXRegistryServiceImpl.prototype);
     require('./local-terminal-channel-diagnostics').install();
     require('./local-js-terminal-environment').install(require('@theia/terminal/lib/node/shell-terminal-server').ShellTerminalServer.prototype);
@@ -94,6 +98,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       // getter while disabling Node's experimental browser global at startup.
       env.THEIA_SUPPORT_NODE_GLOBAL_NAVIGATOR = 'true';
       delete env.YNX_MARKETPLACE_PIPE;
+      delete env.YNX_EXTENSION_ARTIFACT_PIPE;
       delete env.YNX_PUBLIC_CHAIN_PIPE;
       if (Number(process.versions.node.split('.')[0]) >= 21)
         env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
