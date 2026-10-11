@@ -1,5 +1,5 @@
+import { createHostedGenerationTransport } from './hosted-generation-transport.mjs';
 import { createFairQueue } from "./fair-queue.mjs";
-import { readHostedCompletion } from './hosted-completion.mjs';
 import { existingHostedRequest, validatedModelAttachments } from "./hosted-request.mjs";
 import { assertNoSelectedSecrets } from './context-secrets.mjs';
 import { assertExpectedIdentity, consumerIdentityBinding } from "../../codeoss-service/src/identity-consumer-binding.mjs";
@@ -48,6 +48,7 @@ export function createModelRouter({
   ownerForRequest,
   verifyIdentity,
   activity,
+  hostedGenerationSupply = () => null,
 } = {}) {
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl is required");
   if (!/^http:\/\/127\.0\.0\.1(?::\d+)?(?:\/|$)/.test(hostedBaseURL))
@@ -67,6 +68,8 @@ export function createModelRouter({
   const queue = createFairQueue({ maxConcurrent, maxQueued, maxPerOwner,
     maxQueuedPerOwner, maxHostedConcurrent, queueTimeoutMs, run });
 
+  const generationTransport = createHostedGenerationTransport({ getSupply: hostedGenerationSupply });
+
   function catalog() {
     return {
       protocolVersion: PROTOCOL,
@@ -77,7 +80,7 @@ export function createModelRouter({
         configuredModel: hostedModel,
         modelConfidence: 'unknown',
         generationAuthority: 'NOT_SUPPLIED',
-        generationAvailable: false,
+        generationAvailable: generationTransport.configured() ? null : false,
         managedSession: true,
         credentialMode: "server-managed",
         availability: 'generation-authority-not-supplied',
@@ -135,7 +138,7 @@ export function createModelRouter({
       if (input.hostedSession) {
         try { existingHostedRequest(input); } catch (error) { return Promise.reject(error); }
       }
-      return Promise.reject(fault('Hosted AI service authentication and original generation/project/current authority have not been supplied.', 'model_supply_not_supplied', 503));
+      if (!generationTransport.configured()) return Promise.reject(fault('Hosted AI service authentication and original generation/project/current authority have not been supplied.', 'model_supply_not_supplied', 503));
     }
     const schedule = (signal) => queue.schedule({ ...input, ownerId: input.ownerId || "internal",
       signal: signal ? (input.signal ? AbortSignal.any([signal, input.signal]) : signal) : input.signal });
@@ -149,7 +152,7 @@ export function createModelRouter({
     const started = performance.now();
     const result =
       input.provider === "ynx-hosted"
-        ? await hosted(input)
+        ? await generationTransport.generate({ ...input, generationTimeoutMs: timeoutMs })
         : await bringYourOwnKey(input);
     return {
       ...result,
@@ -161,37 +164,6 @@ export function createModelRouter({
       durationMs: Math.round(performance.now() - started),
       credentialPersisted: false,
     };
-  }
-
-  async function hosted(input) {
-    let response;
-    const signal = combinedSignal(input.signal, timeoutMs);
-    const body = input.hostedSession ? existingHostedRequest(input) : {
-      prompt: `${input.system}\n\n${input.prompt}`,
-      outputLanguage: input.outputLanguage,
-      attachments: [],
-      maxOutputTokens: input.maxOutputTokens,
-      responseFormat: input.responseFormat,
-    };
-    try {
-      if (signal.aborted) throw signal.reason;
-      input.onDispatch?.();
-      response = await fetchImpl(`${stripSlash(hostedBaseURL)}/ai/stream`, {
-        method: "POST",
-        headers: {
-          accept: "text/event-stream",
-          "content-type": "application/json",
-          "x-ynx-ai-provider": "ynx-local",
-        },
-        body: JSON.stringify(body),
-        signal,
-      });
-    } catch (error) {
-      throw modelConnectionFault(error, input.signal, "YNX hosted model");
-    }
-    if (!response.ok)
-      throw upstreamFault(response.status, "YNX hosted model");
-    return readHostedCompletion(response, { signal, callerSignal: input.signal, sessionId: input.hostedSession, onOperation: input.onOperation });
   }
 
   async function bringYourOwnKey(input) {
@@ -277,6 +249,7 @@ export function validateRequest(value) {
     provider,
     attachments,
     hostedSession: value.hostedSession,
+    projectBinding: value.projectBinding && Object.freeze({ ownerId: value.projectBinding.ownerId, projectId: value.projectBinding.projectId, sessionId: value.projectBinding.sessionId, generation: value.projectBinding.generation, identityReference: value.projectBinding.identityReference }),
     ownerId: typeof value.ownerId === "string" && value.ownerId.length > 0 && value.ownerId.length <= 256
       ? value.ownerId : undefined,
     model: requestedModel || (provider === "ynx-hosted" ? null : PROVIDERS[provider].defaultModel),

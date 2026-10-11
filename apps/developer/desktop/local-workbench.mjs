@@ -1,3 +1,5 @@
+import localAIChannel from '../runtime/ynx-workbench/lib/local-ai-tools-channel.js';
+import { createLocalAIToolsHost } from './local-ai-tools-host.mjs';
 import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
 import marketplaceChannel from '../runtime/ynx-workbench/lib/marketplace-channel.js';
 import artifactChannel from '../runtime/ynx-workbench/lib/marketplace-artifact-channel.js';
@@ -111,7 +113,7 @@ export function localWorkbenchEnvironment({ node, runtime, context, plugins, git
   return { PATH: `${go ? dirname(go.entry) + ':' : ''}${git ? git.directory + ':' : ''}${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`, SHELL: '/bin/bash', LANG: 'en_US.UTF-8', LC_CTYPE: 'en_US.UTF-8', BASH_SILENCE_DEPRECATION_WARNING: '1', TMPDIR: temporary, TMP: temporary, TEMP: temporary, XDG_RUNTIME_DIR: temporary, OPENSSL_CONF: '/dev/null',
     GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: gitConfig, ...(git ? { GIT_EXEC_PATH: git.helpers } : {}),
     NODE_OPTIONS: '--no-experimental-global-navigator --max-old-space-size=1024', THEIA_APP_PROJECT_PATH: runtime.root, THEIA_CONFIG_DIR: context.profile, THEIA_DEFAULT_PLUGINS: `local-dir:${plugins}`,
-    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6',
+    YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: context.workspace, YNX_LOCAL_PROJECT_ID: context.id, YNX_LOCAL_PROFILE: context.profile, YNX_MARKETPLACE_PIPE: '4', YNX_PUBLIC_CHAIN_PIPE: '5', YNX_EXTENSION_ARTIFACT_PIPE: '6', YNX_LOCAL_AI_PIPE: '7',
     ...(python ? { YNX_IDE_PYTHON_ENTRY: python.executable } : {}),
     ...(debugSupervisor ? { YNX_DEBUG_SOCKET: debugSupervisor.path, YNX_DEBUG_CREDENTIAL: debugSupervisor.credential, YNX_DEBUG_PROJECT: context.id } : {}),
     ...(jsDebugSupervisor ? { YNX_JS_DEBUG_SOCKET: jsDebugSupervisor.path, YNX_JS_DEBUG_CREDENTIAL: jsDebugSupervisor.credential, YNX_JS_DEBUG_PROJECT: context.id, YNX_JS_DEBUG_NODE: node, YNX_JS_DEBUG_LAUNCHER: join(dirname(node), 'local-js-debug-launcher.sh') } : {}),
@@ -250,7 +252,7 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 }
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
-export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
   await regular(node);
@@ -292,10 +294,13 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
-    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
+    detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
+  const aiPipe = localAIChannel.serve(child.stdio[7], createLocalAIToolsHost(context, { client: aiTools, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof) }));
+  child.once('close', () => aiPipe.close());
+  child.once('error', () => aiPipe.close());
   let artifactsRetired = false;
   const artifactsPipe = artifactChannel.serveArtifacts(child.stdio[6], createArtifactDownloader({
     directory: ipc.path,

@@ -111,7 +111,39 @@ require('../style/keyboard-shortcuts.css');
 require('../style/workbench-controls.css');
 require('../style/terminal-panel.css');
 const logo = require('../assets/ynx-logo.png');
-const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key, text);
+// BEGIN bounded local AI frontend consent owner (also exercised by targeted tests).
+function createLocalAICommandCaller(rpc, confirm) {
+  const reviews = new Map(), active = new Map();
+  return {
+    async call(id, action, body) {
+      if (active.has(id) || active.size >= 4) throw Error('AI_INVALID');
+      const controller = new AbortController(); active.set(id, controller);
+      try {
+        if (action === 'approve') {
+          const reviewed = reviews.get(body.proposalId); reviews.delete(body.proposalId);
+          if (!reviewed || reviewed.csrf !== body.csrf || reviewed.expiresAt <= Date.now() || body.approval !== 'send-reviewed-context-once') throw Error('AI_RETIRED');
+          // Even another installed extension calling the internal command must
+          // pass the host-owned prompt. Plugin-supplied approval text is not consent.
+          const consent = await confirm(reviewed, controller.signal);
+          if (controller.signal.aborted || !consent) return { projectId: reviewed.projectId, workspace: reviewed.workspace, launch: reviewed.launch, rejected: true };
+          if (reviewed.expiresAt <= Date.now()) throw Error('AI_RETIRED');
+        }
+        const value = await rpc.call(id, action, body);
+        if (controller.signal.aborted) throw Error('AI_RETIRED');
+        if (action === 'proposals') {
+          for (const [key, review] of reviews) if (review.expiresAt <= Date.now()) reviews.delete(key);
+          if (reviews.size >= 8) throw Error('AI_INVALID');
+          reviews.set(value.proposalId, Object.freeze({ ...value }));
+        }
+        return value;
+      } finally { active.delete(id); }
+    },
+    cancel(id) { active.get(id)?.abort(); return rpc.cancel(id); },
+  };
+}
+// END bounded local AI frontend consent owner.
+const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key,
+  nls.locale?.toLowerCase().startsWith('zh') ? ({ ecosystemAI: 'AI 开发', ecosystemOpenAI: '打开 AI 构建助手' }[key] || text) : text);
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 const nativeFilePicker = require('./native-file-picker');
 const NativeFileURI = require('@theia/core/lib/common/uri').default;
@@ -184,6 +216,22 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-public-chain');
     commands.registerCommand({ id: 'ynx.internal.publicChainRead' }, { execute: (id, action, params) => rpc.read(id, action, params) });
     commands.registerCommand({ id: 'ynx.internal.publicChainCancel' }, { execute: id => rpc.cancel(id) });
+  } }));
+  bind(CommandContribution).toDynamicValue(context => ({ registerCommands(commands) {
+    const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-local-ai');
+    const caller = createLocalAICommandCaller(rpc, async (review, signal) => {
+      const { ConfirmDialog } = require('@theia/core/lib/browser/dialogs');
+      const text = document.createElement('pre'); text.textContent = review.model + '\n\n' + review.wirePrompt;
+      text.style.whiteSpace = 'pre-wrap'; text.style.maxHeight = '60vh'; text.style.overflow = 'auto';
+      const chinese = nls.locale?.toLowerCase().startsWith('zh');
+      const dialog = new ConfirmDialog({ title: chinese ? '批准 AI 请求' : 'Approve AI request', msg: text,
+        ok: chinese ? '仅发送一次' : 'Send once', cancel: chinese ? '取消' : 'Cancel' });
+      const abort = () => dialog.close(); signal.addEventListener('abort', abort, { once: true });
+      try { if (signal.aborted) return false; return await dialog.open() === true; }
+      finally { signal.removeEventListener('abort', abort); }
+    });
+    commands.registerCommand({ id: 'ynx.internal.localAICall' }, { execute: (id, action, body) => caller.call(id, action, body) });
+    commands.registerCommand({ id: 'ynx.internal.localAICancel' }, { execute: id => caller.cancel(id) });
   } }));
   bind(NativeWalletService).toDynamicValue(context => new NativeWalletService(window,
     require('./wallet-admission-protocol').createAdmissionProxy(WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-wallet-admission')))).inSingletonScope();

@@ -43,9 +43,14 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   const { openBundledWalletAdmission } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
+  const { createNativeToolsClient } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-tools-client.mjs')));
+  let aiTools;
+  try { aiTools = createNativeToolsClient({ supply: walletAdmission?.nativeTools }); }
+  catch { console.error('YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED'); }
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    walletAdmission, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
+    walletAdmission, aiTools, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
+      aiTools?.close();
       // startLocalWorkbench has already stopped its own child before rejecting.
       // Preserve the lock refusal across the launcher/native-host boundary.
       if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
@@ -68,7 +73,7 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const parent = process.ppid;
   const monitor = setInterval(() => { if (process.ppid !== parent) void workbench.stop(); }, 250);
   let stopping;
-  const stop = () => {goChannel?.close();return stopping ||= workbench.stop();};
+  const stop = () => {goChannel?.close();aiTools?.close();return stopping ||= workbench.stop();};
   process.once('SIGTERM', stop); process.once('SIGINT', stop);
   const result = await workbench.exited;
   clearInterval(monitor); await stop();

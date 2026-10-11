@@ -8,11 +8,11 @@ function activate(context) {
   const compilerDiagnostics = require('./solidity-diagnostics.cjs').createSolidityDiagnostics(vscode, context, process.env);
   const previewChange = require('./review-preview.cjs').createReviewPreview(vscode, context);
   const evmProject = require('./evm-project.cjs').createEvmProject(vscode, context, process.env, t);
-  let localReviewPanel;
+  let localReviewPanel, localAIPanel;
+  const reviewPanel = () => localReviewPanel ||= require('./local-review-panel.cjs').createLocalReviewPanel(vscode, context, process.env, previewChange);
   const openLocalReview = capture => {
     if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to review local changes.'));
-    localReviewPanel ||= require('./local-review-panel.cjs').createLocalReviewPanel(vscode, context, process.env, previewChange);
-    return localReviewPanel.open(capture);
+    return reviewPanel().open(capture);
   };
   let chainProject, chainResults;
   const publicConnectionForProject = require('./chain-public-connection.cjs').createPublicConnection(vscode, context);
@@ -62,7 +62,7 @@ function activate(context) {
     ] },
     { label: t('Wallet and AI'), children: [
       { label: t('Wallet not connected'), tooltip: t('This editor has no verified Wallet signing connection.') },
-      { label: t('AI not connected'), tooltip: t('No verified online model-provider connection is exposed by this local editor.') },
+      { label: t('Open AI Builder'), command: 'ynx.ai.open' },
       { label: t('Open local change review'), command: 'ynx.openLocalReview' },
       { label: t('Review selected text'), command: 'ynx.reviewSelection' },
       { label: t('Apply reviewed text changes'), command: 'ynx.applyReviewedDiff' },
@@ -90,6 +90,11 @@ function activate(context) {
   register('ynx.ts.cancel', () => tsCurrentFile.cancel());
   register('ynx.configurePython', () => require('./python-setup.cjs').configurePython(vscode, process.env, t));
   register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(t('Solidity language: {0}', JSON.stringify(solidityLanguage.status()))); });
+  register('ynx.ai.open', () => {
+    if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to use AI Builder.'));
+    localAIPanel ||= require('./local-ai-panel.cjs').createLocalAIPanel(vscode, context, process.env, require('./local-ai-connection.cjs').createLocalAIConnection(vscode, context, process.env), reviewPanel());
+    return localAIPanel.open();
+  });
   register('ynx.openLocalReview', () => openLocalReview(false));
   register('ynx.importSolidityDiagnostics', async () => {
     const count = await compilerDiagnostics.importCopied();

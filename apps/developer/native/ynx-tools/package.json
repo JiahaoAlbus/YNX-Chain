@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.34",
+  "version": "0.2.35",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -186,6 +186,10 @@
         "command": "ynx.ts.cancel",
         "title": "%command.cancelTs%",
         "category": "YNX"
+      },
+      {
+        "command": "ynx.ai.open",
+        "title": "%command.ynx.ai.open%"
       }
     ],
     "jsonValidation": [

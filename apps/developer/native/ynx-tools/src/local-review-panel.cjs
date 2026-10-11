@@ -12,7 +12,7 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
     return answer;
   };
   const review = createLocalReview(Object.assign(Object.create(vscode), { window: guardedWindow }), environment, previewChange);
-  let replacementDocument, stagedDocument, stagedVersion, sourceColumn, busy = false, disposed = false;
+  let replacementDocument, stagedDocument, stagedVersion, sourceColumn, generatedReceipt, busy = false, disposed = false;
   const currentReplacement = () => {
     if (!replacementDocument || replacementDocument.isClosed || replacementDocument.uri.scheme !== 'untitled')
       throw Error(t('Open the unsaved replacement document again before reviewing.'));
@@ -37,7 +37,8 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
   }
   async function preview() {
     const document = replacementDocument, version = document?.version, text = currentReplacement();
-    await review.stageReplacement(text, review.state().revision);
+    const generation = review.state().proposal?.provenance === t('AI-generated replacement') && review.state().proposal.replacement === text ? generatedReceipt : undefined;
+    await review.stageReplacement(text, review.state().revision, generation);
     if (disposed || document !== replacementDocument || document.isClosed || document.version !== version || document.getText() !== text)
       throw Error(t('The replacement document changed. Open its diff again.'));
     await review.preview(review.state().revision);
@@ -70,7 +71,7 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
       if (captureSelection) { await capture(); return; }
       const source = review.state().source;
       const items = [
-        { label: t('Identity and AI are not connected'), description: t('Nothing is sent. Replacements are manually entered.'), action: 'status' },
+        { label: t('Local change review'), description: t('Review the replacement provenance before applying.'), action: 'status' },
         { label: t('Capture current selection'), action: 'capture' },
         ...(source ? [
           { label: t('Edit replacement document'), description: t('Unsaved text; maximum 32 KiB'), action: 'edit' },
@@ -85,13 +86,28 @@ function createLocalReviewPanel(vscode, context, environment, previewChange) {
       if (selected.action === 'edit') await editReplacement();
       if (selected.action === 'preview') await preview();
       if (selected.action === 'apply') await apply();
-      if (selected.action === 'status') void vscode.window.showInformationMessage(t('Product identity: not connected. AI model: not connected. Waiting for the product identity and model services. Nothing is sent from this panel.'));
+      if (selected.action === 'status') void vscode.window.showInformationMessage(review.state().proposal?.provenance || t('Manually entered replacement'));
     } catch (error) {
       if (!disposed) void vscode.window.showErrorMessage(error.message);
     } finally { busy = false; }
   }
+  async function captureAI() {
+    replacementDocument = undefined; stagedDocument = undefined; stagedVersion = undefined; sourceColumn = vscode.window.activeTextEditor?.viewColumn;
+    await review.captureSelection(); return review.state().source;
+  }
+  async function stageGenerated(source, result) {
+    await review.assertCaptured(source);
+    const bundle = result.edit?.bundle, change = bundle?.changes?.[0], replacement = change?.replacements?.[0];
+    if (bundle?.protocol !== 'ynx-reviewed-text/v1' || bundle.changes.length !== 1 || change.uri !== source.uri || change.version !== source.version || change.fullTextDigest !== source.fullTextDigest || change.replacements?.length !== 1 || replacement.find !== source.selectedText || typeof replacement.replace !== 'string' || Buffer.byteLength(replacement.replace) > 32 * 1024) throw Error(t('Use one exact reviewed selection replacement.'));
+    generatedReceipt = { model: result.model, conversationId: result.conversationId };
+    const revision = review.state().revision;
+    await review.stageReplacement(replacement.replace, revision, { model: result.model, conversationId: result.conversationId });
+    replacementDocument = await vscode.workspace.openTextDocument({ content: replacement.replace, language: 'plaintext' });
+    if (disposed) return;
+    await vscode.window.showTextDocument(replacementDocument, { viewColumn: vscode.ViewColumn.Beside, preview: false });
+  }
   const dispose = () => { disposed = true; review.dispose(); replacementDocument = undefined; stagedDocument = undefined; };
   context.subscriptions.push({ dispose });
-  return { open, dispose };
+  return { open, dispose, captureAI, stageGenerated, assertCaptured: review.assertCaptured, beginTransmission: review.beginTransmission, finishTransmission: review.finishTransmission };
 }
 module.exports = { createLocalReviewPanel };

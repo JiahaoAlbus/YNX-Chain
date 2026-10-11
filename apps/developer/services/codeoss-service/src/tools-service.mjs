@@ -162,7 +162,9 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         }, 5000);
         try {
           const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: proposal.model,
-            hostedSession: conversation.id, prompt: selectedPrompt(proposal),
+            hostedSession: conversation.id,
+            projectBinding: { ownerId: admission.context.owner, projectId: admission.context.projectId, sessionId, generation: admission.identity.generation, identityReference: admission.identity.identityReference },
+            prompt: selectedPrompt(proposal),
             system: proposal.selection ? EDIT_SYSTEM : AI_SYSTEM, maxOutputTokens: 2048, signal: controller.signal, assertCurrent,
             onDispatch() { if (controller.signal.aborted) throw controller.signal.reason; aiStore.markDispatched(admission.context.owner, admission.context.projectId, conversation.id); },
             onOperation(operation) { if (!controller.signal.aborted) aiStore.noteOperation(admission.context.owner, admission.context.projectId, conversation.id, operation); },

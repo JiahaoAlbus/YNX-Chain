@@ -90,17 +90,21 @@ function createLocalReview(vscode, environment, previewChange) {
     currentDocument(source);
     if (captured !== source) throw Error(t('This selection review was retired.'));
   }
+  function transmission(source) {
+    const values = [...(source?.attempts?.values() || [])];
+    return source?.confirmedSent ? 'confirmed-sent' : source?.possiblySent || values.includes('possible') ? 'possibly-sent' : 'not-dispatched';
+  }
   function sourceMetadata(source) {
     if (!source) return null;
     return { protocol: 'ynx-local-selected-edit/v1', captureId: source.captureId, projectId, workspace: root,
       uri: source.uri, version: source.version, fullTextDigest: source.fullTextDigest,
       start: source.start, end: source.end, selectedText: source.selectedText,
-      bufferWasUnsaved: source.bufferWasUnsaved, authority: t('OS-user local editor only'), sent: false };
+      bufferWasUnsaved: source.bufferWasUnsaved, authority: t('OS-user local editor only'), sent: transmission(source) === 'confirmed-sent' ? true : transmission(source) === 'possibly-sent' ? null : false, transmission: transmission(source) };
   }
   function state() {
     return { revision, source: sourceMetadata(captured), proposal: proposal ? { protocol: 'ynx-local-reviewed-text/v1',
-      captureId: captured.captureId, provenance: t('Manually entered replacement'), replacement: proposal.replacement,
-      previewed: proposal.previewed } : null, identityConnected: false, modelConnected: false, sent: false };
+      captureId: captured.captureId, provenance: proposal.generation ? t('AI-generated replacement') : t('Manually entered replacement'), replacement: proposal.replacement,
+      previewed: proposal.previewed } : null, identityConnected: false, modelConnected: !!proposal?.generation, sent: transmission(captured) === 'confirmed-sent' ? true : transmission(captured) === 'possibly-sent' ? null : false, transmission: transmission(captured) };
   }
   async function captureSelection() {
     assertRuntime();
@@ -125,7 +129,8 @@ function createLocalReview(vscode, environment, previewChange) {
     captured = source;
     return state();
   }
-  async function stageReplacement(replacement, expectedRevision) {
+  async function stageReplacement(replacement, expectedRevision, generation) {
+    if (generation && (Object.keys(generation).sort().join() !== 'conversationId,model' || typeof generation.model !== 'string' || generation.model.length > 120 || !UUID.test(generation.conversationId || ''))) throw Error(t('Unsupported local review message.'));
     if (expectedRevision !== revision || !captured) throw Error(t('The selection review changed. Review its current source.'));
     if (typeof replacement !== 'string' || Buffer.byteLength(replacement) > LIMIT || replacement.includes('\0'))
       throw Error(t('Enter a text replacement of at most 32 KiB.'));
@@ -134,7 +139,7 @@ function createLocalReview(vscode, environment, previewChange) {
     if (revision !== operation) throw Error(t('This suggestion was retired.'));
     const original = source.document.getText(), text = original.slice(0, source.start) + replacement + original.slice(source.end);
     if (Buffer.byteLength(text) > 256 * 1024) throw Error(t('The proposed document exceeds 256 KiB.'));
-    proposal = { replacement, text, previewed: false }; ++revision;
+    proposal = { replacement, text, previewed: false, ...(generation ? { generation } : {}) }; ++revision;
     return state();
   }
   async function preview(expectedRevision) {
@@ -154,7 +159,7 @@ function createLocalReview(vscode, environment, previewChange) {
     if (expectedRevision !== revision || !captured || !proposal?.previewed) throw Error(t('Open the current diff before applying.'));
     const source = captured, suggested = proposal, operation = revision;
     await verify(source);
-    const approval = await vscode.window.showWarningMessage(t('Apply this manually entered replacement to the reviewed local buffer? It has not been sent to AI. Save separately; Undo remains available.'), { modal: true }, t('Apply local change'));
+    const approval = await vscode.window.showWarningMessage(t(suggested.generation ? 'Apply this AI-generated replacement to the reviewed local buffer? Save separately; Undo remains available.' : transmission(source) === 'possibly-sent' ? 'Apply this manually edited replacement to the reviewed local buffer? The original selection may have been sent to AI; the outcome is UNKNOWN. Save separately; Undo remains available.' : transmission(source) === 'confirmed-sent' ? 'Apply this manually edited replacement to the reviewed local buffer? The original selection was sent to AI. Save separately; Undo remains available.' : 'Apply this manually entered replacement to the reviewed local buffer? It has not been sent to AI. Save separately; Undo remains available.'), { modal: true }, t('Apply local change'));
     if (approval !== t('Apply local change')) return state();
     await verify(source);
     if (revision !== operation || proposal !== suggested) throw Error(t('This suggestion was retired.'));
@@ -166,6 +171,24 @@ function createLocalReview(vscode, environment, previewChange) {
     return state();
   }
   return { state, captureSelection, stageReplacement, preview, apply,
+    async assertCaptured(source) { if (!captured || source?.captureId !== captured.captureId) throw Error(t('This selection capture was retired.')); await verify(captured); },
+    async beginTransmission(source) {
+      if (!captured || source?.captureId !== captured.captureId) throw Error(t('This selection capture was retired.'));
+      const original = captured; await verify(original);
+      if (captured !== original) throw Error(t('This selection capture was retired.'));
+      const id = randomUUID(); original.attempts ||= new Map(); original.attempts.set(id, 'possible');
+      return { captureId: original.captureId, id };
+    },
+    async finishTransmission(source, attempt, outcome) {
+      if (!captured || source?.captureId !== captured.captureId || attempt?.captureId !== captured.captureId || !captured.attempts?.has(attempt.id) || !['confirmed', 'not-dispatched', 'unknown'].includes(outcome)) throw Error(t('This selection capture was retired.'));
+      const original = captured;
+      if (outcome === 'unknown') { original.possiblySent = true; original.attempts.delete(attempt.id); return; }
+      if (outcome === 'not-dispatched') { original.attempts.delete(attempt.id); return; }
+      await verify(original);
+      if (captured !== original) throw Error(t('This selection capture was retired.'));
+      // Only this exact attempt can become definitively not dispatched.
+      original.confirmedSent = true; original.attempts.delete(attempt.id);
+    },
     dispose() { disposed = true; captured = undefined; proposal = undefined; ++revision; } };
 }
 module.exports = { createLocalReview, localTranslate, LOCAL_REVIEW_TRANSLATIONS, LOCAL_REVIEW_TEXT_LIMIT: LIMIT };

@@ -83,8 +83,10 @@ const extensionRegistry = createExtensionRegistry({
   filename: join(stateDir, "extensions.sqlite"),
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
+let hostedGenerationSupply = null;
 const modelRouter = createModelRouter({
   activity,
+  hostedGenerationSupply: () => hostedGenerationSupply,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   verifyIdentity: (request) => developerSSO.verifyIdentity(request),
 });
@@ -131,6 +133,7 @@ const terminalService = createTerminalService({
   environmentService,
 });
 const coreAdmission = await loadCoreAdmissionAdapter(process.env.YNX_CODE_CORE_ADAPTER_MODULE, { stateDir, workspaceStore, runtimeProfileService });
+hostedGenerationSupply = coreAdmission.hostedGeneration || null;
 let codeossService;
 const developerSSO = await createDeveloperSSO({
   filename: join(stateDir, "developer-identity.sqlite"), keyPath: join(stateDir, "developer-identity.key"), workspaceStore,

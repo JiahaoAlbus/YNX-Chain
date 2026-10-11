@@ -44,5 +44,6 @@
   "command.chainResults.open": "Open Saved Chain Observation",
   "command.runTs": "Run TypeScript File",
   "command.debugTs": "Debug TypeScript File",
-  "command.cancelTs": "Cancel TypeScript Build"
+  "command.cancelTs": "Cancel TypeScript Build",
+  "command.ynx.ai.open": "YNX: Open AI Builder"
 }

@@ -9,6 +9,7 @@ const ACTION_ICONS = Object.freeze({
   'ynx.workbench.wallet': 'account',
   'ynx.chainResults.focus': 'history',
   'ynx.review.focus': 'diff',
+  'ynx.ai.open': 'sparkle',
   'vsxExtensions.toggle': 'extensions',
 });
 // Navigation uses the current project's existing contributions. Opening this
@@ -23,6 +24,9 @@ const SECTIONS = Object.freeze([
   ] },
   { key: 'ecosystemResults', label: 'Transactions and results', actions: [
     ['ynx.chainResults.focus', 'ecosystemOpenResults', 'Saved chain results'],
+  ] },
+  { key: 'ecosystemAI', label: 'AI development', actions: [
+    ['ynx.ai.open', 'ecosystemOpenAI', 'Open AI Builder'],
   ] },
   { key: 'ecosystemReview', label: 'Project changes', actions: [
     ['ynx.review.focus', 'ecosystemOpenReview', 'Review local changes'],

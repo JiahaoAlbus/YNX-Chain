@@ -44,5 +44,6 @@
   "command.chainResults.open": "打开已保存的链上观察结果",
   "command.runTs": "运行 TypeScript 文件",
   "command.debugTs": "调试 TypeScript 文件",
-  "command.cancelTs": "取消 TypeScript 编译"
+  "command.cancelTs": "取消 TypeScript 编译",
+  "command.ynx.ai.open": "YNX：打开 AI 构建助手"
 }

@@ -72,6 +72,9 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => publicChainRpc.close() });
   bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-wallet-admission', () => walletAdmissionRpc));
   bind(BackendApplicationContribution).toConstantValue({ onStop: () => walletAdmission.close() });
+  const aiRpc = require('./local-ai-tools-channel').rpc(require('./local-ai-tools-channel').inherited());
+  bind(ConnectionHandler).toConstantValue(new RpcConnectionHandler('/services/ynx-local-ai', () => aiRpc));
+  bind(BackendApplicationContribution).toConstantValue({ onStop: () => aiRpc.close() });
   const drafts = new DraftRecoveryStore();
   const draftApi = Object.freeze({ list: () => drafts.list(), getBaseline: (uri, text) => drafts.getBaseline(uri, text),
     upsert: entry => drafts.upsert(entry), remove: uri => drafts.remove(uri) });
@@ -100,6 +103,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       delete env.YNX_MARKETPLACE_PIPE;
       delete env.YNX_EXTENSION_ARTIFACT_PIPE;
       delete env.YNX_PUBLIC_CHAIN_PIPE;
+      delete env.YNX_LOCAL_AI_PIPE;
       if (Number(process.versions.node.split('.')[0]) >= 21)
         env.NODE_OPTIONS = `${env.NODE_OPTIONS || ''} --no-experimental-global-navigator`.trim();
     },
