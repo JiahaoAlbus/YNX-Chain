@@ -1,10 +1,11 @@
 import {createHash, timingSafeEqual} from 'node:crypto';
 import {HDNodeWallet, computeAddress} from 'ethers';
+import {utils as tronUtils} from 'tronweb';
 
-// TRON-specific read/intent adapter. Not mounted in main/preload/UI. No signer,
-// HTTP implementation, protobuf codec, transaction construction or broadcaster.
+// Not mounted in main/preload/UI. Offline codec/sign review is distinct from
+// financial approval and never supplies transport or broadcast authority.
 export const TRON_CAPABILITIES = Object.freeze({read: true, intentPreview: true,
-  verifiedTransactionPreview: false, sign: false, broadcast: false});
+  verifiedTransactionPreview: true, offlineSignReview: true, sign: false, broadcast: false});
 const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 const MAX64 = (1n << 63n) - 1n, MAX256 = (1n << 256n) - 1n;
 const sha = bytes => createHash('sha256').update(bytes).digest();
@@ -144,4 +145,134 @@ export class TronReadAdapter {
   async resources(account) { const owner = tronAddress(account); await this.verify(); return tronResources(await this.#transport(this.network, '/wallet/getaccountresource', {address: owner.hex, visible: false})); }
   sign() { fail('TRON_SIGNING_DISABLED'); }
   broadcast() { fail('TRON_BROADCAST_DISABLED'); }
+}
+
+function exactKeys(value, keys) {
+  if (!value || typeof value !== 'object' || Array.isArray(value) || Object.keys(value).some(k => !keys.includes(k))) fail('TRON_UNKNOWN_FIELD');
+}
+const deepFreeze = value => { if (value && typeof value === 'object') {for (const child of Object.values(value)) deepFreeze(child); Object.freeze(value);} return value; };
+function safeInteger(value) { const n = integer(value); if (n > BigInt(Number.MAX_SAFE_INTEGER)) fail('TRON_CODEC_INTEGER_RANGE'); return Number(n); }
+function approvedIntent(intent) {
+  const expected = tronIntentPreview({network: intent.network, owner: intent.owner, to: intent.to, asset: intent.asset,
+    amount: tronDisplay(intent.units, intent.decimals), decimals: intent.decimals, ...(intent.asset === 'trc20' ? {contract: intent.contract} : {})});
+  if (expected.binding !== intent.binding) fail('TRON_INTENT_CHANGED'); return expected;
+}
+function canonicalTronTransaction(intent, context) {
+  const expected = approvedIntent(intent), network = tronNetwork(context.network);
+  if (network.id !== expected.network.id || network.genesisBlockId !== expected.network.genesisBlockId) fail('TRON_NETWORK_MISMATCH');
+  // V1 intentionally supports owner permission only. Active/multisig requires
+  // account permission validation, not an arbitrary unreviewed permission ID.
+  if ((context.permissionId ?? 0) !== 0) fail('TRON_PERMISSION_UNSUPPORTED');
+  const fee = safeInteger(context.feeLimitSun ?? '0');
+  if ((expected.asset === 'trx' && fee !== 0) || (expected.asset === 'trc20' && fee <= 0)) fail('TRON_FEE_INVALID');
+  const number = integer(context.reference.number), blockID = hex(context.reference.blockID, 32);
+  const type = expected.asset === 'trx' ? 'TransferContract' : 'TriggerSmartContract';
+  const value = expected.asset === 'trx'
+    ? {owner_address: expected.owner, to_address: expected.to, amount: safeInteger(expected.units)}
+    : {owner_address: expected.owner, contract_address: expected.contract, call_value: 0, data: 'a9059cbb' + trc20Parameter(expected.to, expected.units)};
+  const raw_data = {contract: [{parameter: {value, type_url: 'type.googleapis.com/protocol.' + type}, type}],
+    ref_block_bytes: (number & 65535n).toString(16).padStart(4, '0'), ref_block_hash: blockID.slice(16, 32),
+    timestamp: safeInteger(context.timestamp), expiration: safeInteger(context.expiration), ...(fee ? {fee_limit: fee} : {})};
+  const pb = tronUtils.transaction.txJsonToPb({visible: false, raw_data});
+  const raw_data_hex = tronUtils.transaction.txPbToRawDataHex(pb).toLowerCase();
+  const txID = sha(Buffer.from(raw_data_hex, 'hex')).toString('hex');
+  return {visible: false, txID, raw_data, raw_data_hex};
+}
+export function buildTronUnsigned(intent, context, now) {
+  const transaction = canonicalTronTransaction(intent, context);
+  verifyTronUnsigned(transaction, intent, context, now);
+  return deepFreeze(transaction);
+}
+export function verifyTronUnsigned(transaction, intent, context, now) {
+  exactKeys(transaction, ['visible', 'txID', 'raw_data', 'raw_data_hex']);
+  if (transaction.visible !== false) fail('TRON_TRANSACTION_INVALID');
+  const raw = transaction.raw_data;
+  exactKeys(raw, ['contract', 'ref_block_bytes', 'ref_block_hash', 'timestamp', 'expiration', 'fee_limit']);
+  if (!Array.isArray(raw.contract) || raw.contract.length !== 1) fail('TRON_CONTRACT_UNSUPPORTED');
+  const contract = raw.contract[0]; exactKeys(contract, ['parameter', 'type', 'Permission_id']);
+  if ((contract.Permission_id ?? 0) !== 0) fail('TRON_PERMISSION_UNSUPPORTED');
+  exactKeys(contract.parameter, ['value', 'type_url']);
+  exactKeys(contract.parameter.value, intent.asset === 'trx' ? ['owner_address', 'to_address', 'amount'] : ['owner_address', 'contract_address', 'call_value', 'data']);
+  const expected = canonicalTronTransaction(intent, context);
+  if (JSON.stringify(raw) !== JSON.stringify(expected.raw_data)) fail('TRON_INTENT_MISMATCH');
+  if (transaction.raw_data_hex !== expected.raw_data_hex || transaction.txID !== expected.txID) fail('TRON_PROTOBUF_MISMATCH');
+  // Official codec deserializes the canonical original raw bytes. Byte-for-byte
+  // reconstruction above rejects hidden/unknown/duplicate proto fields even
+  // if the protobuf reader would ignore them. The JSON alone is never trusted.
+  const decoded = tronUtils.deserializeTx.deserializeTransaction(contract.type, transaction.raw_data_hex);
+  const value = decoded.contract[0].parameter.value;
+  if (decoded.contract[0].type !== contract.type || decoded.contract[0].parameter.type_url !== contract.parameter.type_url || decoded.contract[0].Permission_id !== 0 || decoded.data || decoded.scripts || decoded.auths.length ||
+    decoded.timestamp !== raw.timestamp || decoded.expiration !== raw.expiration || decoded.ref_block_bytes.toLowerCase() !== raw.ref_block_bytes || decoded.ref_block_hash.toLowerCase() !== raw.ref_block_hash || decoded.fee_limit !== (raw.fee_limit ?? 0)) fail('TRON_PROTOBUF_MISMATCH');
+  for (const [key, expectedValue] of Object.entries(contract.parameter.value)) if ((typeof value[key] === 'string' ? value[key].toLowerCase() : value[key]) !== expectedValue) fail('TRON_PROTOBUF_MISMATCH');
+  if (intent.asset === 'trc20' && (value.call_token_value !== 0 || value.token_id !== 0)) fail('TRON_PROTOBUF_MISMATCH');
+  inspectTronEnvelope(transaction, context.reference, now);
+  return Object.freeze({txID: transaction.txID, binding: intent.binding, transactionVerified: true, broadcastAuthorized: false});
+}
+export function verifyTronSigned(transaction, intent, context, now) {
+  exactKeys(transaction, ['visible', 'txID', 'raw_data', 'raw_data_hex', 'signature']);
+  if (!Array.isArray(transaction.signature) || transaction.signature.length !== 1) fail('TRON_SIGNATURE_INVALID');
+  const signature = hex(transaction.signature[0], 65);
+  const {signature: ignored, ...unsigned} = transaction;
+  verifyTronUnsigned(unsigned, intent, context, now);
+  try { if (tronAddress(tronUtils.crypto.ecRecover(transaction.txID, signature)).hex !== intent.owner) fail('TRON_SIGNATURE_OWNER_MISMATCH'); }
+  catch (error) { if (error.code === 'TRON_SIGNATURE_OWNER_MISMATCH') throw error; fail('TRON_SIGNATURE_INVALID'); }
+  return Object.freeze({txID: transaction.txID, owner: intent.owner, binding: intent.binding, broadcastAuthorized: false});
+}
+export class TronSignReview {
+  #transaction; #intent; #context; #used = false; #result = null;
+  // Construct only after normal user approval in the owner flow. This object
+  // does not manufacture UI authorization, permission leases or a broadcaster.
+  constructor({transaction, intent, context, now}) {
+    verifyTronUnsigned(transaction, intent, context, now);
+    this.#transaction = deepFreeze(structuredClone(transaction));
+    this.#intent = deepFreeze(structuredClone(intent)); this.#context = deepFreeze(structuredClone(context));
+  }
+  get result() { return this.#result; }
+  async signMnemonic({withMnemonic, guard, onProduced, now}) {
+    if (typeof withMnemonic !== 'function') fail('TRON_MNEMONIC_BOUNDARY_INVALID');
+    // Product owner passes PasswordWalletVault.withMnemonic with its original
+    // permission. The phrase never crosses IPC; derivation and signing occur
+    // inside that original guarded callback. No derived-key export.
+    return this.sign({guard, onProduced, now, withSecret: action => withMnemonic(async (phrase, identity, keyGuard) => {
+      guard.assert(); keyGuard.assert();
+      const path = tronDerivationPath(this.#context.derivationIndex ?? 0);
+      if (tronMnemonicAddress(phrase, this.#context.derivationIndex ?? 0).hex !== this.#intent.owner) fail('TRON_SIGNATURE_OWNER_MISMATCH');
+      let node;
+      try { node = HDNodeWallet.fromPhrase(phrase, '', path); return await action(node.privateKey.slice(2), identity, keyGuard); }
+      finally { node = null; } // JS strings cannot promise immediate zeroization.
+    })});
+  }
+  async sign({withSecret, guard, onProduced, now}) {
+    if (this.#used) fail('TRON_REVIEW_CONSUMED');
+    this.#used = true; // One attempt, even if cancelled/failed; no automatic retry.
+    if (typeof withSecret !== 'function' || typeof onProduced !== 'function' || typeof now !== 'function' || typeof guard?.assert !== 'function') fail('TRON_SIGN_BOUNDARY_INVALID');
+    try {
+      guard.assert(); verifyTronUnsigned(this.#transaction, this.#intent, this.#context, now());
+      let invoked = false;
+      await withSecret(async (secret, identity, keyGuard) => {
+        if (invoked) fail('TRON_DUPLICATE_SIGN_CALLBACK'); invoked = true;
+        guard.assert(); if (typeof keyGuard?.assert !== 'function') fail('TRON_SIGN_BOUNDARY_INVALID'); keyGuard.assert();
+        verifyTronUnsigned(this.#transaction, this.#intent, this.#context, now());
+        if (typeof secret !== 'string' || !/^[a-fA-F0-9]{64}$/.test(secret)) fail('TRON_KEY_INVALID');
+        if (tronAddress(tronUtils.crypto.pkToAddress(secret)).hex !== this.#intent.owner) fail('TRON_SIGNATURE_OWNER_MISMATCH');
+        const signed = tronUtils.crypto.signTransaction(secret, structuredClone(this.#transaction));
+        // Capture before any awaited outer post-action gate, exactly like R2.
+        this.#result = deepFreeze({state: 'signed-unsubmitted', network: this.#intent.network,
+          owner: this.#intent.owner, binding: this.#intent.binding, txID: signed.txID,
+          raw_data_hex: signed.raw_data_hex, signature: signed.signature[0], transaction: signed, broadcastAuthorized: false});
+        const result = onProduced(this.#result);
+        if (result?.then) fail('TRON_CUSTODY_CALLBACK_MUST_BE_SYNC');
+        verifyTronSigned(signed, this.#intent, this.#context, now());
+        keyGuard.assert(); guard.assert(); return this.#result;
+      });
+      if (!this.#result) fail('TRON_SIGN_RESULT_MISSING'); guard.assert(); return this.#result;
+    } catch (error) {
+      if (this.#result) {
+        this.#result = deepFreeze({...this.#result, state: 'unknown', cause: String(error.code || 'TRON_SIGN_HANDOFF_FAILED')});
+        const unknown = new Error('Original signed result retained; query/recover without signing again.');
+        unknown.code = 'TRON_RECORDED_OUTCOME_UNKNOWN'; unknown.txID = this.#result.txID; throw unknown;
+      }
+      throw error;
+    }
+  }
 }
