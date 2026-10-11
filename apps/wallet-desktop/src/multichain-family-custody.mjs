@@ -3,9 +3,10 @@ import { AtomicMultiFile, exactObject, multiError } from './multichain-config.mj
 
 // BTC/TRON only: the existing EVM journal and every existing profile remain
 // unchanged. This ledger stores transaction evidence, never seed/key material.
-const states = new Set(['prepared', 'signing', 'signed-unsubmitted', 'submitted-unconfirmed', 'unknown', 'confirmed', 'failed', 'cancelled']);
-const terminal = new Set(['confirmed', 'failed', 'cancelled']);
+const states = new Set(['prepared', 'signing', 'signed-unsubmitted', 'submitted-unconfirmed', 'unknown', 'included', 'failed', 'cancelled']);
+const terminal = new Set(['included', 'failed', 'cancelled']);
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const binding = r => digest([r.family, r.networkId, r.account, r.request, r.outpoints]);
 const fail = () => { throw multiError('FAMILY_CUSTODY_CONFLICT', 'Keep the original transaction and check its outcome.'); };
 function publicJSON(value, depth = 0) {
   if (depth > 24) fail();
@@ -26,13 +27,20 @@ function validate(value) {
   if (value.version !== 1 || !Array.isArray(value.records) || value.records.length > 512) fail();
   const ids = new Set();
   for (const r of value.records) {
-    exactObject(r, ['id', 'family', 'networkId', 'account', 'request', 'binding', 'outpoints', 'state', 'result', 'resultDigest', 'createdAt', 'updatedAt']);
+    exactObject(r, ['id', 'family', 'networkId', 'account', 'request', 'binding', 'outpoints', 'state', 'result', 'resultDigest', 'receipt', 'revision', 'createdAt', 'updatedAt']);
+    if (!Number.isSafeInteger(r.revision) || r.revision < 0) fail();
     if (typeof r.id !== 'string' || !/^[0-9a-f-]{36}$/.test(r.id) || ids.has(r.id) || !['bitcoin', 'tron'].includes(r.family) || typeof r.networkId !== 'string' || !r.networkId || typeof r.account !== 'string' || !r.account || !states.has(r.state) || !Array.isArray(r.outpoints) || r.outpoints.length > 512 || r.outpoints.some(p => typeof p !== 'string' || !/^[0-9a-f]{64}:[0-9]+$/.test(p)) || new Set(r.outpoints).size !== r.outpoints.length || r.family === 'tron' && r.outpoints.length || !Number.isSafeInteger(r.createdAt) || !Number.isSafeInteger(r.updatedAt) || r.createdAt < 0 || r.updatedAt < r.createdAt) fail();
     ids.add(r.id); publicJSON(r.request); publicJSON(r.result);
-    if (digest(r.request) !== r.binding || (r.result === null ? r.resultDigest !== null : digest(r.result) !== r.resultDigest)) fail();
-    if (['prepared', 'signing', 'cancelled'].includes(r.state) && r.result !== null || ['signed-unsubmitted', 'submitted-unconfirmed', 'confirmed'].includes(r.state) && r.result === null) fail();
+    if (binding(r) !== r.binding || (r.result === null ? r.resultDigest !== null : digest(r.result) !== r.resultDigest)) fail();
+    if (['prepared', 'signing', 'cancelled'].includes(r.state) && r.result !== null || ['signed-unsubmitted', 'submitted-unconfirmed', 'included', 'failed'].includes(r.state) && r.result === null) fail();
+    if (r.receipt !== null) validateReceipt(r.receipt, r.result?.txid);
+    if (['included', 'failed'].includes(r.state) && r.receipt === null) fail();
   }
   return value;
+}
+function validateReceipt(receipt, txid) {
+  exactObject(receipt, ['txid', 'blockHash', 'blockHeight', 'success', 'confirmationScope']);
+  if (receipt.txid !== txid || !/^[0-9a-f]{64}$/.test(receipt.txid) || !/^[0-9a-f]{64}$/.test(receipt.blockHash) || typeof receipt.blockHeight !== 'string' || !/^(0|[1-9][0-9]*)$/.test(receipt.blockHeight) || typeof receipt.success !== 'boolean' || receipt.confirmationScope !== 'rpc-block-inclusion') fail();
 }
 export class FamilyCustody {
   #held = new Map();
@@ -48,15 +56,17 @@ export class FamilyCustody {
       const record = { ...structuredClone(held.record), state: 'unknown', result: structuredClone(held.result), resultDigest: digest(held.result) };
       if (index < 0) records.push(record); else records[index] = record;
     }
+    for (const r of records) if (r.result !== null) this.verifyResult(r, r.result);
     return records;
   }
   async reserve({ id, family, networkId, account, request, outpoints = [] }) {
     publicJSON(request);
-    const record = { id, family, networkId, account, request: structuredClone(request), binding: digest(request), outpoints: [...outpoints], state: 'prepared', result: null, resultDigest: null, createdAt: this.now(), updatedAt: this.now() };
+    const record = { id, family, networkId, account, request: structuredClone(request), binding: null, outpoints: [...outpoints], state: 'prepared', result: null, resultDigest: null, receipt: null, revision: 0, createdAt: this.now(), updatedAt: this.now() };
+    record.binding = binding(record);
     validate({ version: 1, records: [record] });
     if (this.#held.size) fail();
     await this.file.mutate(value => {
-      if (value.records.some(r => r.id === id || !terminal.has(r.state) && (r.family === family && r.networkId === networkId && r.account === account || r.family === 'bitcoin' && r.networkId === networkId && r.outpoints.some(p => outpoints.includes(p))))) fail();
+      if (value.records.some(r => r.id === id || !terminal.has(r.state) && r.family === family && r.networkId === networkId && r.account === account || r.state !== 'cancelled' && r.family === 'bitcoin' && r.networkId === networkId && r.outpoints.some(p => outpoints.includes(p)))) fail();
       value.records.push(record); return value;
     });
     let live = true, begun = false, armed = false, captured = false;
@@ -64,7 +74,7 @@ export class FamilyCustody {
       const r = value.records.find(r => r.id === id);
       if (!live || !r || r.binding !== record.binding || !expected.includes(r.state) || r.result !== null && digest(r.result) !== digest(result)) fail();
       if (result !== null) { publicJSON(result); this.verifyResult(record, result); }
-      Object.assign(r, { state, result: structuredClone(result), resultDigest: result === null ? null : digest(result), updatedAt: Math.max(r.updatedAt, this.now()) }); return value;
+      Object.assign(r, { state, result: structuredClone(result), resultDigest: result === null ? null : digest(result), receipt: null, revision: r.revision + 1, updatedAt: Math.max(r.updatedAt, this.now()) }); return value;
     });
     // This authority is returned only for a new reservation, never reconstructed
     // by reading a previous record. No restart or query creates signing authority.
@@ -99,5 +109,29 @@ export class FamilyCustody {
       cancelBeforeSigning: async () => { if (begun) fail(); await change(['prepared'], 'cancelled'); live = false; },
       retire: () => { live = false; }
     });
+  }
+  async check(id, query) {
+    if (typeof query !== 'function' || this.#held.has(id)) fail();
+    const record = (await this.list()).find(r => r.id === id);
+    if (!record) fail();
+    // A pre-sign cancellation is terminal. A lost result is not an invitation
+    // to reconstruct it by signing: there is nothing reliable to query yet.
+    if (record.state === 'cancelled' || record.result === null) return { ...record, queryable: false };
+    this.verifyResult(record, record.result);
+    let observation;
+    try { observation = await query(structuredClone(record)); }
+    catch { observation = { networkId: record.networkId, txid: record.result.txid, state: 'unknown', receipt: null }; }
+    exactObject(observation, ['networkId', 'txid', 'state', 'receipt']);
+    if (observation.networkId !== record.networkId || observation.txid !== record.result.txid || !['unknown', 'submitted-unconfirmed', 'included', 'failed'].includes(observation.state)) fail();
+    if (['included', 'failed'].includes(observation.state)) {
+      validateReceipt(observation.receipt, record.result.txid);
+      if (observation.receipt.success !== (observation.state === 'included')) fail();
+    } else if (observation.receipt !== null) fail();
+    await this.file.mutate(value => {
+      const current = value.records.find(r => r.id === id);
+      if (!current || current.binding !== record.binding || current.resultDigest !== record.resultDigest || current.revision !== record.revision || current.state !== record.state && !(current.state === 'signing' && record.state === 'unknown')) fail();
+      Object.assign(current, { state: observation.state, receipt: observation.receipt, revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, this.now()) }); return value;
+    });
+    return (await this.list()).find(r => r.id === id);
   }
 }
