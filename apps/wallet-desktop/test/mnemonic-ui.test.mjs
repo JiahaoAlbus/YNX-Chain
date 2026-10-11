@@ -1,8 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {initWalletLocale,WALLET_COPY} from '../src/wallet-locale.mjs';
 import {createMnemonicUI,createMnemonicImportUI} from '../src/mnemonic-ui.mjs';
 import {mnemonicAccountFromEntropy} from '../src/mnemonic-account.mjs';
 import {MNEMONIC_COPY,MNEMONIC_COPY_KEYS} from '../src/wallet-locale-mnemonic.mjs';
+test('actual import modal HTML static copy registers on non-English startup and follows locale switches (F1)',()=>{
+  const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
+  const modal=html.match(/<dialog id="import-sheet"[\s\S]*?<\/dialog>/)?.[0];assert.ok(modal,'actual import modal must exist');
+  // Consume the actual attributes, including HTML empty-string semantics.
+  // Do not manufacture keys from visible text: that would hide the parent defect.
+  const nodes=[...modal.matchAll(/<(button|label|option|p|h2)\b([^>]*)>([^<]*)<\//g)].filter(match=>/\bdata-wallet-copy\b/.test(match[2])).map(([,tag,attributes,text])=>{
+    const attrs=new Map([...attributes.matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(match=>[match[1],match[2]??'']));
+    return {tagName:tag,attributes:attrs,textContent:text,isConnected:true,getAttribute:key=>attrs.get(key)??null};
+  });
+  const expected=[
+    [node=>node.attributes.get('id')==='import-close','Cancel'],
+    [node=>node.attributes.get('for')==='import-word-count','Recovery phrase length'],
+    [node=>node.tagName==='option'&&node.attributes.get('value')==='12','12 words'],
+    [node=>node.tagName==='option'&&node.attributes.get('value')==='24','24 words'],
+    [node=>node.tagName==='p','Enter each word in order. Your recovery phrase stays on this device.']
+  ];
+  const document={documentElement:{},querySelector:()=>null,querySelectorAll:selector=>selector==='[data-wallet-copy]'?nodes:[]};
+  const controller=initWalletLocale({document,systemLanguages:['zh-CN']});assert.equal(controller.locale(),'zh-Hans');
+  function check(locale){for(const [matches,key]of expected){const found=nodes.filter(matches);assert.equal(found.length,1,key);assert.equal(found[0].textContent,WALLET_COPY[locale][key],`${locale}: ${key}`)}}
+  check('zh-Hans');for(const locale of ['ar','zh-Hant','en']){controller.select(locale);check(locale)}
+  assert.equal(document.documentElement.lang,'en');assert.equal(document.documentElement.dir,'ltr');
+});
 const fixture=mnemonicAccountFromEntropy('00'.repeat(16));
 function deferred(){let resolve;return {promise:new Promise(done=>resolve=done),resolve:value=>resolve(value)}}
 function harness(){
