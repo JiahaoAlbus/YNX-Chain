@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.32",
+  "version": "0.2.33",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -19,7 +19,9 @@
     "onView:ynx.contracts",
     "onView:ynx.network",
     "onView:ynx.review",
-    "onView:ynx.chainResults"
+    "onView:ynx.chainResults",
+    "onCommand:ynx.ts.runActive",
+    "onCommand:ynx.ts.debugActive"
   ],
   "contributes": {
     "viewsContainers": {
@@ -170,6 +172,21 @@
       {
         "command": "ynx.chainResults.open",
         "title": "%command.chainResults.open%"
+      },
+      {
+        "command": "ynx.ts.runActive",
+        "title": "%command.runTs%",
+        "category": "YNX"
+      },
+      {
+        "command": "ynx.ts.debugActive",
+        "title": "%command.debugTs%",
+        "category": "YNX"
+      },
+      {
+        "command": "ynx.ts.cancel",
+        "title": "%command.cancelTs%",
+        "category": "YNX"
       }
     ],
     "jsonValidation": [
@@ -216,6 +233,16 @@
           "command": "ynx.js.debugActive",
           "when": "resourceScheme == file && editorLangId == javascript",
           "group": "ynx@2"
+        },
+        {
+          "command": "ynx.ts.runActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)",
+          "group": "ynx-ts@0"
+        },
+        {
+          "command": "ynx.ts.debugActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)",
+          "group": "ynx-ts@1"
         }
       ],
       "commandPalette": [
@@ -226,6 +253,14 @@
         {
           "command": "ynx.js.debugActive",
           "when": "resourceScheme == file && editorLangId == javascript"
+        },
+        {
+          "command": "ynx.ts.runActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+        },
+        {
+          "command": "ynx.ts.debugActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
         }
       ],
       "editor/title": [
@@ -264,6 +299,17 @@
         "key": "ctrl+k ctrl+y",
         "mac": "cmd+k cmd+y",
         "when": "editorTextFocus && editorHasSelection && resourceScheme == file"
+      },
+      {
+        "command": "ynx.ts.runActive",
+        "key": "ctrl+f5",
+        "mac": "ctrl+f5",
+        "when": "editorTextFocus && resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+      },
+      {
+        "command": "ynx.ts.debugActive",
+        "key": "f5",
+        "when": "editorTextFocus && resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
       }
     ],
     "languages": [

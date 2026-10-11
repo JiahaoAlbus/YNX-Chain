@@ -94,6 +94,19 @@ for (const input of inputs) {
 const tools = join(developer, 'native/ynx-tools');
 await assertRegularTree(tools);
 await cp(tools, join(destination, 'plugins/ynx.ynx-tools'), { recursive: true, errorOnExist: true, force: false });
+const tsCompiler = join(developer, 'services/language-service/node_modules/typescript');
+await assertRegularTree(tsCompiler);
+const tsMetadata = JSON.parse(await readFile(join(tsCompiler, 'package.json'), 'utf8'));
+const tsLock = JSON.parse(await readFile(join(developer, 'package-lock.json'), 'utf8'));
+if (tsMetadata.name !== 'typescript' || tsMetadata.version !== '5.9.3' || tsMetadata.license !== 'Apache-2.0'
+  || tsLock.packages['services/language-service/node_modules/typescript']?.version !== tsMetadata.version
+  || !(await readFile(join(tsCompiler, 'LICENSE.txt'), 'utf8')).includes('Apache License')) throw Error('Retained TypeScript compiler or license is not the pinned distribution.');
+const tsTree = await composedTreeDigest(tsCompiler);
+await mkdir(join(destination, 'plugins/ynx.ynx-tools/runtime'), { recursive: true, mode: 0o700 });
+const tsDestination = join(destination, 'plugins/ynx.ynx-tools/runtime/typescript');
+await cp(tsCompiler, tsDestination, { recursive: true, errorOnExist: true, force: false });
+if (await composedTreeDigest(tsDestination) !== tsTree || await composedTreeDigest(tsCompiler) !== tsTree) throw Error('TypeScript compiler changed while packaging.');
+await writeFile(join(destination, 'plugins/ynx.ynx-tools/runtime/typescript-receipt.json'), JSON.stringify({ version: tsMetadata.version, treeSha256: tsTree, license: tsMetadata.license }, null, 2));
 if (process.env.YNX_IDE_SOLC_INPUT) await bundleSolidityLanguageRuntime(process.env.YNX_IDE_SOLC_INPUT, join(destination, 'plugins/ynx.ynx-tools'));
 if (process.env.YNX_IDE_SOLIDITY_FORMAT_INPUT === 'retained') await bundleSolidityFormatRuntime(join(destination, 'plugins/ynx.ynx-tools'));
 const brand = join(developer, 'native/ynx-brand');
@@ -126,6 +139,8 @@ await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringi
 // Missing notice files are recorded for release review, never silently waived.
 const lock = JSON.parse(await readFile(join(application, 'package-lock.json'), 'utf8'));
 const notices = [];
+notices.push({ name: 'typescript', version: tsMetadata.version, license: tsMetadata.license,
+  files: ['../plugins/ynx.ynx-tools/runtime/typescript/LICENSE.txt', '../plugins/ynx.ynx-tools/runtime/typescript/ThirdPartyNoticeText.txt'] });
 notices.push({ name: 'ynx.ynx-go', version: goMetadata.version, license: goMetadata.license,
   files: (await readdir(go)).filter(name => /^(licen[sc]e|notice|copying)(\.|$)/i.test(name)).map(name => `../plugins/ynx.ynx-go/${name}`) });
 if (languagePackReceipt) notices.push({ name: languagePackReceipt.extensionId, version: languagePackReceipt.version,

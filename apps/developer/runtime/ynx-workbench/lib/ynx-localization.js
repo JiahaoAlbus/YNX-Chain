@@ -4,6 +4,21 @@
 // pack supplies the host/editor translations; this contribution never claims
 // to be a complete display language on its own.
 const entries = [
+  ['runTsFile', 'Run TypeScript File', '运行 TypeScript 文件'],
+  ['debugTsFile', 'Debug TypeScript File', '调试 TypeScript 文件'],
+  ['cancelTsBuild', 'Cancel TypeScript Build', '取消 TypeScript 编译'],
+  ['ecosystemTitle', 'YNX Ecosystem', 'YNX 生态'],
+  ['ynx.workbench.ecosystem', 'YNX Ecosystem', 'YNX 生态'],
+  ['ecosystemContracts', 'Contract development', '合约开发'],
+  ['ecosystemOpenContracts', 'Open project contracts', '打开项目合约'],
+  ['ecosystemNetwork', 'Network and account', '网络与账户'],
+  ['ecosystemOpenNetwork', 'Project network', '项目网络'],
+  ['ecosystemOpenWallet', 'Wallet connection', '钱包连接'],
+  ['ecosystemResults', 'Transactions and results', '交易与结果'],
+  ['ecosystemOpenResults', 'Saved chain results', '已保存的链上结果'],
+  ['ecosystemReview', 'Project changes', '项目变更'],
+  ['ecosystemOpenReview', 'Review local changes', '审阅本地变更'],
+  ['ecosystemAuthority', 'Connections and approvals are managed in their own views. Opening this sidebar grants no access.', '连接与批准在各自视图中管理，打开侧栏不会授予权限。'],
   ['noTestRuns', 'No test runs yet. Run a test from Test Explorer to see results here.', '尚未运行测试。请在测试资源管理器中运行测试，在此查看结果。'],
   ['openFile', 'Open File…', '打开文件…'],
   ['nativeWorkspaceScope', 'This workspace must contain only the current project root. Open other folders in separate windows; multi-root isolation is not yet supported.', '此工作区只能包含当前项目根目录。请在独立窗口中打开其他文件夹；多根目录隔离尚未支持。'],

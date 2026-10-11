@@ -182,5 +182,14 @@
   "Select EVM project tool": "选择 EVM 项目工具",
   "Save the project files before running EVM tasks.": "请先保存项目文件，再运行 EVM 任务。",
   "The project tool is not installed locally. No packages were downloaded. Configure the toolchain, then retry.": "本地未安装项目工具，未下载任何软件包。请配置工具链后重试。",
-  "Public read; approve each query": "公开只读；逐次批准查询"
+  "Public read; approve each query": "公开只读；逐次批准查询",
+  "TypeScript run was cancelled.": "TypeScript 运行已取消。",
+  "Open a trusted local TypeScript file.": "请打开受信任本地项目中的 TypeScript 文件。",
+  "The active project or file changed. Run the intended TypeScript file again.": "当前项目或文件已切换，请重新运行目标 TypeScript 文件。",
+  "The TypeScript file changed after saving. Run it again.": "TypeScript 文件在保存后发生变化，请重新运行。",
+  "TypeScript file belongs to a different project.": "TypeScript 文件属于其他项目。",
+  "Enable the JavaScript Debugger to run TypeScript.": "请启用 JavaScript Debugger 以运行 TypeScript。",
+  "TypeScript compilation failed or was cancelled. Check the terminal and Problems, then retry.": "TypeScript 编译失败或已取消，请查看终端和问题面板后重试。",
+  "TypeScript launch failed or was cancelled. Retry from the source file.": "TypeScript 启动失败或已取消，请从源文件重试。",
+  "The packaged TypeScript compiler or selected source is unavailable. Repair the IDE installation and retry.": "安装包中的 TypeScript 编译器或所选源文件不可用，请修复 IDE 安装后重试。"
 }

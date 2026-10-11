@@ -96,6 +96,7 @@ const { ShellLayoutRestorer } = require('@theia/core/lib/browser/shell/shell-lay
 const { LocalWorkbenchStorage } = require('./local-workbench-storage');
 const OriginalBrowserStorage = Symbol('YNX original browser UI storage');
 const { NativeWalletService, NativeWalletWidget, NativeWalletContribution, NATIVE_WALLET_ID } = require('./native-wallet-view');
+const { EcosystemSidebarWidget, EcosystemSidebarContribution, ECOSYSTEM_ID } = require('./ecosystem-sidebar');
 const { KeyboardShortcutsWidget, KeyboardShortcutsContribution, KEYBOARD_SHORTCUTS_ID } = require('./keyboard-shortcuts');
 require('./token-cache-adapter').install();
 require('./quick-input-keybinding-label-adapter').install();
@@ -182,6 +183,11 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
   bind(NativeWalletContribution).toDynamicValue(context => new NativeWalletContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell))).inSingletonScope();
   bind(CommandContribution).toService(NativeWalletContribution);
   bind(MenuContribution).toService(NativeWalletContribution);
+  bind(WidgetFactory).toDynamicValue(context => ({ id: ECOSYSTEM_ID, createWidget: () => new EcosystemSidebarWidget(context.container.get(CommandRegistry), context.container.get(MessageService), translateWorkbench) }));
+  bind(EcosystemSidebarContribution).toDynamicValue(context => new EcosystemSidebarContribution(context.container.get(WidgetManager), context.container.get(ApplicationShell), translateWorkbench)).inSingletonScope();
+  bind(CommandContribution).toService(EcosystemSidebarContribution);
+  bind(MenuContribution).toService(EcosystemSidebarContribution);
+  bind(FrontendApplicationContribution).toService(EcosystemSidebarContribution);
   bind(WorkbenchControlsContribution).toDynamicValue(context => new WorkbenchControlsContribution({
     commands: context.container.get(CommandRegistry), shell: context.container.get(ApplicationShell),
     contextKeys: context.container.get(ContextKeyService),

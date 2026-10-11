@@ -77,6 +77,10 @@ function activate(context) {
   const jsCurrentFile = require('./js-current-file.cjs').createJsCurrentFile(vscode, process.env);
   register('ynx.js.runActive', () => jsCurrentFile(true));
   register('ynx.js.debugActive', () => jsCurrentFile(false));
+  const tsCurrentFile = require('./ts-current-file.cjs').createTsCurrentFile(vscode, context, process.env);
+  register('ynx.ts.runActive', () => tsCurrentFile.start(true));
+  register('ynx.ts.debugActive', () => tsCurrentFile.start(false));
+  register('ynx.ts.cancel', () => tsCurrentFile.cancel());
   register('ynx.configurePython', () => require('./python-setup.cjs').configurePython(vscode, process.env, t));
   register('ynx.solidityAnalysisStatus', async () => { void vscode.window.showInformationMessage(t('Solidity language: {0}', JSON.stringify(solidityLanguage.status()))); });
   register('ynx.openLocalReview', () => openLocalReview(false));

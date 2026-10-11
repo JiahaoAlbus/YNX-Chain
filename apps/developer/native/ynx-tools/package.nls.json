@@ -37,5 +37,8 @@
   "container.chainResults": "Chain Results",
   "view.chainResults": "Project Chain Results",
   "command.chainResults.refresh": "Refresh Saved Chain Results",
-  "command.chainResults.open": "Open Saved Chain Observation"
+  "command.chainResults.open": "Open Saved Chain Observation",
+  "command.runTs": "Run TypeScript File",
+  "command.debugTs": "Debug TypeScript File",
+  "command.cancelTs": "Cancel TypeScript Build"
 }
