@@ -16,7 +16,20 @@ export type NativeTransferOutboxEntry=Readonly<{
   phase:"prepared"|"unknown"|"observed"|"accepted"|"done"|"pending_durable"|"uncertain"|"memory_only"|"not_found"|"unsupported";
   attempts:number;createdAt:string;updatedAt:string;replayed:boolean|null;
   durabilityEvidence:Readonly<Record<string,unknown>>|null;
+  localRetention?:PublicOperationRetention;
 }>;
+export type PublicOperationCause=Readonly<{name:string;code:string|null;message:string}>;
+export type PublicOperationRetention=Readonly<{scope:"operation-memory";durable:false;originalCause:PublicOperationCause|null;storageCause:PublicOperationCause|null}>;
+export function publicOperationCause(error:unknown):PublicOperationCause|null{
+  if(error===null||error===undefined)return null;
+  if(error instanceof NativePreparationFailure)return publicOperationCause(error.failure);
+  const e=error as {name?:unknown;code?:unknown;message?:unknown};
+  return Object.freeze({name:typeof e.name==="string"?e.name.slice(0,128):"Error",code:typeof e.code==="string"?e.code.slice(0,128):null,message:typeof e.message==="string"?e.message.slice(0,2048):"Operation failed"});
+}
+export const PUBLIC_OPERATION_RETENTION_LIMIT=8;
+type PublicNativeSlot={original:NativeTransferOutboxEntry|null;originalCause:unknown;storageCause:unknown};
+const publicOriginals=new WeakMap<SecureStorageAdapter,Map<string,PublicNativeSlot>>();
+function ownerOriginals(storage:SecureStorageAdapter){let entries=publicOriginals.get(storage);if(!entries){entries=new Map();publicOriginals.set(storage,entries)}return entries}
 export type NativeTransferPrepared=Readonly<{payload:string;hash:string;transaction:SignedNativeTransfer}>;
 export type NativeTransferResolution=Readonly<{version:1;account:string;origin:string;payload:string;hash:string;transaction:SignedNativeTransfer;resolvedAt:string;durabilityEvidence:Readonly<Record<string,unknown>>}>;
 export type NativeTransferHistoryRecord=Readonly<{account:string;origin:string;hash:string;to:string;amount:number;fee:number;nonce:number;createdAt:string;verifiedAt:string;blockNumber:string;scope:"local-snapshot";consensusFinality:false}>;
@@ -24,7 +37,7 @@ export type NativeTransferHistory=Readonly<{records:readonly NativeTransferHisto
 type Guard=()=>void;
 const queues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
 export class NativeOutboxBlocked extends Error {readonly code="NATIVE_OUTBOX_BLOCKED";constructor(){super("A stored transfer needs your review before this account can sign another transfer.")}}
-export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBOX_STORAGE_FAILED";constructor(readonly retainedOriginal:NativeTransferPrepared|null=null){super("The transfer record could not be stored and verified. Sending is paused. Reopen the stored transfer to check its state.")}}
+export class NativeOutboxStorageError extends Error {readonly code="NATIVE_OUTBOX_STORAGE_FAILED";constructor(readonly retainedOriginal:NativeTransferPrepared|null=null,readonly storageCause:unknown=null,readonly originalCause:unknown=null){super("The transfer record could not be stored and verified. Sending is paused. Reopen the stored transfer to check its state.")}}
 /** Local handoff of public signed bytes, not a signing/broadcast capability. */
 export class NativePreparationFailure extends Error {
   readonly signed:NativeTransferPrepared|null;
@@ -48,11 +61,16 @@ export class NativeSigningResultUnknown extends Error {
  * Process death after that marker is conservatively an unknown dispatch. */
 export class NativeTransferOutbox {
   constructor(private readonly storage:SecureStorageAdapter,private readonly now:()=>Date=()=>new Date()){}
-  read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(()=>this.load(account))}
+  read(account:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(async()=>this.localOriginal(account)??this.load(account))}
+  private localOriginal(account:string):NativeTransferOutboxEntry|null{
+    key(account);const held=ownerOriginals(this.storage).get(account);if(!held?.original)return null;
+    return Object.freeze({...held.original,localRetention:Object.freeze({scope:"operation-memory",durable:false,originalCause:publicOperationCause(held.originalCause),storageCause:publicOperationCause(held.storageCause)})});
+  }
+  private assertNoLocalOperation(account:string){if(ownerOriginals(this.storage).has(account))throw new NativeOutboxBlocked()}
   /** A separately verified Pay journal may inspect an exact historical hash.
    * Missing bytes here never clear the signing barrier or authorize dispatch. */
   readOriginal(account:string,reviewedHash:string):Promise<NativeTransferOutboxEntry|null>{return this.serial(async()=>{
-    historyKey(account,reviewedHash);return this.load(account,true);
+    historyKey(account,reviewedHash);return this.localOriginal(account)??this.load(account,true);
   })}
   /** Known-hash lookup, not an enumeration claim: SecureStore has no key listing.
    * Both archive generations are signature/checkpoint verified, read-only. */
@@ -70,7 +88,7 @@ export class NativeTransferOutbox {
   /** Published reopen API, public original-hash reads only. Unlike the old
    * release, recovery NEVER auto-Dones an accepted Pay/transfer or frees it. */
   recover(account:string,client:NativeChainClient,assertCurrent:Guard):Promise<NativeTransferOutboxEntry|null>{return this.serial(async()=>{
-    assertCurrent();const record=await this.load(account);assertCurrent();
+    assertCurrent();const held=this.localOriginal(account);if(held)return held;const record=await this.load(account);assertCurrent();
     if(!record||record.phase==="done")return record;
     return this.checkLoadedStatus(record,client);
   })}
@@ -116,10 +134,15 @@ export class NativeTransferOutbox {
   })}
   async sendNew(account:string,client:NativeChainClient,assertCurrent:Guard,prepare:()=>Promise<NativeTransferPrepared>,beforeBroadcast?:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
+      this.assertNoLocalOperation(account);
       assertCurrent();const existing=await this.load(account);assertCurrent();
       if(existing&&existing.phase!=="done")throw new NativeOutboxBlocked();
       if(existing)await this.archive(existing,assertCurrent);
       await client.requireDurabilityCapability();assertCurrent();
+      const owner=ownerOriginals(this.storage);
+      if(owner.size>=PUBLIC_OPERATION_RETENTION_LIMIT)throw new NativeOutboxBlocked();
+      const slot:PublicNativeSlot={original:null,originalCause:null,storageCause:null};owner.set(account,slot);
+      try{
       const time=this.now().toISOString();
       const marker:PreparationMarker=Object.freeze({version:1,account,origin:client.origin,createdAt:time,previousHash:existing?.hash??null,phase:"preparing",hash:null});
       // Verified durable intent MUST precede the opaque preparation callback.
@@ -130,25 +153,34 @@ export class NativeTransferOutbox {
       try{signed=await prepare()}catch(error){
         if(error instanceof NativePreparationFailure){
           if(error.signed){
-            if(existing?.hash===error.signed.hash){await this.savePreparation({...marker,phase:"signed",hash:existing.hash});throw error}
+            if(existing?.hash===error.signed.hash){slot.original=existing;slot.originalCause=error.failure;await this.savePreparation({...marker,phase:"signed",hash:existing.hash});owner.delete(account);throw error}
             const original=parse({version:1,account,origin:client.origin,...error.signed,phase:"prepared",attempts:0,createdAt:time,updatedAt:this.now().toISOString(),replayed:null,durabilityEvidence:null},account);
+            slot.original=original;slot.originalCause=error.failure;
             await this.savePreparation({...marker,phase:"signed_failed",hash:original.hash});
             await this.save(original);
+            owner.delete(account);
           }else await this.savePreparation({...marker,phase:"unsigned_failed"});
         }
         throw error;
       }
       const record=parse({version:1,account,origin:client.origin,...signed,phase:"prepared",attempts:0,createdAt:time,updatedAt:time,replayed:null,durabilityEvidence:null},account);
-      if(existing?.hash===record.hash){await this.savePreparation({...marker,phase:"signed",hash:existing.hash});throw new NativeOutboxBlocked()}
+      slot.original=record;
+      if(existing?.hash===record.hash){slot.original=existing;await this.savePreparation({...marker,phase:"signed",hash:existing.hash});owner.delete(account);throw new NativeOutboxBlocked()}
       // Saving a produced public result is independent of the secret lease.
       // Current authority remains mandatory before ANY outward effect.
       await this.savePreparation({...marker,phase:"signed",hash:record.hash});
-      await this.save(record);assertCurrent();
+      await this.save(record);owner.delete(account);assertCurrent();
       return this.dispatch(record,client,assertCurrent,true,beforeBroadcast);
+      }catch(error){
+        if(slot.original&&owner.get(account)===slot){slot.storageCause=error instanceof NativeOutboxStorageError?error.storageCause??error:error;throw new NativeOutboxStorageError(slot.original,slot.storageCause,slot.originalCause)}
+        if(!slot.original)owner.delete(account);
+        throw error;
+      }
     });
   }
   async checkStatus(account:string,reviewedHash:string,client:NativeChainClient,assertCurrent:Guard):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
+      assertCurrent();const held=this.localOriginal(account);if(held){if(held.hash!==reviewedHash||held.origin!==client.origin)throw new NativeOutboxBlocked();return held}
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase==="done")throw new NativeOutboxBlocked();
       return this.checkLoadedStatus(record,client);
@@ -166,6 +198,7 @@ export class NativeTransferOutbox {
   }
   async retry(account:string,reviewedHash:string,client:NativeChainClient,assertCurrent:Guard,authorize:()=>Promise<void>):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
+      this.assertNoLocalOperation(account);
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase==="done"||record.phase==="accepted")throw new NativeOutboxBlocked();
       if(record.origin!==client.origin)throw new Error("The stored transfer belongs to a different RPC origin. Restore that origin before retrying.");
@@ -178,6 +211,7 @@ export class NativeTransferOutbox {
   }
   async acknowledge(account:string,reviewedHash:string,assertCurrent:Guard):Promise<NativeTransferOutboxEntry>{
     return this.serial(async()=>{
+      this.assertNoLocalOperation(account);
       assertCurrent();const record=await this.load(account);assertCurrent();
       if(!record||record.hash!==reviewedHash||record.phase!=="accepted")throw new NativeOutboxBlocked();
       await this.archive(record,assertCurrent);assertCurrent();
@@ -222,7 +256,7 @@ export class NativeTransferOutbox {
     }catch(error){if(error instanceof NativeSigningResultUnknown)throw error;throw new NativeOutboxStorageError()}
   }
   private async savePreparation(marker:PreparationMarker):Promise<void>{
-    try{const encoded=JSON.stringify(marker),k=NATIVE_PREPARATION_PREFIX+marker.account;parsePreparation(encoded,marker.account);await this.storage.setItem(k,encoded);const actual=await this.storage.getItem(k);if(actual!==encoded)throw new Error();parsePreparation(actual,marker.account)}catch{throw new NativeOutboxStorageError()}
+    try{const encoded=JSON.stringify(marker),k=NATIVE_PREPARATION_PREFIX+marker.account;parsePreparation(encoded,marker.account);await this.storage.setItem(k,encoded);const actual=await this.storage.getItem(k);if(actual!==encoded)throw new Error("Preparation marker readback mismatch");parsePreparation(actual,marker.account)}catch(error){throw new NativeOutboxStorageError(null,error)}
   }
   /** Publish immutable original + linked node + verified head BEFORE Done.
    * Interrupted publication is resumed, never pruned or overwritten. */
@@ -254,7 +288,7 @@ export class NativeTransferOutbox {
   }
   private async save(record:NativeTransferOutboxEntry):Promise<void>{
     const encoded=JSON.stringify(record),storageKey=key(record.account);
-    try{if(encoded.length>8192)throw new Error();await this.storage.setItem(storageKey,encoded);const readback=await this.storage.getItem(storageKey);if(readback!==encoded)throw new Error();parse(JSON.parse(readback),record.account)}catch{throw new NativeOutboxStorageError(Object.freeze({payload:record.payload,hash:record.hash,transaction:record.transaction}))}
+    try{if(encoded.length>8192)throw new Error();await this.storage.setItem(storageKey,encoded);const readback=await this.storage.getItem(storageKey);if(readback!==encoded)throw new Error();parse(JSON.parse(readback),record.account)}catch(error){throw new NativeOutboxStorageError(Object.freeze({payload:record.payload,hash:record.hash,transaction:record.transaction}),error)}
   }
   private serial<T>(work:()=>Promise<T>):Promise<T>{const pending=(queues.get(this.storage)??Promise.resolve()).catch(()=>{}).then(work);queues.set(this.storage,pending);return pending}
 }

@@ -12,6 +12,34 @@ const account=ynxAddressFromEVM("0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"),to
 const signed=createSignedNativeTransfer({accountSecret:"0".repeat(63)+"1",to,amount:25,nonce:7});
 const storageKey=NATIVE_OUTBOX_PREFIX+account;
 const noGuard=()=>{};
+for(const arm of ["normal","typed"] as const)for(const fault of ["before-write","after-write","readback","mismatch"] as const)test(`r2 post-sign second marker ${arm} ${fault} keeps original in normal owner read after lock`,async()=>{
+ const storage=new MemoryStorage(),set=storage.setItem.bind(storage),get=storage.getItem.bind(storage);let markers=0,prepares=0,posts=0;const operations=lifecycle(),lease=operations.scope().begin();
+ storage.setItem=async(k,v)=>{if(k.startsWith(NATIVE_PREPARATION_PREFIX)&&++markers===2){if(fault==="before-write")throw Error('QA_SECOND_MARKER_BEFORE');await set(k,v);if(fault==="after-write")throw Error('QA_SECOND_MARKER_AFTER');return}await set(k,v)};
+ storage.getItem=async k=>{if(k.startsWith(NATIVE_PREPARATION_PREFIX)&&markers===2){if(fault==="readback")throw Error('QA_SECOND_MARKER_READ');if(fault==="mismatch")return 'wrong'}return get(k)};
+ const remote=client(async()=>{posts++;throw Error('unexpected broadcast')}),owner=new NativeTransferOutbox(storage);let original:any,caught:any;
+ try{await owner.sendNew(account,remote,lease.assert,async()=>{prepares++;original=createSignedNativeTransfer({accountSecret:'0'.repeat(63)+'1',to,amount:25,nonce:7});operations.lock();if(arm==='typed')throw new NativePreparationFailure(Error('QA_ORIGINAL_CAUSE'),original);return original})}catch(e){caught=e}finally{lease.finish()}
+ assert.ok(caught instanceof NativeOutboxStorageError);assert.equal(caught.retainedOriginal?.payload,original.payload);assert.ok(caught.storageCause);
+ const retained=(await new NativeTransferOutbox(storage).read(account))!;assert.equal(retained.payload,original.payload);assert.equal(retained.hash,original.hash);assert.equal(retained.localRetention?.durable,false);
+ if(arm==='typed')assert.equal(retained.localRetention?.originalCause?.message,'QA_ORIGINAL_CAUSE');
+ assert.ok(retained.localRetention?.storageCause);assert.equal(operations.isUnlocked(),false);assert.equal(prepares,1);assert.equal(posts,0);
+ assert.equal((await owner.recover(account,remote,noGuard))?.payload,original.payload);
+ await assert.rejects(owner.retry(account,original.hash,remote,noGuard,async()=>{throw Error('must not prompt')}),NativeOutboxBlocked);
+ await assert.rejects(owner.sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeOutboxBlocked);assert.equal(prepares,1);
+ const cold=new MemoryStorage();cold.values=new Map(storage.values);await assert.rejects(new NativeTransferOutbox(cold).read(account),NativeSigningResultUnknown);
+ await assert.rejects(new NativeTransferOutbox(cold).sendNew(account,remote,noGuard,async()=>{prepares++;return original}),NativeSigningResultUnknown);assert.equal(prepares,1);assert.equal(posts,0);
+});
+test("r2 unresolved public-owner capacity is checked before signing and never evicts originals",async()=>{
+ const storage=new MemoryStorage();const set=storage.setItem.bind(storage);storage.setItem=async(k,v)=>{if(k.startsWith(NATIVE_PREPARATION_PREFIX)&&JSON.parse(v).phase!=='preparing')throw Error('QA_FAIL_AFTER_SIGN');await set(k,v)};let signs=0;
+ const owner=new NativeTransferOutbox(storage),remote=client(async()=>{throw Error('must not broadcast')});
+ const originals:any[]=[];
+ for(let i=1;i<=8;i++){
+  const prepared=createSignedNativeTransfer({accountSecret:i.toString(16).padStart(64,'0'),to,amount:25,nonce:7}),a=ynxAddressFromEVM(prepared.transaction.from);originals.push({a,prepared});
+  await assert.rejects(owner.sendNew(a,remote,noGuard,async()=>{signs++;return prepared}),NativeOutboxStorageError);
+ }
+ const ninth=createSignedNativeTransfer({accountSecret:'9'.padStart(64,'0'),to,amount:25,nonce:7});
+ await assert.rejects(owner.sendNew(ynxAddressFromEVM(ninth.transaction.from),remote,noGuard,async()=>{signs++;return ninth}),NativeOutboxBlocked);assert.equal(signs,8);
+ for(const {a,prepared} of originals)assert.equal((await owner.read(a))?.payload,prepared.payload);
+});
 test("durable preparation persisted marker ACK loss never invokes a signer and blocks after cold reopen",async()=>{
  const storage=new MemoryStorage();storage.setItem=async(k,v)=>{storage.values.set(k,v);throw Error('marker persisted but acknowledgement lost')};let signs=0;
  await assert.rejects(new NativeTransferOutbox(storage).sendNew(account,client(async()=>{throw Error('unexpected')}),noGuard,async()=>{signs++;return signed}),NativeOutboxStorageError);

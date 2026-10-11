@@ -2,7 +2,7 @@ import {canonicalJSON,evmAddressFromYNX,parseProductSession} from "@ynx-chain/wa
 import type {createPayInvoiceSignerPolicy} from "@ynx-chain/wallet-auth";
 import type {SecureStorageAdapter} from "../storage/walletRepository";
 import type {NativeChainClient} from "../chain/nativeTransfer";
-import {NativeTransferOutbox,NativePreparationFailure,type NativeTransferPrepared,type NativeTransferOutboxEntry} from "../chain/nativeTransferOutbox";
+import {NativeTransferOutbox,NativePreparationFailure,publicOperationCause,PUBLIC_OPERATION_RETENTION_LIMIT,type PublicOperationRetention,type NativeTransferPrepared,type NativeTransferOutboxEntry} from "../chain/nativeTransferOutbox";
 import {verifyNativeDurability} from "../chain/nativeDurability";
 import {verifyWalletPayQuote} from "../chain/walletPayQuote";
 import {prepareSignedPayTransfer,assertSignedPayProductSession,assertSignedPaySessionBinding,type WalletPayAuthorityLease} from "../security/prepareSignedPayTransfer";
@@ -15,9 +15,13 @@ import {
 } from "./walletSignedPaySettlement";
 type Policy=ReturnType<typeof createPayInvoiceSignerPolicy>;
 const queues=new WeakMap<SecureStorageAdapter,Promise<unknown>>();
+type PublicPaySlot={record:WalletSignedPayRecord|null;storageCause:unknown};
+const publicPayOriginals=new WeakMap<SecureStorageAdapter,Map<string,PublicPaySlot>>();
+function payOwner(storage:SecureStorageAdapter){let entries=publicPayOriginals.get(storage);if(!entries){entries=new Map();publicPayOriginals.set(storage,entries)}return entries}
+class SignedPayStorageFailure extends Error{readonly code="PAY_SIGNED_RECORD_UNAVAILABLE";constructor(readonly storageCause:unknown){super("PAY_SIGNED_RECORD_UNAVAILABLE")}}
 export type SignedPayRecovery=Readonly<{record:WalletSignedPayRecord;original:NativeTransferOutboxEntry|null;
   state:"original_unavailable"|"transfer_unconfirmed"|"settlement_pending"|"settlement_unknown"|"settled";
-  actions:readonly ("check"|"read-receipt"|"settle"|"done")[];paymentAuthorized:false;settlementVerified:boolean}>;
+  actions:readonly ("check"|"read-receipt"|"settle"|"done")[];paymentAuthorized:false;settlementVerified:boolean;localRetention?:PublicOperationRetention}>;
 /** A's canonical authenticated actor/device/origin transport, never public GET
  * or caller-created HMAC/bearer. Methods bind the ORIGINAL full record, guard
  * before each outward effect, and implement the current atomic business fence.
@@ -49,6 +53,8 @@ export class WalletSignedPayFlow{
     guard();if(await this.load(account,policy,guard))throw Error("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");guard();
     if(await this.legacy.read(account))throw Error("PAY_LEGACY_ORIGINAL_REQUIRES_REVIEW");guard();
     if(await this.storage.getItem(SIGNED_PAY_PAID_INVOICE_PREFIX+account+"."+quote.invoice.id)!==null||await this.legacy.hasPaidInvoice(account,quote.invoice.id))throw Error("PAY_INVOICE_ALREADY_PAID");guard();
+    const owner=payOwner(this.storage);if(owner.has(account)||owner.size>=PUBLIC_OPERATION_RETENTION_LIMIT)throw Error("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW");
+    const slot:PublicPaySlot={record:null,storageCause:null};owner.set(account,slot);
     let retained:WalletSignedPayRecord|null=null;
     let produced:NativeTransferPrepared|null=null;
     const retainProduced=async(signed:Awaited<ReturnType<typeof prepareSignedPayTransfer>>)=>{
@@ -57,11 +63,12 @@ export class WalletSignedPayFlow{
         transfer:{payload:signed.payload,hash:signed.hash,transaction:signed.transaction}};
       // Historical cryptographic validation is not current dispatch authority.
       retained=parseWalletSignedPayRecord(canonicalJSON(record),account,policy,()=>{});
-      await this.save(retained,policy,()=>{});
+      slot.record=retained;
+      try{await this.save(retained,policy,()=>{});owner.delete(account)}catch(error){slot.storageCause=error instanceof SignedPayStorageFailure?error.storageCause:error;throw error}
     };
     const preparedInput={...input,review,rawInvoice:quote.invoice,rawIntent:quote.intent,client:input.chain,retainProduced};
     const dispatchGuard=()=>{guard();if(retained&&now()>=Date.parse(retained.intent.quoteExpiresAt))throw Error("PAY_QUOTE_EXPIRED")};
-    return this.outbox.sendNew(account,input.chain,dispatchGuard,async()=>{
+    try{return await this.outbox.sendNew(account,input.chain,dispatchGuard,async()=>{
       try{const signed=await prepareSignedPayTransfer(preparedInput);dispatchGuard();return {payload:signed.payload,hash:signed.hash,transaction:signed.transaction}}
       catch(error){if(produced)throw new NativePreparationFailure(error,produced);throw error}
     },async()=>{
@@ -74,12 +81,15 @@ export class WalletSignedPayFlow{
       const final=await authority.refresh();dispatchGuard();
       if(canonicalJSON(parseProductSession(final))!==session)throw Error("PAY_CURRENT_SESSION_CHANGED");
       await authority.verifyInvoicePayable(quote.invoice,quote.intent);dispatchGuard();
-    });
+    })}finally{if(!slot.record)owner.delete(account)}
   })}
   recovery(account:string,policy:Policy,guard:()=>void):Promise<SignedPayRecovery|null>{return this.serial(async()=>{
     const record=await this.load(account,policy,guard);guard();if(!record)return null;
     const original=await this.outbox.readOriginal(account,record.transfer.hash);guard();
     if(original&&(original.hash!==record.transfer.hash||original.payload!==record.transfer.payload||original.origin!==record.origin))throw Error("PAY_SIGNED_ORIGINAL_MISMATCH");
+    const held=payOwner(this.storage).get(account);
+    const localRetention:PublicOperationRetention|undefined=held?.record?Object.freeze({scope:"operation-memory",durable:false,originalCause:null,storageCause:publicOperationCause(held.storageCause)}):original?.localRetention;
+    if(localRetention)return Object.freeze({record,original,state:"transfer_unconfirmed",actions:Object.freeze([]),paymentAuthorized:false,settlementVerified:false,localRetention});
     const durable=!!original&&["accepted","done"].includes(original.phase)&&verifyNativeDurability(original.durabilityEvidence,original.transaction,original.hash,original.origin);
     const state=durable?await this.loadSettlement(record,original!,policy,guard):null;guard();
     const verified=state?.phase==="verified";
@@ -153,6 +163,7 @@ export class WalletSignedPayFlow{
     }catch{guard();throw Error("PAY_SIGNED_RECEIPT_STORAGE_UNAVAILABLE")}
   })}
   private async originalForSettlement(account:string,policy:Policy,guard:()=>void){
+    if(payOwner(this.storage).has(account))throw Error("PAY_SIGNED_RECORD_UNAVAILABLE");
     const record=await this.load(account,policy,guard);guard();if(!record)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");
     const original=await this.outbox.readOriginal(account,record.transfer.hash);guard();if(!original)throw Error("PAY_SIGNED_ORIGINAL_UNAVAILABLE");assertSignedPayOriginal(record,original);return {record,original};
   }
@@ -215,7 +226,8 @@ export class WalletSignedPayFlow{
     return this.outbox.checkStatus(account,original.hash,chain,guard);
   })}
   private async load(account:string,policy:Policy,guard:()=>void){
-    guard();evmAddressFromYNX(account);try{const raw=await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account);guard();return raw===null?null:parseWalletSignedPayRecord(raw,account,policy,guard)}catch{guard();throw Error("PAY_SIGNED_RECORD_UNAVAILABLE")}
+    guard();evmAddressFromYNX(account);const held=payOwner(this.storage).get(account)?.record;if(held)return parseWalletSignedPayRecord(canonicalJSON(held),account,policy,guard);
+    try{const raw=await this.storage.getItem(SIGNED_PAY_BINDING_PREFIX+account);guard();return raw===null?null:parseWalletSignedPayRecord(raw,account,policy,guard)}catch{guard();throw Error("PAY_SIGNED_RECORD_UNAVAILABLE")}
   }
   private async save(record:WalletSignedPayRecord,policy:Policy,guard:()=>void){
     const key=SIGNED_PAY_BINDING_PREFIX+record.account,raw=canonicalJSON(record);guard();
@@ -223,7 +235,7 @@ export class WalletSignedPayFlow{
       const prior=await this.storage.getItem(key);guard();if(prior!==null&&prior!==raw)throw Error();
       if(prior===null){await this.storage.setItem(key,raw);guard()}
       const saved=await this.storage.getItem(key);guard();if(saved!==raw)throw Error();parseWalletSignedPayRecord(saved,record.account,policy,guard);
-    }catch{guard();throw Error("PAY_SIGNED_RECORD_UNAVAILABLE")}
+    }catch(error){guard();throw new SignedPayStorageFailure(error)}
   }
   private serial<T>(operation:()=>Promise<T>):Promise<T>{const pending=(queues.get(this.storage)??Promise.resolve()).catch(()=>{}).then(operation);queues.set(this.storage,pending);return pending}
 }

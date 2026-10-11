@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {canonicalJSON,createSignedNativeTransfer,walletIdentity} from "@ynx-chain/wallet-auth";
 import {signedPayFixture} from "../security/signedPayTestFixture";
 import {NativeChainClient} from "../chain/nativeTransfer";
-import {NativeTransferOutbox,NATIVE_OUTBOX_PREFIX} from "../chain/nativeTransferOutbox";
+import {NativeTransferOutbox,NativePreparationFailure,NATIVE_OUTBOX_PREFIX} from "../chain/nativeTransferOutbox";
 import {WalletPayInvoiceClient,parseWalletPayInvoice} from "../chain/walletPayInvoice";
 import {WalletPayFlow} from "./walletPayFlow";
 import {WalletSignedPayFlow} from "./walletSignedPayFlow";
@@ -26,6 +26,39 @@ function fixture(){
   const input={...f.input,chain};
   return{...f,storage,account,policy,chain,outbox,legacy,flow,input,broadcasts:()=>broadcasts};
 }
+test("r2 full Pay reject-before-write remains readable by normal owner without settlement authority",async()=>{
+ const f=fixture();try{
+  const set=f.storage.setItem.bind(f.storage);let original:any;
+  f.storage.setItem=async(k,v)=>{if(k.startsWith(SIGNED_PAY_BINDING_PREFIX)){original=JSON.parse(v);throw Error('QA_PAY_WRITE_REJECTED')}await set(k,v)};
+  await assert.rejects(f.flow.payReviewed(f.input),/RECORD_UNAVAILABLE/);
+  f.operations.lock();
+  const record=(await f.flow.read(f.account,f.policy,()=>{}))!;assert.equal(canonicalJSON(record),canonicalJSON(original));assert.ok(record.paymentResult.walletSignature);
+  const sameOwner=new WalletSignedPayFlow(f.storage,new NativeTransferOutbox(f.storage),f.legacy),recovery=(await sameOwner.recovery(f.account,f.policy,()=>{}))!;
+  assert.equal(canonicalJSON(recovery.record),canonicalJSON(original));assert.equal(recovery.localRetention?.durable,false);assert.equal(recovery.localRetention?.storageCause?.message,'QA_PAY_WRITE_REJECTED');assert.deepEqual(recovery.actions,[]);
+  assert.equal(recovery.paymentAuthorized,false);assert.equal(f.counts().reads,1);assert.equal(f.broadcasts(),0);assert.equal(f.operations.isUnlocked(),false);
+  await assert.rejects(sameOwner.settleOriginal(f.account,f.policy,()=>{},{} as any),/RECORD_UNAVAILABLE/);
+  const cold=new Memory();cold.values=new Map(f.storage.values);const coldFlow=new WalletSignedPayFlow(cold,new NativeTransferOutbox(cold),{read:async()=>null,hasPaidInvoice:async()=>false});
+  assert.equal(await coldFlow.read(f.account,f.policy,()=>{}),null);assert.equal(await coldFlow.recovery(f.account,f.policy,()=>{}),null);
+  await assert.rejects(new NativeTransferOutbox(cold).sendNew(f.account,f.chain,()=>{},async()=>{throw Error('must not sign again')}));
+ }finally{f.lease.finish()}
+});
+test("r2 native-only retained original is never promoted to a full Pay result",async()=>{
+ const f=fixture();try{
+  const signed=createSignedNativeTransfer({accountSecret:"01".repeat(32),to:f.input.review.to,amount:25,nonce:3});
+  const set=f.storage.setItem.bind(f.storage);
+  f.storage.setItem=async(k,v)=>{if(k.startsWith(NATIVE_OUTBOX_PREFIX))throw Error('QA_NATIVE_ONLY_WRITE_REJECTED');await set(k,v)};
+  let prepares=0;
+  await assert.rejects(f.outbox.sendNew(f.account,f.chain,()=>{},async()=>{prepares++;throw new NativePreparationFailure(Error('QA_NATIVE_ONLY_PRODUCER'),signed)}));
+  f.operations.lock();
+  const original=await new NativeTransferOutbox(f.storage).read(f.account);
+  assert.equal(original?.payload,signed.payload);assert.equal(original?.localRetention?.durable,false);
+  assert.equal(original?.localRetention?.originalCause?.message,'QA_NATIVE_ONLY_PRODUCER');
+  assert.equal(await f.flow.read(f.account,f.policy,()=>{}),null);assert.equal(await f.flow.recovery(f.account,f.policy,()=>{}),null);
+  assert.equal(f.storage.values.has(SIGNED_PAY_BINDING_PREFIX+f.account),false);
+  await assert.rejects(f.outbox.sendNew(f.account,f.chain,()=>{},async()=>{prepares++;return signed}));
+  assert.equal(prepares,1);assert.equal(f.broadcasts(),0);assert.equal(f.operations.isUnlocked(),false);
+ }finally{f.lease.finish()}
+});
 test("durable preparation lock during signed Pay publication retains both originals and blocks duplicate callback",async()=>{
  const f=fixture();try{
   const set=f.storage.setItem.bind(f.storage);
