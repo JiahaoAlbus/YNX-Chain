@@ -15,7 +15,9 @@ export function verifyFamilyProduced(record, result) {
     const expectedOutpoints = bitcoin.createBitcoinPreview(record.request.operation.previewRequest).inputs.map(input => `${input.txid}:${input.vout}`).sort();
     if (JSON.stringify([...record.outpoints].sort()) !== JSON.stringify(expectedOutpoints)) conflict();
   } else {
-    exactObject(record.request.operation, ['intent', 'context']);
+    exactObject(record.request.operation, ['intent', 'context', 'feeBudget']);
+    const budget=record.request.operation.feeBudget;
+    if(budget!==undefined){exactObject(budget,['maxFeeSun']);if(typeof budget.maxFeeSun!=='string'||! /^[1-9][0-9]{0,18}$/.test(budget.maxFeeSun)||BigInt(budget.maxFeeSun)>9223372036854775807n)conflict();}
     const {intent, context} = record.request.operation, original = result.produced;
     exactObject(original, ['state', 'network', 'owner', 'binding', 'txID', 'raw_data_hex', 'signature', 'transaction', 'broadcastAuthorized']);
     if (intent.network?.id !== network.network || intent.network?.genesisBlockId !== network.genesis || original.network?.id !== network.network || original.network?.genesisBlockId !== network.genesis || original.txID !== result.txid || original.transaction?.txID !== result.txid || original.owner !== intent.owner || original.binding !== intent.binding || original.raw_data_hex !== original.transaction?.raw_data_hex || original.signature !== original.transaction?.signature?.[0] || original.state !== 'signed-unsubmitted' || original.broadcastAuthorized !== false) conflict();

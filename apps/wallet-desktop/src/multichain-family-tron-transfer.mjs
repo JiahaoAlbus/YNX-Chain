@@ -11,6 +11,7 @@ export class FamilyTronTransfer {
   async prepare(input){return this.gate.run(()=>this.#prepare(input));}
   async #prepare(input){
     exactObject(input,['network','to','amount','asset','contract','feeLimitSun','maxFeeSun']);const original=structuredClone(input);
+    if(typeof original.maxFeeSun!=='string'||! /^[1-9][0-9]{0,18}$/.test(original.maxFeeSun)||BigInt(original.maxFeeSun)>9223372036854775807n)fail('TRON_FEE_BUDGET_REQUIRED');
     const context=await this.getContext();if(context.locked||context.authenticating||!context.account)fail('MULTICHAIN_LOCKED');
     const before=await this.networks.read(),catalog=await this.tokens.read(),network=effectiveFamilyNetworks(before).networks.find(n=>n.family==='tron'&&n.network===original.network);
     if(!network||!['trx','trc20'].includes(original.asset))fail('FAMILY_NETWORK_REQUIRED');
@@ -27,7 +28,7 @@ export class FamilyTronTransfer {
     let permit;try{
       const id=this.id(),expiresAt=Math.min(this.now()+120000,Number(prepared.context.expiration));
       const validator=new TronSignReview({transaction,intent,context:prepared.context,now:this.now()});
-      await live();permit=await this.journal.reserve({id,family:'tron',networkId:network.network,account:context.account,request:{network,operation:{intent,context:prepared.context}},outpoints:[]});await live();
+      await live();permit=await this.journal.reserve({id,family:'tron',networkId:network.network,account:context.account,request:{network,operation:{intent,context:prepared.context,feeBudget:{maxFeeSun:original.maxFeeSun}}},outpoints:[]});await live();
       this.#reviews.set(id,{permit,validator,context,configRevision:before.revision,catalogRevision:catalog.revision,expiresAt});
       return {id,family:'tron',network:network.network,vaultAccount:context.account,from:account.address,to:tronAddress(original.to).base58,amount:original.amount,symbol:token?.symbol??'TRX',decimals:proposed.decimals,contract:token?.contract??null,fees:prepared.fees,maxFeeSun:original.maxFeeSun,endpoint:network.rpcUrl,expiresAt,state:'prepared',signingSupported:Boolean(this.withMnemonic&&this.getGuard),broadcastSupported:false};
     }catch(error){if(permit){await permit.cancelBeforeSigning().catch(()=>{});permit.retire();}throw error;}
