@@ -89,7 +89,7 @@ function createChainProjectUI(vscode,context,environment,t,options={}) {
   async function read(operation) {
     return vscode.window.withProgress({location:vscode.ProgressLocation.Notification,title:t('Read-only Chain query'),cancellable:true},async(progress,token)=>{
       const controller=new AbortController(),cancel=token.onCancellationRequested(()=>controller.abort());if(token.isCancellationRequested)controller.abort();
-      try {const record=await project.query(operation,async approved=>await vscode.window.showWarningMessage(t('Read {0} for this project using {1}? This cannot sign, deploy or submit a transaction.',approved.operation.kind,approved.service),{modal:true},t('Approve one read'))===t('Approve one read'),{signal:controller.signal});if(record)await display(record);}
+      try {const record=await project.query(operation,async approved=>await vscode.window.showWarningMessage(t('Read {0} for this project using {1}? This cannot sign, deploy or submit a transaction.',approved.operation.kind,approved.service),{modal:true},t('Approve one read'))===t('Approve one read'),{signal:controller.signal});if(record){options.onObservationSaved?.();await display(record);}}
       finally {cancel.dispose();}
     });
   }
@@ -97,7 +97,7 @@ function createChainProjectUI(vscode,context,environment,t,options={}) {
     const key=kind==='balance'?'Account address (public; no private key)':'Transaction hash (query reference only)';
     const value=await vscode.window.showInputBox({title:t(key),ignoreFocusOut:true,validateInput:text=>(kind==='balance'?/^0x[0-9a-fA-F]{40}$/:/^0x[0-9a-fA-F]{64}$/).test(text)?undefined:t(kind==='balance'?'Enter a 0x-prefixed 20-byte account address.':'Enter a 0x-prefixed 32-byte transaction hash.')});
     if(value===undefined)return;
-    if(kind==='track'){const record=await project.trackTransaction(value);void vscode.window.showInformationMessage(t('Recorded a query reference only. No transaction was submitted by the IDE.'));return display(record);}
+    if(kind==='track'){const record=await project.trackTransaction(value);options.onObservationSaved?.();void vscode.window.showInformationMessage(t('Recorded a query reference only. No transaction was submitted by the IDE.'));return display(record);}
     return read(kind==='balance'?{kind,address:value}:{kind:'transaction',hash:value});
   }
   async function saved() {
@@ -130,6 +130,18 @@ function createChainProjectUI(vscode,context,environment,t,options={}) {
     if(['balance','transaction','track'].includes(selected.action))return input(selected.action);
     return read({kind:selected.action});
   }
-  return {open:()=>guarded(open),configure:()=>guarded(configure),saved:()=>guarded(saved),track:()=>guarded(()=>input('track'))};
+  async function openObservation(reference) {
+    const scope=await project.scope();
+    if(!reference || reference.projectId!==scope.projectId || reference.workspace!==scope.workspace ||
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(reference.id||''))
+      throw Error(t('The local project changed. Reopen its Chain tools.'));
+    // Reload validated disk history; callers cannot supply evidence or paths.
+    const record=(await project.history()).find(row=>row.id===reference.id);
+    await project.scope();
+    if(!record)throw Error(t('Chain query failed. Existing project data is preserved.'));
+    return display(record);
+  }
+  return {open:()=>guarded(open),configure:()=>guarded(configure),saved:()=>guarded(saved),track:()=>guarded(()=>input('track')),
+    observations:()=>project.history(),openObservation:reference=>guarded(()=>openObservation(reference))};
 }
 module.exports={createChainProjectUI,CHAIN_PROJECT_TRANSLATIONS};

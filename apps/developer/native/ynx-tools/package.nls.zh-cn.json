@@ -31,7 +31,11 @@
   "container.contracts": "合约开发",
   "container.network": "链与结果",
   "container.review": "改动审阅",
-  "view.contracts": "项目开发",
+  "view.contracts": "合约与项目构建",
   "view.network": "项目链连接",
-  "view.review": "已审阅改动"
+  "view.review": "代码变更审阅",
+  "container.chainResults": "链上结果",
+  "view.chainResults": "当前项目链上结果",
+  "command.chainResults.refresh": "刷新已保存的链上结果",
+  "command.chainResults.open": "打开已保存的链上观察结果"
 }

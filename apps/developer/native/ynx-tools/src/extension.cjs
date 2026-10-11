@@ -14,13 +14,16 @@ function activate(context) {
     localReviewPanel ||= require('./local-review-panel.cjs').createLocalReviewPanel(vscode, context, process.env, previewChange);
     return localReviewPanel.open(capture);
   };
-  let chainProject;
+  let chainProject, chainResults;
   const publicConnectionForProject = require('./chain-public-connection.cjs').createPublicConnection(vscode, context);
   const projectChain = () => {
     if (process.env.YNX_WORKSPACE_MODE !== 'local') throw Error(t('Open a local project to configure its Chain tools.'));
     // Fixed-purpose host public reads carry no Wallet or deployment authority.
-    return chainProject ||= require('./chain-project-ui.cjs').createChainProjectUI(vscode, context, process.env, t, { connectionForProject: publicConnectionForProject });
+    return chainProject ||= require('./chain-project-ui.cjs').createChainProjectUI(vscode, context, process.env, t, { connectionForProject: publicConnectionForProject, onObservationSaved: () => chainResults?.refresh() });
   };
+  chainResults = require('./chain-results-view.cjs').registerChainResultsView(vscode, context, {
+    load: () => projectChain().observations(), open: reference => projectChain().openObservation(reference), translate: t,
+  });
   // The host context menu lives outside Monaco's scoped DOM context. Publish
   // our own selection state through the extension API so both hosts can render
   // the same conditional menu without changing the upstream context service.

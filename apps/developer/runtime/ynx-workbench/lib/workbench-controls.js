@@ -11,6 +11,7 @@ const RUN_ACTIONS = Object.freeze([
 const CPP_ACTIONS = Object.freeze([{ id: 'ynx.cpp.runActive', label: 'Run C/C++ File' }, { id: 'ynx.cpp.debugActive', label: 'Debug C/C++ File' }]);
 const JS_ACTIONS = Object.freeze([{ id: 'ynx.js.runActive', label: 'Run JavaScript File' }, { id: 'ynx.js.debugActive', label: 'Debug JavaScript File' }]);
 const GO_ACTIONS = Object.freeze([{ id: 'ynx.go.run', label: 'Run Go Project' }, { id: 'ynx.go.cancel', label: 'Cancel Go Task' }]);
+const PYTHON_ACTIONS = Object.freeze([{ id: 'python.execInTerminal', label: 'Run Python File' }, { id: 'debugpy.debugInTerminal', label: 'Debug Python File' }]);
 const PROJECT_ACTIONS = Object.freeze([
   { id: 'core.save', label: 'Save', icon: 'save' },
   { id: 'task:run:build', label: 'Build', icon: 'tools' },
@@ -138,6 +139,10 @@ class WorkbenchControlsContribution {
   }
   onDidInitializeLayout() { this.refresh(); }
   registerMenus(menus) {
+    for (const [index, action] of PYTHON_ACTIONS.entries()) this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'python'], {
+      commandId: action.id, label: this.translate(index ? 'debugPythonFile' : 'runPythonFile', action.label),
+      when: 'editorLangId == python', order: String(index),
+    }));
     for (const [index, action] of CPP_ACTIONS.entries()) this.disposables.push(menus.registerMenuAction([...RUN_MENU, 'cpp'], {
       commandId: action.id, label: this.translate(index ? 'debugCppFile' : 'runCppFile', action.label),
       when: 'editorLangId == cpp || editorLangId == c', order: String(index),
@@ -278,7 +283,7 @@ class WorkbenchControlsContribution {
     if (this.noSelectedDebug) this.noSelectedDebug.set(!this.debugConfigurations?.current);
     const editor = this.editors.currentEditor;
     if (this.editorLanguage) this.editorLanguage.set(editor && !editor.isDisposed ? editor.editor?.document?.languageId : undefined);
-    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...GO_ACTIONS].map(action => this.state(action.id).enabled).join('|');
+    const runState = [...RUN_ACTIONS, ...CPP_ACTIONS, ...JS_ACTIONS, ...GO_ACTIONS, ...PYTHON_ACTIONS].map(action => this.state(action.id).enabled).join('|');
     if (runState !== this.runState) { this.runState = runState; this.changed.fire(); }
     for (let i = 0; i < this.nodes.length; i++) {
       const node = this.nodes[i], area = i === 0 ? 'left' : 'bottom';

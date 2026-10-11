@@ -22,7 +22,7 @@ function frameworkMethod(name) {
 }
 const frameworkMouseUp = frameworkMethod('_evtMouseUp');
 const frameworkTrigger = frameworkMethod('triggerActiveItem');
-function popupFixture() {
+function popupFixture(commandId = RUN_ACTIONS[0].id) {
   const f = fixture(), accesses = [], pending = [];
   f.controls.editors.currentEditor = f.editor;
   f.controls.contextMenus = { render(options) {
@@ -30,7 +30,7 @@ function popupFixture() {
     const node = { addEventListener(type, fn) { listeners.set(type, fn); }, removeEventListener(type, fn) { if (listeners.get(type) === fn) listeners.delete(type); } };
     const menu = { node, isAttached: true, activeIndex: -1,
       contentNode: { children: [{ getBoundingClientRect: () => ({ left: 10, right: 110, top: 20, bottom: 50 }) }] },
-      get activeItem() { return this.activeIndex === 0 ? { type: 'command', command: RUN_ACTIONS[0].id, args: [] } : undefined; },
+      get activeItem() { return this.activeIndex === 0 ? { type: 'command', command: commandId, args: [] } : undefined; },
       _cancelOpenTimer() {}, _cancelCloseTimer() {}, triggerActiveItem: frameworkTrigger,
       commands: { isEnabled: id => f.commands.isEnabled(id), execute: id => {
         const dispatched = f.controls.run(id); pending.push(dispatched); return dispatched;
@@ -321,4 +321,30 @@ test('Go command registration and enablement changes refresh toolbar state',()=>
  const registration=f.commands.registerCommand({id:'ynx.go.run'},{execute(){},isEnabled:()=>enabled});
  f.controls.refresh();assert.equal(changed,before+1);enabled=false;f.controls.refresh();assert.equal(changed,before+2);
  enabled=true;f.controls.refresh();registration.dispose();f.controls.refresh();assert.equal(changed,before+4);f.controls.dispose();
+});
+
+test('Python Run menu consumes registered extension commands, respects disablement and passes no shell/file arguments', async () => {
+ const f=fixture(),items=[];let enabled=false;
+ f.controls.registerMenus({registerMenuAction:(path,item)=>{items.push({path,item});return{dispose(){}};}});
+ const actions=items.filter(row=>row.path.includes('python'));
+ assert.deepEqual(actions.map(row=>row.item.commandId),['python.execInTerminal','debugpy.debugInTerminal']);
+ assert.ok(actions.every(row=>row.item.when==='editorLangId == python'));
+ for(const {item} of actions) {
+  await assert.rejects(f.controls.run(item.commandId),/Unavailable in this runtime/);
+  const registration=f.commands.registerCommand({id:item.commandId},{execute:(...args)=>{assert.deepEqual(args,[]);f.calls.push(item.commandId);},isEnabled:()=>enabled});
+  await assert.rejects(f.controls.run(item.commandId),/Currently unavailable/);
+  enabled=true;await f.controls.run(item.commandId);enabled=false;registration.dispose();
+ }
+ assert.deepEqual(f.calls,['python.execInTerminal','debugpy.debugInTerminal']);f.controls.dispose();
+});
+test('Python command availability participates in toolbar refresh state',()=>{
+ const f=fixture();let changed=0,enabled=true;f.controls.changed.event(()=>changed++);f.controls.refresh();const before=changed;
+ const registration=f.commands.registerCommand({id:'python.execInTerminal'},{execute(){},isEnabled:()=>enabled});
+ f.controls.refresh();assert.equal(changed,before+1);enabled=false;f.controls.refresh();assert.equal(changed,before+2);
+ enabled=true;f.controls.refresh();registration.dispose();f.controls.refresh();assert.equal(changed,before+4);f.controls.dispose();
+});
+test('Python direct menu click uses installed framework dispatch once and is retired by editor change',async()=>{
+ const f=popupFixture('python.execInTerminal');f.commands.registerCommand({id:'python.execInTerminal'},{execute:(...args)=>{assert.deepEqual(args,[]);f.calls.push(['python.execInTerminal']);}});
+ let popup=f.open();f.down(popup);f.up(popup);f.up(popup);await Promise.all(f.pending);assert.deepEqual(f.calls,[['python.execInTerminal']]);
+ popup=f.open();f.controls.editors.currentEditor={};f.controls.refresh();f.down(popup);f.up(popup);await Promise.all(f.pending);assert.equal(f.calls.length,1);f.controls.dispose();
 });

@@ -31,7 +31,11 @@
   "container.contracts": "Contracts",
   "container.network": "Chain and Results",
   "container.review": "Change Review",
-  "view.contracts": "Project Development",
+  "view.contracts": "Contracts and Project Build",
   "view.network": "Project Chain",
-  "view.review": "Reviewed Changes"
+  "view.review": "Code Change Review",
+  "container.chainResults": "Chain Results",
+  "view.chainResults": "Project Chain Results",
+  "command.chainResults.refresh": "Refresh Saved Chain Results",
+  "command.chainResults.open": "Open Saved Chain Observation"
 }

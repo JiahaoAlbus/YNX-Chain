@@ -25,3 +25,20 @@ test('every project area has a contributed view, startup activation and bilingua
     for (const container of manifest.contributes.viewsContainers.activitybar)assert.ok(labels[container.title.slice(1,-1)]);
   }
 });
+
+test('contract and review workflows belong to built-in project areas without a catch-all activity button', () => {
+  const manifest=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));
+  assert.ok(manifest.contributes.views.explorer.some(view=>view.id==='ynx.contracts'));
+  assert.ok(manifest.contributes.views.scm.some(view=>view.id==='ynx.review'));
+  assert.equal(Object.values(manifest.contributes.views).flat().filter(view=>view.id==='ynx.contracts').length,1);
+  assert.equal(Object.values(manifest.contributes.views).flat().filter(view=>view.id==='ynx.review').length,1);
+  assert.ok(!manifest.contributes.viewsContainers.activitybar.some(row=>['ynx-contracts','ynx-review'].includes(row.id)));
+  const toolbar=manifest.contributes.menus['editor/title'];
+  for(const id of ['ynx.compileSolidity','ynx.evm.build','ynx.evm.test']) {
+    const action=toolbar.find(row=>row.command===id);
+    assert.equal(action.when,'resourceScheme == file && editorLangId == solidity');
+    assert.ok(manifest.contributes.commands.some(row=>row.command===id));
+  }
+  assert.equal(toolbar.find(row=>row.command==='ynx.reviewSelection').when,'ynx.hasSelection && resourceScheme == file');
+  assert.ok(!toolbar.some(row=>/chainProject|trackChain|configureChain/.test(row.command)));
+});

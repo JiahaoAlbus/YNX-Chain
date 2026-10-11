@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.30",
+  "version": "0.2.32",
   "engines": {
     "vscode": "^1.109.0"
   },
@@ -18,45 +18,49 @@
     "onCommand:ynx.js.debugActive",
     "onView:ynx.contracts",
     "onView:ynx.network",
-    "onView:ynx.review"
+    "onView:ynx.review",
+    "onView:ynx.chainResults"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "ynx-contracts",
-          "title": "%container.contracts%",
-          "icon": "activity.svg"
-        },
-        {
           "id": "ynx-network",
           "title": "%container.network%",
           "icon": "activity.svg"
-        },
+        }
+      ],
+      "panel": [
         {
-          "id": "ynx-review",
-          "title": "%container.review%",
+          "id": "ynx-chain-results",
+          "title": "%container.chainResults%",
           "icon": "activity.svg"
         }
       ]
     },
     "views": {
-      "ynx-contracts": [
-        {
-          "id": "ynx.contracts",
-          "name": "%view.contracts%"
-        }
-      ],
       "ynx-network": [
         {
           "id": "ynx.network",
           "name": "%view.network%"
         }
       ],
-      "ynx-review": [
+      "explorer": [
+        {
+          "id": "ynx.contracts",
+          "name": "%view.contracts%"
+        }
+      ],
+      "scm": [
         {
           "id": "ynx.review",
           "name": "%view.review%"
+        }
+      ],
+      "ynx-chain-results": [
+        {
+          "id": "ynx.chainResults",
+          "name": "%view.chainResults%"
         }
       ]
     },
@@ -71,7 +75,8 @@
       },
       {
         "command": "ynx.compileSolidity",
-        "title": "%command.ynx.compileSolidity%"
+        "title": "%command.ynx.compileSolidity%",
+        "icon": "$(tools)"
       },
       {
         "command": "ynx.copySolidityProject",
@@ -156,6 +161,15 @@
       {
         "command": "ynx.evm.cancel",
         "title": "%command.ynx.evm.cancel%"
+      },
+      {
+        "command": "ynx.chainResults.refresh",
+        "title": "%command.chainResults.refresh%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ynx.chainResults.open",
+        "title": "%command.chainResults.open%"
       }
     ],
     "jsonValidation": [
@@ -212,6 +226,35 @@
         {
           "command": "ynx.js.debugActive",
           "when": "resourceScheme == file && editorLangId == javascript"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "ynx.compileSolidity",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "navigation@20"
+        },
+        {
+          "command": "ynx.evm.build",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "ynx-project@1"
+        },
+        {
+          "command": "ynx.evm.test",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "ynx-project@2"
+        },
+        {
+          "command": "ynx.reviewSelection",
+          "when": "ynx.hasSelection && resourceScheme == file",
+          "group": "ynx-review@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ynx.chainResults.refresh",
+          "when": "view == ynx.chainResults",
+          "group": "navigation"
         }
       ]
     },

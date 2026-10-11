@@ -22,6 +22,8 @@ const entries = [
   ['runGoProject', 'Run Go Project', '运行 Go 项目'],
   ['cancelGoTask', 'Cancel Go Task', '取消 Go 任务'],
   ['runJsFile', 'Run JavaScript File', '运行 JavaScript 文件'],
+  ['runPythonFile', 'Run Python File', '运行 Python 文件'],
+  ['debugPythonFile', 'Debug Python File', '调试 Python 文件'],
   ['debugJsFile', 'Debug JavaScript File', '调试 JavaScript 文件'],
   ['runCppFile', 'Run C/C++ File', '运行 C/C++ 文件'],
   ['debugCppFile', 'Debug C/C++ File', '调试 C/C++ 文件'],
