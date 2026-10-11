@@ -19,13 +19,55 @@ test('actual import modal HTML static copy registers on non-English startup and 
     [node=>node.attributes.get('for')==='import-word-count','Recovery phrase length'],
     [node=>node.tagName==='option'&&node.attributes.get('value')==='12','12 words'],
     [node=>node.tagName==='option'&&node.attributes.get('value')==='24','24 words'],
-    [node=>node.tagName==='p','Enter each word in order. Your recovery phrase stays on this device.']
+    [node=>node.tagName==='p'&&node.attributes.get('data-wallet-copy')==='Enter each word in order. Your recovery phrase stays on this device.','Enter each word in order. Your recovery phrase stays on this device.']
   ];
   const document={documentElement:{},querySelector:()=>null,querySelectorAll:selector=>selector==='[data-wallet-copy]'?nodes:[]};
   const controller=initWalletLocale({document,systemLanguages:['zh-CN']});assert.equal(controller.locale(),'zh-Hans');
   function check(locale){for(const [matches,key]of expected){const found=nodes.filter(matches);assert.equal(found.length,1,key);assert.equal(found[0].textContent,WALLET_COPY[locale][key],`${locale}: ${key}`)}}
   check('zh-Hans');for(const locale of ['ar','zh-Hant','en']){controller.select(locale);check(locale)}
   assert.equal(document.documentElement.lang,'en');assert.equal(document.documentElement.dir,'ltr');
+});
+test('actual recovery HTML labels and folded scope follow all 12 locales without changing derivation or import values',()=>{
+  const html=readFileSync(new URL('../src/index.html',import.meta.url),'utf8');
+  const keys=['Which account does this phrase restore?','This version restores only the first account from a standard English BIP39 recovery phrase, using this derivation path:','Additional BIP39 passphrases are not supported. Do not omit a passphrase used by your original wallet.','Existing accounts created from random private keys are not automatically converted into recovery-phrase accounts. This does not restore every account or chain.'];
+  const nodes=[],options=new Map();
+  for(const id of ['import-sheet','recovery-sheet']){
+    const dialog=html.match(new RegExp(`<dialog id="${id}"[\\s\\S]*?<\\/dialog>`))?.[0];assert.ok(dialog,id);
+    const selectId=id==='import-sheet'?'import-kind':'recovery-kind';
+    const select=dialog.match(new RegExp(`<select id="${selectId}">([\\s\\S]*?)<\\/select>`))?.[1];assert.ok(select,selectId);
+    assert.match(select,/<option value="private-key">/);assert.match(select,/<option value="encrypted-json">/);
+    const option=select.match(/<option\b([^>]*value="recovery-phrase"[^>]*)>([^<]*)<\/option>/);assert.ok(option);
+    assert.equal(option[2],'Recovery phrase');
+    const makeNode=(tag,attributes,text)=>{const attrs=new Map([...attributes.matchAll(/([\w-]+)(?:="([^"]*)")?/g)].map(m=>[m[1],m[2]??'']));return {tagName:tag,attributes:attrs,textContent:text,isConnected:true,getAttribute:key=>attrs.get(key)??null}};
+    options.set(selectId,makeNode('option',option[1],option[2]));
+    const helpId=id==='import-sheet'?'import-recovery-help':'recovery-phrase-help';
+    const help=dialog.match(new RegExp(`<details\\b([^>]*id="${helpId}"[^>]*)>([\\s\\S]*?)<\\/details>`));assert.ok(help,helpId);
+    assert.doesNotMatch(help[1],/\bopen(?:\s|=|$)/,'guidance starts collapsed');
+    assert.match(help[2],/<code dir="ltr">m\/44'\/60'\/0'\/0\/0<\/code>/);
+    assert.doesNotMatch(help[2],/<code[^>]*data-wallet-copy/,'fixed path is never translated');
+    const copyNodes=[...help[2].matchAll(/<(summary|p)\b([^>]*)>([^<]*)<\//g)].filter(m=>/\bdata-wallet-copy\b/.test(m[2])).map(([,tag,attrs,text])=>makeNode(tag,attrs,text));
+    assert.deepEqual(copyNodes.map(n=>n.getAttribute('data-wallet-copy')),keys);
+    nodes.push(...copyNodes);
+  }
+  const document={documentElement:{},querySelector:()=>null,querySelectorAll(selector){
+    if(selector==='[data-wallet-copy]')return nodes;
+    return selector.split(',').flatMap(part=>{const m=part.match(/^#(import-kind|recovery-kind) option\[value="recovery-phrase"\]$/);return m?[options.get(m[1])]:[]});
+  }};
+  assert.equal(Object.keys(WALLET_COPY).length,12);
+  const check=locale=>{
+    assert.equal(document.documentElement.lang,locale);
+    assert.equal(document.documentElement.dir,locale==='ar'?'rtl':'ltr');
+    for(const option of options.values()){assert.equal(option.getAttribute('value'),'recovery-phrase');assert.equal(option.textContent,WALLET_COPY[locale]['Recovery phrase'])}
+    for(const node of nodes){const key=node.getAttribute('data-wallet-copy');assert.ok(Object.hasOwn(WALLET_COPY[locale],key));assert.equal(node.textContent,WALLET_COPY[locale][key]);if(locale!=='en')assert.notEqual(node.textContent,key)}
+  };
+  for(const startup of Object.keys(WALLET_COPY)){
+    const controller=initWalletLocale({document:{...document},systemLanguages:[startup]});
+    assert.equal(controller.locale(),startup);check(startup);
+    for(const locale of [startup,...Object.keys(WALLET_COPY)]){
+      controller.select(locale);
+      check(locale);
+    }
+  }
 });
 const fixture=mnemonicAccountFromEntropy('00'.repeat(16));
 function deferred(){let resolve;return {promise:new Promise(done=>resolve=done),resolve:value=>resolve(value)}}
