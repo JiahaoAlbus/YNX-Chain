@@ -6,7 +6,7 @@ import {createTronSubmissionUI} from './multichain-family-tron-submit-ui.mjs';
 export function createFamilyUI({document, api, getContext}) {
   const entry = document.createElement('button'); entry.type = 'button'; entry.id = 'open-family'; entry.textContent = 'BTC / TRON'; document.querySelector('.toolbar').append(entry);
   const sheet = document.querySelector('#family-sheet'), content = document.querySelector('#family-content');
-  let epoch = 0, busy = false;
+  let epoch = 0, settingsRevision = 0, busy = false;
   const make = (tag, text) => { const node = document.createElement(tag); if (text) setWalletCopy(node, text); return node; };
   const family = make('select'), network = make('select');
   family.setAttribute('aria-label', 'Chain'); network.setAttribute('aria-label', 'Network');
@@ -32,7 +32,7 @@ export function createFamilyUI({document, api, getContext}) {
   const submissionUI=createBitcoinSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronTransferUI=createTronTransferUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronSubmissionUI=createTronSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
-  function invalidate() { epoch++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  function invalidate() { epoch++; settingsRevision++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
   tokenRefresh.addEventListener('click',async()=>{
     if(busy||family.value!=='tron'||!api.familyTokens)return;
     const token=++epoch,context={...getContext()},selected=network.value;busy=true;tokenRefresh.disabled=true;tokenRows.replaceChildren();
@@ -85,9 +85,13 @@ export function createFamilyUI({document, api, getContext}) {
     void readSettings();
   }
   async function readSettings() {
-    const token = epoch; rpc.value = ''; genesis.value = ''; genesis.hidden = genesisLabel.hidden = family.value === 'bitcoin';
+    // Address/history reads have their own action epoch and must not cancel
+    // settings for the same selection. Edits and lifecycle changes still fence it.
+    const token = settingsRevision, context = {...getContext()}, selected = {family: family.value, network: network.value};
+    const current = () => { const active = getContext(); return token === settingsRevision && sheet.open && !active.locked && active.account === context.account && active.revision === context.revision && family.value === selected.family && network.value === selected.network; };
+    rpc.value = ''; genesis.value = ''; genesis.hidden = genesisLabel.hidden = family.value === 'bitcoin';
     if (!api.familyNetworks) return;
-    try { const reply = await api.familyNetworks(); if (token !== epoch || !reply.ok) return; const saved = reply.value.networks.find(n => n.family === family.value && n.network === network.value); if (saved) {rpc.value = saved.rpcUrl; genesis.value = saved.genesis ?? '';} } catch { if (token === epoch) status.textContent = 'FAMILY_NETWORK_UNAVAILABLE'; }
+    try { const reply = await api.familyNetworks(); if (!current() || !reply.ok) return; const saved = reply.value.networks.find(n => n.family === selected.family && n.network === selected.network); if (saved) {rpc.value = saved.rpcUrl; genesis.value = saved.genesis ?? '';} } catch { if (current()) status.textContent = 'FAMILY_NETWORK_UNAVAILABLE'; }
   }
   family.addEventListener('change', networks); network.addEventListener('change', () => {invalidate(); void readSettings();});
   rpc.addEventListener('input', invalidate); genesis.addEventListener('input', invalidate);
