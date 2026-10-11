@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BitcoinReadAdapter, bitcoinDerivationPath, validateBitcoinAddress, parseBitcoinAmount, formatBitcoinAmount, normalizeBitcoinUtxos, createBitcoinPreview } from '../src/multichain-bitcoin.mjs';
+import { BitcoinSigningAdapter } from '../src/multichain-bitcoin.mjs';
+import { Transaction, payments, networks } from 'bitcoinjs-lib';
+import { ECPairFactory } from 'ecpair';
+import * as ecc from 'tiny-secp256k1';
 // PUBLIC BIP84 receiving/change address vectors. No human keys/phrases.
 const FROM = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
 const TO = 'bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g';
@@ -77,4 +81,83 @@ test('BTC rejects caller network mismatch before transport and insufficient mult
   await assert.rejects(adapter.preview({ ...request(), network: 'testnet4' }), { code: 'BTC_REQUEST_NETWORK_MISMATCH' });
   assert.equal(calls, 0);
   assert.throws(() => createBitcoinPreview({ ...request(), utxos: [utxo(20000), utxo(30000, 'c')] }), { code: 'BTC_INSUFFICIENT_CONFIRMED_FUNDS' });
+});
+
+// PUBLIC scalar-one/two synthetic fixtures only. Never funded or user keys.
+function signingFixture() {
+  const factory = ECPairFactory(ecc), bytes = new Uint8Array(32); bytes[31] = 1;
+  const sender = factory.fromPrivateKey(Uint8Array.from(bytes)); bytes[31] = 2;
+  const change = factory.fromPrivateKey(Uint8Array.from(bytes));
+  const from = payments.p2wpkh({ pubkey: sender.publicKey, network: networks.bitcoin });
+  const changeAddress = payments.p2wpkh({ pubkey: change.publicKey, network: networks.bitcoin }).address;
+  const previous = new Transaction(); previous.version = 2;
+  previous.addInput(new Uint8Array(32), 0xffffffff);
+  previous.addOutput(from.output, 100000n);
+  const txid = previous.getId();
+  const req = { ...request(), from: from.address, changeAddress, utxos: [{ ...utxo(), txid }] };
+  return { sender, change, req, previous, prepared: { request: req, publicKey: sender.publicKey, changePublicKey: change.publicKey, previousTransactions: [{ txid, hex: previous.toHex() }], unspentChecks: [{ network: 'mainnet', txid, vout: 0, spent: false }], expiresAt: 120000, maxFeeSats: '500' } };
+}
+test('BTC R2 bound original prevout PSBT produces valid original raw/txid exactly once', async () => {
+  const f = signingFixture(), adapter = new BitcoinSigningAdapter({ now: () => 1 });
+  adapter.prepare(f.prepared); let signatures = 0, captured;
+  const result = await adapter.sign(f.req.requestId, { signer: { publicKey: f.sender.publicKey, sign: hash => { signatures++; return f.sender.sign(hash); } }, guard: { assert() {} }, onProduced: r => { captured = r; } });
+  assert.equal(result, captured); assert.equal(result.txid, Transaction.fromHex(result.rawTransaction).getId());
+  assert.equal(result.feeSats, '284'); assert.equal(result.originalRequest.to, TO);
+  assert.equal(adapter.status(f.req.requestId).state, 'signed-unsubmitted');
+  await assert.rejects(adapter.sign(f.req.requestId, {}), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' });
+  assert.equal(signatures, 1); assert.throws(() => adapter.broadcast());
+});
+test('BTC R2 rejects amount/script/txid/unspent/change/fee proof substitution before sign', () => {
+  const scenarios = [
+    f => { f.prepared.request.utxos[0].value = 100001; },
+    f => { f.prepared.previousTransactions[0].txid = 'c'.repeat(64); },
+    f => { f.prepared.previousTransactions[0].hex = f.previous.toHex().slice(0, -2) + '01'; },
+    f => { f.prepared.unspentChecks[0].spent = true; },
+    f => { f.prepared.unspentChecks[0].network = 'testnet4'; },
+    f => { f.prepared.changePublicKey = f.sender.publicKey; },
+    f => { f.prepared.maxFeeSats = '1'; },
+    f => { f.prepared.previousTransactions = []; },
+    f => { f.prepared.request.from = FROM; },
+    f => { f.prepared.expiresAt = 120002; }
+  ];
+  for (const [index, change] of scenarios.entries()) { const f = signingFixture(); change(f); assert.throws(() => new BitcoinSigningAdapter({ now: () => 1 }).prepare(f.prepared), `scenario ${index}`); }
+});
+test('BTC R2 signed output survives callback failure and post-action lock without re-sign', async () => {
+  for (const mode of ['callback', 'post-lock', 'expiry']) {
+    const f = signingFixture(); let time = 1, locked = false, count = 0, captured;
+    const adapter = new BitcoinSigningAdapter({ now: () => time }); adapter.prepare(f.prepared);
+    await assert.rejects(adapter.sign(f.req.requestId, { signer: { publicKey: f.sender.publicKey, sign: hash => { count++; return f.sender.sign(hash); } }, guard: { assert() { if (locked) throw new Error('locked'); } }, onProduced: r => { captured = r; if (mode === 'callback') throw new Error('storage failed'); if (mode === 'post-lock') locked = true; if (mode === 'expiry') time = 120000; } }), { code: 'BTC_SIGNED_RESULT_HELD' });
+    assert.ok(captured.rawTransaction); assert.equal(adapter.status(f.req.requestId).result, captured);
+    assert.equal(adapter.status(f.req.requestId).state, 'signed-unsubmitted');
+    await assert.rejects(adapter.sign(f.req.requestId, {}), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' }); assert.equal(count, 1);
+  }
+});
+test('BTC R2 cancellation/expired authorization do not sign; partial signer failure stays unknown', async () => {
+  const f = signingFixture(), adapter = new BitcoinSigningAdapter({ now: () => 1 }); adapter.prepare(f.prepared); adapter.cancel(f.req.requestId);
+  await assert.rejects(adapter.sign(f.req.requestId, {}), { code: 'BTC_SIGNING_ALREADY_ATTEMPTED' });
+  const fresh = new BitcoinSigningAdapter({ now: () => 1 }); fresh.prepare(f.prepared); let calls = 0;
+  await assert.rejects(fresh.sign(f.req.requestId, { signer: { publicKey: f.sender.publicKey, sign: () => { calls++; throw new Error('ambiguous signer return'); } }, guard: { assert() {} }, onProduced() {} }), { code: 'BTC_SIGNING_OUTCOME_UNKNOWN' });
+  assert.equal(fresh.status(f.req.requestId).state, 'unknown'); await assert.rejects(fresh.sign(f.req.requestId, {})); assert.equal(calls, 1);
+  assert.ok(fresh.status(f.req.requestId).partialPsbt);
+  await assert.rejects(async () => fresh.prepare({ ...f.prepared, request: { ...f.req, requestId: 'new-id-same-input' } }), { code: 'BTC_OUTPOINT_HELD' });
+});
+test('BTC R2 guard fails before signer and externally supplied PSBT cannot enter API', async () => {
+  const f = signingFixture(), adapter = new BitcoinSigningAdapter({ now: () => 1 }); const p = adapter.prepare(f.prepared);
+  let calls = 0; const signer = { publicKey: f.sender.publicKey, sign: hash => { calls++; return f.sender.sign(hash); } };
+  await assert.rejects(adapter.sign(f.req.requestId, { signer, guard: { assert() { throw new Error('locked'); } }, onProduced() {} }));
+  assert.equal(adapter.status(f.req.requestId).state, 'prepared'); assert.equal(calls, 0);
+  await assert.rejects(adapter.sign(f.req.requestId, { signer, guard: { assert() {} }, onProduced() {}, psbt: 'malicious external bytes' }), { code: 'BTC_SIGN_OPTIONS_INVALID' });
+  assert.equal(calls, 0);
+  const result = await adapter.sign(f.req.requestId, { signer, guard: { assert() {} }, onProduced() {} });
+  assert.equal(result.originalRequest.to, TO); assert.equal(calls, 1); assert.ok(p.unsignedPsbt);
+});
+test('BTC R2 explicit read proof fetch is network-bound GET-only and rejects spent results', async () => {
+  const f = signingFixture(), calls = [];
+  const adapter = new BitcoinReadAdapter({ network: 'mainnet', request: async r => { calls.push(r); if (r.path === '/block-height/0') return GENESIS; return r.path.endsWith('/hex') ? f.previous.toHex() : { spent: false }; } });
+  const proofs = await adapter.fetchPrevoutProofs(f.req.utxos);
+  assert.equal(proofs.previousTransactions[0].hex, f.previous.toHex());
+  new BitcoinSigningAdapter({ now: () => 1 }).prepare({ ...f.prepared, ...proofs });
+  assert.ok(calls.every(r => r.method === 'GET'));
+  const spent = new BitcoinReadAdapter({ network: 'mainnet', request: async r => r.path === '/block-height/0' ? GENESIS : r.path.endsWith('/hex') ? f.previous.toHex() : { spent: true } });
+  await assert.rejects(spent.fetchPrevoutProofs(f.req.utxos), { code: 'BTC_UNSPENT_CHECK_REQUIRED' });
 });

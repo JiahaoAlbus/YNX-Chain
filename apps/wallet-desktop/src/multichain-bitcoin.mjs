@@ -1,6 +1,9 @@
-// Bitcoin-only read/unsigned-review adapter. No secret, signing or broadcast API.
+// Bitcoin-only reads/review and dependency-verified original-PSBT signing.
+// No seed/private-key import or broadcast API; protected custody belongs to parent.
 // BIP84/BIP173; Esplora API. Provider data is not consensus/SPV verification.
 import { createHash } from 'node:crypto';
+import { Psbt, Transaction, payments, networks } from 'bitcoinjs-lib';
+import * as ecc from 'tiny-secp256k1';
 
 const MAX = 2100000000000000n;
 const ALPHABET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -148,6 +151,125 @@ export class BitcoinReadAdapter {
     const address = await this.readAddress(original.from, { signal });
     return createBitcoinPreview({ ...original, utxos: address.utxos.map(u => ({ txid: u.txid, vout: u.vout, value: u.valueSats, status: { confirmed: u.status.confirmed, block_height: u.status.blockHeight, block_hash: u.status.blockHash } })) });
   }
+  async fetchPrevoutProofs(inputs, { signal } = {}) {
+    if (!Array.isArray(inputs) || !inputs.length || inputs.length > 252) fail('BTC_PREVOUT_PROOF_REQUIRED');
+    const snapshot = inputs.map(i => {
+      if (!/^[0-9a-f]{64}$/.test(i?.txid)) fail('BTC_PREVOUT_PROOF_REQUIRED');
+      return { txid: i.txid, vout: Number(integer(i.vout, 4294967295n)) };
+    });
+    await this.#network(signal);
+    const previousTransactions = [], unspentChecks = [];
+    for (const input of snapshot) {
+      const hex = await this.#get(`/tx/${input.txid}/hex`, signal);
+      const status = await this.#get(`/tx/${input.txid}/outspend/${input.vout}`, signal);
+      if (typeof hex !== 'string' || !status || status.spent !== false) fail('BTC_UNSPENT_CHECK_REQUIRED');
+      previousTransactions.push({ txid: input.txid, hex });
+      unspentChecks.push({ ...input, network: this.#id, spent: false });
+    }
+    return freeze({ previousTransactions, unspentChecks, verification: 'provider-reported-not-spv' });
+  }
   sign() { fail('BTC_SIGNING_NOT_IMPLEMENTED'); }
+  broadcast() { fail('BTC_BROADCAST_NOT_IMPLEMENTED'); }
+}
+
+function btcNetwork(id) { network(id); return id === 'mainnet' ? networks.bitcoin : networks.testnet; }
+function publicKey(key) {
+  if (!(key instanceof Uint8Array) || key.length !== 33 || !ecc.isPoint(key)) fail('BTC_PUBLIC_KEY_INVALID');
+  return Uint8Array.from(key);
+}
+function ownedAddress(key, address, id) {
+  const p = payments.p2wpkh({ pubkey: publicKey(key), network: btcNetwork(id) });
+  if (p.address !== validateBitcoinAddress(address, id).address) fail('BTC_OWNERSHIP_BINDING');
+  return p;
+}
+// This adapter has no seed/key import and no network broadcast. Parent must persist
+// returned PSBT/result in protected wallet storage, under the original operation.
+// Provider unspent status is not cryptographic chain inclusion/SPV evidence.
+export class BitcoinSigningAdapter {
+  #operations = new Map(); #now;
+  constructor({ now = () => Date.now() } = {}) { this.#now = now; }
+  prepare({ request, publicKey: senderKey, changePublicKey, previousTransactions, unspentChecks, expiresAt, maxFeeSats }) {
+    if (!request || this.#operations.has(request.requestId)) fail('BTC_REQUEST_ALREADY_EXISTS');
+    const now = this.#now();
+    if (!Number.isSafeInteger(expiresAt) || expiresAt <= now || expiresAt > now + 120000) fail('BTC_REQUEST_DEADLINE');
+    const preview = createBitcoinPreview(request), id = preview.originalRequest.network;
+    for (const existing of this.#operations.values()) if (existing.state !== 'cancelled' && existing.preview.originalRequest.network === id &&
+      existing.preview.inputs.some(a => preview.inputs.some(b => a.txid === b.txid && a.vout === b.vout))) fail('BTC_OUTPOINT_HELD');
+    const owned = ownedAddress(senderKey, preview.originalRequest.from, id);
+    ownedAddress(changePublicKey, preview.originalRequest.changeAddress, id);
+    const feeLimit = integer(maxFeeSats);
+    if (BigInt(preview.feeSats) > feeLimit) fail('BTC_FEE_LIMIT');
+    if (!Array.isArray(previousTransactions) || !Array.isArray(unspentChecks) || previousTransactions.length !== preview.inputs.length || unspentChecks.length !== preview.inputs.length) fail('BTC_PREVOUT_PROOF_REQUIRED');
+    const psbt = new Psbt({ network: btcNetwork(id) });
+    psbt.setVersion(2); psbt.setLocktime(0);
+    for (const [i, input] of preview.inputs.entries()) {
+      const proof = previousTransactions[i], checked = unspentChecks[i];
+      if (!proof || proof.txid !== input.txid || typeof proof.hex !== 'string' || !/^(?:[0-9a-f]{2})+$/.test(proof.hex) || proof.hex.length > 8000000) fail('BTC_PREVOUT_PROOF_REQUIRED');
+      let tx; try { tx = Transaction.fromHex(proof.hex); } catch { fail('BTC_PREVOUT_TRANSACTION_INVALID'); }
+      if (tx.getId() !== input.txid) fail('BTC_PREVOUT_TXID_MISMATCH');
+      const out = tx.outs[input.vout];
+      if (!out || out.value !== BigInt(input.valueSats) || !Buffer.from(out.script).equals(Buffer.from(owned.output))) fail('BTC_PREVOUT_BINDING');
+      if (!checked || checked.network !== id || checked.txid !== input.txid || checked.vout !== input.vout || checked.spent !== false) fail('BTC_UNSPENT_CHECK_REQUIRED');
+      psbt.addInput({ hash: input.txid, index: input.vout, sequence: 0xffffffff, nonWitnessUtxo: Buffer.from(proof.hex, 'hex'), witnessUtxo: { value: out.value, script: out.script } });
+    }
+    for (const output of preview.outputs) psbt.addOutput({ script: Buffer.from(output.scriptPubKey, 'hex'), value: BigInt(output.valueSats) });
+    const record = { preview, expiresAt, maxFeeSats: feeLimit.toString(), state: 'prepared', unsignedPsbt: psbt.toBase64(), senderKey: Buffer.from(publicKey(senderKey)).toString('hex'), result: null, error: null };
+    this.#operations.set(request.requestId, record);
+    return this.status(request.requestId);
+  }
+  #operation(id) { return this.#operations.get(id) || fail('BTC_REQUEST_NOT_FOUND'); }
+  status(id) {
+    const r = this.#operation(id);
+    return freeze({ requestId: id, state: r.state, expiresAt: r.expiresAt, originalRequest: r.preview.originalRequest, requestDigest: r.preview.requestDigest, unsignedPsbt: r.unsignedPsbt, partialPsbt: r.partialPsbt || null, result: r.result, error: r.error, persistence: 'parent-protected-store-required' });
+  }
+  cancel(id) {
+    const r = this.#operation(id);
+    if (r.state !== 'prepared') fail('BTC_SIGNING_OUTCOME_NOT_CANCELLABLE');
+    r.state = 'cancelled'; return this.status(id);
+  }
+  async sign(id, options = {}) {
+    if (!options || Object.keys(options).some(k => !['signer', 'guard', 'onProduced'].includes(k))) fail('BTC_SIGN_OPTIONS_INVALID');
+    const { signer, guard, onProduced } = options;
+    const r = this.#operation(id);
+    if (r.state !== 'prepared') fail('BTC_SIGNING_ALREADY_ATTEMPTED');
+    if (!guard || typeof guard.assert !== 'function' || typeof onProduced !== 'function') fail('BTC_AUTHORIZATION_REQUIRED');
+    const assertLive = () => { guard.assert(); if (this.#now() >= r.expiresAt) fail('BTC_REQUEST_EXPIRED'); };
+    assertLive();
+    if (!signer || typeof signer.sign !== 'function' || Buffer.from(publicKey(signer.publicKey)).toString('hex') !== r.senderKey) fail('BTC_SIGNER_BINDING');
+    r.state = 'signing'; // Irreversible attempt fence; no retry after partial/unknown.
+    let psbt;
+    try {
+      // Only the internally prepared PSBT is accepted, never caller PSBT bytes.
+      psbt = Psbt.fromBase64(r.unsignedPsbt, { network: btcNetwork(r.preview.originalRequest.network) });
+      for (let i = 0; i < r.preview.inputs.length; i++) {
+        assertLive();
+        // signer can be asynchronous, but must use the original bound public key.
+        await psbt.signInputAsync(i, { publicKey: Buffer.from(r.senderKey, 'hex'), sign: hash => signer.sign(Uint8Array.from(hash)) });
+      }
+      if (!psbt.validateSignaturesOfAllInputs((key, hash, signature) => ecc.verify(hash, key, signature))) fail('BTC_SIGNATURE_INVALID');
+      psbt.finalizeAllInputs();
+      // Fee limit is checked independently from bitcoinjs default fee-rate ceiling.
+      const tx = psbt.extractTransaction();
+      const outputs = r.preview.outputs;
+      if (tx.version !== 2 || tx.locktime !== 0 || tx.ins.length !== r.preview.inputs.length || tx.outs.length !== outputs.length) fail('BTC_SIGNED_TUPLE_MISMATCH');
+      for (const [i, input] of tx.ins.entries()) if (Buffer.from(input.hash).reverse().toString('hex') !== r.preview.inputs[i].txid || input.index !== r.preview.inputs[i].vout || input.sequence !== 0xffffffff) fail('BTC_SIGNED_TUPLE_MISMATCH');
+      for (const [i, out] of tx.outs.entries()) if (out.value !== BigInt(outputs[i].valueSats) || Buffer.from(out.script).toString('hex') !== outputs[i].scriptPubKey) fail('BTC_SIGNED_TUPLE_MISMATCH');
+      const fee = r.preview.inputs.reduce((sum, i) => sum + BigInt(i.valueSats), 0n) - tx.outs.reduce((sum, o) => sum + o.value, 0n);
+      if (fee !== BigInt(r.preview.feeSats) || fee > BigInt(r.maxFeeSats)) fail('BTC_FEE_LIMIT');
+      r.result = freeze({ rawTransaction: tx.toHex(), txid: tx.getId(), signedPsbt: psbt.toBase64(), feeSats: fee.toString(), actualVbytes: tx.virtualSize(), originalRequest: r.preview.originalRequest, requestDigest: r.preview.requestDigest, state: 'signed-unsubmitted' });
+      r.state = 'signed-unsubmitted';
+      // Capture original bytes BEFORE callback/guard post-action can reject.
+      // A callback throw leaves result and irreversible fence held, never re-sign.
+      const delivered = onProduced(r.result);
+      if (delivered && typeof delivered.then === 'function') await delivered;
+      assertLive();
+      return r.result;
+    } catch (error) {
+      r.error = { code: error.code || 'BTC_SIGNING_OR_DELIVERY_FAILED', message: 'Original operation retained; no automatic retry.' };
+      if (r.result) r.state = 'signed-unsubmitted';
+      else { r.state = 'unknown'; if (psbt) r.partialPsbt = psbt.toBase64(); }
+      throw Object.assign(new Error(r.result ? 'BTC_SIGNED_RESULT_HELD' : 'BTC_SIGNING_OUTCOME_UNKNOWN'), { code: r.result ? 'BTC_SIGNED_RESULT_HELD' : 'BTC_SIGNING_OUTCOME_UNKNOWN', txid: r.result?.txid, requestId: id });
+    }
+  }
   broadcast() { fail('BTC_BROADCAST_NOT_IMPLEMENTED'); }
 }
