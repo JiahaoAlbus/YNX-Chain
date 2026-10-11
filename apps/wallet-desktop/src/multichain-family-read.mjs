@@ -9,13 +9,15 @@ async function adapter(network) {
   const {TronReadAdapter} = await import('./multichain-tron.mjs'); return new TronReadAdapter({network: {id: network.network, genesisBlockId: network.genesis}, transport});
 }
 export class FamilyRead {
-  constructor({networks, tokens, accounts, getContext, createAdapter = adapter}) { Object.assign(this, {networks, tokens, accounts, getContext, createAdapter}); }
+  constructor({networks, tokens, accounts, getContext, assertNetworkEditable = async () => {}, createAdapter = adapter}) { Object.assign(this, {networks, tokens, accounts, getContext, assertNetworkEditable, createAdapter}); }
   async snapshot() { return effectiveFamilyNetworks(await this.networks.read()); }
   async configure(input) {
     const network = validateFamilyNetwork(input), context = await this.getContext(), before = await this.networks.read();
+    await this.assertNetworkEditable(network);
     const reader = await this.createAdapter(network); await reader.verify();
     const current = await this.getContext();
     if (current.account !== context.account || current.revision !== context.revision || (await this.networks.read()).revision !== before.revision) throw changed();
+    await this.assertNetworkEditable(network);
     return this.networks.put(network, before.revision);
   }
   async importToken(input) {

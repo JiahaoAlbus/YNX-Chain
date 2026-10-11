@@ -27,10 +27,11 @@ function validate(value) {
   if (value.version !== 1 || !Array.isArray(value.records) || value.records.length > 512) fail();
   const ids = new Set();
   for (const r of value.records) {
-    exactObject(r, ['id', 'family', 'networkId', 'account', 'request', 'binding', 'outpoints', 'state', 'result', 'resultDigest', 'receipt', 'revision', 'createdAt', 'updatedAt']);
+    exactObject(r, ['id', 'family', 'networkId', 'account', 'request', 'binding', 'outpoints', 'state', 'result', 'resultDigest', 'receipt', 'queryEvidence', 'revision', 'createdAt', 'updatedAt']);
     if (!Number.isSafeInteger(r.revision) || r.revision < 0) fail();
     if (typeof r.id !== 'string' || !/^[0-9a-f-]{36}$/.test(r.id) || ids.has(r.id) || !['bitcoin', 'tron'].includes(r.family) || typeof r.networkId !== 'string' || !r.networkId || typeof r.account !== 'string' || !r.account || !states.has(r.state) || !Array.isArray(r.outpoints) || r.outpoints.length > 512 || r.outpoints.some(p => typeof p !== 'string' || !/^[0-9a-f]{64}:[0-9]+$/.test(p)) || new Set(r.outpoints).size !== r.outpoints.length || r.family === 'tron' && r.outpoints.length || !Number.isSafeInteger(r.createdAt) || !Number.isSafeInteger(r.updatedAt) || r.createdAt < 0 || r.updatedAt < r.createdAt) fail();
     ids.add(r.id); publicJSON(r.request); publicJSON(r.result);
+    if (r.queryEvidence !== undefined) publicJSON(r.queryEvidence);
     if (binding(r) !== r.binding || (r.result === null ? r.resultDigest !== null : digest(r.result) !== r.resultDigest)) fail();
     if (['prepared', 'signing', 'cancelled'].includes(r.state) && r.result !== null || ['signed-unsubmitted', 'submitted-unconfirmed', 'included', 'failed'].includes(r.state) && r.result === null) fail();
     if (r.receipt !== null) validateReceipt(r.receipt, r.result?.txid);
@@ -61,7 +62,7 @@ export class FamilyCustody {
   }
   async reserve({ id, family, networkId, account, request, outpoints = [] }) {
     publicJSON(request);
-    const record = { id, family, networkId, account, request: structuredClone(request), binding: null, outpoints: [...outpoints], state: 'prepared', result: null, resultDigest: null, receipt: null, revision: 0, createdAt: this.now(), updatedAt: this.now() };
+    const record = { id, family, networkId, account, request: structuredClone(request), binding: null, outpoints: [...outpoints], state: 'prepared', result: null, resultDigest: null, receipt: null, queryEvidence: null, revision: 0, createdAt: this.now(), updatedAt: this.now() };
     record.binding = binding(record);
     validate({ version: 1, records: [record] });
     if (this.#held.size) fail();
@@ -120,8 +121,9 @@ export class FamilyCustody {
     this.verifyResult(record, record.result);
     let observation;
     try { observation = await query(structuredClone(record)); }
-    catch { observation = { networkId: record.networkId, txid: record.result.txid, state: 'unknown', receipt: null }; }
-    exactObject(observation, ['networkId', 'txid', 'state', 'receipt']);
+    catch (error) { observation = { networkId: record.networkId, txid: record.result.txid, state: 'unknown', receipt: null, evidence: {queryError: typeof error.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(error.code) ? error.code : 'FAMILY_QUERY_UNAVAILABLE'} }; }
+    exactObject(observation, ['networkId', 'txid', 'state', 'receipt', 'evidence']);
+    publicJSON(observation.evidence ?? null);
     if (observation.networkId !== record.networkId || observation.txid !== record.result.txid || !['unknown', 'submitted-unconfirmed', 'included', 'failed'].includes(observation.state)) fail();
     if (['included', 'failed'].includes(observation.state)) {
       validateReceipt(observation.receipt, record.result.txid);
@@ -130,7 +132,7 @@ export class FamilyCustody {
     await this.file.mutate(value => {
       const current = value.records.find(r => r.id === id);
       if (!current || current.binding !== record.binding || current.resultDigest !== record.resultDigest || current.revision !== record.revision || current.state !== record.state && !(current.state === 'signing' && record.state === 'unknown')) fail();
-      Object.assign(current, { state: observation.state, receipt: observation.receipt, revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, this.now()) }); return value;
+      Object.assign(current, { state: observation.state, receipt: observation.receipt, queryEvidence: structuredClone(observation.evidence ?? null), revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, this.now()) }); return value;
     });
     return (await this.list()).find(r => r.id === id);
   }

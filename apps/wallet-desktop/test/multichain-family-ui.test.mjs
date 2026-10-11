@@ -23,8 +23,26 @@ function harness(request = async () => ({ok: true, value: {family: 'bitcoin', ne
   const content = registry.get('#family-content').children;
   const settings = content[7], refresh = content[8], balance = content[9];
   const tokenSection = content[10];
-  return {ui, family, network, button, status, address, path, settings, rpc: settings.children[2], genesis: settings.children[4], save: settings.children[5], refresh, balance, tokenSection, tokenContract: tokenSection.children[2], importToken: tokenSection.children[3], sheet: registry.get('#family-sheet'), open: () => registry.get('#open-family').handlers.click(), change: value => {context = {...context, ...value};}};
+  const history = content[11];
+  return {ui, family, network, button, status, address, path, settings, rpc: settings.children[2], genesis: settings.children[4], save: settings.children[5], refresh, balance, tokenSection, tokenContract: tokenSection.children[2], importToken: tokenSection.children[3], historyRefresh: history.children[1], records: history.children[2], sheet: registry.get('#family-sheet'), open: () => registry.get('#open-family').handlers.click(), change: value => {context = {...context, ...value};}};
 }
+const recordFixture = {id: 'PUBLIC-id', family: 'bitcoin', network: 'mainnet', state: 'unknown', txid: 'a'.repeat(64), queryable: true};
+test('history query sends only original id and replaces status without signing/broadcast methods', async () => {
+  let input;
+  const h = harness(undefined, {familyRecords: async () => ({ok: true, value: [recordFixture]}), familyCheck: async value => {input = value; return {ok: true, value: {...recordFixture, state: 'included'}};}});
+  h.open(); await h.historyRefresh.handlers.click(); const row = h.records.children[0]; await row.children[2].handlers.click();
+  assert.deepEqual(input, {id: 'PUBLIC-id'}); assert.equal(row.children[0].textContent, 'Transaction status: included'); assert.equal(row.children[1].textContent, recordFixture.txid);
+});
+test('locked history is visible but queryable button does not gain execution authority', async () => {
+  let calls = 0;
+  const h = harness(undefined, {familyRecords: async () => ({ok: true, value: [recordFixture]}), familyCheck: async () => {calls++;}});
+  h.change({locked: true}); h.open(); await h.historyRefresh.handlers.click(); const check = h.records.children[0].children[2]; assert.equal(check.disabled, true); await check.handlers.click(); assert.equal(calls, 0);
+});
+test('account switch discards delayed history response', async () => {
+  let release;
+  const h = harness(undefined, {familyRecords: () => new Promise(resolve => {release = resolve;})});
+  h.open(); const pending = h.historyRefresh.handlers.click(); h.change({account: 'PUBLIC-other', revision: 2}); h.ui.invalidate(); release({ok: true, value: [recordFixture]}); await pending; assert.equal(h.records.children.length, 0);
+});
 test('TRC20 form submits contract only on selected unlocked TRON network', async () => {
   let submitted, calls = 0;
   const h = harness(undefined, {familyToken: async input => {calls++; submitted = input; return {ok: true, value: {family: 'tron', network: 'nile', name: 'Public Fixture', symbol: 'PUBLIC', decimals: 6}};}});

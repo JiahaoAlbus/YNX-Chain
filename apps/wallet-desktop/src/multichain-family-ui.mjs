@@ -21,7 +21,38 @@ export function createFamilyUI({document, api, getContext}) {
   const tokenSection = make('details'), tokenTitle = make('summary', 'Import TRC20 token'), tokenLabel = make('label', 'Token contract'), tokenContract = make('input'), importToken = make('button', 'Import TRC20 token');
   tokenContract.id = 'family-token-contract'; tokenContract.autocomplete = 'off'; tokenContract.dir = 'ltr'; tokenLabel.htmlFor = tokenContract.id; importToken.type = 'button';
   tokenSection.append(tokenTitle, tokenLabel, tokenContract, importToken); content.append(tokenSection);
-  function invalidate() { epoch++; busy = false; address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  const history = make('details'), historyTitle = make('summary', 'Transfer history'), historyRefresh = make('button', 'Refresh history'), records = make('div'); historyRefresh.type = 'button';
+  history.append(historyTitle, historyRefresh, records, make('p', 'Block inclusion reported by RPC is not consensus finality. Unknown transactions are checked, never automatically resent.')); content.append(history);
+  function invalidate() { epoch++; busy = false; address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  function showRecord(node, record) {
+    node.replaceChildren(); const state = make('p'); setWalletCopy(state, 'Transaction status: {state}', {state: record.state}); node.append(state);
+    if (record.txid) {const hash = make('p'); hash.dir = 'ltr'; hash.textContent = record.txid; node.append(hash);}
+    if (record.evidence?.queryError) {const error = make('p'); error.textContent = record.evidence.queryError; node.append(error);}
+    const check = make('button', 'Check original transaction'); check.type = 'button'; check.disabled = getContext().locked || !record.queryable; node.append(check);
+    check.addEventListener('click', async () => {
+      if (busy || getContext().locked || !record.queryable) return;
+      const token = ++epoch, context = {...getContext()}; busy = true; check.disabled = true;
+      try {
+        const reply = await api.familyCheck({id: record.id}); const current = getContext();
+        if (token !== epoch || !sheet.open || current.locked || current.account !== context.account || current.revision !== context.revision) return;
+        if (!reply.ok) {status.textContent = reply.error?.code ?? 'FAMILY_QUERY_UNAVAILABLE'; return;}
+        if (reply.value.id !== record.id || reply.value.family !== family.value || reply.value.network !== network.value || reply.value.txid !== record.txid) {status.textContent = 'FAMILY_RECOVERY_BINDING'; return;}
+        showRecord(node, reply.value);
+      } catch (error) {if (token === epoch) status.textContent = error.code ?? 'FAMILY_QUERY_UNAVAILABLE';}
+      finally {if (token === epoch) {busy = false; check.disabled = getContext().locked || !record.queryable;}}
+    });
+  }
+  historyRefresh.addEventListener('click', async () => {
+    if (busy) return;
+    const token = ++epoch, context = {...getContext()}; busy = true; historyRefresh.disabled = true; records.replaceChildren();
+    try {
+      const reply = await api.familyRecords({family: family.value, network: network.value}); const current = getContext();
+      if (token !== epoch || !sheet.open || current.account !== context.account || current.revision !== context.revision) return;
+      if (!reply.ok) {status.textContent = reply.error?.code ?? 'FAMILY_RECOVERY_UNAVAILABLE'; return;}
+      for (const record of reply.value) {if (record.family !== family.value || record.network !== network.value) {status.textContent = 'FAMILY_RECOVERY_BINDING'; records.replaceChildren(); return;} const row = make('div'); showRecord(row, record); records.append(row);}
+    } catch (error) {if (token === epoch) status.textContent = error.code ?? 'FAMILY_RECOVERY_UNAVAILABLE';}
+    finally {if (token === epoch) busy = false; historyRefresh.disabled = false;}
+  });
   function networks() {
     invalidate(); network.replaceChildren();
     for (const value of family.value === 'bitcoin' ? ['mainnet', 'testnet3', 'testnet4', 'signet'] : ['mainnet', 'shasta', 'nile']) { const option = make('option'); option.value = value; option.textContent = value; network.append(option); }
