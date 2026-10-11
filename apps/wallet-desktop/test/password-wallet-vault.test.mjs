@@ -35,6 +35,28 @@ async function fixture(t, { io, platform, scheduler } = {}) {
 async function setup(f) { await f.life.custody(guard => f.vault.setup({ password: PASSWORD, confirmation: PASSWORD }, guard)); }
 async function unlock(f, password = PASSWORD) { await f.life.unlock({ password }); }
 async function create(f) { await setup(f); await unlock(f); const status = await f.life.run(() => f.vault.createAccount()); f.life.setAccount(status.account); await unlock(f); return status; }
+const PUBLIC_CHAIN_PHRASE="abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+async function mnemonicFixture(t){const f=await fixture(t);await setup(f);await unlock(f);const status=await f.life.run(()=>f.vault.importAccount({kind:"recovery-phrase",value:PUBLIC_CHAIN_PHRASE}));f.life.setAccount(status.account);await unlock(f);return f;}
+test('chain mnemonic custody internal callback preserves encrypted account and original guard',async t=>{
+  const f=await mnemonicFixture(t),before=await fs.readFile(f.filePath);let callbacks=0;
+  const result=await f.life.run(()=>f.vault.withMnemonic((phrase,identity,guard)=>{callbacks++;guard.assert();assert.equal(phrase,PUBLIC_CHAIN_PHRASE);assert.equal(identity.account,f.life.status().account);assert.equal(Object.isFrozen(identity),true);return {derivedPublicOnly:true};}));
+  assert.deepEqual(result,{derivedPublicOnly:true});assert.equal(callbacks,1);assert.deepEqual(await fs.readFile(f.filePath),before);
+  f.life.lock();await assert.rejects(f.life.run(()=>f.vault.withMnemonic(()=>{callbacks++})),cancelled);assert.equal(callbacks,1);
+});
+test('chain mnemonic custody post-action lock rejects result without reopening original key lease',async t=>{
+  const f=await mnemonicFixture(t),before=await fs.readFile(f.filePath);let produced=false,callbacks=0;
+  await assert.rejects(f.life.run(()=>f.vault.withMnemonic((phrase,_identity,guard)=>{guard.assert();assert.equal(phrase,PUBLIC_CHAIN_PHRASE);callbacks++;produced=true;f.life.lock();return {publicResult:true};})),cancelled);
+  assert.equal(produced,true);assert.equal(callbacks,1);assert.equal(f.life.status().locked,true);assert.deepEqual(await fs.readFile(f.filePath),before);
+});
+test('chain mnemonic custody private-key-only account cannot substitute its Ethereum key for a seed',async t=>{
+  const f=await fixture(t);await create(f);let callbacks=0;
+  await assert.rejects(f.life.run(()=>f.vault.withMnemonic(()=>{callbacks++})),error=>error.data?.code==='MNEMONIC_NOT_AVAILABLE');assert.equal(callbacks,0);
+});
+test('chain mnemonic custody lock after file-current check prevents any callback entry',async t=>{
+  const f=await mnemonicFixture(t),assertCurrent=f.store.assertCurrent.bind(f.store);let callbacks=0;
+  f.store.assertCurrent=async(...args)=>{await assertCurrent(...args);f.life.lock();};
+  await assert.rejects(f.life.run(()=>f.vault.withMnemonic(()=>{callbacks++})),cancelled);assert.equal(callbacks,0);assert.equal(f.life.status().locked,true);
+});
 async function writeLegacy(f, secrets = [SECRET, SECOND], old = THIRD) {
   const accounts = secrets.map(legacyRecord), first = { schemaVersion: 2, activeAccount: accounts[0].account, accounts };
   await fs.writeFile(f.v2, JSON.stringify(first), { mode: 0o600 });

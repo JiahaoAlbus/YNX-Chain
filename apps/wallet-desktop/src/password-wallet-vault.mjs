@@ -239,6 +239,22 @@ export class PasswordWalletVault {
       return await guard.step(() => action(secret, Object.freeze({ account, ynxAccount: record.ynxAccount, publicKey: record.publicKey }), guard));
     } finally { secret = null; }
   }
+  /** Trusted-main callback only: never mount mnemonic material on account IPC.
+   * Each chain derives its own reviewed path locally; an EVM key is not a seed.
+   * Produced signing results must be retained inside action before step returns.
+   */
+  async withMnemonic(action, permission) {
+    const guard = bindPermissionGuard(this.authorization.current(),permission), current = await this.#readUnlocked(guard), account = current.vault.activeAccount;
+    if (!account) fail("ACCOUNT_NOT_CREATED", "Create or import an account first.");
+    if (guard.account !== account) throw cancelled();
+    let material;
+    try {
+      material = await decryptPasswordVaultMnemonic(current.vault,account,current.session,options(guard));
+      await this.files.assertCurrent(current.snapshot.digest,guard);
+      const record = current.vault.accounts.find(item => item.account === account);
+      return await guard.step(() => action(material.phrase,Object.freeze({account,ynxAccount:record.ynxAccount,publicKey:record.publicKey}),guard));
+    } finally { if (material) material.phrase = null; }
+  }
   async encryptedBackup(password) {
     if (typeof password !== "string" || password.length < 12 || password.length > 1024) fail("BACKUP_PASSWORD_REQUIRED", "Use a backup password of at least 12 characters.");
     return this.withSecret(async secret => {
