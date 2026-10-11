@@ -2,7 +2,7 @@
 // No seed/private-key import or broadcast API; protected custody belongs to parent.
 // BIP84/BIP173; Esplora API. Provider data is not consensus/SPV verification.
 import { createHash } from 'node:crypto';
-import { Psbt, Transaction, payments, networks } from 'bitcoinjs-lib';
+import { Psbt, Transaction, payments, networks, script } from 'bitcoinjs-lib';
 import * as ecc from 'tiny-secp256k1';
 import { HDNodeWallet, SigningKey } from 'ethers';
 import { ECPairFactory } from 'ecpair';
@@ -229,6 +229,42 @@ export function verifyBitcoinInclusion({ txid, blockHash, blockHeight, proof, he
   return freeze({ txid, blockHash, blockHeight: height, success: true, confirmationScope: 'rpc-block-inclusion' });
 }
 
+// Journal trust starts with the protected original public request, never result.
+export function verifyBitcoinProduced({ request, result }) {
+  const exact = (o, keys) => {
+    if (!o || typeof o !== 'object' || Array.isArray(o) || Object.keys(o).length !== keys.length || keys.some(k => !Object.hasOwn(o, k))) fail('BTC_PRODUCED_SHAPE');
+  };
+  exact(request, ['previewRequest', 'publicKey', 'changePublicKey', 'previousTransactions', 'maxFeeSats']);
+  exact(result, ['rawTransaction', 'txid', 'signedPsbt', 'feeSats', 'actualVbytes', 'originalRequest', 'requestDigest', 'state']);
+  const preview = createBitcoinPreview(request.previewRequest), id = preview.originalRequest.network;
+  if (result.state !== 'signed-unsubmitted' || result.requestDigest !== preview.requestDigest || JSON.stringify(result.originalRequest) !== JSON.stringify(preview.originalRequest)) fail('BTC_PRODUCED_REQUEST');
+  for (const key of [request.publicKey, request.changePublicKey]) if (typeof key !== 'string' || !/^(02|03)[0-9a-f]{64}$/.test(key)) fail('BTC_PRODUCED_KEY');
+  const pubkey = Buffer.from(request.publicKey, 'hex'), owned = ownedAddress(pubkey, preview.originalRequest.from, id);
+  ownedAddress(Buffer.from(request.changePublicKey, 'hex'), preview.originalRequest.changeAddress, id);
+  if (typeof result.rawTransaction !== 'string' || !/^(?:[0-9a-f]{2})+$/.test(result.rawTransaction) || result.rawTransaction.length > 2000000 || typeof result.signedPsbt !== 'string' || result.signedPsbt.length > 16000000) fail('BTC_PRODUCED_BYTES');
+  const tx = Transaction.fromHex(result.rawTransaction), psbt = Psbt.fromBase64(result.signedPsbt, { network: btcNetwork(id) });
+  if (tx.toHex() !== result.rawTransaction || tx.getId() !== result.txid || psbt.extractTransaction().toHex() !== result.rawTransaction || tx.version !== 2 || tx.locktime !== 0 || tx.ins.length !== preview.inputs.length || tx.outs.length !== preview.outputs.length) fail('BTC_PRODUCED_TUPLE');
+  if (!Array.isArray(request.previousTransactions) || request.previousTransactions.length !== preview.inputs.length) fail('BTC_PREVOUT_PROOF_REQUIRED');
+  let total = 0n;
+  for (const [i, input] of tx.ins.entries()) {
+    const expected = preview.inputs[i], proof = request.previousTransactions[i];
+    exact(proof, ['txid', 'hex']);
+    if (proof.txid !== expected.txid || typeof proof.hex !== 'string' || !/^(?:[0-9a-f]{2})+$/.test(proof.hex) || proof.hex.length > 8000000) fail('BTC_PREVOUT_PROOF_REQUIRED');
+    const previous = Transaction.fromHex(proof.hex), out = previous.outs[expected.vout], metadata = psbt.data.inputs[i];
+    if (previous.getId() !== expected.txid || !out || out.value !== BigInt(expected.valueSats) || !Buffer.from(out.script).equals(Buffer.from(owned.output))) fail('BTC_PREVOUT_BINDING');
+    if (!metadata.nonWitnessUtxo || Buffer.from(metadata.nonWitnessUtxo).toString('hex') !== proof.hex || !metadata.witnessUtxo || metadata.witnessUtxo.value !== out.value || !Buffer.from(metadata.witnessUtxo.script).equals(Buffer.from(out.script)) || metadata.sighashType !== undefined && metadata.sighashType !== Transaction.SIGHASH_ALL) fail('BTC_PRODUCED_PSBT');
+    if (Buffer.from(input.hash).reverse().toString('hex') !== expected.txid || input.index !== expected.vout || input.sequence !== 0xffffffff || input.script.length || input.witness.length !== 2 || !Buffer.from(input.witness[1]).equals(pubkey)) fail('BTC_PRODUCED_INPUT');
+    const decoded = script.signature.decode(input.witness[0]);
+    if (decoded.hashType !== Transaction.SIGHASH_ALL) fail('BTC_PRODUCED_SIGHASH');
+    const scriptCode = payments.p2pkh({ pubkey, network: btcNetwork(id) }).output;
+    if (!ecc.verify(tx.hashForWitnessV0(i, scriptCode, out.value, Transaction.SIGHASH_ALL), pubkey, decoded.signature)) fail('BTC_SIGNATURE_INVALID');
+    total += out.value;
+  }
+  for (const [i, out] of tx.outs.entries()) if (out.value !== BigInt(preview.outputs[i].valueSats) || Buffer.from(out.script).toString('hex') !== preview.outputs[i].scriptPubKey) fail('BTC_PRODUCED_OUTPUT');
+  const fee = total - tx.outs.reduce((sum, out) => sum + out.value, 0n);
+  if (fee !== BigInt(preview.feeSats) || fee > integer(request.maxFeeSats) || result.feeSats !== fee.toString() || result.actualVbytes !== tx.virtualSize()) fail('BTC_PRODUCED_FEE');
+  return true;
+}
 function btcNetwork(id) { network(id); return id === 'mainnet' ? networks.bitcoin : networks.testnet; }
 function publicKey(key) {
   if (!(key instanceof Uint8Array) || key.length !== 33 || !ecc.isPoint(key)) fail('BTC_PUBLIC_KEY_INVALID');

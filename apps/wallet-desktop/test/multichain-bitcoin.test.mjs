@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BitcoinReadAdapter, bitcoinDerivationPath, validateBitcoinAddress, parseBitcoinAmount, formatBitcoinAmount, normalizeBitcoinUtxos, createBitcoinPreview } from '../src/multichain-bitcoin.mjs';
-import { BitcoinSigningAdapter } from '../src/multichain-bitcoin.mjs';
+import { BitcoinSigningAdapter, verifyBitcoinProduced } from '../src/multichain-bitcoin.mjs';
 import { Transaction, payments, networks } from 'bitcoinjs-lib';
 import { ECPairFactory } from 'ecpair';
 import * as ecc from 'tiny-secp256k1';
@@ -93,6 +93,40 @@ test('BTC rejects caller network mismatch before transport and insufficient mult
 });
 
 // PUBLIC scalar-one/two synthetic fixtures only. Never funded or user keys.
+async function producedFixture() {
+  const f = signingFixture(), adapter = new BitcoinSigningAdapter({ now: () => 1 }); adapter.prepare(f.prepared);
+  const result = await adapter.sign(f.req.requestId, { signer: f.sender, guard: { assert() {} }, onProduced() {} });
+  return { request: { previewRequest: f.req, publicKey: Buffer.from(f.sender.publicKey).toString('hex'), changePublicKey: Buffer.from(f.change.publicKey).toString('hex'), previousTransactions: f.prepared.previousTransactions, maxFeeSats: '500' }, result: structuredClone(result) };
+}
+test('BTC R5 synchronous journal verifier validates public original final P2WPKH signatures without signer', async () => {
+  const f = await producedFixture(), before = JSON.stringify(f); assert.equal(verifyBitcoinProduced(f), true); assert.equal(JSON.stringify(f), before);
+});
+test('BTC R5 request proof and result tuple mutations rejected', async () => {
+  const base = await producedFixture();
+  const changes = [
+    f => { f.result.txid = '0'.repeat(64); }, f => { f.result.feeSats = '0'; }, f => { f.result.actualVbytes++; },
+    f => { f.result.requestDigest = '0'.repeat(64); }, f => { f.result.originalRequest.amount = '2'; }, f => { f.result.state = 'included'; },
+    f => { f.request.maxFeeSats = '1'; }, f => { f.request.publicKey = f.request.changePublicKey; },
+    f => { f.request.previewRequest.utxos[0].value++; }, f => { f.request.previewRequest.requestId = 'substituted'; },
+    f => { f.request.previousTransactions[0].txid = '0'.repeat(64); }, f => { f.request.previousTransactions[0].hex = f.request.previousTransactions[0].hex.slice(0,-2)+'01'; },
+    f => { f.result.extra = true; }, f => { f.request.seed = 'not-allowed'; }
+  ];
+  for (const mutate of changes) { const f = structuredClone(base); mutate(f); assert.throws(() => verifyBitcoinProduced(f)); }
+});
+test('BTC R5 even matching finalized PSBT and raw cannot substitute witness output sequence or sighash', async () => {
+  const base = await producedFixture();
+  const { Psbt } = await import('bitcoinjs-lib');
+  for (const mutate of [tx=>{tx.ins[0].witness[0][5]^=1;}, tx=>{tx.ins[0].witness[0][tx.ins[0].witness[0].length-1]=2;}, tx=>{tx.ins[0].witness[1][5]^=1;}, tx=>{tx.outs[0].value++;}, tx=>{tx.ins[0].sequence--;}, tx=>{tx.locktime=1;}]) {
+    const f = structuredClone(base), tx = Transaction.fromHex(f.result.rawTransaction); mutate(tx);
+    f.result.rawTransaction = tx.toHex(); f.result.txid = tx.getId();
+    const matching = Psbt.fromBase64(f.result.signedPsbt);
+    matching.data.inputs[0].finalScriptWitness = Buffer.concat([Buffer.from([2]), ...tx.ins[0].witness.flatMap(w => [Buffer.from([w.length]), Buffer.from(w)])]);
+    f.result.signedPsbt = matching.toBase64();
+    assert.throws(() => verifyBitcoinProduced(f));
+  }
+  const f = structuredClone(base), p = Psbt.fromBase64(f.result.signedPsbt); p.data.inputs[0].witnessUtxo.value++;
+  f.result.signedPsbt=p.toBase64(); assert.throws(() => verifyBitcoinProduced(f));
+});
 function signingFixture() {
   const factory = ECPairFactory(ecc), bytes = new Uint8Array(32); bytes[31] = 1;
   const sender = factory.fromPrivateKey(Uint8Array.from(bytes)); bytes[31] = 2;
