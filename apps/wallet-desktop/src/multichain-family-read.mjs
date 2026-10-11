@@ -2,6 +2,7 @@ import {exactObject, multiError} from './multichain-config.mjs';
 import {validateFamilyNetwork} from './multichain-family-networks.mjs';
 import {createFamilyReadTransport} from './multichain-family-transport.mjs';
 import {effectiveFamilyNetworks} from './multichain-family-defaults.mjs';
+import {FamilyOperationGate} from './multichain-family-operation-gate.mjs';
 const changed = () => multiError('MULTICHAIN_CONTEXT_CHANGED', 'Account or network changed. Check the selected account again.');
 async function adapter(network) {
   const transport = createFamilyReadTransport({family: network.family, networkId: network.network, baseURL: network.rpcUrl});
@@ -9,9 +10,12 @@ async function adapter(network) {
   const {TronReadAdapter} = await import('./multichain-tron.mjs'); return new TronReadAdapter({network: {id: network.network, genesisBlockId: network.genesis}, transport});
 }
 export class FamilyRead {
-  constructor({networks, tokens, accounts, getContext, assertNetworkEditable = async () => {}, createAdapter = adapter}) { Object.assign(this, {networks, tokens, accounts, getContext, assertNetworkEditable, createAdapter}); }
+  constructor({networks, tokens, accounts, getContext, assertNetworkEditable = async () => {}, createAdapter = adapter, gate = new FamilyOperationGate()}) { Object.assign(this, {networks, tokens, accounts, getContext, assertNetworkEditable, createAdapter, gate}); }
   async snapshot() { return effectiveFamilyNetworks(await this.networks.read()); }
   async configure(input) {
+    return this.gate.run(()=>this.#configureOriginal(input));
+  }
+  async #configureOriginal(input) {
     const network = validateFamilyNetwork(input), context = await this.getContext(), before = await this.networks.read();
     await this.assertNetworkEditable(network);
     const reader = await this.createAdapter(network); await reader.verify();
