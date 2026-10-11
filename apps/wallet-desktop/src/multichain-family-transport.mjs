@@ -56,8 +56,8 @@ export function createFamilyReadTransport({family, networkId, baseURL, request =
   }
   return family === 'bitcoin' ? async input => {
     exactObject(input, ['method', 'path', 'network', 'signal']);
-    if (input.network !== networkId || input.method !== 'GET' || typeof input.path !== 'string' || !/^(?:\/block-height\/0|\/address\/(?:bc1|tb1)[a-z0-9]{6,87}\/utxo|\/tx\/[0-9a-f]{64}\/(?:hex|outspend\/[0-9]{1,10}))$/.test(input.path)) throw fail('FAMILY_RPC_READ_ONLY');
-    return call(input.path, 'GET', null, /(?:\/block-height\/0|\/hex)$/.test(input.path) ? 'text' : 'json', input.signal);
+    if (input.network !== networkId || input.method !== 'GET' || typeof input.path !== 'string' || !/^(?:\/block-height\/(?:0|[1-9][0-9]{0,9})|\/block\/[0-9a-f]{64}\/header|\/mempool\/txids|\/address\/(?:bc1|tb1)[a-z0-9]{6,87}\/utxo|\/tx\/[0-9a-f]{64}\/(?:hex|status|merkle-proof|outspend\/[0-9]{1,10}))$/.test(input.path) || input.path.startsWith('/block-height/') && Number(input.path.slice(14)) > 2147483647) throw fail('FAMILY_RPC_READ_ONLY');
+    return call(input.path, 'GET', null, /(?:\/block-height\/[0-9]+|\/hex|\/header)$/.test(input.path) ? 'text' : 'json', input.signal);
   } : async (network, route, body) => {
     if (network?.id !== networkId) throw fail('FAMILY_RPC_NETWORK'); tronRead(route, body);
     return call(route, 'POST', body, 'json');

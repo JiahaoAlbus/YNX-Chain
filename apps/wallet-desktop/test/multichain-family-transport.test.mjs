@@ -27,3 +27,14 @@ test('TRC20 metadata allowlist has empty parameters and never authorizes transfe
   for (const [selector, parameter] of [['transfer(address,uint256)', '0'.repeat(128)], ['approve(address,uint256)', '0'.repeat(128)], ['name()', '0'.repeat(64)], ['balanceOf(address)', '']]) await assert.rejects(rpc({id: 'nile'}, '/wallet/triggerconstantcontract', {...base, function_selector: selector, parameter}), {code: 'FAMILY_RPC_INPUT'});
   assert.equal(w.calls.length, 3); assert.ok(w.calls.every(c => c.url.endsWith('/wallet/triggerconstantcontract')));
 });
+test('BTC original transaction proof routes remain bound read-only and bounded', async () => {
+  const hash = 'a'.repeat(64);
+  for (const route of [`/tx/${hash}/status`, `/tx/${hash}/merkle-proof`, '/mempool/txids']) {
+    const w = wire(); await btc(w)({method: 'GET', path: route, network: 'testnet4'}); assert.equal(w.calls[0].url, 'https://public.example/api' + route);
+  }
+  for (const route of [`/block/${hash}/header`, '/block-height/12345']) {
+    const w = wire({text: 'a'.repeat(64), type: 'text/plain'}); assert.equal(await btc(w)({method: 'GET', path: route, network: 'testnet4'}), 'a'.repeat(64));
+  }
+  const w = wire(); for (const route of ['/block-height/2147483648', '/block-height/01', '/block-height/-1', `/block/${hash}/raw`, '/tx', '/mempool?broadcast=true']) await assert.rejects(btc(w)({method: 'GET', path: route, network: 'testnet4'}), {code: 'FAMILY_RPC_READ_ONLY'});
+  assert.equal(w.calls.length, 0);
+});
