@@ -41,6 +41,7 @@ async function fixture(t, overrides = {}) {
     requestNativeTools: overrides.requestNativeTools,
     runRetainedOperation: overrides.runRetainedOperation,
     onCompletedProject: overrides.onCompletedProject,
+    completedProjectLifecycle: overrides.completedProjectLifecycle,
     verifyIdentity });
   let service = make();
   const server = createServer((req, res) => service.handler(req, res));
@@ -509,4 +510,344 @@ test('retained periodic current remains counted after outer cancellation until i
   assert.equal(closed,0);assert.equal(settled,false);assert.equal(outcome.cleanShutdown,false);assert.equal(outcome.timedOut,true);
   assert.throws(()=>f.service().close());assert.equal(f.aiStore.list(ownerA,project)[0].status,'unknown');
   releaseTick();releaseModel();await rejected;assert.equal(activity.snapshot().requests.total,0);assert.equal(f.calls(),1);
+});
+
+// R6 PUBLIC source controls bind the frozen original supplier only in tests.
+async function r6Receiver() {
+  const { readFile } = await import('node:fs/promises');
+  const { createHash } = await import('node:crypto');
+  const path = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-completed-project-receiver-lifecycle-repair-r6-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'), '82f82003030ef058219ba20e1ed9db9591016801e6713883c959214cd409bfd6');
+  return (await import((await import('node:url')).pathToFileURL(path))).createDeveloperCoreAdmission;
+}
+
+test('R6 actual callback partial failure reaches same receiver through Stop before writer release', async t => {
+  const constructor = await r6Receiver();
+  const primary = Object.freeze(new Error('PUBLIC original witness current refusal'));
+  let held, carrier, disposed = false, closes = 0, acquires = 0, starts = 0, stops = 0;
+  const receiver = constructor({
+    coreAdmission: { driver: { start() {}, stop() {}, connect() {} }, launchURL() {}, sessionForHost() {}, originForSession() {} },
+    retainedSSO: { acquireReference() { throw Error('No identity acquisition expected'); } },
+    admittedProjects: { async acquireProject() {
+      acquires++;
+      return { assertCurrent: async () => { throw primary; }, request() { throw Error('No request expected'); },
+        close() { closes++; return { complete: disposed }; }, finishCleanup() { return { complete: disposed }; } };
+    } },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: receiver.completedProjectLifecycle,
+    start() { starts++; }, stop(value) { stops++; return { stopped: true, runtimeId: value.runtimeId, identityDigest: value.identityDigest }; },
+    async onCompletedProject(value) {
+      held = value.admittedProject;
+      try { await receiver.retainCompletedProject({ ...value, nativeTools: receiver.nativeTools }); }
+      catch (error) { carrier = error; throw error; }
+    } });
+  const launched = await f.launch(); assert.equal(launched.status, 503);
+  assert.equal(carrier.primary, primary);
+  assert.equal(receiver.completedProjectLifecycle.cleanupStatus().retained, 1);
+  const row = f.store.nativeJournalDatabase().prepare('SELECT * FROM codeoss_sessions').get();
+  assert.equal((await f.call('/' + row.id, 'DELETE')).status, 503);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT status FROM codeoss_sessions').get().status, 'recovery-required');
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  assert.throws(() => f.service().close(), /cleanup|Drain/i);
+  disposed = true;
+  assert.equal((await f.call('/' + row.id, 'DELETE')).status, 200);
+  assert.equal(receiver.completedProjectLifecycle.cleanupStatus().complete, true);
+  assert.equal(receiver.completedProjectLifecycle.cleanupStatus().records[0].primary, primary);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+  await assert.rejects(receiver.acquireCompletedProject(held), { code: 'AI_RETIRED' });
+  assert.equal(acquires, 1); assert.equal(starts, 1); assert.equal(stops, 2); assert.equal(closes, 1);
+  assert.doesNotMatch(JSON.stringify(launched.value), /cleanupOwner|original witness/);
+});
+
+test('R6 callback retirement passes exact primary and same owner through owner drain', async t => {
+  const primary = Object.freeze({ code: 'PUBLIC_FROZEN_PRIMARY' });
+  let original, seenPrimary, retirement = 0, finish = 0;
+  const lifecycle = Object.freeze({
+    retireOriginal(value, options) { original = value; seenPrimary = options.primary; retirement++; return { recognized: true }; },
+    retireSession() {}, async finishSessionCleanup() { finish++; original.close(); return { complete: true, pending: 0, retained: 0 }; },
+    async drain() { return { complete: true, pending: 0, retained: 0 }; }, cleanupStatus() { return { complete: finish > 0, pending: 0, retained: finish ? 0 : 1 }; },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  let delivered;
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: lifecycle,
+    onCompletedProject(value) { delivered = value.admittedProject; throw primary; } });
+  assert.equal((await f.launch()).status, 503);
+  assert.equal(retirement, 1); assert.equal(original, delivered); assert.equal(seenPrimary, primary);
+  // The durable recovery row itself refuses business current regardless of the
+  // transferred borrow's local retirement. Do not use it as a Close counter.
+  await assert.rejects(delivered.assertCurrent(), { code: 'core_retained_project_unavailable' });
+  await f.service().drainOwner(ownerA, 'a'.repeat(43));
+  assert.equal(finish, 1); await assert.rejects(delivered.assertCurrent());
+});
+
+test('R6 global drain owns orphan receiver cleanup and close refuses incomplete disposal', async t => {
+  let complete = false, drainCalls = 0;
+  const state = () => ({ complete, pending: 0, retained: complete ? 0 : 1, unknown: true });
+  const f = await fixture(t, { completedProjectLifecycle: Object.freeze({ retireOriginal() {}, retireSession() {},
+    finishSessionCleanup: async () => state(), drain: async () => { drainCalls++; return state(); }, cleanupStatus: state }) });
+  await assert.rejects(f.service().drain(), { code: 'core_drain_incomplete' });
+  assert.throws(() => f.service().close(), /cleanup|Drain/i);
+  assert.equal(drainCalls, 1);
+  complete = true; await f.service().drain(); assert.equal(drainCalls, 2);
+  // Disposed UNKNOWN is history: it does not keep the broker or writer locked.
+  f.service().close();
+});
+
+test('R6 Stop waits for entered original POST and preserves late UNKNOWN after positive disposal', async t => {
+  const constructor = await r6Receiver();
+  let original, pair, entered, release, driverStopped, requestCount = 0, closeCount = 0;
+  const started = new Promise(resolve => { entered = resolve; });
+  const blocked = new Promise(resolve => { release = resolve; });
+  const stopProof = new Promise(resolve => { driverStopped = resolve; });
+  const receiver = constructor({
+    coreAdmission: { driver: { start() {}, stop() {}, connect() {} }, launchURL() {}, sessionForHost() {}, originForSession() {} },
+    retainedSSO: { acquireReference() { throw Error('PUBLIC no grant acquisition'); } },
+    admittedProjects: { async acquireProject() { return { assertCurrent: () => original.assertCurrent(),
+      async request() { requestCount++; entered(); await blocked; return 'PUBLIC late result'; }, close() { closeCount++; } }; } },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: receiver.completedProjectLifecycle,
+    async onCompletedProject(value) { original = value.admittedProject; pair = await receiver.retainCompletedProject({ ...value, nativeTools: receiver.nativeTools }); },
+    stop(value) { driverStopped(); return { stopped: true, runtimeId: value.runtimeId, identityDigest: value.identityDigest }; } });
+  const launch = await f.launch(); assert.equal(launch.status, 201);
+  const request = pair.admittedProject.request({ method: 'POST', path: '/PUBLIC-test-effect' }).catch(error => error);
+  await started;
+  const stopping = f.call('/' + launch.value.session.sessionId, 'DELETE');
+  await stopProof;
+  assert.equal(receiver.completedProjectLifecycle.cleanupStatus().complete, false);
+  assert.equal(closeCount, 0);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  release();
+  const failure = await request;
+  assert.equal(failure.unknown, true); assert.ok(failure.outcomeCause);
+  assert.equal((await stopping).status, 200);
+  const status = receiver.completedProjectLifecycle.cleanupStatus();
+  assert.equal(status.complete, true); assert.equal(status.unknown, true);
+  assert.equal(status.records[0].outcomeCause, failure.outcomeCause);
+  assert.equal(closeCount, 1); assert.equal(requestCount, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+  await assert.rejects(pair.admittedProject.request({ method: 'POST' })); assert.equal(requestCount, 1);
+});
+
+test('R6 completed receiver cleanup never substitutes for exact driver stop proof', async t => {
+  let proof = false, finishes = 0;
+  const lifecycle = Object.freeze({ retireOriginal() {}, retireSession() {},
+    finishSessionCleanup: async () => { finishes++; return { complete: true, pending: 0, retained: 0 }; },
+    drain: async () => ({ complete: true, pending: 0, retained: 0 }), cleanupStatus: () => ({ complete: true, pending: 0, retained: 0 }) });
+  const f = await fixture(t, { completedProjectLifecycle: lifecycle,
+    stop(value) { return { stopped: true, runtimeId: proof ? value.runtimeId : 'PUBLIC-wrong-runtime', identityDigest: value.identityDigest }; } });
+  const launch = await f.launch(); assert.equal(launch.status, 201);
+  assert.equal((await f.call('/' + launch.value.session.sessionId, 'DELETE')).status, 503);
+  assert.equal(finishes, 0);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  proof = true;
+  assert.equal((await f.call('/' + launch.value.session.sessionId, 'DELETE')).status, 200);
+  assert.equal(finishes, 1);
+});
+
+async function n1ReceiverConstructor() {
+  const { readFile } = await import('node:fs/promises');
+  const { createHash } = await import('node:crypto');
+  const path = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-completed-project-cleanup-pass-repair-r7-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  assert.equal(createHash('sha256').update(await readFile(path)).digest('hex'), 'b57d7dddceb483df5669b7785290014ce907e676b3c2323f7ed1f87ed869f2e3');
+  return (await import((await import('node:url')).pathToFileURL(path))).createDeveloperCoreAdmission;
+}
+async function n1NormalFixture(t, { failClose = true, badProof = false } = {}) {
+  const constructor = await n1ReceiverConstructor();
+  const firstCloseError = Object.freeze(new Error('PUBLIC idle close first failure'));
+  let original, closeCount = 0, acquires = 0, starts = 0, stops = 0, release, stopEntered;
+  const block = new Promise(resolve => { release = resolve; });
+  const entered = new Promise(resolve => { stopEntered = resolve; });
+  const receiver = constructor({ coreAdmission: { driver: { start() {}, stop() {}, connect() {} }, launchURL() {}, sessionForHost() {}, originForSession() {} },
+    retainedSSO: { acquireReference() { throw Error('PUBLIC no grant'); } },
+    admittedProjects: { async acquireProject() { acquires++; return { assertCurrent: () => original.assertCurrent(), request() { throw Error('PUBLIC no dispatch'); },
+      close() { closeCount++; if (failClose && closeCount === 1) throw firstCloseError; } }; } },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: receiver.completedProjectLifecycle,
+    start() { starts++; }, async stop(value) { stops++; stopEntered(); await block;
+      return { stopped: true, runtimeId: badProof ? 'PUBLIC-wrong' : value.runtimeId, identityDigest: value.identityDigest }; },
+    async onCompletedProject(value) { original = value.admittedProject; await receiver.retainCompletedProject({ ...value, nativeTools: receiver.nativeTools }); } });
+  const launched = await f.launch(); assert.equal(launched.status, 201);
+  return { ...f, receiver, firstCloseError, entered, release, counts: () => ({ closeCount, acquires, starts, stops }) };
+}
+
+test('N1 normal global drain and delayed row Stop share idle failed owner until later independent cleanup', async t => {
+  const f = await n1NormalFixture(t);
+  const draining = f.service().drain().catch(error => error);
+  await f.entered;
+  // Driver has an explicit barrier; let the first cleanup promise settle while
+  // the original row join is still pending, without any product delay.
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.counts().closeCount, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  f.release();
+  const failure = await draining; assert.equal(failure.code, 'core_drain_incomplete');
+  assert.equal(f.counts().closeCount, 1, 'Same global/row invocation must not retry newly failing close');
+  assert.equal(f.receiver.completedProjectLifecycle.cleanupStatus().complete, false);
+  assert.ok(f.receiver.completedProjectLifecycle.cleanupStatus().errors.includes(f.firstCloseError));
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT status FROM codeoss_sessions').get().status, 'recovery-required');
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  await f.service().drain();
+  assert.equal(f.counts().closeCount, 2);
+  assert.equal(f.receiver.completedProjectLifecycle.cleanupStatus().complete, true);
+  assert.ok(f.receiver.completedProjectLifecycle.cleanupStatus().errors.includes(f.firstCloseError));
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+  assert.equal(f.counts().acquires, 1); assert.equal(f.counts().starts, 1);
+});
+
+test('N1 normal drain waits for row join and keeps writer when genuine driver proof fails', async t => {
+  const f = await n1NormalFixture(t, { failClose: false, badProof: true });
+  let settled = false;
+  const draining = f.service().drain().then(() => { settled = true; }, error => { settled = true; return error; });
+  await f.entered; await new Promise(resolve => setImmediate(resolve));
+  assert.equal(settled, false);
+  assert.equal(f.receiver.completedProjectLifecycle.cleanupStatus().complete, true);
+  f.release(); assert.equal((await draining).code, 'core_drain_incomplete');
+  assert.equal(f.counts().closeCount, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT status FROM codeoss_sessions').get().status, 'recovery-required');
+});
+
+async function r8StandaloneFixture(t, { kind = 'POST', badProof = false } = {}) {
+  const { createHash } = await import('node:crypto');
+  const operatorPath = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  assert.equal(createHash('sha256').update(await readFile(operatorPath)).digest('hex'), '2f905ebd6f1736b1611888d7f50ed067f118b35a6c65b176c964965d83d8809f');
+  const { createDeveloperCoreAdmission: constructor } = await import((await import('node:url')).pathToFileURL(operatorPath));
+  const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
+  const requestEntered = deferred(), output = deferred(), driverEntered = deferred(), driverProof = deferred();
+  const first = Object.freeze(new Error('PUBLIC R8 late original ' + kind));
+  const closeFailure = Object.freeze(new Error('PUBLIC R8 first witness Close failure'));
+  let original, pair, witness, closeCount = 0, acquires = 0, starts = 0, requests = 0, validProof = !badProof;
+  const receiver = constructor({ coreAdmission: { driver: { start() {}, stop() {}, connect() {} }, launchURL() {}, sessionForHost() {}, originForSession() {} },
+    retainedSSO: { acquireReference() { throw Error('PUBLIC no grant'); } },
+    admittedProjects: { async acquireProject() { acquires++; witness = {
+      assertCurrent: () => original.assertCurrent(),
+      request: async () => { requests++; requestEntered.resolve(); return output.promise; },
+      close() { closeCount++; if (closeCount === 1) throw closeFailure; },
+    }; return witness; } },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: receiver.completedProjectLifecycle,
+    start() { starts++; }, async stop(value) { driverEntered.resolve(); await driverProof.promise;
+      return { stopped: true, runtimeId: validProof ? value.runtimeId : 'PUBLIC-wrong-runtime', identityDigest: value.identityDigest }; },
+    async onCompletedProject(value) { original = value.admittedProject; pair = await receiver.retainCompletedProject({ ...value, nativeTools: receiver.nativeTools }); },
+  });
+  const launched = await f.launch(); assert.equal(launched.status, 201);
+  if (kind === 'current') witness.assertCurrent = async () => { requestEntered.resolve(); return output.promise; };
+  const operation = (kind === 'POST' ? pair.admittedProject.request({ method: 'POST', path: '/PUBLIC-R8-effect' }) : pair.admittedProject.assertCurrent()).catch(error => error);
+  await requestEntered.promise;
+  const stopping = f.call('/' + launched.value.session.sessionId, 'DELETE'); await driverEntered.promise;
+  // A normal admitted DELETE reached the real row Stop; no cleanup helper is
+  // called in place of the route, and the driver remains behind a real barrier.
+  assert.equal(closeCount, 0);
+  output.reject(first); const carrier = await operation;
+  return { ...f, receiver, pair, first, closeFailure, carrier, stopping,
+    suffix: '/' + launched.value.session.sessionId, release: driverProof.resolve,
+    allowProof: () => { validProof = true; }, counts: () => ({ closeCount, acquires, starts, requests }) };
+}
+
+for (const kind of ['POST', 'current']) test(`R8 normal standalone DELETE holds pending ${kind} disposal until driver proof and independent retry`, async t => {
+  const f = await r8StandaloneFixture(t, { kind });
+  // Capture before the valid driver result; the assertion is made after the
+  // route settles so even a parent RED test leaves no abandoned Stop promise.
+  const beforeProof = f.counts().closeCount;
+  assert.equal(f.carrier.primary, f.first);
+  if (kind === 'POST') { assert.equal(f.carrier.unknown, true); assert.equal(f.carrier.outcomeCause, f.first); }
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 1);
+  f.release(); const stopped = await f.stopping;
+  const firstCount = f.counts().closeCount;
+  const state = f.receiver.completedProjectLifecycle.cleanupStatus();
+  const writerCount = f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n;
+  const rowStatus = f.store.nativeJournalDatabase().prepare('SELECT status FROM codeoss_sessions').get().status;
+  const retry = await f.call(f.suffix, 'DELETE');
+  assert.equal(beforeProof, 0, 'Retirement-only pending completion must not dispose before driver proof');
+  assert.equal(stopped.status, 503); assert.equal(firstCount, 1);
+  assert.equal(state.complete, false); assert.ok(state.errors.includes(f.closeFailure));
+  assert.equal(state.records[0].primary, f.first); assert.equal(writerCount, 1); assert.equal(rowStatus, 'recovery-required');
+  if (kind === 'POST') { assert.equal(state.unknown, true); assert.equal(state.records[0].outcomeCause, f.first); }
+  assert.equal(retry.status, 200); assert.equal(f.counts().closeCount, 2);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+  assert.equal(f.receiver.completedProjectLifecycle.cleanupStatus().complete, true);
+  assert.equal(f.carrier.primary, f.first);
+  await assert.rejects(f.pair.admittedProject.request({ method: 'POST' }));
+  assert.equal(f.counts().acquires, 1); assert.equal(f.counts().starts, 1); assert.equal(f.counts().requests, kind === 'POST' ? 1 : 0);
+});
+
+test('R8 normal standalone DELETE wrong driver proof keeps late UNKNOWN owner and writer without disposal', async t => {
+  const f = await r8StandaloneFixture(t, { badProof: true });
+  const beforeProof = f.counts().closeCount; f.release(); const stopped = await f.stopping;
+  const rejectedProofCount = f.counts().closeCount;
+  const retained = f.receiver.completedProjectLifecycle.cleanupStatus();
+  const writerCount = f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n;
+  // Later independently admitted Stop may try cleanup only after a valid
+  // driver proof; first disposal fails, next independent Stop may retry it.
+  f.allowProof(); const first = await f.call(f.suffix, 'DELETE'); const retry = await f.call(f.suffix, 'DELETE');
+  assert.equal(beforeProof, 0); assert.equal(stopped.status, 503); assert.equal(rejectedProofCount, 0);
+  assert.equal(writerCount, 1); assert.equal(retained.complete, false); assert.equal(retained.unknown, true);
+  assert.equal(retained.records[0].primary, f.first); assert.equal(retained.records[0].outcomeCause, f.first);
+  assert.equal(first.status, 503); assert.equal(retry.status, 200); assert.equal(f.counts().closeCount, 2);
+  assert.equal(f.counts().requests, 1); assert.equal(f.counts().acquires, 1); assert.equal(f.counts().starts, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
+});
+
+test('R8 normal standalone DELETE retains a late acquired owner while original launch settles', async t => {
+  const { createHash } = await import('node:crypto');
+  const operatorPath = '/Users/huangjiahao/ynx-social-qa-authority/ide-protected-standalone-stop-cleanup-pass-repair-r8-20261012/apps/developer/services/codeoss-service/src/protected-developer-operator.mjs';
+  assert.equal(createHash('sha256').update(await readFile(operatorPath)).digest('hex'), '2f905ebd6f1736b1611888d7f50ed067f118b35a6c65b176c964965d83d8809f');
+  const { createDeveloperCoreAdmission: constructor } = await import((await import('node:url')).pathToFileURL(operatorPath));
+  let acquired, releaseAcquisition, driverEntered, releaseDriver, retired, original, carrier, closeCount = 0, acquires = 0, starts = 0;
+  const acquisitionEntered = new Promise(resolve => { acquired = resolve; });
+  const acquisition = new Promise(resolve => { releaseAcquisition = resolve; });
+  const entered = new Promise(resolve => { driverEntered = resolve; });
+  const proof = new Promise(resolve => { releaseDriver = resolve; });
+  const retirement = new Promise(resolve => { retired = resolve; });
+  const closeFailure = Object.freeze(new Error('PUBLIC late owner first Close refusal'));
+  const receiver = constructor({ coreAdmission: { driver: { start() {}, stop() {}, connect() {} }, launchURL() {}, sessionForHost() {}, originForSession() {} },
+    retainedSSO: { acquireReference() { throw Error('PUBLIC no grant'); } },
+    admittedProjects: { async acquireProject() { acquires++; acquired(); await acquisition;
+      return { assertCurrent: () => original.assertCurrent(), request() { throw Error('PUBLIC no dispatch'); },
+        close() { closeCount++; if (closeCount === 1) throw closeFailure; } }; } },
+  });
+  const identity = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'a'.repeat(43), expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verify = async () => identity; verify.resolveReference = async () => identity;
+  const observedLifecycle = Object.freeze({ ...receiver.completedProjectLifecycle,
+    retireSession(...args) { const result = receiver.completedProjectLifecycle.retireSession(...args); retired(); return result; } });
+  const f = await fixture(t, { verifyIdentity: verify, completedProjectLifecycle: observedLifecycle,
+    start() { starts++; }, async stop(value) { driverEntered(); await proof;
+      return { stopped: true, runtimeId: value.runtimeId, identityDigest: value.identityDigest }; },
+    async onCompletedProject(value) { original = value.admittedProject;
+      try { await receiver.retainCompletedProject({ ...value, nativeTools: receiver.nativeTools }); }
+      catch (error) { carrier = error; throw error; } },
+  });
+  const launching = f.launch(); await acquisitionEntered;
+  const session = (await f.call()).value.sessions[0];
+  const stopping = f.call('/' + session.sessionId, 'DELETE');
+  // Observe the actual lifecycle retirement reached by DELETE without sleeps.
+  // The pending launch is still joined and its newly returned owner stays held.
+  await retirement;
+  releaseAcquisition(); const launched = await launching; await entered;
+  const beforeProof = closeCount; const pending = receiver.completedProjectLifecycle.cleanupStatus();
+  releaseDriver(); const stopped = await stopping; const firstCount = closeCount;
+  const retained = receiver.completedProjectLifecycle.cleanupStatus();
+  const writers = f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n;
+  const retry = await f.call('/' + session.sessionId, 'DELETE');
+  assert.equal(launched.status, 503); assert.equal(carrier.code, 'AI_ACQUISITION_CLEANUP_REQUIRED');
+  assert.equal(beforeProof, 0); assert.equal(pending.pending, 0); assert.equal(pending.retained, 2);
+  assert.equal(stopped.status, 503); assert.equal(firstCount, 1); assert.equal(writers, 1);
+  assert.equal(retained.records[0].primary, carrier.primary); assert.ok(retained.errors.includes(closeFailure));
+  assert.equal(retry.status, 200); assert.equal(closeCount, 2); assert.equal(acquires, 1); assert.equal(starts, 1);
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n, 0);
 });

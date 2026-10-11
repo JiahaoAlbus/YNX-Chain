@@ -156,6 +156,7 @@ developerSSO = await createDeveloperSSO({
 codeossService = createCodeOSSService({
   ...coreAdmission, filename: join(stateDir, "codeoss.sqlite"), root: join(stateDir, "native-ide"), workspaceStore,
   verifyIdentity: developerSSO.verifyIdentity,
+  completedProjectLifecycle: coreAdmission.completedProjectLifecycle,
   onCompletedProject: typeof coreAdmission?.retainCompletedProject === 'function' ? value =>
     coreAdmission.retainCompletedProject(Object.freeze({ ...value, nativeTools: coreAdmission.nativeTools })) : undefined,
   runRetainedOperation: work => {
@@ -229,6 +230,12 @@ const maintain = createMaintenance({
     clearInterval(expireCores); coreProxy?.close();
     const results = await Promise.allSettled([terminalService.close(), debugService.close(), collaborationService.drain(), codeossService.drain()]);
     if (results.some(value => value.status === "rejected")) throw new Error("Interactive cleanup failed after all session cleanups settled.");
+    // Observe the same constructor drain; do not introduce a second disposer.
+    if (coreAdmission.completedProjectLifecycle) {
+      const cleanup = coreAdmission.completedProjectLifecycle.cleanupStatus();
+      if (cleanup?.complete !== true || cleanup.pending !== 0 || cleanup.retained !== 0)
+        throw new Error('Original completed-project cleanup still owns pending resources.');
+    }
   },
   cancelWork: () => runtime.cancelAll(),
   closeStores: async () => {

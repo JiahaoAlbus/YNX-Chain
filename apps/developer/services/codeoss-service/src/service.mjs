@@ -13,8 +13,11 @@ const LIVE = "'preparing','running','stopping','recovery-required'";
 const liveBrokers = new Set();
 
 export function createCodeOSSService({ filename, root, workspaceStore, verifyIdentity = createCentralIdentityVerifier(),
-  driver, launchURL, assertProjectQuiescent, requestNativeTools, runRetainedOperation, onCompletedProject, limits = CORE_LIMITS, now = Date.now } = {}) {
+  driver, launchURL, assertProjectQuiescent, requestNativeTools, runRetainedOperation, onCompletedProject, completedProjectLifecycle, limits = CORE_LIMITS, now = Date.now } = {}) {
   if (!workspaceStore || !root || !filename) throw new TypeError("CodeOSS durable store/root are required.");
+  if (completedProjectLifecycle && ['retireOriginal', 'retireSession', 'finishSessionCleanup', 'drain', 'cleanupStatus']
+    .some(name => typeof completedProjectLifecycle[name] !== 'function'))
+    throw new TypeError('Original completed-project lifecycle is incomplete.');
   root = resolve(root);
   const runtimeArtifact = driver?.runtimeArtifact ? validateRuntimeArtifact(driver.runtimeArtifact) : null;
   if (!workspaceStore.nativeJournalDatabase || !workspaceStore.claimWriterInTransaction)
@@ -77,6 +80,11 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     return Promise.resolve(result).finally(() => { entry.active = false; retainedPending.delete(entry); });
   }
   const retainedAdmissions = new WeakMap();
+  function requireCompletedCleanup(status) {
+    // UNKNOWN is retained outcome history, not proof of an outstanding owner.
+    if (status?.complete !== true || status.pending !== 0 || status.retained !== 0)
+      throw fault('Original completed-project cleanup is not confirmed.', 'core_completed_cleanup_incomplete', 503);
+  }
   const get = id => db.prepare("SELECT * FROM codeoss_sessions WHERE id=?").get(id);
   const active = (owner, project) => db.prepare(`SELECT * FROM codeoss_sessions WHERE workspace_owner=? AND project=? AND status IN (${LIVE})`).get(owner, project);
 
@@ -190,14 +198,25 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
         try {
           await onCompletedProject(Object.freeze({ admittedProject, session: Object.freeze(publicSession(get(sessionId))) }));
           await revalidate();
-        } catch (error) { admittedProject.close(); throw error; }
+        } catch (error) {
+          try {
+            const ownership = completedProjectLifecycle?.retireOriginal(admittedProject, { primary: error });
+            if (ownership?.recognized !== true) admittedProject.close();
+          } catch (cleanupError) {
+            // Keep the exact first failure and failed disposal internally. Never
+            // retry a transferred close or serialize owners into the response.
+            throw Object.assign(fault('Completed-project retirement is not confirmed.', 'core_completed_cleanup_incomplete', 503),
+              { cause: error, cleanupError });
+          }
+          throw error;
+        }
       }
       return publicSession(get(sessionId));
     } catch (error) {
       // Launch might have succeeded before a transport failure. Retain exact
       // identity and writer until driver proves that runtime fully stopped.
       db.prepare("UPDATE codeoss_sessions SET status='recovery-required',failure=? WHERE id=?").run(error.code || "core_launch_failed", sessionId);
-      throw fault("Native IDE launch could not be confirmed. Retry Stop to preserve and synchronize its files.", "core_launch_recovery_required", 503);
+      throw Object.assign(fault("Native IDE launch could not be confirmed. Retry Stop to preserve and synchronize its files.", "core_launch_recovery_required", 503), { cause: error });
     } })();
     launches.set(sessionId, launch);
     try { return await launch; } finally { launches.delete(sessionId); }
@@ -215,14 +234,20 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     if (tasks.has(row.id)) return tasks.get(row.id);
     const task = (async () => {
       try {
+        // Retire already-published callback owners before waiting on a launch
+        // that may itself be inside their foreign current/acquisition call.
+        completedProjectLifecycle?.retireSession(row.id);
         // Stop cannot prove absence or release the writer while a delayed
         // start may still execute. Serialize launch settlement before stopping.
         await launches.get(row.id)?.catch(() => {});
         db.prepare("UPDATE codeoss_sessions SET status='stopping' WHERE id=?").run(row.id);
+        completedProjectLifecycle?.retireSession(row.id);
         if (!driver) throw fault("Native IDE stop driver is unavailable.", "core_runtime_unavailable", 503);
         const context = runtimeContext(row), stopped = await driver.stop(context);
         if (stopped?.stopped !== true || stopped.runtimeId !== row.runtime || stopped.identityDigest !== context.identityDigest)
           throw fault("Native IDE exact runtime and child-empty stop proof is required.", "core_processes_unconfirmed", 503);
+        if (completedProjectLifecycle)
+          requireCompletedCleanup(await completedProjectLifecycle.finishSessionCleanup(row.id));
         if (!stopped.neverStarted) {
           workspaceStore.markNativeProject(row.workspace_owner, row.project, row.writer_token);
           db.prepare("UPDATE codeoss_projects SET adopted=1 WHERE workspace_owner=? AND project=?").run(row.workspace_owner, row.project);
@@ -245,7 +270,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
         return { ...publicSession(get(row.id)), storage: "native-volume", checkpointed: true };
       } catch (error) {
         db.prepare("UPDATE codeoss_sessions SET status='recovery-required',failure=? WHERE id=?").run(error.code || "core_stop_failed", row.id);
-        throw fault(error.message || "Native IDE stop failed. Files and writer are retained.", error.code || "core_stop_failed", error.status || 503);
+        throw Object.assign(fault(error.message || "Native IDE stop failed. Files and writer are retained.", error.code || "core_stop_failed", error.status || 503), { cause: error });
       }
     })();
     tasks.set(row.id, task);
@@ -430,8 +455,26 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   async function drain() {
     brokerDraining = true;
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE status IN (${LIVE})`).all();
-    const results = await Promise.allSettled(rows.map(stop));
-    if (results.some(result => result.status === "rejected")) throw fault("Native IDE drain retained protected recovery.", "core_drain_incomplete", 503);
+    let joined = false;
+    const joinRows = async () => {
+      if (joined) throw fault('Original row cleanup was already entered.', 'core_drain_incomplete', 503);
+      joined = true;
+      const results = await Promise.allSettled(rows.map(stop));
+      const failed = results.find(result => result.status === 'rejected');
+      if (failed) throw failed.reason;
+    };
+    try {
+      if (completedProjectLifecycle) {
+        // Keep the constructor's one owner-selection pass alive through the
+        // entire original row Stop join, including delayed driver proof/failure.
+        // A row seam cannot turn an idle Close failure into an implicit retry.
+        const cleanup = await completedProjectLifecycle.drain(joinRows);
+        if (!joined) throw fault('Original row cleanup was not joined.', 'core_drain_incomplete', 503);
+        requireCompletedCleanup(cleanup);
+      } else await joinRows();
+    } catch (error) {
+      throw Object.assign(fault('Native IDE drain retained protected recovery.', 'core_drain_incomplete', 503), { cause: error });
+    }
   }
   async function drainOwner(owner, identityReference) {
     const rows = identityReference
@@ -444,6 +487,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
   // Workspace store owns this shared connection and closes it after draining.
   return { handler, guardWorkspaceWrite, authorizeConnection, acquireProject, authorizeRetainedAdmission, runRetainedOperation: retainedOperation, expireSessions, drain, drainOwner, close: () => {
     if (tasks.size || launches.size || retainedPending.size) throw new Error("Drain the native IDE broker before closing its admission lease.");
+    if (completedProjectLifecycle) requireCompletedCleanup(completedProjectLifecycle.cleanupStatus());
     brokerClosed = true;
     db.prepare("DELETE FROM codeoss_broker_owner WHERE singleton=1 AND pid=?").run(process.pid);
     liveBrokers.delete(brokerKey);
