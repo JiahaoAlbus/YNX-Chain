@@ -1,6 +1,6 @@
 import {utils as tronUtils} from 'tronweb';
 import {tronNetwork, tronAddress, tronBalance, tronResources, tronIntentPreview,
-  buildTronUnsigned, trc20Balance, trc20Decimals, trc20Parameter, tronDerivationPath} from './multichain-tron.mjs';
+  buildTronUnsigned, trc20Balance, trc20Decimals, trc20Parameter, tronDerivationPath, tronConstantCallStatus} from './multichain-tron.mjs';
 
 // Read-only node observations, never signing/broadcasting or accepting a node's
 // unsigned transaction. The parent must bind this review to its vault session
@@ -58,10 +58,7 @@ function simulation(body) {
   success(body);
   // Require explicit ABI bool true. Empty/nonstandard returns do not mean success.
   if (!Array.isArray(body.constant_result) || body.constant_result.length!==1 || body.constant_result[0]!== '0'.repeat(63)+'1') fail('TRON_SIMULATION_FAILED');
-  const ret=body.transaction?.ret;
-  if (!Array.isArray(ret) || ret.length!==1 || (ret[0].ret===undefined && ret[0].contractRet===undefined) ||
-    (ret[0].ret!==undefined && !['SUCCESS','SUCESS'].includes(ret[0].ret)) ||
-    (ret[0].contractRet!==undefined && ret[0].contractRet!=='SUCCESS')) fail('TRON_SIMULATION_FAILED');
+  if (!tronConstantCallStatus(body.transaction?.ret,true)) fail('TRON_SIMULATION_FAILED');
   const energy=uint(body.energy_used); if (!energy) fail('TRON_ENERGY_ESTIMATE_INVALID'); return energy;
 }
 export class TronPreflight {

@@ -1,11 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {TronPreflight} from '../src/multichain-tron-preflight.mjs';
-import {verifyTronUnsigned} from '../src/multichain-tron.mjs';
+import {verifyTronUnsigned,trc20Decimals} from '../src/multichain-tron.mjs';
 const owner='417e5f4552091a69125d5dfcb7b8c2659029395bdf',to='41'+'22'.repeat(20),contract='41'+'33'.repeat(20);
 const network={id:'nile',genesisBlockId:'00'.repeat(32)},now=1700000000000;
 const word=n=>BigInt(n).toString(16).padStart(64,'0');
 const constant=n=>({result:{result:true},constant_result:[word(n)],transaction:{ret:[{ret:'SUCESS',contractRet:'SUCCESS'}]}});
+test('real constant-call default ret object preserves successful ABI result',()=>{
+  const response=constant(6);response.transaction.ret=[{}];
+  assert.equal(trc20Decimals(response),6);
+});
+test('TRC20 simulation accepts protobuf default code without inventing VM success',async()=>{
+  const f=fixture(d=>{for(const key of ['decimals','balance','simulation'])d[key].transaction.ret=[{}];},'trc20');
+  const r=await f.adapter.prepare(f.input);verifyTronUnsigned(r.transaction,r.intent,r.context,now);
+  assert.equal(r.broadcastAuthorized,false);
+});
+test('constant defaults never override explicit failure, malformed status or false ABI transfer',async()=>{
+  for(const status of [{ret:'FAILED'},{ret:1},{contractRet:'REVERT'},{contractRet:2},{ret:null},{ret:false},{contractRet:null},null,[],42]) {
+    const response=constant(6);response.transaction.ret=[status];
+    assert.throws(()=>trc20Decimals(response));
+    const f=fixture(d=>{d.simulation.transaction.ret=[status];},'trc20');
+    await assert.rejects(f.adapter.prepare(f.input));
+  }
+  for(const status of [{},{ret:0,contractRet:0},{ret:'SUCESS',contractRet:'DEFAULT'},{contractRet:1}]) {
+    const f=fixture(d=>{d.simulation.transaction.ret=[status];d.simulation.constant_result=[word(0)];},'trc20');
+    await assert.rejects(f.adapter.prepare(f.input),{code:'TRON_SIMULATION_FAILED'});
+  }
+});
 function fixture(change=()=>{},asset='trx') {
   const data={genesis:{blockID:network.genesisBlockId,block_header:{raw_data:{number:0}}},
     owner:{address:owner,balance:1000000000,owner_permission:{threshold:1,keys:[{address:owner,weight:1}]}},recipient:{address:to,balance:0},

@@ -89,19 +89,23 @@ export function trc20Balance(response, decimals) {
 export const TRC20_METADATA_SELECTORS = Object.freeze({name: 'name()', symbol: 'symbol()', decimals: 'decimals()'});
 export const TRC20_METADATA_LIMITS = deepFreezeMetadata({name: {codepoints: 64, utf8Bytes: 128}, symbol: {codepoints: 16, utf8Bytes: 32}});
 function deepFreezeMetadata(value) { Object.values(value).forEach(Object.freeze); return Object.freeze(value); }
+// Only for triggerconstantcontract responses. java-tron callConstantContract
+// sets Result.ret=SUCESS (proto3 zero), leaving contractRet=DEFAULT (zero).
+// Both may be omitted in JSON. DEFAULT is NOT confirmed transaction execution;
+// never reuse this predicate for transaction receipts or broadcast acceptance.
+export function tronConstantCallStatus(ret, required=false) {
+  if (ret===undefined) return !required;
+  if (!Array.isArray(ret) || ret.length!==1 || !ret[0] || typeof ret[0]!=='object' || Array.isArray(ret[0])) return false;
+  const status=ret[0];
+  return [undefined,0,'SUCESS','SUCCESS'].includes(status.ret) &&
+    [undefined,0,1,'DEFAULT','SUCCESS'].includes(status.contractRet);
+}
 function trc20ConstantResult(response, maxHexLength) {
   if (!response || typeof response !== 'object' || Array.isArray(response) || Object.hasOwn(response, 'Error') ||
     !response.result || typeof response.result !== 'object' || Array.isArray(response.result) || response.result.result !== true ||
     (response.result.code !== undefined && response.result.code !== 'SUCCESS' && response.result.code !== 0) ||
     !Array.isArray(response.constant_result) || response.constant_result.length !== 1) fail('TRON_CONTRACT_FAILED');
-  const ret = response.transaction?.ret;
-  if (ret !== undefined) {
-    if (!Array.isArray(ret) || ret.length !== 1 || !ret[0] || typeof ret[0] !== 'object' || Array.isArray(ret[0])) fail('TRON_CONTRACT_FAILED');
-    const status = ret[0];
-    if (status.ret === undefined && status.contractRet === undefined) fail('TRON_CONTRACT_FAILED');
-    if (status.ret !== undefined && status.ret !== 'SUCCESS' && status.ret !== 'SUCESS') fail('TRON_CONTRACT_FAILED');
-    if (status.contractRet !== undefined && status.contractRet !== 'SUCCESS') fail('TRON_CONTRACT_FAILED');
-  }
+  if (!tronConstantCallStatus(response.transaction?.ret)) fail('TRON_CONTRACT_FAILED');
   const value = response.constant_result[0];
   if (typeof value !== 'string' || value.length > maxHexLength || !/^(?:[a-fA-F0-9]{2})+$/.test(value)) fail('TRON_TOKEN_RESULT_INVALID');
   return value.toLowerCase();
