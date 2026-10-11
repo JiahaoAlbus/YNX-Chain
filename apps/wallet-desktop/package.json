@@ -32,12 +32,12 @@
     "qrcode": "1.5.4",
     "bitcoinjs-lib": "7.0.1",
     "tiny-secp256k1": "2.2.3",
-    "tronweb": "6.5.1"
+    "tronweb": "6.5.1",
+    "ecpair": "3.0.1"
   },
   "devDependencies": {
     "electron": "42.8.0",
-    "electron-builder": "26.15.3",
-    "ecpair": "3.0.1"
+    "electron-builder": "26.15.3"
   },
   "overrides": {
     "plist@3.1.0": {
