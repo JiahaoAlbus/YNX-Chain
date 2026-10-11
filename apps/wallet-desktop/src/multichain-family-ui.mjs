@@ -23,11 +23,23 @@ export function createFamilyUI({document, api, getContext}) {
   const tokenSection = make('details'), tokenTitle = make('summary', 'Import TRC20 token'), tokenLabel = make('label', 'Token contract'), tokenContract = make('input'), importToken = make('button', 'Import TRC20 token');
   tokenContract.id = 'family-token-contract'; tokenContract.autocomplete = 'off'; tokenContract.dir = 'ltr'; tokenLabel.htmlFor = tokenContract.id; importToken.type = 'button';
   tokenSection.append(tokenTitle, tokenLabel, tokenContract, importToken); content.append(tokenSection);
+  const tokenRefresh=make('button','Refresh'),tokenRows=make('div');tokenRefresh.type='button';tokenSection.append(tokenRefresh,tokenRows,make('p','Removing a token only hides it from this local catalog. It does not transfer or burn assets.'));
   const history = make('details'), historyTitle = make('summary', 'Transfer history'), historyRefresh = make('button', 'Refresh history'), records = make('div'); historyRefresh.type = 'button';
   history.append(historyTitle, historyRefresh, records, make('p', 'Block inclusion reported by RPC is not consensus finality. Unknown transactions are checked, never automatically resent.')); content.append(history);
   const transferUI=createBitcoinTransferUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const submissionUI=createBitcoinSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
-  function invalidate() { epoch++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  function invalidate() { epoch++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  tokenRefresh.addEventListener('click',async()=>{
+    if(busy||family.value!=='tron'||!api.familyTokens)return;
+    const token=++epoch,context={...getContext()},selected=network.value;busy=true;tokenRefresh.disabled=true;tokenRows.replaceChildren();
+    try{const reply=await api.familyTokens({family:'tron',network:selected}),current=getContext();if(token!==epoch||!sheet.open||current.account!==context.account||current.revision!==context.revision)return;
+      if(!reply.ok){status.textContent=reply.error?.code??'FAMILY_TOKEN_READ_FAILED';return;}
+      const catalog=reply.value;if(catalog.family!=='tron'||catalog.network!==selected||!Number.isSafeInteger(catalog.revision))throw Error('FAMILY_TOKEN_INVALID');
+      for(const item of catalog.tokens){if(item.family!=='tron'||item.network!==selected)throw Error('FAMILY_TOKEN_INVALID');const row=make('div'),name=make('p'),contract=make('p'),remove=make('button','Remove token');name.textContent=`${item.name} (${item.symbol}) · ${item.decimals}`;contract.dir='ltr';contract.textContent=item.contract;remove.type='button';remove.disabled=Boolean(current.locked);row.append(name,contract,remove);tokenRows.append(row);
+        remove.addEventListener('click',async()=>{if(busy||getContext().locked||token!==epoch)return;busy=true;remove.disabled=true;try{const result=await api.familyTokenRemove({family:'tron',network:selected,genesis:item.genesis,contract:item.contract,revision:catalog.revision});const active=getContext();if(token!==epoch||!sheet.open||active.account!==context.account||active.revision!==context.revision)return;if(!result.ok){status.textContent=result.error?.code??'FAMILY_TOKEN_INVALID';return;}if(result.value.removed!==true||result.value.family!=='tron'||result.value.network!==selected||result.value.genesis!==item.genesis||result.value.contract!==item.contract)throw Error('FAMILY_TOKEN_INVALID');tokenRows.replaceChildren();balance.textContent='';}catch(error){if(token===epoch)status.textContent=error.message??'FAMILY_TOKEN_INVALID';}finally{if(token===epoch){busy=false;remove.disabled=Boolean(getContext().locked);}}});
+      }
+    }catch(error){if(token===epoch){tokenRows.replaceChildren();status.textContent=error.message??'FAMILY_TOKEN_INVALID';}}finally{if(token===epoch)busy=false;tokenRefresh.disabled=false;}
+  });
   function showRecord(node, record) {
     node.replaceChildren(); const state = make('p'); setWalletCopy(state, 'Transaction status: {state}', {state: record.state}); node.append(state);
     if (record.txid) {const hash = make('p'); hash.dir = 'ltr'; hash.textContent = record.txid; node.append(hash);}
@@ -83,7 +95,7 @@ export function createFamilyUI({document, api, getContext}) {
       const current = getContext(); if (token !== epoch || !sheet.open || current.locked || current.account !== context.account || current.revision !== context.revision) return;
       if (!reply.ok) {status.textContent = reply.error?.code ?? 'FAMILY_TOKEN_READ_FAILED'; return;}
       if (reply.value.family !== 'tron' || reply.value.network !== network.value) {status.textContent = 'FAMILY_ACCOUNT_CHANGED'; return;}
-      status.textContent = `${reply.value.name} (${reply.value.symbol}) · ${reply.value.decimals}`; tokenContract.value = ''; tokenSection.open = false;
+      status.textContent = `${reply.value.name} (${reply.value.symbol}) · ${reply.value.decimals}`; tokenContract.value = ''; tokenRows.replaceChildren(); tokenSection.open = false;
     } catch (error) {if (token === epoch) status.textContent = error.code ?? 'FAMILY_TOKEN_READ_FAILED';}
     finally {if (token === epoch) {busy = false; importToken.disabled = Boolean(getContext().locked);}}
   });

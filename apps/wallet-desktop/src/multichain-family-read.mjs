@@ -25,6 +25,9 @@ export class FamilyRead {
     return this.networks.put(network, before.revision);
   }
   async importToken(input) {
+    return this.gate.run(()=>this.#importOriginalToken(input));
+  }
+  async #importOriginalToken(input) {
     exactObject(input, ['family', 'network', 'contract']);
     if (input.family !== 'tron' || !this.tokens) throw multiError('FAMILY_TOKEN_UNSUPPORTED', 'Select a TRON network and TRC20 contract.');
     const context = await this.getContext(), before = await this.networks.read(), catalog = await this.tokens.read();
@@ -39,6 +42,22 @@ export class FamilyRead {
     const token = {family: 'tron', network: network.network, genesis: network.genesis, contract: contract.hex, name: metadata.name, symbol: metadata.symbol, decimals: metadata.decimals};
     await this.tokens.put(token, catalog.revision); return token;
   }
+  async tokenCatalog(input) {
+    exactObject(input,['family','network']);
+    if(input.family!=='tron'||!this.tokens)throw multiError('FAMILY_TOKEN_UNSUPPORTED','Select a TRON network.');
+    const before=await this.networks.read(),catalog=await this.tokens.read(),network=effectiveFamilyNetworks(before).networks.find(n=>n.family===input.family&&n.network===input.network);
+    if(!network)throw multiError('FAMILY_NETWORK_REQUIRED','Configure the selected chain endpoint first.');
+    return {family:input.family,network:input.network,genesis:network.genesis,revision:catalog.revision,tokens:catalog.tokens.filter(t=>t.family===input.family&&t.network===input.network)};
+  }
+  async removeToken(input) {return this.gate.run(async()=>{
+    exactObject(input,['family','network','genesis','contract','revision']);
+    if(input.family!=='tron'||!this.tokens||!Number.isSafeInteger(input.revision)||input.revision<0)throw multiError('FAMILY_TOKEN_INVALID','Check the original token identity.');
+    const context=await this.getContext();if(context.locked||context.authenticating||!context.account)throw multiError('MULTICHAIN_LOCKED','Unlock before editing the token catalog.');
+    const catalog=await this.tokens.read(),current=await this.getContext();
+    if(current.locked||current.authenticating||current.account!==context.account||current.revision!==context.revision||catalog.revision!==input.revision)throw changed();
+    await this.tokens.remove({family:input.family,network:input.network,genesis:input.genesis,contract:input.contract},input.revision);
+    return {family:input.family,network:input.network,genesis:input.genesis,contract:input.contract,removed:true};
+  });}
   async balances(input) {
     exactObject(input, ['family', 'network']);
     const context = await this.getContext(), before = await this.networks.read();

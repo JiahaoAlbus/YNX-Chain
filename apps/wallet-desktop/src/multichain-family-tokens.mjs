@@ -18,6 +18,11 @@ function validate(value) {
 export class FamilyTokens {
   constructor({filePath, file} = {}) {this.file = file ?? new AtomicMultiFile({filePath, initial: {version: 1, revision: 0, tokens: []}, validate});}
   read() {return this.file.read();}
+  remove(input,revision) {exactObject(input,['family','network','genesis','contract']);const normalized=validateFamilyToken({...input,name:'Removal identity',symbol:'LOCAL',decimals:0});return this.file.mutate(value=>{
+    if(value.revision!==revision)throw multiError('MULTICHAIN_CONTEXT_CHANGED','Token catalog changed.');
+    const index=value.tokens.findIndex(t=>key(t)===key(normalized));if(index<0)throw multiError('FAMILY_TOKEN_NOT_FOUND','Token was not found on this exact network.');
+    value.tokens.splice(index,1);value.revision++;return value;
+  });}
   put(input, revision) {const token = validateFamilyToken(input); return this.file.mutate(value => {
     if (value.revision !== revision) throw multiError('MULTICHAIN_CONTEXT_CHANGED', 'Token catalog changed.');
     const index = value.tokens.findIndex(t => key(t) === key(token)); if (index < 0) value.tokens.push(token); else value.tokens[index] = token;

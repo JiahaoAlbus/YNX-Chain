@@ -121,6 +121,8 @@ handleWalletIPC('wallet:family-networks', () => safeIPC(() => familyRead.snapsho
 handleWalletIPC('wallet:family-network', (_event, input) => safeIPC(() => familyRead.configure(input)));
 handleWalletIPC('wallet:family-balances', (_event, input) => sensitiveIPC(() => familyRead.balances(input)));
 handleWalletIPC('wallet:family-token', (_event, input) => sensitiveIPC(() => familyRead.importToken(input)));
+handleWalletIPC('wallet:family-tokens', (_event, input) => safeIPC(() => familyRead.tokenCatalog(input)));
+handleWalletIPC('wallet:family-token-remove', (_event, input) => sensitiveIPC(() => familyRead.removeToken(input)));
 handleWalletIPC('wallet:family-records', (_event, input) => safeIPC(() => familyRecovery.list(input)));
 handleWalletIPC('wallet:family-check', (_event, input) => safeIPC(() => familyRecovery.check(input)));
 handleWalletIPC('wallet:family-btc-prepare', (_event, input) => sensitiveIPC(() => familyBitcoinTransfer.prepare(input)));
