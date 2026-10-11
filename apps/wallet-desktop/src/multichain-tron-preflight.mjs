@@ -20,9 +20,21 @@ function parameters(body) {
   object(body); if (!Array.isArray(body.chainParameter) || body.chainParameter.length>256) fail('TRON_CHAIN_PARAMETERS_INVALID');
   const out=new Map(); for (const entry of body.chainParameter) {
     object(entry); if (typeof entry.key!=='string' || out.has(entry.key)) fail('TRON_CHAIN_PARAMETERS_INVALID');
-    out.set(entry.key, uint(entry.value??0));
+    // java-tron may return signed protocol flags, e.g.
+    // getRemoveThePowerOfTheGr=-1. Validate the protocol's signed int64
+    // representation here; only parameters actually consumed as prices,
+    // limits or rates must be unsigned. Never clamp a negative price to zero.
+    let value=entry.value??0;
+    if(typeof value==='number'){
+      if(!Number.isSafeInteger(value))fail('TRON_PREFLIGHT_INTEGER_INVALID');
+      value=String(value);
+    }
+    if(typeof value!=='string'||! /^(0|-?[1-9][0-9]*)$/.test(value)||value.length>20)fail('TRON_PREFLIGHT_INTEGER_INVALID');
+    const n=BigInt(value);
+    if(n< -9223372036854775808n||n>MAX)fail('TRON_PREFLIGHT_INTEGER_INVALID');
+    out.set(entry.key,value);
   }
-  return key=>{ if (!out.has(key)) fail('TRON_CHAIN_PARAMETER_MISSING'); return out.get(key); };
+  return key=>{ if (!out.has(key)) fail('TRON_CHAIN_PARAMETER_MISSING'); return uint(out.get(key)); };
 }
 function reference(body, now) {
   object(body); const header=object(object(body.block_header).raw_data), number=uint(header.number);

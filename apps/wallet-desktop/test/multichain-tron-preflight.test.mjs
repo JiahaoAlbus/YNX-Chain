@@ -92,3 +92,28 @@ test('elapsed observation budget cannot be silently reused',async()=>{
     if(endpoint==='/wallet/getaccountresource')return f.data.resources;if(endpoint==='/wallet/getchainparameters')return f.data.parameters;return f.data.head;
   }});await assert.rejects(adapter.prepare(f.input),{code:'TRON_PREFLIGHT_STALE_OBSERVATIONS'});
 });
+test('live protocol negative sentinel is unrelated to fees and does not change TRX/TRC20 canonical preflight',async()=>{
+  for(const asset of ['trx','trc20'])for(const value of [-1,'-1','-9223372036854775808']){
+    const clean=fixture(()=>{},asset),expected=await clean.adapter.prepare(clean.input);
+    const live=fixture(d=>{d.parameters.chainParameter.push({key:'getRemoveThePowerOfTheGr',value});},asset);
+    const result=await live.adapter.prepare(live.input);
+    assert.deepEqual(result.transaction,expected.transaction);assert.deepEqual(result.fees,expected.fees);
+    assert.equal(result.broadcastAuthorized,false);
+  }
+});
+test('signed protocol values remain bounded/canonical and duplicate unrelated keys still fail closed',async()=>{
+  for(const value of ['-0','+1','01','-01','1.0','-9223372036854775809','9223372036854775808',9007199254740992,true,{},[]]){
+    const f=fixture(d=>{d.parameters.chainParameter.push({key:'getRemoveThePowerOfTheGr',value});});
+    await assert.rejects(f.adapter.prepare(f.input),{code:'TRON_PREFLIGHT_INTEGER_INVALID'});
+  }
+  const f=fixture(d=>{d.parameters.chainParameter.push({key:'getRemoveThePowerOfTheGr',value:-1},{key:'getRemoveThePowerOfTheGr',value:-1});});
+  await assert.rejects(f.adapter.prepare(f.input),{code:'TRON_CHAIN_PARAMETERS_INVALID'});
+});
+test('consumed negative transaction and Energy fees cannot become zero or lower a budget',async()=>{
+  for(const [key,asset]of [['getTransactionFee','trx'],['getEnergyFee','trc20'],['getMaxFeeLimit','trc20'],['getDynamicEnergyMaxFactor','trc20']]){
+    const f=fixture(d=>{d.parameters.chainParameter.find(row=>row.key===key).value=-1;},asset);
+    await assert.rejects(f.adapter.prepare(f.input),{code:'TRON_PREFLIGHT_INTEGER_INVALID'});
+  }
+  const f=fixture(d=>{d.recipient={};d.parameters.chainParameter.find(row=>row.key==='getCreateNewAccountFeeInSystemContract').value=-1;});
+  await assert.rejects(f.adapter.prepare(f.input),{code:'TRON_PREFLIGHT_INTEGER_INVALID'});
+});
