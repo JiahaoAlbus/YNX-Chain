@@ -1,4 +1,4 @@
-import { readFile, writeFile, mkdir, readdir, cp, lstat, realpath } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir, cp, lstat, realpath, rename } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { dirname, resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { packageLanguagePack } from '../../../scripts/package-language-pack.mjs'
 import { reviewedMacNodeVersion } from '../../../scripts/bundle-local-node-runtime.mjs';
 import { inspectBinary, compareVersions } from '../../../scripts/verify-macos-compatibility.mjs';
 import { claimBuildOutput, verifyBuildOutputIdentity } from '../../../scripts/build-output-root.mjs';
+import { buildNativeTrash } from './native-trash-build-qa.mjs';
 const application = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const developer = resolve(application, '../..');
 const destination = process.argv[2], pluginsInput = process.argv[3];
@@ -68,9 +69,22 @@ async function assertRegularTree(root) {
 }
 await assertRegularTree(join(application, 'lib'));
 await cp(join(application, 'lib'), join(destination, 'lib'), { recursive: true, errorOnExist: true, force: false });
+let nativeTrash;
 if (process.platform === 'darwin') {
   const { verifyProcessHelper } = await import('./process-helper-build.mjs');
   await verifyProcessHelper({ output: join(destination, 'lib/backend/ynx-process-tree') });
+  const inherited = join(destination, 'lib/backend/macos-trash');
+  const stat = await lstat(inherited);
+  if (!stat.isFile() || stat.isSymbolicLink()
+    || createHash('sha256').update(await readFile(inherited)).digest('hex') !== '7119796cfc2f281442ddd2f752c4e0f8205a54c02567d21887a33451ee98754f') {
+    throw Error('Inherited trash@7.2.0 macOS executable differs from the reviewed replacement input.');
+  }
+  const output = `${inherited}.native`;
+  nativeTrash = await buildNativeTrash(output);
+  // Replace only this freshly copied, pinned executable. Caller and isolation
+  // remain unchanged; native architecture is not proof of Trash permissions.
+  await rename(output, inherited);
+  await rename(`${output}.receipt.json`, `${inherited}.receipt.json`);
 }
 for (const name of ['package.json', 'package-lock.json']) await cp(join(application, name), join(destination, name), { errorOnExist: true, force: false });
 const helper = await readFile(join(developer, 'runtime/ynx-workbench/assets/workbench-activity.js'), 'utf8');
@@ -139,6 +153,13 @@ await writeFile(join(destination, 'plugins/extension-inputs.json'), JSON.stringi
 // Missing notice files are recorded for release review, never silently waived.
 const lock = JSON.parse(await readFile(join(application, 'package-lock.json'), 'utf8'));
 const notices = [];
+if (nativeTrash) {
+  await writeFile(join(destination, 'YNX-NATIVE-TRASH-NOTICE.txt'),
+    'YNX native macOS trash executable replacement (MIT). Uses Foundation NSFileManager.\n'
+    + 'trash@7.2.0 JavaScript caller and upstream MIT notices retained.\n'
+    + 'Architecture compatibility does not grant system Trash access or bypass the workbench sandbox.\n', { flag: 'wx' });
+  notices.push({ name: 'ynx-native-macos-trash', license: 'MIT', files: ['../YNX-NATIVE-TRASH-NOTICE.txt'] });
+}
 notices.push({ name: 'typescript', version: tsMetadata.version, license: tsMetadata.license,
   files: ['../plugins/ynx.ynx-tools/runtime/typescript/LICENSE.txt', '../plugins/ynx.ynx-tools/runtime/typescript/ThirdPartyNoticeText.txt'] });
 notices.push({ name: 'ynx.ynx-go', version: goMetadata.version, license: goMetadata.license,
@@ -205,6 +226,8 @@ if (process.platform === 'darwin') {
 }
 const manifest = { kind: 'ynx-theia', version: '1.76.0', architecture: `${process.platform}-${process.arch}`,
   ...macosCompatibility ? { macosCompatibility } : {},
+  ...nativeTrash ? { nativeTrash: { ...nativeTrash, path: 'lib/backend/macos-trash',
+    receipt: 'lib/backend/macos-trash.receipt.json', sandboxQualification: 'Separate exact-sandbox QA required; no permission expansion' } } : {},
   nodeVersion: process.version, nodeOptions: ['--no-experimental-global-navigator', '--max-old-space-size=1024'],
   entry: 'lib/backend/main.js', frontend: 'lib/frontend/index.html',
   lockSha256: createHash('sha256').update(await readFile(join(destination, 'package-lock.json'))).digest('hex'),
