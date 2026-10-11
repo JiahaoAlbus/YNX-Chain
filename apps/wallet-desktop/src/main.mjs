@@ -278,6 +278,11 @@ handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async 
   return page;
 }));
 handleWalletIPC("wallet:transaction-status", (_event, hash) => safeIPC(async () => walletAuthority.transactionSender.submissions.check(hash, (await walletAuthority.accountStatus()).account)));
+handleWalletIPC("wallet:save-transaction-original", (_event, hash) => sensitiveIPC(async () => {
+  const lease=keyAccess.current(),status=await walletAuthority.accountStatus();
+  lease.assert();
+  return walletAuthority.transactionSender.submissions.saveOriginal(hash,status.account,lease);
+}));
 handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async () => {
   const lease = keyAccess.current(), status = await walletAuthority.accountStatus();
   lease.assert();

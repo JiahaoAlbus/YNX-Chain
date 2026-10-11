@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {mkdtemp,readFile,writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {evmAddressFromYNX,canonicalJSON} from "@ynx-chain/wallet-auth";
+import {evmAddressFromYNX,canonicalJSON,createSignedNativeTransfer,createSignedPayPaymentResult} from "@ynx-chain/wallet-auth";
 import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 import {DesktopWalletVault} from "../src/desktop-wallet-vault.mjs";
 import {DesktopNativePayChain} from "../src/native-pay-chain.mjs";
@@ -14,6 +14,17 @@ import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
 import {payTestSecret,signedPayFixture} from "./fixture-signed-pay.mjs";
 import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
+function r5FullPacket(f){const transfer=createSignedNativeTransfer({accountSecret:payTestSecret,to:f.input.review.to,amount:25,nonce:2});const paymentResult=createSignedPayPaymentResult({accountSecret:payTestSecret,intent:f.input.rawIntent,transferPayload:transfer.payload,issuedAt:new Date(f.input.now()).toISOString()},new Date(f.input.now()));return {version:2,account:f.identity.account,origin:CANONICAL_RPC_URL,invoice:f.input.rawInvoice,intent:f.input.rawIntent,session:f.authority.session,transfer,paymentResult}}
+test('r5 actual Pay flow saves complete held original with zero decrypt RPC broadcast or settlement',async()=>{
+ const f=await fixture(),record=r5FullPacket(f),account=evmAddressFromYNX(f.identity.account);await f.store.reserveOriginal(account,'pay');f.store.captureOriginal(account,record,'pay');
+ const entry=await f.flow.saveOriginal(f.identity.account,record.transfer.hash);assert.equal(canonicalJSON(entry.record),canonicalJSON(record));assert.equal(entry.broadcastAttempted,true);assert.equal(f.decryptions(),0);assert.deepEqual(f.calls,[]);
+ const cold=createProtectedDesktopPayFlow({...f.integration,store:new FileTransactionIntentStore({filePath:f.filePath})});assert.equal(canonicalJSON((await cold.restore(f.identity.account)).entry.record),canonicalJSON(record));f.lifecycle.lock();
+});
+test('r5 actual Pay lifecycle lock after replacement retains same original for later storage-only adoption',async()=>{
+ const f=await fixture(),record=r5FullPacket(f),account=evmAddressFromYNX(f.identity.account);await f.store.reserveOriginal(account,'pay');f.store.captureOriginal(account,record,'pay');const replace=f.store.filePolicy.replace.bind(f.store.filePolicy);
+ f.store.filePolicy.replace=async(...args)=>{await replace(...args);f.lifecycle.lock()};await assert.rejects(f.flow.saveOriginal(f.identity.account,record.transfer.hash));assert.equal(canonicalJSON(f.store.localOriginal(account).pay),canonicalJSON(record));
+ f.store.filePolicy.replace=replace;await f.lifecycle.unlock();await f.flow.saveOriginal(f.identity.account,record.transfer.hash);assert.equal(f.store.localOriginal(account),null);assert.equal(f.decryptions(),0);assert.deepEqual(f.calls,[]);f.lifecycle.lock();
+});
 async function fixture(version=1){
   const f=signedPayFixture(version),directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-flow-")),filePath=join(directory,"journal.json");let decryptions=0;
   const lifecycle=new DesktopKeyLifecycle({now:f.input.now,authorizer:{available:()=>true,authenticate:async()=>{},method:"controlled-test-only"},schedule:()=>null,unschedule:()=>{}});lifecycle.setFocused(true);

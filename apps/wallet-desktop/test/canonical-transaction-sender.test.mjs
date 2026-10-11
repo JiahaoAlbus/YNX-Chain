@@ -19,6 +19,37 @@ const wallet = new Wallet(`0x${"1".padStart(64, "0")}`);
 const account = wallet.address.toLowerCase();
 const recipient = `0x${"22".repeat(20)}`;
 const input = () => ({ from: account, to: recipient, value: "0x1", data: "0x1234" });
+async function r5HeldNative(t){
+ const f=fixture(t),directory=await mkdtemp(join(tmpdir(),'ynx-r5-save-')),filePath=join(directory,'journal.json'),store=new FileTransactionIntentStore({filePath});f.sender.submissions.intentStore=store;
+ const proof=JSON.parse(await readFile(new URL('./fixtures/transaction-durability/native-json-contract-fixture.json',import.meta.url),'utf8'));
+ const caps=parseFeeModel({version:'ynx-ethereum-native-v1',enabled:true,chainId:'0x1917',transactionType:'0x0',feeYNXT:'1',feeWei:'0xde0b6b3a7640000',gas:'0x61a8',gasPrice:'0x246139ca8000',decimals:18,amountQuantumWei:'0xde0b6b3a7640000',scope:'whole-YNXT plain native transfers',fullEVM:false,eip1559:false,durability:proof.capability});
+ const tx={from:account,to:recipient,value:'0xde0b6b3a7640000',chainId:'0x1917',nonce:'0x0',type:0,gasLimit:'0x61a8',gasPrice:caps.gasPrice,data:'0x'};
+ // Public fixture creation is not a production signer invocation. Counters
+ // below cover the save operation itself, which never calls any producer.
+ const raw=await wallet.signTransaction({...tx,from:undefined,nonce:0});await store.reserveOriginal(account,'native');f.sender.submissions.retainOriginal(raw,tx,caps);
+ return {...f,store,filePath,raw,hash:Transaction.from(raw).hash,guard:{account,assert(){}}};
+}
+test('r5 actual native save-only owner publishes exact original and cold readback with zero effects',async t=>{
+ const f=await r5HeldNative(t),sub=f.sender.submissions;const saved=await sub.saveOriginal(f.hash,account,f.guard);
+ assert.deepEqual(saved,{account,hash:f.hash,savedLocally:true,submitted:false,confirmed:false});assert.equal(f.store.localOriginal(account),null);
+ const cold=new FileTransactionIntentStore({filePath:f.filePath});assert.equal((await cold.snapshot())[0].raw,f.raw);const before=await readFile(f.filePath,'utf8');await sub.saveOriginal(f.hash,account,f.guard);assert.equal(await readFile(f.filePath,'utf8'),before);
+ assert.equal((await sub.list(account))[0].canRetryExact,false);await assert.rejects(sub.retry(f.hash,account,f.guard));assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
+});
+for(const boundary of ['locked-before','locked-after-write','ack','before-write','readback'])test(`r5 native save-only ${boundary} retains original and never sends`,async t=>{
+ const f=await r5HeldNative(t),replace=f.store.filePolicy.replace.bind(f.store.filePolicy);let live=boundary!=='locked-before';const guard={account,assert(){if(!live)throw Error('QA_SAVE_LOCK')}};
+ f.store.filePolicy.replace=async(...args)=>{if(boundary==='before-write')throw Error('QA_SAVE_DISK');await replace(...args);if(boundary==='locked-after-write')live=false;if(boundary==='ack')throw Error('QA_SAVE_ACK')};
+ const snapshot=f.store.snapshot.bind(f.store),available=f.store.filePolicy.available.bind(f.store.filePolicy);let replaced=false;if(boundary==='readback'){f.store.filePolicy.replace=async(...args)=>{await replace(...args);replaced=true};f.store.filePolicy.available=async p=>{if(replaced&&p===f.filePath)throw Error('QA_SAVE_READBACK');return available(p)}}
+ await assert.rejects(f.sender.submissions.saveOriginal(f.hash,account,guard));assert.equal(f.store.localOriginal(account).native.raw,f.raw);
+ live=true;f.store.filePolicy.replace=replace;f.store.filePolicy.available=available;
+ await f.sender.submissions.saveOriginal(f.hash,account,guard);assert.equal(f.store.localOriginal(account),null);assert.equal((await snapshot())[0].raw,f.raw);
+ assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
+});
+test('r5 native duplicate save is serialized and hostile binding has no effect',async t=>{
+ const f=await r5HeldNative(t);await assert.rejects(f.sender.submissions.saveOriginal(f.hash,'0x'+'3'.repeat(40),f.guard));await assert.rejects(f.sender.submissions.saveOriginal({raw:f.raw},account,f.guard));
+ const replace=f.store.filePolicy.replace.bind(f.store.filePolicy),entered=Promise.withResolvers(),resume=Promise.withResolvers();f.store.filePolicy.replace=async(...args)=>{entered.resolve();await resume.promise;return replace(...args)};
+ const first=f.sender.submissions.saveOriginal(f.hash,account,f.guard);await entered.promise;await assert.rejects(f.sender.submissions.saveOriginal(f.hash,account,f.guard));resume.resolve();await first;
+ assert.equal((await f.store.snapshot())[0].attempts,1);assert.equal(f.state.signs,0);assert.equal(f.state.broadcasts,0);assert.deepEqual(f.state.calls,[]);
+});
 function fixture(t, overrides = {}) {
   const state = { chain: "0x1917", nonce: "0x0", balance: toQuantity(10n ** 18n), gasPrice: "0x3b9aca00", estimate: "0x5208", calls: [], signs: 0, broadcasts: 0, ...overrides };
   const fetchImpl = async (_url, options) => {

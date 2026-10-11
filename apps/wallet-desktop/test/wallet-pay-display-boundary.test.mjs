@@ -18,6 +18,22 @@ function harness(){
   const ui=createDesktopPayUI({api,getContext:()=>({open:true,account,keyRevision:1,locked:false}),render:value=>views.push(value)});
   return {ui,views,calls,status:value=>status=value,response:value=>response=value};
 }
+for(const kind of ['full','native-only','unknown'])test(`r5 mounted Pay ${kind} exposes only the genuine save-capable original`,async()=>{
+ const make=()=>({open:false,value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}}),nodes=new Map(),get=s=>{if(!nodes.has(s))nodes.set(s,make());return nodes.get(s)};
+ const flags={status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false},retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:{name:'Error',code:null,message:'QA_SAVE'}},full={...archived(),...flags};
+ const dto=kind==='full'?{...full,localRetention:retention}:kind==='native-only'?{account,hash:full.hash,...flags,nativeOnly:true,localRetention:retention}:{account,hash:null,...flags,signingUnknown:true};const calls=[];
+ const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payHistory:async()=>{throw Error('QA_HISTORY')},payAction:async input=>{calls.push(input);assert.equal(input.action,'save');return {ok:true,value:{kind:'original',original:{...full,broadcastAttempted:true},savedLocally:true,submitted:false}}},onSecurityState:()=>{},onAccountStatus:()=>{}};
+ mountDesktopPayUI({document:{querySelector:s=>fileInputDOM(get(s),next=>nodes.set(s,next)),createElement:make},api,getContext:()=>({account,keyRevision:1,locked:false})});get('#open-protected-pay').emit('click');await new Promise(resolve=>setImmediate(resolve));
+ const save=get('#protected-pay-sheet').children.find(x=>x.id==='protected-pay-save-original');assert.equal(save.hidden,kind!=='full');await get('#protected-pay-history').emit('click');await new Promise(resolve=>setImmediate(resolve));assert.equal(save.hidden,kind!=='full');
+ await save.emit('click');assert.equal(calls.length,kind==='full'?1:0);
+ if(kind==='full'){assert.match(get('#protected-pay-status').textContent,/Saved locally/);assert.equal(get('#protected-pay-settle').hidden,true);assert.equal(get('#protected-pay-done').hidden,true);assert.equal(save.hidden,true)}
+});
+test('r5 Pay save failure preserves original and stale lock response cannot claim success',async()=>{
+ const context={open:true,account,keyRevision:1,locked:false},views=[],dto={...archived(),status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,localRetention:{scope:'operation-memory',durable:false,originalCause:null,storageCause:null}};let resolve,response;
+ const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payAction:()=>response??new Promise(r=>resolve=r)};
+ const ui=createDesktopPayUI({api,getContext:()=>({...context}),render:v=>views.push(v)});await ui.open();response={ok:false,error:{code:'DISK'}};await ui.action('save');assert.equal(views.at(-1).original.hash,dto.hash);assert.ok(views.at(-1).error);response=null;
+ const pending=ui.action('save');context.locked=true;context.keyRevision++;const last=views.at(-1);resolve({ok:true,value:{kind:'original',original:{...dto,localRetention:undefined},savedLocally:true,submitted:false}});await pending;assert.equal(views.at(-1),last);assert.equal(views.at(-1).savedLocally,false);
+});
 test("r4 Pay UI retains safe local original across independent history failure and refuses all actions",async()=>{
  const views=[],calls=[];const dto={...archived(),status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,localRetention:{scope:'operation-memory',durable:false,originalCause:null,storageCause:{name:'Error',code:null,message:'QA_SAVE'}}};
  const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payHistory:async()=>{throw Error('QA_HISTORY')},payAction:async value=>{calls.push(value);throw Error('must not dispatch')}};
@@ -30,7 +46,7 @@ for(const kind of ['full','native-only','unknown'])test(`r4 actual mounted Pay w
  const flags={status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false};
  const dto=kind==='full'?{...archived(),...flags,localRetention:retention}:kind==='native-only'?{account,hash:'0x'+'c'.repeat(64),...flags,nativeOnly:true,localRetention:retention}:{account,hash:null,...flags,signingUnknown:true};let actions=0;
  const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:dto}}),payAction:async()=>{actions++},onSecurityState:()=>{},onAccountStatus:()=>{}};
- mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:'',children:[],append(...items){this.children.push(...items)}})},api,getContext:()=>({account,keyRevision:1,locked:false})});get('#open-protected-pay').emit('click');await new Promise(resolve=>setImmediate(resolve));
+ mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:'',children:[],addEventListener(){},append(...items){this.children.push(...items)}})},api,getContext:()=>({account,keyRevision:1,locked:false})});get('#open-protected-pay').emit('click');await new Promise(resolve=>setImmediate(resolve));
  const facts=get('#protected-pay-facts').children.map(x=>x.textContent).join(' ');assert.match(facts,kind==='unknown'?/result unknown/:/Keep Wallet running/);if(kind!=='unknown'){assert.match(facts,/QA_ORIGINAL_CAUSE/);assert.match(facts,/QA_STORAGE_CAUSE/)}if(kind==='native-only')assert.match(facts,/no complete Pay result/);
  for(const action of ['check','settle','receipt','done'])assert.equal(get('#protected-pay-'+action).hidden,true);assert.equal(actions,0);
 });
@@ -101,7 +117,7 @@ test("mounted Pay QR accepts only detached literal success and never reviews or 
     const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),
       payRestore:async()=>({ok:true,value:{kind:"original",original:null}}),payReview:async()=>{reviews++;throw Error("No automatic review")},
       payAction:async()=>{actions++;throw Error("No automatic action")},invoiceReferenceQR:async()=>response,onSecurityState:()=>{},onAccountStatus:()=>{}};
-    mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api,
+    mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:"",addEventListener(){}})},api,
       getContext:()=>({account,keyRevision:1,locked:false})});
     get("#open-protected-pay").emit("click");await new Promise(resolve=>setImmediate(resolve));
     get("#protected-pay-reference").value="existing-reference";

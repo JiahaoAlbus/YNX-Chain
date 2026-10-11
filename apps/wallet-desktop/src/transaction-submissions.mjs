@@ -12,6 +12,7 @@ const failure = (code, message, data = {}) => Object.assign(capabilityError(code
 export class TransactionSubmissions {
   #records = new Map();
   #busy = new Set();
+  #savedOnly = new Map();
   constructor({ provider, capabilities, verifyChain, intentStore }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; }
   async #intents() {
     if (!this.intentStore) throw failure("TRANSACTION_JOURNAL_UNAVAILABLE", "A durable transaction journal is required before signing or broadcasting.");
@@ -21,7 +22,7 @@ export class TransactionSubmissions {
     const local=this.intentStore?.localOriginal(account);
     if(local?.kind==="native"&&local.native){const record=local.native;return [{hash:record.hash,account,status:"signed_unpersisted",canRetryExact:false,to:record.transaction.to,amount:formatEther(record.transaction.value),localRetention:originalRetention(local)}]}
     if(local?.kind==="native"||await this.intentStore?.unresolvedPreparation?.(account))return [{hash:null,account,status:"signing_unknown",canRetryExact:false,to:null,amount:null,signingUnknown:true}];
-    return (await this.#intents()).filter(record => record.account === account).map(record => ({ hash: record.hash, account, status: this.#records.get(record.hash)?.status ?? "uncertain", canRetryExact: Boolean(record.raw ?? this.#records.get(record.hash)?.raw), to: record.to, amount: formatEther(record.value) }));
+    return (await this.#intents()).filter(record => record.account === account).map(record => ({ hash: record.hash, account, status: this.#records.get(record.hash)?.status ?? "uncertain", canRetryExact: this.#savedOnly.get(account)!==record.hash&&Boolean(record.raw ?? this.#records.get(record.hash)?.raw), to: record.to, amount: formatEther(record.value) }));
   }
   async reserveOriginal(transaction){
     if(typeof this.intentStore?.reserveOriginal!=="function")throw failure("TRANSACTION_JOURNAL_UNAVAILABLE","A durable pre-sign preparation barrier is required.");
@@ -29,6 +30,16 @@ export class TransactionSubmissions {
   }
   retainOriginal(raw,transaction,capabilities){const decoded=Transaction.from(raw);if(!decoded.isSigned()||decoded.from?.toLowerCase()!==transaction.from)throw failure("TRANSACTION_SNAPSHOT_MISMATCH","The original signature is invalid");this.intentStore.captureOriginal(transaction.from,{hash:decoded.hash,raw,transaction,capabilities},"native")}
   originalFailed(account,error){this.intentStore?.originalFailed(account,error)}
+  async saveOriginal(hash,account,guard){
+    if(!HASH.test(hash??"")||guard?.account!==account||typeof guard?.assert!=="function")throw failure("ORIGINAL_SAVE_BINDING_MISMATCH","Select and unlock the original account before saving.");
+    guard.assert();
+    return this.#exclusive(account,async()=>{
+      guard.assert();const local=this.intentStore.localOriginal(account);
+      if(local&&local.kind!=="native")throw failure("ORIGINAL_SAVE_BINDING_MISMATCH","Save this original through its original Pay owner.");
+      // A save request never supplies a same-process retry capability.
+      const saved=await this.intentStore.saveOriginal(account,hash,()=>guard.assert());this.#savedOnly.set(account,hash);guard.assert();return saved;
+    });
+  }
   async history(account, cursor = null, limit = 20) {
     if (!/^0x[0-9a-f]{40}$/.test(account ?? "") || cursor !== null && !HASH.test(cursor) || !Number.isInteger(limit) || limit < 1 || limit > 50) throw failure("INVALID_HISTORY_PAGE", "Select an account and a valid transaction history page.");
     if (typeof this.intentStore?.resolutions !== "function") throw failure("TRANSACTION_JOURNAL_UNAVAILABLE", "The saved transaction history is unavailable. Preserve the original journal.");
@@ -126,6 +137,7 @@ export class TransactionSubmissions {
     return this.#exclusive(account, () => this.#retry(hash, account, guard));
   }
   async #retry(hash, account, guard) {
+    if(this.#savedOnly.get(account)===hash)throw failure("ORIGINAL_SAVE_NOT_SEND_AUTHORIZATION","Saving locally did not authorize broadcasting this original.");
     if(this.intentStore?.localOriginal(account))throw failure("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original persistence is unresolved; no retry is permitted.");
     guard.assert();
     if (guard.account !== account) throw failure("ACCOUNT_CHANGED", "Unlock the account that signed these exact bytes.");

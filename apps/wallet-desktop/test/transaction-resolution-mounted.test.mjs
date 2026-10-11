@@ -20,9 +20,21 @@ function harness(){
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
+test('r5 actual normal renderer saves original without check retry or signer and reports only local custody',async()=>{
+ const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};h.context.window.ynxWallet.saveTransactionOriginal=value=>new Promise(resolve=>saves.push({value,resolve}));
+ const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});assert.match(save.textContent,/Save original locally/);const pending=save.click();await save.click();assert.equal(saves.length,1);assert.equal(saves[0].value,hash);assert.equal(h.actions.length,0);
+ saves[0].resolve({ok:true,value:{account,hash,savedLocally:true,submitted:false,confirmed:false}});await pending;assert.match(h.get('#transaction-resolution-result').textContent,/Saved locally/);assert.equal(h.context.assetRefreshes,0);assert.equal(h.actions.length,0);h.reads.at(-1)?.resolve({ok:true,value:[{...record,canRetryExact:false}]});
+});
+for(const boundary of ['lock','account','failure'])test(`r5 actual save button ${boundary} never replaces original with false success`,async()=>{
+ const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};h.context.window.ynxWallet.saveTransactionOriginal=()=>new Promise(resolve=>saves.push(resolve));
+ const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});const pending=save.click();
+ if(boundary==='lock'){h.context.keyState.locked=true;h.context.keyState.revision++}if(boundary==='account')h.context.clearTransactionResolution();
+ saves[0](boundary==='failure'?{ok:false,error:{message:'QA_SAVE_FAILED'}}:{ok:true,value:{account,hash,savedLocally:true,submitted:false,confirmed:false}});await pending;
+ assert.doesNotMatch(h.get('#transaction-resolution-result').textContent,/Saved locally/);assert.equal(h.actions.length,0);if(boundary==='failure')h.reads.at(-1)?.resolve({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});
+});
 test("r4 actual renderer shows local-only original and no actionable retry/check buttons",async()=>{
  const h=harness(),localRetention={scope:'operation-memory',durable:false,originalCause:{name:'Error',code:null,message:'QA_PRODUCER'},storageCause:{name:'Error',code:null,message:'QA_STORAGE'}};
- const buttons=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention}]});assert.deepEqual(buttons,[]);
+ const buttons=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention}]});assert.equal(buttons.length,1);assert.match(buttons[0].textContent,/Save original locally/);
  const content=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(content,/Keep Wallet running|keep Wallet running/);assert.match(content,/QA_PRODUCER/);assert.match(content,/QA_STORAGE/);assert.equal(h.actions.length,0);
 });
 test("account event clears stale resolution entry and original journal remains untouched",()=>{assert.ok(/function renderAccount\(payload\) \{\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);/.test(source));const h=harness();h.get("#transaction-resolution-result").textContent="old";h.context.clearTransactionResolution();assert.equal(h.get("#transaction-resolution-result").textContent,"");assert.equal(h.get("#transaction-resolution").hidden,true);assert.equal(h.actions.length,0);});

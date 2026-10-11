@@ -75,6 +75,11 @@ export function createDesktopPayService({getContext,getIdentity,getRuntime,now=D
         return {kind:"original",original:summary({record:approved.record,broadcastAttempted:true,evidence:null,settlementAttempted:false,settlement:null})};
       }
       const restored=await flow.restore(selected.account);guard();
+      if(input.action==="save"){
+        if(!restored||restored.entry.signingUnknown||restored.entry.nativeOnly||restored.entry.record.transfer.hash!==input.id)fail("PAY_SIGNED_ORIGINAL_BINDING_MISMATCH");
+        const entry=await flow.saveOriginal(selected.account,input.id);guard();
+        return {kind:"original",original:summary(entry),savedLocally:true,submitted:false};
+      }
       if(restored?.entry.localRetention||restored?.entry.signingUnknown)fail("PAY_LOCAL_ORIGINAL_REVIEW_ONLY");
       if(!restored&&input.action==="done"){
         const archived=await flow.done(selected.account,input.id);guard();return {kind:"archived",original:summary(archived,"archived")};

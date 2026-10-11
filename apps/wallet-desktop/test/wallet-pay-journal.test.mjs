@@ -24,6 +24,30 @@ function packet(version=1,nonce=2){
   return {...f,record:{version:2,account:f.identity.account,origin:CANONICAL_RPC_URL,invoice:f.input.rawInvoice,intent:f.input.rawIntent,session:f.authority.session,transfer,paymentResult}};
 }
 async function fixture(){const directory=await mkdtemp(join(tmpdir(),"ynx-desktop-pay-journal-")),filePath=join(directory,"journal.json");return{filePath,store:new FileTransactionIntentStore({filePath})}}
+test('r5 full Pay save-only persists original record with conservative progress and idempotent cold read',async()=>{
+ const f=packet(),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');
+ await store.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy});assert.equal(store.localOriginal(account),null);
+ const cold=new FileTransactionIntentStore({filePath}),entry=await cold.signedPayProgress(f.identity.account,f.input.policy,()=>{});assert.equal(canonicalJSON(entry.record),canonicalJSON(f.record));assert.equal(entry.broadcastAttempted,true);assert.equal(entry.settlementAttempted,false);
+ const before=await readFile(filePath,'utf8');await cold.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy});assert.equal(await readFile(filePath,'utf8'),before);await assert.rejects(cold.assertNoPreparation(account).then(()=>cold.assertNoSignedPayment(account)));
+});
+test('r5 marker-only cold and native-only Pay cannot synthesize or clear an original',async()=>{
+ const f=packet(),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');const before=await readFile(filePath,'utf8');
+ await assert.rejects(new FileTransactionIntentStore({filePath}).saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy}));store.captureOriginal(account,f.record.transfer,'native');await assert.rejects(store.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy}));assert.equal(await readFile(filePath,'utf8'),before);
+});
+test('r5 full Pay publication fault preserves first cause and separately updates storage cause',async()=>{
+ const f=packet(),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');store.originalFailed(account,Error('QA_ORIGINAL_LOCK'));
+ const replace=store.filePolicy.replace.bind(store.filePolicy);store.filePolicy.replace=async()=>{throw Error('QA_R5_DISK')};await assert.rejects(store.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy}));
+ const local=store.localOriginal(account);assert.equal(canonicalJSON(local.pay),canonicalJSON(f.record));assert.equal(local.originalCause.message,'QA_ORIGINAL_LOCK');assert.equal(local.storageCause.message,'QA_R5_DISK');assert.ok(await store.unresolvedPreparation(account));
+ store.filePolicy.replace=replace;await store.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy});assert.equal(store.localOriginal(account),null);assert.ok((await readFile(filePath,'utf8')).includes(f.record.paymentResult.walletSignature));
+});
+test('r5 full Pay save cannot overwrite another complete valid journal original',async()=>{
+ const f=packet(),other=packet(1,3),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');
+ await store.retainSignedPayment(other.record,other.input.policy,()=>{});const before=await readFile(filePath,'utf8');await assert.rejects(store.saveOriginal(account,f.record.transfer.hash,()=>{},{policy:f.input.policy}));assert.equal(await readFile(filePath,'utf8'),before);assert.equal(canonicalJSON(store.localOriginal(account).pay),canonicalJSON(f.record));
+});
+test('r5 Pay save rejects wrong hash and absent policy before discarding held custody',async()=>{
+ const f=packet(),{store,filePath}=await fixture(),account=evmAddressFromYNX(f.identity.account);await store.reserveOriginal(account,'pay');store.captureOriginal(account,f.record,'pay');const before=await readFile(filePath,'utf8');
+ await assert.rejects(store.saveOriginal(account,'0x'+'f'.repeat(64),()=>{},{policy:f.input.policy}));await assert.rejects(store.saveOriginal(account,f.record.transfer.hash,()=>{}));assert.equal(await readFile(filePath,'utf8'),before);assert.ok(store.localOriginal(account).pay);
+});
 test("r4 durable preparing marker blocks cold replacement and capacity rejects before producer",async()=>{
  const {store,filePath}=await fixture();for(let i=1;i<=ORIGINAL_OWNER_LIMIT;i++)await store.reserveOriginal('0x'+i.toString(16).padStart(40,'0'),'native');
  await assert.rejects(store.reserveOriginal('0x'+"9".repeat(40),'native'));assert.equal((JSON.parse(await readFile(filePath))).preparations.length,8);

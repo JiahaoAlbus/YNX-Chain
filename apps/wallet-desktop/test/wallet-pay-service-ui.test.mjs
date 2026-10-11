@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {mkdtemp,readFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
-import {evmAddressFromYNX} from "@ynx-chain/wallet-auth";
+import {evmAddressFromYNX,createSignedNativeTransfer,createSignedPayPaymentResult,canonicalJSON} from "@ynx-chain/wallet-auth";
 import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 import {DesktopWalletVault} from "../src/desktop-wallet-vault.mjs";
 import {FileTransactionIntentStore} from "../src/transaction-intent-store.mjs";
@@ -16,6 +16,18 @@ import {payTestSecret,signedPayFixture} from "./fixture-signed-pay.mjs";
 import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
 import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
+test('r5 normal Pay IPC save-only retains full original internally and never calls signer or outward client',async()=>{
+ const f=await harness(),transfer=createSignedNativeTransfer({accountSecret:payTestSecret,to:f.input.review.to,amount:25,nonce:2}),paymentResult=createSignedPayPaymentResult({accountSecret:payTestSecret,intent:f.input.rawIntent,transferPayload:transfer.payload,issuedAt:new Date(f.input.now()).toISOString()},new Date(f.input.now()));
+ const record={version:2,account:f.identity.account,origin:CANONICAL_RPC_URL,invoice:f.input.rawInvoice,intent:f.input.rawIntent,session:f.authority.session,transfer,paymentResult},account=evmAddressFromYNX(f.identity.account);await f.store.reserveOriginal(account,'pay');f.store.captureOriginal(account,record,'pay');
+ const injected=await f.api.payAction({action:'save',id:transfer.hash,raw:transfer.payload});assert.equal(injected.ok,false);assert.ok(f.store.localOriginal(account));
+ const saved=await f.api.payAction({action:'save',id:transfer.hash});assert.equal(saved.ok,true);assert.equal(saved.value.savedLocally,true);assert.equal(saved.value.submitted,false);assert.equal(saved.value.original.broadcastAttempted,true);assert.equal(saved.value.original.settlementVerified,false);
+ for(const k of ['raw','payload','record','session','paymentResult','walletSignature'])assert.equal(k in saved.value.original,false);
+ assert.equal(canonicalJSON((await f.store.signedPayProgress(f.identity.account,f.input.policy,()=>{})).record),canonicalJSON(record));const bytes=await readFile(f.store.filePath,'utf8');assert.equal((await f.api.payAction({action:'save',id:transfer.hash})).ok,true);assert.equal(await readFile(f.store.filePath,'utf8'),bytes);
+ assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);f.lifecycle.lock();
+});
+test('r5 default uncomposed Pay save does not activate integration or access a key',async()=>{
+ const f=await harness({configured:false});assert.equal((await f.api.payAction({action:'save',id:'0x'+'1'.repeat(64)})).ok,false);assert.equal(f.decryptions(),0);assert.equal(f.posts(),0);assert.equal(f.submits(),0);f.lifecycle.lock();
+});
 
 for(const boundary of ["reopen","account","key","lock","locked-entry"])test(`old open cancellation cannot capture a new ${boundary} epoch or clear its review`,async()=>{
   const context={open:true,account:"original",keyRevision:1,locked:false},views=[];let cancelCalls=0,resolveOld,statusCalls=0,restoreCalls=0;
@@ -33,7 +45,7 @@ test("actual mounted picker cancellation awaiting IPC cannot erase a new reopene
   const f=await harness(),nodes=new Map();let cancelCalls=0,resolveOld;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
   const api={...f.api,payCancel:async()=>{const call=++cancelCalls,result=await f.api.payCancel();if(call===3)await new Promise(resolve=>resolveOld=resolve);return result}};
-  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:"",addEventListener(){}})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   const tick=()=>new Promise(resolve=>setImmediate(resolve)),until=async condition=>{for(let i=0;i<1000;i++){if(condition())return;await tick()}assert.fail("Mounted service did not reach its controlled boundary")};get("#open-protected-pay").emit("click");await until(()=>!get("#protected-pay-review").disabled);const qr=get("#protected-pay-qr");qr.emit("click");await tick();const pending=qr.emit("cancel");await until(()=>typeof resolveOld==="function");
   get("#protected-pay-sheet").close();get("#open-protected-pay").emit("click");await until(()=>!get("#protected-pay-review").disabled);get("#protected-pay-reference").value=f.input.rawInvoice.id;get("#protected-pay-form").emit("submit",{preventDefault(){}});await until(()=>!get("#protected-pay-approve").hidden);
   const facts=get("#protected-pay-facts").children.map(node=>node.textContent),before=f.calls.length;resolveOld();await pending;await tick();
@@ -43,7 +55,7 @@ test("actual mounted picker cancellation awaiting IPC cannot erase a new reopene
 for(const cancellation of ["cancel","change"])test(`mounted Pay ${cancellation} restores current controls without review, key, or payment`,async()=>{
   const f=await harness(),nodes=new Map();let decodes=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
-  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api:{...f.api,invoiceReferenceQR:async()=>{decodes++;throw Error("No decoding")}},getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:"",addEventListener(){}})},api:{...f.api,invoiceReferenceQR:async()=>{decodes++;throw Error("No decoding")}},getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   get("#open-protected-pay").emit("click");await new Promise(resolve=>setImmediate(resolve));
   const qr=get("#protected-pay-qr");get("#protected-pay-reference").value="preserved-reference";qr.emit("click");await new Promise(resolve=>setImmediate(resolve));
   assert.equal(get("#protected-pay-review").disabled,true);await qr.emit(cancellation);await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-review").disabled,false);assert.equal(get("#protected-pay-reference").value,"preserved-reference");
@@ -55,7 +67,7 @@ for(const cancellation of ["cancel","change"])test(`mounted Pay ${cancellation} 
 for(const boundary of ["lock","account"])test(`mounted Pay stale cancellation after ${boundary} never starts current status or decoding`,async()=>{
   const f=await harness(),nodes=new Map();
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
-  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api:{...f.api,invoiceReferenceQR:async()=>{throw Error("No decoding")}},getContext:()=>({account:f.lifecycle.status().account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:"",addEventListener(){}})},api:{...f.api,invoiceReferenceQR:async()=>{throw Error("No decoding")}},getContext:()=>({account:f.lifecycle.status().account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   get("#open-protected-pay").emit("click");await new Promise(resolve=>setImmediate(resolve));const old=get("#protected-pay-qr");old.emit("click");
   if(boundary==="lock")f.lifecycle.lock();else f.lifecycle.setAccount("0x"+"3".repeat(40));await new Promise(resolve=>setImmediate(resolve));
   const before=f.calls.length;await old.emit("cancel");old.files=[];await old.emit("change");assert.equal(f.calls.length,before);assert.equal(f.posts(),0);assert.equal(f.decryptions(),0);assert.equal(f.submits(),0);get("#protected-pay-sheet").close();f.lifecycle.lock();
@@ -167,7 +179,7 @@ test("Desktop actual modal mounts service workflow, escaped facts, retained hash
   const f=await harness(),html=await readFile(new URL("../src/index.html",import.meta.url),"utf8"),ids=new Set([...html.matchAll(/id="([^"]+)"/g)].map(match=>match[1])),nodes=new Map();
   const get=selector=>{assert.ok(ids.has(selector.slice(1)),`Mounted HTML ${selector}`);if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},async emit(type,event={}){await this.listeners.get(type)?.(event);await new Promise(resolve=>setImmediate(resolve))},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
   const querySelector=selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next));
-  const document={querySelector,createElement:()=>({textContent:""})};mountDesktopPayUI({document,api:f.api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  const document={querySelector,createElement:()=>({textContent:"",addEventListener(){}})};mountDesktopPayUI({document,api:f.api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   await get("#open-protected-pay").emit("click");await new Promise(resolve=>setTimeout(resolve,20));assert.equal(get("#protected-pay-sheet").open,true);assert.equal(f.posts(),0);
   get("#protected-pay-reference").value=f.input.rawInvoice.id;await get("#protected-pay-form").emit("submit",{preventDefault(){}});while(get("#protected-pay-review").disabled)await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-approve").hidden,false);
   await get("#protected-pay-approve").emit("click");while(get("#protected-pay-restore").disabled)await new Promise(resolve=>setImmediate(resolve));assert.equal(get("#protected-pay-done").disabled,true);
@@ -180,7 +192,7 @@ test("Desktop mounted QR is local reference-only and fences same-account close/r
   const f=await harness(),nodes=new Map();let decodes=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{open:false,value:"",hidden:false,disabled:false,textContent:"",children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.listeners.get("close")?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}});return nodes.get(selector)};
   const api={...f.api,invoiceReferenceQR:async input=>{decodes++;assert.equal(input.bytes.byteLength,1);return f.api.invoiceReferenceQR(input)}};
-  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:""})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  mountDesktopPayUI({document:{querySelector:selector=>fileInputDOM(get(selector),next=>nodes.set(selector,next)),createElement:()=>({textContent:"",addEventListener(){}})},api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
   get("#protected-pay-sheet").showModal();const qr=get("#protected-pay-qr");
   qr.files=[{type:"image/png",size:1,arrayBuffer:async()=>new ArrayBuffer(1)}];await qr.emit("change");assert.equal(decodes,0);
   qr.emit("click");let finish;qr.files=[{type:"image/png",size:1,arrayBuffer:()=>new Promise(resolve=>finish=resolve)}];const pending=qr.emit("change");

@@ -119,6 +119,62 @@ export class FileTransactionIntentStore {
   }
   originalFailed(account,error,{storage=false}={}){const slot=owner(this).get(account);if(slot){if(storage)slot.storageCause=error;else if(!slot.originalCause&&error!==slot.storageCause&&error?.cause!==slot.storageCause)slot.originalCause=error}}
   originalSaved(account){owner(this).delete(account)}
+  // SAVE is custody only. No producer, RPC or outward-effect capability is
+  // consumed here; the renderer cannot provide the original being published.
+  async saveOriginal(account,hash,guard,{policy}={}){
+    if(typeof guard!=="function"||!ACCOUNT.test(account??"")||!/^0x[0-9a-f]{64}$/.test(hash??""))throw invalid();
+    guard();const slot=owner(this).get(account);
+    if(!slot)return this.#mutate(async()=>{
+      guard();const state=await this.#read();guard();
+      if(state.preparations?.some(x=>x.account===account))throw invalid();
+      const native=state.records.find(x=>x.account===account&&x.hash===hash),pay=state.signedPayments?.find(x=>evmAddressFromYNX(x.account)===account&&x.transfer.hash===hash);
+      if(!native&&!pay)throw invalid();
+      if(pay)parseDesktopSignedPayRecord(canonicalJSON(pay),pay.account,policy,guard);
+      guard();return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
+    });
+    if(slot.kind==="native"&&!slot.native||slot.kind==="pay"&&!slot.pay)throw capabilityError("ORIGINAL_SAVE_UNAVAILABLE","No complete held original is available. Preserve the unknown journal; do not recreate a signature.");
+    const original=slot.kind==="native"?slot.native:slot.pay;
+    if((slot.kind==="native"?original.hash:original.transfer.hash)!==hash)throw invalid();
+    const current=()=>{guard();if(owner(this).get(account)!==slot)throw invalid()};
+    const storage=async action=>{try{return await action()}catch(error){this.originalFailed(account,error.cause??error,{storage:true});throw error}};
+    return this.#mutate(async()=>{
+      try{
+        current();const state=await storage(()=>this.#read());current();
+        const marker=state.preparations?.find(x=>x.account===account);
+        if(marker&&marker.kind!==slot.kind)throw invalid();
+        if(slot.kind==="native"){
+          const intent={account,chainId:original.transaction.chainId,nonce:original.transaction.nonce,hash,to:original.transaction.to,value:original.transaction.value,capabilities:original.capabilities,raw:original.raw,origin:CANONICAL_RPC_URL};
+          validateIntent({...intent,attempts:1});
+          if((state.signedPayments??[]).some(x=>evmAddressFromYNX(x.account)===account)||state.resolutions.some(x=>x.intent.hash===hash))throw invalid();
+          const prior=state.records.find(x=>x.account===account);
+          if(prior){const {attempts,...body}=prior;if(canonicalJSON(body)!==canonicalJSON(intent))throw invalid()}
+          else{if(!marker)throw invalid();state.records.push({...intent,attempts:1})}
+        }else{
+          const saved=parseDesktopSignedPayRecord(canonicalJSON(original),original.account,policy,current);
+          if(state.records.some(x=>x.account===account)||(state.payHistory??[]).some(x=>x.record.account===saved.account&&x.record.invoice.id===saved.invoice.id))throw invalid();
+          const prior=(state.signedPayments??[]).find(x=>x.account===saved.account);
+          if(prior){if(canonicalJSON(prior)!==canonicalJSON(saved))throw invalid()}
+          else{if(!marker)throw invalid();const next=paySuccessor(state);Object.assign(state,next);state.signedPayments.push(saved);state.payProgress.push(payEntry(saved,true))}
+        }
+        // Matching durable originals are adopted without increasing attempts or
+        // rewriting progress. A matching marker is removed only atomically.
+        const needsWrite=!!marker;
+        if(needsWrite){state.preparations=state.preparations.filter(x=>x.account!==account);current();await storage(()=>this.#write(state));current()}
+        const readback=await storage(()=>this.#read());current();
+        if(readback.preparations?.some(x=>x.account===account))throw invalid();
+        if(slot.kind==="native"){
+          const actual=readback.records.find(x=>x.account===account),{attempts,...body}=actual??{};
+          const expected={account,chainId:original.transaction.chainId,nonce:original.transaction.nonce,hash,to:original.transaction.to,value:original.transaction.value,capabilities:original.capabilities,raw:original.raw,origin:CANONICAL_RPC_URL};
+          if(!actual||canonicalJSON(body)!==canonicalJSON(expected))throw invalid();
+        }else{
+          const actual=readback.signedPayments?.find(x=>x.account===original.account);
+          if(!actual||canonicalJSON(parseDesktopSignedPayRecord(canonicalJSON(actual),original.account,policy,current))!==canonicalJSON(original))throw invalid();
+        }
+        current();this.originalSaved(account);
+        return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
+      }catch(error){this.originalFailed(account,error);throw error}
+    });
+  }
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
   async assertNoSignedPayment(account){

@@ -49,9 +49,9 @@ function original(value,account){
  * Closing/editing/locking invalidates main-held review AND current operation.
  */
 export function createDesktopPayUI({getContext,api,render}){
-  let revision=0,busy=false,review=null,retained=null,available=false,historyRecords=[],historyCursor=null,settleBlocked=false;
-  const view=(notice="",error=null)=>render({busy,review,original:retained,available,notice,error,historyCursor,settleBlocked});
-  function clear(){revision++;busy=false;review=null;retained=null;available=false;historyRecords=[];historyCursor=null;settleBlocked=false;view();return Promise.resolve(api.payCancel()).catch(()=>{})}
+  let revision=0,busy=false,review=null,retained=null,available=false,historyRecords=[],historyCursor=null,settleBlocked=false,savedLocally=false;
+  const view=(notice=savedLocally?"Saved locally. This action did not send or settle a payment. / 已本地保存，此操作未发送或结算付款。":"",error=null)=>render({busy,review,original:retained,available,notice,error,historyCursor,settleBlocked,savedLocally});
+  function clear(){revision++;busy=false;review=null;retained=null;available=false;historyRecords=[];historyCursor=null;settleBlocked=false;savedLocally=false;view();return Promise.resolve(api.payCancel()).catch(()=>{})}
   const capture=(before=getContext(),current=revision)=>({before,owns:()=>current===revision,live:()=>{const after=getContext();return current===revision&&before.open&&after.open&&!!before.account&&before.account===after.account&&before.keyRevision===after.keyRevision&&!before.locked&&!after.locked}});
   const request=async(fn,accept,{notice="Checking Pay…",failure="Pay could not be verified. Preserve the original; restore it and check its original hash or receipt."}={})=>{
     if(busy)return;const {before,live}=capture();if(!live()){view("Unlock Wallet before reviewing or restoring Pay.");return}busy=true;view(notice);
@@ -82,7 +82,16 @@ export function createDesktopPayUI({getContext,api,render}){
     async restore(){return request(()=>api.payRestore(),acceptOriginal,{notice:"Reading the original saved on this device…"})},
     async action(action){
       if(!available||!retained||busy)return;
+      if(action==="save"){
+        if(!retained.localRetention||retained.nativeOnly||retained.signingUnknown)return;
+        const expected=retained.hash;return request(()=>api.payAction({action:"save",id:expected}),(value,account)=>{
+          if(value?.savedLocally!==true||value.submitted!==false||value.kind!=="original")throw Error("Wrong save result");
+          const next=original(value.original,account);if(next.hash!==expected||next.localRetention||next.nativeOnly||next.signingUnknown)throw Error("Substituted save result");
+          retained=next;review=null;savedLocally=true;
+        },{notice:"Saving the original locally; nothing is being sent…",failure:"Local saving could not be verified. Keep Wallet running; the original is still retained."});
+      }
       if(retained.localRetention||retained.signingUnknown)return;
+      if(savedLocally&&["settle","done"].includes(action))return;
       if(action==="settle"&&(settleBlocked||!retained.checkpointVerified||retained.settlementAttempted||retained.settlementVerified)||action==="receipt"&&!retained.checkpointVerified||action==="done"&&!retained.settlementVerified||!["check","settle","receipt","done"].includes(action))return;
       if(action==="settle")settleBlocked=true;
       const expected=retained.hash;return request(()=>api.payAction({action,id:expected}),(value,account)=>{const next=original(value?.original,account);if(next.hash!==expected||value.kind!==(action==="done"?"archived":"original"))throw Error("Substituted original");retained=next;review=null},
@@ -103,6 +112,9 @@ export function createDesktopPayUI({getContext,api,render}){
 export function mountDesktopPayUI({document,api,getContext}){
   const sheet=document.querySelector("#protected-pay-sheet"),status=document.querySelector("#protected-pay-status"),facts=document.querySelector("#protected-pay-facts"),reference=document.querySelector("#protected-pay-reference");
   const buttons={review:document.querySelector("#protected-pay-review"),approve:document.querySelector("#protected-pay-approve"),restore:document.querySelector("#protected-pay-restore"),check:document.querySelector("#protected-pay-check"),settle:document.querySelector("#protected-pay-settle"),receipt:document.querySelector("#protected-pay-receipt"),done:document.querySelector("#protected-pay-done"),history:document.querySelector("#protected-pay-history")};
+  // Existing sheet owns the save-only control; no secret-input or new sheet.
+  buttons.save=document.createElement("button");buttons.save.type="button";buttons.save.id="protected-pay-save-original";buttons.save.textContent="Save original locally / 本地保存原签名";buttons.save.hidden=true;
+  sheet.append(buttons.save);
   const history=document.querySelector("#protected-pay-history-list");
   const ui=createDesktopPayUI({getContext:()=>({...getContext(),open:sheet.open}),api,render:view=>{
     setWalletCopy(status,view.error??view.notice??"");facts.replaceChildren();
@@ -119,7 +131,9 @@ export function mountDesktopPayUI({document,api,getContext}){
     }}
     buttons.review.disabled=view.busy||!view.available||!!view.original;reference.disabled=view.busy||!!view.original;
     buttons.approve.hidden=!view.review;buttons.approve.disabled=view.busy||!view.review;
+    buttons.save.hidden=!view.original?.localRetention||!!view.original.nativeOnly||!!view.original.signingUnknown;buttons.save.disabled=view.busy||buttons.save.hidden;
     for(const action of ["check","settle","receipt","done"]){buttons[action].hidden=!view.original||view.original.status==="archived"||!!view.original.localRetention||!!view.original.signingUnknown;buttons[action].disabled=view.busy||!view.original||!!view.original.localRetention||!!view.original.signingUnknown}
+    for(const action of ["settle","done"]){buttons[action].hidden||=view.savedLocally;buttons[action].disabled||=view.savedLocally}
     buttons.settle.disabled||=view.settleBlocked||!view.original?.checkpointVerified||view.original?.settlementAttempted||view.original?.settlementVerified;
     buttons.receipt.disabled||=!view.original?.checkpointVerified||view.original?.settlementVerified;
     buttons.done.disabled||=!view.original?.settlementVerified;
@@ -133,6 +147,7 @@ export function mountDesktopPayUI({document,api,getContext}){
   document.querySelector("#protected-pay-form").addEventListener("submit",event=>{event.preventDefault();void ui.review(reference.value)});
   reference.addEventListener("input",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();history.replaceChildren();void ui.open()});
   buttons.approve.addEventListener("click",()=>void ui.approve());buttons.restore.addEventListener("click",()=>void ui.restore());
+  buttons.save.addEventListener("click",()=>ui.action("save"));
   document.querySelector("#protected-pay-next").addEventListener("click",()=>{qrRevision++;qrIntent=null;qrFile.invalidate();reference.value="";history.replaceChildren();void ui.open();reference.focus()});
   for(const action of ["check","settle","receipt","done"])buttons[action].addEventListener("click",()=>void ui.action(action));
   const loadHistory=async more=>{if(!more)history.replaceChildren();const records=await ui.history(more);if(!records)return;history.replaceChildren();for(const item of records){const row=document.createElement("p");setWalletCopy(row,"{name} · {amount} YNXT + {fee} YNXT fee · {invoice} · {hash} · verified Pay settlement, local native checkpoint (not consensus finality)",{name:item.merchant,amount:item.amount,fee:item.fee,invoice:item.invoiceId,hash:item.hash});history.append(row)}if(records.length===0){const row=document.createElement("p");setWalletCopy(row,"No verified Pay receipts saved for this account.");history.append(row)}};

@@ -756,6 +756,19 @@ async function refreshTransactions() {
       if(record.localRetention){
         const warning=document.createElement("p");warning.textContent="Original signed transaction retained only in this running Wallet. Durable saving is unresolved; keep Wallet running. Do not resend or sign a replacement.";row.append(warning);
         for(const cause of [record.localRetention.originalCause,record.localRetention.storageCause])if(cause){const detail=document.createElement("p");detail.textContent=cause.message;row.append(detail)}
+        const save=document.createElement("button");save.type="button";save.textContent="Save original locally / 本地保存原签名";save.disabled=keyState.locked;let saveBusy=false;
+        save.addEventListener("click",async()=>{
+          if(saveBusy||!current()||keyState.locked)return;
+          saveBusy=true;save.disabled=true;
+          const action=++transactionActionRevision,keyRevision=keyState.revision;
+          const live=()=>current()&&action===transactionActionRevision&&keyRevision===keyState.revision&&!keyState.locked;
+          try{
+            const response=await window.ynxWallet.saveTransactionOriginal(record.hash);if(!live())return;
+            const value=response?.value;
+            document.querySelector("#transaction-resolution-result").textContent=response?.ok===true&&value?.account===account&&value?.hash===record.hash&&value.savedLocally===true&&value.submitted===false&&value.confirmed===false?"Saved locally. This action did not send a transaction. / 已本地保存，此操作未发送交易。":errorText(response);
+          }catch{if(live())document.querySelector("#transaction-resolution-result").textContent="Saving could not be verified. Keep Wallet running and preserve the original. / 无法确认保存成功，请保持钱包运行。"}
+          finally{saveBusy=false;if(current())save.disabled=keyState.locked;if(live())void refreshTransactions()}
+        });row.append(save);
         list.append(row);continue;
       }
       for (const retry of [false, ...(record.canRetryExact ? [true] : [])]) {

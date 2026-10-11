@@ -37,6 +37,14 @@ export function createProtectedDesktopPayFlow({store,lifecycle,vault,client,poli
   };
   const run=operation=>serialized(store,()=>lifecycle.run(operation,{assertCurrent}));
   return Object.freeze({
+    async saveOriginal(account,hash){return run(async guard=>{
+      guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
+      const local=store.localOriginal(guard.account);if(local&&(local.kind!=="pay"||!local.pay))fail("PAY_SIGNED_ORIGINAL_REQUIRED");
+      await store.saveOriginal(guard.account,hash,guard.assert,{policy});guard.assert();
+      const entry=await store.signedPayProgress(account,policy,guard.assert);guard.assert();
+      if(!entry||entry.record.transfer.hash!==hash)fail("PAY_SIGNED_ORIGINAL_BINDING_MISMATCH");
+      return entry;
+    })},
     async restore(account){return run(async guard=>{
       guard.assert();if(guard.account!==evmAddressFromYNX(account))fail("PAY_PROTECTED_IDENTITY_MISMATCH");
       const slot=store.localOriginal(evmAddressFromYNX(account));
