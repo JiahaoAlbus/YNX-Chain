@@ -3,15 +3,18 @@ import {lookup} from 'node:dns';
 import {rpcURL, publicAddress, exactObject, multiError} from './multichain-config.mjs';
 const fail = (code, message) => multiError(code, message ?? 'The selected chain could not be verified.');
 function tronRead(path, body) {
-  if (path === '/wallet/getblockbynum') {
+  if (['/wallet/getnowblock','/wallet/getchainparameters'].includes(path)) {
+    exactObject(body,[]);
+  } else if (path === '/wallet/getblockbynum') {
     exactObject(body, ['num']); if (!Number.isSafeInteger(body.num) || body.num < 0) throw fail('FAMILY_RPC_INPUT');
   } else if (['/wallet/gettransactionbyid', '/wallet/gettransactioninfobyid'].includes(path)) {
     exactObject(body, ['value']); if (!/^[0-9a-fA-F]{64}$/.test(body.value)) throw fail('FAMILY_RPC_INPUT');
   } else if (['/wallet/getaccount', '/wallet/getaccountresource'].includes(path)) {
     exactObject(body, ['address', 'visible']); if (!/^41[0-9a-f]{40}$/.test(body.address) || body.visible !== false) throw fail('FAMILY_RPC_INPUT');
-  } else if (path === '/wallet/triggerconstantcontract') {
+  } else if (['/wallet/triggerconstantcontract','/wallet/estimateenergy'].includes(path)) {
     exactObject(body, ['owner_address', 'contract_address', 'function_selector', 'parameter', 'visible']);
-    const permitted = body.function_selector === 'balanceOf(address)' ? typeof body.parameter === 'string' && /^[0-9a-f]{64}$/.test(body.parameter) : ['name()', 'symbol()', 'decimals()'].includes(body.function_selector) && body.parameter === '';
+    const transfer=body.function_selector==='transfer(address,uint256)'&&typeof body.parameter==='string'&&/^0{24}[0-9a-f]{40}[0-9a-f]{64}$/.test(body.parameter)&&!/^0{64}$/.test(body.parameter.slice(64));
+    const permitted = path==='/wallet/estimateenergy'?transfer:transfer||(body.function_selector === 'balanceOf(address)' ? typeof body.parameter === 'string' && /^[0-9a-f]{64}$/.test(body.parameter) : ['name()', 'symbol()', 'decimals()'].includes(body.function_selector) && body.parameter === '');
     if (![body.owner_address, body.contract_address].every(v => typeof v === 'string' && /^41[0-9a-f]{40}$/.test(v)) || !permitted || body.visible !== false) throw fail('FAMILY_RPC_INPUT');
   } else throw fail('FAMILY_RPC_READ_ONLY');
 }
