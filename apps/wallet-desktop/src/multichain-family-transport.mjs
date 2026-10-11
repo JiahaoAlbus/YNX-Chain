@@ -11,7 +11,8 @@ function tronRead(path, body) {
     exactObject(body, ['address', 'visible']); if (!/^41[0-9a-f]{40}$/.test(body.address) || body.visible !== false) throw fail('FAMILY_RPC_INPUT');
   } else if (path === '/wallet/triggerconstantcontract') {
     exactObject(body, ['owner_address', 'contract_address', 'function_selector', 'parameter', 'visible']);
-    if (![body.owner_address, body.contract_address].every(v => /^41[0-9a-f]{40}$/.test(v)) || body.function_selector !== 'balanceOf(address)' || !/^[0-9a-f]{64}$/.test(body.parameter) || body.visible !== false) throw fail('FAMILY_RPC_INPUT');
+    const permitted = body.function_selector === 'balanceOf(address)' ? typeof body.parameter === 'string' && /^[0-9a-f]{64}$/.test(body.parameter) : ['name()', 'symbol()', 'decimals()'].includes(body.function_selector) && body.parameter === '';
+    if (![body.owner_address, body.contract_address].every(v => typeof v === 'string' && /^41[0-9a-f]{40}$/.test(v)) || !permitted || body.visible !== false) throw fail('FAMILY_RPC_INPUT');
   } else throw fail('FAMILY_RPC_READ_ONLY');
 }
 /** Fixed selected endpoint, validated DNS socket, bounded responses, no redirects,
