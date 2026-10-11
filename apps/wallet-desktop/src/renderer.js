@@ -16,6 +16,8 @@ import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
 import {createMnemonicUI,createMnemonicImportUI} from './mnemonic-ui.mjs';
+import {createMultichainUI} from './multichain-ui.mjs';
+let multichainUI;
 
 // Explicit product copy only; never pass an original request/value container.
 function copyUI(node,key,values={}){if(typeof setWalletCopy==="function")setWalletCopy(node,key,values);else node.textContent=key.replace(/\{([a-zA-Z][a-zA-Z0-9]*)\}/g,(match,name)=>Object.hasOwn(values,name)?String(values[name]):match)}
@@ -327,6 +329,7 @@ function renderAccount(payload) {
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
+  multichainUI?.render();
   if(typeof transferAttemptUI!=="undefined")void transferAttemptUI.refresh();
   if (previousAccount !== activeAccount) {
     document.querySelector("#transfer-to").value = "";
@@ -1019,6 +1022,7 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
+  multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
   copyUI(title,state.locked ? "Wallet locked" : "Wallet unlocked");
@@ -1055,3 +1059,5 @@ if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(stat
 else renderKeyState(keyState);
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
 mountDesktopPayUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.ynxAccount??null,keyRevision:keyState.revision,locked:keyState.locked})});
+multichainUI=createMultichainUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
+window.addEventListener('blur',()=>multichainUI.invalidate());

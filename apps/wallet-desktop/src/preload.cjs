@@ -1,6 +1,18 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  multichainSnapshot:()=>ipcRenderer.invoke('wallet:multichain-snapshot'),
+  multichainNetwork:input=>ipcRenderer.invoke('wallet:multichain-network',input),
+  multichainSelect:id=>ipcRenderer.invoke('wallet:multichain-select',id),
+  multichainRemove:id=>ipcRenderer.invoke('wallet:multichain-remove',id),
+  multichainToken:input=>ipcRenderer.invoke('wallet:multichain-token',input),
+  multichainRemoveToken:input=>ipcRenderer.invoke('wallet:multichain-remove-token',input),
+  multichainBalances:()=>ipcRenderer.invoke('wallet:multichain-balances'),
+  multichainPrepare:input=>ipcRenderer.invoke('wallet:multichain-prepare',input),
+  multichainCancel:id=>ipcRenderer.invoke('wallet:multichain-cancel',id),
+  multichainSend:id=>ipcRenderer.invoke('wallet:multichain-send',id),
+  multichainHistory:()=>ipcRenderer.invoke('wallet:multichain-history'),
+  multichainCheck:id=>ipcRenderer.invoke('wallet:multichain-check',id),
   securityStatus: () => ipcRenderer.invoke("wallet:security-status"),
   unlock: input => ipcRenderer.invoke("wallet:unlock", input),
   setupPassword: input => ipcRenderer.invoke("wallet:password-setup", input),

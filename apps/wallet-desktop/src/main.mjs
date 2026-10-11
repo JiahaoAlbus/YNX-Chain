@@ -1,4 +1,8 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import {MultiConfigStore} from './multichain-config.mjs';
+import {MultiJournal} from './multichain-journal.mjs';
+import {EVMAdapter} from './multichain-evm.mjs';
+import {MultichainService,installMultichainIPC} from './multichain-service.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
@@ -65,6 +69,8 @@ let protocolReady = false;
 let lastCallback = null;
 let walletAuthority;
 let nativeWallet;
+let multichain;
+let multichainSecurityContext=null;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
 const recipientCameraPermission = createRecipientCameraPermission({
@@ -77,6 +83,8 @@ handleWalletIPC("wallet:camera-begin", () => safeIPC(() => recipientCameraPermis
 handleWalletIPC("wallet:camera-end", (_event, id) => safeIPC(() => {recipientCameraPermission.end(id); return null;}));
 let lastReviewAccount = null;
 keyAccess.subscribe(state => {
+  const context=[state.revision,state.locked,state.account,state.authenticating].join(':');
+  if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();}
   recipientCameraPermission.invalidate();
   if (state.account !== lastReviewAccount) {
     lastReviewAccount = state.account;
@@ -92,6 +100,7 @@ keyAccess.subscribe(state => {
   if (!state.locked && !state.authenticating) void drainWalletConnectInbox();
 });
 const sensitiveIPC = (action, options) => safeIPC(() => keyAccess.run(action, options));
+installMultichainIPC({handle:handleWalletIPC,safe:safeIPC,sensitive:sensitiveIPC,getGuard:()=>keyAccess.current(),service:new Proxy({}, {get:(_target,name)=>(...args)=>{if(!multichain)throw new Error('Wallet is starting.');return multichain[name](...args)}})});
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -486,6 +495,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });
+  multichain=new MultichainService({config:new MultiConfigStore({filePath:path.join(userData,'multichain-config-v1.json')}),journal:new MultiJournal({filePath:path.join(userData,'multichain-transactions-v1.json')}),adapter:new EVMAdapter(),getContext:async()=>({account:(await walletAuthority.accountStatus()).account,...keyAccess.status()}),withSecret:action=>passwordVault.withSecret(action)});
   let pairConfig, pairConfigurationError = null;
   try { pairConfig = await loadPublicWalletConnectConfig({ resourcesPath: process.resourcesPath }); }
   catch { pairConfigurationError = "WALLETCONNECT_CONFIG_INVALID"; }

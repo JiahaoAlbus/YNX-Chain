@@ -89,3 +89,13 @@ input[type="password"]{unicode-bidi:plaintext}
 .mnemonic-import-grid input{width:100%;min-width:0;margin:0;box-sizing:border-box}
 @media(max-width:680px){.mnemonic-import-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:400px){.mnemonic-import-grid{grid-template-columns:1fr}}
+/* Custom EVM views stay distinct from the canonical YNX balance and QR. */
+#multichain-sheet { width:min(760px,calc(100vw - 48px)); max-height:85vh; overflow:auto; }
+#multichain-content { display:grid; gap:14px; }
+#multichain-content form { display:grid; gap:12px; }
+#multichain-content label { display:grid; gap:6px; }
+#multichain-content input,#multichain-content select { width:100%; min-width:0; box-sizing:border-box; }
+#multichain-content dl,#multichain-review-facts { display:grid; grid-template-columns:minmax(100px,1fr) minmax(0,2fr); gap:8px 14px; }
+#multichain-content dd,#multichain-review-facts dd,.multichain-record p { margin:0; overflow-wrap:anywhere; }
+.multichain-record { padding:14px; border-bottom:1px solid var(--border,#dce3f1); }
+.toolbar { flex-wrap:wrap; }
