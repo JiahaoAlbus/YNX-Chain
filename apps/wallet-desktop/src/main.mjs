@@ -116,7 +116,7 @@ keyAccess.subscribe(state => {
   mainWindow?.webContents.send("wallet:security-state", state);
   if (!state.locked && !state.authenticating) void drainWalletConnectInbox();
 });
-const sensitiveIPC = (action, options) => safeIPC(() => keyAccess.run(action, options));
+const sensitiveIPC = (action, options, displayOptions) => safeIPC(() => keyAccess.run(action, options), displayOptions);
 handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
   if (!familyAccounts) throw new Error('Wallet is starting.');
   return familyAccounts.account(input);
@@ -283,7 +283,7 @@ handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async
   lease.assert();
   return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
 }));
-handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
+handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input), undefined, { localTransferPreparation: true }));
 handleWalletIPC("wallet:transfer-action", async (_event, id, action) => {
   const attempt=nativeWallet.beginTransferAttempt(id,action);
   const result=await sensitiveIPC(() => nativeWallet.transferAction(id, action));
@@ -701,7 +701,31 @@ function protocolActivationFingerprint(value) {
   try { const url = new URL(text); route = { scheme: url.protocol, host: url.hostname, pathname: url.pathname, queryKeys: [...url.searchParams.keys()], hasHash: Boolean(url.hash) }; } catch {}
   return Object.freeze({ bytes: Buffer.byteLength(text), sha256: createHash("sha256").update(text).digest("hex"), ...route });
 }
-async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { const storageStage = error?.data?.storageStage; return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed", ...(typeof storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(storageStage) ? { storageStage } : {}), ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}) } }; } }
+async function safeIPC(action, displayOptions) {
+  try { return { ok: true, value: await action() }; }
+  catch (error) {
+    const storageStage = error?.data?.storageStage;
+    // Only the existing preparation route opts in. Require the exact native
+    // refusal shape, not merely matching display text or a projected code.
+    // RPC responses carry extra provenance data and cannot acquire this tag.
+    const localRefusal = displayOptions?.localTransferPreparation === true &&
+      error?.data?.code === "INSUFFICIENT_FUNDS" &&
+      Object.keys(error.data).length === 1 &&
+      !("rpcResponse" in error.data) && !("transactionHash" in error.data) && !("outcomeUnknown" in error.data) &&
+      !error.outcomeUnknown && error.transactionHash == null &&
+      ((error.code === -32000 && [
+        "Insufficient YNXT for this amount. Add Testnet funds before sending.",
+        "Insufficient YNXT to cover the amount and network fee"
+      ].includes(error.message)) ||
+       (error.code === 4900 && error.message === "Insufficient YNXT to cover this transaction and its maximum network fee"));
+    return { ok: false, error: {
+      code: safeCode(error), message: error?.message ?? "Wallet request failed",
+      ...(typeof storageStage === "string" && /^[a-z][a-z0-9-]{0,39}$/.test(storageStage) ? { storageStage } : {}),
+      ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}),
+      ...(localRefusal ? { displayOrigin: "LOCAL_TRANSFER_PREPARATION" } : {})
+    } };
+  }
+}
 function safeCode(error) { return error?.data?.code ?? error?.code ?? "WALLET_REQUEST_FAILED"; }
 function safeErrorClass(error) { return typeof error?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error"; }
 function safeFailureCategory(error) {
