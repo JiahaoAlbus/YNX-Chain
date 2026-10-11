@@ -7,6 +7,7 @@ function inspectArchive(handle, size, selection) {
   return new Promise((resolve, reject) => {
     let zip, finished = false, manifest, vsixRoot = false, entries = 0, expanded = 0;
     const names = new Set(), destinations = new Map();
+    let memberPathBytes = 0, destinationNodes = 0;
     const finish = error => {
       if (finished) return; finished = true; clearTimeout(timer); zip?.close();
       if (error) reject(error); else resolve();
@@ -49,19 +50,31 @@ function inspectArchive(handle, size, selection) {
           if (++entries > 40000 || expanded > 512 * 1024 * 1024 || entry.uncompressedSize > 128 * 1024 * 1024
             || entry.generalPurposeBitFlag & 1 || (mode & 0o170000) === 0o120000 || mode & 0o7000
             || name.includes('\0') || names.has(name) || name.startsWith('/') || name.split('/').includes('..')) throw Error('Extension archive entry or expanded size refused.');
-          names.add(name);
           // Match the retained unpacker/loader, including macOS case-insensitive
           // and Unicode-equivalent destinations. A trailing directory slash is
           // standard ZIP; internal empty/dot segments are never canonical.
           const directory = name.endsWith('/'), destination = directory ? name.slice(0, -1) : name;
+          const encodedBytes = Buffer.byteLength(name, 'utf8');
+          if (encodedBytes > 4096 || memberPathBytes + encodedBytes > 16 * 1024 * 1024) throw Error('Extension archive path budget refused.');
           const parts = destination.split('/');
+          if (parts.length > 128) throw Error('Extension archive depth budget refused.');
           if (parts.some(part => !part || part === '.') || name.includes('\\')) throw Error('Extension archive destination refused.');
-          for (let i = 1; i <= parts.length; i++) {
-            const spelling = parts.slice(0, i).join('/'), key = spelling.normalize('NFC').toLowerCase();
-            const type = i < parts.length || directory ? 'directory' : 'file';
-            const previous = destinations.get(key), explicit = i === parts.length;
-            if (previous && (previous.spelling !== spelling || previous.type !== type || explicit && previous.explicit)) throw Error('Extension archive destination collision refused.');
-            destinations.set(key, { spelling, type, explicit: explicit || previous?.explicit || false });
+          memberPathBytes += encodedBytes; names.add(name);
+          // Store each component once, not every full ancestor prefix. All
+          // allocation is bounded before insertion; the timer is not a quota.
+          let children = destinations;
+          for (let i = 0; i < parts.length; i++) {
+            const spelling = parts[i], key = spelling.normalize('NFC').toLowerCase();
+            const explicit = i === parts.length - 1, type = !explicit || directory ? 'directory' : 'file';
+            let node = children.get(key);
+            if (node && (node.spelling !== spelling || node.type !== type || explicit && node.explicit)) throw Error('Extension archive destination collision refused.');
+            if (!node) {
+              if (destinationNodes >= 200000) throw Error('Extension archive destination node budget refused.');
+              node = { spelling, type, explicit: false, children: new Map() };
+              destinationNodes++; children.set(key, node);
+            }
+            if (explicit) node.explicit = true;
+            children = node.children;
           }
           const destinationKey = destination.normalize('NFC').toLowerCase();
           if (destinationKey === 'package.json' || destinationKey === 'package/package.json') throw Error('Extension archive competing package root refused.');

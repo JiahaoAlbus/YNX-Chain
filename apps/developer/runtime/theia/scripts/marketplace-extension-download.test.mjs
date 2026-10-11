@@ -62,7 +62,7 @@ function archiveFixture(members) {
 const selectedManifest = JSON.stringify({ publisher: selection.namespace, name: selection.name, version: selection.version, engines: { vscode: '^1.80.0' } });
 const competingManifest = JSON.stringify({ publisher: 'other', name: 'other', version: '9.0.0', engines: { vscode: '^1.80.0' } });
 function standardMembers() { return [['extension.vsixmanifest', '<PackageManifest/>'], ['extension/', ''], ['extension/package.json', selectedManifest]]; }
-async function kernelLoad(f, suffix) {
+async function kernelLoad(f, suffix, requireResolved = true) {
   const { unpackToDeploymentDir } = require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-utils');
   const { PluginVsCodeDirectoryHandler } = require('@theia/plugin-ext-vscode/lib/node/plugin-vscode-directory-handler');
   const { FileUri } = require('@theia/core/lib/common/file-uri');
@@ -70,8 +70,9 @@ async function kernelLoad(f, suffix) {
   let currentPath = deployed; const values = new Map();
   const plugin = { path: () => currentPath, id: () => 'example.language@1.2.3', getValue: key => values.get(key), storeValue: (key, value) => values.set(key, value), updatePath: value => { currentPath = value; } };
   const handler = new PluginVsCodeDirectoryHandler(); handler.logger = { debug() {} };
-  assert.equal(await handler.attemptResolution(plugin), true);
-  return { manifest: values.get('package.json'), path: currentPath };
+  const resolved = await handler.attemptResolution(plugin);
+  if (requireResolved) assert.equal(resolved, true);
+  return { manifest: values.get('package.json'), path: currentPath, deployed, resolved };
 }
 test('parent accepts competing root and path aliases that retained loader can consume', async t => {
   const module = { exports: {} };
@@ -84,9 +85,16 @@ test('parent accepts competing root and path aliases that retained loader can co
   assert.equal((await kernelLoad(f, 'parent-root')).manifest.name, 'other');
   for (const alias of ['extension/./package.json', 'extension//package.json']) {
     await module.exports.verifyReceipt(await restage(f, archiveFixture([...standardMembers(), [alias, competingManifest]])), selection, f.root);
-    const loaded = await kernelLoad(f, alias.includes('//') ? 'parent-empty' : 'parent-dot');
-    assert.equal(loaded.path, `${f.root}/${alias.includes('//') ? 'parent-empty' : 'parent-dot'}/example.language@1.2.3/extension`);
-    assert.ok(['language', 'other'].includes(loaded.manifest.name));
+    const loaded = await kernelLoad(f, alias.includes('//') ? 'parent-empty' : 'parent-dot', false);
+    const bytes = await readFile(`${loaded.deployed}/extension/package.json`, 'utf8');
+    if (loaded.resolved) {
+      assert.equal(loaded.path, `${loaded.deployed}/extension`);
+      assert.ok(['language', 'other'].includes(loaded.manifest.name));
+    } else {
+      // The parent's concurrent alias writes can also corrupt the canonical JSON.
+      // Require that concrete failure, while current positive loader checks stay strict.
+      assert.throws(() => JSON.parse(bytes), SyntaxError);
+    }
   }
 });
 test('standard VSIX keeps one selected manifest through actual directory loader', async t => {
@@ -110,6 +118,38 @@ test('competing roots and noncanonical or equivalent destinations are refused be
   }
   await assert.rejects(verifyReceipt(await restage(f, archiveFixture([['extension/package.json', selectedManifest]])), selection, f.root), /package identity/);
   await assert.rejects(lstat(`${f.root}/fixed-rejected`), { code: 'ENOENT' });
+});
+test('canonical path length and depth quotas reject before deployment', async t => {
+  const f = await fixture(t);
+  for (const name of ['a/'.repeat(30000) + 'x', 'a/'.repeat(128) + 'x', 'extension/' + 'b'.repeat(4090)]) {
+    const receipt = await restage(f, archiveFixture([...standardMembers(), [name, '']])); let unpackStarted = false;
+    await assert.rejects((async () => { await verifyReceipt(receipt, selection, f.root); unpackStarted = true; await kernelLoad(f, 'quota-refused'); })(), /archive.*budget refused/);
+    assert.equal(unpackStarted, false);
+  }
+  await assert.rejects(lstat(`${f.root}/quota-refused`), { code: 'ENOENT' });
+});
+test('cumulative path storage is bounded even when all individual members fit', async t => {
+  const f = await fixture(t), prefix = 'q'.repeat(2000) + '/' + 'r'.repeat(2000) + '/';
+  const members = standardMembers();
+  for (let i = 0; i < 4200; i++) members.push([prefix + i, '']);
+  assert.ok(members.reduce((sum, [name]) => sum + Buffer.byteLength(name), 0) > 16 * 1024 * 1024);
+  await assert.rejects(verifyReceipt(await restage(f, archiveFixture(members)), selection, f.root), /path budget refused/);
+});
+test('destination node quota bounds many distinct canonical branches', async t => {
+  const f = await fixture(t), members = standardMembers();
+  for (let i = 0; i < 1600; i++) members.push(['branch' + i + '/' + 'a/'.repeat(126) + 'x', '']);
+  assert.ok(members.length < 40000); assert.ok(members.reduce((sum, [name]) => sum + Buffer.byteLength(name), 0) < 16 * 1024 * 1024);
+  await assert.rejects(verifyReceipt(await restage(f, archiveFixture(members)), selection, f.root), /node budget refused/);
+});
+test('ordinary nested paths and late explicit directories load, both file-directory conflict orders refuse', async t => {
+  const f = await fixture(t);
+  const normal = [...standardMembers(), ['extension/assets/nested/icon.svg', '<svg/>'], ['extension/assets/nested/', ''], ['extension/assets/', '']];
+  await verifyReceipt(await restage(f, archiveFixture(normal)), selection, f.root);
+  const loaded = await kernelLoad(f, 'nested-standard');
+  assert.equal(loaded.manifest.name, selection.name); assert.equal(await readFile(`${loaded.path}/assets/nested/icon.svg`, 'utf8'), '<svg/>');
+  for (const extra of [[['extension/dir', 'file'], ['extension/dir/child', '']], [['extension/dir/child', ''], ['extension/dir', 'file']]]) {
+    await assert.rejects(verifyReceipt(await restage(f, archiveFixture([...standardMembers(), ...extra])), selection, f.root), /destination collision refused/);
+  }
 });
 test('kernel resolver uses exact compatibility selection and hands verified artifact to original deployer context', async t => {
   const fixtureData = await fixture(t), prior = process.env.TMPDIR;
