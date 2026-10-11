@@ -132,10 +132,19 @@ const terminalService = createTerminalService({
   containerTerminalBroker: runtimeProfileService,
   environmentService,
 });
-const coreAdmission = await loadCoreAdmissionAdapter(process.env.YNX_CODE_CORE_ADAPTER_MODULE, { stateDir, workspaceStore, runtimeProfileService });
-hostedGenerationSupply = coreAdmission.hostedGeneration || null;
-let codeossService;
-const developerSSO = await createDeveloperSSO({
+let codeossService, developerSSO, nativeTools;
+// Deferred protected handles close the constructor cycle without granting any
+// request before the original SSO and durable project broker exist.
+const retainedSSO = Object.freeze({ acquireReference(...args) {
+  if (typeof developerSSO?.acquireReference !== 'function') throw new Error('Original retained SSO is not supplied.');
+  return developerSSO.acquireReference(...args);
+} });
+const admittedProjects = Object.freeze({ acquireProject(...args) {
+  if (!codeossService) throw new Error('Original admitted project broker is not ready.');
+  return codeossService.acquireProject(...args);
+} });
+const coreAdmission = await loadCoreAdmissionAdapter(process.env.YNX_CODE_CORE_ADAPTER_MODULE, { stateDir, workspaceStore, runtimeProfileService, retainedSSO, admittedProjects });
+developerSSO = await createDeveloperSSO({
   filename: join(stateDir, "developer-identity.sqlite"), keyPath: join(stateDir, "developer-identity.key"), workspaceStore,
   guestOwnerForRequest: request => runtime.ownerForRequest(request),
   familyKeyPath: process.env.YNX_DEVELOPER_CENTRAL_BACKEND_KEY_FILE,
@@ -147,11 +156,25 @@ const developerSSO = await createDeveloperSSO({
 codeossService = createCodeOSSService({
   ...coreAdmission, filename: join(stateDir, "codeoss.sqlite"), root: join(stateDir, "native-ide"), workspaceStore,
   verifyIdentity: developerSSO.verifyIdentity,
+  onCompletedProject: typeof coreAdmission?.retainCompletedProject === 'function' ? value =>
+    coreAdmission.retainCompletedProject(Object.freeze({ ...value, nativeTools: coreAdmission.nativeTools })) : undefined,
+  runRetainedOperation: work => {
+    const ticket = activity.admitRequest('native-tools');
+    return activity.runRequest(ticket, async () => {
+      try { return await work(ticket.controller.signal); }
+      finally { ticket.finish(); }
+    });
+  },
+  requestNativeTools: value => {
+    if (!nativeTools) throw new Error('Original retained Tools dispatcher is not ready.');
+    return nativeTools.dispatchRetained(value);
+  },
   assertProjectQuiescent: (owner, projectId) => terminalService.assertProjectQuiescent(owner, projectId),
 });
 const coreProxy = coreAdmission.driver ? createCodeOSSProxy({ service: codeossService, ...coreAdmission,
   recordActivity: developerSSO.recordCoreActivity }) : null;
-const nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
+nativeTools = createNativeToolsService({ coreService: codeossService, modelRouter, aiStore: nativeAIStore, chainHandler: chainService.handler, walletHandler: walletReadinessService.handler, admittedOwners: nativeToolOwners });
+hostedGenerationSupply = coreAdmission.hostedGeneration || null;
 const expireCores = setInterval(() => { void codeossService.expireSessions(); }, 5000); expireCores.unref();
 const gatewayHandler = createGateway({
     activity,

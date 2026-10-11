@@ -30,6 +30,7 @@ export function createLocalAIToolsHost(context,{client=null,assertPathCurrent=as
   if(!client)return false;
   if(typeof client.request!=='function'||typeof client.assertCurrent!=='function')throw channel.failure();
   const value=await client.assertCurrent(binding,signal);
+  await assertPathCurrent();
   if(value?.localProjectId!==context.id||value.workspace!==context.workspace||typeof value.sessionId!=='string'||!/^[a-f0-9-]{36}$/.test(value.sessionId)||typeof value.generation!=='string'||!value.generation||!Number.isFinite(value.expiresAt)||value.expiresAt<=Date.now())throw channel.failure('AI_RETIRED');
   signal?.throwIfAborted();if(retired)throw channel.failure('AI_RETIRED');return value;
  }
@@ -66,5 +67,5 @@ export function createLocalAIToolsHost(context,{client=null,assertPathCurrent=as
    return {...binding,text:result.text,model:result.model,conversationId:result.conversationId,saved:result.saved===true,applied:false,signed:false,...(result.operation?{operation:publicReceipt(result.operation)}:{}),...(result.edit?{edit:result.edit}:{})};
   }catch(e){if(e.code==='AI_NOT_SUPPLIED'||e.code==='AI_RETIRED'||e.code==='AI_UNKNOWN')throw e;throw channel.failure(action==='approve'?'AI_UNKNOWN':'AI_UNAVAILABLE');}
   finally{clearTimeout(timer);pending.delete(controller);signal?.removeEventListener('abort',abort);}
- },close(){retired=true;proposals.clear();for(const c of pending)c.abort();pending.clear();}};
+ },close(){if(retired)return;retired=true;proposals.clear();for(const c of pending)c.abort();pending.clear();client?.close?.();}};
 }

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { mkdtemp, writeFile, readFile, readdir } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, readdir, realpath } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createWorkspaceStore } from "../../workspace-manager/src/store.mjs";
@@ -10,11 +10,14 @@ import { CORE_LIMITS } from "../src/upstream.mjs";
 import { consumerIdentityBinding } from "../src/identity-consumer-binding.mjs";
 import { createDeveloperCoreAdmission } from "../src/admission.mjs";
 import { OPENVSCODE_X64 } from "../src/upstream.mjs";
+import { createNativeToolsService } from '../src/tools-service.mjs';
+import { createNativeAIStore } from '../src/native-ai-store.mjs';
+import { createActivityRegistry, createMaintenance } from '../../gateway/src/activity.mjs';
 
 const ownerA = "a".repeat(64), ownerB = "b".repeat(64), project = "project-a";
 const snapshot = { name: "YNX project", files: { "main.js": "console.log(42)\n", "empty.txt": "" }, folders: [], open: ["main.js"], active: "main.js" };
 async function fixture(t, overrides = {}) {
-  const root = await mkdtemp(join(tmpdir(), "ynx-core-test-")); let context;
+  const root = await realpath(await mkdtemp(join(tmpdir(), "ynx-core-test-"))); let context;
   const store = createWorkspaceStore({ filename: join(root, "workspace.sqlite") });
   store.put(ownerA, project, { expectedRevision: 0, idempotencyKey: "seed-owner-a", payload: snapshot });
   store.put(ownerB, project, { expectedRevision: 0, idempotencyKey: "seed-owner-b", payload: snapshot });
@@ -35,6 +38,9 @@ async function fixture(t, overrides = {}) {
   const make = () => createCodeOSSService({ filename: join(root, "core.sqlite"), root: join(root, "native"), workspaceStore: store, ...admission,
     assertProjectQuiescent() {}, limits: { ...CORE_LIMITS, ...overrides.limits },
     now: overrides.now || Date.now,
+    requestNativeTools: overrides.requestNativeTools,
+    runRetainedOperation: overrides.runRetainedOperation,
+    onCompletedProject: overrides.onCompletedProject,
     verifyIdentity });
   let service = make();
   const server = createServer((req, res) => service.handler(req, res));
@@ -283,4 +289,224 @@ test("logout during actual driver start cannot publish a late running session", 
   assert.equal(f.store.nativeJournalDatabase().prepare("SELECT status FROM codeoss_sessions").get().status, "recovery-required");
   assert.throws(() => f.store.put(ownerA, project, { expectedRevision: 1, idempotencyKey: "after-logout-launch", payload: snapshot }), { code: "core_writer_active" });
   live = true; assert.equal((await f.call(`/${(await f.call()).value.sessions[0].sessionId}`, "DELETE")).status, 200);
+});
+
+async function retainedFixture(t, options = {}) {
+  let current = { owner: ownerA, workspaceOwner: ownerA, account: 'ynx-a', generation: 1,
+    identityReference: 'browser-a', expiresAt: Date.now() + 60000, isCurrent() {} };
+  const verifier = async () => current;
+  verifier.resolveReference = async reference => {
+    assert.equal(reference, 'browser-a');
+    return options.resolveReference ? options.resolveReference(current) : current;
+  };
+  const f = await fixture(t, { verifyIdentity: verifier, requestNativeTools: options.requestNativeTools, now: options.now, runRetainedOperation: options.runRetainedOperation, onCompletedProject: options.onCompletedProject });
+  const launched = await f.launch(); assert.equal(launched.status, 201);
+  const sessionId = launched.value.session.sessionId;
+  const locators = { projectId: project, workspace: join(f.context().projectDirectory, 'workspace'), launch: sessionId };
+  return { ...f, locators, sessionId, setIdentity: value => { current = { ...current, ...value }; },
+    borrow: (input = locators, signal) => f.service().acquireProject(input, { signal }) };
+}
+
+test('original retained journal borrows the real running writer and fixed routes; close does not stop the project', async t => {
+  let requests = 0;
+  const f = await retainedFixture(t, { requestNativeTools: async ({ request, admission }) => {
+    requests++; assert.equal(admission.context.sessionId, f.sessionId); assert.equal(admission.identity.owner, ownerA);
+    assert.equal(request.path, `/runtime/native-tools/context?sessionId=${f.sessionId}`); return { connected: true };
+  } });
+  const owner = await f.borrow(), state = await owner.assertCurrent();
+  assert.equal(state.generation, 1); assert.equal(state.localProjectId, project); assert.equal(state.workspace, f.locators.workspace);
+  assert.deepEqual(await owner.request({ method: 'GET', path: `/runtime/native-tools/context?sessionId=${f.sessionId}` }), { connected: true });
+  await assert.rejects(owner.request({ method: 'GET', path: '/runtime/native-tools/context?sessionId=wrong' }));
+  await assert.rejects(owner.request({ method: 'GET', path: `/runtime/native-tools/context?sessionId=${f.sessionId}`, headers: { cookie: 'PUBLIC-forged' } }));
+  owner.close(); owner.close(); await assert.rejects(owner.assertCurrent());
+  assert.equal((await f.call()).value.sessions[0].status, 'running'); assert.equal(requests, 1);
+});
+
+test('original completed start produces a held canonical owner only after real running journal publication',async t=>{
+  let produced;
+  const f=await retainedFixture(t,{async onCompletedProject(value){produced=value;const s=await value.admittedProject.assertCurrent();assert.equal(s.localProjectId,project);assert.equal(value.session.status,'running');assert.equal(s.sessionId,value.session.sessionId);}});
+  assert.ok(produced);assert.equal((await produced.admittedProject.assertCurrent()).sessionId,f.sessionId);
+  produced.admittedProject.close();assert.equal((await f.call()).value.sessions[0].status,'running');
+});
+
+test('original completed start failed private delivery retires the borrow and preserves protected writer recovery',async t=>{
+  let produced;
+  const identity={owner:ownerA,workspaceOwner:ownerA,account:'ynx-a',generation:1,identityReference:'a'.repeat(43),expiresAt:Date.now()+60000,isCurrent(){}};
+  const verifier=async()=>identity;verifier.resolveReference=async()=>identity;
+  const f=await fixture(t,{verifyIdentity:verifier,async onCompletedProject(value){produced=value.admittedProject;throw Error('PUBLIC delivery failed');}});
+  assert.equal((await f.launch()).status,503);await assert.rejects(produced.assertCurrent());
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT status FROM codeoss_sessions').get().status,'recovery-required');
+  assert.equal(f.store.nativeJournalDatabase().prepare('SELECT COUNT(*) n FROM workspace_writers').get().n,1);
+});
+
+test('original retained journal refuses arbitrary local project, launch and noncanonical paths', async t => {
+  const f = await retainedFixture(t);
+  for (const change of [{ projectId: 'guest' }, { launch: '00000000-0000-4000-8000-000000000001' },
+    { workspace: f.locators.workspace + '/..' }, { workspace: f.root }, { owner: ownerB }]) {
+    await assert.rejects(f.borrow({ ...f.locators, ...change }));
+  }
+});
+
+test('original retained journal denies current identity drift and revoked reference', async t => {
+  let revoked = false;
+  const f = await retainedFixture(t, { resolveReference: id => { if (revoked) throw Object.assign(Error('PUBLIC revoked'), { status: 401 }); return id; } });
+  const owner = await f.borrow(); f.setIdentity({ generation: 2 }); await assert.rejects(owner.assertCurrent());
+  f.setIdentity({ generation: 1 }); revoked = true; await assert.rejects(owner.assertCurrent());
+});
+
+test('original retained journal checks real writer custody and stopped state', async t => {
+  const f = await retainedFixture(t), owner = await f.borrow(), db = f.store.nativeJournalDatabase();
+  const writer = db.prepare('SELECT * FROM workspace_writers').get();
+  db.prepare('UPDATE workspace_writers SET writer_token=?').run('PUBLIC-wrong-writer');
+  await assert.rejects(owner.assertCurrent());
+  db.prepare('UPDATE workspace_writers SET writer_token=?').run(writer.writer_token);
+  assert.equal((await f.call(`/${f.sessionId}`, 'DELETE')).status, 200);
+  await assert.rejects(owner.assertCurrent()); await assert.rejects(f.borrow());
+});
+
+test('original retained journal cannot renew its captured deadline', async t => {
+  let now = Date.now(); const f = await retainedFixture(t, { now: () => now });
+  const owner = await f.borrow(), initial = await owner.assertCurrent();
+  f.setIdentity({ expiresAt: initial.expiresAt + 60000 }); now = initial.expiresAt;
+  await assert.rejects(owner.assertCurrent());
+});
+
+test('original retained journal rejects late entered approval and refuses replay', async t => {
+  let count = 0, release; const wait = new Promise(resolve => { release = resolve; });
+  const f = await retainedFixture(t, { requestNativeTools: async () => { count++; await wait; return { completed: true }; } });
+  const owner = await f.borrow(); const request = { method: 'POST', path: `/runtime/native-tools/approve?sessionId=${f.sessionId}`, body: { proposalId: 'PUBLIC-proposal', csrf: 'PUBLIC-csrf' } };
+  const pending = owner.request(request); while (!count) await new Promise(resolve => setImmediate(resolve));
+  f.setIdentity({ generation: 2 }); release(); await assert.rejects(pending, error => error.code === 'AI_UNKNOWN');
+  f.setIdentity({ generation: 1 }); await assert.rejects(owner.request(request), error => error.code === 'AI_UNKNOWN'); assert.equal(count, 1);
+});
+
+test('original retained journal observes request cancellation and close across reference awaits', async t => {
+  let block = false, release; const wait = new Promise(resolve => { release = resolve; });
+  const f = await retainedFixture(t, { resolveReference: async id => { if (block) await wait; return id; } });
+  const owner = await f.borrow(); block = true; const pending = owner.assertCurrent(); owner.close(); release(); await assert.rejects(pending);
+  const controller = new AbortController(); controller.abort(); await assert.rejects(f.borrow(f.locators, controller.signal));
+});
+
+// Public fixtures exercise the real journal and private dispatcher. They are
+// neither an online-model acceptance nor a supplied desktop identity mapping.
+async function retainedToolsFixture(t, modelWork, options = {}) {
+  let tools, calls = 0;
+  const f = await retainedFixture(t, { ...options, requestNativeTools: operation => tools.dispatchRetained(operation) });
+  const aiStore = createNativeAIStore({ filename: join(f.root, 'PUBLIC-ai.sqlite'), keyPath: join(f.root, 'PUBLIC-ai.key') });
+  t.after(() => aiStore.close());
+  tools = createNativeToolsService({ coreService: f.service(), aiStore, modelRouter: {
+    catalog: () => ({ hosted: { id: 'ynx-hosted', configuredModel: 'PUBLIC-test-model' } }),
+    async generate(value) {
+      calls++; await value.assertCurrent(); value.onDispatch();
+      return modelWork ? modelWork(value) : { model: 'PUBLIC-test-model', text: 'PUBLIC fixture result' };
+    }
+  } });
+  const owner = await f.borrow();
+  const request = (action, body, signal) => owner.request({ method: body ? 'POST' : 'GET',
+    path: `/runtime/native-tools/${action}?sessionId=${f.sessionId}`, ...(body ? { body } : {}) }, { signal });
+  const preview = async () => {
+    const context = await request('context');
+    return request('proposals', { csrf: context.csrf, prompt: 'Explain this PUBLIC code', context: 'console.log(42)' });
+  };
+  return { ...f, tools, owner, request, preview, aiStore, calls: () => calls };
+}
+
+test('original retained integrated dispatcher uses actual journal and one-use reviewed model request', async t => {
+  const f = await retainedToolsFixture(t), preview = await f.preview();
+  assert.equal(f.calls(), 0);
+  const body = { csrf: preview.csrf, proposalId: preview.proposalId, approval: 'send-reviewed-context-once' };
+  const result = await f.request('approve', body);
+  assert.equal(result.text, 'PUBLIC fixture result'); assert.equal(result.applied, false); assert.equal(result.signed, false);
+  assert.equal(f.aiStore.get(ownerA, project, result.conversationId).status, 'completed');
+  await assert.rejects(f.request('approve', body), { code: 'AI_UNKNOWN' }); assert.equal(f.calls(), 1);
+});
+
+test('original retained integrated dispatcher rejects forged authority and schema without model calls', async t => {
+  const f = await retainedToolsFixture(t);
+  await assert.rejects(f.tools.dispatchRetained({ admission: { context: { sessionId: f.sessionId }, identity: { owner: ownerA } },
+    request: { method: 'GET', path: `/runtime/native-tools/context?sessionId=${f.sessionId}` } }));
+  const context = await f.request('context');
+  await assert.rejects(f.request('proposals', { csrf: context.csrf, prompt: 'Explain PUBLIC code', context: 'PUBLIC', owner: ownerA }), { code: 'tools_schema' });
+  assert.equal((await f.call(`/${f.sessionId}`, 'DELETE')).status, 200);
+  await assert.rejects(f.request('context')); assert.equal(f.calls(), 0);
+});
+
+test('original retained integrated dispatcher cancellation preserves UNKNOWN and cannot replay a late model', async t => {
+  let release, entered;
+  const held = new Promise(resolve => { release = resolve; }), started = new Promise(resolve => { entered = resolve; });
+  const f = await retainedToolsFixture(t, async value => {
+    entered(value); await held; return { model: 'PUBLIC-test-model', text: 'PUBLIC late result' };
+  });
+  const preview = await f.preview(), controller = new AbortController();
+  const body = { csrf: preview.csrf, proposalId: preview.proposalId, approval: 'send-reviewed-context-once' };
+  const pending = f.request('approve', body, controller.signal);
+  const rejected = assert.rejects(pending, { code: 'AI_UNKNOWN' });
+  const dispatched = await started; controller.abort(); await rejected;
+  assert.equal(dispatched.signal.aborted, true);
+  const rows = f.aiStore.list(ownerA, project); assert.equal(rows.length, 1); assert.equal(rows[0].status, 'unknown');
+  release(); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(f.aiStore.get(ownerA, project, rows[0].id).status, 'unknown');
+  await assert.rejects(f.request('approve', body), { code: 'AI_UNKNOWN' }); assert.equal(f.calls(), 1);
+});
+
+for (const phase of ['pre-dispatch', 'post-model']) test(`retained maintenance holds original stores across ${phase} current and final persistence`, async t => {
+  const activity = createActivityRegistry(); let block = false, entered, release, closed = 0;
+  const waiting = new Promise(resolve => { release = resolve; }), started = new Promise(resolve => { entered = resolve; });
+  t.after(release);
+  const runRetainedOperation = work => {
+    const ticket = activity.admitRequest('native-tools');
+    return activity.runRequest(ticket, async () => { try { return await work(ticket.controller.signal); } finally { ticket.finish(); } });
+  };
+  const f = await retainedToolsFixture(t, async () => { block = true; return { model: 'PUBLIC-test-model', text: 'PUBLIC result' }; }, {
+    runRetainedOperation, async resolveReference(id) { if (block) { entered(); await waiting; } return id; }
+  });
+  let pending;
+  if (phase === 'post-model') {
+    const preview = await f.preview();
+    pending = f.request('approve', { csrf: preview.csrf, proposalId: preview.proposalId, approval: 'send-reviewed-context-once' });
+  } else { block = true; pending = f.request('context'); }
+  const rejected = assert.rejects(pending); await started;
+  const maintenance = createMaintenance({ activity, stopInteractive: () => f.service().drain(), cancelWork() {},
+    async closeStores() { f.service().close(); closed++; }, async checkpoint() {}, drainTimeoutMs: 2000, cancelTimeoutMs: 2000 });
+  const finishing = maintenance('PUBLIC-test-maintenance');
+  await new Promise(resolve => setTimeout(resolve, 30));
+  assert.equal(closed, 0, 'A pending original current callback must prevent clean store close');
+  assert.equal(activity.idle(), false);
+  assert.throws(() => f.service().close());
+  await assert.rejects(f.owner.assertCurrent());
+  release(); await rejected; const result = await finishing;
+  assert.equal(result.cleanShutdown, true); assert.equal(closed, 1); assert.equal(activity.idle(), true);
+  if (phase === 'post-model') assert.equal(f.aiStore.list(ownerA, project)[0].status, 'unknown');
+});
+
+test('retained maintenance bounded unresolved current reports failure and keeps stores open through cancellation',async t=>{
+  const activity=createActivityRegistry();let block=false,entered,release,closed=0;
+  const waiting=new Promise(r=>{release=r;}),started=new Promise(r=>{entered=r;});t.after(release);
+  const f=await retainedToolsFixture(t,undefined,{async resolveReference(id){if(block){entered();await waiting;}return id;},
+    runRetainedOperation:work=>{const ticket=activity.admitRequest('native-tools');return activity.runRequest(ticket,async()=>{try{return await work(ticket.controller.signal);}finally{ticket.finish();}});}});
+  block=true;const pending=f.request('context'),rejected=assert.rejects(pending);await started;
+  const maintenance=createMaintenance({activity,stopInteractive:()=>f.service().drain(),cancelWork(){},async closeStores(){closed++;},async checkpoint(){},drainTimeoutMs:10,cancelTimeoutMs:10});
+  const result=await maintenance('PUBLIC unresolved');assert.equal(result.cleanShutdown,false);assert.equal(result.timedOut,true);assert.equal(closed,0);
+  assert.equal(activity.snapshot().cancellationRequests,1);assert.equal(activity.snapshot().requests.total,1);assert.throws(()=>f.service().close());
+  release();await rejected;assert.equal(activity.snapshot().requests.total,0);
+});
+
+test('retained periodic current remains counted after outer cancellation until its original verification settles',async t=>{
+  const activity=createActivityRegistry();let block=false,tickEntered,releaseTick,modelEntered,releaseModel,closed=0,settled=false;
+  const tickWait=new Promise(r=>{releaseTick=r;}),tickStarted=new Promise(r=>{tickEntered=r;});
+  const modelWait=new Promise(r=>{releaseModel=r;}),modelStarted=new Promise(r=>{modelEntered=r;});t.after(()=>{releaseTick();releaseModel();});
+  const f=await retainedToolsFixture(t,async()=>{modelEntered();await modelWait;return {model:'PUBLIC-test-model',text:'PUBLIC late'};},
+    {async resolveReference(id){if(block){tickEntered();await tickWait;}return id;},runRetainedOperation:work=>{
+      const ticket=activity.admitRequest('native-tools');return activity.runRequest(ticket,async()=>{try{return await work(ticket.controller.signal);}finally{ticket.finish();}});
+    }});
+  const preview=await f.preview(),controller=new AbortController();
+  const pending=f.request('approve',{csrf:preview.csrf,proposalId:preview.proposalId,approval:'send-reviewed-context-once'},controller.signal);
+  pending.then(()=>{settled=true;},()=>{settled=true;});const rejected=assert.rejects(pending);
+  await modelStarted;block=true;await tickStarted;controller.abort();
+  await new Promise(r=>setTimeout(r,30));
+  const maintenance=createMaintenance({activity,stopInteractive:()=>f.service().drain(),cancelWork(){},async closeStores(){f.service().close();closed++;},async checkpoint(){},drainTimeoutMs:30,cancelTimeoutMs:30});
+  const outcome=await maintenance('PUBLIC pending periodic identity');
+  assert.equal(closed,0);assert.equal(settled,false);assert.equal(outcome.cleanShutdown,false);assert.equal(outcome.timedOut,true);
+  assert.throws(()=>f.service().close());assert.equal(f.aiStore.list(ownerA,project)[0].status,'unknown');
+  releaseTick();releaseModel();await rejected;assert.equal(activity.snapshot().requests.total,0);assert.equal(f.calls(),1);
 });

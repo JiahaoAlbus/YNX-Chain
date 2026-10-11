@@ -1,5 +1,6 @@
 import { randomBytes, createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
+import { EventEmitter } from 'node:events';
 import { fault } from './central-identity.mjs';
 import { reviewedHostedPrompt } from '../../model-router/src/hosted-request.mjs';
 import { SELECTION_KIND, EDIT_SYSTEM, reviewedSelection, reviewedReplacement, savedSelectionReview, isSavedSelectionReview } from './reviewed-selection.mjs';
@@ -29,12 +30,13 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
   function prune() { for (const map of [tickets, proposals]) for (const [key, value] of map) if (value.expires <= now()) map.delete(key); }
   function binding(admission) { return JSON.stringify([admission.context.owner, admission.context.projectId, admission.context.runtimeId, admission.context.sessionId, admission.identity.account, admission.identity.generation, admission.identity.identityReference || null]); }
   function token(map, value) { prune(); if (map.size >= 128 || [...map.values()].filter(item => item.bound === value.bound).length >= 8) throw fault('Tools review is full. Retry shortly.', 'tools_capacity', 429); const id = randomBytes(32).toString('base64url'); map.set(id, value); return id; }
-  async function handler(request, response) {
+  async function execute(request, response, retained) {
     const url = new URL(request.url, origin); if (!url.pathname.startsWith('/runtime/native-tools/')) return false;
     try {
-      if (request.headers.host !== approved.host) throw fault('Tools host is not authorized.', 'tools_origin', 403);
+      if (!retained && request.headers.host !== approved.host) throw fault('Tools host is not authorized.', 'tools_origin', 403);
       const sessionId = url.searchParams.get('sessionId'); if (!/^[a-f0-9-]{36}$/.test(sessionId || '')) throw fault('Select an active workspace.', 'tools_session', 400);
-      const admission = await coreService.authorizeConnection(request, sessionId), bound = binding(admission);
+      const authorize = () => retained ? retained.current(sessionId) : coreService.authorizeConnection(request, sessionId);
+      const admission = await authorize(), bound = binding(admission);
       prune(); const expires = Math.min(admission.expiresAt, now() + 60_000);
       if (request.method === 'GET' && url.pathname === '/runtime/native-tools/context') {
         // Foreground/passive verification still uses canonical admission but
@@ -60,11 +62,12 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         try { await (url.pathname.includes('/wallet/') ? walletHandler : chainHandler)(request, response); }
         finally { request.url = original; admittedOwners.delete(request); } return true;
       }
-      if (request.method !== 'POST' || request.headers.origin !== origin || request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' || !/^application\/json(?:;|$)/i.test(request.headers['content-type'] || '')) throw fault('Open and approve this request on the trusted YNX Tools page.', 'tools_origin', 403);
-      const body = await readBody(request, ['/runtime/native-tools/chain/compile', '/runtime/native-tools/chain/analyze'].includes(url.pathname) ? 512 * 1024 : 80 * 1024);
+      if (request.method !== 'POST' || !retained && (request.headers.origin !== origin || request.headers['sec-fetch-site'] && request.headers['sec-fetch-site'] !== 'same-origin' || !/^application\/json(?:;|$)/i.test(request.headers['content-type'] || ''))) throw fault('Open and approve this request on the trusted YNX Tools page.', 'tools_origin', 403);
+      const limit = ['/runtime/native-tools/chain/compile', '/runtime/native-tools/chain/analyze'].includes(url.pathname) ? 512 * 1024 : 80 * 1024;
+      const body = retained ? await retained.readBody(limit) : await readBody(request, limit);
       // Receiving a body can outlive logout or an account change. Recheck at
       // dispatch, before consuming a review or sending selected context.
-      const current = await coreService.authorizeConnection(request, sessionId);
+      const current = await authorize();
       if (binding(current) !== bound || current.expiresAt <= now() || admission.expiresAt <= now())
         throw fault('Wallet session changed during review. Reopen the tools page.', 'tools_identity_changed', 401);
       const ticket = tickets.get(body.csrf);
@@ -78,7 +81,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         const timer = setTimeout(() => controller.abort(), Math.max(1, Math.min(2147483647, admission.expiresAt - now())));
         try {
           const result = await (analysis ? compiler.analyze({ owner: admission.context.owner, snapshot: body.snapshot, sessionId, signal: controller.signal }) : compiler.compile({ owner: admission.context.owner, name: body.name, ...(snapshot ? { snapshot: body.snapshot, sessionId } : { source: body.source }), signal: controller.signal }));
-          const latest = await coreService.authorizeConnection(request, sessionId);
+          const latest = await authorize();
           if (controller.signal.aborted || binding(latest) !== bound || latest.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet project changed during compilation. Build again from the current project.', 'tools_identity_changed', 401);
           json(response, result.status || (result.ok ? 200 : 503), { ...result, projectId: admission.context.projectId, signed: false, submitted: false });
@@ -146,7 +149,7 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         const controller = new AbortController(), timer = setTimeout(() => controller.abort(fault('Wallet session expired during generation.', 'tools_identity_changed', 401)), Math.max(1, admission.expiresAt - now()));
         const assertCurrent = async () => {
           requireModel(proposal.model);
-          const current = await coreService.authorizeConnection(request, sessionId);
+          const current = await authorize();
           if (binding(current) !== bound || current.expiresAt <= now() || admission.expiresAt <= now())
             throw fault('Wallet session changed during generation.', 'tools_identity_changed', 401);
           if (controller.signal.aborted) throw controller.signal.reason;
@@ -154,11 +157,11 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
         const disconnect = () => { if (!response.writableEnded) controller.abort(fault('The client stopped waiting for this request.', 'tools_request_cancelled', 499)); };
         response.once('close', disconnect);
         if (response.destroyed) disconnect();
-        let checking = false;
+        let checking = false, pendingCheck;
         const check = setInterval(() => {
           if (checking || controller.signal.aborted) return;
           checking = true;
-          void assertCurrent().catch(error => controller.abort(error)).finally(() => { checking = false; });
+          pendingCheck = assertCurrent().catch(error => controller.abort(error)).finally(() => { checking = false; });
         }, 5000);
         try {
           const result = await waitForModel(() => modelRouter.generate({ ownerId: admission.context.owner, provider: 'ynx-hosted', model: proposal.model,
@@ -180,12 +183,59 @@ export function createNativeToolsService({ coreService, modelRouter, aiStore, ch
           error.conversationId = conversation.id;
           if (error.code === 'provider_auth_failed') throw fault('The hosted model service is not authorized for this product yet.', 'tools_model_service_authorization', 503);
           throw error;
-        } finally { clearTimeout(timer); clearInterval(check); response.removeListener('close', disconnect); } return true;
+        } finally {
+          clearTimeout(timer); clearInterval(check); response.removeListener('close', disconnect);
+          // Cancelling future ticks cannot settle a verification already begun.
+          // Keep its original stores and enclosing request alive until it ends.
+          if (pendingCheck) await pendingCheck;
+        } return true;
       }
       throw fault('This tool action is not supported.', 'tools_route', 405);
     } catch (error) { json(response, error.status || 503, { code: error.code || 'tools_unavailable', error: error.message || 'Tools are unavailable.', ...(error.conversationId ? { conversationId: error.conversationId } : {}) }); return true; }
   }
-  return { handler };
+  // No header, cookie or public snapshot selects this authority. The original
+  // broker alone brands the retained admission and rechecks its running writer.
+  function dispatchRetained(operation = {}) {
+    if (typeof coreService?.runRetainedOperation !== 'function') throw fault('Original project lifetime is unavailable.', 'tools_retained_unavailable', 503);
+    return coreService.runRetainedOperation(signal => dispatchOriginalRetained({ ...operation, signal }), operation.signal);
+  }
+  async function dispatchOriginalRetained({ request, admission, signal } = {}) {
+    if (typeof coreService?.authorizeRetainedAdmission !== 'function') throw fault('Original project admission is unavailable.', 'tools_retained_unavailable', 503);
+    signal?.throwIfAborted();
+    const captured = structuredClone(request);
+    const first = await coreService.authorizeRetainedAdmission(admission);
+    const sessionId = first.context.sessionId, expected = binding(first);
+    const action = ['context', 'proposals', 'approve'].find(action => captured?.path === `/runtime/native-tools/${action}?sessionId=${encodeURIComponent(sessionId)}`);
+    if (!action || Object.keys(captured).sort().join() !== (action === 'context' ? ['method', 'path'] : ['body', 'method', 'path']).sort().join() ||
+        captured.method !== (action === 'context' ? 'GET' : 'POST')) throw fault('Retained action is unavailable.', 'tools_route', 405);
+    const current = async selectedSession => {
+      signal?.throwIfAborted();
+      const next = await coreService.authorizeRetainedAdmission(admission);
+      signal?.throwIfAborted();
+      if (selectedSession !== sessionId || binding(next) !== expected || next.expiresAt <= now() || first.expiresAt <= now()) throw fault('Retained project changed.', 'tools_identity_changed', 401);
+      return next;
+    };
+    const response = new EventEmitter(); let status, result;
+    response.destroyed = false; response.writableEnded = false;
+    response.writeHead = value => { status = value; };
+    response.end = value => { result = JSON.parse(value); response.writableEnded = true; };
+    const abort = () => { response.destroyed = true; response.emit('close'); };
+    signal?.addEventListener('abort', abort, { once: true });
+    try {
+      signal?.throwIfAborted();
+      await execute({ method: captured.method, url: captured.path }, response, { current, async readBody(limit) {
+        const bytes = JSON.stringify(captured.body);
+        if (typeof bytes !== 'string') throw fault('Tool request must be JSON.', 'tools_json', 400);
+        if (Buffer.byteLength(bytes) > limit) throw fault('The tool request body exceeds its size limit.', 'tools_body_limit', 413);
+        return JSON.parse(bytes);
+      } });
+      signal?.throwIfAborted();
+      if (!response.writableEnded || status >= 400) throw fault(result?.error || 'Retained operation could not be confirmed.', result?.code || 'tools_retained_unavailable', status || 503);
+      await current(sessionId);
+      return result;
+    } finally { signal?.removeEventListener('abort', abort); }
+  }
+  return { handler: (request, response) => execute(request, response), dispatchRetained };
 }
 function exact(body, keys) { if (!body || typeof body !== 'object' || Array.isArray(body) || Object.keys(body).sort().join() !== keys.sort().join()) throw fault('Unexpected tool request fields.', 'tools_schema', 400); }
 async function readBody(request, limit = 80 * 1024) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > limit) throw fault('The tool request body exceeds its size limit.', 'tools_body_limit', 413); chunks.push(chunk); } try { return JSON.parse(Buffer.concat(chunks)); } catch { throw fault('Tool request must be JSON.', 'tools_json', 400); } }

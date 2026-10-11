@@ -60,12 +60,51 @@ for (const supplied of [true,false]) test('normal local launcher ' + (supplied ?
     const desktop=join(root,'code/apps/developer/desktop');await mkdir(desktop,{recursive:true});
     await copyFile(new URL('./code-server.mjs',import.meta.url),join(root,'code-server.mjs'));
     await copyFile(new URL('./native-tools-client.mjs',import.meta.url),join(desktop,'native-tools-client.mjs'));
+    await copyFile(new URL('./admitted-local-project.mjs',import.meta.url),join(desktop,'admitted-local-project.mjs'));
     await writeFile(join(root,'build-provenance.json'),JSON.stringify(valid));
     await writeFile(join(desktop,'local-go-selection.mjs'),'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go selection");} export function attachNativeGoSelectionChannel(){}');
-    await writeFile(join(desktop,'wallet-admission-startup.mjs'),`export async function openBundledWalletAdmission(){return {assertCurrent(){throw Error('four-op must not authorize tools');},nativeTools:{async openProject(binding){return {assertCurrent:async()=>({localProjectId:binding.projectId,workspace:binding.workspace,launch:binding.launch,sessionId:'22222222-1234-1234-1234-123456789abc',generation:'PUBLIC-generation',expiresAt:Date.now()+60000}),request:async request=>{console.log('PUBLIC_ROUTE '+request.path);return {};},close(){console.log('PUBLIC_CLOSED');}};}}};}`);
+    await writeFile(join(desktop,'wallet-admission-startup.mjs'),`const deadline=Date.now()+60000;const canonical={owner:'a'.repeat(64),workspaceOwner:'a'.repeat(64),account:'PUBLIC',generation:1,identityReference:'a'.repeat(43),localProjectId:'PUBLIC-canonical',workspace:'/PUBLIC/project',launch:'22222222-1234-1234-1234-123456789abc',sessionId:'22222222-1234-1234-1234-123456789abc',expiresAt:deadline};export async function openBundledWalletAdmission(){return {assertCurrent(){throw Error('four-op must not authorize tools');},admittedProject:{assertCurrent:async()=>canonical,request(){throw Error('Tools authority must own dispatch');},close(){console.log('PUBLIC_PROJECT_CLOSED');}},nativeTools:{async openProject(binding){if(binding.projectId!=='PUBLIC-canonical')throw Error('Local id must not be used as canonical');return {assertCurrent:async()=>({...canonical,generation:'1'}),request:async request=>{console.log('PUBLIC_ROUTE '+request.path);return {};},close(){console.log('PUBLIC_CLOSED');}};}}};}`);
     if (!supplied) await writeFile(join(desktop,'wallet-admission-startup.mjs'),`export async function openBundledWalletAdmission(){return {nativeTools:{}};}`);
     await writeFile(join(desktop,'local-workbench.mjs'),`export async function localProjectContext(){return {id:'PUBLIC-project',workspace:'/PUBLIC/project'};} export async function startLocalWorkbench({aiTools}){if(!aiTools){console.log('PUBLIC_AI_UNAVAILABLE');return {exited:Promise.resolve({code:0}),stop:async()=>{}};}await aiTools.assertCurrent({projectId:'PUBLIC-project',workspace:'/PUBLIC/project',launch:'12345678-1234-1234-1234-123456789abc'});await aiTools.request('context',{});return {url:'http://127.0.0.1:0',id:'PUBLIC-project',workspace:'/PUBLIC/project',exited:Promise.resolve({code:0}),stop:async()=>{}};}`);
     const result=spawnSync(process.execPath,[join(root,'code-server.mjs')],{encoding:'utf8',timeout:10000,env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
     assert.equal(result.status,0,result.stderr);if(!supplied){assert.match(result.stdout,/PUBLIC_AI_UNAVAILABLE/);assert.match(result.stderr,/YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED/);assert.doesNotMatch(result.stdout,/PUBLIC_ROUTE/);return;}assert.match(result.stdout,/PUBLIC_ROUTE \/runtime\/native-tools\/context\?sessionId=/);assert.match(result.stdout,/PUBLIC_CLOSED/);
   } finally {await rm(root,{recursive:true,force:true});}
+});
+
+for (const scenario of ['incomplete', 'async-close', 'missing-tools', 'launch-failure', 'cleanup-failure', 'launch-and-cleanup-failure']) test(`normal local launcher retains cleanup through ${scenario}`, async () => {
+  const root = await mkdtemp(join(tmpdir(), 'ynx-public-cleanup-launcher-'));
+  try {
+    const desktop = join(root, 'code/apps/developer/desktop');
+    await mkdir(desktop, { recursive: true });
+    await copyFile(new URL('./code-server.mjs', import.meta.url), join(root, 'code-server.mjs'));
+    for (const file of ['native-tools-client.mjs', 'admitted-local-project.mjs']) await copyFile(new URL(`./${file}`, import.meta.url), join(desktop, file));
+    await writeFile(join(root, 'build-provenance.json'), JSON.stringify(valid));
+    await writeFile(join(desktop, 'local-go-selection.mjs'), 'export async function createLocalGoSelectionStore(){throw Error("PUBLIC no Go selection");} export function attachNativeGoSelectionChannel(){}');
+    // Public fixture at the normal supplier boundary. The actual launcher and
+    // mapping must observe original cleanup, even when startup fails or Tools
+    // is absent. This is source integration, not native App acceptance.
+    await writeFile(join(desktop, 'wallet-admission-startup.mjs'), `
+      let closes=0;
+      const project={assertCurrent(){throw Error('not used by this fixture');},request(){throw Error('no dispatch');},
+        close(){if(++closes!==1)throw Error('PUBLIC_DUPLICATE_CLOSE');console.log('PUBLIC_CLOSE');
+          ${scenario === 'async-close' ? "return Promise.resolve().then(()=>{console.log('PUBLIC_ASYNC_OBSERVED');return {complete:true};});" : 'return {complete:false,outstanding:1,errors:[]};'}},
+        async finishCleanup(){console.log('PUBLIC_FINISH');${scenario.includes('cleanup-failure') ? "throw Error('PUBLIC_CLEANUP_FAILURE');" : 'return {complete:true,outstanding:0,errors:[]};'}}};
+      export async function openBundledWalletAdmission(){return {admittedProject:project${scenario === 'missing-tools' ? '' : ',nativeTools:{openProject(){throw Error("not entered");}}'}};}
+    `);
+    await writeFile(join(desktop, 'local-workbench.mjs'), `
+      export async function localProjectContext(){return {id:'PUBLIC-project',workspace:'/PUBLIC/project'};}
+      export async function startLocalWorkbench(){${scenario.startsWith('launch-') ? "throw Object.assign(Error('PUBLIC_PRIMARY_LAUNCH_FAILURE'),{code:'PUBLIC_PRIMARY'});" : "return {exited:Promise.resolve({code:0}),stop:async()=>{console.log('PUBLIC_STOP');}};"}}
+    `);
+    const result = spawnSync(process.execPath, [join(root, 'code-server.mjs')], {encoding:'utf8',timeout:10000,
+      env:{PATH:'/usr/bin:/bin',YNX_DEVELOPER_DESKTOP_MODE:'local-workbench',YNX_CODE_DESKTOP_SUPPORT_DIR:join(root,'support')}});
+    assert.equal(result.error, undefined);
+    if (scenario.startsWith('launch-')) { assert.notEqual(result.status,0); assert.match(result.stderr,/PUBLIC_PRIMARY_LAUNCH_FAILURE/); }
+    else assert.equal(result.status,scenario.includes('cleanup-failure') ? 1 : 0,result.stderr);
+    assert.equal(result.stdout.split('PUBLIC_CLOSE').length-1,1,result.stdout);
+    assert.match(result.stdout, scenario === 'async-close' ? /PUBLIC_ASYNC_OBSERVED/ : /PUBLIC_FINISH/);
+    if (scenario === 'async-close') assert.doesNotMatch(result.stdout,/PUBLIC_FINISH/);
+    if (scenario.includes('cleanup-failure')) assert.match(result.stderr,/YNX_AI_CLEANUP_INCOMPLETE/);
+    else assert.doesNotMatch(result.stderr,/YNX_AI_CLEANUP_INCOMPLETE/);
+    assert.doesNotMatch(result.stderr,/PUBLIC_DUPLICATE_CLOSE/);
+  } finally { await rm(root,{recursive:true,force:true}); }
 });

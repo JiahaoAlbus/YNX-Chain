@@ -44,13 +44,34 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   const { openBundledWalletAdmission } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'wallet-admission-startup.mjs')));
   const walletAdmission = await openBundledWalletAdmission(import.meta.url);
   const { createNativeToolsClient } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-tools-client.mjs')));
-  let aiTools;
-  try { aiTools = createNativeToolsClient({ supply: walletAdmission?.nativeTools }); }
-  catch { console.error('YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED'); }
+  const { createAdmittedLocalProjectMapping } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'admitted-local-project.mjs')));
+  let aiTools, admittedProject, cleanupOwner;
+  const retireTools = () => { aiTools?.close(); cleanupOwner?.close(); };
+  const finishToolsCleanup = async () => {
+    if (!cleanupOwner) return true;
+    try {
+      const status = await cleanupOwner.finishCleanup();
+      if (status.complete) return true;
+    } catch { /* Preserve the startup/exit error; cleanup remains incomplete. */ }
+    console.error('YNX_AI_CLEANUP_INCOMPLETE');
+    return false;
+  };
+  try {
+    admittedProject = createAdmittedLocalProjectMapping({ context, canonicalProject: walletAdmission?.admittedProject, nativeTools: walletAdmission?.nativeTools });
+    cleanupOwner = admittedProject;
+    aiTools = createNativeToolsClient({ supply: admittedProject });
+    if (!admittedProject) console.error('YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED');
+  }
+  catch (error) {
+    cleanupOwner = admittedProject || error?.cleanupOwner;
+    retireTools();
+    console.error('YNX_AI_NATIVE_TOOLS_NOT_SUPPLIED');
+  }
   const workbench = await startLocalWorkbench({ payload: join(resources, 'composed-core'), supportRoot,
     projectDirectory: process.env.YNX_LOCAL_WORKSPACE || undefined,
-    walletAdmission, aiTools, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(error => {
-      aiTools?.close();
+    walletAdmission, aiTools, goToolchain, node: join(resources, 'runtime', 'node'), lockHelper: join(resources, 'runtime', 'ynx-local-workbench-lock'), port: Number(process.env.PORT || 0) }).catch(async error => {
+      retireTools();
+      await finishToolsCleanup();
       // startLocalWorkbench has already stopped its own child before rejecting.
       // Preserve the lock refusal across the launcher/native-host boundary.
       if (error.code === 'YNX_LOCAL_PROJECT_ALREADY_OPEN') {
@@ -70,14 +91,23 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   }
   delete process.env.YNX_NATIVE_GO_INSTANCE;
   console.log('YNX_LOCAL_WORKBENCH ' + JSON.stringify({ url: workbench.url, projectId: workbench.id, workspace: workbench.workspace, profile: workbench.profile }));
-  const parent = process.ppid;
-  const monitor = setInterval(() => { if (process.ppid !== parent) void workbench.stop(); }, 250);
   let stopping;
-  const stop = () => {goChannel?.close();aiTools?.close();return stopping ||= workbench.stop();};
-  process.once('SIGTERM', stop); process.once('SIGINT', stop);
+  const stop = () => {
+    if (stopping) return stopping;
+    goChannel?.close(); retireTools();
+    stopping = (async () => {
+      try { await workbench.stop(); }
+      finally { if (!await finishToolsCleanup()) process.exitCode = 1; }
+    })();
+    return stopping;
+  };
+  const requestStop = () => { void stop().catch(() => { process.exitCode = 1; console.error('YNX_LOCAL_WORKBENCH_STOP_FAILED'); }); };
+  const parent = process.ppid;
+  const monitor = setInterval(() => { if (process.ppid !== parent) requestStop(); }, 250);
+  process.once('SIGTERM', requestStop); process.once('SIGINT', requestStop);
   const result = await workbench.exited;
   clearInterval(monitor); await stop();
-  process.exitCode = result.error ? 1 : result.code === null ? 0 : result.code;
+  process.exitCode = process.exitCode || (result.error ? 1 : result.code === null ? 0 : result.code);
 } else {
 const sessionKeyPath = join(supportRoot, "workspace-session.key");
 

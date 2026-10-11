@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID, createHash } from "node:crypto";
-import { mkdir, readFile, readdir, lstat, writeFile, readlink, open } from "node:fs/promises";
+import { mkdir, readFile, readdir, lstat, writeFile, readlink, open, realpath } from "node:fs/promises";
 import { createReadStream } from "node:fs";
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { join, resolve, relative, sep } from "node:path";
 import { OPENVSCODE, CORE_LIMITS } from "./upstream.mjs";
 import { createCentralIdentityVerifier, fault } from "./central-identity.mjs";
@@ -12,7 +13,7 @@ const LIVE = "'preparing','running','stopping','recovery-required'";
 const liveBrokers = new Set();
 
 export function createCodeOSSService({ filename, root, workspaceStore, verifyIdentity = createCentralIdentityVerifier(),
-  driver, launchURL, assertProjectQuiescent, limits = CORE_LIMITS, now = Date.now } = {}) {
+  driver, launchURL, assertProjectQuiescent, requestNativeTools, runRetainedOperation, onCompletedProject, limits = CORE_LIMITS, now = Date.now } = {}) {
   if (!workspaceStore || !root || !filename) throw new TypeError("CodeOSS durable store/root are required.");
   root = resolve(root);
   const runtimeArtifact = driver?.runtimeArtifact ? validateRuntimeArtifact(driver.runtimeArtifact) : null;
@@ -55,6 +56,27 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     db.exec("COMMIT");
   } catch (error) { db.exec("ROLLBACK"); throw error; }
   const tasks = new Map(), launches = new Map(), identityChecks = new Map();
+  let brokerClosed = false;
+  let brokerDraining = false;
+  const retainedContext = new AsyncLocalStorage(), retainedPending = new Set();
+  function retainedOperation(work, signal) {
+    const parent = retainedContext.getStore();
+    // Nested checks can outlive their parent (the periodic identity tick).
+    // Every entered promise owns its own registry ticket and broker count.
+    if (brokerClosed || brokerDraining && !parent?.active) return Promise.reject(fault('Native IDE is draining.', 'core_drain_incomplete', 503));
+    if (parent?.active) signal = signal && parent.signal ? AbortSignal.any([signal, parent.signal]) : signal || parent.signal;
+    const entry = { active: true, signal }; retainedPending.add(entry);
+    const execute = maintenanceSignal => {
+      entry.signal = signal && maintenanceSignal ? AbortSignal.any([signal, maintenanceSignal]) : signal || maintenanceSignal;
+      entry.signal?.throwIfAborted();
+      return retainedContext.run(entry, () => work(entry.signal));
+    };
+    let result;
+    try { result = runRetainedOperation ? runRetainedOperation(execute) : execute(); }
+    catch (error) { result = Promise.reject(error); }
+    return Promise.resolve(result).finally(() => { entry.active = false; retainedPending.delete(entry); });
+  }
+  const retainedAdmissions = new WeakMap();
   const get = id => db.prepare("SELECT * FROM codeoss_sessions WHERE id=?").get(id);
   const active = (owner, project) => db.prepare(`SELECT * FROM codeoss_sessions WHERE workspace_owner=? AND project=? AND status IN (${LIVE})`).get(owner, project);
 
@@ -160,6 +182,16 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
       workspaceStore.markNativeProject(id.workspaceOwner, body.projectId, token);
       db.prepare("UPDATE codeoss_projects SET adopted=1 WHERE workspace_owner=? AND project=?").run(id.workspaceOwner, body.projectId);
       db.prepare("UPDATE codeoss_sessions SET status='running' WHERE id=?").run(sessionId);
+      if (typeof onCompletedProject === 'function') {
+        // Only this original approved start can produce the private held owner.
+        // Callback input is never accepted from the HTTP body or desktop ENV.
+        const admittedProject = await acquireProject({ projectId: body.projectId,
+          workspace: join(context.projectDirectory, 'workspace'), launch: sessionId });
+        try {
+          await onCompletedProject(Object.freeze({ admittedProject, session: Object.freeze(publicSession(get(sessionId))) }));
+          await revalidate();
+        } catch (error) { admittedProject.close(); throw error; }
+      }
       return publicSession(get(sessionId));
     } catch (error) {
       // Launch might have succeeded before a transport failure. Retain exact
@@ -276,6 +308,100 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     // repeated backend checks enforce each current identity lease independently.
     return { context: runtimeContext(row), expiresAt: row.hard_deadline, identity: id };
   }
+  // Protected composition only. These locators select a durable approved launch;
+  // they cannot turn a guest directory or a desktop nonce into canonical identity.
+  function acquireProject(input, { signal } = {}) {
+    return retainedOperation(operationSignal => acquireRetainedProject(input, { signal: operationSignal }), signal);
+  }
+  async function acquireRetainedProject(input, { signal } = {}) {
+    const unavailable = () => fault('A retained admitted running project is unavailable.', 'core_retained_project_unavailable', 503);
+    if (brokerClosed || typeof verifyIdentity.resolveReference !== 'function' || !input ||
+        Object.keys(input).sort().join(',') !== 'launch,projectId,workspace' || !ID.test(input.projectId || '') ||
+        !/^[a-f0-9-]{36}$/.test(input.launch || '') || typeof input.workspace !== 'string' || resolve(input.workspace) !== input.workspace) throw unavailable();
+    signal?.throwIfAborted();
+    const binding = Object.freeze({ projectId: input.projectId, workspace: input.workspace, launch: input.launch });
+    const row = get(binding.launch);
+    if (!row || row.status !== 'running' || row.project !== binding.projectId || !row.identity_reference) throw unavailable();
+    const original = Object.freeze({ sessionId: row.id, owner: row.owner, workspaceOwner: row.workspace_owner,
+      account: row.account, generation: row.generation, identityReference: row.identity_reference, writerToken: row.writer_token,
+      runtimeId: row.runtime, projectId: row.project });
+    let retired = false, expiresAt = Math.min(row.expires_at, row.hard_deadline);
+    const enteredApprovals = new Set();
+    const localCurrent = () => {
+      signal?.throwIfAborted();
+      if (brokerClosed || retired || expiresAt <= now()) throw unavailable();
+      const current = get(original.sessionId);
+      const writer = db.prepare('SELECT writer_token,session_id FROM workspace_writers WHERE owner_id=? AND project_id=?').get(original.workspaceOwner, original.projectId);
+      if (!current || current.status !== 'running' || current.owner !== original.owner || current.workspace_owner !== original.workspaceOwner ||
+          current.project !== original.projectId || current.runtime !== original.runtimeId || current.account !== original.account ||
+          current.generation !== original.generation || current.identity_reference !== original.identityReference || current.writer_token !== original.writerToken ||
+          current.hard_deadline <= now() || !writer || writer.session_id !== original.sessionId || writer.writer_token !== original.writerToken) throw unavailable();
+      return current;
+    };
+    async function current() {
+      localCurrent();
+      const id = await verifyIdentity.resolveReference(original.identityReference);
+      const latest = localCurrent();
+      if (!id || id.owner !== original.owner || id.workspaceOwner !== original.workspaceOwner || id.account !== original.account ||
+          id.generation !== original.generation || id.identityReference !== original.identityReference ||
+          id.allowedCoreSession && id.allowedCoreSession !== original.sessionId || !Number.isFinite(id.expiresAt) || id.expiresAt <= now() ||
+          typeof id.isCurrent !== 'function') throw unavailable();
+      id.isCurrent();
+      const context = runtimeContext(latest), expected = join(context.projectDirectory, 'workspace');
+      if (expected !== binding.workspace || (await lstat(expected)).isSymbolicLink() || await realpath(expected) !== expected) throw unavailable();
+      localCurrent(); id.isCurrent();
+      expiresAt = Math.min(expiresAt, id.expiresAt, latest.hard_deadline);
+      localCurrent();
+      const admission = Object.freeze({ context, identity: id, expiresAt, snapshot: Object.freeze({ owner: original.owner, workspaceOwner: original.workspaceOwner,
+        account: original.account, generation: original.generation, identityReference: original.identityReference,
+        localProjectId: binding.projectId, workspace: binding.workspace, launch: binding.launch, sessionId: original.sessionId, expiresAt }) });
+      retainedAdmissions.set(admission, current);
+      return admission;
+    }
+    try { await current(); } catch (error) { retired = true; throw error; }
+    return Object.freeze({
+      assertCurrent: () => retainedOperation(async operationSignal => {
+        operationSignal?.throwIfAborted(); const result = (await current()).snapshot; operationSignal?.throwIfAborted(); return result;
+      }, signal),
+      request(value, { signal: requestSignal } = {}) { return retainedOperation(async operationSignal => {
+        const signals = [signal, requestSignal, operationSignal].filter(Boolean);
+        const combined = signals.length > 1 ? AbortSignal.any(signals) : signals[0];
+        combined?.throwIfAborted();
+        const route = `/runtime/native-tools/`, query = `?sessionId=${encodeURIComponent(original.sessionId)}`;
+        const action = value?.path === route + 'context' + query && value.method === 'GET' ? 'context' :
+          value?.path === route + 'proposals' + query && value.method === 'POST' ? 'proposals' :
+          value?.path === route + 'approve' + query && value.method === 'POST' ? 'approve' : null;
+        if (!action || Object.keys(value).some(key => !['method', 'path', 'body'].includes(key)) || action === 'context' && value.body !== undefined ||
+            typeof requestNativeTools !== 'function') throw unavailable();
+        const request = Object.freeze({ method: value.method, path: value.path, ...(action !== 'context' ? { body: structuredClone(value.body) } : {}) });
+        if (action !== 'context' && Buffer.byteLength(JSON.stringify(request.body) || '') > 80 * 1024) throw unavailable();
+        const admission = await current();
+        combined?.throwIfAborted(); localCurrent(); admission.identity.isCurrent();
+        let approval;
+        if (action === 'approve') {
+          approval = createHash('sha256').update(JSON.stringify(request.body) || '').digest('hex');
+          if (enteredApprovals.has(approval) || enteredApprovals.size >= 8) throw fault('Entered approval cannot be replayed.', 'AI_UNKNOWN', 409);
+          enteredApprovals.add(approval);
+        }
+        try {
+          combined?.throwIfAborted(); localCurrent();
+          const result = await requestNativeTools(Object.freeze({ request, admission, signal: combined }));
+          combined?.throwIfAborted(); await current(); combined?.throwIfAborted();
+          return result;
+        } catch (error) {
+          if (approval) throw Object.assign(new Error('Entered approval outcome is UNKNOWN; do not replay.', { cause: error }), { code: 'AI_UNKNOWN', status: 503 });
+          throw error;
+        }
+      }, requestSignal); },
+      close() { retired = true; },
+    });
+  }
+  function authorizeRetainedAdmission(value) { return retainedOperation(async operationSignal => {
+    operationSignal?.throwIfAborted();
+    const current = retainedAdmissions.get(value);
+    if (!current || brokerClosed) throw fault('Original retained project admission is required.', 'core_retained_project_unavailable', 503);
+    const result = await current(); operationSignal?.throwIfAborted(); return result;
+  }); }
   async function expireSessions() {
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE expires_at<=? AND status IN (${LIVE})`).all(now());
     return Promise.allSettled(rows.map(row => {
@@ -302,6 +428,7 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     }));
   }
   async function drain() {
+    brokerDraining = true;
     const rows = db.prepare(`SELECT * FROM codeoss_sessions WHERE status IN (${LIVE})`).all();
     const results = await Promise.allSettled(rows.map(stop));
     if (results.some(result => result.status === "rejected")) throw fault("Native IDE drain retained protected recovery.", "core_drain_incomplete", 503);
@@ -315,8 +442,9 @@ export function createCodeOSSService({ filename, root, workspaceStore, verifyIde
     return results;
   }
   // Workspace store owns this shared connection and closes it after draining.
-  return { handler, guardWorkspaceWrite, authorizeConnection, expireSessions, drain, drainOwner, close: () => {
-    if (tasks.size || launches.size) throw new Error("Drain the native IDE broker before closing its admission lease.");
+  return { handler, guardWorkspaceWrite, authorizeConnection, acquireProject, authorizeRetainedAdmission, runRetainedOperation: retainedOperation, expireSessions, drain, drainOwner, close: () => {
+    if (tasks.size || launches.size || retainedPending.size) throw new Error("Drain the native IDE broker before closing its admission lease.");
+    brokerClosed = true;
     db.prepare("DELETE FROM codeoss_broker_owner WHERE singleton=1 AND pid=?").run(process.pid);
     liveBrokers.delete(brokerKey);
   } };

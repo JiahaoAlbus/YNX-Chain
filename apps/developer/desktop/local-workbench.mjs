@@ -298,7 +298,8 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
-  const aiPipe = localAIChannel.serve(child.stdio[7], createLocalAIToolsHost(context, { client: aiTools, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof) }));
+  const aiHost = createLocalAIToolsHost(context, { client: aiTools, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof) });
+  const aiPipe = localAIChannel.serve(child.stdio[7], aiHost);
   child.once('close', () => aiPipe.close());
   child.once('error', () => aiPipe.close());
   let artifactsRetired = false;
@@ -330,7 +331,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   child.stdout.pipe(log, { end: false }); child.stderr.pipe(log, { end: false });
   let ended = false, failure, exitCode; const exited = new Promise(resolve => { child.once('error', error => { failure = error; ended = true; resolve({ error }); }); child.once('close', (code, signal) => { ended = true; exitCode = code; resolve({ code, signal }); }); });
   let stopping;
-  const stop = () => stopping ||= (async () => { publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout;
+  const stop = () => stopping ||= (async () => { aiHost.close(); aiPipe.close(); publicChainPipe.close(); catalogPipe.close(); let cleanupError, cleanupStdout;
     try { await retireArtifacts(); } catch (error) { cleanupError = error; }
     if (!ended) {
     // PTY children can own separate process groups. The sealed native helper
