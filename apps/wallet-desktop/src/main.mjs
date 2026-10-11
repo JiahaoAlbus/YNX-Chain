@@ -8,6 +8,7 @@ import {FamilyNetworks} from './multichain-family-networks.mjs';
 import {FamilyRead} from './multichain-family-read.mjs';
 import {FamilyTokens} from './multichain-family-tokens.mjs';
 import {FamilyRecovery} from './multichain-family-recovery.mjs';
+import {FamilyBitcoinTransfer} from './multichain-family-bitcoin-transfer.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
@@ -78,6 +79,7 @@ let multichain;
 let familyAccounts;
 let familyRead;
 let familyRecovery;
+let familyBitcoinTransfer;
 let multichainSecurityContext=null;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
@@ -118,6 +120,8 @@ handleWalletIPC('wallet:family-balances', (_event, input) => sensitiveIPC(() => 
 handleWalletIPC('wallet:family-token', (_event, input) => sensitiveIPC(() => familyRead.importToken(input)));
 handleWalletIPC('wallet:family-records', (_event, input) => safeIPC(() => familyRecovery.list(input)));
 handleWalletIPC('wallet:family-check', (_event, input) => safeIPC(() => familyRecovery.check(input)));
+handleWalletIPC('wallet:family-btc-prepare', (_event, input) => sensitiveIPC(() => familyBitcoinTransfer.prepare(input)));
+handleWalletIPC('wallet:family-btc-cancel', (_event, input) => safeIPC(() => familyBitcoinTransfer.cancel(input)));
 installMultichainIPC({handle:handleWalletIPC,safe:safeIPC,sensitive:sensitiveIPC,getGuard:()=>keyAccess.current(),service:new Proxy({}, {get:(_target,name)=>(...args)=>{if(!multichain)throw new Error('Wallet is starting.');return multichain[name](...args)}})});
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
@@ -512,6 +516,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const familyContext = async () => ({account: (await passwordVault.status()).account, ...keyAccess.status()});
   familyRecovery = new FamilyRecovery({filePath: path.join(userData, 'multichain-family-custody-v1.json'), getContext: familyContext});
   familyRead = new FamilyRead({networks: new FamilyNetworks({filePath: path.join(userData, 'multichain-family-networks-v1.json')}), tokens: new FamilyTokens({filePath: path.join(userData, 'multichain-family-tokens-v1.json')}), accounts: familyAccounts, getContext: familyContext, assertNetworkEditable: network => familyRecovery.assertNetworkEditable(network)});
+  familyBitcoinTransfer = new FamilyBitcoinTransfer({networks: familyRead.networks, accounts: familyAccounts, journal: familyRecovery.journal, getContext: familyContext});
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
     vault: passwordVault,

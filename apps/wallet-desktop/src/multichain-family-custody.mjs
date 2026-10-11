@@ -111,6 +111,18 @@ export class FamilyCustody {
       retire: () => { live = false; }
     });
   }
+  async cancelPrepared(id, account) {
+    // Cancellation alone is reconstructible; signing authority never is.
+    // Serialize with beginSigning and reject any signed/unknown result.
+    if (this.#held.has(id)) fail();
+    await this.file.mutate(value => {
+      const r=value.records.find(r=>r.id===id);
+      if(!r||r.account!==account||r.result!==null||!['prepared','cancelled'].includes(r.state))fail();
+      if(r.state==='prepared')Object.assign(r,{state:'cancelled',revision:r.revision+1,updatedAt:Math.max(r.updatedAt,this.now())});
+      return value;
+    });
+    return (await this.list()).find(r=>r.id===id);
+  }
   async check(id, query) {
     if (typeof query !== 'function' || this.#held.has(id)) fail();
     const record = (await this.list()).find(r => r.id === id);

@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   familyToken: input => ipcRenderer.invoke('wallet:family-token', input),
   familyRecords: input => ipcRenderer.invoke('wallet:family-records', input),
   familyCheck: input => ipcRenderer.invoke('wallet:family-check', input),
+  familyBitcoinPrepare: input => ipcRenderer.invoke('wallet:family-btc-prepare', input),
+  familyBitcoinCancel: input => ipcRenderer.invoke('wallet:family-btc-cancel', input),
   familyNetwork: input => ipcRenderer.invoke('wallet:family-network', input),
   familyBalances: input => ipcRenderer.invoke('wallet:family-balances', input),
   multichainSnapshot:()=>ipcRenderer.invoke('wallet:multichain-snapshot'),
