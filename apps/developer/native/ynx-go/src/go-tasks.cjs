@@ -98,10 +98,12 @@ function createGoTasks(api,context,environment,t=text=>text) {
   build.group=api.TaskGroup.Build;build.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Shared,clear:true};
   const run=new api.Task(definition('run'),binding.folder,t('Run Go package'),'YNX Go',new api.ProcessExecution(output,[],{cwd,env}),[]);
   run.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Shared,clear:false};
-  await binding.verify();return {build,run,output,cwd};
+  const testTask=new api.Task(definition('test'),binding.folder,t('Test Go package'),'YNX Go',new api.ProcessExecution(toolchain.executable,['test',...(config.mode==='module'?['-mod=readonly']:[]),'-count=1','-v','.'],{cwd,env}),['$ynx-go-compile']);
+  testTask.group=api.TaskGroup.Test;testTask.presentationOptions={reveal:api.TaskRevealKind.Always,panel:api.TaskPanelKind.Shared,clear:true};
+  await binding.verify();return {build,run,test:testTask,output,cwd};
  }
 
- async function run() {
+ async function execute(kind) {
   if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
   // Claim the original request before the first asynchronous read. Configuration
   // and execution share this owner; callbacks cannot create a second Run.
@@ -125,6 +127,13 @@ function createGoTasks(api,context,environment,t=text=>text) {
     if(document.uri.scheme==='file' && document.uri.fsPath.endsWith('.go') && relative && !relative.startsWith('..'+path.sep) && !path.isAbsolute(relative) && document.isDirty && !await document.save())throw Error(t('Save the Go sources before running.'));
    }
    if(operation.cancelled)return {cancelled:true};await operation.verify();operation.preparing=false;
+   // Tests compile their own test binary, including library packages. Reuse
+   // the original operation owner and task lifecycle; never launch a main
+   // program or bypass the first-use save/configuration checks to test.
+   if(kind==='test') {
+    const exitCode=await executeGoTask(api,prepared.test,operation);await binding.verify();
+    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
+   }
    const buildExit=await executeGoTask(api,prepared.build,operation);await binding.verify();
    if(operation.cancelled)return {cancelled:true};
    if(buildExit===undefined)return {unknown:true};
@@ -136,7 +145,7 @@ function createGoTasks(api,context,environment,t=text=>text) {
    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
   } finally {if(active===operation && !operation.cleanupPending)active=undefined;}
  }
- const lifetime={configure,run,cancel(){if(active)active.cancelled=true;if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
+ const lifetime={configure,run:()=>execute('run'),test:()=>execute('test'),cancel(){if(active)active.cancelled=true;if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
  if(api.workspace.onDidChangeWorkspaceFolders)context.subscriptions.push(api.workspace.onDidChangeWorkspaceFolders(()=>lifetime.cancel()));
  if(api.window?.onDidChangeActiveTextEditor)context.subscriptions.push(api.window.onDidChangeActiveTextEditor(editor=>{
   if(active?.preparing && editor?.document!==active.document){active.cancelled=true;configurationAbort?.abort();}

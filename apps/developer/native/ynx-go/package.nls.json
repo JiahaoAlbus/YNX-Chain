@@ -4,5 +4,6 @@
   "command.configure": "YNX: Configure Go Project",
   "command.run": "YNX: Build and Run Go Project",
   "command.cancel": "YNX: Cancel Go Task",
-  "configuration.project": "Project package and verified installed Go toolchain. Network downloads and cgo are disabled. Language service and debugger configuration are separate."
+  "configuration.project": "Project package and verified installed Go toolchain. Network downloads and cgo are disabled. Language service and debugger configuration are separate.",
+  "command.test": "Test Go Project"
 }

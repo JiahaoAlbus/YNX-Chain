@@ -32,21 +32,106 @@ async function requestFixture() {
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
  const document={uri:{scheme:'file',fsPath:file}},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
- const executions=[],hooks={buildExit:0};
+ const executions=[],submitted=[],hooks={buildExit:0};
  class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
  class ProcessExecution {constructor(command,args,options){Object.assign(this,{command,args,options});}}
  const api={workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;await hooks.update?.();}})},
   window:{activeTextEditor:{document},onDidChangeActiveTextEditor:fn=>{editorListeners.add(fn);return{dispose:()=>editorListeners.delete(fn)};},showQuickPick:async items=>{picks++;return hooks.pick?hooks.pick(items):items[0];},showInformationMessage:()=>{notices++;hooks.notice?.();return new Promise(()=>{});}},
-  CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},Task,ProcessExecution,TaskGroup:{Build:'build'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1},
+  CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},Task,ProcessExecution,TaskGroup:{Build:'build',Test:'test'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1},
   tasks:{registerTaskProvider:()=>({dispose(){}}),onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{
-   executions.push(task.definition.stage);const execution={task,terminate(){}};
+   executions.push(task.definition.stage);submitted.push(task);const execution={task,terminate(){}};
+   if(hooks.execute)return hooks.execute(task,execution,listeners);
    if(task.definition.stage==='build' && hooks.buildExit===0){const output=task.execution.args[task.execution.args.indexOf('-o')+1];await writeFile(output,Buffer.from('cffaedfe','hex'));await chmod(output,0o700);}
-   setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:task.definition.stage==='build'?hooks.buildExit:0});});return execution;
+   setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:task.definition.stage==='build'?hooks.buildExit:task.definition.stage==='test'?(hooks.testExit??0):0});});return execution;
   }} };
  const environment={YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'};
  const open=()=>workflow=module.exports.createGoTasks(api,{subscriptions:[]},environment);open();
- return {api,hooks,executions,get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
+ return {api,hooks,executions,submitted,get workflow(){return workflow;},open,counts:()=>({picks,notices}),switchEditor(value){api.window.activeTextEditor=value?{document:value}:undefined;for(const fn of editorListeners)fn(api.window.activeTextEditor);},document,async close(){workflow.dispose();await rm(root,{recursive:true,force:true});}};
 }
+
+test('Go Project Test first configuration continues once with its notice open and uses the offline task terminal',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  await writeFile(f.document.uri.fsPath,'package library\nfunc Value() int { return 42 }\n');
+  assert.equal((await f.workflow.test()).exitCode,0);assert.deepEqual(f.executions,['test']);assert.deepEqual(f.counts(),{picks:1,notices:1});
+  const task=f.submitted[0];assert.equal(task.execution.command,'/fixture/go/bin/go');assert.deepEqual(Array.from(task.execution.args),['test','-count=1','-v','.']);
+  assert.equal(task.execution.options.cwd,join(f.document.uri.fsPath,'..'));assert.equal(task.execution.options.env.GOPROXY,'off');assert.equal(task.execution.options.env.GOSUMDB,'off');assert.equal(task.execution.options.env.GOTOOLCHAIN,'local');assert.equal(task.execution.options.env.CGO_ENABLED,'0');
+  assert.equal(task.group,'test');assert.equal(task.presentationOptions.panel,1);assert.equal(task.presentationOptions.reveal,1);assert.deepEqual(Array.from(task.matchers),['$ynx-go-compile']);
+  assert.equal((await f.workflow.run()).exitCode,0);assert.deepEqual(f.executions,['test','build','run']);assert.equal(f.counts().picks,1);
+  f.workflow.dispose();f.open();await f.workflow.test();assert.equal(f.counts().picks,1);assert.equal(f.executions.at(-1),'test');assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+
+test('Go Project Test does not execute after configuration cancel or failed source save and can retry',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  f.hooks.pick=async()=>undefined;await f.workflow.test();assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.pick;f.document.isDirty=true;f.document.save=async()=>false;f.api.workspace.textDocuments=[f.document];
+  await assert.rejects(f.workflow.test(),/Save the Go sources/);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  f.document.save=async()=>{f.document.isDirty=false;return true;};await f.workflow.test();assert.deepEqual(f.executions,['test']);
+ }finally{await f.close();}
+});
+
+test('Go Project Test rejects file switching and lost permission during configuration before launching',{timeout:2000},async()=>{
+ for(const change of ['file','trust']){const f=await requestFixture();try {
+  f.hooks.update=()=>{if(change==='trust')f.api.workspace.isTrusted=false;else {f.switchEditor({uri:{scheme:'file',fsPath:f.document.uri.fsPath+'-other.go'}});f.switchEditor(f.document);}};
+  if(change==='trust')await assert.rejects(f.workflow.test(),/changed/);else await f.workflow.test();
+  assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  f.api.workspace.isTrusted=true;delete f.hooks.update;await f.workflow.test();assert.deepEqual(f.executions,['test']);
+ }finally{await f.close();}}
+});
+
+test('Go Project Test shares Run ownership and terminates a late task handle once after cancellation',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  let deliver,terminated=0;
+  f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{execution.terminate=()=>{terminated++;for(const fn of listeners)fn({execution,exitCode:143});};deliver=()=>resolve(execution);});
+  const pending=f.workflow.test();while(!deliver)await new Promise(resolve=>setImmediate(resolve));
+  await assert.rejects(f.workflow.run(),/already running/);await assert.rejects(f.workflow.test(),/already running/);assert.equal(f.workflow.cancel(),true);deliver();
+  assert.equal((await pending).cancelled,true);assert.equal(terminated,1);assert.deepEqual(f.executions,['test']);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;await f.workflow.test();assert.deepEqual(f.executions,['test','test']);assert.equal(terminated,1);
+ }finally{await f.close();}
+});
+
+test('Go Project Test reports failure, releases Running and reruns with a distinct execution id',{timeout:2000},async()=>{
+ const f=await requestFixture();try {
+  f.hooks.testExit=1;assert.equal((await f.workflow.test()).exitCode,1);assert.equal(f.workflow.status().running,false);
+  f.hooks.testExit=0;assert.equal((await f.workflow.test()).exitCode,0);assert.notEqual(f.submitted[0].definition.runId,f.submitted[1].definition.runId);assert.deepEqual(f.executions,['test','test']);
+ }finally{await f.close();}
+});
+
+test('Go Project Test metadata and real extension command reach the test lifecycle and localized failure output',async()=>{
+ const require=createRequire(import.meta.url),metadata=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+ assert.ok(metadata.activationEvents.includes('onCommand:ynx.go.test'));assert.ok(metadata.contributes.commands.some(x=>x.command==='ynx.go.test'));
+ assert.ok(metadata.contributes.menus['editor/context'].some(x=>x.command==='ynx.go.test'&&x.when.includes('resourceExtname == .go')));
+ assert.equal(metadata.contributes.problemMatchers.some(x=>x.name==='ynx-go-test'),false); // Verbose log lines have no failed-test discriminator.
+ const en=JSON.parse(await readFile(new URL('../package.nls.json',import.meta.url),'utf8')),zh=JSON.parse(await readFile(new URL('../package.nls.zh-cn.json',import.meta.url),'utf8'));assert.equal(en['command.test'],'Test Go Project');assert.equal(zh['command.test'],'测试 Go 项目');
+ const commands=new Map(),warnings=[];let tests=0;const module={exports:{}},api={commands:{registerCommand:(id,fn)=>{commands.set(id,fn);return{dispose(){}};}},window:{showWarningMessage:async message=>warnings.push(message),showErrorMessage:async message=>{throw Error(message);}}};
+ vm.runInNewContext(await readFile(new URL('./extension.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,require:name=>name==='vscode'?api:name==='./go-tasks.cjs'?{createGoTasks:()=>({test:async()=>{tests++;return{exitCode:1};}})}:require(name)});
+ module.exports.activate({subscriptions:[]});assert.equal((await commands.get('ynx.go.test')()).exitCode,1);assert.equal(tests,1);assert.deepEqual(warnings,['Go tests failed with code 1. See its task terminal output.']);
+});
+
+test('Go Test F1 verbose success and skip logs are not Problems while compiler errors and failed exit remain',{timeout:2000},async()=>{
+ const metadata=JSON.parse(await readFile(new URL('../package.json',import.meta.url),'utf8'));
+ const matchers=metadata.contributes.problemMatchers;
+ const f=await requestFixture();try {
+  for(const sample of [
+   {exitCode:0,output:['=== RUN   TestPass','    counter_test.go:12: connected to fixture','--- PASS: TestPass (0.00s)','PASS']},
+   {exitCode:0,output:['=== RUN   TestSkip','    counter_test.go:18: optional fixture not available','--- SKIP: TestSkip (0.00s)','PASS']},
+   {exitCode:1,output:['=== RUN   TestFail','    counter_test.go:24: got 41, want 42','--- FAIL: TestFail (0.00s)','FAIL']}
+  ]) {
+   f.hooks.testExit=sample.exitCode;
+   assert.equal((await f.workflow.test()).exitCode,sample.exitCode);
+   const task=f.submitted.at(-1);
+   assert.deepEqual(Array.from(task.matchers),['$ynx-go-compile']);
+   assert.ok(Array.from(task.execution.args).includes('-v')); // Full verbose output remains on the original process Task.
+   assert.equal(task.presentationOptions.panel,1);assert.equal(f.workflow.status().running,false);
+   for(const id of task.matchers){const matcher=matchers.find(x=>'$'+x.name===id);assert.ok(matcher);
+    for(const line of sample.output)assert.equal(new RegExp(matcher.pattern.regexp).test(line),false,'Unclassified verbose log must remain terminal text: '+line);
+   }
+  }
+  const matcher=matchers.find(x=>x.name==='ynx-go-compile');
+  const compiler=new RegExp(matcher.pattern.regexp).exec('counter_test.go:31:2: undefined: missing');
+  assert.equal(compiler[matcher.pattern.file],'counter_test.go');assert.equal(compiler[matcher.pattern.line],'31');assert.equal(compiler[matcher.pattern.column],'2');assert.equal(compiler[matcher.pattern.message],'undefined: missing');
+ }finally{await f.close();}
+});
 
 test('one original Run continues once with notice open, then reuses persisted configuration after reopen',{timeout:2000},async()=>{
  const f=await requestFixture();try {

@@ -4,5 +4,6 @@
   "command.configure": "YNX：配置 Go 项目",
   "command.run": "YNX：编译并运行 Go 项目",
   "command.cancel": "YNX：取消 Go 任务",
-  "configuration.project": "项目包和已验证的本地 Go 工具链。禁用联网下载和 cgo；语言服务与调试配置独立。"
+  "configuration.project": "项目包和已验证的本地 Go 工具链。禁用联网下载和 cgo；语言服务与调试配置独立。",
+  "command.test": "测试 Go 项目"
 }

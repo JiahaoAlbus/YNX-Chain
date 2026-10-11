@@ -33,5 +33,7 @@
   "This Go toolchain is not admitted by the local runtime. Choose an available local Go toolchain.": "当前本地运行环境未获准使用此 Go 工具链。请选择可用的本地 Go 工具链。",
   "The installed Go toolchain changed. Configure Go for this project again.": "已安装的 Go 工具链发生了变化，请重新配置此项目的 Go 工具链。",
   "Go output and cache must remain inside this project.": "Go 输出与缓存必须保存在此项目内。",
-  "Go requires private project output and cache directories. Existing paths were preserved.": "Go 需要仅当前用户可访问的项目输出与缓存目录。已有路径已保留。"
+  "Go requires private project output and cache directories. Existing paths were preserved.": "Go 需要仅当前用户可访问的项目输出与缓存目录。已有路径已保留。",
+  "Test Go package": "测试 Go 包",
+  "Go tests failed with code {0}. See its task terminal output.": "Go 测试失败，退出码为 {0}。请查看任务终端输出。"
 }

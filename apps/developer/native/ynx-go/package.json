@@ -1,7 +1,7 @@
 {
   "name": "ynx-go",
   "publisher": "ynx",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "displayName": "%displayName%",
   "description": "%description%",
   "license": "MIT",
@@ -17,7 +17,8 @@
     "onCommand:ynx.go.run",
     "onCommand:ynx.go.configure",
     "onCommand:ynx.go.cancel",
-    "onTaskType:ynx-go"
+    "onTaskType:ynx-go",
+    "onCommand:ynx.go.test"
   ],
   "contributes": {
     "commands": [
@@ -32,6 +33,10 @@
       {
         "command": "ynx.go.cancel",
         "title": "%command.cancel%"
+      },
+      {
+        "command": "ynx.go.test",
+        "title": "%command.test%"
       }
     ],
     "configuration": {
@@ -56,7 +61,8 @@
             "type": "string",
             "enum": [
               "build",
-              "run"
+              "run",
+              "test"
             ]
           },
           "target": {
@@ -74,6 +80,11 @@
           "command": "ynx.go.run",
           "when": "resourceScheme == file && resourceExtname == .go",
           "group": "ynx@2"
+        },
+        {
+          "command": "ynx.go.test",
+          "when": "resourceScheme == file && resourceExtname == .go",
+          "group": "ynx@3"
         }
       ]
     },
