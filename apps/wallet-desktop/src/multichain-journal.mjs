@@ -1,7 +1,7 @@
 import {AtomicMultiFile,exactObject,multiError,validateNetwork} from './multichain-config.mjs';
 import {verifySignedRecord} from './multichain-evm.mjs';
 
-const states=new Set(['prepared','signed','unknown','submitted','included','reverted','cancelled']);
+const states=new Set(['prepared','signed','unknown','submitted','included','reverted','cancelled','local-cancelled-before-broadcast']);
 const unresolved=new Set(['prepared','signed','unknown','submitted']);
 const hash=value=>typeof value==='string'&&/^0x[0-9a-f]{64}$/.test(value);
 const quantity=value=>typeof value==='string'&&/^(?:0|[1-9][0-9]*)$/.test(value)&&BigInt(value)<(1n<<256n);
@@ -17,19 +17,43 @@ export function validateJournal(value){
     if(r.raw!==null)verifySignedRecord(r.raw,r);
     if(r.receipt!==null){exactObject(r.receipt,['hash','blockHash','blockNumber','status','confirmationScope']);if(r.receipt.hash!==r.hash||!hash(r.receipt.blockHash)||!quantity(r.receipt.blockNumber)||![0,1].includes(r.receipt.status)||r.receipt.confirmationScope!=='rpc-block-inclusion')throw Error('Invalid receipt')}
     if(['included','reverted'].includes(r.state)&&!r.receipt)throw Error('Missing inclusion receipt');
+    if(r.state==='local-cancelled-before-broadcast'&&r.receipt!==null)throw Error('Local cancellation is not an inclusion receipt');
   }
   if(new Set(value.records.map(r=>r.id)).size!==value.records.length)throw Error('Duplicate intent');
   return value;
 }
 export class MultiJournal{
+  #uncertain=new Set();
   constructor({filePath,file}={}){this.file=file??new AtomicMultiFile({filePath,initial:{version:1,records:[]},validate:validateJournal,maxBytes:5_000_000})}
   async list(networkId,account){const value=await this.file.read();return value.records.filter(r=>r.network.id===networkId&&r.account===account).map(r=>structuredClone(r))}
-  async blocking(networkId,account){return (await this.list(networkId,account)).filter(r=>unresolved.has(r.state))}
-  async pendingNetwork(networkId){return (await this.file.read()).records.filter(r=>r.network.id===networkId&&unresolved.has(r.state)).length}
-  async reserve(record){return this.file.mutate(value=>{if(value.records.some(r=>r.network.id===record.network.id&&r.account===record.account&&unresolved.has(r.state)))throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Resolve the recorded transaction before sending another.');value.records.push(record);return value})}
-  async transition(id,next){return this.file.mutate(value=>{const r=value.records.find(r=>r.id===id);if(!r)throw multiError('MULTICHAIN_UNKNOWN_INTENT','The transaction record was not found.');
+  async blocking(networkId,account){return (await this.list(networkId,account)).filter(r=>unresolved.has(r.state)||this.#uncertain.has(r.id))}
+  async pendingNetwork(networkId){return (await this.file.read()).records.filter(r=>r.network.id===networkId&&(unresolved.has(r.state)||this.#uncertain.has(r.id))).length}
+  async reserve(record){
+    await this.file.mutate(value=>{if(value.records.some(r=>r.network.id===record.network.id&&r.account===record.account&&(unresolved.has(r.state)||this.#uncertain.has(r.id))))throw multiError('MULTICHAIN_RESOLUTION_REQUIRED','Resolve the recorded transaction before sending another.');value.records.push(structuredClone(record));return value});
+    // This closure exists only for this new live reservation. It cannot be
+    // reconstructed from a reopened record, an IPC boolean or a missing receipt.
+    let open=true,submissionStarted=false,cancelling=false;
+    const binding=JSON.stringify([record.network,record.account,record.nonce,record.asset,record.to,record.amount,record.transaction]);
+    const assert=()=>{if(!open||submissionStarted||cancelling||this.#uncertain.has(record.id))throw multiError('MULTICHAIN_INTENT_CONFLICT','The original pre-submit attempt is no longer available.')};
+    return Object.freeze({
+      beginSubmit:()=>{assert();submissionStarted=true},
+      retire:()=>{open=false},
+      cancelSigned:async updatedAt=>{
+        assert();cancelling=true;
+        try{return await this.file.mutate(value=>{const r=value.records.find(r=>r.id===record.id);if(!open||submissionStarted||!r||r.state!=='signed'||JSON.stringify([r.network,r.account,r.nonce,r.asset,r.to,r.amount,r.transaction])!==binding||updatedAt<r.updatedAt)throw multiError('MULTICHAIN_INTENT_CONFLICT','Keep the original signed record.');r.state='local-cancelled-before-broadcast';r.updatedAt=updatedAt;return value})}
+        catch(error){
+          // A rejected write is never a successful cancellation receipt. Keep a
+          // live hold and attempt a durable UNKNOWN quarantine with the same bytes.
+          this.#uncertain.add(record.id);
+          await this.file.mutate(value=>{const r=value.records.find(r=>r.id===record.id);if(r&&['signed','local-cancelled-before-broadcast'].includes(r.state)){r.state='unknown';r.updatedAt=Math.max(r.updatedAt,updatedAt)}return value}).catch(()=>{});
+          throw error;
+        }
+      }
+    });
+  }
+  async transition(id,next){const result=await this.file.mutate(value=>{const r=value.records.find(r=>r.id===id);if(!r)throw multiError('MULTICHAIN_UNKNOWN_INTENT','The transaction record was not found.');
     exactObject(next,['state','raw','hash','receipt','updatedAt']);
-    const allowed={prepared:['signed','cancelled'],signed:['submitted','unknown','included','reverted'],unknown:['unknown','submitted','included','reverted'],submitted:['unknown','submitted','included','reverted'],included:['included','unknown'],reverted:['reverted','unknown'],cancelled:[]};
+    const allowed={prepared:['signed','cancelled'],signed:['submitted','unknown','included','reverted'],unknown:['unknown','submitted','included','reverted'],submitted:['unknown','submitted','included','reverted'],included:['included','unknown'],reverted:['reverted','unknown'],cancelled:[],'local-cancelled-before-broadcast':['unknown']};
     if(!allowed[r.state].includes(next.state)||next.updatedAt<r.updatedAt||r.raw!==null&&next.raw!==undefined&&next.raw!==r.raw||r.hash!==null&&next.hash!==undefined&&next.hash!==r.hash)throw multiError('MULTICHAIN_INTENT_CONFLICT','Keep the original transaction record; it cannot be replaced.');
-    Object.assign(r,next);return value})}
+    Object.assign(r,next);return value});if(['included','reverted'].includes(next.state))this.#uncertain.delete(id);return result}
 }
