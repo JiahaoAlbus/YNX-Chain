@@ -10,6 +10,7 @@ import {FamilyTokens} from './multichain-family-tokens.mjs';
 import {FamilyRecovery} from './multichain-family-recovery.mjs';
 import {FamilyBitcoinTransfer} from './multichain-family-bitcoin-transfer.mjs';
 import {FamilyTronTransfer} from './multichain-family-tron-transfer.mjs';
+import {FamilyTronSubmission} from './multichain-family-tron-submit.mjs';
 import {FamilyOperationGate} from './multichain-family-operation-gate.mjs';
 import {FamilyBitcoinSubmission} from './multichain-family-bitcoin-submit.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
@@ -84,6 +85,7 @@ let familyRead;
 let familyRecovery;
 let familyBitcoinTransfer;
 let familyTronTransfer;
+let familyTronSubmission;
 let familyBitcoinSubmission;
 let multichainSecurityContext=null;
 let walletConnect;
@@ -99,7 +101,7 @@ handleWalletIPC("wallet:camera-end", (_event, id) => safeIPC(() => {recipientCam
 let lastReviewAccount = null;
 keyAccess.subscribe(state => {
   const context=[state.revision,state.locked,state.account,state.authenticating].join(':');
-  if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();familyBitcoinTransfer?.invalidate();familyBitcoinSubmission?.invalidate();familyTronTransfer?.invalidate();}
+  if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();familyBitcoinTransfer?.invalidate();familyBitcoinSubmission?.invalidate();familyTronTransfer?.invalidate();familyTronSubmission?.invalidate();}
   recipientCameraPermission.invalidate();
   if (state.account !== lastReviewAccount) {
     lastReviewAccount = state.account;
@@ -133,6 +135,9 @@ handleWalletIPC('wallet:family-btc-sign', (_event, input) => sensitiveIPC(() => 
 handleWalletIPC('wallet:family-tron-prepare', (_event, input) => sensitiveIPC(() => familyTronTransfer.prepare(input)));
 handleWalletIPC('wallet:family-tron-cancel', (_event, input) => safeIPC(() => familyTronTransfer.cancel(input)));
 handleWalletIPC('wallet:family-tron-sign', (_event, input) => sensitiveIPC(() => familyTronTransfer.sign(input)));
+handleWalletIPC('wallet:family-tron-submit-review', (_event, input) => sensitiveIPC(() => familyTronSubmission.review(input)));
+handleWalletIPC('wallet:family-tron-submit-cancel', (_event, input) => safeIPC(() => familyTronSubmission.cancel(input)));
+handleWalletIPC('wallet:family-tron-submit', (_event, input) => sensitiveIPC(() => familyTronSubmission.send(input,keyAccess.current())));
 handleWalletIPC('wallet:family-btc-submit-review', (_event, input) => sensitiveIPC(() => familyBitcoinSubmission.review(input)));
 handleWalletIPC('wallet:family-btc-submit-cancel', (_event, input) => safeIPC(() => familyBitcoinSubmission.cancel(input)));
 handleWalletIPC('wallet:family-btc-submit', (_event, input) => sensitiveIPC(() => familyBitcoinSubmission.send(input,keyAccess.current())));
@@ -533,6 +538,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   familyRead = new FamilyRead({networks: new FamilyNetworks({filePath: path.join(userData, 'multichain-family-networks-v1.json')}), tokens: new FamilyTokens({filePath: path.join(userData, 'multichain-family-tokens-v1.json')}), accounts: familyAccounts, getContext: familyContext, assertNetworkEditable: network => familyRecovery.assertNetworkEditable(network),gate:familyOperationGate});
   familyBitcoinTransfer = new FamilyBitcoinTransfer({networks: familyRead.networks, accounts: familyAccounts, journal: familyRecovery.journal, getContext: familyContext,withMnemonic:(action,permission)=>passwordVault.withMnemonic(action,permission),gate:familyOperationGate});
   familyTronTransfer = new FamilyTronTransfer({networks:familyRead.networks,tokens:familyRead.tokens,accounts:familyAccounts,journal:familyRecovery.journal,getContext:familyContext,withMnemonic:(action,permission)=>passwordVault.withMnemonic(action,permission),getGuard:()=>keyAccess.current(),gate:familyOperationGate});
+  familyTronSubmission = new FamilyTronSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   familyBitcoinSubmission = new FamilyBitcoinSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
