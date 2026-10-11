@@ -659,6 +659,7 @@ function WalletSignedPayModal({account,invoiceID,integration,close}:{account:Wal
   const locale=useContext(WalletLocaleContext),operations=useWalletOperations(),scope=useOperationScope(true,account.account),gate=useModalActionGate(account.account);
   const integrationRef=useRef(integration);integrationRef.current=integration;
   const [quote,setQuote]=useState<SignedPayQuoteReview|null>(null),[recovery,setRecovery]=useState<SignedPayRecovery|null>(null);
+  const [historyError,setHistoryError]=useState<string|null>(null);
   const [receipts,setReceipts]=useState<readonly WalletSignedPayReceipt[]>([]),[cursor,setCursor]=useState<string|null>(null),[loaded,setLoaded]=useState(false);
   const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[time,setTime]=useState(Date.now());
   const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
@@ -667,9 +668,16 @@ function WalletSignedPayModal({account,invoiceID,integration,close}:{account:Wal
   const refreshSaved=async(lease:WalletOperationLease,more=false)=>{
     const guard=()=>current(lease);guard();
     const retained=await walletSignedPayFlow.recovery(account.account,integration.policy,guard);guard();
-    const page=await walletSignedPayFlow.history(account.account,integration.policy,guard,more?cursor:null,10);guard();
-    if(more&&page.receipts.some(item=>receipts.some(prior=>prior.record.transfer.hash===item.record.transfer.hash)))throw Error("Repeated signed receipt page");
-    setRecovery(retained);setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true);
+    if(retained?.localRetention){setRecovery(retained);setLoaded(true)}
+    setHistoryError(null);
+    try{
+      const page=await walletSignedPayFlow.history(account.account,integration.policy,guard,more?cursor:null,10);guard();
+      if(more&&page.receipts.some(item=>receipts.some(prior=>prior.record.transfer.hash===item.record.transfer.hash)))throw Error("Repeated signed receipt page");
+      setRecovery(retained);setReceipts(previous=>more?[...previous,...page.receipts]:page.receipts);setCursor(page.nextCursor);setLoaded(true);
+    }catch(caught){
+      guard();if(!retained?.localRetention)throw caught;
+      setHistoryError(message(caught).slice(0,2048));
+    }
   };
   const readSaved=async(more=false)=>{
     const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setError(null);
@@ -725,9 +733,9 @@ function WalletSignedPayModal({account,invoiceID,integration,close}:{account:Wal
     }catch(caught){if(action.isCurrent()&&(!lease||lease.isCurrent()))setError(message(caught))}
     finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
   };
-  useEffect(()=>operations.subscribe(()=>{scope.cancel();setQuote(null);setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false)}),[operations,scope]);
+  useEffect(()=>operations.subscribe(()=>{scope.cancel();setQuote(null);setRecovery(null);setHistoryError(null);setReceipts([]);setCursor(null);setLoaded(false)}),[operations,scope]);
   useEffect(()=>{const timer=setInterval(()=>setTime(Date.now()),1000);return()=>clearInterval(timer)},[]);
-  useEffect(()=>{scope.cancel();setQuote(null);setRecovery(null);setReceipts([]);setCursor(null);setLoaded(false);void readSaved();return()=>scope.cancel()},[account.account,invoiceID,integration,scope]);
+  useEffect(()=>{scope.cancel();setQuote(null);setRecovery(null);setHistoryError(null);setReceipts([]);setCursor(null);setLoaded(false);void readSaved();return()=>scope.cancel()},[account.account,invoiceID,integration,scope]);
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Signed Pay · review and recovery","签名 Pay · 核对与恢复")} close={dismiss}>
     <ReviewRow label={c("Selected account","当前账户")} value={account.account}/>
     <InfoCard title={c("Explicit review, then protected approval","先明确核对，再受保护地批准")} body={c("QR codes provide only an invoice reference. Protected merchant policy, current account session and canonical business checks are required. Opening this view never signs, transfers or settles.","二维码仅提供发票编号。必须核对独立商家信任策略、当前账户会话和权威业务状态。打开本页不会签名、转账或结算。")}/>
@@ -744,8 +752,9 @@ function WalletSignedPayModal({account,invoiceID,integration,close}:{account:Wal
       {!recovery.localRetention?recovery.actions.map(mode=><Button key={mode} label={c(mode==="check"?"Check original transaction":mode==="read-receipt"?"Read original settlement receipt":mode==="settle"?"Submit original settlement":"Save reviewed receipt and finish",mode==="check"?"查询原交易":mode==="read-receipt"?"读取原结算收据":mode==="settle"?"提交原付款结算":"保存已核对收据并完成")} disabled={busy||mode==="settle"&&time>=Math.min(Date.parse(recovery.record.intent.quoteExpiresAt),Date.parse(recovery.record.session.expiresAt))} onPress={()=>void recover(mode)}/>):null}
     </View>:null}
     {invoiceID&&!recovery&&!quote?<Button label={c("Read and review signed quote","读取并核对签名报价")} disabled={busy} onPress={()=>void loadQuote()}/>:null}
-    {loaded&&receipts.length===0?<Text style={styles.sheetText}>{c("No signed Pay receipts saved for this account on this device.","本设备尚无此账户已保存的签名 Pay 收据。")}</Text>:null}
+    {loaded&&!historyError&&!recovery?.localRetention&&receipts.length===0?<Text style={styles.sheetText}>{c("No signed Pay receipts saved for this account on this device.","本设备尚无此账户已保存的签名 Pay 收据。")}</Text>:null}
     {receipts.map(receipt=><View key={receipt.record.transfer.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{receipt.record.invoice.merchantName}</Text><ReviewRow label={c("Invoice","发票")} value={receipt.record.invoice.id}/><ReviewRow label={c("Amount / fee","金额 / 手续费")} value={`${receipt.record.intent.amount} / ${receipt.record.intent.fee} YNXT`}/><ReviewRow label={c("Original transaction","原交易")} value={receipt.record.transfer.hash}/><ReviewRow label={c("Settlement receipt","结算收据")} value={`${receipt.settlement.receiptId}\n${receipt.settlement.auditId}`}/><ReviewRow label={c("Settlement time","结算时间")} value={formatDateTime(locale,receipt.settlement.committedAt)}/><Text style={styles.sheetText}>{c("Local native checkpoint and matching authenticated business receipt; not consensus finality or complete chain history.","本地原生检查点及相符的已认证业务收据；不代表共识最终确认或完整链上历史。")}</Text></View>)}
+    {historyError?<View><Text accessibilityRole="alert" style={styles.error}>{retentionCopy("Saved receipt history could not be read. This does not invalidate the retained original result.","已保存收据历史暂时无法读取；这不影响当前保留的原结果。")}</Text><ReviewRow label={retentionCopy("History read error","历史读取错误")} value={historyError}/></View>:null}
     {error?<><Text accessibilityRole="alert" style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/></>:null}
     <SecondaryButton label={c("Refresh saved original records","刷新已保存原记录")} disabled={busy} onPress={()=>void readSaved()}/>{cursor?<SecondaryButton label={c("Older signed receipts","更早的签名收据")} disabled={busy} onPress={()=>void readSaved(true)}/>:null}
     <SecondaryButton label={recovery?.localRetention?retentionCopy("Close this window (keep Wallet running)","关闭此窗口（不退出 Wallet）"):c("Close and keep original records","关闭并保留原记录")} onPress={dismiss}/>
