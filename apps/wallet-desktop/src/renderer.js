@@ -15,6 +15,7 @@ import {createRecipientCameraUI,captureRecipientFrame} from "./recipient-camera-
 import {createQRFileInput} from "./qr-file-input.mjs";
 import {renderPermissionError} from "./permission-error-ui.mjs";
 import {createTransferAttemptUI} from "./transfer-attempt-ui.mjs";
+import {renderTransferPreparationError} from './transfer-preparation-error-ui.mjs';
 import {createMnemonicUI,createMnemonicImportUI} from './mnemonic-ui.mjs';
 import {createMultichainUI} from './multichain-ui.mjs';
 import {createFamilyUI} from './multichain-family-ui.mjs';
@@ -896,7 +897,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   try {
     const result = await window.ynxWallet.prepareTransfer({ to, amount });
     if (!current()) return;
-    if (!result.ok) { output.textContent = errorText(result); return; }
+    if (!result.ok) { if(!renderTransferPreparationError(output,result.error))output.textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) { copyUI(output,"Account changed. Review again."); return; }
     transferReview = result.value;
     const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
