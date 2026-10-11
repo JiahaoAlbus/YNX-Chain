@@ -12,6 +12,8 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { HDNodeWallet } from 'ethers';
 import bs58check from 'bs58check';
+import { createHash } from 'node:crypto';
+import { verifyBitcoinInclusion } from '../src/multichain-bitcoin.mjs';
 // PUBLIC BIP84 receiving/change address vectors. No human keys/phrases.
 const FROM = 'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu';
 const TO = 'bc1qnjg0jd8228aq7egyzacy8cys3knf9xvrerkf9g';
@@ -243,4 +245,79 @@ test('BTC R3 actual protected withMnemonic and lifecycle retain original raw whe
   assert.ok(capture.rawTransaction); assert.equal(f.adapter.status(f.req.requestId).result, capture);
   assert.equal(f.adapter.status(f.req.requestId).state, 'signed-unsubmitted'); assert.equal(v.life.status().locked, true);
   assert.deepEqual(await fs.readFile(v.filePath), before); assert.equal(f.adapter.status(f.req.requestId).seedBinding.publicKey, undefined);
+});
+
+const dsha = b => createHash('sha256').update(createHash('sha256').update(b).digest()).digest();
+async function queryFixture() {
+  const f = signingFixture(), signer = new BitcoinSigningAdapter({ now: () => 1 }); signer.prepare(f.prepared);
+  const result = await signer.sign(f.req.requestId, { signer: f.sender, guard: { assert() {} }, onProduced() {} });
+  const sibling = 'c'.repeat(64), root = dsha(Buffer.concat([Buffer.from(result.txid, 'hex').reverse(), Buffer.from(sibling, 'hex').reverse()]));
+  const header = Buffer.alloc(80); header.writeInt32LE(4, 0); root.copy(header, 36); header.writeUInt32LE(123, 68);
+  const blockHash = Buffer.from(dsha(header)).reverse().toString('hex');
+  const proof = { block_height: 20, pos: 0, merkle: [sibling] }, status = { confirmed: true, block_hash: blockHash, block_height: 20 };
+  return { result, blockHash, proof, status, header: header.toString('hex'), input: { networkId: 'qa-bitcoin-mainnet', network: 'mainnet', txid: result.txid, rawTransaction: result.rawTransaction }, calls: [] };
+}
+function queryAdapter(f, change = () => undefined) {
+  return new BitcoinReadAdapter({ network: 'mainnet', networkId: f.input.networkId, request: async q => {
+    f.calls.push(q); const override = change(q, f.calls); if (override !== undefined) return override;
+    if (q.path === '/block-height/0') return GENESIS;
+    if (q.path.endsWith('/hex')) return f.result.rawTransaction;
+    if (q.path.endsWith('/status')) return f.status;
+    if (q.path === '/block-height/20') return f.blockHash;
+    if (q.path.endsWith('/merkle-proof')) return f.proof;
+    if (q.path.endsWith('/header')) return f.header;
+    if (q.path === '/mempool/txids') return [f.result.txid];
+    throw new Error('unexpected fixture route');
+  } });
+}
+test('BTC R4 original signed raw/txid/network yields exact custody receipt only with header Merkle/canonical evidence', async () => {
+  const f = await queryFixture(), original = JSON.stringify(f.input), observation = await queryAdapter(f).querySigned(f.input);
+  assert.deepEqual(Object.keys(observation).sort(), ['networkId', 'receipt', 'state', 'txid']);
+  assert.equal(observation.state, 'included');
+  assert.deepEqual(observation.receipt, { txid: f.result.txid, blockHash: f.blockHash, blockHeight: '20', success: true, confirmationScope: 'rpc-block-inclusion' });
+  assert.equal(JSON.stringify(f.input), original); assert.ok(f.calls.every(q => q.method === 'GET'));
+  assert.equal(f.calls.filter(q => q.path === '/block-height/20').length, 2);
+  assert.equal(f.calls.filter(q => q.path.endsWith('/status')).length, 2);
+});
+test('BTC R4 valid unconfirmed exact raw requires actual RPC mempool membership', async () => {
+  const f = await queryFixture(); f.status = { confirmed: false };
+  const read = queryAdapter(f); assert.equal((await read.querySigned(f.input)).state, 'submitted-unconfirmed');
+  const absent = await queryAdapter(f, q => q.path === '/mempool/txids' ? [] : undefined).querySigned(f.input);
+  assert.equal(absent.state, 'unknown'); assert.equal(absent.receipt, null);
+});
+test('BTC R4 wrong original raw/txid/network is never queried or resubmitted', async () => {
+  for (const change of [input => { input.network = 'testnet4'; }, input => { input.networkId = 'foreign-config'; }, input => { input.txid = 'a'.repeat(64); }, input => { input.rawTransaction = input.rawTransaction.slice(0, -2) + '01'; }]) {
+    const f = await queryFixture(), adapter = queryAdapter(f); change(f.input); const r = await adapter.querySigned(f.input);
+    assert.equal(r.state, 'unknown'); assert.equal(r.receipt, null); assert.equal(f.calls.length, 0);
+  }
+});
+test('BTC R4 bad provider raw/genesis/Merkle/header/status and reorg all remain unknown', async () => {
+  const cases = [
+    q => q.path === '/block-height/0' ? '0'.repeat(64) : undefined,
+    q => q.path.endsWith('/hex') ? 'deadbeef' : undefined,
+    q => q.path.endsWith('/merkle-proof') ? { block_height: 20, pos: 0, merkle: ['d'.repeat(64)] } : undefined,
+    q => q.path.endsWith('/merkle-proof') ? { block_height: 21, pos: 0, merkle: [] } : undefined,
+    q => q.path.endsWith('/header') ? '0'.repeat(160) : undefined,
+    q => q.path.endsWith('/status') ? { confirmed: true, block_height: -1, block_hash: 'a'.repeat(64) } : undefined,
+    (q, calls) => q.path === '/block-height/20' && calls.filter(x => x.path === q.path).length === 2 ? '0'.repeat(64) : undefined,
+    (q, calls) => q.path.endsWith('/status') && calls.filter(x => x.path === q.path).length === 2 ? { confirmed: false } : undefined
+  ];
+  for (const bad of cases) { const f = await queryFixture(); const r = await queryAdapter(f, bad).querySigned(f.input); assert.equal(r.state, 'unknown'); assert.equal(r.receipt, null); assert.ok(f.calls.every(q => q.method === 'GET')); }
+});
+test('BTC R4 outage/404/abort yields unknown once, preserves original tuple and never invokes signer/broadcast', async () => {
+  const f = await queryFixture(); let attempts = 0;
+  const adapter = new BitcoinReadAdapter({ network: 'mainnet', networkId: f.input.networkId, request: async () => { attempts++; throw Object.assign(new Error('404/offline'), { status: 404 }); } });
+  assert.equal((await adapter.querySigned(f.input)).state, 'unknown'); assert.equal(attempts, 1);
+  const controller = new AbortController(); controller.abort();
+  assert.equal((await adapter.querySigned(f.input, { signal: controller.signal })).state, 'unknown'); assert.equal(attempts, 1);
+  assert.equal(f.input.rawTransaction, f.result.rawTransaction);
+  assert.throws(() => adapter.sign(), { code: 'BTC_SIGNING_NOT_IMPLEMENTED' }); assert.throws(() => adapter.broadcast(), { code: 'BTC_BROADCAST_NOT_IMPLEMENTED' });
+});
+test('BTC R4 Merkle branch index bounds and flipped concatenation are verified, not status boolean trusted', async () => {
+  const f = await queryFixture();
+  assert.throws(() => verifyBitcoinInclusion({ txid: f.result.txid, blockHash: f.blockHash, blockHeight: '20', proof: { ...f.proof, pos: 2 }, header: f.header }), { code: 'BTC_INCLUSION_POSITION' });
+  assert.throws(() => verifyBitcoinInclusion({ txid: f.result.txid, blockHash: f.blockHash, blockHeight: '20', proof: { ...f.proof, pos: 1 }, header: f.header }), { code: 'BTC_INCLUSION_MERKLE_ROOT' });
+  const header = Buffer.from(f.header, 'hex'); dsha(Buffer.concat([Buffer.from('c'.repeat(64), 'hex').reverse(), Buffer.from(f.result.txid, 'hex').reverse()])).copy(header, 36);
+  const hash = Buffer.from(dsha(header)).reverse().toString('hex');
+  assert.equal(verifyBitcoinInclusion({ txid: f.result.txid, blockHash: hash, blockHeight: '20', proof: { ...f.proof, pos: 1 }, header: header.toString('hex') }).txid, f.result.txid);
 });

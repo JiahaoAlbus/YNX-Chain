@@ -123,11 +123,12 @@ export function createBitcoinPreview({ requestId, network: id, from, to, changeA
   return freeze({ ...review, requestDigest: createHash('sha256').update(JSON.stringify(review)).digest('hex') });
 }
 export class BitcoinReadAdapter {
-  #id; #request;
-  constructor({ network: id, request } = {}) {
+  #id; #request; #networkId;
+  constructor({ network: id, networkId = id, request } = {}) {
     network(id);
+    if (typeof networkId !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(networkId)) fail('BTC_CONFIG_NETWORK_ID');
     if (typeof request !== 'function') fail('BTC_TRANSPORT_NOT_CONFIGURED');
-    this.#id = id; this.#request = request;
+    this.#id = id; this.#networkId = networkId; this.#request = request;
   }
   async #get(path, signal) {
     if (signal?.aborted) fail('BTC_REQUEST_CANCELLED');
@@ -171,8 +172,61 @@ export class BitcoinReadAdapter {
     }
     return freeze({ previousTransactions, unspentChecks, verification: 'provider-reported-not-spv' });
   }
+  async querySigned(input, { signal } = {}) {
+    if (!input || Object.keys(input).some(k => !['networkId', 'network', 'txid', 'rawTransaction'].includes(k)) || !/^[0-9a-f]{64}$/.test(input.txid)) fail('BTC_QUERY_INPUT_INVALID');
+    // Copy original immutable tuple before awaits. No signer/vault/broadcast.
+    const original = { networkId: input.networkId, network: input.network, txid: input.txid, rawTransaction: input.rawTransaction };
+    const unknown = () => freeze({ networkId: this.#networkId, txid: original.txid, state: 'unknown', receipt: null });
+    try {
+      if (original.networkId !== this.#networkId || original.network !== this.#id || typeof original.rawTransaction !== 'string' || !/^(?:[0-9a-f]{2})+$/.test(original.rawTransaction) || original.rawTransaction.length > 2000000) fail('BTC_QUERY_BINDING');
+      const tx = Transaction.fromHex(original.rawTransaction);
+      if (!tx.hasWitnesses() || tx.getId() !== original.txid) fail('BTC_QUERY_BINDING');
+      await this.#network(signal);
+      const observedRaw = await this.#get(`/tx/${original.txid}/hex`, signal);
+      if (observedRaw !== original.rawTransaction) fail('BTC_QUERY_RAW_MISMATCH');
+      const status = await this.#get(`/tx/${original.txid}/status`, signal);
+      if (status?.confirmed === false) {
+        const mempool = await this.#get('/mempool/txids', signal);
+        if (!Array.isArray(mempool) || mempool.length > 500000 || mempool.some(id => typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id)) || !mempool.includes(original.txid)) fail('BTC_QUERY_MEMPOOL_UNOBSERVED');
+        return freeze({ networkId: this.#networkId, txid: original.txid, state: 'submitted-unconfirmed', receipt: null });
+      }
+      if (status?.confirmed !== true || !/^[0-9a-f]{64}$/.test(status.block_hash)) fail('BTC_QUERY_STATUS_INVALID');
+      const height = integer(status.block_height, 2147483647n).toString();
+      if (await this.#get(`/block-height/${height}`, signal) !== status.block_hash) fail('BTC_QUERY_REORG');
+      const proof = await this.#get(`/tx/${original.txid}/merkle-proof`, signal);
+      const header = await this.#get(`/block/${status.block_hash}/header`, signal);
+      const receipt = verifyBitcoinInclusion({ txid: original.txid, blockHash: status.block_hash, blockHeight: height, proof, header });
+      // Do not combine observations from different canonical-height/status epochs.
+      if (await this.#get(`/block-height/${height}`, signal) !== status.block_hash) fail('BTC_QUERY_REORG');
+      const last = await this.#get(`/tx/${original.txid}/status`, signal);
+      if (last?.confirmed !== true || last.block_hash !== status.block_hash || String(last.block_height) !== height) fail('BTC_QUERY_REORG');
+      await this.#network(signal);
+      return freeze({ networkId: this.#networkId, txid: original.txid, state: 'included', receipt });
+    } catch { return unknown(); }
+  }
   sign() { fail('BTC_SIGNING_NOT_IMPLEMENTED'); }
   broadcast() { fail('BTC_BROADCAST_NOT_IMPLEMENTED'); }
+}
+
+const doubleSHA256 = bytes => createHash('sha256').update(createHash('sha256').update(bytes).digest()).digest();
+// Cryptographic txid-to-Merkle-root/header binding, NOT independent PoW chain,
+// header ancestry or consensus/finality validation. Canonicality is RPC-reported.
+export function verifyBitcoinInclusion({ txid, blockHash, blockHeight, proof, header }) {
+  if (!/^[0-9a-f]{64}$/.test(txid) || !/^[0-9a-f]{64}$/.test(blockHash) || typeof header !== 'string' || !/^[0-9a-f]{160}$/.test(header)) fail('BTC_INCLUSION_HEADER');
+  const height = integer(blockHeight, 2147483647n).toString();
+  if (!proof || integer(proof.block_height, 2147483647n).toString() !== height || !Array.isArray(proof.merkle) || proof.merkle.length > 32 || proof.merkle.some(x => typeof x !== 'string' || !/^[0-9a-f]{64}$/.test(x))) fail('BTC_INCLUSION_PROOF');
+  let index = integer(proof.pos, 4294967295n);
+  if (index >= (1n << BigInt(proof.merkle.length))) fail('BTC_INCLUSION_POSITION');
+  const bytes = Buffer.from(header, 'hex');
+  if (Buffer.from(doubleSHA256(bytes)).reverse().toString('hex') !== blockHash) fail('BTC_INCLUSION_HEADER_HASH');
+  let root = Buffer.from(txid, 'hex').reverse();
+  for (const hash of proof.merkle) {
+    const sibling = Buffer.from(hash, 'hex').reverse();
+    root = doubleSHA256((index & 1n) ? Buffer.concat([sibling, root]) : Buffer.concat([root, sibling]));
+    index >>= 1n;
+  }
+  if (!root.equals(bytes.subarray(36, 68))) fail('BTC_INCLUSION_MERKLE_ROOT');
+  return freeze({ txid, blockHash, blockHeight: height, success: true, confirmationScope: 'rpc-block-inclusion' });
 }
 
 function btcNetwork(id) { network(id); return id === 'mainnet' ? networks.bitcoin : networks.testnet; }
