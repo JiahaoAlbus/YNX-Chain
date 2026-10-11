@@ -8,7 +8,64 @@ import {MultiConfigStore} from '../src/multichain-config.mjs';
 import {MultiJournal} from '../src/multichain-journal.mjs';
 import {EVMAdapter} from '../src/multichain-evm.mjs';
 import {MultichainService} from '../src/multichain-service.mjs';
+import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 const input={name:'PUBLIC synthetic local-chain fixture',rpcUrl:'https://qa.example.test',chainId:'31337',symbol:'QA',decimals:18,genesis:'0x'+'1'.repeat(64)},secret='0x'+'0'.repeat(63)+'1',account=new Wallet(secret).address.toLowerCase(),to='0x'+'2'.repeat(40);
+// PUBLIC scalar-one key and fake authorizer only. Exercise the production
+// lifecycle post-action gate, not the real PasswordWalletVault KDF/OS/UI.
+async function realStepFixture(){
+  const f=await fixture();let clock=1000,stepRejections=0;
+  const lifecycle=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>({account}),method:'PUBLIC-offline-fixture'},now:()=>clock,schedule:()=>({unref(){}}),unschedule:()=>{}});
+  lifecycle.setFocused(true);await lifecycle.unlock();
+  f.service.getContext=async()=>lifecycle.status();
+  const originalWithSecret=f.service.withSecret;
+  f.service.withSecret=async action=>{
+    const guard=lifecycle.current();
+    try{return await guard.step(()=>originalWithSecret((value,identity)=>action(value,identity,guard)))}
+    catch(error){if(error.data?.code==='WALLET_OPERATION_CANCELLED')stepRejections++;throw error}
+  };
+  return {...f,lifecycle,send:review=>lifecycle.run(guard=>f.service.send(review.id,guard)),stepRejections:()=>stepRejections,
+    advance:value=>{clock=value;f.setClock(value)},restore:async()=>{clock=1000;f.setClock(clock);lifecycle.setFocused(true);lifecycle.setAccount(account);await lifecycle.unlock()}};
+}
+for(const retirement of ['lock','focus','account','ttl'])test(`R2 real-step ${retirement} rejection retains original signature before wrapper ACK`,async()=>{
+  const f=await realStepFixture();try{
+    const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter);let output;
+    f.adapter.sign=async(...args)=>{output=await sign(...args);if(retirement==='lock')f.lifecycle.lock();else if(retirement==='focus')f.lifecycle.setFocused(false);else if(retirement==='account')f.lifecycle.setAccount(to);else f.advance(review.expiresAt);return output};
+    const outcome=await f.send(review).catch(error=>error);
+    assert.equal(f.stepRejections(),1,'actual lease.step rejects its post-action gate');
+    assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');
+    assert.equal(outcome.data.transactionHash,output.hash);
+    const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];
+    assert.equal(record.state,'unknown');assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);
+    assert.equal(record.account,account);assert.equal(record.nonce,review.transaction.nonce);assert.deepEqual(record.transaction,review.transaction);
+    assert.deepEqual(f.effects(),{signs:1,broadcasts:0});
+    await f.restore();await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  }finally{await f.close()}
+});
+test('R2 real-step deferred cancellation and lock with store outage preserves private original recovery',async()=>{
+  const f=await realStepFixture();try{
+    const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal),entered=deferred(),gate=deferred();let output;
+    f.adapter.sign=async(...args)=>{output=await sign(...args);entered.resolve();await gate.promise;return output};
+    f.journal.transition=async(id,next)=>{if(['signed','unknown'].includes(next.state))throw Error('PUBLIC offline persistent custody storage failure');return transition(id,next)};
+    const sending=f.send(review).catch(error=>error);await entered.promise;const cancelling=f.service.cancel(review.id);f.lifecycle.lock();gate.resolve();
+    const outcome=await sending;assert.equal(f.stepRejections(),1);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);
+    assert.equal((await f.journal.list(review.network.id,account))[0].state,'prepared');await f.restore();
+    await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+    const held=(await f.service.history()).records[0];assert.equal(held.state,'unknown');assert.equal(held.hash,output.hash);assert.equal(Object.hasOwn(held,'raw'),false);
+    f.journal.transition=transition;f.adapter.reconcile=async()=>({state:'unknown',receipt:null});assert.equal((await f.service.check(review.id)).state,'unknown');
+    const recovered=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];
+    assert.equal(recovered.raw,output.raw);assert.equal(recovered.hash,output.hash);assert.deepEqual(recovered.transaction,review.transaction);assert.deepEqual(f.effects(),{signs:1,broadcasts:0});
+  }finally{await f.close()}
+});
+test('R2 real-step valid ACK with signed-write failure remains original UNKNOWN without replay',async()=>{
+  const f=await realStepFixture();try{
+    const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal);let output,failed=false;
+    f.adapter.sign=async(...args)=>{output=await sign(...args);return output};
+    f.journal.transition=async(id,next)=>{if(next.state==='signed'&&!failed){failed=true;throw Error('PUBLIC offline signed-write failure')}return transition(id,next)};
+    const outcome=await f.send(review).catch(error=>error);assert.equal(f.stepRejections(),0);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');
+    const record=(await f.journal.list(review.network.id,account))[0];assert.equal(record.state,'unknown');assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);
+    await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.send(review));assert.deepEqual(f.effects(),{signs:1,broadcasts:0});
+  }finally{await f.close()}
+});
 async function fixture(){const dir=await mkdtemp(path.join(os.tmpdir(),'ynx-public-multichain-service-'));let clock=1000,context={account,revision:1,locked:false},broadcasts=0,signs=0;const config=new MultiConfigStore({filePath:path.join(dir,'config.json')}),journal=new MultiJournal({filePath:path.join(dir,'journal.json')});await config.putNetwork(input);const adapter=new EVMAdapter({rpc:async(_url,method)=>{if(method==='eth_chainId')return '0x7a69';if(method==='eth_getBlockByNumber')return {hash:input.genesis};if(method==='eth_getBalance')return '0xde0b6b3a7640000';if(method==='eth_getTransactionCount')return '0x0';if(method==='eth_gasPrice')return '0x1';if(method==='eth_estimateGas')return '0x5208';throw Error(method)}});adapter.broadcast=async()=>{broadcasts++;throw Error('offline synthetic timeout')};const guard={account,assert(){if(context.locked)throw Error('locked')},async submit(action){this.assert();return action()}};const service=new MultichainService({config,journal,adapter,getContext:async()=>context,withSecret:async action=>{signs++;return action(secret,{account},guard)},now:()=>clock});return {dir,config,journal,adapter,guard,service,prepare:()=>service.prepare({asset:'native',to,amount:'0.1'}),setContext:value=>{context={...context,...value}},setClock:value=>{clock=value},effects:()=>({signs,broadcasts}),close:()=>rm(dir,{recursive:true,force:true})}}
 test('cancel, expiry, lock, account and network changes cannot sign or send',async()=>{const f=await fixture();try{let review=await f.prepare();f.service.cancel(review.id);await assert.rejects(f.service.send(review.id,f.guard));review=await f.prepare();f.setClock(review.expiresAt);await assert.rejects(f.service.send(review.id,f.guard));f.setClock(1000);review=await f.prepare();f.setContext({locked:true});await assert.rejects(f.service.send(review.id,f.guard));f.setContext({locked:false});review=await f.prepare();f.setContext({account:to});await assert.rejects(f.service.send(review.id,f.guard));f.setContext({account});review=await f.prepare();await f.service.select((await f.config.read()).selected);await assert.rejects(f.service.send(review.id,f.guard));assert.deepEqual(f.effects(),{signs:0,broadcasts:0})}finally{await f.close()}});
 test('identity recheck delay that expires review is rejected before signing',async()=>{const f=await fixture();try{const review=await f.prepare();f.adapter.verify=async()=>{f.setClock(review.expiresAt)};await assert.rejects(f.service.send(review.id,f.guard),{code:'MULTICHAIN_REVIEW_EXPIRED'});assert.deepEqual(f.effects(),{signs:0,broadcasts:0})}finally{await f.close()}});

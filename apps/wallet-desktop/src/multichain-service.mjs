@@ -50,10 +50,15 @@ export class MultichainService{
       record={id:review.id,network:review.network,account:review.account,nonce:review.transaction.nonce,asset:review.asset,to:review.to,amount:review.amount,transaction:review.transaction,state:'prepared',raw:null,hash:null,receipt:null,createdAt:this.now(),updatedAt:this.now()};
       await this.adapter.validateSend(record.network,record);await live();
       reservationStarted=true;permit=await this.journal.reserve(record);reserved=true;await live();
-      const result=await this.withSecret(async(secret,identity,keyGuard)=>{await live();keyGuard.assert();if(identity.account.toLowerCase()!==record.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','Signing account changed.');return this.adapter.sign(secret,record)});
-      // Capture before any awaited post-sign gate. A returned signature is not
-      // "before sign", even if its durable write has not completed.
-      record={...record,raw:result.raw,hash:result.hash,state:'signed',updatedAt:this.now()};signatureCreated=true;attempt.hash=record.hash;this.#heldSigned.set(record.id,record);
+      await this.withSecret(async(secret,identity,keyGuard)=>{
+        await live();keyGuard.assert();if(identity.account.toLowerCase()!==record.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','Signing account changed.');
+        const result=await this.adapter.sign(secret,record);
+        // Capture inside the original action before returning to withSecret's
+        // post-action lease.step gate. Its rejection must not erase produced
+        // bytes or classify this original attempt as unsigned.
+        record={...record,raw:result.raw,hash:result.hash,state:'signed',updatedAt:this.now()};signatureCreated=true;attempt.hash=record.hash;this.#heldSigned.set(record.id,record);
+        return result;
+      });
       this.adapter.verifySigned(record.raw,record);await this.journal.transition(record.id,{state:'signed',raw:record.raw,hash:record.hash,updatedAt:record.updatedAt});signed=true;this.#heldSigned.delete(record.id);await live();
       await this.adapter.validateSend(record.network,record);await live();
       try{await guard.submit(()=>{assertAttempt();permit.beginSubmit();attempt.submissionStarted=true;return this.adapter.broadcast(record.network,record)});record={...record,state:'submitted',updatedAt:this.now()};await this.journal.transition(record.id,{state:'submitted',updatedAt:record.updatedAt})}
