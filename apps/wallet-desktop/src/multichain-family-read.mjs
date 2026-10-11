@@ -1,6 +1,7 @@
 import {exactObject, multiError} from './multichain-config.mjs';
 import {validateFamilyNetwork} from './multichain-family-networks.mjs';
 import {createFamilyReadTransport} from './multichain-family-transport.mjs';
+import {effectiveFamilyNetworks} from './multichain-family-defaults.mjs';
 const changed = () => multiError('MULTICHAIN_CONTEXT_CHANGED', 'Account or network changed. Check the selected account again.');
 async function adapter(network) {
   const transport = createFamilyReadTransport({family: network.family, networkId: network.network, baseURL: network.rpcUrl});
@@ -9,7 +10,7 @@ async function adapter(network) {
 }
 export class FamilyRead {
   constructor({networks, accounts, getContext, createAdapter = adapter}) { Object.assign(this, {networks, accounts, getContext, createAdapter}); }
-  snapshot() { return this.networks.read(); }
+  async snapshot() { return effectiveFamilyNetworks(await this.networks.read()); }
   async configure(input) {
     const network = validateFamilyNetwork(input), context = await this.getContext(), before = await this.networks.read();
     const reader = await this.createAdapter(network); await reader.verify();
@@ -20,9 +21,10 @@ export class FamilyRead {
   async balances(input) {
     exactObject(input, ['family', 'network']);
     const context = await this.getContext(), before = await this.networks.read();
-    const network = before.networks.find(n => n.family === input.family && n.network === input.network);
+    const network = effectiveFamilyNetworks(before).networks.find(n => n.family === input.family && n.network === input.network);
     if (!network) throw multiError('FAMILY_NETWORK_REQUIRED', 'Configure and verify the selected chain endpoint first.');
     const account = await this.accounts.account(input), reader = await this.createAdapter(network);
+    await reader.verify();
     let assets;
     if (input.family === 'bitcoin') {
       const {formatBitcoinAmount} = await import('./multichain-bitcoin.mjs');
