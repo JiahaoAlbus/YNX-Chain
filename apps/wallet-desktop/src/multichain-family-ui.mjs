@@ -1,5 +1,6 @@
 import {setWalletCopy} from './wallet-locale.mjs';
 import {createBitcoinTransferUI} from './multichain-family-bitcoin-ui.mjs';
+import {createBitcoinSubmissionUI} from './multichain-family-bitcoin-submit-ui.mjs';
 export function createFamilyUI({document, api, getContext}) {
   const entry = document.createElement('button'); entry.type = 'button'; entry.id = 'open-family'; entry.textContent = 'BTC / TRON'; document.querySelector('.toolbar').append(entry);
   const sheet = document.querySelector('#family-sheet'), content = document.querySelector('#family-content');
@@ -25,12 +26,14 @@ export function createFamilyUI({document, api, getContext}) {
   const history = make('details'), historyTitle = make('summary', 'Transfer history'), historyRefresh = make('button', 'Refresh history'), records = make('div'); historyRefresh.type = 'button';
   history.append(historyTitle, historyRefresh, records, make('p', 'Block inclusion reported by RPC is not consensus finality. Unknown transactions are checked, never automatically resent.')); content.append(history);
   const transferUI=createBitcoinTransferUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
-  function invalidate() { epoch++; busy = false; transferUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  const submissionUI=createBitcoinSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
+  function invalidate() { epoch++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
   function showRecord(node, record) {
     node.replaceChildren(); const state = make('p'); setWalletCopy(state, 'Transaction status: {state}', {state: record.state}); node.append(state);
     if (record.txid) {const hash = make('p'); hash.dir = 'ltr'; hash.textContent = record.txid; node.append(hash);}
     if (record.evidence?.queryError) {const error = make('p'); error.textContent = record.evidence.queryError; node.append(error);}
     const check = make('button', 'Check original transaction'); check.type = 'button'; check.disabled = getContext().locked || !record.queryable; node.append(check);
+    if(record.family==='bitcoin'&&record.state==='signed-unsubmitted'){const sendReview=make('button','Review transfer');sendReview.type='button';sendReview.disabled=getContext().locked;sendReview.addEventListener('click',()=>submissionUI.reviewOriginal(record.id));node.append(sendReview);}
     if(record.family==='bitcoin'&&record.state==='prepared'){
       const cancel=make('button','Cancel');cancel.type='button';node.append(cancel);
       cancel.addEventListener('click',async()=>{if(busy)return;const token=++epoch,context={...getContext()};busy=true;cancel.disabled=true;try{const reply=await api.familyBitcoinCancel({id:record.id});const current=getContext();if(token!==epoch||!sheet.open||current.account!==context.account||current.revision!==context.revision)return;if(!reply.ok){status.textContent=reply.error?.code??'FAMILY_CUSTODY_CONFLICT';return;}if(reply.value.id!==record.id||reply.value.state!=='cancelled')throw Error('FAMILY_RECOVERY_BINDING');showRecord(node,{...record,state:'cancelled',queryable:false});}catch(error){if(token===epoch)status.textContent=error.message??'FAMILY_CUSTODY_CONFLICT';}finally{if(token===epoch){busy=false;cancel.disabled=false;}}});

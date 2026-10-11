@@ -111,6 +111,15 @@ export class FamilyCustody {
       retire: () => { live = false; }
     });
   }
+  async fenceSubmission(original) {
+    this.verifyResult(original,original.result);
+    if(this.#held.has(original.id))fail();
+    await this.file.mutate(value=>{const r=value.records.find(r=>r.id===original.id);if(!r||r.state!=='signed-unsubmitted'||r.binding!==original.binding||r.resultDigest!==original.resultDigest||r.revision!==original.revision)fail();Object.assign(r,{state:'unknown',queryEvidence:{phase:'submission-fenced'},revision:r.revision+1,updatedAt:Math.max(r.updatedAt,this.now())});return value;});
+  }
+  async finishSubmission(original,{state,evidence}) {
+    if(!['unknown','submitted-unconfirmed'].includes(state))fail();publicJSON(evidence);
+    await this.file.mutate(value=>{const r=value.records.find(r=>r.id===original.id);if(!r||r.state!=='unknown'||r.binding!==original.binding||r.resultDigest!==original.resultDigest||r.revision!==original.revision+1)fail();Object.assign(r,{state,queryEvidence:evidence,revision:r.revision+1,updatedAt:Math.max(r.updatedAt,this.now())});return value;});
+  }
   async cancelPrepared(id, account) {
     // Cancellation alone is reconstructible; signing authority never is.
     // Serialize with beginSigning and reject any signed/unknown result.
