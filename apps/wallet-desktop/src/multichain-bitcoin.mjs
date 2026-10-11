@@ -138,6 +138,7 @@ export class BitcoinReadAdapter {
   async #network(signal) {
     if (await this.#get('/block-height/0', signal) !== network(this.#id).genesis) fail('BTC_PROVIDER_NETWORK_MISMATCH');
   }
+  async verify({signal} = {}) { await this.#network(signal); return true; }
   async readAddress(address, { signal } = {}) {
     const a = validateBitcoinAddress(address, this.#id).address;
     await this.#network(signal);

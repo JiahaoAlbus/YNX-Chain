@@ -4,6 +4,8 @@ import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
 import {MultichainService,installMultichainIPC} from './multichain-service.mjs';
 import {createMnemonicFamilyAccounts} from './multichain-family-accounts.mjs';
+import {FamilyNetworks} from './multichain-family-networks.mjs';
+import {FamilyRead} from './multichain-family-read.mjs';
 import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import {configureWalletRuntimeBranding} from "./wallet-runtime-branding.mjs";
 import { createHash, randomUUID } from "node:crypto";
@@ -72,6 +74,7 @@ let walletAuthority;
 let nativeWallet;
 let multichain;
 let familyAccounts;
+let familyRead;
 let multichainSecurityContext=null;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
@@ -106,6 +109,9 @@ handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
   if (!familyAccounts) throw new Error('Wallet is starting.');
   return familyAccounts.account(input);
 }));
+handleWalletIPC('wallet:family-networks', () => safeIPC(() => familyRead.snapshot()));
+handleWalletIPC('wallet:family-network', (_event, input) => safeIPC(() => familyRead.configure(input)));
+handleWalletIPC('wallet:family-balances', (_event, input) => sensitiveIPC(() => familyRead.balances(input)));
 installMultichainIPC({handle:handleWalletIPC,safe:safeIPC,sensitive:sensitiveIPC,getGuard:()=>keyAccess.current(),service:new Proxy({}, {get:(_target,name)=>(...args)=>{if(!multichain)throw new Error('Wallet is starting.');return multichain[name](...args)}})});
 const readNativeContract = createNativeContractService({
   client: new NativeContractClient(CANONICAL_RPC_URL, net.fetch.bind(net)),
@@ -497,6 +503,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     vault: passwordVault,
     getContext: async () => ({ account: (await passwordVault.status()).account, ...keyAccess.status() }),
   });
+  familyRead = new FamilyRead({networks: new FamilyNetworks({filePath: path.join(userData, 'multichain-family-networks-v1.json')}), accounts: familyAccounts, getContext: async () => ({account: (await passwordVault.status()).account, ...keyAccess.status()})});
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
     vault: passwordVault,
