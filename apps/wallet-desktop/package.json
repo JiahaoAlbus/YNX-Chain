@@ -29,11 +29,15 @@
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
     "ethers": "6.17.0",
     "jsqr": "1.4.0",
-    "qrcode": "1.5.4"
+    "qrcode": "1.5.4",
+    "bitcoinjs-lib": "7.0.1",
+    "tiny-secp256k1": "2.2.3",
+    "tronweb": "6.5.1"
   },
   "devDependencies": {
     "electron": "42.8.0",
-    "electron-builder": "26.15.3"
+    "electron-builder": "26.15.3",
+    "ecpair": "3.0.1"
   },
   "overrides": {
     "plist@3.1.0": {
@@ -83,7 +87,9 @@
       ]
     },
     "mac": {
-      "extendInfo": {"NSCameraUsageDescription": "Scan a YNX receiving QR code locally. Camera frames are not uploaded, and scanning never authorizes a payment."},
+      "extendInfo": {
+        "NSCameraUsageDescription": "Scan a YNX receiving QR code locally. Camera frames are not uploaded, and scanning never authorizes a payment."
+      },
       "artifactName": "ynx-wallet-macos-${version}-${arch}.${ext}",
       "target": [
         "dmg"

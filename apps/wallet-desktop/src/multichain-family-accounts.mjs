@@ -1,4 +1,21 @@
 import { exactObject, multiError } from './multichain-config.mjs';
+export function createMnemonicFamilyAccounts({vault, getContext}) {
+  return new FamilyAccounts({
+    getContext,
+    deriveBitcoin: async (derivation, context) => {
+      const {deriveBitcoinMnemonicAccount} = await import('./multichain-bitcoin.mjs');
+      const result = await deriveBitcoinMnemonicAccount({withMnemonic: (action, permission) => vault.withMnemonic(action, permission), expectedVaultAccount: context.account, derivation: {...derivation, changeIndex: derivation.index}});
+      return {address: result.address, path: result.senderPath, publicKey: result.publicKey, changeAddress: result.changeAddress, changePath: result.changePath, changePublicKey: result.changePublicKey};
+    },
+    deriveTron: async (derivation, context) => {
+      const {tronMnemonicAddress, tronDerivationPath} = await import('./multichain-tron.mjs');
+      return vault.withMnemonic((phrase, identity, guard) => {
+        guard.assert(); if (identity.account !== context.account) throw new Error('FAMILY_ACCOUNT_CHANGED');
+        return {address: tronMnemonicAddress(phrase, derivation.index).base58, path: tronDerivationPath(derivation.index)};
+      });
+    }
+  });
+}
 const fail = code => { throw multiError(code, 'Unlock the selected mnemonic account and try again.'); };
 export class FamilyAccounts {
   constructor({ getContext, deriveBitcoin, deriveTron }) { Object.assign(this, { getContext, deriveBitcoin, deriveTron }); }

@@ -29,5 +29,5 @@ test('all 12 locales contain explicit family safety copy; trusted-main route sta
   for (const locale of WALLET_LOCALES) for (const key of ['Show receiving address', 'Checking account…', 'Receiving address', 'A receiving address does not verify the network or balance. Never send assets on another network.']) { assert.ok(Object.hasOwn(FAMILY_COPY[locale], key)); assert.equal(walletCopy(locale, key), FAMILY_COPY[locale][key]); }
   const main = await readFile(new URL('../src/main.mjs', import.meta.url), 'utf8'); const preload = await readFile(new URL('../src/preload.cjs', import.meta.url), 'utf8');
   assert.match(main, /handleWalletIPC\('wallet:family-account', \(_event, input\) => sensitiveIPC/);
-  assert.match(main, /passwordVault\.withMnemonic/); assert.match(preload, /familyAccount: input => ipcRenderer\.invoke\('wallet:family-account', input\)/);
+  assert.match(main, /createMnemonicFamilyAccounts\(\{/); assert.match(preload, /familyAccount: input => ipcRenderer\.invoke\('wallet:family-account', input\)/);
 });
