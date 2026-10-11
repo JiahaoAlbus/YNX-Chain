@@ -72,7 +72,7 @@ test("same-context inventory replacement cannot dispatch a duplicate pending top
  for(const action of h.actions)action.resolve({ok:true,value:{topic:session.topic,disconnected:true,localPermissionRevoked:true}});await new Promise(resolve=>setImmediate(resolve));for(const read of h.reads.slice(2))read.resolve({ok:true,value:[]});await Promise.all([job,extra]);assert.equal(count,1);
 });
 test("all twelve languages include every session read/revoke/retry state without translating session data",()=>{
- for(const locale of WALLET_LOCALES){assert.equal(Object.keys(SESSION_COPY[locale]).length,6);for(const [key,value] of Object.entries(SESSION_COPY[locale])){assert.equal(WALLET_COPY[locale][key],value);assert.ok(value.length>0);}}
+ for(const locale of WALLET_LOCALES){assert.equal(Object.keys(SESSION_COPY[locale]).length,8);for(const key of ["WalletConnect not started","The Relay connection is not yet confirmed. Your wallet and accounts remain accessible."])assert.ok(SESSION_COPY[locale][key]);for(const [key,value] of Object.entries(SESSION_COPY[locale])){assert.equal(WALLET_COPY[locale][key],value);assert.ok(value.length>0);}}
  assert.match(source,/function renderAccount\(payload\)\s*\{\s*clearAssetBalance\(\);\s*clearTransactionResolution\(\);\s*invalidateWalletConnectSessions\(\)/);
  assert.match(source,/accountSecurityIntent\+\+;invalidateWalletConnectSessions\(\)/);
  assert.match(source,/if \(name === "connections"\) void refreshWalletConnectConnectionView\(\)/);

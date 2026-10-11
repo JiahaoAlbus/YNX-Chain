@@ -302,13 +302,13 @@ const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton
 document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
 mnemonicBackupButton.addEventListener('click',()=>mnemonicUI.openBackup());
 function renderAccount(payload) {
-  if(typeof mnemonicUI!=="undefined")mnemonicUI.invalidate();
-  if(typeof mnemonicImportUI!=="undefined")mnemonicImportUI.invalidate();
   clearAssetBalance();
   clearTransactionResolution();
   invalidateWalletConnectSessions();
   accountViewRevision++;
   clearInvoiceInput();
+  if(typeof mnemonicUI!=="undefined")mnemonicUI.invalidate();
+  if(typeof mnemonicImportUI!=="undefined")mnemonicImportUI.invalidate();
   contractUI.clear();
   invalidatePaymentInput();
   receiveShareUI.invalidate();
@@ -1016,7 +1016,8 @@ function renderKeyDetail() {
 }
 function renderKeyState(state) {
   if(Number.isSafeInteger(state?.revision)&&Number.isSafeInteger(keyState.revision)&&state.revision<keyState.revision)return;
-  if(state.revision!==keyState.revision||state.locked!==keyState.locked||state.account!==keyState.account||state.authenticating!==keyState.authenticating){accountSecurityIntent++;invalidateWalletConnectSessions();}
+  const securityChanged=state.revision!==keyState.revision||state.locked!==keyState.locked||state.account!==keyState.account||state.authenticating!==keyState.authenticating;
+  if(securityChanged){accountSecurityIntent++;invalidateWalletConnectSessions();}
   securityViewRevision++;
   const accountChanged = state.account !== keyState.account;
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) clearInvoiceInput();
@@ -1024,7 +1025,7 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
-  familyUI?.invalidate();
+  if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");

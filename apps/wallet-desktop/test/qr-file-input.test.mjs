@@ -56,7 +56,7 @@ test("normal renderer and protected Pay use rotating inputs at all existing clos
   assert.match(renderer,/invoiceSheet.addEventListener\("close",clearInvoiceInput\)/);
   assert.match(renderer,/invoiceSheet.addEventListener\("cancel",clearInvoiceInput\)/);
   assert.match(renderer,/if \(state.revision !== keyState.revision \|\| state.locked !== keyState.locked\) clearInvoiceInput\(\)/);
-  const account=renderer.slice(renderer.indexOf("function renderAccount("),renderer.indexOf("function renderAccount(")+200);assert.match(account,/clearInvoiceInput\(\)/);
+  const accountStart=renderer.indexOf("function renderAccount("),account=renderer.slice(accountStart,renderer.indexOf("\n}",accountStart)+2);assert.ok(accountStart>=0);assert.match(account,/clearInvoiceInput\(\)/);
   assert.match(pay,/const qrFile=createQRFileInput/);assert.match(pay,/const invalidate=\(\)=>\{qrRevision\+\+;qrIntent=null;qrFile.invalidate\(\)/);
   assert.match(pay,/reference.addEventListener\("input",\(\)=>\{qrRevision\+\+;qrIntent=null;qrFile.invalidate\(\)/);
 });

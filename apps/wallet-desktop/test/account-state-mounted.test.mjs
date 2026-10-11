@@ -18,7 +18,7 @@ function harness(){
   const document={querySelector:selector=>selector==='dialog[open]'?[...nodes.values()].find(node=>node.open)??null:get(selector),querySelectorAll:()=>[],createElement:()=>get("element-"+(++elementId))};
   const api={onAccountStatus(handler){eventHandler=handler;}};
   for(const method of ["accountStatus","createAccount","addAccount","selectAccount","importAccount","saveBackup"]){requests.set(method,[]);api[method]=(...args)=>new Promise((resolve,reject)=>requests.get(method).push({args,resolve,reject}));}
-  const context={document,window:{ynxWallet:api},activeAccount:null,accountState:null,accountViewRevision:0,keyState:{locked:false,revision:1},renderPermissionError,
+  const context={document,window:{ynxWallet:api},familyUI:{invalidate(){}},multichainUI:{render(){}},activeAccount:null,accountState:null,accountViewRevision:0,keyState:{locked:false,revision:1},renderPermissionError,
     errorText:result=>result.error.message,clearAssetBalance(){},clearTransactionResolution(){},clearInvoiceInput(){},invalidateWalletConnectSessions(){},invalidatePaymentInput(){},contractUI:{clear(){}},receiveShareUI:{invalidate(){}},receiveCodeUI:{clear(){},refresh(){}},transactionHistoryUI:{clear(){},refresh(){}},passwordUI:{render(){}},renderKeyDetail(){},refreshTransactions(){},refreshAssets(){},setView(){},nativeAccountLabel:value=>value,transferReview:null};
   for(const [name,id]of Object.entries({accountTitle:"account-title",accountDetail:"account-detail",accountShort:"account-short",signingShort:"signing-short",createAccount:"create-account",addAccount:"add-account",accountList:"account-list"}))context[name]=get("#"+id);
   const start=source.indexOf("function renderAccount(payload)"),end=source.indexOf("const walletConnectTitle",start);

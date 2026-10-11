@@ -129,25 +129,30 @@ test("security invalidation clears old unlock success while an unchanged locked 
   for (const fixture of [
     { before: { locked: false, revision: 4 }, after: { locked: true, revision: 5 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
     { before: { locked: true, revision: 5 }, after: { locked: true, revision: 6 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
-    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 5 }, message: "The password is incorrect or the encrypted Wallet was changed.", expected: "The password is incorrect or the encrypted Wallet was changed." }
+    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 5 }, message: "The password is incorrect or the encrypted Wallet was changed.", expected: "The password is incorrect or the encrypted Wallet was changed." },
+    { before: { locked: false, revision: 5 }, after: { locked: false, revision: 5 }, message: "", expected: "" },
+    { before: { locked: false, revision: 5, account:"qa-one" }, after: { locked: false, revision: 5, account:"qa-two" }, message: "", expected: "" },
+    { before: { locked: false, revision: 5, authenticating:false }, after: { locked: false, revision: 5, authenticating:true }, message: "", expected: "" }
   ]) {
     const elements = new Map();
     const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
     document.querySelector("#unlock-result").textContent = fixture.message;
-    let invalidatedInputs = 0, invalidatedContracts = 0, invalidatedInvoices = 0;
+    let invalidatedInputs = 0, invalidatedContracts = 0, invalidatedInvoices = 0, invalidatedFamilies = 0;
     const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
     const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
     const owners=renderer.slice(renderer.indexOf("let accountSecurityIntent="),renderer.indexOf('createAccount.addEventListener("click"'));
     runInNewContext(`${copyHelper}\n${invoiceClear}\n${owners}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
-      document, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      document, familyUI:{invalidate(){invalidatedFamilies++;}}, multichainUI:{render(){}}, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
       passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidateWalletConnectSessions(){},invalidatePaymentInput() { invalidatedInputs++; }
     });
-    assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
+    assert.equal(document.querySelector("#key-security-title").textContent, fixture.after.locked ? "Wallet locked" : "Wallet unlocked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
     assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
     assert.equal(invalidatedContracts, invalidatedInputs);
     assert.equal(invalidatedInvoices, invalidatedInputs);
+    const familyChanged=["revision","locked","account","authenticating"].some(key=>fixture.before[key]!==fixture.after[key]);
+    assert.equal(invalidatedFamilies, familyChanged?1:0, "unchanged security refresh must preserve the family operation; real context changes must retire it");
   }
 });
 
@@ -193,7 +198,7 @@ async function sendEntryHarness() {
   };
   const context = { document, window: { ynxWallet: api }, accountViewRevision:0, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
     signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
-    paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
+    familyUI:{invalidate(){}}, multichainUI:{render(){}}, paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
     invalidateWalletConnectSessions(){},invalidatePaymentInput() { context.paymentDraftRevision++; },
   };
   const extract = (startText, endText) => {
