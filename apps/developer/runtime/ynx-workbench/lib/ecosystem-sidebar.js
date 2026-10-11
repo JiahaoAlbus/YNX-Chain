@@ -9,6 +9,7 @@ const ACTION_ICONS = Object.freeze({
   'ynx.workbench.wallet': 'account',
   'ynx.chainResults.focus': 'history',
   'ynx.review.focus': 'diff',
+  'vsxExtensions.toggle': 'extensions',
 });
 // Navigation uses the current project's existing contributions. Opening this
 // view never queries a network, approves a service or submits a transaction.
@@ -25,6 +26,9 @@ const SECTIONS = Object.freeze([
   ] },
   { key: 'ecosystemReview', label: 'Project changes', actions: [
     ['ynx.review.focus', 'ecosystemOpenReview', 'Review local changes'],
+  ] },
+  { key: 'ecosystemExtensions', label: 'Development extensions', actions: [
+    ['vsxExtensions.toggle', 'ecosystemOpenExtensions', 'Browse and manage extensions'],
   ] },
 ]);
 class EcosystemSidebarWidget extends BaseWidget {

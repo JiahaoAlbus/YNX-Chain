@@ -9,6 +9,29 @@ import { artifactLimits, captureArtifactSelection, resolveSelectedArtifact } fro
 
 const same = (left, right) => left.dev === right.dev && left.ino === right.ino;
 const privateDirectory = value => value.isDirectory() && !value.isSymbolicLink() && value.uid === process.getuid() && !(value.mode & 0o077);
+// Preserve the catalog-selected publisher/name/version and filename at the hop.
+export function officialArtifactRedirect(source, location) {
+  const original = new URL(source), target = new URL(location, original);
+  const parts = original.pathname.split('/');
+  if (original.origin !== 'https://open-vsx.org' || parts.length !== 7 || parts[1] !== 'api' || parts[5] !== 'file'
+    || original.username || original.password || original.search || original.hash
+    || target.origin !== 'https://openvsx.eclipsecontent.org' || target.username || target.password || target.search || target.hash
+    || target.pathname !== `/${parts[2]}/${parts[3]}/${parts[4]}/${parts[6]}`) throw Error('Official artifact redirect identity rejected.');
+  return target.href;
+}
+// Open VSX query filters are exact: an ARM query excludes universal VSIXes.
+// Keep the user's selected version; fall back only when that platform has no
+// matching row, never after a transport error or ambiguous/invalid metadata.
+export async function selectedArtifactMetadata(selection, catalog, signal, assertCurrent) {
+  const options = { namespaceName: selection.namespace, extensionName: selection.name,
+    extensionVersion: selection.version, targetPlatform: selection.targetPlatform, includeAllVersions: true };
+  const metadata = await catalog('query', options, signal);
+  if (!metadata || !Array.isArray(metadata.extensions)) throw Error('Selected extension metadata unavailable.');
+  if (metadata.extensions.length || selection.targetPlatform === 'universal') return metadata;
+  await assertCurrent();
+  if (signal?.aborted) throw Error('Extension download cancelled.');
+  return catalog('query', { ...options, targetPlatform: 'universal' }, signal);
+}
 export function createArtifactDownloader({ directory, assertCurrent }, { catalog = fetchCatalog, request = https.request, dnsLookup = lookup } = {}) {
   if (typeof directory !== 'string' || typeof assertCurrent !== 'function') throw Error('Artifact session is not supplied.');
   if (typeof process.getuid !== 'function') throw Error('Extension staging permissions are unsupported on this platform.');
@@ -40,8 +63,7 @@ export function createArtifactDownloader({ directory, assertCurrent }, { catalog
         if (!privateDirectory(rootIdentity) || await realpath(directory) !== directory) throw Error('Extension staging identity changed.');
         const capacity = await statfs(directory);
         if (Number(capacity.bavail) * Number(capacity.bsize) < artifactLimits.maxBytes + 32 * 1024 * 1024) throw Error('Insufficient extension staging space.');
-        const metadata = await catalog('query', { namespaceName: selection.namespace, extensionName: selection.name,
-          extensionVersion: selection.version, targetPlatform: selection.targetPlatform, includeAllVersions: true }, controller.signal);
+        const metadata = await selectedArtifactMetadata(selection, catalog, controller.signal, assertCurrent);
         const artifact = resolveSelectedArtifact(selection, metadata);
         await assertCurrent();
         if (controller.signal.aborted) throw Error('Extension download cancelled.');
@@ -56,25 +78,33 @@ export function createArtifactDownloader({ directory, assertCurrent }, { catalog
         controller.signal.addEventListener('abort', abort, { once: true });
         let bytes = 0, prefix = Buffer.alloc(0); const digest = createHash('sha256');
         try {
-          response = await new Promise((resolve, reject) => {
-            req = request(artifact.url, { method: 'GET', headers: { Accept: 'application/octet-stream' }, agent: false, rejectUnauthorized: true,
+          const requestResponse = url => new Promise((resolve, reject) => {
+            const expectedHost = new URL(url).hostname;
+            req = request(url, { method: 'GET', headers: { Accept: 'application/octet-stream' }, agent: false, rejectUnauthorized: true,
               lookup(hostname, options, callback) {
-                if (hostname !== 'open-vsx.org') return callback(Error('Artifact host rejected.'));
+                if (hostname !== expectedHost || !['open-vsx.org', 'openvsx.eclipsecontent.org'].includes(hostname)) return callback(Error('Artifact host rejected.'));
                 dnsLookup(hostname, { all: true, verbatim: true }, (error, addresses) => {
                   if (error) return callback(error);
                   if (controller.signal.aborted || !addresses?.length || addresses.some(row => !isPublicCatalogAddress(row.address))) return callback(Error('Artifact address rejected.'));
                   if (options.all) callback(null, addresses); else callback(null, addresses[0].address, addresses[0].family);
                 });
               },
-            }, incoming => {
-              if (incoming.statusCode !== 200 || !/^(application\/(octet-stream|zip|vsix))(?:\s*;|$)/i.test(incoming.headers['content-type'] || '')
-                || Number(incoming.headers['content-length']) > artifactLimits.maxBytes || (incoming.headers['content-encoding'] && incoming.headers['content-encoding'] !== 'identity')) {
-                incoming.destroy(); reject(Error('Selected artifact response rejected; redirects are not approved.')); return;
-              }
-              resolve(incoming);
-            });
+            }, resolve);
             req.once('error', reject); req.end(); if (controller.signal.aborted) abort();
           });
+          response = await requestResponse(artifact.url);
+          if (response.statusCode === 302) {
+            const target = officialArtifactRedirect(artifact.url, response.headers.location);
+            response.destroy();
+            await assertCurrent();
+            if (controller.signal.aborted) throw Error('Extension download cancelled.');
+            response = await requestResponse(target);
+          }
+          // No loop: a second redirect is an error, including back to origin.
+          if (response.statusCode !== 200 || !/^(application\/(octet-stream|zip|vsix))(?:\s*;|$)/i.test(response.headers['content-type'] || '')
+            || Number(response.headers['content-length']) > artifactLimits.maxBytes || (response.headers['content-encoding'] && response.headers['content-encoding'] !== 'identity')) {
+            throw Error('Selected artifact response rejected; redirects are not approved.');
+          }
           for await (const chunk of response) {
             if (controller.signal.aborted) throw Error('Extension download cancelled.');
             bytes += chunk.length;

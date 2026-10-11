@@ -5,12 +5,13 @@ import { fileURLToPath } from 'node:url';
 import { pathToFileURL } from 'node:url';
 import { resolve, dirname, basename } from 'node:path';
 import { spawn, execFileSync } from 'node:child_process';
-import { once } from 'node:events';
+import { once, EventEmitter } from 'node:events';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, rename, symlink, copyFile } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, lstat, rm, rename, symlink, copyFile, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { Duplex } from 'node:stream';
+import { Duplex, Readable } from 'node:stream';
+import { selectedArtifactMetadata, createArtifactDownloader, officialArtifactRedirect } from '../../../desktop/marketplace-artifact-transport.mjs';
 const require = createRequire(new URL('../package.json', import.meta.url));
 function load(name) {
   const module = { exports: {} };
@@ -20,6 +21,44 @@ function load(name) {
   return module.exports;
 }
 const { connectArtifactResolver, verifyReceipt, artifactResolverClass } = load('marketplace-extension-resolver');
+test('observed official content redirect must retain exact selected archive identity', () => {
+  const source = 'https://open-vsx.org/api/MS-CEINTL/vscode-language-pack-zh-hans/1.91.0/file/MS-CEINTL.vscode-language-pack-zh-hans-1.91.0.vsix';
+  const target = 'https://openvsx.eclipsecontent.org/MS-CEINTL/vscode-language-pack-zh-hans/1.91.0/MS-CEINTL.vscode-language-pack-zh-hans-1.91.0.vsix';
+  assert.equal(officialArtifactRedirect(source, target), target);
+  for (const invalid of [target.replace('https:', 'http:'), target.replace('openvsx.eclipsecontent.org', '127.0.0.1'), target.replace('1.91.0/', '1.92.0/'), target + '?token=x', target + '#fragment', target.replace('https://', 'https://user@'), target.replace('.vsix', '-other.vsix')]) {
+    assert.throws(() => officialArtifactRedirect(source, invalid), /identity rejected/);
+  }
+});
+test('exact-platform absence resolves the same selected universal version without changing requested identity', async () => {
+  const selection = { namespace: 'MS-CEINTL', name: 'vscode-language-pack-zh-hans', version: '1.91.0', targetPlatform: 'darwin-arm64' };
+  const calls = [], universal = { extensions: [{ ...selection, targetPlatform: 'universal' }] };
+  let assertions = 0;
+  const result = await selectedArtifactMetadata(selection, async (operation, options) => {
+    calls.push({ operation, ...options });
+    return options.targetPlatform === 'universal' ? universal : { extensions: [] };
+  }, new AbortController().signal, async () => { assertions++; });
+  assert.equal(result, universal); assert.equal(assertions, 1);
+  assert.deepEqual(calls.map(row => row.targetPlatform), ['darwin-arm64', 'universal']);
+  assert.ok(calls.every(row => row.extensionVersion === '1.91.0' && row.namespaceName === 'MS-CEINTL'));
+  assert.equal(selection.targetPlatform, 'darwin-arm64');
+});
+test('platform-specific metadata wins and transport failure does not invoke fallback', async () => {
+  const selection = { namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'darwin-arm64' };
+  const exact = { extensions: [{ ...selection }] }; let calls = 0;
+  assert.equal(await selectedArtifactMetadata(selection, async () => { calls++; return exact; }, undefined, async () => {}), exact);
+  assert.equal(calls, 1);
+  const failure = Error('TLS refused'); calls = 0;
+  await assert.rejects(selectedArtifactMetadata(selection, async () => { calls++; throw failure; }, undefined, async () => {}), e => e === failure);
+  assert.equal(calls, 1);
+});
+test('retired or cancelled selection cannot issue universal lookup', async () => {
+  const selection = { namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: 'darwin-arm64' };
+  let calls = 0; const controller = new AbortController();
+  await assert.rejects(selectedArtifactMetadata(selection, async () => { calls++; controller.abort(); return { extensions: [] }; }, controller.signal, async () => {}), /cancelled/);
+  assert.equal(calls, 1); calls = 0;
+  await assert.rejects(selectedArtifactMetadata(selection, async () => { calls++; return { extensions: [] }; }, undefined, async () => { throw Error('Session retired'); }), /Session retired/);
+  assert.equal(calls, 1);
+});
 const { serveArtifacts, artifactClient } = load('marketplace-artifact-channel');
 const selection = { namespace: 'example', name: 'language', version: '1.2.3', targetPlatform: `${process.platform}-${process.arch}` };
 async function fixture(t, manifest = selection) {
@@ -38,6 +77,191 @@ async function restage(f, bytes) {
   await writeFile(f.path, bytes); const identity = await lstat(f.path);
   return { ...f.receipt, bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex'), dev: identity.dev, ino: identity.ino };
 }
+test('universal catalog fallback reaches real private staging and retained VSIX verification', async t => {
+  const f = await fixture(t), bytes = await readFile(f.path), platforms = [];
+  const url = 'https://open-vsx.org/api/example/language/1.2.3/file/example.language-1.2.3.vsix';
+  const downloader = createArtifactDownloader({ directory: f.root, assertCurrent: async () => {} }, {
+    catalog: async (_, options) => {
+      platforms.push(options.targetPlatform);
+      return { extensions: options.targetPlatform === 'universal' ? [{ ...selection, targetPlatform: 'universal', files: { download: url } }] : [] };
+    },
+    request: (requested, options, callback) => {
+      assert.equal(requested, url); assert.equal(options.rejectUnauthorized, true);
+      const req = new EventEmitter(); req.destroy = () => {};
+      req.end = () => {
+        const response = Readable.from([bytes]); response.statusCode = 200;
+        response.headers = { 'content-type': 'application/octet-stream', 'content-length': bytes.length };
+        callback(response);
+      };
+      return req;
+    },
+  });
+  try {
+    const receipt = await downloader.download(selection);
+    assert.deepEqual(platforms, ['darwin-arm64', 'universal']);
+    assert.deepEqual(receipt.selection, selection);
+    assert.equal(await verifyReceipt(receipt, selection, f.root), receipt.path);
+  } finally { await downloader.cleanup(); }
+});
+const admittedSelection = { namespace: 'MS-CEINTL', name: 'vscode-language-pack-zh-hans', version: '1.91.0', targetPlatform: 'darwin-arm64' };
+const admittedSource = 'https://open-vsx.org/api/MS-CEINTL/vscode-language-pack-zh-hans/1.91.0/file/MS-CEINTL.vscode-language-pack-zh-hans-1.91.0.vsix';
+const admittedTarget = 'https://openvsx.eclipsecontent.org/MS-CEINTL/vscode-language-pack-zh-hans/1.91.0/MS-CEINTL.vscode-language-pack-zh-hans-1.91.0.vsix';
+async function guardedHopFixture(t, options = {}) {
+  const f = await fixture(t, admittedSelection), bytes = await readFile(f.path);
+  const requests = [], hosts = [], controller = new AbortController(); let assertions = 0;
+  const downloader = createArtifactDownloader({ directory: f.root, assertCurrent: async () => {
+    if (++assertions === 3) {
+      if (options.retire) throw Error('Session retired at hop');
+      if (options.cancel) controller.abort();
+    }
+  } }, {
+    catalog: async () => ({ extensions: [{ ...admittedSelection, targetPlatform: 'universal', files: { download: admittedSource } }] }),
+    dnsLookup: (host, _, callback) => {
+      hosts.push(host);
+      callback(null, [{ address: options.privateAddress && host === 'openvsx.eclipsecontent.org' ? '127.0.0.1' : '8.8.8.8', family: 4 }]);
+    },
+    request: (url, requestOptions, callback) => {
+      requests.push(url); assert.equal(requestOptions.rejectUnauthorized, true); assert.equal(requestOptions.agent, false);
+      assert.deepEqual(requestOptions.headers, { Accept: 'application/octet-stream' });
+      const req = new EventEmitter(); req.destroy = error => { if (error) req.emit('error', error); };
+      req.end = () => requestOptions.lookup(new URL(url).hostname, {}, error => {
+        if (error) return req.emit('error', error);
+        const first = url === admittedSource, response = Readable.from(first ? [] : [bytes]);
+        response.statusCode = first ? 302 : options.secondRedirect ? 302 : 200;
+        response.headers = first ? { location: options.location || admittedTarget } : { 'content-type': 'application/octet-stream', 'content-length': bytes.length, ...(options.secondRedirect ? { location: admittedSource } : {}) };
+        callback(response);
+      });
+      return req;
+    },
+  });
+  return { ...f, downloader, requests, hosts, controller };
+}
+test('guarded CDN branch follows only admitted official hop and verifies retained selected archive', async t => {
+  const f = await guardedHopFixture(t);
+  try {
+    const receipt = await f.downloader.download(admittedSelection);
+    assert.deepEqual(f.requests, [admittedSource, admittedTarget]);
+    assert.deepEqual(f.hosts, ['open-vsx.org', 'openvsx.eclipsecontent.org']);
+    assert.equal(await verifyReceipt(receipt, admittedSelection, f.root), receipt.path);
+    await f.downloader.cleanup();
+    assert.equal((await readdir(f.root)).filter(name => name.startsWith('extension-') && name !== 'extension-abcdef').length, 0);
+  } finally { await f.downloader.cleanup(); }
+});
+for (const [name, options, pattern, count] of [
+  ['foreign target', { location: admittedTarget.replace('openvsx.eclipsecontent.org', 'foreign.example') }, /identity rejected/, 1],
+  ['different version', { location: admittedTarget.replace('/1.91.0/', '/1.92.0/') }, /identity rejected/, 1],
+  ['second redirect', { secondRedirect: true }, /redirects are not approved/, 2],
+  ['private CDN DNS', { privateAddress: true }, /address rejected/, 2],
+  ['retired session', { retire: true }, /Session retired/, 1],
+  ['cancelled session', { cancel: true }, /cancelled/, 1],
+]) test(`guarded CDN branch refuses ${name} and cleans its owned partial`, async t => {
+  const f = await guardedHopFixture(t, options);
+  try {
+    await assert.rejects(f.downloader.download(admittedSelection, f.controller.signal), pattern);
+    assert.equal(f.requests.length, count);
+    assert.equal((await readdir(f.root)).filter(name => name.startsWith('extension-') && name !== 'extension-abcdef').length, 0);
+  } finally { await f.downloader.cleanup(); }
+});
+const generalSelections = [
+  { namespace: 'ms-python', name: 'python', version: '2026.4.0', targetPlatform: 'darwin-arm64' },
+  { namespace: 'llvm-vs-code-extensions', name: 'vscode-clangd', version: '0.6.0', targetPlatform: 'darwin-arm64' },
+  { namespace: 'ms-vscode', name: 'js-debug', version: '1.140.0', targetPlatform: 'darwin-arm64' },
+];
+async function generalHopFixture(t, options = {}) {
+  const f = await fixture(t), requests = [], sentinel = `${f.root}/unrelated-project.txt`;
+  await writeFile(sentinel, 'keep');
+  const urls = selected => {
+    const file = `${selected.namespace}.${selected.name}-${selected.version}.vsix`;
+    return { source: `https://open-vsx.org/api/${selected.namespace}/${selected.name}/${selected.version}/file/${file}`,
+      target: `https://openvsx.eclipsecontent.org/${selected.namespace}/${selected.name}/${selected.version}/${file}` };
+  };
+  const downloader = createArtifactDownloader({ directory: f.root, assertCurrent: options.assertCurrent || (async () => {}) }, {
+    catalog: async (_, query) => {
+      const selected = generalSelections.find(row => row.namespace === query.namespaceName && row.name === query.extensionName && row.version === query.extensionVersion);
+      assert.ok(selected, 'catalog must use captured identity');
+      return { extensions: [{ ...selected, targetPlatform: 'universal', files: { download: urls(selected).source } }] };
+    },
+    dnsLookup: (host, _, callback) => callback(null, [{ address: options.privateAddress && host === 'openvsx.eclipsecontent.org' ? '127.0.0.1' : '8.8.8.8', family: 4 }]),
+    request: (url, requestOptions, callback) => {
+      requests.push(url); const selected = generalSelections.find(row => Object.values(urls(row)).includes(url));
+      assert.ok(selected); assert.equal(requestOptions.rejectUnauthorized, true); assert.equal(requestOptions.agent, false);
+      assert.deepEqual(requestOptions.headers, { Accept: 'application/octet-stream' });
+      const req = new EventEmitter(); req.destroy = error => { if (error) req.emit('error', error); };
+      req.end = () => requestOptions.lookup(new URL(url).hostname, {}, error => {
+        if (error) return req.emit('error', error);
+        const first = url === urls(selected).source;
+        const bytes = archiveFixture([['extension.vsixmanifest', '<PackageManifest/>'], ['extension/package.json', JSON.stringify({ publisher: selected.namespace, name: selected.name, version: selected.version, engines: { vscode: '^1.80.0' } })]]);
+        const response = Readable.from(first ? [] : [bytes]);
+        response.statusCode = first ? options.firstStatus || 302 : options.secondStatus || 200;
+        response.headers = first ? { location: options.location ? options.location(urls(selected).target) : urls(selected).target } : { 'content-type': 'application/octet-stream', 'content-length': bytes.length, ...(options.secondStatus ? { location: urls(selected).source } : {}) };
+        callback(response); options.afterResponse?.(selected, first);
+      });
+      return req;
+    },
+  });
+  return { ...f, downloader, requests, sentinel, urls };
+}
+for (const selected of generalSelections) test(`general selected CDN supports ${selected.namespace}.${selected.name} without version or filename substitution`, async t => {
+  const f = await generalHopFixture(t);
+  try {
+    const receipt = await f.downloader.download(selected);
+    assert.deepEqual(f.requests, Object.values(f.urls(selected)));
+    assert.deepEqual(receipt.selection, selected);
+    assert.equal(await verifyReceipt(receipt, selected, f.root), receipt.path);
+    await f.downloader.cleanup(); assert.equal(await readFile(f.sentinel, 'utf8'), 'keep');
+  } finally { await f.downloader.cleanup(); }
+});
+for (const [name, options, pattern, count] of [
+  ['foreign origin', { location: url => url.replace('openvsx.eclipsecontent.org', 'foreign.example') }, /identity rejected/, 1],
+  ['foreign port', { location: url => url.replace('.org/', '.org:444/') }, /identity rejected/, 1],
+  ['HTTP downgrade', { location: url => url.replace('https:', 'http:') }, /identity rejected/, 1],
+  ['userinfo', { location: url => url.replace('https://', 'https://user@') }, /identity rejected/, 1],
+  ['query', { location: url => url + '?token=x' }, /identity rejected/, 1],
+  ['fragment', { location: url => url + '#fragment' }, /identity rejected/, 1],
+  ['encoded filename drift', { location: url => url.replace('.vsix', '%2Evsix') }, /identity rejected/, 1],
+  ['version drift', { location: url => url.replace('/0.6.0/', '/0.7.0/') }, /identity rejected/, 1],
+  ['filename drift', { location: url => url.replace('.vsix', '-other.vsix') }, /identity rejected/, 1],
+  ['private CDN DNS', { privateAddress: true }, /address rejected/, 2],
+  ['second redirect', { secondStatus: 302 }, /redirects are not approved/, 2],
+  ...[301, 303, 307, 308].map(status => [`unadmitted ${status}`, { firstStatus: status }, /redirects are not approved/, 1]),
+]) test(`general selected CDN refuses ${name} and preserves unrelated files`, async t => {
+  const f = await generalHopFixture(t, options);
+  try {
+    await assert.rejects(f.downloader.download(generalSelections[1]), pattern);
+    assert.equal(f.requests.length, count);
+    assert.equal((await readdir(f.root)).filter(name => name.startsWith('extension-') && name !== 'extension-abcdef').length, 0);
+    assert.equal(await readFile(f.sentinel, 'utf8'), 'keep');
+  } finally { await f.downloader.cleanup(); }
+});
+test('general selected CDN concurrent cancellation does not retire another selected archive', async t => {
+  const controller = new AbortController();
+  const f = await generalHopFixture(t, { afterResponse: (selected, first) => {
+    if (first && selected.name === 'js-debug') controller.abort();
+  } });
+  try {
+    const [cpp, js] = await Promise.allSettled([
+      f.downloader.download(generalSelections[1]), f.downloader.download(generalSelections[2], controller.signal),
+    ]);
+    assert.equal(cpp.status, 'fulfilled'); assert.equal(js.status, 'rejected');
+    assert.match(js.reason.message, /cancelled/);
+    assert.equal(await verifyReceipt(cpp.value, generalSelections[1], f.root), cpp.value.path);
+    assert.ok(!f.requests.includes(f.urls(generalSelections[2]).target));
+    assert.equal(await readFile(f.sentinel, 'utf8'), 'keep');
+  } finally { await f.downloader.cleanup(); }
+});
+test('general selected CDN retirement at hop prevents follow and allows owned cleanup', async t => {
+  let current = true;
+  const f = await generalHopFixture(t, {
+    assertCurrent: async () => { if (!current) throw Error('Session retired'); },
+    afterResponse: (_, first) => { if (first) current = false; },
+  });
+  try {
+    await assert.rejects(f.downloader.download(generalSelections[1]), /Session retired/);
+    assert.equal(f.requests.length, 1);
+    assert.equal((await readdir(f.root)).filter(name => name.startsWith('extension-') && name !== 'extension-abcdef').length, 0);
+    assert.equal(await readFile(f.sentinel, 'utf8'), 'keep');
+  } finally { await f.downloader.cleanup(); }
+});
 // Stored ZIP fixture preserves noncanonical names that command-line zip cleans.
 function archiveFixture(members) {
   let offset = 0; const local = [], central = [];

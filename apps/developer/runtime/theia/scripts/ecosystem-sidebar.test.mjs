@@ -8,6 +8,13 @@ class BaseWidget { constructor() { this.node = node(); this.node.ownerDocument =
 const module = { exports: {} };
 vm.runInNewContext(readFileSync(new URL('../../ynx-workbench/lib/ecosystem-sidebar.js', import.meta.url), 'utf8'), { module, require: id => id.endsWith('/widgets') ? { BaseWidget } : { CommonMenus: { VIEW_VIEWS: ['view'] } } });
 const { EcosystemSidebarWidget, EcosystemSidebarContribution } = module.exports;
+test('development extensions entry uses the installed kernel registry contribution', async () => {
+  const calls = [];
+  const widget = new EcosystemSidebarWidget({ getCommand: () => ({}), isEnabled: () => true, executeCommand: id => calls.push(id) }, { error: e => { throw Error(e); } }, (_, text) => text);
+  const entry = widget.buttons.find(item => item.command === 'vsxExtensions.toggle');
+  assert.ok(entry); await entry.button.listeners.click();
+  assert.deepEqual(calls, ['vsxExtensions.toggle']);
+});
 test('navigation rechecks permission and dispatches the current project only at click', async () => {
   let allowed = true, project = 'first'; const calls = [], errors = [];
   const commands = { getCommand: () => ({}), isEnabled: () => allowed, executeCommand: id => calls.push([id, project]) };

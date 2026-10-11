@@ -40,13 +40,15 @@ class YnxVSXExtension extends VSXExtension {
   }
   get deployed() { return this.needsHostReload ? false : super.deployed; }
   async enable() {
+    if (!this.id || !this.installedVersion) return;
     await super.enable();
     this.needsHostReload = true;
     await this.model.doChange(async () => {});
   }
   async disable() {
+    const result = await super.disable();
     this.needsHostReload = false;
-    return super.disable();
+    return result;
   }
 }
 injectable()(YnxVSXExtension);

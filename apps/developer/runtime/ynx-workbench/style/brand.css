@@ -10,20 +10,38 @@
   backdrop-filter: blur(14px);
 }
 .ynx-workbench-brand img {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 7px;
+  background: #fff;
   object-fit: contain;
 }
 .ynx-workbench-brand strong {
   font-weight: 600;
   letter-spacing: .1px;
 }
-.theia-dark .ynx-workbench-brand img {
-  filter: brightness(0) invert(1);
-}
 .theia-light .ynx-workbench-brand {
   background: rgba(248, 248, 247, .92);
 }
 .theia-light #theia-left-content-panel {
   border-right: 1px solid var(--theia-sideBar-border);
+}
+.ynx-workbench-brand .ynx-chain-entry {
+  margin-left: 8px;
+  border: 1px solid var(--theia-button-border, var(--theia-panel-border));
+  border-radius: 6px;
+  padding: 4px 9px;
+  color: var(--theia-foreground);
+  background: transparent;
+  cursor: pointer;
+}
+.theia-light .ynx-workbench-brand .ynx-chain-entry {
+  color: #002fa7;
+  background: rgba(255, 255, 255, .75);
+}
+.ynx-workbench-brand .ynx-chain-entry:focus-visible {
+  outline: 2px solid var(--theia-focusBorder);
+  outline-offset: 2px;
 }

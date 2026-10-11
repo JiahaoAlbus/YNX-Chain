@@ -307,6 +307,15 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       const image = document.createElement('img'); image.src = typeof logo === 'string' ? logo : logo.default; image.alt = 'YNX';
       const title = document.createElement('strong'); title.textContent = 'YNX Developer';
       brand.append(image, title);
+      const chain = document.createElement('button'); chain.type = 'button';
+      chain.className = 'ynx-chain-entry'; chain.textContent = 'YNX Chain';
+      chain.setAttribute('aria-label', translateWorkbench('ecosystemTitle', 'YNX Ecosystem'));
+      chain.addEventListener('click', async () => {
+        const commands = context.container.get(CommandRegistry);
+        try { await commands.executeCommand('ynx.workbench.ecosystem'); }
+        catch (error) { context.container.get(MessageService).error(error.message || String(error)); }
+      });
+      brand.append(chain);
       const widget = new Widget({ node: brand }); widget.id = 'ynx-workbench-brand';
       panel.insertWidget(0, widget); panel.show();
     },

@@ -6,11 +6,30 @@ const module = { exports: {} };
 class VSXExtension {
   get displayName() { return this.metadata.displayName; }
   get verified() { return this.metadata.verified; }
+  async enable() { this.enableCalls = (this.enableCalls || 0) + 1; }
+  async disable() { if (this.disableFailure) throw this.disableFailure; return 'disabled'; }
 }
 vm.runInNewContext(readFileSync(new URL('../../ynx-workbench/lib/extension-lifecycle.js', import.meta.url), 'utf8'), {
   module, require: id => id.endsWith('/vsx-extension') ? { VSXExtension } : { injectable: () => value => value },
 });
 const { YnxVSXExtension, extensionDisplayName } = module.exports;
+test('failed disable preserves required host reload until a successful disable', async () => {
+  const extension = new YnxVSXExtension(); extension.needsHostReload = true;
+  extension.disableFailure = Error('host disable refused');
+  await assert.rejects(extension.disable(), /host disable refused/);
+  assert.equal(extension.needsHostReload, true);
+  extension.disableFailure = undefined; assert.equal(await extension.disable(), 'disabled');
+  assert.equal(extension.needsHostReload, false);
+});
+test('enabling an uninstalled entry is a no-op, while installed entry requests reload after success', async () => {
+  const extension = new YnxVSXExtension();
+  await extension.enable(); assert.equal(extension.enableCalls, undefined);
+  assert.equal(extension.needsHostReload, undefined);
+  extension.id = 'example.language'; extension.installedVersion = '1.2.3';
+  extension.model = { doChange: async task => task() };
+  await extension.enable(); assert.equal(extension.enableCalls, 1);
+  assert.equal(extension.needsHostReload, true);
+});
 test('language-pack presentation uses functional product label without changing package identity or verification', () => {
   const extension = new YnxVSXExtension();
   extension.id = 'ms-ceintl.vscode-language-pack-zh-hans';
