@@ -1,5 +1,6 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
+import {openOriginalAdmissionSupply} from './original-admission-supply.mjs';
 import {MultiConfigStore} from './multichain-config.mjs';
 import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
@@ -94,7 +95,7 @@ const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused
 // No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
 // in R8/R9. Only the original main owner may replace this fixed source binding
 // after Auth/IDE integration. Never accept a renderer/ENV provider or key.
-const originalAdmissionSupply = null;
+let originalAdmissionSupply = null;
 const originalAdmission = createOriginalAdmissionController({
   getSupply:()=>originalAdmissionSupply,
   run:operation=>keyAccess.run(operation),
@@ -552,6 +553,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
+  originalAdmissionSupply=await openOriginalAdmissionSupply(passwordVault);
   familyAccounts = createMnemonicFamilyAccounts({
     vault: passwordVault,
     getContext: async () => ({ account: (await passwordVault.status()).account, ...keyAccess.status() }),

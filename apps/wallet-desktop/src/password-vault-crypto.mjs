@@ -1,6 +1,9 @@
 import { createHash, webcrypto } from "node:crypto";
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
 import {mnemonicAccountFromEntropy,MNEMONIC_ACCOUNT_PATH} from './mnemonic-account.mjs';
+import {emptyOriginalWalletServiceRoleEnrollmentState,parseOriginalWalletServiceRoleEnrollmentState} from '../../../packages/wallet-auth/src/original-wallet-service-role-enrollment-state.js';
+import {emptyOriginalWalletServiceAdmissionPublicationState,parseOriginalWalletServiceAdmissionPublicationState,assertOriginalWalletServiceAdmissionPublicationRetention} from '../../../packages/wallet-auth/src/original-wallet-service-admission-publication-state.js';
+import {emptyOriginalWalletServiceRuntimePublicationState,parseOriginalWalletServiceRuntimePublicationState,assertOriginalWalletServiceRuntimePublicationRetention} from '../../../packages/wallet-auth/src/original-wallet-service-runtime-publication.js';
 
 export const PASSWORD_VAULT_CRYPTO_SUITE = "ynx-desktop-password-v1";
 export const PASSWORD_VAULT_KDF_ITERATIONS = 600_000;
@@ -85,7 +88,9 @@ export function parsePasswordVault(value) {
     if (Buffer.byteLength(value) > MAX_BYTES) fail("PASSWORD_VAULT_INVALID");
     try { value = JSON.parse(value); } catch { fail("PASSWORD_VAULT_INVALID"); }
   }
-  exact(value, VAULT_KEYS);
+  const catalogBytes=Object.hasOwn(value,'originalAdmissionCatalogBytes')?value.originalAdmissionCatalogBytes:0;
+  exact(value, catalogBytes===0?VAULT_KEYS:[...VAULT_KEYS,'originalAdmissionCatalogBytes']);
+  if(!Number.isSafeInteger(catalogBytes)||catalogBytes<0||catalogBytes>MAX_BYTES||Object.hasOwn(value,'originalAdmissionCatalogBytes')&&catalogBytes<2)fail('PASSWORD_VAULT_INVALID');
   if (value.schemaVersion !== 3 || value.cryptoSuite !== PASSWORD_VAULT_CRYPTO_SUITE) fail("PASSWORD_VAULT_UNSUPPORTED_SUITE");
   if (typeof value.vaultId !== "string" || !/^[0-9a-f]{32}$/.test(value.vaultId)) fail("PASSWORD_VAULT_INVALID");
   revision(value.revision);
@@ -108,9 +113,9 @@ export function parsePasswordVault(value) {
     }
     return { account: record.account, cipher: cipher(record.cipher, 32),...(mnemonic?{mnemonic}:{}) };
   });
-  const catalogCipher = cipher(value.catalogCipher, 0), ivs = [catalogCipher.iv, ...records.flatMap(record => [record.cipher.iv,...(record.mnemonic?[record.mnemonic.cipher.iv]:[])])];
+  const catalogCipher = cipher(value.catalogCipher, catalogBytes), ivs = [catalogCipher.iv, ...records.flatMap(record => [record.cipher.iv,...(record.mnemonic?[record.mnemonic.cipher.iv]:[])])];
   if (new Set(ivs).size !== ivs.length) fail("PASSWORD_VAULT_INVALID");
-  const result = { schemaVersion: 3, cryptoSuite: PASSWORD_VAULT_CRYPTO_SUITE, vaultId: value.vaultId, revision: value.revision, activeAccount: value.activeAccount, accounts, passwordWrap: { kdf: { name: kdf.name, hash: kdf.hash, iterations: kdf.iterations, salt: kdf.salt }, cipher: cipher(value.passwordWrap.cipher, 32) }, catalogCipher, records };
+  const result = { schemaVersion: 3, ...(catalogBytes?{originalAdmissionCatalogBytes:catalogBytes}:{}), cryptoSuite: PASSWORD_VAULT_CRYPTO_SUITE, vaultId: value.vaultId, revision: value.revision, activeAccount: value.activeAccount, accounts, passwordWrap: { kdf: { name: kdf.name, hash: kdf.hash, iterations: kdf.iterations, salt: kdf.salt }, cipher: cipher(value.passwordWrap.cipher, 32) }, catalogCipher, records };
   if (Buffer.byteLength(canonical(result)) > MAX_BYTES) fail("PASSWORD_VAULT_INVALID");
   return freeze(result);
 }
@@ -121,7 +126,7 @@ export function readPasswordVaultPublicMetadata(value) {
     if (Buffer.byteLength(value) > MAX_BYTES) fail("PASSWORD_VAULT_INVALID");
     try { value = JSON.parse(value); } catch { fail("PASSWORD_VAULT_INVALID"); }
   }
-  inputObject(value, VAULT_KEYS);
+  inputObject(value, [...VAULT_KEYS,'originalAdmissionCatalogBytes']);
   if (value.schemaVersion !== 3) fail("PASSWORD_VAULT_UNSUPPORTED_SUITE");
   if (typeof value.vaultId !== "string" || !/^[0-9a-f]{32}$/.test(value.vaultId)) fail("PASSWORD_VAULT_INVALID");
   revision(value.revision); list(value.accounts);
@@ -235,10 +240,39 @@ async function mnemonicForRecord(vault,account,key,options) {
     return result;
   }finally{bytes.fill(0)}
 }
-async function verifyCatalog(vault, key, options) {
-  const plaintext = await decrypt(key, vault.catalogCipher, 0, catalogAAD(vault), options, "catalog-decrypt"); plaintext.fill(0);
+function emptyOriginalCatalog(){return {version:1,serviceRoleState:emptyOriginalWalletServiceRoleEnrollmentState(),admissionPublicationState:emptyOriginalWalletServiceAdmissionPublicationState(),runtimePublicationState:emptyOriginalWalletServiceRuntimePublicationState()};}
+function parseOriginalCatalog(value){
+  exact(value,['version','serviceRoleState','admissionPublicationState','runtimePublicationState']);
+  if(value.version!==1)fail('PASSWORD_VAULT_INVALID');
+  return {version:1,serviceRoleState:parseOriginalWalletServiceRoleEnrollmentState(value.serviceRoleState),admissionPublicationState:parseOriginalWalletServiceAdmissionPublicationState(value.admissionPublicationState),runtimePublicationState:parseOriginalWalletServiceRuntimePublicationState(value.runtimePublicationState)};
 }
-async function assemble(vault, inputs, key, options, oldVault = null) {
+function retainOriginalCatalog(previous,next){
+  const a=parseOriginalCatalog(previous),b=parseOriginalCatalog(next);
+  // Holder/root and historical enrollment decisions cannot be erased by a
+  // catalog rewrite. Signature/approval is still the original codec's job.
+  for(const key of ['holder','rootAnchor'])if(a.serviceRoleState[key]!==null&&canonical(a.serviceRoleState[key])!==canonical(b.serviceRoleState[key]))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+  for(const key of ['operations','history']){
+    const old=a.serviceRoleState[key],fresh=b.serviceRoleState[key];
+    if(fresh.length<old.length)fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+    for(let i=0;i<old.length;i++){
+      if(key==='history'){if(canonical(old[i])!==canonical(fresh[i]))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');}
+      else if(canonical(old[i].review)!==canonical(fresh[i].review)||old[i].state!==fresh[i].state&&!(old[i].state==='pending'&&fresh[i].state==='UNKNOWN'||old[i].state==='UNKNOWN'&&['approved','revoked'].includes(fresh[i].state)))fail('PASSWORD_VAULT_ORIGINAL_RETENTION');
+    }
+  }
+  assertOriginalWalletServiceAdmissionPublicationRetention(a.admissionPublicationState,b.admissionPublicationState);
+  assertOriginalWalletServiceRuntimePublicationRetention(a.runtimePublicationState,b.runtimePublicationState);
+  return b;
+}
+async function verifyCatalog(vault, key, options) {
+  const plaintext = await decrypt(key, vault.catalogCipher, vault.originalAdmissionCatalogBytes??0, catalogAAD(vault), options, "catalog-decrypt");
+  try{
+    if(!Object.hasOwn(vault,'originalAdmissionCatalogBytes'))return emptyOriginalCatalog();
+    const text=new TextDecoder('utf-8',{fatal:true}).decode(plaintext),state=parseOriginalCatalog(JSON.parse(text));
+    if(canonical(state)!==text)fail('PASSWORD_VAULT_INVALID');
+    checkpoint(options,'original-catalog:verified');return state;
+  }finally{plaintext.fill(0);}
+}
+async function assemble(vault, inputs, key, options, oldVault = null, originalCatalog = null) {
   const used = new Set(oldVault ? [oldVault.catalogCipher.iv, ...oldVault.records.flatMap(item => [item.cipher.iv,...(item.mnemonic?[item.mnemonic.cipher.iv]:[])])] : []), records = [];
   for (const { meta, secretHex, mnemonicEntropyHex } of inputs) {
     checkpoint(options, "record-prepare:before");
@@ -255,7 +289,12 @@ async function assemble(vault, inputs, key, options, oldVault = null) {
     } finally { bytes.fill(0); }
   }
   vault.records = records;
-  vault.catalogCipher = await encrypt(key, new Uint8Array(), catalogAAD(vault), used, options, "catalog-encrypt");
+  const catalogPlaintext=Object.hasOwn(vault,'originalAdmissionCatalogBytes')?encoder.encode(canonical(parseOriginalCatalog(originalCatalog))):new Uint8Array();
+  try{
+    if(catalogPlaintext.length>MAX_BYTES)fail('PASSWORD_VAULT_INVALID');
+    if(Object.hasOwn(vault,'originalAdmissionCatalogBytes'))vault.originalAdmissionCatalogBytes=catalogPlaintext.length;
+    vault.catalogCipher = await encrypt(key, catalogPlaintext, catalogAAD(vault), used, options, "catalog-encrypt");
+  }finally{catalogPlaintext.fill(0);}
   const parsed = requiredVault(vault); await verifyCatalog(parsed, key, options);
   if (parsed.accounts.find(item => item.account === parsed.activeAccount)?.state === "protected") await secretForRecord(parsed, parsed.activeAccount, key, options);
   for (const { meta, secretHex } of inputs) if (secretHex !== undefined && meta.account !== parsed.activeAccount) await secretForRecord(parsed, meta.account, key, options);
@@ -306,7 +345,7 @@ export async function decryptPasswordVaultMnemonic(value,account,session,options
 
 /** Returns a staged next revision. Old session stays valid until the owner commits and closes it. */
 export async function rewritePasswordVault(value, changes, session, options = {}) {
-  inputObject(changes, ["accounts", "activeAccount", "revision"]); checkpoint(options, "rewrite:start");
+  inputObject(changes, ["accounts", "activeAccount", "revision",'originalAdmissionCatalog','approveOriginalAdmissionCatalogUpgrade']); checkpoint(options, "rewrite:start");
   const old = requiredVault(value), key = sessionKey(old, session), scoped = guardedSession(old, session, options);
   const nextRevision = revision(changes.revision === undefined ? old.revision + 1 : changes.revision);
   if (nextRevision !== old.revision + 1) fail("PASSWORD_VAULT_REVISION_INVALID");
@@ -315,8 +354,20 @@ export async function rewritePasswordVault(value, changes, session, options = {}
   const activeAccount = changes.activeAccount === undefined ? old.activeAccount ?? accounts[0]?.account ?? null : changes.activeAccount;
   validCatalog(accounts, activeAccount);
   try {
-    await verifyCatalog(old, key, scoped);
-    const next = await assemble({ ...old, revision: nextRevision, activeAccount, accounts }, inputs, key, scoped, old);
+    const retained=await verifyCatalog(old, key, scoped);
+    const changing=Object.hasOwn(changes,'originalAdmissionCatalog');
+    if(changing&&!Object.hasOwn(old,'originalAdmissionCatalogBytes')&&changes.approveOriginalAdmissionCatalogUpgrade!==true)fail('PASSWORD_VAULT_ORIGINAL_UPGRADE_REQUIRED');
+    if(!changing&&changes.approveOriginalAdmissionCatalogUpgrade!==undefined)fail('PASSWORD_VAULT_INVALID');
+    const originalCatalog=changing?retainOriginalCatalog(retained,changes.originalAdmissionCatalog):retained;
+    const namespace=changing?{originalAdmissionCatalogBytes:2}:{};
+    const next = await assemble({ ...old,...namespace, revision: nextRevision, activeAccount, accounts }, inputs, key, scoped, old,originalCatalog);
     checkpoint(scoped, "rewrite:ready"); return Object.freeze({ vault: next, session: handle(next, key) });
   } finally { for (const item of inputs) {item.secretHex = null;item.mnemonicEntropyHex=null;} }
+}
+
+/** Same authenticated catalog only; readback is not ROLE or retry authority. */
+export async function decryptPasswordVaultOriginalAdmissionCatalog(value,session,options={}){
+  const vault=requiredVault(value),scoped=guardedSession(vault,session,options);
+  const state=await verifyCatalog(vault,sessionKey(vault,session),scoped);
+  checkpoint(scoped,'original-catalog:release');return state;
 }

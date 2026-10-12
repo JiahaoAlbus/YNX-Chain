@@ -1,4 +1,13 @@
-import { randomBytes, randomUUID } from "node:crypto";
+import { randomBytes, randomUUID,createPrivateKey,createPublicKey } from "node:crypto";
+import {canonicalJSON,exactFields} from '../../../packages/wallet-auth/src/canonical.js';
+import {captureOriginalRecoveryJSON} from '../../../packages/wallet-auth/src/original-operation-recovery-state.js';
+import {createOriginalWalletServiceRoleEnrollmentCodec} from '../../../packages/wallet-auth/src/original-wallet-service-role-enrollment-state.js';
+import {prepareOriginalWalletServiceAdmissionReview,prepareOriginalWalletServiceAdmissionHolderBinding,prepareOriginalWalletServiceAdmissionPublisher,signOriginalWalletServiceRuntimeObservation} from '../../../packages/wallet-auth/src/original-wallet-service-admission.js';
+import {captureOriginalWalletServiceRuntimeObservation,assertOriginalWalletServiceRuntimeObservationCurrent} from '../../../packages/wallet-auth/src/original-wallet-service-runtime-observer.js';
+import {reserveOriginalWalletServiceRuntimePublication,markOriginalWalletServiceRuntimePublicationUnknown,recordOriginalWalletServiceRuntimePublicationSigned,readOriginalWalletServiceRuntimePublication} from '../../../packages/wallet-auth/src/original-wallet-service-runtime-publication.js';
+import {reserveOriginalWalletServiceAdmissionPublication,markOriginalWalletServiceAdmissionPublicationUnknown,recordOriginalWalletServiceAdmissionPublicationSigned,readOriginalWalletServiceAdmissionPublication,enterOriginalWalletServiceAdmissionDelivery,markOriginalWalletServiceAdmissionDeliveryUnknown,acknowledgeOriginalWalletServiceAdmissionDelivery} from '../../../packages/wallet-auth/src/original-wallet-service-admission-publication-state.js';
+import {installOriginalWalletServiceAdmissionReceipt} from '../../../packages/wallet-auth/src/original-wallet-service-admission-installer.js';
+import {retainOriginalAdmissionCustodian} from './original-admission-custodian.mjs';
 import { Wallet, HDNodeWallet } from "ethers";
 import {createMnemonicAccount as generateMnemonicAccount,importMnemonicAccount} from './mnemonic-account.mjs';
 import { evmAddressFromYNX, walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
@@ -6,7 +15,7 @@ import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
-import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession } from "./password-vault-crypto.mjs";
+import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -34,6 +43,14 @@ function legacyVault(text) {
   return { accounts, activeAccount: value.activeAccount };
 }
 const publicLegacy = ({ encryptedSecret, ...record }) => record;
+const originalProductionContexts=new WeakMap();
+// Private source inventory: structural callbacks/DTOs cannot register custody.
+// Only actual acquire below inserts after the same Vault resources validate.
+export function captureOriginalAdmissionProductionContext(ref){
+  const context=originalProductionContexts.get(ref);
+  if(!context)fail('ADMISSION_ORIGINAL_OWNER_REQUIRED','Original same-Vault context is absent.');
+  return context;
+}
 
 /** Password-encrypted V3 custody. OS storage is read only during explicit migration. */
 export class PasswordWalletVault {
@@ -139,6 +156,114 @@ export class PasswordWalletVault {
     if (!snapshot || !this.#session || this.#digest !== snapshot.digest) { this.authorization.lock(); throw vaultStorageError("PASSWORD_VAULT_FILE_CHANGED"); }
     return { snapshot, vault: parsePasswordVault(snapshot.text), session: this.#session };
   }
+  async #originalAdmissionContext(input,review,observer){
+    if(!review||typeof review.assert!=='function'||typeof review.assertAdmissionSuccession!=='function')fail('SERVICE_ADMISSION_SUCCESSION_NOT_SUPPLIED','Original finite review is absent.');
+    review.assert();review.assertAdmissionSuccession(input.expectedRequest);
+    const at=this.now();
+    if(!Number.isSafeInteger(at)||at<input.expectedRequest.requestedAtMs||at>=input.expiresAtMs||input.expiresAtMs>input.expectedRequest.expiresAtMs||input.expiresAtMs-at>120000)fail('SERVICE_ADMISSION_REVIEW_EXPIRED','Original run budget expired.');
+    const current=await this.#readUnlocked(review);
+    const catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(review));
+    const roles=catalog.serviceRoleState,operation=roles.operations.find(op=>op.review.operationId===input.operationId);
+    if(!operation)fail('SERVICE_ROLE_NOT_APPROVED','Original independently approved ROLE is absent.');
+    const codec=createOriginalWalletServiceRoleEnrollmentCodec({rootAnchor:roles.rootAnchor,registryDigest:operation.review.registryDigest,targetConsumerManifestDigest:operation.review.targetConsumerManifestDigest,gatewayManifestDigest:operation.review.gatewayManifestDigest,now:()=>{review.assert();return this.now();}});
+    const approved=codec.assertApproved(roles),receipt=approved.receipt.body;
+    const source=prepareOriginalWalletServiceAdmissionHolderBinding(input.sourceSelection,()=>{review.assert();return new Date(this.now());}),binding=source.binding;
+    if(review.account!==current.vault.activeAccount||receipt.operationId!==input.operationId||binding.rootId!==approved.rootAnchor.rootId||binding.rootKeyId!==approved.rootAnchor.rootKeyId||binding.rootPublicKey!==approved.rootAnchor.publicKey||binding.holderPublicKey!==approved.holderPublicKey||binding.registrationNonce!==receipt.nonce||binding.registryDigest!==receipt.registryDigest||binding.issuedAtMs<receipt.issuedAt||binding.expiresAtMs>receipt.roleExpiresAt||input.expiresAtMs>binding.expiresAtMs||input.expectedRequest.consumerManifestDigest!==receipt.targetConsumerManifestDigest||input.expectedRequest.gatewayManifestDigest!==receipt.gatewayManifestDigest||input.expectedRequest.registryDigest!==receipt.registryDigest)fail('SERVICE_ADMISSION_HOLDER_BINDING_MISMATCH','Original ROLE, same Vault and approved target differ.');
+    const observation=captureOriginalWalletServiceRuntimeObservation(observer,catalog.runtimePublicationState.sequenceHighWater+1);
+    for(const field of ['instanceId','currentReference','gatewayManifestDigest','registryDigest'])if(observation.binding[field]!==input.expectedRequest[field])fail('SERVICE_ADMISSION_RUNTIME_BINDING_MISMATCH','Original observed instance differs from the reviewed request.');
+    assertOriginalWalletServiceRuntimeObservationCurrent(observer,observation);
+    source.assertCurrent();await this.files.assertCurrent(current.snapshot.digest,review);
+    review.assert();review.assertAdmissionSuccession(input.expectedRequest);
+    const after=this.now();if(!Number.isSafeInteger(after)||after<at||after>=input.expiresAtMs)fail('SERVICE_ADMISSION_REVIEW_EXPIRED','Original finite review expired.');
+    return {current,catalog,codec,approved,source,observation};
+  }
+  async acquireOriginalServiceAdmissionProduction(raw,review,observer){
+    const input=captureOriginalRecoveryJSON(raw);
+    exactFields(input,['operationId','sourceSelection','expectedRequest','receiptDirectory','expiresAtMs'],'Original admission production');
+    prepareOriginalWalletServiceAdmissionReview(input.expectedRequest);
+    if(!Number.isSafeInteger(input.expiresAtMs))fail('SERVICE_ADMISSION_REVIEW_EXPIRED','Invalid original deadline.');
+    await this.#serialize(()=>this.#originalAdmissionContext(input,review,observer));
+    const context=Object.freeze({});
+    originalProductionContexts.set(context,Object.freeze({
+      assertCurrent:()=>this.#serialize(async()=>{await this.#originalAdmissionContext(input,review,observer);return undefined;}),
+      publish:(partial,businessCurrent)=>this.#serialize(()=>this.#produceOriginalAdmission(input,review,observer,partial,businessCurrent)),
+      enterDelivery:async result=>{await this.enterOriginalServiceAdmissionDelivery(result.selection.expectedRequest.requestNonce,review);return undefined;},
+      acknowledgeDelivery:async result=>{await this.acknowledgeOriginalServiceAdmissionDelivery({type:'ack',requestNonce:result.selection.expectedRequest.requestNonce,receiptDigest:result.selection.receiptSelection.receiptDigest,sequence:result.sequence,consumerManifestDigest:result.selection.expectedRequest.consumerManifestDigest},review);return undefined;},
+      unknownDelivery:async(result,cause)=>{await this.markOriginalServiceAdmissionDeliveryUnknown(result.selection.expectedRequest.requestNonce,cause,review);return undefined;},
+      // There is no external key/FD handle here: ephemeral key material is
+      // wiped by the joined original publish finally. No retired guard call.
+      dispose:()=>undefined,
+    }));
+    return retainOriginalAdmissionCustodian(context);
+  }
+  async #produceOriginalAdmission(input,review,observer,partial,businessCurrent){
+    let {current,catalog,codec,approved,source,observation}=await this.#originalAdmissionContext(input,review,observer);
+    if(catalog.runtimePublicationState.records.some(record=>record.nonce===input.expectedRequest.requestNonce||record.state!=='signed')||catalog.admissionPublicationState.records.some(record=>record.requestNonce===input.expectedRequest.requestNonce||record.state!=='signed'||record.delivery&&record.delivery.state!=='acknowledged'))fail('SERVICE_ADMISSION_ORIGINAL_UNRESOLVED','Read the original retained outcome; never renew or replay it.');
+    const check=()=>{businessCurrent();review.assert();codec.assertApproved(catalog.serviceRoleState);source.assertCurrent();assertOriginalWalletServiceRuntimeObservationCurrent(observer,observation);businessCurrent();review.assert();};
+    const persist=async next=>{
+      check();const candidate=await rewritePasswordVault(current.vault,{originalAdmissionCatalog:next},current.session,options(review));check();
+      await this.#publish(candidate,current.snapshot.digest,review,true,check);
+      current=await this.#readUnlocked(review);check();
+      const retained=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(review));check();
+      if(canonicalJSON(retained)!==canonicalJSON(next))fail('SERVICE_ADMISSION_PUBLICATION_CHANGED','Original catalog readback differs.');
+      catalog=retained;await this.files.assertCurrent(current.snapshot.digest,review);check();
+    };
+    // Admission request is the exact immutable approved intent, not a hidden
+    // successor nonce/time tuple. The distinct private runtime catalog binds
+    // the SAME reviewed intent nonce, so cold failure between runtime/admission
+    // cannot reacquire another nonce and sign the same intent again.
+    check();partial.runtimeNonce=input.expectedRequest.requestNonce;partial.requestNonce=input.expectedRequest.requestNonce;partial.phase='runtime';
+    const reservation=reserveOriginalWalletServiceRuntimePublication(catalog.runtimePublicationState,{binding:observation.binding,nonce:partial.runtimeNonce,observationRaw:observation.observationRaw});
+    // Reserve enough capacity before ONE actual sign. Never erase old history.
+    if(Buffer.byteLength(canonicalJSON(current.vault))+2*Buffer.byteLength(canonicalJSON({...catalog,runtimePublicationState:reservation.state}))+32768>65536)fail('SERVICE_RUNTIME_CAPACITY','Original catalog capacity is exhausted.');
+    await persist({...catalog,runtimePublicationState:reservation.state});
+    await persist({...catalog,runtimePublicationState:markOriginalWalletServiceRuntimePublicationUnknown(catalog.runtimePublicationState,partial.runtimeNonce).state});
+    let privateBytes;
+    try{
+      privateBytes=Buffer.from(catalog.serviceRoleState.holder.privateKeyPKCS8,'base64url');
+      const key=createPrivateKey({key:privateBytes,format:'der',type:'pkcs8'});
+      if(createPublicKey(key).export({format:'der',type:'spki'}).subarray(-32).toString('base64url')!==approved.holderPublicKey)fail('SERVICE_ROLE_CUSTODY_MISMATCH','Original holder identity differs.');
+      const clock=()=>{check();return new Date(this.now());};
+      check();const runtimeRaw=signOriginalWalletServiceRuntimeObservation(input.sourceSelection,key,observation.observationRaw,clock);check();partial.runtime=runtimeRaw;
+      await persist({...catalog,runtimePublicationState:recordOriginalWalletServiceRuntimePublicationSigned(catalog.runtimePublicationState,partial.runtimeNonce,runtimeRaw).state});
+      const request=input.expectedRequest;
+      review.assertAdmissionSuccession(request);check();const prepared=prepareOriginalWalletServiceAdmissionReview(request);
+      const decision={requestRaw:prepared.requestRaw,reviewDigest:prepared.reviewDigest,decision:'approve',observedRuntimeRaw:runtimeRaw};source.validateReviewedOriginalPublication(decision);check();
+      partial.phase='admission';
+      const reserved=reserveOriginalWalletServiceAdmissionPublication(catalog.admissionPublicationState,{enrollmentOperationId:input.operationId,registrationNonce:approved.receipt.body.nonce,requestNonce:request.requestNonce,requestRaw:prepared.requestRaw,reviewDigest:prepared.reviewDigest,roleSource:source.binding,runtimeRaw});
+      await persist({...catalog,admissionPublicationState:reserved.state});
+      await persist({...catalog,admissionPublicationState:markOriginalWalletServiceAdmissionPublicationUnknown(catalog.admissionPublicationState,request.requestNonce).state});
+      const publisher=prepareOriginalWalletServiceAdmissionPublisher(input.sourceSelection,key,clock);
+      check();const signedRaw=publisher.publishReviewedOriginalAdmission(decision);partial.publication=signedRaw;check();
+      await persist({...catalog,admissionPublicationState:recordOriginalWalletServiceAdmissionPublicationSigned(catalog.admissionPublicationState,request.requestNonce,signedRaw).state});
+      partial.phase='install';
+      const installed=installOriginalWalletServiceAdmissionReceipt(input.sourceSelection,{directory:input.receiptDirectory,expectedRequest:request},signedRaw,review,clock);
+      partial.installed=installed;check();const receipt=JSON.parse(signedRaw);
+      if(receipt.expiresAtMs>input.expiresAtMs||this.now()>=receipt.expiresAtMs)fail('SERVICE_ADMISSION_REVIEW_EXPIRED','Installed epoch expired.');
+      partial.phase='installed';
+      return Object.freeze({selection:Object.freeze({sourceSelection:input.sourceSelection,receiptSelection:installed.receiptSelection,expectedRequest:request,receiptDirectory:input.receiptDirectory}),sequence:observation.sequence,expiresAtMs:receipt.expiresAtMs,account:review.account});
+    }finally{privateBytes?.fill(0);}
+  }
+  async readOriginalServiceAdmissionPublication(requestNonce,guard){
+    return this.#serialize(async()=>{const current=await this.#readUnlocked(guard),catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));const result=readOriginalWalletServiceAdmissionPublication(catalog.admissionPublicationState,requestNonce);await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return result;});
+  }
+  async readOriginalServiceRuntimePublication(nonce,guard){
+    return this.#serialize(async()=>{const current=await this.#readUnlocked(guard),catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));const result=readOriginalWalletServiceRuntimePublication(catalog.runtimePublicationState,nonce);await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return result;});
+  }
+  async #updateOriginalDelivery(requestNonce,guard,change){
+    return this.#serialize(async()=>{
+      let current=await this.#readUnlocked(guard);const catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));
+      const changed=change(catalog.admissionPublicationState);guard.assert();if(changed.readOnly)return changed;
+      const next={...catalog,admissionPublicationState:changed.state},candidate=await rewritePasswordVault(current.vault,{originalAdmissionCatalog:next},current.session,options(guard));
+      await this.#publish(candidate,current.snapshot.digest,guard,true);current=await this.#readUnlocked(guard);
+      const kept=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));
+      if(canonicalJSON(kept)!==canonicalJSON(next))fail('SERVICE_ADMISSION_PUBLICATION_CHANGED','Delivery catalog readback differs.');
+      await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return readOriginalWalletServiceAdmissionPublication(kept.admissionPublicationState,requestNonce);
+    });
+  }
+  enterOriginalServiceAdmissionDelivery(requestNonce,guard){return this.#updateOriginalDelivery(requestNonce,guard,state=>enterOriginalWalletServiceAdmissionDelivery(state,requestNonce));}
+  markOriginalServiceAdmissionDeliveryUnknown(requestNonce,cause,guard){return this.#updateOriginalDelivery(requestNonce,guard,state=>markOriginalWalletServiceAdmissionDeliveryUnknown(state,requestNonce,cause));}
+  acknowledgeOriginalServiceAdmissionDelivery(ack,guard){return this.#updateOriginalDelivery(ack.requestNonce,guard,state=>acknowledgeOriginalWalletServiceAdmissionDelivery(state,ack));}
   async #verify(candidate, text, guard) {
     const vault = parsePasswordVault(text);
     // Check every protected identity before accepting a durable candidate, not just the active one.

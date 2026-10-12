@@ -15,6 +15,15 @@ import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
+// Actual same-process Host inventory, not registration or readiness authority.
+// No structural callback/DTO can enter this inventory.
+const originalRuntimeHostSources = new WeakMap();
+export function captureOriginalWalletServiceRuntimeHostSource(source) {
+  const owned = originalRuntimeHostSources.get(source);
+  if (!owned) fail('ORIGINAL_RUNTIME_NOT_CONFIGURED', 'Original Host source is unavailable');
+  owned.assertCurrent();
+  return owned.view;
+}
 const STATE_FIELDS = ["schemaVersion", "snapshotDigest", "snapshot"];
 const TIME_ROUTE = "/v2/product-sessions/time";
 const WALLET_ORIGIN = "https://wallet.ynxweb4.com";
@@ -32,7 +41,7 @@ const WALLET_CORS_ALLOWED_HEADERS = `content-type, x-request-id, ${WALLET_SESSIO
 const MAX_STATE_BYTES = 32 * 1024 * 1024;
 
 export class ProductSessionGatewayNodeHost {
-  #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central;
+  #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central; #originalRuntimeHandler;
 
   constructor(registryInput, options) {
     exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[])],"Product Session Gateway Node host options");
@@ -55,8 +64,20 @@ export class ProductSessionGatewayNodeHost {
 
   revalidate(session,scopes,productId,at,businessRevalidation=false){this.#assertStateIdentity();const result=this.#handler.revalidate(session,scopes,productId,at,businessRevalidation);this.#assertStateIdentity();return result;}
 
+  captureOriginalWalletServiceRuntimeSource() {
+    this.#assertStateIdentity();
+    const registryRaw = canonicalJSON(this.#registry);
+    const view = Object.freeze({handler:this.#originalRuntimeHandler??this.handler(),registryRaw,registryDigest:createHash('sha256').update(registryRaw).digest('hex')});
+    const source = Object.freeze({});
+    originalRuntimeHostSources.set(source,{view,assertCurrent:()=>{
+      this.#assertStateIdentity();
+      if (canonicalJSON(this.#registry)!==registryRaw||this.#originalRuntimeHandler!==view.handler) fail('ORIGINAL_RUNTIME_SOURCE_CHANGED','Original Host registry or handler changed');
+    }});
+    return source;
+  }
+
   handler() {
-    return async (request, response) => {
+    const handler=async (request, response) => {
       const requestId = validRequestId(request.headers["x-request-id"]) ? request.headers["x-request-id"] : "req_invalid_request_000";
       let corsHeaders = {};
       try {
@@ -105,6 +126,8 @@ export class ProductSessionGatewayNodeHost {
         response.end(canonicalJSON({ error: { code: error.code, message: error.message }, ok: false, requestId, schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION }));
       }
     };
+    this.#originalRuntimeHandler=handler;
+    return handler;
   }
 
   snapshot() { return this.#handler.snapshot(); }
