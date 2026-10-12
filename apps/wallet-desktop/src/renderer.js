@@ -46,6 +46,41 @@ const receiveShareUI=createReceiveShareUI({
 });
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
+let originalAdmissionState={phase:'not-supplied',available:false,busy:false,revision:-1,hasReview:false};
+function renderOriginalAdmission(payload){
+  const state=payload?.ok===true?payload.value:payload;
+  if(!state||!Number.isSafeInteger(state.revision)||state.revision<originalAdmissionState.revision)return;
+  originalAdmissionState=state;
+  const facts=document.querySelector('#original-admission-facts');
+  facts.replaceChildren();facts.hidden=!state.review;
+  if(state.review)for(const [label,value] of [['Application / 应用',state.review.applicationId],['Service / 服务',state.review.service],['Gateway / 网关',state.review.gatewayOrigin],['Consumer build / 客户端版本',state.review.consumerManifestDigest],['Gateway build / 网关版本',state.review.gatewayManifestDigest],['Registry / 注册表',state.review.registryDigest],['Instance / 实例',state.review.instanceId],['Current reference / 当前引用',state.review.currentReference],['Deadline / 截止时间',new Date(state.review.expiresAtMs).toISOString()]]){
+    const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=String(value??'—');facts.append(dt,dd);
+  }
+  const copy={
+    'not-supplied':'原始凭据及受保护通道尚未供给 / Original admission and protected channel not supplied.',
+    review:'请审查 Developer 服务入口请求。不授权账户或项目 / Review Developer service entry only.',
+    acquiring:'正在核对原发布者 / Checking original custodian…',
+    publishing:'正在保存原接入结果 / Saving original admission result…',
+    delivering:'正在等待本次结果回执 / Waiting for this exact delivery acknowledgement…',
+    acknowledged:'本次交付已确认；不代表账户或工具已授权 / Delivery acknowledged, not account or tools permission.',
+    cancelled:'已取消；不会自动发布或重试 / Cancelled; no automatic publication or retry.',
+    unknown:'结果未知，请保留原记录；不会重新发布 / Outcome unknown; original records retained, no retry.',
+    failed:'连接操作失败；未宣称接通 / Connection operation failed; not connected.',
+  };
+  document.querySelector('#original-admission-status').textContent=copy[state.phase]??copy.failed;
+  document.querySelector('#original-admission-review').disabled=!state.available||state.busy||state.outcomeUnknown||state.cleanupIncomplete||keyState.locked;
+  const approve=document.querySelector('#original-admission-approve');approve.hidden=!state.hasReview;approve.disabled=state.busy||keyState.locked||state.phase!=='review';
+  document.querySelector('#original-admission-cancel').hidden=!state.hasReview&&!state.busy;
+}
+async function originalAdmissionAction(method,arg){
+  try{const result=await window.ynxWallet[method](arg);if(result?.ok)renderOriginalAdmission(result);else if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='操作未完成；不会自动重试 / Operation incomplete; no automatic retry.';}
+  catch{if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='交付通道不可用 / Delivery channel unavailable.';}
+}
+document.querySelector('#original-admission-review').addEventListener('click',()=>originalAdmissionAction('originalAdmissionReview'));
+document.querySelector('#original-admission-approve').addEventListener('click',()=>originalAdmissionAction('originalAdmissionConfirm',originalAdmissionState.review?.id));
+document.querySelector('#original-admission-cancel').addEventListener('click',()=>originalAdmissionAction('originalAdmissionCancel'));
+window.ynxWallet.onOriginalAdmissionState?.(renderOriginalAdmission);
+if(window.ynxWallet.originalAdmissionStatus)void originalAdmissionAction('originalAdmissionStatus');
 let accountState = null, passwordUI;
 let accountViewRevision = 0;
 let securityViewRevision = 0;
@@ -1045,6 +1080,7 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
+  renderOriginalAdmission(originalAdmissionState);
   if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();

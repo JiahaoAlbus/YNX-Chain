@@ -1,4 +1,5 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import {createOriginalAdmissionController} from './original-admission-controller.mjs';
 import {MultiConfigStore} from './multichain-config.mjs';
 import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
@@ -90,6 +91,21 @@ let familyBitcoinSubmission;
 let multichainSecurityContext=null;
 let walletConnect;
 const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
+// No lawful SAME-Vault custodian or inherited IDE control stream is provisioned
+// in R8/R9. Only the original main owner may replace this fixed source binding
+// after Auth/IDE integration. Never accept a renderer/ENV provider or key.
+const originalAdmissionSupply = null;
+const originalAdmission = createOriginalAdmissionController({
+  getSupply:()=>originalAdmissionSupply,
+  run:operation=>keyAccess.run(operation),
+  getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress}),
+  id:randomUUID,
+  onState:state=>mainWindow?.webContents.send('wallet:original-admission-state',state),
+});
+handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmission.status()));
+handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmission.review()));
+handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmission.confirm(reviewId)));
+handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmission.cancel()));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
   getContents: () => mainWindow?.webContents,
@@ -99,7 +115,10 @@ const recipientCameraPermission = createRecipientCameraPermission({
 handleWalletIPC("wallet:camera-begin", () => safeIPC(() => recipientCameraPermission.begin()));
 handleWalletIPC("wallet:camera-end", (_event, id) => safeIPC(() => {recipientCameraPermission.end(id); return null;}));
 let lastReviewAccount = null;
+let originalAdmissionSecurityStamp = null;
 keyAccess.subscribe(state => {
+  const admissionStamp=[state.revision,state.locked,state.account,state.authenticating].join(':');
+  if(admissionStamp!==originalAdmissionSecurityStamp){originalAdmissionSecurityStamp=admissionStamp;originalAdmission.cancel();}
   const context=[state.revision,state.locked,state.account,state.authenticating].join(':');
   if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();familyBitcoinTransfer?.invalidate();familyBitcoinSubmission?.invalidate();familyTronTransfer?.invalidate();familyTronSubmission?.invalidate();}
   recipientCameraPermission.invalidate();

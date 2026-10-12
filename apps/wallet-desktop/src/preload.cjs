@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
+  originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),
+  originalAdmissionReview:()=>ipcRenderer.invoke('wallet:original-admission-review'),
+  originalAdmissionConfirm:reviewId=>ipcRenderer.invoke('wallet:original-admission-confirm',reviewId),
+  originalAdmissionCancel:()=>ipcRenderer.invoke('wallet:original-admission-cancel'),
+  onOriginalAdmissionState:callback=>ipcRenderer.on('wallet:original-admission-state',(_event,value)=>callback(value)),
   familyAccount: input => ipcRenderer.invoke('wallet:family-account', input),
   familyNetworks: () => ipcRenderer.invoke('wallet:family-networks'),
   familyToken: input => ipcRenderer.invoke('wallet:family-token', input),
