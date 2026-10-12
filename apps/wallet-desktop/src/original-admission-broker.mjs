@@ -34,7 +34,7 @@ export function createOriginalAdmissionBroker({stream, assertChannelCurrent, now
   if(!stream||typeof assertChannelCurrent!=='function') throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
   let retired=false, pending=null, used=false, first=null, bytes=Buffer.alloc(0), floor=-1, expiry=null, holding=false, holdTimer=null;
   const waiters=[];
-  const current=()=>{const at=now();if(retired||!Number.isSafeInteger(at)||at<floor||expiry!==null&&at>=expiry) throw first??failure('ADMISSION_CHANNEL_RETIRED');floor=at;assertChannelCurrent();return at;};
+  const current=()=>{const at=now();if(retired||!Number.isSafeInteger(at)||at<floor||expiry!==null&&at>=expiry) throw first??failure('ADMISSION_CHANNEL_RETIRED');floor=at;if(assertChannelCurrent()!==undefined)throw failure('ADMISSION_CURRENT_INVALID');return at;};
   const close=(error=failure('ADMISSION_CHANNEL_CLOSED'))=>{
     if(!first) first=error; retired=true;
     unschedule(holdTimer);holdTimer=null;
@@ -97,7 +97,7 @@ export async function launchOriginalAdmissionIDE({executor,assertExecutorCurrent
   exact(selected,['executable','args','applicationId','consumerManifestDigest','instanceId','currentReference','expiresAtMs']);
   if(typeof selected.executable!=='string'||!selected.executable.startsWith('/')||selected.executable.split('/').some(p=>p==='.'||p==='..')||!Array.isArray(selected.args)||selected.args.some(a=>typeof a!=='string'||a.length>4096)||selected.applicationId!=='com.ynxweb4.developer.testnetpreview'||!hex(selected.consumerManifestDigest)||!hex(selected.currentReference)||typeof selected.instanceId!=='string'||!selected.instanceId||!Number.isSafeInteger(selected.expiresAtMs))throw failure('ADMISSION_EXECUTOR_INVALID');
   let child=null,retired=false,broker=null;
-  const current=()=>{if(retired||now()>=selected.expiresAtMs)throw failure('ADMISSION_EXECUTOR_RETIRED');assertCustodyCurrent();assertExecutorCurrent(selected,child);};
+  const current=()=>{if(retired||now()>=selected.expiresAtMs)throw failure('ADMISSION_EXECUTOR_RETIRED');if(assertCustodyCurrent()!==undefined||assertExecutorCurrent(selected,child)!==undefined)throw failure('ADMISSION_CURRENT_INVALID');};
   current(); // Must authenticate independently approved source BEFORE spawn.
   try{
     child=spawn(selected.executable,selected.args,{stdio:['ignore','inherit','inherit','ignore','pipe'],env:{PATH:'/usr/bin:/bin:/usr/sbin:/sbin',LANG:'en_US.UTF-8'},shell:false,detached:false});

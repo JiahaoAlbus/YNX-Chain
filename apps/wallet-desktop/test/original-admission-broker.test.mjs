@@ -28,3 +28,4 @@ test('R9 PUBLIC acknowledged epoch stays held only until original expiry; no sec
  const work=broker.deliver(p);stream.done();stream.emit('data',admissionCanonical(ack(p))+'\n');await work;
  let checked=0;const retired=broker.waitRetirement(async()=>{checked++;});await Promise.resolve();assert.equal(stream.destroyed,undefined);assert.equal(checked,1);clock=2000;await tick();assert.equal((await retired).reason,'ADMISSION_EPOCH_EXPIRED');assert.equal(stream.destroyed,true);await assert.rejects(broker.deliver(p));
 });
+test('R9 PUBLIC a Promise is not a completed original channel-current check',async()=>{const stream=new PublicStream(),broker=createOriginalAdmissionBroker({stream,assertChannelCurrent:()=>Promise.resolve(),now:()=>1000});await assert.rejects(broker.deliver(publication()),{code:'ADMISSION_CURRENT_INVALID'});assert.equal(stream.wire,undefined);broker.close();});
