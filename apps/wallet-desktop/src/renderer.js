@@ -64,6 +64,7 @@ function renderOriginalAdmission(payload){
     publishing:'正在保存原接入结果 / Saving original admission result…',
     delivering:'正在等待本次结果回执 / Waiting for this exact delivery acknowledgement…',
     acknowledged:'本次交付已确认；不代表账户或工具已授权 / Delivery acknowledged, not account or tools permission.',
+    retired:'本次服务接入已到期或结束；原记录保留 / This service admission expired or ended; records retained.',
     cancelled:'已取消；不会自动发布或重试 / Cancelled; no automatic publication or retry.',
     unknown:'结果未知，请保留原记录；不会重新发布 / Outcome unknown; original records retained, no retry.',
     failed:'连接操作失败；未宣称接通 / Connection operation failed; not connected.',

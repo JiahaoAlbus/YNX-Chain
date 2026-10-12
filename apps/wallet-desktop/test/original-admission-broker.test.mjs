@@ -23,3 +23,8 @@ test('R9 PUBLIC missing or refused original executor cannot spawn by path/hash a
  const p=publication(),executor={executable:'/PUBLIC/executor',args:[],applicationId:'com.ynxweb4.developer.testnetpreview',consumerManifestDigest:p.selection.expectedRequest.consumerManifestDigest,instanceId:'PUBLIC-instance',currentReference:p.selection.expectedRequest.currentReference,expiresAtMs:2000};
  await assert.rejects(launchOriginalAdmissionIDE({executor,now:()=>1000,assertCustodyCurrent(){},assertExecutorCurrent(){throw Error('PUBLIC executor not approved');},spawn(){entered++;}}));assert.equal(entered,0);
 });
+test('R9 PUBLIC acknowledged epoch stays held only until original expiry; no second delivery',async()=>{
+ const stream=new PublicStream();let clock=1000,tick;const broker=createOriginalAdmissionBroker({stream,now:()=>clock,assertChannelCurrent(){},schedule:fn=>{tick=fn;return 1;},unschedule(){}}),p=publication();
+ const work=broker.deliver(p);stream.done();stream.emit('data',admissionCanonical(ack(p))+'\n');await work;
+ let checked=0;const retired=broker.waitRetirement(async()=>{checked++;});await Promise.resolve();assert.equal(stream.destroyed,undefined);assert.equal(checked,1);clock=2000;await tick();assert.equal((await retired).reason,'ADMISSION_EPOCH_EXPIRED');assert.equal(stream.destroyed,true);await assert.rejects(broker.deliver(p));
+});

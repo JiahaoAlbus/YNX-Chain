@@ -32,11 +32,14 @@ export function captureInstalledAdmission(value, now) {
 }
 export function createOriginalAdmissionBroker({stream, assertChannelCurrent, now=Date.now, schedule=setTimeout, unschedule=clearTimeout}) {
   if(!stream||typeof assertChannelCurrent!=='function') throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
-  let retired=false, pending=null, used=false, first=null, bytes=Buffer.alloc(0), floor=-1;
-  const current=()=>{const at=now();if(retired||!Number.isSafeInteger(at)||at<floor) throw first??failure('ADMISSION_CHANNEL_RETIRED');floor=at;assertChannelCurrent();return at;};
+  let retired=false, pending=null, used=false, first=null, bytes=Buffer.alloc(0), floor=-1, expiry=null, holding=false, holdTimer=null;
+  const waiters=[];
+  const current=()=>{const at=now();if(retired||!Number.isSafeInteger(at)||at<floor||expiry!==null&&at>=expiry) throw first??failure('ADMISSION_CHANNEL_RETIRED');floor=at;assertChannelCurrent();return at;};
   const close=(error=failure('ADMISSION_CHANNEL_CLOSED'))=>{
     if(!first) first=error; retired=true;
+    unschedule(holdTimer);holdTimer=null;
     if(pending){const p=pending;pending=null;unschedule(p.timer);p.reject(first);}
+    for(const resolve of waiters.splice(0))resolve({reason:first.code??'ADMISSION_CHANNEL_CLOSED',error:first});
     stream.off('data',data); stream.off('end',ended); stream.off('close',ended); stream.off('error',errored);
     stream.on('error',()=>{});stream.destroy();
   };
@@ -57,9 +60,21 @@ export function createOriginalAdmissionBroker({stream, assertChannelCurrent, now
   stream.on('data',data);stream.on('end',ended);stream.on('close',ended);stream.on('error',errored);
   return Object.freeze({
     assertCurrent(){current();},close,
+    waitRetirement(assertOwnerCurrent){
+      if(holding||typeof assertOwnerCurrent!=='function'||expiry===null||pending)throw failure('ADMISSION_CHANNEL_INVALID_HOLD');holding=true;
+      if(retired)return Promise.resolve({reason:first?.code,error:first});
+      const result=new Promise(resolve=>waiters.push(resolve));
+      const tick=async()=>{
+        if(retired)return;
+        if(now()>=expiry){close(failure('ADMISSION_EPOCH_EXPIRED'));return;}
+        try{current();await assertOwnerCurrent();current();if(!retired)holdTimer=schedule(tick,Math.min(1000,Math.max(1,expiry-now())));}catch(e){close(e);}
+      };
+      void tick();return result;
+    },
     async deliver(publication){
       current();if(used)throw failure('ADMISSION_CHANNEL_ALREADY_USED');used=true;
       const v=captureInstalledAdmission(publication,current()),r=v.selection.expectedRequest;
+      expiry=v.expiresAtMs;
       const wire=admissionCanonical({type:'installed',selection:v.selection,sequence:v.sequence,expiresAtMs:v.expiresAtMs})+'\n';
       if(Buffer.byteLength(wire)>65536)throw failure('ADMISSION_RECORD_CAPACITY');
       await new Promise((resolve,reject)=>{
