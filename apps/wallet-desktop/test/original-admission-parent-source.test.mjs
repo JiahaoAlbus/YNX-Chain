@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 // Exact source, PUBLIC caller/resources; no product module imports or OS spawn.
 export function publicParentAPI(){
- const text=readFileSync(new URL('../src/original-admission-parent-source.mjs',import.meta.url),'utf8');
+ const text=readFileSync(process.env.PUBLIC_NATIVE_PARENT?new URL('file://'+process.env.PUBLIC_NATIVE_PARENT+'/original-admission-parent-source.mjs'):new URL('../src/original-admission-parent-source.mjs',import.meta.url),'utf8');
  const names=[...text.matchAll(/export (?:async )?function (\w+)/g)].map(x=>x[1]);
  const context={};runInNewContext(text.replaceAll('export ','')+'\nthis.api={'+names.join(',')+'};',context);return context.api;
 }
@@ -15,6 +15,16 @@ function fixture(){
  const ref=api.acquireOriginalAdmissionParentSource(check,executor,JSON.stringify,()=>1000,()=>undefined);
  return {api,ref,executor,lock:()=>{retired=true;},checks:()=>checks};
 }
+test('R13 PUBLIC final synchronous executor callback cannot expire or cancel before spawn',()=>{
+ for(const reason of ['expiry','cancel']){
+  const api=publicParentAPI(),executor={executable:'/PUBLIC/IDE',args:[],applicationId:'PUBLIC-app',consumerManifestDigest:'PUBLIC-build',instanceId:'PUBLIC-instance',currentReference:'PUBLIC-ref',expiresAtMs:2000};
+  let time=1000,locked=false,armed=false,spawned=0;
+  const check=()=>{if(armed){if(reason==='expiry')time=2000;else locked=true;}};
+  api.bindOriginalAdmissionParentSelection(check,{vault:{PUBLIC:true},raw:{expiresAtMs:2000,expectedRequest:executor},executor,assertCurrent(){}});
+  const ref=api.acquireOriginalAdmissionParentSource(check,executor,JSON.stringify,()=>time,()=>{if(locked)throw Error('PUBLIC_CANCELLED');});armed=true;
+  assert.throws(()=>api.enterOriginalAdmissionParentLaunch(ref,()=>{spawned++;return {stdio:[]};}),/RETIRED|CANCELLED/);assert.equal(spawned,0);
+ }
+});
 function r3ConfigurationAPI(source,vault){
  const text=readFileSync(new URL('../src/original-admission-custodian.mjs',import.meta.url),'utf8');
  const context={PUBLIC_SOURCE:source,captureOriginalAdmissionProductionContext:()=>{throw Error('PUBLIC_NO_PRODUCTION');},assertOriginalAdmissionVault:value=>{if(value!==vault)throw Error('PUBLIC_VAULT_REQUIRED');}};

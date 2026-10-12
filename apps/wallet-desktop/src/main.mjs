@@ -109,14 +109,26 @@ const originalAdmission = createOriginalAdmissionController({
 // Vault or a renderer-supplied provider. Controller's effect machinery is kept.
 function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,openSupply,closeSupply,readSummary,setSupply,selectionUnresolved,notify,now=Date.now}){
   let epoch=0,viewRevision=0,preparing=false,reading=false,recovery={state:'not-read',records:null,runtimeRecords:null,unresolved:null},selected=null,cleanupDebt=false,firstCause=null,firstCausePresent=false;
+  const entered=new Set();let selectionClose=null,shuttingDown=false,shutdownPass=null;
+  function operation(action){
+    if(shuttingDown)return Promise.reject(error('ADMISSION_SHUTDOWN_ENTERED'));
+    const pass=Promise.resolve().then(()=>{if(shuttingDown)throw error('ADMISSION_SHUTDOWN_ENTERED');return action();});entered.add(pass);
+    void pass.then(()=>entered.delete(pass),()=>entered.delete(pass));return pass;
+  }
   const error=code=>Object.assign(new Error(code),{code});
   const context=()=>({...keyAccess.status(),focused:getWindow()?.isFocused()===true,changing:accountChangeInProgress});
   const retain=e=>{if(!firstCausePresent){firstCause=e;firstCausePresent=true;}};
   function unresolved(){const s=controller.status();return s.busy||s.hasReview||s.outcomeUnknown||s.ownerRetained||s.publicationRetained&&!['acknowledged','retired'].includes(s.phase)||s.cleanupIncomplete||cleanupDebt||selectionUnresolved();}
-  function status(){const c=context(),s=controller.status();return Object.freeze({...s,revision:viewRevision,account:c.account,securityRevision:c.revision,locked:c.locked,preparing,recovery,cleanupIncomplete:s.cleanupIncomplete||cleanupDebt||selectionUnresolved(),canPrepareReview:!c.locked&&!c.authenticating&&c.focused&&!c.changing&&!preparing&&!reading&&!unresolved()&&recovery.unresolved!==true});}
+  function status(){const c=context(),s=controller.status();return Object.freeze({...s,revision:viewRevision,account:c.account,securityRevision:c.revision,locked:c.locked,preparing,recovery,cleanupIncomplete:s.cleanupIncomplete||cleanupDebt||selectionUnresolved(),canPrepareReview:!shuttingDown&&!c.locked&&!c.authenticating&&c.focused&&!c.changing&&!preparing&&!reading&&!unresolved()&&recovery.unresolved!==true});}
   function emit(){viewRevision++;try{notify(status());}catch{}return status();}
   function fence(c,token,guard){guard.assert();const next=context(),at=now();if(!Number.isSafeInteger(at)||!Number.isSafeInteger(c.unlockExpiresAt)||at>=c.unlockExpiresAt||epoch!==token||next.locked||next.authenticating||!next.focused||next.changing||next.account!==c.account||next.revision!==c.revision||next.unlockExpiresAt!==c.unlockExpiresAt)throw error('ADMISSION_PREPARATION_RETIRED');}
-  async function releaseSelection(){if(!selected)return;const original=selected;try{await closeSupply(original);if(selected===original){selected=null;setSupply(null);}}catch(e){retain(e);cleanupDebt=true;throw error('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');}}
+  function releaseSelection(){
+    if(selectionClose)return selectionClose;
+    if(!selected)return Promise.resolve();
+    const original=selected;
+    selectionClose=Promise.resolve().then(()=>closeSupply(original)).then(()=>{if(selected===original){selected=null;setSupply(null);}selectionClose=null;},e=>{retain(e);cleanupDebt=true;throw error('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');});
+    void selectionClose.catch(()=>{});return selectionClose;
+  }
   async function refresh(){
     const c=context(),operation=controller.status();if(c.locked||c.authenticating||!c.focused||c.changing||preparing||reading||operation.busy||operation.hasReview)return status();
     const token=epoch;reading=true;
@@ -154,13 +166,46 @@ function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,o
     try{await controller.confirm(id);}finally{await releaseIdleSelection();emit();}
     return status();
   }
-  return Object.freeze({status,refresh,review,confirm,cancel,securityChanged,emit});
+  function shutdown(){
+    if(shutdownPass)return shutdownPass;
+    shuttingDown=true;
+    let resolve,reject;shutdownPass=new Promise((yes,no)=>{resolve=yes;reject=no;});
+    // Reserve the drain before a cancellation can synchronously reenter it.
+    epoch++;controller.cancel();emit();
+    void (async()=>{
+      try{
+        while(entered.size)await Promise.allSettled([...entered]);
+        const s=controller.status();
+        if(s.busy||s.ownerRetained||s.cleanupIncomplete||cleanupDebt)throw error('ADMISSION_SHUTDOWN_INCOMPLETE');
+        await releaseSelection();
+        if(controller.status().outcomeUnknown||selectionUnresolved()||cleanupDebt)throw error('ADMISSION_SHUTDOWN_INCOMPLETE');
+        resolve(status());
+      }catch(e){retain(e);emit();reject(error('ADMISSION_SHUTDOWN_INCOMPLETE'));}
+    })();
+    void shutdownPass.catch(()=>{});return shutdownPass;
+  }
+  return Object.freeze({status,refresh:()=>operation(refresh),review:()=>operation(review),confirm:id=>operation(()=>confirm(id)),cancel,securityChanged,emit,shutdown});
 }
 originalAdmissionEntry=createOriginalAdmissionEntry({controller:originalAdmission,keyAccess,getVault:()=>originalAdmissionVault,getWindow:()=>mainWindow,openSupply:openOriginalAdmissionSupply,closeSupply:closeOriginalAdmissionSupply,readSummary:readOriginalAdmissionSummary,setSupply:value=>{originalAdmissionSupply=value;},selectionUnresolved:originalAdmissionSelectionUnresolved,notify:state=>mainWindow?.webContents.send('wallet:original-admission-state',state)});
 handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmissionEntry.refresh()));
 handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
 handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
+function createOriginalAdmissionExitGate({entry,lock,quit,report}){
+  let pass=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
+  const quitOnce=()=>{if(!quitEntered){quitEntered=true;quit();}};
+  function request(){
+    if(pass)return pass;
+    let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});
+    const failed=()=>{try{report();}catch{}reject(Object.assign(new Error('Original admission cleanup is incomplete'),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'}));};
+    // Lock/cancel synchronously in the original close event, after reserving.
+    try{lock();void Promise.resolve(entry.shutdown()).then(()=>{allowed=true;resolve();},failed);}catch{failed();}
+    void pass.catch(()=>{});return pass;
+  }
+  return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
+}
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup incomplete','The original operation has not finished cleanup. Wallet remains open; no operation will be retried. 原操作尚未完成清理，钱包保持打开，不会重试。')});
+app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
   getContents: () => mainWindow?.webContents,
@@ -666,7 +711,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   window.on("blur", () => keyAccess.setFocused(false));
   window.on("focus", () => keyAccess.setFocused(true));
   window.on("minimize", () => keyAccess.lock("minimized"));
-  window.on("close", () => keyAccess.lock("closed"));
+  window.on("close", event => originalAdmissionExit.close(event,window));
   for (const event of ["suspend", "lock-screen"]) powerMonitor.on(event, () => keyAccess.lock(event));
   const initialAccount = await safeIPC(() => walletAuthority.accountStatus());
   if (initialAccount.ok) keyAccess.setAccount(initialAccount.value.account);
@@ -709,7 +754,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   for (const url of startupProtocolUrls.splice(0, 16)) await handleCallback(url);
 });
 
-app.on("window-all-closed", () => app.quit());
+app.on("window-all-closed", () => originalAdmissionExit.allClosed());
 
 async function handleWalletConnectRequest(event) {
   const { topic, id } = event ?? {};

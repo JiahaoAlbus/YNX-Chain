@@ -79,7 +79,7 @@ export function createOriginalAdmissionController({getSupply=()=>null,run,getCon
           if(!channel){
             const r=approved.raw.expectedRequest;
             if(admissionCanonical(s.executor)!==admissionCanonical(approved.executor)||['applicationId','consumerManifestDigest','instanceId','currentReference'].some(k=>approved.executor[k]!==r[k]))throw failure('ADMISSION_EXECUTOR_BINDING_CHANGED');
-            phase='launching';notify();channel=await launchOriginalAdmissionIDE({executor:approved.executor,assertExecutorCurrent:s.assertExecutorCurrent,assertCustodyCurrent:()=>{live(token,guard);supplyCurrent(s);},now});live(token,guard);
+            phase='launching';notify();channel=await launchOriginalAdmissionIDE({executor:approved.executor,assertExecutorCurrent:s.assertExecutorCurrent,assertCustodyCurrent:()=>{live(token,guard);supplyCurrent(s);live(token,guard);},now});live(token,guard);
           }
           publishEntered=true;phase='publishing';notify();
           const result=await s.publishOriginalServiceAdmissionProduction(ref);

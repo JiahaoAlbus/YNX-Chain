@@ -28,10 +28,20 @@ export function assertOriginalAdmissionParentCurrent(ref){
   if(s.retired||s.closed||!Number.isSafeInteger(at)||at<s.floor||at>=s.selected.expiresAtMs)throw failure('ADMISSION_PARENT_RETIRED');
   s.floor=at;
   if(s.assertCustodyCurrent()!==undefined||s.source.assertCurrent()!==undefined||s.check(s.selected,s.child)!==undefined)throw failure('ADMISSION_CURRENT_INVALID');
+  // The custody closure ends with the original local generation/guard fence.
+  // A supplier callback may synchronously cancel or consume the deadline.
+  if(s.assertCustodyCurrent()!==undefined)throw failure('ADMISSION_CURRENT_INVALID');
+  assertLocalCurrent(s);
   return undefined;
+}
+function assertLocalCurrent(s){
+  const at=s.now();
+  if(s.retired||s.closed||!Number.isSafeInteger(at)||at<s.floor||at>=s.selected.expiresAtMs)throw failure('ADMISSION_PARENT_RETIRED');
+  s.floor=at;
 }
 export function enterOriginalAdmissionParentLaunch(ref,spawn){
   const s=state(ref);assertOriginalAdmissionParentCurrent(ref);
+  assertLocalCurrent(s);
   if(s.entered||launchedSources.has(s.source))throw failure('ADMISSION_PARENT_LAUNCH_ALREADY_ENTERED');
   s.entered=true; // Reserve BEFORE actual foreign spawn; never retry this ref.
   launchedSources.add(s.source);

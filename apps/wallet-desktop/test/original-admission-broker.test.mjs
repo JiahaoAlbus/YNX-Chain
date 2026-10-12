@@ -4,14 +4,23 @@ import {EventEmitter} from 'node:events';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 function publicBroker(){
- const parent=readFileSync(new URL('../src/original-admission-parent-source.mjs',import.meta.url),'utf8');
+ const parent=readFileSync(process.env.PUBLIC_NATIVE_PARENT?new URL('file://'+process.env.PUBLIC_NATIVE_PARENT+'/original-admission-parent-source.mjs'):new URL('../src/original-admission-parent-source.mjs',import.meta.url),'utf8');
  const names=[...parent.matchAll(/export (?:async )?function (\w+)/g)].map(x=>x[1]),p={};runInNewContext(parent.replaceAll('export ','')+'\nthis.api={'+names.join(',')+'};',p);
- const text=readFileSync(new URL('../src/original-admission-broker.mjs',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replaceAll('export ','');
+ const text=readFileSync(process.env.PUBLIC_NATIVE_PARENT?new URL('file://'+process.env.PUBLIC_NATIVE_PARENT+'/original-admission-broker.mjs'):new URL('../src/original-admission-broker.mjs',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replaceAll('export ','');
  const context={...p.api,Object,JSON,Buffer,setTimeout,clearTimeout,spawnChild:()=>{throw Error('PUBLIC_REAL_SPAWN_FORBIDDEN');}};
  runInNewContext(text+'\nthis.api={launchOriginalAdmissionIDE,createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,selectRetainedOriginalAdmissionLaunches};',context);return {...context.api,...p.api};
 }
 // Old callbacks below are not selected in the R12 affected run.
 const {createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,launchOriginalAdmissionIDE}=publicBroker();
+test('R13 PUBLIC actual launcher final callback cancellation and expiry perform zero spawn',async()=>{
+ for(const reason of ['expiry','cancel']){
+  const api=publicBroker(),r=publication().selection.expectedRequest,executor={executable:'/PUBLIC/IDE',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000};
+  let time=1000,locked=false,checks=0,spawns=0;
+  const check=()=>{if(++checks===2){if(reason==='expiry')time=2000;else locked=true;}};
+  api.bindOriginalAdmissionParentSelection(check,{vault:{PUBLIC:true},raw:{expiresAtMs:2500,expectedRequest:r},executor,assertCurrent(){}});
+  await assert.rejects(api.launchOriginalAdmissionIDE({executor,assertExecutorCurrent:check,assertCustodyCurrent(){if(locked)throw Error('PUBLIC_CANCELLED');},now:()=>time,spawn(){spawns++;return {stdio:[]};}}));assert.equal(spawns,0);
+ }
+});
 test('R12 PUBLIC actual broker rejects path and callback without fixed source binding before spawn',async()=>{
  const api=publicBroker(),r=publication().selection.expectedRequest;let count=0;
  const executor={executable:'/PUBLIC/IDE',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000};

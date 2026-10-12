@@ -47,10 +47,15 @@ const receiveShareUI=createReceiveShareUI({
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let originalAdmissionState={phase:'not-supplied',available:false,busy:false,revision:-1,hasReview:false};
+let pendingOriginalAdmissionState=null,originalAdmissionRefreshTuple=null;
+const admissionSecurityTuple=state=>JSON.stringify([state.account,state.revision,state.locked,state.authenticating,state.unlockExpiresAt]);
 function renderOriginalAdmission(payload){
   const state=payload?.ok===true?payload.value:payload;
   if(!state||!Number.isSafeInteger(state.revision)||state.revision<originalAdmissionState.revision)return;
-  if(Number.isSafeInteger(state.securityRevision)&&Number.isSafeInteger(keyState.revision)&&(state.securityRevision!==keyState.revision||state.account!==keyState.account))return;
+  if(Number.isSafeInteger(state.securityRevision)&&Number.isSafeInteger(keyState.revision)&&(state.securityRevision!==keyState.revision||state.account!==keyState.account)){
+    if(state.securityRevision>keyState.revision&&(!pendingOriginalAdmissionState||state.revision>=pendingOriginalAdmissionState.revision))pendingOriginalAdmissionState=state;
+    return;
+  }
   originalAdmissionState=state;
   const facts=document.querySelector('#original-admission-facts');
   facts.replaceChildren();facts.hidden=!state.review;
@@ -86,14 +91,28 @@ function renderOriginalAdmission(payload){
   document.querySelector('#original-admission-cancel').hidden=!state.hasReview&&!state.busy;
 }
 async function originalAdmissionAction(method,arg){
-  try{const result=await window.ynxWallet[method](arg);if(result?.ok)renderOriginalAdmission(result);else if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='操作未完成；不会自动重试 / Operation incomplete; no automatic retry.';}
-  catch{if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='交付通道不可用 / Delivery channel unavailable.';}
+  const selectedSecurity=admissionSecurityTuple(keyState);
+  try{const result=await window.ynxWallet[method](arg);if(selectedSecurity!==admissionSecurityTuple(keyState))return;if(result?.ok)renderOriginalAdmission(result);else if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='操作未完成；不会自动重试 / Operation incomplete; no automatic retry.';}
+  catch{if(selectedSecurity===admissionSecurityTuple(keyState)&&originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='交付通道不可用 / Delivery channel unavailable.';}
+}
+function updateOriginalAdmissionSecurity(previous,state){
+  const tuple=admissionSecurityTuple(state);
+  if(tuple!==admissionSecurityTuple(previous)){
+    // Clear old facts synchronously even if the real cleanup remains pending.
+    renderOriginalAdmission({revision:originalAdmissionState.revision,securityRevision:state.revision,account:state.account,locked:state.locked,phase:'retired',available:false,hasReview:false,busy:false,canPrepareReview:false,recovery:{state:state.locked?'locked':'not-read',records:null,runtimeRecords:null,unresolved:null}});
+  }
+  const pending=pendingOriginalAdmissionState;
+  if(pending&&pending.securityRevision===state.revision&&pending.account===state.account){pendingOriginalAdmissionState=null;renderOriginalAdmission(pending);}
+  else if(pending&&pending.securityRevision<=state.revision)pendingOriginalAdmissionState=null;
+  if(tuple!==originalAdmissionRefreshTuple){
+    originalAdmissionRefreshTuple=tuple; // Reserve BEFORE requesting a notifying guarded read.
+    if(!state.locked&&!state.authenticating&&window.ynxWallet.originalAdmissionStatus)void originalAdmissionAction('originalAdmissionStatus');
+  }
 }
 document.querySelector('#original-admission-review').addEventListener('click',()=>originalAdmissionAction('originalAdmissionReview'));
 document.querySelector('#original-admission-approve').addEventListener('click',()=>originalAdmissionAction('originalAdmissionConfirm',originalAdmissionState.review?.id));
 document.querySelector('#original-admission-cancel').addEventListener('click',()=>originalAdmissionAction('originalAdmissionCancel'));
 window.ynxWallet.onOriginalAdmissionState?.(renderOriginalAdmission);
-if(window.ynxWallet.originalAdmissionStatus)void originalAdmissionAction('originalAdmissionStatus');
 let accountState = null, passwordUI;
 let accountViewRevision = 0;
 let securityViewRevision = 0;
@@ -1092,9 +1111,9 @@ function renderKeyState(state) {
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) contractUI.clear();
   if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
+  const previousKeyState=keyState;
   keyState = state;
-  renderOriginalAdmission(originalAdmissionState);
-  if(!state.locked&&window.ynxWallet.originalAdmissionStatus)void originalAdmissionAction('originalAdmissionStatus');
+  updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();
