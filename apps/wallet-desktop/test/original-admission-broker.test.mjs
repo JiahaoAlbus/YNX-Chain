@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission} from '../src/original-admission-broker.mjs';
+import {createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,launchOriginalAdmissionIDE} from '../src/original-admission-broker.mjs';
 // PUBLIC records only. No original signature, holder, key or runtime claim.
 function publication(){const h='a'.repeat(64),n='a'.repeat(43);return {account:'PUBLIC-account',sequence:1,expiresAtMs:2000,selection:{sourceSelection:{rootPath:'/PUBLIC/root',rootDigest:h,rolePath:'/PUBLIC/role',roleDigest:h},receiptSelection:{receiptPath:'/PUBLIC/receipts/'+n+'.admission.json',receiptDigest:h},receiptDirectory:'/PUBLIC/receipts',expectedRequest:{version:1,purpose:'wallet-product-session-v2-service-admission/v1',service:'wallet-product-session-v2',productId:'developer',platform:'macos',applicationId:'com.ynxweb4.developer.testnetpreview',gatewayOrigin:'https://wallet-auth.ynxweb4.com',registryDigest:h,consumerManifestDigest:h,gatewayManifestDigest:h,instanceId:'PUBLIC-instance',currentReference:h,operations:['beginYNX','handleReturn','restore','disconnect'],requestNonce:n,requestedAtMs:900,expiresAtMs:2500}}};}
 class PublicStream extends EventEmitter{write(wire,done){this.wire=wire;this.done=done;this.onWrite?.();}destroy(){this.destroyed=true;}}
@@ -13,3 +13,13 @@ test('R9 PUBLIC conflicting ACK retires held epoch',async()=>{const f=fixture(),
 test('R9 PUBLIC oversized/duplicate framed reply never becomes ACK',async()=>{for(const data of ['x'.repeat(65537),admissionCanonical(ack(publication()))+'\n'+admissionCanonical(ack(publication()))+'\n']){const f=fixture(),work=f.broker.deliver(publication());f.stream.emit('data',data);await assert.rejects(work);}});
 test('R9 PUBLIC expiry and original channel revocation fence delayed ACK',async()=>{for(const change of [f=>f.time(2000),f=>f.retire()]){const f=fixture(),p=publication(),work=f.broker.deliver(p);f.stream.done();change(f);f.stream.emit('data',admissionCanonical(ack(p))+'\n');await assert.rejects(work);}});
 test('R9 PUBLIC canonical capture rejects accessor and wrong receipt path',()=>{assert.throws(()=>captureInstalledAdmission({...publication(),get account(){throw Error('must not execute');}},1000),{code:'ADMISSION_RECORD_INVALID'});const p=publication();p.selection.receiptSelection.receiptPath='/PUBLIC/wrong';assert.throws(()=>captureInstalledAdmission(p,1000));});
+test('R9 PUBLIC Wallet-parent launcher preserves only dedicated duplex4 and original approval fences',async()=>{
+ const p=publication(),executor={executable:'/PUBLIC/approved/YNX Developer',args:[],applicationId:'com.ynxweb4.developer.testnetpreview',consumerManifestDigest:p.selection.expectedRequest.consumerManifestDigest,instanceId:'PUBLIC-instance',currentReference:p.selection.expectedRequest.currentReference,expiresAtMs:2000},child=new EventEmitter(),stream=new PublicStream();child.stdio=[null,null,null,null,stream];let spawned=0,checks=0;
+ const work=launchOriginalAdmissionIDE({executor,now:()=>1000,assertCustodyCurrent(){checks++;},assertExecutorCurrent(selected,current){assert.equal(selected.executable,executor.executable);assert.ok(current===null||current===child);},spawn(executable,args,options){spawned++;assert.equal(executable,executor.executable);assert.deepEqual(options.stdio,['ignore','inherit','inherit','ignore','pipe']);assert.equal(options.shell,false);assert.equal(options.env.NODE_OPTIONS,undefined);queueMicrotask(()=>child.emit('spawn'));return child;}});
+ const broker=await work;assert.equal(spawned,1);assert.ok(checks>=2);child.emit('exit',0);assert.throws(()=>broker.assertCurrent());assert.equal(stream.destroyed,true);
+});
+test('R9 PUBLIC missing or refused original executor cannot spawn by path/hash alone',async()=>{
+ let entered=0;await assert.rejects(launchOriginalAdmissionIDE({executor:null,spawn(){entered++;}}));
+ const p=publication(),executor={executable:'/PUBLIC/executor',args:[],applicationId:'com.ynxweb4.developer.testnetpreview',consumerManifestDigest:p.selection.expectedRequest.consumerManifestDigest,instanceId:'PUBLIC-instance',currentReference:p.selection.expectedRequest.currentReference,expiresAtMs:2000};
+ await assert.rejects(launchOriginalAdmissionIDE({executor,now:()=>1000,assertCustodyCurrent(){},assertExecutorCurrent(){throw Error('PUBLIC executor not approved');},spawn(){entered++;}}));assert.equal(entered,0);
+});

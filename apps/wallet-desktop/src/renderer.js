@@ -60,6 +60,7 @@ function renderOriginalAdmission(payload){
     'not-supplied':'原始凭据及受保护通道尚未供给 / Original admission and protected channel not supplied.',
     review:'请审查 Developer 服务入口请求。不授权账户或项目 / Review Developer service entry only.',
     acquiring:'正在核对原发布者 / Checking original custodian…',
+    launching:'正在打开本次批准的 Developer 实例 / Opening the approved Developer instance…',
     publishing:'正在保存原接入结果 / Saving original admission result…',
     delivering:'正在等待本次结果回执 / Waiting for this exact delivery acknowledgement…',
     acknowledged:'本次交付已确认；不代表账户或工具已授权 / Delivery acknowledged, not account or tools permission.',
