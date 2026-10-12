@@ -1,4 +1,5 @@
 import {spawn as spawnChild} from 'node:child_process';
+import {acquireOriginalAdmissionParentSource,assertOriginalAdmissionParentCurrent,enterOriginalAdmissionParentLaunch,trackOriginalAdmissionParentCall,attachOriginalAdmissionParentChannel,onOriginalAdmissionParentRetirement,retireOriginalAdmissionParentSource,joinOriginalAdmissionParentSource,closeOriginalAdmissionParentSource,selectOriginalAdmissionParentOutcome} from './original-admission-parent-source.mjs';
 // Only an original trusted launcher may construct this endpoint over its held
 // inherited duplex stream. A descriptor number/opaque ID is never admission.
 const failure = code => Object.assign(new Error(code), {code});
@@ -100,23 +101,44 @@ export function createOriginalAdmissionBroker({stream, assertChannelCurrent, now
 // source is supplied ONLY by fixed main custody, never a renderer path/ENV/ID.
 // Current callbacks must belong to that existing protected issuer/launch owner;
 // structural validation here does not enroll, approve or authenticate a child.
-export async function launchOriginalAdmissionIDE({executor,assertExecutorCurrent,assertCustodyCurrent,spawn=spawnChild,now=Date.now}){
+const retainedLaunches=new Set();
+export function selectRetainedOriginalAdmissionLaunches(observer){
+  if(typeof observer!=='function')throw failure('ADMISSION_PARENT_OBSERVER_INVALID');
+  for(const ref of retainedLaunches)selectOriginalAdmissionParentOutcome(ref,observer);
+}
+export async function launchOriginalAdmissionIDE({executor,assertExecutorCurrent,assertCustodyCurrent,spawn=spawnChild,now=Date.now,schedule=setTimeout,unschedule=clearTimeout}){
   if(!executor||typeof assertExecutorCurrent!=='function'||typeof assertCustodyCurrent!=='function')throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
   const selected=immutable(JSON.parse(admissionCanonical(executor)));
   exact(selected,['executable','args','applicationId','consumerManifestDigest','instanceId','currentReference','expiresAtMs']);
   if(typeof selected.executable!=='string'||!selected.executable.startsWith('/')||selected.executable.split('/').some(p=>p==='.'||p==='..')||!Array.isArray(selected.args)||selected.args.some(a=>typeof a!=='string'||a.length>4096)||selected.applicationId!=='com.ynxweb4.developer.testnetpreview'||!hex(selected.consumerManifestDigest)||!hex(selected.currentReference)||typeof selected.instanceId!=='string'||!selected.instanceId||!Number.isSafeInteger(selected.expiresAtMs))throw failure('ADMISSION_EXECUTOR_INVALID');
-  let child=null,retired=false,broker=null;
-  const current=()=>{if(retired||now()>=selected.expiresAtMs)throw failure('ADMISSION_EXECUTOR_RETIRED');if(assertCustodyCurrent()!==undefined||assertExecutorCurrent(selected,child)!==undefined)throw failure('ADMISSION_CURRENT_INVALID');};
-  current(); // Must authenticate independently approved source BEFORE spawn.
+  const ref=acquireOriginalAdmissionParentSource(assertExecutorCurrent,selected,admissionCanonical,now,assertCustodyCurrent);
+  retainedLaunches.add(ref);
+  let child=null,broker=null,poll=null,expiry=null;
+  const current=()=>assertOriginalAdmissionParentCurrent(ref);
+  const retire=error=>{unschedule(poll);unschedule(expiry);retireOriginalAdmissionParentSource(ref,error);};
+  const tick=()=>{try{current();poll=schedule(tick,25);}catch(error){retire(error);}};
+  expiry=schedule(()=>retire(failure('ADMISSION_EXECUTOR_RETIRED')),Math.max(1,selected.expiresAtMs-now()));
+  poll=schedule(tick,25);
   try{
-    child=spawn(selected.executable,selected.args,{stdio:['ignore','inherit','inherit','ignore','pipe'],env:{PATH:'/usr/bin:/bin:/usr/sbin:/sbin',LANG:'en_US.UTF-8'},shell:false,detached:false});
-    const retire=()=>{retired=true;broker?.close(failure('ADMISSION_EXECUTOR_EXITED'));};
-    child.once('exit',retire);child.once('close',retire);
-    await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',error=>{retire();reject(error);});});
+    child=enterOriginalAdmissionParentLaunch(ref,spawn);
+    const exited=()=>retire(failure('ADMISSION_EXECUTOR_EXITED'));
+    child.once('exit',exited);child.once('close',exited);child.on('error',retire);
+    const started=new Promise((resolve,reject)=>{
+      let remove;
+      const cleanup=()=>{child.off('spawn',spawned);child.off('error',failed);remove?.();};
+      const spawned=()=>{cleanup();resolve();},failed=error=>{cleanup();reject(error);};
+      child.once('spawn',spawned);child.once('error',failed);
+      remove=onOriginalAdmissionParentRetirement(ref,failed);
+    });
+    await trackOriginalAdmissionParentCall(ref,started);
     current();const stream=child.stdio?.[4];if(!stream)throw failure('ADMISSION_EXECUTOR_CHANNEL_ABSENT');
     broker=createOriginalAdmissionBroker({stream,assertChannelCurrent:current,now});
-    return broker;
-  }catch(error){retired=true;try{child?.stdio?.[4]?.destroy();}catch{}throw error;}
+    attachOriginalAdmissionParentChannel(ref,broker);
+    return Object.freeze({assertCurrent:current,deliver:value=>broker.deliver(value),waitRetirement:assertOwner=>broker.waitRetirement(assertOwner),
+      close(error){retire(error);},
+      async joinEntered(){await broker.joinEntered();await joinOriginalAdmissionParentSource(ref);await closeOriginalAdmissionParentSource(ref);retainedLaunches.delete(ref);},
+    });
+  }catch(error){retire(error);try{await closeOriginalAdmissionParentSource(ref);}catch{/* Exact debt/ref and first cause remain privately selected. */}throw error;}
   // Disposal closes only this capability stream. It never kills unrelated
   // standalone IDE windows or destroys their project/draft/profile state.
 }

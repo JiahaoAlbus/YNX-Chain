@@ -50,6 +50,7 @@ let originalAdmissionState={phase:'not-supplied',available:false,busy:false,revi
 function renderOriginalAdmission(payload){
   const state=payload?.ok===true?payload.value:payload;
   if(!state||!Number.isSafeInteger(state.revision)||state.revision<originalAdmissionState.revision)return;
+  if(Number.isSafeInteger(state.securityRevision)&&Number.isSafeInteger(keyState.revision)&&(state.securityRevision!==keyState.revision||state.account!==keyState.account))return;
   originalAdmissionState=state;
   const facts=document.querySelector('#original-admission-facts');
   facts.replaceChildren();facts.hidden=!state.review;
@@ -69,8 +70,18 @@ function renderOriginalAdmission(payload){
     unknown:'结果未知，请保留原记录；不会重新发布 / Outcome unknown; original records retained, no retry.',
     failed:'连接操作失败；未宣称接通 / Connection operation failed; not connected.',
   };
-  document.querySelector('#original-admission-status').textContent=copy[state.phase]??copy.failed;
-  document.querySelector('#original-admission-review').disabled=!state.available||state.busy||state.outcomeUnknown||state.cleanupIncomplete||keyState.locked;
+  const progress={pending:'签名操作已进入，结果未确认 / Signing entered, outcome unconfirmed.',UNKNOWN:'结果未知，禁止自动重试 / Unknown; no automatic retry.',signed:'已签名，尚未交付 / Signed, not delivered.',entered:'已开始交付，尚未确认 / Delivery entered, unconfirmed.',acknowledged:'交付回执已确认 / Delivery acknowledged.'};
+  const recovery=state.recovery;
+  if(recovery?.state==='read'){
+    for(const [rows,limit] of [[recovery.records,32],[recovery.runtimeRecords,64]])if(Array.isArray(rows)&&rows.length<=limit)for(const row of rows){
+      const label=row.requestNonce?'服务接入记录 / Admission record':'运行结果记录 / Runtime record';
+      const phase=row.deliveryState??row.state;if(!Object.hasOwn(progress,phase))continue;
+      const dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=label;dd.textContent=progress[phase];facts.append(dt,dd);facts.hidden=false;
+    }
+  }
+  const suffix=recovery?.state==='read'?'':recovery?.state==='locked'?' 状态查询需解锁 / Unlock for protected status readback.':' 受保护的恢复查询尚不可用，不能确定是否有记录 / Protected recovery readback unavailable; record inventory is unknown.';
+  document.querySelector('#original-admission-status').textContent=(state.preparing?'正在准备本次审查 / Preparing this review…':copy[state.phase]??copy.failed)+suffix;
+  document.querySelector('#original-admission-review').disabled=(state.canPrepareReview===undefined?!state.available:!state.canPrepareReview)||state.busy||state.preparing||state.outcomeUnknown||state.cleanupIncomplete||recovery?.unresolved===true||keyState.locked;
   const approve=document.querySelector('#original-admission-approve');approve.hidden=!state.hasReview;approve.disabled=state.busy||keyState.locked||state.phase!=='review';
   document.querySelector('#original-admission-cancel').hidden=!state.hasReview&&!state.busy;
 }
@@ -1083,6 +1094,7 @@ function renderKeyState(state) {
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
   renderOriginalAdmission(originalAdmissionState);
+  if(!state.locked&&window.ynxWallet.originalAdmissionStatus)void originalAdmissionAction('originalAdmissionStatus');
   if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();
   if(typeof mnemonicUI!=="undefined")mnemonicUI.render();

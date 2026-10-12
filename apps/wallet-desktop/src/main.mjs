@@ -1,6 +1,6 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
-import {openOriginalAdmissionSupply} from './original-admission-supply.mjs';
+import {openOriginalAdmissionSupply,closeOriginalAdmissionSupply,readOriginalAdmissionSummary,originalAdmissionSelectionUnresolved} from './original-admission-supply.mjs';
 import {MultiConfigStore} from './multichain-config.mjs';
 import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
@@ -96,17 +96,71 @@ const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused
 // in R8/R9. Only the original main owner may replace this fixed source binding
 // after Auth/IDE integration. Never accept a renderer/ENV provider or key.
 let originalAdmissionSupply = null;
+let originalAdmissionVault = null;
+let originalAdmissionEntry = null;
 const originalAdmission = createOriginalAdmissionController({
   getSupply:()=>originalAdmissionSupply,
   run:operation=>keyAccess.run(operation),
   getContext:()=>({...keyAccess.status(),focused:mainWindow?.isFocused()===true,changing:accountChangeInProgress}),
   id:randomUUID,
-  onState:state=>mainWindow?.webContents.send('wallet:original-admission-state',state),
+  onState:()=>originalAdmissionEntry?.emit(),
 });
-handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmission.status()));
-handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmission.review()));
-handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmission.confirm(reviewId)));
-handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmission.cancel()));
+// Actual normal caller adapter. This owns preparation/selection, not a second
+// Vault or a renderer-supplied provider. Controller's effect machinery is kept.
+function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,openSupply,closeSupply,readSummary,setSupply,selectionUnresolved,notify,now=Date.now}){
+  let epoch=0,viewRevision=0,preparing=false,reading=false,recovery={state:'not-read',records:null,runtimeRecords:null,unresolved:null},selected=null,cleanupDebt=false,firstCause=null,firstCausePresent=false;
+  const error=code=>Object.assign(new Error(code),{code});
+  const context=()=>({...keyAccess.status(),focused:getWindow()?.isFocused()===true,changing:accountChangeInProgress});
+  const retain=e=>{if(!firstCausePresent){firstCause=e;firstCausePresent=true;}};
+  function unresolved(){const s=controller.status();return s.busy||s.hasReview||s.outcomeUnknown||s.ownerRetained||s.publicationRetained&&!['acknowledged','retired'].includes(s.phase)||s.cleanupIncomplete||cleanupDebt||selectionUnresolved();}
+  function status(){const c=context(),s=controller.status();return Object.freeze({...s,revision:viewRevision,account:c.account,securityRevision:c.revision,locked:c.locked,preparing,recovery,cleanupIncomplete:s.cleanupIncomplete||cleanupDebt||selectionUnresolved(),canPrepareReview:!c.locked&&!c.authenticating&&c.focused&&!c.changing&&!preparing&&!reading&&!unresolved()&&recovery.unresolved!==true});}
+  function emit(){viewRevision++;try{notify(status());}catch{}return status();}
+  function fence(c,token,guard){guard.assert();const next=context(),at=now();if(!Number.isSafeInteger(at)||!Number.isSafeInteger(c.unlockExpiresAt)||at>=c.unlockExpiresAt||epoch!==token||next.locked||next.authenticating||!next.focused||next.changing||next.account!==c.account||next.revision!==c.revision||next.unlockExpiresAt!==c.unlockExpiresAt)throw error('ADMISSION_PREPARATION_RETIRED');}
+  async function releaseSelection(){if(!selected)return;const original=selected;try{await closeSupply(original);if(selected===original){selected=null;setSupply(null);}}catch(e){retain(e);cleanupDebt=true;throw error('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');}}
+  async function refresh(){
+    const c=context(),operation=controller.status();if(c.locked||c.authenticating||!c.focused||c.changing||preparing||reading||operation.busy||operation.hasReview)return status();
+    const token=epoch;reading=true;
+    try{await keyAccess.run(async guard=>{fence(c,token,guard);const value=await readSummary(getVault(),guard);fence(c,token,guard);recovery=value;});}
+    catch(e){retain(e);if(epoch===token)recovery={state:'unavailable',records:null,runtimeRecords:null,unresolved:null};}
+    finally{reading=false;emit();}return status();
+  }
+  async function review(){
+    if(preparing||reading||unresolved())throw error('ADMISSION_OPERATION_UNRESOLVED');
+    const c=context(),token=epoch;
+    if(c.locked||c.authenticating||!c.focused||c.changing)throw error('WALLET_LOCKED');
+    preparing=true;emit();
+    try{
+      await keyAccess.run(async guard=>{
+        fence(c,token,guard);
+        const summary=await readSummary(getVault(),guard);fence(c,token,guard);recovery=summary;
+        if(summary.state!=='read')throw error('ADMISSION_SUMMARY_NOT_SUPPLIED');
+        if(summary.unresolved)throw error('ADMISSION_OPERATION_UNRESOLVED');
+        await releaseSelection();fence(c,token,guard);
+        const acquired=await openSupply(getVault(),guard);
+        selected=acquired; // Retain late returned custody before generation check.
+        fence(c,token,guard);
+        if(!acquired){setSupply(null);throw error('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');}
+        setSupply(acquired);controller.review();fence(c,token,guard);
+      });
+    }catch(e){retain(e);controller.cancel();try{await releaseSelection();}catch{}emit();throw error('ADMISSION_REVIEW_UNAVAILABLE');}
+    finally{preparing=false;emit();}
+    return status();
+  }
+  async function releaseIdleSelection(){const s=controller.status();if(!preparing&&!s.busy&&!s.ownerRetained&&!s.cleanupIncomplete)try{await releaseSelection();}catch{}emit();}
+  async function cancel(){epoch++;controller.cancel();emit();await releaseIdleSelection();return status();}
+  function securityChanged(){epoch++;controller.cancel();recovery={state:'locked',records:null,runtimeRecords:null,unresolved:null};emit();void releaseIdleSelection();}
+  async function confirm(id){
+    if(preparing||reading||cleanupDebt||selectionUnresolved()||recovery.unresolved===true||recovery.state!=='read')throw error('ADMISSION_OPERATION_UNRESOLVED');
+    try{await controller.confirm(id);}finally{await releaseIdleSelection();emit();}
+    return status();
+  }
+  return Object.freeze({status,refresh,review,confirm,cancel,securityChanged,emit});
+}
+originalAdmissionEntry=createOriginalAdmissionEntry({controller:originalAdmission,keyAccess,getVault:()=>originalAdmissionVault,getWindow:()=>mainWindow,openSupply:openOriginalAdmissionSupply,closeSupply:closeOriginalAdmissionSupply,readSummary:readOriginalAdmissionSummary,setSupply:value=>{originalAdmissionSupply=value;},selectionUnresolved:originalAdmissionSelectionUnresolved,notify:state=>mainWindow?.webContents.send('wallet:original-admission-state',state)});
+handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmissionEntry.refresh()));
+handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
+handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
+handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
   getContents: () => mainWindow?.webContents,
@@ -119,7 +173,7 @@ let lastReviewAccount = null;
 let originalAdmissionSecurityStamp = null;
 keyAccess.subscribe(state => {
   const admissionStamp=[state.revision,state.locked,state.account,state.authenticating].join(':');
-  if(admissionStamp!==originalAdmissionSecurityStamp){originalAdmissionSecurityStamp=admissionStamp;originalAdmission.cancel();}
+  if(admissionStamp!==originalAdmissionSecurityStamp){originalAdmissionSecurityStamp=admissionStamp;originalAdmissionEntry.securityChanged();}
   const context=[state.revision,state.locked,state.account,state.authenticating].join(':');
   if(context!==multichainSecurityContext){multichainSecurityContext=context;multichain?.invalidate();familyBitcoinTransfer?.invalidate();familyBitcoinSubmission?.invalidate();familyTronTransfer?.invalidate();familyTronSubmission?.invalidate();}
   recipientCameraPermission.invalidate();
@@ -553,7 +607,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
-  originalAdmissionSupply=await openOriginalAdmissionSupply(passwordVault);
+  originalAdmissionVault=passwordVault;
   familyAccounts = createMnemonicFamilyAccounts({
     vault: passwordVault,
     getContext: async () => ({ account: (await passwordVault.status()).account, ...keyAccess.status() }),

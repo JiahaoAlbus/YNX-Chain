@@ -1,7 +1,40 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,launchOriginalAdmissionIDE} from '../src/original-admission-broker.mjs';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
+function publicBroker(){
+ const parent=readFileSync(new URL('../src/original-admission-parent-source.mjs',import.meta.url),'utf8');
+ const names=[...parent.matchAll(/export (?:async )?function (\w+)/g)].map(x=>x[1]),p={};runInNewContext(parent.replaceAll('export ','')+'\nthis.api={'+names.join(',')+'};',p);
+ const text=readFileSync(new URL('../src/original-admission-broker.mjs',import.meta.url),'utf8').replace(/^import .*;$/mg,'').replaceAll('export ','');
+ const context={...p.api,Object,JSON,Buffer,setTimeout,clearTimeout,spawnChild:()=>{throw Error('PUBLIC_REAL_SPAWN_FORBIDDEN');}};
+ runInNewContext(text+'\nthis.api={launchOriginalAdmissionIDE,createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,selectRetainedOriginalAdmissionLaunches};',context);return {...context.api,...p.api};
+}
+// Old callbacks below are not selected in the R12 affected run.
+const {createOriginalAdmissionBroker,admissionCanonical,captureInstalledAdmission,launchOriginalAdmissionIDE}=publicBroker();
+test('R12 PUBLIC actual broker rejects path and callback without fixed source binding before spawn',async()=>{
+ const api=publicBroker(),r=publication().selection.expectedRequest;let count=0;
+ const executor={executable:'/PUBLIC/IDE',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000};
+ await assert.rejects(api.launchOriginalAdmissionIDE({executor,assertExecutorCurrent(){},assertCustodyCurrent(){},now:()=>1000,spawn(){count++;}}),/QUALIFICATION_NOT_SUPPLIED/);assert.equal(count,0);
+});
+test('R12 PUBLIC actual broker retains late spawned child on lock and never respawns',async()=>{
+ const api=publicBroker(),r=publication().selection.expectedRequest,executor={executable:'/PUBLIC/IDE',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000},timers=new Set(),child=new EventEmitter();let locked=false,spawned=0,destroyed=0;
+ child.stdio=[null,null,null,null,{destroy(){destroyed++;}}];const check=()=>undefined;
+ api.bindOriginalAdmissionParentSelection(check,{vault:{PUBLIC:'same'},raw:{expiresAtMs:2500,expectedRequest:r},executor,assertCurrent:()=>undefined});
+ const work=api.launchOriginalAdmissionIDE({executor,assertExecutorCurrent:check,assertCustodyCurrent(){if(locked)throw false;},now:()=>1000,schedule(fn,ms){const timer={fn,ms};timers.add(timer);return timer;},unschedule(timer){timers.delete(timer);},spawn(){spawned++;return child;}});
+ locked=true;for(const timer of [...timers].filter(x=>x.ms===25))timer.fn();let rejected=false;try{await work;}catch(error){rejected=true;assert.equal(error,false);}assert.equal(rejected,true);
+ child.emit('spawn');assert.equal(spawned,1);assert.equal(destroyed,1);assert.equal(timers.size,0);
+ api.selectRetainedOriginalAdmissionLaunches(value=>{assert.equal(value.child,child);assert.equal(value.firstCausePresent,true);assert.equal(value.firstCause,false);});
+});
+test('R12 PUBLIC actual broker normal mocked launch delegates one channel retirement and joins custody',async()=>{
+ const api=publicBroker(),r=publication().selection.expectedRequest,executor={executable:'/PUBLIC/IDE',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000},child=new EventEmitter(),stream=new EventEmitter(),timers=new Set();let destroys=0,spawns=0;
+ stream.destroy=()=>{destroys++;};child.stdio=[null,null,null,null,stream];const check=()=>undefined;
+ api.bindOriginalAdmissionParentSelection(check,{vault:{PUBLIC:'same'},raw:{expiresAtMs:2500,expectedRequest:r},executor,assertCurrent:()=>undefined});
+ const options={executor,assertExecutorCurrent:check,assertCustodyCurrent(){},now:()=>1000,schedule(fn,ms){const t={fn,ms};timers.add(t);return t;},unschedule(t){timers.delete(t);},spawn(){spawns++;queueMicrotask(()=>child.emit('spawn'));return child;}};
+ const broker=await api.launchOriginalAdmissionIDE(options);broker.assertCurrent();broker.close();broker.close();await broker.joinEntered();assert.equal(spawns,1);assert.equal(destroys,1);assert.equal(timers.size,0);
+ await assert.rejects(api.launchOriginalAdmissionIDE(options),/ALREADY_ENTERED/);assert.equal(spawns,1);
+ let held=0;api.selectRetainedOriginalAdmissionLaunches(()=>held++);assert.equal(held,0);
+});
 test('R10 absolute expiry closes endpoint while joining pending hold callback',async()=>{const stream=new PublicStream(),timers=new Set();let clock=1000,release,checks=0;const broker=createOriginalAdmissionBroker({stream,now:()=>clock,assertChannelCurrent(){},schedule(fn,ms){const t={fn,ms};timers.add(t);return t;},unschedule(t){timers.delete(t);}}),p=publication();const sent=broker.deliver(p);stream.done();stream.emit('data',admissionCanonical(ack(p))+'\n');await sent;let settled=false;const retired=broker.waitRetirement(()=>{checks++;return new Promise(r=>release=r);});retired.then(()=>settled=true);clock=2000;for(const t of [...timers])t.fn();await Promise.resolve();assert.equal(stream.destroyed,true);assert.equal(settled,false);release();assert.equal((await retired).reason,'ADMISSION_EPOCH_EXPIRED');assert.equal(checks,1);});
 test('R10 cancellation joins pending write completion separately from EOF',async()=>{const f=fixture(),work=f.broker.deliver(publication());f.broker.close();await assert.rejects(work);let joined=false;const drain=f.broker.joinEntered().then(()=>joined=true);await Promise.resolve();assert.equal(joined,false);f.stream.done();await drain;assert.equal(joined,true);});
 test('R10 executor approval cannot rewrite selected executable before launch',async()=>{const r=publication().selection.expectedRequest;let spawned=0;await assert.rejects(launchOriginalAdmissionIDE({executor:{executable:'/PUBLIC/executor',args:[],applicationId:r.applicationId,consumerManifestDigest:r.consumerManifestDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:2000},now:()=>1000,assertCustodyCurrent(){},assertExecutorCurrent(selected){selected.executable='/PUBLIC/substitution';},spawn(){spawned++;throw Error('unexpected spawn');}}));assert.equal(spawned,0);});
