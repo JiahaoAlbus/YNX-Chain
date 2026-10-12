@@ -6,9 +6,9 @@ import assert from 'node:assert/strict';
 // PUBLIC lexical controls, exact production source bodies. All hooks/codec/
 // crypto/store dependencies below are PUBLIC stand-ins. No product import,
 // key, protected file, signing, service or actual owner resource is executed.
-const root=new URL('../src/',import.meta.url);
+const root=process.env.PUBLIC_F1F2_PARENT_RED==='1'?new URL('file:///Users/huangjiahao/ynx-social-qa-authority/wallet-r9-same-vault-durable-admission-r1-20261012/source/apps/wallet-desktop/src/'):new URL('../src/',import.meta.url);
 const custodianSource=readFileSync(new URL('original-admission-custodian.mjs',root),'utf8');
-function custodian(){const ctx=vm.createContext({captureOriginalAdmissionProductionContext:value=>value});vm.runInContext(custodianSource.replace(/^import .*;$/mg,'').replaceAll('export ','')+'\nthis.api={retainOriginalAdmissionCustodian,assertOriginalServiceAdmissionProductionOwner,publishOriginalServiceAdmissionProduction,closeOriginalServiceAdmissionProductionOwner,completeOriginalServiceAdmissionProductionClose,enterOriginalServiceAdmissionDelivery,acknowledgeOriginalServiceAdmissionDelivery}',ctx);return ctx.api;}
+function custodian(){const ctx=vm.createContext({captureOriginalAdmissionProductionContext:value=>value});vm.runInContext(custodianSource.replace(/^import .*;$/mg,'').replaceAll('export ','')+'\nthis.api={retainOriginalAdmissionCustodian,assertOriginalServiceAdmissionProductionOwner,publishOriginalServiceAdmissionProduction,closeOriginalServiceAdmissionProductionOwner,completeOriginalServiceAdmissionProductionClose,selectOriginalServiceAdmissionProductionOutcome:typeof selectOriginalServiceAdmissionProductionOutcome==="function"?selectOriginalServiceAdmissionProductionOutcome:undefined,enterOriginalServiceAdmissionDelivery,acknowledgeOriginalServiceAdmissionDelivery}',ctx);return ctx.api;}
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
 test('PUBLIC custodian retains exact falsy first rejection through retirement and close',async()=>{
   for(const cause of [false,null,undefined,0,'']){
@@ -156,8 +156,8 @@ test('PUBLIC actual delivery enter cannot reactivate a historical signed record'
 });
 
 const selectedControllerSource=process.env.PUBLIC_CONTROLLER_PARENT_RED==='1'?readFileSync('/Users/huangjiahao/ynx-wallet-original-admission-native-r10-four-p2-repair-20261012/source/apps/wallet-desktop/src/original-admission-controller.mjs','utf8'):readFileSync(new URL('original-admission-controller.mjs',root),'utf8');
-function controllerFixture({close=()=>undefined,complete,enterFailure=false,ackFailure=false,channelClose,join,deliver}={}){
-  const events=[],owner=Object.freeze({PUBLIC:'OWNER_STANDIN'}),cleanupStarted=deferred();let closeCount=0,guardAlive=true;
+function controllerFixture({close=()=>undefined,complete,enterFailure=false,ackFailure=false,channelClose,join,deliver,providedOwner,configureSupply}={}){
+  const events=[],owner=providedOwner??Object.freeze({PUBLIC:'OWNER_STANDIN'}),cleanupStarted=deferred();let closeCount=0,guardAlive=true;
   const raw={operationId:'PUBLIC_OP',expiresAtMs:20000,receiptDirectory:'PUBLIC_DIRECTORY',sourceSelection:{PUBLIC:'SOURCE_STANDIN'},expectedRequest:{requestNonce:'PUBLIC_NONCE',requestedAtMs:1000,expiresAtMs:20000,applicationId:'PUBLIC_APP',consumerManifestDigest:'PUBLIC_CONSUMER',gatewayManifestDigest:'PUBLIC_GATEWAY',registryDigest:'PUBLIC_REGISTRY',instanceId:'PUBLIC_INSTANCE',currentReference:'PUBLIC_CURRENT'}};
   const publication={selection:{sourceSelection:raw.sourceSelection,receiptDirectory:raw.receiptDirectory,expectedRequest:raw.expectedRequest,receiptSelection:{receiptDigest:'PUBLIC_DIGEST'}},account:'PUBLIC_ACCOUNT',sequence:1,expiresAtMs:19000};
   const supply={raw,observer:null,assertCurrent:()=>undefined,assertAdmissionSuccession:()=>undefined,
@@ -170,6 +170,7 @@ function controllerFixture({close=()=>undefined,complete,enterFailure=false,ackF
     markOriginalServiceAdmissionDeliveryUnknown:async()=>{events.push('UNKNOWN');},
     broker:{assertCurrent:()=>undefined,close:()=>{events.push('endpoint-retired');return channelClose?.();},joinEntered:async()=>join?.(),deliver:async()=>{events.push('actual-ACK-standin');return deliver?.();},waitRetirement:async()=>({reason:'ADMISSION_EPOCH_EXPIRED'})},
   };
+  configureSupply?.(supply);
   const ctx=vm.createContext({admissionCanonical:JSON.stringify,captureInstalledAdmission:x=>x,launchOriginalAdmissionIDE:()=>{throw Error('PUBLIC_NO_SPAWN');}});
   vm.runInContext(selectedControllerSource.replace(/^import .*;$/mg,'').replace('export ','')+'\nthis.create=createOriginalAdmissionController',ctx);
   const controller=ctx.create({getSupply:()=>supply,run:async operation=>{try{return await operation({assert(){if(!guardAlive)throw Error('PUBLIC_GUARD_RETIRED');}});}finally{guardAlive=false;}},getContext:()=>({locked:false,authenticating:false,focused:true,changing:false,account:'PUBLIC_ACCOUNT',revision:1,unlockExpiresAt:20000}),id:()=> 'PUBLIC_REVIEW',now:()=>1000});
@@ -291,6 +292,70 @@ test('PUBLIC exact Vault producer body persists UNKNOWN before each single stand
   assert.deepEqual(result.selection.expectedRequest,request);
   assert.deepEqual(events,['persist:pending:absent','persist:UNKNOWN:absent','runtime-sign','persist:signed:absent','persist:signed:pending','persist:signed:UNKNOWN','admission-sign','persist:signed:signed','install']);
   await assert.rejects(ctx.adapter.run(input,review,{}, {},()=>undefined),/ORIGINAL_UNRESOLVED/);assert.equal(events.filter(x=>x.endsWith('-sign')).length,2);
+});
+function rawRetentionProducer(mode,cause){
+  const text=readFileSync(new URL('password-wallet-vault.mjs',root),'utf8'),start=text.indexOf('  async #produceOriginalAdmission('),end=text.indexOf('\n  }',start)+4,method=text.slice(start,end);
+  const clone=x=>JSON.parse(JSON.stringify(x)),publicKey=Buffer.alloc(32,1),counts={runtime:0,admission:0,install:0};let failed=false,wipedBytes;
+  const request={requestNonce:'PUBLIC_INTENT',requestedAtMs:1000,expiresAtMs:20000,consumerManifestDigest:'PUBLIC_CONSUMER'},input={operationId:'PUBLIC_OP',sourceSelection:{},expectedRequest:request,receiptDirectory:'PUBLIC_DIR',expiresAtMs:20000};
+  let catalog={serviceRoleState:{holder:{privateKeyPKCS8:'UFVCTElD'}},runtimePublicationState:{records:[]},admissionPublicationState:{records:[]}};
+  let current={vault:{},session:{},snapshot:{digest:'PUBLIC_0'}};
+  const runtimeRaw='PUBLIC_EXACT_RUNTIME_RAW',admissionRaw=JSON.stringify({expiresAtMs:19000,PUBLIC:'EXACT_ADMISSION_RAW'});
+  const check=()=>{if(failed)throw cause;};
+  const ctx=vm.createContext({Buffer,canonicalJSON:JSON.stringify,fail:code=>{throw Error(code);},options:()=>({}),assertOriginalWalletServiceRuntimeObservationCurrent:check,
+    context:()=>({current,catalog:clone(catalog),codec:{assertApproved:check},approved:{holderPublicKey:publicKey.toString('base64url'),receipt:{body:{nonce:'PUBLIC_REGISTER'}}},source:{binding:{},assertCurrent:check,validateReviewedOriginalPublication:check},observation:{binding:{},observationRaw:'PUBLIC_OBSERVATION',sequence:1}}),
+    rewritePasswordVault:async(v,change)=>({vault:{CATALOG:clone(change.originalAdmissionCatalog)}}),decryptPasswordVaultOriginalAdmissionCatalog:async()=>clone(catalog),
+    reserveOriginalWalletServiceRuntimePublication:(s,v)=>({state:{records:[{...v,state:'pending'}]}}),markOriginalWalletServiceRuntimePublicationUnknown:s=>({state:{records:s.records.map(r=>({...r,state:'UNKNOWN'}))}}),recordOriginalWalletServiceRuntimePublicationSigned:(s,n,raw)=>({state:{records:s.records.map(r=>({...r,state:'signed',raw}))}}),
+    reserveOriginalWalletServiceAdmissionPublication:(s,v)=>({state:{records:[{...v,state:'pending'}]}}),markOriginalWalletServiceAdmissionPublicationUnknown:s=>({state:{records:s.records.map(r=>({...r,state:'UNKNOWN'}))}}),recordOriginalWalletServiceAdmissionPublicationSigned:(s,n,raw)=>({state:{records:s.records.map(r=>({...r,state:'signed',raw}))}}),
+    createPrivateKey:({key})=>{wipedBytes=key;return {};},createPublicKey:()=>({export:()=>publicKey}),
+    signOriginalWalletServiceRuntimeObservation:()=>{counts.runtime++;if(mode==='runtime-late')failed=true;return runtimeRaw;},
+    prepareOriginalWalletServiceAdmissionReview:r=>({requestRaw:JSON.stringify(r),reviewDigest:'PUBLIC_DIGEST'}),
+    prepareOriginalWalletServiceAdmissionPublisher:()=>({publishReviewedOriginalAdmission:()=>{counts.admission++;if(mode==='admission-late')failed=true;return admissionRaw;}}),
+    installOriginalWalletServiceAdmissionReceipt:()=>{counts.install++;if(mode==='install-late')failed=true;return {receiptSelection:{PUBLIC:'EXACT_INSTALLED'}};},
+    read:()=>current,
+    persist:async candidate=>{const next=candidate.vault.CATALOG;if(mode==='runtime-persist'&&next.runtimePublicationState.records[0]?.state==='signed'||mode==='admission-persist'&&next.admissionPublicationState.records[0]?.state==='signed')throw cause;catalog=clone(next);current={vault:candidate.vault,session:{},snapshot:{digest:'PUBLIC_NEXT'}};},
+  });
+  // Exact source body in one lexical context; dependencies are PUBLIC stand-ins.
+  ctx.input=input;ctx.review={account:'PUBLIC_ACCOUNT',assert:check,assertAdmissionSuccession:check};
+  vm.runInContext(`class Adapter{now(){return 1000;}files={assertCurrent:async()=>undefined};async #originalAdmissionContext(){return context();}async #readUnlocked(){return read();}async #publish(candidate){return persist(candidate);}${method}\nrun(partial,business){return this.#produceOriginalAdmission(input,review,{},partial,business);}}this.adapter=new Adapter()`,ctx);
+  return {run:(partial,business=check)=>ctx.adapter.run(partial,business),counts,runtimeRaw,admissionRaw,wiped:()=>wipedBytes?.every(x=>x===0)};
+}
+test('PUBLIC F1F2 runtime original survives immediate late fence with one stand-in sign and key-byte wipe',async()=>{
+  const cause=Error('PUBLIC_LATE_CURRENT'),f=rawRetentionProducer('runtime-late',cause),partial={};
+  let rejected=false;try{await f.run(partial);}catch(error){rejected=true;assert.equal(error,cause);}
+  assert(rejected);assert.equal(partial.runtime,f.runtimeRaw);assert.equal(f.counts.runtime,1);assert.equal(f.counts.admission,0);assert.equal(f.wiped(),true);
+});
+test('PUBLIC F1F2 private recovery retains partial originals after actual composed successful cleanup',async()=>{
+  for(const mode of ['runtime-persist','admission-late','admission-persist','install-late'])for(const cause of [false,null,undefined,Error('PUBLIC_STORAGE_REFUSAL')]){
+    const producer=rawRetentionProducer(mode,cause),api=custodian();let disposed=0,currentCalls=0;
+    const ref=api.retainOriginalAdmissionCustodian({assertCurrent:()=>{currentCalls++;},publish:(partial,current)=>producer.run(partial,current),dispose:()=>{disposed++;}});
+    const f=controllerFixture({providedOwner:ref,close:()=>api.closeOriginalServiceAdmissionProductionOwner(ref),complete:api.completeOriginalServiceAdmissionProductionClose,configureSupply:s=>{s.assertOriginalServiceAdmissionProductionOwner=api.assertOriginalServiceAdmissionProductionOwner;s.publishOriginalServiceAdmissionProduction=api.publishOriginalServiceAdmissionProduction;s.selectOriginalServiceAdmissionProductionOutcome=api.selectOriginalServiceAdmissionProductionOutcome;}});
+    await assert.rejects(f.controller.confirm('PUBLIC_REVIEW'),/OPERATION_FAILED/);
+    let retained;f.controller.selectRetainedOutcome(x=>{retained=x;});
+    assert.equal(retained.owner,null);assert.equal(retained.retainedOutcomeOwner,ref);assert.equal(retained.cleanupFailurePresent,false);
+    assert.equal(retained.productionOutcome.resourcesClosed,true);assert.equal(retained.productionOutcome.firstCausePresent,true);assert.equal(retained.productionOutcome.firstCause,cause);
+    assert.equal(retained.productionOutcome.partial.runtime,producer.runtimeRaw);if(mode!=='runtime-persist')assert.equal(retained.productionOutcome.partial.publication,producer.admissionRaw);
+    assert.equal(retained.publicationReturned,false);assert.equal(retained.firstCause,cause);assert.equal(disposed,1);assert.equal(producer.wiped(),true);
+    const before=currentCalls;api.selectOriginalServiceAdmissionProductionOutcome(ref,x=>{assert.equal(x.resourcesClosed,true);assert(Object.isFrozen(x.partial));});assert.equal(currentCalls,before);
+    let refused=false;try{await api.publishOriginalServiceAdmissionProduction(ref);}catch(error){refused=true;assert.equal(error,cause);}assert(refused);
+    assert.throws(()=>f.controller.review(),/UNRESOLVED/);f.controller.cancel();assert.equal(disposed,1);assert.equal(producer.counts.runtime,1);assert.equal(producer.counts.admission,mode==='runtime-persist'?0:1);
+    assert.equal(JSON.stringify(f.controller.status()).includes(producer.runtimeRaw),false);
+  }
+  assert(readFileSync(new URL('original-admission-supply.mjs',root),'utf8').includes('selectOriginalServiceAdmissionProductionOutcome'));
+});
+test('PUBLIC F1F2 late complete result and failed cleanup remain privately reachable without authority',async()=>{
+  const api=custodian(),started=deferred(),finish=deferred(),result=Object.freeze({PUBLIC:'ORIGINAL_RESULT'});let disposals=0;
+  const ref=api.retainOriginalAdmissionCustodian({assertCurrent:()=>undefined,publish:async partial=>{partial.runtime='PUBLIC_RUNTIME';started.resolve();await finish.promise;return result;},dispose:()=>{disposals++;}});
+  const publish=api.publishOriginalServiceAdmissionProduction(ref);await started.promise;const close=api.closeOriginalServiceAdmissionProductionOwner(ref);finish.resolve();await assert.rejects(publish,/RETIRED/);await close;
+  api.selectOriginalServiceAdmissionProductionOutcome(ref,outcome=>{assert.equal(outcome.result,result);assert.equal(outcome.partial.runtime,'PUBLIC_RUNTIME');assert.equal(outcome.resourcesClosed,true);assert.throws(()=>{outcome.partial.runtime='REBOUND';},TypeError);});
+  assert.equal(api.closeOriginalServiceAdmissionProductionOwner(ref),close);assert.equal(disposals,1);await assert.rejects(api.publishOriginalServiceAdmissionProduction(ref),/RETIRED/);
+  for(const cleanupCause of [false,null,undefined,'PUBLIC_NONVOID']){
+    const cause=Error('PUBLIC_ORIGINAL_FAILURE'),producer=rawRetentionProducer('admission-persist',cause);let count=0;
+    const owned=api.retainOriginalAdmissionCustodian({assertCurrent:()=>undefined,publish:(p,c)=>producer.run(p,c),dispose:()=>{count++;if(cleanupCause==='PUBLIC_NONVOID')return cleanupCause;throw cleanupCause;}});
+    const f=controllerFixture({providedOwner:owned,close:()=>api.closeOriginalServiceAdmissionProductionOwner(owned),complete:api.completeOriginalServiceAdmissionProductionClose,configureSupply:s=>{s.assertOriginalServiceAdmissionProductionOwner=api.assertOriginalServiceAdmissionProductionOwner;s.publishOriginalServiceAdmissionProduction=api.publishOriginalServiceAdmissionProduction;s.selectOriginalServiceAdmissionProductionOutcome=api.selectOriginalServiceAdmissionProductionOutcome;}});
+    await assert.rejects(f.controller.confirm('PUBLIC_REVIEW'),/OPERATION_FAILED/);let outcome;f.controller.selectRetainedOutcome(x=>{outcome=x;});
+    assert.equal(outcome.owner,owned);assert.equal(outcome.productionOutcome.partial.publication,producer.admissionRaw);assert.equal(outcome.productionOutcome.resourcesClosed,false);assert.equal(outcome.firstCause,cause);assert.equal(outcome.cleanupFailurePresent,true);
+    const originalClose=api.closeOriginalServiceAdmissionProductionOwner(owned);try{await originalClose;}catch{}assert.equal(api.closeOriginalServiceAdmissionProductionOwner(owned),originalClose);assert.equal(count,1);
+  }
 });
 test('PUBLIC new close throwing any falsy value retains exact raw cause and original owner, blocks later review',async()=>{
   for(const originalThrown of [false,null,undefined,0,'']){

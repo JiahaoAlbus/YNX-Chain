@@ -224,7 +224,7 @@ export class PasswordWalletVault {
       const key=createPrivateKey({key:privateBytes,format:'der',type:'pkcs8'});
       if(createPublicKey(key).export({format:'der',type:'spki'}).subarray(-32).toString('base64url')!==approved.holderPublicKey)fail('SERVICE_ROLE_CUSTODY_MISMATCH','Original holder identity differs.');
       const clock=()=>{check();return new Date(this.now());};
-      check();const runtimeRaw=signOriginalWalletServiceRuntimeObservation(input.sourceSelection,key,observation.observationRaw,clock);check();partial.runtime=runtimeRaw;
+      check();const runtimeRaw=signOriginalWalletServiceRuntimeObservation(input.sourceSelection,key,observation.observationRaw,clock);partial.runtime=runtimeRaw;check();
       await persist({...catalog,runtimePublicationState:recordOriginalWalletServiceRuntimePublicationSigned(catalog.runtimePublicationState,partial.runtimeNonce,runtimeRaw).state});
       const request=input.expectedRequest;
       review.assertAdmissionSuccession(request);check();const prepared=prepareOriginalWalletServiceAdmissionReview(request);

@@ -7,6 +7,18 @@ export function createOriginalAdmissionController({getSupply=()=>null,run,getCon
   let phase='not-supplied',revision=0,stateRevision=0,review=null,active=false,owner=null,heldSupply=null,channel=null,publication=null,originalPublication=null,publicationReturned=false,first=null,firstPresent=false,cleanupError=null,cleanupFailurePresent=false,unknown=false,acknowledged=false,closeEntered=false,channelCloseEntered=false;
   const retainFirst=e=>{if(!firstPresent){first=e;firstPresent=true;}};
   const retainCleanup=e=>{if(!cleanupFailurePresent){cleanupError=e;cleanupFailurePresent=true;}unknown=true;};
+  // Strong original-ref reachability is separate from live resource ownership.
+  // No replacement/new run can erase an unresolved raw-bearing outcome.
+  let retainedOutcomeOwner=null;
+  function releaseResourceOwner(){
+    if(!acknowledged&&typeof heldSupply.selectOriginalServiceAdmissionProductionOutcome==='function'){
+      const outcome=heldSupply.selectOriginalServiceAdmissionProductionOutcome(owner,value=>value);
+      if(outcome?.result||outcome?.partial&&(outcome.partial.runtime!==null||outcome.partial.publication!==null||outcome.partial.installed!==null)){
+        retainedOutcomeOwner=owner;unknown=true;
+      }
+    }
+    owner=null;
+  }
   function status(){let available=false;try{available=getSupply()!==null;}catch{}const r=review?.raw.expectedRequest;return Object.freeze({phase,available,busy:active,revision:stateRevision,hasReview:!!review,review:review?Object.freeze({id:review.id,product:'developer',platform:'macos',service:'wallet-product-session-v2',applicationId:r.applicationId,gatewayOrigin:r.gatewayOrigin,consumerManifestDigest:r.consumerManifestDigest,gatewayManifestDigest:r.gatewayManifestDigest,registryDigest:r.registryDigest,instanceId:r.instanceId,currentReference:r.currentReference,expiresAtMs:review.deadline}):null,publicationRetained:publicationReturned,ownerRetained:owner!==null,outcomeUnknown:unknown,error:firstPresent?'ADMISSION_OPERATION_FAILED':null,cleanupIncomplete:cleanupFailurePresent});}
   const notify=()=>{stateRevision++;try{onState(status());}catch{/* UI observation is not an effect. */}};
   function context(){const c=getContext();if(!c||c.locked||c.authenticating||!c.focused||c.changing)throw failure('WALLET_LOCKED');return c;}
@@ -25,10 +37,10 @@ export function createOriginalAdmissionController({getSupply=()=>null,run,getCon
       // Generic R10 suppliers still do not qualify arbitrary async close.
       if(result!==undefined&&typeof heldSupply.completeOriginalServiceAdmissionProductionClose==='function'){
         if(await heldSupply.completeOriginalServiceAdmissionProductionClose(owner,result)!==undefined)throw failure('ADMISSION_CLOSE_RESULT_UNKNOWN');
-        owner=null;
+        releaseResourceOwner();
       }
       else if(result!==undefined){retainCleanup(failure('ADMISSION_CLOSE_RESULT_UNKNOWN'));notify();await Promise.resolve(result).catch(retainFirst);}
-      else owner=null;
+      else releaseResourceOwner();
     }catch(e){retainCleanup(e);}}
   }
   function cancel(){revision++;review=null;if(active&&publicationReturned&&!acknowledged)unknown=true;retireChannel();phase=unknown?'unknown':'cancelled';notify();return status();}
@@ -37,9 +49,9 @@ export function createOriginalAdmissionController({getSupply=()=>null,run,getCon
     // renderer IPC/status. Retention is not a grant to sign, send or retry.
     // Observer is synchronous, receives the exact original references, and
     // cannot replace them. No automatic second disposal of uncertain custody.
-    selectRetainedOutcome(observer){if(typeof observer!=='function')throw failure('ADMISSION_RECOVERY_OBSERVER_INVALID');return observer(Object.freeze({owner,supply:heldSupply,publication:originalPublication,publicationReturned,firstCause:first,firstCausePresent:firstPresent,cleanupCause:cleanupError,cleanupFailurePresent,closeEntered}));},
+    selectRetainedOutcome(observer){if(typeof observer!=='function')throw failure('ADMISSION_RECOVERY_OBSERVER_INVALID');const ref=retainedOutcomeOwner??owner;const productionOutcome=ref&&typeof heldSupply?.selectOriginalServiceAdmissionProductionOutcome==='function'?heldSupply.selectOriginalServiceAdmissionProductionOutcome(ref,value=>value):null;return observer(Object.freeze({owner,retainedOutcomeOwner,supply:heldSupply,productionOutcome,publication:originalPublication,publicationReturned,firstCause:first,firstCausePresent:firstPresent,cleanupCause:cleanupError,cleanupFailurePresent,closeEntered}));},
     review(){try{
-      if(active||unknown||cleanupFailurePresent||owner!==null)throw failure('ADMISSION_OPERATION_UNRESOLVED');
+      if(active||unknown||cleanupFailurePresent||owner!==null||retainedOutcomeOwner!==null)throw failure('ADMISSION_OPERATION_UNRESOLVED');
       const c=context(),s=getSupply();if(!s){phase='not-supplied';notify();throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');}
       const raw=immutable(JSON.parse(admissionCanonical(s.raw))),executor=s.executor?immutable(JSON.parse(admissionCanonical(s.executor))):null;
       // These calls are to the fixed original custodian, not inferred grant.
@@ -53,7 +65,7 @@ export function createOriginalAdmissionController({getSupply=()=>null,run,getCon
     }catch(e){if(e?.code==='WALLET_SERVICE_ADMISSION_NOT_SUPPLIED'||e?.code==='ADMISSION_OPERATION_UNRESOLVED')throw e;retainFirst(e);phase=unknown?'unknown':'failed';notify();throw failure('ADMISSION_REVIEW_UNAVAILABLE');}
     },
     async confirm(reviewId){
-      if(active||unknown||cleanupFailurePresent||owner!==null||!review||reviewId!==review.id)throw failure('ADMISSION_REVIEW_CHANGED');
+      if(active||unknown||cleanupFailurePresent||owner!==null||retainedOutcomeOwner!==null||!review||reviewId!==review.id)throw failure('ADMISSION_REVIEW_CHANGED');
       active=true;phase='acquiring';const token=revision,s=heldSupply,approved=review;let acquisitionEntered=false,publishEntered=false;
       notify();
       try{

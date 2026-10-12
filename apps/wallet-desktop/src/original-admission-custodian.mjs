@@ -65,6 +65,15 @@ export async function completeOriginalServiceAdmissionProductionClose(ref,result
   if(await state.closing!==undefined||!state.closed)throw failure('ADMISSION_CLEANUP_INCOMPLETE');
   return undefined;
 }
+/** Trusted original-main observation of PUBLIC returned originals only.
+ * Resource disposal may finish without discarding these original bytes.
+ * Observation does not call business-current or restore any authority. The
+ * caller must retain this same ref; snapshots cannot register a new owner. */
+export function selectOriginalServiceAdmissionProductionOutcome(ref,observer){
+  const state=owned(ref);
+  if(typeof observer!=='function')throw failure('ADMISSION_RECOVERY_OBSERVER_INVALID');
+  return observer(Object.freeze({partial:state.partial?Object.freeze({...state.partial}):null,result:state.result,firstCause:state.first,firstCausePresent:state.hasFirst,retired:state.retired,resourcesClosed:state.closed}));
+}
 async function deliveryStep(ref,kind,cause){
   const state=owned(ref);current(state);
   if(!state.result||state.deliveryBusy||kind==='enter'&&state.delivery!=='not-entered'||kind!=='enter'&&state.delivery!=='entered')throw failure('ADMISSION_DELIVERY_STATE_UNKNOWN');
