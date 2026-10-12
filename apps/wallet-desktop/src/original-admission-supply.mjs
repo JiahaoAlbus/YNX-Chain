@@ -3,21 +3,23 @@ import {bindOriginalAdmissionParentSelection} from './original-admission-parent-
 const failure=code=>Object.assign(new Error(code),{code});
 const selections=new WeakMap(),unresolved=new Set();
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
-async function release(state){
+function release(state){
   if(state.closing)return state.closing;
-  state.closing=(async()=>{
+  state.closing=Promise.resolve().then(async()=>{
     const api=state.original;
     if(['retireOriginalAdmissionConfiguration','joinOriginalAdmissionConfiguration','closeOriginalAdmissionConfiguration'].some(k=>typeof api[k]!=='function'))throw failure('ADMISSION_CONFIGURATION_CLEANUP_NOT_SUPPLIED');
     if(api.retireOriginalAdmissionConfiguration(state.configured)!==undefined)throw failure('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');
     if(await api.joinOriginalAdmissionConfiguration(state.configured)!==undefined)throw failure('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');
     if(await api.closeOriginalAdmissionConfiguration(state.configured)!==undefined)throw failure('ADMISSION_CONFIGURATION_CLEANUP_UNKNOWN');
-    state.closed=true;unresolved.delete(state);
-  })();
+    state.closed=true;
+    // Known resource completion does not discard a late returned original.
+    if(!state.operationCausePresent)unresolved.delete(state);
+  });
   void state.closing.catch(error=>{state.cleanupCause=error;state.cleanupFailed=true;unresolved.add(state);});
   return state.closing;
 }
 export function originalAdmissionSelectionUnresolved(){return unresolved.size!==0;}
-export async function closeOriginalAdmissionSupply(supply){
+export function closeOriginalAdmissionSupply(supply){
   const state=selections.get(supply);if(!state)throw failure('ADMISSION_CONFIGURATION_OWNER_REQUIRED');
   return release(state);
 }
@@ -30,10 +32,10 @@ export async function openOriginalAdmissionSupply(vault,guard){
   guard.assert();
   const original=await import('./original-admission-custodian.mjs');
   guard.assert();
-  if(typeof original.acquireOriginalAdmissionConfiguration!=='function')return null;
+  if(typeof original.acquireOriginalAdmissionConfiguration!=='function')throw failure('ADMISSION_CONFIGURATION_PRODUCER_NOT_IMPLEMENTED');
   const configured=await original.acquireOriginalAdmissionConfiguration(vault,guard);
   if(configured===null){guard.assert();return null;}
-  const state={original,configured,closing:null,closed:false,cleanupFailed:false,cleanupCause:null};
+  const state={original,configured,closing:null,closed:false,cleanupFailed:false,cleanupCause:null,operationCause:null,operationCausePresent:false};
   unresolved.add(state); // Exact returned custody captured before any fence.
   try{
     guard.assert();
@@ -48,7 +50,7 @@ export async function openOriginalAdmissionSupply(vault,guard){
     selections.set(supply,state);guard.assert();
     if(supply.assertCurrent()!==undefined)throw failure('ADMISSION_CURRENT_INVALID');
     unresolved.delete(state);return supply;
-  }catch(error){try{await release(state);}catch{/* Preserve original cause and retained custody. */}throw error;}
+  }catch(error){state.operationCause=error;state.operationCausePresent=true;try{await release(state);}catch{/* Preserve original cause and retained custody. */}throw error;}
 }
 
 // SAME-Vault producer summary; never send a raw catalog or read-by-nonce result.

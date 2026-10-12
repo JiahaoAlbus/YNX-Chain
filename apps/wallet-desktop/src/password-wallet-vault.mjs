@@ -44,6 +44,10 @@ function legacyVault(text) {
 }
 const publicLegacy = ({ encryptedSecret, ...record }) => record;
 const originalProductionContexts=new WeakMap();
+const originalVaults=new WeakSet();
+export function assertOriginalAdmissionVault(vault){
+  if(!originalVaults.has(vault))fail('ADMISSION_ORIGINAL_VAULT_REQUIRED','Original same-Vault instance is required.');
+}
 // Private source inventory: structural callbacks/DTOs cannot register custody.
 // Only actual acquire below inserts after the same Vault resources validate.
 export function captureOriginalAdmissionProductionContext(ref){
@@ -59,6 +63,7 @@ export class PasswordWalletVault {
   constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
+    originalVaults.add(this);
   }
   authorizer() { return Object.freeze({ available: () => true, method: "local-password-encrypted-vault", inProcess: true, authenticate: (input, guard) => this.authenticate(input, guard), invalidate: () => this.lock() }); }
   lock() { closePasswordVaultSession(this.#session); this.#session = null; this.#digest = null; this.cancelRecovery(); this.cancelMnemonicAccount(); }
@@ -246,6 +251,32 @@ export class PasswordWalletVault {
   }
   async readOriginalServiceAdmissionPublication(requestNonce,guard){
     return this.#serialize(async()=>{const current=await this.#readUnlocked(guard),catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));const result=readOriginalWalletServiceAdmissionPublication(catalog.admissionPublicationState,requestNonce);await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return result;});
+  }
+  async assertOriginalServiceAdmissionConfigurationCurrent(guard){
+    return this.#serialize(async()=>{
+      guard.assert();const current=await this.#readUnlocked(guard);guard.assert();
+      if(guard.account!==current.vault.activeAccount)throw cancelled();
+      await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+      if(guard.account!==current.vault.activeAccount)throw cancelled();
+      return undefined;
+    });
+  }
+  async readOriginalServiceAdmissionSummary(guard){
+    return this.#serialize(async()=>{
+      if(!guard||typeof guard.assert!=='function')fail('WALLET_LOCKED','Original current guard is required.');
+      guard.assert();
+      const current=await this.#readUnlocked(guard);guard.assert();
+      if(guard.account!==current.vault.activeAccount)throw cancelled();
+      const catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));guard.assert();
+      const admission=catalog.admissionPublicationState.records,runtime=catalog.runtimePublicationState.records;
+      if(!Array.isArray(admission)||admission.length>32||!Array.isArray(runtime)||runtime.length>64)fail('ADMISSION_SUMMARY_INVALID','Original catalog exceeds its existing bounds.');
+      const summary=Object.freeze({account:current.vault.activeAccount,
+        records:Object.freeze(admission.map(record=>Object.freeze({requestNonce:record.requestNonce,state:record.state,deliveryState:record.delivery?.state??null}))),
+        runtimeRecords:Object.freeze(runtime.map(record=>Object.freeze({nonce:record.nonce,state:record.state})))});
+      await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+      if(guard.account!==current.vault.activeAccount)throw cancelled();
+      return summary;
+    });
   }
   async readOriginalServiceRuntimePublication(nonce,guard){
     return this.#serialize(async()=>{const current=await this.#readUnlocked(guard),catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));const result=readOriginalWalletServiceRuntimePublication(catalog.runtimePublicationState,nonce);await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return result;});

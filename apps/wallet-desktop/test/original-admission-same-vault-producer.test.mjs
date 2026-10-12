@@ -10,6 +10,41 @@ const root=process.env.PUBLIC_F1F2_PARENT_RED==='1'?new URL('file:///Users/huang
 const custodianSource=readFileSync(new URL('original-admission-custodian.mjs',root),'utf8');
 function custodian(){const ctx=vm.createContext({captureOriginalAdmissionProductionContext:value=>value});vm.runInContext(custodianSource.replace(/^import .*;$/mg,'').replaceAll('export ','')+'\nthis.api={retainOriginalAdmissionCustodian,assertOriginalServiceAdmissionProductionOwner,publishOriginalServiceAdmissionProduction,closeOriginalServiceAdmissionProductionOwner,completeOriginalServiceAdmissionProductionClose,selectOriginalServiceAdmissionProductionOutcome:typeof selectOriginalServiceAdmissionProductionOutcome==="function"?selectOriginalServiceAdmissionProductionOutcome:undefined,enterOriginalServiceAdmissionDelivery,acknowledgeOriginalServiceAdmissionDelivery}',ctx);return ctx.api;}
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+// New R3 only: exact summary body with PUBLIC read/decrypt/current substitutes.
+function r3SummaryFixture({records=[],runtimeRecords=[],onDecrypt=()=>{},onCurrent=()=>{}}={}){
+  const source=readFileSync(new URL('password-wallet-vault.mjs',root),'utf8');
+  const start=source.indexOf('  async readOriginalServiceAdmissionSummary('),end=source.indexOf('\n  }',start)+4;
+  const context=vm.createContext({fail:code=>{throw Error(code);},cancelled:()=>Error('PUBLIC_CANCELLED'),options:guard=>({guard:()=>guard.assert()}),decryptPasswordVaultOriginalAdmissionCatalog:async()=>{await onDecrypt();return {admissionPublicationState:{records},runtimePublicationState:{records:runtimeRecords}};}});
+  const serialize=source.match(/  #serialize\(action\) \{[^\n]+/)[0];
+  vm.runInContext('this.Subject=class {#mutations=Promise.resolve();'+serialize+'async #readUnlocked(guard){guard.assert();return {vault:{activeAccount:"PUBLIC_ACCOUNT"},snapshot:{digest:"PUBLIC_DIGEST"},session:{PUBLIC:true}};}'+source.slice(start,end)+'}',context);
+  const vault=new context.Subject();vault.files={assertCurrent:async digest=>{assert.equal(digest,'PUBLIC_DIGEST');onCurrent();}};
+  return vault;
+}
+test('R3 PUBLIC summary projects ALL 32 admission and 64 runtime originals without raw',async()=>{
+  const records=Array.from({length:32},(_,i)=>({requestNonce:String(i),state:i===31?'UNKNOWN':'signed',delivery:i===31?undefined:{state:'acknowledged'},signedRaw:'PUBLIC_RAW_MUST_NOT_ESCAPE'}));
+  const runtimeRecords=Array.from({length:64},(_,i)=>({nonce:String(i),state:i===63?'pending':'signed',runtimeRaw:'PUBLIC_RUNTIME_MUST_NOT_ESCAPE'}));
+  const guard={account:'PUBLIC_ACCOUNT',assert(){}};assert.equal(Object.hasOwn(guard,'revision'),false);
+  const value=await r3SummaryFixture({records,runtimeRecords}).readOriginalServiceAdmissionSummary(guard);
+  assert.equal(value.records.length,32);assert.equal(value.runtimeRecords.length,64);assert.equal(value.records[31].state,'UNKNOWN');assert.equal(value.runtimeRecords[63].nonce,'63');assert.equal(value.runtimeRecords[63].state,'pending');
+  assert.equal(JSON.stringify(value).includes('MUST_NOT_ESCAPE'),false);assert.equal(Object.isFrozen(value.records[0]),true);
+});
+test('R3 PUBLIC summary rejects late guard/account/file changes and never invents missing catalog',async()=>{
+  for(const phase of ['decrypt','current','account']){
+    let alive=true;const guard={account:'PUBLIC_ACCOUNT',assert(){if(!alive)throw Error('PUBLIC_LATE');}};
+    const vault=r3SummaryFixture({onDecrypt:()=>{if(phase==='decrypt')alive=false;if(phase==='account')guard.account='OTHER';},onCurrent:()=>{if(phase==='current')alive=false;}});
+    await assert.rejects(vault.readOriginalServiceAdmissionSummary(guard),/PUBLIC_LATE|PUBLIC_CANCELLED/);
+  }
+  await assert.rejects(r3SummaryFixture({records:Array(33).fill({})}).readOriginalServiceAdmissionSummary({account:'PUBLIC_ACCOUNT',assert(){}}),/SUMMARY_INVALID/);
+  await assert.rejects(r3SummaryFixture({runtimeRecords:Array(65).fill({})}).readOriginalServiceAdmissionSummary({account:'PUBLIC_ACCOUNT',assert(){}}),/SUMMARY_INVALID/);
+  await assert.rejects(r3SummaryFixture({onDecrypt:()=>{throw Error('PUBLIC_CATALOG_ABSENT');}}).readOriginalServiceAdmissionSummary({account:'PUBLIC_ACCOUNT',assert(){}}),/CATALOG_ABSENT/);
+});
+test('R3 PUBLIC real serialization holds second summary until first read fence settles',async()=>{
+ const entered=deferred(),finish=deferred();let reads=0;
+ const vault=r3SummaryFixture({onDecrypt:async()=>{reads++;if(reads===1){entered.resolve();await finish.promise;}}}),guard={account:'PUBLIC_ACCOUNT',assert(){}};
+ const first=vault.readOriginalServiceAdmissionSummary(guard);await entered.promise;
+ const second=vault.readOriginalServiceAdmissionSummary(guard);await Promise.resolve();assert.equal(reads,1);
+ finish.resolve();await first;await second;assert.equal(reads,2);
+});
 test('PUBLIC custodian retains exact falsy first rejection through retirement and close',async()=>{
   for(const cause of [false,null,undefined,0,'']){
     const api=custodian();let calls=0,disposed=0;
