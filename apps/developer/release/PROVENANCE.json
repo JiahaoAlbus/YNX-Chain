@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0",
+  "productId": "ynx-developer-v1",
+  "version": "0.2.0",
+  "releaseClass": "unsigned-testnet-preview",
+  "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+  "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+  "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+  "artifacts": [
+    {
+      "name": "ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
+      "platform": "macos-arm64",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "sha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "bytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
+      "signingClass": "adhoc-no-team-id",
+      "verification": [
+        "embedded source/tree/runtime/SBOM provenance",
+        "extracted resource self-test",
+        "strict ad-hoc and no-Team-ID classification",
+        "267-component CycloneDX inventory",
+        "real GUI cold launch",
+        "JavaScript and C++ toolchain discovery",
+        "real bounded C++ compilation",
+        "workspace save and persisted second launch",
+        "bundled server observation and child cleanup"
+      ]
+    },
+    {
+      "name": "ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip",
+      "platform": "windows-x64",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "sha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "bytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
+      "deliveryMode": "hosted-workspace-client",
+      "signingClass": "unsigned-no-authenticode",
+      "authenticodeStatus": "NotSigned",
+      "ci": {
+        "runId": 31513885748,
+        "jobId": 93854111720,
+        "artifactId": 9110259455,
+        "artifactOuterSha256": "7daec768b13c0871f2cc13fef5ba1f845938288827233733f40bba6c14c5f715",
+        "artifactOuterBytes": 72291148,
+        "artifactExpiresAt": "2026-08-25T16:44:45Z"
+      },
+      "verification": [
+        "Developer client and Web tests",
+        "embedded source/tree/runtime/SBOM provenance",
+        "portable extraction",
+        "precise runtime resource inventory",
+        "Authenticode NotSigned classification",
+        "real WPF cold launch",
+        "public hosted-workspace connection",
+        "real remote C++ compile",
+        "second GUI launch"
+      ]
+    }
+  ],
+  "browserAccessibilityEvidence": {
+    "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
+    "status": "passed",
+    "checksPassed": 15,
+    "screenshots": 6,
+    "manifestSha256": "2791370844174a9838495cd73761f8ecce17ea8d249b070e97ba283b19672e9c"
+  },
+  "truthBoundaries": {
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "integratedCentral": false,
+    "deployedPublic": true,
+    "mainnetReleased": false
+  },
+  "generatedAt": "2026-08-11T17:00:00Z"
+}

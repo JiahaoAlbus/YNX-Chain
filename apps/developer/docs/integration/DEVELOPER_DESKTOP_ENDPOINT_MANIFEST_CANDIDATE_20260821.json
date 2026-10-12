@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "developerDesktopEndpointManifestCandidate@1.0.0-p0.0",
+  "status": "CANDIDATE_UNACCEPTED_NETWORK_DISABLED",
+  "owner": "11-developer",
+  "productId": "ynx-developer-v1",
+  "basis": {
+    "sourceCommit": "95daaa89825738e61747f0e02555ce1b9b84a75a",
+    "sourceTree": "a67c816b8fe69b063c4ab795f00e07078fae3068",
+    "chainId": "0x1917",
+    "desktopPlatforms": ["macos-arm64", "macos-x64", "windows-x64"]
+  },
+  "defaultPolicy": "deny",
+  "acceptanceRequired": {
+    "issuer": "YNX Central Integration",
+    "detachedSignature": true,
+    "keyId": "central-approved-key-id-required",
+    "signatureAlgorithm": "central-approved-algorithm-required",
+    "issuedAt": "required-rfc3339",
+    "expiresAt": "required-rfc3339-max-86400-seconds-after-issuedAt",
+    "exactChainId": "0x1917",
+    "rejectUnknownFields": true
+  },
+  "requestedEndpoints": [
+    {
+      "id": "developer-public-api",
+      "origin": "https://developer.ynxweb4.com",
+      "methods": ["GET", "POST"],
+      "pathPrefixes": ["/chain/", "/compiler/", "/ai-build/", "/ai-gateway/", "/app-gateway/"],
+      "purpose": "Desktop local proxy for the Developer public API and bounded build services",
+      "credentials": "same-origin-session-only",
+      "redirects": "forbidden"
+    },
+    {
+      "id": "ynx-testnet-rpc",
+      "origin": "https://rpc.ynxweb4.com",
+      "methods": ["GET", "POST"],
+      "pathPrefixes": ["/status", "/evm", "/txs/", "/blocks/", "/ide/compiler", "/ide/deploy"],
+      "purpose": "Read-only chain status, RPC, compiler metadata, and signed deploy relay; no browser RPC probe is a wallet-connect prerequisite",
+      "credentials": "no-cookie-no-authorization-forwarding",
+      "redirects": "forbidden"
+    }
+  ],
+  "hardReject": {
+    "schemes": ["http", "ws", "wss", "file", "data"],
+    "hosts": ["localhost", "127.0.0.1", "::1"],
+    "ipLiterals": true,
+    "nonDefaultPorts": true,
+    "userinfo": true,
+    "queryOrFragmentInOrigin": true,
+    "dynamicEndpointInjection": true,
+    "fallbackToLocalhost": true
+  },
+  "consumerProposal": {
+    "bundleOnly": "The desktop app may consume only an accepted immutable manifest bundled with the exact artifact.",
+    "validateBeforeNetwork": ["detached signature", "key id", "issuedAt/expiresAt", "chain id", "exact origin", "method", "path prefix"],
+    "transport": "Native desktop proxy only; no renderer direct fetch and no wallet connection preflight RPC probe.",
+    "failureMode": "Keep desktop network=false, preserve local IDE and Standard Wallet state, and surface NETWORK_MANIFEST_UNAVAILABLE without retrying an unapproved endpoint.",
+    "evidenceRequiredBeforeEnablement": ["accepted central manifest", "artifact-bound manifest hash", "installed macOS and Windows HTTPS proof", "expired/tampered/wrong-chain/localhost rejection proof", "rollback manifest proof"]
+  },
+  "notRequested": [
+    "wallet-auth origin: Product Session remains controlled by the accepted root factory and is not enabled by this desktop network candidate",
+    "third-party model-provider origins: model routing remains server-side and is not a desktop endpoint request",
+    "any arbitrary user-supplied URL, private address, loopback fallback, or direct browser RPC probe"
+  ]
+}

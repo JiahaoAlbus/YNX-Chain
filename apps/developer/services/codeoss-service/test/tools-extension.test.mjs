@@ -1,0 +1,247 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFile, mkdtemp, mkdir, writeFile, symlink, unlink, rm, realpath, stat } from 'node:fs/promises';
+import {join} from 'node:path';import {tmpdir} from 'node:os';
+import { createRequire } from 'node:module';
+const localRequire = createRequire(import.meta.url), source = await readFile(new URL('../../../native/ynx-tools/src/extension.cjs', import.meta.url), 'utf8');
+const { digest } = localRequire('../../../native/ynx-tools/src/guards.cjs');
+function harness({ answer, exists = false, onModal, selectionEdit = false, reviewSource = 'paste', clipboardText, onClipboardRead, onClipboardWrite, workspace = '/project', filePath = '/project/a.ts', pathGuard = async () => {}, folderPath = workspace, local = false, localEnv = {}, realFiles = false, beforeApply, onDirectoryCheck, directoryGuard = async (folder,root) => ({realWorkspace:root,realDirectory:folder}) } = {}) {
+  const commands = new Map(), errors = [], calls = [], id = '12345678-1234-1234-1234-123456789012';
+  class FileSystemError extends Error { constructor() { super('absent'); this.code = 'FileNotFound'; } }
+  let text = 'saved draft', version = 1; const runtimeEnv = { YNX_CORE_SESSION_ID: id, YNX_CORE_WORKSPACE: workspace };
+  if (local) { delete runtimeEnv.YNX_CORE_SESSION_ID; delete runtimeEnv.YNX_CORE_WORKSPACE; Object.assign(runtimeEnv, { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: workspace, YNX_LOCAL_PROJECT_ID: id }, localEnv); }
+  const uri = { scheme: 'file', fsPath: filePath, toString: () => 'file://' + filePath }, doc = { uri, languageId: 'typescript', get version() { return version; }, getText: () => text, positionAt: offset => offset };
+  const bundle = JSON.stringify({ protocol: 'ynx-reviewed-text/v1', sessionId: id, changes: [{ uri: uri.toString(), version, fullTextDigest: digest(text), ...(selectionEdit ? {replacements:[{find:'saved draft',replace:'suggested'}]} : {text:'suggested'}) }] });
+  class WorkspaceEdit { constructor() { this.operations = []; } createFile(uri, options) { this.operations.push({ type: 'create', uri, options }); } insert(uri, position, text) { this.operations.push({ type: 'insert', uri, text }); } replace(uri, range, text) { this.operations.push({ type: 'replace', uri, text }); } }
+  const vscode = { languages: {createDiagnosticCollection:()=>({set:()=>{},clear:()=>{},dispose:()=>{}})}, FileSystemError, WorkspaceEdit, Position: class {}, Range: class {}, Uri: { parse: value => value, joinPath: (root, name) => ({fsPath:join(root.fsPath,name),toString:()=> 'file://'+join(root.fsPath,name)}) },
+    env: { clipboard: { writeText: async value => { calls.push({ type: 'clipboard', value }); await onClipboardWrite?.(runtimeEnv,doc); }, readText: async () => { calls.push({ type: 'clipboard-read' }); await onClipboardRead?.(runtimeEnv); return clipboardText ?? bundle; } }, openExternal: async url => calls.push({ type: 'open', url }) },
+    commands: { registerCommand: (name, fn) => { commands.set(name, fn); return {}; }, executeCommand: async (...args) => { if(args[0] !== 'setContext') calls.push({ type: 'preview', args }); } },
+    window: { onDidChangeActiveTextEditor: () => ({}), onDidChangeTextEditorSelection: () => ({}), activeTextEditor: { document: doc, selection: { isEmpty: false } }, registerTreeDataProvider: () => ({}), showErrorMessage: value => errors.push(value), showTextDocument: async () => {}, showInputBox: async () => bundle, showQuickPick: async items => items.find(item => item.source === reviewSource),
+      showInformationMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; }, showWarningMessage: async () => { await onModal?.(() => version++, runtimeEnv); return answer; } },
+    workspace: { onDidChangeTextDocument:()=>({}), onDidChangeWorkspaceFolders:()=>({}), registerTextDocumentContentProvider: () => ({}), onDidCloseTextDocument: () => ({}), workspaceFolders: [{ uri: {scheme:'file',fsPath:folderPath,toString:()=> 'file://'+folderPath} }], textDocuments: [doc], fs: { stat: async () => { if (!exists) throw new FileSystemError(); return {}; } }, openTextDocument: async () => ({ uri: 'untitled:preview' }), applyEdit: async edit => { await beforeApply?.(vscode,runtimeEnv); if (realFiles) { const create=edit.operations.find(row=>row.type==='create'),insert=edit.operations.find(row=>row.type==='insert'); try { await writeFile(create.uri.fsPath,insert.text,{flag:'wx'}); } catch(error) { if(error.code==='EEXIST') return false; throw error; } } calls.push({ type: 'edit', operations: edit.operations }); return true; } }
+  };
+  let checks=0; const starterSource=localRequire('node:fs').readFileSync(new URL('../../../native/ynx-tools/src/local-starter.cjs',import.meta.url),'utf8'), starterModule={exports:{}};
+  vm.runInNewContext(starterSource,{module:starterModule,require:name=>name==='./guards.cjs'?{assertWorkspaceDirectory:async(...args)=>{const result=await localRequire('../../../native/ynx-tools/src/guards.cjs').assertWorkspaceDirectory(...args);await onDirectoryCheck?.(++checks,vscode,runtimeEnv);return result;}}:name.startsWith('./')?localRequire('../../../native/ynx-tools/src/'+name.slice(2)):localRequire(name)});
+  const localStarter=starterModule.exports;
+  const module = { exports: {} }; vm.runInNewContext(source, { module, require: name => name === 'vscode' ? vscode : name === './local-starter.cjs' ? localStarter : name === './guards.cjs' ? { ...localRequire('../../../native/ynx-tools/src/guards.cjs'), assertWorkspacePath: pathGuard, assertWorkspaceDirectory: directoryGuard } : localRequire('../../../native/ynx-tools/src/' + name.slice(2)), process: { env: runtimeEnv }, Buffer });
+  module.exports.activate({ subscriptions: [] }); return { commands, errors, calls, vscode, runtimeEnv };
+}
+test('actual extension command opens only fixed trusted host locator; canceled context stays local', async () => {
+  const h = harness(); await h.commands.get('ynx.openTools')(); assert.deepEqual(h.calls.map(x => x.type), ['open']); assert.match(h.calls[0].url, /^https:\/\/developer\.ynxweb4\.com\/native-tools\?sessionId=/); assert.equal(h.calls[0].url.includes('saved'), false);
+  await h.commands.get('ynx.copyContext')(); assert.equal(h.calls.length, 1);
+});
+test('actual template command never overwrites existing file; creation uses atomic no-overwrite edit', async () => {
+  const existing = harness({ exists: true, answer: 'Create starter' }); await existing.commands.get('ynx.createTemplate')(); assert.equal(existing.calls.length, 0); assert.match(existing.errors[0], /already exists/);
+  const fresh = harness({ answer: 'Create starter' }); await fresh.commands.get('ynx.createTemplate')(); const operations = fresh.calls[0].operations;
+  assert.equal(operations[0].options.overwrite, false); assert.equal(operations[0].options.ignoreIfExists, false); assert.match(operations[1].text, /6423n/); assert.doesNotMatch(operations[1].text, /eth_sendTransaction|privateKey/);
+});
+test('actual diff command previews then rejects edit made during approval; no changes applied', async () => {
+  const h = harness({ answer: 'Apply reviewed changes', onModal: change => change() }); await h.commands.get('ynx.applyReviewedDiff')(); assert.deepEqual(h.calls.map(x => x.type), ['preview']); assert.match(h.errors[0], /changed/);
+});
+
+test('actual extension previews a selected replacement and applies only after explicit unchanged-document approval',async()=>{
+ const accepted=harness({answer:'Apply reviewed changes',selectionEdit:true});await accepted.commands.get('ynx.applyReviewedDiff')();
+ assert.deepEqual(accepted.errors,[]);assert.deepEqual(accepted.calls.map(call=>call.type),['preview','edit']);assert.equal(accepted.calls[1].operations[0].text,'suggested');
+ const changed=harness({answer:'Apply reviewed changes',selectionEdit:true,onModal:change=>change()});await changed.commands.get('ynx.applyReviewedDiff')();
+ assert.deepEqual(changed.calls.map(call=>call.type),['preview']);assert.match(changed.errors[0],/changed/);
+});
+
+
+test('copy command uses real filesystem project containment before and after approval',async t=>{
+ const root=await mkdtemp(join(tmpdir(),'ynx-native-copy-')),outside=await mkdtemp(join(tmpdir(),'ynx-native-outside-'));t.after(async()=>{await rm(root,{recursive:true,force:true});await rm(outside,{recursive:true,force:true});});
+ const own=join(root,'a.ts'),foreign=join(outside,'foreign.ts');await writeFile(own,'saved draft');await writeFile(foreign,'foreign private');
+ const {assertWorkspacePath}=localRequire('../../../native/ynx-tools/src/guards.cjs');
+ const valid=harness({answer:'Copy selection',workspace:root,filePath:own,pathGuard:assertWorkspacePath});await valid.commands.get('ynx.copyContext')();
+ assert.deepEqual(valid.errors,[]);assert.equal(valid.calls[0].type,'clipboard');assert.equal(JSON.parse(valid.calls[0].value).selectedText,'saved draft');
+ const denied=harness({answer:'Copy selection',workspace:root,filePath:foreign,pathGuard:assertWorkspacePath});await denied.commands.get('ynx.copyContext')();assert.equal(denied.calls.length,0);assert.match(denied.errors[0],/outside/);
+ const switched=harness({answer:'Copy selection',workspace:root,filePath:own,pathGuard:assertWorkspacePath,onModal:async()=>{await unlink(own);await symlink(foreign,own);}});await switched.commands.get('ynx.copyContext')();assert.equal(switched.calls.length,0);assert.match(switched.errors[0],/outside/);
+});
+test('copy approval rejects missing runtime, changed session and document mutation during final path check',async()=>{
+ const missing=harness({answer:'Copy selection',workspace:''});await missing.commands.get('ynx.copyContext')();assert.equal(missing.calls.length,0);assert.match(missing.errors[0],/active YNX project/);
+ const switched=harness({answer:'Copy selection',onModal:(_,env)=>{env.YNX_CORE_SESSION_ID='changed';}});await switched.commands.get('ynx.copyContext')();assert.equal(switched.calls.length,0);assert.match(switched.errors[0],/runtime changed/);
+ let checks=0,mutate;const changed=harness({answer:'Copy selection',onModal:change=>{mutate=change;},pathGuard:async()=>{if(++checks===2)mutate();}});await changed.commands.get('ynx.copyContext')();assert.equal(changed.calls.length,0);assert.match(changed.errors[0],/document changed/);
+ let runtimeChecks=0,currentEnv;const runtimeChanged=harness({answer:'Copy selection',onModal:(_,env)=>{currentEnv=env;},pathGuard:async()=>{if(++runtimeChecks===2)currentEnv.YNX_CORE_WORKSPACE='/other';}});await runtimeChanged.commands.get('ynx.copyContext')();assert.equal(runtimeChanged.calls.length,0);assert.match(runtimeChanged.errors[0],/runtime changed/);
+});
+
+
+test('starter creation validates real project root/subfolder and refuses external or swapped folders',async t=>{
+ const root=await mkdtemp(join(tmpdir(),'ynx-native-starter-')),outside=await mkdtemp(join(tmpdir(),'ynx-native-starter-outside-'));t.after(async()=>{await rm(root,{recursive:true,force:true});await rm(outside,{recursive:true,force:true});});
+ const sub=join(root,'sub');await mkdir(sub);const {assertWorkspaceDirectory}=localRequire('../../../native/ynx-tools/src/guards.cjs');
+ for(const folderPath of [root,sub]){const own=harness({answer:'Create starter',workspace:root,folderPath,directoryGuard:assertWorkspaceDirectory});await own.commands.get('ynx.createTemplate')();assert.deepEqual(own.errors,[]);assert.equal(own.calls[0].operations[0].uri.fsPath,join(folderPath,'ynx-testnet-readonly.mjs'));assert.equal(own.calls[0].operations[0].options.overwrite,false);}
+ const denied=harness({answer:'Create starter',workspace:root,folderPath:outside,directoryGuard:assertWorkspaceDirectory});await denied.commands.get('ynx.createTemplate')();assert.equal(denied.calls.length,0);assert.match(denied.errors[0],/outside/);
+ const link=join(root,'linked');await symlink(sub,link);const swapped=harness({answer:'Create starter',workspace:root,folderPath:link,directoryGuard:assertWorkspaceDirectory,onModal:async()=>{await unlink(link);await symlink(outside,link);}});await swapped.commands.get('ynx.createTemplate')();assert.equal(swapped.calls.length,0);assert.match(swapped.errors[0],/outside/);
+ const insideLink=join(root,'inside-link');await symlink(sub,insideLink);const movedInside=harness({answer:'Create starter',workspace:root,folderPath:insideLink,directoryGuard:assertWorkspaceDirectory,onModal:async()=>{await unlink(insideLink);await symlink(root,insideLink);}});await movedInside.commands.get('ynx.createTemplate')();assert.equal(movedInside.calls.length,0);assert.match(movedInside.errors[0],/folder or runtime changed/);
+ const runtimeLink=join(root,'runtime-link');await symlink(root,runtimeLink);const rootChanged=harness({answer:'Create starter',workspace:runtimeLink,folderPath:runtimeLink,directoryGuard:assertWorkspaceDirectory,onModal:async()=>{await unlink(runtimeLink);await symlink(outside,runtimeLink);}});await rootChanged.commands.get('ynx.createTemplate')();assert.equal(rootChanged.calls.length,0);assert.match(rootChanged.errors[0],/folder or runtime changed/);
+});
+test('starter approval is retired on runtime or displayed workspace-folder change',async()=>{
+ const missing=harness({answer:'Create starter',workspace:''});await missing.commands.get('ynx.createTemplate')();assert.equal(missing.calls.length,0);assert.match(missing.errors[0],/active YNX project/);
+ const switched=harness({answer:'Create starter',onModal:(_,env)=>{env.YNX_CORE_SESSION_ID='retired';}});await switched.commands.get('ynx.createTemplate')();assert.equal(switched.calls.length,0);assert.match(switched.errors[0],/runtime changed/);
+ let moved;moved=harness({answer:'Create starter',onModal:()=>{moved.vscode.workspace.workspaceFolders=[{uri:{fsPath:'/other',toString:()=> 'file:///other'}}];}});await moved.commands.get('ynx.createTemplate')();assert.equal(moved.calls.length,0);assert.match(moved.errors[0],/folder or runtime changed/);
+});
+
+test('reviewed diff rejects workspace changes and a replacement document opened during the final path check', async () => {
+  const moved = harness({ answer: 'Apply reviewed changes', onModal: (_, env) => { env.YNX_CORE_WORKSPACE = '/'; } });
+  await moved.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(moved.calls.map(call => call.type), ['preview']); assert.match(moved.errors[0], /runtime changed/);
+  let checks = 0, reopened;
+  reopened = harness({ answer: 'Apply reviewed changes', pathGuard: async () => {
+    if (++checks === 2) {
+      const old = reopened.vscode.workspace.textDocuments[0]; old.isClosed = true;
+      reopened.vscode.workspace.textDocuments = [{ ...old, isClosed: false, version: 1, getText: () => 'newly reopened private draft' }];
+    }
+  } });
+  await reopened.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(reopened.calls.map(call => call.type), ['preview']); assert.match(reopened.errors[0], /changed/);
+});
+
+test('reviewed diff compares real file identity and refuses a symlink moved to another file inside the same project', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'ynx-native-diff-path-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const first = join(root, 'first.ts'), second = join(root, 'second.ts'), link = join(root, 'reviewed.ts');
+  await writeFile(first, 'saved draft'); await writeFile(second, 'saved draft'); await symlink(first, link);
+  const { assertWorkspacePath } = localRequire('../../../native/ynx-tools/src/guards.cjs');
+  const h = harness({ answer: 'Apply reviewed changes', workspace: root, filePath: link, pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(link); await symlink(second, link); } });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['preview']); assert.match(h.errors[0], /path changed/);
+  assert.equal(await readFile(first, 'utf8'), 'saved draft'); assert.equal(await readFile(second, 'utf8'), 'saved draft');
+});
+
+test('copy approval cannot survive closing/reopening a document with a reused version', async () => {
+  for (const timing of ['modal', 'path']) {
+    let h, checks = 0;
+    const replace = () => {
+      const old = h.vscode.workspace.textDocuments[0]; old.isClosed = true;
+      h.vscode.workspace.textDocuments = [{ ...old, isClosed: false, version: 1 }];
+    };
+    h = harness({ answer: 'Copy selection', onModal: () => { if (timing === 'modal') replace(); },
+      pathGuard: async () => { if (++checks === 2 && timing === 'path') replace(); } });
+    await h.commands.get('ynx.copyContext')();
+    assert.equal(h.calls.length, 0); assert.match(h.errors[0], /document changed/);
+  }
+});
+
+test('copy approval binds the selected file and workspace real paths even when new targets remain contained', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'ynx-copy-path-binding-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const first = join(root, 'first.ts'), second = join(root, 'second.ts'), link = join(root, 'selected.ts');
+  await writeFile(first, 'saved draft'); await writeFile(second, 'saved draft'); await symlink(first, link);
+  const { assertWorkspacePath } = localRequire('../../../native/ynx-tools/src/guards.cjs');
+  const h = harness({ answer: 'Copy selection', workspace: root, filePath: link, pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(link); await symlink(second, link); } });
+  await h.commands.get('ynx.copyContext')();
+  assert.equal(h.calls.length, 0); assert.match(h.errors[0], /path changed/);
+  assert.equal(await readFile(first, 'utf8'), 'saved draft'); assert.equal(await readFile(second, 'utf8'), 'saved draft');
+  const original = join(root, 'original'), replacement = join(root, 'replacement'), workspaceLink = join(root, 'workspace');
+  await mkdir(original); await mkdir(replacement);
+  await writeFile(join(original, 'a.ts'), 'saved draft'); await writeFile(join(replacement, 'a.ts'), 'saved draft'); await symlink(original, workspaceLink);
+  const moved = harness({ answer: 'Copy selection', workspace: workspaceLink, filePath: join(workspaceLink, 'a.ts'), pathGuard: assertWorkspacePath,
+    onModal: async () => { await unlink(workspaceLink); await symlink(replacement, workspaceLink); } });
+  await moved.commands.get('ynx.copyContext')();
+  assert.equal(moved.calls.length, 0); assert.match(moved.errors[0], /path changed/);
+});
+
+test('copy approval verifies full current bytes even when a document version is reused', async () => {
+  let h;
+  h = harness({ answer: 'Copy selection', onModal: () => {
+    h.vscode.workspace.textDocuments[0].getText = () => 'changed private context';
+  } });
+  await h.commands.get('ynx.copyContext')();
+  assert.equal(h.calls.length, 0); assert.match(h.errors[0], /document changed/);
+});
+
+test('copied suggestion opens the same guarded diff and cancellation never reads the clipboard', async () => {
+  const copied = harness({ reviewSource: 'clipboard', answer: 'Apply reviewed changes', selectionEdit: true });
+  await copied.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(copied.errors, []);
+  assert.deepEqual(copied.calls.map(call => call.type), ['clipboard-read', 'preview', 'edit']);
+  assert.equal(copied.calls[2].operations[0].text, 'suggested');
+  const cancelled = harness({ reviewSource: null }); await cancelled.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(cancelled.calls, []); assert.deepEqual(cancelled.errors, []);
+});
+test('unrelated or empty clipboard contents produce readable errors without echoing or editing', async () => {
+  for (const clipboardText of ['unrelated-private-content', '']) {
+    const h = harness({ reviewSource: 'clipboard', clipboardText }); await h.commands.get('ynx.applyReviewedDiff')();
+    assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']);
+    assert.equal(h.errors.length, 1); assert.match(h.errors[0], /YNX Tools/);
+    assert.ok(!h.errors[0].includes('unrelated-private-content'));
+  }
+});
+test('oversize copied suggestions refuse before parsing or previewing', async () => {
+  const h = harness({ reviewSource: 'clipboard', clipboardText: ' '.repeat(16 * 1024 * 1024 + 1) });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']); assert.match(h.errors[0], /too large/);
+});
+test('runtime switch while reading a copied suggestion cannot open or apply it', async () => {
+  const h = harness({ reviewSource: 'clipboard', onClipboardRead: env => { env.YNX_CORE_SESSION_ID = 'changed'; } });
+  await h.commands.get('ynx.applyReviewedDiff')();
+  assert.deepEqual(h.calls.map(call => call.type), ['clipboard-read']); assert.match(h.errors[0], /runtime changed/);
+});
+
+test('review selection opens Tools only after an approved unchanged capture, with no code or path in its URL', async () => {
+  const approved = harness({answer:'Copy selection'}); await approved.commands.get('ynx.reviewSelection')();
+  assert.deepEqual(approved.errors,[]); assert.deepEqual(approved.calls.map(call=>call.type),['clipboard','open']);
+  const capture=JSON.parse(approved.calls[0].value),url=new URL(approved.calls[1].url);
+  assert.equal(url.origin,'https://developer.ynxweb4.com'); assert.equal(url.pathname,'/native-tools');
+  assert.deepEqual([...url.searchParams.keys()],['sessionId']); assert.equal(url.searchParams.get('sessionId'),capture.sessionId); assert.equal(url.hash,'#ai');
+  assert.ok(!url.href.includes('saved')&&!url.href.includes('a.ts'));
+  const cancelled=harness(); await cancelled.commands.get('ynx.reviewSelection')(); assert.deepEqual(cancelled.calls,[]);
+  const changed=harness({answer:'Copy selection',onModal:change=>change()}); await changed.commands.get('ynx.reviewSelection')(); assert.deepEqual(changed.calls,[]); assert.match(changed.errors[0],/changed/);
+});
+test('review selection cannot open Tools after runtime or source changes during clipboard handoff', async () => {
+  for(const onClipboardWrite of [(env)=>{env.YNX_CORE_SESSION_ID='retired';},(_,doc)=>{doc.getText=()=> 'concurrent unsaved code';}]) {
+    const h=harness({answer:'Copy selection',onClipboardWrite}); await h.commands.get('ynx.reviewSelection')();
+    assert.deepEqual(h.calls.map(call=>call.type),['clipboard']); assert.match(h.errors[0],/changed/);
+  }
+});
+
+async function starterFixture(t) {
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-local-starter-')));
+ t.after(()=>rm(root,{recursive:true,force:true}));
+ return {root,target:join(root,'ynx-testnet-readonly.mjs')};
+}
+test('registered local starter creates real file and opens it without a second modal or external action',async t=>{
+ const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,onModal:()=>{throw Error('Unexpected modal');}});
+ let opened;h.vscode.window.showTextDocument=async uri=>{opened=uri.fsPath;};
+ await h.commands.get('ynx.createTemplate')();assert.deepEqual(h.errors,[]);assert.equal(opened,target);assert.deepEqual(h.calls.map(row=>row.type),['edit']);
+ const text=await readFile(target,'utf8');assert.match(text,/6423n/);assert.match(text,/https:\/\/rpc\.ynxweb4\.com\/evm/);assert.match(text,/YNXT/);assert.doesNotMatch(text,/eth_sendTransaction|eth_sendRawTransaction|privateKey|npm install/);
+ localRequire('node:child_process').execFileSync(process.execPath,['--check',target]);
+ await h.commands.get('ynx.createTemplate')();assert.match(h.errors[0],/already exists/);assert.equal(await readFile(target,'utf8'),text);
+});
+test('local starter preserves existing regular files, directories, dangling symlinks and unsaved target documents',async t=>{
+ for(const kind of ['file','directory','symlink','unsaved']) {
+  const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true});
+  if(kind==='file')await writeFile(target,'existing user work');
+  if(kind==='directory')await mkdir(target);
+  if(kind==='symlink')await symlink(join(root,'absent'),target);
+  if(kind==='unsaved')h.vscode.workspace.textDocuments.push({uri:{scheme:'file',fsPath:target},isDirty:true,getText:()=> 'unsaved user work'});
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.match(h.errors[0],/already exists|already open/);
+  if(kind==='file')assert.equal(await readFile(target,'utf8'),'existing user work');
+ }
+});
+test('local starter rejects mixed session, invalid project identity, multiple folders, subfolder and symbolic root',async t=>{
+ const {root}=await starterFixture(t);const sub=join(root,'sub'),link=join(root,'alias');await mkdir(sub);await symlink(root,link);
+ for(const options of [{localEnv:{YNX_CORE_SESSION_ID:'canonical'}},{localEnv:{YNX_CORE_WORKSPACE:root}},{localEnv:{YNX_LOCAL_PROJECT_ID:'invalid'}},{folderPath:sub},{folderPath:link},{workspace:link,folderPath:link},{multiple:true}]) {
+  const h=harness({local:true,workspace:root,realFiles:true,...options});if(options.multiple)h.vscode.workspace.workspaceFolders.push(h.vscode.workspace.workspaceFolders[0]);
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.equal(h.errors.length,1);
+ }
+});
+test('local starter retires folder/runtime and dirty-document changes during destination checks',async t=>{
+ for(const change of ['runtime','core','mode','folder','document','inode','symlink']) {
+  const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,onDirectoryCheck:async(n,vscode,env)=>{
+   if(n!==2)return;
+   if(change==='runtime')env.YNX_LOCAL_PROJECT_ID='retired';
+   if(change==='core')env.YNX_CORE_WORKSPACE=root;
+   if(change==='mode')env.YNX_WORKSPACE_MODE='canonical';
+   if(change==='folder')vscode.workspace.workspaceFolders=[];
+   if(change==='document')vscode.workspace.textDocuments.push({uri:{scheme:'file',fsPath:target},isDirty:true});
+   if(change==='inode'||change==='symlink'){await localRequire('node:fs/promises').rename(root,root+'-old');if(change==='symlink')await symlink(root+'-old',root);else await mkdir(root);t.after(()=>rm(root+'-old',{recursive:true,force:true}));}
+  }});
+  await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.equal(h.errors.length,1);await assert.rejects(stat(target),{code:'ENOENT'});
+ }
+});
+test('VS Code no-overwrite creation preserves a file created concurrently after local destination review',async t=>{
+ const {root,target}=await starterFixture(t);const h=harness({local:true,workspace:root,realFiles:true,beforeApply:()=>writeFile(target,'concurrent user file')});
+ await h.commands.get('ynx.createTemplate')();assert.equal(h.calls.length,0);assert.match(h.errors[0],/preserved/);assert.equal(await readFile(target,'utf8'),'concurrent user file');
+});

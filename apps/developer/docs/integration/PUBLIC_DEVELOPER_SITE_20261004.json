@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "scope": "Owned IDE public introduction and normal explicit application entry; existing Native workbench preserved. Not public deployment or canonical acceptance.",
+  "sourceHashes": {
+    "frontend/index.html": "3c770ad49a5f4638b35ec145f57e66cf2c922b93b4021f1bb9c0076b327ea8f5",
+    "frontend/src/main.tsx": "a55ec9d342cbbb43f24941a16d83895f94f99f4331ecd90ded2c63e8bc413b1e",
+    "frontend/src/styles.css": "d54a5b8d3fc83001e357065647b71fce3b999ead7b6adb03fb96f93d9e3d042b",
+    "frontend/src/public-site/entry.ts": "12bf5e4cef3c8a8aff6cddabb73cb54bbab26943dd37370d1ac6351a67e0b08a",
+    "frontend/src/public-site/DeveloperSite.tsx": "d2f06eab8a3e1474f9655293fedc03576ca08b09abc63230e75e73b6902b7a30",
+    "frontend/src/public-site/developer-site.css": "0f606b2e3c492f11952c8bf3064977de4b625a4caabaa7604ba8b501cd9784f6",
+    "frontend/src/codeoss/NativeIDEHome.tsx": "61c0300d8a47a64109a9710148249078bf46aa890c485624bae7a9d33ae2d12e",
+    "frontend/src/codeoss/NativeIDEPanel.tsx": "6d2a21d36a330b7b432dcdbc1857a6bd4574f2817f87eb2026390b74104a4023",
+    "frontend/src/codeoss/workspaceResponse.ts": "b2de1d1e7cb39aefd474185668e6123f35a01f998911d19e149bb02e2ec716dc",
+    "frontend/public/product/workbench-macos-local-20261004.png": "9f0b80f606c7d4ac6003ddcda7ecf754ef0037cb4ca041d167d3c1fbe14ab944",
+    "scripts/public-site-entry.test.mjs": "ddcea32200d7d71bb1407d04e09f4caadd00096cd85c339b33d52f9d985e4506",
+    "scripts/workspace-response.test.mjs": "f3ef153a6734a8ac74f43faa42f508c15fb5d1aecb5b189cbc4e7d63940dfcba",
+    "frontend/design-qa.md": "8c3649c52dbd12e8d8e36ce3305a911adda772f3e66d0fc7d8f1c4d58cacf96a"
+  },
+  "build": {
+    "exitCode": 0,
+    "compiledFileCount": 232,
+    "manifestPath": "apps/developer/.ynx-developer-candidates/public-site-evidence-20261004/compiled-manifest.json",
+    "manifestSha256": "6a07b527c3d0c6fde41fa2818d7511ed1775307bf2abfadc03216368d76749e5"
+  },
+  "routeContract": {
+    "public": [
+      "/",
+      "/index.html",
+      "/about"
+    ],
+    "application": "/projects?lang=zh|en",
+    "legacyPreservation": "Unknown query/hash or other paths retain the prior entry. Existing gateway SPA fallback is unchanged; A owns Host.",
+    "native": "Local workspace bridge or WebView2 marker preserves existing app presentation; marker does not grant identity/auth/permissions."
+  },
+  "downloadSource": "Existing website ecosystemCatalog.js marks Developer macOS/Windows replacements without a public installer URL; public site links only existing /download catalog alias, not local candidates. Not a live external download check.",
+  "screenshotSource": {
+    "qa": "/private/tmp/ynx-theia-extension-qa-xhAFs9",
+    "file": "actual-debug-breakpoint.png",
+    "originalSha256": "9f0b80f606c7d4ac6003ddcda7ecf754ef0037cb4ca041d167d3c1fbe14ab944",
+    "copiedByteExact": true,
+    "candidateVersion": "0.3.11",
+    "claims": "Explicit local-test screenshot; newer product functionality is described separately, not relabeled as shown."
+  },
+  "verification": {
+    "sourceTests": 6,
+    "sourceTestsExit": 0,
+    "browser": {
+      "desktop": [
+        "zh",
+        "en"
+      ],
+      "mobile": {
+        "390": [
+          "zh",
+          "en"
+        ],
+        "320": [
+          "zh",
+          "en"
+        ]
+      },
+      "horizontalOverflow": false,
+      "languageURLAndHTML": true,
+      "mobileMenu": true,
+      "faqExpand": true,
+      "helpAndTopAnchorReload": true,
+      "keyboardVisibleFocus": true,
+      "ctaToExistingProjects": true,
+      "appAboutReturn": true,
+      "browserBackForwardRefresh": true,
+      "publicRuntimeOrAccountRequests": 0,
+      "publicOffOriginRequests": 0,
+      "finalConsoleErrors": [],
+      "backendUnavailable": "Expected preview state; raw parse error repaired, no canonical connection claimed",
+      "nativeAndLegacyRouting": "Six source tests cover entry and response boundaries; device/canonical journeys remain unverified"
+    },
+    "designQA": "frontend/design-qa.md",
+    "designResult": "passed"
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/public-site-evidence-20261004",
+  "evidenceIndexSha256": "655451a01266ebf74893bf0f27414499d2d9be4f916f9e083bc1dded3439a405",
+  "remaining": [
+    "A exact Host publication and public readback.",
+    "Real canonical project/Wallet/Chain/provider-backed AI journeys, multi-owner capacity and Native/platform acceptance remain incomplete.",
+    "No new Native package was built for this web introduction; 0.3.12 Native distribution remains source634ffd2d8."
+  ],
+  "activation": "No shared Auth/SSO/SDK/Host source, denied network/package-egress/LXD branch or user data changed."
+}

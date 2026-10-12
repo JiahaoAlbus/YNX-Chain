@@ -1,0 +1,14 @@
+✔ actual extension command opens only fixed trusted host locator; canceled context stays local (1.832666ms)
+✔ actual template command never overwrites existing file; creation uses atomic no-overwrite edit (1.040417ms)
+✔ actual diff command previews then rejects edit made during approval; no changes applied (0.446375ms)
+✔ actual extension previews a selected replacement and applies only after explicit unchanged-document approval (0.600083ms)
+✔ copy command uses real filesystem project containment before and after approval (4.102959ms)
+✔ copy approval rejects missing runtime, changed session and document mutation during final path check (0.780584ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 52.348583

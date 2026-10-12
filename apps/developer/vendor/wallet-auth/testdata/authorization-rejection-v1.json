@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_WALLET_AUTH_REJECTION_V1",
+  "authorizationRequest": {
+    "version": "1",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynx-social://com.ynx.social",
+    "scopes": ["account:read", "profile:link"],
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T11:59:00.000Z",
+    "expiresAt": "2026-07-15T12:04:00.000Z"
+  },
+  "walletRejection": {
+    "version": "1",
+    "decision": "rejected",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "callback": "ynx-social://com.ynx.social",
+    "decisionCode": "USER_REJECTED",
+    "rejectedAt": "2026-07-15T12:00:00.000Z",
+    "authorityGranted": false,
+    "grantedScopes": []
+  },
+  "expectedGateway": {
+    "path": "/v1/wallet/authorizations/reject",
+    "status": 403,
+    "code": "AUTHORIZATION_REJECTED",
+    "mutated": false,
+    "sessionsCreated": 0,
+    "noncesConsumed": 0,
+    "proofsConsumed": 0
+  },
+  "negativeCases": [
+    {"id":"request-digest-substitution","field":"requestDigest","value":"0000000000000000000000000000000000000000000000000000000000000000","code":"AUTHORIZATION_REJECTION_MISMATCH"},
+    {"id":"product-substitution","field":"productClientId","value":"ynx-pay-v1","code":"AUTHORIZATION_REJECTION_MISMATCH"},
+    {"id":"callback-substitution","field":"callback","value":"ynx-pay://wallet-auth/callback","code":"AUTHORIZATION_REJECTION_MISMATCH"},
+    {"id":"authority-injection","field":"authorityGranted","value":true,"code":"AUTHORITY_ON_REJECTION"},
+    {"id":"scope-injection","field":"grantedScopes","value":["account:read"],"code":"AUTHORITY_ON_REJECTION"},
+    {"id":"unknown-field","field":"unknown","value":true,"code":"UNKNOWN_OR_MISSING_FIELD"},
+    {"id":"proof-header-injection","field":"proof","value":{},"code":"UNEXPECTED_PROOF_HEADER"}
+  ]
+}

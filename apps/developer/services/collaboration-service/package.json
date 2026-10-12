@@ -1,0 +1,16 @@
+{
+  "name": "@ynx-code/collaboration-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ws": "8.21.3",
+    "yjs": "13.6.27"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

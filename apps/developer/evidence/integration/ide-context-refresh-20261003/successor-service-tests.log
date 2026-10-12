@@ -1,0 +1,15 @@
+✔ approved context changing before proposal prevents Coder dispatch and new saved AI request (45.416459ms)
+✔ workspace changes while semantic memory awaits prevent model dispatch (22.502458ms)
+✔ workspace changes during Coder await prevent proposal and completed saved answer (20.896959ms)
+✔ only server-approved source reaches structured Coder and Reviewer attachments (25.985375ms)
+✔ explicit context refresh recovers changed files without replay and requires new approval (23.998625ms)
+✔ context refresh discards an unapplied proposal but retains history and cannot bypass a write stage (26.273ms)
+✔ context refresh cannot overtake a running model operation (20.65525ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 237.659083

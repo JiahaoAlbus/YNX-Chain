@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "workbenchVersion": "0.3.12",
+  "sourceHashes": {
+    "runtime/ynx-workbench/lib/workspace-keybindings.js": "52126e510da9e04fb3022e6a4857f6ce588ea5b617972d87f1ff146c309fd44f",
+    "runtime/ynx-workbench/lib/user-keybindings.js": "a292d4119435191a43b8fafd7bb7139f50e859e04bd97461112d20f8e21e6403",
+    "runtime/ynx-workbench/lib/keyboard-shortcuts.js": "46926f21f7e228b1bd6cf8b4a537b021e5b9364db60664f8aabfe468b54ee3bb",
+    "runtime/ynx-workbench/lib/frontend-module.js": "bbaa78b0bb69e0bdc1a02e05806fc331d6d08be05aa16fbd1607e2d3237be0ce",
+    "runtime/ynx-workbench/package.json": "9e18f129ce5b20e046c7a836df1711560a5d868bc9d2648c2ec5e0ac5e5b92f5",
+    "runtime/theia/package-lock.json": "c50fdb0ddb8686457ecc2b3b18abdef567d824206ff6bbe78a712bbda6c893eb",
+    "runtime/theia/scripts/workspace-keybindings.browser.mjs": "ddc279199f4a7b52645b9089d6b11232cbb5bbe772f3675243bade77bc58564d"
+  },
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-workspace-keybindings-location-guard-20261004-mac-arm64",
+  "pin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "c50fdb0ddb8686457ecc2b3b18abdef567d824206ff6bbe78a712bbda6c893eb",
+    "treeSha256": "420b29d59b0b06b440f13b6e4d36d0e628101c9d0b4e69b439ac8a22994a2f63",
+    "manifestSha256": "a77e39bb4c7ae24ef3119783ab1959366e0d3f231d16d8f532821715bd90c6f1"
+  },
+  "ownedBuildReceipt": {
+    "workbenchTreeSha256": "957179686f6b38c800598f609311788f8c912c3a87f066d4bc2414f66406fa03",
+    "compiledTreeSha256": "f5bf82f65870551ca9fdbaf4224d815dd9f1181cd38fe10dfc86e757f696ad27",
+    "packageSha256": "b66f42efd3d56ac8b6b690ff99fcc8035fa30c7497b13ccd9331366c4603a9d4",
+    "lockSha256": "c50fdb0ddb8686457ecc2b3b18abdef567d824206ff6bbe78a712bbda6c893eb"
+  },
+  "changes": [
+    "Graphical settings choose User settings or This project; project edits use .vscode/keybindings.json and existing framework WORKSPACE scope above USER and DEFAULT. Raw entries retain their exact scope/index. Editing a lower-scope row creates an override in the selected destination, not a write to the other file.",
+    "Project file is watched inside its existing admitted single local workspace. Malformed JSON retains the last valid keymap; a missing/ambiguous/nonlocal project has no writable destination. Workspace changes clear previous bindings, and URI/generation checks retire stale edit snapshots. Cross-root switch guard is source-reviewed, not exercised against another admitted project.",
+    "Negative project entries expand matching lower USER and DEFAULT conditions. Reset/removal modifies only the selected scope, restoring the underlying bindings. Equal keymaps skip reregistration to avoid mutual reload loops between scope listeners.",
+    "Both scopes preserve JSONC and existing provider etag/mtime writes, reject changed disk snapshots and dirty JSON editors. This does not add a new atomic backend CAS guarantee."
+  ],
+  "verification": {
+    "project": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-FsIufC",
+      "exitCode": 0,
+      "checks": [
+        "Selecting This project and editing an existing user shortcut creates .vscode/keybindings.json, removes the lower user binding only in this project, activates F9 and leaves exact user bytes unchanged.",
+        "Project Reset removes only project overrides/tombstones and restores the real user shortcut, preserving user settings.",
+        "A project binding wins over the same user key and remains active after a real Reload Window; both exact configuration files persist.",
+        "An external project edit while its dialog is open refuses the stale save and retains exact external bytes.",
+        "An actual unsaved project JSON draft blocks graphical writes without changing the disk configuration.",
+        "Malformed project JSON remains available for correction and retains the last valid project keymap.",
+        "Removing the project override restores the actual user binding and leaves its original file unchanged."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "ddc279199f4a7b52645b9089d6b11232cbb5bbe772f3675243bade77bc58564d",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-FsIufC",
+        "rootPid": 23884,
+        "verifiedGroupMembers": [
+          23884,
+          23897,
+          23899
+        ],
+        "ownedMetadata": "23884 23734 23884 Sun Oct  4 15:09:23 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n23897 23884 23884 Sun Oct  4 15:09:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n23899 23884 23884 Sun Oct  4 15:09:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n24426 23884 24426 Sun Oct  4 15:09:53 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "user": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-LDdFmC",
+      "exitCode": 0,
+      "checks": [
+        "Graphical edit replaces one F2 default with F8, explicit Remove handles a separate extension F2 condition, and JSONC comments/arguments remain; F2 is removed and F8 opens real Rename.",
+        "Reset removes the user override and removal entry and restores the actual F2 default, retaining unrelated shortcuts.",
+        "Recording a two-stroke cmd+k cmd+y chord adds an actual Quick Open shortcut without firing the global command while recording.",
+        "A configuration change on disk while the edit dialog is open refuses the stale save and preserves the exact external bytes.",
+        "An unsaved real JSON editor draft blocks graphical writes and preserves both the disk configuration and draft.",
+        "Malformed saved JSON disables graphical mutation, retains its exact bytes and keeps the last valid runtime keymap active.",
+        "Recorded shortcuts persist and execute after real Reload Window; source filtering and standard cmd+k cmd+s work; unassigned private commands are hidden by default but remain available through exact command lookup."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "b31e6805fc53d32c375ff1fd692d1ed07f8e66b68ae16be751f2242b55dad113",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-LDdFmC",
+        "rootPid": 23883,
+        "verifiedGroupMembers": [
+          23883,
+          23898,
+          23900
+        ],
+        "ownedMetadata": "23883 23873 23883 Sun Oct  4 15:09:23 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n23898 23883 23883 Sun Oct  4 15:09:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n23900 23883 23883 Sun Oct  4 15:09:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n24427 23883 24427 Sun Oct  4 15:09:53 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "pre-location-guard-user": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-xzJzt9",
+      "exitCode": 0,
+      "checks": [
+        "Graphical edit replaces one F2 default with F8, explicit Remove handles a separate extension F2 condition, and JSONC comments/arguments remain; F2 is removed and F8 opens real Rename.",
+        "Reset removes the user override and removal entry and restores the actual F2 default, retaining unrelated shortcuts.",
+        "Recording a two-stroke cmd+k cmd+y chord adds an actual Quick Open shortcut without firing the global command while recording.",
+        "A configuration change on disk while the edit dialog is open refuses the stale save and preserves the exact external bytes.",
+        "An unsaved real JSON editor draft blocks graphical writes and preserves both the disk configuration and draft.",
+        "Malformed saved JSON disables graphical mutation, retains its exact bytes and keeps the last valid runtime keymap active.",
+        "Recorded shortcuts persist and execute after real Reload Window; source filtering and standard cmd+k cmd+s work; unassigned private commands are hidden by default but remain available through exact command lookup."
+      ],
+      "pageErrors": [],
+      "runnerSha256": "b31e6805fc53d32c375ff1fd692d1ed07f8e66b68ae16be751f2242b55dad113",
+      "cleanup": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-xzJzt9",
+        "rootPid": 18901,
+        "verifiedGroupMembers": [
+          18901,
+          18939,
+          18940
+        ],
+        "ownedMetadata": "18901 18893 18901 Sun Oct  4 15:06:58 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n18939 18901 18901 Sun Oct  4 15:06:59 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n18940 18901 18901 Sun Oct  4 15:06:59 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n19329 18901 19329 Sun Oct  4 15:07:10 2026     /bin/bash\n",
+        "signal": "SIGTERM",
+        "remainingOwnedPids": []
+      }
+    },
+    "core": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-vTQaQp",
+      "exitCode": 0,
+      "checks": [
+        "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+        "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+        "actual editor save writes the selected project file, confirmed on disk",
+        "the inherited YNX logo and product name render in the actual framework workbench",
+        "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+        "closing and reopening the actual file restores saved disk content",
+        "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+        "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+        "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+        "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+        "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+        "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+        "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+        "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+        "continuing the actual debug session executes the target program, confirmed by its disk output",
+        "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+      ],
+      "pageErrors": [],
+      "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+      "evidence": "apps/developer/.ynx-developer-candidates/workspace-keybindings-core-evidence-20261004",
+      "evidenceIndexSha256": "9a6bc3ad3def3936d11f6d8e242ea6efc1e0e1ae2983070f6e64759991961572"
+    }
+  },
+  "currentCandidateUICheckCount": 30,
+  "jsoncUnitTests": {
+    "passed": 3,
+    "exitCode": 0,
+    "environment": "NODE_PATH points at existing runtime/theia/node_modules; initial unconfigured test could not resolve jsonc-parser and is retained separately, not a product test failure."
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/workspace-keybindings-evidence-20261004",
+  "evidenceIndexSha256": "ce077d701feb1b00a6033263b83fcad07240e68aa996adaeedac77a18c253bc2",
+  "limits": [
+    "Controlled single local macOS project only; no canonical identity/multi-owner/public/other-platform claim.",
+    "Workspace root retirement guard has source evidence only; a real second admitted project needs canonical parent integration.",
+    "Native candidate built from source634ffd2d8; exact distribution checks in COMPOSED_WORKSPACE_KEYBINDINGS_NATIVE_20261004.json. Earlier 0.3.11 checks/packages remain historical.",
+    "Complete When conflict analysis, wider extension compatibility, LLDB launch and normal-user Chain/Wallet/AI acceptance remain incomplete."
+  ]
+}

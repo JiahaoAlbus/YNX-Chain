@@ -1,0 +1,23 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:1e264fcb-45b4-4b21-93dd-a53c0ebc7aed",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-07-18T00:00:00Z",
+    "component": {"type":"application","bom-ref":"pkg:npm/@ynx/developer-web@0.2.0","name":"YNX Developer","version":"0.2.0"}
+  },
+  "components": [
+    {"type":"library","bom-ref":"pkg:npm/@ynx/developer-client@0.2.0","name":"@ynx/developer-client","version":"0.2.0"},
+    {"type":"framework","bom-ref":"pkg:nuget/Microsoft.Web.WebView2@1.0.2903.40","name":"Microsoft.Web.WebView2","version":"1.0.2903.40","scope":"optional"},
+    {"type":"application","bom-ref":"pkg:github/xai-org/grok-build@98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce","name":"grok-build","version":"0.2.102","scope":"optional","licenses":[{"license":{"id":"Apache-2.0"}}],"hashes":[{"alg":"SHA-256","content":"5d9cd70fb23fa2d0ada9b05b8d381b73a50cf535d38a8f0ad00c9d1daf9db31f"}],"properties":[{"name":"ynx:bundled","value":"false"},{"name":"ynx:integration","value":"user-approved ACP sidecar"}]},
+    {"type":"application","bom-ref":"pkg:generic/node@22.17.0?os=windows&arch=x86_64","name":"Node.js Windows runtime","version":"22.17.0","scope":"optional"}
+  ],
+  "dependencies": [
+    {"ref":"pkg:npm/@ynx/developer-web@0.2.0","dependsOn":["pkg:npm/@ynx/developer-client@0.2.0"]},
+    {"ref":"pkg:npm/@ynx/developer-client@0.2.0","dependsOn":[]},
+    {"ref":"pkg:nuget/Microsoft.Web.WebView2@1.0.2903.40","dependsOn":[]},
+    {"ref":"pkg:github/xai-org/grok-build@98c3b2438aa922fbbe6178a5c0a4c48f85edc8ce","dependsOn":[]},
+    {"ref":"pkg:generic/node@22.17.0?os=windows&arch=x86_64","dependsOn":[]}
+  ]
+}

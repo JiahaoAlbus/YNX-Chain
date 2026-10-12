@@ -1,0 +1,2 @@
+a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b  ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip
+289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c  ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip

@@ -1,0 +1,2 @@
+aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05  ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz
+b9ce1089126511bf9921ad991e5b28c4990f91980ce71c0cc8787b7763cb358c  ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-PROVENANCE.json

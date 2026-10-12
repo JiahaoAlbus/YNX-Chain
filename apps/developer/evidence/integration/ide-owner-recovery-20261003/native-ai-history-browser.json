@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "modelCalls": 1,
+  "errors": [],
+  "actualReact": true,
+  "actualChromium": true,
+  "backend": "controlled routes; actual SQLite verified separately",
+  "realModel": false,
+  "public": false
+}

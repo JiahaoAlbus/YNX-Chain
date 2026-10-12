@@ -1,0 +1,156 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {createServer,connect} from 'node:net';import {mkdtemp,mkdir,cp,writeFile,readFile,symlink,lstat} from 'node:fs/promises';import {join} from 'node:path';import {spawn} from 'node:child_process';
+const resources=process.env.YNX_JS_TEST_RESOURCES,qa=process.env.YNX_JS_QA_ROOT;assert.ok(resources&&qa,'Provide the explicit owned component and QA root; never download inputs');
+const desktop=join(resources,'code/apps/developer/desktop');
+// Full candidates keep the verified core in a sealed archive. Its exact
+// retained unpacked source can be selected without modifying App resources.
+const fullCandidateRuntime=process.env.YNX_JS_TEST_RUNTIME;
+// Exercise the current supervisor while retaining the sealed native PTY and
+// workspace-identity dependencies. Never hot-swap a stored component or App.
+const {registerHooks}=await import('node:module');const {pathToFileURL}=await import('node:url');
+const supervisorUrl=fullCandidateRuntime?pathToFileURL(join(desktop,'local-js-debug-session.mjs')).href:new URL('./local-js-debug-session.mjs',import.meta.url).href;
+const supervisorDependencies=registerHooks({resolve(specifier,context,next){if(context.parentURL===supervisorUrl&&['./local-debug-session.mjs','./workspace-path-identity.mjs'].includes(specifier))return next(pathToFileURL(join(desktop,specifier)).href,context);return next(specifier,context);}});
+const {createJsDebugSessionSupervisor,trustedJsNodeAncestor}=await import(supervisorUrl);supervisorDependencies.deregister();
+const {localProjectContext,localWorkbenchPathIdentities,localWorkbenchSandboxPolicy,localWorkbenchEnvironment}=await import(join(desktop,'local-workbench.mjs'));const {createLocalIpcSession}=await import(join(desktop,'local-workbench-ipc.mjs'));
+const delay=ms=>new Promise(ok=>setTimeout(ok,ms));async function until(check){for(let i=0;i<200;i++){if(await check())return;await delay(20);}throw Error('Expected JavaScript lifecycle did not complete');}
+async function fixture(task){const root=await mkdtemp(join(qa,'case-')),project=join(root,'project');await mkdir(project,{mode:0o700});const context=await localProjectContext({supportRoot:join(root,'support'),projectDirectory:project});assert.match(context.id,/^[a-f0-9-]{36}$/);const ipc=await createLocalIpcSession(context);context.ipcTemporary=ipc.path;
+ const plugins=join(context.temporary,'plugins');await mkdir(plugins);await cp(process.env.YNX_JS_TEST_EXTENSION,join(plugins,'ms-vscode.js-debug-1.140.0'),{recursive:true});
+ const pathHelper=join(resources,'runtime/workspace-path-identity');
+ const input={node:process.execPath,lockHelper:fullCandidateRuntime?join(resources,'runtime/ynx-local-workbench-lock'):pathHelper,runtime:{root:fullCandidateRuntime||join(resources,'js-supervisor-runtime')},context,port:43119};const proofs=await localWorkbenchPathIdentities({...input,helper:pathHelper});const policy=localWorkbenchSandboxPolicy({...input,pathIdentities:proofs});const env=localWorkbenchEnvironment(input);const errors=[];
+ const supervisor=await createJsDebugSessionSupervisor({context,plugins,runtime:input.runtime,basePolicy:policy,pathIdentities:proofs,warn:error=>errors.push(error)});
+ try{const launchEnv=localWorkbenchEnvironment({...input,jsDebugSupervisor:supervisor});assert.equal(launchEnv.YNX_JS_DEBUG_PROJECT,context.id);assert.equal(launchEnv.YNX_JS_DEBUG_SOCKET,supervisor.path);assert.equal(launchEnv.YNX_JS_DEBUG_CREDENTIAL,supervisor.credential);assert.equal(launchEnv.YNX_JS_DEBUG_NODE,process.execPath);assert.equal(launchEnv.YNX_JS_DEBUG_LAUNCHER,join(resources,'runtime/local-js-debug-launcher.sh'));await task({root,project,context,ipc,plugins,supervisor,policy,env:launchEnv,errors});assert.deepEqual(errors,[]);}finally{await supervisor.stop();assert.equal(supervisor.activeSessions(),0);assert.equal(await ipc.cleanup(),true);}
+}
+function request(f,value){return new Promise((ok,bad)=>{const socket=connect(f.supervisor.path);socket.setEncoding('utf8');let text='';socket.on('error',bad);socket.once('connect',()=>socket.write(JSON.stringify({credential:f.supervisor.credential,projectId:f.context.id,...value})+'\n'));socket.on('data',data=>{text+=data;const i=text.indexOf('\n');if(i<0)return;const message=JSON.parse(text.slice(0,i));socket.end();message.kind==='error'?bad(Error(message.message)):ok(message);});});}
+async function launch(f,program,mode='internalConsole'){const admission=await request(f,{op:'prepare',console:mode,noDebug:true});const child=spawn('/usr/bin/sandbox-exec',['-p',f.policy,join(resources,'runtime/local-js-debug-launcher.sh'),program],{cwd:f.project,env:{...f.env,YNX_JS_DEBUG_SOCKET:f.supervisor.path,YNX_JS_DEBUG_CREDENTIAL:f.supervisor.credential,YNX_JS_DEBUG_LAUNCH:admission.launchId}});let stdout='',stderr='';child.stdout.on('data',x=>stdout+=x);child.stderr.on('data',x=>stderr+=x);const done=new Promise((ok,bad)=>{child.once('error',bad);child.once('close',(code,signal)=>ok({code,signal,stdout,stderr}));});return{child,done,admission};}
+test('only the real root-admin Applications installation parent admits its system group-write mode',async()=>{
+ const stat=await lstat('/Applications');assert.equal(stat.uid,0);assert.equal(stat.gid,80);assert.equal(stat.mode&0o777,0o775);assert.equal(trustedJsNodeAncestor('/Applications',stat),true);assert.equal(trustedJsNodeAncestor('/untrusted/Applications',stat),false);assert.equal(trustedJsNodeAncestor('/Applications',{...stat,isSymbolicLink:()=>false,isDirectory:()=>true,uid:process.getuid()}),false);
+});
+test('real context UUID, public shell shim and guardian retain actual target exit0/17 after forced group cleanup',async()=>fixture(async f=>{for(const code of [0,17]){const file=join(f.project,'main.js');await writeFile(file,`console.log('REAL_JS',42);process.exit(${code});\n`);const running=await launch(f,file);const result=await running.done;assert.equal(result.code,code,result.stderr);assert.match(result.stdout,/REAL_JS 42/);assert.doesNotMatch(result.stderr,/operation not permitted|Inspector is not active/);await until(()=>f.supervisor.activeSessions()===0);}}));
+test('natural target exit and explicit cancel reap real orphan children ignoring TERM without killing an unrelated process',async()=>fixture(async f=>{
+ const independent=spawn(process.execPath,['-e','setInterval(()=>{},1000)']);try{for(const cancel of [false,true]){const marker=join(f.project,'child.pid'),file=join(f.project,'main.js');await writeFile(file,`const cp=require('node:child_process');const fs=require('node:fs');const child=cp.spawn(process.execPath,['-e',"process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],{detached:${cancel},stdio:'ignore'});setTimeout(()=>{fs.writeFileSync(${JSON.stringify(marker)},String(child.pid));${cancel?'setInterval(()=>{},1000);':"process.exit(0);"}},150);\n`);const running=await launch(f,file);await until(async()=>{try{return(await readFile(marker,'utf8')).length>0;}catch{return false;}});const pid=Number(await readFile(marker,'utf8'));if(cancel)running.child.kill('SIGTERM');const result=await running.done;if(!cancel)assert.equal(result.code,0,result.stderr);await until(()=>{try{process.kill(pid,0);return false;}catch(error){return error.code==='ESRCH';}});process.kill(independent.pid,0);await until(()=>f.supervisor.activeSessions()===0);await writeFile(marker,'');}}
+ finally{independent.kill('SIGTERM');await new Promise(ok=>independent.once('close',ok));}
+}));
+test('real supervisor refuses foreign project/credential, replay and conflicting Inspector endpoints; concurrent admission stays bounded',async()=>fixture(async f=>{
+ await assert.rejects(request(f,{op:'prepare',console:'internalConsole',credential:'0'.repeat(64)}),/admission/);
+ await assert.rejects(request(f,{op:'prepare',console:'internalConsole',projectId:randomUUID()}),/admission/);
+ const admissions=await Promise.allSettled(Array.from({length:12},()=>request(f,{op:'prepare',console:'internalConsole',noDebug:true})));
+ assert.equal(admissions.filter(value=>value.status==='fulfilled').length,8);assert.equal(f.supervisor.activeSessions(),8);
+ for(const value of admissions)if(value.status==='fulfilled')await request(f,{op:'cancel',launchId:value.value.launchId});
+ assert.equal(f.supervisor.activeSessions(),0);
+ const outside=join(f.root,'outside');await mkdir(outside);await writeFile(join(outside,'main.js'),'');await symlink(outside,join(f.project,'alias'));await assert.rejects(request(f,{op:'prepare',console:'internalConsole',program:join(f.project,'alias/main.js')}),/symbolic ancestor|outside/);
+ await assert.rejects(request(f,{op:'prepare',console:'internalConsole',program:join(outside,'main.js')}),/outside/);
+ await assert.rejects(request(f,{op:'prepare',console:'internalConsole',program:'../outside/main.js',cwd:f.project}),/outside/);
+ await writeFile(join(f.project,'relative.js'),'console.log(42);\n');
+ const relativeAdmission=await request(f,{op:'prepare',console:'internalConsole',program:'relative.js',cwd:f.project});
+ assert.equal(relativeAdmission.kind,'prepared');await request(f,{op:'cancel',launchId:relativeAdmission.launchId});
+ const running=await launch(f,'--inspect=0');const result=await running.done;assert.equal(result.code,1);assert.match(result.stderr,/Inspector endpoint conflicts/);await until(()=>f.supervisor.activeSessions()===0);
+ await assert.rejects(request(f,{op:'start',launchId:running.admission.launchId,cwd:f.project,args:[],env:f.env}),/expired|replayed/);
+}));
+import {createRequire} from 'node:module';import {randomUUID} from 'node:crypto';const require=createRequire(import.meta.url);const officialDebugger=require('./local-js-debug-official-fixture.cjs');
+class Dap {
+ constructor(nativeSession){this.nativeSession=nativeSession;this.socket=nativeSession.debugAdapter.socket;this.messages=[];this.seq=0;this.errors=[];this.listeners=[];const {Emitter}=require('../runtime/theia/node_modules/@theia/core/lib/common/event');const incoming=new Emitter(),closing=new Emitter();this.channel={onMessage:incoming.event,onClose:closing.event,send:raw=>{const message=JSON.parse(raw);this.messages.push(message);for(const listener of this.listeners)listener(message);},close:()=>{this.closed=true;closing.fire();incoming.dispose();closing.dispose();}};this.incoming=incoming;this.socket.on('error',error=>this.errors.push(error));nativeSession.start(this.channel);}
+ respond(request,body,error){this.incoming.fire(JSON.stringify({seq:++this.seq,type:'response',request_seq:request.seq,command:request.command,success:!error,body,message:error?.message}));}
+ request(command,args={}){const seq=++this.seq;this.incoming.fire(JSON.stringify({seq,type:'request',command,arguments:args}));return this.wait(message=>message.type==='response'&&message.request_seq===seq);}
+
+ async wait(check){for(let i=0;i<500;i++){const value=this.messages.find(check);if(value)return value;await delay(20);}throw Error('Actual official DAP timed out: '+JSON.stringify(this.messages.filter(message=>message.event!=='loadedSource'&&!(message.event==='output'&&message.body.category==='telemetry')).map(message=>message.command==='runInTerminal'?{...message,arguments:{...message.arguments,env:'[redacted]'}}:message)));}
+ event(name,after=0){return this.wait(message=>this.messages.indexOf(message)>=after&&message.type==='event'&&message.event===name);}
+}
+test('official public config provider/NamedPipe launch reaches real breakpoint, variables, step and actual normal exit',async()=>fixture(async f=>{
+ const savedEnvironment=new Map(Object.keys(f.env).map(key=>[key,process.env[key]]));for(const [key,value] of Object.entries(f.env))if(value!==undefined)process.env[key]=value;process.env.TMPDIR=f.ipc.path;let official;const clients=[];const children=[];
+ const file=join(f.project,'main.js');await writeFile(file,'let value = 41;\nvalue += 1;\nconsole.log("OFFICIAL_JS", value);\n');
+ const terminals=[];let terminalOutput='';const {loadSealedDebugPty}=await import(join(desktop,'local-debug-session.mjs'));const pty=await loadSealedDebugPty();const terminalHost={all:[],open(){},async newTerminal(options){let ownOutput='';const zsh=process.env.YNX_JS_TEST_SHELL==='zsh',shell=zsh?'/bin/zsh':'/bin/bash';const {TerminalWidgetImpl}=require('../runtime/theia/node_modules/@theia/terminal/lib/browser/terminal-widget-impl');const {ShellCommandBuilder}=require('../runtime/theia/node_modules/@theia/process/lib/common/shell-command-builder');const child=pty.spawn('/usr/bin/sandbox-exec',['-p',f.policy,shell,...(zsh?['-f']:['--noprofile','--norc'])],{cwd:f.project,env:{...f.env,...options.env,PS1:'YNX_ACTUAL_READY> '},cols:80,rows:24});if(shell==='/bin/bash')require('../runtime/ynx-workbench/lib/macos-bash-input').paceBashInput(child);let terminalExited=false;const record={child,closed:new Promise(ok=>child.onExit(event=>{terminalExited=true;ok(event);}))};terminals.push(record);const widget=new TerminalWidgetImpl();record.widget=widget;widget.title.label=options.title;widget._terminalId=1;widget.shellTerminalServer={getProcessId:async()=>child.pid,getProcessInfo:async()=>({executable:shell}),close:async terminalId=>{assert.equal(terminalId,1);if(!terminalExited)child.kill();await record.closed;}};widget.shellCommandBuilder=new ShellCommandBuilder();widget.resetCommandOutputMarker=()=>{};widget.start=async()=>until(()=>ownOutput.includes('YNX_ACTUAL_READY> '));widget.sendText=text=>child.write(text);widget.hasChildProcesses=async()=>true;widget.resize=(cols,rows)=>child.resize(cols,rows);widget.closed=record.closed;child.onData(data=>{ownOutput+=data;terminalOutput+=data;});terminalHost.all.push(widget);return widget;}};
+ const environment={...f.env,YNX_JS_DEBUG_SOCKET:f.supervisor.path,YNX_JS_DEBUG_CREDENTIAL:f.supervisor.credential,YNX_JS_DEBUG_PROJECT:f.context.id,YNX_JS_DEBUG_NODE:process.execPath,YNX_JS_DEBUG_LAUNCHER:join(resources,'runtime/local-js-debug-launcher.sh')};
+ async function start(configuration,parentSession){const session={id:randomUUID(),configuration,name:configuration.name,type:configuration.type,workspaceFolder:{uri:require('../runtime/theia/node_modules/vscode-uri').URI.file(f.project),name:'Actual JS project',index:0},parentSession};const {descriptor,realSession}=await official.descriptor(session);assert.equal(descriptor.constructor.name,'DebugAdapterNamedPipeServer');const client=new Dap(realSession);clients.push(client);session.customRequest=async(command,args)=>{const response=await client.request(command,args);if(!response.success)throw Error(response.message);return response.body;};const initialized=await client.request('initialize',{clientID:'ynx-real-js-qa',adapterID:'pwa-node',linesStartAt1:true,columnsStartAt1:true,pathFormat:'path',supportsVariableType:true,supportsRunInTerminalRequest:true});assert.equal(initialized.success,true);official.bindFrontend(session,client,initialized.body);
+ const launched=client.request('launch',configuration);await client.event('initialized');assert.equal((await client.request('setBreakpoints',{source:{path:file},breakpoints:[{line:2}]})).success,true);assert.equal((await client.request('configurationDone')).success,true);assert.equal((await launched).success,true);await official.native.$sessionDidStart(session.id);return{client,session};}
+ try{official=await officialDebugger({extension:join(f.plugins,'ms-vscode.js-debug-1.140.0'),project:f.project,environment,terminalHost,onStart:async(folder,configuration,options)=>{const parent=official.native.sessions.get(options.parentSessionId);const promise=start({...configuration,...options},parent);children.push(promise);await promise;return true;}});
+ // Native notification promises remain pending until a user dismisses them.
+ // Leaving them open must not prevent ordinary launch or error cancellation.
+ official.api.window.showInformationMessage=message=>{official.notifications.push(message);return new Promise(()=>{});};
+ official.api.window.showErrorMessage=message=>{official.notifications.push(message);return new Promise(()=>{});};
+ // Current-file UI command hands its untouched transient configuration through
+ // the same official provider, NamedPipe descriptor and native DAP transport.
+ const {createJsCurrentFile}=require('../native/ynx-tools/src/js-current-file.cjs');
+ const sourceUri=require('../runtime/theia/node_modules/vscode-uri').URI.file(file);
+ const currentFolder={uri:require('../runtime/theia/node_modules/vscode-uri').URI.file(f.project)};
+ const document={uri:sourceUri,languageId:'javascript',save:async()=>true};
+ let currentLaunch;
+ const currentFileApi={workspace:{isTrusted:true,getWorkspaceFolder:()=>currentFolder},window:{activeTextEditor:{document}},extensions:{getExtension:id=>id==='ms-vscode.js-debug'?{activate:async()=>{}}:undefined},debug:{startDebugging:async(folder,config,options)=>{
+  assert.equal(folder,currentFolder);assert.equal(config.program,file);assert.equal(config.cwd,f.project);assert.equal(config.noDebug,options.noDebug);
+  const resolved=await official.resolve(config);assert.ok(resolved.__ynxJsLaunch);assert.equal(resolved.runtimeExecutable,environment.YNX_JS_DEBUG_LAUNCHER);
+  currentLaunch=await start(resolved);return true;
+ }}};
+ const runCurrent=createJsCurrentFile(currentFileApi,environment);
+ for(const noDebug of [true,false]){
+  const before=children.length,outputBefore=terminalOutput.length;
+  assert.equal(await runCurrent(noDebug),true);
+  if(!noDebug){await until(()=>children.length>before);const target=await children[before];const pause=await target.client.event('stopped');assert.equal(pause.body.reason,'breakpoint');assert.equal((await target.client.request('continue',{threadId:pause.body.threadId})).success,true);await target.client.event('terminated');await official.native.$sessionDidDestroy(target.session.id);}
+  if(noDebug){await until(()=>currentLaunch.client.closed);assert.ok(currentLaunch.client.messages.some(message=>message.command==='disconnect'&&message.success));await until(()=>!official.native.sessions.has(currentLaunch.session.id));}else await currentLaunch.client.event('terminated');await until(()=>f.supervisor.activeSessions()===0);
+  await until(()=>terminalOutput.slice(outputBefore).includes('OFFICIAL_JS'));
+  assert.match(terminalOutput.slice(outputBefore).replace(/\x1b\[[0-9;]*m/g,''),/OFFICIAL_JS\s+42/);
+  await official.native.$sessionDidDestroy(currentLaunch.session.id);await official.drain();
+  console.log('CURRENT_FILE_CONFIRMED '+(noDebug?'run':'debug')+' terminalOutput=42 sessions=0');
+ }
+ // Explicit Stop must cancel the admitted process, never the terminal shell.
+ await writeFile(file,'console.log("CURRENT_STOP_READY");setInterval(()=>{},1000);\n');
+ const stopOutput=terminalOutput.length;assert.equal(await runCurrent(true),true);
+ await until(()=>terminalOutput.slice(stopOutput).includes('CURRENT_STOP_READY'));
+ const stoppedSession=currentLaunch;await official.stop(stoppedSession.session);
+ await until(()=>stoppedSession.client.closed&&!official.native.sessions.has(stoppedSession.session.id));
+ await until(()=>f.supervisor.activeSessions()===0);process.kill(terminals.at(-1).child.pid,0);
+ await official.drain();
+ await writeFile(file,'let value = 41;\nvalue += 1;\nconsole.log("OFFICIAL_JS", value);\n');
+ console.log('CURRENT_FILE_CONFIRMED stop sessions=0 terminalStillAlive=true');
+ const resolvePromptly=configuration=>Promise.race([official.resolve(configuration),delay(1500).then(()=>{throw Error('Native resolver waited for notification dismissal');})]);
+ const userPreload=join(f.project,'user preload.cjs');
+ await writeFile(userPreload,"console.log('USER_PRELOAD_RETAINED', process.env.NODE_OPTIONS.includes('--no-warnings'), process.env.NODE_OPTIONS.includes('/src/bootloader.js'), Boolean(process.env.VSCODE_INSPECTOR_OPTIONS));\n");
+ for(const type of ['node','pwa-node']) {
+  const config=await resolvePromptly({type,request:'launch',name:'Run without debugging '+type,skipFiles:['<node_internals>/**'],program:file,cwd:f.project,noDebug:true,env:{NODE_OPTIONS:`--require "${userPreload}" --no-warnings`}});
+  assert.equal(config.outputCapture,'std');
+  assert.ok(config.__ynxJsLaunch,'Run Without Debugging must use the supervisor');
+  const childCount=children.length;
+  const running=await start(config);await running.client.event('terminated');
+  assert.ok(running.client.messages.some(message=>message.event==='output'&&message.body.output.includes('OFFICIAL_JS 42')),'Run Without Debugging must retain actual stdout');
+  assert.doesNotMatch(running.client.messages.filter(message=>message.event==='output').map(message=>message.body.output).join(''),/ERR_INSPECTOR_NOT_ACTIVE|Starting inspector .*failed|Error in js-debug bootloader/);
+  assert.match(running.client.messages.filter(message=>message.event==='output').map(message=>message.body.output).join(''),/USER_PRELOAD_RETAINED true false false/);
+  assert.equal(children.length,childCount,'Run Without Debugging must not create an Inspector child session');
+  await until(()=>f.supervisor.activeSessions()===0);await official.native.$sessionDidDestroy(running.session.id);await official.drain();
+  console.log('OFFICIAL_DAP_CONFIRMED noDebug '+type+' output=42 sessions=0');
+ }
+ const configuration=await official.resolve({type:'pwa-node',request:'launch',name:'Actual ordinary JS',program:file,cwd:f.project,console:'internalConsole',runtimeExecutable:process.execPath,autoAttachChildProcesses:false});
+ const ordinaryBefore=children.length;const root=await start(configuration);await until(()=>children.length>ordinaryBefore);const child=await children[ordinaryBefore];const stopped=await child.client.event('stopped');assert.equal(stopped.body.reason,'breakpoint');const stack=await child.client.request('stackTrace',{threadId:stopped.body.threadId});assert.equal(stack.success,true);assert.equal(stack.body.stackFrames[0].line,2);const frameId=stack.body.stackFrames[0].id;const scopes=await child.client.request('scopes',{frameId});let found=false;for(const scope of scopes.body.scopes){const vars=await child.client.request('variables',{variablesReference:scope.variablesReference});found ||= vars.body.variables.some(variable=>variable.name==='value'&&variable.value==='41');}assert.equal(found,true);
+ const stepCursor=child.client.messages.length;assert.equal((await child.client.request('next',{threadId:stopped.body.threadId})).success,true);const stepped=await child.client.event('stopped',stepCursor);const stackAfter=await child.client.request('stackTrace',{threadId:stepped.body.threadId});assert.equal(stackAfter.body.stackFrames[0].line,3);const afterScopes=await child.client.request('scopes',{frameId:stackAfter.body.stackFrames[0].id});let value42=false;for(const scope of afterScopes.body.scopes){const vars=await child.client.request('variables',{variablesReference:scope.variablesReference});value42 ||= vars.body.variables.some(variable=>variable.name==='value'&&variable.value==='42');}assert.equal(value42,true);console.log('OFFICIAL_DAP_CONFIRMED breakpointLine=2 value=41 stepLine=3 value=42');
+ assert.equal((await child.client.request('continue',{threadId:stepped.body.threadId})).success,true);await child.client.event('terminated');await root.client.event('terminated');assert.ok(clients.flatMap(client=>client.messages).some(message=>message.event==='output'&&message.body.output.includes('OFFICIAL_JS 42')));await until(()=>f.supervisor.activeSessions()===0);
+ for(const kind of ['stop','retry','integrated']){
+  await writeFile(file,'let value = 41;\nvalue += 1;\nconsole.log("OFFICIAL_JS", value);\n'+(kind==='stop'?'setInterval(()=>{},1000);\n':''));
+  const before=children.length;const config=await official.resolve({type:'pwa-node',request:'launch',name:'Ordinary '+kind,program:file,cwd:f.project,console:kind==='integrated'?'integratedTerminal':'internalConsole',runtimeExecutable:process.execPath});
+  assert.equal(config.autoAttachChildProcesses,false);assert.ok(official.notifications.some(message=>message.includes('one Node process')));
+  const parent=await start(config);await until(()=>children.length>before);const current=await children[before];const pause=await current.client.event('stopped');assert.equal(pause.body.reason,'breakpoint');
+  if(kind==='stop'){assert.equal(current.session.configuration.lifecycleManagedByParent,true);await official.stop(current.session);}
+  else{assert.equal((await current.client.request('continue',{threadId:pause.body.threadId})).success,true);}
+  if(kind==='stop'){await until(()=>parent.client.closed);assert.ok(parent.client.messages.some(message=>message.type==='response'&&message.command==='disconnect'&&message.success));}else await parent.client.event('terminated');await until(()=>f.supervisor.activeSessions()===0);
+  await official.native.$sessionDidDestroy(current.session.id);await official.native.$sessionDidDestroy(parent.session.id);await official.drain();
+  if(kind==='integrated'){assert.ok(terminals.length>0);terminals.at(-1).widget.resize(101,37);assert.match(terminalOutput.replace(/\x1b\[[0-9;]*m/g,''),/OFFICIAL_JS\s+42/);assert.ok(parent.client.messages.some(message=>message.type==='request'&&message.command==='runInTerminal'));}console.log('OFFICIAL_DAP_CONFIRMED '+kind+' sessions=0');
+ }
+ assert.deepEqual(official.frameworkErrors,[]);
+ for(const type of ['node','pwa-node']){
+  const rejected={type,request:'launch',name:'Explicit children retained',program:file,cwd:f.project,console:'internalConsole',autoAttachChildProcesses:true};
+  assert.equal(await resolvePromptly(rejected),null,'Native resolver must cancel explicit child debugging, not fall back');assert.equal(rejected.autoAttachChildProcesses,true);
+  assert.equal(await resolvePromptly({...rejected,autoAttachChildProcesses:false,runtimeExecutable:'/untrusted/node'}),null,'Native resolver must cancel unapproved runtimes');
+ }
+ assert.ok(official.notifications.some(message=>message.includes('Child-process debugging')));assert.ok(official.notifications.some(message=>message.includes('bundled Node runtime')));assert.deepEqual(official.frameworkErrors,[]);assert.equal(f.supervisor.activeSessions(),0);
+ const held=[];try{
+  for(let index=0;index<8;index++)held.push(await request(f,{op:'prepare',console:'internalConsole',noDebug:true}));
+  assert.equal(await resolvePromptly({type:'node',request:'launch',name:'Admission denied',program:file,cwd:f.project,noDebug:true}),null,'Supervisor refusal must stop the native chain, never restore the raw Node configuration');
+  assert.ok(official.notifications.some(message=>message.includes('admission is unavailable')));assert.deepEqual(official.frameworkErrors,[]);
+ }finally{for(const entry of held)await request(f,{op:'cancel',launchId:entry.launchId});}
+ assert.equal(f.supervisor.activeSessions(),0);
+ }catch(error){console.error('OFFICIAL_DAP_FAILURE',error,'SUPERVISOR',JSON.stringify(f.supervisor.sessionStates()),'FRAMEWORK',JSON.stringify(official?.frameworkErrors),'TERMINAL_TAIL',terminalOutput.slice(-160).replace(/[a-f0-9]{64}/g,'[redacted]'),'TERMINAL_ERRORS',JSON.stringify(terminalOutput.split('\n').filter(line=>/^(?:env:|bash:|Local JavaScript|Local JavaScript supervisor|JavaScript supervisor)/.test(line))));throw error;}finally{for(const client of [...clients].reverse()){if(!client.socket.destroyed&&!client.socket.readableEnded&&!client.messages.some(message=>message.event==='terminated'))await Promise.race([client.request('disconnect',{terminateDebuggee:true}),delay(1000)]).catch(()=>{});}await official?.dispose();for(const terminal of terminals){terminal.child.kill();await terminal.closed;}for(const client of clients){client.socket.destroy();assert.deepEqual(client.errors,[]);}for(const [key,value] of savedEnvironment){if(value===undefined)delete process.env[key];else process.env[key]=value;}}
+}));
+test('real supervisor observation is project-bound, unique and closes on cancellation before any target starts',async()=>fixture(async f=>{
+ const {observeLocalJsLaunch}=require('../runtime/ynx-workbench/lib/local-js-launch-observer');
+ const admission=await request(f,{op:'prepare',console:'integratedTerminal',noDebug:true});
+ const env={...f.env,YNX_JS_DEBUG_SOCKET:f.supervisor.path,YNX_JS_DEBUG_CREDENTIAL:f.supervisor.credential,YNX_LOCAL_PROJECT_ID:f.context.id};
+ await assert.rejects(observeLocalJsLaunch({...env,YNX_JS_DEBUG_CREDENTIAL:'0'.repeat(64)},admission.launchId,()=>assert.fail()),/refused/);
+ let end;const ended=new Promise(ok=>end=ok);const observer=await observeLocalJsLaunch(env,admission.launchId,end);
+ await assert.rejects(observeLocalJsLaunch(env,admission.launchId,()=>assert.fail()),/refused/);
+ await request(f,{op:'cancel',launchId:admission.launchId});assert.deepEqual(await ended,{code:null,cancelled:true});observer.dispose();assert.equal(f.supervisor.activeSessions(),0);
+}));

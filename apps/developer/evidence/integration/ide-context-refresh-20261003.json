@@ -1,0 +1,60 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "cc3ee127bd34c5557db750723e224deea9d82eef",
+  "changes": {
+    "explicitCurrentContextReview": true,
+    "revokesOldFileApprovalsAndUnappliedProposal": true,
+    "keepsUsageSavedRequestsEventsTrash": true,
+    "noAutomaticModelReplayOrWrite": true,
+    "reconcilesPlannedPathsAgainstCurrentOwnedRevision": true,
+    "cannotOvertakeRunningOperation": true,
+    "cannotResetAppliedStage": true
+  },
+  "verification": {
+    "serviceTests": {
+      "pass": 94,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-context-refresh-20261003/service-tests.log"
+    },
+    "panelBrowser": {
+      "checks": 11,
+      "pass": true
+    },
+    "recoveryBrowser": {
+      "checks": 12,
+      "pass": true
+    },
+    "typescript": {
+      "exitCode": 0
+    },
+    "frontendBuild": {
+      "exitCode": 0,
+      "warning": "Existing large chunks"
+    },
+    "staticCheck": {
+      "exitCode": 0
+    },
+    "buildInputs": 71,
+    "scope": "Actual loopback HTTP/SQLite and React/Chromium; controlled model and browser routes",
+    "originalFailuresPreserved": true,
+    "fixtureCorrection": "Additional Planner path fixture used empty steps, rejected by existing plan validator; corrected to a real step. Original failure retained.",
+    "testServerStopped": {
+      "pid": 60004,
+      "signal": "SIGTERM"
+    }
+  },
+  "limits": {
+    "configuredRealModel": false,
+    "formalPublication": false,
+    "fullWorkbenchJourney": "NOT_RUN",
+    "installedUserAcceptance": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  }
+}

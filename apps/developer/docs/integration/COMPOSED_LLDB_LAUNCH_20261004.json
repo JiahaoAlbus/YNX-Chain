@@ -1,0 +1,58 @@
+{
+  "schema": "ynx-composed-lldb-launch-investigation/v1",
+  "sourceBaseHead": "24fa0ca2d6cae4438d2c887bec7ddf3147efa646",
+  "sourceSha256": {
+    "runtime/theia/scripts/stage-lldb-extension.mjs": "d3305ba5c54c7fb588772979d55cdee27ffd695af001dfad02ebfaceea3a92ef",
+    "runtime/theia/scripts/package-runtime.mjs": "83a130b86441316c10d4651cd9a5aff53f90a7ec7ab4f2b7fb4d277f14c7b635",
+    "runtime/theia/scripts/cpp-debug.browser.mjs": "60adec3940b48e913d4490fd3a67989207963dadcb50927c5782aa22b47a5673"
+  },
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-lldb-20261004-mac-arm64",
+  "runtimeArtifact": {
+    "lockSha256": "3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c",
+    "treeSha256": "4fb8d33045613d1d99bedc6106591b14bc3175f3992b15bb6d1e3a655aca012d",
+    "manifestSha256": "56f067c5bc54c384322dd8b93c8b605c3fdfb568b9ed1f4fefa48412678a5b62"
+  },
+  "extension": {
+    "name": "llvm-vs-code-extensions.lldb-dap",
+    "version": "0.4.1",
+    "license": "Apache 2.0 License with LLVM exceptions",
+    "vsixSha256": "cd7820868f6a562ece369c5cc0ffa84b7a9459457137f13c7c4e45f304935453",
+    "payloadTreeSha256": "cb9b0874c243d67bd0c2d7a09d4e9b3a680bd4772f6c418c834cb460a00f1666",
+    "source": "Existing cached unchanged VSIX; no package download or lifecycle script."
+  },
+  "verified": [
+    "Offline extension staging and composed packaging completed.",
+    "Actual editor extension registers the lldb-dap configuration provider.",
+    "Standard launch.json preLaunchTask invokes real Clang++ with debug symbols and creates the native target.",
+    "DAP initialize returns success.",
+    "Direct protocol diagnosis with the identical sandbox also reproduces launch without a response.",
+    "LLDB starts the own target and Apple debugserver; debugserver exchanges packets over an inherited file descriptor.",
+    "Debugserver reaches vAttach and logs about to task_for_pid(10080); no result before the bounded diagnosis stops."
+  ],
+  "notVerified": [
+    "C++ source breakpoint, variables, step and continue",
+    "Specific cause of pending task_for_pid",
+    "Canonical admission, Wallet/Chain/AI full user journey",
+    "Native install/launch, signing/notarization and other platforms"
+  ],
+  "cleanup": {
+    "diagnosticPids": [
+      7105,
+      8306,
+      8307,
+      8308,
+      10050,
+      10080,
+      10081
+    ],
+    "psReadback": "All listed diagnostic PIDs absent after exact own process cleanup. Editor QA backend 88206 remains separate and live.",
+    "targetProof": "No successful program-output assertion."
+  },
+  "sample": {
+    "status": "timeout",
+    "reason": "sample observation exceeded 5 seconds; no stack evidence is claimed."
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/lldb-launch-evidence-20261004",
+  "evidenceIndexSha256": "e76b703c7df5f797337d4befbfabe011ade26d881ca7a5bbc7011973dc088215",
+  "scope": "Controlled own-project Mac diagnosis only. Existing sandbox, file roots and network rules unchanged; no OS security setting changed. Candidate not selected as a completed C++ debug release. Previously verified C++ candidate remains preserved."
+}

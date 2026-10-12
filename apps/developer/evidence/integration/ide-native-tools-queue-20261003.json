@@ -1,0 +1,61 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "1c72806d39448b584d88cc3085e236f62b400949",
+  "changes": {
+    "nativeToolsDispatchIdentityCallback": true,
+    "identityReferenceBound": true,
+    "expiryRecheckedAtDispatchAndCompletion": true,
+    "noOverlappingPeriodicIdentityChecks": true,
+    "noQueuedPrivateContextAfterRetirement": true,
+    "oneUseApprovalPreserved": true
+  },
+  "verification": {
+    "serviceChecks": {
+      "pass": 86,
+      "fail": 0,
+      "skip": 0,
+      "log": "ide-native-tools-queue-20261003/service-tests.log"
+    },
+    "newQueuedCases": [
+      "account change",
+      "project change",
+      "identity reference change",
+      "revocation",
+      "expiry",
+      "unchanged admission succeeds"
+    ],
+    "queue": "Actual existing model scheduler with one occupied slot; actual loopback HTTP upstream and Tools HTTP with encrypted SQLite store",
+    "baseline": {
+      "fail": 5,
+      "pass": 17,
+      "log": "ide-native-tools-queue-20261003/baseline-tests.log",
+      "finding": "Retired private context reached upstream; expiry and changed reference could accept a late answer"
+    },
+    "staticCheck": {
+      "exitCode": 0
+    },
+    "frontendBuild": {
+      "mode": "Reused exact unchanged prior build",
+      "verifiedInputs": 71,
+      "artifactSHA256": "a1d63d33f5b8fe899084bf521586df093102bab19e94eb9bea1a0a641f49de95"
+    },
+    "fixtureCorrections": [
+      "Use existing router.catalog() capacity API, not nonexistent router.status()",
+      "Positive unchanged case performs no identity transition"
+    ],
+    "originalFailuresPreserved": true
+  },
+  "limits": {
+    "configuredRealModel": false,
+    "formalPublication": false,
+    "fullWorkbenchJourney": "NOT_RUN",
+    "installedUserAcceptance": "NOT_RUN",
+    "capacityVerified": false,
+    "monster": "NOT_RUN",
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  }
+}

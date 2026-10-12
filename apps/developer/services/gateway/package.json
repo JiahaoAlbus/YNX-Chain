@@ -1,0 +1,26 @@
+{
+  "name": "@ynx-code/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@ynx-code/chain-service": "0.1.0",
+    "@ynx-code/collaboration-service": "0.1.0",
+    "@ynx-code/debug-service": "0.1.0",
+    "@ynx-code/extension-registry": "0.1.0",
+    "@ynx-code/git-service": "0.1.0",
+    "@ynx-code/language-service": "0.1.0",
+    "@ynx-code/runtime-profile-service": "0.1.0",
+    "@ynx-code/terminal-service": "0.1.0",
+    "@ynx-code/wallet-readiness": "0.1.0",
+    "@ynx-code/workspace-agent": "0.1.0",
+    "@ynx-code/workspace-manager": "0.1.0"
+  },
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

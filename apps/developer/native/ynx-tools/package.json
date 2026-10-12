@@ -1,0 +1,375 @@
+{
+  "name": "ynx-tools",
+  "displayName": "%displayName%",
+  "publisher": "ynx",
+  "version": "0.2.35",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "license": "MIT",
+  "icon": "ynx-logo.png",
+  "main": "./src/extension.cjs",
+  "activationEvents": [
+    "onLanguage:solidity",
+    "onCommand:ynx.reviewSelection",
+    "onStartupFinished",
+    "onCommand:ynx.configurePython",
+    "onCommand:ynx.js.runActive",
+    "onCommand:ynx.js.debugActive",
+    "onView:ynx.contracts",
+    "onView:ynx.network",
+    "onView:ynx.review",
+    "onView:ynx.chainResults",
+    "onCommand:ynx.ts.runActive",
+    "onCommand:ynx.ts.debugActive",
+    "onCommand:ynx.chain.status",
+    "onCommand:ynx.chain.capabilities",
+    "onCommand:ynx.chain.balance",
+    "onCommand:ynx.chain.transaction"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ynx-network",
+          "title": "%container.network%",
+          "icon": "activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "ynx-network": [
+        {
+          "id": "ynx.network",
+          "name": "%view.network%"
+        },
+        {
+          "id": "ynx.chainResults",
+          "name": "%view.chainResults%"
+        }
+      ],
+      "explorer": [
+        {
+          "id": "ynx.contracts",
+          "name": "%view.contracts%"
+        }
+      ],
+      "scm": [
+        {
+          "id": "ynx.review",
+          "name": "%view.review%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "ynx.createSolidityTemplate",
+        "title": "%command.ynx.createSolidityTemplate%"
+      },
+      {
+        "command": "ynx.testnetConfiguration",
+        "title": "%command.ynx.testnetConfiguration%"
+      },
+      {
+        "command": "ynx.compileSolidity",
+        "title": "%command.ynx.compileSolidity%",
+        "icon": "$(tools)"
+      },
+      {
+        "command": "ynx.copySolidityProject",
+        "title": "%command.ynx.copySolidityProject%"
+      },
+      {
+        "command": "ynx.openTools",
+        "title": "%command.ynx.openTools%"
+      },
+      {
+        "command": "ynx.copyContext",
+        "title": "%command.ynx.copyContext%"
+      },
+      {
+        "command": "ynx.createTemplate",
+        "title": "%command.ynx.createTemplate%"
+      },
+      {
+        "command": "ynx.applyReviewedDiff",
+        "title": "%command.ynx.applyReviewedDiff%"
+      },
+      {
+        "command": "ynx.reviewSelection",
+        "title": "%command.ynx.reviewSelection%"
+      },
+      {
+        "command": "ynx.importSolidityDiagnostics",
+        "title": "%command.ynx.importSolidityDiagnostics%"
+      },
+      {
+        "command": "ynx.solidityAnalysisStatus",
+        "title": "%command.ynx.solidityAnalysisStatus%"
+      },
+      {
+        "command": "ynx.openLocalReview",
+        "title": "%command.ynx.openLocalReview%"
+      },
+      {
+        "command": "ynx.configurePython",
+        "title": "%command.ynx.configurePython%"
+      },
+      {
+        "command": "ynx.chainProject",
+        "title": "%command.ynx.chainProject%"
+      },
+      { "command": "ynx.chain.status", "title": "%command.chain.status%" },
+      { "command": "ynx.chain.capabilities", "title": "%command.chain.capabilities%" },
+      { "command": "ynx.chain.balance", "title": "%command.chain.balance%" },
+      { "command": "ynx.chain.transaction", "title": "%command.chain.transaction%" },
+      {
+        "command": "ynx.configureChainProject",
+        "title": "%command.ynx.configureChainProject%"
+      },
+      {
+        "command": "ynx.chainProjectHistory",
+        "title": "%command.ynx.chainProjectHistory%"
+      },
+      {
+        "command": "ynx.trackChainTransaction",
+        "title": "%command.ynx.trackChainTransaction%"
+      },
+      {
+        "command": "ynx.configureSolidityBuild",
+        "title": "%command.ynx.configureSolidityBuild%"
+      },
+      {
+        "command": "ynx.cancelSolidityBuild",
+        "title": "%command.ynx.cancelSolidityBuild%"
+      },
+      {
+        "command": "ynx.js.runActive",
+        "title": "%command.ynx.js.runActive%"
+      },
+      {
+        "command": "ynx.js.debugActive",
+        "title": "%command.ynx.js.debugActive%"
+      },
+      {
+        "command": "ynx.evm.build",
+        "title": "%command.ynx.evm.build%"
+      },
+      {
+        "command": "ynx.evm.test",
+        "title": "%command.ynx.evm.test%"
+      },
+      {
+        "command": "ynx.evm.cancel",
+        "title": "%command.ynx.evm.cancel%"
+      },
+      {
+        "command": "ynx.chainResults.refresh",
+        "title": "%command.chainResults.refresh%",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "ynx.chainResults.open",
+        "title": "%command.chainResults.open%"
+      },
+      {
+        "command": "ynx.ts.runActive",
+        "title": "%command.runTs%",
+        "category": "YNX"
+      },
+      {
+        "command": "ynx.ts.debugActive",
+        "title": "%command.debugTs%",
+        "category": "YNX"
+      },
+      {
+        "command": "ynx.ts.cancel",
+        "title": "%command.cancelTs%",
+        "category": "YNX"
+      },
+      {
+        "command": "ynx.ai.open",
+        "title": "%command.ynx.ai.open%"
+      }
+    ],
+    "jsonValidation": [
+      {
+        "fileMatch": [
+          "**/keybindings.json"
+        ],
+        "url": "./schemas/keybindings.schema.json"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ynx.compileSolidity",
+          "when": "resourceScheme == file && resourceExtname == .sol",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.reviewSelection",
+          "when": "ynx.hasSelection && resourceScheme == file",
+          "group": "ynx@1"
+        },
+        {
+          "command": "ynx.copySolidityProject",
+          "when": "resourceScheme == file && resourceExtname == .sol",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.applyReviewedDiff",
+          "when": "resourceScheme == file",
+          "group": "ynx@3"
+        },
+        {
+          "command": "ynx.importSolidityDiagnostics",
+          "when": "resourceScheme == file && resourceExtname == .sol",
+          "group": "ynx@4"
+        },
+        {
+          "command": "ynx.js.runActive",
+          "when": "resourceScheme == file && editorLangId == javascript",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.js.debugActive",
+          "when": "resourceScheme == file && editorLangId == javascript",
+          "group": "ynx@2"
+        },
+        {
+          "command": "ynx.ts.runActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)",
+          "group": "ynx-ts@0"
+        },
+        {
+          "command": "ynx.ts.debugActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)",
+          "group": "ynx-ts@1"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "ynx.js.runActive",
+          "when": "resourceScheme == file && editorLangId == javascript"
+        },
+        {
+          "command": "ynx.js.debugActive",
+          "when": "resourceScheme == file && editorLangId == javascript"
+        },
+        {
+          "command": "ynx.ts.runActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+        },
+        {
+          "command": "ynx.ts.debugActive",
+          "when": "resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "ynx.compileSolidity",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "navigation@20"
+        },
+        {
+          "command": "ynx.evm.build",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "ynx-project@1"
+        },
+        {
+          "command": "ynx.evm.test",
+          "when": "resourceScheme == file && editorLangId == solidity",
+          "group": "ynx-project@2"
+        },
+        {
+          "command": "ynx.reviewSelection",
+          "when": "ynx.hasSelection && resourceScheme == file",
+          "group": "ynx-review@1"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "ynx.chainResults.refresh",
+          "when": "view == ynx.chainResults",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "ynx.reviewSelection",
+        "key": "ctrl+k ctrl+y",
+        "mac": "cmd+k cmd+y",
+        "when": "editorTextFocus && editorHasSelection && resourceScheme == file"
+      },
+      {
+        "command": "ynx.ts.runActive",
+        "key": "ctrl+f5",
+        "mac": "ctrl+f5",
+        "when": "editorTextFocus && resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+      },
+      {
+        "command": "ynx.ts.debugActive",
+        "key": "f5",
+        "when": "editorTextFocus && resourceScheme == file && (editorLangId == typescript || editorLangId == typescriptreact)"
+      }
+    ],
+    "languages": [
+      {
+        "id": "solidity",
+        "aliases": [
+          "Solidity",
+          "solidity"
+        ],
+        "extensions": [
+          ".sol"
+        ],
+        "configuration": "./languages/solidity-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "solidity",
+        "scopeName": "source.solidity",
+        "path": "./languages/solidity.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "solidity",
+        "path": "./languages/solidity.code-snippets"
+      }
+    ],
+    "configuration": {
+      "title": "YNX Solidity",
+      "properties": {
+        "ynx.solidity.build": {
+          "type": "object",
+          "scope": "resource",
+          "additionalProperties": false,
+          "required": [
+            "entryPath",
+            "contractName"
+          ],
+          "properties": {
+            "entryPath": {
+              "type": "string",
+              "maxLength": 240
+            },
+            "contractName": {
+              "type": "string",
+              "pattern": "^[A-Za-z_$][A-Za-z0-9_$]{0,127}$"
+            }
+          },
+          "description": "%configuration.solidity.build%"
+        }
+      }
+    }
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "l10n": "./l10n",
+  "description": "%description%"
+}

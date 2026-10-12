@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "55eae2e124e1367b699649f494d6214c6fb9c2e6",
+  "sourceTree": "bcb582e7fd51aee9f1df43d432472028d3776328",
+  "sourceDirty": false,
+  "frontendArchive": "frontend-dist-byte-exact.tar.gz",
+  "frontendArchiveSha256": "58ffcf2eed8b15340e15c1d3f5079834bc284a2503b8e0e82373f9f8bbe3923a",
+  "frontendArchiveBytes": 17273865,
+  "compiledManifestSha256": "6a07b527c3d0c6fde41fa2818d7511ed1775307bf2abfadc03216368d76749e5",
+  "roundTripFilesVerified": 232,
+  "ownedSourceArchiveSha256": "accb4f9589520ed5e61077ad3ced7fc6bb31f77dc3b9e08331b84180343a9ec8",
+  "ownedSourceFilesVerified": 13,
+  "previousTar": "Retained rejected AppleDouble-containing archive; not a deployment input. See original-tar-rejection.json.",
+  "scope": "Exact owned source delta and full compiled frontend. No Native relabel, identity/Host activation or public deployment.",
+  "requiredHost": "Original A single writer; preserve existing SSO/callback/API/download and SPA fallback routes.",
+  "candidatePath": "apps/developer/.ynx-developer-candidates/public-site-release-inputs-20261004",
+  "distributionSha256": "bcc675901850c516b311f015bc1501215eb8448301759f1dd88a2bd54e7fe0b3",
+  "sourceAndQA": "PUBLIC_DEVELOPER_SITE_20261004.json",
+  "formalPublished": false
+}

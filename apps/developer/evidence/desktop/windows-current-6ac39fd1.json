@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "artifact": {
+    "name": "ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-unsigned.zip",
+    "platform": "windows-x64",
+    "sourceCommit": "6ac39fd140a54675526583c4c3ca6b07fc03af19",
+    "sourceTree": "ca6f7184cf115714844de9e53cbb78a0701facf0",
+    "sourceCommitDate": "2026-08-21T01:09:42+08:00",
+    "sha256": "10b6914614a86f694d9e58b21e311148b1dd0dc4b21ff39612c4a2486c5e0627",
+    "bytes": 72538901,
+    "sbomSha256": "8223b35dd1abb7a0a948af4360070b369afe278059d8a9ee7f3ff6ce931bf403",
+    "signingClass": "unsigned-no-authenticode",
+    "authenticodeStatus": "NotSigned",
+    "deliveryMode": "hosted-workspace-client",
+    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3"
+  },
+  "ci": {
+    "runId": 32396185202,
+    "jobId": 96513439004,
+    "artifactId": 9416776999,
+    "artifactOuterSha256": "3af33e2403c8b74c3c42a5684283741db9d98bfe0f99afab2d655b5b272af8ef",
+    "artifactOuterBytes": 72291121,
+    "workflow": "developer-windows.yml",
+    "result": "success"
+  },
+  "verification": {
+    "portableExtraction": true,
+    "resourcesVerified": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "hostedWorkspaceConnected": true,
+    "realCppCompile": true,
+    "localCompilerSandbox": false,
+    "productionSigned": false
+  },
+  "publication": {
+    "downloadHosted": true,
+    "officialDomain": "https://developer.ynxweb4.com",
+    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-unsigned.zip",
+    "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-sbom.cdx.json",
+    "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-SHA256SUMS.txt",
+    "officialRouteHashReadback": true,
+    "publicRangeProbe": {
+      "httpStatus": 206,
+      "contentRange": "bytes 0-0/72538901",
+      "contentType": "application/zip",
+      "contentDisposition": "attachment",
+      "nosniff": true
+    }
+  },
+  "truthBoundaries": {
+    "hostedWorkspaceClient": true,
+    "localCompilerSandbox": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "centralIntegrated": false
+  }
+}

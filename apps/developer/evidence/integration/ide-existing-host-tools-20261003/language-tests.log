@@ -1,0 +1,20 @@
+✔ clangd provides real C++ completion through the approved sandbox (485.092458ms)
+✔ clangd resolves definitions and publishes diagnostics (602.554333ms)
+✔ clangd provides real C completion and diagnostics (85.645917ms)
+✔ language requests reject traversal and unapproved operations (0.337167ms)
+✔ gopls provides real Go completion and definitions (2471.467583ms)
+✔ gopls provides real Go references, rename, formatting, and document symbols (5174.148292ms)
+﹣ Eclipse JDT LS provides real Java editing intelligence and diagnostics (0.293959ms) # SKIP
+✔ Pyright provides real Python completion and diagnostics (746.445083ms)
+﹣ rust-analyzer provides real Rust completion and definitions (0.301334ms) # SKIP
+✔ Nomic Foundation LSP provides real Solidity completion and definitions (3012.8515ms)
+✔ Nomic Foundation LSP publishes Solidity diagnostics (300.276458ms)
+✔ TypeScript language server provides real completion, definitions and document symbols (1316.039459ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 2
+ℹ todo 0
+ℹ duration_ms 14507.571834

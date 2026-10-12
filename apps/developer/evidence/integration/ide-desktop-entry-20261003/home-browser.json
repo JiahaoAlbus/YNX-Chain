@@ -1,0 +1,84 @@
+{
+  "passed": true,
+  "checks": [
+    "390px: native project home, no guest autosave/editor, preserved corrupt draft and explicit recovery route",
+    "1440px: native project home, no guest autosave/editor, preserved corrupt draft and explicit recovery route",
+    "mac-workspace: controlled document-start marker retains existing desktop recovery/workbench route; no installed-device claim",
+    "real root selects authenticated existing project; no invented guest copy target",
+    "normal root creation -> selected project -> explicit admission -> existing editor ticket link; no mocked editor acceptance",
+    "account switch to empty catalog retires prior project/session UI and allows reviewed first-project creation"
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/identity/projects",
+      "body": {
+        "name": "My Wallet app",
+        "approvalId": "2b30188a-830e-4803-b803-3f01fb771417",
+        "approval": "create-wallet-project-once"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/identity",
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/identity/activity",
+      "body": {
+        "csrf": "fixture-activity",
+        "action": "open-project",
+        "eventId": "udTw54puraL3mjLWNSIVEWSlfbpVZRRS8Zhz8ymvHRo"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/codeoss",
+      "body": {
+        "projectId": "wallet-2b30188a-830e-4803-b803-3f01fb771417",
+        "expectedRevision": 1,
+        "approval": "launch-native-ide-once"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    }
+  ],
+  "actualReactEntry": true,
+  "actualChromium": true,
+  "backend": "controlled HTTP routes",
+  "nativeEditorAccepted": false,
+  "public": false
+}

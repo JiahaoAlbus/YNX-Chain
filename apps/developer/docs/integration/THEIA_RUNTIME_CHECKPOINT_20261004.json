@@ -1,0 +1,105 @@
+{
+  "schema": "ynx-composed-workbench-checkpoint/v1",
+  "sourceBaseHead": "fd7da2647494cc59a8959689818779b09e8f9953",
+  "platform": "darwin",
+  "arch": "arm64",
+  "node": "v26.7.0",
+  "theia": "1.76.0",
+  "sources": {
+    "runtime/theia/package.json": "67b1ab9b16c575c4f91e01ce2c83f0fcd03b0380e5391d83834e0963cbf1a595",
+    "runtime/theia/package-lock.json": "fd377d10fab044978e3a44e45049dbf464db2fc300e07119479f5ac3c3708010",
+    "runtime/theia/scripts/actual-host.browser.mjs": "94085450a950b73b171bfc07d4db5da401f9c957b1dcaffb251348ca4608870b",
+    "runtime/theia/scripts/start-isolated-qa.mjs": "f464ceb789a8c38fde167b0c6071917e7d4965d4bef6178f18d00e8cc80c50a4",
+    "runtime/ynx-workbench/lib/frontend-module.js": "86be84f0c8410002817e6b6ccd8df909e4adccfc36c9b67bfc49f5410b6edb24",
+    "runtime/ynx-workbench/lib/backend-module.js": "b61189351469b39da589116c93ec86de7a4fbc6ed254e7373a9cb45b894183a8",
+    "runtime/ynx-workbench/native/process-tree.c": "966bf2a79a491d40f9da7da63e32f239e4b480e2c3f9edab6be4f950def9f71b"
+  },
+  "extensionInputs": [
+    {
+      "namespace": "vscode",
+      "name": "javascript",
+      "version": "1.95.3",
+      "api": "https://open-vsx.org/api/vscode/javascript/1.95.3",
+      "sha256": "df55b5174c57ec057d78d4b9ddd225cc36095b6fc845f1a0df87f1e13dfb64b2",
+      "bytes": 43134,
+      "installedPayload": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/theia-reference-extensions-complete-20261004/vscode.javascript-1.95.3",
+      "license": "SEE LICENSE IN LICENSE-vscode.txt",
+      "engines": {
+        "vscode": "0.10.0"
+      },
+      "lifecycleScriptsExecuted": false,
+      "activationVerified": false
+    },
+    {
+      "namespace": "vscode",
+      "name": "typescript",
+      "version": "1.95.3",
+      "api": "https://open-vsx.org/api/vscode/typescript/1.95.3",
+      "sha256": "493019c0375ad6d46a8811e041d70f68eb57ed5e5a9698125e4691eaf6f2d8fc",
+      "bytes": 41901,
+      "installedPayload": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/theia-reference-extensions-complete-20261004/vscode.typescript-1.95.3",
+      "license": "SEE LICENSE IN LICENSE-vscode.txt",
+      "engines": {
+        "vscode": "*"
+      },
+      "lifecycleScriptsExecuted": false,
+      "activationVerified": false
+    },
+    {
+      "namespace": "vscode",
+      "name": "typescript-language-features",
+      "version": "1.95.3",
+      "api": "https://open-vsx.org/api/vscode/typescript-language-features/1.95.3",
+      "sha256": "b1494642a46d1b139ab799e2ee0ae2453bdcef6ed1a718acca034445cfd9d87f",
+      "bytes": 11510122,
+      "installedPayload": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/theia-reference-extensions-complete-20261004/vscode.typescript-language-features-1.95.3",
+      "license": "SEE LICENSE IN LICENSE-vscode.txt",
+      "engines": {
+        "vscode": "^1.30.0"
+      },
+      "lifecycleScriptsExecuted": false,
+      "activationVerified": false
+    },
+    {
+      "namespace": "ms-vscode",
+      "name": "js-debug",
+      "version": "1.140.0",
+      "api": "https://open-vsx.org/api/ms-vscode/js-debug/1.140.0",
+      "sha256": "d535f02a47031671f8c988bb7e79d6fec1a881883d9c9fa15ff81f28eae98500",
+      "bytes": 1350618,
+      "installedPayload": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/theia-reference-extensions-complete-20261004/ms-vscode.js-debug-1.140.0",
+      "license": "MIT",
+      "engines": {
+        "vscode": "^1.80.0",
+        "node": ">=10"
+      },
+      "lifecycleScriptsExecuted": false,
+      "activationVerified": false
+    }
+  ],
+  "debuggerArchiveSha256": "27dab92937ec1ab35821ae955aac867544fe06a1b6307229049f2d789af10968",
+  "checks": [
+    "actual TypeScript VS Code extension provides wallet property IntelliSense in the real framework editor",
+    "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+    "actual editor save writes the selected project file, confirmed on disk",
+    "the inherited YNX logo and product name render in the actual framework workbench",
+    "closing and reopening the actual file restores saved disk content",
+    "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+    "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+    "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+    "continuing the actual debug session executes the target program, confirmed by its disk output"
+  ],
+  "pageErrors": [],
+  "boundary": {
+    "read": "EPERM",
+    "write": "EPERM",
+    "network": "EPERM"
+  },
+  "nativeProcessHelperTests": {
+    "pass": 1,
+    "fail": 0,
+    "log": "/private/tmp/ynx-ide-theia-process-helper-final.log"
+  },
+  "candidate": "apps/developer/.ynx-developer-candidates/theia-runtime-real-journey-20261004",
+  "verificationScope": "controlled macOS actual runtime; not formal entry, desktop/mobile delivery, Git, complete extension lifecycle, Chain/Wallet/AI or public multi-owner admission"
+}

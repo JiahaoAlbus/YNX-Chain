@@ -1,0 +1,202 @@
+{
+  "checks": [
+    {
+      "mode": "signed-out",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 16,
+        "top": 14
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "signed-out-390.png"
+    },
+    {
+      "mode": "signed-in",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 16,
+        "top": 14
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "signed-in-390.png"
+    },
+    {
+      "mode": "locked-recovery",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 49,
+        "top": 153.4375
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "locked-recovery-390.png"
+    },
+    {
+      "mode": "guest-workbench",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 57,
+        "height": 30,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 10,
+        "top": 2.5
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "guest-workbench-390.png"
+    },
+    {
+      "mode": "tools",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 12,
+        "top": 31.796875
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "tools-390.png"
+    },
+    {
+      "mode": "tools-signed-in",
+      "width": 390,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 12,
+        "top": 31.796875
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "tools-signed-in-390.png"
+    },
+    {
+      "mode": "signed-out",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 180,
+        "top": 18
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "signed-out-1440.png"
+    },
+    {
+      "mode": "signed-in",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 180,
+        "top": 18
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "signed-in-1440.png"
+    },
+    {
+      "mode": "locked-recovery",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 425,
+        "top": 273.015625
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "locked-recovery-1440.png"
+    },
+    {
+      "mode": "guest-workbench",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 57,
+        "height": 30,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 10,
+        "top": 2.5
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "guest-workbench-1440.png"
+    },
+    {
+      "mode": "tools",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 264,
+        "top": 45.796875
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "tools-1440.png"
+    },
+    {
+      "mode": "tools-signed-in",
+      "width": 1440,
+      "metrics": {
+        "naturalWidth": 798,
+        "naturalHeight": 420,
+        "width": 76,
+        "height": 40,
+        "objectFit": "contain",
+        "flexShrink": "0",
+        "left": 264,
+        "top": 45.796875
+      },
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "screenshot": "tools-signed-in-1440.png"
+    }
+  ],
+  "errors": [],
+  "actualReactProductionBuild": true,
+  "backend": "controlled local routes",
+  "fullNativeWorkbench": false,
+  "installedMacWindows": false,
+  "public": false
+}

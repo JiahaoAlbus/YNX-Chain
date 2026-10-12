@@ -1,0 +1,60 @@
+{
+  "name": "@ynx-chain/wallet-auth",
+  "version": "1.0.0",
+  "packageManager": "npm@11.5.1",
+  "license": "UNLICENSED",
+  "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js",
+      "default": "./src/index.js"
+    },
+    "./gateway-node-host": {
+      "types": "./src/gateway-node-host.d.ts",
+      "import": "./src/gateway-node-host.js",
+      "default": "./src/gateway-node-host.js"
+    },
+    "./gateway-backup": {
+      "types": "./src/gateway-backup.d.ts",
+      "import": "./src/gateway-backup.js",
+      "default": "./src/gateway-backup.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
+    }
+  },
+  "types": "./src/index.d.ts",
+  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "bin": {
+    "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
+    "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "check": "npm test",
+    "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
+    "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
+    "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0"
+  },
+  "engines": { "node": ">=22" },
+  "private": true
+}

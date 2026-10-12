@@ -1,0 +1,79 @@
+{
+  "passed": true,
+  "checks": [
+    "before handshake: file commands and state with unknown fields reject without guest initialization/writes",
+    "even same-origin child-frame state queries cannot activate the desktop route",
+    "old unmarked installed-client state poll selects retained Workbench, real Monaco ready and restored project identity; no automatic overwrite",
+    "existing host v1 new-file/local-save remains functional; unknown disconnected terminal still blocks server overwrite, no fabricated stop",
+    "same-profile reload plus legacy state handshake preserves the explicitly saved new file",
+    "legacy handshake cannot bypass damaged-profile recovery or overwrite original bytes",
+    "wrong document origin cannot activate desktop entry through a state query"
+  ],
+  "errors": [],
+  "calls": [
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/extensions"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/workspaces/legacy-desktop-project"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/chain/status"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/extensions"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/workspaces/legacy-desktop-project"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    }
+  ],
+  "actualReact": true,
+  "actualProductionBuild": true,
+  "actualMonaco": true,
+  "backend": "controlled local routes",
+  "installedWindows": false,
+  "fullNativeWorkbench": false,
+  "realTerminal": false,
+  "public": false
+}

@@ -1,0 +1,115 @@
+{
+  "name": "ynx-cpp",
+  "displayName": "YNX C/C++",
+  "publisher": "ynx",
+  "version": "0.3.9",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.82.0"
+  },
+  "main": "./src/extension.cjs",
+  "activationEvents": [
+    "onDebugResolve:lldb-dap",
+    "onLanguage:c",
+    "onLanguage:cpp",
+    "onCommand:ynx.cpp.configureBuildTasks",
+    "onCommand:ynx.cpp.runActive",
+    "onCommand:ynx.cpp.debugActive"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "9.0.1",
+    "jsonc-parser": "3.3.1"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "c",
+        "extensions": [
+          ".c",
+          ".i"
+        ],
+        "aliases": [
+          "C",
+          "c"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "cpp",
+        "extensions": [
+          ".cpp",
+          ".cc",
+          ".cxx",
+          ".hpp",
+          ".hh",
+          ".hxx",
+          ".h",
+          ".inl",
+          ".ipp",
+          ".tpp",
+          ".cppm",
+          ".ixx"
+        ],
+        "aliases": [
+          "C++",
+          "Cpp",
+          "cpp"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "c",
+        "scopeName": "source.c",
+        "path": "./syntaxes/c.tmLanguage.json"
+      },
+      {
+        "language": "cpp",
+        "scopeName": "source.cpp",
+        "path": "./syntaxes/cpp.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.cpp.embedded.macro",
+        "path": "./syntaxes/cpp.embedded.macro.tmLanguage.json"
+      },
+      {
+        "scopeName": "source.c.platform",
+        "path": "./syntaxes/platform.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "ynx.cpp.configureBuildTasks",
+        "title": "%configureBuildTasks%",
+        "category": "YNX C/C++"
+      },
+      {
+        "command": "ynx.cpp.runActive",
+        "title": "%runActive%",
+        "category": "YNX C/C++"
+      },
+      {
+        "command": "ynx.cpp.debugActive",
+        "title": "%debugActive%",
+        "category": "YNX C/C++"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "ynx.cpp.debugActive",
+        "key": "f5",
+        "when": "editorTextFocus && !inDebugMode && ynxNoSelectedDebugConfiguration && (editorLangId == cpp || editorLangId == c)"
+      }
+    ]
+  },
+  "l10n": "./l10n"
+}

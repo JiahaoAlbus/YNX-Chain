@@ -1,0 +1,85 @@
+{
+  "name": "ynx-developer-brand",
+  "displayName": "YNX Developer",
+  "publisher": "ynx",
+  "version": "0.1.8",
+  "engines": {
+    "vscode": "^1.109.0"
+  },
+  "license": "MIT",
+  "icon": "ynx-logo.png",
+  "contributes": {
+    "themes": [
+      {
+        "label": "YNX Klein",
+        "uiTheme": "vs-dark",
+        "path": "./klein-dark.json"
+      },
+      {
+        "label": "YNX Klein Light",
+        "uiTheme": "vs",
+        "path": "./klein-light.json"
+      },
+      {
+        "label": "YNX Rose Dark",
+        "uiTheme": "vs-dark",
+        "path": "./rose-dark.json"
+      },
+      {
+        "label": "YNX Rose Light",
+        "uiTheme": "vs",
+        "path": "./rose-light.json"
+      },
+      {
+        "label": "YNX Ruby Dark",
+        "uiTheme": "vs-dark",
+        "path": "./ruby-dark.json"
+      },
+      {
+        "label": "YNX Ruby Light",
+        "uiTheme": "vs",
+        "path": "./ruby-light.json"
+      },
+      {
+        "label": "YNX Graphite",
+        "uiTheme": "vs-dark",
+        "path": "./graphite-dark.json"
+      },
+      {
+        "label": "YNX Snow",
+        "uiTheme": "vs",
+        "path": "./snow-light.json"
+      },
+      {
+        "label": "YNX Arctic",
+        "uiTheme": "vs-dark",
+        "path": "./nord-dark.json"
+      },
+      {
+        "label": "YNX Solarized Dark",
+        "uiTheme": "vs-dark",
+        "path": "./solarized-dark.json"
+      },
+      {
+        "label": "YNX Solarized Light",
+        "uiTheme": "vs",
+        "path": "./solarized-light.json"
+      },
+      {
+        "label": "YNX Midnight",
+        "uiTheme": "vs-dark",
+        "path": "./midnight-dark.json"
+      },
+      {
+        "label": "YNX Violet",
+        "uiTheme": "vs-dark",
+        "path": "./violet-dark.json"
+      },
+      {
+        "label": "YNX Forest",
+        "uiTheme": "vs-dark",
+        "path": "./forest-dark.json"
+      }
+    ]
+  }
+}

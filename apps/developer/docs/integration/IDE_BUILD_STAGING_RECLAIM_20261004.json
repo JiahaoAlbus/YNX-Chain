@@ -1,0 +1,64 @@
+{
+  "schema": "ynx-ide-owned-staging-reclaim/v1",
+  "status": "SIX_STAGING_DUPLICATES_REMOVED_ORIGINAL_PACKAGES_RETAINED",
+  "trigger": "Root confirmed shared Data-volume ENOSPC; exact owned temporary generated staging cleanup authorized.",
+  "deletedDirectories": [
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 848982016,
+      "treeDigestBeforeRemoval": "4e5218f531a2201ce73baedd1ec337d1c36c2d5c7cfefcee08c95d7e00bf362b",
+      "retainedOriginalDmgSha256": "63905cd0516e8a5a9cec6dfecf875a404ca250a9518528cd0b0882ff7da30fe8"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cpp-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 862978048,
+      "treeDigestBeforeRemoval": "415441e7b080e1e12f050fea0bfc85fa5d69de1d2301828d6d6fdffa76a49601",
+      "retainedOriginalDmgSha256": "3570eca5646b854a141518f81cc8908a232fec8b2fcbf36de864f3580109471a"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-debug-alias-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 862978048,
+      "treeDigestBeforeRemoval": "e18b94be1bb72a0603cfb9c85638dbbd58b510bfe5419db6f659229f90408661",
+      "retainedOriginalDmgSha256": "ba6448683cabaf8ea6aacaaa5d90ad74e95696076d27e12a9e42ce64a6d3fd5c"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-gcc-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 848994304,
+      "treeDigestBeforeRemoval": "8b01479126b5207e37fd3b9a2fb7d54de3a4e5aab38dc9211d08b8e113303561",
+      "retainedOriginalDmgSha256": "ba584a65c533f15fc1d4cf020a2751a24875d9bef7353aaf8a042f8668e662a2"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-json-status-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 883539968,
+      "treeDigestBeforeRemoval": "693ed707a00f397aa943bdb36c3bdb98572322a0f200067d9c63bb594fc091c5",
+      "retainedOriginalDmgSha256": "84fd6f36c9258eb01fc6c00d3c8d4ae120ebd6bd96f3acfdcb32fc5254aa62ca"
+    },
+    {
+      "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-shortcuts-native-package-20261004-mac-arm64/dmg-root",
+      "allocatedStagingBytes": 883560448,
+      "treeDigestBeforeRemoval": "2587f4dbcf012dfd9886e64b084cdad2cbdcb57046da133e14200403abdaa74f",
+      "retainedOriginalDmgSha256": "6b4d7c540b634fea47c4fdaa60e67e0e3b24acec91df3073492aa229c3199643"
+    }
+  ],
+  "removedAllocatedStagingBytesSum": 5191032832,
+  "guard": "Full relative regular-file SHA256/size and symlink-target lists matched the retained original app. Original DMG matched SHA256SUMS. lsof +D exact staging exited1 with empty stdout/stderr; manifests saved before removal. Original app, DMG, compiled/source inputs, historical success/failure receipts, installed software and all user accounts/data/keys untouched.",
+  "scope": "Allocated bytes sum describes removed copies. Shared filesystem availability changed concurrently with other owners and is not attributed entirely to this operation. Deleted staging paths are no longer retained artifacts.",
+  "manifestDirectory": "apps/developer/.ynx-developer-candidates/ide-dmg-staging-reclaim-20261004",
+  "manifestHashes": {
+    "ynx-composed-cold-native-package-20261004-mac-arm64.json": "38626bcf956cb603adb5ba5f4a1dd9e20d450da6aee1c981c5e4304b93360e01",
+    "ynx-composed-cpp-native-package-20261004-mac-arm64.json": "a126beb6d9827bf9b55b76bb218a04fa36064ae193bee22e93b3ed2102456a36",
+    "ynx-composed-debug-alias-native-package-20261004-mac-arm64.json": "38099614657d6929919e514a102bed4e19db77de17a337fafdda3b133d5a9d05",
+    "ynx-composed-gcc-native-package-20261004-mac-arm64.json": "450d5bff7f915277e98e73285e625a5904227492a10f0ca308f32744b945bafb",
+    "ynx-json-status-native-package-20261004-mac-arm64.json": "3ce67c6b34fa9719301619823ea7a072c701cc3c6e91b3fa9a30314a1b28de41",
+    "ynx-shortcuts-native-package-20261004-mac-arm64.json": "d27640daa4200e20a90407ecf6299af7ece40d8caaa16ebb1f5621e6c65cd270"
+  },
+  "packageFailure": {
+    "exitCode": 1,
+    "code": "ENOSPC",
+    "partialDirectory": "apps/developer/.ynx-developer-candidates/ynx-composed-token-cache-fixed-20261004-mac-arm64",
+    "retained": true,
+    "frozen": false,
+    "logSha256": "ef2fed76f0bd8539e97d6203d97424cb0e56b096770b39792dddfcf44346c722"
+  },
+  "newBuildBehavior": "Native packaging stages an APFS clone when available, falls back to its prior regular copy route, and removes successful-image staging only after exact holder-free checks while retaining original app, image and deletion list. Failed/partial builds are preserved."
+}

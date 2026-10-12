@@ -1,0 +1,331 @@
+{
+  "sourceCommit": "6ff5eb1cfccc7585c55bd30d975c137c32aee0b9",
+  "sourceTree": "5cc26ea2891e7bdfaf2f80ec6e1ae01ac60b07d7",
+  "sourceDeltaFiles": [
+    "apps/developer/frontend/src/codeoss/NativeToolsPage.tsx",
+    "apps/developer/frontend/src/codeoss/copiedSelection.ts",
+    "apps/developer/frontend/test/copied-selection.browser.mjs",
+    "apps/developer/frontend/test/copied-selection.test.mjs",
+    "apps/developer/native/ynx-tools/package.json",
+    "apps/developer/native/ynx-tools/src/extension.cjs",
+    "apps/developer/runtime/theia/scripts/reviewed-edit.browser.mjs",
+    "apps/developer/services/codeoss-service/src/reviewed-selection.mjs",
+    "apps/developer/services/codeoss-service/test/reviewed-selection.test.mjs",
+    "apps/developer/services/codeoss-service/test/tools-service.test.mjs"
+  ],
+  "frontendFiles": 232,
+  "sourceRoundTrip": true,
+  "frontendRoundTrip": true,
+  "archives": {
+    "source-delta.tar": "76ad2d216cae044eb0035a7d119a48ab0d3df421d78d66057c7a73a53d35ace4",
+    "frontend.tar": "a28e0a693b4cc70ef7f1a89fff8f7e7961fad5970d7eb957440bf8907e1c72c7"
+  },
+  "checkpoint": "Copied editor selection input and exact Native distribution, 2026-10-04",
+  "workbenchVersion": "0.3.14",
+  "toolsVersion": "0.2.11",
+  "changes": [
+    "Explicit Use copied selection imports the real captured context without sending a request; Unicode filename and code are visible, exact metadata is collapsed.",
+    "Manual paste remains; unrelated or foreign clipboard is refused without raw echo, drafts survive identity retirement, delayed clipboard results are discarded.",
+    "Primitive SHA256 digest string is required by frontend and backend; array coercion regression was reproduced first and preserved.",
+    "Native Copy context guidance matches the new UI."
+  ],
+  "checksPassed": {
+    "servicesAndParser": 63,
+    "compiledCopiedSelection": 4,
+    "compiledLegacyReview": 3,
+    "exactTools211NativeHandoff": 9,
+    "packagedServer": 3,
+    "actualPackagedTwoFileSolidityCompile": true
+  },
+  "compiledCopiedSelection": {
+    "passed": true,
+    "checks": [
+      "Unrelated or other-session clipboard input is refused without replacing the unsent draft, displaying its contents or creating a model review.",
+      "Explicit clipboard import shows readable Unicode filename and selected code, preserves exact metadata under collapsed details and makes no preview/send request.",
+      "Manual paste remains editable and retires the previous copied-code display.",
+      "Identity retirement during a delayed clipboard read discards that result and preserves the previous prompt/context after refresh."
+    ],
+    "errors": [],
+    "calls": [
+      "/runtime/native-tools/context",
+      "/runtime/native-tools/context",
+      "/runtime/native-tools/context"
+    ],
+    "runnerSha256": "24ba6a94b81212c341c94e253421d5227feb7856c0a4709581d2e9a33954f56f",
+    "actualCompiledReact": true,
+    "clipboard": "controlled in-memory read",
+    "backend": "controlled identity HTTP fixtures",
+    "canonical": false,
+    "public": false
+  },
+  "nativeHandoff": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-rjNOrG",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-rjNOrG/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-rjNOrG/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-rjNOrG/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-copied-selection-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-copied-selection-20261004-mac-arm64/plugins",
+      "port": 49251,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49252,
+      "inspectorPort": 49253,
+      "fixtureSessionId": "00212c83-1b69-4f32-8243-5d1f8fdbe5a7",
+      "url": "http://127.0.0.1:49251",
+      "pid": 95460,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "checks": [
+      "Actual installed Tools captures the real selected file/version/digest/session; production review parser builds a selection-bound bundle from a controlled answer.",
+      "Compiled React imports the real editor selection through a shared in-memory clipboard, displays selected code, explicitly previews/sends once, then copies the exact suggestion back to the native editor command without manual JSON paste.",
+      "Actual diff preview and cancellation leave editor and disk unchanged.",
+      "The real suggested-change pane is read-only: keyboard input cannot change the immutable preview or source.",
+      "The saved-review paste fallback opens the same guarded diff; cancellation still preserves editor and disk.",
+      "Explicit native approval replaces only the selected passage in the real buffer; disk remains unchanged until normal Save.",
+      "Replaying the old version-bound suggestion refuses without changing the saved project.",
+      "A real document edit during approval invalidates the suggestion and preserves the concurrent unsaved buffer.",
+      "A bundle from another opaque runtime session is refused without applying or saving the proposal."
+    ],
+    "errors": [],
+    "capture": {
+      "uri": "file:///private/tmp/ynx-theia-extension-qa-rjNOrG/project/review-copied-selection-211-handoff.ynxnotes",
+      "version": 1,
+      "fullTextDigest": "2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0",
+      "selectedText": "selected passage",
+      "sessionId": "00212c83-1b69-4f32-8243-5d1f8fdbe5a7"
+    },
+    "bundle": {
+      "protocol": "ynx-reviewed-text/v1",
+      "sessionId": "00212c83-1b69-4f32-8243-5d1f8fdbe5a7",
+      "changes": [
+        {
+          "uri": "file:///private/tmp/ynx-theia-extension-qa-rjNOrG/project/review-copied-selection-211-handoff.ynxnotes",
+          "version": 1,
+          "fullTextDigest": "2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0",
+          "replacements": [
+            {
+              "find": "selected passage",
+              "replace": "new passage"
+            }
+          ]
+        }
+      ]
+    },
+    "previewState": {
+      "readOnly": true,
+      "modifiedText": "before\nnew passage\nafter\n"
+    },
+    "toolsHandoff": {
+      "url": "http://127.0.0.1:4210/native-tools?sessionId=00212c83-1b69-4f32-8243-5d1f8fdbe5a7",
+      "calls": [
+        {
+          "path": "/runtime/native-tools/context",
+          "body": null
+        },
+        {
+          "path": "/runtime/native-tools/context",
+          "body": null
+        },
+        {
+          "path": "/runtime/native-tools/proposals",
+          "body": {
+            "csrf": "controlled",
+            "prompt": "Improve selected passage",
+            "context": "{\"uri\":\"file:///private/tmp/ynx-theia-extension-qa-rjNOrG/project/review-copied-selection-211-handoff.ynxnotes\",\"version\":1,\"fullTextDigest\":\"2b136e54b7cfe4360373ea41f9726c582378131cee0448aca16935520257d6c0\",\"selectedText\":\"selected passage\",\"sessionId\":\"00212c83-1b69-4f32-8243-5d1f8fdbe5a7\"}",
+            "mode": "selected-edit"
+          }
+        },
+        {
+          "path": "/runtime/native-tools/approve",
+          "body": {
+            "csrf": "controlled-review",
+            "proposalId": "controlled-one-use",
+            "approval": "send-reviewed-context-once"
+          }
+        }
+      ],
+      "backend": "controlled HTTP answer; no hosted provider or canonical admission"
+    },
+    "runnerSha256": "3edc8cd5be6f9e30dfcf41de3dbc982c035c19b7f8820c7c78f24f3bccf8cf64",
+    "actualNativeEditor": true,
+    "clipboard": "frontend memory sink",
+    "model": "controlled answer through production review parser; no real hosted model",
+    "canonicalAdmission": false,
+    "public": false
+  },
+  "resourceGuard": {
+    "availableKiB": 3290776,
+    "conservativeRequiredKiB": 1656020,
+    "sizesKiB": {
+      "previousApp": 873148,
+      "previousDMG": 331460,
+      "coreRoundTrip": 189268
+    },
+    "extraMarginKiB": 262144,
+    "pass": true
+  },
+  "distributionReadback": {
+    "qa": "/private/tmp/ynx-selection-packaged-worker-8t9qt_98",
+    "candidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-copied-selection-native-package-20261004-mac-arm64",
+    "sourceCommit": "6ff5eb1cfccc7585c55bd30d975c137c32aee0b9",
+    "sourceTree": "5cc26ea2891e7bdfaf2f80ec6e1ae01ac60b07d7",
+    "matchedGitBlobs": [
+      {
+        "path": "scripts/compiler-worker.mjs",
+        "sha256": "29e10e5fbf7740a9bdf2438ae8210ee02daa258a533d6a0dc185fe1513bf9baa"
+      },
+      {
+        "path": "scripts/compiler-pin.mjs",
+        "sha256": "2b9a4e4dce92db7f5854aef168d8f6ba4b4ffc05663ebdf1296e0594b323c9c3"
+      },
+      {
+        "path": "services/codeoss-service/src/runtime-files.mjs",
+        "sha256": "c50f311678390c9743a34a0aab735b289e84517796aba63aed0012a374ad381c"
+      },
+      {
+        "path": "services/codeoss-service/src/reviewed-selection.mjs",
+        "sha256": "e6dac47705897a5fd771008ad85a47138e3ef4a485b0472e6b2df8ec67ca887d"
+      },
+      {
+        "path": "native/ynx-tools/src/review-preview.cjs",
+        "sha256": "4ae6fb7cb17ad16150c088f0d03f0c2ae34213f83c1f6cd518dfe671c2139e02"
+      },
+      {
+        "path": "native/ynx-tools/src/extension.cjs",
+        "sha256": "6e54a05e3b4c4bd6ff578e7bd6621d5a70b3eb4faf71a25ae3ad69c5895a8f4a"
+      },
+      {
+        "path": "native/ynx-tools/package.json",
+        "sha256": "dadeca9faed07e913136e7d42a0f4390cfd595f61f01734ae486790217acf90a"
+      },
+      {
+        "path": "native/ynx-brand/package.json",
+        "sha256": "3a0728ffcbd4dfbfe7270b3e4caae01d67821f3e202954ac518fc39fb4094130"
+      }
+    ],
+    "serverMatchesGitBlob": true,
+    "frontendFilesMatched": 232,
+    "coreArchivePreservedAfterSigning": true,
+    "packagedWorkerExit": 0,
+    "worker": {
+      "ok": true,
+      "compiler": {
+        "name": "solc",
+        "version": "0.8.24",
+        "longVersion": "0.8.24+commit.e11b9ed9.Emscripten.clang",
+        "artifactSha256": "fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9",
+        "optimizer": {
+          "enabled": true,
+          "runs": 200
+        },
+        "execution": "worker-isolated-standard-json"
+      },
+      "contractName": "PinCheck",
+      "sourceName": "PinCheck.sol",
+      "abi": [
+        {
+          "inputs": [],
+          "name": "ping",
+          "outputs": [
+            {
+              "internalType": "uint256",
+              "name": "",
+              "type": "uint256"
+            }
+          ],
+          "stateMutability": "pure",
+          "type": "function"
+        }
+      ],
+      "bytecode": "0x6080604052348015600e575f80fd5b50607480601a5f395ff3fe6080604052348015600e575f80fd5b50600436106026575f3560e01c80635c36b18614602a575b5f80fd5b600360405190815260200160405180910390f3fea264697066735822122027782b57f522e9b601c0df213b7c383643de4987db4d80a4b2e8c79f53c9c2bb64736f6c63430008180033",
+      "deployedBytecode": "0x6080604052348015600e575f80fd5b50600436106026575f3560e01c80635c36b18614602a575b5f80fd5b600360405190815260200160405180910390f3fea264697066735822122027782b57f522e9b601c0df213b7c383643de4987db4d80a4b2e8c79f53c9c2bb64736f6c63430008180033",
+      "metadata": "{\"compiler\":{\"version\":\"0.8.24+commit.e11b9ed9\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"ping\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"PinCheck.sol\":\"PinCheck\"},\"evmVersion\":\"shanghai\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[]},\"sources\":{\"Part.sol\":{\"keccak256\":\"0xf21ef15c0205d8811c0944dce45dc9601719d21bda3acd57b723c941ca4483f8\",\"urls\":[\"bzz-raw://7a2f5b29731b2ceae1c000dc16182abe0076e96ef5f43ec1bc9b790b01df2665\",\"dweb:/ipfs/QmTj7DknamBT2nUXAgq2NRFWcc1tNFRwffwNBZUuB8yvRY\"]},\"PinCheck.sol\":{\"keccak256\":\"0xc565e98905029dd2163bcec4a36466535a5c814861f6a476c8b3ffa87d8933bd\",\"urls\":[\"bzz-raw://862ba67c4f7f11211bacffc37537a5ba1194ee7188a1a28778f874fb2dfd839b\",\"dweb:/ipfs/QmZaQzGrp4f8uAHWE8oXAGkXt3RgkpVh4ENrcwfNKNv7XS\"]}},\"version\":1}",
+      "bytecodeHash": "0xb078beda106bcf1952abab38b58019698b14b478215e8d3fada84843a5dc50af",
+      "deployedBytecodeHash": "0x3549b5ddb36d00718f046f1af8d46476e8fbc73c14ccce7e6b81dc0b65111b7c",
+      "artifactHash": "0x06dae0f28d5f43449f0690ce8bfceba4b03034d112bb4f4354f157cfd56472e7",
+      "diagnostics": [
+        {
+          "severity": "warning",
+          "errorCode": "1878",
+          "type": "Warning",
+          "component": "general",
+          "message": "SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.",
+          "formattedMessage": "Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n--> Part.sol\n\n",
+          "sourceLocation": {
+            "end": -1,
+            "file": "Part.sol",
+            "start": -1
+          }
+        },
+        {
+          "severity": "warning",
+          "errorCode": "1878",
+          "type": "Warning",
+          "component": "general",
+          "message": "SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.",
+          "formattedMessage": "Warning: SPDX license identifier not provided in source file. Before publishing, consider adding a comment containing \"SPDX-License-Identifier: <SPDX-License>\" to each source file. Use \"SPDX-License-Identifier: UNLICENSED\" for non-open-source code. Please see https://spdx.org for more information.\n--> PinCheck.sol\n\n",
+          "sourceLocation": {
+            "end": -1,
+            "file": "PinCheck.sol",
+            "start": -1
+          }
+        }
+      ],
+      "deployability": "bytecode-compiled; YNX Testnet execution compatibility must still be established by an authoritative receipt"
+    },
+    "hashes": {
+      "dmg": "c53284bae97869835d3f8b9bd598fe85c1e6ca11e91d186281ccbf7406bc8092",
+      "sbom": "38d1649c0bc26ecec85a8e557d702d4e7782595d00499d4884600ca1837a50b0",
+      "core": "347ff082b52f7b994c41052f490ad64bfe7ac7997284fceb98e5f59c94ead4b4"
+    },
+    "scope": "Standalone portable Node24 compiles two submitted Solidity files. No canonical admission, hosted AI, installation or chain execution."
+  },
+  "packageTerminalExit": 0,
+  "signatureAndImage": {
+    "deepStrictCodesignExit": 0,
+    "imageVerifyExit": 0,
+    "classification": "local ad-hoc, no Team identity; not notarized or installed"
+  },
+  "runtimePin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+    "treeSha256": "55959240187a0169d0a2f7ebd3e302426d1b4036b2580ea77f12550b7a3f6190",
+    "manifestSha256": "7abdc3159277850cfd91d01269454f35a949af1de2709314b7e2898ea7ac0825"
+  },
+  "evidence": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/copied-selection-evidence-20261004",
+  "evidenceFiles": 40,
+  "evidenceIndexSha256": "e5d862fb7fa40c03578290bdbe3bca27bebfd47f63a0c9f5046301bae5fa6280",
+  "previousCheckpoint": "COPIED_REVIEW_HANDOFF_20261004.json retained; old Core16 are historical and were not repeated or summed",
+  "cleanup": {
+    "native": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-rjNOrG",
+      "rootPid": 95460,
+      "verifiedGroupMembers": [
+        95460,
+        95492,
+        95493
+      ],
+      "ownedMetadata": "95460 95445 95460 Sun Oct  4 19:14:23 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n95492 95460 95460 Sun Oct  4 19:14:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n95493 95460 95460 Sun Oct  4 19:14:24 2026     /opt/homebrew/Cellar/node/26.7.0/bin/node\n99656 95460 99656 Sun Oct  4 19:19:38 2026     /bin/bash\n",
+      "signal": "SIGTERM",
+      "remainingOwnedPids": []
+    },
+    "frontend": {
+      "pid": 90725,
+      "verifiedCommand": "/opt/homebrew/bin/node ../node_modules/vite/bin/vite.js preview --host 127.0.0.1 --port 4210 --strictPort --outDir /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/copied-selection-final-frontend-build-20261004/dist",
+      "signal": "SIGTERM",
+      "remainingOwnedPids": []
+    }
+  },
+  "releaseGates": {
+    "canonicalAdmission": "NOT_VERIFIED. Existing five canonical bindings unchanged; A retains registered Node26.7 and shared Host activation. No new actual publication proof was supplied in this continuation.",
+    "hostedAI": "NOT_VERIFIED. Browser model response is controlled; actual selected code and real editor operations are verified.",
+    "normalWalletChainJourney": "NOT_VERIFIED. No user login, wallet unlocking, signing or testnet deployment in this continuation.",
+    "installedAllPlatforms": "NOT_VERIFIED. Local Mac candidate only; no install, Cocoa launch, notarization or Windows/Linux/Android release.",
+    "networkPackageLXD": "Previously denied branches stay stopped; cached reviewed inputs only."
+  },
+  "next": "Deliver exact new source/pin/frontend/native package to Root and A; after actual formal publication, verify normal user entry, identity and real tools. Continue independent owned usability work."
+}

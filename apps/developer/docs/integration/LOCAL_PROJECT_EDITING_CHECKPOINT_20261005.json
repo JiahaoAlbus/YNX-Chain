@@ -1,0 +1,62 @@
+{
+  "schema": "ynx-local-project-editing-checkpoint/v1",
+  "sourceCommit": "ede440dc7d93c2437504f0b2c5635379e1086176",
+  "sourceTree": "f1d62d2319cf26326b6d5bb8a4af39fe565485bb",
+  "sourceDirtyAtPackaging": false,
+  "coreCandidate": ".ynx-developer-candidates/ynx-klein-project-editing-core-20261005-mac-arm64",
+  "coreTreeSha256": "85643332424bd5a189d9885fb0623523948b479da2db51504c6c2e038e6ba1b0",
+  "coreManifestSha256": "6cc38ff84c19be54d641576a55eca502295a6bb74526c1e68cbc34a8d06d9ce3",
+  "nativeCandidate": ".ynx-developer-candidates/ynx-klein-project-editing-native-20261005-mac-arm64",
+  "dmgSha256": "3b2770c3326916f020a93993b5914927e54066be7dff6bd0362bbacdf903af23",
+  "sbomSha256": "2eca8ec0994c8a8eb657eeb585e7073ba7079b3c1fe00dc14131d27dd36955f2",
+  "packageVerification": ".ynx-developer-candidates/ynx-klein-project-editing-native-20261005-mac-arm64/verification-receipt.json",
+  "toolsVersion": "0.2.21",
+  "brandVersion": "0.1.4",
+  "theme": "YNX Klein",
+  "nodeVersion": "26.7.0",
+  "minimumOS": "27.0",
+  "platform": "darwin-arm64",
+  "componentObservation": {
+    "scope": "Actual browser UI backed by the new sealed packaged supervisor and full extension host. This does not prove the native Cocoa window flow.",
+    "project": "/private/tmp/ynx-project-editing-workbench-Em2RmL/project",
+    "receipt": "/private/tmp/ynx-project-editing-workbench-Em2RmL/actual-project-editing-observation.json",
+    "firstOpenedDefinitionF2": "PASS: four physical edits in four files, including closed Main, namespace alias and own lib caller, with 140 unrelated vendor sources",
+    "saveAll": "PASS: all four files saved through the normal editor command and read back from disk",
+    "compileAfterRename": "PASS: actual YNX command generated Main.calculate ABI and 211 bytes of bytecode, saved as Main.build.json",
+    "undoAfterSave": "FAIL: CmdZ in Util.sol restored the definition only; the three saved callers still referenced doubleValue. A cross-file undo and redo repair is required.",
+    "failedStatePreserved": true,
+    "singleFileRedoRestoredFixture": true,
+    "starterReceipt": "/private/tmp/ynx-project-editing-workbench-Em2RmL/actual-local-starter-observation.json",
+    "starter": "PASS: actual command creates and opens the exact sealed template, normal save persists it, packaged Node syntax-checks it, repeat command refuses overwrite",
+    "starterNetworkExecuted": false,
+    "screenshot": "/private/tmp/ynx-project-editing-starter-20261005.png",
+    "supervisorSessionExitCode": 0,
+    "ownedPidsAbsentAfterStop": [32279, 32310, 32522]
+  },
+  "priorGitComponentObservation": {
+    "receipt": "/private/tmp/ynx-real-git-workbench-zWAaWB/actual-git-ui-observation.json",
+    "scope": "Committed 9e91f469c supervisor with earlier sealed 6c7206110 core. Separate from new package GUI acceptance.",
+    "checks": ["real SCM initialize", "stage all", "real terminal private author config", "commit", "edit and save", "two-editor working-tree diff"],
+    "commit": "b327289c6d571abec78febbe796f257ba793fd44",
+    "publicPush": false
+  },
+  "providerRegression": {
+    "full": "/private/tmp/ynx-project-rename-final-packaged-node-20261005.log",
+    "fullPass": 20,
+    "finalDiscovery": "/private/tmp/ynx-project-rename-final-discovery-20261005.log",
+    "finalDiscoveryPass": 3,
+    "skip": 0
+  },
+  "remaining": {
+    "crossFileUndoRedo": "FAILED actual component workflow; required repair",
+    "currentNativeWindowFlows": "NOT_VERIFIED: Mac locked; preserved running older app",
+    "canonicalIdentityAndRealAI": "INCOMPLETE: local workspace is OS-user only; shared A remains paused",
+    "chainBusinessFlow": "NOT_VERIFIED: local compiler and starter are not an online Chain operation",
+    "windowsAndLinux": "INCOMPLETE: macOS package does not prove other platforms",
+    "developerIDAndNotarization": "INCOMPLETE: ad-hoc signature only",
+    "formalInstallAndPublicRelease": "NOT_VERIFIED"
+  },
+  "releaseReady": false,
+  "goalComplete": false,
+  "preservation": "All earlier candidates and failures retained. Rejected network/package-egress/LXD scopes remain paused. No installation, deployment or shared writer changes."
+}

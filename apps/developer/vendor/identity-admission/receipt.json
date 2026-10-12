@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "sourceManifestSha256": "5afb7749381449a406be8fadf25f91ad4be8d54102334c68b5796c1c86070d0a",
+  "sourceVersion": "ynx-ide-null-selection-lazy-source/v1",
+  "sourceContentRoot": "cc6ef3f99337fe2c43d4a4fb7c48d360c106a678db236ce745bdc5acb925afe2",
+  "sourceOnly": true,
+  "runtimeTested": false,
+  "selection": "not-configured",
+  "files": [
+    {
+      "path": "scripts/original-ide-service-admission-native-selection.mjs",
+      "bytes": 466,
+      "sha256": "1a280d685a92a894648daf3db2c7021bbdbd1279b79e383dd84c7e2fc00f1dc7",
+      "nullPath": true
+    },
+    {
+      "path": "scripts/ynx-ide-service-admission-supplier.mjs",
+      "bytes": 1259,
+      "sha256": "18b3e54c638271128d8b8dbad5502891da5d5f355c0e17f30907c7274f19dccb",
+      "nullPath": true
+    },
+    {
+      "path": "src/base64url.js",
+      "bytes": 1674,
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf",
+      "nullPath": false
+    },
+    {
+      "path": "src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+      "nullPath": false
+    },
+    {
+      "path": "src/crypto.js",
+      "bytes": 6692,
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560",
+      "nullPath": false
+    },
+    {
+      "path": "src/integration.js",
+      "bytes": 14695,
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-backend-operation-auth.js",
+      "bytes": 10108,
+      "sha256": "2b770cfb8e047b2455c12570126ca87c0fe9c39cb5bb7e4849ea87a34f69fbe0",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-developer-project-resource-approval.js",
+      "bytes": 6665,
+      "sha256": "453f593560d441453b76cda282e98b7c625f2e46886b18592911de10f3b93c48",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-developer-resource-domain-evidence.js",
+      "bytes": 17241,
+      "sha256": "24cfe9d88fbd7d74b92b35dfc6cf47bae2faae4f4d9571bb3b462314fdb62c6b",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-developer-resource-participant.js",
+      "bytes": 14039,
+      "sha256": "edc9864c24f5c4f3132f358736fda57a8360ec39ef7cc56f9c5352575743779a",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-developer-resource-registry-current.js",
+      "bytes": 15368,
+      "sha256": "332cba975e55e20d522bfa487eb13dea9b11fabdacf12c5a1a1604cebd04ee0f",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-developer-resource-same-writer-composition.js",
+      "bytes": 6121,
+      "sha256": "7add702abe4aaeb8b232641f1f9742a3b1c2af38f2b82caa40fc44ae5def77c7",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-device-reader-durable-registration.js",
+      "bytes": 11111,
+      "sha256": "15ebab201a0a6e14cb42f0f9b6d98d8d96c6848c6cec6d94d78eea6686d319e5",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-device-reader-operator-role-certificate.js",
+      "bytes": 7845,
+      "sha256": "543d70054bcafefe1b05ca9e9abded5268cbdfa337fc730076b2715fe7106c3e",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-ide-service-admission-startup.js",
+      "bytes": 6887,
+      "sha256": "c6da4f78c1a6995c70336cc234394055285c3285b5f435fe6392d2364c1894ec",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-operation-protected-startup.js",
+      "bytes": 7288,
+      "sha256": "55597880edf8eff844e1f8e2222b160907cd2db384a4749b28343d566dcc42f5",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-operation-recovery-state.js",
+      "bytes": 7813,
+      "sha256": "9d14c7d476d15777eb88b82c8e133cc0710d71ad073999054d99051496d09207",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-unexpired-operation-reader.js",
+      "bytes": 4580,
+      "sha256": "c6e7e537a9933391823b31dc38c92bc33675ead5e1f7688eb9373882d8e30656",
+      "nullPath": false
+    },
+    {
+      "path": "src/original-wallet-service-admission.js",
+      "bytes": 20347,
+      "sha256": "438b355451ad96345f9fc9864dae413997a8f4fea0a4b1faf8c7368bf3e559b9",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-authority-projection.js",
+      "bytes": 10558,
+      "sha256": "f12144f6beb40f919195ae87aef6f3b1f286b7576b26d942f4be27dcdf60065d",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-control-capacity.js",
+      "bytes": 4012,
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-control-intent.js",
+      "bytes": 20511,
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-control-node-host.js",
+      "bytes": 30747,
+      "sha256": "659f224ae382f4e2d124205794de15b88d663cb4bfb76b1afb7dbe7db59f8ea0",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-control-node-store.js",
+      "bytes": 75851,
+      "sha256": "ac2ecfa47c56c73177cc67bc6c01492ff18a997565363f7d71e4f1deda3c4787",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-finite-consent.js",
+      "bytes": 2976,
+      "sha256": "bdefcaf2175406c8db83bfaafc7225cce72fb69da5f1c3a5e5a9f858b7e48ba2",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-gateway-client.js",
+      "bytes": 10334,
+      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-gateway-http.js",
+      "bytes": 4396,
+      "sha256": "b9d8921d53671032367d1f7c2a016e41c7724def9b0c4056c3a0f1e8bd6575a4",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-gateway-snapshot-v2.js",
+      "bytes": 5490,
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-gateway.js",
+      "bytes": 26088,
+      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-proof-v2.js",
+      "bytes": 9275,
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-registry.js",
+      "bytes": 14744,
+      "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef",
+      "nullPath": false
+    },
+    {
+      "path": "src/product-session-v2.js",
+      "bytes": 40361,
+      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41",
+      "nullPath": false
+    },
+    {
+      "path": "src/protocol.js",
+      "bytes": 10495,
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001",
+      "nullPath": false
+    },
+    {
+      "path": "src/session-proof.js",
+      "bytes": 8387,
+      "sha256": "8894457484157a9232eae5bc0c0713c1e740a7c5fc19d066292d6e3efc5c4c8f",
+      "nullPath": false
+    },
+    {
+      "path": "src/session.js",
+      "bytes": 9374,
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39",
+      "nullPath": false
+    },
+    {
+      "path": "src/wallet-session-control.js",
+      "bytes": 8185,
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d",
+      "nullPath": false
+    }
+  ]
+}

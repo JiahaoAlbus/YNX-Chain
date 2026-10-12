@@ -1,0 +1,83 @@
+{
+  "schema": "ynx-composed-native-distribution/v1",
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-gcc-native-package-20261004-mac-arm64",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "cd9a8c2c44e63cf0a4e558c38b5c6105bb23f28b",
+    "sourceTree": "c9ec1fc95deb5d61fb870c10e8350f5f1aa241f5",
+    "sourceCommitDate": "2026-10-04T10:23:01+08:00",
+    "runtimeCheckpoint": "cd9a8c2c44e63cf0a4e558c38b5c6105bb23f28b",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "c0b2b2bc10715bda83f69cc77919213d750c31f81e9bb203fce2ce960d51c728",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c",
+        "treeSha256": "2329f6debe46588e6c46b24136cdb61459960468b1845bc812884d3b5cfea197",
+        "manifestSha256": "771552fefe79d2eb656b6cda22b2f33213ecdebad17965ddcfab2b86b18975c2"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "a5e0dbd98f9a168f7123bfc9d3431154ccb8bcc8e1bd1a124dc8e71a3d8b9f48",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c",
+      "treeSha256": "2329f6debe46588e6c46b24136cdb61459960468b1845bc812884d3b5cfea197",
+      "manifestSha256": "771552fefe79d2eb656b6cda22b2f33213ecdebad17965ddcfab2b86b18975c2"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "a5e0dbd98f9a168f7123bfc9d3431154ccb8bcc8e1bd1a124dc8e71a3d8b9f48",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "ba584a65c533f15fc1d4cf020a2751a24875d9bef7353aaf8a042f8668e662a2",
+  "checks": {
+    "packagingExit": 0,
+    "deepStrictSignatureExit": 0,
+    "diskImageVerificationExit": 0,
+    "coreArchiveUnchangedAfterSeal": true,
+    "installed": false,
+    "launched": false,
+    "canonicalUserAcceptance": false,
+    "notarized": false
+  },
+  "logs": [
+    "/private/tmp/ynx-ide-gcc-native-package.log",
+    "/private/tmp/ynx-ide-gcc-native-signature-verify.log",
+    "/private/tmp/ynx-ide-gcc-native-dmg-verify.log"
+  ],
+  "remaining": [
+    "A protected runtime driver/canonical parent",
+    "Normal installed Wallet/Chain/AI workflow",
+    "Developer ID/notarization and other platforms/capacity"
+  ],
+  "scope": "Ad-hoc Testnet Preview built from committed owned source; exact archive distribution, not automatic activation or formal release.",
+  "evidence": "apps/developer/.ynx-developer-candidates/gcc-native-distribution-evidence-20261004",
+  "evidenceIndexSha256": "3759ad3fb441ffac3d40b649a5f998907540821059f9ea990b7a2abbd287def1"
+}

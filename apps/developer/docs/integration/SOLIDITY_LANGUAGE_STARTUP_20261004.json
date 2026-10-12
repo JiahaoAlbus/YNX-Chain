@@ -1,0 +1,102 @@
+{
+  "checkpoint": "First Solidity definition command waits extension startup and uses standard Monaco command delegate; current editor/version/selection guarded",
+  "sourceCommit": "04227c9321286787feb7a57f945f293a42b6ad10",
+  "sourceTree": "20a4f0e73a724bc3aa3f5d4e85596d2c61a879ca",
+  "sourceDeltaBase": "dd985c732",
+  "sourceArchive": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-startup-evidence-20261004/source-delta.tar.gz",
+    "sha256": "abf959e0ad9bbc82aa451a0535dcce773437c1416ca7b4e691b3375e87ea719e",
+    "allGitBlobsReadBack": true
+  },
+  "runtime": {
+    "path": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-solidity-language-command-startup-20261004-mac-arm64",
+    "pin": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "424cb416ecbc91396a530eefe6457f6bc4216ad0ca6d47945906dd036e35849b",
+      "treeSha256": "e517c13f66f5b3fdd8252ace2c7909a39839aa9367db4d891ebb300d263a850e",
+      "manifestSha256": "f8e37d3b80cb088b4bdf7ad39696ed864b065e85de3fcd85649f2d1c6dcb02e7"
+    },
+    "toolsVersion": "0.2.15",
+    "brandVersion": "0.1.3",
+    "workbenchSourceCacheSha256": "b9b54099871e0f29c87014640db8c217bb28995b090a331dc3674c61f64edced",
+    "buildExitCode": 0,
+    "packageExitCode": 0,
+    "originalLockUnchanged": true
+  },
+  "checksPassed": {
+    "startupAndRetirementUnitTests": 3,
+    "actualFullRuntimeColdEditorJourney": 6,
+    "actualFileSwitchJourneyWithInitialHostUnresolved": 1,
+    "actualFileSwitchJourneyWithQueryKnownPending": 1,
+    "skipped": 0
+  },
+  "uiChecks": [
+    "Actual F12 invokes the packaged reviewed local compiler and opens the precise cross-file overload declaration through the standard VSCode definition provider.",
+    "Actual editor Show Hover displays the compiler-authored function type at the correct member token.",
+    "Actual Find References uses the compiler declaration ID through the standard references provider.",
+    "Actual Go to Symbol shows compiler-authored document declarations in the standard editor picker.",
+    "An unsaved dependency that makes the project invalid retires cached definitions and refuses a stale F12 result.",
+    "Fixing the unsaved caller reanalyzes both current buffers and jumps to the renamed unsaved dependency without saving either file."
+  ],
+  "startupEvidence": {
+    "languageStatusCommandInvoked": false,
+    "runtimeFunctionsInjected": false,
+    "initialHostUnresolvedFileSwitch": [
+      {
+        "initialPluginState": "unresolved",
+        "sourceVersion": 1
+      },
+      {
+        "final": "file:///private/tmp/ynx-theia-extension-qa-htik2O/project/main.js",
+        "pendingCommandCompleted": true
+      }
+    ],
+    "confirmedPendingFileSwitch": [
+      {
+        "initialPluginState": "resolved",
+        "sourceVersion": 1
+      },
+      {
+        "beforeSwitch": {
+          "started": true,
+          "finished": false
+        }
+      },
+      {
+        "final": "file:///private/tmp/ynx-theia-extension-qa-htik2O/project/main.js",
+        "pendingCommandCompleted": true
+      }
+    ]
+  },
+  "negativeEvidence": [
+    "Previous b8 full-runtime cold first F12 failure retained in original report/evidence.",
+    "First readiness adapter still failed actual first F12: getAction returned null because pinned Monaco definition uses Action2 standard command, not an editor action; corrected to executeMonacoCommand.",
+    "Trace observer initially tried reading nonexistent action.run; probe failure preserved, no product pass inferred."
+  ],
+  "nativePackage": {
+    "built": false,
+    "guard": {
+      "availableKiB": 2393736,
+      "requiredKiB": 1664064,
+      "passed": true
+    },
+    "oldPackagePreserved": true
+  },
+  "evidenceDirectory": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/solidity-language-startup-evidence-20261004",
+  "evidenceIndexSha256": "7dcd51a4cbf7b4dae73d070862686808f8d073859e07e47d20df6f78ec24211d",
+  "cleanup": {
+    "jqvjuB": [],
+    "mPEMdn": [],
+    "htik2O": []
+  },
+  "canonical": false,
+  "public": false,
+  "realWallet": false,
+  "remaining": [
+    "Semantic completion/rename, incomplete-source analysis, automatic diagnostics and formatting remain open.",
+    "Other first language commands and extension-host reconnect lifecycle still need complete normal-user coverage.",
+    "Full C++ debug, canonical shared identity/Host, actual AI/Wallet/Chain operations, Native and all-platform install/publication/user acceptance remain unverified."
+  ]
+}

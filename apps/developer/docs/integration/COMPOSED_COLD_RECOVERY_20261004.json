@@ -1,0 +1,518 @@
+{
+  "schema": "ynx-composed-cold-recovery-checkpoint/v1",
+  "sourceBaseHead": "9b60208cabf7455cac00beee58bad7564c36730d",
+  "workbenchVersion": "0.3.3",
+  "runtimeArtifact": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "97eb5d1c1772ebda1dc3ffc897643b75313966a6aa4779973495b71e9d8fcc10",
+    "treeSha256": "7845ceba0aabafae7a523ed468bf05a33ffbdf28a36d203d5dbe5348b9dcc8e2",
+    "manifestSha256": "4f896c9d0531d4473697407f8a7bef416c877cd75094496637289bc16c0d8643"
+  },
+  "actualCold": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 49567,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49568,
+      "inspectorPort": 49569,
+      "url": "http://127.0.0.1:49567",
+      "pid": 17215,
+      "previousPid": 6294,
+      "resumedAt": "2026-10-04T01:08:23.290Z",
+      "previousRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-draft-store-20261004-mac-arm64",
+      "upgradedOwnedCandidate": true,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "resumedRuntime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 49567,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49568,
+      "inspectorPort": 49569,
+      "url": "http://127.0.0.1:49567",
+      "pid": 17560,
+      "previousPid": 17215,
+      "resumedAt": "2026-10-04T01:08:30.117Z",
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "3596d691705f3d3e800bd96855f709447f7e72820d2e186b99c8258dcd267258",
+    "originalFileSha256": "d9bc208d49accf1e8d3499a3e621b5f0daea753456b3673da82e77e139a96dc2",
+    "draft": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n",
+    "phases": [
+      {
+        "check": "Previously observed owned backend descendants exit after the crash, including detached children; no live killed-session execution is reported.",
+        "passed": true,
+        "observedChildren": [
+          {
+            "pid": 17441,
+            "parent": 17215,
+            "group": 17215,
+            "started": "Sun Oct  4 09:08:24 2026"
+          },
+          {
+            "pid": 17442,
+            "parent": 17215,
+            "group": 17215,
+            "started": "Sun Oct  4 09:08:24 2026"
+          },
+          {
+            "pid": 17448,
+            "parent": 17215,
+            "group": 17215,
+            "started": "Sun Oct  4 09:08:25 2026"
+          },
+          {
+            "pid": 17494,
+            "parent": 17448,
+            "group": 17215,
+            "started": "Sun Oct  4 09:08:26 2026"
+          },
+          {
+            "pid": 17451,
+            "parent": 17215,
+            "group": 17451,
+            "started": "Sun Oct  4 09:08:25 2026"
+          },
+          {
+            "pid": 17506,
+            "parent": 17215,
+            "group": 17506,
+            "started": "Sun Oct  4 09:08:27 2026"
+          }
+        ],
+        "remaining": []
+      },
+      {
+        "check": "Unsaved editor draft is restored dirty after SIGKILL and a cold browser/workbench reopen.",
+        "passed": true,
+        "editorText": "const savedMarker = \"YNX actual extension host\";\n// YNX_CRASH_UNSAVED_DRAFT_20261004"
+      },
+      {
+        "check": "Original saved file, user/language preferences and disabled extension state survive hard backend termination.",
+        "passed": true
+      },
+      {
+        "check": "A new actual PTY executes Node after cold recovery; a killed terminal process is not represented as still running.",
+        "passed": true
+      }
+    ],
+    "errors": [],
+    "scope": "Controlled owned synthetic macOS SIGKILL/cold persistent-browser profile. Process observations compare only the pre-crash owned family PIDs and start timestamps. No reseeding. Not formal native App, canonical user identity, signing, multi-owner capacity or survival of a killed terminal process."
+  },
+  "saveDiscard": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 49567,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49568,
+      "inspectorPort": 49569,
+      "url": "http://127.0.0.1:49567",
+      "pid": 24381,
+      "previousPid": 17560,
+      "resumedAt": "2026-10-04T01:14:29.313Z",
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "78a4e732bd5ab4469e04e56fcc119f854ef9ac09630b7596bda93e4d8ec3cf74",
+    "checks": [
+      "Saving the genuinely recovered dirty draft writes its exact contents and retires its recovery record.",
+      "Actual dirty-close Don’t Save preserves saved disk contents and retires the discarded checkpoint.",
+      "Reload and Quick Open do not resurrect the explicitly discarded draft."
+    ],
+    "errors": [],
+    "scope": "Same existing synthetic project, immutable candidate and persistent browser/profile after hard-crash recovery. Exact saved bytes and genuine user discard; no reseeding or authenticated/native-release claim."
+  },
+  "conflictUntitled": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 49567,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49568,
+      "inspectorPort": 49569,
+      "url": "http://127.0.0.1:49567",
+      "pid": 24381,
+      "previousPid": 17560,
+      "resumedAt": "2026-10-04T01:14:29.313Z",
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "resumedRuntime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 49567,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 49568,
+      "inspectorPort": 49569,
+      "url": "http://127.0.0.1:49567",
+      "pid": 29831,
+      "previousPid": 24381,
+      "resumedAt": "2026-10-04T01:17:25.027Z",
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "46da5431605ecfb0fca4ae3055c62507bf8563c38ae74a434f7a925ef07dbd00",
+    "original": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n",
+    "draft": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n\n// YNX_RECOVERY_CONFLICT_DIRTY\n",
+    "newer": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n\n// YNX_EXTERNAL_NEWER_SAVED_FILE\n",
+    "untitled": "YNX_UNTITLED_COLD_RECOVERY\n",
+    "checks": [
+      "An externally changed saved file remains byte-exact; the older dirty draft is recovered into a genuine dirty untitled copy.",
+      "A text file created through the actual New Untitled Text File command survives SIGKILL and cold reopen as dirty unsaved text."
+    ],
+    "errors": [],
+    "scope": "Same owned synthetic project/profile/candidate, real editor and SIGKILL; only this QA saved file receives an intentional competing write. No reseeding, private-account, full-native or release claim."
+  },
+  "currentCounts": {
+    "coldChecks": 4,
+    "saveDiscardChecks": 3,
+    "conflictUntitledChecks": 2,
+    "pageErrors": 0,
+    "filesystemAndProcessUnitTests": 8,
+    "failed": 0,
+    "skipped": 0,
+    "semanticCoreChecks": 16,
+    "productLifecycleChecks": 3,
+    "userExtensionChecks": 4,
+    "actualBrowserChecks": 32
+  },
+  "historical": {
+    "baseline": {
+      "runtime": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+        "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+        "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+        "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+        "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-language-recovery-20261004-mac-arm64",
+        "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-language-recovery-20261004-mac-arm64/plugins",
+        "port": 49567,
+        "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+        "adapterPort": 49568,
+        "inspectorPort": 49569,
+        "url": "http://127.0.0.1:49567",
+        "pid": 74199,
+        "previousPid": 60119,
+        "resumedAt": "2026-10-04T00:39:07.179Z",
+        "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+        "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+        "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+      },
+      "resumedRuntime": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+        "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+        "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+        "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+        "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-language-recovery-20261004-mac-arm64",
+        "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-language-recovery-20261004-mac-arm64/plugins",
+        "port": 49567,
+        "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+        "adapterPort": 49568,
+        "inspectorPort": 49569,
+        "url": "http://127.0.0.1:49567",
+        "pid": 75896,
+        "previousPid": 74199,
+        "resumedAt": "2026-10-04T00:41:14.953Z",
+        "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+        "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+        "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+      },
+      "runnerSha256": "3de5f1bb34ac306ba8f28a94908b2246b3a760fc7f611c6d18c9e59307d4daa4",
+      "originalFileSha256": "d9bc208d49accf1e8d3499a3e621b5f0daea753456b3673da82e77e139a96dc2",
+      "draft": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n",
+      "phases": [
+        {
+          "check": "Unsaved editor draft is restored dirty after SIGKILL and a cold browser/workbench reopen.",
+          "passed": false,
+          "editorText": "const savedMarker = \"YNX actual extension host\";"
+        },
+        {
+          "check": "Original saved file, user/language preferences and disabled extension state survive hard backend termination.",
+          "passed": true
+        },
+        {
+          "check": "A new actual PTY executes Node after cold recovery; a killed terminal process is not represented as still running.",
+          "passed": true
+        }
+      ],
+      "errors": [],
+      "scope": "Controlled owned synthetic macOS SIGKILL/cold persistent-browser profile. No reseeding. Not formal native App, canonical user identity, signing, multi-owner capacity or survival of a killed terminal process."
+    },
+    "intermediate": {
+      "runtime": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+        "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+        "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+        "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+        "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-draft-store-20261004-mac-arm64",
+        "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-draft-store-20261004-mac-arm64/plugins",
+        "port": 49567,
+        "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+        "adapterPort": 49568,
+        "inspectorPort": 49569,
+        "url": "http://127.0.0.1:49567",
+        "pid": 5334,
+        "previousPid": 75896,
+        "resumedAt": "2026-10-04T00:59:59.184Z",
+        "previousRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-language-recovery-20261004-mac-arm64",
+        "upgradedOwnedCandidate": true,
+        "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+        "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+        "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+      },
+      "resumedRuntime": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-CIORRA",
+        "workspace": "/private/tmp/ynx-theia-extension-qa-CIORRA/project",
+        "profile": "/private/tmp/ynx-theia-extension-qa-CIORRA/profile",
+        "temporary": "/private/tmp/ynx-theia-extension-qa-CIORRA/tmp",
+        "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-draft-store-20261004-mac-arm64",
+        "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-draft-store-20261004-mac-arm64/plugins",
+        "port": 49567,
+        "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+        "adapterPort": 49568,
+        "inspectorPort": 49569,
+        "url": "http://127.0.0.1:49567",
+        "pid": 6294,
+        "previousPid": 5334,
+        "resumedAt": "2026-10-04T01:00:05.888Z",
+        "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+        "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+        "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+      },
+      "runnerSha256": "03962b3ae8364956ff184cd03da66d60836770999357697eda7e3abcbb191752",
+      "originalFileSha256": "d9bc208d49accf1e8d3499a3e621b5f0daea753456b3673da82e77e139a96dc2",
+      "draft": "const savedMarker = \"YNX actual extension host\";\n\n// YNX_CRASH_UNSAVED_DRAFT_20261004\n",
+      "phases": [
+        {
+          "check": "Unsaved editor draft is restored dirty after SIGKILL and a cold browser/workbench reopen.",
+          "passed": false,
+          "editorText": "const savedMarker = \"YNX actual extension host\";\n// YNX_CRASH_UNSAVED_DRAFT_20261004"
+        },
+        {
+          "check": "Original saved file, user/language preferences and disabled extension state survive hard backend termination.",
+          "passed": true
+        },
+        {
+          "check": "A new actual PTY executes Node after cold recovery; a killed terminal process is not represented as still running.",
+          "passed": true
+        }
+      ],
+      "errors": [],
+      "scope": "Controlled owned synthetic macOS SIGKILL/cold persistent-browser profile. No reseeding. Not formal native App, canonical user identity, signing, multi-owner capacity or survival of a killed terminal process."
+    },
+    "interpretation": "0.3.1 truly lost unsaved text. Intermediate 0.3.2 restored text but its browser assertion did not normalize Monaco NBSP; preserved red receipt and the reaped-child cleanup refusal. Current new artifact and fresh evidence pass. Prior language/core 25 are separate, not current totals."
+  },
+  "nativeDistribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "97eb5d1c1772ebda1dc3ffc897643b75313966a6aa4779973495b71e9d8fcc10",
+      "treeSha256": "7845ceba0aabafae7a523ed468bf05a33ffbdf28a36d203d5dbe5348b9dcc8e2",
+      "manifestSha256": "4f896c9d0531d4473697407f8a7bef416c877cd75094496637289bc16c0d8643"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "a50bcdb6321b8aa87c6f42d74e5709f0c1f930dd7d3c5d784f3ea31eb4f2a74d",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "nativeArchiveFirstAttempt": "Default tar extraction masked file modes and failed exact tree verification; archived failure retained. Explicit permission preservation fixes the confirmed round trip.",
+  "evidence": "apps/developer/.ynx-developer-candidates/composed-cold-recovery-evidence-20261004",
+  "evidenceIndexSha256": "d2a1965d648f4c9a6c5ea75dc8d2595a62c4aa5bf4cfef646a29f00a15f8f09b",
+  "scope": "Same immutable 0.3.3 macOS arm64 runtime: 32 actual controlled browser checks (semantic/core16, lifecycle3, cold recovery and decisions9, separate cached user VSIX4), filesystem/native ownership tests8. Original recovery profile preserved. Complete native App/DMG built with exact core archive; deep signature/disk-image integrity verified. No ordinary native install/launch, canonical Wallet/Chain/AI, hard quota/capacity, all-platform or formal release acceptance.",
+  "remaining": [
+    "Protected A driver/canonical parent and exact compatible runtime registration",
+    "Actual native installation and normal authenticated complete product journey",
+    "Platform binaries/capacity/public user acceptance and formal signing/notarization"
+  ],
+  "semanticCore": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-o5XZwf",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-o5XZwf/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-o5XZwf/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-o5XZwf/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 57359,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 57360,
+      "inspectorPort": 57361,
+      "url": "http://127.0.0.1:57359",
+      "pid": 35741,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+    "checks": [
+      "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+      "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+      "actual editor save writes the selected project file, confirmed on disk",
+      "the inherited YNX logo and product name render in the actual framework workbench",
+      "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+      "closing and reopening the actual file restores saved disk content",
+      "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+      "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+      "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+      "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+      "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+      "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+      "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+      "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+      "continuing the actual debug session executes the target program, confirmed by its disk output",
+      "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+    ],
+    "errors": [],
+    "boundary": {
+      "read": "EPERM",
+      "write": "EPERM",
+      "network": "EPERM"
+    },
+    "outside": "/private/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-other-project-boundary-3LnBpf"
+  },
+  "productLifecycle": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-o5XZwf",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-o5XZwf/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-o5XZwf/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-o5XZwf/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64/plugins",
+      "port": 57359,
+      "dapRoot": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/js-debug-dap-reviewed-1.140.0-20261004",
+      "adapterPort": 57360,
+      "inspectorPort": 57361,
+      "url": "http://127.0.0.1:57359",
+      "pid": 35741,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "83182fb9cd88e0fa271793a402a350a45749235dca384d52f658e34c6f095dc2",
+    "checks": [
+      "Actual user font setting and JavaScript-specific tab size save to the isolated profile and survive workbench reload.",
+      "Actual Explorer creates a Unicode folder and arbitrary-suffix file; edits save to disk and workspace search finds both real files.",
+      "Actual YNX Tools disables and removes commands after Reload Window, then enables and reactivates after another reload; unbound Chain starter remains refused without modifying files."
+    ],
+    "errors": [],
+    "scope": "Real isolated runtime/profile reload. No canonical Wallet authentication, admitted public driver, user-extension install, backend restart or multi-owner capacity acceptance."
+  },
+  "userExtension": {
+    "runtime": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-zmmkUX",
+      "workspace": "/private/tmp/ynx-theia-extension-qa-zmmkUX/project",
+      "profile": "/private/tmp/ynx-theia-extension-qa-zmmkUX/profile",
+      "temporary": "/private/tmp/ynx-theia-extension-qa-zmmkUX/tmp",
+      "root": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-cold-recovery-20261004-mac-arm64",
+      "plugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/cold-recovery-user-inputs-20261004",
+      "port": 59560,
+      "url": "http://127.0.0.1:59560",
+      "pid": 85187,
+      "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+      "isolation": "macOS sandbox-exec, deny reads/writes outside explicit runtime/system/project roots, network limited to this listener",
+      "acceptance": "single-session controlled QA, not public or multi-owner production admission"
+    },
+    "runnerSha256": "54a2884503f053e5078cd8780dd959a601e45e1bc8d457b26551278e4bf5f62c",
+    "vsixSha256": "b1494642a46d1b139ab799e2ee0ae2453bdcef6ed1a718acca034445cfd9d87f",
+    "checks": [
+      "Actual local VSIX install of the cached official TypeScript/JavaScript service supplies imported-file semantic completion through the user extension host.",
+      "Real typing pairs brackets/quotes, saves disk content and reopens the saved file after local extension installation.",
+      "Actual installed language extension disables persistently, then enables and restores imported-file completion after reload.",
+      "Actual user-extension uninstall removes the installed service after reload and preserves/reopens the project file."
+    ],
+    "errors": [],
+    "scope": "Cached official VSIX, staged built-ins excluding this language service, actual local user installation lifecycle. Not online marketplace access or universal extension compatibility."
+  },
+  "userFixtureFailure": {
+    "receipt": {
+      "checks": [],
+      "errors": [],
+      "failure": "AssertionError [ERR_ASSERTION]: The input did not match the regular expression /address/. Input:\n\n'from\\nimport\\njs\\nmodel\\nwallet'\n",
+      "text": "YNX Developer\nFile\nEdit\nSelection\nView\nGo\nRun\nTerminal\nHelp\n1\nmain.js\n main.js\n1\n2\nimport { wallet } from \"./wallet-model.js\";\nwallet.\nfrom\nimport\njs\nmodel\nwallet\n0\n0\nLn 2, Col 8\nLF\nUTF-8\nSpaces: 4\nPlain Text"
+    },
+    "diagnosis": "Historical staged inputs were symlinks into the prior immutable runtime; current sandbox correctly refused those unlisted target paths, so language grammars did not load and the file remained Plain Text. Preserved red evidence, copied exact current built-ins into a new standalone fixture with the language service omitted, and reran all four genuine VSIX journeys. No sandbox scope widening or existing profile reset."
+  },
+  "nativePackage": {
+    "root": "apps/developer/.ynx-developer-candidates/ynx-composed-cold-native-package-20261004-mac-arm64",
+    "provenance": {
+      "schemaVersion": 1,
+      "productId": "ynx-developer-v1",
+      "version": "0.2.0",
+      "artifactClass": "unsigned-testnet-preview",
+      "platform": "macos-arm64",
+      "signingClass": "adhoc-no-team-id",
+      "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+      "sourceCommit": "d34130186520b9e860638888554ee433619ec634",
+      "sourceTree": "ac33c267ff2f7090255216f17a9d2d0bb4586925",
+      "sourceCommitDate": "2026-10-04T09:21:13+08:00",
+      "runtimeCheckpoint": "d34130186520b9e860638888554ee433619ec634",
+      "sourceDirty": false,
+      "minimumOS": "13.5",
+      "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+      "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+      "sbomPath": "Contents/Resources/sbom.cdx.json",
+      "sbomSha256": "ca0add7560b77cbceee13d9d7cb51eeccc119187d89eb5067fd67ed1329885ee",
+      "composedCoreDistribution": {
+        "schemaVersion": 1,
+        "runtimeArtifact": {
+          "kind": "ynx-theia",
+          "version": "1.76.0",
+          "architecture": "darwin-arm64",
+          "lockSha256": "97eb5d1c1772ebda1dc3ffc897643b75313966a6aa4779973495b71e9d8fcc10",
+          "treeSha256": "7845ceba0aabafae7a523ed468bf05a33ffbdf28a36d203d5dbe5348b9dcc8e2",
+          "manifestSha256": "4f896c9d0531d4473697407f8a7bef416c877cd75094496637289bc16c0d8643"
+        },
+        "requiredNodeVersion": "v26.7.0",
+        "archive": "workbench.tar",
+        "archiveSha256": "a50bcdb6321b8aa87c6f42d74e5709f0c1f930dd7d3c5d784f3ea31eb4f2a74d",
+        "roundTripTreeVerified": true,
+        "upstreamNotices": "component-notices/index.json inside archive",
+        "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+        "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+      }
+    },
+    "dmgSha256": "63905cd0516e8a5a9cec6dfecf875a404ca250a9518528cd0b0882ff7da30fe8",
+    "deepStrictSignatureVerified": true,
+    "dmgChecksumVerified": true,
+    "postSigningCoreArchiveUnchanged": true,
+    "installed": false,
+    "launched": false,
+    "canonicalSession": false,
+    "limitation": "Ad-hoc/no-Team-ID local testnet candidate, not Developer ID signed/notarized or a normal-user admitted IDE. Core archive is packaged for protected driver installation; shell Node v24.21.0 is separate from core required v26.7.0."
+  }
+}

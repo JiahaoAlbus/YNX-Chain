@@ -1,0 +1,79 @@
+{
+  "schema": "ynx-composed-cpp-native-distribution/v1",
+  "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-cpp-native-package-20261004-mac-arm64",
+  "provenance": {
+    "schemaVersion": 1,
+    "productId": "ynx-developer-v1",
+    "version": "0.2.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "platform": "macos-arm64",
+    "signingClass": "adhoc-no-team-id",
+    "sourceRepository": "https://github.com/JiahaoAlbus/YNX-Chain",
+    "sourceCommit": "bd1681105ef1b294bf491bb70910d19a5258ba73",
+    "sourceTree": "0a0b65a6cad37fcdafd7e95bf1442715fc4b6a9a",
+    "sourceCommitDate": "2026-10-04T10:57:00+08:00",
+    "runtimeCheckpoint": "bd1681105ef1b294bf491bb70910d19a5258ba73",
+    "sourceDirty": false,
+    "minimumOS": "13.5",
+    "macosCompatibilityPath": "Contents/Resources/macos-compatibility.json",
+    "macosCompatibilitySha256": "358563253dab9ffacd3ed698137e878d09baa6aaaf16766d14e010e5bb59d8d3",
+    "sbomPath": "Contents/Resources/sbom.cdx.json",
+    "sbomSha256": "36481a15adc5ff4d50ee7ef9c6b6624b9284284ab0a43f058f93201d47d38c77",
+    "composedCoreDistribution": {
+      "schemaVersion": 1,
+      "runtimeArtifact": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c",
+        "treeSha256": "44fec4c14bef4f9c72fd6cc2b8f128942c567ed30bf7ffcb4498ee8507ef6cdf",
+        "manifestSha256": "3284261992a3e9b61f8671d8d74a2f35bbd3c1815a46dcac574bca5b70568b47"
+      },
+      "requiredNodeVersion": "v26.7.0",
+      "archive": "workbench.tar",
+      "archiveSha256": "1eaa42de5723d6e591253ee7a411830b877e27d29aa95df62d370ea070107035",
+      "roundTripTreeVerified": true,
+      "upstreamNotices": "component-notices/index.json inside archive",
+      "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+      "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+    }
+  },
+  "distribution": {
+    "schemaVersion": 1,
+    "runtimeArtifact": {
+      "kind": "ynx-theia",
+      "version": "1.76.0",
+      "architecture": "darwin-arm64",
+      "lockSha256": "3e5549503a68702220658959f0da5a43262510de7468608bda642e979990018c",
+      "treeSha256": "44fec4c14bef4f9c72fd6cc2b8f128942c567ed30bf7ffcb4498ee8507ef6cdf",
+      "manifestSha256": "3284261992a3e9b61f8671d8d74a2f35bbd3c1815a46dcac574bca5b70568b47"
+    },
+    "requiredNodeVersion": "v26.7.0",
+    "archive": "workbench.tar",
+    "archiveSha256": "1eaa42de5723d6e591253ee7a411830b877e27d29aa95df62d370ea070107035",
+    "roundTripTreeVerified": true,
+    "upstreamNotices": "component-notices/index.json inside archive",
+    "activation": "Protected operator must install and verify this exact payload, provide the compatible registered runtime and canonical admission. No automatic extraction, process launch or user profile migration.",
+    "signing": "Archive preserves reviewed native component bytes across outer app signing. Its pin must be checked again after protected installation."
+  },
+  "dmgSha256": "3570eca5646b854a141518f81cc8908a232fec8b2fcbf36de864f3580109471a",
+  "checks": {
+    "packagingExit": 0,
+    "deepStrictSignatureExit": 0,
+    "diskImageVerificationExit": 0,
+    "coreArchiveUnchangedAfterSeal": true,
+    "installed": false,
+    "launched": false,
+    "canonicalUserAcceptance": false,
+    "notarized": false
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/cpp-native-distribution-evidence-20261004",
+  "evidenceIndexSha256": "197aee5769dbba4b38b432cf0ccd9b70f8f062c9a8106b2c4c7060b888406e93",
+  "remaining": [
+    "A protected canonical parent/registered execution driver and operator-approved Clangd/SDK paths",
+    "Installed real Wallet/Chain/approved hosted-model journey",
+    "C++ debugger and remaining language/extension compatibility",
+    "Formal signing/notarization, other platforms and capacity"
+  ],
+  "scope": "Complete ad-hoc Testnet Preview including exact reviewed C/C++ extension and dependencies. Compiler/language-server executable is operator-provided, not redistributed. Source and distribution proof do not establish formal user/release acceptance."
+}

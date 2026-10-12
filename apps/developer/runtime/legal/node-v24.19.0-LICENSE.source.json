@@ -1,0 +1,10 @@
+{
+  "upstream": "nodejs/node",
+  "version": "v24.19.0",
+  "source": "https://github.com/nodejs/node/blob/v24.19.0/LICENSE",
+  "gitBlobSha1": "2842efa1288eef1de3a6778b5dd3519bc903308d",
+  "bytes": 157606,
+  "sha256": "148eacf7863ef4329224a29398623077200a27194aa075569faf4a0a85566ca5",
+  "content": "unmodified full upstream LICENSE including third-party notices",
+  "scope": "legal input only; does not establish complete runtime or older macOS compatibility"
+}

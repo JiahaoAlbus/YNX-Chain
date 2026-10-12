@@ -1,0 +1,26 @@
+.ynx-keyboard-shortcuts { display: flex; flex-direction: column; padding: 20px 24px; gap: 14px; color: var(--theia-foreground); background: var(--theia-editor-background); overflow: hidden; }
+.ynx-shortcuts-heading, .ynx-shortcuts-filters, .ynx-shortcuts-footer, .ynx-shortcuts-dialog-actions { display: flex; gap: 12px; align-items: center; }
+.ynx-shortcuts-heading h1 { flex: 1; font-size: 21px; margin: 0; font-weight: 500; }
+.ynx-shortcuts-filters input { flex: 1; }
+.ynx-keyboard-shortcuts input, .ynx-keyboard-shortcuts select { box-sizing: border-box; padding: 8px 10px; border: 1px solid var(--theia-input-border, var(--theia-panel-border)); color: var(--theia-input-foreground); background: var(--theia-input-background); font: inherit; }
+.ynx-keyboard-shortcuts input:focus, .ynx-keyboard-shortcuts select:focus { outline: 1px solid var(--theia-focusBorder); }
+.ynx-shortcuts-table { overflow: auto; flex: 1; min-height: 0; }
+.ynx-shortcuts-table table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.ynx-shortcuts-table th { text-align: left; position: sticky; top: 0; background: var(--theia-editor-background); z-index: 1; font-weight: 600; }
+.ynx-shortcuts-table th, .ynx-shortcuts-table td { border-bottom: 1px solid var(--theia-panel-border); padding: 10px 8px; vertical-align: middle; }
+.ynx-shortcuts-table td:first-child { min-width: 180px; }
+.ynx-shortcuts-table strong { display: block; font-weight: 500; }
+.ynx-shortcuts-table small { display: block; opacity: .65; margin-top: 4px; overflow-wrap: anywhere; }
+.ynx-shortcuts-table kbd { white-space: nowrap; background: var(--theia-keybindingLabel-background); border: 1px solid var(--theia-keybindingLabel-border); padding: 3px 7px; border-radius: 4px; }
+.ynx-shortcuts-table td:last-child { min-width: 170px; }
+.ynx-shortcuts-table button { margin: 2px 5px 2px 0; min-width: 0; padding: 3px 8px; }
+.ynx-shortcuts-footer span { flex: 1; opacity: .75; }
+.ynx-shortcuts-message { min-height: 18px; }
+.ynx-shortcuts-dialog { width: min(480px, 80vw); padding: 24px; color: var(--theia-foreground); background: var(--theia-editor-background); border: 1px solid var(--theia-panel-border); border-radius: 8px; box-shadow: 0 12px 50px #0005; }
+.ynx-shortcuts-dialog::backdrop { background: #0005; }
+.ynx-shortcuts-dialog h2 { margin: 0; font-size: 18px; }
+.ynx-shortcuts-dialog label { display: block; margin: 16px 0 8px; }
+.ynx-shortcuts-dialog input { display: block; width: 100%; margin-top: 7px; }
+.ynx-shortcuts-dialog-actions { margin-top: 20px; justify-content: flex-end; }
+.ynx-shortcuts-dialog [role=alert] { color: var(--theia-errorForeground); margin-top: 8px; }
+.ynx-shortcuts-conflicts { margin-top: 14px; font-size: 12px; color: var(--theia-editorWarning-foreground); }

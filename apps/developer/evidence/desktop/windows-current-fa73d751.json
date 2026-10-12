@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "classification": "windows-msix-ci-install-candidate-not-public-release",
+  "artifact": {
+    "name": "ynx-developer-testnet-preview-windows-x64-test-signed.msix",
+    "platform": "windows-x64",
+    "sourceCommit": "fa73d751ac72f8572fb2dcf364ebf2b649470f72",
+    "sourceTree": "254134eb87c34faa7e1b53ebce32f102f638199b",
+    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "0abb87beeb603ff177e25bb9504d359684e796c3596879df3dcfb719440d6dde",
+    "bytes": 71572168,
+    "sbomSha256": "c816f62e70d215920b5a8fe4089ec94b9d443545bf7150f68c35ce067fa1dd93",
+    "installClass": "msix-sideload",
+    "signingClass": "test-self-signed-not-production"
+  },
+  "ci": {
+    "workflow": ".github/workflows/developer-windows.yml",
+    "runId": 33372831985,
+    "jobId": 99427582934,
+    "result": "success",
+    "artifactId": 9750787861,
+    "artifactOuterSha256": "3ad468d485031b143a7a0caff7013873dac62d611b7a1dad0006b56370063748",
+    "artifactOuterBytes": 143527942,
+    "artifactUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33372831985/artifacts/9750787861"
+  },
+  "verification": {
+    "portableExtraction": true,
+    "resourcesVerified": true,
+    "hostedWorkspaceConnected": true,
+    "realCppCompile": true,
+    "portableColdLaunch": true,
+    "portableSecondLaunch": true,
+    "msixPackageSignatureValidatedByAddAppxPackage": true,
+    "msixInstalledPayloadVerified": true,
+    "msixColdLaunch": true,
+    "msixSecondLaunch": true,
+    "msixUninstall": true,
+    "localCompilerSandbox": false
+  },
+  "publication": {
+    "downloadHosted": false,
+    "externalHttpsReadback": false,
+    "officialDownloadUrl": null,
+    "immutableHosting": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "boundaries": {
+    "githubActionsArtifactIsTimeBound": true,
+    "externalArtifactBytesRecomputed": false,
+    "reason": "The source-bound CI log proves the MSIX lifecycle and inner digest. A complete external artifact download, immutable hosting, production signing, and official-domain byte readback remain required before public installer claims."
+  }
+}

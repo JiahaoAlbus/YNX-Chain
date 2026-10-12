@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "checks": [
+    "390px: native project home, no guest autosave/editor, preserved corrupt draft and explicit recovery route",
+    "1440px: native project home, no guest autosave/editor, preserved corrupt draft and explicit recovery route",
+    "mac-workspace: controlled document-start marker retains existing desktop recovery/workbench route; no installed-device claim",
+    "windows-hosted: controlled document-start marker retains existing desktop recovery/workbench route; no installed-device claim",
+    "real root selects authenticated existing project; no invented guest copy target",
+    "normal root creation -> selected project -> explicit admission -> existing editor ticket link; no mocked editor acceptance",
+    "account switch to empty catalog retires prior project/session UI and allows reviewed first-project creation"
+  ],
+  "errors": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/identity/projects",
+      "body": {
+        "name": "My Wallet app",
+        "approvalId": "a5a5405b-7e30-4a2c-a67d-91ebff99d3a7",
+        "approval": "create-wallet-project-once"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/identity",
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/identity/activity",
+      "body": {
+        "csrf": "fixture-activity",
+        "action": "open-project",
+        "eventId": "9tI6md-_tSne6kIAYx05KKxX7kAPOidUp7unlGba4lY"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/runtime/codeoss",
+      "body": {
+        "projectId": "wallet-a5a5405b-7e30-4a2c-a67d-91ebff99d3a7",
+        "expectedRevision": 1,
+        "approval": "launch-native-ide-once"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss",
+      "body": null
+    }
+  ],
+  "actualReactEntry": true,
+  "actualChromium": true,
+  "backend": "controlled HTTP routes",
+  "nativeEditorAccepted": false,
+  "public": false
+}

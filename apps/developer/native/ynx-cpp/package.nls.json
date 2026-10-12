@@ -1,0 +1,5 @@
+{
+  "configureBuildTasks": "Configure Build and Run Tasks",
+  "runActive": "Run C/C++ File",
+  "debugActive": "Debug C/C++ File"
+}

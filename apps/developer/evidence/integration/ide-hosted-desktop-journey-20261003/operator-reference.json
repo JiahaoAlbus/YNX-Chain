@@ -1,0 +1,28 @@
+{
+  "schema": "ynx-readonly-operator-reference/v1",
+  "sourceLog": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261003/wallet-release-owner/ide-core-existing-unit-references-readonly-20261003.log",
+  "sourceLogSHA256": "6ea8a02b9378d33d66a56e403424c7fe4bf045560dd6abefb00968c85a905e4a",
+  "architecture": "x86_64",
+  "developer": {
+    "pid": 3043199,
+    "user": "ubuntu",
+    "workingDirectory": "/opt/ynx-developer/current",
+    "currentReference": "/opt/ynx-developer/candidates/17ee9ae5",
+    "environmentFileReference": "/etc/ynx/ynx-developer-web.env"
+  },
+  "walletCandidate": {
+    "pid": 1898672,
+    "workingDirectory": "/opt/ynx/wallet-auth-developer-11f15c7a"
+  },
+  "protectedAdapterDirectoryPresent": false,
+  "linuxPackageReference": "/opt/ynx-developer/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+  "packageBytesVerified": false,
+  "approvedConcreteCoreDriverLocated": false,
+  "existingFactorySource": "apps/developer/services/codeoss-service/src/admission.mjs",
+  "factoryExport": "createDeveloperCoreAdmission",
+  "protectedModuleImplemented": false,
+  "productionCoreEnabled": false,
+  "forbiddenNetworkPackageLXDResumed": false,
+  "secretContentsRead": false,
+  "hostChanged": false
+}

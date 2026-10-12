@@ -1,0 +1,15 @@
+✔ an existing mismatched workspace receipt cannot be erased by claiming another run action (32.968375ms)
+✔ owner task rejects a previously aborted request before admission (3.106375ms)
+✔ revoked owner task leaves the queue without starting or reading its environment (3.359458ms)
+✔ owner assertion is rechecked when queued work is actually dispatched (0.799625ms)
+✔ owner revocation terminates an already running sandbox process before releasing capacity (50.809416ms)
+✔ drain includes startup admitted before maintenance and awaits final persistence exactly once (3.52525ms)
+✔ a cleanup failure remains observable and makes maintenance fail (0.217458ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 111.554583

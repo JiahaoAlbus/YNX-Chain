@@ -1,0 +1,25 @@
+{
+  "desktopEntryBrowserChecks": 7,
+  "homeBrowserChecks": 6,
+  "typescript": "PASS",
+  "frontendBuild": "PASS",
+  "staticCheck": "PASS",
+  "windowsSourceCheck": "PASS structural only",
+  "oldClientContract": "existing ynx-desktop-host/v1 state poll",
+  "actualMonaco": true,
+  "compiledFrontend": true,
+  "backend": "controlled local routes; no production traffic",
+  "unknownTerminal": "preserved; local save only, no fabricated exit/remote save",
+  "installedWindowsAcceptance": "NOT_RUN",
+  "fullNativeWorkbench": "NOT_RUN",
+  "realTerminal": "NOT_RUN",
+  "realWalletBusinessOperation": "NOT_RUN",
+  "realProviderGeneration": false,
+  "capacityVerified": false,
+  "formalPublication": false,
+  "rejectedScopesStillStopped": [
+    "network",
+    "package-egress",
+    "LXD"
+  ]
+}

@@ -1,0 +1,223 @@
+{
+  "schemaVersion": "1.0",
+  "productNumber": "11",
+  "productId": "ynx-developer-v1",
+  "productName": "YNX Developer / YNX AI Build",
+  "version": "0.2.0",
+  "branch": "codex/20260906-developer-usability",
+  "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+  "officialDomain": "https://ynxweb4.com",
+  "canonicalPath": "/developer",
+  "canonicalUrl": "https://ynxweb4.com/developer",
+  "routeStatus": "source-bound-public-runtime-readback; browser-visible-proof-pending",
+  "deployedPublic": true,
+  "publicRouteVerified": true,
+  "releaseClass": "unsigned-testnet-preview",
+  "release": {
+    "published": true,
+    "tag": null,
+    "name": "0.2.0-testnet-preview-595084945e63-candidate",
+    "targetCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "publishedAt": "2026-09-06T09:39:20.391173+00:00",
+    "url": "https://developer.ynxweb4.com/",
+    "prerelease": true,
+    "publicationKind": "public-web-testnet-preview"
+  },
+  "summary": "Public Web 595 preserves incompatible legacy recovery data and has exact-source/203-file runtime evidence. Current browser workflow and macOS DMG installed upgrade remain unverified. Windows evidence is separately scoped; current desktop installers are not official downloads.",
+  "surfaces": [
+    "web-ide",
+    "api-studio",
+    "ynx-ai-build",
+    "macos-arm64-testnet-preview",
+    "windows-x64-testnet-preview"
+  ],
+  "localEvidence": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "browserAccessibility": {
+      "status": "passed",
+      "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
+      "checksPassed": 15,
+      "screenshots": 6,
+      "manifest": "apps/developer/evidence/ui/current-accessibility/accessibility-audit.json",
+      "independentCertification": false
+    },
+    "macosArm64": {
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "bytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
+      "sbomComponents": 267,
+      "signingClass": "adhoc-no-team-id",
+      "hosted": true,
+      "currentFullPlatform": false,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
+      "historical": true
+    },
+    "currentLocalMacArtifact": {
+      "evidence": "apps/developer/evidence/desktop/macos-current-59508494.json",
+      "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+      "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+      "sha256": "2ac2174b52db53fed9c87d66527145dd6a72555d8524837b601379327913f158",
+      "bytes": 298980748,
+      "downloadHosted": false,
+      "downloadUrl": null,
+      "format": "dmg",
+      "minimumOS": "13.5",
+      "signingClass": "adhoc-no-team-id",
+      "productionSigned": false,
+      "installedCurrentCandidate": false,
+      "originalDesktopProfileUpgradeVerified": false,
+      "macOS13_5RuntimeVerified": false,
+      "hosted": false,
+      "verification": "Package and native rejection/recovery fixtures passed; this exact candidate still awaits installed upgrade and visible workflow acceptance."
+    },
+    "currentLocalWindowsArtifact": {
+      "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
+      "sourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+      "runtimeCheckpoint": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "sha256": "7459cc31a86d45516d0180d8426cc00a55a206e95f79abb6ae644f1e3ad57e86",
+      "bytes": 71572190,
+      "sbomSha256": "4da45f155a57a72cae656007b9e626683c5b4249b8549e68395be5fc48312a07",
+      "signingClass": "test-self-signed-not-production",
+      "hosted": false,
+      "deliveryMode": "hosted-workspace-client",
+      "localCompilerSandbox": false,
+      "downloadUrl": null,
+      "format": "msix",
+      "verification": "CI portable extraction, resource self-test, remote C++ compile, installed MSIX payload cold launch, second launch and uninstall passed"
+    },
+    "currentLinuxX64ServerArtifact": {
+      "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
+      "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+      "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+      "bytes": 138538840,
+      "hosted": true,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+      "signingClass": "unsigned-server-archive",
+      "minimumRuntime": "Linux x86_64 with Node.js 22 or newer",
+      "verification": "protected evidence binding, extracted archive cold start and health check passed; workspace state and operator environment are excluded",
+      "historicalToCurrentWeb": true
+    },
+    "windowsX64": {
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "runId": 31513885748,
+      "artifactId": 9110259455,
+      "artifactExpiresAt": "2026-08-25T16:44:45Z",
+      "sha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "bytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
+      "signingClass": "unsigned-no-authenticode",
+      "hosted": true,
+      "currentFullPlatform": true,
+      "deliveryMode": "hosted-workspace-client",
+      "localCompilerSandbox": false,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip"
+    },
+    "currentLinuxGatewayRuntime": {
+      "kind": "linux-x64-gateway-runtime",
+      "bytes": 137676746,
+      "sha256": "c229b056dbc9b2641b5b18b9081b888d328d645e0221eda5b12fadf540434973",
+      "fullFileManifestSha256": "82c44ae675061ba6f8f16766ed0c07ac899f577455e4894c032e694fdae763b1",
+      "trackedSourceFilesVerified": 400,
+      "packageFiles": 21574,
+      "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+      "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+      "deployedPublic": true,
+      "downloadHosted": false,
+      "evidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json"
+    }
+  },
+  "publicEvidence": {
+    "staging": true,
+    "production": false,
+    "downloadHosted": false,
+    "immutableArtifactUrls": [],
+    "healthUrls": [
+      "https://developer.ynxweb4.com/healthz",
+      "https://developer.ynxweb4.com/runtime/health"
+    ],
+    "verifiedUrls": [
+      "https://developer.ynxweb4.com/",
+      "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
+    ],
+    "currentWebRuntime": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+    "currentBrowserVisible": false
+  },
+  "websiteHandoff": {
+    "targetOwner": "28-website",
+    "integrationOwner": "29-integration",
+    "status": "public-route-integrated",
+    "requiredRoute": "/developer",
+    "requiredCanonical": "https://ynxweb4.com/developer",
+    "screenshots": [
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/desktop-light-1440x900.png",
+        "sha256": "e6c3a3970e1abb5b1c9c3dbaf74028fe07778e89abe8c0b427fcafd5c0cad0c0"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/desktop-dark-1440x900.png",
+        "sha256": "30ec419a760c30cc228b19da8cf4af9af001142c50a15c8b167c9a80679aeb0b"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/mobile-light-390x844.png",
+        "sha256": "596d3aeda5bc2ca49b6ce9bf187a9f886485a411983d3ad168995953134d958b"
+      },
+      {
+        "path": "apps/developer/evidence/ui/current-accessibility/mobile-arabic-rtl-390x844.png",
+        "sha256": "459ae141073ba871856e30842de7bcfd0dd90ad39dc591fb2ab9a18af88eabce"
+      }
+    ]
+  },
+  "truthBoundaries": {
+    "integratedCentral": false,
+    "deployedStaging": true,
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "mainnetReleased": false,
+    "fullProductAccepted": false,
+    "installedCurrentSource": false
+  },
+  "fullPlatformPublicEvidence": {
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "deployedAt": "2026-08-20T15:57:18Z",
+    "nineRuntimes": true,
+    "sevenLanguageServers": true,
+    "concurrentTenantsVerified": 12,
+    "restartPersistence": true,
+    "hostedAiPlanner": "qwen3:4b",
+    "walletBindingAttested": true,
+    "walletPublicDeploymentReady": false,
+    "bftIdeActionPublicReady": false,
+    "rollbackUpstream": "prior immutable candidate a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
+    "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8",
+    "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
+    "independentBrowserVisible": false,
+    "historicalToCurrentSource": true
+  },
+  "generatedAt": "2026-09-06T09:39:46.784964+00:00",
+  "historicalGitHubRelease": {
+    "published": true,
+    "tag": "developer-v0.2.0-testnet-preview.1",
+    "name": "YNX Developer 0.2.0 Testnet Preview 1",
+    "targetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+    "publishedAt": "2026-07-29T03:22:13Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
+    "prerelease": true
+  },
+  "currentPublicCandidate": {
+    "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+    "release": "0.2.0-testnet-preview-595084945e63-candidate",
+    "publicHealth": "https://developer.ynxweb4.com/healthz",
+    "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
+    "independentCurrentRuntimeReadback": true,
+    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+    "actualUIAcceptance": false,
+    "walletLifecycleVerified": false,
+    "note": "Public Gateway 18113 now serves 595. Prior d405 evidence remains historical. The separate 18111 service is the retained AI upstream; normal rollback uses this same Gateway and retains latest user state."
+  }
+}

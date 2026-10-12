@@ -1,0 +1,47 @@
+✔ reviewed derived entry binds exact helper, including when an otherwise self-consistent tree is supplied (8.260333ms)
+✔ derived titlebar binds original graphic and refuses substituted brand even with updated tree/style hashes (6.453541ms)
+✔ actual extension command opens only fixed trusted host locator; canceled context stays local (2.166667ms)
+✔ actual template command never overwrites existing file; creation uses atomic no-overwrite edit (1.146833ms)
+✔ actual diff command previews then rejects edit made during approval; no changes applied (0.718458ms)
+✔ actual extension previews a selected replacement and applies only after explicit unchanged-document approval (0.660333ms)
+✔ copy command uses real filesystem project containment before and after approval (5.923083ms)
+✔ copy approval rejects missing runtime, changed session and document mutation during final path check (1.08125ms)
+✔ starter creation validates real project root/subfolder and refuses external or swapped folders (5.953792ms)
+✔ starter approval is retired on runtime or displayed workspace-folder change (1.075ms)
+✔ reviewed diff rejects workspace changes and a replacement document opened during the final path check (0.6425ms)
+✔ reviewed diff compares real file identity and refuses a symlink moved to another file inside the same project (2.035625ms)
+✔ approved AI request is saved under the actual owner/project; reopening sends no model request (51.833167ms)
+✔ actual UTF-8 Gateway prompt limit rejects preview without truncation or model dispatch (17.539417ms)
+✔ actual Tools HTTP reaches the existing Gateway wire contract and saves only its completed response (30.046208ms)
+✔ AI approval rechecks changeAccount after a delayed HTTP body before model dispatch (25.993542ms)
+✔ AI approval rechecks revoke after a delayed HTTP body before model dispatch (24.222917ms)
+✔ AI approval rechecks expire after a delayed HTTP body before model dispatch (23.93475ms)
+✔ actual HTTP requires explicit preview and one-use approval; model uses verified owner, selected text only (18.303125ms)
+✔ hostile extension origins, forged owners, cross-account and stale generations never call the model (23.448ms)
+✔ expired proposals/revoked sessions preserve context without generation or hidden retry (24.560417ms)
+✔ read-only chain and readiness reuse handlers with verified native owner; no signing route (17.765208ms)
+✔ reviewed document changes reject concurrent edits, digest mismatch and duplicate paths (0.526541ms)
+✔ pinned tools install survives reopen and never overwrites tampered extension or symlink (27.02325ms)
+✔ actual read-only Chain handler accepts chain query and rejects transaction/signing before upstream (19.95525ms)
+✔ normal Tools HTTP consumes exact contract inspector/call under current native owner with one-use review (30.433625ms)
+✔ revocation during generation suppresses model result and never reapplies or retries (21.91725ms)
+✔ closing the actual HTTP approval aborts its model signal and never makes the consumed review reusable (36.424875ms)
+✔ native text apply rejects cross-session bundles and real symlink escape (2.486083ms)
+✔ actual queued Tools request rechecks changeAccount before sending private context (48.299291ms)
+✔ actual queued Tools request rechecks changeProject before sending private context (39.610417ms)
+✔ actual queued Tools request rechecks changeReference before sending private context (43.258584ms)
+✔ actual queued Tools request rechecks revoke before sending private context (36.699917ms)
+✔ actual queued Tools request rechecks expire before sending private context (23.27975ms)
+✔ actual queued Tools request rechecks unchanged before sending private context (24.69625ms)
+✔ actual Tools selected-edit approval exports and reopens a version-bound replacement without applying it (25.044208ms)
+✔ invalid capture or model-invented edit metadata cannot produce a native edit or reusable approval (24.1355ms)
+✔ a saved selected edit from an earlier runtime remains readable without rebinding its edit to the new session (16.465125ms)
+✔ versioned Tools upgrade preserves legacy extension files and installs the new exact bundle separately (26.149667ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 773.1085

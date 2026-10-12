@@ -1,0 +1,375 @@
+{
+  "schema": "ynx-native-wallet-consumer-build/v1",
+  "source": "Single original Developer TS factory and retained Wallet SDK; no origin, session or native transport substitution.",
+  "inputs": [
+    {
+      "path": "frontend/src/wallet/product-session-v2.ts",
+      "sha256": "df2d682b4fd6c6e9c3917fac4fc029a3bed41417038a87947c5d01a080feed4e"
+    },
+    {
+      "path": "frontend/src/wallet/resource-approval-return.ts",
+      "sha256": "34dbbf9a718702d327267fdbd9618d0583b5c7bc3a2754c2ededf870200f130b"
+    },
+    {
+      "path": "frontend/src/wallet/transport.ts",
+      "sha256": "b25437aa09664b83f39014348de3f055a26beccf3ade543e5b74d72471fdafa4"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/curve.js",
+      "sha256": "fa597b90ed89a5c9fc659231b2af94679c290724d2db419fee0c3e3902902fb3"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/fft.js",
+      "sha256": "b3ad080004e7d6db3839fef60de78ec12847ff508bd6a44c7e58c4658e5202b3"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/frost.js",
+      "sha256": "30ea2d4cb60117b06ea74cd06d1ee1a1270d2df728407fa437c7d5e382946591"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/hash-to-curve.js",
+      "sha256": "5ea9542031ac4c9c94e6817de1384d52b68fcfde9724fe06a06f3ab613a74c3f"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/modular.js",
+      "sha256": "3af2a1f790880bcffb7730f53b4a91ab87c32701be8f1848a236cfae83b1101b"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/oprf.js",
+      "sha256": "26105837d73772874441a0b77c1bc292c35385cb46bdbd076c70dc59fb0ff0fa"
+    },
+    {
+      "path": "node_modules/@noble/curves/abstract/weierstrass.js",
+      "sha256": "188310386593be023ffadfd2fefc69b5efa79a63e0362bb8c9c11f0d5f4e673b"
+    },
+    {
+      "path": "node_modules/@noble/curves/nist.js",
+      "sha256": "1e577b2c76b769a585b402ca166614f1ae3c75116406889acddebba12c72c62d"
+    },
+    {
+      "path": "node_modules/@noble/curves/secp256k1.js",
+      "sha256": "ebd20b0ca873941f2186ddb0dbffeed25dda749d182298fe5f0d58fb2c6bb486"
+    },
+    {
+      "path": "node_modules/@noble/curves/utils.js",
+      "sha256": "b4847e39fbb4a93e2a3e9f3945e41eabf6d58da5898cddaf45f7ed768f0e3758"
+    },
+    {
+      "path": "node_modules/@noble/hashes/_md.js",
+      "sha256": "8227b9b5cabf078a9d7f7317f7a1ace6e46627539aa9364667aec724e1636f14"
+    },
+    {
+      "path": "node_modules/@noble/hashes/_u64.js",
+      "sha256": "766b91a693a798f9d3cde97b25db4a6d0cef66b2ca21153d3d42424d37878870"
+    },
+    {
+      "path": "node_modules/@noble/hashes/hmac.js",
+      "sha256": "137ed94227806b351a55b09801287a4dba72d2a35d3838730becf641271bc3dd"
+    },
+    {
+      "path": "node_modules/@noble/hashes/sha2.js",
+      "sha256": "0fb8e3c3f2c73a890be2524ac5d2542aaed4decff69e561231a86131203b3973"
+    },
+    {
+      "path": "node_modules/@noble/hashes/sha3.js",
+      "sha256": "55b453d0a65c657aa408ec86d4ea8dd8f96740cd68963ea9ef180db4004f878f"
+    },
+    {
+      "path": "node_modules/@noble/hashes/utils.js",
+      "sha256": "e2adfc13c846487feff0410bd5508a1d66f5ebadc3188f3a40a6b55449981e2f"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/product-session-registry.json",
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/base64url.js",
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/canonical.js",
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/crypto.js",
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/integration.js",
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/metamask-evm-adapter.js",
+      "sha256": "dd93f681ba7904a42ae5ec0069991a59b2319dddbb7d073503f5016beb59fdeb"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-completion-record.js",
+      "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-control-capacity.js",
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-control-intent.js",
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-finite-consent.js",
+      "sha256": "bdefcaf2175406c8db83bfaafc7225cce72fb69da5f1c3a5e5a9f858b7e48ba2"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-gateway-client.js",
+      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-gateway-snapshot-v2.js",
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-gateway.js",
+      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-proof-v2.js",
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-recovery.js",
+      "sha256": "e0c478b20bccdcf1577b4bcb16f8220b53ae8192d9609280261daf4fa0da73ce"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-registry.js",
+      "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-revocation-intent.js",
+      "sha256": "5775e709ac3273d89534f254f82d5d243a0825ffd6cb06b831ce115faaf9ce90"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-router.js",
+      "sha256": "c3b12e89d1e63706116a4221ef3a13fbc27005ba187ee59dce764a3e0c9cfe41"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-session-v2.js",
+      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/product-wallet-connection.js",
+      "sha256": "3d35e858f68d39a142e8a7798670b8d4a09e8f41f21476e3e692e3a06128f1f7"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/protocol.js",
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/session-proof.js",
+      "sha256": "8894457484157a9232eae5bc0c0713c1e740a7c5fc19d066292d6e3efc5c4c8f"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/session.js",
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/wallet-connection-coordinator.js",
+      "sha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/wallet-provider-discovery.js",
+      "sha256": "39b093a903f918069af25130a51577383b71922d3f2e0c06e1a54262d2f071c2"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/src/wallet-session-control.js",
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
+    },
+    {
+      "path": "vendor/wallet-auth/src/authorize-launcher.js",
+      "sha256": "ebae0e6001685ea883633c2ad1d3d73623f213bb8c845009616e738b949ef479"
+    },
+    {
+      "path": "vendor/wallet-auth/src/base64url.js",
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+    },
+    {
+      "path": "vendor/wallet-auth/src/bundler.js",
+      "sha256": "885eccffc1cf37cc0d45669fa3434155e44693bfe85114ff05ce1e2da61b57cc"
+    },
+    {
+      "path": "vendor/wallet-auth/src/canonical.js",
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "path": "vendor/wallet-auth/src/credential.js",
+      "sha256": "cf1e24eb44dda4aa705da47e25ed3c65e30e965690166bb9594969ba28862997"
+    },
+    {
+      "path": "vendor/wallet-auth/src/crypto.js",
+      "sha256": "01bc7713a6db6e99b28cdbd81cf55093c2e2b01ee44cf1a0b3ea6ed942ad4081"
+    },
+    {
+      "path": "vendor/wallet-auth/src/deep-link.js",
+      "sha256": "051b6f1c75d6b1be06823529117e0a422394183a67b4822075dc18be1d85fea5"
+    },
+    {
+      "path": "vendor/wallet-auth/src/gateway-adapter.js",
+      "sha256": "744a529065bf9bc03a2e1f9e7d94b65921d7c9b7a53cb3d77b804b956eafae2a"
+    },
+    {
+      "path": "vendor/wallet-auth/src/gateway-http.js",
+      "sha256": "807a759c07c1d48ef407cd32e298c0d98d9bd1b1ab538472b2f0a8969f8a3889"
+    },
+    {
+      "path": "vendor/wallet-auth/src/index.js",
+      "sha256": "e824c7c5468cc8be2baba2fe0bba3c91ef4ce1ec483ba3ce7f59106ead0c71ba"
+    },
+    {
+      "path": "vendor/wallet-auth/src/integration.js",
+      "sha256": "5c33523a9a1236dba3c7c019d4e2b52a120f428b9491fa0f34deeccefffc40f5"
+    },
+    {
+      "path": "vendor/wallet-auth/src/intent.js",
+      "sha256": "b957da00144d298ec2e2dbcfe391d55edd168ad495423305536d1d67a72ebcfc"
+    },
+    {
+      "path": "vendor/wallet-auth/src/lifecycle.js",
+      "sha256": "8efb8a0f8e32ef06a480b339f40653fdec9e25e4ce3e676c19c4aad9831c770e"
+    },
+    {
+      "path": "vendor/wallet-auth/src/mandate-lifecycle.js",
+      "sha256": "105043dacf8a877559d9469ce54ca9cd30f019c7d70002ac6a50fd0abdb0b3b0"
+    },
+    {
+      "path": "vendor/wallet-auth/src/mandate.js",
+      "sha256": "e6e16b29f2602ae4b6f2632ad741cff092f4b5c9d95943f1188efad32e805abd"
+    },
+    {
+      "path": "vendor/wallet-auth/src/metamask-evm-adapter.js",
+      "sha256": "a55f106c19d421cd478a389f977c9f2a33eda08b5f76f2fa226bded9ca5165ef"
+    },
+    {
+      "path": "vendor/wallet-auth/src/native-transfer.js",
+      "sha256": "10ca0f351fa2341a145fa6e23923fa59810202a5eafad9700116b2b9e93ab321"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-gateway-client.js",
+      "sha256": "671f85b00b1f3a6e40d0c43e6a631d3e15edbe99cb242056be289b91f11a8ca0"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-gateway-http.js",
+      "sha256": "5cb71bbe065e1c74b2307a28603a2062829229fb8ff93d0c71fa5d719a93aebb"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-gateway.js",
+      "sha256": "d8a180d5735d3a73ef162c55cba808d853aa8d4e4e9fa2ffde48585c163367ab"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-proof-v2.js",
+      "sha256": "fb798596adadc90571ac975a71b2efa4dc7b6d18f2374c12b733feb8aa9f5fae"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-recovery.js",
+      "sha256": "6299d4c64d3510336666c7d08acf23a497913e2610eac91b19cadc24d5f6ea9b"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-registry.js",
+      "sha256": "26b18f788081c30e7aede80058e7f06aa3d6bff031686ec6a35eca7ae93ed0e0"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-router.js",
+      "sha256": "26a711f5320f22b700f8afc4cc3771546c67559ce0a15cc03b7fec0bd488cd75"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-session-v2.js",
+      "sha256": "5c533ad16ee506d826b53b73bc721202fd3bd3a8bb5170aa3f0917dc240a6a8d"
+    },
+    {
+      "path": "vendor/wallet-auth/src/product-wallet-connection.js",
+      "sha256": "72f37a9848ea4981c755586fd58f1fc590455bf1d7126bdd33411ebf5dbbeb46"
+    },
+    {
+      "path": "vendor/wallet-auth/src/protocol.js",
+      "sha256": "1ad636ec586bcd7eb5d65f65c3d969fff2aa1c6b6dba3ec449cb5f4e292748ba"
+    },
+    {
+      "path": "vendor/wallet-auth/src/registry.js",
+      "sha256": "f2332c2bc98c2e2007de371aee6fa180e89c435ce6efbc5bd0f2acd293dc123d"
+    },
+    {
+      "path": "vendor/wallet-auth/src/replay.js",
+      "sha256": "74014622be2e9c79e0abbbea643ae11b687ed97a6aa6805459db5eccf66f4f61"
+    },
+    {
+      "path": "vendor/wallet-auth/src/session-proof.js",
+      "sha256": "32a7be483d16d7cba1311080775d92829dcc420b84ebb40b9e3e7f20918a0662"
+    },
+    {
+      "path": "vendor/wallet-auth/src/session.js",
+      "sha256": "246ac9116528b11e841dbafb7a678300c83d27a695dbe91d935c739c09bbb4ce"
+    },
+    {
+      "path": "vendor/wallet-auth/src/smart-account.js",
+      "sha256": "ffa2374b2e4419cdba70798a5ef15a629d5d0a46910c515fa61d92d9dd9d4a19"
+    },
+    {
+      "path": "vendor/wallet-auth/src/standard-wallet-connect-state.js",
+      "sha256": "72558116f22625c6e9abf363b9dd16a7b1b80c93d88099be531cb63e70a62b92"
+    },
+    {
+      "path": "vendor/wallet-auth/src/wallet-connection-coordinator.js",
+      "sha256": "896490e1098d35df46e6f30f850604410b2ff97566941a47bdda8cdaf46dcce3"
+    },
+    {
+      "path": "vendor/wallet-auth/src/wallet-error-contract.js",
+      "sha256": "459525e951e01a0101c889ffd9e39d5ca0c1a7cf483d2bed343f27fcca2f6f62"
+    },
+    {
+      "path": "vendor/wallet-auth/src/wallet-provider-discovery.js",
+      "sha256": "b3bc8c1979c730c1d10276c76415ccc86b56e08725844f260d0aaec94da09974"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/SOURCE_CLOSURE.json",
+      "sha256": "1a64e5483a4b9c895e19ff36aec17de3e8433cab455d19e13d0a349179c17f29"
+    },
+    {
+      "path": "node_modules/@noble/curves/package.json",
+      "sha256": "b305a9a8e20df7767458bff98aafb7423cb39e00f543fffea5a9e0b88e0ada9e"
+    },
+    {
+      "path": "node_modules/@noble/hashes/package.json",
+      "sha256": "df2580ed1896b0deffc07437c6a8d83fcf233e4c4c1e77c12e491563222c4719"
+    }
+  ],
+  "licenseInputs": [
+    {
+      "path": "node_modules/@noble/curves/LICENSE",
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+      "name": "@noble/curves",
+      "version": "2.2.0",
+      "license": "MIT"
+    },
+    {
+      "path": "node_modules/@noble/hashes/LICENSE",
+      "sha256": "4f221aee6e072336700c408c68ab3b96a3fc09f6aebe6f48f1bd99e5ef13faec",
+      "name": "@noble/hashes",
+      "version": "2.2.0",
+      "license": "MIT"
+    },
+    {
+      "path": "vendor/wallet-auth/package.json",
+      "sha256": "4b9bbe170e8599d7391107e064346a098544dd1fa32dfe3cde2b59615734f037",
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.0.0",
+      "license": "UNLICENSED"
+    },
+    {
+      "path": "vendor/wallet-auth-c5/package.json",
+      "sha256": "cae01082e60975b20250b466d3a459fb500a6504980309b6d50a0c895f190f75",
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.2.0",
+      "license": "UNLICENSED"
+    }
+  ],
+  "noticeSha256": "fa0512cf786c1a12bac9a8fd274fbebe246673507023e26e4f3fdc9ba17a76e7",
+  "bundleFile": "lib/native-wallet-sdk.generated.js",
+  "bundleSha256": "e073df2ae3d2b50818cc83158e19e4f7d9e22c64f3943ca8418bbeb4fdbd870d"
+}

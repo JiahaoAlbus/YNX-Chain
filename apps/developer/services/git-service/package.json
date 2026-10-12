@@ -1,0 +1,9 @@
+{
+  "name": "@ynx-code/git-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": { "@ynx-code/workspace-agent": "0.1.0" },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "engines": { "node": ">=22" }
+}

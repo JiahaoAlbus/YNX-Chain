@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "baseline": "a59e65847ff83abbbae8529b47f3777c9f4a8c1e",
+  "scope": "consumer-side core admission composition and browser entry failure recovery",
+  "tests": {
+    "pass": 32,
+    "fail": 0,
+    "skip": 0,
+    "logSha256": "8398dd778ff84cf3988bb3fcead80fce4374d9dcae6dfb32ca3372ab76f0c2c2",
+    "actual": [
+      "Node HTTP handler",
+      "SQLite durable broker",
+      "persistent filesystem binary bytes"
+    ],
+    "controlled": [
+      "execution driver",
+      "canonical authority responses"
+    ],
+    "actualOpenVSCode": false,
+    "realWallet": false
+  },
+  "checks": {
+    "staticWorkflow": "PASS",
+    "diff": "PASS"
+  },
+  "host": {
+    "operatorMutations": false,
+    "protectedModuleInstalled": false,
+    "executorPresence": "UNKNOWN"
+  },
+  "notVerified": [
+    "native mature workbench normal user journey",
+    "public publication",
+    "real AI",
+    "multi-user capacity",
+    "new macOS installer"
+  ],
+  "retainedPackageSource": "452f3bbc6dc8af1bbbdee4bc67cd8a5f29be8cb4",
+  "stoppedScope": [
+    "network/package-egress/LXD"
+  ]
+}

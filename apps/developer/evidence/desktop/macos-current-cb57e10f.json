@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-08-20T16:21:42Z",
+  "artifact": {
+    "platform": "macos-arm64",
+    "artifactClass": "unsigned-testnet-preview",
+    "filename": "ynx-developer-testnet-preview-macos-unsigned.zip",
+    "sourceCommit": "cb57e10f7f92b01b73942879dedc98f059a1e20b",
+    "sourceTree": "2b30c19e736f5457052b4150762796e16c8ebb2a",
+    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "f4759ecc6bb5240a972bc7cd9909b35869bb756cce5a22f1a23bf1f718f522f9",
+    "bytes": 168157234,
+    "sbomSha256": "e18beb766cc8cbb288a24a1a29d2b25ae0e36adc63469484e47a4d92a7261575",
+    "sbomComponents": 269,
+    "signingClass": "adhoc-no-team-id"
+  },
+  "verification": {
+    "embeddedProvenance": true,
+    "adHocSignatureVerified": true,
+    "keychainStorageRoundTripAndCleanup": true,
+    "coldLaunch": true,
+    "boundedCppCompile": true,
+    "workspaceSecondLaunchPersistence": true,
+    "childCleanup": true
+  },
+  "publication": {
+    "builtLocally": true,
+    "downloadHosted": true,
+    "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-unsigned.zip",
+    "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-sbom.cdx.json",
+    "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-cb57e10f-macos-arm64-SHA256SUMS.txt",
+    "officialRouteHashReadback": true,
+    "websiteOwnerHandoffRequired": false,
+    "productionSigned": false,
+    "notarized": false
+  },
+  "walletProductSessionV2": {
+    "nativeProtectedStorageEvidence": true,
+    "runtimeFactoryVerified": false,
+    "visibleLifecycleVerified": false,
+    "migratedV2": false
+  }
+}

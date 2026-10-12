@@ -1,0 +1,14 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.selectOption: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for getByLabel('Review mode', { exact: true })[22m
+
+    at /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/frontend/test/native-selected-edit.browser.mjs:21:52 {
+  log: [ "  - waiting for getByLabel('Review mode', { exact: true })" ],
+  name: 'TimeoutError'
+}
+
+Node.js v26.7.0

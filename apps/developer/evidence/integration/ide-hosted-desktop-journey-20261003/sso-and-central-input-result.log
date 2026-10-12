@@ -1,0 +1,37 @@
+file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/central-family.test.mjs:14
+if (!source) throw Error('YNX_QA_CENTRAL_SOURCE must name the reviewed Central checkout/archive');
+                   ^
+
+Error: YNX_QA_CENTRAL_SOURCE must name the reviewed Central checkout/archive
+    at file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/codeoss-service/test/central-family.test.mjs:14:20
+    at ModuleJob.run (node:internal/modules/esm/module_job:569:25)
+    at async node:internal/modules/esm/loader:650:26
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:101:5)
+
+Node.js v26.7.0
+✖ apps/developer/services/codeoss-service/test/central-family.test.mjs (92.861583ms)
+✔ failed browser editor entry offers a safe recovery page; API callers retain structured failure (70.08275ms)
+✔ native catalog binds its displayed account and rejects the old view after cookie switch before launch or Stop (132.61375ms)
+✔ guest copy approval cannot change recipients when the current cookie changes before POST (26.897334ms)
+✔ new Wallet projects use the displayed account, durable replay and an immutable reviewed name (72.36125ms)
+✔ logout during the launch HTTP body prevents late journal, driver or workspace writes (22.378417ms)
+✔ logout during the copy HTTP body prevents late journal, driver or workspace writes (21.558625ms)
+✔ logout during the create HTTP body prevents late journal, driver or workspace writes (21.986042ms)
+✔ revocation during launch URL admission cannot create a writer or session after the awaited preflight (28.245583ms)
+✔ more than 100 stopped sessions cannot hide a live or recovery writer or expose another owner (59.335125ms)
+✔ remote revocation after driver start settles into protected recovery without recursively waiting for its own launch (52.311125ms)
+✔ actual consumer HTTP PKCE callback seals grants, binds stable owner, explicitly copies guest, and exchanges one-use isolated cookie (99.70575ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 11
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 549.003375
+
+✖ failing tests:
+
+test at apps/developer/services/codeoss-service/test/central-family.test.mjs:1:1
+✖ apps/developer/services/codeoss-service/test/central-family.test.mjs (92.861583ms)
+  'test failed'

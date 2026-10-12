@@ -1,0 +1,55 @@
+{
+  "passed": true,
+  "actualReact": true,
+  "actualChromium": true,
+  "backend": "controlled browser routes",
+  "errors": [],
+  "calls": [
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/proposals",
+      "body": {
+        "csrf": "fresh",
+        "prompt": "Suggest a plan",
+        "context": "draft"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/approve",
+      "body": {
+        "csrf": "approval",
+        "proposalId": "review-3",
+        "approval": "send-reviewed-context-once"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    },
+    {
+      "path": "/runtime/native-tools/proposals",
+      "body": {
+        "csrf": "fresh",
+        "prompt": "Suggest a plan",
+        "context": "draft"
+      }
+    },
+    {
+      "path": "/runtime/native-tools/approve",
+      "body": {
+        "csrf": "approval",
+        "proposalId": "review-6",
+        "approval": "send-reviewed-context-once"
+      }
+    }
+  ],
+  "realModel": false,
+  "public": false
+}

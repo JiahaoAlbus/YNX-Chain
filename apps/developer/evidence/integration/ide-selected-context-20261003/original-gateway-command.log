@@ -1,0 +1,138 @@
+✔ gateway serves the SPA, immutable assets and security headers (3029.743167ms)
+✔ gateway rejects traversal and routes runtime health through the same origin (13.633209ms)
+✔ simultaneous owners and categories drain before SQLite closes; new work and readyz fail immediately (87.468333ms)
+✔ a disconnected response remains active until its handler actually finishes (59.916167ms)
+✔ an accepted agent can finish nested AI after admission closes, while unrelated new AI is rejected (0.450875ms)
+✔ maintenance cancellation is persisted after abort settles and before database close (90.863208ms)
+✔ uncooperative handler timeout reports failure and never closes its database (51.983625ms)
+✔ interactive persistence failure cannot be swallowed into a clean maintenance result (0.316292ms)
+✔ malformed raw request targets do not escape the gateway or poison later requests (2.300833ms)
+✔ one interactive failure still waits for another owner's accepted write before reporting failure (27.254917ms)
+✔ a durable remote recovery guard cannot be mistaken for a clean idle gateway (0.306084ms)
+✖ real server explicit-maintenance saves accepted work before closing SQLite (3287.218ms)
+✖ real server repeated-shutdown-signals saves accepted work before closing SQLite (3284.431666ms)
+✖ real SIGTERM cancels an unfinished request body with an explicit retry result (3300.254333ms)
+✖ malformed websocket upgrade cannot terminate the real server (3298.078ms)
+✔ composed gateway admits Wallet AI and memory despite a revoked guest, and never substitutes the guest for Wallet (68.331416ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 12
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 13238.125167
+
+✖ failing tests:
+
+test at services/gateway/test/server-maintenance.test.mjs:45:75
+✖ real server explicit-maintenance saves accepted work before closing SQLite (3287.218ms)
+  Error: maintenance process condition timed out
+  node:internal/modules/package_json_reader:301
+    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+          ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-pty' imported from /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/services/terminal-service/src/service.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+  
+  Node.js v26.7.0
+  
+      at fixture (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:28:25)
+      at async TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:46:56)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at services/gateway/test/server-maintenance.test.mjs:45:75
+✖ real server repeated-shutdown-signals saves accepted work before closing SQLite (3284.431666ms)
+  Error: maintenance process condition timed out
+  node:internal/modules/package_json_reader:301
+    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+          ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-pty' imported from /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/services/terminal-service/src/service.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+  
+  Node.js v26.7.0
+  
+      at fixture (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:28:25)
+      at async TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:46:56)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/gateway/test/server-maintenance.test.mjs:66:1
+✖ real SIGTERM cancels an unfinished request body with an explicit retry result (3300.254333ms)
+  Error: maintenance process condition timed out
+  node:internal/modules/package_json_reader:301
+    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+          ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-pty' imported from /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/services/terminal-service/src/service.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+  
+  Node.js v26.7.0
+  
+      at fixture (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:28:25)
+      at async TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:67:56)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+
+test at services/gateway/test/server-maintenance.test.mjs:76:1
+✖ malformed websocket upgrade cannot terminate the real server (3298.078ms)
+  Error: maintenance process condition timed out
+  node:internal/modules/package_json_reader:301
+    throw new ERR_MODULE_NOT_FOUND(packageName, fileURLToPath(base), null);
+          ^
+  
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find package 'node-pty' imported from /Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/services/terminal-service/src/service.mjs
+      at Object.getPackageJSONURL (node:internal/modules/package_json_reader:301:9)
+      at packageResolve (node:internal/modules/esm/resolve:784:25)
+      at moduleResolve (node:internal/modules/esm/resolve:873:18)
+      at defaultResolve (node:internal/modules/esm/resolve:1006:11)
+      at #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+      at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+      at ModuleLoader.resolveSync (node:internal/modules/esm/loader:766:56)
+      at #resolve (node:internal/modules/esm/loader:690:17)
+      at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:610:35)
+      at ModuleJob.syncLink (node:internal/modules/esm/module_job:277:33) {
+    code: 'ERR_MODULE_NOT_FOUND'
+  }
+  
+  Node.js v26.7.0
+  
+      at fixture (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:28:25)
+      at async TestContext.<anonymous> (file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/services/gateway/test/server-maintenance.test.mjs:77:34)
+      at async Test.run (node:internal/test_runner/test:1404:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:969:7)

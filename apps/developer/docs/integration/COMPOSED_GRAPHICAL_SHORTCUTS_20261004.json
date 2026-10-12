@@ -1,0 +1,142 @@
+{
+  "schema": "ynx-composed-graphical-shortcuts/v1",
+  "status": "GRAPHICAL_SHORTCUTS_CONTROLLED_CHECKS_PASSED_FORMAL_RELEASE_OPEN",
+  "baselineCommit": "6f3ceef8e05154343dd9aff6396bedddc10721c1",
+  "workbenchVersion": "0.3.10",
+  "toolsVersion": "0.2.7",
+  "sourceFilesSha256": {
+    "native/ynx-tools/package.json": "b451ba9ea391ebb75e12f7be99d659a425715f0a5d389e072078a6db732dc672",
+    "native/ynx-tools/schemas/keybindings.schema.json": "284e98a30d625643c82ba62a96698d160910a15dddb13c098ebaed3ad931c581",
+    "runtime/theia/package-lock.json": "9af8588be2e6d58cc2452878f41f14dd62ddccf665c8805e0e0eb043a229271d",
+    "runtime/ynx-workbench/lib/frontend-module.js": "a6f0548756115eddadde0ec889a2a977d539a3148b8d08afc39a1d8a3505b5d8",
+    "runtime/ynx-workbench/lib/user-keybindings.js": "ea119c2b9950c53ea7a975286d71cba761a1aa1136963712b2b4336b76079d5e",
+    "runtime/ynx-workbench/package.json": "2e20e4e53091aadb08903a2f39c1ecf3f420d987d58f85852833120dd0b0ba35",
+    "runtime/theia/scripts/graphical-keybindings.browser.mjs": "b31e6805fc53d32c375ff1fd692d1ed07f8e66b68ae16be751f2242b55dad113",
+    "runtime/theia/scripts/keybindings-edit.test.mjs": "f98327ae586b567f348bc21d061eb1e5137fba33c239b57cc13f5d27f95f76b5",
+    "runtime/ynx-workbench/lib/keybinding-registry.js": "a2e680db5f348e1dba54a18cf41dd9b83bff7e49f3b49ddfb0c57a06f727b1d4",
+    "runtime/ynx-workbench/lib/keybindings-edit.js": "5182dfb40eb4dbaf6ab64e2acdb296e52b5e44d2d9a445226d37ba5c4abf1243",
+    "runtime/ynx-workbench/lib/keyboard-shortcuts.js": "da15563c9ff0bddb2212e8dec34877775b1d93a42c2d46d8bee6e8f6573a0810",
+    "runtime/ynx-workbench/style/keyboard-shortcuts.css": "c35d6ab68735878c3e0794c0dc7815e574af13518eb4ae75273ffcbd2fb7dfc1"
+  },
+  "runtimeCandidate": "apps/developer/.ynx-developer-candidates/ynx-composed-shortcuts-command-list-20261004-mac-arm64",
+  "pin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "9af8588be2e6d58cc2452878f41f14dd62ddccf665c8805e0e0eb043a229271d",
+    "treeSha256": "9dac9153b9c9858b3967215a8b53c2f417ddbb502bd460a2f7edebdababa9880",
+    "manifestSha256": "5ab460496a8a402d0a850fcd5bece1cc399b9d9ed68f5b802adc358d5fe1c64e"
+  },
+  "ownedBuildReceipt": {
+    "workbenchTreeSha256": "5f7d68093b1b83d74103a69dfcca3936c8f2a18d3b7a911bb8eb95a4d43f202f",
+    "compiledTreeSha256": "698e9905a716229aa3596abee6b3f859841fa8f6c1bcb0740ae33bbc33b084fd",
+    "packageSha256": "b66f42efd3d56ac8b6b690ff99fcc8035fa30c7497b13ccd9331366c4603a9d4",
+    "lockSha256": "9af8588be2e6d58cc2452878f41f14dd62ddccf665c8805e0e0eb043a229271d"
+  },
+  "changes": [
+    "A real main-area Keyboard Shortcuts widget with standard command, cmd/ctrl+k cmd/ctrl+s, settings/menu contributions, command/shortcut search, source filtering, pagination, edit/add/remove/reset, chord recording and same-key conflict notices.",
+    "Targeted JSONC field/array edits preserve header and internal comments, unrelated entries, unknown properties, args and framework context. Runtime hot reload and negative default removal remain the same service.",
+    "Graphical changes refuse unsaved real JSON editor drafts, stale on-disk snapshots, malformed JSONC and invalid/modifier-only keys. Existing FileService conditional write metadata is used; no claim of a new atomic filesystem compare-and-swap protocol.",
+    "Only the owned shortcut entry input bypasses the framework global capture dispatcher, allowing chord recording. All other workbench/editor shortcuts retain original dispatch.",
+    "Unassigned private extension RPC commands do not clutter the default list; registered commands remain accessible by exact @command lookup. No new runtime dependencies or downloads."
+  ],
+  "verification": {
+    "currentGraphicalUI": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-Rk29Gn",
+      "exitCode": 0,
+      "checks": [
+        "Graphical edit replaces one F2 default with F8, explicit Remove handles a separate extension F2 condition, and JSONC comments/arguments remain; F2 is removed and F8 opens real Rename.",
+        "Reset removes the user override and removal entry and restores the actual F2 default, retaining unrelated shortcuts.",
+        "Recording a two-stroke cmd+k cmd+y chord adds an actual Quick Open shortcut without firing the global command while recording.",
+        "A configuration change on disk while the edit dialog is open refuses the stale save and preserves the exact external bytes.",
+        "An unsaved real JSON editor draft blocks graphical writes and preserves both the disk configuration and draft.",
+        "Malformed saved JSON disables graphical mutation, retains its exact bytes and keeps the last valid runtime keymap active.",
+        "Recorded shortcuts persist and execute after real Reload Window; source filtering and standard cmd+k cmd+s work; unassigned private commands are hidden by default but remain available through exact command lookup."
+      ],
+      "errors": [],
+      "runnerSha256": "b31e6805fc53d32c375ff1fd692d1ed07f8e66b68ae16be751f2242b55dad113"
+    },
+    "jsoncEditTests": {
+      "checks": 3,
+      "exitCode": 0,
+      "coverage": "Preserves internal/unrelated comments and custom fields/args; default context/removal/reset; malformed/oversized/invalid-key refusal."
+    },
+    "priorExactRegressionCandidate": {
+      "candidate": "apps/developer/.ynx-developer-candidates/ynx-composed-shortcuts-activation-awaited-20261004-mac-arm64",
+      "pin": {
+        "kind": "ynx-theia",
+        "version": "1.76.0",
+        "architecture": "darwin-arm64",
+        "lockSha256": "9af8588be2e6d58cc2452878f41f14dd62ddccf665c8805e0e0eb043a229271d",
+        "treeSha256": "94ef8d6e6fe87470a62484f0714acea4958a7f1dce8aeca6ee61135e28639e68",
+        "manifestSha256": "cc32b7b0778c74a9598131a4682b4a9dcfeffe7857c860ce573f82aa6e9cc87d"
+      },
+      "core": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-meK26A",
+        "checks": [
+          "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+          "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+          "actual editor save writes the selected project file, confirmed on disk",
+          "the inherited YNX logo and product name render in the actual framework workbench",
+          "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+          "closing and reopening the actual file restores saved disk content",
+          "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+          "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+          "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+          "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+          "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+          "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+          "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+          "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+          "continuing the actual debug session executes the target program, confirmed by its disk output",
+          "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+        ],
+        "errors": [],
+        "exitCode": 0
+      },
+      "jsonShortcuts": {
+        "qa": "/private/tmp/ynx-theia-extension-qa-giUJdr",
+        "checks": [
+          "Normal JSON shortcuts command creates the own profile file; saved JSONC comments/trailing commas hot-apply F6 with editorTextFocus and invoke the real debug selection command.",
+          "A saved VS Code style cmd+k cmd+y chord opens real Quick Open.",
+          "Negative command removes the default F2 rename binding while the custom F7 binding opens the actual rename editor.",
+          "Invalid saved JSON reports a warning, preserves its bytes for correction, and keeps the last working custom shortcuts active.",
+          "Valid shortcuts persist in the own profile and activate again after real Reload Window."
+        ],
+        "errors": [],
+        "exitCode": 0
+      },
+      "scope": "21 regressions were run before the final command-list-only filtering change. They are not relabeled as current-candidate runs. The changed list and full graphical workflow were rechecked on the current candidate."
+    }
+  },
+  "retainedFailures": [
+    "First candidate saved successfully but background keymap refresh erased the visible confirmation. Fixed confirmation lifetime; failure receipt retained.",
+    "Second candidate exposed document-capture dispatch consuming the first chord stroke. Fixed with owned shortcut-entry input isolation; failure and real key-event probe retained.",
+    "A later test clicked the highlighted prefix of the recently used JSON command instead of the full graphical command. Actual onDidExecuteCommand evidence proved the JSON command id. Harness now matches complete .label-name text; prior failures remain. Widget attachment/activation additionally follows awaited standard shell lifecycle."
+  ],
+  "cleanup": {
+    "profiles": [
+      "ynx-theia-extension-qa-65DDor",
+      "ynx-theia-extension-qa-EMJlag",
+      "ynx-theia-extension-qa-FT46y5",
+      "ynx-theia-extension-qa-JZMtID",
+      "ynx-theia-extension-qa-Lkxh4O",
+      "ynx-theia-extension-qa-OLBFpe",
+      "ynx-theia-extension-qa-Rk29Gn",
+      "ynx-theia-extension-qa-S56kCU",
+      "ynx-theia-extension-qa-giUJdr",
+      "ynx-theia-extension-qa-hHLfiz",
+      "ynx-theia-extension-qa-meK26A",
+      "ynx-theia-extension-qa-v0oNRt"
+    ],
+    "remainingOwnedPids": []
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/graphical-shortcuts-evidence-20261004",
+  "evidenceIndexSha256": "2d190c432fdad91afe8593263cd2d6db6b3af683bee819cb9fced1751d86ede1",
+  "remaining": [
+    "Workspace-scoped keymap editing and full overlapping When-expression conflict analysis; ordinary same-key conflicts are shown without claiming DSL overlap analysis.",
+    "Broader extension/language and original stock JSON automatic diagnostic compatibility; C++ LLDB launch.",
+    "Canonical real-user identity, Wallet/Chain/approved AI journeys, formal admission, source-matching Native distribution, other platforms and user acceptance."
+  ],
+  "scope": "Owned apps/developer source and controlled synthetic Mac profiles only. Original accounts, keys, data and candidates preserved. No new network/package-egress/LXD or shared Host/global authority changes."
+}

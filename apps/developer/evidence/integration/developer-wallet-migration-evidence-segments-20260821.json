@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "productId": "developer",
+  "status": "SOURCE_CONSUMED_PRODUCTS_UNCONNECTED",
+  "evaluatedBy": {
+    "commit": "e8125d56f8c28efbfa0f87c673717c620ca023e7",
+    "tree": "3e22e2854912eaec6f9f464e35d8c281f0957306",
+    "module": "packages/wallet-auth/src/product-wallet-migration-evidence.js",
+    "blob": "c0ba159099c3040df9f4c2a25cef79cbcbf7cc08",
+    "sha256": "dac1e57bf989e5ad9e63c568df3c2eb9af7b154501b21f7cf182194a35af694e",
+    "authority": "evidence-evaluation-only"
+  },
+  "input": {
+    "schemaVersion": 1,
+    "productId": "developer",
+    "sharedSource": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+      "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+      "consumerGatePassed": true
+    },
+    "ownerSource": {
+      "commit": "8168ad7df04ea07d02208280c190eb5051549a74",
+      "tree": "7f7e057874d58010f37e7204ee91995b7417c2c8"
+    },
+    "publicRuntime": {
+      "sourceCommit": "366e523252c08871e51d93add534b4513746f1b6",
+      "sourceBound": true,
+      "urlStable": false,
+      "topLevelTabDelta": 0,
+      "chooserClosedAfterSuccess": false
+    },
+    "standardWallet": {
+      "selectedProvider": null,
+      "accountApproved": false,
+      "chainId": null,
+      "refreshRestore": false,
+      "disconnectOrAccountChangeHandled": false,
+      "productSessionDegradedPreservesConnection": false
+    },
+    "callback": {
+      "approveExact": false,
+      "rejectExact": false,
+      "coldStartRecovered": false
+    },
+    "productSession": {
+      "challenge": false,
+      "approve": false,
+      "reject": false,
+      "timeout": false,
+      "revoke": false,
+      "secondLaunch": false,
+      "networkRetry": false,
+      "tenantIsolation": false
+    }
+  },
+  "result": {
+    "sourceAccepted": true,
+    "publicRuntimeAccepted": false,
+    "standardWalletAccepted": false,
+    "callbackAccepted": false,
+    "productSessionAccepted": false,
+    "productsConnected": 0,
+    "migratedV2": false,
+    "missing": [
+      "source-bound-public-runtime",
+      "visible-standard-wallet-lifecycle",
+      "exact-approve-reject-callback",
+      "product-session-v2-lifecycle"
+    ]
+  },
+  "evidenceSegments": {
+    "publicRuntime": "Current protected Developer public candidate is source-bound to 366e5232, not the current 8168ad7d owner source. A current-source public runtime with URL stability, zero tab delta, and chooser close after real success has not been observed.",
+    "standardWallet": "No user account request has been sent. Selected provider, approved account, 0x1917, refresh restore, and disconnect/account-change evidence remain false.",
+    "callback": "No exact approve/reject callback or cold-start recovery evidence exists.",
+    "productSession": "Challenge, approve, reject, timeout, revoke, second launch, network retry, and tenant isolation lifecycle evidence remain false."
+  },
+  "nonClaims": [
+    "This record does not activate a public endpoint, change deployment state, or authorize account access.",
+    "The verified local Developer DMG IDE/runtime evidence is separate from Wallet migration evidence.",
+    "The evaluator cannot grant product migration, signing, publication, or central acceptance."
+  ]
+}

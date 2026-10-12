@@ -1,0 +1,5 @@
+dist/
+.ynx-developer-local/
+.ynx-developer-candidates/
+.ynx-developer-windows/
+.ynx-developer-windows-candidates/

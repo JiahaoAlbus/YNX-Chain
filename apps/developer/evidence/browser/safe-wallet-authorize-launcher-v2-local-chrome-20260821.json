@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21",
+  "owner": "11-developer",
+  "classification": "local-production-build-real-chrome-not-public-deployment",
+  "source": {
+    "centralAcceptance": "3e73d729",
+    "contract": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "contractSha256": "defd0db6281839ef5efdfdb6b7b4734369058306f0dd7a90a16fbb6e1f776f6c",
+    "sourceCommit": "f1ba5013a817d4c03157e1cf83d7685606951a12",
+    "evidenceCommit": "649107488520f0973805b32704cfe4a02e15aafa",
+    "developerCheckpointParent": "c1d0095d7de990c251030c04a3d597d539db3958"
+  },
+  "build": {
+    "command": "npm run build && npm run code:build",
+    "frontendFiles": 203,
+    "frontendBytes": 85037285,
+    "chainPanelAsset": {
+      "path": "frontend/dist/assets/ChainPanel-D6TqMAiu.js",
+      "bytes": 158039,
+      "sha256": "e65b6a19ad33fcba8c723696f563dcc69e7525fde31b7c0e7efd5417a3aaa0fa"
+    },
+    "entryAsset": {
+      "path": "frontend/dist/assets/index-p3H4QIM1.js",
+      "bytes": 704628,
+      "sha256": "65360c63c8722195263a050b9dd26b450059f90bae423491d7403d45256f3164"
+    }
+  },
+  "chrome": {
+    "target": "http://127.0.0.1:4191/",
+    "flow": "baseline -> YNX Chain -> Discover browser Wallet -> inspect open top-level tabs",
+    "providerState": "NO_EIP1193_PROVIDER",
+    "baselineTabCount": 25,
+    "afterTabCount": 25,
+    "createdCount": 0,
+    "baselineBlankCount": 4,
+    "afterBlankCount": 4,
+    "blankCreatedCount": 0,
+    "officialYnxDownloadVisible": true,
+    "metaMaskFallbackVisible": true,
+    "customSchemeNavigation": false,
+    "iframeCreated": false,
+    "windowOpenCalled": false,
+    "accountRequestSent": false
+  },
+  "ideRegression": {
+    "flow": "open local production IDE -> Run active C++ file -> approve one reviewed execution",
+    "result": "Hello from YNX Code",
+    "exitCode": 0,
+    "compiler": "clang++",
+    "sandbox": "macos-sandbox-exec"
+  },
+  "truth": {
+    "platformConsumed": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionCreated": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

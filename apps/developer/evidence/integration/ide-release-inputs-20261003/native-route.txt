@@ -1,0 +1,2 @@
+{"error":"Asset not found."}
+HTTP_STATUS=404

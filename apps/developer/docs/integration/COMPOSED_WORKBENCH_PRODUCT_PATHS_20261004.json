@@ -1,0 +1,71 @@
+{
+  "schema": "ynx-composed-workbench-product-checkpoint/v1",
+  "sourceBaseHead": "c5aaae9499b1770d4f4c41a0ce05b30a0eda8d0f",
+  "runtimeArtifact": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "995b12f2eb03e341e72e3603ef9774553fd2406f188d66d7b9c160c9e7a806ff",
+    "treeSha256": "d5578c166418e7ff698c71a5957356fee3b77875ddf103e48ba0e84fb84df06c",
+    "manifestSha256": "69c3c54b5846056bfb54045f4911e06519391a5e7c4ec03f25b474d52ce617e6"
+  },
+  "workbenchVersion": "0.2.9",
+  "semantic": {
+    "checks": [
+      "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+      "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+      "actual editor save writes the selected project file, confirmed on disk",
+      "the inherited YNX logo and product name render in the actual framework workbench",
+      "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+      "closing and reopening the actual file restores saved disk content",
+      "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+      "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+      "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+      "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+      "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+      "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+      "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+      "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+      "continuing the actual debug session executes the target program, confirmed by its disk output",
+      "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+    ],
+    "pageErrors": [],
+    "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b"
+  },
+  "lifecycle": {
+    "checks": [
+      "Actual user font setting and JavaScript-specific tab size save to the isolated profile and survive workbench reload.",
+      "Actual Explorer creates a Unicode folder and arbitrary-suffix file; edits save to disk and workspace search finds both real files.",
+      "Actual YNX Tools disables and removes commands after Reload Window, then enables and reactivates after another reload; unbound Chain starter remains refused without modifying files."
+    ],
+    "pageErrors": [],
+    "runnerSha256": "83182fb9cd88e0fa271793a402a350a45749235dca384d52f658e34c6f095dc2"
+  },
+  "parallelPrior": {
+    "checks": [
+      "Two real contained workbench backends run concurrently with independent profiles, rendered font preferences 17 and 13.",
+      "Actual alpha PTY refuses reading the other running profile and writing the other running project, with permission errors and no write side effect."
+    ],
+    "errors": [],
+    "proof": {
+      "read": "EPERM",
+      "write": "EPERM"
+    },
+    "runnerSha256": "f7064acd91bb27714509e24fb9d46761a709092bdbec294b6d11f6fc9f9264ec",
+    "artifact": "ynx-composed-node-host-compat-20261004-mac-arm64",
+    "scope": "Two synthetic macOS sessions. Not canonical multi-user authorization, hard quota, resource exhaustion, backend restart or production capacity acceptance."
+  },
+  "normalEntryUI": {
+    "candidate": "apps/developer/.ynx-developer-candidates/composed-normal-ui-20261004",
+    "treeSha256": "87669b42d37486b508346a8a0b8038b26e838a8d9bb3bea87add003a1749c065",
+    "typecheck": "passed",
+    "build": "passed",
+    "publicAdmission": "not verified"
+  },
+  "bindingAndAdmissionTests": {
+    "pass": 8,
+    "fail": 0
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/composed-workbench-product-paths-20261004",
+  "scope": "Current candidate: 16 semantic/core journeys plus 3 lifecycle journeys. Prior candidate: two actual contained synthetic runtime/profile checks. No canonical Wallet/Chain/AI, user-extension install/uninstall, backend restart, hard quota/capacity, public Host or all-platform acceptance."
+}

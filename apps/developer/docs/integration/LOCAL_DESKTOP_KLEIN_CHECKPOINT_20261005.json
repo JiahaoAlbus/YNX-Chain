@@ -1,0 +1,50 @@
+{
+  "schema": "ynx-local-desktop-checkpoint/v1",
+  "sourceCommit": "efcdde6a718f4609b554d5fba08ccf956d337eee",
+  "sourceTree": "904987cae760ee62e608cecdf001b27677c539bf",
+  "coreCandidate": ".ynx-developer-candidates/ynx-klein-complete-core-20261005-mac-arm64",
+  "coreTreeSha256": "9c410d708d7ce2ff0ae20cf181f5e23ee5b4262e0dd6362ef48569cb3e2e9055",
+  "nativeCandidate": ".ynx-developer-candidates/ynx-klein-complete-native-20261005-mac-arm64",
+  "dmgSha256": "a02dfda16d372aaa7e0953388c1bf6a4ff665736d777dfd1a18c067fed3e682d",
+  "sbomSha256": "f78a3b3e07a388cb7b87d2d7083955f33c95f98b26ba9bda1d8fb50a3681031d",
+  "platform": "darwin-arm64",
+  "minimumOS": "27.0",
+  "nodeVersion": "26.7.0",
+  "theme": { "name": "YNX Klein", "brandVersion": "0.1.4", "accent": "#002FA7", "editorBackground": "#151923", "startupBackground": "#10131C" },
+  "toolsVersion": "0.2.18",
+  "packageVerification": ".ynx-developer-candidates/ynx-klein-complete-native-20261005-mac-arm64/verification-receipt.json",
+  "packageChecks": ["sealed core pin", "bundled Node execution and file ledger", "independent Solidity parser closure", "signed formatter file ledger", "provenance and SBOM", "deep strict ad-hoc code signature", "DMG verification"],
+  "backendObservation": "/private/tmp/ynx-klein-complete-backend-4kqaPG/backend-observation.json",
+  "backendChecks": [
+    "Packaged supervisor starts the sealed full workbench backend in a new isolated real local project",
+    "A second live backend for that project refuses admission",
+    "Stopping and starting on a new loopback port preserves the same project and profile identities",
+    "Extracted brand palette contains the Klein button accent"
+  ],
+  "backendTestExitCode": 0,
+  "backendOwnedPidsAbsentAfterStop": [69647, 69676],
+  "nativeLogicEvidence": "/private/tmp/ynx-native-startup-close-logic-20261005.log",
+  "nativeLogicCases": 11,
+  "solidityProviderEvidence": "/private/tmp/ynx-local-import-diagnostics-complete-20261005.log",
+  "solidityProviderCases": 16,
+  "priorNativeThemeObservation": {
+    "receipt": "/private/tmp/ynx-native-desktop-product-SLCgb9/native-theme-observation.json",
+    "sourceCommit": "7eadcbd4739cab69d97a0da13658fa47f998db48",
+    "coreTreeSha256": "2c0be93000deec4c397b3260a3c45c5975f31d6d9c75f878c02ff13faffff116",
+    "observed": ["native command palette", "native Explorer", "Counter.sol syntax-highlighted editor"],
+    "scope": "Actual native Klein rendering on the earlier candidate; not GUI acceptance of the newer package"
+  },
+  "remaining": {
+    "currentPackageNativeGUI": "NOT_VERIFIED: Mac locked",
+    "nativeMultiTabSaveExitAndNewPortReopen": "NOT_VERIFIED",
+    "nativeFolderPanelAndRecentFolderReopen": "NOT_VERIFIED",
+    "windowsAndLinuxLocalDesktop": "INCOMPLETE: this macOS artifact proves neither platform",
+    "formalDeveloperIDAndNotarization": "INCOMPLETE: ad-hoc signature only",
+    "canonicalIdentityAndPrivateServices": "INCOMPLETE: OS-user local workspace grants no canonical identity",
+    "realOnlineAIAndChainBusinessFlow": "NOT_VERIFIED",
+    "productionInstallationAndPublicRelease": "NOT_VERIFIED"
+  },
+  "releaseReady": false,
+  "goalComplete": false,
+  "preservation": "Earlier candidates and profiles retained; running locked-screen app untouched; rejected package-egress, network and LXD scopes remain paused."
+}

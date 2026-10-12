@@ -1,0 +1,35 @@
+{
+  "title": "Keyboard Shortcuts",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": [
+      "key",
+      "command"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "key": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Key or chord, for example cmd+k cmd+y."
+      },
+      "command": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Command identifier. Prefix with - to remove a default binding."
+      },
+      "when": {
+        "type": "string",
+        "description": "Context condition, for example editorTextFocus."
+      },
+      "args": {
+        "description": "Arguments passed to the command."
+      },
+      "context": {
+        "type": "string",
+        "description": "Retained workbench context for shortcuts edited from framework defaults."
+      }
+    }
+  }
+}

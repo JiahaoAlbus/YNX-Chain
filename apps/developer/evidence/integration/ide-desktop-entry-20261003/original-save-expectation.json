@@ -1,0 +1,47 @@
+{
+  "passed": false,
+  "failure": "Expected values to be strictly equal:\n\nfalse !== true\n",
+  "checks": [
+    "before handshake: file commands and state with unknown fields reject without guest initialization/writes",
+    "old unmarked installed-client state poll selects retained Workbench, real Monaco ready and restored project identity; no automatic overwrite"
+  ],
+  "errors": [],
+  "calls": [
+    {
+      "method": "GET",
+      "path": "/runtime/codeoss"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/extensions"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/workspaces/legacy-desktop-project"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/chain/status"
+    },
+    {
+      "method": "GET",
+      "path": "/runtime/health"
+    }
+  ],
+  "actualReact": true,
+  "actualProductionBuild": true,
+  "actualMonaco": true,
+  "backend": "controlled local routes",
+  "installedWindows": false,
+  "fullNativeWorkbench": false,
+  "realTerminal": false,
+  "public": false
+}

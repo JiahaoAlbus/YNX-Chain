@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "proposalId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-protocol-v1",
+  "status": "CANDIDATE",
+  "owner": "wallet-protocol",
+  "sourceCommit": "fbb690d94229a95fb80722ce544fcea20598f7cc",
+  "scope": {
+    "owns": [
+      "EIP-1193 provider contract",
+      "EIP-6963 discovery contract",
+      "WalletConnect and SIWE contract",
+      "Product Session and Device Proof contract",
+      "Gateway completion/introspection/revoke contract",
+      "callback/deep-link contract",
+      "protocol error contract"
+    ],
+    "doesNotOwn": [
+      "wallet application UI and private-key vault",
+      "wallet browser extension implementation",
+      "DApp SDK implementation",
+      "individual product migrations",
+      "central integration registry, path locks, or endpoint manifest"
+    ]
+  },
+  "observedRuntime": {
+    "observedAt": "2026-08-20T07:30:14.000Z",
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "health": {
+      "status": 200,
+      "truthfulStatus": "remote-canonical-wallet-gateway",
+      "remoteDeployed": true
+    },
+    "version": {
+      "sourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+      "release": "wallet-quant-web-6ed04310",
+      "buildTime": "2026-08-10T07:06:32.000Z",
+      "registrySha256": "77880fc25bccf4df99a63b0ac4c8f81b675d180a37570bafd63bd629d21319e1",
+      "enabledProductClientIds": [
+        "ynx-calendar-v1",
+        "ynx-developer-v1",
+        "ynx-exchange-v1",
+        "ynx-finance-v1",
+        "ynx-quant-v1",
+        "ynx-shop-v1"
+      ]
+    },
+    "negativeSchemaProbe": {
+      "request": "POST /v1/wallet/sessions/complete with canonical body {}",
+      "status": 400,
+      "code": "UNKNOWN_OR_MISSING_FIELD",
+      "requestId": "bc137e73-ee02-4ee3-a8d6-32b13e52f92e",
+      "traceId": "a46263cd-1621-4a18-910c-8d9f4fd3d661",
+      "errorId": "f239ad38-eba3-46f5-90ee-b07d1acf78c0"
+    },
+    "limits": [
+      "No Wallet-controlled authorization response or product P-256 private key was available for a real completion attempt.",
+      "This is endpoint and error-contract evidence, not successful public end-to-end Wallet/DApp evidence."
+    ]
+  },
+  "diagnosis": {
+    "confirmed": [
+      {
+        "id": "P0-DIAG-001",
+        "finding": "Finance labels every non-2xx completion response as a Device Proof rejection, including schema, callback, expiry, registry, and gateway errors.",
+        "sourcePath": "apps/finance/mobile/src/wallet.ts",
+        "impact": "A 400 cannot be used to identify the failed security check; users receive an incorrect diagnosis."
+      },
+      {
+        "id": "P0-DIAG-002",
+        "finding": "Finance returns a completed Product Session but does not durably persist it, while Exchange persists its session. A successful Finance connection can therefore disappear after restart.",
+        "sourcePath": "apps/finance/mobile/src/wallet.ts",
+        "impact": "Approved Wallet state does not reliably become an application connection."
+      },
+      {
+        "id": "P0-DIAG-003",
+        "finding": "At least one web consumer keeps a non-extractable product-device CryptoKey only in process memory; after a callback/reload it has a session record but cannot create a proof.",
+        "sourcePath": "apps/resource-market/web/app.js",
+        "impact": "A deep-link return or reload loses pending/proof state and incorrectly requires another connection."
+      },
+      {
+        "id": "P0-DIAG-004",
+        "finding": "The canonical public Gateway is reachable and advertises the same canonical registry digest as this source tree. A malformed completion is rejected with a typed schema code and correlation IDs.",
+        "sourcePath": "packages/wallet-auth/src/gateway-http.js",
+        "impact": "The available evidence does not support the claim that the public Gateway is universally offline or still only a legacy Ed25519 endpoint."
+      },
+      {
+        "id": "P0-DIAG-005",
+        "finding": "Current Wallet Auth is a first-party Product Session protocol only; it does not yet define a standard EVM provider/discovery/WalletConnect connection that can survive a Gateway outage.",
+        "sourcePath": "packages/wallet-auth/src/index.js",
+        "impact": "Approval can be conflated with proprietary sign-in instead of a normal DApp Wallet connection."
+      }
+    ],
+    "notYetReproduced": [
+      "The exact user-visible Device Proof rejection cannot be cryptographically replayed without the original approval envelope, callback, device key, timestamps, and Gateway correlation IDs.",
+      "No public claim of a fixed installed application is permitted until platform-specific end-to-end evidence exists."
+    ]
+  },
+  "contract": {
+    "version": "p0-wallet-connection-v1",
+    "standardWalletConnection": {
+      "independentOf": ["YNX Gateway", "Product Registry", "Product Session", "Data Fabric", "Monitor"],
+      "required": [
+        "EIP-1193 request(), accountsChanged, chainChanged, connect, disconnect",
+        "EIP-6963 announceProvider/requestProvider discovery",
+        "WalletConnect v2 proposal, approval, namespace update and disconnect",
+        "SIWE and EIP-712 signing",
+        "wallet_addEthereumChain and wallet_switchEthereumChain",
+        "eth_requestAccounts, personal_sign, eth_signTypedData_v4, eth_sendTransaction"
+      ],
+      "ynxTestnet": {
+        "cosmosChainId": "ynx_6423-1",
+        "evmChainId": 6423,
+        "evmChainHex": "0x1917",
+        "nativeAsset": "YNXT",
+        "externalDappAccountFormat": "0x-prefixed EVM account only"
+      },
+      "gatewayFailureRule": "A Gateway/Product Session failure MUST NOT remove an established standard provider connection, block ordinary EVM signing, or mark public chain data offline."
+    },
+    "productSession": {
+      "role": "optional first-party private-service enhancement",
+      "completionFields": ["authorizationRequest", "walletApproval", "gatewayCompletion"],
+      "deviceProof": "P-256 SHA-256 canonical DER signature over YNX_PRODUCT_SESSION_CHALLENGE_V1",
+      "proofHeader": "X-YNX-Product-Session-Proof",
+      "proofBinding": ["sessionBinding", "productClientId", "bundleId", "productDeviceKey", "HTTP method", "canonical path", "exact body digest", "nonce", "issuedAt", "expiresAt"],
+      "failureRule": "Do not manufacture a local Product Session. Keep Standard Wallet Connection and public/read-only product capabilities available; render only the affected private feature as Degraded."
+    },
+    "pendingCallback": {
+      "recordFields": ["schemaVersion", "pendingId", "requestDigest", "nonce", "productClientId", "bundleId", "callback", "deviceKeyReference", "createdAt", "expiresAt", "state"],
+      "storageRule": "Persist the pending record and a stable platform-keystore/keychain/IndexedDB CryptoKey reference before launch. Never put a private key, recovery material, Product Session, or arbitrary return URL in the callback.",
+      "callbackRule": "The registered callback has exactly one response query field. On return, resolve exactly one unconsumed pending record using the signed response requestDigest and nonce, then require exact product, bundle, callback, device public key, scope order, account, and expiry equality before completion.",
+      "rejectionRule": "Missing, expired, already-consumed, mismatched, substituted, or duplicate callback state is CALLBACK_PENDING_MISSING, CALLBACK_EXPIRED, CALLBACK_REPLAY, or CALLBACK_MISMATCH. It must create neither a session nor a Standard Wallet disconnection."
+    }
+  },
+  "errorContract": {
+    "clientState": ["STANDARD_CONNECTED", "PUBLIC_DATA_READY", "PRIVATE_SERVICE_DEGRADED", "PRODUCT_SESSION_READY", "WALLET_NOT_CONNECTED", "CLIENT_RETIRED"],
+    "rules": [
+      "Do not use Offline for an authorization, Product Session, registry, callback, or client-retirement error.",
+      "Preserve and display the server code plus x-request-id, x-trace-id, and x-error-id when available.",
+      "Map only INVALID_DEVICE_PROOF, INVALID_DEVICE_KEY, DEVICE_MISMATCH, and SESSION_BINDING_MISMATCH to PRODUCT_SESSION_DEVICE_PROOF_REJECTED.",
+      "Map UNKNOWN_OR_MISSING_FIELD, NON_CANONICAL_JSON, INVALID_JSON, INVALID_FIELD, and INVALID_PROOF_HEADER to PRODUCT_SESSION_PROTOCOL_REJECTED.",
+      "Map EXPIRED, INVALID_EXPIRY, INVALID_TIME, and ISSUED_IN_FUTURE to PRODUCT_SESSION_EXPIRED_OR_CLOCK_SKEW.",
+      "Map network failure, DNS, TLS, CORS, timeout, 502, 503, and 504 to PRODUCT_SESSION_GATEWAY_UNREACHABLE.",
+      "Map 4001, 4100, 4200, 4900, and 4901 using the EIP-1193 standard error meanings without converting them to a Gateway status."
+    ]
+  },
+  "migration": {
+    "preconditions": ["This proposal is ACCEPTED by integration.", "developer-sdk publishes an accepted consumer implementation.", "wallet-platform publishes an accepted standard provider implementation."],
+    "order": [
+      "Ship typed error classification and durable pending/session records in each product without changing Wallet transport.",
+      "Enable EIP-1193/EIP-6963 and WalletConnect as the normal connection path.",
+      "Run Product Session only after Standard Wallet Connection succeeds and only for first-party private routes.",
+      "Remove legacy opaque/Ed25519 session acceptance after telemetry shows expiration or revocation of all legacy sessions."
+    ],
+    "rollback": "Disable only Product Session issuance or its private routes. Retain standard provider, existing non-sensitive pending records until expiry, revocation records, and public/read-only behavior. Never downgrade a canonical session to a bearer token or locally generated session."
+  }
+}

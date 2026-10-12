@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 2,
+  "productId": "ynx-developer-v1",
+  "name": "YNX Developer",
+  "version": "0.2.0",
+  "branch": "codex/ide-quota-command-diagnostics-20261002",
+  "commit": null,
+  "commitRole": "Exact local package source is resolved from clean Git HEAD; do not use historical/public source as local runtime checkpoint",
+  "sourceStatus": {
+    "status": "OWNED_SOURCE_FROZEN_NOT_FORMALLY_RELEASED",
+    "precedingOwnedSourceCommit": "e9cf4aceab17c8cda4b82c4e2b8f27831cc48ade",
+    "exactDeliveryIdentity": "Use the frozen delivery manifest sourceCommit/sourceTree and archive hashes"
+  },
+  "currentPublicObservation": {
+    "sourceCommit": "a5e4905a1d595a02479115fd28ea1fd6276677fd",
+    "sourceTree": "e5efc7e8eb6c5ead07689de8d899bb48a0d1ea3c",
+    "release": "0.2.0-testnet-preview-a5e4905a1d59",
+    "publicHealth": "https://developer.ynxweb4.com/healthz",
+    "observedAt": "2026-10-03T03:24:17.996Z",
+    "evidence": "apps/developer/evidence/integration/ide-release-inputs-20261003/public-health.json",
+    "scope": "gateway source/status only; not native or business acceptance",
+    "nativeRoute": {
+      "path": "/runtime/codeoss?projectId=wallet-projects",
+      "httpStatus": 404,
+      "evidence": "apps/developer/evidence/integration/ide-release-inputs-20261003/native-route.txt"
+    },
+    "terminalRecoveryRequired": 1
+  },
+  "currentPublicCandidate": null,
+  "historicalEvidence": {
+    "path": "apps/developer/release/HISTORICAL_PRODUCT_RELEASE_59508494_20260906.json",
+    "sha256": "d89c0ee90b571f0ff55344760093c42211d4b5dce14da52586eba1248bff8348",
+    "bytes": 19696,
+    "scope": "Unmodified previous 2026-09-06 metadata and older artifact/evidence records; not current-source acceptance"
+  },
+  "featureStatus": {
+    "ynxCodePlatform": {
+      "webSourceCommit": "a5e4905a1d595a02479115fd28ea1fd6276677fd",
+      "publicDeployment": {
+        "sourceCommit": "a5e4905a1d595a02479115fd28ea1fd6276677fd",
+        "sourceTree": "e5efc7e8eb6c5ead07689de8d899bb48a0d1ea3c",
+        "release": "0.2.0-testnet-preview-a5e4905a1d59",
+        "publicHealth": "https://developer.ynxweb4.com/healthz",
+        "observedAt": "2026-10-03T03:24:17.996Z",
+        "evidence": "apps/developer/evidence/integration/ide-release-inputs-20261003/public-health.json",
+        "scope": "gateway source/status only; not native or business acceptance",
+        "nativeRoute": {
+          "path": "/runtime/codeoss?projectId=wallet-projects",
+          "httpStatus": 404,
+          "evidence": "apps/developer/evidence/integration/ide-release-inputs-20261003/native-route.txt"
+        },
+        "terminalRecoveryRequired": 1,
+        "currentRuntimeReadback": true,
+        "formalNativePublication": false
+      },
+      "macosArm64Current": false,
+      "windowsCurrent": false,
+      "linuxX64ServerCurrent": false,
+      "fullNativeWorkbenchAccepted": false
+    }
+  },
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedCurrentSource": false,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "releasePublished": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "downloadHosted": false,
+  "fullProductAccepted": false,
+  "acceptanceGates": {
+    "formalSourceBoundPublication": "NOT_VERIFIED",
+    "fullOpenVSCodeEditSaveTerminalReopen": "NOT_RUN",
+    "canonicalRealWalletUserJourney": "NOT_RUN",
+    "actualWalletBusinessApproval": "NOT_RUN",
+    "configuredRealAIProvider": "NOT_VERIFIED",
+    "multiuserIsolationAndCapacity": "NOT_VERIFIED",
+    "installedMacAndWindows": "NOT_RUN",
+    "androidWeb": "controlled browser UI only"
+  },
+  "releaseOwner": "A",
+  "rejectedScopesStillStopped": [
+    "network",
+    "package-egress",
+    "LXD"
+  ]
+}

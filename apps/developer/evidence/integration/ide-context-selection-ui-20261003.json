@@ -1,0 +1,52 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "382ce247034c28e79a4d7cb9674d41a3f7c937e4",
+  "changes": {
+    "explicitReadCreateDeleteSelection": true,
+    "moreThanEightReadsBlocksApproval": true,
+    "uncheckedPathsNotSent": true
+  },
+  "verification": {
+    "browser": {
+      "pass": true,
+      "checks": 10,
+      "receipt": "ide-context-selection-ui-20261003/browser.json"
+    },
+    "savedRunRecovery": {
+      "pass": true,
+      "checks": 12,
+      "receipt": "ide-context-selection-ui-20261003/recovery.json"
+    },
+    "scope": "Actual React and Chromium with controlled HTTP fixtures",
+    "typescript": {
+      "exitCode": 0
+    },
+    "frontendBuild": {
+      "exitCode": 0,
+      "warning": "Existing large chunks; sourcemaps preserved"
+    },
+    "staticCheck": {
+      "exitCode": 0
+    },
+    "verifiedBuildInputs": 71,
+    "dependencyInstallation": false,
+    "originalCommandFailurePreserved": true,
+    "commandCorrection": "Run existing local-cache QA compiler in frontend; authoritative tree has no installed dependencies",
+    "testServerStopped": {
+      "pid": 55411,
+      "signal": "SIGTERM"
+    }
+  },
+  "limits": {
+    "realModel": false,
+    "publicRelease": false,
+    "normalUserAcceptance": "NOT_RUN",
+    "fullWorkbench": "NOT_RUN",
+    "monster": "NOT_RUN",
+    "rejectedScopesStillStopped": [
+      "network",
+      "package-egress",
+      "LXD"
+    ]
+  }
+}

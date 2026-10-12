@@ -1,0 +1,40 @@
+✔ canonical session hosts map identically after composition restart without creating an authority registry (1.15425ms)
+✔ operator composition fails closed on absent driver, architecture drift and unsafe execution domains (0.201417ms)
+✔ driver calls retain the exact durable context and driver receiver; changed tuples execute nothing (1.624375ms)
+✔ uncertain start/Stop and token-bearing listener results fail; rejected socket is closed (0.225667ms)
+✔ failed browser editor entry offers a safe recovery page; API callers retain structured failure (45.179958ms)
+✔ native catalog binds its displayed account and rejects the old view after cookie switch before launch or Stop (117.973375ms)
+✔ guest copy approval cannot change recipients when the current cookie changes before POST (45.343458ms)
+✔ new Wallet projects use the displayed account, durable replay and an immutable reviewed name (107.377417ms)
+✔ logout during the launch HTTP body prevents late journal, driver or workspace writes (36.150166ms)
+✔ logout during the copy HTTP body prevents late journal, driver or workspace writes (32.634542ms)
+✔ logout during the create HTTP body prevents late journal, driver or workspace writes (39.343333ms)
+✔ revocation during launch URL admission cannot create a writer or session after the awaited preflight (71.152291ms)
+✔ more than 100 stopped sessions cannot hide a live or recovery writer or expose another owner (130.970625ms)
+✔ remote revocation after driver start settles into protected recovery without recursively waiting for its own launch (98.068167ms)
+✔ mounted private core HTTP forwards assets only after current owner admission and strips credentials (16.740541ms)
+✔ normal HTTP launch binds current project; binary/empty/nested files remain lossless and reopen same volume (168.424542ms)
+✔ composed admission retains uncertain launch and Stop across durable broker restart and denies another account (122.021333ms)
+✔ DELETE waits for delayed launch; no late running revival or released writer (44.057041ms)
+✔ live child or wrong runtime proof retains writer and allows actual Stop retry (66.977458ms)
+✔ owner drain rejects unconfirmed stop and preserves the writer until explicit retry (104.492125ms)
+✔ browser-scoped logout preserves an independent same-account runtime (136.922334ms)
+✔ owner/generation isolation, hard owner capacity, duplicate project and durable restart (81.584917ms)
+✔ preflight failure never permanently adopts guest import; precise never-started cancellation releases writer (54.6305ms)
+✔ a renewed same-identity lease does not stop the native runtime at the old short grant deadline (39.607041ms)
+✔ timer renewal survives restart but never moves the original runtime hard deadline (35.951167ms)
+✔ transient central outage denies access without releasing the writer; fresh verification recovers (32.000125ms)
+✔ changed owner/account/generation cannot renew another runtime (128.294625ms)
+✔ concurrent timer checks are single-flight and a late result cannot revive an explicitly stopped runtime (43.907042ms)
+✔ legacy identity adapters keep their original short cutoff (48.376ms)
+✔ legacy schema migration preserves the original deadline, writer and native files (46.766042ms)
+✔ logout during actual driver start cannot publish a late running session (80.315625ms)
+✔ actual consumer HTTP PKCE callback seals grants, binds stable owner, explicitly copies guest, and exchanges one-use isolated cookie (73.6985ms)
+ℹ tests 32
+ℹ suites 0
+ℹ pass 32
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1314.434625

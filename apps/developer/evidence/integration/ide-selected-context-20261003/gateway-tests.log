@@ -1,0 +1,24 @@
+✔ gateway serves the SPA, immutable assets and security headers (3023.65825ms)
+✔ gateway rejects traversal and routes runtime health through the same origin (11.921375ms)
+✔ simultaneous owners and categories drain before SQLite closes; new work and readyz fail immediately (73.090292ms)
+✔ a disconnected response remains active until its handler actually finishes (59.265ms)
+✔ an accepted agent can finish nested AI after admission closes, while unrelated new AI is rejected (0.381583ms)
+✔ maintenance cancellation is persisted after abort settles and before database close (86.200125ms)
+✔ uncooperative handler timeout reports failure and never closes its database (49.354417ms)
+✔ interactive persistence failure cannot be swallowed into a clean maintenance result (0.32575ms)
+✔ malformed raw request targets do not escape the gateway or poison later requests (2.189083ms)
+✔ one interactive failure still waits for another owner's accepted write before reporting failure (27.450584ms)
+✔ a durable remote recovery guard cannot be mistaken for a clean idle gateway (0.342459ms)
+✔ real server explicit-maintenance saves accepted work before closing SQLite (1017.221917ms)
+✔ real server repeated-shutdown-signals saves accepted work before closing SQLite (1042.394666ms)
+✔ real SIGTERM cancels an unfinished request body with an explicit retry result (547.481458ms)
+✔ malformed websocket upgrade cannot terminate the real server (437.464958ms)
+✔ composed gateway admits Wallet AI and memory despite a revoked guest, and never substitutes the guest for Wallet (48.751333ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3100.852417

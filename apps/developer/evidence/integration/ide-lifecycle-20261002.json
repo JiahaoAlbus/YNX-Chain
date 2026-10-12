@@ -1,0 +1,261 @@
+{
+  "sourceParent": "78eca0eda9bca8d16076c48b89c54c07e8ef15d1",
+  "classification": "SOURCE_CANDIDATE_PRODUCT_INCOMPLETE",
+  "serviceSuite": {
+    "pass": 72,
+    "fail": 0,
+    "skip": 0
+  },
+  "panel": {
+    "checks": [
+      "A -> B -> A: delayed first A cannot replace the current catalog",
+      "logout (503): delayed private catalog stays retired; unconfirmed stop retains retry; successful retry restores sign-in",
+      "logout (200): delayed private catalog stays retired; unconfirmed stop retains retry; successful retry restores sign-in",
+      "retired launch: delayed activity completion cannot dispatch an old workspace start after A -> B -> A",
+      "failed current identity/activity admission preserves files and does not launch"
+    ],
+    "errors": [],
+    "actualChromium": true,
+    "actualReactPanel": true,
+    "backend": "controlled browser response routes",
+    "fullWorkbench": false,
+    "public": false
+  },
+  "tools": {
+    "checks": [
+      "401 retires old Tools identity, private result and approval; sign-in returns; no hidden model retry"
+    ],
+    "errors": [],
+    "modelCalls": 1,
+    "actualChromium": true,
+    "actualReactTools": true,
+    "backend": "controlled browser response routes",
+    "public": false
+  },
+  "layout": {
+    "rows": [
+      {
+        "entry": "native-panel",
+        "width": 320,
+        "scroll": 320,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 46.796875,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 46.796875,
+            "text": "Continue editing"
+          },
+          {
+            "height": 46.796875,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 320,
+        "scroll": 320,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      },
+      {
+        "entry": "native-panel",
+        "width": 390,
+        "scroll": 390,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 46.796875,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 46.796875,
+            "text": "Continue editing"
+          },
+          {
+            "height": 46.796875,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 390,
+        "scroll": 390,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      },
+      {
+        "entry": "native-panel",
+        "width": 1280,
+        "scroll": 1280,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 28,
+            "text": "Sign out on this device"
+          },
+          {
+            "height": 28,
+            "text": "Continue editing"
+          },
+          {
+            "height": 28,
+            "text": "Stop workspace"
+          }
+        ]
+      },
+      {
+        "entry": "native-tools",
+        "width": 1280,
+        "scroll": 1280,
+        "logo": [
+          {
+            "loaded": true,
+            "fit": "contain"
+          }
+        ],
+        "buttons": [
+          {
+            "height": 44,
+            "text": "Check Testnet"
+          },
+          {
+            "height": 44,
+            "text": "Query RPC"
+          },
+          {
+            "height": 44,
+            "text": "Preview request"
+          },
+          {
+            "height": 44,
+            "text": "Check Wallet readiness"
+          },
+          {
+            "height": 44,
+            "text": "Review YNX Wallet connection"
+          }
+        ]
+      }
+    ],
+    "actualChromium": true,
+    "fixtureOnly": true,
+    "androidHardware": false,
+    "public": false
+  },
+  "logs": [
+    {
+      "path": "/tmp/ynx-ide-tools-delayed-body-baseline-20261002.log",
+      "sha256": "dad7b2d6049b30c53232376d888af9cdbe5c4b54548dd9e229ff53f92ae426dc"
+    },
+    {
+      "path": "/tmp/ynx-ide-panel-logout-original-20261002.log",
+      "sha256": "6131ed17f9d65c3f9c6d3d3613d30898c5728839ec05e6a90ecc6a3efd05f54e"
+    },
+    {
+      "path": "/tmp/ynx-ide-panel-logout-original-run2-20261002.log",
+      "sha256": "afbe8d03b0d9bcc7fcd0c7d5de339ad139e500ab359a9652f013d740d8dc4ac9"
+    },
+    {
+      "path": "/tmp/ynx-ide-panel-launch-original-20261002.log",
+      "sha256": "e00bf4010af989c42e627c66ada0470f95ae70440aeefe5a5fe0cf8bdf2f4f80"
+    },
+    {
+      "path": "/tmp/ynx-ide-tools-ui-original-20261002.log",
+      "sha256": "59c552e277d5e08531e756e9caee56abcab1f604917e747c5927da99f57687ca"
+    },
+    {
+      "path": "/tmp/ynx-ide-lifecycle-service-suite-20261002.log",
+      "sha256": "6870254ffbcdec75d2a276dd97ce61aea910069123cdd5f09ee146445dd51fc4"
+    },
+    {
+      "path": "/tmp/ynx-ide-lifecycle-service-suite-final-20261002.log",
+      "sha256": "3d29ea0d91616e25be8f522c21ffbafc2edaf1012b96c6d94e5fece513742202"
+    },
+    {
+      "path": "/tmp/ynx-ide-lifecycle-build-final-20261002.log",
+      "sha256": "a74e485372c4c6ba3cee31846e92479f90df2bf3c3b828dcb50f613971b7aa0c"
+    }
+  ],
+  "gates": {
+    "frontendBuild": "PASS",
+    "fullWorkbench": "NOT_RUN_PLATFORM_MISMATCH_NO_APPROVED_EXECUTOR",
+    "public": "NOT_VERIFIED",
+    "install": "NOT_VERIFIED",
+    "realUser": "NOT_VERIFIED",
+    "multiUserCapacity": "NOT_VERIFIED",
+    "monster": "NOT_RUN",
+    "excludedNetworkPackageLXD": "STOPPED"
+  }
+}

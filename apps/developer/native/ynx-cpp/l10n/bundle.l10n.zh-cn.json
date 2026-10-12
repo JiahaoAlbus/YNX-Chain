@@ -1,0 +1,22 @@
+{
+  "Open one trusted local C/C++ project.": "请打开一个受信任的本地 C/C++ 项目。",
+  "Select a saved C or C++ source file in this project.": "请选择本项目内已保存的 C 或 C++ 源文件。",
+  "Save the source file before running.": "请先保存源文件，再运行。",
+  "Select C/C++ compiler": "选择 C/C++ 编译器",
+  "Use the installed Apple Clang compiler and macOS SDK.": "使用已安装的 Apple Clang 编译器与 macOS SDK。",
+  "Select the existing project task": "选择已有项目任务",
+  "The existing task configuration has no usable task. Open it to configure a build target.": "已有任务配置没有可用任务。请打开配置并设置构建目标。",
+  "The task ended without an exit code. Check Terminal and Output.": "任务已结束但没有退出码，请查看终端和输出。",
+  "Build failed or was cancelled. The previous executable was not run.": "构建失败或已取消，未运行旧的可执行文件。",
+  "C/C++ debugging needs the LLDB DAP extension and a working local lldb-dap executable.": "C/C++ 调试需要 LLDB DAP 扩展与可用的本地 lldb-dap 可执行文件。",
+  "Select the existing project debug configuration": "选择已有项目调试配置",
+  "No usable C/C++ launch target is configured. Existing files were preserved; configure a target in launch.json.": "尚未配置可用的 C/C++ 调试目标。已有文件已保留，请在 launch.json 中配置目标。",
+  "The debugger did not start. Check Debug Console and Output.": "调试器未启动，请查看调试控制台和输出。",
+  "A C/C++ operation is already running in this project.": "本项目已有 C/C++ 操作正在运行。",
+  "C/C++ operation stopped.": "C/C++ 操作已停止。",
+  "C/C++ program exited with code {0}.": "C/C++ 程序已退出，退出码为 {0}。",
+  "Run project task: {0}": "运行项目任务：{0}",
+  "Project task {0} exited with code {1}.": "项目任务 {0} 已退出，退出码为 {1}。",
+  "Existing project configuration was preserved. Choose its target explicitly.": "已有项目配置已保留，请明确选择其中的目标。",
+  "C/C++ debugging uses Debug Console for output. Interactive program input is not supported in this mode; use Run C/C++ File for terminal input.": "C/C++ 调试输出显示在调试控制台。此模式暂不支持程序交互输入；需要终端输入时请使用“运行 C/C++ 文件”。"
+}

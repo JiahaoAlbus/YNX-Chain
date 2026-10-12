@@ -1,0 +1,5 @@
+import assert from "node:assert/strict";
+
+const base=process.env.YNX_CODE_CHECK_BASE||"http://127.0.0.1:4215",health=await fetch(`${base}/runtime/health`),cookie=health.headers.get("set-cookie")?.split(";")[0];assert.equal(health.status,200);assert.ok(cookie);
+const response=await fetch(`${base}/runtime/wallet/readiness`,{headers:{cookie}}),value=await response.json();assert.equal(response.status,200);assert.equal(value.protocolVersion,"ynx-code-wallet-readiness/v1");assert.equal(value.gateway.reachable,true);assert.equal(value.gateway.runtimeReady,true);assert.match(value.gateway.build.sourceCommit,/^[0-9a-f]{40}$/);assert.equal(value.developerBinding.productClientId,"ynx-developer-v1");assert.deepEqual(value.developerBinding.scopes,["account:read","developer:deploy"]);if(value.developerBinding.attested)assert.match(value.developerBinding.registrySha256,/^[0-9a-f]{64}$/);else assert.equal(value.developerBinding.reason,"gateway_version_does_not_attest_developer_registry");
+console.log(`Wallet readiness passed · ${value.gateway.build.sourceCommit.slice(0,12)} · Developer binding ${value.developerBinding.attested?"attested":"closed"}`);

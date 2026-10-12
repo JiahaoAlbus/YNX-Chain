@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "classification": "source-bound-public-runtime-api-readback-not-browser-lifecycle-proof",
+  "observedAt": "2026-08-31T08:48:20Z",
+  "source": {
+    "commit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "tree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "release": "0.2.0-testnet-preview-d4052228a226-candidate"
+  },
+  "publicRuntime": {
+    "pageUrl": "https://developer.ynxweb4.com/",
+    "healthUrl": "https://developer.ynxweb4.com/healthz",
+    "runtimeHealthUrl": "https://developer.ynxweb4.com/runtime/health",
+    "health": {
+      "httpStatus": 200,
+      "ok": true,
+      "service": "ynx-code-gateway",
+      "version": "0.2.0-testnet-preview-d4052228a226-candidate",
+      "sandbox": "linux-bubblewrap-prlimit",
+      "sandboxReady": true
+    },
+    "runtimeHealth": {
+      "httpStatus": 200,
+      "ok": true,
+      "service": "ynx-code-workspace-agent",
+      "protocolVersion": "ynx-code/v1",
+      "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+      "sandboxReady": true,
+      "compilers": {
+        "c": true,
+        "cpp": true,
+        "javascript": true,
+        "typescript": true,
+        "python": true,
+        "go": true,
+        "rust": true,
+        "java": false,
+        "solidity": true
+      },
+      "languageServers": {
+        "cpp": true,
+        "typescript": true,
+        "python": true,
+        "go": true,
+        "rust": true,
+        "solidity": true,
+        "java": true
+      },
+      "sessionClass": "ephemeral-guest",
+      "workspacePersistence": "sqlite-wal"
+    },
+    "staticAssets": {
+      "html": {
+        "bytes": 569,
+        "sha256": "851a64521a95011033670cbfe585912a4edac9e247196b8acd7d2a95d7a9a696"
+      },
+      "entryScript": {
+        "path": "assets/index-ByZJO6zj.js",
+        "bytes": 704628,
+        "sha256": "bf291a0f0d64a4dfa448a558f438d893c1f669ad41cdc1407e105fb9cbdc6c98"
+      }
+    }
+  },
+  "binding": {
+    "releaseVersionMatchesSourceCommitPrefix": true,
+    "sourceTreeBoundByCentralReceipt": true,
+    "sourceTreeExposedByPublicHealth": false,
+    "htmlAssetReadback": true,
+    "browserVisible": false,
+    "walletProviderLifecycle": false
+  },
+  "boundaries": {
+    "javaCompile": false,
+    "productionObjectStoreMigration": false,
+    "note": "This direct public API and static-asset readback binds the exact release version to the accepted source receipt. The bundle contains third-party editor code, so static string scanning is not a product no-popup proof. It does not prove rendered browser UI, installed Wallet provider lifecycle, account approval, callback, signature, transaction, official desktop hosting or production signing."
+  }
+}

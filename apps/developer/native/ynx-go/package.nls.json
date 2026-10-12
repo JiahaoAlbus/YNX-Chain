@@ -1,0 +1,9 @@
+{
+  "displayName": "YNX Go Project Tasks",
+  "description": "Build and run a configured local Go package using an installed, verified toolchain. No language server, debugger or dependency download is installed.",
+  "command.configure": "YNX: Configure Go Project",
+  "command.run": "YNX: Build and Run Go Project",
+  "command.cancel": "YNX: Cancel Go Task",
+  "configuration.project": "Project package and verified installed Go toolchain. Network downloads and cgo are disabled. Language service and debugger configuration are separate.",
+  "command.test": "Test Go Project"
+}

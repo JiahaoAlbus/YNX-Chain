@@ -1,0 +1,43 @@
+{
+  "schema": "ynx-composed-workbench-checkpoint/v1",
+  "sourceBaseHead": "d4c3d40062f41c776f8bd56a4a1f5a971f723ffe",
+  "runtimeArtifact": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "c7ebdb596b03612424d26440413a225c3479dbd7c8c31f12529d1375dd8506a0",
+    "treeSha256": "1cef74c6c559f28b606cd6a8e82313879a74a7e3bbe5067d21f8f6342d767350",
+    "manifestSha256": "8623340f93da3a2a78037544f509dd54999f5de18417cb2cd4f4c08ba4a79a16"
+  },
+  "workbenchVersion": "0.2.8",
+  "nodeVersion": "v26.7.0",
+  "nodeOptions": "--no-experimental-global-navigator --max-old-space-size=1024",
+  "runnerSha256": "ec19bea8dd5e2116ea85ab9339ef93a92de2c7136c06773636d63dccef727f5b",
+  "checks": [
+    "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+    "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+    "actual editor save writes the selected project file, confirmed on disk",
+    "the inherited YNX logo and product name render in the actual framework workbench",
+    "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+    "closing and reopening the actual file restores saved disk content",
+    "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+    "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+    "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+    "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+    "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+    "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+    "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+    "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+    "continuing the actual debug session executes the target program, confirmed by its disk output",
+    "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+  ],
+  "pageErrors": [],
+  "boundary": {
+    "read": "EPERM",
+    "write": "EPERM",
+    "network": "EPERM"
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/composed-workbench-semantic-sixteen-paths-20261004",
+  "qualification": "Replaces earlier word-only completion evidence with unopened-import semantic completion. First-file extension startup is asynchronous; test re-requests completion within 30 seconds. Not all-language or extension compatibility proof.",
+  "scope": "Controlled macOS arm64 runtime only. Canonical Wallet/Chain/AI, normal public Host admission, extension lifecycle, profile migration, other-platform installers and capacity remain unverified."
+}

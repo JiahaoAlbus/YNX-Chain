@@ -1,0 +1,16 @@
+{
+  "passed": false,
+  "checks": [],
+  "errors": [],
+  "calls": [
+    {
+      "path": "/runtime/native-tools/context",
+      "body": null
+    }
+  ],
+  "actualReact": true,
+  "actualChromium": true,
+  "backend": "controlled browser HTTP fixtures",
+  "public": false,
+  "nativeEditorJourney": "NOT_RUN"
+}

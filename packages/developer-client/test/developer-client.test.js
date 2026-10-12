@@ -1,0 +1,210 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import {
+  AIBuildPersistence, AIBuildRun, AI_BUILD_PERMISSIONS, GROK_BUILD_ACP,
+  AICodingAgent, API_ERROR_MESSAGE_KEYS, API_MESSAGE_KEYS, apiMessageKeyForError,
+  CommandAudit, DeveloperError, MemoryPersistence, ProjectWorkspace,
+  DeveloperI18n, MESSAGES, SUPPORTED_LOCALES, DeveloperWalletSession, LocalNonceLedger, WalletDeployment, YNXChainClient, commandPreview, sourceDiagnostics
+} from "../src/index.js";
+
+const json = (value, status = 200) => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json" } });
+const testCanonicalAuthorizationBuilder = (request) => `ynxwallet://authorize?request=${Buffer.from(JSON.stringify(request)).toString("base64url")}`;
+const testAuthorizationCallbackParser = (_callbackURL, request) => Object.freeze({ version:"1",requestDigest:"a".repeat(64),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...request.scopes],purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,walletSignature:"b".repeat(128) });
+
+test("project create, persistence, export/import, search, checkpoint, diff and revert", async () => {
+  let tick = 1000;
+  const persistence = new MemoryPersistence();
+  const workspace = new ProjectWorkspace({ persistence, clock: () => ++tick });
+  const project = await workspace.create({ name: "Counter Lab", template: "counter" });
+  assert.equal((await workspace.list()).length, 1);
+  assert.equal((await workspace.search(project.id, "increment", ["src/Counter.sol"])).length, 1);
+  const checkpoint = await workspace.checkpoint(project.id, "clean compile");
+  await workspace.write(project.id, "src/Counter.sol", project.files["src/Counter.sol"].replace("count += value", "count += value + 1"));
+  assert.equal((await workspace.diff(project.id))[0].status, "modified");
+  const reverted = await workspace.revert(project.id, checkpoint.id);
+  assert.equal(reverted.files["src/Counter.sol"], project.files["src/Counter.sol"]);
+  const imported = await workspace.import(await workspace.export(project.id));
+  assert.notEqual(imported.id, project.id);
+});
+
+test("imports reject traversal and unsupported versions", async () => {
+  const workspace = new ProjectWorkspace();
+  await assert.rejects(() => workspace.import({ version: 2, name: "bad", files: { "a.sol": "x" } }), (error) => error.code === "unsupported_project_version");
+  await assert.rejects(() => workspace.import({ version: 1, name: "bad", files: { "../secret": "x" } }), (error) => error.code === "invalid_path");
+});
+
+test("AI writes require reviewed diff", async () => {
+  const workspace = new ProjectWorkspace();
+  const project = await workspace.create({ name: "Review Gate" });
+  await assert.rejects(() => workspace.write(project.id, "src/Counter.sol", "changed", { origin: "ai" }), (error) => error.code === "review_required");
+  const applied = await workspace.write(project.id, "src/Counter.sol", "reviewed", { origin: "ai", reviewed: true });
+  assert.equal(applied.files["src/Counter.sol"], "reviewed");
+});
+
+test("AI conversation history persists approved context without access tokens and can be deleted", async () => {
+  const persistence = new MemoryPersistence(); const workspace = new ProjectWorkspace({ persistence });
+  let project = await workspace.create({ name: "AI History" });
+  project = await workspace.recordConversation(project.id, { intent: "explain source", approvedPaths: ["src/Counter.sol"], model: "provider-model", status: "review-required", output: "src/Counter.sol:1" });
+  assert.equal(project.conversations.length, 1); assert.equal(JSON.stringify(project).includes("accessToken"), false);
+  project = await workspace.clearConversationHistory(project.id); assert.equal(project.conversations.length, 0); assert.equal(project.audit.at(-1).event, "ai.history.cleared");
+});
+
+test("command preview and approvals expose command cwd environment and audit", async () => {
+  const preview = commandPreview("test", "/workspace/project");
+  assert.deepEqual({ command: preview.command, cwd: preview.cwd, environmentClass: preview.environmentClass }, { command: "node --test test/*.test.js", cwd: "/workspace/project", environmentClass: "desktop-project-sandbox" });
+  const audit = new CommandAudit({ executor: async (_preview, { onChunk }) => { onChunk("2 passing\n"); return { code: 0 }; } });
+  await assert.rejects(() => audit.run(preview, { command: true }), (error) => error.code === "write_approval_required");
+  const result = await audit.run(preview, { command: true, write: true });
+  assert.equal(result.status, "passed"); assert.match(result.output, /2 passing/);
+});
+
+test("web terminal fails closed without desktop executor", async () => {
+  const audit = new CommandAudit();
+  await assert.rejects(() => audit.run(commandPreview("git-diff", "/workspace/project"), { command: true }), (error) => error.code === "desktop_executor_unavailable");
+});
+
+test("pinned compiler compiles only exact Solidity 0.8.24 and preserves evidence", async () => {
+  const calls = [];
+  const client = new YNXChainClient({ fetcher: async (url, options = {}) => {
+    calls.push([url, options]);
+    if (url.endsWith("/ide/compiler")) return json({ version: "0.8.24", optimizerEnabled: true, optimizerRuns: 200, pinned: true });
+    return json({ ok: true, artifactHash: "0xartifact", bytecodeHash: "0xbytecode", diagnostics: [] });
+  }});
+  const result = await client.compile({ name: "C", source: "pragma solidity 0.8.24; contract C {}" });
+  assert.equal(result.artifactHash, "0xartifact"); assert.equal(calls.length, 2);
+  await assert.rejects(() => client.compile({ name: "C", source: "pragma solidity ^0.8.0; contract C {}" }), (error) => error.code === "unsupported_compiler_path");
+});
+
+test("unsupported or mutating RPC methods fail clearly", async () => {
+  const client = new YNXChainClient({ fetcher: async () => json({ result: "0x1927" }) });
+  assert.equal(await client.rpc("eth_chainId"), "0x1927");
+  assert.throws(() => client.rpc("eth_sendTransaction", []), (error) => error.code === "rpc_method_not_allowed");
+});
+
+test("Wallet-only deployment requires confirmation, provider and authoritative receipt", async () => {
+  const chainClient = { receipt: async (hash) => ({ transactionHash: hash, status: "0x1", contractAddress: "0x00000000000000000000000000000000000000aa" }) };
+  const absent = new WalletDeployment({ wallet: null, chainClient });
+  const review = absent.review({ projectId: "p", account: "ynx1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqmql8k", artifact: { artifactHash: "artifact" } });
+  await assert.rejects(() => absent.authorize(review, { confirmed: true }), (error) => error.code === "wallet_unavailable");
+  const wallet = { authorizeDeployment: async () => ({ status: "authorized", requestId: "wallet-request" }), signAndSubmitDeployment: async () => ({ submitted: true, txHash: `0x${"a".repeat(64)}` }) };
+  const deployment = new WalletDeployment({ wallet, chainClient });
+  await assert.rejects(() => deployment.authorize(review), (error) => error.code === "deployment_confirmation_required");
+  const authorization = await deployment.authorize(review, { confirmed: true });
+  const submission = await deployment.signAndSubmit(review, authorization, { approved: true });
+  assert.equal((await deployment.confirm(submission)).status, "confirmed");
+});
+
+test("source match never promotes local evidence to remote proof", async () => {
+  const deployment = new WalletDeployment({ chainClient: { verify: async () => ({ verified: true }), verifier: async () => ({ deployedBytecodeComparisonStatus: "matched_local_deployed_bytecode_hash", remotePublicProofStatus: "not_remote_public_proof" }) } });
+  const result = await deployment.sourceMatch({ address: "0x1" }, "source");
+  assert.equal(result.status, "source-matched-local-evidence"); assert.equal(result.remotePublicProof, false);
+});
+
+test("Wallet Auth opens the exact canonical Developer deep link without inventing a session", async () => {
+  let deepLink; const now = Date.parse("2026-08-10T00:00:00.000Z");
+  const transport = { getProductDevicePublicKey: async () => `A${"a".repeat(43)}`, openAuthorization: async (value) => { deepLink=value; } };
+  const session = new DeveloperWalletSession({ transport, authorizationBuilder:testCanonicalAuthorizationBuilder, authorizationCallbackParser:testAuthorizationCallbackParser, clock:()=>now, ledger:new LocalNonceLedger({ getItem:()=>null, setItem(){} }) });
+  await assert.rejects(() => session.open(), (error) => error.code === "wallet_permission_required");
+  const result = await session.open({ approved:true });
+  assert.equal(result.status, "wallet-review-opened"); assert.match(deepLink, /^ynxwallet:\/\/authorize\?request=/);
+  const encoded=new URL(deepLink).searchParams.get("request");
+  const request=JSON.parse(Buffer.from(encoded.replaceAll("-","+").replaceAll("_","/"),"base64").toString("utf8"));
+  assert.equal(request.productClientId, "ynx-developer-v1"); assert.equal(request.bundleId, "com.ynxweb4.developer.testnetpreview");
+  assert.deepEqual(request.scopes,["account:read","developer:deploy"]); assert.equal(session.session,null);
+  const approval={version:"1",requestDigest:"a".repeat(64),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...request.scopes],purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,walletSignature:"b".repeat(128)};
+  const response=Buffer.from(JSON.stringify(approval)).toString("base64url");
+  const accepted=session.acceptCallback(`ynxdeveloper://wallet-auth/callback?response=${response}`);
+  assert.equal(accepted.status,"wallet-approved-gateway-required"); assert.equal(session.session,null);
+});
+
+test("Wallet nonce ledger persists replay rejection and altered approval fails before Gateway", async () => {
+  const data = new Map(); const storage = { getItem:(key)=>data.get(key) ?? null, setItem:(key,value)=>data.set(key,value) }; const ledger = new LocalNonceLedger(storage);
+  ledger.consume("nonce"); assert.throws(() => ledger.consume("nonce"), (error) => error.code === "wallet_replay_rejected");
+  let deepLink; const now = Date.parse("2026-08-10T00:00:00.000Z"); const transport={getProductDevicePublicKey:async()=>`A${"a".repeat(43)}`,openAuthorization:async(value)=>{deepLink=value;}};
+  const session = new DeveloperWalletSession({ transport, authorizationBuilder:testCanonicalAuthorizationBuilder, authorizationCallbackParser:()=>{ throw new Error("tampered"); }, clock:()=>now, ledger:new LocalNonceLedger(storage,"second") }); await session.open({approved:true});
+  const request=JSON.parse(Buffer.from(new URL(deepLink).searchParams.get("request"),"base64url").toString("utf8"));
+  const altered={version:"1",requestDigest:"a".repeat(64),nonce:request.nonce,chainId:request.chainId,requestingProduct:request.requestingProduct,productClientId:"substituted",bundleId:request.bundleId,productDeviceAlgorithm:request.productDeviceAlgorithm,productDeviceKey:request.productDeviceKey,callback:request.callback,account:`ynx1${"q".repeat(38)}`,accountPublicKey:`02${"a".repeat(64)}`,grantedScopes:[...request.scopes],purpose:request.purpose,issuedAt:request.issuedAt,expiresAt:request.expiresAt,walletSignature:"b".repeat(128)};
+  const response=Buffer.from(JSON.stringify(altered)).toString("base64url");
+  assert.throws(()=>session.acceptCallback(`ynxdeveloper://wallet-auth/callback?response=${response}`),(error)=>error.code==="wallet_callback_invalid"); assert.equal(session.session,null);
+});
+
+test("AI context is least privilege, cost is labeled estimate, permission is mandatory", async () => {
+  const project = { files: { "src/A.sol": "line one", "secret.txt": "do not send" } };
+  const body = new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('event: token\ndata: {"text":"Patch with src/A.sol:1"}\n\nevent: done\ndata: {}\n\n')); controller.close(); } });
+  let requestURL; let requestOptions;
+  const agent = new AICodingAgent({ fetcher: async (url, options) => { requestURL = url; requestOptions = options; return new Response(body, { status: 200, headers: { "content-type": "text/event-stream" } }); } });
+  const prepared = agent.prepare({ intent: "explain this source", project, approvedPaths: ["src/A.sol"] });
+  assert.deepEqual(prepared.privacyPreview.map((item) => item.path), ["src/A.sol"]);
+  assert.equal(prepared.prompt.includes("do not send"), false); assert.equal(prepared.estimate.estimatedYNXT, null);
+  await assert.rejects(() => agent.stream(prepared, { accessToken: "session-token" }), (error) => error.code === "ai_permission_required");
+  const result = await agent.stream(prepared, { accessToken: "session-token", approved: true });
+  assert.equal(result.status, "review-required"); assert.match(result.output, /src\/A.sol:1/);
+  assert.equal(requestURL, "http://127.0.0.1:6429/ai/stream"); assert.equal(requestOptions.method, "POST");
+  assert.equal(requestURL.includes(prepared.prompt), false); assert.deepEqual(JSON.parse(requestOptions.body).includedContext, ["conversation", "selected_files"]); assert.equal(JSON.parse(requestOptions.body).attachments[0].name, "src/A.sol");
+  assert.equal(agent.review(result, "reject").status, "rejected");
+});
+
+test("AI context fails before network when the Gateway request limit would be exceeded", () => {
+  const agent = new AICodingAgent();
+  assert.throws(() => agent.prepare({ intent: "review source", project: { files: { "src/Large.sol": "x".repeat(8000) } }, approvedPaths: ["src/Large.sol"] }), (error) => error.code === "ai_context_too_large");
+});
+
+test("YNX AI Build gates plan, context, write, diff apply, checkpoint, resume and audit", () => {
+  let tick = Date.parse("2026-07-18T00:00:00.000Z");
+  const run = new AIBuildRun({ intent: "Add an owner-only reset with tests", provider: "ynx-gateway", model: "approved-grok", clock: () => ++tick });
+  run.setPlan(["Inspect approved contract", "Propose bounded diff", "Run tests"]);
+  assert.equal(run.snapshot().status, "review-required");
+  run.approvePlan("approve");
+  run.approveContext(["src/Counter.sol", "test/Counter.test.js"]);
+  const proposal = run.proposeDiff([{ path: "src/Counter.sol", before: "old", after: "new" }], "Owner-only reset");
+  run.reviewDiff(proposal.id, "approve");
+  const write = run.requestPermission("write", { reason: "Apply one reviewed file", scope: { paths: ["src/Counter.sol"] } });
+  run.decidePermission(write.requestId, "allow-once");
+  let applied;
+  run.applyDiff(proposal.id, write.requestId, (files) => { applied = files; });
+  assert.equal(applied[0].after, "new");
+  run.recordTest({ name: "Counter test", status: "passed", command: "node --test", evidence: "1 passed" });
+  const checkpoint = run.checkpoint("validated reset", { "src/Counter.sol": "new" });
+  run.pause("desktop restart");
+  const storageData = new Map();
+  const storage = { getItem: (key) => storageData.get(key) ?? null, setItem: (key, value) => storageData.set(key, value), removeItem: (key) => storageData.delete(key) };
+  const persistence = new AIBuildPersistence(storage); persistence.save(run);
+  const restored = persistence.load({ clock: () => ++tick }); restored.resume();
+  const revert = restored.requestPermission("write", { reason: "Restore reviewed checkpoint" }); restored.decidePermission(revert.requestId, "allow-once");
+  let reverted; restored.revert(checkpoint.id, revert.requestId, (files) => { reverted = files; });
+  assert.equal(reverted["src/Counter.sol"], "new");
+  const audit = JSON.parse(restored.exportAudit());
+  assert.ok(audit.events.some((entry) => entry.event === "diff.applied"));
+  assert.ok(audit.events.some((entry) => entry.event === "checkpoint.reverted"));
+  assert.deepEqual(AI_BUILD_PERMISSIONS, ["read","write","execute","network","package-install","secret-reference","git-commit","git-push","deploy"]);
+  assert.equal(GROK_BUILD_ACP.transport, "stdio"); assert.equal(GROK_BUILD_ACP.affiliationClaim, false);
+});
+
+test("YNX AI Build denies unapproved context and one-time permission reuse", () => {
+  const run = new AIBuildRun({ intent: "Review the contract safely" }); run.setPlan(["Review"]); run.approvePlan("approve"); run.approveContext(["src/A.sol"]);
+  assert.throws(() => run.proposeDiff([{ path: "secret.env", before: "present", after: "changed" }]), (error) => error.code === "context_scope_violation");
+  const permission = run.requestPermission("execute", { reason: "Run bounded tests" });
+  assert.throws(() => run.recordTool({ name: "test", permission: "execute", requestId: permission.requestId, status: "passed" }), (error) => error.code === "permission_not_granted");
+  run.decidePermission(permission.requestId, "allow-once");
+  run.recordTool({ name: "test", permission: "execute", requestId: permission.requestId, inputSummary: "node --test", status: "passed", outputSummary: "ok" });
+  assert.throws(() => run.recordTool({ name: "test-again", permission: "execute", requestId: permission.requestId, status: "passed" }), (error) => error.code === "permission_not_granted");
+});
+
+test("diagnostics explain unsupported compiler and syntax shape", () => {
+  const diagnostics = sourceDiagnostics("src/A.sol", "pragma solidity ^0.8.0; contract A {");
+  assert.deepEqual(diagnostics.map((item) => item.code), ["YNX001", "YNX003", "YNX004"]);
+});
+
+test("all 12 locales are complete, persistent and Arabic is RTL", () => {
+  assert.deepEqual(SUPPORTED_LOCALES, ["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]);
+  const keys = Object.keys(MESSAGES.en); for (const locale of SUPPORTED_LOCALES) assert.deepEqual(Object.keys(MESSAGES[locale]), keys), assert.ok(Object.values(MESSAGES[locale]).every((value)=>value.trim()));
+  const data = new Map(); const storage={getItem:(key)=>data.get(key),setItem:(key,value)=>data.set(key,value)}; const i18n=new DeveloperI18n({locale:"ar",storage});
+  assert.equal(i18n.dir,"rtl"); assert.match(i18n.t("privateKeyBoundary"),/المفتاح الخاص/); i18n.setLocale("ja"); assert.equal(new DeveloperI18n({storage}).locale,"ja");
+  assert.ok(i18n.number(1234).length>0); assert.ok(i18n.date("2026-07-16T00:00:00.000Z").length>0); assert.equal(i18n.plural(2,{other:"files"}),"files");
+  for (const key of API_MESSAGE_KEYS) for (const locale of SUPPORTED_LOCALES) assert.ok(MESSAGES[locale][key]?.trim(), `${locale}.${key}`);
+  assert.notEqual(MESSAGES.ar.apiApprovalTitle, MESSAGES.en.apiApprovalTitle);
+  assert.equal(apiMessageKeyForError("credential_broker_unavailable"), "apiErrorBrokerUnavailable");
+  assert.equal(apiMessageKeyForError("api_origin_not_allowed"), "apiErrorOriginRejected");
+  assert.equal(apiMessageKeyForError("unknown_error"), null);
+  assert.ok(Object.keys(API_ERROR_MESSAGE_KEYS).length >= 40);
+});

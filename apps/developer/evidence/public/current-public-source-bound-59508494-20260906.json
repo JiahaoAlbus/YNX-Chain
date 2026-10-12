@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-09-06T09:39:46.784964+00:00",
+  "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+  "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+  "release": "0.2.0-testnet-preview-595084945e63-candidate",
+  "publicOrigin": "https://developer.ynxweb4.com",
+  "artifact": {
+    "kind": "linux-x64-gateway-runtime",
+    "bytes": 137676746,
+    "sha256": "c229b056dbc9b2641b5b18b9081b888d328d645e0221eda5b12fadf540434973",
+    "fullFileManifestSha256": "82c44ae675061ba6f8f16766ed0c07ac899f577455e4894c032e694fdae763b1",
+    "trackedSourceFilesVerified": 400,
+    "packageFiles": 21574
+  },
+  "publicRuntime": {
+    "health": {
+      "ok": true,
+      "service": "ynx-code-gateway",
+      "version": "0.2.0-testnet-preview-595084945e63-candidate",
+      "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+      "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+      "active": 0,
+      "queued": 0,
+      "sandbox": "linux-bubblewrap-prlimit",
+      "sandboxReady": true
+    },
+    "uiAssets": {
+      "filesVerified": 203,
+      "evidence": "apps/developer/evidence/public/59508494-public-assets-20260906.json",
+      "sha256": "667a1b326ae7fa3421b2fbdbb1c91ccf607b831d0cfc15f0902bc0e082f3d7cc"
+    }
+  },
+  "binding": {
+    "independentCurrentRuntimeReadback": true,
+    "htmlAssetReadback": true,
+    "browserVisible": false,
+    "walletProviderLifecycle": false,
+    "fullPlatformVerified": false
+  },
+  "rollback": {
+    "service": "ynx-code-candidate.service",
+    "port": 18113,
+    "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "preserveLatestState": true,
+    "stoppedStateBackupVerified": true,
+    "releaseScriptSha256": "4ec9d3b1cbc609d208f96ccb3e6c4a8ec30d0c23d9c54981f0734d3bf53ffdeb"
+  },
+  "preservedDependencies": {
+    "legacy18111": "AI upstream, not the rollback service",
+    "walletGateway": "unchanged"
+  },
+  "walletVendorTree": "46edc44187b76a694c0bf3dccb62dc435ad68b76",
+  "scope": "Preserves incompatible browser workspace bytes before Workbench mounts. Public source and 203 assets verified; current browser/native recovery UI and Wallet installed lifecycle remain unverified.",
+  "deploymentEvidenceAudit": "developer-web-publication-59508494-r3.json"
+}

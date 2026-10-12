@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "1400d10b4255022ece987779100073118ba8186f",
+  "sourceTree": "f2f123bb4c763aa29c7f2821ef099ff53bf543cf",
+  "compilerReadiness": {
+    "available": false,
+    "pinned": false,
+    "expectedVersion": "0.8.24",
+    "expectedArtifactSha256": "fb59b825b7d57f9de89cd9de2415b12aab1fcc7eb2573fd2bf5c9b969eacf4d9",
+    "installedVersion": "0.8.36",
+    "artifactSha256": "ccb677d54dfab2a9b30084eec6bb396c93eb86d58b42cc00267fd0f54f391f32",
+    "code": "compiler_pin_mismatch",
+    "error": "The installed Solidity compiler does not match the reviewed 0.8.24 artifact."
+  },
+  "checks": {
+    "realWorker": true,
+    "realLoopbackHTTP": true,
+    "tests": 2,
+    "passed": 2,
+    "exit": 0,
+    "syntaxChecksExit": 0,
+    "testChildStopped": true
+  },
+  "evidence": "apps/developer/.ynx-developer-candidates/compiler-pin-evidence-20261004",
+  "evidenceIndexSha256": "5be581ded7700746944e84b99fab0ad9c895b17d2112022bbf725a5903c01201",
+  "remaining": [
+    "Reviewed 0.8.24 compiler input must be recovered and checked; no network/download or dependency mutation performed",
+    "Successful pinned 0.8.24 compile remains unverified in this current environment",
+    "Native workbench compile and Wallet deployment review wiring remains incomplete",
+    "No formal/public compiler activation or install acceptance claimed"
+  ],
+  "scope": "Owned standalone compiler source only. Existing 0.3.12 native and frozen public site distributions remain unchanged."
+}

@@ -1,0 +1,116 @@
+{
+  "status": "SOURCE_ONLY",
+  "parentCommit": "8b03b1950de34e27366612f9ad31ef3d91aff22f",
+  "qaRoot": "/tmp/ynx-ide-agent-identity-20261003-VZxjde",
+  "identity": {
+    "authoritative": "Developer Wallet verifier",
+    "noGuestFallback": true,
+    "displayedActorBinding": true,
+    "postBodyAndAsyncRevalidation": true,
+    "private401RetiresUI": true,
+    "nativeVolumeSnapshotRejected": true,
+    "writerLeaseRetained": true
+  },
+  "hosted": {
+    "roles": [
+      "Planner",
+      "Coder",
+      "Reviewer",
+      "validation retries"
+    ],
+    "serverOwnedConversation": true,
+    "fullWirePromptUTF8Limit": 8000,
+    "exactExistingGatewaySchema": true,
+    "completedSavedAfterRevalidation": true,
+    "requestBodiesEncrypted": true,
+    "inheritedRunAndMemoryEncryptionClaim": false,
+    "historySent": false,
+    "realProvider": false
+  },
+  "execution": {
+    "queuedTaskCancellation": true,
+    "runningSandboxCancellation": true,
+    "gitCommandAdmission": true,
+    "gitLockHeldUntilAllChildrenClose": true,
+    "completedCommitRollback": false,
+    "completedCommitRequiresAuthenticatedReread": true
+  },
+  "tests": {
+    "services": {
+      "pass": 166,
+      "fail": 0,
+      "skip": 0
+    },
+    "gateway": {
+      "pass": 16,
+      "fail": 0,
+      "skip": 0
+    },
+    "selectedInheritedRuntime": {
+      "pass": 4,
+      "fail": 0,
+      "skip": 0
+    },
+    "browser": {
+      "pass": 9,
+      "errors": [],
+      "checks": [
+        "Wallet-owned catalog replaces guest props; project switch clears run/draft/key; native-volume does not read old snapshot",
+        "A to B to A retires the original pending model result",
+        "Existing plan/context/model/write approvals preserved; late apply does not mutate selected project or guest parent",
+        "Account/generation change retires old plan and delayed memory even when projectId is unchanged",
+        "Current 401 retires entire private panel without guest rebootstrap",
+        "Empty Wallet catalog guides explicit existing project import and never falls back to guest AI",
+        "Current apply preserves the run across Wallet refresh and continues owned-path test and Git one-use approvals",
+        "Cookie identity changes before click: request remains bound to displayed identity and 401 removes all private UI",
+        "Catalog refresh immediately disables all private operations and re-enables preserved same-identity draft only after success"
+      ],
+      "actualChromium": true,
+      "actualReact": true,
+      "controlledResponses": true,
+      "screenshot": "/tmp/ynx-ide-agent-identity-browser-20261003.png"
+    },
+    "build": {
+      "exitCode": 0,
+      "scope": "frontend/protocol only",
+      "existingLargeChunkWarning": true,
+      "noInstall": true,
+      "localBuildCache": true
+    }
+  },
+  "receipts": {
+    "services": {
+      "path": "/tmp/ynx-ide-agent-identity-final-services-20261003.log",
+      "sha256": "317121ebde43b5fa9a173a5a8bf9af638aa1635c113a7b1e0c188dd827d59eeb"
+    },
+    "gateway": {
+      "path": "/tmp/ynx-ide-agent-identity-gateway-20261003.log",
+      "sha256": "25ac39b2263cdd7a308b65b3f289daa2dcda0b9cfebc17bab8edec23eb72f72c"
+    },
+    "runtime": {
+      "path": "/tmp/ynx-ide-agent-identity-runtime-regression-20261003.log",
+      "sha256": "2affb77e27413c8c36869d45ce47e0ee63ec474698601c6b168b965111d7ff8c"
+    },
+    "build": {
+      "path": "/tmp/ynx-ide-agent-identity-build-20261003.log",
+      "sha256": "f734d89874b1bf21e65621f619f93caa7995d82c84803d6ea2b6898f4ba7b513"
+    },
+    "browser": {
+      "path": "/tmp/ynx-ide-agent-identity-browser-20261003.json",
+      "sha256": "16b5b2d8afdd9d38960e53454e95e65e04e68f7d9ca1b546795b0c7bccddf384"
+    }
+  },
+  "limitations": {
+    "actualProviderGeneration": false,
+    "sharedBusinessProofIntegrated": false,
+    "publicIntegrated": false,
+    "fullWorkbenchJourney": "NOT_RUN",
+    "finalInstalledProduct": false,
+    "releaseComplete": false
+  },
+  "coordinator": {
+    "threadId": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+    "lastCursor": "b2676567-318b-4006-b3eb-8ce4f9eb987e:14",
+    "state": "Active; shared publication and user readback incomplete. No approved full-workbench execution entry."
+  }
+}

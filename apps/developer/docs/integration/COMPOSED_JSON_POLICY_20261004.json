@@ -1,0 +1,104 @@
+{
+  "schema": "ynx-composed-json-effective-policy/v1",
+  "status": "CONTROLLED_EFFECTIVE_POLICY_VERIFIED_UI_GATE_STILL_OPEN",
+  "productSourceCommit": "9a12f1ee6a78d7e19d180e04c87542a2b4ac26cc",
+  "productSourceTree": "d34cf6c3805f7140de723c79f1d61379d00fa55a",
+  "sourceFilesSha256": {
+    "runtime/theia/scripts/stage-json-policy-qa.mjs": "f43146a31e629e4184616e4458f028b836c9118bfb4cfd474b1f554e2a7a77a0",
+    "runtime/theia/scripts/json-policy.browser.mjs": "7009f33f3f7853cb6874d09f4acd23dac0f8d9669d2ce625636a33815d9b3b50"
+  },
+  "productCandidate": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-json-20261004-mac-arm64",
+  "productPin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "d4fcbfeffb7b6332614744dec5ca80ba20632a5d3695cbe289ab3ccb39fa5462",
+    "treeSha256": "e3d4d80ab18e1f0dc7f43f5e8a3777708cdb5aa1f00f6c8940f836ed4c69681a",
+    "manifestSha256": "78c6b24ecf10f6238658afebbba60d29f77476820a2efbf89862915f63c4fdef"
+  },
+  "qaPlugins": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/json-policy-qa-20261004/plugins",
+  "qaInput": {
+    "base": "/Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX Chain/apps/developer/.ynx-developer-candidates/ynx-composed-json-20261004-mac-arm64",
+    "originalPluginTree": "1584e820f020f44ef1995917c55f246c72bd818a3d50101e2365274a529870f5",
+    "qaPluginTree": "7e9480c6e6234a04df93749803ba13a0e8d22f48f6eece90b0d82e761911b332",
+    "scope": "Test-only probe of actual extension APIs. Excluded from product packaging and formal admission."
+  },
+  "actualStockAPI": {
+    "version": "10.0.0",
+    "active": true,
+    "schemaDownload": false,
+    "inspection": {
+      "key": "schemaDownload.enable",
+      "defaultValue": false
+    },
+    "diagnostics": [
+      {
+        "range": [
+          {
+            "line": 0,
+            "character": 0
+          },
+          {
+            "line": 0,
+            "character": 1
+          }
+        ],
+        "message": "Unable to load schema from 'https://json.schemastore.org/package': Downloading schemas is disabled through setting 'json.schemaDownload.enable'.",
+        "severity": 1,
+        "hasDiagnosticCode": false,
+        "code": 65540,
+        "source": "json",
+        "relatedInformation": [
+          {
+            "location": {
+              "uri": {
+                "$mid": 1,
+                "path": "/package",
+                "scheme": "https",
+                "authority": "json.schemastore.org"
+              },
+              "range": [
+                {
+                  "line": 0,
+                  "character": 0
+                },
+                {
+                  "line": 0,
+                  "character": 0
+                }
+              ]
+            },
+            "message": "Unable to load schema from 'https://json.schemastore.org/package': Downloading schemas is disabled through setting 'json.schemaDownload.enable'."
+          }
+        ]
+      }
+    ]
+  },
+  "runnerExitCode": 0,
+  "pageErrors": [],
+  "consoleErrors": [
+    "2026-10-04T04:59:12.453Z plugin-host ERROR (node:11859) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+  ],
+  "evidence": "apps/developer/.ynx-developer-candidates/json-policy-evidence-20261004",
+  "evidenceIndexSha256": "4371f2bab9c5c91048fb80bb8634e9b8fe084ca116bb466f7c35b8dadbf78185",
+  "interpretation": [
+    "The test-only extension explicitly activates the unchanged installed JSON language extension and reads the real VS Code configuration API. Its effective value and defaultValue are false.",
+    "The original json.validate command requests the remote schema through the original language server. It returns code 65540 and the original disabled-download reason, proving the control was enforced before HTTP content was fetched.",
+    "This upgrades the prior effective-policy NOT_VERIFIED finding for this controlled Mac candidate. It does not change the prior full JSON browser runner exit 1 or prove automatic diagnostic/status UI.",
+    "The first probe completed and wrote a matching raw report, but its notification locator matched two nodes. That red receipt is retained; the corrected visible notification locator passed on a separate fresh QA profile.",
+    "QA plugin bytes are additional test instrumentation only, absent from the pinned product candidate. No product runtime payload, original component bytes, network policy, allowed roots or binding contract changed."
+  ],
+  "cleanup": {
+    "profiles": [
+      "RnbEgN",
+      "yYS0qd"
+    ],
+    "remainingOwnedPids": []
+  },
+  "remaining": [
+    "Automatic document diagnostic delivery and language-status UI for blocked schema downloads",
+    "Selected-surround tokenizer edge retained in the preceding checkpoint",
+    "All original mature-workbench, canonical identity, real Chain/Wallet/AI, native debugging and cross-platform formal-release gates"
+  ],
+  "scope": "Controlled synthetic Mac QA only. Unchanged OS sandbox and denied network/package-egress/LXD branches; no new downloads, credentials, user profiles, installation, admission or formal release."
+}

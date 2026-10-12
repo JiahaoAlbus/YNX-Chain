@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "date": "2026-10-03",
+  "baselineSource": "452f3bbc6dc8af1bbbdee4bc67cd8a5f29be8cb4",
+  "platform": "darwin-arm64",
+  "existingTools": {
+    "gopls": {
+      "path": "/Users/huangjiahao/go/bin/gopls",
+      "version": "v0.22.0",
+      "sha256": "60be51a762660015bbe0a589c358f005ae644b9cf0fddb204a1ff4f54a0988c8",
+      "bundled": false
+    },
+    "jdk": {
+      "path": "/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home",
+      "version": "25.0.1",
+      "bundled": false
+    }
+  },
+  "before": {
+    "goTests": 2,
+    "failed": 2,
+    "code": "language_server_exited"
+  },
+  "after": {
+    "lsp": {
+      "tests": 12,
+      "pass": 10,
+      "fail": 0,
+      "skip": 2,
+      "skipped": [
+        "rust-analyzer",
+        "jdtls"
+      ],
+      "logSha256": "44a552176b59aec13b2307932debc8ae94a974d8b32062dedfe651f2f4bd6beb"
+    },
+    "javaRuntime": {
+      "tests": 1,
+      "pass": 1,
+      "fail": 0,
+      "skip": 0,
+      "logSha256": "ce32bd0209ea8d90a374c0ac55603f7b3152a7282c456d07f28967cdcfbaa55d"
+    }
+  },
+  "sandbox": {
+    "network": false,
+    "goToolBinding": "resolved executable file only",
+    "home": "request workspace",
+    "moduleCache": "request workspace"
+  },
+  "notVerified": [
+    "full OpenVSCode native journey",
+    "Finder discovery of host tools",
+    "new installed package",
+    "canonical Wallet",
+    "real AI",
+    "formal publication",
+    "multi-user capacity"
+  ],
+  "hostReceipt": {
+    "platform": "Linux x86_64",
+    "adapterDirectoryExists": false,
+    "executorPresence": "UNKNOWN",
+    "operatorMutations": false
+  }
+}

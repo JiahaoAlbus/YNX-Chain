@@ -1,0 +1,208 @@
+{
+  "schema": "ynx-composed-json-policy-status/v1",
+  "status": "CONTROLLED_WORKBENCH_CHECKS_PASSED_FORMAL_RELEASE_OPEN",
+  "baselineCommit": "5eb3e517cc0923d0c937f2c0cc449751cbf7e4b5",
+  "sourceFilesSha256": {
+    "runtime/theia/.gitignore": "7cbcc70bcef4c76092c85b3a9068cdd041ffff09134ea72d02e19612dd8039a5",
+    "runtime/theia/package.json": "b66f42efd3d56ac8b6b690ff99fcc8035fa30c7497b13ccd9331366c4603a9d4",
+    "runtime/theia/package-lock.json": "2290284d09620a3bcc47ef16f4f477721ab726b6c00c085436308f5a7434dcc8",
+    "runtime/theia/scripts/package-runtime.mjs": "f4c0563515d6b5e72d7d526cdbd70f67bde7a8606ce151c09f37c68cc99b0f2f",
+    "runtime/theia/scripts/sync-owned-workbench.mjs": "7540157beddff17209681ac25547a3cd7a8cbe729cfc35d028f0b2053335d830",
+    "runtime/theia/scripts/json-language.browser.mjs": "1480db73f179138a1e42891c42a75d89eea2b3fda6d6772f0593e31b2b2fbf6b",
+    "runtime/theia/scripts/stage-json-policy-qa.mjs": "21093dc42b88795c20e7ebedd793e508a9b67177e15a3a214a6ac30b9ae715f3",
+    "runtime/ynx-workbench/lib/frontend-module.js": "fd9d1bba1222cca9af46eda3052e744f628884d78ff37959eab7571335c6125a",
+    "runtime/ynx-workbench/lib/json-schema-policy-status.js": "eeb10d2786b6239074c3b2ba8e2386378b687e58f2c74db3337a981a5429c754",
+    "runtime/ynx-workbench/package.json": "48ba11953ecc1e3756af94aef2265b8d371ccd6976cc266b4077c431efa044d6"
+  },
+  "workbenchVersion": "0.3.9",
+  "runtimeCandidate": "apps/developer/.ynx-developer-candidates/ynx-composed-json-status-di-fixed-20261004-mac-arm64",
+  "pin": {
+    "kind": "ynx-theia",
+    "version": "1.76.0",
+    "architecture": "darwin-arm64",
+    "lockSha256": "2290284d09620a3bcc47ef16f4f477721ab726b6c00c085436308f5a7434dcc8",
+    "treeSha256": "9cdb0cad3867243b25de1fec3380620b1ff11533d8c0e073510e592bef0333d4",
+    "manifestSha256": "85fbec6e9be3f790ca225c2a0cfeb758486dc73808c4fb7c8f8ef805a225e548"
+  },
+  "ownedBuildReceipt": {
+    "workbenchTreeSha256": "f9b507897511492b2fe7e98d75adf6448251625af6e0993a6009591485ca1613",
+    "compiledTreeSha256": "de7b872df8c3abae519276f5a8d93f24ae6d1aea5af34741f7784ebe33a772a7",
+    "packageSha256": "b66f42efd3d56ac8b6b690ff99fcc8035fa30c7497b13ccd9331366c4603a9d4",
+    "lockSha256": "2290284d09620a3bcc47ef16f4f477721ab726b6c00c085436308f5a7434dcc8"
+  },
+  "changes": [
+    "A YNX status-bar contribution reads the actual resource-specific preference and shows Local schemas for JSON/JSONC when remote schema downloads are disabled. The tooltip explains local project and bundled schemas. Editor/language/preference changes refresh it; shutdown disposes listeners.",
+    "Offline build synchronizes only the regular canonical generated @ynx/developer-workbench cache from the owned source, checks exact tree equality and seals source/cache, compiled-library, package and lock hashes after a successful compiler command.",
+    "Packaging refuses stale or unsealed source/cache/compiled inputs before creating a destination. A real modified-cache probe was refused and the generated cache was restored byte-exact. No installer or dependency lifecycle/download was used."
+  ],
+  "verification": {
+    "json": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-x10gm6",
+      "runnerSha256": "1480db73f179138a1e42891c42a75d89eea2b3fda6d6772f0593e31b2b2fbf6b",
+      "checks": [
+        "Actual JSON mode and stock language server complete a property from an unopened local schema, absent from the active document.",
+        "The contributed JSON Sort Document command activates the existing extension and uses its server to sort real saved properties.",
+        "Real JSON formatter expands the saved object; syntax tokens have distinct textmate colors and the disk object remains exact.",
+        "Normal character-by-character JSON typing from an empty document overtypes automatically paired quotes/braces and saves the exact intended bytes.",
+        "Stock JSON language diagnostics reject a schema-invalid enum even though the document is syntactically valid JSON.",
+        "The own profile shortcut file uses JSONC mode and completes command from the local YNX Tools schema, without a remote schema.",
+        "YNX policy status displays the effective local-schema-only configuration in the real JSON editor; the separate stock API probe proves the policy itself. Native extension automatic language-status delivery remains separate.",
+        "Switching to a real JavaScript editor removes the JSON policy status; returning to JSON restores it."
+      ],
+      "exitCode": 0,
+      "pageErrors": [],
+      "consoleErrors": [
+        "2026-10-04T05:24:05.528Z plugin-host ERROR (node:41902) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+      ]
+    },
+    "core": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-YFIDps",
+      "checks": [
+        "actual TypeScript VS Code extension resolves wallet properties from an unopened imported file, beyond words present in the active editor",
+        "real keyboard input pairs brackets and quotes and surrounds selected text, verified by saving each result to disk",
+        "actual editor save writes the selected project file, confirmed on disk",
+        "the inherited YNX logo and product name render in the actual framework workbench",
+        "the inherited YNX Klein Light theme loads through the actual extension mechanism and applies the original blue workbench color",
+        "closing and reopening the actual file restores saved disk content",
+        "real dirty-close Cancel preserves the unsaved draft and saved disk file; Save closes and reopens the actual saved draft",
+        "real Quick Open and editor preserve a nested Unicode filename, arbitrary text suffix and saved Unicode contents",
+        "actual JS language extension navigates from call to definition, renames the symbol and reference, formats and saves the real file",
+        "actual JavaScript language extension reports a syntax diagnostic in the real editor",
+        "actual integrated PTY executes installed Node in this project, confirmed by its disk output",
+        "official VS Code Git extension stages real project files through the command palette; installed Git commits the actual index through the PTY, verified from repository output",
+        "OS-enforced terminal boundary refuses another synthetic project read/write and outbound TCP, with real permission errors and no write side effect",
+        "official JavaScript DAP reaches a real paused session, steps over and exposes the real marker value in the debugger UI",
+        "continuing the actual debug session executes the target program, confirmed by its disk output",
+        "inherited YNX Tools activates in the real extension host and refuses a Chain starter without a bound YNX project session, preserving files"
+      ],
+      "exitCode": 0,
+      "pageErrors": []
+    },
+    "keybindings": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-K3wKai",
+      "checks": [
+        "Normal JSON shortcuts command creates the own profile file; saved JSONC comments/trailing commas hot-apply F6 with editorTextFocus and invoke the real debug selection command.",
+        "A saved VS Code style cmd+k cmd+y chord opens real Quick Open.",
+        "Negative command removes the default F2 rename binding while the custom F7 binding opens the actual rename editor.",
+        "Invalid saved JSON reports a warning, preserves its bytes for correction, and keeps the last working custom shortcuts active.",
+        "Valid shortcuts persist in the own profile and activate again after real Reload Window."
+      ],
+      "exitCode": 0,
+      "pageErrors": []
+    },
+    "actualStockAPI": {
+      "qa": "/private/tmp/ynx-theia-extension-qa-zHLXZW",
+      "report": {
+        "version": "10.0.0",
+        "active": true,
+        "schemaDownload": false,
+        "inspection": {
+          "key": "schemaDownload.enable",
+          "defaultValue": false
+        },
+        "validation": true,
+        "validationInspection": {
+          "key": "validate.enable",
+          "defaultValue": true
+        },
+        "document": {
+          "uri": "file:///private/tmp/ynx-theia-extension-qa-zHLXZW/project/json-auto-diagnostic-probe.json",
+          "languageId": "json",
+          "version": 1
+        },
+        "automaticDiagnostics": [],
+        "diagnostics": [
+          {
+            "range": [
+              {
+                "line": 0,
+                "character": 0
+              },
+              {
+                "line": 0,
+                "character": 1
+              }
+            ],
+            "message": "Unable to load schema from 'https://json.schemastore.org/package': Downloading schemas is disabled through setting 'json.schemaDownload.enable'.",
+            "severity": 1,
+            "hasDiagnosticCode": false,
+            "code": 65540,
+            "source": "json",
+            "relatedInformation": [
+              {
+                "location": {
+                  "uri": {
+                    "$mid": 1,
+                    "path": "/package",
+                    "scheme": "https",
+                    "authority": "json.schemastore.org"
+                  },
+                  "range": [
+                    {
+                      "line": 0,
+                      "character": 0
+                    },
+                    {
+                      "line": 0,
+                      "character": 0
+                    }
+                  ]
+                },
+                "message": "Unable to load schema from 'https://json.schemastore.org/package': Downloading schemas is disabled through setting 'json.schemaDownload.enable'."
+              }
+            ]
+          }
+        ]
+      },
+      "exitCode": 0,
+      "pageErrors": [],
+      "testOnlyPluginExcludedFromProduct": true
+    },
+    "staleCachePackaging": {
+      "exitCode": 1,
+      "stderr": "file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/runtime/theia/scripts/package-runtime.mjs:21\n  throw Error('Owned source/cache/build receipt differs. Run the owned offline build before packaging.');\n        ^\n\nError: Owned source/cache/build receipt differs. Run the owned offline build before packaging.\n    at file:///Users/huangjiahao/.codex/worktrees/ide-quota-command-diagnostics/YNX%20Chain/apps/developer/runtime/theia/scripts/package-runtime.mjs:21:9\n\nNode.js v26.7.0\n",
+      "destinationCreated": false,
+      "cacheRestoredByteExact": true
+    },
+    "actualProductBrowserChecks": 29
+  },
+  "retainedFailures": [
+    "The first status candidate compiled the stale npm file-dependency copy and had no new status module. Candidate and failed browser receipt retained, never selected for release.",
+    "The first synchronized candidate failed frontend construction because PreferenceService was imported from the browser preferences index. It is corrected to the common preferences API; NULL-argument receipts retained.",
+    "An early corrected-candidate completion observation selected a hidden suggestion. A later file-switch observation raced focus/Quick Open. The final runner waits for visible items and panel closure and focuses the existing editor before invoking Quick Open; all 8 cases then passed on a fresh profile.",
+    "Selected-surround token-length errors from the earlier JSON checkpoint remain unverified; no broad renderer regression closure is claimed."
+  ],
+  "boundaries": [
+    "The YNX effective-policy indicator is our workbench UI. It does not claim that the stock extension LanguageStatusItem or automatic remote-schema diagnostic delivery has been repaired. Those remain a compatibility gate.",
+    "Prior browser failures are preserved; the current success uses its exact pinned candidate and final runner. Earlier C/C++ and cold-cycle suites are not relabeled as current tests.",
+    "All original canonical five-binding, project/Host/AI/Wallet, denied network/package-egress/LXD, native/debugger and formal cross-platform release constraints remain."
+  ],
+  "evidence": "apps/developer/.ynx-developer-candidates/json-status-evidence-20261004",
+  "evidenceIndexSha256": "eb8710de8659ca82182965616ecacaca35241c86d9acf5efde70fcfa578e30f5",
+  "cleanup": {
+    "profiles": [
+      "Yl9HV0",
+      "LGdZG6",
+      "kcZmH5",
+      "jQXUIt",
+      "riwr9S",
+      "UMLjR0",
+      "YFIDps",
+      "32NdyQ",
+      "K3wKai",
+      "ZF7B3l",
+      "zHLXZW",
+      "x10gm6"
+    ],
+    "remainingOwnedPids": []
+  },
+  "remaining": [
+    "Native stock JSON automatic diagnostic/language-status compatibility",
+    "Selected-surround renderer edge",
+    "Graphical shortcuts and broader extension compatibility",
+    "Canonical user identity and actual Chain/Wallet/AI user journeys",
+    "C++ LLDB launch",
+    "Native packaging for this exact source, Windows/Linux/device checks, signing/notarization, formal owner release and normal-user retest"
+  ],
+  "scope": "Controlled Mac synthetic workspaces only. Product source work is restricted to apps/developer. Existing user profiles, accounts, keys and earlier candidates preserved."
+}
