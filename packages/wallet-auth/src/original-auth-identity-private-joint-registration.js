@@ -1,11 +1,12 @@
 import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 import {assertOriginalAdmissionVault,captureOriginalServiceRoleLocalCurrentSource} from '../../../apps/wallet-desktop/src/password-wallet-vault.mjs';
 
 // Fixed packaged implementing module. No path/provider/callback option and no
 // public setter. These exports are an implementation dependency, NOT existing
 // Native qualification proved by JavaScript or by a .node type tag.
 const requireOriginal=createRequire(import.meta.url);
-const loadOriginalNative=()=>requireOriginal(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url).pathname);
+const loadOriginalNative=()=>requireOriginal(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
 const startups=new WeakMap(),owned=new WeakMap(),debt=new Set();
 const failure=code=>Object.assign(new Error(code),{code});
 const methods=['acquireOriginalAdministrationProfile','readOriginalAdministrationProfile','assertOriginalAdministrationProfileCurrent','retireOriginalAdministrationProfile','joinOriginalAdministrationProfile','closeOriginalAdministrationProfile','reserveOriginalJointRegistration','commitOriginalJointRegistration','readOriginalJointRegistration','assertOriginalJointCurrent','assertOriginalJointExecutorChild','assertOriginalJointSuccession','retireOriginalJoint','joinOriginalJoint','closeOriginalJoint'];

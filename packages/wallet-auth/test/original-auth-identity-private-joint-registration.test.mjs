@@ -2,6 +2,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+test('R15 actual joint startup and both fixed loaders decode paths without Native calls',()=>{
+ const joint=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
+ const dispatch=readFileSync(new URL('../src/original-wallet-service-private-dispatch.js',import.meta.url),'utf8').match(/function loadFixedOriginalNativeServiceBinding\(\)\{[^]*?\n\}/)[0];
+ const names=JSON.parse(joint.match(/const methods=(\[[^;]+\]);/)[1].replaceAll("'",'"'));
+ const extra=['captureOriginalNativePrivateServiceBorrow','assertOriginalNativePrivateServiceCurrent','assertOriginalNativePrivateServiceAdmission','assertOriginalNativePrivateServiceTerminal','retireOriginalNativePrivateService','joinOriginalNativePrivateService','closeOriginalNativePrivateService'];let calls=0,cases=0;
+ function setup(directory,missing=null,loadFail=false){
+  const base='file:///PUBLIC/'+directory+'/packages/wallet-auth/src/',vault={},targets=[];
+  const native=Object.fromEntries([...names,...extra].map(k=>[k,()=>{++calls;throw Error('forbidden native call');}]));if(missing)native[missing]=null;
+  const c=vm.createContext({URL,fileURLToPath,assertOriginalAdmissionVault:v=>assert.equal(v,vault),createRequire:value=>target=>{const expected=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',base+'original-auth-identity-private-joint-registration.js'));targets.push(target);if(loadFail||target!==expected)throw Error('TEST_ONLY_MODULE_REFUSED');return native;}});
+  vm.runInContext(joint.replace(/^import .*;$/gm,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify(base+'original-auth-identity-private-joint-registration.js'))+';this.initialize=initializeOriginalAuthIdentityPrivateStartup;this.status=originalAuthIdentityStartupStatus;',c);
+  vm.runInContext(dispatch.replaceAll('import.meta.url',JSON.stringify(base+'original-wallet-service-private-dispatch.js'))+';this.dispatchBinding=loadFixedOriginalNativeServiceBinding;',c);
+  return {c,vault,targets};
+ }
+ for(const directory of ['YNXChain','YNX%20Chain','YNX%25Chain','YNX%23Chain','YNX%E9%92%B1%E5%8C%85']){const f=setup(directory);f.c.initialize(f.vault);assert.equal(f.c.status(f.vault).implementingModuleAvailable,true);assert.equal(f.c.status(f.vault).nativeQualified,false);assert.equal(f.c.status(f.vault).resourceSupplied,false);assert.ok(f.c.dispatchBinding());assert.equal(f.targets.length,2);assert.throws(()=>f.c.initialize(f.vault),/STARTUP_ALREADY_SELECTED/);assert.equal(f.targets.length,2);cases+=2;}
+ for(const name of names){const f=setup('YNX%20Chain',name);assert.throws(()=>f.c.initialize(f.vault),/NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED/);assert.equal(f.c.status(f.vault).implementingModuleAvailable,false);assert.throws(()=>f.c.initialize(f.vault),/STARTUP_ALREADY_SELECTED/);assert.equal(f.targets.length,1);++cases;}
+ const fail=setup('YNX%20Chain',null,true);assert.throws(()=>fail.c.initialize(fail.vault),/NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED/);assert.equal(fail.c.status(fail.vault).implementingModuleAvailable,false);++cases;
+ assert.equal(calls,0);console.log('R15_TWO_ACTUAL_LOADERS_AND_STARTUP_CASES='+cases+' REAL_MODULE_LOADS=0 NATIVE_METHOD_CALLS=0');
+});
 // PUBLIC lexical machinery controls. No real .node module, root/profile,
 // protected file, crypto or Native authority is loaded or supplied.
 const text=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');

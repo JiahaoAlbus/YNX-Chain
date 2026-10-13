@@ -72,9 +72,11 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
  const close=()=>{
   if(closing)return closing;retired=true;
   closing=Promise.resolve().then(async()=>{
-   if(originalNativeServiceBinding.retire(original)!==undefined)fail('ORIGINAL_PRIVATE_CLEANUP_INCOMPLETE');
+   let failed=false,cause;const cleanup=async fn=>{try{if(await fn()!==undefined)fail('ORIGINAL_PRIVATE_CLEANUP_INCOMPLETE');}catch(error){if(!failed){failed=true;cause=error;}}};
+   await cleanup(()=>originalNativeServiceBinding.retire(original));
    while(entered.size)await Promise.allSettled([...entered]);
-   if(await originalNativeServiceBinding.join(original)!==undefined||await originalNativeServiceBinding.close(original)!==undefined)fail('ORIGINAL_PRIVATE_CLEANUP_INCOMPLETE');
+   for(const row of records.values())if(row.hostOwner)await cleanup(()=>ProductSessionGatewayNodeHost.prototype.closeOriginalWalletServicePrivateTransaction.call(host,row.hostOwner));
+   await cleanup(()=>originalNativeServiceBinding.join(original));await cleanup(()=>originalNativeServiceBinding.close(original));if(failed)throw cause;
    state.cleanupComplete=true;pendingCustody.delete(state);return undefined;
   }).catch(cause=>{cleanupCause=cause;cleanupFailed=true;state.cleanupFailed=true;state.cleanupCause=cause;throw cause;});return closing;
  };
@@ -85,7 +87,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    const input=decodeOriginalWalletServicePrivateRequest(raw);current(input.operation);
    if([...records.values()].some(row=>row.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
-   const row={inputDigest:hash(raw),result:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
+   const row={inputDigest:hash(raw),originalRaw:raw,result:null,hostOwner:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
    const promise=Promise.resolve().then(()=>{
     try{
     current(input.operation);
@@ -95,18 +97,29 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     // Selected Native source enforces account/run/executor/workspace association
     // and the original service admission; no service proof from self DTO fields.
     if(originalNativeServiceBinding.assertAdmission(original,input)!==undefined)fail('ORIGINAL_PRIVATE_ADMISSION_INVALID');
+    row.hostOwner=ProductSessionGatewayNodeHost.prototype.reserveOriginalWalletServicePrivateTransaction.call(host,input,row,original.association);
     const observation=runtime.capture(records.size);
     runtime.assertObservationCurrent(observation);current(input.operation);
     row.unknown=true;
     if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
-    const result=ProductSessionGatewayNodeHost.prototype.handleOriginalWalletServicePrivateRequest.call(host,input,row,original.association);
+    const result=ProductSessionGatewayNodeHost.prototype.executeOriginalWalletServicePrivateTransaction.call(host,row.hostOwner);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
+    ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,result);
     row.fulfilled=true;return result;
-    }catch(cause){remember(cause);row.localFailurePresent=true;row.localCause=cause;row.unknown=true;throw cause;}
+    }catch(cause){remember(cause);if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);throw cause;}
    });
    entered.add(promise);void promise.then(()=>entered.delete(promise),()=>entered.delete(promise));return promise;
   },
-  acknowledge(operation,phase,requestId,resultDigest){current(operation);const row=records.get(operation+':'+phase+':'+requestId);if(!row?.result||!row.fulfilled||row.localFailurePresent||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);row.terminal=true;row.unknown=false;return undefined;},
+  acknowledge(operation,phase,requestId,resultDigest){
+   const row=records.get(operation+':'+phase+':'+requestId);
+   try{current(operation);if(!row?.result||!row.hostOwner||!row.fulfilled||row.localFailurePresent||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');
+    const input=decodeOriginalWalletServicePrivateRequest(row.originalRaw);
+    ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,row.result);
+    if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);
+    ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,row.result);
+    row.terminal=true;row.unknown=false;return undefined;
+   }catch(cause){remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;}
+  },
   selectOutcome(operation,phase,requestId){const row=records.get(operation+':'+phase+':'+requestId);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');return Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});},
   retire(){retired=true;return undefined;},
   join:async()=>{while(entered.size)await Promise.allSettled([...entered]);return undefined;},close,
