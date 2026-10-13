@@ -118,8 +118,11 @@ async function lifecycle(fn) {
     await fs.writeFile(file, 'console.log(42)');
     const uri = p => ({ scheme: 'file', fsPath: p });
     const document = { uri: uri(file), languageId: 'typescript', version: 1, isDirty: false };
-    const folder = { uri: uri(root) }, handlers = {}, calls = [], subscriptions = [];
-    const event = key => handler => { handlers[key] = handler; return { dispose() {} }; };
+    const folder = { uri: uri(root) }, handlers = {}, calls = [], subscriptions = [], faults = {};
+    const event = key => handler => { handlers[key] = handler; return { dispose() { delete handlers[key]; } }; };
+    const emit = (key, value) => handlers[key]?.(value);
+    // TEST_ONLY: actual Theia stopPlugin disposes subscriptions FIFO without awaiting them.
+    const dispose = () => { for (const subscription of subscriptions) subscription.dispose(); };
     const api = { window: { activeTextEditor: { document } }, workspace: { isTrusted: true, getWorkspaceFolder: () => folder, saveAll: async () => true },
       extensions: { getExtension: () => ({ activate: async () => {} }) },
       ProcessExecution: class { constructor(command, args) { Object.assign(this, { command, args }); } },
@@ -134,11 +137,11 @@ async function lifecycle(fn) {
     };
     const module = { exports: {} }, filename = require.resolve('./ts-current-file.cjs');
     vm.runInNewContext(await fs.readFile(filename, 'utf8'), { module, process, __dirname: path.dirname(filename), require: id => id === 'node:fs/promises'
-      ? { ...fs, access: name => name.includes('/runtime/typescript/') ? Promise.resolve() : fs.access(name) } : require(id) });
+      ? { ...fs, rm: (...args) => faults.rm ? faults.rm(...args) : fs.rm(...args), access: name => name.includes('/runtime/typescript/') ? Promise.resolve() : fs.access(name) } : require(id) });
     const runner = module.exports.createTsCurrentFile(api, { subscriptions }, { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: root });
     const waitTask = async () => { for (let i = 0; i < 100 && !calls.length; i++) await new Promise(resolve => setTimeout(resolve, 10)); assert.ok(calls.length); return calls[0]; };
-    try { await fn({ runner, api, handlers, calls, document, waitTask }); }
-    finally { subscriptions.at(-1).dispose(); }
+    try { await fn({ runner, api, handlers, calls, document, waitTask, emit, dispose, faults }); }
+    finally { dispose(); }
   });
 }
 test('compile exit zero launches one matching mapped debugger and normal end cleans its artifacts', () => lifecycle(async f => {
@@ -184,4 +187,54 @@ test('cancellation during debugger startup stops only the owned late session', (
   assert.ok(ready); f.runner.cancel(); ready(true);
   await assert.rejects(running, /cancelled/); await assert.rejects(fs.access(output));
   assert.equal(f.calls.length, 2, 'one build and one owned launch, no unrelated execution');
+}));
+
+async function waitUntil(check) {
+  for (let i = 0; i < 100; i++) { if (await check()) return; await new Promise(resolve => setTimeout(resolve, 10)); }
+  assert.fail('bounded TEST_ONLY lifecycle observation did not settle');
+}
+async function outputGone(output) { try { await fs.access(output); return false; } catch (error) { if (error.code === 'ENOENT') return true; throw error; } }
+test('FIFO dispose during compilation waits for actual termination before removing artifacts', () => lifecycle(async f => {
+  const running = f.runner.start(); const observed = running.then(() => 'resolved', e => e.message);
+  const task = await f.waitTask(); const output = task.task.execution.args.at(-1);
+  let terminations = 0; task.terminate = () => { terminations++; };
+  f.dispose(); assert.equal(terminations, 1); await fs.access(output);
+  f.emit('process', { execution: task, exitCode: 1 });
+  let result; observed.then(value => { result = value; });
+  await waitUntil(() => result !== undefined); assert.match(result, /cancelled/);
+  await waitUntil(() => outputGone(output)); await waitUntil(() => Object.keys(f.handlers).length === 0);
+  assert.equal(f.calls.length, 1, 'no debugger starts after disposal');
+}));
+test('FIFO dispose during launch stops exactly the owned late session and drains listeners', () => lifecycle(async f => {
+  let config, complete; const stopped = [];
+  f.api.debug.startDebugging = async (_, value) => { config = value; return new Promise(resolve => { complete = resolve; }); };
+  f.api.debug.stopDebugging = async session => { stopped.push(session); f.emit('debugEnd', session); };
+  const running = f.runner.start(); const observed = running.then(() => 'resolved', e => e.message);
+  const task = await f.waitTask(); const [root, file, output] = task.task.execution.args.slice(1); compile(ts, root, file, output);
+  f.emit('process', { execution: task, exitCode: 0 }); await waitUntil(() => complete);
+  f.dispose(); const foreign = { configuration: { ynxTsRequest: 'foreign' } }; f.emit('start', foreign);
+  const owned = { configuration: config }; f.emit('start', owned); complete(true);
+  assert.match(await observed, /cancelled/); assert.deepEqual(stopped, [owned]);
+  await waitUntil(() => outputGone(output)); await waitUntil(() => Object.keys(f.handlers).length === 0);
+}));
+test('FIFO dispose of active owned session retains termination listener until cleanup', () => lifecycle(async f => {
+  let owned; const stopped = [];
+  f.api.debug.startDebugging = async (_, config) => { owned = { configuration: config }; f.emit('start', owned); return true; };
+  f.api.debug.stopDebugging = async session => { stopped.push(session); };
+  const running = f.runner.start(), task = await f.waitTask(); const [root, file, output] = task.task.execution.args.slice(1); compile(ts, root, file, output);
+  f.emit('process', { execution: task, exitCode: 0 }); assert.equal(await running, true);
+  f.emit('start', { configuration: { ynxTsRequest: 'foreign' } }); f.dispose(); f.dispose();
+  assert.deepEqual(stopped, [owned]); await fs.access(output); assert.ok(f.handlers.debugEnd);
+  f.emit('debugEnd', owned); await waitUntil(() => outputGone(output)); await waitUntil(() => Object.keys(f.handlers).length === 0);
+}));
+
+test('cleanup rejection preserves the compilation cause and does not lock the next run', () => lifecycle(async f => {
+  const cleanupError = Object.assign(Error('cleanup denied'), { code: 'EACCES' });
+  f.faults.rm = async () => { throw cleanupError; };
+  const running = f.runner.start(), task = await f.waitTask(); const output = task.task.execution.args.at(-1);
+  f.emit('process', { execution: task, exitCode: 1 });
+  await assert.rejects(running, error => /compilation failed/.test(error.message) && error.cleanupError === cleanupError);
+  await fs.access(output);
+  let saves = 0; f.api.workspace.saveAll = async () => { saves++; return false; };
+  assert.equal(await f.runner.start(), false); assert.equal(saves, 1, 'retry entered instead of returning from the stale pending gate');
 }));

@@ -2,7 +2,7 @@
   "name": "ynx-tools",
   "displayName": "%displayName%",
   "publisher": "ynx",
-  "version": "0.2.35",
+  "version": "0.2.36",
   "engines": {
     "vscode": "^1.109.0"
   },
