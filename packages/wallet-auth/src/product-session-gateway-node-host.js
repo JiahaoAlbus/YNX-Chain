@@ -68,6 +68,42 @@ export class ProductSessionGatewayNodeHost {
 
   revalidate(session,scopes,productId,at,businessRevalidation=false){this.#assertStateIdentity();const result=this.#handler.revalidate(session,scopes,productId,at,businessRevalidation);this.#assertStateIdentity();return result;}
 
+  // Fixed private caller uses the SAME kernel/state transaction as HTTP.
+  // Caller must already hold an independently recognized Native association;
+  // this method does not create one from request fields or a result record.
+  handleOriginalWalletServicePrivateRequest(input,retained,association){
+    exactFields(input,['requestId','operation','phase','body','proofHeader'],'Original private service request');
+    const paths={beginYNX:'/v2/product-sessions/challenge',handleReturn:'/v2/product-sessions/complete',restore:'/v2/product-sessions/introspect',disconnect:'/v2/product-sessions/revoke'};
+    if(!Object.hasOwn(paths,input.operation)||!['time','effect'].includes(input.phase)||!validRequestId(input.requestId))fail('ORIGINAL_PRIVATE_REQUEST_INVALID','Original private operation is invalid');
+    const descriptor=Object.getOwnPropertyDescriptor(retained??{},'result');
+    if(!descriptor||!Object.hasOwn(descriptor,'value')||descriptor.writable!==true)fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Retained result slot is absent');
+    this.#assertStateIdentity();
+    const boundFields=['account','clientId','productId','platform','applicationId','deviceId'];
+    if(!association||boundFields.some(field=>typeof association[field]!=='string'||association[field].length===0))fail('ORIGINAL_PRIVATE_ASSOCIATION_NOT_SUPPLIED','Original Native association is absent');
+    if(input.phase==='time'){
+      if(input.body!==null||input.proofHeader!==null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID','Clock phase has no effect payload');
+      const now=this.#now();if(!(now instanceof Date)||!Number.isFinite(now.getTime()))fail('INVALID_TIME','Product Session authority time is unavailable');
+      if(now.getTime()<walletSessionControlClockFloor(this.#handler.snapshot()))fail('CLOCK_UNAVAILABLE','Product Session authority clock moved behind its durable history');
+      const result=Object.freeze({status:200,headers:Object.freeze({'cache-control':'no-store','content-type':'application/json; charset=utf-8','x-request-id':input.requestId}),body:canonicalJSON({ok:true,requestId:input.requestId,result:{serverTime:now.toISOString()},schemaVersion:PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION})});
+      retained.result=result;this.#assertStateIdentity();return result;
+    }
+    if(input.operation==='restore'||input.operation==='disconnect'){
+      const proof=decodeProductSessionGatewayProofHeaderV2(input.proofHeader);
+      const session=this.#handler.snapshot().authority.sessions.find(value=>value.sessionBinding===proof.sessionBinding);
+      if(!session||boundFields.some(field=>session[field]!==association[field]))fail('CROSS_PRODUCT_SESSION','Original private association differs from owned session');
+      this.#handler.revalidate(session,[],session.productId,this.#now(),true);
+    }else{
+      let body;try{body=JSON.parse(input.body);}catch{fail('INVALID_BODY','Original private body is invalid');}
+      if(body.approval?.account!==association.account||boundFields.filter(field=>field!=='account').some(field=>body.request?.[field]!==association[field]))fail('CROSS_PRODUCT_SESSION','Original private approval differs from Native association');
+    }
+    const candidate=new ProductSessionGatewayHttpHandler(this.#registry,this.#tokens,this.#handler.snapshot());
+    const result=candidate.handle({requestId:input.requestId,method:'POST',path:paths[input.operation],contentType:'application/json',body:input.body,proofHeader:input.proofHeader,networkAvailable:true},this.#now());
+    retained.result=result; // Capture before persistence/current readback failure.
+    const before=snapshotDigest(this.#handler.snapshot()),after=snapshotDigest(candidate.snapshot());
+    if(after!==before)this.#persist(candidate.snapshot());
+    this.#handler=candidate;this.#assertStateIdentity();return result;
+  }
+
   // This original Host constructs its own real daemon listener and Server.
   // No caller-supplied handler registration/allowlist can acquire its brand.
   createOriginalWalletServiceRuntimeDaemonServer({legacyHost,central,admission,emitEvent}) {

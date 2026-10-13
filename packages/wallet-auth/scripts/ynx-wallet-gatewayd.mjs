@@ -12,6 +12,7 @@ import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admi
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
+import {createOriginalWalletServicePrivateDispatch} from '../src/original-wallet-service-private-dispatch.js';
 import {ProductSessionControlNodeHost} from '../src/product-session-control-node-host.js';
 import {parseProductSessionControlCapacityPolicy} from '../src/product-session-control-capacity.js';
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
@@ -76,6 +77,11 @@ const server=productSessionStateVersion==='2'
  ?productHost.createOriginalWalletServiceRuntimeDaemonServer({legacyHost:host,central,admission,emitEvent})
  :createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
+// Original recognized Native startup borrow has not been supplied. This is
+// not fd4 discovery, ENV configuration or a public callback installer.
+const originalPrivateServiceBorrow=null;
+let originalPrivateDispatch=null;
+let originalPrivateTerminalUnknown=false;
 let originalListenSucceeded=false,originalStartupCause,originalStartupFailure=false;
 let originalShutdown=null,originalObserverFailure=false,originalObserverCause,originalHTTPFailure=false,originalHTTPCause;
 const originalRequestListener=server.listeners('request')[0];
@@ -94,18 +100,27 @@ function stopOriginalDaemon(reason){
   const http=Promise.resolve().then(()=>new Promise((resolve,reject)=>server.close(error=>{
    if(error&&!(error.code==='ERR_SERVER_NOT_RUNNING'&&!server.listening))reject(error);else resolve();
   }))).catch(cause=>{originalHTTPFailure=true;originalHTTPCause=cause;});
-  const observer=Promise.resolve().then(async()=>{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}).catch(cause=>{originalObserverFailure=true;originalObserverCause=cause;});
+  const observer=Promise.resolve().then(async()=>{
+   let privateFailure=false,privateCause;
+   if(originalPrivateDispatch){originalPrivateDispatch.retire();try{await originalPrivateDispatch.join();await originalPrivateDispatch.close();}catch(cause){privateFailure=true;privateCause=cause;}originalPrivateTerminalUnknown=originalPrivateDispatch.status().unknown;}
+   try{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}
+   if(privateFailure)throw privateCause;
+  }).catch(cause=>{originalObserverFailure=true;originalObserverCause=cause;});
   await Promise.all([http,observer]);
-  const failed=originalStartupFailure||originalObserverFailure||originalHTTPFailure;
+  const failed=originalStartupFailure||originalObserverFailure||originalHTTPFailure||originalPrivateTerminalUnknown;
   if(failed)process.exitCode=1;
-  emitEvent({event:failed?'shutdown_incomplete':'shutdown',level:failed?'error':'info',service:'ynx-wallet-gatewayd',reason,startupFailurePresent:originalStartupFailure,observerCleanupFailurePresent:originalObserverFailure,httpStopFailurePresent:originalHTTPFailure});
+  emitEvent({event:failed?'shutdown_incomplete':'shutdown',level:failed?'error':'info',service:'ynx-wallet-gatewayd',reason,startupFailurePresent:originalStartupFailure,observerCleanupFailurePresent:originalObserverFailure,httpStopFailurePresent:originalHTTPFailure,privateTerminalUnknown:originalPrivateTerminalUnknown});
   // Never discard the process holding unresolved resource custody.
-  if(!originalObserverFailure&&!originalHTTPFailure)process.exit(originalStartupFailure?1:0);
+  if(!originalObserverFailure&&!originalHTTPFailure&&!originalPrivateTerminalUnknown)process.exit(originalStartupFailure?1:0);
  });return originalShutdown;
 }
 server.listen(port,address,()=>{
  originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
+ if(originalPrivateServiceBorrow!==null){
+  try{originalPrivateDispatch=createOriginalWalletServicePrivateDispatch(productHost,originalRuntimeLifetime,originalPrivateServiceBorrow);}
+  catch(error){emitEvent({event:'original_private_service_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_PRIVATE_NOT_SUPPLIED'});}
+ }
  emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`});
 });
 server.on('close',()=>{originalRuntimeLifetime.retire();void originalRuntimeLifetime.close().catch(()=>{});});
