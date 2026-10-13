@@ -1,9 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { readFileSync, writeFileSync, existsSync, readdirSync, lstatSync, realpathSync, readlinkSync } from "node:fs";
+import { join, dirname, resolve, relative, sep } from "node:path";
 
-const [output, runtimeNode, npmPackagePath, sourceCommit] = process.argv.slice(2);
+import { fileURLToPath } from "node:url";
+
+export function generateCodeSbom(output, runtimeNode, npmPackagePath, sourceCommit) {
 if (!output || !runtimeNode || !npmPackagePath || !/^[0-9a-f]{40}$/.test(sourceCommit || "")) throw new Error("SBOM output, runtime, npm package and source commit are required.");
 const lock = JSON.parse(readFileSync(new URL("../package-lock.json", import.meta.url), "utf8"));
 const npmPackage = JSON.parse(readFileSync(npmPackagePath, "utf8"));
@@ -45,6 +47,7 @@ if (existsSync(compilerReceipt)) {
     component.properties.push({ name: 'ynx:compilerClosureSha256', value: compiler.manifestSha256 });
   }
 }
+addPackagedServiceComponents(components, join(dirname(output), 'code/apps/developer'));
 components.sort((a, b) => a["bom-ref"].localeCompare(b["bom-ref"]));
 const serialSeed = createHash("sha256").update(`${sourceCommit}\n${nodeVersion}\n${npmPackage.version}\n${components.map(value => value["bom-ref"]).join("\n")}`).digest("hex");
 const sbom = {
@@ -65,3 +68,78 @@ const sbom = {
 };
 writeFileSync(output, `${JSON.stringify(sbom, null, 2)}\n`, { mode: 0o644 });
 console.log(`Generated CycloneDX SBOM with ${components.length} components for Node ${nodeVersion} and npm ${npmPackage.version}.`);
+
+return sbom;
+}
+
+// Read the packaged closure, never import or evaluate its dependency code.
+export function addPackagedServiceComponents(components, packagedRoot) {
+  if (!existsSync(packagedRoot)) return;
+  const root = realpathSync(packagedRoot);
+  const inside = target => {
+    const real = realpathSync(target);
+    const path = relative(root, real);
+    if (path === '..' || path.startsWith('..' + sep) || path.startsWith(sep)) throw Error('Service dependency escapes packaged root: ' + target);
+    return real;
+  };
+  const services = join(root, 'services');
+  // A retained command symlink can require a service closure even when that
+  // closure was omitted entirely; missing services must not silently disappear.
+  const bin = join(root, 'node_modules/.bin');
+  if (existsSync(bin)) for (const name of readdirSync(bin).sort()) {
+    const entry = join(bin, name);
+    if (!lstatSync(entry).isSymbolicLink()) continue;
+    const target = resolve(dirname(entry), readlinkSync(entry));
+    const rel = relative(root, target);
+    if (rel === 'services' || rel.startsWith('services' + sep)) inside(entry);
+  }
+  if (!existsSync(services)) return;
+  inside(services);
+  const add = folder => {
+    inside(folder);
+    const metadataPath = join(folder, 'package.json');
+    inside(metadataPath);
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
+    if (typeof metadata.name !== 'string' || !/^(?:@[a-z0-9._-]+\/)?[a-z0-9._-]+$/i.test(metadata.name) || typeof metadata.version !== 'string' || !/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(metadata.version)) throw Error('Invalid required service dependency metadata: ' + metadataPath);
+    const purl = 'pkg:npm/' + metadata.name.replace(/^@/, '%40') + '@' + metadata.version;
+    let component = components.find(row => row['bom-ref'] === purl);
+    if (!component) {
+      component = { type: 'library', 'bom-ref': purl, name: metadata.name, version: metadata.version, purl, scope: 'required', properties: [] };
+      components.push(component);
+    }
+    component.scope = 'required';
+    component.properties ||= [];
+    const location = relative(root, folder).split(sep).join('/');
+    if (!component.properties.some(item => item.name === 'ynx:packagedServicePath' && item.value === location)) component.properties.push({ name: 'ynx:packagedServicePath', value: location });
+    const license = typeof metadata.license === 'string' ? metadata.license : metadata.license?.type;
+    if (license) {
+      component.licenses ||= [];
+      if (!component.licenses.some(item => item.license?.name === license)) component.licenses.push({ license: { name: license } });
+    }
+  };
+  const walkModules = (modules, ancestors = new Set()) => {
+    if (!existsSync(modules)) return;
+    const real = inside(modules);
+    if (ancestors.has(real)) return;
+    const next = new Set(ancestors).add(real);
+    for (const name of readdirSync(modules).sort()) {
+      if (name.startsWith('.')) continue;
+      const entry = join(modules, name);
+      const packages = name.startsWith('@') ? readdirSync(inside(entry)).sort().map(child => join(entry, child)) : [entry];
+      for (const folder of packages) {
+        if (!lstatSync(folder).isDirectory() && !lstatSync(folder).isSymbolicLink()) throw Error('Invalid service dependency entry: ' + folder);
+        add(folder);
+        walkModules(join(folder, 'node_modules'), next);
+      }
+    }
+  };
+  for (const service of readdirSync(services).sort()) {
+    const folder = join(services, service);
+    if (lstatSync(folder).isDirectory() || lstatSync(folder).isSymbolicLink()) {
+      inside(folder);
+      walkModules(join(folder, 'node_modules'));
+    }
+  }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) generateCodeSbom(...process.argv.slice(2));
