@@ -24,7 +24,7 @@ struct OriginalAuthHandle {
  Kind kind; napi_env env; YNXAuthIdentitySourceAuthority *__strong source;
  NSDictionary *__strong selection; napi_ref vault=nullptr,view=nullptr,local=nullptr,result=nullptr;
  ynx_auth_private::JointLifecycle life;bool retired=false,closed=false,closeSelected=false,cleanupFailed=false;
- ynx_auth_private::TemporaryDescriptor commitDescriptor,readDescriptor;
+ ynx_auth_private::TemporaryDescriptor commitDescriptor,readDescriptor,channelDescriptor;
  int journalDir=-1,channel=-1;std::string recordName;OriginalAuthHandle *parent=nullptr;unsigned children=0;
  std::unordered_map<std::string,std::string> responses;
  std::unordered_set<std::string> enteredRequests;
@@ -34,11 +34,22 @@ static bool CloseTemporary(OriginalAuthHandle *h,ynx_auth_private::TemporaryDesc
  bool completed=descriptor.closeOnce([](int fd){return close(fd);});
  if(!completed){h->cleanupFailed=true;debt.insert(h);}return completed;
 }
+static bool ChannelAvailable(OriginalAuthHandle *h){
+ return h&&!h->cleanupFailed&&h->channel<0&&h->channelDescriptor.available();
+}
+static bool CloseChannel(OriginalAuthHandle *h){
+ if(h->channel>=0&&h->channelDescriptor.identity()!=h->channel){h->cleanupFailed=true;debt.insert(h);return false;}
+ bool completed=CloseTemporary(h,h->channelDescriptor);
+ if(completed)h->channel=-1;return completed;
+}
+static bool JoinReady(OriginalAuthHandle *h){
+ return h->retired&&ynx_auth_private::ChildOwnership::joined(h->children);
+}
 static napi_value Undefined(napi_env env){napi_value v;return napi_get_undefined(env,&v)==napi_ok?v:nullptr;}
 static napi_value Error(napi_env env,const char *code){napi_throw_error(env,code,code);return nullptr;}
 static bool Args(napi_env env,napi_callback_info info,size_t n,napi_value *argv,void **data=nullptr){size_t count=n+1;napi_value values[5];if(n>4||napi_get_cb_info(env,info,&count,values,nullptr,data)!=napi_ok||count!=n)return false;for(size_t i=0;i<n;i++)argv[i]=values[i];return true;}
 static OriginalAuthHandle *Original(napi_env env,napi_value value,Kind kind){void *p=nullptr;if(napi_unwrap(env,value,&p)!=napi_ok)return nullptr;OriginalAuthHandle *h=(OriginalAuthHandle *)p;if(!originals.count(h)||h->env!=env||h->kind!=kind)return nullptr;return h;}
-static bool Current(OriginalAuthHandle *h,bool admission=true){NSError *e=nil;if(!h||h->retired||h->closed||![h->source assertCurrent:&e]||(admission&&![h->source assertAuthenticatedNativePurpose:&e])){if(h)Error(h->env,(e.localizedDescription?:@"AUTH_IDENTITY_ORIGINAL_RETIRED").UTF8String);return false;}return true;}
+static bool Current(OriginalAuthHandle *h,bool admission=true){NSError *e=nil;if(!h||h->retired||h->closed||h->cleanupFailed||(h->parent&&(h->parent->retired||h->parent->closed||h->parent->cleanupFailed))||![h->source assertCurrent:&e]||(admission&&![h->source assertAuthenticatedNativePurpose:&e])){if(h)Error(h->env,(e.localizedDescription?:@"AUTH_IDENTITY_ORIGINAL_RETIRED").UTF8String);return false;}return true;}
 static NSDictionary *Dictionary(napi_env env,napi_value value){
  napi_value global,json,stringify,text;napi_get_global(env,&global);napi_get_named_property(env,global,"JSON",&json);napi_get_named_property(env,json,"stringify",&stringify);if(napi_call_function(env,json,stringify,1,&value,&text)!=napi_ok)return nil;
  size_t n=0;if(napi_get_value_string_utf8(env,text,nullptr,0,&n)!=napi_ok||n>65536)return nil;std::string raw(n+1,'\0');if(napi_get_value_string_utf8(env,text,raw.data(),raw.size(),&n)!=napi_ok)return nil;NSData *b=[NSData dataWithBytes:raw.data() length:n];id parsed=[NSJSONSerialization JSONObjectWithData:b options:0 error:nil];return [parsed isKindOfClass:NSDictionary.class]?parsed:nil;
@@ -54,11 +65,13 @@ static bool EnforcingChild(OriginalAuthHandle *h,napi_value child){
  BOOL matches=status==errSecSuccess&&[actual isKindOfClass:NSData.class]&&[expected isKindOfClass:NSString.class]&&[[actual base64EncodedStringWithOptions:0] isEqual:expected];if(metadata)CFRelease(metadata);if(code)CFRelease(code);return matches;
 }
 static bool Close(OriginalAuthHandle *h){
- if(h->closeSelected)return h->closed;h->retired=true;if(h->children){h->cleanupFailed=true;debt.insert(h);return false;}h->closeSelected=true;
- for(int *fd:{&h->channel,&h->journalDir})if(*fd>=0){if(close(*fd)<0)h->cleanupFailed=true;else *fd=-1;}
+ if(h->closeSelected)return h->closed;h->retired=true;h->life.retire();if(!JoinReady(h)){debt.insert(h);return false;}h->closeSelected=true;
+ CloseChannel(h);
+ if(h->journalDir>=0){if(close(h->journalDir)<0)h->cleanupFailed=true;else h->journalDir=-1;}
  if(h->kind==Kind::administration){[h->source retire];NSError *e=nil;if(![h->source join:&e]||![h->source close:&e])h->cleanupFailed=true;}
- if(h->parent&&h->parent->children){h->parent->children--;h->parent=nullptr;}
- h->closed=!h->cleanupFailed&&!h->commitDescriptor.unresolved()&&!h->readDescriptor.unresolved();h->life.completedCleanup(h->closed);if(!h->closed)debt.insert(h);return h->closed;
+ h->closed=!h->cleanupFailed&&!h->commitDescriptor.unresolved()&&!h->readDescriptor.unresolved()&&!h->channelDescriptor.unresolved();
+ if(h->closed&&h->parent&&h->parent->children){h->parent->children--;h->parent=nullptr;}
+ h->life.completedCleanup(h->closed);if(!h->closed)debt.insert(h);else debt.erase(h);return h->closed;
 }
 static void Finalize(napi_env env,void *p,void *){OriginalAuthHandle *h=(OriginalAuthHandle *)p;if(!originals.count(h))return;if(!Close(h))return;for(napi_ref ref:{h->vault,h->view,h->local,h->result})if(ref)napi_delete_reference(env,ref);originals.erase(h);delete h;}
 static napi_value Wrap(napi_env env,OriginalAuthHandle *h){napi_value object;napi_create_object(env,&object);originals.insert(h);if(napi_wrap(env,object,h,Finalize,nullptr,nullptr)!=napi_ok){debt.insert(h);return Error(env,"AUTH_IDENTITY_WRAP_FAILED");}return object;}
@@ -91,6 +104,7 @@ static napi_value Commit(napi_env env,napi_callback_info info){
 }
 static napi_value PrivateDispatch(napi_env env,napi_callback_info info){
  void *p=nullptr;napi_value a[1];if(!Args(env,info,1,a,&p))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");OriginalAuthHandle *h=(OriginalAuthHandle *)p;if(!originals.count(h)||h->kind!=Kind::joint||!Current(h))return nullptr;
+ if(!ChannelAvailable(h))return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");
  // Owned dispatcher has no callback installer. The canonical Host bridge
  // requires the original service resource, never a caller endpoint/provider.
  size_t length=0;if(napi_get_value_string_utf8(env,a[0],nullptr,0,&length)!=napi_ok||length>65536)return Error(env,"ORIGINAL_PRIVATE_REQUEST_INVALID");std::string raw(length+1,'\0');if(napi_get_value_string_utf8(env,a[0],raw.data(),raw.size(),&length)!=napi_ok)return Error(env,"ORIGINAL_PRIVATE_REQUEST_INVALID");NSData *bytes=[NSData dataWithBytes:raw.data() length:length];id parsed=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];
@@ -100,7 +114,7 @@ static napi_value PrivateDispatch(napi_env env,napi_callback_info info){
  NSString *path=h->selection[@"originalServiceSocket"];
  if(![path isKindOfClass:NSString.class]||![path hasPrefix:@"/"]||![path.stringByStandardizingPath isEqual:path]||[path lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>=sizeof(sockaddr_un::sun_path))return Error(env,"AUTH_IDENTITY_ORIGINAL_SERVICE_RESOURCE_NOT_SUPPLIED");
  struct stat named;if(lstat(path.fileSystemRepresentation,&named)||!S_ISSOCK(named.st_mode)||named.st_uid!=getuid()||(named.st_mode&0077))return Error(env,"AUTH_IDENTITY_ORIGINAL_SERVICE_RESOURCE_NOT_SUPPLIED");
- h->channel=socket(AF_UNIX,SOCK_STREAM,0);if(h->channel<0)return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");fcntl(h->channel,F_SETFD,FD_CLOEXEC);sockaddr_un address{};address.sun_family=AF_UNIX;strcpy(address.sun_path,path.fileSystemRepresentation);
+ h->channel=socket(AF_UNIX,SOCK_STREAM,0);if(h->channel<0)return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");if(!h->channelDescriptor.hold(h->channel)){h->cleanupFailed=true;debt.insert(h);return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");}fcntl(h->channel,F_SETFD,FD_CLOEXEC);sockaddr_un address{};address.sun_family=AF_UNIX;strcpy(address.sun_path,path.fileSystemRepresentation);
  if(connect(h->channel,(sockaddr *)&address,sizeof(address)))return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");pid_t peer=0;socklen_t size=sizeof(peer);NSNumber *approved=h->selection[@"originalServicePID"];
  if(![approved isKindOfClass:NSNumber.class]||getsockopt(h->channel,SOL_LOCAL,LOCAL_PEERPID,&peer,&size)||peer!=approved.intValue||!Current(h))return Error(env,"AUTH_IDENTITY_ORIGINAL_SERVICE_PEER_CHANGED");
  std::string frame(raw.data(),length);frame+='\n';size_t sent=0;while(sent<frame.size()){pollfd p{h->channel,POLLOUT,0};if(poll(&p,1,15000)!=1)return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");ssize_t n=write(h->channel,frame.data()+sent,frame.size()-sent);if(n<=0)return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_UNKNOWN");sent+=(size_t)n;}
@@ -108,7 +122,7 @@ static napi_value PrivateDispatch(napi_env env,napi_callback_info info){
  if(response.size()>65536)return Error(env,"AUTH_IDENTITY_PRIVATE_RESPONSE_CAPACITY");id result=[NSJSONSerialization JSONObjectWithData:[NSData dataWithBytes:response.data() length:response.size()] options:0 error:nil];
  if(![result isKindOfClass:NSDictionary.class]||![[NSSet setWithArray:[result allKeys]] isEqual:[NSSet setWithArray:@[@"status",@"headers",@"body"]]]||![result[@"body"] isKindOfClass:NSString.class])return Error(env,"AUTH_IDENTITY_PRIVATE_RESPONSE_INVALID");
  h->responses.emplace(requestKey,response);napi_value original=JSON(env,result); // capture before late Source current fence
- if(!Current(h))return nullptr;if(close(h->channel)){h->cleanupFailed=true;debt.insert(h);return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_CLOSE_UNKNOWN");}h->channel=-1;return original;
+ if(!Current(h))return nullptr;if(!CloseChannel(h))return Error(env,"AUTH_IDENTITY_PRIVATE_CHANNEL_CLOSE_UNKNOWN");return original;
 }
 static napi_value ReadJoint(napi_env env,napi_callback_info info){
  napi_value a[2];if(!Args(env,info,2,a))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");OriginalAuthHandle *h=Original(env,a[0],Kind::joint);if(!h)return Error(env,"AUTH_IDENTITY_ORIGINAL_OWNER_REQUIRED");if(!Current(h))return nullptr;if(!Same(env,h->result,a[1])||h->journalDir<0)return Error(env,"AUTH_IDENTITY_ORIGINAL_RESULT_REQUIRED");
@@ -130,7 +144,7 @@ static napi_value TerminalPrivate(napi_env env,napi_callback_info info){napi_val
 static napi_value Lifecycle(napi_env env,napi_callback_info info){void *p=nullptr;napi_value a[4];Operation op;size_t count=4;if(napi_get_cb_info(env,info,&count,a,nullptr,&p)!=napi_ok||count<1)return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");op=(Operation)(uintptr_t)p;Kind kind=op<=adminClose?Kind::administration:Kind::joint;OriginalAuthHandle *h=Original(env,a[0],kind);if(!h)return Error(env,"AUTH_IDENTITY_ORIGINAL_OWNER_REQUIRED");
  if(op==adminRetire||op==jointRetire){h->retired=true;h->life.retire();if(kind==Kind::administration)[h->source retire];return Undefined(env);}
  if(op==adminClose||op==jointClose)return Close(h)?Undefined(env):Error(env,"AUTH_IDENTITY_CLEANUP_UNKNOWN");
- if(op==adminJoin||op==jointJoin){if(!h->retired)return Error(env,"AUTH_IDENTITY_NOT_RETIRED");return Undefined(env);}
+ if(op==adminJoin||op==jointJoin){if(!h->retired)return Error(env,"AUTH_IDENTITY_NOT_RETIRED");if(!JoinReady(h))return Error(env,"AUTH_IDENTITY_CHILDREN_NOT_JOINED");return Undefined(env);}
  if(!Current(h))return nullptr;
  if(op==jointChild){if(count!=3||!h->view)return Error(env,"AUTH_IDENTITY_CHILD_NOT_SUPPLIED");napi_value view,executor;napi_get_reference_value(env,h->view,&view);napi_get_named_property(env,view,"executor",&executor);bool equal=false;napi_strict_equals(env,executor,a[1],&equal);if(!equal)return Error(env,"AUTH_IDENTITY_EXECUTOR_CHILD_MISMATCH");napi_valuetype kind;napi_typeof(env,a[2],&kind);if(kind!=napi_null&&!EnforcingChild(h,a[2]))return Error(env,"AUTH_IDENTITY_ENFORCING_CHILD_CHANGED");}
  if(op==jointSuccession){if(count!=2||![Dictionary(env,a[1]) isEqual:h->selection[@"expectedRequest"]])return Error(env,"AUTH_IDENTITY_SUCCESSION_MISMATCH");}

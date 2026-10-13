@@ -12,7 +12,10 @@ struct TemporaryDescriptor {
  }
  bool unresolved()const{return fd>=0;}
  int identity()const{return fd;}
+ bool available()const{return fd<0;}
 };
+// Known child custody is a join fence, not uncertain cleanup failure.
+struct ChildOwnership {static bool joined(unsigned children){return children==0;}};
 // Internal source-state validator: shape/current fences, never an approval.
 struct SourceClock {
  std::uint64_t floor=0,generation=0;
