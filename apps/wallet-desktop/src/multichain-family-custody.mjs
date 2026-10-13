@@ -43,6 +43,19 @@ function validateReceipt(receipt, txid) {
   exactObject(receipt, ['txid', 'blockHash', 'blockHeight', 'success', 'confirmationScope']);
   if (receipt.txid !== txid || !/^[0-9a-f]{64}$/.test(receipt.txid) || !/^[0-9a-f]{64}$/.test(receipt.blockHash) || typeof receipt.blockHeight !== 'string' || !/^(0|[1-9][0-9]*)$/.test(receipt.blockHeight) || typeof receipt.success !== 'boolean' || receipt.confirmationScope !== 'rpc-block-inclusion') fail();
 }
+function retainSubmissionObservation(previous, latest) {
+  // Existing version-1 journals put dispatch facts in queryEvidence.phase.
+  // Migrate lazily in this same protected record; queries never create those
+  // facts, and an explicit null submission must not promote a later query.
+  const object = previous && typeof previous === 'object' && !Array.isArray(previous);
+  const submission = object && Object.hasOwn(previous, 'submission') ? previous.submission
+    : object && Object.hasOwn(previous, 'phase') ? previous : null;
+  const observation = structuredClone(latest ?? null);
+  const evidence = { submission: structuredClone(submission), observation };
+  if (typeof submission?.phase === 'string') evidence.phase = submission.phase;
+  if (typeof observation?.queryError === 'string' && /^[A-Z0-9_]{1,80}$/.test(observation.queryError)) evidence.queryError = observation.queryError;
+  return evidence;
+}
 export class FamilyCustody {
   #held = new Map();
   constructor({ filePath, file, verifyResult, now = Date.now }) {
@@ -153,7 +166,7 @@ export class FamilyCustody {
     await this.file.mutate(value => {
       const current = value.records.find(r => r.id === id);
       if (!current || current.binding !== record.binding || current.resultDigest !== record.resultDigest || current.revision !== record.revision || current.state !== record.state && !(current.state === 'signing' && record.state === 'unknown')) fail();
-      Object.assign(current, { state: observation.state, receipt: observation.receipt, queryEvidence: structuredClone(observation.evidence ?? null), revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, this.now()) }); return value;
+      Object.assign(current, { state: observation.state, receipt: observation.receipt, queryEvidence: retainSubmissionObservation(current.queryEvidence, observation.evidence), revision: current.revision + 1, updatedAt: Math.max(current.updatedAt, this.now()) }); return value;
     });
     return (await this.list()).find(r => r.id === id);
   }

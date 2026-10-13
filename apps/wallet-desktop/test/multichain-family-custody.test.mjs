@@ -78,3 +78,44 @@ test('unsigned unknown has no reliable hash to query and remains blocked', async
   const { journal } = await setup(); const permit = await journal.reserve(input); await permit.beginSigning(); permit.retire(); let queries = 0;
   const record = await journal.check(id, async () => { queries++; }); assert.equal(record.queryable, false); assert.equal(queries, 0); assert.equal(record.state, 'unknown');
 });
+
+async function r18PublicSubmission(evidence) {
+  const f = await setup(), permit = await f.journal.reserve(input);
+  // Public ledger controls only: no signer, private key, network or broadcast.
+  await permit.beginSigning(); permit.capture(result); await permit.saveProduced(); permit.retire();
+  const original = (await f.journal.list())[0];
+  await f.journal.fenceSubmission(original);
+  if (evidence) await f.journal.finishSubmission(original, { state: evidence.phase === 'rpc-accepted' ? 'submitted-unconfirmed' : 'unknown', evidence });
+  return f;
+}
+test('R18 PUBLIC silent unknown query retains original RPC acceptance through reopen', async () => {
+  const submission = { phase: 'rpc-accepted' }, { journal, filePath } = await r18PublicSubmission(submission);
+  const before = (await journal.list())[0];
+  const checked = await journal.check(id, async () => ({ networkId: input.networkId, txid: result.txid, state: 'unknown', receipt: null }));
+  assert.equal(checked.state, 'unknown'); assert.deepEqual(checked.result, before.result);
+  assert.equal(checked.resultDigest, before.resultDigest); assert.deepEqual(checked.outpoints, before.outpoints);
+  assert.deepEqual(checked.queryEvidence.submission, submission); assert.equal(checked.queryEvidence.observation, null);
+  const reopened = new FamilyCustody({ filePath, verifyResult });
+  assert.deepEqual((await reopened.list())[0].queryEvidence.submission, submission);
+  await assert.rejects(reopened.fenceSubmission((await reopened.list())[0]));
+});
+test('R18 PUBLIC query errors and later observations cannot relabel the original submission fence', async () => {
+  const { journal, filePath } = await r18PublicSubmission(), submission = { phase: 'submission-fenced' };
+  const error = { queryError: 'BTC_QUERY_UNAVAILABLE' };
+  const checked = await journal.check(id, async () => ({ networkId: input.networkId, txid: result.txid, state: 'unknown', receipt: null, evidence: error }));
+  assert.deepEqual(checked.queryEvidence.submission, submission);
+  assert.deepEqual(checked.queryEvidence.observation, error); assert.equal(checked.queryEvidence.queryError, error.queryError);
+  const latest = { phase: 'rpc-accepted', queryError: 'BTC_QUERY_ABORTED' };
+  const next = await journal.check(id, async () => ({ networkId: input.networkId, txid: result.txid, state: 'unknown', receipt: null, evidence: latest }));
+  assert.deepEqual(next.queryEvidence.submission, submission); assert.deepEqual(next.queryEvidence.observation, latest);
+  assert.equal(next.queryEvidence.queryError, latest.queryError);
+  const reopened = new FamilyCustody({ filePath, verifyResult });
+  assert.deepEqual((await reopened.list())[0].queryEvidence, next.queryEvidence);
+});
+test('R18 PUBLIC unavailable query preserves known non-dispatch evidence and safe latest cause', async () => {
+  const submission = { phase: 'submission-not-dispatched', cause: 'PUBLIC fixture' }, { journal } = await r18PublicSubmission(submission);
+  const checked = await journal.check(id, async () => { throw Object.assign(new Error('PUBLIC offline'), { code: 'BTC_RPC_UNAVAILABLE' }); });
+  assert.equal(checked.state, 'unknown'); assert.deepEqual(checked.queryEvidence.submission, submission);
+  assert.deepEqual(checked.queryEvidence.observation, { queryError: 'BTC_RPC_UNAVAILABLE' });
+  assert.equal(checked.queryEvidence.queryError, 'BTC_RPC_UNAVAILABLE'); assert.deepEqual(checked.result, result);
+});

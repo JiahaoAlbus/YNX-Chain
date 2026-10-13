@@ -282,6 +282,36 @@ test('BTC R3 actual protected withMnemonic and lifecycle retain original raw whe
 });
 
 const dsha = b => createHash('sha256').update(createHash('sha256').update(b).digest()).digest();
+function r18PublicQueryTuple() {
+  // Structurally witnessed PUBLIC data, not a signature or a spendable result.
+  const tx = new Transaction(); tx.addInput(Buffer.alloc(32, 1), 0);
+  tx.addOutput(Buffer.from('0014' + '00'.repeat(20), 'hex'), 1n); tx.setWitness(0, [Buffer.from([0])]);
+  return { networkId: 'qa-bitcoin-mainnet', network: 'mainnet', txid: tx.getId(), rawTransaction: tx.toHex() };
+}
+test('BTC R18 PUBLIC unavailable query carries bounded code without messages or replay', async () => {
+  for (const [error, expected] of [
+    [Object.assign(new Error('PUBLIC message must not persist'), { code: 'MULTICHAIN_RPC_TIMEOUT' }), 'MULTICHAIN_RPC_TIMEOUT'],
+    [Object.assign(new Error('PUBLIC message must not persist'), { code: 'unsafe/message/code' }), 'BTC_QUERY_UNAVAILABLE'],
+    [null, 'BTC_QUERY_UNAVAILABLE']
+  ]) {
+    const input = r18PublicQueryTuple(), original = JSON.stringify(input), calls = [];
+    const adapter = new BitcoinReadAdapter({ network: input.network, networkId: input.networkId, request: async q => { calls.push(q); throw error; } });
+    const observed = await adapter.querySigned(input);
+    assert.equal(observed.state, 'unknown'); assert.equal(observed.receipt, null);
+    assert.deepEqual(observed.evidence, { queryError: expected }); assert.ok(Object.isFrozen(observed.evidence));
+    assert.equal(JSON.stringify(input), original); assert.equal(calls.length, 1); assert.equal(calls[0].method, 'GET');
+    assert.ok(!JSON.stringify(observed).includes('PUBLIC message'));
+  }
+});
+test('BTC R18 PUBLIC cancelled and mismatched originals retain distinct query causes without requests', async () => {
+  const input = r18PublicQueryTuple(); let calls = 0;
+  const adapter = new BitcoinReadAdapter({ network: input.network, networkId: input.networkId, request: async () => { calls++; throw Error('must not run'); } });
+  const controller = new AbortController(); controller.abort();
+  const cancelled = await adapter.querySigned(input, { signal: controller.signal });
+  assert.deepEqual(cancelled.evidence, { queryError: 'BTC_REQUEST_CANCELLED' });
+  const mismatch = await adapter.querySigned({ ...input, networkId: 'other-config' });
+  assert.deepEqual(mismatch.evidence, { queryError: 'BTC_QUERY_BINDING' }); assert.equal(calls, 0);
+});
 async function queryFixture() {
   const f = signingFixture(), signer = new BitcoinSigningAdapter({ now: () => 1 }); signer.prepare(f.prepared);
   const result = await signer.sign(f.req.requestId, { signer: f.sender, guard: { assert() {} }, onProduced() {} });

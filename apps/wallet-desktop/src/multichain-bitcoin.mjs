@@ -176,7 +176,14 @@ export class BitcoinReadAdapter {
     if (!input || Object.keys(input).some(k => !['networkId', 'network', 'txid', 'rawTransaction'].includes(k)) || !/^[0-9a-f]{64}$/.test(input.txid)) fail('BTC_QUERY_INPUT_INVALID');
     // Copy original immutable tuple before awaits. No signer/vault/broadcast.
     const original = { networkId: input.networkId, network: input.network, txid: input.txid, rawTransaction: input.rawTransaction };
-    const unknown = () => freeze({ networkId: this.#networkId, txid: original.txid, state: 'unknown', receipt: null });
+    const unknown = error => {
+      // Only a bounded own data code is public evidence, never error messages,
+      // stacks, URLs, arbitrary objects or accessors from transport exceptions.
+      let code;
+      try { code = Object.getOwnPropertyDescriptor(error ?? {}, 'code')?.value; } catch {}
+      const queryError = typeof code === 'string' && /^[A-Z0-9_]{1,80}$/.test(code) ? code : 'BTC_QUERY_UNAVAILABLE';
+      return freeze({ networkId: this.#networkId, txid: original.txid, state: 'unknown', receipt: null, evidence: { queryError } });
+    };
     try {
       if (original.networkId !== this.#networkId || original.network !== this.#id || typeof original.rawTransaction !== 'string' || !/^(?:[0-9a-f]{2})+$/.test(original.rawTransaction) || original.rawTransaction.length > 2000000) fail('BTC_QUERY_BINDING');
       const tx = Transaction.fromHex(original.rawTransaction);
@@ -202,7 +209,7 @@ export class BitcoinReadAdapter {
       if (last?.confirmed !== true || last.block_hash !== status.block_hash || String(last.block_height) !== height) fail('BTC_QUERY_REORG');
       await this.#network(signal);
       return freeze({ networkId: this.#networkId, txid: original.txid, state: 'included', receipt });
-    } catch { return unknown(); }
+    } catch (error) { return unknown(error); }
   }
   sign() { fail('BTC_SIGNING_NOT_IMPLEMENTED'); }
   broadcast() { fail('BTC_BROADCAST_NOT_IMPLEMENTED'); }
