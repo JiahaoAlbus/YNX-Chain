@@ -1,6 +1,18 @@
 #pragma once
 #include <cstdint>
 namespace ynx_auth_private {
+// Retain an uncertain descriptor number as evidence, never close it again:
+// a failed close may already have released/recycled that number.
+struct TemporaryDescriptor {
+ int fd=-1;bool selected=false,completed=false;
+ bool hold(int value){if(value<0||unresolved())return false;fd=value;selected=false;completed=false;return true;}
+ template<class Closer> bool closeOnce(Closer closer){
+  if(selected)return completed;if(fd<0)return true;selected=true;
+  completed=closer(fd)==0;if(completed)fd=-1;return completed;
+ }
+ bool unresolved()const{return fd>=0;}
+ int identity()const{return fd;}
+};
 // Internal source-state validator: shape/current fences, never an approval.
 struct SourceClock {
  std::uint64_t floor=0,generation=0;

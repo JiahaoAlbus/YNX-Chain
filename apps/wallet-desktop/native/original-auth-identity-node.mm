@@ -24,11 +24,16 @@ struct OriginalAuthHandle {
  Kind kind; napi_env env; YNXAuthIdentitySourceAuthority *__strong source;
  NSDictionary *__strong selection; napi_ref vault=nullptr,view=nullptr,local=nullptr,result=nullptr;
  ynx_auth_private::JointLifecycle life;bool retired=false,closed=false,closeSelected=false,cleanupFailed=false;
+ ynx_auth_private::TemporaryDescriptor commitDescriptor,readDescriptor;
  int journalDir=-1,channel=-1;std::string recordName;OriginalAuthHandle *parent=nullptr;unsigned children=0;
  std::unordered_map<std::string,std::string> responses;
  std::unordered_set<std::string> enteredRequests;
 };
 static std::unordered_set<OriginalAuthHandle *> originals,debt;
+static bool CloseTemporary(OriginalAuthHandle *h,ynx_auth_private::TemporaryDescriptor &descriptor){
+ bool completed=descriptor.closeOnce([](int fd){return close(fd);});
+ if(!completed){h->cleanupFailed=true;debt.insert(h);}return completed;
+}
 static napi_value Undefined(napi_env env){napi_value v;return napi_get_undefined(env,&v)==napi_ok?v:nullptr;}
 static napi_value Error(napi_env env,const char *code){napi_throw_error(env,code,code);return nullptr;}
 static bool Args(napi_env env,napi_callback_info info,size_t n,napi_value *argv,void **data=nullptr){size_t count=n+1;napi_value values[5];if(n>4||napi_get_cb_info(env,info,&count,values,nullptr,data)!=napi_ok||count!=n)return false;for(size_t i=0;i<n;i++)argv[i]=values[i];return true;}
@@ -53,7 +58,7 @@ static bool Close(OriginalAuthHandle *h){
  for(int *fd:{&h->channel,&h->journalDir})if(*fd>=0){if(close(*fd)<0)h->cleanupFailed=true;else *fd=-1;}
  if(h->kind==Kind::administration){[h->source retire];NSError *e=nil;if(![h->source join:&e]||![h->source close:&e])h->cleanupFailed=true;}
  if(h->parent&&h->parent->children){h->parent->children--;h->parent=nullptr;}
- h->closed=!h->cleanupFailed;h->life.completedCleanup(h->closed);if(!h->closed)debt.insert(h);return h->closed;
+ h->closed=!h->cleanupFailed&&!h->commitDescriptor.unresolved()&&!h->readDescriptor.unresolved();h->life.completedCleanup(h->closed);if(!h->closed)debt.insert(h);return h->closed;
 }
 static void Finalize(napi_env env,void *p,void *){OriginalAuthHandle *h=(OriginalAuthHandle *)p;if(!originals.count(h))return;if(!Close(h))return;for(napi_ref ref:{h->vault,h->view,h->local,h->result})if(ref)napi_delete_reference(env,ref);originals.erase(h);delete h;}
 static napi_value Wrap(napi_env env,OriginalAuthHandle *h){napi_value object;napi_create_object(env,&object);originals.insert(h);if(napi_wrap(env,object,h,Finalize,nullptr,nullptr)!=napi_ok){debt.insert(h);return Error(env,"AUTH_IDENTITY_WRAP_FAILED");}return object;}
@@ -80,7 +85,8 @@ static napi_value Commit(napi_env env,napi_callback_info info){
  NSDictionary *record=@{@"recordId":[NSString stringWithUTF8String:h->recordName.c_str()],@"association":h->selection[@"association"],@"generation":h->selection[@"generation"]};NSData *raw=[NSJSONSerialization dataWithJSONObject:record options:NSJSONWritingSortedKeys|NSJSONWritingWithoutEscapingSlashes error:nil];
  napi_value result=JSON(env,record);napi_create_reference(env,result,1,&h->result); // retain before late fences/I/O
  int fd=openat(h->journalDir,h->recordName.c_str(),O_WRONLY|O_CREAT|O_EXCL|O_NOFOLLOW|O_CLOEXEC,0600);if(fd<0)return Error(env,"AUTH_IDENTITY_REGISTERED_COMMIT_UNKNOWN");
- size_t n=0;bool failed=false;while(n<raw.length){ssize_t count=write(fd,(const char *)raw.bytes+n,raw.length-n);if(count<=0){failed=true;break;}n+=(size_t)count;}if(fsync(fd))failed=true;if(close(fd))failed=true;if(fsync(h->journalDir))failed=true;
+ h->commitDescriptor.hold(fd);
+ size_t n=0;bool failed=false;while(n<raw.length){ssize_t count=write(fd,(const char *)raw.bytes+n,raw.length-n);if(count<=0){failed=true;break;}n+=(size_t)count;}if(fsync(fd))failed=true;if(!CloseTemporary(h,h->commitDescriptor))failed=true;if(fsync(h->journalDir))failed=true;
  if(failed)return Error(env,"AUTH_IDENTITY_REGISTERED_COMMIT_UNKNOWN");if(!Current(h))return nullptr;return result;
 }
 static napi_value PrivateDispatch(napi_env env,napi_callback_info info){
@@ -106,8 +112,9 @@ static napi_value PrivateDispatch(napi_env env,napi_callback_info info){
 }
 static napi_value ReadJoint(napi_env env,napi_callback_info info){
  napi_value a[2];if(!Args(env,info,2,a))return Error(env,"AUTH_IDENTITY_ARGUMENTS_INVALID");OriginalAuthHandle *h=Original(env,a[0],Kind::joint);if(!h)return Error(env,"AUTH_IDENTITY_ORIGINAL_OWNER_REQUIRED");if(!Current(h))return nullptr;if(!Same(env,h->result,a[1])||h->journalDir<0)return Error(env,"AUTH_IDENTITY_ORIGINAL_RESULT_REQUIRED");
- int fd=openat(h->journalDir,h->recordName.c_str(),O_RDONLY|O_NOFOLLOW|O_CLOEXEC);struct stat st;if(fd<0||fstat(fd,&st)||!S_ISREG(st.st_mode)||st.st_nlink!=1||st.st_uid!=getuid()||(st.st_mode&0077)||st.st_size<1||st.st_size>65536){if(fd>=0)close(fd);return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");}
- NSMutableData *bytes=[NSMutableData dataWithLength:(NSUInteger)st.st_size];ssize_t n=pread(fd,bytes.mutableBytes,bytes.length,0);bool closeFailed=close(fd)!=0;if(n!=(ssize_t)bytes.length||closeFailed)return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");id readback=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];napi_value expected;napi_get_reference_value(env,h->result,&expected);if(![readback isEqual:Dictionary(env,expected)])return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");if(!Current(h))return nullptr;h->life.completeReadback();
+ if(h->readDescriptor.unresolved())return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");
+ int fd=openat(h->journalDir,h->recordName.c_str(),O_RDONLY|O_NOFOLLOW|O_CLOEXEC);if(fd>=0)h->readDescriptor.hold(fd);struct stat st;if(fd<0||fstat(fd,&st)||!S_ISREG(st.st_mode)||st.st_nlink!=1||st.st_uid!=getuid()||(st.st_mode&0077)||st.st_size<1||st.st_size>65536){if(fd>=0)CloseTemporary(h,h->readDescriptor);return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");}
+ NSMutableData *bytes=[NSMutableData dataWithLength:(NSUInteger)st.st_size];ssize_t n=pread(fd,bytes.mutableBytes,bytes.length,0);bool closeFailed=!CloseTemporary(h,h->readDescriptor);if(n!=(ssize_t)bytes.length||closeFailed)return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");id readback=[NSJSONSerialization JSONObjectWithData:bytes options:0 error:nil];napi_value expected;napi_get_reference_value(env,h->result,&expected);if(![readback isEqual:Dictionary(env,expected)])return Error(env,"AUTH_IDENTITY_READBACK_UNKNOWN");if(!Current(h))return nullptr;h->life.completeReadback();
  napi_value view=JSON(env,@{@"association":h->selection[@"association"],@"raw":h->selection[@"raw"],@"executor":h->selection[@"executor"],@"observer":h->selection[@"observer"]}),vault,executor,dispatch;napi_get_reference_value(env,h->vault,&vault);napi_set_named_property(env,view,"vault",vault);napi_get_named_property(env,view,"executor",&executor);napi_create_function(env,"privateDispatch",NAPI_AUTO_LENGTH,PrivateDispatch,h,&dispatch);napi_set_named_property(env,executor,"privateDispatch",dispatch);napi_create_reference(env,view,1,&h->view);return view;
 }
 enum Operation {adminCurrent,adminRetire,adminJoin,adminClose,jointCurrent,jointChild,jointSuccession,jointRetire,jointJoin,jointClose};
