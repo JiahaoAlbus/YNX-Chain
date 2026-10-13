@@ -10,6 +10,41 @@ const root=process.env.PUBLIC_F1F2_PARENT_RED==='1'?new URL('file:///Users/huang
 const custodianSource=readFileSync(new URL('original-admission-custodian.mjs',root),'utf8');
 function custodian(){const ctx=vm.createContext({captureOriginalAdmissionProductionContext:value=>value});vm.runInContext(custodianSource.replace(/^import .*;$/mg,'').replaceAll('export ','')+'\nthis.api={retainOriginalAdmissionCustodian,assertOriginalServiceAdmissionProductionOwner,publishOriginalServiceAdmissionProduction,closeOriginalServiceAdmissionProductionOwner,completeOriginalServiceAdmissionProductionClose,selectOriginalServiceAdmissionProductionOutcome:typeof selectOriginalServiceAdmissionProductionOutcome==="function"?selectOriginalServiceAdmissionProductionOutcome:undefined,enterOriginalServiceAdmissionDelivery,acknowledgeOriginalServiceAdmissionDelivery}',ctx);return ctx.api;}
 const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+function r11LocalCurrentFixture(){
+ const text=readFileSync(new URL('password-wallet-vault.mjs',root),'utf8'),start=text.indexOf('  #serialize(action)'),end=text.indexOf('  async #originalAdmissionContext(',start),captureStart=text.indexOf('export function captureOriginalServiceRoleLocalCurrentSource('),captureEnd=text.indexOf('\n}',captureStart)+2;
+ const state={time:1000,account:'PUBLIC_ACCOUNT',digest:'PUBLIC_DIGEST',live:true,revoke:false,decrypt:null,afterCurrent:null,reads:0};
+ const context=vm.createContext({fail:code=>{throw Error(code);},cancelled:()=>Error('PUBLIC_CANCELLED'),vaultStorageError:code=>Error(code),captureOriginalRecoveryJSON:v=>JSON.parse(JSON.stringify(v)),exactFields:(v,k)=>assert.deepEqual(Object.keys(v).sort(),[...k].sort()),parsePasswordVault:()=>({activeAccount:state.account}),options:guard=>({guard:()=>guard.assert()}),decryptPasswordVaultOriginalAdmissionCatalog:async()=>{state.reads++;await state.decrypt?.();return {serviceRoleState:{PUBLIC:true,revoked:state.revoke}};},publicOriginalWalletServiceRoleEnrollmentReadback:v=>v,createOriginalWalletServiceRolePublicApprovalVerifier:()=>({verify:v=>{if(v.revoked)throw Error('PUBLIC_REVOKED');return {roleExpiresAt:5000};},retire(){}})});
+ vm.runInContext('const originalLocalCurrentSources=new WeakMap();\n'+text.slice(captureStart,captureEnd).replace('export ','')+'\nthis.capture=captureOriginalServiceRoleLocalCurrentSource;\nthis.Subject=class {#session={PUBLIC:true};#digest="PUBLIC_DIGEST";#mutations=Promise.resolve();'+text.slice(start,end)+'}',context);
+ const vault=new context.Subject();vault.now=()=>state.time;vault.authorization={lock(){state.live=false;}};vault.files={read:async()=>({digest:state.digest,text:'PUBLIC_ENCRYPTED'}),assertCurrent:async digest=>{assert.equal(digest,state.digest);state.afterCurrent?.();}};
+ const guard={get account(){return state.account;},assert(){if(!state.live)throw false;}};
+ const expected={account:'PUBLIC_ACCOUNT',role:{PUBLIC:'selected-original-role'},requestedAtMs:1000,expiresAtMs:2000};
+ return {state,vault,guard,expected,capture:context.capture};
+}
+test('R11 PUBLIC same Vault current owns authenticated serialized read, not independent latest',async()=>{
+ const f=r11LocalCurrentFixture(),ref=await f.vault.acquireOriginalServiceRoleLocalCurrentSource(f.expected,f.guard),owner=f.capture(ref),original=await owner.read();
+ assert.equal(owner.vault,f.vault);assert.equal(original.scope,'LOCAL_SELECTED_VAULT');assert.equal(original.nativeQualified,false);assert.equal(original.independentLatest,false);assert.equal(original.account,'PUBLIC_ACCOUNT');assert.throws(()=>f.capture({}),/OWNER_REQUIRED/);
+ const close=owner.close();assert.equal(owner.close(),close);await close;assert.throws(()=>owner.read(),/CANCELLED/);
+});
+test('R11 PUBLIC local current rejects late guard/account/clock/revoke and retains PUBLIC original before fence',async()=>{
+ for(const phase of ['guard','account','clock','revoke','digest']){
+  const f=r11LocalCurrentFixture(),ref=await f.vault.acquireOriginalServiceRoleLocalCurrentSource(f.expected,f.guard),owner=f.capture(ref);
+  if(phase==='revoke')f.state.revoke=true;
+  else if(phase==='digest')f.state.digest='PUBLIC_CHANGED';
+  else f.state.afterCurrent=()=>{if(phase==='guard')f.state.live=false;if(phase==='account')f.state.account='PUBLIC_OTHER';if(phase==='clock')f.state.time=2000;};
+  let rejected=false;try{await owner.read();}catch{rejected=true;}assert(rejected);assert.equal(owner.selectOutcome().firstCausePresent,true);assert.equal(owner.selectOutcome().result.account,'PUBLIC_ACCOUNT');await owner.close();
+ }
+});
+test('R11 PUBLIC local current joins entered reader, preserves late result and never reads on close',async()=>{
+ const f=r11LocalCurrentFixture(),ref=await f.vault.acquireOriginalServiceRoleLocalCurrentSource(f.expected,f.guard),owner=f.capture(ref),entered=deferred(),finish=deferred();
+ f.state.decrypt=async()=>{entered.resolve();await finish.promise;};const reading=owner.read();void reading.catch(()=>{});await entered.promise;const close=owner.close();let disposed=false;void close.then(()=>{disposed=true;});await Promise.resolve();assert.equal(disposed,false);finish.resolve();await assert.rejects(reading,/CANCELLED/);await close;assert.equal(owner.selectOutcome().result.account,'PUBLIC_ACCOUNT');assert.equal(f.state.reads,2);assert.equal(owner.close(),close);
+});
+test('R11 PUBLIC selected Vault serializes concurrent reads and refuses captured-observation substitution',async()=>{
+ const f=r11LocalCurrentFixture(),ref=await f.vault.acquireOriginalServiceRoleLocalCurrentSource(f.expected,f.guard),owner=f.capture(ref),entered=deferred(),finish=deferred();let reads=0;
+ f.state.decrypt=async()=>{reads++;if(reads===1){entered.resolve();await finish.promise;}};
+ const first=owner.read();await entered.promise;const second=owner.read();await Promise.resolve();assert.equal(reads,1);finish.resolve();const original=await first;await second;assert.equal(reads,2);
+ assert.throws(()=>owner.assertObservationCurrent({...original}),/CHANGED/);assert.throws(()=>owner.assertObservationCurrent(original),/CHANGED/);
+ const current=owner.selectOutcome().result;assert.equal(owner.assertObservationCurrent(current),undefined);f.state.time=999;assert.throws(()=>owner.assertObservationCurrent(current),/CHANGED/);await owner.close();
+});
 // New R3 only: exact summary body with PUBLIC read/decrypt/current substitutes.
 function r3SummaryFixture({records=[],runtimeRecords=[],onDecrypt=()=>{},onCurrent=()=>{}}={}){
   const source=readFileSync(new URL('password-wallet-vault.mjs',root),'utf8');

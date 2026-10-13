@@ -20,7 +20,8 @@
     "dist:linux-appimage": "electron-builder --linux AppImage --x64 --publish never",
     "dist:windows": "electron-builder --win nsis --x64 --publish never",
     "dist:mac": "node scripts/build-mac.mjs",
-    "dist:mac:arm64": "node scripts/build-mac.mjs arm64"
+    "dist:mac:arm64": "node scripts/build-mac.mjs arm64",
+    "build:original-auth-native": "node scripts/build-original-auth-identity-native.mjs"
   },
   "dependencies": {
     "@reown/walletkit": "1.5.6",
@@ -57,9 +58,11 @@
       }
     ],
     "asar": true,
+    "asarUnpack": ["native/original-auth-identity.node"],
     "afterPack": "scripts/after-pack.mjs",
     "files": [
       "src/**",
+      "native/original-auth-identity.node",
       "package.json",
       "node_modules/@ynx-chain/wallet-auth/**",
       "node_modules/@noble/**"

@@ -1,11 +1,20 @@
 // Private original-Vault owner refs. No renderer DTO, serialized reference,
 // PID, descriptor or standalone caller can recover an owner from these refs.
 import {captureOriginalAdmissionProductionContext,assertOriginalAdmissionVault} from './password-wallet-vault.mjs';
+import {acquireOriginalAuthIdentityJointConfiguration,readOriginalAuthIdentityJointConfiguration,assertOriginalAuthIdentityJointCurrent,assertOriginalAuthIdentityJointExecutorChild,assertOriginalAuthIdentityJointSuccession,retireOriginalAuthIdentityJointConfiguration,joinOriginalAuthIdentityJointConfiguration,closeOriginalAuthIdentityJointConfiguration} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 const owners=new WeakMap();
 const failure=code=>Object.assign(new Error(code),{code});
 // Fixed private source slot. No public installation/registration operation.
 // The independently admitted configuration/executor is genuinely unavailable.
-const originalConfigurationSource=null;
+const originalConfigurationSource=Object.freeze({
+ acquire:async(vault,guard)=>{const owner=await acquireOriginalAuthIdentityJointConfiguration(vault,guard),selected=readOriginalAuthIdentityJointConfiguration(owner);return Object.freeze({...selected,owner});},
+ assertCurrent:original=>assertOriginalAuthIdentityJointCurrent(original.owner),
+ assertExecutorCurrent:(original,executor,child)=>assertOriginalAuthIdentityJointExecutorChild(original.owner,executor,child),
+ assertAdmissionSuccession:(original,request)=>assertOriginalAuthIdentityJointSuccession(original.owner,request),
+ retire:original=>retireOriginalAuthIdentityJointConfiguration(original.owner),
+ join:original=>joinOriginalAuthIdentityJointConfiguration(original.owner),
+ close:original=>closeOriginalAuthIdentityJointConfiguration(original.owner)
+});
 const configurations=new WeakMap(),configurationDebt=new Set(),retainedConfigurationOutcomes=new Set();
 function configuration(ref){const state=configurations.get(ref);if(!state)throw failure('ADMISSION_CONFIGURATION_OWNER_REQUIRED');return state;}
 function configurationCurrent(state){if(state.retired||state.closed)throw state.hasFirst?state.first:failure('ADMISSION_CONFIGURATION_RETIRED');}

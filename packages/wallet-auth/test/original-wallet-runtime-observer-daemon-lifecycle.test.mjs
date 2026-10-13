@@ -12,7 +12,7 @@ const observerText=read('../src/original-wallet-service-runtime-observer.js');
 const launcherText=read('../scripts/original-wallet-runtime-observer-launcher.mjs');
 const daemonText=read('../scripts/ynx-wallet-gatewayd.mjs');
 const admissionText=read('../src/gateway-admission.js');
-const clean=text=>text.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','');
+const clean=text=>text.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify('file:///PUBLIC/original-module.js'));
 function composeOriginalPrivateAcquisition(context){
  // Real module inventory and cleanup contract in an isolated lexical closure.
  // Native stays fixed null; no successful-cleanup or approving provider stub.

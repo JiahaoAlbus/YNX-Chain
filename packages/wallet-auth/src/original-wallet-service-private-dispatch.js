@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {ProductSessionGatewayNodeHost,captureOriginalWalletServiceRuntimeHostSource} from './product-session-gateway-node-host.js';
 import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-admission.js';
@@ -6,7 +7,15 @@ import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-a
 // Fixed original Native implementation must be linked here when its actual ABI
 // is supplied. No public setter/callback/DTO can install an approving source.
 // Dispatcher/kernel CODE exists below; actual Native acquisition still missing.
-const originalNativeServiceBinding=null;
+function loadFixedOriginalNativeServiceBinding(){
+ try{
+  const native=createRequire(new URL('.',import.meta.url))(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url).pathname);
+  const names={capture:'captureOriginalNativePrivateServiceBorrow',assertCurrent:'assertOriginalNativePrivateServiceCurrent',assertAdmission:'assertOriginalNativePrivateServiceAdmission',assertTerminal:'assertOriginalNativePrivateServiceTerminal',retire:'retireOriginalNativePrivateService',join:'joinOriginalNativePrivateService',close:'closeOriginalNativePrivateService'};
+  if(Object.values(names).some(name=>typeof native[name]!=='function'))return null;
+  return Object.freeze(Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])));
+ }catch{return null;}
+}
+const originalNativeServiceBinding=loadFixedOriginalNativeServiceBinding();
 const pendingCustody=new Set();
 const selectedNativeOriginals=new WeakSet();
 const acquisitionStates=new WeakMap();

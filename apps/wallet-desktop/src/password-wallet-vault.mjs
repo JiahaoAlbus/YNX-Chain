@@ -1,7 +1,7 @@
 import { randomBytes, randomUUID,createPrivateKey,createPublicKey } from "node:crypto";
 import {canonicalJSON,exactFields} from '../../../packages/wallet-auth/src/canonical.js';
 import {captureOriginalRecoveryJSON} from '../../../packages/wallet-auth/src/original-operation-recovery-state.js';
-import {createOriginalWalletServiceRoleEnrollmentCodec} from '../../../packages/wallet-auth/src/original-wallet-service-role-enrollment-state.js';
+import {createOriginalWalletServiceRoleEnrollmentCodec,publicOriginalWalletServiceRoleEnrollmentReadback,createOriginalWalletServiceRolePublicApprovalVerifier} from '../../../packages/wallet-auth/src/original-wallet-service-role-enrollment-state.js';
 import {prepareOriginalWalletServiceAdmissionReview,prepareOriginalWalletServiceAdmissionHolderBinding,prepareOriginalWalletServiceAdmissionPublisher,signOriginalWalletServiceRuntimeObservation} from '../../../packages/wallet-auth/src/original-wallet-service-admission.js';
 import {captureOriginalWalletServiceRuntimeObservation,assertOriginalWalletServiceRuntimeObservationCurrent} from '../../../packages/wallet-auth/src/original-wallet-service-runtime-observer.js';
 import {reserveOriginalWalletServiceRuntimePublication,markOriginalWalletServiceRuntimePublicationUnknown,recordOriginalWalletServiceRuntimePublicationSigned,readOriginalWalletServiceRuntimePublication} from '../../../packages/wallet-auth/src/original-wallet-service-runtime-publication.js';
@@ -45,6 +45,12 @@ function legacyVault(text) {
 const publicLegacy = ({ encryptedSecret, ...record }) => record;
 const originalProductionContexts=new WeakMap();
 const originalVaults=new WeakSet();
+const originalLocalCurrentSources=new WeakMap();
+export function captureOriginalServiceRoleLocalCurrentSource(ref){
+  const source=originalLocalCurrentSources.get(ref);
+  if(!source)fail('SERVICE_ROLE_LOCAL_CURRENT_OWNER_REQUIRED','Original same-Vault current owner is required.');
+  return source;
+}
 export function assertOriginalAdmissionVault(vault){
   if(!originalVaults.has(vault))fail('ADMISSION_ORIGINAL_VAULT_REQUIRED','Original same-Vault instance is required.');
 }
@@ -160,6 +166,49 @@ export class PasswordWalletVault {
     guard.assert(); const snapshot = await this.files.read(); guard.assert();
     if (!snapshot || !this.#session || this.#digest !== snapshot.digest) { this.authorization.lock(); throw vaultStorageError("PASSWORD_VAULT_FILE_CHANGED"); }
     return { snapshot, vault: parsePasswordVault(snapshot.text), session: this.#session };
+  }
+  async #readOriginalServiceRoleCurrent(expected,guard,clock,retained){
+    guard.assert();const start=this.now();
+    if(!Number.isSafeInteger(start)||start<clock.floor||start<expected.requestedAtMs||start>=expected.expiresAtMs)fail('SERVICE_ROLE_LOCAL_CURRENT_EXPIRED','Original local current window expired.');
+    clock.floor=start;
+    const current=await this.#readUnlocked(guard);guard.assert();
+    if(current.vault.activeAccount!==expected.account||guard.account!==expected.account)throw cancelled();
+    const catalog=await decryptPasswordVaultOriginalAdmissionCatalog(current.vault,current.session,options(guard));guard.assert();
+    // Capture only PUBLIC Role fields before the last asynchronous fence.
+    const readback=publicOriginalWalletServiceRoleEnrollmentReadback(catalog.serviceRoleState);
+    const verifier=createOriginalWalletServiceRolePublicApprovalVerifier(expected.role);
+    let statement;
+    try{statement=verifier.verify(readback,start);}finally{verifier.retire();}
+    const original=Object.freeze({scope:'LOCAL_SELECTED_VAULT',account:expected.account,digest:current.snapshot.digest,statement,readback,independentLatest:false,nativeQualified:false});
+    retained.result=original;
+    await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+    const end=this.now();
+    if(!Number.isSafeInteger(end)||end<start||end>=expected.expiresAtMs||end>=statement.roleExpiresAt)fail('SERVICE_ROLE_LOCAL_CURRENT_EXPIRED','Original local current window expired.');
+    if(guard.account!==expected.account||current.vault.activeAccount!==expected.account)throw cancelled();
+    clock.floor=end;
+    return original;
+  }
+  async acquireOriginalServiceRoleLocalCurrentSource(rawExpected,guard){
+    const expected=captureOriginalRecoveryJSON(rawExpected);
+    exactFields(expected,['account','role','requestedAtMs','expiresAtMs'],'Original selected Vault current');
+    if(typeof expected.account!=='string'||!expected.account||!Number.isSafeInteger(expected.requestedAtMs)||!Number.isSafeInteger(expected.expiresAtMs)||expected.expiresAtMs<=expected.requestedAtMs||expected.expiresAtMs-expected.requestedAtMs>120000)fail('SERVICE_ROLE_LOCAL_CURRENT_INVALID','Invalid original local current selection.');
+    const clock={floor:expected.requestedAtMs},state={retired:false,closing:null,entered:new Set(),firstCause:undefined,firstPresent:false,result:null};
+    const live=()=>{if(state.retired)throw state.firstPresent?state.firstCause:cancelled();};
+    const read=()=>{
+      live();const promise=this.#serialize(async()=>{
+        try{live();const original=await this.#readOriginalServiceRoleCurrent(expected,guard,clock,state);live();return original;}
+        catch(cause){if(!state.firstPresent){state.firstPresent=true;state.firstCause=cause;}state.retired=true;throw cause;}
+      });state.entered.add(promise);void promise.then(()=>state.entered.delete(promise),()=>state.entered.delete(promise));return promise;
+    };
+    const ref=Object.freeze({});
+    const source=Object.freeze({vault:this,read,assertCurrent:async()=>{await read();return undefined;},assertObservationCurrent:original=>{
+      live();guard.assert();const at=this.now();
+      if(original!==state.result||original?.digest!==this.#digest||guard.account!==expected.account||!Number.isSafeInteger(at)||at<clock.floor||at>=expected.expiresAtMs||at>=original.statement.roleExpiresAt)fail('SERVICE_ROLE_LOCAL_CURRENT_CHANGED','Original selected Vault observation changed.');clock.floor=at;live();return undefined;
+    },retire:()=>{state.retired=true;},join:async()=>{while(state.entered.size)await Promise.allSettled([...state.entered]);},close:()=>{
+      state.retired=true;if(!state.closing)state.closing=Promise.resolve().then(async()=>{while(state.entered.size)await Promise.allSettled([...state.entered]);return undefined;});return state.closing;
+    },selectOutcome:()=>Object.freeze({result:state.result,firstCausePresent:state.firstPresent})});
+    originalLocalCurrentSources.set(ref,source);
+    try{await read();live();return ref;}catch(cause){await source.close();throw cause;}
   }
   async #originalAdmissionContext(input,review,observer){
     if(!review||typeof review.assert!=='function'||typeof review.assertAdmissionSuccession!=='function')fail('SERVICE_ADMISSION_SUCCESSION_NOT_SUPPLIED','Original finite review is absent.');

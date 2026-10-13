@@ -26,6 +26,8 @@ import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
 import { PasswordWalletVault } from "./password-wallet-vault.mjs";
+import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
+import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
 import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
@@ -186,7 +188,7 @@ function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,o
   }
   return Object.freeze({status,refresh:()=>operation(refresh),review:()=>operation(review),confirm:id=>operation(()=>confirm(id)),cancel,securityChanged,emit,shutdown});
 }
-originalAdmissionEntry=createOriginalAdmissionEntry({controller:originalAdmission,keyAccess,getVault:()=>originalAdmissionVault,getWindow:()=>mainWindow,openSupply:openOriginalAdmissionSupply,closeSupply:closeOriginalAdmissionSupply,readSummary:readOriginalAdmissionSummary,setSupply:value=>{originalAdmissionSupply=value;},selectionUnresolved:originalAdmissionSelectionUnresolved,notify:state=>mainWindow?.webContents.send('wallet:original-admission-state',state)});
+originalAdmissionEntry=createOriginalAdmissionEntry({controller:originalAdmission,keyAccess,getVault:()=>originalAdmissionVault,getWindow:()=>mainWindow,openSupply:openOriginalAdmissionSupply,closeSupply:closeOriginalAdmissionSupply,readSummary:readOriginalAdmissionSummary,setSupply:value=>{originalAdmissionSupply=value;},selectionUnresolved:()=>originalAdmissionSelectionUnresolved()||originalAuthIdentityStartupUnresolved(originalAdmissionVault),notify:state=>mainWindow?.webContents.send('wallet:original-admission-state',state)});
 handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmissionEntry.refresh()));
 handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
 handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
@@ -653,6 +655,8 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
   originalAdmissionVault=passwordVault;
+  const originalIdentityStartup=initializeOriginalAuthIdentityStartup(passwordVault);
+  if(!originalIdentityStartup.implementingModuleAvailable)console.warn('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
   familyAccounts = createMnemonicFamilyAccounts({
     vault: passwordVault,
     getContext: async () => ({ account: (await passwordVault.status()).account, ...keyAccess.status() }),
