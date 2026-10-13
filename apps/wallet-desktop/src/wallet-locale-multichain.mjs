@@ -13,6 +13,21 @@ ru:'Другие сети EVM|Другие сети не меняют разре
 ar:'شبكات EVM أخرى|الشبكات الأخرى لا تغير أذونات YNX. تحقق من RPC والرمز بشكل مستقل.|اختر شبكة EVM أو أضفها.|تعديل الشبكة|إزالة الشبكة|إضافة أو تعديل شبكة EVM|اسم الشبكة|HTTPS RPC|معرف السلسلة|رمز العملة الأصلية|تجزئة كتلة التكوين|التحقق والحفظ|استيراد رمز ERC-20|عقد الرمز|اسم الرمز|اختصار الرمز|المنازل العشرية|أدخل البيانات الناقصة يدوياً. لا تخمن المنازل العشرية.|إرسال عبر الشبكة المختارة|المستلم|المبلغ|إزالة الرمز|عنوان استقبال EVM|أقصى رسوم|Nonce|حد الغاز|سعر الغاز|بيانات المعاملة|الإدراج بحسب RPC ليس نهائية الإجماع. المعاملات المجهولة تُفحص ولا تُعاد تلقائياً.|فشل طلب الشبكة: {code}|راجع الشبكة والمستلم والمبلغ وأقصى رسوم بدقة.|حالة المعاملة: {state}|فحص المعاملة الأصلية|تأكيد وإرسال',
 id:'Jaringan EVM lainnya|Jaringan lain tidak mengubah izin YNX. Verifikasi RPC dan token secara terpisah.|Pilih atau tambah jaringan EVM.|Edit jaringan|Hapus jaringan|Tambah atau edit jaringan EVM|Nama jaringan|RPC HTTPS|ID chain|Simbol koin asli|Hash blok genesis|Verifikasi dan simpan|Impor token ERC-20|Kontrak token|Nama token|Simbol token|Desimal token|Isi metadata yang tidak tersedia. Jangan menebak desimal token.|Kirim di jaringan terpilih|Penerima|Jumlah|Hapus token|Alamat penerima EVM|Biaya maksimum|Nonce|Batas gas|Harga gas|Data transaksi|Pencantuman blok RPC bukan finalitas konsensus. Transaksi tak diketahui hanya diperiksa, tidak dikirim ulang otomatis.|Permintaan jaringan gagal: {code}|Periksa jaringan, penerima, jumlah, dan biaya maksimum yang tepat.|Status transaksi: {state}|Periksa transaksi asli|Konfirmasi dan kirim'
 };
+const refreshRows={
+en:'Refresh',
+'zh-Hans':'刷新',
+'zh-Hant':'重新整理',
+ja:'更新',
+ko:'새로고침',
+es:'Actualizar',
+fr:'Actualiser',
+de:'Aktualisieren',
+pt:'Atualizar',
+ru:'Обновить',
+ar:'تحديث',
+id:'Segarkan'
+};
+keys.push('Refresh');for(const locale of Object.keys(rows))rows[locale]+='|'+refreshRows[locale];
 const presetKeys=['Use a network template','Templates fill the form only. Verify and save before using the network.'];
 const presetRows={
 en:presetKeys,

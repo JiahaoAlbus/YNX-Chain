@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {createMultichainUI} from "../src/multichain-ui.mjs";
 import {WALLET_LOCALES,WALLET_COPY,WALLET_LOCALE_KEY,WALLET_STATIC_COPY,WALLET_STATIC_ATTRIBUTES,parseWalletLocale,systemWalletLocale,initWalletLocale,renderWalletCopy,setWalletCopy} from "../src/wallet-locale.mjs";
 const mounted=storage=>{
   const select={value:"",addEventListener(type,fn){this.change=fn}},status={textContent:""},node={textContent:"",getAttribute:()=>"Review your transfer"};
@@ -65,4 +66,52 @@ test("critical recovery and local-finality disclaimers are enrolled explicitly i
   for(const selector of selectors){const key=WALLET_STATIC_COPY[selector];assert.ok(key,selector);for(const locale of WALLET_LOCALES){assert.ok(WALLET_COPY[locale][key]);if(locale!=="en")assert.notEqual(WALLET_COPY[locale][key],key)}}
   assert.match(WALLET_STATIC_COPY[selectors[1]],/missing receipt does not mean it was never submitted/);
   assert.match(WALLET_STATIC_COPY[selectors[2]],/not consensus finality/);
+});
+
+// Display-only real UI/locale composition. DOM and IPC reads are PUBLIC
+// stand-ins; no service/adapter, keys, crypto, network or native window.
+const r14Refresh={en:"Refresh","zh-Hans":"刷新","zh-Hant":"重新整理",ja:"更新",ko:"새로고침",es:"Actualizar",fr:"Actualiser",de:"Aktualisieren",pt:"Atualizar",ru:"Обновить",ar:"تحديث",id:"Segarkan"};
+function r14Display(){
+  const nodes={},calls=[],context={account:"0x"+"ab".repeat(20),revision:1,locked:false};
+  const document={documentElement:{},querySelector:selector=>nodes[selector.slice(1)]??null,querySelectorAll:()=>[],createElement:tag=>new Element(tag),createTextNode:text=>({textContent:String(text),children:[]})};
+  class Element{
+    constructor(tag="div"){this.tagName=tag.toUpperCase();this.ownerDocument=document;this.children=[];this.listeners={};this.attributes={};this.value="";this.open=false;this.isConnected=true;this.disabled=false;this.text=""}
+    get textContent(){return this.children.length?this.children.map(child=>child.textContent).join(""):this.text}
+    set textContent(value){this.children=[];this.text=String(value)}
+    append(...children){this.children.push(...children)}
+    replaceChildren(...children){this.children=children;this.text=""}
+    setAttribute(key,value){this.attributes[key]=String(value);if(key==="id")nodes[value]=this}
+    getAttribute(key){return this.attributes[key]??null}
+    addEventListener(name,callback){(this.listeners[name]??=[]).push(callback)}
+    async emit(name){for(const callback of this.listeners[name]??[])await callback({preventDefault(){}})}
+    showModal(){this.open=true}
+    close(){this.open=false;void this.emit("close")}
+    reportValidity(){return true}
+    reset(){}
+  }
+  for(const id of ["wallet-language","wallet-language-status","open-multichain","multichain-sheet","multichain-content","multichain-review","multichain-review-facts","multichain-review-status","multichain-confirm","multichain-cancel","multichain-close"])nodes[id]=new Element();
+  const displayStorage=new Map(),storage={getItem:key=>displayStorage.get(key)??null,setItem(key,value){assert.equal(key,WALLET_LOCALE_KEY);displayStorage.set(key,value)}};
+  const locale=initWalletLocale({document,getStorage:()=>storage,systemLanguages:["zh-CN"]});
+  const frame=Object.freeze({account:context.account,revision:1,networks:Object.freeze([]),selected:null});
+  const api={multichainSnapshot:async()=>{calls.push("snapshot");return {ok:true,value:frame}},multichainBalances:()=>{throw Error("Unexpected balances")},multichainHistory:()=>{throw Error("Unexpected history")},multichainPrepare:()=>{throw Error("Unexpected prepare")},multichainSend:()=>{throw Error("Unexpected send")},multichainCancel:()=>{throw Error("Unexpected cancel")}};
+  const ui=createMultichainUI({document,api,getContext:()=>context});
+  const all=()=>{const result=[];function visit(node){result.push(node);for(const child of node.children??[])visit(child)}visit(nodes["multichain-content"]);return result};
+  const refresh=nodes["multichain-content"].children.find(node=>node.tagName==="BUTTON");
+  return {ui,locale,nodes,document,context,frame,calls,refresh,all,displayStorage,async open(){await nodes["open-multichain"].emit("click");await new Promise(resolve=>setImmediate(resolve))}};
+}
+test("R14 PUBLIC Refresh is enrolled with exact display copy in twelve locales",()=>{
+  assert.deepEqual(Object.keys(r14Refresh),WALLET_LOCALES);
+  for(const locale of WALLET_LOCALES){assert.equal(WALLET_COPY[locale].Refresh,r14Refresh[locale]);assert.equal(WALLET_COPY[locale].Refresh.match(/\{\w+\}/g),null)}
+});
+test("R14 PUBLIC actual multichain Refresh switches locale without changing raw values or business calls",async()=>{
+  const f=r14Display();try{
+    await f.open();assert.equal(f.refresh.textContent,"刷新");assert.equal(f.calls.length,1);
+    const recipient=f.all().filter(node=>node.tagName==="INPUT").at(-2),amount=f.all().filter(node=>node.tagName==="INPUT").at(-1);
+    recipient.value="PUBLIC_To <b>אבג";amount.value="001.2300";
+    for(const locale of WALLET_LOCALES){
+      f.locale.select(locale);assert.equal(f.refresh.textContent,r14Refresh[locale]);assert.equal(f.context.account,f.frame.account);assert.equal(f.nodes["multichain-receive-address"].value,f.frame.account);assert.equal(recipient.value,"PUBLIC_To <b>אבג");assert.equal(amount.value,"001.2300");assert.equal(f.calls.length,1);
+    }
+    assert.equal(f.document.documentElement.lang,"id");assert.equal(f.displayStorage.size,1);
+    await f.refresh.emit("click");assert.deepEqual(f.calls,["snapshot","snapshot"]);assert.equal(f.refresh.textContent,r14Refresh.id);
+  }finally{f.ui.dispose()}
 });
