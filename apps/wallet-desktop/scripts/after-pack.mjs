@@ -1,8 +1,13 @@
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { writeFile } from "node:fs/promises";
-import { desktopReleaseIdentity } from "./release-provenance.mjs";
+import { desktopReleaseIdentity, relocateDesktopPackage, desktopAsarHeaderIntegrity } from "./release-provenance.mjs";
 import { buildPublicWalletConnectConfig, WALLETCONNECT_PUBLIC_CONFIG_FILE } from "../src/walletconnect-public-config.mjs";
+
+export function updatedMacAsarIntegrity(existing, relocated) {
+  if(!existing||typeof existing!=="object"||Array.isArray(existing)||existing["Resources/app.asar"]?.algorithm!=="SHA256"||relocated?.algorithm!=="SHA256"||!/^[a-f0-9]{64}$/.test(relocated.hash)) throw new Error("Expected normal Mac ASAR integrity metadata");
+  return {...existing,"Resources/app.asar":{algorithm:"SHA256",hash:relocated.hash}};
+}
 
 export function hardenMacInfoPlist(appOutDir, productFilename, version) {
   const plist = path.join(appOutDir, `${productFilename}.app`, "Contents", "Info.plist");
@@ -35,7 +40,17 @@ export default async function afterPack(context) {
     ? path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`, "Contents", "Resources")
     : path.join(context.appOutDir, "resources");
   await writeFile(path.join(resources, "ynx-wallet-build-identity.json"), JSON.stringify(identity, null, 2) + "\n");
+  // Source-owned static recipe runs before any packaged entrypoint is evaluated.
+  // Preserve the repository source, sole SDK/Vault identity and unpacked native tree.
+  relocateDesktopPackage(resources, context.packager.projectDir);
   await writeFile(path.join(resources, WALLETCONNECT_PUBLIC_CONFIG_FILE), JSON.stringify(buildPublicWalletConnectConfig(), null, 2) + "\n");
   if (context.electronPlatformName !== "darwin") return;
+  // electron-builder writes this header hash BEFORE afterPack. Refresh only
+  // this archive's entry before signing; never disable the integrity fuse or
+  // discard integrity entries for other archives.
+  const plist=path.join(context.appOutDir,`${context.packager.appInfo.productFilename}.app`,"Contents","Info.plist");
+  const existing=JSON.parse(execFileSync("plutil",["-extract","ElectronAsarIntegrity","json","-o","-",plist],{encoding:"utf8"}));
+  const updated=updatedMacAsarIntegrity(existing,desktopAsarHeaderIntegrity(resources,context.packager.projectDir));
+  execFileSync("plutil",["-replace","ElectronAsarIntegrity","-json",JSON.stringify(updated),plist]);
   hardenMacInfoPlist(context.appOutDir, context.packager.appInfo.productFilename, context.packager.appInfo.version);
 }
