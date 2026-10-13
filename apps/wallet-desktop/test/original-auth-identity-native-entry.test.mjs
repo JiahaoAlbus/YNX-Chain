@@ -2,8 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
-import {originalAuthNativeBuildPlan} from '../scripts/build-original-auth-identity-native.mjs';
+import {originalAuthNativeBuildPlan,validateOriginalMacMinimumSystemVersion} from '../scripts/build-original-auth-identity-native.mjs';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
+test('R11r2 PUBLIC every architecture explicitly inherits package minimum system, never host default',()=>{
+ const pkg=JSON.parse(read('../package.json')),minimum=pkg.build.mac.minimumSystemVersion;
+ assert.equal(minimum,'13.0');
+ for(const arch of ['arm64','x64','universal']){
+  const plan=originalAuthNativeBuildPlan(arch,'/PUBLIC/headers'),compilers=plan.commands.filter(command=>command.tool==='/usr/bin/clang++');
+  assert.equal(compilers.length,arch==='universal'?2:1);
+  for(const command of compilers)assert.equal(command.argv.filter(arg=>arg.startsWith('-mmacosx-version-min=')).join(','),'-mmacosx-version-min='+minimum);
+  assert.equal(plan.minimumSystemVersion,minimum);
+ }
+});
+test('R11r2 PUBLIC package minimum validator rejects malformed or unsupported deployment targets',()=>{
+ for(const value of [undefined,null,13,'13','13.0 -bad','13.00','10.15','100.0','13.0.1.2','13.0\n','13.-1'])assert.throws(()=>validateOriginalMacMinimumSystemVersion(value),/MINIMUM_INVALID/);
+ assert.equal(validateOriginalMacMinimumSystemVersion('13.0'),'13.0');assert.equal(validateOriginalMacMinimumSystemVersion('13.0.1'),'13.0.1');
+});
 test('R11 PUBLIC fixed native build plan uses only local declared sources and explicit headers, no execution',()=>{
  const p=originalAuthNativeBuildPlan('universal','/PUBLIC/headers');assert.equal(p.commands.length,3);assert.equal(p.commands[0].tool,'/usr/bin/clang++');assert.equal(p.commands[2].tool,'/usr/bin/lipo');assert(p.sources.every(v=>v.endsWith('.mm')));assert(p.output.endsWith('/native/original-auth-identity.node'));assert.throws(()=>originalAuthNativeBuildPlan('bogus','/PUBLIC/headers'));assert.throws(()=>originalAuthNativeBuildPlan('arm64','../headers'));
  const pkg=JSON.parse(read('../package.json'));assert(pkg.build.asarUnpack.includes('native/original-auth-identity.node'));assert(pkg.build.files.includes('native/original-auth-identity.node'));
