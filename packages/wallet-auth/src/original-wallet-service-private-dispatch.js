@@ -9,6 +9,7 @@ import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-a
 const originalNativeServiceBinding=null;
 const pendingCustody=new Set();
 const selectedNativeOriginals=new WeakSet();
+const acquisitionStates=new WeakMap();
 const fail=code=>{throw new WalletAuthError(code,'Original private service is unavailable');};
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const operations=new Set(['beginYNX','handleReturn','restore','disconnect']);
@@ -26,7 +27,21 @@ export function decodeOriginalWalletServicePrivateRequest(raw){
  }
  return Object.freeze(value);
 }
-export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBorrow){
+// Cleanup-only owner is reserved by the normal daemon before entering capture.
+// It cannot supply a Native implementation or access the original custody.
+export function beginOriginalWalletServicePrivateDispatchAcquisition(){
+ const ref=Object.freeze({});acquisitionStates.set(ref,{selected:false,close:null,state:null});return ref;
+}
+export function closeOriginalWalletServicePrivateDispatchAcquisition(ref){
+ const acquired=acquisitionStates.get(ref);if(!acquired)fail('ORIGINAL_PRIVATE_ACQUISITION_INVALID');
+ return acquired.close?acquired.close():Promise.resolve(undefined);
+}
+export function originalWalletServicePrivateDispatchAcquisitionStatus(ref){
+ const acquired=acquisitionStates.get(ref);if(!acquired)fail('ORIGINAL_PRIVATE_ACQUISITION_INVALID');const s=acquired.state;
+ return Object.freeze({captured:!!s,businessFailurePresent:s?.firstCausePresent===true,cleanupFailurePresent:s?.cleanupFailed===true,cleanupComplete:s?.cleanupComplete===true,unknown:s?[...s.records.values()].some(row=>row.unknown):false});
+}
+export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBorrow,acquisition=beginOriginalWalletServicePrivateDispatchAcquisition()){
+ const acquired=acquisitionStates.get(acquisition);if(!acquired||acquired.selected)fail('ORIGINAL_PRIVATE_ACQUISITION_INVALID');acquired.selected=true;
  if(originalNativeServiceBinding===null)fail('ORIGINAL_PRIVATE_NATIVE_BINDING_NOT_IMPLEMENTED');
  // This fixed implementing source, NOT caller properties, recognizes custody.
  const original=originalNativeServiceBinding.capture(nativeBorrow);
@@ -35,7 +50,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
  let retired=false,closing=null,first,firstPresent=false,cleanupCause,cleanupFailed=false;
  const entered=new Set(),records=new Map();
  const remember=cause=>{if(!firstPresent){first=cause;firstPresent=true;state.firstCause=cause;state.firstCausePresent=true;}};
- const state={original,records};pendingCustody.add(state); // Before post-capture validation.
+ const state={original,records,cleanupComplete:false,cleanupFailed:false};acquired.state=state;pendingCustody.add(state); // Before post-capture validation.
  let admission=null;
  const current=operation=>{
   if(retired)fail('ORIGINAL_PRIVATE_RETIRED');
@@ -50,15 +65,17 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    if(originalNativeServiceBinding.retire(original)!==undefined)fail('ORIGINAL_PRIVATE_CLEANUP_INCOMPLETE');
    while(entered.size)await Promise.allSettled([...entered]);
    if(await originalNativeServiceBinding.join(original)!==undefined||await originalNativeServiceBinding.close(original)!==undefined)fail('ORIGINAL_PRIVATE_CLEANUP_INCOMPLETE');
-   if(!firstPresent&&![...records.values()].some(row=>row.unknown))pendingCustody.delete(state);return undefined;
-  }).catch(cause=>{cleanupCause=cause;cleanupFailed=true;remember(cause);throw cause;});return closing;
+   state.cleanupComplete=true;pendingCustody.delete(state);return undefined;
+  }).catch(cause=>{cleanupCause=cause;cleanupFailed=true;state.cleanupFailed=true;state.cleanupCause=cause;throw cause;});return closing;
  };
+ acquired.close=close;
  try{current(null);state.hostSource=ProductSessionGatewayNodeHost.prototype.captureOriginalWalletServiceRuntimeSource.call(host);admission=prepareOriginalWalletServiceAdmission(original.sourceSelection,original.receiptSelection,original.expectedRequest,()=>new Date());current(null);}catch(cause){remember(cause);retired=true;void close().catch(()=>{});throw cause;}
  return Object.freeze({
   dispatch(raw){
    const input=decodeOriginalWalletServicePrivateRequest(raw);current(input.operation);
+   if([...records.values()].some(row=>row.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
-   const row={inputDigest:hash(raw),result:null,unknown:false,terminal:false};records.set(key,row);
+   const row={inputDigest:hash(raw),result:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
    const promise=Promise.resolve().then(()=>{
     current(input.operation);
     // Selected Native source enforces account/run/executor/workspace association
@@ -69,11 +86,11 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     row.unknown=true;
     const result=ProductSessionGatewayNodeHost.prototype.handleOriginalWalletServicePrivateRequest.call(host,input,row,original.association);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
-    return result;
-   }).catch(cause=>{remember(cause);row.unknown=true;throw cause;});
+    row.fulfilled=true;return result;
+   }).catch(cause=>{remember(cause);row.localFailurePresent=true;row.localCause=cause;row.unknown=true;throw cause;});
    entered.add(promise);void promise.then(()=>entered.delete(promise),()=>entered.delete(promise));return promise;
   },
-  acknowledge(operation,phase,requestId,resultDigest){current(operation);const row=records.get(operation+':'+phase+':'+requestId);if(!row?.result||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);row.terminal=true;row.unknown=false;return undefined;},
+  acknowledge(operation,phase,requestId,resultDigest){current(operation);const row=records.get(operation+':'+phase+':'+requestId);if(!row?.result||!row.fulfilled||row.localFailurePresent||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);row.terminal=true;row.unknown=false;return undefined;},
   selectOutcome(operation,phase,requestId){const row=records.get(operation+':'+phase+':'+requestId);if(!row)fail('ORIGINAL_PRIVATE_OUTCOME_REQUIRED');return Object.freeze({result:row.result,unknown:row.unknown,terminal:row.terminal});},
   retire(){retired=true;return undefined;},
   join:async()=>{while(entered.size)await Promise.allSettled([...entered]);return undefined;},close,

@@ -79,9 +79,11 @@ export function createOriginalWalletServiceRolePublicApprovalVerifier(rawConfig)
       for(const op of s.operations){exact(op,['review','state']);review(op.review);if(ids.has(op.review.operationId)||nonces.has(op.review.nonce)||!['pending','UNKNOWN','approved','revoked'].includes(op.state))fail();
         if(op.review.rootId!==anchor.rootId||op.review.rootKeyId!==anchor.rootKeyId||op.review.holderPublicKey!==config.holderPublicKey||['registryDigest','targetConsumerManifestDigest','gatewayManifestDigest'].some(k=>op.review[k]!==config[k]))fail('SERVICE_ROLE_PUBLIC_BINDING_MISMATCH');ids.set(op.review.operationId,op);nonces.add(op.review.nonce);
       }
-      const seen=new Set();let floor=-1,selected=null;
+      const seen=new Set();let floor=-1,previousIndex=-1,selected=null;
       for(const row of s.history){exact(row,['operationId','observedAt','receipt']);token(row.operationId);time(row.observedAt);if(row.observedAt<floor||row.observedAt>at||seen.has(row.operationId))fail('SERVICE_ROLE_PUBLIC_HISTORY_INVALID');floor=row.observedAt;seen.add(row.operationId);
         const signed=receipt(row.receipt),op=ids.get(row.operationId);
+        const index=s.operations.findIndex(value=>value.review.operationId===row.operationId);
+        if(index<=previousIndex||row.observedAt<signed.body.issuedAt||row.observedAt>=signed.body.expiresAt)fail('SERVICE_ROLE_PUBLIC_HISTORY_INVALID');previousIndex=index;
         if(!op||signed.body.operationId!==row.operationId||signed.body.reviewDigest!==digest(op.review)||op.state!==signed.body.decision||!verify(null,Buffer.from(ORIGINAL_WALLET_SERVICE_ROLE_RECEIPT_DOMAIN+canonical(signed.body)),key,b64(signed.signature,64)))fail('SERVICE_ROLE_RECEIPT_INVALID');
         if(row.operationId===config.operationId)selected=signed;
       }

@@ -24,3 +24,12 @@ test('R8 PUBLIC rejects holder/Root/consumer/registry mismatch, signature denial
 test('R8 PUBLIC revoked/expired/duplicated/tampered history refuses; authentic old history never claims latest',()=>{
  const f=fixture();for(const change of [s=>{s.history[0].receipt.body.decision='revoked';s.operations[0].state='revoked';},s=>{s.history.push(s.history[0]);},s=>{s.history[0].receipt.body.reviewDigest='b'.repeat(64);},s=>{s.history[0].observedAt=4000;}]){const s=JSON.parse(JSON.stringify(f.readback));change(s);assert.throws(()=>f.make().verify(f.into(s),3000));}assert.throws(()=>f.make().verify(f.into(f.readback),10000),/NOT_APPROVED/);const old=f.make().verify(f.into(f.readback),3000);assert.equal(old.originalLatestSourceRequired,true);assert.equal(old.nativeQualified,false);
 });
+test('R9 PUBLIC F4 ordered history and review settlement window, not role verification window',()=>{
+ const f=fixture(),s=JSON.parse(JSON.stringify(f.readback));
+ const review={...s.operations[0].review,operationId:'PUBLIC_SECOND',nonce:Buffer.alloc(32,2).toString('base64url')};
+ s.operations.push({review,state:'revoked'});
+ const revoked={operationId:'PUBLIC_SECOND',observedAt:1500,receipt:{body:{...review,version:'ynx-wallet-service-role-enrollment-receipt/v1',decision:'revoked',reviewDigest:'a'.repeat(64),roleExpiresAt:10000},signature:s.history[0].receipt.signature}};
+ s.history=[revoked,{...s.history[0],observedAt:1600}];assert.throws(()=>f.make().verify(f.into(s),3000));
+ for(const observedAt of [999,2000,3500]){const late=JSON.parse(JSON.stringify(f.readback));late.history[0].observedAt=observedAt;assert.throws(()=>f.make().verify(f.into(late),4000));}
+ assert.equal(f.make().verify(f.into(f.readback),4000).nativeQualified,false);
+});

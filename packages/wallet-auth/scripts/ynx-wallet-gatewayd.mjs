@@ -12,7 +12,7 @@ import { forwardedClient, GatewayAdmissionController } from "../src/gateway-admi
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import {ProductSessionGatewayNodeHost} from '../src/product-session-gateway-node-host.js';
 import {createOriginalWalletRuntimeObserverLifetime} from './original-wallet-runtime-observer-launcher.mjs';
-import {createOriginalWalletServicePrivateDispatch} from '../src/original-wallet-service-private-dispatch.js';
+import {createOriginalWalletServicePrivateDispatch,beginOriginalWalletServicePrivateDispatchAcquisition,closeOriginalWalletServicePrivateDispatchAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus} from '../src/original-wallet-service-private-dispatch.js';
 import {ProductSessionControlNodeHost} from '../src/product-session-control-node-host.js';
 import {parseProductSessionControlCapacityPolicy} from '../src/product-session-control-capacity.js';
 import {createCentralBrowserSessionRegistry} from '../src/central-browser-session-registry.js';
@@ -81,6 +81,8 @@ const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(produc
 // not fd4 discovery, ENV configuration or a public callback installer.
 const originalPrivateServiceBorrow=null;
 let originalPrivateDispatch=null;
+const originalPrivateAcquisition=beginOriginalWalletServicePrivateDispatchAcquisition();
+let originalOwnerDrain=null,originalServerClosed=false;
 let originalPrivateTerminalUnknown=false;
 let originalListenSucceeded=false,originalStartupCause,originalStartupFailure=false;
 let originalShutdown=null,originalObserverFailure=false,originalObserverCause,originalHTTPFailure=false,originalHTTPCause;
@@ -92,20 +94,28 @@ function retireOriginalHTTP(){
  server.removeListener('request',originalRequestListener);
  server.on('request',(_request,response)=>{response.writeHead(503,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({ok:false,error:{code:'SERVICE_RETIRED',message:'Wallet Gateway is retiring'}}));});
 }
+function drainOriginalOwners(){
+ if(originalOwnerDrain)return originalOwnerDrain;
+ originalOwnerDrain=Promise.resolve().then(async()=>{
+  let privateFailure=false,privateCause;
+  if(originalPrivateDispatch)originalPrivateDispatch.retire();
+  try{if(originalPrivateDispatch)await originalPrivateDispatch.join();await closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition);}catch(cause){privateFailure=true;privateCause=cause;}
+  const status=originalWalletServicePrivateDispatchAcquisitionStatus(originalPrivateAcquisition);
+  originalPrivateTerminalUnknown=status.unknown;
+  if(status.businessFailurePresent&&!originalStartupFailure){originalStartupFailure=true;}
+  try{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}
+  if(privateFailure)throw privateCause;
+ });return originalOwnerDrain;
+}
 function stopOriginalDaemon(reason){
  if(originalShutdown)return originalShutdown;
  originalRuntimeLifetime.retire();retireOriginalHTTP();
  // Reserve both independent completions before any foreign callback.
  originalShutdown=Promise.resolve().then(async()=>{
-  const http=Promise.resolve().then(()=>new Promise((resolve,reject)=>server.close(error=>{
+  const http=Promise.resolve().then(()=>originalServerClosed?undefined:new Promise((resolve,reject)=>server.close(error=>{
    if(error&&!(error.code==='ERR_SERVER_NOT_RUNNING'&&!server.listening))reject(error);else resolve();
   }))).catch(cause=>{originalHTTPFailure=true;originalHTTPCause=cause;});
-  const observer=Promise.resolve().then(async()=>{
-   let privateFailure=false,privateCause;
-   if(originalPrivateDispatch){originalPrivateDispatch.retire();try{await originalPrivateDispatch.join();await originalPrivateDispatch.close();}catch(cause){privateFailure=true;privateCause=cause;}originalPrivateTerminalUnknown=originalPrivateDispatch.status().unknown;}
-   try{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}
-   if(privateFailure)throw privateCause;
-  }).catch(cause=>{originalObserverFailure=true;originalObserverCause=cause;});
+  const observer=drainOriginalOwners().catch(cause=>{originalObserverFailure=true;originalObserverCause=cause;});
   await Promise.all([http,observer]);
   const failed=originalStartupFailure||originalObserverFailure||originalHTTPFailure||originalPrivateTerminalUnknown;
   if(failed)process.exitCode=1;
@@ -118,12 +128,12 @@ server.listen(port,address,()=>{
  originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
  if(originalPrivateServiceBorrow!==null){
-  try{originalPrivateDispatch=createOriginalWalletServicePrivateDispatch(productHost,originalRuntimeLifetime,originalPrivateServiceBorrow);}
-  catch(error){emitEvent({event:'original_private_service_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_PRIVATE_NOT_SUPPLIED'});}
+  try{originalPrivateDispatch=createOriginalWalletServicePrivateDispatch(productHost,originalRuntimeLifetime,originalPrivateServiceBorrow,originalPrivateAcquisition);}
+  catch(error){if(!originalStartupFailure){originalStartupCause=error;originalStartupFailure=true;}process.exitCode=1;emitEvent({event:'original_private_service_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_PRIVATE_NOT_SUPPLIED'});}
  }
  emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`});
 });
-server.on('close',()=>{originalRuntimeLifetime.retire();void originalRuntimeLifetime.close().catch(()=>{});});
+server.on('close',()=>{originalServerClosed=true;void stopOriginalDaemon('listener_closed');});
 server.on('error',error=>{
  if(!originalStartupFailure){originalStartupCause=error;originalStartupFailure=true;}
  process.exitCode=1;originalRuntimeLifetime.retire(error);

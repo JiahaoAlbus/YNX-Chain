@@ -26,7 +26,7 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
  const original={expectedRequest:{service:'wallet-product-session-v2',productId:'developer',platform:'macos',gatewayOrigin:'https://wallet-auth.ynxweb4.com',operations:['beginYNX','handleReturn','restore','disconnect']},association};
  context.PUBLIC_NATIVE={capture:ref=>{if(ref!==original)throw Error('PUBLIC_NATIVE_REF');return original;},assertCurrent:()=>{if(!live)throw false;},assertAdmission(){},assertTerminal(){},retire(){},join(){return Promise.resolve();},close(){closed++;if(cleanupFail)throw undefined;}};
  context.prepareOriginalWalletServiceAdmission=()=>({assertCurrent(){if(!live)throw false;}});
- vm.runInContext('this.api=(()=>{'+clean(read('../src/original-wallet-service-private-dispatch.js')).replace('const originalNativeServiceBinding=null;','const originalNativeServiceBinding=PUBLIC_NATIVE;')+'\nreturn {factory:createOriginalWalletServicePrivateDispatch,decode:decodeOriginalWalletServicePrivateRequest};})();',context);context.factory=context.api.factory;context.decode=context.api.decode;
+ vm.runInContext('this.api=(()=>{'+clean(read('../src/original-wallet-service-private-dispatch.js')).replace('const originalNativeServiceBinding=null;','const originalNativeServiceBinding=PUBLIC_NATIVE;')+'\nreturn {factory:createOriginalWalletServicePrivateDispatch,decode:decodeOriginalWalletServicePrivateRequest,begin:typeof beginOriginalWalletServicePrivateDispatchAcquisition===\"function\"?beginOriginalWalletServicePrivateDispatchAcquisition:null,closeAcquisition:typeof closeOriginalWalletServicePrivateDispatchAcquisition===\"function\"?closeOriginalWalletServicePrivateDispatchAcquisition:null,statusAcquisition:typeof originalWalletServicePrivateDispatchAcquisitionStatus===\"function\"?originalWalletServicePrivateDispatchAcquisitionStatus:null};})();',context);context.factory=context.api.factory;context.decode=context.api.decode;
  const runtime={capture:()=>({PUBLIC:true}),assertObservationCurrent(){if(late&&kernelCalls)live=false;}};
  const dispatcher=unselected?null:context.factory(host,runtime,original);
  const request={clientId:'public-client',productId:'developer',platform:'macos',applicationId:'PUBLIC_APPLICATION',deviceId:'PUBLIC_DEVICE'},approval={account:'PUBLIC_ACCOUNT'};
@@ -37,6 +37,57 @@ test('R8 PUBLIC strict four-op decoder rejects arbitrary routes/proofs and unbou
  const f=fixture();for(const raw of ['{}',f.packet().replace('beginYNX','arbitrary'),f.packet().replace('"proofHeader":null','"proofHeader":"PUBLIC_PROOF"')])assert.throws(()=>f.context.decode(raw));
  const c={WalletAuthError:f.context.WalletAuthError,Buffer,canonicalJSON:JSON.stringify,exactFields(){},ProductSessionGatewayNodeHost:f.context.Host};vm.createContext(c);vm.runInContext(clean(read('../src/original-wallet-service-private-dispatch.js'))+'\nthis.factory=createOriginalWalletServicePrivateDispatch;',c);assert.throws(()=>c.factory({}, {},{}),/unavailable/);
  assert.throws(()=>f.context.factory(f.host,{capture(){},assertObservationCurrent(){}},f.original),/unavailable/);
+});
+// R9 controls execute the frozen parent bodies before repair. All Native,
+// filesystem and kernel dependencies remain explicit PUBLIC lexical stand-ins.
+function daemonFixture(f,{emitClose=false,privateJoin=null}={}){
+ const server=new EventEmitter(),signals=new Map();let onListen,stops=0,exits=0,runtimeCloses=0;
+ server.on('request',()=>{});server.listening=true;
+ server.listen=(_p,_a,callback)=>{onListen=callback;};server.close=callback=>{stops++;server.listening=false;if(emitClose)server.emit('close');callback();};
+ if(privateJoin)f.context.PUBLIC_NATIVE.join=()=>privateJoin;
+ Object.assign(f.context,{server,productHost:f.host,PUBLIC_BORROW:f.original,createOriginalWalletServicePrivateDispatch:f.context.factory,
+  beginOriginalWalletServicePrivateDispatchAcquisition:f.context.api.begin,closeOriginalWalletServicePrivateDispatchAcquisition:f.context.api.closeAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus:f.context.api.statusAcquisition,
+  createOriginalWalletRuntimeObserverLifetime:()=>({...f.runtime,afterListen(){},retire(){},join:async()=>undefined,close:async()=>{runtimeCloses++;}}),emitEvent:event=>f.events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false});
+ f.context.process={on:(signal,callback)=>signals.set(signal,callback),exit(){exits++;}};
+ const text=read('../scripts/ynx-wallet-gatewayd.mjs'),start=text.indexOf('const originalRuntimeLifetime='),end=text.indexOf('\nfunction integer(',start);
+ vm.runInContext(text.slice(start,end).replace('const originalPrivateServiceBorrow=null;','const originalPrivateServiceBorrow=PUBLIC_BORROW;')+'\nthis.selectedPrivate=()=>originalPrivateDispatch;',f.context);
+ return {listen:()=>onListen(),stop:()=>signals.get('SIGTERM')(),stops:()=>stops,exits:()=>exits,runtimeCloses:()=>runtimeCloses};
+}
+const tick=()=>new Promise(resolve=>setImmediate(resolve));
+test('R9 PUBLIC F1 normal daemon retains postcapture rejected and pending cleanup without API return',async()=>{
+ for(const kind of ['rejected','pending','confirmed']){
+  const f=fixture({unselected:true});f.context.PUBLIC_NATIVE.assertCurrent=()=>{throw false;};let release;
+  if(kind==='rejected')f.context.PUBLIC_NATIVE.close=()=>{throw undefined;};
+  if(kind==='pending')f.context.PUBLIC_NATIVE.close=()=>new Promise(resolve=>{release=resolve;});
+  const d=daemonFixture(f);d.listen();assert.equal(f.context.selectedPrivate(),null);d.stop();await tick();
+  assert.equal(d.stops(),1);
+  if(kind==='confirmed'){assert.equal(d.exits(),1);assert.equal(f.context.process.exitCode,1);}
+  else {assert.equal(d.exits(),0);if(kind==='pending'){release();await tick();assert.equal(d.exits(),1);}}
+ }
+});
+test('R9 PUBLIC F2 captured failed persistence cannot ACK away UNKNOWN or enter a new effect',async()=>{
+ const f=fixture({persistFail:true});await assert.rejects(f.dispatcher.dispatch(f.packet()));
+ assert.throws(()=>f.dispatcher.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001','a'.repeat(64)));
+ assert.equal(f.dispatcher.status().unknown,true);assert.equal(f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001').result.status,200);
+ assert.throws(()=>f.dispatcher.dispatch(f.packet('beginYNX','effect','req_PUBLIC_REQUEST_002')));assert.equal(f.kernelCalls(),1);
+});
+test('R9 PUBLIC F3 Server close event waits private drain while HTTP stop remains once',async()=>{
+ let release;const joined=new Promise(resolve=>{release=resolve;}),f=fixture({unselected:true}),d=daemonFixture(f,{emitClose:true,privateJoin:joined});
+ d.listen();d.stop();await tick();assert.equal(d.stops(),1);assert.equal(d.runtimeCloses(),0);
+ release();await tick();assert.equal(d.runtimeCloses(),1);assert.equal(d.exits(),1);d.stop();await tick();assert.equal(d.stops(),1);
+});
+test('R9 PUBLIC cleanup outcome preserves falsy business and cleanup causes separately and closes once',async()=>{
+ const f=fixture({unselected:true}),ref=f.context.api.begin();f.context.PUBLIC_NATIVE.assertCurrent=()=>{throw false;};let closed=0;
+ f.context.PUBLIC_NATIVE.close=()=>{closed++;throw undefined;};
+ let failed=false;try{f.context.factory(f.host,f.runtime,f.original,ref);}catch(cause){failed=true;assert.equal(cause,false);}assert(failed);
+ const closing=f.context.api.closeAcquisition(ref);assert.equal(f.context.api.closeAcquisition(ref),closing);
+ let cleanupFailed=false;try{await closing;}catch(cause){cleanupFailed=true;assert.equal(cause,undefined);}assert(cleanupFailed);assert.equal(closed,1);
+ const status=f.context.api.statusAcquisition(ref);assert.equal(status.businessFailurePresent,true);assert.equal(status.cleanupFailurePresent,true);assert.equal(status.cleanupComplete,false);
+});
+test('R9 PUBLIC fulfilled response ACK settles only its happy row and external close does not stop HTTP twice',async()=>{
+ const f=fixture({unselected:true}),d=daemonFixture(f);d.listen();const selected=f.context.selectedPrivate();await selected.dispatch(f.packet());
+ selected.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001','a'.repeat(64));assert.equal(selected.status().unknown,false);
+ f.context.server.listening=false;f.context.server.emit('close');await tick();assert.equal(d.stops(),0);assert.equal(d.runtimeCloses(),1);assert.equal(f.closed(),1);assert.equal(d.exits(),1);
 });
 test('R8 PUBLIC same Host transaction persists and retains result with once effect and terminal',async()=>{
  const f=fixture(),result=await f.dispatcher.dispatch(f.packet());assert.equal(result.status,200);assert.equal(f.kernelCalls(),1);assert.equal(f.events.includes('persist'),true);assert.equal(JSON.parse(f.writes.get('/PUBLIC/state')).snapshot.revision,1);
@@ -63,7 +114,7 @@ test('R8 PUBLIC once retire/join/close preserves same failed cleanup and no effe
 test('R8 PUBLIC actual daemon fixed listen caller selects dispatcher and independently closes original borrow',async()=>{
  const f=fixture({unselected:true}),server=new EventEmitter(),signals=new Map();server.on('request',()=>{});let onListen,stops=0,exits=0;
  server.listen=(_port,_address,callback)=>{onListen=callback;};server.close=callback=>{stops++;callback();};
- Object.assign(f.context,{server,productHost:f.host,PUBLIC_BORROW:f.original,createOriginalWalletServicePrivateDispatch:f.context.factory,createOriginalWalletRuntimeObserverLifetime:()=>({...f.runtime,afterListen(){},retire(){},join:async()=>undefined,close:async()=>undefined}),emitEvent:event=>f.events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false});
+ Object.assign(f.context,{server,productHost:f.host,PUBLIC_BORROW:f.original,createOriginalWalletServicePrivateDispatch:f.context.factory,beginOriginalWalletServicePrivateDispatchAcquisition:f.context.api.begin,closeOriginalWalletServicePrivateDispatchAcquisition:f.context.api.closeAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus:f.context.api.statusAcquisition,createOriginalWalletRuntimeObserverLifetime:()=>({...f.runtime,afterListen(){},retire(){},join:async()=>undefined,close:async()=>undefined}),emitEvent:event=>f.events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false});
  f.context.process={pid:1,getuid:()=>1,on:(signal,callback)=>signals.set(signal,callback),exit(){exits++;}};
  const text=read('../scripts/ynx-wallet-gatewayd.mjs'),start=text.indexOf('const originalRuntimeLifetime='),end=text.indexOf('\nfunction integer(',start);
  vm.runInContext(text.slice(start,end).replace('const originalPrivateServiceBorrow=null;','const originalPrivateServiceBorrow=PUBLIC_BORROW;')+'\nthis.selectedPrivate=()=>originalPrivateDispatch;',f.context);
