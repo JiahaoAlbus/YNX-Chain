@@ -12,6 +12,7 @@ import {captureOriginalWalletServiceRuntimeHostSource} from './product-session-g
 const PURPOSE='wallet-product-session-v2-runtime-instance/v1';
 const DOMAIN='YNX_WALLET_SERVICE_RUNTIME_INSTANCE_V1\n';
 const observers=new WeakMap(),captures=new WeakMap();
+const unresolvedObserverCustody=new Set();
 let activeObserver=null;
 const address=NetServer.prototype.address, listeners=EventEmitter.prototype.rawListeners;
 const on=EventEmitter.prototype.on, remove=EventEmitter.prototype.removeListener;
@@ -43,7 +44,8 @@ function held(path,expected){
   const rows=[];try{
     for(const part of [...chain,path]){const file=part===path;const before=lstatSync(part);safe(before,file);const fd=openSync(part,constants.O_RDONLY|constants.O_NOFOLLOW|(file?0:constants.O_DIRECTORY));rows.push({path:part,fd,file,identity:stamp(before)});const after=fstatSync(fd);safe(after,file);if(stamp(after)!==stamp(before))fail();}
     const leaf=rows.at(-1);if(leaf.identity!==stamp(fstatSync(leaf.fd)))fail();const raw=bytes(leaf.fd);if(sha(raw)!==expected)fail();
-    const source={raw:raw.toString('utf8'),check(){for(const r of rows){const a=fstatSync(r.fd),b=lstatSync(r.path);safe(a,r.file);safe(b,r.file);if(stamp(a)!==r.identity||stamp(b)!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');}if(sha(bytes(leaf.fd))!==expected)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');for(const r of rows)if(stamp(fstatSync(r.fd))!==r.identity||stamp(lstatSync(r.path))!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');},close(){let first;for(const r of rows.splice(0).reverse())try{closeSync(r.fd);}catch(e){first??=e;}if(first)throw first;}};
+    let closeEntered=false,closeFailed=false,closeCause;
+    const source={raw:raw.toString('utf8'),check(){if(closeEntered)fail('ORIGINAL_RUNTIME_UNAVAILABLE');for(const r of rows){const a=fstatSync(r.fd),b=lstatSync(r.path);safe(a,r.file);safe(b,r.file);if(stamp(a)!==r.identity||stamp(b)!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');}if(sha(bytes(leaf.fd))!==expected)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');for(const r of rows)if(stamp(fstatSync(r.fd))!==r.identity||stamp(lstatSync(r.path))!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');},close(){if(closeEntered){if(closeFailed)throw closeCause;return;}closeEntered=true;for(const r of [...rows].reverse())try{closeSync(r.fd);}catch(e){if(!closeFailed){closeCause=e;closeFailed=true;}}if(closeFailed)throw closeCause;}};
     source.check();return source;
   }catch(e){for(const r of rows.reverse())try{closeSync(r.fd);}catch{}throw e;}
 }
@@ -53,6 +55,7 @@ function owned(value){rejectReentry();const o=observers.get(value);if(!o)fail('O
 function serverCurrent(o){
   if(types.isProxy(o.server)||!HTTPServer.prototype.isPrototypeOf(o.server)||!listening.call(o.server))fail('ORIGINAL_RUNTIME_UNAVAILABLE');
   const request=listeners.call(o.server,'request');if(request.length!==1||request[0]!==o.host.handler)fail('ORIGINAL_RUNTIME_HANDLER_MISMATCH');
+  if(o.host.server!==null&&o.host.server!==undefined&&o.host.server!==o.server)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');
   const a=address.call(o.server);if(!a||typeof a==='string'||a.address!==o.body.bindAddress||a.port!==o.body.bindPort)fail('ORIGINAL_RUNTIME_LISTENER_CHANGED');
   const host=captureOriginalWalletServiceRuntimeHostSource(o.hostSource);if(host!==o.host)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');
 }
@@ -69,6 +72,7 @@ function current(o){
 
 export function createOriginalWalletServiceRuntimeObserver(input){
   rejectReentry();
+  if(unresolvedObserverCustody.size)fail('ORIGINAL_RUNTIME_CLEANUP_UNRESOLVED');
   const c=object(input,['hostSource','server','instanceSource','roleBinding','originalNow']);
   if(typeof c.originalNow!=='function'||types.isProxy(c.originalNow))fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');
   const selection=object(c.instanceSource,['rootPath','rootDigest','instancePath','instanceDigest','gatewayManifestPath','gatewayManifestDigest','registryPath','registryFileDigest']);
@@ -89,7 +93,14 @@ export function createOriginalWalletServiceRuntimeObserver(input){
     if(!c.server||types.isProxy(c.server)||!HTTPServer.prototype.isPrototypeOf(c.server))fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');
     for(const event of ['close','error','listening'])on.call(c.server,event,o.event);
     current(o);o.active=false;const result=Object.freeze({});observers.set(result,o);return result;
-  }catch(e){if(o){o.invalid=true;for(const event of ['close','error','listening'])try{remove.call(o.server,event,o.event);}catch{}}for(const f of files)try{f.close();}catch{}throw e;}finally{if(activeObserver===o)activeObserver=null;}
+  }catch(e){
+    const partial={owner:o??null,files,firstCause:e,firstCausePresent:true,cleanupCause:null,cleanupFailurePresent:false};
+    const retain=cause=>{if(!partial.cleanupFailurePresent){partial.cleanupCause=cause;partial.cleanupFailurePresent=true;}};
+    if(o){o.invalid=true;for(const event of ['close','error','listening'])try{remove.call(o.server,event,o.event);}catch(cause){retain(cause);}}
+    for(const f of files)try{f.close();}catch(cause){retain(cause);}
+    if(partial.cleanupFailurePresent)unresolvedObserverCustody.add(partial);
+    throw e;
+  }finally{if(activeObserver===o)activeObserver=null;}
 }
 export function assertOriginalWalletServiceRuntimeObserver(observer){
   const o=owned(observer);enter(o);try{current(o);}catch(e){o.invalid=true;throw e;}finally{o.active=false;activeObserver=null;}
@@ -105,6 +116,11 @@ export function assertOriginalWalletServiceRuntimeObservationCurrent(observer,ca
   const o=owned(observer);enter(o);try{const cap=captures.get(captured);if(!cap||cap.owner!==o)fail();const at=current(o);if(at<cap.at||at>=cap.expiresAt)fail('ORIGINAL_RUNTIME_EXPIRED');}catch(e){if(e.code!=='ORIGINAL_RUNTIME_INVALID')o.invalid=true;throw e;}finally{o.active=false;activeObserver=null;}
 }
 export function closeOriginalWalletServiceRuntimeObserver(observer){
-  const o=owned(observer);if(o.active){o.invalid=true;fail('ORIGINAL_RUNTIME_REENTRY');}if(o.closed)return;o.closed=true;o.invalid=true;
-  let first;for(const event of ['close','error','listening'])try{remove.call(o.server,event,o.event);}catch(e){first??=e;}for(const f of o.files)try{f.close();}catch(e){first??=e;}if(first)throw first;
+  const o=owned(observer);if(o.active){o.invalid=true;fail('ORIGINAL_RUNTIME_REENTRY');}
+  if(o.closeEntered){if(o.cleanupFailed)throw o.cleanupCause;if(o.closed)return;fail('ORIGINAL_RUNTIME_CLEANUP_INCOMPLETE');}
+  o.closeEntered=true;o.invalid=true;
+  let first,hasFirst=false;const retain=e=>{if(!hasFirst){first=e;hasFirst=true;}};
+  for(const event of ['close','error','listening'])try{remove.call(o.server,event,o.event);}catch(e){retain(e);}
+  for(const f of o.files)try{f.close();}catch(e){retain(e);}
+  if(hasFirst){o.cleanupCause=first;o.cleanupFailed=true;throw first;}o.closed=true;
 }

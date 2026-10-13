@@ -1,4 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
+import {createServer} from 'node:http';
+import {CanonicalWalletGatewayNodeHost} from './gateway-node-host.js';
+import {GatewayAdmissionController,forwardedClient} from './gateway-admission.js';
 import {
   chmodSync, closeSync, constants, fchmodSync, fsyncSync, fstatSync, lstatSync,
   mkdirSync, openSync, readFileSync, renameSync, unlinkSync, writeFileSync,
@@ -42,6 +45,7 @@ const MAX_STATE_BYTES = 32 * 1024 * 1024;
 
 export class ProductSessionGatewayNodeHost {
   #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central; #originalRuntimeHandler;
+  #originalRuntimeListener; #originalRuntimeServer;
 
   constructor(registryInput, options) {
     exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[])],"Product Session Gateway Node host options");
@@ -64,19 +68,47 @@ export class ProductSessionGatewayNodeHost {
 
   revalidate(session,scopes,productId,at,businessRevalidation=false){this.#assertStateIdentity();const result=this.#handler.revalidate(session,scopes,productId,at,businessRevalidation);this.#assertStateIdentity();return result;}
 
+  // This original Host constructs its own real daemon listener and Server.
+  // No caller-supplied handler registration/allowlist can acquire its brand.
+  createOriginalWalletServiceRuntimeDaemonServer({legacyHost,central,admission,emitEvent}) {
+    this.#assertStateIdentity();
+    if(this.#originalRuntimeServer)fail('ORIGINAL_RUNTIME_ALREADY_CREATED','Original daemon Server already exists');
+    const legacyHandler=CanonicalWalletGatewayNodeHost.prototype.handler.call(legacyHost);
+    const productHandler=this.#createHandler();
+    if(typeof emitEvent!=='function')fail('INVALID_HOST','Original event sink is absent');
+    const dispatch=async(request,response)=>{
+      const path=new URL(request.url,'http://127.0.0.1').pathname;
+      if(central&&CentralBrowserSessionNodeRoutes.prototype.handles.call(central,path)){
+        let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk);}body=Buffer.concat(chunks).toString('utf8');}
+        const result=CentralBrowserSessionNodeRoutes.prototype.handle.call(central,{method:request.method,url:request.url,headers:request.headers,body});response.writeHead(result.status,result.headers);response.end(result.body);return;
+      }
+      return request.url?.startsWith('/v2/product-sessions/')?productHandler(request,response):legacyHandler(request,response);
+    };
+    const listener=(request,response)=>{
+      const ticket=GatewayAdmissionController.prototype.enter.call(admission,forwardedClient(request));
+      if(!ticket.ok){response.writeHead(ticket.status,{'cache-control':'no-store','content-type':'application/json; charset=utf-8','retry-after':'60'});response.end(canonicalJSON({error:{code:ticket.code,message:'Wallet Gateway admission policy rejected the request'},ok:false}));return;}
+      response.once('finish',ticket.release);response.once('close',ticket.release);
+      Promise.resolve(dispatch(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({error:{code:'INTERNAL_ERROR',message:'Wallet Gateway request failed'},ok:false}));}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:'unknown',event:'handler_error',level:'error',service:'ynx-wallet-gatewayd'});});
+    };
+    const server=createServer(listener);
+    this.#originalRuntimeListener=listener;this.#originalRuntimeServer=server;
+    return server;
+  }
+
   captureOriginalWalletServiceRuntimeSource() {
     this.#assertStateIdentity();
     const registryRaw = canonicalJSON(this.#registry);
-    const view = Object.freeze({handler:this.#originalRuntimeHandler??this.handler(),registryRaw,registryDigest:createHash('sha256').update(registryRaw).digest('hex')});
+    const view = Object.freeze({handler:this.#originalRuntimeListener??this.#originalRuntimeHandler??this.#createHandler(),server:this.#originalRuntimeServer??null,registryRaw,registryDigest:createHash('sha256').update(registryRaw).digest('hex')});
     const source = Object.freeze({});
     originalRuntimeHostSources.set(source,{view,assertCurrent:()=>{
       this.#assertStateIdentity();
-      if (canonicalJSON(this.#registry)!==registryRaw||this.#originalRuntimeHandler!==view.handler) fail('ORIGINAL_RUNTIME_SOURCE_CHANGED','Original Host registry or handler changed');
+      if (canonicalJSON(this.#registry)!==registryRaw||(this.#originalRuntimeListener??this.#originalRuntimeHandler)!==view.handler||(this.#originalRuntimeServer??null)!==view.server) fail('ORIGINAL_RUNTIME_SOURCE_CHANGED','Original Host registry or handler changed');
     }});
     return source;
   }
 
-  handler() {
+  handler() {return this.#createHandler();}
+  #createHandler() {
     const handler=async (request, response) => {
       const requestId = validRequestId(request.headers["x-request-id"]) ? request.headers["x-request-id"] : "req_invalid_request_000";
       let corsHeaders = {};
