@@ -77,17 +77,23 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
    const row={inputDigest:hash(raw),result:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
    const promise=Promise.resolve().then(()=>{
+    try{
     current(input.operation);
+    // Recheck at execution, not just reservation. The synchronous catch below
+    // latches a failed transaction before the next already queued callback runs.
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     // Selected Native source enforces account/run/executor/workspace association
     // and the original service admission; no service proof from self DTO fields.
     if(originalNativeServiceBinding.assertAdmission(original,input)!==undefined)fail('ORIGINAL_PRIVATE_ADMISSION_INVALID');
     const observation=runtime.capture(records.size);
     runtime.assertObservationCurrent(observation);current(input.operation);
     row.unknown=true;
+    if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
     const result=ProductSessionGatewayNodeHost.prototype.handleOriginalWalletServicePrivateRequest.call(host,input,row,original.association);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
     row.fulfilled=true;return result;
-   }).catch(cause=>{remember(cause);row.localFailurePresent=true;row.localCause=cause;row.unknown=true;throw cause;});
+    }catch(cause){remember(cause);row.localFailurePresent=true;row.localCause=cause;row.unknown=true;throw cause;}
+   });
    entered.add(promise);void promise.then(()=>entered.delete(promise),()=>entered.delete(promise));return promise;
   },
   acknowledge(operation,phase,requestId,resultDigest){current(operation);const row=records.get(operation+':'+phase+':'+requestId);if(!row?.result||!row.fulfilled||row.localFailurePresent||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);row.terminal=true;row.unknown=false;return undefined;},

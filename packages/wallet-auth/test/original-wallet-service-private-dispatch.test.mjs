@@ -54,6 +54,16 @@ function daemonFixture(f,{emitClose=false,privateJoin=null}={}){
  return {listen:()=>onListen(),stop:()=>signals.get('SIGTERM')(),stops:()=>stops,exits:()=>exits,runtimeCloses:()=>runtimeCloses};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
+test('R10 PUBLIC N1 simultaneous queued requests latch persistence failure before second Host effect',async()=>{
+ const f=fixture({persistFail:true});
+ const first=f.dispatcher.dispatch(f.packet('beginYNX','effect','req_PUBLIC_REQUEST_001'));
+ const second=f.dispatcher.dispatch(f.packet('beginYNX','effect','req_PUBLIC_REQUEST_002'));
+ const results=await Promise.allSettled([first,second]);assert.equal(results[0].status,'rejected');assert.equal(results[1].status,'rejected');
+ assert.equal(f.kernelCalls(),1);assert.equal(f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_001').result.status,200);
+ assert.equal(f.dispatcher.selectOutcome('beginYNX','effect','req_PUBLIC_REQUEST_002').result,null);
+ assert.equal(f.dispatcher.status().unknown,true);assert.equal(f.dispatcher.status().firstCausePresent,true);
+ assert.throws(()=>f.dispatcher.acknowledge('beginYNX','effect','req_PUBLIC_REQUEST_001','a'.repeat(64)));
+});
 test('R9 PUBLIC F1 normal daemon retains postcapture rejected and pending cleanup without API return',async()=>{
  for(const kind of ['rejected','pending','confirmed']){
   const f=fixture({unselected:true});f.context.PUBLIC_NATIVE.assertCurrent=()=>{throw false;};let release;

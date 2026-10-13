@@ -13,6 +13,18 @@ const launcherText=read('../scripts/original-wallet-runtime-observer-launcher.mj
 const daemonText=read('../scripts/ynx-wallet-gatewayd.mjs');
 const admissionText=read('../src/gateway-admission.js');
 const clean=text=>text.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','');
+function composeOriginalPrivateAcquisition(context){
+ // Real module inventory and cleanup contract in an isolated lexical closure.
+ // Native stays fixed null; no successful-cleanup or approving provider stub.
+ const text=read('../src/original-wallet-service-private-dispatch.js');
+ context.WalletAuthError??=class extends Error{constructor(code,message){super(message);this.code=code;}};
+ vm.runInContext('this.PUBLIC_PRIVATE_API=(()=>{'+clean(text)+'\nreturn {begin:beginOriginalWalletServicePrivateDispatchAcquisition,close:closeOriginalWalletServicePrivateDispatchAcquisition,status:originalWalletServicePrivateDispatchAcquisitionStatus,factory:createOriginalWalletServicePrivateDispatch};})();',context);
+ Object.assign(context,{beginOriginalWalletServicePrivateDispatchAcquisition:context.PUBLIC_PRIVATE_API.begin,closeOriginalWalletServicePrivateDispatchAcquisition:context.PUBLIC_PRIVATE_API.close,originalWalletServicePrivateDispatchAcquisitionStatus:context.PUBLIC_PRIVATE_API.status});
+ const ref=context.PUBLIC_PRIVATE_API.begin();assert.throws(()=>context.PUBLIC_PRIVATE_API.status({}),/unavailable/);
+ assert.equal(context.PUBLIC_PRIVATE_API.status(ref).captured,false);
+ assert.throws(()=>context.PUBLIC_PRIVATE_API.factory({}, {}, {},ref),error=>error.code==='ORIGINAL_PRIVATE_NATIVE_BINDING_NOT_IMPLEMENTED');
+ assert.equal(context.PUBLIC_PRIVATE_API.status(ref).captured,false);
+}
 function composeOriginalAcquisition(context){
  const start=observerText.indexOf('const acquisitionOwners='),end=observerText.indexOf('\nlet activeObserver=',start);
  if(start<0)return; // Exact historical parent comparator has no such ABI.
@@ -87,7 +99,7 @@ function r6DaemonFixture({selected=false,failedAcquisition=false,cleanupFail=fal
  Object.assign(context,{host:{handler:()=>()=>{}},productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>server,captureOriginalWalletServiceRuntimeSource:()=>({PUBLIC:true})},central:null,admission:{},productSessionStateVersion:'2',emitEvent:event=>events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false,
   process:{getuid:()=>1,on:(name,fn)=>signals.set(name,fn),exit:code=>exit.push(code)},setTimeout,clearTimeout});
  const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);
- vm.runInContext(daemonText.slice(start,end)+'\nthis.life=originalRuntimeLifetime;',context);
+ composeOriginalPrivateAcquisition(context);vm.runInContext(daemonText.slice(start,end)+'\nthis.life=originalRuntimeLifetime;',context);
  return {context,server,events,exit,closes,fds,listen(){server.listening=true;listeningCallback();},signal(){signals.get('SIGTERM')();signals.get('SIGINT')();},stopCount:()=>stopCount,async settled(){await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));}};
 }
 test('R6 PUBLIC integrated listen failure with no observer emits bounded failed start and nonzero',async()=>{
@@ -181,7 +193,7 @@ test('R4 PUBLIC exact daemon normal listener invokes lifecycle and joins before 
  f.server.listen=(_port,_address,callback)=>{listen=callback;};f.server.close=callback=>{events.push('server-close');callback();};
  const life={afterListen(){events.push('after-listen');},retire(){events.push('retire');},join(){joined++;events.push('join');return Promise.resolve();},close(){closed++;events.push('close');return Promise.resolve();}};
  const context={host:new f.context.Legacy(),productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>f.server},central:null,admission:f.admission,productSessionStateVersion:'2',createOriginalWalletRuntimeObserverLifetime:()=>life,emitEvent:()=>{},port:1,address:'127.0.0.1',build:null,remoteDeployed:false,process:{on:(name,fn)=>signals.set(name,fn),exit:()=>{exit++;}},URL,Promise,Date};
- const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end),context);assert.equal(events.length,0);listen();assert.equal(events[0],'after-listen');signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));assert.equal(joined,1);assert.equal(closed,1);assert.equal(exit,1);
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);composeOriginalPrivateAcquisition(context);vm.runInContext(daemonText.slice(start,end),context);assert.equal(events.length,0);listen();assert.equal(events[0],'after-listen');signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));assert.equal(joined,1);assert.equal(closed,1);assert.equal(exit,1);
  assert.equal(events.filter(e=>e==='server-close').length,1);assert(events.indexOf('retire')<events.indexOf('server-close'));assert(events.indexOf('join')<events.indexOf('close'));
 });
 test('R7 PUBLIC adapted fixture uses original acquisition inventory and truthful same failed close',async()=>{
@@ -196,7 +208,7 @@ test('R7 PUBLIC adapted daemon fixture awaits both completions with independent 
  f.server.listen=(_port,_address,callback)=>{listen=callback;};f.server.close=callback=>{stops++;httpDone=callback;};
  const life={afterListen(){},retire(){},join(){return joining;},close(){disposed++;return Promise.resolve();}};
  const context={host:new f.context.Legacy(),productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>f.server},central:null,admission:f.admission,productSessionStateVersion:'2',createOriginalWalletRuntimeObserverLifetime:()=>life,emitEvent(){},port:1,address:'127.0.0.1',build:null,remoteDeployed:false,process:{on:(name,callback)=>signals.set(name,callback),exit(){exits++;}},URL,Promise,Date};
- const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end),context);listen();signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);composeOriginalPrivateAcquisition(context);vm.runInContext(daemonText.slice(start,end),context);listen();signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));
  assert.equal(stops,1);assert.equal(disposed,0);assert.equal(exits,0);
  releaseJoin();await new Promise(resolve=>setImmediate(resolve));assert.equal(disposed,1);assert.equal(exits,0);
  httpDone();await new Promise(resolve=>setImmediate(resolve));assert.equal(exits,1);signals.get('SIGINT')();assert.equal(stops,1);assert.equal(disposed,1);
@@ -206,7 +218,7 @@ test('R4 PUBLIC exact daemon v3 fallback retains admission and normal product ro
  const context={host:legacy,productHost:{handler:()=>{return (_req,res)=>{product++;res.writeHead(200,{});res.end('PUBLIC_V3');};}},central:null,admission:f.admission,productSessionStateVersion:'3',
   createServer:listener=>{const server=createServer(listener);server.listen=(_port,_address,fn)=>{listen=fn;};return server;},
   createOriginalWalletRuntimeObserverLifetime:()=>lifetimeFixture({selected:false}).lifetime,forwardedClient:f.context.forwardedClient,canonicalJSON:JSON.stringify,emitEvent:()=>{},port:1,address:'127.0.0.1',build:null,remoteDeployed:false,process:{on(){},exit(){}},URL,Promise,Date};
- const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end)+'\nthis.server=server;',context);listen();
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);composeOriginalPrivateAcquisition(context);vm.runInContext(daemonText.slice(start,end)+'\nthis.server=server;',context);listen();
  const res=response();context.server.emit('request',request('/v2/product-sessions/challenge'),res);await Promise.resolve();assert.equal(res.status,200);assert.equal(res.body,'PUBLIC_V3');assert.equal(product,1);
  const held=f.admission.enter('127.0.0.1'),blocked=response();context.server.emit('request',request('/v2/product-sessions/challenge'),blocked);assert.equal(blocked.status,503);assert.equal(product,1);held.release();
 });
