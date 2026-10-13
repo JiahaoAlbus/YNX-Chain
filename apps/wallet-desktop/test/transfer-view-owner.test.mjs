@@ -5,18 +5,18 @@ import {runInNewContext} from "node:vm";
 const source=readFileSync(process.env.YNX_TRANSFER_SOURCE??new URL("../src/renderer.js",import.meta.url),"utf8");
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return{promise,resolve,reject}};
 function harness(){
-  const nodes=new Map(),preparations=[],actions=[];let refreshes=0;
+  const nodes=new Map(),preparations=[],actions=[],parses=[],prepareInputs=[];let refreshes=0;
   const get=selector=>{if(!nodes.has(selector))nodes.set(selector,{value:"",textContent:"",disabled:false,hidden:false,open:false,children:[],listeners:{},addEventListener(type,fn){this.listeners[type]=fn},append(...values){this.children.push(...values)},replaceChildren(){this.children=[]},close(){this.open=false},showModal(){this.open=true},focus(){}});return nodes.get(selector)};
   const document={querySelector:selector=>selector==="dialog[open]"?[...nodes.values()].find(node=>node.open)??null:get(selector),createElement:()=>({}),querySelectorAll:()=>[]};
   get("#send-sheet").open=true;get("#transfer-to").value="ynx1-public-recipient";get("#transfer-amount").value="1";
   const context={document,keyState:{locked:false,authenticating:false,revision:1},activeAccount:"account-a",accountViewRevision:0,accountState:{initialized:true},paymentDraftRevision:0,transferReview:null,transferInFlight:false,
-    window:{ynxWallet:{prepareTransfer:()=>{const pending=deferred();preparations.push(pending);return pending.promise},transferAction:()=>{const pending=deferred();actions.push(pending);return pending.promise},lock:async()=>{context.keyState.locked=true}}},
-    paymentRecipientUI:{invalidate(){}},recipientScanUI:{invalidate(){}},errorText:result=>result.error.message,formatApprovalReview:()=>"public transaction",refreshAssets(){refreshes++},refreshTransactions(){refreshes++}};
+    window:{ynxWallet:{paymentRecipient:input=>{const pending=deferred();parses.push({...pending,input});return pending.promise},prepareTransfer:input=>{prepareInputs.push(input);const pending=deferred();preparations.push(pending);return pending.promise},transferAction:()=>{const pending=deferred();actions.push(pending);return pending.promise},lock:async()=>{context.keyState.locked=true}}},
+    paymentRecipientUI:{invalidate(){}},recipientScanUI:{invalidate(){}},renderTransferPreparationError:()=>false,errorText:result=>result.error.message,formatApprovalReview:()=>"public transaction",refreshAssets(){refreshes++},refreshTransactions(){refreshes++}};
   const start=source.indexOf('document.querySelector("#transfer-form").addEventListener'),end=source.indexOf("\nfunction setView(name)",start);
   const entryStart=source.indexOf('document.querySelector("#open-send").addEventListener'),entryEnd=source.indexOf('\ndocument.querySelector("#send-sheet").addEventListener',entryStart);
   const ownerStart=source.indexOf("let accountSecurityIntent="),ownerEnd=source.indexOf('createAccount.addEventListener("click"',ownerStart);
   runInNewContext(source.match(/^function copyUI\([^\n]+/m)[0]+"\n"+source.match(/^function invalidatePaymentInput\([^\n]+/m)[0]+"\n"+source.slice(ownerStart,ownerEnd)+"\n"+source.slice(start,end)+"\n"+source.slice(entryStart,entryEnd),context);
-  return{context,get,preparations,actions,refreshes:()=>refreshes,submit:()=>get("#transfer-form").listeners.submit({preventDefault(){}})};
+  return{context,get,preparations,actions,parses,prepareInputs,refreshes:()=>refreshes,submit:()=>get("#transfer-form").listeners.submit({preventDefault(){}})};
 }
 const prepared=()=>({ok:true,value:{id:"review-a",account:"account-a",ynxFrom:"public-a",ynxTo:"public-b",amount:"1",maximumFee:"2",total:"3"}});
 for(const outcome of ["failure","throw"])test(`old prepare ${outcome} cannot publish after lock/unlock or release a newer prepare button`,async()=>{
@@ -66,4 +66,46 @@ test("closing and explicitly reopening the same Send draft cannot revive its pre
   const h=harness(),old=h.submit();h.get("#send-sheet").close();h.get("#open-send").listeners.click();
   h.preparations[0].resolve(prepared());await old;
   assert.equal(h.get("#transfer-review").open,false);assert.equal(h.get("#send-sheet").open,true);assert.equal(h.get("#prepare-transfer").disabled,false);
+});
+
+// PUBLIC DOM/API stand-ins drive the actual renderer submit/cancel handlers.
+// No account provider, key custody, signer, RPC or actual transfer is imported.
+const r15Address="ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt";
+const r15URI=`ynx:${r15Address}?chainId=ynx_6423-1&asset=YNXT`;
+const r15Parsed=()=>({ok:true,value:{ynxAccount:r15Address,chainId:"ynx_6423-1",asset:"YNXT"}});
+test("R15 PUBLIC typed receiving link previews normalized recipient and cancels without changing entered draft",async()=>{
+  const h=harness();h.get("#transfer-to").value=r15URI;h.get("#transfer-amount").value="1.25";
+  const job=h.submit();assert.equal(h.parses.length,1);assert.equal(h.parses[0].input,r15URI);assert.equal(h.preparations.length,0);
+  h.parses[0].resolve(r15Parsed());await new Promise(resolve=>setImmediate(resolve));assert.equal(h.preparations.length,1);
+  assert.equal(h.prepareInputs[0].to,r15Address);assert.equal(h.prepareInputs[0].amount,"1.25");
+  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,true);assert.equal(h.actions.length,0);
+  const cancel=h.context.actOnTransfer("reject");assert.equal(h.actions.length,1);h.actions[0].resolve({ok:true,value:{rejected:true,transactionCreated:false}});await cancel;
+  assert.match(h.get("#transfer-result").textContent,/Nothing was signed or sent/);assert.equal(h.get("#send-sheet").open,true);
+  assert.equal(h.get("#transfer-to").value,r15URI);assert.equal(h.get("#transfer-amount").value,"1.25");
+});
+for(const [name,reply] of [
+  ["wrong chain",{ok:true,value:{...r15Parsed().value,chainId:"other-chain"}}],
+  ["wrong asset",{ok:true,value:{...r15Parsed().value,asset:"OTHER"}}],
+  ["parser refusal",{ok:false,error:{message:"wrong network receiving link"}}],
+  ["invalid normalized address",{ok:true,value:{...r15Parsed().value,ynxAccount:"https://other.invalid"}}]
+])test(`R15 PUBLIC ${name} never prepares or opens a transfer review`,async()=>{
+  const h=harness();h.get("#transfer-to").value=r15URI;const job=h.submit();assert.equal(h.parses.length,1);
+  h.parses[0].resolve(reply);await job;assert.equal(h.preparations.length,0);assert.equal(h.actions.length,0);assert.equal(h.get("#transfer-review").open,false);assert.equal(h.get("#transfer-to").value,r15URI);
+});
+for(const mutation of ["account","draft","lock","dialog","authenticating","key revision","view"])test(`R15 PUBLIC pending recipient parse discarded after ${mutation} changes`,async()=>{
+  const h=harness();h.get("#transfer-to").value=r15URI;const job=h.submit();assert.equal(h.parses.length,1);
+  if(mutation==="account")h.context.activeAccount="account-b";
+  if(mutation==="draft"){h.get("#transfer-amount").value="2";h.context.invalidatePaymentInput();}
+  if(mutation==="lock")h.context.keyState={locked:true,authenticating:false,revision:2};
+  if(mutation==="dialog")h.get("#send-sheet").close();
+  if(mutation==="authenticating")h.context.keyState.authenticating=true;
+  if(mutation==="key revision")h.context.keyState.revision++;
+  if(mutation==="view")h.context.accountViewRevision++;
+  h.get("#transfer-result").textContent="successor notice";h.parses[0].resolve(r15Parsed());await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(h.preparations.length,0,"retired parser must not enter preparation");await job;
+  assert.equal(h.preparations.length,0);assert.equal(h.actions.length,0);assert.equal(h.get("#transfer-review").open,false);assert.equal(h.get("#transfer-result").textContent,"successor notice");
+});
+test("R15 PUBLIC ordinary address keeps its existing preparation path without recipient parser",async()=>{
+  const h=harness(),job=h.submit();assert.equal(h.parses.length,0);assert.equal(h.preparations.length,1);assert.equal(h.prepareInputs[0].to,"ynx1-public-recipient");
+  h.preparations[0].resolve(prepared());await job;assert.equal(h.get("#transfer-review").open,true);assert.equal(h.actions.length,0);
 });

@@ -977,11 +977,26 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   const revision = keyState.revision, account = activeAccount;
   const draftRevision = paymentDraftRevision, to = document.querySelector("#transfer-to").value.trim(), amount = document.querySelector("#transfer-amount").value.trim();
   const draftIsCurrent = () => draftRevision === paymentDraftRevision && document.querySelector("#send-sheet").open && to === document.querySelector("#transfer-to").value.trim() && amount === document.querySelector("#transfer-amount").value.trim();
-  const current = () => accountOperationCurrent(operation) && !keyState.locked && keyState.revision === revision && account === activeAccount && draftIsCurrent();
+  const current = () => accountOperationCurrent(operation) && !keyState.locked && !keyState.authenticating && keyState.revision === revision && account === activeAccount && draftIsCurrent();
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
   copyUI(output,"Checking recipient, balance and network fee…");
   try {
-    const result = await window.ynxWallet.prepareTransfer({ to, amount });
+    let recipient = to;
+    if (!current()) return;
+    if (to.startsWith("ynx:")) {
+      // Reuse the normal public parser without replacing the entered draft or
+      // borrowing an amount/approval from the receiving link.
+      const parsed = await window.ynxWallet.paymentRecipient(to);
+      if (!current()) return;
+      if (parsed?.ok !== true || parsed.value?.chainId !== "ynx_6423-1" || parsed.value?.asset !== "YNXT" ||
+          !/^ynx1[023456789acdefghjklmnpqrstuvwxyz]+$/u.test(parsed.value?.ynxAccount ?? "")) {
+        copyUI(output,"Recipient unavailable. Use a YNX Testnet address, receiving link or its QR image.");
+        return;
+      }
+      recipient = parsed.value.ynxAccount;
+    }
+    if (!current()) return;
+    const result = await window.ynxWallet.prepareTransfer({ to: recipient, amount });
     if (!current()) return;
     if (!result.ok) { if(!renderTransferPreparationError(output,result.error))output.textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) { copyUI(output,"Account changed. Review again."); return; }
