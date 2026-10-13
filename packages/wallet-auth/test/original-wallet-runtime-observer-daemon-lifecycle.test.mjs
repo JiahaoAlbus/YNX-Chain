@@ -13,6 +13,11 @@ const launcherText=read('../scripts/original-wallet-runtime-observer-launcher.mj
 const daemonText=read('../scripts/ynx-wallet-gatewayd.mjs');
 const admissionText=read('../src/gateway-admission.js');
 const clean=text=>text.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','');
+function composeOriginalAcquisition(context){
+ const start=observerText.indexOf('const acquisitionOwners='),end=observerText.indexOf('\nlet activeObserver=',start);
+ if(start<0)return; // Exact historical parent comparator has no such ABI.
+ vm.runInContext(clean(observerText.slice(start,end))+'\nthis.PUBLIC_recordAcquisition=(ref,observer)=>{const state=acquisitionOwned(ref);if(state.entered)throw Error("PUBLIC_ALREADY_ENTERED");state.entered=true;state.observer=observer;state.settled=true;};',context);
+}
 function r5HeldFixture({acquisitionCause,acquisitionFail=false,closeCause,closeFail=false,failAfterRead=false,onClose=()=>{}}={}){
  const text=observerText,start=text.indexOf('function disposeHeld('),end=text.indexOf('\nfunction rejectReentry(',start),creatorStart=text.indexOf('export function createOriginalWalletServiceRuntimeObserver('),creatorEnd=text.indexOf('\nexport function assertOriginalWalletServiceRuntimeObserver(',creatorStart);
  const descriptors=[],disposed=[],debt=new Set(),raw=Buffer.from('PUBLIC_EXACT_RAW');let checks=0;
@@ -24,7 +29,7 @@ function r5HeldFixture({acquisitionCause,acquisitionFail=false,closeCause,closeF
   closeSync:fd=>{disposed.push(fd);onClose(fd);if(closeFail&&fd.index===1)throw closeCause;},
   rejectReentry:()=>{},fail:code=>{throw Error(code);},
  };
- vm.createContext(context);vm.runInContext(text.slice(start,end)+'\n'+text.slice(creatorStart,creatorEnd).replace('export ','')+'\nthis.api={held,disposeHeld,createOriginalWalletServiceRuntimeObserver};',context);
+ vm.createContext(context);composeOriginalAcquisition(context);vm.runInContext(text.slice(start,end)+'\n'+text.slice(creatorStart,creatorEnd).replace('export ','')+'\nthis.api={held,disposeHeld,createOriginalWalletServiceRuntimeObserver};',context);
  return {api:context.api,descriptors,disposed,debt,raw};
 }
 test('R5 PUBLIC actual held early failure retains every exact acquired FD and falsy causes before outer push',()=>{
@@ -152,12 +157,12 @@ function lifetimeFixture({selected=true,late=false,cleanupCause,cleanupFail=fals
  const original=Object.freeze({PUBLIC_ORIGINAL:true});let closes=0,creates=0;let lifetime;
  const host={captureOriginalWalletServiceRuntimeSource:()=>({PUBLIC_HOST:true})},server={PUBLIC_SERVER:true};
  const context={originalWalletRuntimeObserverSelection:selected?{instanceSource:{},roleBinding:{}}:null,captureOriginalRecoveryJSON:v=>v,exactFields:()=>{},
-  createOriginalWalletServiceRuntimeObserver:input=>{creates++;assert.equal(input.server,server);if(late)lifetime.retire(false);return original;},
+  createOriginalWalletServiceRuntimeObserver:(input,acquisition)=>{creates++;assert.equal(input.server,server);if(context.PUBLIC_recordAcquisition)context.PUBLIC_recordAcquisition(acquisition,original);if(late)lifetime.retire(false);return original;},
   assertOriginalWalletServiceRuntimeObserver:value=>assert.equal(value,original),captureOriginalWalletServiceRuntimeObservation:(value,sequence)=>{assert.equal(value,original);return {sequence};},assertOriginalWalletServiceRuntimeObservationCurrent:value=>assert.equal(value,original),
   closeOriginalWalletServiceRuntimeObserver:value=>{assert.equal(value,original);closes++;if(cleanupFail)throw cleanupCause;},
  };
- vm.createContext(context);vm.runInContext(clean(launcherText)+'\nthis.create=createOriginalWalletRuntimeObserverLifetime;',context);lifetime=context.create(host,server);
- return {lifetime,host,server,creates:()=>creates,closes:()=>closes};
+ context.fail=code=>{throw Error(code);};vm.createContext(context);composeOriginalAcquisition(context);vm.runInContext(clean(launcherText)+'\nthis.create=createOriginalWalletRuntimeObserverLifetime;',context);lifetime=context.create(host,server);
+ return {lifetime,host,server,context,creates:()=>creates,closes:()=>closes};
 }
 test('R4 PUBLIC lifecycle acquires once after listen, captures exact late original and same close',async()=>{
  const f=lifetimeFixture();assert.equal(f.lifetime.afterListen(),undefined);assert.equal(f.creates(),1);assert.equal(f.lifetime.capture(1).sequence,1);assert.throws(()=>f.lifetime.afterListen(),/unavailable/);
@@ -176,7 +181,25 @@ test('R4 PUBLIC exact daemon normal listener invokes lifecycle and joins before 
  f.server.listen=(_port,_address,callback)=>{listen=callback;};f.server.close=callback=>{events.push('server-close');callback();};
  const life={afterListen(){events.push('after-listen');},retire(){events.push('retire');},join(){joined++;events.push('join');return Promise.resolve();},close(){closed++;events.push('close');return Promise.resolve();}};
  const context={host:new f.context.Legacy(),productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>f.server},central:null,admission:f.admission,productSessionStateVersion:'2',createOriginalWalletRuntimeObserverLifetime:()=>life,emitEvent:()=>{},port:1,address:'127.0.0.1',build:null,remoteDeployed:false,process:{on:(name,fn)=>signals.set(name,fn),exit:()=>{exit++;}},URL,Promise,Date};
- const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end),context);assert.equal(events.length,0);listen();assert.equal(events[0],'after-listen');signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));assert.equal(joined,1);assert.equal(closed,1);assert.equal(exit,1);assert.deepEqual(events,['after-listen','retire','join','close','server-close']);
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end),context);assert.equal(events.length,0);listen();assert.equal(events[0],'after-listen');signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));assert.equal(joined,1);assert.equal(closed,1);assert.equal(exit,1);
+ assert.equal(events.filter(e=>e==='server-close').length,1);assert(events.indexOf('retire')<events.indexOf('server-close'));assert(events.indexOf('join')<events.indexOf('close'));
+});
+test('R7 PUBLIC adapted fixture uses original acquisition inventory and truthful same failed close',async()=>{
+ const f=lifetimeFixture({cleanupFail:true,cleanupCause:undefined});f.lifetime.afterListen();
+ assert.throws(()=>f.context.closeOriginalWalletRuntimeObserverAcquisition({}),/ACQUISITION_OWNER_REQUIRED/);
+ const selected=f.lifetime.close();let rejected=false;try{await selected;}catch(cause){rejected=true;assert.equal(cause,undefined);}assert.equal(rejected,true);
+ assert.equal(f.lifetime.close(),selected);assert.equal(f.closes(),1);assert.equal(f.lifetime.status().cleanupFailurePresent,true);assert.equal(f.lifetime.status().configured,true);
+});
+test('R7 PUBLIC adapted daemon fixture awaits both completions with independent stop and once effects',async()=>{
+ const f=hostFixture(),signals=new Map();let listen,httpDone,releaseJoin,stops=0,disposed=0,exits=0;
+ const joining=new Promise(resolve=>{releaseJoin=resolve;});
+ f.server.listen=(_port,_address,callback)=>{listen=callback;};f.server.close=callback=>{stops++;httpDone=callback;};
+ const life={afterListen(){},retire(){},join(){return joining;},close(){disposed++;return Promise.resolve();}};
+ const context={host:new f.context.Legacy(),productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>f.server},central:null,admission:f.admission,productSessionStateVersion:'2',createOriginalWalletRuntimeObserverLifetime:()=>life,emitEvent(){},port:1,address:'127.0.0.1',build:null,remoteDeployed:false,process:{on:(name,callback)=>signals.set(name,callback),exit(){exits++;}},URL,Promise,Date};
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);vm.createContext(context);vm.runInContext(daemonText.slice(start,end),context);listen();signals.get('SIGTERM')();signals.get('SIGINT')();await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(stops,1);assert.equal(disposed,0);assert.equal(exits,0);
+ releaseJoin();await new Promise(resolve=>setImmediate(resolve));assert.equal(disposed,1);assert.equal(exits,0);
+ httpDone();await new Promise(resolve=>setImmediate(resolve));assert.equal(exits,1);signals.get('SIGINT')();assert.equal(stops,1);assert.equal(disposed,1);
 });
 test('R4 PUBLIC exact daemon v3 fallback retains admission and normal product routing',async()=>{
  const f=hostFixture();let product=0,listen;const legacy=new f.context.Legacy();
