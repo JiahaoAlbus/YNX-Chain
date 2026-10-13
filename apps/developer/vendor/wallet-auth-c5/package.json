@@ -105,6 +105,11 @@
       "types": "./src/product-session-native.d.ts",
       "import": "./src/product-session-native.js",
       "default": "./src/product-session-native.js"
+    },
+    "./product-wallet-connection": {
+      "types": "./src/product-wallet-connection.d.ts",
+      "import": "./src/product-wallet-connection.js",
+      "default": "./src/product-wallet-connection.js"
     }
   },
   "types": "./src/index.d.ts",

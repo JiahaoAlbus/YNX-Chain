@@ -1,0 +1,33 @@
+[Unit]
+Description=YNX canonical Wallet Gateway Developer candidate
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx/wallet-auth-developer-11f15c7a
+Environment=NODE_ENV=production
+Environment=YNX_WALLET_GATEWAY_HTTP_ADDR=127.0.0.1
+Environment=YNX_WALLET_GATEWAY_HTTP_PORT=18447
+Environment=YNX_WALLET_GATEWAY_STATE_PATH=/var/lib/ynx-wallet-gateway-developer-candidate/state.json
+Environment=YNX_WALLET_GATEWAY_REMOTE_DEPLOYED=false
+Environment=YNX_WALLET_GATEWAY_SOURCE_COMMIT=11f15c7a4acc3d6279d4c5136a124088e2059c1f
+Environment=YNX_WALLET_GATEWAY_RELEASE=wallet-auth-developer-candidate-20260810
+Environment=YNX_WALLET_GATEWAY_BUILD_TIME=2026-08-09T21:25:00.000Z
+Environment=YNX_WALLET_GATEWAY_MAX_CONCURRENT=128
+Environment=YNX_WALLET_GATEWAY_RATE_LIMIT=600
+ExecStart=/usr/bin/node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-wallet-gateway-developer-candidate
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

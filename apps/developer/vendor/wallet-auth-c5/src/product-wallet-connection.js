@@ -1,6 +1,7 @@
+import { hasOriginalWalletServicePrivateBridge } from './original-wallet-service-private-client.js';
 import { exactFields, WalletAuthError } from "./canonical.js";
 import { encodeBase64url } from "./base64url.js";
-import { ProductSessionGatewayFetchAdapter } from "./product-session-gateway-client.js";
+import { ProductSessionGatewayFetchAdapter, ProductSessionGatewayPrivateAdapter } from "./product-session-gateway-client.js";
 import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { WalletConnectionCoordinator } from "./wallet-connection-coordinator.js";
 
@@ -21,7 +22,8 @@ export function createProductWalletConnection(config) {
   assertProductRuntime();
   exactFields(config.device, ["id", "key", "sign", "scopes", "purpose"], "Product Wallet secure device signer");
   if (typeof config.device.sign !== "function") throw new WalletAuthError("INVALID_DEVICE", "Product Wallet connection requires a platform secure device signer");
-  const gateway = new ProductSessionGatewayFetchAdapter({
+  const privateBridge = hasOriginalWalletServicePrivateBridge();
+  const gateway = privateBridge ? new ProductSessionGatewayPrivateAdapter({walletInstalled: config.walletInstalled, schemeRegistered: config.schemeRegistered, timeoutMs: config.gatewayTimeoutMs}) : new ProductSessionGatewayFetchAdapter({
     endpoint: PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,
     fetch: globalThis.fetch.bind(globalThis),
     walletInstalled: config.walletInstalled,
@@ -62,5 +64,5 @@ function authorityClockRequired() {
 }
 function assertProductRuntime() {
   if (!globalThis.crypto || typeof globalThis.crypto.getRandomValues !== "function") throw new WalletAuthError("INVALID_RANDOM_SOURCE", "Product Wallet connection requires a cryptographic runtime");
-  if (typeof globalThis.fetch !== "function") throw new WalletAuthError("INVALID_GATEWAY", "Product Wallet connection requires the platform HTTPS transport");
+  if (!hasOriginalWalletServicePrivateBridge() && typeof globalThis.fetch !== "function") throw new WalletAuthError("INVALID_GATEWAY", "Product Wallet connection requires the platform HTTPS transport");
 }

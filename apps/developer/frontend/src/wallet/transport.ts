@@ -5,6 +5,9 @@ import { isDeveloperResourceReturn } from './resource-approval-return';
 import { encodeRequestDeepLink, parseAuthorizationCallbackURL, type AuthorizationResponse } from "../../../vendor/wallet-auth/src/index.js";
 
 export type DeveloperWalletBridge = {
+  // Fixed native parent transport only. Presence does not establish original
+  // service qualification; an unavailable producer rejects before entry.
+  originalServiceDispatch?: (canonicalInput: string, options?: { signal?: AbortSignal }) => Promise<unknown>;
   openAuthorization: (deepLink: string) => Promise<void>;
   walletAvailability?: () => Promise<{ walletInstalled: boolean; schemeRegistered: boolean }>;
   device?: () => Promise<NativeDeveloperWalletDevice>;

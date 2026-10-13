@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {randomUUID,createHash} from 'node:crypto';import {execFile as callbackExecFile} from 'node:child_process';import {promisify} from 'node:util';import {PassThrough} from 'node:stream';
 import {createLocalGoSelectionStore,attachNativeGoSelectionChannel,nativeGoSelectionRequest,assertAdmittedLocalGoToolchain} from './local-go-selection.mjs';
+import {createNativeParentControl} from './native-parent-control.mjs';
 const execFile=promisify(callbackExecFile),base='/Volumes/Data/Users/huangjiahao/.ynx-ide-build-artifacts-v2-20261005',selectedRoot='/opt/homebrew/Cellar/go/1.25.7_1/libexec';
 const qa=await fs.mkdtemp(path.join(base,'go-native-selection-qa-'));await fs.chmod(qa,0o700);console.log('GO_NATIVE_SELECTION_QA',qa);
 const helper=path.join(qa,'workspace-path-identity');await execFile('/usr/bin/clang',['-mmacosx-version-min=13.5',fileURLToPath(new URL('./macos/workspace-path-identity.c',import.meta.url)),'-o',helper]);
@@ -8,8 +9,10 @@ async function result(directory,id){for(let i=0;i<2400;i++){try{return JSON.pars
 let options,store,toolchain;
 test('native pipe prepares real selected SDK, persists project binding and verifies fresh reopen',{timeout:240000},async()=>{
  options=await fixture('support');store=await createLocalGoSelectionStore(options);assert.equal(await store.load(),undefined);
- const directory=await store.controlDirectory(randomUUID()),input=new PassThrough(),errors=[];const channel=attachNativeGoSelectionChannel({input,store,context:options.context,directory,onError:e=>errors.push(e)});
+ const directory=await store.controlDirectory(randomUUID()),input=new PassThrough(),errors=[],control=createNativeParentControl({input,onError:e=>errors.push(e)});const channel=attachNativeGoSelectionChannel({control,store,context:options.context,directory,onError:e=>errors.push(e)});
+ const other=[];control.subscribe({actions:['original-service-dispatch'],receive:body=>other.push(body.canonicalInput)});
  const id=randomUUID();input.write(JSON.stringify({action:'prepare-go',id,projectId:options.context.id,workspace:options.context.workspace,selectedRoot})+'\n');const reply=await result(directory,id);assert.equal(reply.status,'selected');assert.equal(reply.effective,'after-reopen');assert.match(reply.version,/go1.25.7 darwin\/arm64/);assert.deepEqual(errors,[]);channel.close();
+ input.write(JSON.stringify({action:'original-service-dispatch',canonicalInput:'transport-only'})+'\n');await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(other,['transport-only']);assert.equal(input.readableFlowing,true);await control.finishCleanup();input.destroy();
  toolchain=await store.load();assert.equal(toolchain.root,reply.root);assert.equal(toolchain.sha,'f088799ea6fa0e837755306c027d75345e761b3cd1b2a7db45c41ec14bd6500f');
  const reopened=await createLocalGoSelectionStore(options);assert.deepEqual(await reopened.load(),toolchain);const metadata=JSON.parse(await fs.readFile(store.recordPath,'utf8'));assert.equal(metadata.binding.projectId,options.context.id);assert.equal(metadata.selectedRoot,selectedRoot);assert.equal((await fs.stat(store.recordPath)).mode&0o777,0o600);
  await fs.writeFile(path.join(qa,'observation.json'),JSON.stringify({toolchain,recordPath:store.recordPath,context:options.context,nativePipe:true,reopenVerified:true,gui:'NOT_VERIFIED',readscope:'PENDING_ROOT_INTEGRATION'},null,2)+'\n',{flag:'wx',mode:0o600});

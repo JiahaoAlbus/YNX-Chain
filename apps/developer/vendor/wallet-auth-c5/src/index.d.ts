@@ -623,3 +623,7 @@ export interface WalletConnectionCoordinator {
  getRevocationCompletion(intentId:string):Promise<ProductSessionRevocationCompletion|null>;
  acknowledgeRevocationCompletion(receipt:ProductSessionRevocationCompletion):Promise<void>;
 }
+
+export type { ProductWalletConnectionConfiguration, ProductWalletProtectedStorage } from './product-wallet-connection.js';
+
+export type { OriginalWalletServiceResponse, OriginalWalletServiceOperation } from './original-wallet-service-private-client.js';

@@ -6,7 +6,10 @@ import { fileURLToPath } from 'node:url';
 // executing imports, contacting a registry, or changing the signed payload.
 export async function verifyPackagedLocalImports(root) {
   const result = await build({
-    entryPoints: [resolve(root, 'desktop/local-workbench.mjs'), resolve(root, 'desktop/wallet-admission-startup.mjs')],
+    // The native server loads Go/control modules through computed file URLs.
+    // Explicit entries make those real runtime imports part of this guard.
+    entryPoints: ['desktop/local-workbench.mjs', 'desktop/wallet-admission-startup.mjs',
+      'desktop/local-go-selection.mjs', 'desktop/native-parent-control.mjs'].map(entry => resolve(root, entry)),
     outdir: resolve(root, '.import-verification'),
     absWorkingDir: resolve(root), bundle: true, write: false,
     platform: 'node', format: 'esm', packages: 'external',

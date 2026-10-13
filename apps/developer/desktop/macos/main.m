@@ -645,6 +645,8 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,strong) NSAlert *localGoProgress;
 @property(nonatomic,strong) NSTimer *localGoPoll;
 @property(nonatomic,strong) NSPipe *localGoInput;
+@property(nonatomic,strong) NSMutableDictionary<NSString *,NSMutableDictionary *> *localOriginalServiceRequests;
+@property(nonatomic,strong) NSTimer *localOriginalServicePoll;
 @property(nonatomic,copy) NSString *localGoInstance;
 @property(nonatomic,copy) NSString *localGoRequest;
 @property(nonatomic,copy) NSString *localGoProjectID;
@@ -729,7 +731,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     _localWalletBridge=[[YNXWalletDeviceBridge alloc]initWithTag:@"com.ynxweb4.developer.native-device-p256-v2" storageService:YNXWalletStorageService lockDirectory:_localSupportRoot];
     [configuration.userContentController addScriptMessageHandler:self name:@"ynxLocalWallet"];
-    NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key}),saveRevocationIntent:(key,rawIntent)=>call('storage-save-intent',{key,rawIntent}),finishRevocationIntentWithCompletion:(key,expectedRawIntent,receiptRaw)=>call('storage-finish-intent',{key,expectedRawIntent,receiptRaw}),getRevocationCompletions:key=>call('storage-get-completions',{key}),getRevocationCompletion:(key,intentId)=>call('storage-get-completion',{key,intentId}),acknowledgeRevocationCompletion:(key,expectedReceiptRaw)=>call('storage-ack-completion',{key,expectedReceiptRaw}),consumerJournalPersist:receiptRaw=>call('consumer-journal-persist',{receiptRaw}),consumerJournalRead:intentId=>call('consumer-journal-read',{intentId})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
+    NSString *walletScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();const call=(action,args={})=>new Promise((resolve,reject)=>{if(jobs.size>=32){reject(new Error('Too many native Wallet requests'));return;}const id=crypto.randomUUID();const timer=setTimeout(()=>{jobs.delete(id);reject(new Error('Native Wallet request timed out'));},60000);jobs.set(id,{resolve,reject,timer});window.webkit.messageHandlers.ynxLocalWallet.postMessage({action,id,...args});});Object.defineProperty(window,'__ynxNativeWalletReply',{value:e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);clearTimeout(job.timer);e.ok?job.resolve(e.value):job.reject(new Error(e.error||'Native Wallet operation failed'));}});const serviceJobs=new Map(),serviceDocument=crypto.randomUUID();Object.defineProperty(window,'__ynxOriginalServiceDocument',{value:serviceDocument});Object.defineProperty(window,'__ynxOriginalServiceReply',{value:e=>{if(e.document!==serviceDocument)return;const job=serviceJobs.get(e.id);if(!job)return;serviceJobs.delete(e.id);job.cleanup();e.error?job.reject(new Error(e.error)):job.resolve(e.value);}});const service=(canonicalInput,options={})=>new Promise((resolve,reject)=>{const signal=options.signal;if(signal?.aborted){reject(new DOMException('Cancelled','AbortError'));return;}if(typeof canonicalInput!=='string'||new TextEncoder().encode(canonicalInput).length>65536||serviceJobs.size>=32){reject(new Error('Invalid or excessive original service request'));return;}const id=crypto.randomUUID(),cancel=()=>{try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-cancel',id,document:serviceDocument});}catch{}};let timer;const cleanup=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};const abort=()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new DOMException('Cancelled','AbortError'));};timer=setTimeout(()=>{if(!serviceJobs.delete(id))return;cancel();cleanup();reject(new Error('Original service request timed out; no automatic retry'));},60000);serviceJobs.set(id,{resolve,reject,cleanup,cancel});signal?.addEventListener('abort',abort,{once:true});try{window.webkit.messageHandlers.ynxLocalWallet.postMessage({action:'original-service-dispatch',id,document:serviceDocument,canonicalInput});}catch(error){serviceJobs.delete(id);cleanup();reject(error);}});addEventListener('pagehide',()=>{for(const job of serviceJobs.values()){job.cancel();job.cleanup();job.reject(new Error('Original service document retired'));}serviceJobs.clear();},{once:true});const device=value=>Object.freeze({...value,scopes:Object.freeze(['account:read','developer:deploy']),purpose:'Connect YNX Developer to the approved testnet Developer account',sign:input=>call('device-sign',{input})});Object.defineProperty(window,'ynxDesktopWallet',{value:Object.freeze({originalServiceDispatch:service,beginConnection:async()=>device(await call('begin-connection')),endConnection:()=>call('end-connection'),device:async()=>device(await call('device-info')),openAuthorization:url=>call('open-authorization',{url}),walletAvailability:()=>call('availability'),protectedStorage:Object.freeze({securityLevel:'os-protected',get:key=>call('storage-get',{key}),set:(key,value)=>call('storage-set',{key,value}),remove:key=>call('storage-remove',{key}),saveRevocationIntent:(key,rawIntent)=>call('storage-save-intent',{key,rawIntent}),finishRevocationIntentWithCompletion:(key,expectedRawIntent,receiptRaw)=>call('storage-finish-intent',{key,expectedRawIntent,receiptRaw}),getRevocationCompletions:key=>call('storage-get-completions',{key}),getRevocationCompletion:(key,intentId)=>call('storage-get-completion',{key,intentId}),acknowledgeRevocationCompletion:(key,expectedReceiptRaw)=>call('storage-ack-completion',{key,expectedReceiptRaw}),consumerJournalPersist:receiptRaw=>call('consumer-journal-persist',{receiptRaw}),consumerJournalRead:intentId=>call('consumer-journal-read',{intentId})})})});addEventListener('pagehide',()=>{for(const j of jobs.values()){clearTimeout(j.timer);j.reject(new Error('Native Wallet document closed'));}jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
@@ -826,7 +828,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){[self cancelLocalOriginalServices];[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -1239,12 +1241,78 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(!_localWorkbenchMode||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;NSString *url=[_localWalletBridge takeRoutedCallback];if(!url)return;
     YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/')window.dispatchEvent(new CustomEvent('ynx-wallet-callback',{detail:%@}));",YNXJSON(url)]);
 }
+- (void)localOriginalServiceReply:(NSString *)identifier document:(NSString *)document error:(NSString *)error {
+    NSDictionary *reply=@{@"id":identifier,@"document":document,@"error":error};
+    NSString *script=[NSString stringWithFormat:@"if(location.pathname==='/'&&window.__ynxOriginalServiceDocument===%@)window.__ynxOriginalServiceReply?.(%@);",YNXJSON(document),YNXJSON(reply)];
+    YNXEvaluateTrustedScript(_webView,_port,script);
+}
+- (BOOL)sendLocalOriginalService:(NSString *)action row:(NSDictionary *)row {
+    if(!_server.running||!_localGoInput||![row[@"instance"] isEqual:_localGoInstance])return NO;
+    NSMutableDictionary *frame=[@{@"action":action,@"id":row[@"id"],@"document":row[@"document"],@"instance":row[@"instance"],@"projectId":row[@"projectId"],@"workspace":row[@"workspace"]}mutableCopy];
+    if([action isEqual:@"original-service-dispatch"])frame[@"canonicalInput"]=row[@"canonicalInput"];
+    NSData *json=[NSJSONSerialization dataWithJSONObject:frame options:0 error:nil];if(!json||json.length>262144)return NO;
+    NSMutableData *line=[json mutableCopy];[line appendData:[@"\n" dataUsingEncoding:NSUTF8StringEncoding]];
+    return [_localGoInput.fileHandleForWriting writeData:line error:nil];
+}
+- (void)cancelLocalOriginalServices {
+    for(NSMutableDictionary *row in _localOriginalServiceRequests.allValues){
+        if([row[@"completed"] boolValue]||[row[@"cancelled"] boolValue])continue;
+        row[@"cancelled"]=@YES;
+        if([row[@"sent"] boolValue])[self sendLocalOriginalService:@"original-service-cancel" row:row];
+        else row[@"completed"]=@YES;
+    }
+}
+- (void)handleLocalOriginalService:(NSDictionary *)body {
+    NSString *identifier=body[@"id"],*document=body[@"document"],*action=body[@"action"];
+    if(![identifier isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:identifier]||![document isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:document])return;
+    BOOL cancel=[action isEqual:@"original-service-cancel"];
+    if(!YNXDeviceFields(body,cancel?@"action id document":@"action id document canonicalInput"))return;
+    NSMutableDictionary *row=_localOriginalServiceRequests[identifier];
+    if(cancel){if(row&&[row[@"document"] isEqual:document]&&![row[@"completed"] boolValue]&&![row[@"cancelled"] boolValue]){row[@"cancelled"]=@YES;if([row[@"sent"] boolValue])[self sendLocalOriginalService:action row:row];else row[@"completed"]=@YES;}return;}
+    NSString *raw=body[@"canonicalInput"],*workspace=_localWorkspace?:[_localSupportRoot stringByAppendingPathComponent:@"local-projects/default/workspace"];
+    NSDictionary *binding=[self localTrashAdmittedBinding];
+    if(![raw isKindOfClass:NSString.class]||[raw lengthOfBytesUsingEncoding:NSUTF8StringEncoding]>65536||row||_localOriginalServiceRequests.count>=32||!_localCommandDocumentReady||!_server.running||_localCloseRequest||!binding||!YNXLocalGoPrivateControl([self localGoControlDirectory],workspace)){
+        [self localOriginalServiceReply:identifier document:document error:@"Original service request is unavailable or stale."];return;
+    }
+    if(!_localOriginalServiceRequests)_localOriginalServiceRequests=[NSMutableDictionary new];
+    row=[@{@"id":identifier,@"document":document,@"documentURL":_webView.URL.absoluteString,@"instance":_localGoInstance,@"projectId":binding[@"projectId"],@"workspace":workspace,@"canonicalInput":raw,@"generation":@(_localWalletGeneration),@"started":@(NSProcessInfo.processInfo.systemUptime),@"sent":@NO,@"cancelled":@NO,@"completed":@NO}mutableCopy];
+    _localOriginalServiceRequests[identifier]=row;
+    YNXWalletAdmissionBackendTask *server=_server;NSUInteger generation=_localWalletGeneration;
+    // A matching URL alone cannot identify a reloaded document. Check the
+    // actual current JavaScript document token before crossing the parent pipe.
+    NSString *check=[NSString stringWithFormat:@"window.__ynxOriginalServiceDocument===%@",YNXJSON(document)];
+    [_webView evaluateJavaScript:YNXOriginBoundScript(check,_port) completionHandler:^(id matches,NSError *error){
+        if(error||![matches isEqual:@YES]||self.server!=server||!server.running||self.localWalletGeneration!=generation||![row[@"documentURL"] isEqual:self.webView.URL.absoluteString]||![row[@"projectId"] isEqual:[self localTrashAdmittedBinding][@"projectId"]]||[row[@"cancelled"] boolValue]||!self.localCommandDocumentReady||self.localCloseRequest){row[@"cancelled"]=@YES;row[@"completed"]=@YES;return;}
+        if(![self sendLocalOriginalService:@"original-service-dispatch" row:row]){row[@"transportUncertain"]=@YES;[self localOriginalServiceReply:identifier document:document error:@"Original service transport failed; do not automatically retry."];return;}
+        row[@"sent"]=@YES;
+        if(!self.localOriginalServicePoll){__weak typeof(self) weakSelf=self;self.localOriginalServicePoll=[NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *timer){[weakSelf pollLocalOriginalServices];}];}
+    }];
+}
+- (void)pollLocalOriginalServices {
+    if(!_server.running){[self cancelLocalOriginalServices];[_localOriginalServicePoll invalidate];_localOriginalServicePoll=nil;return;}
+    BOOL pending=NO;
+    for(NSMutableDictionary *row in _localOriginalServiceRequests.allValues){
+        if([row[@"completed"] boolValue]||[row[@"pollRetired"] boolValue]||![row[@"sent"] boolValue])continue;
+        if(NSProcessInfo.processInfo.systemUptime-[row[@"started"] doubleValue]>60){row[@"pollRetired"]=@YES;row[@"cancelled"]=@YES;[self sendLocalOriginalService:@"original-service-cancel" row:row];continue;}
+        pending=YES;
+        if(![_localGoInstance isEqual:row[@"instance"]]||!_server.running)continue;
+        if(!YNXLocalGoPrivateControl([self localGoControlDirectory],row[@"workspace"]))continue;
+        NSString *file=[[self localGoControlDirectory]stringByAppendingPathComponent:[NSString stringWithFormat:@"wallet-%@.json",row[@"id"]]];
+        NSDictionary *result=YNXPrivateLocalJSON(file);
+        if(result.count!=8||![result[@"id"] isEqual:row[@"id"]]||![result[@"document"] isEqual:row[@"document"]]||![result[@"instance"] isEqual:row[@"instance"]]||![result[@"projectId"] isEqual:row[@"projectId"]]||![result[@"status"] isEqual:@"unavailable"]||![result[@"error"] isEqual:@"ORIGINAL_PRIVATE_SERVICE_NOT_SUPPLIED"]||![result[@"entered"] isKindOfClass:NSNumber.class]||![result[@"unknown"] isKindOfClass:NSNumber.class]||CFGetTypeID((__bridge CFTypeRef)result[@"entered"])!=CFBooleanGetTypeID()||CFGetTypeID((__bridge CFTypeRef)result[@"unknown"])!=CFBooleanGetTypeID()||[result[@"entered"] boolValue]||[result[@"unknown"] boolValue])continue;
+        row[@"completed"]=@YES;row[@"retainedResult"]=result;
+        // Pre-entry unavailability is not successful original-service execution.
+        if(![row[@"cancelled"] boolValue]&&_localWalletGeneration==[row[@"generation"] unsignedIntegerValue]&&[row[@"documentURL"] isEqual:_webView.URL.absoluteString]&&[row[@"projectId"] isEqual:[self localTrashAdmittedBinding][@"projectId"]]) [self localOriginalServiceReply:row[@"id"] document:row[@"document"] error:result[@"error"]];
+    }
+    if(!pending){[_localOriginalServicePoll invalidate];_localOriginalServicePoll=nil;}
+}
 - (void)localWalletReply:(NSString *)identifier value:(id)value error:(NSError *)error {
     NSDictionary *reply=error?@{@"id":identifier,@"ok":@NO,@"error":error.localizedDescription}:@{@"id":identifier,@"ok":@YES,@"value":value?:NSNull.null};
     YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"if(location.pathname==='/')window.__ynxNativeWalletReply?.(%@);",YNXJSON(reply)]);
 }
 - (void)handleLocalWalletMessage:(id)value {
     NSDictionary *body=[value isKindOfClass:NSDictionary.class]?value:nil;NSString *identifier=body[@"id"],*action=body[@"action"];
+    if([action isEqual:@"original-service-dispatch"]||[action isEqual:@"original-service-cancel"]){[self handleLocalOriginalService:body];return;}
     if(![identifier isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:identifier]||![action isKindOfClass:NSString.class])return;
     NSDictionary *fields=@{@"availability":@"id action",@"begin-connection":@"id action",@"end-connection":@"id action",@"device-info":@"id action",@"device-sign":@"id action input",@"open-authorization":@"id action url",@"storage-get":@"id action key",@"storage-set":@"id action key value",@"storage-remove":@"id action key",@"storage-save-intent":@"id action key rawIntent",@"storage-finish-intent":@"id action key expectedRawIntent receiptRaw",@"storage-get-completions":@"id action key",@"storage-get-completion":@"id action key intentId",@"storage-ack-completion":@"id action key expectedReceiptRaw",@"consumer-journal-persist":@"id action receiptRaw",@"consumer-journal-read":@"id action intentId"};
     NSError *error=nil;id result=nil;
@@ -1573,7 +1641,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[self invalidateLocalTrashBoundary];[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];[self finishLocalWalletAdmissionCleanup];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalOriginalServices];[_localOriginalServicePoll invalidate];[self invalidateLocalTrashBoundary];[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];[self finishLocalWalletAdmissionCleanup];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}

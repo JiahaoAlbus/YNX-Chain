@@ -19,11 +19,11 @@ const ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 if (PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN !== ACCEPTED_PUBLIC_GATEWAY_ORIGIN) throw new Error("The accepted Wallet Product Session v2 origin was not preserved.");
 
 export const DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
-  sourceCommit: "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
-  sourceTree: "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
-  supplierManifest: "501c20f6c3a81617a1c3e69fa0ceb3749fb20072d2b8b0589948f2463b7f3aff",
-  sourceClosure: "1a64e5483a4b9c895e19ff36aec17de3e8433cab455d19e13d0a349179c17f29",
-  factorySource: "3d35e858f68d39a142e8a7798670b8d4a09e8f41f21476e3e692e3a06128f1f7",
+  sourceCommit: "aa65ea80525e1956214cf4c8848093034e52c77d",
+  sourceTree: "114d5000f373499419adcd17299c3ce14a18cc86",
+  supplierManifest: "5171093ccc1c511b3b37dc2d43a3568ea338421f8cf6c7b7ab6b7f181b9b7a10",
+  sourceClosure: "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2",
+  factorySource: "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec",
   gatewayOrigin: ACCEPTED_PUBLIC_GATEWAY_ORIGIN,
   migrated: false,
 });

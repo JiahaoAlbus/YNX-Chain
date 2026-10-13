@@ -95,9 +95,16 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
       }
       throw error;
     });
-  let goChannel;
+  const { createNativeParentControl, attachUnavailableOriginalServiceChannel } = await import(pathToFileURL(join(applicationRoot, 'desktop', 'native-parent-control.mjs')));
+  const parentControl = createNativeParentControl({input:process.stdin,onError:error=>console.error('YNX_NATIVE_PARENT_CONTROL '+String(error.message).slice(0,240))});
+  let goChannel, originalServiceChannel;
   if(goStore&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(process.env.YNX_NATIVE_GO_INSTANCE||'')){
-    try{const directory=await goStore.controlDirectory(process.env.YNX_NATIVE_GO_INSTANCE);goChannel=attachNativeGoSelectionChannel({input:process.stdin,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});}
+    try{const instance=process.env.YNX_NATIVE_GO_INSTANCE;const directory=await goStore.controlDirectory(instance);
+      goChannel=attachNativeGoSelectionChannel({control:parentControl,store:goStore,context,directory,onError:error=>console.error('YNX_GO_SELECTION_CONTROL '+String(error.message).slice(0,240))});
+      // The fixed original service producer is still absent. This channel only
+      // reports pre-entry unavailability, without blocking local coding/Go.
+      originalServiceChannel=attachUnavailableOriginalServiceChannel({control:parentControl,instance,context,directory,onError:error=>console.error('YNX_ORIGINAL_SERVICE_CONTROL '+String(error.message).slice(0,240))});
+    }
     catch(error){console.error('YNX_GO_SELECTION_UNAVAILABLE '+String(error.message).slice(0,240));}
   }
   delete process.env.YNX_NATIVE_GO_INSTANCE;
@@ -105,10 +112,12 @@ if (process.env.YNX_DEVELOPER_DESKTOP_MODE === 'local-workbench') {
   let stopping;
   const stop = () => {
     if (stopping) return stopping;
-    goChannel?.close(); retireWallet(); retireTools();
+    parentControl.close(); goChannel?.close(); originalServiceChannel?.close(); retireWallet(); retireTools();
     stopping = (async () => {
       try { await workbench.stop(); }
       finally {
+        const parentCleanup = await parentControl.finishCleanup();
+        if (parentCleanup.firstFailure) process.exitCode = 1;
         if (!await finishWalletCleanup()) process.exitCode = 1;
         if (!await finishToolsCleanup()) process.exitCode = 1;
       }

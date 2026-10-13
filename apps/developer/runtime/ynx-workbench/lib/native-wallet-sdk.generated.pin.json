@@ -4,7 +4,7 @@
   "inputs": [
     {
       "path": "frontend/src/wallet/product-session-v2.ts",
-      "sha256": "df2d682b4fd6c6e9c3917fac4fc029a3bed41417038a87947c5d01a080feed4e"
+      "sha256": "44331f43470869b20c5f858fac7cc0f3abfdf83216b98b926dadfa97a60bb052"
     },
     {
       "path": "frontend/src/wallet/resource-approval-return.ts",
@@ -12,7 +12,7 @@
     },
     {
       "path": "frontend/src/wallet/transport.ts",
-      "sha256": "b25437aa09664b83f39014348de3f055a26beccf3ade543e5b74d72471fdafa4"
+      "sha256": "0c7cfaad5fc5271d468730b3d455dbf1534e5defa28c71cfffafdcc385ff2b6c"
     },
     {
       "path": "node_modules/@noble/curves/abstract/curve.js",
@@ -103,6 +103,10 @@
       "sha256": "dd93f681ba7904a42ae5ec0069991a59b2319dddbb7d073503f5016beb59fdeb"
     },
     {
+      "path": "vendor/wallet-auth-c5/src/original-wallet-service-private-client.js",
+      "sha256": "d98817b00f85cb1aa149a4896814d7dbf39da96143df02b6f053be738e65827d"
+    },
+    {
       "path": "vendor/wallet-auth-c5/src/product-session-completion-record.js",
       "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655"
     },
@@ -120,7 +124,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/src/product-session-gateway-client.js",
-      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141"
+      "sha256": "55255433c19160d15ea08c53a341fa5b3cd518bd0b618bb4ec9be49ab2b7833c"
     },
     {
       "path": "vendor/wallet-auth-c5/src/product-session-gateway-snapshot-v2.js",
@@ -136,7 +140,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/src/product-session-recovery.js",
-      "sha256": "e0c478b20bccdcf1577b4bcb16f8220b53ae8192d9609280261daf4fa0da73ce"
+      "sha256": "c671e33dca10022a173a14b29e1a761d93b8efa464edc162eadf0e9f4397c950"
     },
     {
       "path": "vendor/wallet-auth-c5/src/product-session-registry.js",
@@ -156,7 +160,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/src/product-wallet-connection.js",
-      "sha256": "3d35e858f68d39a142e8a7798670b8d4a09e8f41f21476e3e692e3a06128f1f7"
+      "sha256": "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec"
     },
     {
       "path": "vendor/wallet-auth-c5/src/protocol.js",
@@ -328,7 +332,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/SOURCE_CLOSURE.json",
-      "sha256": "1a64e5483a4b9c895e19ff36aec17de3e8433cab455d19e13d0a349179c17f29"
+      "sha256": "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2"
     },
     {
       "path": "node_modules/@noble/curves/package.json",
@@ -363,7 +367,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/package.json",
-      "sha256": "cae01082e60975b20250b466d3a459fb500a6504980309b6d50a0c895f190f75",
+      "sha256": "c3da462fbb878c7973437a4de327226f3f843790f2d6a51bf90bf8fadf089932",
       "name": "@ynx-chain/wallet-auth",
       "version": "1.2.0",
       "license": "UNLICENSED"
@@ -371,5 +375,5 @@
   ],
   "noticeSha256": "fa0512cf786c1a12bac9a8fd274fbebe246673507023e26e4f3fdc9ba17a76e7",
   "bundleFile": "lib/native-wallet-sdk.generated.js",
-  "bundleSha256": "e073df2ae3d2b50818cc83158e19e4f7d9e22c64f3943ca8418bbeb4fdbd870d"
+  "bundleSha256": "b629fe1ac8ba74079450da196e25f0901bc83c65feb3c088012fd2db4a6a31b7"
 }

@@ -4,6 +4,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { prepareLocalGoToolchain } from './local-go-toolchain-supplier.mjs';
 import { inspectWorkspacePathIdentity, assertWorkspacePathIdentity } from './workspace-path-identity.mjs';
+import { createNativeParentControl } from './native-parent-control.mjs';
 const admissions=new WeakMap();
 const contextIdentity=context=>({id:context.id,workspace:context.workspace,profile:context.profile,temporary:context.temporary});
 export async function assertAdmittedLocalGoToolchain(toolchain,context){
@@ -60,8 +61,9 @@ export async function createLocalGoSelectionStore({supportRoot,context,pathIdent
  return Object.freeze({binding:Object.freeze(binding),recordPath,load,prepare,controlDirectory,writeResult});
 }
 /** Finite native stdin schema; sandbox children never inherit this pipe. */
-export function attachNativeGoSelectionChannel({input,store,context,directory,onError=()=>{}}){
- let buffer='',active,closed=false;const completed=new Set();
+export function attachNativeGoSelectionChannel({input,control,store,context,directory,onError=()=>{}}){
+ control??=createNativeParentControl({input,onError});
+ let active,closed=false;const completed=new Set(),owned=new Set();
  const failure=e=>String(e?.message||'Go selection failed.').slice(0,240);
  const receive=async body=>{if(!nativeGoSelectionRequest(body,context))return;
   if(body.action==='cancel-go'){if(active?.id===body.id)active.abort.abort();return;}
@@ -71,7 +73,12 @@ export function attachNativeGoSelectionChannel({input,store,context,directory,on
   catch(e){if(!closed)await store.writeResult(directory,job.id,{status:job.abort.signal.aborted?'cancelled':'error',error:failure(e)}).catch(onError);}
   finally{completed.add(job.id);if(active===job)active=undefined;}
  };
- const data=bytes=>{if(closed)return;buffer+=bytes.toString('utf8');if(Buffer.byteLength(buffer)>32768){close();onError(Error('Native Go control input exceeded its bound.'));return;}let newline;while((newline=buffer.indexOf('\n'))>=0){const line=buffer.slice(0,newline);buffer=buffer.slice(newline+1);try{void receive(JSON.parse(line)).catch(onError);}catch{onError(Error('Invalid native Go control request.'));}}};
- const close=()=>{if(closed)return;closed=true;active?.abort.abort();input.removeListener('data',data);input.removeListener('end',close);input.pause();};
- input.on('data',data);input.once('end',close);input.resume();return Object.freeze({close});
+ const finishCleanup=async()=>{while(owned.size)await Promise.allSettled([...owned]);};
+ const retire=()=>{if(closed)return;closed=true;active?.abort.abort();};
+ const subscription=control.subscribe({actions:['prepare-go','cancel-go'],maxFrameBytes:32768,receive:body=>{
+  if(closed)return;
+  const task=receive(body).catch(error=>{onError(error);throw error;});owned.add(task);void task.finally(()=>owned.delete(task)).catch(()=>{});return task;
+ },onClose:()=>{retire();return finishCleanup();}});
+ const close=()=>{retire();subscription.close();};
+ return Object.freeze({close,finishCleanup});
 }
