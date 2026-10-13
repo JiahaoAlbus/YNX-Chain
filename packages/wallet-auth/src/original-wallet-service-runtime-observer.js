@@ -13,6 +13,25 @@ const PURPOSE='wallet-product-session-v2-runtime-instance/v1';
 const DOMAIN='YNX_WALLET_SERVICE_RUNTIME_INSTANCE_V1\n';
 const observers=new WeakMap(),captures=new WeakMap();
 const unresolvedObserverCustody=new Set();
+const acquisitionOwners=new WeakMap();
+// Cleanup-only same-operation custody, never observer/business authority.
+export function beginOriginalWalletRuntimeObserverAcquisition(){
+  const ref=Object.freeze({});acquisitionOwners.set(ref,{entered:false,settled:false,held:[],observer:null,partial:null,firstCause:null,firstCausePresent:false,cleanupCause:null,cleanupFailurePresent:false,closing:null});return ref;
+}
+function acquisitionOwned(ref){const value=acquisitionOwners.get(ref);if(!value)fail('ORIGINAL_RUNTIME_ACQUISITION_OWNER_REQUIRED');return value;}
+export function closeOriginalWalletRuntimeObserverAcquisition(ref){
+  const state=acquisitionOwned(ref);if(state.closing)return state.closing;
+  state.closing=Promise.resolve().then(()=>{
+    if(state.entered&&!state.settled)fail('ORIGINAL_RUNTIME_ACQUISITION_INFLIGHT');
+    if(state.observer!==null){closeOriginalWalletServiceRuntimeObserver(state.observer);return undefined;}
+    // Failed-before-return disposal was already selected once by the creator.
+    // Observe this exact original acquisition, not global absence or a retry.
+    if(state.cleanupFailurePresent)throw state.cleanupCause;
+    for(const custody of state.held){if(custody.cleanupFailurePresent)throw custody.cleanupCause;if(!custody.closed)fail('ORIGINAL_RUNTIME_CLEANUP_INCOMPLETE');}
+    if(state.partial?.cleanupFailurePresent)throw state.partial.cleanupCause;
+    return undefined;
+  }).catch(cause=>{if(!state.cleanupFailurePresent){state.cleanupCause=cause;state.cleanupFailurePresent=true;}throw cause;});return state.closing;
+}
 let activeObserver=null;
 const address=NetServer.prototype.address, listeners=EventEmitter.prototype.rawListeners;
 const on=EventEmitter.prototype.on, remove=EventEmitter.prototype.removeListener;
@@ -45,13 +64,15 @@ function disposeHeld(custody){
     row.closeEntered=true;
     try{closeSync(row.fd);row.closed=true;}catch(cause){row.cleanupCause=cause;row.cleanupFailurePresent=true;if(!custody.cleanupFailurePresent){custody.cleanupCause=cause;custody.cleanupFailurePresent=true;}}
   }
-  if(custody.cleanupFailurePresent){unresolvedObserverCustody.add(custody);throw custody.cleanupCause;}
+  if(custody.cleanupFailurePresent){if(custody.acquisition&&!custody.acquisition.cleanupFailurePresent){custody.acquisition.cleanupCause=custody.cleanupCause;custody.acquisition.cleanupFailurePresent=true;}unresolvedObserverCustody.add(custody);throw custody.cleanupCause;}
   custody.closed=true;
 }
-function held(path,expected){
+function held(path,expected,acquisition){
   if(typeof path!=='string'||!isAbsolute(path)||normalize(path)!==path||path==='/'||!digest(expected))fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');
   const chain=[];let p=dirname(path);while(true){chain.unshift(p);if(p==='/')break;p=dirname(p);}
-  const rows=[],custody={rows,source:null,raw:null,firstCause:null,firstCausePresent:false,closeEntered:false,closed:false,cleanupCause:null,cleanupFailurePresent:false};try{
+  const rows=[],custody={rows,acquisition:acquisition??null,source:null,raw:null,firstCause:null,firstCausePresent:false,closeEntered:false,closed:false,cleanupCause:null,cleanupFailurePresent:false};
+  if(acquisition)acquisition.held.push(custody);
+  try{
     for(const part of [...chain,path]){const file=part===path;const before=lstatSync(part);safe(before,file);const fd=openSync(part,constants.O_RDONLY|constants.O_NOFOLLOW|(file?0:constants.O_DIRECTORY));const row={path:part,fd,file,identity:null,closeEntered:false,closed:false,cleanupFailurePresent:false};rows.push(row);row.identity=stamp(before);const after=fstatSync(fd);safe(after,file);if(stamp(after)!==stamp(before))fail();}
     const leaf=rows.at(-1);if(leaf.identity!==stamp(fstatSync(leaf.fd)))fail();const raw=bytes(leaf.fd);custody.raw=raw;if(sha(raw)!==expected)fail();
     const source={raw:raw.toString('utf8'),check(){if(custody.closeEntered)fail('ORIGINAL_RUNTIME_UNAVAILABLE');for(const r of rows){const a=fstatSync(r.fd),b=lstatSync(r.path);safe(a,r.file);safe(b,r.file);if(stamp(a)!==r.identity||stamp(b)!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');}if(sha(bytes(leaf.fd))!==expected)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');for(const r of rows)if(stamp(fstatSync(r.fd))!==r.identity||stamp(lstatSync(r.path))!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');},close(){return disposeHeld(custody);}};
@@ -80,7 +101,14 @@ function current(o){
   } catch(e) {o.invalid=true;throw e;}
 }
 
-export function createOriginalWalletServiceRuntimeObserver(input){
+export function createOriginalWalletServiceRuntimeObserver(input,acquisitionRef=beginOriginalWalletRuntimeObserverAcquisition()){
+  const acquisition=acquisitionOwned(acquisitionRef);
+  if(acquisition.entered)fail('ORIGINAL_RUNTIME_ACQUISITION_ALREADY_ENTERED');acquisition.entered=true;
+  try{return acquireOriginalWalletServiceRuntimeObserver(input,acquisition);}
+  catch(cause){acquisition.firstCause=cause;acquisition.firstCausePresent=true;throw cause;}
+  finally{acquisition.settled=true;}
+}
+function acquireOriginalWalletServiceRuntimeObserver(input,acquisition){
   rejectReentry();
   if(unresolvedObserverCustody.size)fail('ORIGINAL_RUNTIME_CLEANUP_UNRESOLVED');
   const c=object(input,['hostSource','server','instanceSource','roleBinding','originalNow']);
@@ -88,7 +116,7 @@ export function createOriginalWalletServiceRuntimeObserver(input){
   const selection=object(c.instanceSource,['rootPath','rootDigest','instancePath','instanceDigest','gatewayManifestPath','gatewayManifestDigest','registryPath','registryFileDigest']);
   const role=object(c.roleBinding,BINDING);if(!id(role.keyId)||!digest(role.roleDigest)||!digest(role.registryDigest))fail();
   const files=[];let o;try{
-    for(const [path,hash] of [['rootPath','rootDigest'],['instancePath','instanceDigest'],['gatewayManifestPath','gatewayManifestDigest'],['registryPath','registryFileDigest']])files.push(held(selection[path],selection[hash]));
+    for(const [path,hash] of [['rootPath','rootDigest'],['instancePath','instanceDigest'],['gatewayManifestPath','gatewayManifestDigest'],['registryPath','registryFileDigest']])files.push(held(selection[path],selection[hash],acquisition));
     const root=publicJSON(files[0].raw,ROOT);if(root.version!==1||root.purpose!==PURPOSE||!id(root.rootId)||!id(root.rootKeyId)||typeof root.publicKey!=='string')fail();
     const envelope=publicJSON(files[1].raw,['body','signature']),body=object(envelope.body,BODY);
     if(body.version!==1||body.purpose!==PURPOSE||body.rootId!==root.rootId||body.rootKeyId!==root.rootKeyId||!id(body.registrationId)||body.service!=='wallet-product-session-v2'||body.productId!=='developer'||body.platform!=='macos'||body.gatewayOrigin!=='https://wallet-auth.ynxweb4.com')fail();
@@ -102,10 +130,11 @@ export function createOriginalWalletServiceRuntimeObserver(input){
     activeObserver=o;
     if(!c.server||types.isProxy(c.server)||!HTTPServer.prototype.isPrototypeOf(c.server))fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');
     for(const event of ['close','error','listening'])on.call(c.server,event,o.event);
-    current(o);o.active=false;const result=Object.freeze({});observers.set(result,o);return result;
+    current(o);o.active=false;const result=Object.freeze({});observers.set(result,o);acquisition.observer=result;return result;
   }catch(e){
     const partial={owner:o??null,files,firstCause:e,firstCausePresent:true,cleanupCause:null,cleanupFailurePresent:false};
-    const retain=cause=>{if(!partial.cleanupFailurePresent){partial.cleanupCause=cause;partial.cleanupFailurePresent=true;}};
+    acquisition.partial=partial;
+    const retain=cause=>{if(!partial.cleanupFailurePresent){partial.cleanupCause=cause;partial.cleanupFailurePresent=true;}if(!acquisition.cleanupFailurePresent){acquisition.cleanupCause=cause;acquisition.cleanupFailurePresent=true;}};
     if(o){o.invalid=true;for(const event of ['close','error','listening'])try{remove.call(o.server,event,o.event);}catch(cause){retain(cause);}}
     for(const f of files)try{f.close();}catch(cause){retain(cause);}
     if(partial.cleanupFailurePresent)unresolvedObserverCustody.add(partial);

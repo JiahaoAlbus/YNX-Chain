@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import vm from 'node:vm';
 import {createServer,Server} from 'node:http';
 import {EventEmitter} from 'node:events';
-const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
+const read=path=>readFileSync(process.env.PUBLIC_R6_PARENT_RED==='1'?new URL(path,new URL('file:///Users/huangjiahao/ynx-social-qa-authority/wallet-original-service-observer-held-partial-repair-r5-20261013/source/packages/wallet-auth/test/')):new URL(path,import.meta.url),'utf8');
 // Exact PUBLIC lexical Host/daemon/lifetime bodies. State/crypto/protected
 // sources are stand-ins. Real Server objects NEVER listen or open a network.
 const hostText=read('../src/product-session-gateway-node-host.js');
@@ -51,6 +51,54 @@ test('R5 PUBLIC successful partial disposal keeps acquisition failure but create
 });
 test('R5 PUBLIC exact held disposal reservation rejects synchronous reentry without false completion',()=>{
  let source,reentries=0;const f=r5HeldFixture({onClose(){reentries++;assert.throws(()=>source.close(),/CLEANUP_INFLIGHT/);}});source=f.api.held('/PUBLIC/item','PUBLIC_DIGEST');assert.equal(source.close(),undefined);assert.equal(reentries,3);assert.equal(f.disposed.length,3);assert.equal(source.close(),undefined);assert.equal(f.disposed.length,3);
+});
+// New integrated R6 chain. Actual daemon + launcher + observer acquisition/
+// close bodies share one VM. Only qualified source/FS/crypto/server primitives
+// are PUBLIC stand-ins. No real service listener, protection file or key.
+function r6DaemonFixture({selected=false,failedAcquisition=false,cleanupFail=false,firstCause=Error('PUBLIC_ACQUIRE'),cleanupCause=undefined,httpFail=false,httpCause=false}={}){
+ const context={URL,Buffer,Date,HTTPServer:Server,NetServer:class{get listening(){return true;}address(){return {address:'127.0.0.1',port:1};}},EventEmitter,
+  types:{isProxy:()=>false},process:{getuid:()=>1,on(){},exit(){}},constants:{O_RDONLY:1,O_NOFOLLOW:2,O_DIRECTORY:4},isAbsolute:p=>p.startsWith('/'),dirname:p=>p==='/PUBLIC/root'?'/PUBLIC':'/',normalize:p=>p,
+  WalletAuthError:class extends Error{constructor(code,message){super(message);this.code=code;}},canonicalJSON:JSON.stringify,
+  createHash:()=>({update(){return this;},digest(){return 'a'.repeat(64);}}),
+  PUBLIC_FIRST:firstCause,PUBLIC_CLEANUP:cleanupCause,
+ };const fds=[],closes=[];
+ context.lstatSync=p=>({dev:1,ino:p,mode:0o600,uid:1,nlink:1,size:1,mtimeMs:0,ctimeMs:0,isFile:()=>true,isDirectory:()=>true});
+ context.openSync=p=>{const fd={p,index:fds.length};fds.push(fd);return fd;};context.fstatSync=fd=>{if(fd.index===1)throw firstCause;return context.lstatSync(fd.p);};context.closeSync=fd=>{closes.push(fd);if(cleanupFail&&fd.index===1)throw cleanupCause;};
+ vm.createContext(context);
+ vm.runInContext(clean(observerText),context);
+ if(selected&&!failedAcquisition){
+  // Simulate only admitted acquisition's returned resource; real close and
+  // same-operation wrapper/lifetime accounting remain actual source bodies.
+  context.PUBLIC_RETURNED=new EventEmitter();context.PUBLIC_CLOSE_FAIL=cleanupFail;
+  vm.runInContext('function acquireOriginalWalletServiceRuntimeObserver(input,acquisition){const result=Object.freeze({});observers.set(result,{server:PUBLIC_RETURNED,event(){},files:[{close(){if(PUBLIC_CLOSE_FAIL)throw PUBLIC_CLEANUP;}}],active:false});if(acquisition)acquisition.observer=result;return result;}\nfunction assertOriginalWalletServiceRuntimeObserver(){}',context);
+  if(process.env.PUBLIC_R6_PARENT_RED==='1')vm.runInContext('function createOriginalWalletServiceRuntimeObserver(){return acquireOriginalWalletServiceRuntimeObserver({});}',context);
+ }
+ context.captureOriginalRecoveryJSON=v=>v;context.exactFields=()=>{};
+ vm.runInContext('this.originalWalletRuntimeObserverSelection='+ (selected?'({instanceSource:{rootPath:"/PUBLIC/root",rootDigest:"'+ 'a'.repeat(64)+'",instancePath:"/PUBLIC/instance",instanceDigest:"'+ 'a'.repeat(64)+'",gatewayManifestPath:"/PUBLIC/manifest",gatewayManifestDigest:"'+ 'a'.repeat(64)+'",registryPath:"/PUBLIC/registry",registryFileDigest:"'+ 'a'.repeat(64)+'"},roleBinding:{keyId:"PUBLIC",roleDigest:"'+ 'a'.repeat(64)+'",registryDigest:"'+ 'a'.repeat(64)+'"}})':'null')+';',context);
+ vm.runInContext(clean(launcherText),context);
+ const server=new EventEmitter(),signals=new Map(),events=[],exit=[];let listeningCallback,stopCount=0;
+ const originalListener=(_request,response)=>{response.writeHead(200,{});response.end('PUBLIC_BUSINESS');};server.on('request',originalListener);server.listening=false;
+ server.listen=(_port,_address,fn)=>{listeningCallback=fn;};server.close=fn=>{stopCount++;server.listening=false;if(httpFail)throw httpCause;fn();};
+ Object.assign(context,{host:{handler:()=>()=>{}},productHost:{handler:()=>()=>{},createOriginalWalletServiceRuntimeDaemonServer:()=>server,captureOriginalWalletServiceRuntimeSource:()=>({PUBLIC:true})},central:null,admission:{},productSessionStateVersion:'2',emitEvent:event=>events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false,
+  process:{getuid:()=>1,on:(name,fn)=>signals.set(name,fn),exit:code=>exit.push(code)},setTimeout,clearTimeout});
+ const start=daemonText.indexOf('const legacyHandler='),end=daemonText.indexOf('\nfunction integer(',start);
+ vm.runInContext(daemonText.slice(start,end)+'\nthis.life=originalRuntimeLifetime;',context);
+ return {context,server,events,exit,closes,fds,listen(){server.listening=true;listeningCallback();},signal(){signals.get('SIGTERM')();signals.get('SIGINT')();},stopCount:()=>stopCount,async settled(){await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));}};
+}
+test('R6 PUBLIC integrated listen failure with no observer emits bounded failed start and nonzero',async()=>{
+ const f=r6DaemonFixture();f.server.emit('error',Error('PUBLIC_SECRET_MUST_NOT_LOG'));await f.settled();assert.equal(f.context.process.exitCode,1);assert.deepEqual(f.exit,[1]);assert.equal(f.stopCount(),1);assert.equal(f.events.some(e=>e.event==='startup_failed'),true);assert.equal(JSON.stringify(f.events).includes('PUBLIC_SECRET'),false);
+});
+test('R6 PUBLIC integrated failed-before-return holds same acquisition debt; HTTP stops despite undefined cleanup failure',async()=>{
+ const f=r6DaemonFixture({selected:true,failedAcquisition:true,cleanupFail:true,firstCause:false,cleanupCause:undefined});f.listen();assert.equal(f.fds.length,2);assert.equal(f.closes.length,2);
+ f.signal();await f.settled();assert.equal(f.stopCount(),1);assert.equal(f.context.life.status().cleanupFailurePresent,true);assert.equal(f.context.process.exitCode,1);assert.equal(f.exit.length,0);
+ const res=response();f.server.emit('request',request('/health'),res);assert.equal(res.status,503);const originalCloses=f.closes.length;f.signal();await f.settled();assert.equal(f.stopCount(),1);assert.equal(f.closes.length,originalCloses);
+ assert.equal(f.events.some(e=>e.event==='shutdown_incomplete'&&e.observerCleanupFailurePresent),true);
+});
+test('R6 PUBLIC integrated failed acquisition with completed cleanup remains failure not false resource debt',async()=>{
+ const f=r6DaemonFixture({selected:true,failedAcquisition:true,firstCause:null});f.listen();assert.equal(f.context.life.status().firstCausePresent,true);assert.equal(f.closes.length,2);f.signal();await f.settled();assert.equal(f.stopCount(),1);assert.equal(f.context.life.status().cleanupFailurePresent,false);assert.deepEqual(f.exit,[0]);
+});
+test('R6 PUBLIC integrated returned observer failure and secondary HTTP failure retain independent once outcomes',async()=>{
+ const f=r6DaemonFixture({selected:true,cleanupFail:true,cleanupCause:false,httpFail:true,httpCause:undefined});f.listen();f.signal();await f.settled();assert.equal(f.stopCount(),1);assert.equal(f.context.life.status().cleanupFailurePresent,true);assert.equal(f.exit.length,0);assert.equal(f.context.process.exitCode,1);assert.equal(f.events.some(e=>e.httpStopFailurePresent&&e.observerCleanupFailurePresent),true);f.signal();await f.settled();assert.equal(f.stopCount(),1);
 });
 function hostFixture({overrideHandler=false}={}){
  let tampered=false;const events=[];

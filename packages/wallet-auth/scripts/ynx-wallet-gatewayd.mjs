@@ -76,22 +76,46 @@ const server=productSessionStateVersion==='2'
  ?productHost.createOriginalWalletServiceRuntimeDaemonServer({legacyHost:host,central,admission,emitEvent})
  :createServer((request,response)=>{const ticket=admission.enter(forwardedClient(request));if(!ticket.ok){response.writeHead(ticket.status,{"cache-control":"no-store","content-type":"application/json; charset=utf-8","retry-after":"60"});response.end(canonicalJSON({error:{code:ticket.code,message:"Wallet Gateway admission policy rejected the request"},ok:false}));return}response.once("finish",ticket.release);response.once("close",ticket.release);Promise.resolve(gatewayHandler(request,response)).catch(error=>{ticket.release();if(!response.headersSent){response.writeHead(500,{"cache-control":"no-store","content-type":"application/json; charset=utf-8"});response.end(canonicalJSON({error:{code:"INTERNAL_ERROR",message:"Wallet Gateway request failed"},ok:false}))}emitEvent({at:new Date().toISOString(),error:error instanceof Error?error.message:"unknown",event:"handler_error",level:"error",service:"ynx-wallet-gatewayd"})})});
 const originalRuntimeLifetime=createOriginalWalletRuntimeObserverLifetime(productHost,server);
+let originalListenSucceeded=false,originalStartupCause,originalStartupFailure=false;
+let originalShutdown=null,originalObserverFailure=false,originalObserverCause,originalHTTPFailure=false,originalHTTPCause;
+const originalRequestListener=server.listeners('request')[0];
+let originalHTTPRetired=false;
+function retireOriginalHTTP(){
+ if(originalHTTPRetired)return;originalHTTPRetired=true;
+ // Remove only our own original dispatch, not a foreign replacement.
+ server.removeListener('request',originalRequestListener);
+ server.on('request',(_request,response)=>{response.writeHead(503,{'cache-control':'no-store','content-type':'application/json; charset=utf-8'});response.end(canonicalJSON({ok:false,error:{code:'SERVICE_RETIRED',message:'Wallet Gateway is retiring'}}));});
+}
+function stopOriginalDaemon(reason){
+ if(originalShutdown)return originalShutdown;
+ originalRuntimeLifetime.retire();retireOriginalHTTP();
+ // Reserve both independent completions before any foreign callback.
+ originalShutdown=Promise.resolve().then(async()=>{
+  const http=Promise.resolve().then(()=>new Promise((resolve,reject)=>server.close(error=>{
+   if(error&&!(error.code==='ERR_SERVER_NOT_RUNNING'&&!server.listening))reject(error);else resolve();
+  }))).catch(cause=>{originalHTTPFailure=true;originalHTTPCause=cause;});
+  const observer=Promise.resolve().then(async()=>{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}).catch(cause=>{originalObserverFailure=true;originalObserverCause=cause;});
+  await Promise.all([http,observer]);
+  const failed=originalStartupFailure||originalObserverFailure||originalHTTPFailure;
+  if(failed)process.exitCode=1;
+  emitEvent({event:failed?'shutdown_incomplete':'shutdown',level:failed?'error':'info',service:'ynx-wallet-gatewayd',reason,startupFailurePresent:originalStartupFailure,observerCleanupFailurePresent:originalObserverFailure,httpStopFailurePresent:originalHTTPFailure});
+  // Never discard the process holding unresolved resource custody.
+  if(!originalObserverFailure&&!originalHTTPFailure)process.exit(originalStartupFailure?1:0);
+ });return originalShutdown;
+}
 server.listen(port,address,()=>{
+ originalListenSucceeded=true;
  try{originalRuntimeLifetime.afterListen();}catch(error){originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});emitEvent({event:'original_runtime_observer_unavailable',level:'warn',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_NOT_CONFIGURED'});}
  emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`});
 });
 server.on('close',()=>{originalRuntimeLifetime.retire();void originalRuntimeLifetime.close().catch(()=>{});});
-server.on('error',error=>{originalRuntimeLifetime.retire(error);void originalRuntimeLifetime.close().catch(()=>{});});
-let originalShutdown=null;
-for(const signal of ["SIGINT","SIGTERM"])process.on(signal,()=>{
- if(originalShutdown)return;
- originalRuntimeLifetime.retire();
- originalShutdown=Promise.resolve().then(async()=>{
-  await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();
-  await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));
-  emitEvent({at:new Date().toISOString(),event:'shutdown',level:'info',service:'ynx-wallet-gatewayd',signal});process.exit(0);
- }).catch(error=>emitEvent({event:'shutdown_incomplete',level:'error',service:'ynx-wallet-gatewayd',code:error?.code??'ORIGINAL_RUNTIME_CLEANUP_INCOMPLETE'}));
+server.on('error',error=>{
+ if(!originalStartupFailure){originalStartupCause=error;originalStartupFailure=true;}
+ process.exitCode=1;originalRuntimeLifetime.retire(error);
+ emitEvent({event:originalListenSucceeded?'listener_failed':'startup_failed',level:'error',service:'ynx-wallet-gatewayd',failureClass:'LISTENER_FAILURE',originalCausePresent:true});
+ void stopOriginalDaemon('listener_error');
 });
+for(const signal of ['SIGINT','SIGTERM'])process.on(signal,()=>{void stopOriginalDaemon(signal);});
 server.requestTimeout=15000;server.headersTimeout=10000;
 
 function integer(value,label,min,max){if(!/^[0-9]+$/.test(value))throw new Error(`${label} must be an integer`);const parsed=Number(value);if(!Number.isSafeInteger(parsed)||parsed<min||parsed>max)throw new Error(`${label} is outside policy`);return parsed}
