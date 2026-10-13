@@ -38,16 +38,26 @@ function safe(s,file){
   const uid=process.getuid();if(file?!s.isFile()||s.uid!==uid||s.nlink!==1||(s.mode&0o077)!==0:!s.isDirectory()||![uid,0].includes(s.uid)||(s.mode&0o022)!==0)fail();
 }
 function bytes(fd){const out=Buffer.alloc(65537);let n=0,r;while(n<out.length&&(r=readSync(fd,out,n,out.length-n,n))>0)n+=r;if(n>65536)fail();return out.subarray(0,n);}
+function disposeHeld(custody){
+  if(custody.closeEntered){if(custody.cleanupFailurePresent)throw custody.cleanupCause;if(custody.closed)return;fail('ORIGINAL_RUNTIME_CLEANUP_INFLIGHT');}
+  custody.closeEntered=true; // Reserve before the first OS disposal callback.
+  for(const row of [...custody.rows].reverse()){
+    row.closeEntered=true;
+    try{closeSync(row.fd);row.closed=true;}catch(cause){row.cleanupCause=cause;row.cleanupFailurePresent=true;if(!custody.cleanupFailurePresent){custody.cleanupCause=cause;custody.cleanupFailurePresent=true;}}
+  }
+  if(custody.cleanupFailurePresent){unresolvedObserverCustody.add(custody);throw custody.cleanupCause;}
+  custody.closed=true;
+}
 function held(path,expected){
   if(typeof path!=='string'||!isAbsolute(path)||normalize(path)!==path||path==='/'||!digest(expected))fail('ORIGINAL_RUNTIME_NOT_CONFIGURED');
   const chain=[];let p=dirname(path);while(true){chain.unshift(p);if(p==='/')break;p=dirname(p);}
-  const rows=[];try{
-    for(const part of [...chain,path]){const file=part===path;const before=lstatSync(part);safe(before,file);const fd=openSync(part,constants.O_RDONLY|constants.O_NOFOLLOW|(file?0:constants.O_DIRECTORY));rows.push({path:part,fd,file,identity:stamp(before)});const after=fstatSync(fd);safe(after,file);if(stamp(after)!==stamp(before))fail();}
-    const leaf=rows.at(-1);if(leaf.identity!==stamp(fstatSync(leaf.fd)))fail();const raw=bytes(leaf.fd);if(sha(raw)!==expected)fail();
-    let closeEntered=false,closeFailed=false,closeCause;
-    const source={raw:raw.toString('utf8'),check(){if(closeEntered)fail('ORIGINAL_RUNTIME_UNAVAILABLE');for(const r of rows){const a=fstatSync(r.fd),b=lstatSync(r.path);safe(a,r.file);safe(b,r.file);if(stamp(a)!==r.identity||stamp(b)!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');}if(sha(bytes(leaf.fd))!==expected)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');for(const r of rows)if(stamp(fstatSync(r.fd))!==r.identity||stamp(lstatSync(r.path))!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');},close(){if(closeEntered){if(closeFailed)throw closeCause;return;}closeEntered=true;for(const r of [...rows].reverse())try{closeSync(r.fd);}catch(e){if(!closeFailed){closeCause=e;closeFailed=true;}}if(closeFailed)throw closeCause;}};
+  const rows=[],custody={rows,source:null,raw:null,firstCause:null,firstCausePresent:false,closeEntered:false,closed:false,cleanupCause:null,cleanupFailurePresent:false};try{
+    for(const part of [...chain,path]){const file=part===path;const before=lstatSync(part);safe(before,file);const fd=openSync(part,constants.O_RDONLY|constants.O_NOFOLLOW|(file?0:constants.O_DIRECTORY));const row={path:part,fd,file,identity:null,closeEntered:false,closed:false,cleanupFailurePresent:false};rows.push(row);row.identity=stamp(before);const after=fstatSync(fd);safe(after,file);if(stamp(after)!==stamp(before))fail();}
+    const leaf=rows.at(-1);if(leaf.identity!==stamp(fstatSync(leaf.fd)))fail();const raw=bytes(leaf.fd);custody.raw=raw;if(sha(raw)!==expected)fail();
+    const source={raw:raw.toString('utf8'),check(){if(custody.closeEntered)fail('ORIGINAL_RUNTIME_UNAVAILABLE');for(const r of rows){const a=fstatSync(r.fd),b=lstatSync(r.path);safe(a,r.file);safe(b,r.file);if(stamp(a)!==r.identity||stamp(b)!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');}if(sha(bytes(leaf.fd))!==expected)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');for(const r of rows)if(stamp(fstatSync(r.fd))!==r.identity||stamp(lstatSync(r.path))!==r.identity)fail('ORIGINAL_RUNTIME_SOURCE_CHANGED');},close(){return disposeHeld(custody);}};
+    custody.source=source;
     source.check();return source;
-  }catch(e){for(const r of rows.reverse())try{closeSync(r.fd);}catch{}throw e;}
+  }catch(e){custody.firstCause=e;custody.firstCausePresent=true;try{disposeHeld(custody);}catch{/* Same rows/first cause/debt already strongly retained; no retry. */}throw e;}
 }
 function rejectReentry(){if(activeObserver){activeObserver.invalid=true;fail('ORIGINAL_RUNTIME_REENTRY');}}
 function enter(o){rejectReentry();if(o.active){o.invalid=true;fail('ORIGINAL_RUNTIME_REENTRY');}if(o.invalid||o.closed)fail('ORIGINAL_RUNTIME_UNAVAILABLE');o.active=true;activeObserver=o;}

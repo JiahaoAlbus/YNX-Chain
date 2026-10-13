@@ -13,6 +13,45 @@ const launcherText=read('../scripts/original-wallet-runtime-observer-launcher.mj
 const daemonText=read('../scripts/ynx-wallet-gatewayd.mjs');
 const admissionText=read('../src/gateway-admission.js');
 const clean=text=>text.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','');
+function r5HeldFixture({acquisitionCause,acquisitionFail=false,closeCause,closeFail=false,failAfterRead=false,onClose=()=>{}}={}){
+ const text=observerText,start=text.indexOf('function disposeHeld('),end=text.indexOf('\nfunction rejectReentry(',start),creatorStart=text.indexOf('export function createOriginalWalletServiceRuntimeObserver('),creatorEnd=text.indexOf('\nexport function assertOriginalWalletServiceRuntimeObserver(',creatorStart);
+ const descriptors=[],disposed=[],debt=new Set(),raw=Buffer.from('PUBLIC_EXACT_RAW');let checks=0;
+ const context={Buffer,unresolvedObserverCustody:debt,isAbsolute:p=>p.startsWith('/'),normalize:p=>p,dirname:p=>p==='/PUBLIC/item'?'/PUBLIC':'/',digest:v=>v==='PUBLIC_DIGEST',constants:{O_RDONLY:1,O_NOFOLLOW:2,O_DIRECTORY:4},
+  safe:()=>{},stamp:s=>String(s.id),bytes:()=>raw,sha:()=> 'PUBLIC_DIGEST',
+  lstatSync:p=>{checks++;if(failAfterRead&&checks>3)throw acquisitionCause;return {id:p};},
+  openSync:p=>{const fd={PUBLIC_FD:p,index:descriptors.length};descriptors.push(fd);return fd;},
+  fstatSync:fd=>{if(acquisitionFail&&fd.index===1)throw acquisitionCause;return {id:fd.PUBLIC_FD};},
+  closeSync:fd=>{disposed.push(fd);onClose(fd);if(closeFail&&fd.index===1)throw closeCause;},
+  rejectReentry:()=>{},fail:code=>{throw Error(code);},
+ };
+ vm.createContext(context);vm.runInContext(text.slice(start,end)+'\n'+text.slice(creatorStart,creatorEnd).replace('export ','')+'\nthis.api={held,disposeHeld,createOriginalWalletServiceRuntimeObserver};',context);
+ return {api:context.api,descriptors,disposed,debt,raw};
+}
+test('R5 PUBLIC actual held early failure retains every exact acquired FD and falsy causes before outer push',()=>{
+ for(const first of [false,null,undefined,Error('PUBLIC_ACQUIRE')])for(const cleanup of [false,null,undefined]){
+  const f=r5HeldFixture({acquisitionFail:true,acquisitionCause:first,closeFail:true,closeCause:cleanup});let rejected=false;
+  try{f.api.held('/PUBLIC/item','PUBLIC_DIGEST');}catch(error){rejected=true;assert.equal(error,first);}assert.equal(rejected,true);
+  assert.equal(f.descriptors.length,2);assert.equal(f.debt.size,1);const custody=[...f.debt][0];assert.equal(custody.firstCausePresent,true);assert.equal(custody.firstCause,first);assert.equal(custody.cleanupFailurePresent,true);assert.equal(custody.cleanupCause,cleanup);assert.equal(custody.rows[1].fd,f.descriptors[1]);assert.equal(custody.rows[0].fd,f.descriptors[0]);
+  assert.deepEqual(f.disposed,[f.descriptors[1],f.descriptors[0]]);
+  let failed=false;try{f.api.disposeHeld(custody);}catch(error){failed=true;assert.equal(error,cleanup);}assert.equal(failed,true);assert.equal(f.disposed.length,2);
+  assert.throws(()=>f.api.createOriginalWalletServiceRuntimeObserver({}),/CLEANUP_UNRESOLVED/);
+ }
+});
+test('R5 PUBLIC actual held late source check retains original raw/source and once failed cleanup',()=>{
+ const first=Error('PUBLIC_LATE_CHECK'),f=r5HeldFixture({failAfterRead:true,acquisitionCause:first,closeFail:true,closeCause:undefined});
+ assert.throws(()=>f.api.held('/PUBLIC/item','PUBLIC_DIGEST'),error=>error===first);
+ const custody=[...f.debt][0];assert.equal(custody.raw,f.raw);assert.equal(custody.source.raw,'PUBLIC_EXACT_RAW');assert.equal(custody.rows.length,3);assert.equal(custody.firstCause,first);assert.equal(custody.cleanupFailurePresent,true);
+ let rejected=false;try{custody.source.close();}catch(error){rejected=true;assert.equal(error,undefined);}assert.equal(rejected,true);assert.equal(f.disposed.length,3);assert.throws(()=>custody.source.check(),/UNAVAILABLE/);
+});
+test('R5 PUBLIC successful partial disposal keeps acquisition failure but creates no false debt',()=>{
+ for(const first of [false,null,undefined]){
+  const f=r5HeldFixture({acquisitionFail:true,acquisitionCause:first});let rejected=false;try{f.api.held('/PUBLIC/item','PUBLIC_DIGEST');}catch(error){rejected=true;assert.equal(error,first);}assert.equal(rejected,true);assert.equal(f.debt.size,0);assert.equal(f.disposed.length,2);
+ }
+ const normal=r5HeldFixture(),source=normal.api.held('/PUBLIC/item','PUBLIC_DIGEST');assert.equal(source.raw,'PUBLIC_EXACT_RAW');assert.equal(normal.debt.size,0);source.close();source.close();assert.equal(normal.disposed.length,3);assert.throws(()=>source.check(),/UNAVAILABLE/);
+});
+test('R5 PUBLIC exact held disposal reservation rejects synchronous reentry without false completion',()=>{
+ let source,reentries=0;const f=r5HeldFixture({onClose(){reentries++;assert.throws(()=>source.close(),/CLEANUP_INFLIGHT/);}});source=f.api.held('/PUBLIC/item','PUBLIC_DIGEST');assert.equal(source.close(),undefined);assert.equal(reentries,3);assert.equal(f.disposed.length,3);assert.equal(source.close(),undefined);assert.equal(f.disposed.length,3);
+});
 function hostFixture({overrideHandler=false}={}){
  let tampered=false;const events=[];
  const context={URL,Buffer,Date,createServer,dirname:()=>'/PUBLIC',isAbsolute:()=>true,WalletAuthError:class extends Error{constructor(code,message){super(message);this.code=code;}},
