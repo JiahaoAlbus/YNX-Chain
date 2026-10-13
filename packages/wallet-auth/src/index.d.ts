@@ -616,3 +616,14 @@ export interface RecoverableProductSessionClient {
  /** Call only after committing the corresponding consumer journal. */
  acknowledgeRevocationCompletion(receipt:ProductSessionRevocationCompletion):Promise<void>;
 }
+
+/** Public connection entrance to existing protected completion readback. No state cleanup before the consumer journal is committed. */
+export interface WalletConnectionCoordinator {
+ getRevocationCompletions():Promise<readonly ProductSessionRevocationCompletion[]>;
+ getRevocationCompletion(intentId:string):Promise<ProductSessionRevocationCompletion|null>;
+ acknowledgeRevocationCompletion(receipt:ProductSessionRevocationCompletion):Promise<void>;
+}
+
+export type { ProductWalletConnectionConfiguration, ProductWalletProtectedStorage } from './product-wallet-connection.js';
+
+export type { OriginalWalletServiceResponse, OriginalWalletServiceOperation } from './original-wallet-service-private-client.js';

@@ -140,7 +140,7 @@ export class RecoverableProductSessionClient {
     let now;
     try {
       if (typeof this.#gateway.currentTime !== "function") fail("CLOCK_UNAVAILABLE", "Pending request recovery requires authority time");
-      now = await this.#now();
+      now = await this.#now("restore");
     } catch {
       if (epoch !== this.#beginEpoch) return this.current;
       return this.#offline("Authority time is unavailable; the original Wallet request was retained for Retry");
@@ -177,7 +177,7 @@ export class RecoverableProductSessionClient {
     let now;
     try {
       if (explicit && typeof this.#gateway.currentTime !== "function") fail("CLOCK_UNAVAILABLE", "Explicit Wallet opening requires the authority-time adapter");
-      now = await this.#now();
+      now = await this.#now("beginYNX");
     }
     catch (error) {
       if (epoch !== this.#beginEpoch) return this.current;
@@ -257,7 +257,7 @@ export class RecoverableProductSessionClient {
     const raw = await this.#storage.get(`${this.storageKey}:pending`);
     if (raw === null) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
     let now;
-    try { now = await this.#now(); }
+    try { now = await this.#now("handleReturn"); }
     catch (error) {
       if (isNetworkUnavailable(error)) {
         // Retain the bounded callback as pending data; Retry still verifies every
@@ -292,7 +292,7 @@ export class RecoverableProductSessionClient {
         if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
         const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
         if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
-        if (challenge.expiresAt <= (await this.#now()).toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
+        if (challenge.expiresAt <= (await this.#now("handleReturn")).toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
         if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading challenge time; protected callback was retained for Retry");
         if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
         completion = this.#device.sign
@@ -388,7 +388,7 @@ export class RecoverableProductSessionClient {
       try {
         const networkEpoch = this.#networkEpoch;
         if (!this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
-        const now = await this.#now();
+        const now = await this.#now("disconnect");
         if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed while reading revocation authority time");
         // Only the authenticated authority-time adapter can establish expiry;
         // a custom/local clock must never resolve a pending logout by itself.
@@ -501,7 +501,7 @@ export class RecoverableProductSessionClient {
     await readback(); active();
     if (typeof this.#gateway.currentTime !== "function") fail("CLOCK_UNAVAILABLE", "Product Session API proofs require authority time");
     let now;
-    try { now = new Date((await this.#now()).getTime()); }
+    try { now = new Date((await this.#now("restore")).getTime()); }
     catch (error) {
       active();
       if (isNetworkUnavailable(error)) throw error;
@@ -534,7 +534,7 @@ export class RecoverableProductSessionClient {
   async #proof(session, path, body, authorityTime, guard = null, method = "POST", rawBody = null, committedDigest = null) {
     if (path !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
-    const now = authorityTime ?? await this.#now();
+    const now = authorityTime ?? await this.#now(path === "/v2/product-sessions/revoke" ? "disconnect" : "restore");
     if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
     const expiresAt = new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString();
     if (expiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Product Session expired before sender-constrained authorization");
@@ -549,8 +549,10 @@ export class RecoverableProductSessionClient {
     if (guard !== null) { await guard.readback(); guard.active(); }
     return proof;
   }
-  async #now() {
-    const value = typeof this.#gateway.currentTime === "function"
+  async #now(operation) {
+    const value = typeof this.#gateway.currentTimeForOperation === "function"
+      ? await this.#gateway.currentTimeForOperation(operation, { requestId: gatewayRequestId("t", this.#tokens()) })
+      : typeof this.#gateway.currentTime === "function"
       ? await this.#gateway.currentTime({ requestId: gatewayRequestId("t", this.#tokens()) })
       : this.#clock();
     if (!(value instanceof Date) || !Number.isFinite(value.getTime())) fail("CLOCK_UNAVAILABLE", "Product Session authority time is invalid");
@@ -700,7 +702,7 @@ function device(value) {
 }
 function tokenFactory(value) { if (typeof value !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory"); return () => { const token = value(); if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) fail("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token"); return token; }; }
 function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "Product Session client requires a clock"); return () => { const result = value(); if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail("INVALID_TIME", "Product Session clock returned invalid time"); return result; }; }
-function isNetworkUnavailable(error) { return error instanceof WalletAuthError && ["NETWORK_UNAVAILABLE", "CLOCK_UNAVAILABLE"].includes(error.code); }
+function isNetworkUnavailable(error) { return error instanceof WalletAuthError && ["NETWORK_UNAVAILABLE", "CLOCK_UNAVAILABLE", "ORIGINAL_PRIVATE_OUTCOME_UNKNOWN", "ORIGINAL_PRIVATE_SERVICE_NOT_SUPPLIED"].includes(error.code); }
 function gatewayRequestId(kind, token) { return `req_ps_${kind}_${token}`; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
 
