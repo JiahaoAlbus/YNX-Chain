@@ -1,8 +1,32 @@
 import {admissionCanonical} from './original-admission-broker.mjs';
 import {bindOriginalAdmissionParentSelection} from './original-admission-parent-source.mjs';
+import {types} from 'node:util';
 const failure=code=>Object.assign(new Error(code),{code});
 const selections=new WeakMap(),unresolved=new Set();
 const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value);}return value;};
+const executorFields=Object.freeze(['executable','args','applicationId','consumerManifestDigest','instanceId','currentReference','expiresAtMs']);
+function ownData(value,key){
+  if(!value||typeof value!=='object'||types.isProxy(value))throw failure('ADMISSION_EXECUTOR_INVALID');
+  const d=Object.getOwnPropertyDescriptor(value,key);
+  if(!d||!Object.hasOwn(d,'value')||!d.enumerable)throw failure('ADMISSION_EXECUTOR_INVALID');
+  return d.value;
+}
+// A public launch review is not the Native executor capability. Keep the
+// original reference and fixed private callback solely in the supply closure.
+function executorSnapshot(value,privateOriginal=false){
+  if(!value||typeof value!=='object'||types.isProxy(value)||Object.getPrototypeOf(value)!==Object.prototype)throw failure('ADMISSION_EXECUTOR_INVALID');
+  const keys=Reflect.ownKeys(value),hasDispatch=Object.hasOwn(value,'privateDispatch');
+  const expected=privateOriginal&&hasDispatch?[...executorFields,'privateDispatch']:executorFields;
+  if(keys.length!==expected.length||keys.some(key=>typeof key!=='string'||!expected.includes(key)))throw failure('ADMISSION_EXECUTOR_INVALID');
+  const data=Object.fromEntries(executorFields.map(key=>[key,ownData(value,key)])),args=data.args;
+  if(types.isProxy(args)||!Array.isArray(args)||args.length>4096||Reflect.ownKeys(args).length!==args.length+1)throw failure('ADMISSION_EXECUTOR_INVALID');
+  data.args=Array.from({length:args.length},(_,index)=>{const arg=ownData(args,String(index));if(typeof arg!=='string'||arg.length>4096)throw failure('ADMISSION_EXECUTOR_INVALID');return arg;});
+  if(typeof data.executable!=='string'||!data.executable.startsWith('/')||data.executable.includes('\0')||data.executable.split('/').some(p=>p==='.'||p==='..')||data.applicationId!=='com.ynxweb4.developer.testnetpreview'||typeof data.consumerManifestDigest!=='string'||!/^[a-f0-9]{64}$/.test(data.consumerManifestDigest)||typeof data.currentReference!=='string'||!/^[a-f0-9]{64}$/.test(data.currentReference)||typeof data.instanceId!=='string'||!data.instanceId||!Number.isSafeInteger(data.expiresAtMs))throw failure('ADMISSION_EXECUTOR_INVALID');
+  const dispatch=privateOriginal&&hasDispatch?ownData(value,'privateDispatch'):null;
+  if(privateOriginal&&hasDispatch&&typeof dispatch!=='function')throw failure('ADMISSION_EXECUTOR_INVALID');
+  const raw=admissionCanonical(data);if(Buffer.byteLength(raw)>65536)throw failure('ADMISSION_EXECUTOR_INVALID');
+  return {raw,metadata:freeze(JSON.parse(raw)),dispatch};
+}
 function release(state){
   if(state.closing)return state.closing;
   state.closing=Promise.resolve().then(async()=>{
@@ -41,10 +65,24 @@ export async function openOriginalAdmissionSupply(vault,guard){
     guard.assert();
     if(configured.vault!==vault||['assertCurrent','assertExecutorCurrent','assertAdmissionSuccession'].some(k=>typeof configured[k]!=='function'))throw failure('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');
     if(['retireOriginalAdmissionConfiguration','joinOriginalAdmissionConfiguration','closeOriginalAdmissionConfiguration'].some(k=>typeof original[k]!=='function'))throw failure('ADMISSION_CONFIGURATION_CLEANUP_NOT_SUPPLIED');
-    if(configured.assertCurrent()!==undefined||configured.assertExecutorCurrent(configured.executor,null)!==undefined)throw failure('ADMISSION_CURRENT_INVALID');
-    const raw=freeze(JSON.parse(admissionCanonical(configured.raw))),executor=freeze(JSON.parse(admissionCanonical(configured.executor)));
-    const assertCurrent=()=>{if(state.closed||state.closing)throw failure('ADMISSION_CONFIGURATION_RETIRED');return configured.assertCurrent();};
-    const assertExecutorCurrent=(value,child)=>{assertCurrent();return configured.assertExecutorCurrent(value,child);};
+    const originalExecutor=ownData(configured,'executor'),captured=executorSnapshot(originalExecutor,true);
+    const checkOriginal=()=>{
+      if(ownData(configured,'executor')!==originalExecutor)throw failure('ADMISSION_EXECUTOR_CHANGED');
+      const current=executorSnapshot(originalExecutor,true);
+      if(current.raw!==captured.raw||current.dispatch!==captured.dispatch)throw failure('ADMISSION_EXECUTOR_CHANGED');
+    };
+    if(configured.assertCurrent()!==undefined||configured.assertExecutorCurrent(originalExecutor,null)!==undefined)throw failure('ADMISSION_CURRENT_INVALID');
+    guard.assert();checkOriginal();
+    const raw=freeze(JSON.parse(admissionCanonical(configured.raw))),executor=captured.metadata;
+    const assertCurrent=()=>{if(state.closed||state.closing)throw failure('ADMISSION_CONFIGURATION_RETIRED');guard.assert();checkOriginal();const result=configured.assertCurrent();guard.assert();checkOriginal();if(result!==undefined)throw failure('ADMISSION_CURRENT_INVALID');return undefined;};
+    const assertExecutorCurrent=(value,child)=>{
+      if(executorSnapshot(value).raw!==captured.raw)throw failure('ADMISSION_EXECUTOR_CHANGED');
+      assertCurrent();
+      // Only the privately retained original reaches the unchanged SDK/NAPI
+      // identity check; a matching review DTO never becomes its replacement.
+      const result=configured.assertExecutorCurrent(originalExecutor,child);
+      assertCurrent();return result;
+    };
     const supply=Object.freeze({vault,raw,executor,observer:configured.observer,assertCurrent,assertExecutorCurrent,assertAdmissionSuccession:request=>{assertCurrent();return configured.assertAdmissionSuccession(request);},assertOriginalServiceAdmissionProductionOwner:original.assertOriginalServiceAdmissionProductionOwner,publishOriginalServiceAdmissionProduction:original.publishOriginalServiceAdmissionProduction,closeOriginalServiceAdmissionProductionOwner:original.closeOriginalServiceAdmissionProductionOwner,completeOriginalServiceAdmissionProductionClose:original.completeOriginalServiceAdmissionProductionClose,selectOriginalServiceAdmissionProductionOutcome:original.selectOriginalServiceAdmissionProductionOutcome,enterOriginalServiceAdmissionDelivery:original.enterOriginalServiceAdmissionDelivery,acknowledgeOriginalServiceAdmissionDelivery:original.acknowledgeOriginalServiceAdmissionDelivery,markOriginalServiceAdmissionDeliveryUnknown:original.markOriginalServiceAdmissionDeliveryUnknown});
     bindOriginalAdmissionParentSelection(assertExecutorCurrent,{vault,raw,executor,assertCurrent,originalConfiguration:configured});
     selections.set(supply,state);guard.assert();
