@@ -6,6 +6,7 @@ import {MultiJournal} from './multichain-journal.mjs';
 import {EVMAdapter} from './multichain-evm.mjs';
 import {MultichainService,installMultichainIPC} from './multichain-service.mjs';
 import {createMnemonicFamilyAccounts} from './multichain-family-accounts.mjs';
+import {createTronReceiveCode} from './multichain-tron-receive.mjs';
 import {FamilyNetworks} from './multichain-family-networks.mjs';
 import {FamilyRead} from './multichain-family-read.mjs';
 import {FamilyTokens} from './multichain-family-tokens.mjs';
@@ -241,6 +242,10 @@ const sensitiveIPC = (action, options, displayOptions) => safeIPC(() => keyAcces
 handleWalletIPC('wallet:family-account', (_event, input) => sensitiveIPC(() => {
   if (!familyAccounts) throw new Error('Wallet is starting.');
   return familyAccounts.account(input);
+}));
+handleWalletIPC('wallet:family-tron-receive-code', (_event, input) => sensitiveIPC(() => {
+  if (!familyAccounts || !familyRead) throw new Error('Wallet is starting.');
+  return createTronReceiveCode(input, {readAccount: value => familyAccounts.account(value), readNetworks: () => familyRead.snapshot(), getContext: () => familyRead.getContext()});
 }));
 handleWalletIPC('wallet:family-networks', () => safeIPC(() => familyRead.snapshot()));
 handleWalletIPC('wallet:family-network', (_event, input) => safeIPC(() => familyRead.configure(input)));

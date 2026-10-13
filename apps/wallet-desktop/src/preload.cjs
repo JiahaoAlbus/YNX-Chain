@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   originalAdmissionCancel:()=>ipcRenderer.invoke('wallet:original-admission-cancel'),
   onOriginalAdmissionState:callback=>ipcRenderer.on('wallet:original-admission-state',(_event,value)=>callback(value)),
   familyAccount: input => ipcRenderer.invoke('wallet:family-account', input),
+  familyTronReceiveCode: input => ipcRenderer.invoke('wallet:family-tron-receive-code', input),
   familyNetworks: () => ipcRenderer.invoke('wallet:family-networks'),
   familyToken: input => ipcRenderer.invoke('wallet:family-token', input),
   familyTokens: input => ipcRenderer.invoke('wallet:family-tokens', input),
