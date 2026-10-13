@@ -3,6 +3,28 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {EventEmitter} from 'node:events';
+import {fileURLToPath} from 'node:url';
+test('R14 actual sole fixed loader decodes file URLs and retains seven-method null boundary',()=>{
+ const source=readFileSync(new URL('../src/original-wallet-service-private-dispatch.js',import.meta.url),'utf8');
+ const actual=source.match(/function loadFixedOriginalNativeServiceBinding\(\)\{[^]*?\n\}/)?.[0];assert.ok(actual);
+ const names=['captureOriginalNativePrivateServiceBorrow','assertOriginalNativePrivateServiceCurrent','assertOriginalNativePrivateServiceAdmission','assertOriginalNativePrivateServiceTerminal','retireOriginalNativePrivateService','joinOriginalNativePrivateService','closeOriginalNativePrivateService'];
+ const aliases=['capture','assertCurrent','assertAdmission','assertTerminal','retire','join','close'];let methodsCalled=0,cases=0;
+ const execute=(moduleURL,native,throwLoad=false)=>{
+  const expected=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',moduleURL));let base,targets=[];
+  const context=vm.createContext({URL,fileURLToPath,createRequire:value=>{base=value.href;return target=>{targets.push(target);if(throwLoad||target!==expected)throw Error('TEST_ONLY_LOAD_REFUSED');return native;};}});
+  vm.runInContext(actual.replaceAll('import.meta.url',JSON.stringify(moduleURL))+';this.selected=loadFixedOriginalNativeServiceBinding();',context);
+  assert.equal(base,new URL('.',moduleURL).href);assert.deepEqual(targets,[expected]);return context.selected;
+ };
+ for(const directory of ['YNXChain','YNX%20Chain','YNX%25%20Chain','YNX%23Chain','YNX%E9%92%B1%E5%8C%85%20Wallet']){
+  const moduleURL='file:///PUBLIC/'+directory+'/packages/wallet-auth/src/original-wallet-service-private-dispatch.js';
+  const native=Object.fromEntries(names.map(name=>[name,()=>{++methodsCalled;throw Error('no native method invocation');}]));
+  const selected=execute(moduleURL,native);assert.ok(selected);assert.ok(Object.isFrozen(selected));assert.deepEqual(Object.keys(selected),aliases);aliases.forEach((alias,i)=>assert.equal(selected[alias],native[names[i]]));++cases;
+ }
+ const moduleURL='file:///PUBLIC/YNX%20Chain/packages/wallet-auth/src/original-wallet-service-private-dispatch.js';
+ for(const name of names){const native=Object.fromEntries(names.map(k=>[k,()=>{++methodsCalled;}]));native[name]=null;assert.equal(execute(moduleURL,native),null);++cases;}
+ assert.equal(execute(moduleURL,null,true),null);++cases;assert.equal(methodsCalled,0);
+ console.log('R14_ACTUAL_FIXED_LOADER_PUBLIC_CASES='+cases+' REAL_NATIVE_LOADS=0 NATIVE_METHOD_CALLS=0');
+});
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const clean=s=>s.replace(/^import .*;$/mg,'').replace(/^import \{[\s\S]*?\} from .*;$/mg,'').replaceAll('export ','').replaceAll('import.meta.url',JSON.stringify('file:///PUBLIC/original-module.js'));
 function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=false,unselected=false}={}){

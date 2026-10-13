@@ -1,5 +1,6 @@
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
+import {fileURLToPath} from 'node:url';
 import {canonicalJSON,exactFields,WalletAuthError} from './canonical.js';
 import {ProductSessionGatewayNodeHost,captureOriginalWalletServiceRuntimeHostSource} from './product-session-gateway-node-host.js';
 import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-admission.js';
@@ -9,7 +10,7 @@ import {prepareOriginalWalletServiceAdmission} from './original-wallet-service-a
 // Dispatcher/kernel CODE exists below; actual Native acquisition still missing.
 function loadFixedOriginalNativeServiceBinding(){
  try{
-  const native=createRequire(new URL('.',import.meta.url))(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url).pathname);
+  const native=createRequire(new URL('.',import.meta.url))(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
   const names={capture:'captureOriginalNativePrivateServiceBorrow',assertCurrent:'assertOriginalNativePrivateServiceCurrent',assertAdmission:'assertOriginalNativePrivateServiceAdmission',assertTerminal:'assertOriginalNativePrivateServiceTerminal',retire:'retireOriginalNativePrivateService',join:'joinOriginalNativePrivateService',close:'closeOriginalNativePrivateService'};
   if(Object.values(names).some(name=>typeof native[name]!=='function'))return null;
   return Object.freeze(Object.fromEntries(Object.entries(names).map(([name,method])=>[name,native[method]])));
