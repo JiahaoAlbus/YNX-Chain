@@ -756,7 +756,8 @@ async function showSubscriptions(button) {
   if (epoch === null) return;
   try {
     const channels = await privateAPI("/v1/subscriptions");
-    if (epoch !== libraryEpoch) return;
+    if (epoch !== libraryEpoch || currentView !== "subscriptions") return;
+    const scope = playlistScope(() => {if (epoch !== libraryEpoch || currentView !== "subscriptions") throw new DOMException("Video view changed.", "AbortError");});
     const box = $("#content"); box.replaceChildren();
     if (!channels.length) {empty("No subscriptions yet", "Subscribe from a video to keep the channel in your library."); return;}
     for (const channel of channels) {
@@ -765,10 +766,11 @@ async function showSubscriptions(button) {
       article.innerHTML = '<div><h2>'+esc(field(channel,"name","Name"))+'</h2><p class="meta">@'+esc(field(channel,"handle","Handle"))+'</p></div><div class="row-actions"><button class="open-channel">Open channel</button><button class="outline unsubscribe">Unsubscribe</button></div>';
       article.querySelector(".open-channel").onclick = () => showChannel(id);
       article.querySelector(".unsubscribe").onclick = async event => {
+        if (!scope.matches()) return;
         const action = event.currentTarget;
         action.disabled = true;
-        try {await privateAPI('/v1/channels/'+encodeURIComponent(id)+'/subscription', {method:"DELETE"}); await showSubscriptions(button);}
-        catch (error) {action.disabled = false; notice(error.message, true);}
+        try {scope.current(); await privateAPI('/v1/channels/'+encodeURIComponent(id)+'/subscription', {method:"DELETE"}); scope.current(); await showSubscriptions(button);}
+        catch (error) {if (scope.matches()) {action.disabled = false; notice(error.message, true);}}
       };
       box.append(article);
     }
