@@ -106,19 +106,14 @@ test('public API starts without awaiting or attaching a Product Session', async 
   assert.equal(authorizations, 0);
 });
 
-test('network retry generates fresh device proof with stable idempotency key and immutable body', async () => {
-  let authorizations = 0;
-  const requests = [];
-  const api = createVideoAPI({baseURL: `${VIDEO_ORIGIN}/video/api`, requestId: () => 'mutation-one',
+test('unknown mutation keeps one original proof/body/key without a network replay', async () => {
+  let authorizations = 0;const requests = [];
+  const api = createVideoAPI({baseURL: `${VIDEO_ORIGIN}/video/api`, requestId: () => 'original-mutation-key',
     authorize: async (path, method) => {assert.equal(path, '/v1/playlists'); assert.equal(method, 'POST');return {'X-YNX-Product-Session-Proof-V2': `proof-${++authorizations}`};},
-    fetch: async (_url, options) => {requests.push(options);if(requests.length === 1) throw Error('network interrupted');return ok({ID:'list_one'});}});
-  await api('/v1/playlists', {private: true, method: 'POST', body: '{"name":"Saved"}'});
-  assert.equal(authorizations, 2);
-  assert.equal(requests[0].headers['X-YNX-Product-Session-Proof-V2'], 'proof-1');
-  assert.equal(requests[1].headers['X-YNX-Product-Session-Proof-V2'], 'proof-2');
-  assert.equal(requests[0].headers['Idempotency-Key'], requests[1].headers['Idempotency-Key']);
-  assert.equal(requests[0].body, requests[1].body);
-  assert.equal(requests[1].credentials, 'same-origin');
+    fetch: async (_url, options) => {requests.push(options);throw Error('network interrupted');}});
+  let unknown;await assert.rejects(api('/v1/playlists', {private: true, method: 'POST', body: '{"name":"Saved"}'}),error=>{unknown=error;return error.code==='VIDEO_MUTATION_UNKNOWN'});
+  assert.equal(authorizations,1);assert.equal(requests.length,1);assert.equal(unknown.pending.key,'original-mutation-key');assert.equal(unknown.pending.body,requests[0].body);assert.equal(requests[0].credentials,'same-origin');
+  await assert.rejects(api('/v1/playlists',{private:true,method:'POST',body:'changed'}),{code:'VIDEO_MUTATION_UNKNOWN'});assert.equal(requests.length,1);
 });
 
 test('private credentials never go to an overridden origin and rejected authority clears private UI', async () => {

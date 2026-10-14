@@ -150,6 +150,7 @@ let siteAccountBusy=false;
 const browserIdentity=createMediaBrowserIdentity({productId:"video",onExpiry:()=>renderProductState({status:"retry-required",message:"Your YNX account sign-in expired. Sign in and retry your saved product approval."})});
 // Product Session v2 and the EVM provider are independent authorities.
 export const api = createVideoAPI({baseURL: API,
+  getAccount: () => productState.session?.account ?? null,
   authorize: (path, method, body) => {const state=productState,revision=productRevision;return browserIdentity.authorization(state.session,()=>videoProductSession.authorization(path,method,body),()=>{if(state!==productState||revision!==productRevision||productSignOutPending)throw new DOMException("Video account changed.","AbortError");});},
   onUnauthorized: () => renderProductState({status: "retry-required", message: "Your sign-in needs to be checked. Retry or sign in again."}),
 });
@@ -695,7 +696,7 @@ function startWatchProgress(video) {
   void previousProgress?.flush(false).catch(() => {});
   const account = productState.session?.account, revision = productRevision;
   watchProgress = createWatchProgress({signedIn: () => revision === productRevision && productConnected() && productState.session?.account === account,
-    onError: () => {if (revision === productRevision && currentVideo === video) notice("Watch history could not be saved. Playback remains available.", true);},
+    onError: error => {if (revision === productRevision && currentVideo === video) notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);},
     send: (body, {idempotencyKey}) => privateAPI(`/v1/videos/${video.id}/watch`, {...json(body),
       headers: {"Content-Type": "application/json", "Idempotency-Key": idempotencyKey}})});
 }
@@ -743,7 +744,7 @@ async function loadComments() {
 
 async function flushWatch(completed = false) {
   try {await watchProgress?.flush(completed);}
-  catch {notice("Watch history could not be saved. Playback remains available.", true);}
+  catch(error) {notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);}
 }
 
 async function showSubscriptions(button) {

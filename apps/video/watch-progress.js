@@ -1,5 +1,6 @@
 // Count observed playback time only. Seeking, paused playback and guest sessions
-// cannot manufacture history. Failed writes retain elapsed time for a later retry.
+// cannot manufacture history. Failed writes retain elapsed time; UNKNOWN
+// batches await original-result confirmation instead of another dispatch.
 export function createWatchProgress({send, signedIn, onError = () => {}, clock = () => performance.now(), idFactory = () => crypto.randomUUID()}) {
   const checkpointSeconds = 15;
   const playbackID = idFactory();
@@ -15,6 +16,7 @@ export function createWatchProgress({send, signedIn, onError = () => {}, clock =
   let observedSeconds = 0;
   let lastAutomaticAttempt = 0;
   let automaticFlight = null;
+  let unconfirmed = null;
   const tracker = {
     sample({position, paused, seeking, rate = 1}) {
       const now = clock();
@@ -32,7 +34,7 @@ export function createWatchProgress({send, signedIn, onError = () => {}, clock =
       last = {position, at: now};
       // Playback observations earn checkpoints. A retained failed batch alone
       // cannot cause a retry on every timeupdate or while playback is paused.
-      if (pending >= checkpointSeconds && observedSeconds - lastAutomaticAttempt >= checkpointSeconds) {
+      if (!unconfirmed && pending >= checkpointSeconds && observedSeconds - lastAutomaticAttempt >= checkpointSeconds) {
         lastAutomaticAttempt = observedSeconds;
         const operation = tracker.flush(false);
         if (operation !== automaticFlight) {
@@ -48,6 +50,7 @@ export function createWatchProgress({send, signedIn, onError = () => {}, clock =
     discard() {discarded = true; pending = 0; last = null; batch = null; completionRequested = false; flushRequested = false;},
     flush(completed = false) {
       if (discarded || !signedIn()) return Promise.resolve();
+      if (unconfirmed) return Promise.reject(unconfirmed);
       if (completed && observed && !completionRecorded) completionRequested = true;
       flushRequested = true;
       if (sending) return sending;
@@ -62,10 +65,11 @@ export function createWatchProgress({send, signedIn, onError = () => {}, clock =
               idempotencyKey: idFactory(),
             });
           }
-          // Keep this exact body and key after an uncertain response. The API
-          // may refresh its device proof, but must not create another mutation.
+          // Keep this exact body and key. An UNKNOWN result pauses this tracker;
+          // only a confirmed pre-dispatch failure can be tried again normally.
           const active = batch;
-          await send(active.body, Object.freeze({idempotencyKey: active.idempotencyKey}));
+          try {await send(active.body, Object.freeze({idempotencyKey: active.idempotencyKey}));}
+          catch(error){if(error.code==='VIDEO_MUTATION_UNKNOWN')unconfirmed=error;throw error;}
           if (discarded) return;
           pending = Math.max(0, pending - active.body.seconds);
           batch = null;

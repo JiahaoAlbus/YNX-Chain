@@ -30,33 +30,18 @@ test('ending during a pending ordinary flush persists completion for the same pl
   assert.equal(writes.length, 2);
 });
 
-test('a lost response after service commit reuses the exact mutation across API retries and later flushes', async () => {
-  let deliveries = 0, proofs = 0;
-  const committed = new Map(), requests = [];
+test('a lost response after service commit pauses the original watch batch without replay', async () => {
+  let proofs = 0;const committed = new Map(), requests = [];
   const api = createVideoAPI({baseURL: 'https://video.ynxweb4.com/video/api',
-    requestId: () => {throw new Error('watch batch must supply its persisted idempotency key');},
+    requestId: () => {throw new Error('watch batch must supply its original idempotency key');},
     authorize: async () => ({'X-YNX-Product-Session-Proof-V2': `proof-${++proofs}`}),
     fetch: async (_url, options) => {
-      const key = options.headers['Idempotency-Key'];
-      requests.push({key, body: options.body, proof: options.headers['X-YNX-Product-Session-Proof-V2']});
-      if (!committed.has(key)) committed.set(key, JSON.parse(options.body));
-      if (++deliveries <= 2) throw new Error('response lost after commit');
-      return {ok: true, status: 200, json: async () => ({ok: true})};
+      const key=options.headers['Idempotency-Key'];requests.push({key,body:options.body});committed.set(key,JSON.parse(options.body));throw Error('response lost after commit');
     }});
-  const {watch, sample} = progress({send: (body, {idempotencyKey}) => api('/v1/videos/owned/watch', {
-    private: true, method: 'POST', headers: {'Content-Type': 'application/json', 'Idempotency-Key': idempotencyKey}, body: JSON.stringify(body)})});
-  sample(0, 0);sample(1, 1000);
-  await assert.rejects(watch.flush(), /response lost/);
-  sample(2, 2000);sample(3, 3000);
-  await watch.flush();
-  assert.equal(committed.size, 1);
-  assert.deepEqual(requests.map(request => request.key), [requests[0].key, requests[0].key, requests[0].key]);
-  assert.equal(new Set(requests.map(request => request.body)).size, 1);
-  assert.equal(new Set(requests.map(request => request.proof)).size, 3);
-  await watch.flush();
-  assert.equal(committed.size, 2);
-  assert.deepEqual([...committed.values()].map(body => body.seconds), [1, 2]);
-  assert.equal(new Set([...committed.values()].map(body => body.playback_id)).size, 1);
+  const {watch,sample}=progress({send:(body,{idempotencyKey})=>api('/v1/videos/owned/watch',{private:true,method:'POST',headers:{'Content-Type':'application/json','Idempotency-Key':idempotencyKey},body:JSON.stringify(body)})});
+  sample(0,0);sample(1,1000);let unknown;await assert.rejects(watch.flush(),error=>{unknown=error;return error.code==='VIDEO_MUTATION_UNKNOWN'});
+  sample(2,2000);sample(3,3000);await assert.rejects(watch.flush(),error=>error===unknown);await assert.rejects(watch.flush(true),error=>error===unknown);
+  assert.equal(requests.length,1);assert.equal(proofs,1);assert.equal(committed.size,1);assert.equal(unknown.pending.key,requests[0].key);assert.equal(unknown.pending.body,requests[0].body);
 });
 
 test('an unreadable success response retains the same batch until a valid acknowledgement', async () => {
