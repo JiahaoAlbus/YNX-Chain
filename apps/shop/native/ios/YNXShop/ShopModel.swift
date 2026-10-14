@@ -19,6 +19,7 @@ import SwiftUI
     private var presentedSession:ShopSession?
     private var operationRevision=0
     private var ordersRefreshRevision=0
+    private var catalogRefreshRevision=0
     @Published private(set) var mutationBusy=false
     @Published private(set) var checkoutRecoveryRequired=false
     @Published var profileName=""
@@ -38,7 +39,23 @@ import SwiftUI
     func setAILanguage(_ value:String){aiLanguage=value;UserDefaults.standard.set(value,forKey:"ai-language")}
     private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
     func signOut(){cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
-    func loadCatalog()async{state="loading";do{let r:CatalogResponse=try await api.request("products?q=\(search.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? "")");products=r.products;state=products.isEmpty ? "empty_catalog":""}catch{failure(error)}}
+    func loadCatalog()async {
+        catalogRefreshRevision+=1
+        let refresh=catalogRefreshRevision,operation=operationRevision,query=search
+        state="loading"
+        var authorization:(()throws->Void)?
+        do {
+            let check=try api.capture(requireSession:false);authorization=check
+            let response:CatalogResponse=try await api.request("products?q=\(query.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? "")")
+            guard refresh==catalogRefreshRevision,operation==operationRevision,query==search else{return}
+            try check()
+            products=response.products;state=products.isEmpty ? "empty_catalog":""
+        } catch {
+            guard refresh==catalogRefreshRevision,operation==operationRevision,query==search else{return}
+            if let authorization {do{try authorization()}catch{return}}
+            failure(error)
+        }
+    }
     func loadOrders()async {
         ordersRefreshRevision+=1
         let refresh=ordersRefreshRevision,operation=operationRevision
