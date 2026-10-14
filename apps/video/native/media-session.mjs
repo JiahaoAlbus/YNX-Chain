@@ -1,6 +1,5 @@
-import {createNativeProductSessionClient,ProductSessionGatewayFetchAdapter,productPlatformBinding} from '../../music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.mjs';
-import {videoScope} from '../product-session.js';
-import {creatorScope} from '../../creator-studio/product-session.js';
+import {videoScope} from '../business-scope.js';
+import {creatorScope} from '../../creator-studio/business-scope.js';
 import {musicScope} from '../../music/web/canonical-request.js';
 import {serializeMediaBody,mediaBusinessAuthorization} from '../business-wire.js';
 
@@ -14,6 +13,9 @@ const definitions=Object.freeze({
 export async function createNativeMediaSession({productId,platform,registry,runtime,fetch:send,walletInstalled,schemeRegistered,clock=()=>new Date()}){
  const definition=definitions[productId];
  if(!definition||!['android','ios','macos'].includes(platform)||typeof send!=='function'||typeof walletInstalled!=='function'||typeof schemeRegistered!=='function')throw Error('Registered Media native runtime and transport required');
+ const sdk=await import('../../music/web/vendor/wallet-auth-r9-2689bece/artifacts/product-session-native.mjs');
+ if(sdk.MEDIA_SDK_SOURCE_COMMIT!=='2689bece12fddd991c2ecd7a024f6aa4e8b1afbd')throw Error('Matching current native Media SDK build required');
+ const {createNativeProductSessionClient,ProductSessionGatewayFetchAdapter,productPlatformBinding}=sdk;
  const binding=productPlatformBinding(registry,productId,platform);
  const scopes=[...definition.scopes];if(scopes.some(scope=>!binding.scopes.includes(scope)))throw Error('Media native scopes are not registered');
  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:'https://wallet-auth.ynxweb4.com',fetch:send,walletInstalled,schemeRegistered,timeoutMs:15000});

@@ -1,3 +1,4 @@
+import {buildCurrentMediaSdk} from '../video/scripts/current-media-sdk.mjs';
 import {copyFile, mkdir, rm, stat, writeFile} from "node:fs/promises";
 import {createHash} from "node:crypto";
 import {execFileSync} from "node:child_process";
@@ -15,7 +16,7 @@ const upstreamCatalog = Object.freeze({
 const runtimeFiles = Object.freeze([
   "app.html", "media-site.css", "media-site.js", "media-site-back.js", "media-site-back.css",
   "ynx-wallet-transports-2ece0cb329.mjs", "ynx-wallet-transports-2ece0cb329.manifest.json", "assets/ynx-logo.png", "assets/ynx-brand-original.png",
-  "app.js",
+  "app.js", "business-scope.js",
   "session-events.js",
   "browser-identity.js",
   "business-wire.js", "display-settings.js", "display-settings.css",
@@ -61,6 +62,9 @@ for (const file of runtimeFiles) {
   await copyFile(source, target);
 }
 
+await buildCurrentMediaSdk(repositoryRoot(), output, 'browser', {filename:'product-session-sdk-r9.js',registryFilename:'product-session-registry-r9.json',sourceFilename:'product-session-sdk-r9-source.json'});
+function repositoryRoot(){return execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,encoding:'utf8'}).trim()}
+
 const catalogRef = `${upstreamCatalog.commit}:${upstreamCatalog.path}`;
 if (gitValue(["rev-parse", catalogRef]) !== upstreamCatalog.blob) {
   throw new Error("Creator Studio catalog upstream blob does not match the approved release input.");
@@ -73,7 +77,7 @@ if ((await digest(catalogTarget)).sha256 !== upstreamCatalog.sha256) {
 }
 
 const files = [];
-const artifactFiles = [...runtimeFiles, "i18n/catalog.json"];
+const artifactFiles = [...runtimeFiles, "i18n/catalog.json", "product-session-sdk-r9.js", "product-session-registry-r9.json", "product-session-sdk-r9-source.json"];
 for (const file of artifactFiles.slice().sort()) files.push({path: file, ...(await digest(join(output, file)))});
 const manifest = {
   schemaVersion: 1,

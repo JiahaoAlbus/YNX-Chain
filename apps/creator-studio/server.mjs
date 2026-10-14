@@ -19,6 +19,7 @@ const types = {
 };
 // Explicit runtime closure: source, tests, evidence and packaging scripts stay private.
 const publicFiles = new Set([
+  'business-scope.js', 'product-session-sdk-r9.js', 'product-session-registry-r9.json', 'product-session-sdk-r9-source.json',
   'app.html', 'media-site.css', 'media-site.js', 'media-site-back.js', 'media-site-back.css',
   'index.html', 'app.js', 'business-wire.js', 'browser-identity.js', 'display-settings.js', 'display-settings.css', 'styles.css', 'enhancements.css', 'i18n.js', 'i18n/catalog.json',
   'product-session.js', 'product-session-sdk.js', 'product-session-registry.json',

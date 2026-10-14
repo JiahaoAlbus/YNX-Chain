@@ -1,0 +1,1198 @@
+{
+  "count": 170,
+  "unpackedBytes": 2907506,
+  "rows": [
+    {
+      "path": "CENTRAL_INTEGRATION.md",
+      "bytes": 9657,
+      "sha256": "b1164824abe7c3565523953072302e80ce8abf6c5e97a92112cbad69042d20fb",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "EVM_PRODUCT_SESSION_V1.md",
+      "bytes": 6740,
+      "sha256": "b8177796a31e9f766b8553fb706b1f6efc48a51c721f8c200c638f70cc78f22b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "FINANCE_EVM_PRIVATE_ORDER_V1.md",
+      "bytes": 5911,
+      "sha256": "31affe898a510177d4f33b39590a84664cf4e71f2ffa45d7b62f655b4ecd41e6",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "FINANCE_ORDER_OPAQUE_V2.md",
+      "bytes": 6019,
+      "sha256": "c0053189b6fcb496e8877a752a36918d625487c637b316a5c5d4c3e5b53c1b20",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "central-registry.json",
+      "bytes": 13319,
+      "sha256": "294119abb2f3e31dd6e1834440e2d0c7cd20dd11a2ba2a3849cee4b30ca7301c",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/CHAIN_ERC4337_HANDOFF.md",
+      "bytes": 1745,
+      "sha256": "753e9270a6be9a537d6dd627369907716ab017421e46d8c628bfe5bf59a934a5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/chain-erc4337-requirements.json",
+      "bytes": 1920,
+      "sha256": "033f012265d39a9039b959713d4fe0edf9ddfd6586b6483d5108ecb3000fe4dd",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/finance-order-approval-v1.md",
+      "bytes": 3063,
+      "sha256": "ad0533ecd00a4e2e55ba4ea99220bb6898ecd0cd09746670bf2151d17e7e60ee",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/GATEWAY_PATCH.md",
+      "bytes": 4976,
+      "sha256": "bd8619e2bd10ff305e887110735c73fa1ee61688e915fad2dbcde58fef2358ef",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/gateway-integration.manifest.json",
+      "bytes": 6514,
+      "sha256": "df5bc8deab743f909bf555b0eb3d3897e5d9ed92fd1b0133f6759e6888804495",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/gateway-state.schema.json",
+      "bytes": 1117,
+      "sha256": "ce49620c44b079a0ea08c61af477c18d5f87e08d3dffd171223a5d8b737805f6",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "integration/smart-account-testnet.manifest.json",
+      "bytes": 1227,
+      "sha256": "29386dd31ebbd8b74d3be89b808f7d6dc363e15153854657268e79412775b332",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "package.json",
+      "bytes": 5804,
+      "sha256": "c3da462fbb878c7973437a4de327226f3f843790f2d6a51bf90bf8fadf089932",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "product-session-registry.json",
+      "bytes": 10393,
+      "sha256": "9e5ad95a3b9761c539c4c8e72c21850cd75fcc60d9faa2c5017b90efe1148ee5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "registry-conflict-evidence.json",
+      "bytes": 1689,
+      "sha256": "6554f99268eca863be46d7de7efd6bcd710f41fdaf78ba5a0b08b4347ccb2a7b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/benchmark-gateway.mjs",
+      "bytes": 3001,
+      "sha256": "51a0b71513ca39cb7b3192ccb0e681d263b1180ab7c1b6b0f25ba82f58e7cb13",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/generate-strategy-mandate-vector.mjs",
+      "bytes": 5387,
+      "sha256": "23914680785aaaff8df7433662d831baa4f7f8525aad5100392f2564bae8473d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/migrate-session-account-public-key.mjs",
+      "bytes": 2912,
+      "sha256": "5c900922e477a38f5f5a9a81c0fb09ef73d1d677f97b38acb42a06e73a3b8b40",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/original-ide-service-admission-native-selection.mjs",
+      "bytes": 466,
+      "sha256": "1a280d685a92a894648daf3db2c7021bbdbd1279b79e383dd84c7e2fc00f1dc7",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/original-wallet-runtime-observer-launcher.mjs",
+      "bytes": 4221,
+      "sha256": "b09c6562eb52133fadf9ece9e68f1bf9d76858a19971db49b40a89de8b333fd0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/original-wallet-runtime-observer-native-selection.mjs",
+      "bytes": 303,
+      "sha256": "5b3edefc17352d7aca85a120ce9a1045e3d4b7c204fda124d402384ced94c684",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/run-gateway-backup-drill.mjs",
+      "bytes": 6787,
+      "sha256": "80b0e37167b0aaccc2c76d6e061dbcf21bd8ed85ff6ae69679d13437553504ac",
+      "mode": "755",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/ynx-ide-service-admission-supplier.mjs",
+      "bytes": 1367,
+      "sha256": "829c9eefe0f491316acafbf62260f6e597f584b3f8f84b2c21a9940acf81261d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/ynx-wallet-control-migrate-v3.mjs",
+      "bytes": 2653,
+      "sha256": "6d57a5f81d7881e33672be88bba184dcf02997e1f294195dd3f6c4d9ea6d1fc8",
+      "mode": "755",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/ynx-wallet-gateway-backup.mjs",
+      "bytes": 2511,
+      "sha256": "3bb7373bb8a30416f78d796310657cac58b7fb216351a8198a77ccb8d6feb8f8",
+      "mode": "755",
+      "sourceExact": true
+    },
+    {
+      "path": "scripts/ynx-wallet-gatewayd.mjs",
+      "bytes": 17365,
+      "sha256": "b8a64540ec4628af2c158e6b097c639974bc4f68448cd85ae33c913bf5acd7fc",
+      "mode": "755",
+      "sourceExact": true
+    },
+    {
+      "path": "src/application-action-launcher.d.ts",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/application-action-launcher.js",
+      "bytes": 6750,
+      "sha256": "7ea57fbc1f325d85f05a09df8bade9ecd862b27d2f6c0592414c63f6b36dde9c",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/application-action-request.js",
+      "bytes": 10141,
+      "sha256": "9eeb7164a6abef69c88aef542e68991df70f7519fbd6674df11141eab71758f4",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/application-action.js",
+      "bytes": 11150,
+      "sha256": "003ad229407316061594ae81ee236cc455b171fc1e71684469c6a25c35b25141",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/base64url.js",
+      "bytes": 1674,
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/bundler.js",
+      "bytes": 10674,
+      "sha256": "885eccffc1cf37cc0d45669fa3434155e44693bfe85114ff05ce1e2da61b57cc",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/canonical.js",
+      "bytes": 1638,
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/card-application-approval-request.js",
+      "bytes": 13882,
+      "sha256": "7b2e52669baaa16d693873281ceec63a66c2245e537df604786800ab5e9446ed",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/card-application-approval.js",
+      "bytes": 15118,
+      "sha256": "cae568a89b20328a39b4d82f188952b4f95d4af0fe2c273c2ee611ec06e73938",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-backend-auth.js",
+      "bytes": 4651,
+      "sha256": "d280f07765586ea2ca5a4cfa2788fe5887c33831d429412f4d08d72df5a38461",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-browser.bundle.js",
+      "bytes": 1184526,
+      "sha256": "8aa3790fa98ae35429dc1b450b4e1ffdaaed714a9ad1688000d678a084f32c6f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-browser.js",
+      "bytes": 28914,
+      "sha256": "85593a1206b6effa09539b8e553231bfaa6ecb00013dfe89f07116a72ccf6079",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-contract.d.ts",
+      "bytes": 1687,
+      "sha256": "5d3628431bd594e6520c21b02e259af9a34cc6b556b1c8a1b46283398cb0fc32",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-contract.js",
+      "bytes": 4456,
+      "sha256": "e00372266fcf03a5e4700c33e5f5f06d3d6098ecb5434a0485b1a6c5c1a585e0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-locale.js",
+      "bytes": 10603,
+      "sha256": "8b740cd6a2a19f1f8deb3042560ff1ad19a9367e29a8cb99bb5d975613f0956a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-registry.d.ts",
+      "bytes": 465,
+      "sha256": "87b39631380707a80b0c1dd6b712dd75d6d290530c540baae15d6cade12a14fa",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-registry.js",
+      "bytes": 2882,
+      "sha256": "6ec2ebf543bb4f12d26d7f219120eca9183750f2a3f243cdea5ba41681dcbd8d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session-store.js",
+      "bytes": 9506,
+      "sha256": "77fcf157a4df618fd80b10345ec9679e7be4e386fc040a7a62b05b8d1ef09e82",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-browser-session.js",
+      "bytes": 54635,
+      "sha256": "014fc5e29a37f8cb85043e1adc7a14a1ee8d7c868ebc5c9c4e11624ecabbdc9d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/central-oidc-provider.js",
+      "bytes": 7299,
+      "sha256": "487618d43d4ef2834d17561ac0b03afb6a4b56a4265a30e04e2aef70131b9f41",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/client-retirement.js",
+      "bytes": 9009,
+      "sha256": "2a741062ba291a8d338189bbd50274acbe7f57049b986efaa2b49f04432eeb22",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/credential.js",
+      "bytes": 4521,
+      "sha256": "cf1e24eb44dda4aa705da47e25ed3c65e30e965690166bb9594969ba28862997",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/crypto.js",
+      "bytes": 6692,
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/deep-link.js",
+      "bytes": 2712,
+      "sha256": "1cabb31d435300360602f632b1164f10348aa36aeb4fa9ee9d848c2493b9c348",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/developer-deployment.js",
+      "bytes": 14745,
+      "sha256": "46656a4fd6c1fafb818e05193311767f4c00fb7c6011ef9dca734e86daffb361",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/dex-action.js",
+      "bytes": 16795,
+      "sha256": "08405fbd2831e6d9eca5bff089a6faa1c80f6fde57802784a6ecf51626a6c83d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/evm-product-login.js",
+      "bytes": 11073,
+      "sha256": "c55e2de22b6c49f9aec46b8f3a9689d5de116136f513fbdd18587f1f38522929",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/evm-product-session.js",
+      "bytes": 23584,
+      "sha256": "cc80f0f11d104967e30f5f8ad4da91be830b9af5c86c81c478edcfdc16dddb52",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/exchange-action.js",
+      "bytes": 10232,
+      "sha256": "7459998abac435dfbdf60c5a34d7dd721678054d834a190e7a67b714bca04946",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-evm-common.js",
+      "bytes": 5583,
+      "sha256": "3a93524943eb210c79ca35e1c109cb794d4846bc13329823490f80efce270574",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-evm-order-approval.js",
+      "bytes": 15412,
+      "sha256": "8018d571d26c4c5ed64d6deae3be8f1ea62deb3c4fb6659cf48e704919e97989",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-evm-subject.js",
+      "bytes": 16121,
+      "sha256": "9c81ee879acb41c0a7a4ea1a78f28ffb1d9eab67ce950bfc4202d7ea3d66a51d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-order-approval-transport.js",
+      "bytes": 8559,
+      "sha256": "2bcdf7a018be2bb9561a7310bd3be7924c0d10838f1bc0de843b31ada3a5b7ef",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-order-approval.js",
+      "bytes": 20281,
+      "sha256": "14b7d2b39a391ddab8470df3c07eaad0bbd96bc0b602ea824cd6cbac8db8be9d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/finance-order-opaque-transport.js",
+      "bytes": 19812,
+      "sha256": "fb421009411467992421542afcc408c59db3a92f2a918d1073c2363fe38b2314",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-adapter.js",
+      "bytes": 15722,
+      "sha256": "e68c483c7523610dbd5ba04d54971c43175b7997bb3e3e996d2212d8411387e0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-admission.js",
+      "bytes": 2253,
+      "sha256": "896fe1669ae23cfc8bd4747d3e157c65583aa8e484183cc28452b1fc3b5db549",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-backup.d.ts",
+      "bytes": 1853,
+      "sha256": "3d39e5b9fc64e802688623b6c747a3145bdd18f3f722e34c5c47f8e03fda1f78",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-backup.js",
+      "bytes": 20654,
+      "sha256": "408259bbe7024a5b25289e262d1da17baa0de8baa3bdfd12a38abddb718679f6",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-http.js",
+      "bytes": 9341,
+      "sha256": "726664f442ab225f2610b9c7a5f201faf8ab585c78c0bc36985e5663ac6f185f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-node-host.d.ts",
+      "bytes": 1490,
+      "sha256": "a1baae4bcb8a957a040dfcfffe6ec4d36f4e65465ac7695844a7ccb740e7e32e",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/gateway-node-host.js",
+      "bytes": 22427,
+      "sha256": "c3f5dd1299694b0ed206368bc9b22af53ad763c5771719cbda76d26c3a1db042",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/hosted-adapter.d.ts",
+      "bytes": 1276,
+      "sha256": "1caf6e97fc15a2f3b8433af8f87b1d769332934fadea9ffb777394517f10f18b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/hosted-adapter.js",
+      "bytes": 26269,
+      "sha256": "d42e9cea979cd370efb55a6a628f838c8fd0f4b4d6d466f93f3d17a357b2f26a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/index.d.ts",
+      "bytes": 105051,
+      "sha256": "7def33c6fc0c01a61c33d869fe5d53f2ba4ac976de5599c715db00def7ae846f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/index.js",
+      "bytes": 3024,
+      "sha256": "d915d8056ce3bce46493a6d13c98e7195dd72534ea07c8bc570764f2d90619ca",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/integration.js",
+      "bytes": 14695,
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/intent.js",
+      "bytes": 10519,
+      "sha256": "b957da00144d298ec2e2dbcfe391d55edd168ad495423305536d1d67a72ebcfc",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/lifecycle.js",
+      "bytes": 20738,
+      "sha256": "70a402903bf42b642eeec265f32994ebcf629371fbfbdecfbd5d4927cfc025ae",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/mandate-lifecycle.js",
+      "bytes": 14342,
+      "sha256": "105043dacf8a877559d9469ce54ca9cd30f019c7d70002ac6a50fd0abdb0b3b0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/mandate.js",
+      "bytes": 19070,
+      "sha256": "e6e16b29f2602ae4b6f2632ad741cff092f4b5c9d95943f1188efad32e805abd",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/metamask-evm-adapter.js",
+      "bytes": 6530,
+      "sha256": "dd93f681ba7904a42ae5ec0069991a59b2319dddbb7d073503f5016beb59fdeb",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/native-transfer.js",
+      "bytes": 4872,
+      "sha256": "10ca0f351fa2341a145fa6e23923fa59810202a5eafad9700116b2b9e93ab321",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-auth-identity-private-joint-registration.js",
+      "bytes": 9278,
+      "sha256": "a2bbddcc647cae8ebfb75d1598a5ba79b57691ccdc3550017ea6560b701402c5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-backend-operation-auth.js",
+      "bytes": 10108,
+      "sha256": "2b770cfb8e047b2455c12570126ca87c0fe9c39cb5bb7e4849ea87a34f69fbe0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-project-resource-approval.d.ts",
+      "bytes": 2447,
+      "sha256": "36babbb145f24aec06f47f1679f0c290029ed2f5d0b3a964848fc0998675bade",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-project-resource-approval.js",
+      "bytes": 6665,
+      "sha256": "453f593560d441453b76cda282e98b7c625f2e46886b18592911de10f3b93c48",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-resource-domain-evidence.js",
+      "bytes": 17241,
+      "sha256": "24cfe9d88fbd7d74b92b35dfc6cf47bae2faae4f4d9571bb3b462314fdb62c6b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-resource-participant.js",
+      "bytes": 14039,
+      "sha256": "edc9864c24f5c4f3132f358736fda57a8360ec39ef7cc56f9c5352575743779a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-resource-registry-current.js",
+      "bytes": 15368,
+      "sha256": "332cba975e55e20d522bfa487eb13dea9b11fabdacf12c5a1a1604cebd04ee0f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-developer-resource-same-writer-composition.js",
+      "bytes": 6121,
+      "sha256": "7add702abe4aaeb8b232641f1f9742a3b1c2af38f2b82caa40fc44ae5def77c7",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-device-reader-durable-registration.js",
+      "bytes": 11111,
+      "sha256": "15ebab201a0a6e14cb42f0f9b6d98d8d96c6848c6cec6d94d78eea6686d319e5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-device-reader-operator-role-certificate.js",
+      "bytes": 7845,
+      "sha256": "543d70054bcafefe1b05ca9e9abded5268cbdfa337fc730076b2715fe7106c3e",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-ide-admission-parent-delivery.d.ts",
+      "bytes": 474,
+      "sha256": "b50d306f4e4feeff656a55053f7a6dc891930f8f36555e60687f007fcdd9e145",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-ide-admission-parent-delivery.js",
+      "bytes": 1819,
+      "sha256": "52bb6df39ccc8a263ab996a461077f9891eef94f2cb11a5ec33c343c774f1d15",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-ide-running-entry-adoption.mjs",
+      "bytes": 653,
+      "sha256": "1b418c4602a666024e3312d7cfa3fc625daf5495bac2c1f8962ffb6a8d66ee19",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-ide-service-admission-startup.d.ts",
+      "bytes": 963,
+      "sha256": "3d87ea68135249e82b86cf7f3969dd1f64e886370eae46a6665b6fe8a0a705e3",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-ide-service-admission-startup.js",
+      "bytes": 7660,
+      "sha256": "754eccf898efd7d576968840a3f388be0b1e1cba1815f436d3ef10941cb30634",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-operation-protected-startup.js",
+      "bytes": 7288,
+      "sha256": "55597880edf8eff844e1f8e2222b160907cd2db384a4749b28343d566dcc42f5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-operation-recovery-state.js",
+      "bytes": 7813,
+      "sha256": "9d14c7d476d15777eb88b82c8e133cc0710d71ad073999054d99051496d09207",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-unexpired-operation-reader.js",
+      "bytes": 4580,
+      "sha256": "c6e7e537a9933391823b31dc38c92bc33675ead5e1f7688eb9373882d8e30656",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-admission-installer.js",
+      "bytes": 9481,
+      "sha256": "fbbc99c400ff36dbe3b2f23005c50791658849233e391dac885a0e141f8179e9",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-admission-publication-state.d.ts",
+      "bytes": 2831,
+      "sha256": "878cb9175bb593a2acad6e0a051a6989dfe511d502f5469cea53d25674ade118",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-admission-publication-state.js",
+      "bytes": 15306,
+      "sha256": "3f665ebbc24bcf35dd097bd303cb4029a1053114f80b5236676fd0236c888993",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-admission.js",
+      "bytes": 20347,
+      "sha256": "438b355451ad96345f9fc9864dae413997a8f4fea0a4b1faf8c7368bf3e559b9",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-private-client.d.ts",
+      "bytes": 1004,
+      "sha256": "73f1678c20ab318a985ce9e9b26234b8ffde84c76894efc253834d3a2cbaec2a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-private-client.js",
+      "bytes": 8403,
+      "sha256": "d98817b00f85cb1aa149a4896814d7dbf39da96143df02b6f053be738e65827d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-private-dispatch.js",
+      "bytes": 11897,
+      "sha256": "917487f23706d7d0b63ec70698e72656fb597a4ac751597592009df7ce01c68f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-role-enrollment-state.d.ts",
+      "bytes": 4171,
+      "sha256": "752e761da9b9741f8b9a8111ca592a175305658610c136012b6256e6fa8438f6",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-role-enrollment-state.js",
+      "bytes": 16320,
+      "sha256": "0051ce5f41eb3f9ae533e621b6e4ed7e8e036b31353b4ee1754eb58ed028cdf5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-runtime-observer.d.ts",
+      "bytes": 2248,
+      "sha256": "3098876c60862aa20e225b094473b72c7bec646b4ea35f458e3beb9e98b8ac6c",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-runtime-observer.js",
+      "bytes": 16078,
+      "sha256": "519eb008dfed6e751dcdb1f2efcfa928c4b1c3aa973add8a4eea9d33394a999b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-runtime-publication.d.ts",
+      "bytes": 2637,
+      "sha256": "38d972d45d830054afcbada3e7140395e1b027f4bc690ae10656a31db45cb638",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/original-wallet-service-runtime-publication.js",
+      "bytes": 9674,
+      "sha256": "6fb7d92c99cb73520197037e543a32a37ad82beab9d2d6d231cc07499cd39f13",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/pay-invoice-trust.js",
+      "bytes": 1915,
+      "sha256": "815b76c6b906f4fc66c6b6772c7e0c3e350bde8e221d12bb290f922f8d417b2d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/pay-payment.js",
+      "bytes": 6621,
+      "sha256": "6f4767511a7ea5eda443d8702665ed4c7de50518652a8ec3a77075ce89083d64",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-migration.js",
+      "bytes": 9307,
+      "sha256": "27054bf82f5aebd1d588b0d472b761d18c03dc157644321495abf37dde153bb5",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-authority-projection.js",
+      "bytes": 10558,
+      "sha256": "f12144f6beb40f919195ae87aef6f3b1f286b7576b26d942f4be27dcdf60065d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-browser.js",
+      "bytes": 29348,
+      "sha256": "fac8d88534b428f2381167cef04f09f1f462f0f026144a762eced86e3d4ecc8f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-completion-record.js",
+      "bytes": 2837,
+      "sha256": "852f16daa2d01e24299fabde9542a2f87c9bce66cf8369540ce9c19daab41655",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-control-capacity.js",
+      "bytes": 4012,
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-control-intent.js",
+      "bytes": 20511,
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-control-node-host.d.ts",
+      "bytes": 642,
+      "sha256": "179c07d6f046118b89cb4e48368c723dd6406e1170d90ae27a3ff1f1ee953682",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-control-node-host.js",
+      "bytes": 11870,
+      "sha256": "87a7233195f5e53c56c4960d4b9ad7999c4b1bdb872827273cb2c5b160f835fb",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-control-node-store.js",
+      "bytes": 14387,
+      "sha256": "49748115f18ea7ae8d962171d216d810c61795d93c6c8781f5a69b4ba19dcdab",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-finite-consent.js",
+      "bytes": 2976,
+      "sha256": "bdefcaf2175406c8db83bfaafc7225cce72fb69da5f1c3a5e5a9f858b7e48ba2",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway-client.js",
+      "bytes": 13101,
+      "sha256": "55255433c19160d15ea08c53a341fa5b3cd518bd0b618bb4ec9be49ab2b7833c",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway-http.js",
+      "bytes": 4396,
+      "sha256": "b9d8921d53671032367d1f7c2a016e41c7724def9b0c4056c3a0f1e8bd6575a4",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway-node-host.d.ts",
+      "bytes": 1175,
+      "sha256": "205080b168913b30e91d92bf17c8280fe6344a46c55dbcfc431c197ec7656bee",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway-node-host.js",
+      "bytes": 34988,
+      "sha256": "89846746b1409679f46e875dfeb48fdee76842b651f8f7d7086afecd8c319059",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway-snapshot-v2.js",
+      "bytes": 5490,
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-gateway.js",
+      "bytes": 26088,
+      "sha256": "320589e845a200f954528b78b453f8019f0e13da3b825333533d46cdd77dedea",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-native.d.ts",
+      "bytes": 4296,
+      "sha256": "93be9f73430cc1781fdfb222cef4b0fd2930df92fcb2900ee0096a00b095dd54",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-native.js",
+      "bytes": 14097,
+      "sha256": "78e6cb0bb90d931611b19a92f9400ebab17962825991f6d77911420b2439e451",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-proof-v2.js",
+      "bytes": 9275,
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-recovery.js",
+      "bytes": 59279,
+      "sha256": "e80eeb44d78d0b91f67c18c8593bea4be89235eef20b3e7b66c664d2b4555b8b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-registry.js",
+      "bytes": 14744,
+      "sha256": "18655744b80de8fdf4713977ef6d4303e1d7daa9562b003e62db9c3b331aa3ef",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-revocation-intent.js",
+      "bytes": 5547,
+      "sha256": "5775e709ac3273d89534f254f82d5d243a0825ffd6cb06b831ce115faaf9ce90",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-router.js",
+      "bytes": 10041,
+      "sha256": "c3b12e89d1e63706116a4221ef3a13fbc27005ba187ee59dce764a3e0c9cfe41",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-server.js",
+      "bytes": 6433,
+      "sha256": "95f2997253fee5e6b6d8cf80aff47ff4ed14ac3fea33d20a4983fc542398d7c7",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-session-v2.js",
+      "bytes": 40361,
+      "sha256": "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-wallet-connection.d.ts",
+      "bytes": 2142,
+      "sha256": "7a4e16b883073915665becf75239ec591ef4fb164ad00d45f95ff2d01058ae87",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/product-wallet-connection.js",
+      "bytes": 3579,
+      "sha256": "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/protocol.js",
+      "bytes": 10495,
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/quant-action.js",
+      "bytes": 9458,
+      "sha256": "84da9be42a5a268ccd91b405f45ef35ba4e1323207e3de4f538523c15b6bafff",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/registry.js",
+      "bytes": 13436,
+      "sha256": "e16e66efadcc8643c6894cf28ab858115f0761ce096a9d7133b5fb1a495b12cc",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/replay.js",
+      "bytes": 646,
+      "sha256": "74014622be2e9c79e0abbbea643ae11b687ed97a6aa6805459db5eccf66f4f61",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/session-proof.js",
+      "bytes": 8387,
+      "sha256": "8894457484157a9232eae5bc0c0713c1e740a7c5fc19d066292d6e3efc5c4c8f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/session.js",
+      "bytes": 9374,
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/smart-account.js",
+      "bytes": 12192,
+      "sha256": "ffa2374b2e4419cdba70798a5ef15a629d5d0a46910c515fa61d92d9dd9d4a19",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/standard-wallet-connection.js",
+      "bytes": 15602,
+      "sha256": "d8dae4cead4842cc5e65f3284471f346eacc6372571be3b95ac3a74f2c7f3535",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/vendor/hosted-wallet-adapter-4bccefef.js",
+      "bytes": 12659,
+      "sha256": "2567f4ec0958852ef27ee382067b6b104e33fe5dc3feba3aa94d710caa7f2c0a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/vendor/hosted-wallet-adapter-39c063da.js",
+      "bytes": 12509,
+      "sha256": "fef4c040721b2759af7ca0928fe5363f3850bf59d66c425f724b3e79b00c11cc",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-connection-coordinator.js",
+      "bytes": 11361,
+      "sha256": "b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-downloads.js",
+      "bytes": 11930,
+      "sha256": "69eb2b88a1e1080698c83387483d4c61178b137b5de2c6697964ee72e52d25a9",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-provider-discovery.js",
+      "bytes": 11520,
+      "sha256": "39b093a903f918069af25130a51577383b71922d3f2e0c06e1a54262d2f071c2",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-session-control-client.js",
+      "bytes": 27078,
+      "sha256": "a169343927d7b97a03cf7244a5ec6f8636dc5e3c16ac34b0db5dda12f1f71824",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-session-control-outbox.js",
+      "bytes": 26475,
+      "sha256": "54e676408a1c7777e70da297eecaa1513482df5dbaf12fc2f71cab130ed92074",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/wallet-session-control.js",
+      "bytes": 8185,
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/walletconnect-dapp-connection.js",
+      "bytes": 17896,
+      "sha256": "03984541e4298d51cc862d9b9669595b6f0a6df4d862dc78729a9582a64c9465",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "src/walletconnect-protocol.js",
+      "bytes": 40863,
+      "sha256": "fc13e988f4f9891de791d2ca2c1c528c0ab37c22173612a6bcd6bfd146e84445",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/central-lifecycle-v1.json",
+      "bytes": 988,
+      "sha256": "cf9c57b783d6bca55387c17294541ba8b21881ff86477c1a4019173ea28bc039",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/developer-deployment-artifact-v1.json",
+      "bytes": 773,
+      "sha256": "574bf145e628747f0fdb51c1c60156c911ecbe1f5a41b2dca21a89fe96415b9f",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/evm-product-session-v1.json",
+      "bytes": 1031,
+      "sha256": "49e811c4f47c92c79e402db66bafb87deee205552f8dfe167a38b7bfc0556bae",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/finance-evm-private-order-v1.vectors.json",
+      "bytes": 5247,
+      "sha256": "257031240e7619c90f854f2d593d1f280e63e02f9a662b38bf7943eda3e81f54",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/finance-order-approval-v1.vectors.json",
+      "bytes": 4202,
+      "sha256": "f8f4810e699400f019c33d045088401507d37b8d694e4e9b65498f817e895a5a",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/gateway-p256-v1.json",
+      "bytes": 1737,
+      "sha256": "38835f2190cc6284558c26d9b906449f404a193b00e3a9a7d6c8e1d5329b1cce",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/gateway-p256-v2.json",
+      "bytes": 1733,
+      "sha256": "46297889b0be0306441a6d761fccf982aeea0947d0af0a186e7c575a085357e3",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/mobile-native-transfer-v1.json",
+      "bytes": 718,
+      "sha256": "cdc38504312073221e5e2eae645025e574c67e7bef6ad135e68a39f812198992",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/product-session-http-proof-v1.json",
+      "bytes": 2850,
+      "sha256": "63e8f1d22a97d774591071a5481f3fbfc7d05ae768d975e300d669c83e00a75b",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/product-session-http-proof-v2.json",
+      "bytes": 2259,
+      "sha256": "2d1fc04bf52a20e68ba74dce42ab18609ba6096a8e104ded4055a623150b6cd7",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/signer-v1.json",
+      "bytes": 1729,
+      "sha256": "1e14774409542b2c305f43aafd439e022a08120abff8504993f4886a2767f564",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/signer-v2.json",
+      "bytes": 1617,
+      "sha256": "29d1735962613e24d1d415de5ebd2449d2a1d27b4fba7f123ec6f8ac5516cec0",
+      "mode": "644",
+      "sourceExact": true
+    },
+    {
+      "path": "testdata/strategy-mandate-v2.json",
+      "bytes": 6308,
+      "sha256": "5ef293c8467ae57c7efabd3b89ef1b483607467a46db35dd0f9c049302ee3996",
+      "mode": "644",
+      "sourceExact": true
+    }
+  ],
+  "errors": [],
+  "exportsAndBinExist": true
+}

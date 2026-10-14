@@ -1,20 +1,21 @@
+import {creatorScope} from './business-scope.js';
+export {creatorScope} from './business-scope.js';
 import {mediaBusinessAuthorization} from './business-wire.js';
 import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
-import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL } from './product-session-sdk.js';
 const ORIGIN = 'https://creator.ynxweb4.com';
 let pendingClient;
 const events = createMediaSessionEvents('creator-studio');
 const returnLocation = createMediaReturnLocation('creator-studio', ['overview','channel','team','rights','content','upload','assets','earn','moderation','disputes','ai']);
 export const subscribeProductSession = events.subscribe, announceProductSession = events.announce, rememberProductReturn = returnLocation.remember, consumeProductReturn = returnLocation.consume;
 export function atRegisteredOrigin() { return location.origin === ORIGIN; }
-export function creatorScope(path, method = 'GET') {
-  if (/\/(payout-intents|revenue|disputes)/.test(path)) return 'creator:revenue';
-  return ['GET', 'HEAD'].includes(method.toUpperCase()) ? 'creator:account' : 'creator:publish';
-}
+
 export async function productSession() {
   if (!atRegisteredOrigin()) throw new Error('Open creator.ynxweb4.com to sign in securely.');
   if (!pendingClient) pendingClient = (async () => {
-    const response = await fetch(new URL('./product-session-registry.json', import.meta.url), {cache:'no-cache'});
+    const sdk = await import('./product-session-sdk-r9.js');
+    if (sdk.MEDIA_SDK_SOURCE_COMMIT !== '2689bece12fddd991c2ecd7a024f6aa4e8b1afbd') throw Error('Matching current Creator SDK build required');
+    const {createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter} = sdk;
+    const response = await fetch(new URL('./product-session-registry-r9.json', import.meta.url), {cache:'no-cache'});
     if (!response.ok) throw new Error('Creator sign-in configuration is unavailable. Please retry.');
     const registry = await response.json();
     const gateway = new ProductSessionGatewayFetchAdapter({
@@ -24,8 +25,8 @@ export async function productSession() {
     });
     const browser = await createBrowserProductSessionClient({registry, productId:'creator-studio',
       scopes:['creator:account','creator:publish','creator:revenue'],
-      purpose:'Manage your Creator Studio channel, uploads, publication reviews and revenue records', gateway});
-    return { ...browser, registry };
+      purpose:'Manage your Creator Studio channel, uploads, publication reviews and revenue records', gateway, environment:globalThis});
+    return { ...browser, registry, encodeWalletURL:sdk.encodeProductSessionWalletURL };
   })().catch(error => { pendingClient = null; throw error; });
   return pendingClient;
 }
@@ -36,7 +37,7 @@ export async function prepareProductSignIn() {
   // This is an explicit user-selected launch attempt, never installation detection.
   // begin minted this fresh request using Auth time. Do not revalidate it against
   // a skewed local clock while serializing; Wallet validates expiry at approval.
-  return {url:encodeProductSessionWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)),expiresAt:state.request.expiresAt,state:state.request.state};
+  return {url:browser.encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)),expiresAt:state.request.expiresAt,state:state.request.state};
 }
 export async function restoreNativeProductReturn(expectedState) {
   const browser = await productSession();

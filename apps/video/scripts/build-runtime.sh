@@ -34,6 +34,7 @@ mkdir -p "$stage/runtime/i18n" "$stage/runtime/ynx-dapp-connect-sdk" "$stage/run
 
 files=(
   app.js
+  business-scope.js
   assets/ynx-logo.svg
   i18n.js
   i18n/catalog.json
@@ -94,6 +95,12 @@ fi
 for file in "${files[@]}"; do
   git show "${source_commit}:apps/video/${file}" > "$stage/runtime/$file"
 done
+
+# Compose current same-copy source into NEW runtime artifacts; old SDK files remain historical.
+mkdir -p "$stage/sdk-source"
+git archive "$source_commit" apps/music/web/vendor/wallet-auth-r9-2689bece apps/video/scripts/current-media-sdk.mjs apps/video/scripts/build-current-media-sdk.mjs |
+  "$tar_bin" -xf - -C "$stage/sdk-source"
+node "$stage/sdk-source/apps/video/scripts/build-current-media-sdk.mjs" "$stage/sdk-source" "$stage/runtime" browser
 
 SOURCE_COMMIT="$source_commit" STAGE_ROOT="$stage/runtime" node --input-type=module <<'NODE'
 import {createHash} from "node:crypto";

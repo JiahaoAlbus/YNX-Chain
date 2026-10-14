@@ -1,0 +1,20 @@
+{
+  "schema": "ynx.media.current-sdk-r9-source/v1",
+  "head": "2689bece12fddd991c2ecd7a024f6aa4e8b1afbd",
+  "tree": "4b0af59f43c1283054c3d33af1d4c84bd36ecd2a",
+  "sourceFiles": 276,
+  "sourceManifest": {
+    "bytes": 84183,
+    "sha256": "bf6104ab63231bbd6981ef31e265f1d9910495a4a373a6cee0765e585b532ebe"
+  },
+  "distribution": {
+    "bytes": 634294,
+    "sha256": "1306a7d28dbdf2335868cbe25880fa601519ff10ccc9de38331d7701fed91bae"
+  },
+  "normalPackedFiles": 170,
+  "normalVersion": "1.2.0",
+  "dependencyCache": "/Users/huangjiahao/.codex/worktrees/finance-authority-history-recovery-20261001/packages/wallet-auth/node_modules",
+  "oldVendorPreserved": true,
+  "generatedArtifacts": false,
+  "actualProtectedDeviceOrWalletAcceptance": false
+}

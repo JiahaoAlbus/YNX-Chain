@@ -1,3 +1,5 @@
+import {videoScope} from './business-scope.js';
+export {videoScope} from './business-scope.js';
 import {mediaBusinessAuthorization} from './business-wire.js';
 import {createMediaSessionEvents, createMediaReturnLocation} from './session-events.js';
 import {createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, encodeProductSessionWalletURL} from './product-session-sdk.js';
@@ -5,26 +7,7 @@ import {createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter, en
 export const VIDEO_ORIGIN = 'https://video.ynxweb4.com';
 export const VIDEO_SCOPES = Object.freeze(['video:account', 'video:library', 'video:playback']);
 
-export function videoScope(path, method = 'GET') {
-  method = method.toUpperCase();
-  if (path.includes('..') || path.includes('//')) throw new Error('Invalid Video API route.');
-  const id = '[A-Za-z0-9_-]+';
-  if (['GET', 'HEAD'].includes(method)) {
-    if (path === '/v1/account') return 'video:account';
-    if (/^\/v1\/(history|playlists|subscriptions)$/.test(path)) return 'video:library';
-    if (new RegExp(`^/v1/(videos|videos/${id}(/comments)?|channels/${id})$`).test(path) || /^\/media\/[A-Za-z0-9_./-]+$/.test(path) && !path.includes('..')) return 'video:playback';
-  }
-  if (method === 'POST') {
-    if (path === '/v1/playlists' || new RegExp(`^/v1/(playlists/${id}/videos|channels/${id}/subscription|videos/${id}/watch)$`).test(path)) return 'video:library';
-    if (new RegExp(`^/v1/(videos/${id}/(comments|reports)|reports/${id}/appeals)$`).test(path)) return 'video:account';
-  }
-  if (method === 'PUT' && new RegExp(`^/v1/channels/${id}/subscription$`).test(path)) return 'video:library';
-  if (method === 'DELETE') {
-    if (new RegExp(`^/v1/(channels/${id}/subscription|playlists/${id}(/videos/${id})?)$`).test(path)) return 'video:library';
-    if (path === '/v1/privacy/account-data') return 'video:account';
-  }
-  throw new Error('This operation is not available to a Video account.');
-}
+
 
 // Dependencies are explicit so protocol behavior can be tested without a browser
 // or substituting a production Gateway. The default uses the frozen Auth SDK.
@@ -39,14 +22,19 @@ export function createVideoProductSession({environment = globalThis,
   async function productSession() {
     if (!atRegisteredOrigin()) throw new Error('Open video.ynxweb4.com to sign in securely.');
     if (!pendingClient) pendingClient = (async () => {
-      const response = await environment.fetch(new URL('./product-session-registry.json', import.meta.url), {cache: 'no-cache'});
+      const normal = createBrowserClient === createBrowserProductSessionClient;
+      const sdk = normal ? await import('./product-session-sdk-r9.js') : null;
+      if (normal && sdk.MEDIA_SDK_SOURCE_COMMIT !== '2689bece12fddd991c2ecd7a024f6aa4e8b1afbd') throw Error('Matching current Media SDK build required');
+      const createClient = sdk?.createBrowserProductSessionClient || createBrowserClient;
+      const Adapter = sdk?.ProductSessionGatewayFetchAdapter || GatewayAdapter;
+      const response = await environment.fetch(new URL(normal ? './product-session-registry-r9.json' : './product-session-registry.json', import.meta.url), {cache: 'no-cache'});
       if (!response.ok) throw new Error('Video sign-in configuration is unavailable. Please retry.');
       const registry = await response.json();
-      const gateway = new GatewayAdapter({endpoint: 'https://wallet-auth.ynxweb4.com', fetch: environment.fetch.bind(environment),
+      const gateway = new Adapter({endpoint: 'https://wallet-auth.ynxweb4.com', fetch: environment.fetch.bind(environment),
         walletInstalled: () => false, schemeRegistered: () => false, timeoutMs: 15000});
-      const browser = await createBrowserClient({registry, productId: 'video', scopes: [...VIDEO_SCOPES],
-        purpose: 'Save Video playlists, subscriptions and watch history, and manage your comments and privacy', gateway});
-      return {...browser, registry};
+      const browser = await createClient({registry, productId: 'video', scopes: [...VIDEO_SCOPES],
+        purpose: 'Save Video playlists, subscriptions and watch history, and manage your comments and privacy', gateway, environment});
+      return {...browser, registry, encodeWalletURL: sdk?.encodeProductSessionWalletURL || encodeWalletURL};
     })().catch(error => {pendingClient = null; throw error;});
     return pendingClient;
   }
@@ -61,7 +49,7 @@ export function createVideoProductSession({environment = globalThis,
       if (!state.request) throw Object.assign(new Error(state.message), {productSessionState: state});
       // Serialize at the authority time just used by begin; Wallet checks expiry
       // on arrival. A skewed product device clock must not block the launch link.
-      return {url: encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt, state: state.request.state};
+      return {url: browser.encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt, state: state.request.state};
     },
     async restoreNativeReturn(expectedState) {
       const browser = await productSession();

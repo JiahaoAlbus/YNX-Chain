@@ -1,0 +1,101 @@
+{
+  "state": "R9_NORMAL_CURRENT_AUTH_R7_R8_SOURCE_ESM_PACK_COMPLETE",
+  "owner": "01a074d7-256e-7ae2-9260-92fdce193d7c",
+  "sourceRoot": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r7-r8-auth-r9-20261014/source/packages/wallet-auth",
+  "head": "2689bece12fddd991c2ecd7a024f6aa4e8b1afbd",
+  "tree": "4b0af59f43c1283054c3d33af1d4c84bd36ecd2a",
+  "sourceSDKFiles": 276,
+  "sourceWholePrePostExact": true,
+  "version": "1.2.0",
+  "artifact": {
+    "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/artifacts/ynx-chain-wallet-auth-1.2.0.tgz",
+    "bytes": 634294,
+    "sha256": "1306a7d28dbdf2335868cbe25880fa601519ff10ccc9de38331d7701fed91bae",
+    "sha512Integrity": "sha512-F+uFNkXKKJUR6GXMBvzQt24OiSDoJT+j1cennrB1e5Ltr7uaAwvEaPqGO1od36phKQKq3jShh4Yf4drOBthIRg==",
+    "files": 170,
+    "unpackedBytes": 2907506
+  },
+  "meaning": "Normal package files range projects170 from current fullSDK276. New170 package, not reuse of oldR7 tgz. Test source stays in frozen complete276 input, intentionally not added to npm files range.",
+  "checks": {
+    "normalNpmPackExit": 0,
+    "allActual170FilesSourceBytesExact": true,
+    "allExportAndBinFilesExist": true,
+    "actualSelfPackageFiveEntryResolutionExit": 0,
+    "factorySameCopyClosureModules": 26,
+    "factoryR7Coordinator": "11361/b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674",
+    "factoryR8Recovery": "59279/e80eeb44d78d0b91f67c18c8593bea4be89235eef20b3e7b66c664d2b4555b8b",
+    "browserFactoryNodeBuiltins": [],
+    "SDKSourcePrePost276Exact": true,
+    "oldTestsRerun": false,
+    "cryptoOrModuleEvaluation": 0
+  },
+  "inputRecipe": {
+    "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r7-r8-auth-r9-20261014/NORMAL_PACK_INPUTS.json",
+    "bytes": 3067,
+    "sha256": "3a8ac4756fa9acdd4fc2e4ea81cf333d090a88555f1efcaad045ec505ad435cb"
+  },
+  "evidence": [
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/PACK_COMMAND_RECEIPT.json",
+      "bytes": 372,
+      "sha256": "175e4961839398d37f2bd26c2dc7d4d58983934b6a49fca87afe93381f54c22e"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/NPM_PACK.json",
+      "bytes": 19753,
+      "sha256": "71ac36e4e0a32b1b9c52bb826221b1ec4602e85f54eed9e9c1dd74a5a77c40e8"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/NPM_PACK.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/PACKED_FILES_MANIFEST.json",
+      "bytes": 37090,
+      "sha256": "0557e85f33e01935f4a207c695771c9fd0d8593ff543d65cf348d7c1b9842f8d"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/PACKED_ENTRY_CLOSURES.json",
+      "bytes": 51952,
+      "sha256": "2129b23b015e02dfaec958a954dda1296609c1e90fef40eda48be36e06d91c18"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/NORMAL_ENTRY_RESOLUTION.log",
+      "bytes": 704,
+      "sha256": "8f002d612b92a4e474c8a048d373464350b35841e824b50fa14d3b946a20661b"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/SOURCE_PACKAGE_LOCK.json",
+      "bytes": 64919,
+      "sha256": "2677b67db220fac235a0d62ddf6ef360f7e31ffa3ceccbe93a6b675498402308"
+    },
+    {
+      "path": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/BUILD_LOCK.json",
+      "bytes": 2748,
+      "sha256": "7c4be1d3d3910b5d87360fe78b441ad9ffcd255e1c3c691b01b16de24639ca17"
+    }
+  ],
+  "source": 0,
+  "build": 0,
+  "heavy": 0,
+  "GUI": 0,
+  "noInflight": true,
+  "privateRuntime": 0,
+  "sign": 0,
+  "funds": 0,
+  "registryPublished": false,
+  "oldPackageOrSourceOrLocksChanged": false,
+  "consumerIntake": {
+    "tgz": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/artifacts/ynx-chain-wallet-auth-1.2.0.tgz",
+    "unpackedSameCopy": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/unpacked/package",
+    "normalImport": "import {createProductWalletConnection} from '@ynx-chain/wallet-auth/product-wallet-connection';",
+    "originalInputLock": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r9-distribution-20261014/SOURCE_PACKAGE_LOCK.json",
+    "completeSDKSourceManifest": "/Users/huangjiahao/ynx-wallet-sdk-integrated-r7-r8-auth-r9-20261014/CURRENT_SDK_276_SOURCE_MANIFEST.json",
+    "keepExistingConsumerNewerAuth": "Consumer owner composes actual newer source delta if any; do not blindly replace newer IDE276/current caller with170 projection."
+  },
+  "installedAcceptance": "NOT_VERIFIED",
+  "NativePrivateQualification": false,
+  "next": "Root normal allocation returns heavy0; original Card/Docs/AI/other consumer owner uses this actual source/artifact in its own matching intake, not claims of installed or private acceptance.",
+  "goalComplete": false
+}
