@@ -1,4 +1,5 @@
 import { walletIdentity, walletIdentityFromPublicKey } from "@ynx-chain/wallet-auth";
+import { mobileMnemonicFromEntropy, importMobileMnemonic, MOBILE_MNEMONIC_PATH, type MnemonicAccountMaterial } from "../security/mnemonicAccount";
 
 export const MANIFEST_KEY = "ynx.wallet.manifest.v2";
 export const LEGACY_IDENTITY_KEY = "ynx.mobile.identity.v1";
@@ -52,6 +53,7 @@ export type WalletManifest = Readonly<{
 
 export type LoadResult = Readonly<{ manifest: WalletManifest; migrated: boolean }>;
 export type CorruptWalletResetReview = Readonly<{kind:"corrupt-wallet-reset"}>;
+export type WalletRecoveryMaterial = Readonly<{kind:"private-key";account:string;secretHex:string}> | Readonly<{kind:"mnemonic";material:MnemonicAccountMaterial}>;
 
 export class WalletRepository {
   private readonly resetReviews = new WeakMap<CorruptWalletResetReview,string>();
@@ -64,6 +66,19 @@ export class WalletRepository {
   }
 
   async addAccount(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertCurrent?: OperationGuard): Promise<WalletManifest> {
+    return this.addAccountMaterial(input, assertCurrent);
+  }
+
+  async addMnemonicAccount(input: { entropyHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertCurrent: OperationGuard): Promise<WalletManifest> {
+    if (typeof assertCurrent !== "function") throw new Error("Mnemonic custody requires a current Wallet operation");
+    assertCurrent();
+    const {entropyHex,label,createdAt,backupConfirmed}=input;
+    if (backupConfirmed !== true) throw new Error("Confirm the recovery phrase backup before saving this account");
+    const material = mobileMnemonicFromEntropy(entropyHex, assertCurrent);
+    return this.addAccountMaterial({label,createdAt,backupConfirmed,secretHex:material.secretHex}, assertCurrent, material.entropyHex);
+  }
+
+  private async addAccountMaterial(input: { secretHex: string; label: string; createdAt: string; backupConfirmed: boolean }, assertCurrent?: OperationGuard, mnemonicEntropy?: string): Promise<WalletManifest> {
     return this.mutate(async () => {
       assertCurrent?.();
       const current = (await this.load()).manifest;
@@ -80,7 +95,7 @@ export class WalletRepository {
       const pending = await this.readDeletionJournal();
       assertCurrent?.();
       if (pending.some((item) => item.account === identity.account)) throw new Error("Complete the pending account removal before importing this account again");
-      await this.writeProtectedSecret(account, input.secretHex, "created", assertCurrent);
+      await this.writeProtectedSecret(account, input.secretHex, "created", assertCurrent, false, false, mnemonicEntropy);
       assertCurrent?.();
       const manifest = freezeManifest({
         schemaVersion: 2,
@@ -284,6 +299,45 @@ export class WalletRepository {
   /** Only an explicit offline-key import may replace an unavailable protected key.
    * This never removes the public account or silently falls back to legacy material. */
   async restoreAccountSecret(account: string, secretHex: string, assertCurrent?: OperationGuard): Promise<WalletManifest> {
+    return this.restoreAccountMaterial(account, secretHex, assertCurrent);
+  }
+
+  async restoreAccountMnemonic(account: string, phrase: string, assertCurrent: OperationGuard, passphrase = ""): Promise<WalletManifest> {
+    if (typeof assertCurrent !== "function") throw new Error("Mnemonic recovery requires a current Wallet operation");
+    const material=importMobileMnemonic(phrase, passphrase, assertCurrent);
+    if(material.account!==account) throw new Error("Recovery phrase does not match this stored public account");
+    return this.restoreAccountMaterial(account,material.secretHex,assertCurrent,material.entropyHex);
+  }
+
+  /** Strong cipher-bound OS storage still authenticates this read. The caller
+   * also supplies its account/focus-bound operation; public load never reads it. */
+  async accountMnemonic(account: string, assertCurrent: OperationGuard): Promise<MnemonicAccountMaterial> {
+    const recovery=await this.accountRecoveryMaterial(account,assertCurrent);
+    if(recovery.kind!=="mnemonic")throw new Error("This account uses a private-key backup, not a recovery phrase. It cannot be converted without changing its identity.");
+    return recovery.material;
+  }
+
+  /** One cipher-bound read selects the actual backup kind. UI must not first
+   * try phrase export and then trigger another authentication for a legacy key. */
+  async accountRecoveryMaterial(account: string, assertCurrent: OperationGuard): Promise<WalletRecoveryMaterial> {
+    if(typeof assertCurrent!=="function")throw new Error("Mnemonic export requires a current Wallet operation");
+    assertCurrent();
+    const expected=(await this.readManifest()).accounts.find(item=>item.account===account);assertCurrent();
+    if(!expected)throw new Error("Account is missing from the public Wallet manifest");
+    const protection=await this.readProtection(expected,assertCurrent);
+    const raw=await this.secrets().getItem(authenticatedSecretKey(account));assertCurrent();
+    if(raw===null)throw new WalletSecretRecoveryRequired();
+    const secretHex=decodeSecret(raw,expected,3);
+    await this.assertStoredAccount(expected,assertCurrent);
+    if(!protection||!["protected","complete"].includes(protection.state))throw new WalletSecretMigrationRequired();
+    const record=parseObject(raw,"Secure Wallet account record");
+    if(record.schemaVersion!==4){assertCurrent();return Object.freeze({kind:"private-key",account,secretHex});}
+    const material=mobileMnemonicFromEntropy(record.entropyHex as string,assertCurrent);
+    await this.assertStoredAccount(expected,assertCurrent);assertCurrent();
+    return Object.freeze({kind:"mnemonic",material});
+  }
+
+  private async restoreAccountMaterial(account: string, secretHex: string, assertCurrent?: OperationGuard, mnemonicEntropy?: string): Promise<WalletManifest> {
     return this.mutate(async()=>{
       assertCurrent?.();
       const current = await this.readManifest();
@@ -299,8 +353,18 @@ export class WalletRepository {
       const pending = await this.readDeletionJournal();
       assertCurrent?.();
       if (pending.some(item=>item.account===account)) throw new Error("Complete the pending account removal before restoring this account");
+      // A legacy caller supplying the same private key must not erase an
+      // available phrase backup. Unavailable/corrupt entropy cannot be invented;
+      // explicit phrase recovery remains the route to recreate that backup.
+      let retainedMnemonic=mnemonicEntropy;
+      if(retainedMnemonic===undefined){
+        const prior=await this.secrets().getItem(authenticatedSecretKey(account));assertCurrent?.();
+        let priorRecord:Record<string,unknown>|undefined;
+        if(prior!==null){try{priorRecord=parseObject(prior,"Secure Wallet account record");}catch{/* Explicit raw-key recovery can replace an unreadable old raw-key record. */}}
+        if(priorRecord?.schemaVersion===4){decodeSecret(prior!,expected,3);retainedMnemonic=priorRecord.entropyHex as string;}
+      }
       // The explicit supplied recovery key is authoritative for this exact public identity.
-      await this.writeProtectedSecret(expected,secretHex,source,assertCurrent,true,true);
+      await this.writeProtectedSecret(expected,secretHex,source,assertCurrent,true,true,retainedMnemonic);
       await this.cleanupLegacySecret({schemaVersion:1,...publicIdentity(expected),source,state:"protected"},assertCurrent);
       return current;
     });
@@ -339,23 +403,24 @@ export class WalletRepository {
     if(readback!==encoded)throw new Error("Wallet key protection write readback did not match the reviewed account state");
   }
 
-  private async writeProtectedSecret(expected: Pick<WalletAccount,"account"|"accountPublicKey">, secret: string, source: SecretProtection["source"], assertCurrent?: OperationGuard, requireStored = false, recovering = false): Promise<void> {
+  private async writeProtectedSecret(expected: Pick<WalletAccount,"account"|"accountPublicKey">, secret: string, source: SecretProtection["source"], assertCurrent?: OperationGuard, requireStored = false, recovering = false, mnemonicEntropy?: string): Promise<void> {
     // A failed explicit recovery must not downgrade an account back into the
     // ordinary legacy migration path when its protected key is unavailable.
     const protection: SecretProtection = {schemaVersion:1,...publicIdentity(expected),source,state:recovering ? "recovery-pending" : "pending"};
     this.secrets();
     assertCurrent?.();
-    decodeSecret(encodeSecret(expected.account,secret,3),expected,3);
+    const encoded=mnemonicEntropy===undefined?encodeSecret(expected.account,secret,3):encodeMnemonicSecret(expected.account,secret,mnemonicEntropy);
+    decodeSecret(encoded,expected,3);
     await this.storage.assertSecretProtectionAvailable?.(assertCurrent);
     assertCurrent?.();
     await this.saveProtection(protection,assertCurrent);
     if (requireStored) await this.assertStoredAccount(expected,assertCurrent);
-    await this.secrets().setItem(authenticatedSecretKey(expected.account),encodeSecret(expected.account,secret,3));
+    await this.secrets().setItem(authenticatedSecretKey(expected.account),encoded);
     assertCurrent?.();
     const readback = await this.secrets().getItem(authenticatedSecretKey(expected.account));
     assertCurrent?.();
     if (readback === null) throw new WalletSecretRecoveryRequired();
-    if (decodeSecret(readback,expected,3) !== secret) throw new Error("Protected Wallet key readback did not match the reviewed account");
+    if (decodeSecret(readback,expected,3) !== secret || mnemonicEntropy!==undefined&&readback !== encoded) throw new Error("Protected Wallet key readback did not match the reviewed account");
     if (requireStored) await this.assertStoredAccount(expected,assertCurrent);
     await this.saveProtection({...protection,state:source === "created" ? "complete" : "protected"},assertCurrent);
   }
@@ -468,10 +533,20 @@ function authenticatedSecretKey(account: string) { return `${AUTHENTICATED_SECRE
 function protectionKey(account: string) { return `${PROTECTION_PREFIX}${account}`; }
 function publicIdentity(value: Pick<WalletAccount,"account"|"accountPublicKey">) { return {account:value.account,accountPublicKey:value.accountPublicKey}; }
 function encodeSecret(account: string, secretHex: string, schemaVersion: 2|3) { walletIdentity(secretHex); return JSON.stringify({ schemaVersion, account, secretHex }); }
+// Schema 4 stays in the existing cipher-bound authenticated namespace. Entropy
+// is NOT a public manifest field or an ordinary-storage side record. Old clients
+// reject the new record instead of silently discarding recovery material.
+function encodeMnemonicSecret(account: string, secretHex: string, entropyHex: string) {
+  const material=mobileMnemonicFromEntropy(entropyHex);
+  if(material.account!==account||material.secretHex!==secretHex)throw new Error("Mnemonic custody failed account verification");
+  return JSON.stringify({schemaVersion:4,account,secretHex,entropyHex,derivationPath:MOBILE_MNEMONIC_PATH});
+}
 function decodeSecret(serialized: string, expected: Pick<WalletAccount,"account"|"accountPublicKey">, schemaVersion: 2|3): string {
   const value = parseObject(serialized,"Secure Wallet account record");
-  exactKeys(value,["schemaVersion","account","secretHex"],"Secure Wallet account record");
-  if (value.schemaVersion !== schemaVersion || value.account !== expected.account || typeof value.secretHex !== "string") throw new Error("Secure Wallet account record is invalid");
+  const mnemonic=schemaVersion===3&&value.schemaVersion===4;
+  exactKeys(value,mnemonic?["schemaVersion","account","secretHex","entropyHex","derivationPath"]:["schemaVersion","account","secretHex"],"Secure Wallet account record");
+  if ((!mnemonic&&value.schemaVersion !== schemaVersion) || value.account !== expected.account || typeof value.secretHex !== "string") throw new Error("Secure Wallet account record is invalid");
+  if(mnemonic){const material=mobileMnemonicFromEntropy(value.entropyHex as string);if(value.derivationPath!==MOBILE_MNEMONIC_PATH||material.secretHex!==value.secretHex||material.account!==expected.account)throw new Error("Mnemonic custody failed account verification");}
   const identity = walletIdentity(value.secretHex);
   if (identity.account !== expected.account || identity.accountPublicKey !== expected.accountPublicKey) throw new Error("Secure Wallet account record failed account verification");
   return value.secretHex;
