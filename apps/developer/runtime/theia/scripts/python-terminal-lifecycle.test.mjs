@@ -4,6 +4,7 @@ import { createRequire, Module } from 'node:module';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { EventEmitter as NodeEmitter } from 'node:events';
 const require = createRequire(import.meta.url);
 // DOM boundary only. Real retained BaseWidget/Lumino lifecycle, nls, commands,
 // key parser and the unchanged production constructor/render/dialog code below.
@@ -106,4 +107,73 @@ test('ordinary real terminal disposal retains upstream behavior; shutdown drops 
  const f=fixture(),normal=f.create(undefined),cap=await f.lifecycle.prepare('one'),pending=f.create(cap);f.lifecycle.bind(cap,pending.id);
  let normalClose;normal.onTerminalDidClose(widget=>normalClose=widget.exitStatus);normal.dispose();assert.equal(normal.killCalls,1);assert.deepEqual(normalClose,{code:undefined,reason:4});
  f.lifecycle.onStop();assert.equal(pending.isDisposed,true);assert.equal(f.lifecycle.entries.size,0);assert.throws(()=>f.lifecycle.finish(cap,0),/stale/);
+});
+
+// TEST_ONLY transport/command scheduling, with the actual production adapter
+// and its owned creation helper. This is not native Python or GUI acceptance.
+async function asyncPythonAdapterFixture(options={}) {
+ const helper=require('../../ynx-workbench/lib/python-terminal-creation');helper.registerCompiledCreationContract(helper.CONTRACT);
+ const sockets=[],factories=new Map(),calls=[],errors=[],events=new Emitter();let sessionNumber=0;
+ const socketFactory=()=>{const socket=new NodeEmitter();socket.destroyed=false;socket.setEncoding=()=>{};socket.write=raw=>{const message=JSON.parse(raw);calls.push({id:message.op,socket});if(message.op==='start')queueMicrotask(()=>socket.emit('data',JSON.stringify({kind:'ready'})+'\n'));};socket.end=()=>{socket.destroyed=true;};sockets.push(socket);queueMicrotask(()=>socket.emit('connect'));return socket;};
+ const api={EventEmitter:Emitter,DebugAdapterInlineImplementation:class{constructor(value){Object.assign(this,value);}},debug:{registerDebugAdapterDescriptorFactory(type,factory){factories.set(type,factory);return{dispose(){}};},onDidTerminateDebugSession:events.event},commands:{executeCommand(id,...args){calls.push({id,args});return options.command?.(id,args)??Promise.resolve(true);}},window:{createTerminal(input){helper.takeCreationAttributes(input);calls.push({id:'createTerminal'});const terminal={id:{promise:options.idPromise??Promise.resolve('OWNED_TERMINAL')},show(){calls.push({id:'showTerminal'});}};return terminal;}}};
+ const module={exports:{}},source=readFileSync(new URL('../../ynx-workbench/lib/plugin-vscode-init-adapter.js',import.meta.url),'utf8');
+ vm.runInNewContext(source,{module,exports:module.exports,require:id=>id==='node:net'?{connect:socketFactory}:id==='./python-terminal-creation'?helper:require(id),process,Buffer,setTimeout,clearTimeout,console:{error:(...args)=>errors.push(args)}});
+ module.exports.adaptLocalDebugging(api,{YNX_WORKSPACE_MODE:'local',YNX_DEBUG_SOCKET:'/TEST_ONLY/debug.sock',YNX_DEBUG_CREDENTIAL:'a'.repeat(64),YNX_DEBUG_PROJECT:'TEST_ONLY',YNX_LOCAL_PROJECT_ID:'TEST_ONLY'});
+ api.debug.registerDebugAdapterDescriptorFactory('debugpy',{createDebugAdapterDescriptor:async()=>({command:'/TEST_ONLY/python',args:[]})});
+ const open=async()=>{const session={id:'OWNED_SESSION_'+(++sessionNumber),configuration:{type:'debugpy',request:'launch',console:'integratedTerminal'}},adapter=await factories.get('debugpy').createDebugAdapterDescriptor(session);return {session,adapter,socket:sockets.at(-1),request(){this.socket.emit('data',JSON.stringify({kind:'dap',message:{type:'request',seq:1,command:'runInTerminal',arguments:{kind:'integrated'}}})+'\n');},cancel(){events.fire(session);}};};
+ return{open,calls,errors,dispose(){for(const socket of sockets)socket.end();events.dispose();}};
+}
+const flushPythonCallbacks=async()=>{await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));};
+
+test('cancelled Python late terminal preparation cannot create or show a Running widget',async()=>{
+ let reply,entered;const preparing=new Promise(resolve=>entered=resolve),capability='11111111-1111-4111-8111-111111111111';
+ const f=await asyncPythonAdapterFixture({command(id){if(id===COMMANDS.prepare){entered();return new Promise(resolve=>reply=resolve);}}});
+ try{const run=await f.open();run.request();await preparing;run.cancel();reply(capability);await flushPythonCallbacks();
+  assert.equal(f.calls.some(x=>x.id==='createTerminal'),false);assert.equal(f.calls.some(x=>x.id==='showTerminal'),false);
+  assert.deepEqual(f.calls.filter(x=>x.id===COMMANDS.abandon).map(x=>x.args),[[capability]]);
+ }finally{f.dispose();}
+});
+
+test('Python cancellation during terminal identity resolution cannot bind or show its old widget',async()=>{
+ let reply;const identity=new Promise(resolve=>reply=resolve),cap='22222222-2222-4222-8222-222222222222';
+ const f=await asyncPythonAdapterFixture({idPromise:identity,command:id=>id===COMMANDS.prepare?Promise.resolve(cap):undefined});
+ try{const run=await f.open();run.request();await flushPythonCallbacks();assert.equal(f.calls.filter(x=>x.id==='createTerminal').length,1);run.cancel();reply('OLD_TERMINAL');await flushPythonCallbacks();
+  assert.equal(f.calls.some(x=>x.id===COMMANDS.bind),false);assert.equal(f.calls.some(x=>x.id==='showTerminal'),false);assert.deepEqual(f.calls.filter(x=>x.id===COMMANDS.abandon).map(x=>x.args),[[cap]]);
+ }finally{f.dispose();}
+});
+
+test('Python cancellation during bind ignores queued data and exit without completing another run',async()=>{
+ let reply,entered;const binding=new Promise(resolve=>entered=resolve),cap='33333333-3333-4333-8333-333333333333';
+ const f=await asyncPythonAdapterFixture({command(id){if(id===COMMANDS.prepare)return Promise.resolve(cap);if(id===COMMANDS.bind){entered();return new Promise(resolve=>reply=resolve);}}});
+ try{const old=await f.open();old.request();await binding;
+  old.socket.emit('data',JSON.stringify({kind:'terminalData',data:'obsolete output'})+'\n'+JSON.stringify({kind:'terminalExit',exitCode:0})+'\n');
+  old.cancel();const newer=await f.open();const messages=[];newer.adapter.onDidSendMessage(m=>messages.push(m));reply(true);await flushPythonCallbacks();
+  assert.equal(f.calls.some(x=>x.id==='showTerminal'),false);assert.equal(f.calls.some(x=>x.id===COMMANDS.finish),false);assert.deepEqual(messages,[]);assert.equal(newer.socket.destroyed,false);
+  assert.deepEqual(f.calls.filter(x=>x.id===COMMANDS.abandon).map(x=>x.args),[[cap]]);newer.cancel();
+ }finally{f.dispose();}
+});
+
+test('Python graceful debugger termination still drains real terminal tail and its exit status',async()=>{
+ const cap='44444444-4444-4444-8444-444444444444';const f=await asyncPythonAdapterFixture({command:id=>id===COMMANDS.prepare?Promise.resolve(cap):undefined});
+ try{const run=await f.open();const messages=[];run.adapter.onDidSendMessage(m=>messages.push(m));run.request();await flushPythonCallbacks();assert.equal(f.calls.filter(x=>x.id==='showTerminal').length,1);
+  run.socket.emit('data',JSON.stringify({kind:'dap',message:{type:'event',seq:0,event:'terminated'}})+'\n'+JSON.stringify({kind:'terminalData',data:'final output'})+'\n'+JSON.stringify({kind:'terminalExit',exitCode:17})+'\n');await flushPythonCallbacks();
+  assert.deepEqual(f.calls.filter(x=>x.id===COMMANDS.finish).map(x=>x.args),[[cap,17]]);assert.ok(messages.some(x=>x.event==='terminated'));run.adapter.dispose();
+  assert.equal(f.calls.some(x=>x.id===COMMANDS.abandon),false);
+ }finally{f.dispose();}
+});
+
+test('late Python prepare UNKNOWN is retained as the original error without affecting a newer session',async()=>{
+ let reject,entered;const preparing=new Promise(resolve=>entered=resolve),unknown=Object.assign(Error('original prepare outcome UNKNOWN'),{code:'UNKNOWN'});
+ const f=await asyncPythonAdapterFixture({command(id){if(id===COMMANDS.prepare){entered();return new Promise((_,bad)=>reject=bad);}}});
+ try{const old=await f.open();old.request();await preparing;old.cancel();const newer=await f.open(),messages=[];newer.adapter.onDidSendMessage(m=>messages.push(m));reject(unknown);await flushPythonCallbacks();
+  assert.ok(f.errors.some(args=>args.includes(unknown)));assert.deepEqual(messages,[]);assert.equal(newer.socket.destroyed,false);assert.equal(f.calls.some(x=>x.id==='createTerminal'),false);newer.cancel();
+ }finally{f.dispose();}
+});
+
+test('late Python creation cleanup UNKNOWN is retained and is not retried or reported as process success',async()=>{
+ let reply,entered;const preparing=new Promise(resolve=>entered=resolve),unknown=Object.assign(Error('original abandonment UNKNOWN'),{code:'UNKNOWN'}),cap='55555555-5555-4555-8555-555555555555';
+ const f=await asyncPythonAdapterFixture({command(id){if(id===COMMANDS.prepare){entered();return new Promise(resolve=>reply=resolve);}if(id===COMMANDS.abandon)return Promise.reject(unknown);}});
+ try{const run=await f.open();run.request();await preparing;run.cancel();reply(cap);await flushPythonCallbacks();run.adapter.dispose();await flushPythonCallbacks();
+  assert.ok(f.errors.some(args=>args.includes(unknown)));assert.equal(f.calls.filter(x=>x.id===COMMANDS.abandon).length,1);assert.equal(f.calls.some(x=>x.id==='createTerminal'||x.id===COMMANDS.finish),false);
+ }finally{f.dispose();}
 });

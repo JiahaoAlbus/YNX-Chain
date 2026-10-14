@@ -35,13 +35,20 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
         const emitter = new api.EventEmitter(), writes = new api.EventEmitter(), exits = new api.EventEmitter();
         const socket = connect(environment.YNX_DEBUG_SOCKET); socket.setEncoding('utf8');
         let ready = false, disposed = false, graceful = false, buffer = '', terminal, terminalExited = false, terminalRequest, termination;
-        let terminalCapability, terminalClosed = false, terminalResultPublished = false, deferredTermination, drainTimer, processing = Promise.resolve();
+        let terminalCapability, terminalClosed = false, terminalResultPublished = false, terminalAbandonment, deferredTermination, drainTimer, processing = Promise.resolve();
         const pending = new Map();
         const send = message => { if (!disposed && !socket.destroyed) socket.write(JSON.stringify(message) + '\n'); };
         let resolve, reject;
         const preparation = new Promise((ok, fail) => { resolve = ok; reject = fail; });
         const timeout = setTimeout(() => fail(Error('Local Python supervisor did not admit this session')), 10000);
         const releaseTerminal = () => { writes.dispose(); exits.dispose(); };
+        const abandonTerminal = () => {
+          if (!terminalCapability || terminalResultPublished || terminalClosed) return Promise.resolve();
+          // A prepare reply can arrive after dispose, when no capability was
+          // available to retire yet. Abandon exactly that late owned creation.
+          return terminalAbandonment ||= Promise.resolve().then(() => api.commands.executeCommand('ynx.debug.terminal.abandon', terminalCapability))
+            .catch(error => console.error('Python terminal cleanup:', error)).finally(releaseTerminal);
+        };
         const dispose = (force = false) => {
           if (!force && terminal && !terminalExited && graceful) {
             // A normal DAP termination can precede the PTY's final data/exit.
@@ -58,14 +65,12 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
           if (terminalCapability && !terminalResultPublished && !terminalClosed) {
             // No accepted frontend result exists: retire the unfinished widget,
             // including rejected finish calls; never leave a Running result.
-            Promise.resolve(api.commands.executeCommand('ynx.debug.terminal.abandon', terminalCapability))
-              .catch(error => console.error('Python terminal cleanup:', error))
-              .finally(releaseTerminal);
+            void abandonTerminal();
           }
           emitter.dispose();
         };
         function fail(error) {
-          if (disposed) return;
+          if (disposed) { console.error('Python debug late session error:', error); return; }
           clearTimeout(timeout);
           testDebugAttempts.get(session.configuration.__ynxTestAdapterRequest)?.fail(error);
           if (!ready) reject(error);
@@ -86,11 +91,13 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
           processing = processing.then(() => { if (!disposed) { if (graceful) dispose(); else fail(Error('Python debug adapter connection closed')); } }).catch(fail);
         });
         socket.on('data', chunk => {
+          if (disposed) return;
           buffer += chunk;
           if (Buffer.byteLength(buffer) > 8 * 1024 * 1024) return fail(Error('Python debug message exceeded its bound'));
           for (let end; (end = buffer.indexOf('\n')) >= 0;) {
             const line = buffer.slice(0, end); buffer = buffer.slice(end + 1);
             processing = processing.then(async () => {
+              if (disposed) return;
               const message = JSON.parse(line);
               if (message.kind === 'ready') {
                 clearTimeout(timeout); ready = true;
@@ -106,6 +113,7 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
                   terminalRequest = dap;
                   if (!api.commands?.executeCommand) throw Error('The owned Python terminal lifecycle bridge is missing');
                   terminalCapability = await api.commands.executeCommand('ynx.debug.terminal.prepare', session.id);
+                  if (disposed) { await abandonTerminal(); return; }
                   terminal = createPythonTerminal(terminalCapability, { name: dap.arguments.title || 'Python Debug', pty: {
                     onDidWrite: writes.event, onDidClose: exits.event,
                     open(dimensions) { send({ op: 'terminal', requestSeq: dap.seq }); if (dimensions) send({ op: 'resize', ...dimensions }); },
@@ -113,7 +121,11 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
                     handleInput(data) { if (!terminalExited) send({ op: 'input', data }); },
                     setDimensions(dimensions) { if (!terminalExited) send({ op: 'resize', ...dimensions }); },
                   } });
-                  await api.commands.executeCommand('ynx.debug.terminal.bind', terminalCapability, await terminal.id.promise);
+                  if (disposed) return;
+                  const terminalId = await terminal.id.promise;
+                  if (disposed) return;
+                  await api.commands.executeCommand('ynx.debug.terminal.bind', terminalCapability, terminalId);
+                  if (disposed) return;
                   terminal.show();
                 } else {
                   if (dap.type === 'event' && dap.event === 'terminated') {
@@ -128,6 +140,7 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
                 terminalExited = true; clearTimeout(drainTimer);
                 if (!terminalClosed) {
                   await api.commands.executeCommand('ynx.debug.terminal.finish', terminalCapability, message.exitCode);
+                  if (disposed) return;
                   terminalResultPublished = true;
                 }
                 if (deferredTermination) { const event = deferredTermination; deferredTermination = undefined; emitter.fire(event); }

@@ -5733,22 +5733,27 @@ var WalletConnectionCoordinator2 = class {
     return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.OPTIONS_READY, discovery, environment, availability, choices });
   }
   async restore(networkAvailable = true) {
+    const generation = ++this.#evmGeneration;
     const sessionState = await this.#client.restore(networkAvailable);
+    if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
     if (sessionState.automatic !== true) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState });
-    return this.#openIfConnecting(sessionState);
+    return this.#openIfConnecting(sessionState, generation);
   }
   async beginYNX() {
-    this.#evmGeneration += 1;
-    return this.#openIfConnecting(await this.#client.beginDetected(false));
+    const generation = ++this.#evmGeneration;
+    return this.#openIfConnecting(await this.#client.beginDetected(false), generation);
   }
   async retryYNX() {
-    this.#evmGeneration += 1;
-    return this.#openIfConnecting(await this.#client.retryDetected());
+    const generation = ++this.#evmGeneration;
+    return this.#openIfConnecting(await this.#client.retryDetected(), generation);
   }
   async handleReturn(url2) {
-    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: await this.#client.handleReturn(url2) });
+    this.#evmGeneration += 1;
+    await this.#client.handleReturn(url2);
+    return this.#currentSession();
   }
   setNetworkAvailable(available) {
+    this.#evmGeneration += 1;
     return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) });
   }
   enterGuest() {
@@ -5790,15 +5795,24 @@ var WalletConnectionCoordinator2 = class {
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.EVM_UNAVAILABLE, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), discovery, environment, choices });
     }
   }
-  async #openIfConnecting(sessionState) {
+  #isCurrent(generation, sessionState) {
+    return generation === this.#evmGeneration && this.#client.current === sessionState;
+  }
+  #currentSession() {
+    return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState: this.#client.current });
+  }
+  async #openIfConnecting(sessionState, generation) {
+    if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
     if (sessionState.status !== PRODUCT_SESSION_CLIENT_STATE2.CONNECTING) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.SESSION_STATE, sessionState });
     const route = sessionState.route, requestId = `req_ps_open_${sessionState.request.nonce}`;
     try {
       const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
+      if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
       exactFields2(result, result?.opened === true ? ["opened"] : ["opened", "code"], "Wallet opener result");
       if (result.opened !== true) fail14(openerCode(result.code), "Platform did not open the registered Wallet route");
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.WALLET_OPENED, requestId, url: route.url, automatic: sessionState.automatic === true, sessionState });
     } catch (error) {
+      if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
       const code = error instanceof WalletAuthError2 ? error.code : "WALLET_OPEN_FAILED";
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS2.WALLET_OPEN_FAILED, requestId, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), sessionState });
     }
@@ -6283,10 +6297,15 @@ var product_session_registry_default = {
 var ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 if (PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN !== ACCEPTED_PUBLIC_GATEWAY_ORIGIN) throw new Error("The accepted Wallet Product Session v2 origin was not preserved.");
 var DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
-  sourceCommit: "aa65ea80525e1956214cf4c8848093034e52c77d",
-  sourceTree: "114d5000f373499419adcd17299c3ce14a18cc86",
-  supplierManifest: "5171093ccc1c511b3b37dc2d43a3568ea338421f8cf6c7b7ab6b7f181b9b7a10",
-  sourceClosure: "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2",
+  sourceKind: "same-copy-coherent-composite",
+  sourceCommit: null,
+  sourceTree: null,
+  baseSourceCommit: "aa65ea80525e1956214cf4c8848093034e52c77d",
+  baseSourceTree: "114d5000f373499419adcd17299c3ce14a18cc86",
+  coordinatorSourceCommit: "c5f5bca00348372a9c965057d0b48f69fcae8eed",
+  contentRoot: "7156b40b5f959eacfd4c45183d7522227000f468f3c1e1128f21d46be60ba3c6",
+  supplierManifest: "327dcd88f851aa7c7af158294b2a066bfcab4effb5ef6bb1ef781e7c14ffccc1",
+  sourceClosure: "7b8d6de81ed23acbb2ff6da11daa0e010ec914b16124a3b7115fef9a3882b85f",
   factorySource: "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec",
   gatewayOrigin: ACCEPTED_PUBLIC_GATEWAY_ORIGIN,
   migrated: false
@@ -6322,6 +6341,11 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
   const availability = await bridge.walletAvailability();
   if (!availability || typeof availability.walletInstalled !== "boolean" || typeof availability.schemeRegistered !== "boolean" || bridge !== developerWalletV2Bridge()) throw new Error("Native Developer Wallet availability or document binding is invalid.");
   let active = grantedDevice !== void 0;
+  let finishNativeOperation;
+  const finished = new Promise((resolve) => {
+    finishNativeOperation = resolve;
+  });
+  if (!active) finishNativeOperation();
   const assertActive = () => {
     if (!active || bridge !== developerWalletV2Bridge()) throw new Error("Explicit native Developer Wallet connection approval is required.");
   };
@@ -6345,7 +6369,7 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
       }
     };
   }
-  let pendingOperation = false;
+  let pendingOperation;
   let expirationTimer;
   const releaseNativeOperation = async () => {
     if (!active) return;
@@ -6355,6 +6379,7 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
       await bridge.endConnection();
     } finally {
       if (explicitNativeOwner === owner) explicitNativeOwner = null;
+      finishNativeOperation();
     }
   };
   const endNativeOperation = async () => {
@@ -6427,21 +6452,22 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
   });
   const operate = async (method2, args, alwaysEnd = false) => {
     assertActive();
-    if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before starting another.");
-    pendingOperation = true;
+    if (pendingOperation && !(method2 === "handleReturn" && ["beginYNX", "retryYNX", "restore"].includes(pendingOperation.method))) throw new Error("Finish the pending Developer Wallet operation before starting another.");
+    const operation = { method: method2 };
+    pendingOperation = operation;
     try {
       const execute = sdk[method2];
       const result = await execute.apply(sdk, args);
-      if (alwaysEnd || result?.status !== "wallet-opened") await releaseNativeOperation();
+      if (pendingOperation === operation && (alwaysEnd || result?.status !== "wallet-opened")) await releaseNativeOperation();
       return result;
     } catch (error) {
-      try {
+      if (pendingOperation === operation) try {
         await releaseNativeOperation();
       } catch {
       }
       throw error;
     } finally {
-      pendingOperation = false;
+      if (pendingOperation === operation) pendingOperation = void 0;
     }
   };
   const connection = Object.freeze({
@@ -6467,7 +6493,8 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
       assertActive();
       if (!journal) throw new Error("A durable Developer revocation journal is required before acknowledgement.");
       if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before acknowledgement.");
-      pendingOperation = true;
+      const operation = { method: "acknowledgeRevocationCompletion" };
+      pendingOperation = operation;
       try {
         const raw = canonicalJSON2(receipt);
         const snapshot = Object.freeze(JSON.parse(raw));
@@ -6480,7 +6507,7 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
         assertActive();
         await sdk.acknowledgeRevocationCompletion(snapshot);
       } finally {
-        pendingOperation = false;
+        if (pendingOperation === operation) pendingOperation = void 0;
       }
     },
     enterGuest: async () => {
@@ -6500,7 +6527,7 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
     void endNativeOperation().catch(() => {
     });
   }, 3e5);
-  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation });
+  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation, finished });
 }
 async function inspectDeveloperWalletV2Runtime() {
   try {

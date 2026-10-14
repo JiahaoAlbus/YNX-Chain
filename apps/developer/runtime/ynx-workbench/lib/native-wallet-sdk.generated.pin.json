@@ -4,7 +4,7 @@
   "inputs": [
     {
       "path": "frontend/src/wallet/product-session-v2.ts",
-      "sha256": "44331f43470869b20c5f858fac7cc0f3abfdf83216b98b926dadfa97a60bb052"
+      "sha256": "5d923f1c1836915795ea3125495d1bda560b23acb569679eb651d8dbe142c29c"
     },
     {
       "path": "frontend/src/wallet/resource-approval-return.ts",
@@ -176,7 +176,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/src/wallet-connection-coordinator.js",
-      "sha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
+      "sha256": "b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674"
     },
     {
       "path": "vendor/wallet-auth-c5/src/wallet-provider-discovery.js",
@@ -332,7 +332,7 @@
     },
     {
       "path": "vendor/wallet-auth-c5/SOURCE_CLOSURE.json",
-      "sha256": "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2"
+      "sha256": "7b8d6de81ed23acbb2ff6da11daa0e010ec914b16124a3b7115fef9a3882b85f"
     },
     {
       "path": "node_modules/@noble/curves/package.json",
@@ -375,5 +375,5 @@
   ],
   "noticeSha256": "fa0512cf786c1a12bac9a8fd274fbebe246673507023e26e4f3fdc9ba17a76e7",
   "bundleFile": "lib/native-wallet-sdk.generated.js",
-  "bundleSha256": "b629fe1ac8ba74079450da196e25f0901bc83c65feb3c088012fd2db4a6a31b7"
+  "bundleSha256": "2c15f4985cf06b2031e4faaa5afd9fde1a6ff66df73e9d04313740d418e1d186"
 }
