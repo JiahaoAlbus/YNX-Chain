@@ -55,7 +55,40 @@ function proxyAPI(req, res, url) {
   req.pipe(outgoing);
 }
 
-createServer(async (req, res) => {
+// Signal shutdown owns only this HTTP server. Existing proxy abort handling
+// tears down the corresponding upstream request if the deadline closes a socket.
+function drainOnSignals(server) {
+  const sockets = new Set();
+  let draining = false;
+  server.on('connection', socket => {
+    sockets.add(socket);
+    socket.once('close', () => sockets.delete(socket));
+  });
+  const drain = () => {
+    if (draining) return;
+    draining = true;
+    const deadline = setTimeout(() => {
+      process.exitCode = 1;
+      console.error('HTTP shutdown deadline exceeded');
+      for (const socket of sockets) socket.destroy();
+    }, 15000);
+    // close immediately stops new accepts and waits for accepted responses.
+    // Do not exit the process before response and upstream cleanup complete.
+    server.close(error => {
+      clearTimeout(deadline);
+      if (error) {
+        process.exitCode = 1;
+        console.error('HTTP shutdown unconfirmed:', error.message);
+        for (const socket of sockets) socket.destroy();
+      }
+    });
+  };
+  // Repeated signals share the same bounded drain rather than resetting it.
+  process.on('SIGINT', drain);
+  process.on('SIGTERM', drain);
+}
+
+const server = createServer(async (req, res) => {
   let url, requested;
   try {
     url = new URL(req.url, "http://127.0.0.1");
@@ -96,4 +129,6 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404).end("Not found");
   }
-}).listen(Number(process.env.PORT || 4173), "127.0.0.1", () => console.log(`YNX Video http://127.0.0.1:${process.env.PORT || 4173}`));
+});
+drainOnSignals(server);
+server.listen(Number(process.env.PORT || 4173), "127.0.0.1", () => console.log(`YNX Video http://127.0.0.1:${process.env.PORT || 4173}`));
