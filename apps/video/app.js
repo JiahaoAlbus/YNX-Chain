@@ -265,7 +265,8 @@ function renderProductState(state, {identityConfirmed = false} = {}) {
 }
 
 function focusSignIn() {
-  if ($("#player").open) {returnPlayerVideo=currentVideo?.id; $("#video").pause(); $("#player").close();}
+  if ($("#player").open) {playbackSelectionRevision++; returnPlayerVideo=currentVideo?.id; $("#video").pause(); $("#player").close();}
+  playlistTarget = null;
   if ($("#playlist-picker").open) $("#playlist-picker").close();
   $("#video-account").scrollIntoView({behavior: "smooth", block: "center"});
   $("#product-connect").focus();
