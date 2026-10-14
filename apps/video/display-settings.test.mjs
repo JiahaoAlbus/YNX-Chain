@@ -1,10 +1,18 @@
-import test from 'node:test';
+import test, {afterEach} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import vm from 'node:vm';
 
 const key = 'ynx.media.display.v1';
 const sources = ['.', '../creator-studio', '../music/web'];
+const globals = ['document', 'window', 'localStorage', 'MutationObserver'];
+const original = new Map(globals.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+let instance = 0;
+afterEach(() => {
+  for (const name of globals) {
+    const descriptor = original.get(name);
+    if (descriptor) Object.defineProperty(globalThis, name, descriptor);
+    else delete globalThis[name];
+  }
+});
 
 async function loadSettings(directory, saved = 'compact', headerAvailable = true) {
   const stored = new Map([[key, saved], ['wallet.session', 'retained-account']]);
@@ -29,10 +37,11 @@ async function loadSettings(directory, saved = 'compact', headerAvailable = true
   };
   const window = {addEventListener(name, handler) { const rows = listeners.get(name) ?? []; rows.push(handler); listeners.set(name, rows); }};
   const url = new URL(`${directory}/display-settings.js`, import.meta.url);
-  const context = vm.createContext({document, window, localStorage, URL, MutationObserver: class {observe() {}}});
-  const module = new vm.SourceTextModule(await readFile(url, 'utf8'), {context, initializeImportMeta(meta) {meta.url = url.href;}});
-  await module.link(() => {throw Error('unexpected dependency');});
-  await module.evaluate();
+  // Execute the original module with controlled DOM/storage, never a real account.
+  const values = {document, window, localStorage, MutationObserver: class {observe() {}}};
+  for (const [name, value] of Object.entries(values)) Object.defineProperty(globalThis, name, {value, writable: true, configurable: true});
+  url.searchParams.set('displayTestInstance', String(++instance));
+  await import(url.href);
   const descendants = node => [node, ...node.children.flatMap(descendants)];
   const select = descendants(body).find(node => node.id === 'media-text-size');
   if (headerAvailable) assert.ok(select);
