@@ -986,9 +986,9 @@ $("#video").addEventListener("ended",()=>void flushWatch(true));
 $("#channel").onclick = () => currentVideo && showChannel(currentVideo.channel_id);
 $("#subscribe").onclick = async event => {
   if(!currentVideo||!requireAccount())return;
-  const button=event.currentTarget, target=currentVideo, revision=productRevision, operation=++subscriptionRevision;
+  const button=event.currentTarget, target=currentVideo, revision=productRevision, selection=playbackSelectionRevision, operation=++subscriptionRevision;
   const subscribed=button.dataset.subscribed === "true";
-  const current=()=>operation===subscriptionRevision && revision===productRevision && target===currentVideo && productConnected();
+  const current=()=>operation===subscriptionRevision && revision===productRevision && selection===playbackSelectionRevision && target===currentVideo && productConnected();
   button.disabled=true;
   try {
     await privateAPI('/v1/channels/'+encodeURIComponent(target.channel_id)+'/subscription',{method:subscribed?"DELETE":"PUT"});
