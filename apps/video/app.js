@@ -832,8 +832,8 @@ async function showPlaylists(button) {
     form.onsubmit = async event => {
       event.preventDefault(); const button=form.querySelector('button[type="submit"]');button.disabled=true;
       try {scope.current();await createOriginalPlaylist(form.elements.name.value,scope);scope.current();await showPlaylists(document.querySelector('[data-view="playlists"]'));}
-      catch(error){if(error.name!=="AbortError"){try{await renderPlaylistRecovery(form,recovery,scope);}catch{}notice(error.message,true);}}
-      finally{if(epoch===libraryEpoch)button.disabled=false;}
+      catch(error){if(error.name!=="AbortError"&&scope.matches()){try{await renderPlaylistRecovery(form,recovery,scope);}catch{}if(scope.matches())notice(error.message,true);}}
+      finally{if(scope.matches())button.disabled=false;}
     };
     const changes=document.createElement("section");changes.className="playlist-recovery playlist-operation-recovery";
     box.append(form,recovery,changes);await renderPlaylistRecovery(form,recovery,scope);await renderPlaylistOperations(changes,scope);scope.current();
@@ -1014,7 +1014,7 @@ $("#playlist").onclick = async()=>{
     $("#playlist-name").value=saved.pending?.body.Name??"";$("#playlist-name").disabled=!!saved.pending||!!pending;
     $("#playlist-picker-status").textContent="";$("#playlist-save").disabled=false;
     $("#playlist-picker").showModal();
-  }catch(error){if(error.name!=="AbortError")notice(error.message,true);}
+  }catch(error){if(error.name!=="AbortError"&&scope.matches())notice(error.message,true);}
 };
 $("#playlist-picker-close").onclick=()=>{$("#playlist-picker").close();playlistTarget=null;};
 $("#playlist-picker").addEventListener("cancel",()=>{playlistTarget=null;});
