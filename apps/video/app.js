@@ -743,8 +743,12 @@ async function loadComments() {
 }
 
 async function flushWatch(completed = false) {
-  try {await watchProgress?.flush(completed);}
-  catch(error) {notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);}
+  const tracker = watchProgress, target = currentVideo, revision = productRevision, selection = playbackSelectionRevision;
+  try {await tracker?.flush(completed);}
+  catch(error) {
+    if (tracker === watchProgress && target === currentVideo && revision === productRevision && selection === playbackSelectionRevision && productConnected() && !productSignOutPending)
+      notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);
+  }
 }
 
 async function showSubscriptions(button) {
