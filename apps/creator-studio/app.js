@@ -31,6 +31,20 @@ const authorizeCreator=(path,method,body)=>{const original=creatorPrivateSession
 let payoutFlight=null;
 let creatorExpiryTimer;
 const creatorRequestFlights=new Set();
+// Retain the original wire within this tab when a dispatched mutation loses its
+// result. Studio reads cannot reconcile an idempotency record, so never unlock
+// it merely because a refresh or account switch succeeded.
+const creatorUnknownMutations=new Map();
+function creatorMutationError(pending){
+  return Object.assign(new Error(pending.state==='UNKNOWN'
+    ? 'Result unconfirmed. The request was sent once and will not be repeated. Refresh Studio to check saved records; this action stays blocked until its original result is confirmed.'
+    : 'This action is awaiting its original result. It will not be sent again.'),
+    {code:pending.state==='UNKNOWN'?'CREATOR_MUTATION_UNKNOWN':'CREATOR_MUTATION_PENDING',cause:pending.firstCause,pending});
+}
+function unknownCreatorMutation(pending,cause){
+  pending.state='UNKNOWN';pending.firstCause??=cause;
+  return creatorMutationError(pending);
+}
 let currentUpload=null,activeAIRequest=null,aiSelectionRevision=0,aiCreateRevision=0;
 function announceSession(){if(typeof announceProductSession==='function')announceProductSession();}
 function rememberReturn(request){if(typeof rememberProductReturn==='function')rememberProductReturn(request,document.querySelector('nav button.active')?.dataset.panel||'overview');}
@@ -70,23 +84,39 @@ function beginCreatorRequest(timeout,externalSignal){
   };
 }
 async function api(path,opt={}){
-  const revision=creatorSessionRevision;
+  const revision=creatorSessionRevision,account=creatorAccount;
   assertCreatorSession(revision);
   if(!path.startsWith('/v1/')||path.includes('..'))throw new Error('Invalid Creator service route.');
-  const method=(opt.method||'GET').toUpperCase(),baseHeaders={...(opt.headers||{})};
-  if(!['GET','HEAD'].includes(method))baseHeaders['Idempotency-Key']||=crypto.randomUUID();
+  const method=(opt.method||'GET').toUpperCase(),safeRead=['GET','HEAD'].includes(method),index=JSON.stringify([account,method,path]);
+  if(!safeRead&&creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
+  const baseHeaders=Object.fromEntries(new Headers(opt.headers||{}));
+  if(!safeRead)baseHeaders['idempotency-key']||=crypto.randomUUID();
   const processing=path==='/v1/uploads'||/^\/v1\/videos\/[^/]+\/retry-processing$/.test(path);
   const operation=beginCreatorRequest(processing?300000:15000,opt.signal);
   try{
     const wire=await operation.wait(serializeMediaBody(path,method,opt.body,baseHeaders,operation.signal));assertCreatorSession(revision);operation.signal.throwIfAborted();
-    let response;
-    for(let attempt=0;attempt<2;attempt++){
+    let response,pending;
+    for(let attempt=0;attempt<(safeRead?2:1);attempt++){
       const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
+      if(!safeRead){
+        // Another invocation may have dispatched while this proof was pending.
+        if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
+        pending={account,path,method,body:wire.body,headers:{...wire.headers},key:wire.headers['Idempotency-Key'],state:'DISPATCHED',firstCause:null};
+        creatorUnknownMutations.set(index,pending);
+      }
       try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
-      catch(error){assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(processing||opt.body instanceof FormData||attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}}
+      catch(error){
+        if(!safeRead){if(currentCreatorSession(revision)&&!operation.signal.aborted)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw unknownCreatorMutation(pending,error)}
+        assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}
+      }
     }
-    const data=await operation.wait(response.json().catch(()=>({error:'Invalid service response'})));
+    let data;
+    try{data=await operation.wait(response.json())}
+    catch(error){if(!safeRead)throw unknownCreatorMutation(pending,error);if(operation.signal.aborted)throw error;data={error:'Invalid service response'}}
+    // A complete original HTTP result is known even if its account retired
+    // while parsing. Fence its UI publication separately; never replay it.
+    if(pending&&creatorUnknownMutations.get(index)===pending)creatorUnknownMutations.delete(index);
     assertCreatorSession(revision);
     if(!response.ok){if(response.status===401){renderProductState({status:'retry-required',message:'Your Creator sign-in needs to be checked. Sign in again.'});status(data.error||'Your sign-in expired.',true);}if(response.status>=500)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw Object.assign(new Error(data.error||('HTTP '+response.status)),{status:response.status,details:data})}
     reduceWallet({type:'PRIVATE_SESSION_READY'});return data;
@@ -567,7 +597,9 @@ async function refresh(){
     if(!currentCreatorSession(revision)||read!==studioReadRevision)return false;
     const a=snapshot?.analytics||{};
     $("#views").textContent=a.views??"—";$("#watch").textContent=a.watch_seconds==null?"—":`${a.watch_seconds}s`;$("#subs").textContent=a.subscribers??"—";$("#revenue").textContent=a.revenue_ynxt==null?"—":`${a.revenue_ynxt} YNXT`;
-    renderContent();renderTeam();renderRights();renderAudit();renderSavedAI();status("Studio state loaded from persistent records.");return true;
+    renderContent();renderTeam();renderRights();renderAudit();renderSavedAI();
+    const unresolved=[...creatorUnknownMutations.values()].some(record=>record.account===creatorAccount&&record.state==='UNKNOWN');
+    status(unresolved?'Studio records loaded. A sent action still has an unconfirmed result; refreshing does not authorize repeating it.':"Studio state loaded from persistent records.",unresolved);return true;
   }catch(error){if(currentCreatorSession(revision)&&read===studioReadRevision)status(error.message||t("unavailable"),true);return false}
 }
 const channelForms=["upload-form","team-invite-form","team-role-form","team-revoke-form"];
@@ -641,6 +673,7 @@ $('#upload-form').onsubmit=async event=>{
     if(video.status==='ready'){openRights(video);status('Your video is ready. Complete the rights declaration, then submit it for review from Content.')}else status('Processing state: '+video.status+'. Open Content to check or retry processing.');
   }catch(error){
     if(!currentCreatorSession(revision))return;
+    if(error.code==='CREATOR_MUTATION_UNKNOWN'){status(error.message,true);return}
     let recovered=null;
     if(submitted&&/^[A-Za-z0-9_-]{1,160}$/.test(error.details?.video_id||'')&&await refresh()){
       if(!currentCreatorSession(revision))return;

@@ -5,8 +5,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { randomUUID, webcrypto } from "node:crypto";
+import {createServer} from 'node:http';
+import {once} from 'node:events';
 
-const source = (await readFile(new URL("app.js", import.meta.url), "utf8"))
+const source = (await readFile(process.env.YNX_CREATOR_REQUEST_SOURCE || new URL("app.js", import.meta.url), "utf8"))
   .replace(/^import\b[\s\S]*?from\s*["'][^"']+["'];?\n/gm, "");
 const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor;
 const turn = () => new Promise(resolve => setImmediate(resolve));
@@ -66,7 +68,7 @@ async function app(overrides = {}) {
   };
   // Execute the shipped controller and its actual registered handlers; only module dependencies and DOM/network are fixtures.
   const originalFetch=dependencies.fetch;dependencies.fetch=async(url,input)=>{const response=await originalFetch(url,input);if(String(url).includes('/v1/channels/')&&(!input?.method||input.method==='GET')){const data=await response.json();if(response.ok&&Array.isArray(data.team)&&!data.channel&&!data.Channel){const id=decodeURIComponent(String(url).split('/').at(-1));return {ok:true,status:200,json:async()=>({channel:{ID:id,Name:'Fixture channel'}})};}return {ok:response.ok,status:response.status,json:async()=>data};}return response;};
-  const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,resumeNativeSignIn,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount})};`)(...Object.values(dependencies));
+  const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,resumeNativeSignIn,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount}),readUnknown:()=>typeof creatorUnknownMutations==='undefined'?[]:[...creatorUnknownMutations.values()]};`)(...Object.values(dependencies));
   return { ...controller, element, forms, click: id => element(`#${id}`).listeners.get("click")(), run: id => element(`#${id}`).onclick() };
 }
 
@@ -101,7 +103,7 @@ test('multipart upload is sent once when its network result is unknown', async (
   const controller=await app({fetch:async()=>{calls++;throw new TypeError('Network disconnected');}});
   controller.renderProductState(connected('owner-a'));
   const body=new FormData();body.set('title','Owned video');
-  await assert.rejects(controller.api('/v1/uploads',{method:'POST',body}),/Network disconnected/);
+  await assert.rejects(controller.api('/v1/uploads',{method:'POST',body}),error=>error.code==='CREATOR_MUTATION_UNKNOWN'&&error.cause.message==='Network disconnected');
   assert.equal(calls,1,'a fresh multipart boundary must not replay the same idempotency key');
 });
 
@@ -109,7 +111,7 @@ test('saved-original processing sends once when the transport loses its result',
   const calls=[];let approvals=0;
   const controller=await app({productAuthorization:async()=>{approvals++;return {};},fetch:async(url,input)=>{calls.push({url,method:input.method,body:input.body,key:input.headers['Idempotency-Key']});throw new TypeError('Processing result disconnected');}});
   controller.renderProductState(connected('owner-a'));
-  await assert.rejects(controller.api('/v1/videos/saved_original/retry-processing',{method:'POST'}),/Processing result disconnected/);
+  await assert.rejects(controller.api('/v1/videos/saved_original/retry-processing',{method:'POST'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN'&&error.cause.message==='Processing result disconnected');
   assert.equal(calls.length,1,'unknown processing must wait for explicit recovery, not a second dispatch');
   assert.equal(approvals,1);
   assert.equal(calls[0].method,'POST');assert.equal(calls[0].body,undefined);
@@ -122,6 +124,66 @@ test('Creator reads can still retry a transient network failure with fresh appro
   controller.renderProductState(connected('owner-a'));
   assert.deepEqual(await controller.api('/v1/studio'),{videos:[]});
   assert.equal(calls,2);assert.equal(approvals,2);
+});
+
+test('unknown JSON writes received by a loopback service never replay after response loss', async t => {
+  for (const method of ['POST','PATCH','DELETE']) await t.test(method, async () => {
+    const writes=[];
+    const server=createServer(async(req,res)=>{
+      const chunks=[];for await(const chunk of req)chunks.push(chunk);
+      writes.push({method:req.method,body:Buffer.concat(chunks).toString(),key:req.headers['idempotency-key']});
+      if(writes.length===1)req.socket.destroy();else res.end(JSON.stringify({saved:true}));
+    });
+    server.listen(0,'127.0.0.1');await once(server,'listening');
+    try {
+      const c=await app({fetch:(_url,input)=>fetch(`http://127.0.0.1:${server.address().port}/fixture`,input)});
+      c.renderProductState(connected('owner-a'));
+      const body='{"name":"original body"}',key='original-stable-key-12345';
+      let unknown;
+      try {await c.api('/v1/channels',{method,body,headers:{'Content-Type':'application/json','Idempotency-Key':key}});}catch(error){unknown=error;}
+      assert.equal(writes.length,1,'service accepted original write; lost response must not cause a second dispatch');assert.deepEqual(writes[0],{method,body,key});
+      assert.equal(unknown?.code,'CREATOR_MUTATION_UNKNOWN');
+      assert.equal(unknown.pending.state,'UNKNOWN');assert.equal(unknown.pending.body,body);assert.equal(unknown.pending.key,key);assert.equal(unknown.pending.firstCause,unknown.cause);
+      await assert.rejects(c.api('/v1/channels',{method,body:'{"name":"changed"}'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN'&&error.pending===unknown.pending);
+      assert.equal(writes.length,1,'another click/body/key must not re-dispatch unresolved route');
+    } finally {server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+  });
+});
+
+test('unknown channel submit keeps first cause/key and offers read-only Studio recovery without unlocking',async()=>{
+  const firstCause=new TypeError('response lost after acceptance');let writes=0,reads=0,keys=0;
+  const c=await app({crypto:{randomUUID:()=>{keys++;return randomUUID();},subtle:webcrypto.subtle},fetch:async(_url,input)=>{
+    if(input.method==='POST'){writes++;throw firstCause;}reads++;return response({team:[],videos:[]});
+  }});
+  c.renderProductState(connected('owner-a'));const form=c.element('#channel-form');form.handle={value:'owner'};form.name={value:'Original'};
+  await form.onsubmit({preventDefault(){},target:form});assert.match(c.element('#status').textContent,/unconfirmed/);
+  assert.equal(c.readUnknown()[0].firstCause,firstCause);
+  await c.refresh();assert.equal(reads,1);assert.match(c.element('#status').textContent,/unconfirmed/);
+  form.name.value='New attempt';await form.onsubmit({preventDefault(){},target:form});
+  assert.equal(writes,1);assert.equal(keys,1);assert.match(c.element('#status').textContent,/unconfirmed/);
+  assert.equal(form.name.value,'New attempt');
+});
+
+test('unknown mutation survives account cancellation without replay and blocks only original account route',async()=>{
+  let calls=0;const c=await app({fetch:(_url,input)=>{calls++;if(calls>1)return Promise.resolve(response({saved:true}));return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}});
+  c.renderProductState(connected('owner-a'));const pending=c.api('/v1/channels',{method:'POST',body:'original'});
+  const rejected=assert.rejects(pending,error=>error.code==='CREATOR_MUTATION_UNKNOWN');await turn();c.renderProductState(connected('owner-b'));await rejected;
+  assert.equal(calls,1);assert.equal(c.readUnknown()[0].account,'owner-a');assert.equal(c.readUnknown()[0].state,'UNKNOWN');
+  assert.deepEqual(await c.api('/v1/channels',{method:'POST',body:'new account'}),{saved:true});
+  c.renderProductState(connected('owner-a'));await assert.rejects(c.api('/v1/channels',{method:'POST',body:'new body'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN');
+  assert.equal(calls,2);assert.deepEqual(await c.api('/v1/videos/other/metadata',{method:'PATCH',body:'{}'}),{saved:true});assert.equal(calls,3);
+});
+
+test('unknown mutation keeps original wire on response-body loss and does not label success',async()=>{
+  let calls=0;const cause=new TypeError('body connection lost');const c=await app({fetch:async()=>{calls++;return {ok:true,status:200,json:async()=>{throw cause;}};}});
+  c.renderProductState(connected('owner-a'));await assert.rejects(c.api('/v1/channels',{method:'POST',body:'{}'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN'&&error.cause===cause);
+  assert.equal(calls,1);assert.equal(c.readUnknown()[0].body,'{}');
+});
+
+test('safe GET account switch aborts without another dispatch or mutation journal',async()=>{
+  let calls=0;const c=await app({fetch:(_url,input)=>{calls++;return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}});
+  c.renderProductState(connected('owner-a'));const pending=c.api('/v1/studio');const rejected=assert.rejects(pending,/Creator account changed/);
+  await turn();c.renderProductState(connected('owner-b'));await rejected;assert.equal(calls,1);assert.deepEqual(c.readUnknown(),[]);
 });
 
 test('caller cancellation aborts the request and cannot trigger automatic retry', async () => {
