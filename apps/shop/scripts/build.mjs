@@ -1,5 +1,8 @@
 import {build} from 'esbuild';
 import { cp, mkdir, rm, readFile } from 'node:fs/promises';
+import {prepareCurrentWalletSDK} from '../../seller-console/scripts/current-wallet-sdk.mjs';
+
+const sdk=await prepareCurrentWalletSDK({dependencies:'node_modules'});
 
 await rm('dist', { recursive: true, force: true });
 await mkdir('dist');
@@ -29,6 +32,6 @@ for (const file of [
   await cp(file, `dist/${file}`);
 }
 await cp('assets', 'dist/assets', { recursive: true });
-await build({entryPoints:['app.js'],outfile:'dist/app.js',bundle:true,minify:true,format:'esm',platform:'browser',target:['es2022'],legalComments:'none'});
+await build({...sdk.buildOptions,entryPoints:['app.js'],outfile:'dist/app.js',bundle:true,minify:true,format:'esm',platform:'browser',target:['es2022'],legalComments:'none'});
 const bundle=await readFile('dist/app.js','utf8');if(/node:crypto|node:fs|node:path|localhost|127\.0\.0\.1|10\.0\.2\.2/.test(bundle))throw Error('Shop browser bundle retained a forbidden release dependency');
 console.log('YNX Shop web build: dist/');
