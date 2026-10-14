@@ -21,6 +21,7 @@ let playbackSelectionRevision = 0;
 let navigationRevision = 0;
 let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
+let watchProgressSelection = 0;
 let subscriptionRevision = 0;
 let commentsRevision = 0;
 let productState = {status: "guest"};
@@ -713,6 +714,7 @@ function startWatchProgress(video) {
     send: (body, {idempotencyKey}) => privateAPI(`/v1/videos/${video.id}/watch`, {...json(body),
       headers: {"Content-Type": "application/json", "Idempotency-Key": idempotencyKey}})});
   watchProgress = tracker;
+  watchProgressSelection = selection;
 }
 
 async function openVideo(video, selection = ++playbackSelectionRevision) {
@@ -758,7 +760,7 @@ async function loadComments() {
 }
 
 async function flushWatch(completed = false) {
-  const tracker = watchProgress, target = currentVideo, revision = productRevision, selection = playbackSelectionRevision;
+  const tracker = watchProgress, target = currentVideo, revision = productRevision, selection = watchProgressSelection;
   try {await tracker?.flush(completed);}
   catch(error) {
     if (tracker === watchProgress && target === currentVideo && revision === productRevision && selection === playbackSelectionRevision && productConnected() && !productSignOutPending)
