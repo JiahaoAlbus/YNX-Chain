@@ -17,6 +17,7 @@ const savedWalletStateKey = "ynx.video.walletState";
 
 let currentWallet = null;
 let currentVideo = null;
+let playbackSelectionRevision = 0;
 let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
 let subscriptionRevision = 0;
@@ -545,8 +546,15 @@ function libraryFailure(error, epoch, retry) {
 function field(value, lower, upper) {return value?.[lower] ?? value?.[upper];}
 
 async function openSavedVideo(videoId) {
-  try {await openVideo(await api(`/v1/videos/${encodeURIComponent(videoId)}`));}
-  catch {notice("This saved video is private, unavailable or no longer published.", true);}
+  const selection = ++playbackSelectionRevision, library = libraryEpoch, account = productRevision;
+  const current = () => selection === playbackSelectionRevision && library === libraryEpoch && account === productRevision;
+  try {
+    const video = await api(`/v1/videos/${encodeURIComponent(videoId)}`);
+    if (!current()) return;
+    await openVideo(video, selection);
+  } catch {
+    if (current()) notice("This saved video is private, unavailable or no longer published.", true);
+  }
 }
 
 function esc(value) {
@@ -692,7 +700,8 @@ function startWatchProgress(video) {
       headers: {"Content-Type": "application/json", "Idempotency-Key": idempotencyKey}})});
 }
 
-async function openVideo(video) {
+async function openVideo(video, selection = ++playbackSelectionRevision) {
+  if (selection !== playbackSelectionRevision) return;
   currentVideo = video;
   startWatchProgress(video);
   $("#player-title").textContent = video.title;
@@ -959,8 +968,8 @@ $("#product-connect").onclick = prepareVideoSignIn;
 $("#product-retry").onclick = restoreVideoAccount;
 $("#product-disconnect").onclick = signOutVideoAccount;
 $("#search").onsubmit = event => {event.preventDefault();currentView="discover";currentPlaylist=null;activate(document.querySelector('[data-view="discover"]'));loadVideos($("#query").value);};
-$("#close").onclick = () => {$("#video").pause();$("#player").close();void flushWatch(false);};
-$("#player").addEventListener("cancel",()=>{$("#video").pause();void flushWatch(false);});
+$("#close").onclick = () => {playbackSelectionRevision++;$("#video").pause();$("#player").close();void flushWatch(false);};
+$("#player").addEventListener("cancel",()=>{playbackSelectionRevision++;$("#video").pause();void flushWatch(false);});
 $("#video").addEventListener("timeupdate",()=>{const video=$("#video");watchProgress?.sample({position:video.currentTime,paused:video.paused,seeking:video.seeking,rate:video.playbackRate});});
 $("#video").addEventListener("seeking",()=>watchProgress?.resetSample());
 $("#video").addEventListener("pause",()=>{watchProgress?.resetSample();void flushWatch(false);});

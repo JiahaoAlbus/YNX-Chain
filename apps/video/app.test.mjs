@@ -136,3 +136,69 @@ test("late root injection and no-provider state are classified without navigatio
   const emptyBrowser=new EventTarget();
   await assert.rejects(discoverWalletCandidates(emptyBrowser,{timeoutMs:1}),error=>error.code==="WALLET_NOT_INSTALLED");
 });
+
+// Controlled metadata replies exercise the exact shipped caller functions;
+// no browser, real media, account, Wallet or provider is used.
+async function savedPlaybackHarness() {
+  const vm = await import('node:vm');
+  const source = await read('app.js');
+  const fn = name => {
+    const start = source.indexOf(`async function ${name}(`);
+    assert.ok(start >= 0);
+    const end = source.indexOf('\n}\n', start);
+    assert.ok(end > start);
+    return source.slice(start, end + 2);
+  };
+  const line = prefix => source.split('\n').find(row => row.startsWith(prefix));
+  const requests = new Map(), messages = [];
+  const media = {replaceChildren() {}, canPlayType() {return '';}, removeAttribute() {}, append() {}, pause() {}};
+  const dialog = {open:false, showModal() {this.open=true;}, close() {this.open=false;}, addEventListener(name, callback) {this[name]=callback;}};
+  const nodes = {'#video':media, '#player':dialog, '#player-title':{}, '#player-state':{}, '#close':{}};
+  const context = vm.createContext({nodes, API:'https://public.invalid/video/api', document:{createElement:()=>({})},
+    api(url) {const id=decodeURIComponent(url.split('/').at(-1));return new Promise((resolve,reject)=>requests.set(id,{resolve,reject}));},
+    notice(...args) {messages.push(args);}, startWatchProgress() {}, loadComments() {}, refreshSubscriptionButton() {}, flushWatch() {},
+  });
+  vm.runInContext(`let playbackSelectionRevision=0, libraryEpoch=0, productRevision=0, currentVideo=null; const $=id=>nodes[id];\n${fn('openSavedVideo')}\n${fn('openVideo')}\n${line('$("#close").onclick')}\n${line('$("#player").addEventListener("cancel"')}`, context);
+  const metadata = id => ({id,title:`Video ${id}`,status:'published',variants:[],captions:[]});
+  return {
+    choose:id=>vm.runInContext(`openSavedVideo(${JSON.stringify(id)})`,context),
+    direct:id=>context.openVideo(metadata(id)),
+    resolve:id=>requests.get(id).resolve(metadata(id)), reject:id=>requests.get(id).reject(Error('Old metadata unavailable')),
+    close:()=>nodes['#close'].onclick(), cancel:()=>dialog.cancel(),
+    changeLibrary:()=>vm.runInContext('libraryEpoch++',context), changeAccount:()=>vm.runInContext('productRevision++',context),
+    selected:()=>vm.runInContext('currentVideo?.id',context), dialog, nodes, messages,
+  };
+}
+
+test('saved playback: newer response wins over older selection', async () => {
+  const p=await savedPlaybackHarness(), old=p.choose('A'), next=p.choose('B');
+  p.resolve('B');await next;p.resolve('A');await old;
+  assert.equal(p.selected(),'B');assert.equal(p.nodes['#player-title'].textContent,'Video B');
+});
+test('saved playback: old rejection cannot replace new playback status', async () => {
+  const p=await savedPlaybackHarness(), old=p.choose('A'), next=p.choose('B');
+  p.resolve('B');await next;p.reject('A');await old;
+  assert.deepEqual(p.messages,[]);assert.equal(p.selected(),'B');
+});
+test('saved playback: direct catalog selection supersedes pending saved selection', async () => {
+  const p=await savedPlaybackHarness(), old=p.choose('A');
+  await p.direct('B');p.resolve('A');await old;assert.equal(p.selected(),'B');
+});
+test('saved playback: closing or canceling cannot be undone by pending metadata', async t => {
+  for(const stop of ['close','cancel'])await t.test(stop,async()=>{
+    const p=await savedPlaybackHarness();await p.direct('B');const old=p.choose('A');
+    p[stop]();p.dialog.open=false;p.resolve('A');await old;
+    assert.equal(p.dialog.open,false);assert.equal(p.selected(),'B');
+  });
+});
+test('saved playback: library or account changes retire old success and error', async t => {
+  for(const change of ['changeLibrary','changeAccount'])for(const reply of ['resolve','reject'])await t.test(`${change}/${reply}`,async()=>{
+    const p=await savedPlaybackHarness(), old=p.choose('A');p[change]();p[reply]('A');await old;
+    assert.equal(p.dialog.open,false);assert.equal(p.selected(),undefined);assert.deepEqual(p.messages,[]);
+  });
+});
+test('saved playback: current request errors remain visible and close permits a new choice', async () => {
+  const p=await savedPlaybackHarness(), broken=p.choose('A');p.reject('A');await broken;
+  assert.equal(p.messages.length,1);p.close();const next=p.choose('B');p.resolve('B');await next;
+  assert.equal(p.selected(),'B');assert.equal(p.dialog.open,true);
+});
