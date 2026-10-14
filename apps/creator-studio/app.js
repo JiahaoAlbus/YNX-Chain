@@ -75,7 +75,7 @@ function saveCreatorFences(records){
 try{loadCreatorFences()}catch{}
 function creatorMutationError(pending){
   return Object.assign(new Error(pending.state==='UNKNOWN'
-    ? 'Result unconfirmed. The request was sent once and will not be repeated. Refresh Studio to check saved records; this action stays blocked until its original result is confirmed.'
+    ? 'Result unconfirmed. The original request may have been sent and will not be repeated. Refresh Studio to check saved records; this action stays blocked until its original result is confirmed.'
     : 'This action is awaiting its original result. It will not be sent again.'),
     {code:pending.state==='UNKNOWN'?'CREATOR_MUTATION_UNKNOWN':'CREATOR_MUTATION_PENDING',cause:pending.firstCause,pending});
 }
