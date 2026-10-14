@@ -50,6 +50,10 @@ test('compact blue-white UI keeps account actions and independent wallet identit
 test('Exchange HTML and its static module graph bind final asset bytes, not unversioned cache keys',()=>{
   const readAsset=name=>fs.readFileSync(new URL(`../web/${name}`,import.meta.url));
   assert.deepEqual(verifyExchangeVersionedAssets(html,js,readAsset),{status:'pass',pageAssets:4,moduleAssets:7});
+  const staleCSS=html.replace(/\/styles\.css\?v=[a-f0-9]{64}/u,'/styles.css?v=f4edc25a3c6fb03970b12350358cd3dc4be8a89122e62aef5795b151a1a18f8f');
+  assert.notEqual(staleCSS,html,'regression must reintroduce the actual stale compact-UI stylesheet reference');
+  assert.throws(()=>verifyExchangeVersionedAssets(staleCSS,js,readAsset),/EXCHANGE_ASSET_HASH_MISMATCH:styles\.css/);
+  assert.throws(()=>verifyExchangeVersionedAssets(html,js,name=>name==='styles.css'?Buffer.concat([readAsset(name),Buffer.from('\n/* changed stylesheet */')]):readAsset(name)),/EXCHANGE_ASSET_HASH_MISMATCH:styles\.css/);
   assert.throws(()=>verifyExchangeVersionedAssets(html.replace('/wallet-connect.js?v=','/wallet-connect.js?old='),js,readAsset),/EXCHANGE_ASSET_HASH_MISMATCH/);
   assert.throws(()=>verifyExchangeVersionedAssets(html,js.replace('./market-data.js?v=','./market-data.js?old='),readAsset),/EXCHANGE_MODULE_HASH_MISMATCH/);
   assert.throws(()=>verifyExchangeVersionedAssets(html,js,name=>name==='private-session.js'?Buffer.from('changed bundle'):readAsset(name)),/EXCHANGE_MODULE_HASH_MISMATCH/);
