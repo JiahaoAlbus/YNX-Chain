@@ -16,6 +16,7 @@ const $ = selector => document.querySelector(selector);
 const savedWalletStateKey = "ynx.video.walletState";
 
 let currentWallet = null;
+let walletRevision = 0;
 let currentVideo = null;
 let playbackSelectionRevision = 0;
 let navigationRevision = 0;
@@ -81,9 +82,11 @@ function setConnectionMessage(message) {
 }
 
 function resetWallet(message = "Wallet disconnected. Guest playback remains available.") {
+  walletRevision++;
   currentWallet = null;
   setConnectionMessage(message + " Your Video sign-in is separate.");
   $("#signin").textContent = "Connect EVM wallet";
+  $("#signin").disabled = false;
   $("#revoke").hidden = true;
   $("#wallet-status").classList.remove("wallet-connected");
   for (const unsub of unsubscribeEvents) {
@@ -111,10 +114,15 @@ function renderWalletState(state) {
 }
 
 function bindWalletEvents(walletState) {
+  for (const unsub of unsubscribeEvents) {try {unsub?.();} catch {}}
+  unsubscribeEvents = [];
   const provider = walletState.connection?.provider || walletState.provider;
   if (!provider || typeof provider.on !== "function") return;
+  const revision = walletRevision;
+  const current = () => revision === walletRevision && (currentWallet?.connection?.provider || currentWallet?.provider) === provider;
 
   const onAccountsChanged = (accounts) => {
+    if (!current()) return;
     const account = Array.isArray(accounts) ? accounts[0] || null : null;
     if (!account) {
       setConnectionMessage("Wallet account was revoked. Reconnect to continue.");
@@ -127,6 +135,7 @@ function bindWalletEvents(walletState) {
   };
 
   const onChainChanged = (chainId) => {
+    if (!current()) return;
     if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) {
       setConnectionMessage(`Wallet chain changed away from ${YNX_TESTNET.evmChainHex}; reconnect or switch back in your Wallet to continue.`);
       return;
@@ -137,6 +146,7 @@ function bindWalletEvents(walletState) {
   };
 
   const onDisconnect = () => {
+    if (!current()) return;
     setConnectionMessage("Provider disconnected. Reconnect to continue.");
     revokeWallet("provider-disconnect");
   };
@@ -667,15 +677,18 @@ function walletChoiceOptions(error, autoCandidates = []) {
 }
 
 async function connectVideoWalletInteractive(walletId = null) {
+  const revision = ++walletRevision;
   try {
     $("#signin").disabled = true;
     showInstallOptions(false);
     const result = await connectVideoWallet(window, {timeoutMs: 1500, walletId});
+    if (revision !== walletRevision) return;
     currentWallet = {...result, walletKind: result.walletBrand, providerKey: result.providerInfo?.uuid};
     renderWalletState(currentWallet);
     bindWalletEvents(currentWallet);
     notice("EVM wallet connected. Video sign-in is managed separately.");
   } catch (error) {
+    if (revision !== walletRevision) return;
     if (walletChoiceNeedsResolution(error)) {
       walletChoiceOptions(error);
       setConnectionMessage("Select YNX Wallet or MetaMask before continuing.");
@@ -687,14 +700,16 @@ async function connectVideoWalletInteractive(walletId = null) {
     resetWallet(error?.code === "WALLET_USER_REJECTED" ? "Wallet approval was rejected." : error.message || "Wallet connection failed.");
     notice(error.message || "Wallet connection failed", true);
   } finally {
-    $("#signin").disabled = false;
+    if (revision === walletRevision) $("#signin").disabled = false;
   }
 }
 
 async function restoreWalletFromSession() {
+  if (currentWallet || $("#signin").disabled) return;
+  const revision = ++walletRevision;
   const state = storageState.read();
   const restored = await restoreVideoWallet(state, window);
-  if (!restored) return;
+  if (revision !== walletRevision || !restored) return;
   currentWallet = restored;
   renderWalletState(currentWallet);
   bindWalletEvents(currentWallet);
@@ -958,8 +973,10 @@ function showSettings() {
 }
 
 $("#signin").onclick = async () => {
+  const revision = ++walletRevision;
   try {
     const candidates = await discoverWalletCandidates(window, {timeoutMs: 250});
+    if (revision !== walletRevision) return;
     const ynxCount = candidates.filter(c => c.isYNXWallet).length;
     const mmCount = candidates.filter(c => c.isMetaMask).length;
     if ((ynxCount >= 1 && mmCount >= 1) || candidates.length > 1) {
@@ -975,6 +992,7 @@ $("#signin").onclick = async () => {
     }
     await connectVideoWalletInteractive();
   } catch (error) {
+    if (revision !== walletRevision) return;
     if (error?.code === "WALLET_NOT_INSTALLED") showInstallOptions(true);
     resetWallet(error.message || "No provider discovered.");
   }
