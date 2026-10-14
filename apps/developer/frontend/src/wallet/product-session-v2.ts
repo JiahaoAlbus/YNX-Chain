@@ -19,10 +19,15 @@ const ACCEPTED_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 if (PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN !== ACCEPTED_PUBLIC_GATEWAY_ORIGIN) throw new Error("The accepted Wallet Product Session v2 origin was not preserved.");
 
 export const DEVELOPER_WALLET_V2_SOURCE = Object.freeze({
-  sourceCommit: "aa65ea80525e1956214cf4c8848093034e52c77d",
-  sourceTree: "114d5000f373499419adcd17299c3ce14a18cc86",
-  supplierManifest: "5171093ccc1c511b3b37dc2d43a3568ea338421f8cf6c7b7ab6b7f181b9b7a10",
-  sourceClosure: "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2",
+  sourceKind: "same-copy-coherent-composite",
+  sourceCommit: null,
+  sourceTree: null,
+  baseSourceCommit: "aa65ea80525e1956214cf4c8848093034e52c77d",
+  baseSourceTree: "114d5000f373499419adcd17299c3ce14a18cc86",
+  coordinatorSourceCommit: "c5f5bca00348372a9c965057d0b48f69fcae8eed",
+  contentRoot: "7156b40b5f959eacfd4c45183d7522227000f468f3c1e1128f21d46be60ba3c6",
+  supplierManifest: "327dcd88f851aa7c7af158294b2a066bfcab4effb5ef6bb1ef781e7c14ffccc1",
+  sourceClosure: "7b8d6de81ed23acbb2ff6da11daa0e010ec914b16124a3b7115fef9a3882b85f",
   factorySource: "f80c0d62770e8bebd8498ac51d74f11dd0572cde7399f2f145534c134a38edec",
   gatewayOrigin: ACCEPTED_PUBLIC_GATEWAY_ORIGIN,
   migrated: false,
@@ -32,6 +37,7 @@ export type DeveloperWalletV2Runtime = {
   connection: any;
   source: typeof DEVELOPER_WALLET_V2_SOURCE;
   endNativeOperation: () => Promise<void>;
+  finished: Promise<void>;
 };
 let explicitNativeOwner: symbol | null = null;
 
@@ -73,6 +79,9 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   const availability = await bridge.walletAvailability!();
   if (!availability || typeof availability.walletInstalled !== "boolean" || typeof availability.schemeRegistered !== "boolean" || bridge !== developerWalletV2Bridge()) throw new Error("Native Developer Wallet availability or document binding is invalid.");
   let active = grantedDevice !== undefined;
+  let finishNativeOperation!: () => void;
+  const finished = new Promise<void>(resolve => { finishNativeOperation = resolve; });
+  if (!active) finishNativeOperation();
   const assertActive = () => { if (!active || bridge !== developerWalletV2Bridge()) throw new Error("Explicit native Developer Wallet connection approval is required."); };
   // Bind the real native provider to this approved document. Old packages keep
   // the explicit unavailable gate; never fall back to browser or memory storage.
@@ -96,9 +105,9 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
       },
     };
   }
-  let pendingOperation = false;
+  let pendingOperation: { method: string } | undefined;
   let expirationTimer: ReturnType<typeof setTimeout> | undefined;
-  const releaseNativeOperation = async () => { if (!active) return; active = false; clearTimeout(expirationTimer); try { await bridge.endConnection!(); } finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; } };
+  const releaseNativeOperation = async () => { if (!active) return; active = false; clearTimeout(expirationTimer); try { await bridge.endConnection!(); } finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; finishNativeOperation(); } };
   const endNativeOperation = async () => { if (active && pendingOperation) sdk.setNetworkAvailable(false); await releaseNativeOperation(); };
   const sdk = createProductWalletConnection({
     registry,
@@ -129,17 +138,20 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   });
   const operate = async (method: "beginYNX" | "retryYNX" | "restore" | "handleReturn" | "disconnect", args: unknown[], alwaysEnd = false) => {
     assertActive();
-    if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before starting another.");
-    pendingOperation = true;
+    // A genuine return can arrive while the platform opener is still replying.
+    // The supplied SDK coordinator fences that older opener. Let this return
+    // own completion; an old opener must not release its native capability.
+    if (pendingOperation && !(method === "handleReturn" && ["beginYNX", "retryYNX", "restore"].includes(pendingOperation.method))) throw new Error("Finish the pending Developer Wallet operation before starting another.");
+    const operation = { method }; pendingOperation = operation;
     try {
       const execute = sdk[method] as (...parameters: unknown[]) => Promise<any>;
       const result = await execute.apply(sdk, args);
-      if (alwaysEnd || result?.status !== "wallet-opened") await releaseNativeOperation();
+      if (pendingOperation === operation && (alwaysEnd || result?.status !== "wallet-opened")) await releaseNativeOperation();
       return result;
     } catch (error) {
-      try { await releaseNativeOperation(); } catch { /* Keep the original SDK failure and protected recovery evidence. */ }
+      if (pendingOperation === operation) try { await releaseNativeOperation(); } catch { /* Keep the original SDK failure and protected recovery evidence. */ }
       throw error;
-    } finally { pendingOperation = false; }
+    } finally { if (pendingOperation === operation) pendingOperation = undefined; }
   };
   // A thin lifecycle fence around the real SDK, not another Auth state machine.
   // In particular, readonly inspection cannot accidentally invoke SDK restore's
@@ -155,7 +167,7 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
       assertActive();
       if (!journal) throw new Error("A durable Developer revocation journal is required before acknowledgement.");
       if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before acknowledgement.");
-      pendingOperation = true;
+      const operation = { method: "acknowledgeRevocationCompletion" }; pendingOperation = operation;
       try {
         // SDK read validates scope and shape. Snapshot prevents caller mutation
         // during the durable journal round trip from changing the acknowledged ID.
@@ -169,7 +181,7 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
         if (!saved || canonicalJSON(saved) !== raw) throw new Error("Developer revocation journal did not read back the exact durable receipt.");
         assertActive();
         await sdk.acknowledgeRevocationCompletion(snapshot);
-      } finally { pendingOperation = false; }
+      } finally { if (pendingOperation === operation) pendingOperation = undefined; }
     },
     enterGuest: async () => { if (pendingOperation) throw new Error("Finish the pending Developer Wallet operation before entering Guest."); const result = sdk.enterGuest(); await releaseNativeOperation(); return result; },
     setNetworkAvailable: (available: boolean) => sdk.setNetworkAvailable(available),
@@ -182,7 +194,7 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   // Match the native five-minute upper bound and release the frontend owner
   // too, so an abandoned review cannot permanently block explicit reconnect.
   if (active) expirationTimer = setTimeout(() => { void endNativeOperation().catch(() => {}); }, 300_000);
-  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation });
+  return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation, finished });
 }
 
 export async function inspectDeveloperWalletV2Runtime() {

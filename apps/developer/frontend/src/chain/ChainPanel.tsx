@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
-import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadRuntimeBuildIdentity, loadWalletReadiness, type ChainStatus, type RuntimeBuildIdentity, type WalletReadiness } from "../runtime/client";
-import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
-import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
+import { broadcastDeveloperDeployment, chainRpc, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadRuntimeBuildIdentity, loadWalletReadiness, type ChainStatus, type RuntimeBuildIdentity, type WalletReadiness } from "../runtime/client";
+import { canonicalJSON, consumeDeveloperDeploymentRequest, createDeveloperSessionIntrospection, desktopWalletBridge, openDeveloperDeploymentReview, parseDeveloperDeploymentCallback, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
+import { beginDeveloperWalletV2Connection, enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime, type DeveloperWalletV2Runtime } from "../wallet/product-session-v2";
 import { closeDeveloperWebWalletConnectionDetails, connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents, switchDeveloperWebWalletAccount } from "../wallet/safe-authorize-launcher";
 import { WalletIdentityMark } from "../wallet/WalletIdentityMark";
 import { StandardWalletDappCompatibilityLab } from "../dapp/StandardWalletDappCompatibilityLab";
@@ -10,6 +10,7 @@ import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src
 
 const RPC_METHODS = ["eth_chainId", "eth_blockNumber", "eth_gasPrice", "eth_getBalance", "eth_getCode", "eth_getTransactionCount", "eth_getTransactionByHash", "eth_getTransactionReceipt", "eth_call", "eth_estimateGas", "eth_getLogs", "eth_getBlockByNumber"];
 const WEB_WALLET_PROVIDER_KEY = "ynx.developer.standard-wallet.provider";
+type NativeWalletAttempt = { generation: number; runtime?: DeveloperWalletV2Runtime; awaitingReturn: boolean; returning: boolean; returnedURL?: string };
 const TEMPLATES = {
   counter: {
     label: "Counter + event",
@@ -60,6 +61,9 @@ const PLATFORM_STARTERS = [
 ] as const;
 
 export function ChainPanel({ files, onAddFile }: { files: Record<string, string>; onAddFile: (path: string, content: string) => void }) {
+  const nativeWalletAttempt = useRef<NativeWalletAttempt | null>(null), nativeGeneration = useRef(0), nativeMounted = useRef(true);
+  const isCurrentNativeAttempt = (attempt: NativeWalletAttempt) => nativeMounted.current && nativeWalletAttempt.current === attempt && nativeGeneration.current === attempt.generation;
+  const clearNativeAttempt = (attempt: NativeWalletAttempt) => { if (isCurrentNativeAttempt(attempt)) { nativeWalletAttempt.current = null; nativeGeneration.current++; setBusy(false); } };
   const [status, setStatus] = useState<ChainStatus>(),
     [compiler, setCompiler] = useState<any>(),
     [runtimeBuildIdentity, setRuntimeBuildIdentity] = useState<RuntimeBuildIdentity>(),
@@ -115,6 +119,14 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     void refresh();
   }, []);
   useEffect(() => {
+    nativeMounted.current = true;
+    return () => {
+      nativeMounted.current = false; nativeGeneration.current++;
+      const attempt = nativeWalletAttempt.current; nativeWalletAttempt.current = null;
+      void attempt?.runtime?.endNativeOperation().catch(() => {});
+    };
+  }, []);
+  useEffect(() => {
     void inspectDeveloperWalletV2Runtime().then(result => {
       if (!result.available) { setWalletV2State("The native Wallet interface is unavailable in this document. Local Guest development remains available."); return; }
       setWalletV2State("The native Wallet interface is available. Device and Wallet installation status have not been checked; explicit connection approval is required.");
@@ -162,12 +174,19 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     return () => removeEventListener("online", handleOnline);
   }, []);
   useEffect(() => subscribeDeveloperWalletCallbacks((callbackURL) => {
-    setBusy(true); setError(""); setWalletState("Verifying the exact Wallet callback and signing this device's short-lived challenge…");
-    void createDeveloperWalletCompletion(callbackURL).then(result => completeDeveloperWalletSession(result.body)).then(async session => {
-      await saveDeveloperWalletSession(session);
-      consumeDeveloperWalletRequest();
-      setWalletState(`Canonical Product Session verified for ${session.account} · expires ${new Date(session.expiresAt).toLocaleTimeString()}. Deployment still requires a separate exact intent and Wallet signature.`);
-    }).catch(value => { setWalletState(""); setError(value instanceof Error ? value.message : "YNX Wallet session completion failed closed."); }).finally(() => setBusy(false));
+    const attempt = nativeWalletAttempt.current;
+    if (!attempt?.runtime || !isCurrentNativeAttempt(attempt) || attempt.returning || attempt.returnedURL === callbackURL) return;
+    attempt.returning = true; attempt.returnedURL = callbackURL;
+    setBusy(true); setError(""); setWalletState("Verifying the exact Wallet return through its active Product Session request…");
+    return Promise.resolve().then(() => isCurrentNativeAttempt(attempt) ? attempt.runtime!.connection.handleReturn(callbackURL) : undefined).then((result: any) => {
+      if (!isCurrentNativeAttempt(attempt)) return;
+      const state = result?.sessionState?.status ?? result?.status ?? "unavailable";
+      setWalletState(`Canonical Product Session state: ${state}. Deployment still requires a separate exact intent and Wallet signature.`);
+      setWalletV2State(`Wallet Product Session: ${state}.`);
+    }).catch((value: unknown) => { if (isCurrentNativeAttempt(attempt)) { setWalletState(""); setError(value instanceof Error ? value.message : "YNX Wallet session completion failed closed."); } }).finally(async () => {
+      await attempt.runtime!.endNativeOperation().catch(() => {});
+      clearNativeAttempt(attempt);
+    });
   }), []);
   useEffect(() => subscribeDeveloperDeploymentCallbacks((callbackURL) => {
     setBusy(true);setError("");setWalletState("Verifying Wallet-signed transaction bytes, Product Session and authoritative chain receipt…");
@@ -252,18 +271,40 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
       }
       return;
     }
-    if (!walletGateReady) return;
+    if (nativeWalletAttempt.current) return;
+    const attempt: NativeWalletAttempt = { generation: ++nativeGeneration.current, awaitingReturn: false, returning: false };
+    nativeWalletAttempt.current = attempt;
     setBusy(true);
     setError("");
-    setWalletState("Opening the exact five-minute request in YNX Wallet…");
+    setWalletState("Requesting explicit native approval to connect YNX Wallet…");
     try {
-      const result = await openDeveloperWalletReview(wallet);
-      setWalletState(`Wallet review opened · expires ${new Date(result.expiresAt).toLocaleTimeString()}. No Developer session exists until callback and central Gateway completion both pass.`);
+      const runtime = await beginDeveloperWalletV2Connection();
+      if (!isCurrentNativeAttempt(attempt)) { await runtime.endNativeOperation(); return; }
+      attempt.runtime = runtime;
+      void runtime.finished.then(() => {
+        if (isCurrentNativeAttempt(attempt) && attempt.awaitingReturn && !attempt.returning) {
+          setWalletV2State("The native Wallet connection window ended. Retry requires a new explicit connection.");
+          clearNativeAttempt(attempt);
+        }
+      });
+      const result = await runtime.connection.beginYNX();
+      if (!isCurrentNativeAttempt(attempt) || attempt.returning || attempt.returnedURL) return;
+      const state = result?.sessionState?.status ?? result?.status ?? "unavailable";
+      setWalletV2State(`Wallet Product Session: ${state}.`);
+      if (result?.status === "wallet-opened") {
+        attempt.awaitingReturn = true;
+        setWalletState("Wallet review opened. This exact request remains active until its return or native timeout; no Product Session is assumed.");
+      } else {
+        setWalletState(`Wallet connection state: ${state}. ${result?.code ?? ""}`);
+        await runtime.endNativeOperation(); clearNativeAttempt(attempt);
+      }
     } catch (value) {
-      setWalletState("");
-      setError(value instanceof Error ? value.message : "YNX Wallet could not be opened.");
+      if (isCurrentNativeAttempt(attempt) && !attempt.returning && !attempt.returnedURL) {
+        setWalletState(""); setError(value instanceof Error ? value.message : "YNX Wallet could not be opened.");
+        await attempt.runtime?.endNativeOperation().catch(() => {}); clearNativeAttempt(attempt);
+      }
     } finally {
-      setBusy(false);
+      if (isCurrentNativeAttempt(attempt) && !attempt.returning) setBusy(false);
     }
   };
   const disconnectWebWallet = () => {
@@ -298,6 +339,9 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   const enterWalletV2Guest = async () => {
     setBusy(true); setError("");
     try {
+      const attempt = nativeWalletAttempt.current; nativeWalletAttempt.current = null; nativeGeneration.current++;
+      try { await attempt?.runtime?.endNativeOperation(); }
+      catch (value) { setError(value instanceof Error ? value.message : "Native Wallet cleanup failed; local Guest development remains unsigned."); }
       const result = await enterDeveloperWalletV2Guest();
       setWalletV2State(result.available ? `${result.sessionState.message} Limits: ${result.sessionState.limitations?.join(", ") || "not signed in"}.` : result.reason);
     } catch (value) { setError(value instanceof Error ? value.message : "Guest mode could not be entered."); }
@@ -429,7 +473,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           <Button variant="ghost" disabled={busy} onClick={enterWalletV2Guest}>Continue as Guest / Try mode</Button>
           <p>Guest mode remains unsigned: balances, transactions and Chain authority are unavailable. A degraded optional Product Session never disconnects Standard Wallet.</p>
           {wallet ? (
-            <><Button disabled={busy || !artifact || !walletGateReady} onClick={() => openWallet()}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
+            <><Button disabled={busy || Boolean(nativeWalletAttempt.current)} onClick={() => openWallet()}>Sign in with YNX Wallet</Button><Button disabled={busy||!artifact||!estimate||!walletGateReady} onClick={reviewDeployment}>Review exact contract deployment</Button></>
           ) : (
             <>
               {webWalletDiscovery?.choices.length ? (

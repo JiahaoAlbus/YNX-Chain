@@ -1,9 +1,10 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { assertWorkspacePath } = require('./guards.cjs');
 // Consume mature project tools through the existing task/terminal lifecycle.
 // No package installation, endpoint, credential or transaction is supplied here.
 function createEvmProject(api, context, environment, t = value => value) {
-  let active, starting = false, generation = 0, disposed = false;
+  let active, pending, generation = 0, disposed = false;
   const ended = new WeakSet();
   const stopping = new WeakSet();
   function stopExecution(task) {
@@ -46,26 +47,85 @@ function createEvmProject(api, context, environment, t = value => value) {
   }
   async function run(action) {
     if (!['build', 'test'].includes(action)) throw Error(t('Choose Build or Test for this EVM project.'));
-    if (starting || active) throw Error(t('An EVM task is already running. Stop it before starting another.'));
-    starting = true; const epoch = ++generation;
-    const current = () => { if (disposed || epoch !== generation) throw Error(t('The EVM task was cancelled.')); };
+    if (pending || active) throw Error(t('An EVM task is already running. Stop it before starting another.'));
+    const request = { epoch: ++generation, saved: [] }, epoch = request.epoch;
+    pending = request;
+    let toolOperation = false;
+    const current = () => {
+      if (disposed || epoch !== generation || pending !== request) throw Error(t('The EVM task was cancelled.'));
+      if (api.workspace.isTrusted !== true) throw Error(t('Open one trusted local EVM project.'));
+      if (request.project && (environment.YNX_WORKSPACE_MODE !== 'local' || environment.YNX_LOCAL_WORKSPACE !== request.project.root
+        || api.workspace.workspaceFolders?.length !== 1 || api.workspace.workspaceFolders[0] !== request.project.folder
+        || request.project.folder.uri.scheme !== 'file' || request.project.folder.uri.fsPath !== request.folderPath))
+        throw Error(t('The EVM project changed. Run the command again.'));
+      for (const saved of request.saved) if (saved.document.isClosed || saved.document.isDirty || saved.document.version !== saved.version
+        || saved.document.uri.scheme !== 'file' || saved.document.uri.fsPath !== saved.path)
+        throw Error(t('The EVM project files changed after saving. Run the command again.'));
+    };
+    const checkProject = async project => {
+      current();
+      const checked = await scope(); current();
+      if (checked.root !== project.root || checked.identity !== project.identity || checked.folder !== project.folder)
+        throw Error(t('The EVM project changed. Run the command again.'));
+    };
+    const saveDocument = (document, validate) => new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error, result) => {
+        if (settled) return;
+        settled = true;
+        if (request.cancelSave === cancelSave) request.cancelSave = undefined;
+        error ? reject(error) : resolve(result);
+      };
+      const cancelSave = () => finish(Error(t('The EVM task was cancelled.')));
+      request.cancelSave = cancelSave;
+      Promise.resolve().then(() => { validate(); return document.save(); })
+        .then(result => finish(undefined, result), error => finish(error));
+    });
     try {
       const project = await scope(), available = await tools(project); current();
+      request.project = project; request.folderPath = project.folder.uri.fsPath;
       const selected = available.length === 1 ? available[0] : await api.window.showQuickPick(available, { title: t('Select EVM project tool'), ignoreFocusOut: true });
       if (!selected) return;
       current();
-      if (!await api.workspace.saveAll(false)) throw Error(t('Save the project files before running EVM tasks.'));
-      const checked = await scope(); current();
-      if (checked.root !== project.root || checked.identity !== project.identity || checked.folder !== project.folder) throw Error(t('The EVM project changed. Run the command again.'));
+      await checkProject(project);
+      const within = (file, root) => {
+        const relative = path.relative(root, file);
+        return relative && relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
+      };
+      // Global saveAll also touches other open projects. Admit each local
+      // document before its normal save RPC, regardless of the dirty mirror.
+      for (const document of new Set([api.window.activeTextEditor?.document, ...(api.workspace.textDocuments || [])])) {
+        if (document?.uri?.scheme !== 'file' || !within(document.uri.fsPath, project.folder.uri.fsPath) && !within(document.uri.fsPath, project.root)) continue;
+        const file = document.uri.fsPath;
+        const validDocument = () => {
+          current();
+          if (document.isClosed || document.uri.scheme !== 'file' || document.uri.fsPath !== file)
+            throw Error(t('The EVM project files changed after saving. Run the command again.'));
+        };
+        validDocument();
+        await assertWorkspacePath(file, project.root);
+        await checkProject(project); validDocument();
+        const saved = await saveDocument(document, validDocument);
+        validDocument(); await checkProject(project);
+        if (!saved) throw Error(t('Save the project files before running EVM tasks.'));
+        if (document.isDirty) throw Error(t('The EVM project files changed after saving. Run the command again.'));
+        if (/\.(?:sol|yul|[cm]?[jt]sx?|json|toml|ya?ml)$/i.test(file) || /^\.env(?:\.|$)/.test(path.basename(file)))
+          request.saved.push({ document, path: file, version: document.version });
+      }
+      await checkProject(project);
+      toolOperation = true;
       const execution = selected.kind === 'hardhat' ? await hardhat(project, action)
         : new api.ProcessExecution('forge', [action, '--offline'], { cwd: project.root });
+      toolOperation = false;
       const ready = await scope();
       if (ready.root !== project.root || ready.identity !== project.identity || ready.folder !== project.folder) throw Error(t('The EVM project changed. Run the command again.'));
       current();
       const task = new api.Task({ type: 'ynx-evm', action, tool: selected.kind }, project.folder,
         `${selected.label}: ${action}`, 'YNX', execution, []);
       task.presentationOptions = { reveal: api.TaskRevealKind.Always, panel: api.TaskPanelKind.Dedicated, clear: true, showReuseMessage: false };
+      toolOperation = true;
       const started = await api.tasks.executeTask(task);
+      toolOperation = false;
       // Cancellation may win while executeTask is resolving. Terminate only
       // the execution created here, never another project's task/process.
       if (disposed || epoch !== generation) { stopExecution(started); return; }
@@ -75,11 +135,11 @@ function createEvmProject(api, context, environment, t = value => value) {
       } catch (error) { stopExecution(started); throw error; }
       if (!ended.has(started)) active = started;
     } catch (error) {
-      if (error.code === 'ENOENT') throw Error(t('The project tool is not installed locally. No packages were downloaded. Configure the toolchain, then retry.'));
+      if (toolOperation && error.code === 'ENOENT') throw Error(t('The project tool is not installed locally. No packages were downloaded. Configure the toolchain, then retry.'), { cause: error });
       throw error;
-    } finally { starting = false; }
+    } finally { if (pending === request) pending = undefined; }
   }
-  function cancel() { generation++; stopExecution(active); }
+  function cancel() { generation++; pending?.cancelSave?.(); stopExecution(active); }
   context.subscriptions.push(api.tasks.onDidEndTask(event => { ended.add(event.execution); if (event.execution === active) active = undefined; }),
     { dispose() { disposed = true; cancel(); } });
   return { build: () => run('build'), test: () => run('test'), cancel };

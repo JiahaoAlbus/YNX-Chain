@@ -1,7 +1,7 @@
 {
-  "schema": "ynx-ide-product-wallet-factory-import-closure/v1",
-  "sourceCommit": "aa65ea80525e1956214cf4c8848093034e52c77d",
-  "sourceTree": "114d5000f373499419adcd17299c3ce14a18cc86",
+  "schema": "ynx-ide-coherent-product-wallet-source-closure/v1",
+  "sourceCommit": null,
+  "sourceTree": null,
   "runtimeEvaluated": false,
   "sourceOnly": true,
   "externalSpecifiers": [
@@ -1350,11 +1350,11 @@
     },
     {
       "path": "packages/wallet-auth/src/wallet-connection-coordinator.js",
-      "origin": "aa65ea80525e1956214cf4c8848093034e52c77d",
-      "bytes": 10482,
+      "origin": "c5f5bca00348372a9c965057d0b48f69fcae8eed",
+      "bytes": 11361,
       "mode": "0o644",
-      "gitBlob": "30bce73be75a0565cfba1992d63afeec0b130381",
-      "sha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
+      "gitBlob": "99aaa35fd53eafd6be9ffd6db2d5b2060a179e34",
+      "sha256": "b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674"
     },
     {
       "path": "packages/wallet-auth/src/wallet-downloads.js",
@@ -2221,7 +2221,36 @@
       "sha256": "4b97e535a0a2eb5990383b904140305d2429417f4a43eddd98083a9f12e20f10"
     }
   ],
-  "parentClosureManifest": "1a64e5483a4b9c895e19ff36aec17de3e8433cab455d19e13d0a349179c17f29",
+  "parentClosureManifest": "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2",
   "protectedCapabilitySupplied": false,
-  "normalNativeLinkage": "Original owner R22/Auth15 fixed relative package/module layout is separate; this browser package projection does not supply a Native borrow."
+  "normalNativeLinkage": "Original owner R22/Auth15 fixed relative package/module layout is separate; this browser package projection does not supply a Native borrow.",
+  "composition": {
+    "kind": "same-copy-current276-plus-normal-R7-coordinator-delta",
+    "base": {
+      "sourceCommit": "aa65ea80525e1956214cf4c8848093034e52c77d",
+      "sourceTree": "114d5000f373499419adcd17299c3ce14a18cc86",
+      "contentRoot": "7d35018394e5b5fc21dd521849bae390594413b5a2be84b4ff8ff762d09a3a8b",
+      "supplierManifestSha256": "5171093ccc1c511b3b37dc2d43a3568ea338421f8cf6c7b7ab6b7f181b9b7a10",
+      "sourceClosureSha256": "99b14e22743e0cd6b8d281d09a8ee9c59d329de5f53de8a852df4c2ea1dfb9f2",
+      "files": 276
+    },
+    "deltas": [
+      {
+        "path": "src/wallet-connection-coordinator.js",
+        "sourceCommit": "c5f5bca00348372a9c965057d0b48f69fcae8eed",
+        "source": "/Users/huangjiahao/ynx-wallet-sdk-opener-lifecycle-r7-20261014/source/packages/wallet-auth/src/wallet-connection-coordinator.js",
+        "bytes": 11361,
+        "sha256": "b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674",
+        "beforeBytes": 10482,
+        "beforeSha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
+      }
+    ],
+    "normalR7NpmProjection": {
+      "files": 170,
+      "adoptedWholePackage": false
+    },
+    "protectedCapabilitySupplied": false
+  },
+  "contentRoot": "7156b40b5f959eacfd4c45183d7522227000f468f3c1e1128f21d46be60ba3c6",
+  "contentRootAlgorithm": "sha256-json-complete-files-array-v1"
 }
