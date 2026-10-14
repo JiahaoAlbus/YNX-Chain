@@ -1001,8 +1001,8 @@ $("#subscribe").onclick = async event => {
 };
 $("#playlist").onclick = async()=>{
   if(!currentVideo||!requireAccount())return;
-  playlistTarget=currentVideo;const target=playlistTarget;
-  const scope=playlistScope(()=>{if(playlistTarget!==target)throw new DOMException("Video playlist choice changed.","AbortError");});
+  playlistTarget=currentVideo;const target=playlistTarget,selection=playbackSelectionRevision;
+  const scope=playlistScope(()=>{if(playlistTarget!==target||selection!==playbackSelectionRevision)throw new DOMException("Video playlist choice changed.","AbortError");});
   try{
     const lists=await privateAPI("/v1/playlists");scope.current();const select=$("#playlist-choice");select.replaceChildren();
     select.append(new Option("Create a new playlist", ""));
@@ -1020,8 +1020,8 @@ $("#playlist-picker-close").onclick=()=>{$("#playlist-picker").close();playlistT
 $("#playlist-picker").addEventListener("cancel",()=>{playlistTarget=null;});
 $("#playlist-save-form").onsubmit=async event=>{
   event.preventDefault();if(!playlistTarget||!requireAccount())return;
-  const button=$("#playlist-save"),target=playlistTarget;button.disabled=true;
-  const scope=playlistScope(()=>{if(playlistTarget!==target)throw new DOMException("Video playlist choice changed.","AbortError");});
+  const button=$("#playlist-save"),target=playlistTarget,selection=playbackSelectionRevision;button.disabled=true;
+  const scope=playlistScope(()=>{if(playlistTarget!==target||selection!==playbackSelectionRevision)throw new DOMException("Video playlist choice changed.","AbortError");});
   try{
     const changes=await playlistOperations.read(scope.account,scope.current);scope.current();
     if(changes.pending){if(changes.pending.body.action!=="add"||changes.pending.body.videoID!==target.id)throw Error("Retry the saved playlist change in your playlists first.");await changeOriginalPlaylist(changes.pending.body.action,changes.pending.body.playlistID,changes.pending.body.videoID,scope);scope.current();$("#playlist-picker").close();playlistTarget=null;notice("Video saved to your playlist.");return;}
