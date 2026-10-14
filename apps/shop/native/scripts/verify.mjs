@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
 
 const root = new URL('../', import.meta.url);
 const android = new URL('android/app/src/main/res/', root);
@@ -88,7 +89,19 @@ assert.ok(auth.includes('api.connectNative()') && auth.includes('api.returnNativ
 assert.ok(!auth.includes('CHALLENGE_V1') && !auth.includes('rawRepresentation'), 'Retired handwritten signing must not establish active Apple authority');
 for (const surface of ['android/app/src/main/assets/native-session/', 'ios/YNXShop/native-session/']) {
   const nativeSDK = await readFile(new URL(surface + 'wallet-auth-native-consumer.mjs', root));
-  assert.equal(createHash('sha256').update(nativeSDK).digest('hex'), 'a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82', 'Adopted Native SDK bytes remain exact');
+  assert.equal(createHash('sha256').update(nativeSDK).digest('hex'), 'a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82', 'Historical source SDK bytes remain exact; normal builds use generated R9 assets');
+}
+if(process.env.YNX_SHOP_NATIVE_SDK_OUTPUT){
+  const {validateNativeSDKManifest}=await import('./generate-wallet-sdk.mjs');
+  const platform=process.env.YNX_SHOP_NATIVE_SDK_PLATFORM;
+  assert.ok(['android','apple'].includes(platform),'Generated Native SDK platform is required');
+  const generated=pathToFileURL(process.env.YNX_SHOP_NATIVE_SDK_OUTPUT.replace(/\/$/,'')+'/');
+  const folder=platform==='android'?'assets/native-session/':'native-session/';
+  const bytes=await readFile(new URL(folder+'wallet-auth-native-consumer.mjs',generated));
+  const manifest=JSON.parse(await readFile(new URL(folder+'sdk-manifest.json',generated),'utf8'));
+  const sha=validateNativeSDKManifest(manifest,bytes,platform);
+  const pin=await readFile(new URL(platform==='android'?'sources/com/ynxweb4/shop/NativeSDKPin.java':'NativeSDKPin.swift',generated),'utf8');
+  assert.ok(pin.includes(sha),'Generated compiled pin must match read-back SDK bytes');
 }
 const androidActivity = await readFile(new URL('android/app/src/main/java/com/ynxweb4/shop/MainActivity.java', root), 'utf8');
 for (const term of ['/privacy/export', '/privacy/delete', 'ACTION_CREATE_DOCUMENT', 'DELETE_MY_SHOP_DATA', 'R.string.privacy_data_title', 'R.string.privacy_delete_warning', 'R.string.privacy_delete_failed']) assert.ok(androidActivity.includes(term), `android privacy: ${term}`);

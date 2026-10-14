@@ -10,7 +10,19 @@ import AppKit
 // only Gateway HTTP awaits run asynchronously through a separate reply channel.
 @MainActor final class AppleNativeEngine:NSObject,WKURLSchemeHandler,WKUIDelegate,WKNavigationDelegate,WKScriptMessageHandler,WKScriptMessageHandlerWithReply {
     static let base="ynx-commerce-native://engine/native-session/",index=base+"index.html"
-    static let sdkSHA="a7d0f2a8bac2780f3b4db39a904245947cf5ed7a20ea62933b18e7e5369c8f82"
+    static let sdkSHA=NativeSDKPin.sha256
+    static func verifySDK(_ assets:URL)throws {
+        let sdk=try Data(contentsOf:assets.appendingPathComponent("wallet-auth-native-consumer.mjs"))
+        let raw=try Data(contentsOf:assets.appendingPathComponent("sdk-manifest.json"))
+        guard sdk.count<=2_097_152,raw.count<=4096,
+              let manifest=try JSONSerialization.jsonObject(with:raw) as? [String:Any],
+              manifest["schemaVersion"] as? Int==1,manifest["platform"] as? String=="apple",
+              manifest["archiveSHA256"] as? String==NativeSDKPin.archiveSHA256,
+              manifest["sourceHead"] as? String==NativeSDKPin.sourceHead,manifest["sourceTree"] as? String==NativeSDKPin.sourceTree,
+              manifest["constructor"] as? String=="createNativeProductSessionClient",
+              manifest["bytes"] as? Int==sdk.count,manifest["sha256"] as? String==sdkSHA,
+              SHA256.hash(data:sdk).map({String(format:"%02x",$0)}).joined()==sdkSHA else{throw ShopError.security}
+    }
     private let assets:URL,port:(String,[String:Any])throws->Any
     private let gateway:([String:Any])async throws->[String:Any]
     private let completion:(String,[String:Any])->Void
@@ -18,7 +30,7 @@ import AppKit
     private var stopped=false
     init(assets:URL,port:@escaping (String,[String:Any])throws->Any,gateway:@escaping ([String:Any])async throws->[String:Any],completion:@escaping (String,[String:Any])->Void)throws {
         self.assets=assets;self.port=port;self.gateway=gateway;self.completion=completion;super.init()
-        let sdk=try Data(contentsOf:assets.appendingPathComponent("wallet-auth-native-consumer.mjs"));guard SHA256.hash(data:sdk).map({String(format:"%02x",$0)}).joined()==Self.sdkSHA else{throw ShopError.security}
+        _ = try Self.verifySDK(assets)
         let configuration=WKWebViewConfiguration();configuration.websiteDataStore = .nonPersistent();configuration.preferences.javaScriptCanOpenWindowsAutomatically=false;configuration.setURLSchemeHandler(self,forURLScheme:"ynx-commerce-native");configuration.userContentController.add(self,name:"completion");configuration.userContentController.addScriptMessageHandler(self,contentWorld:.page,name:"gateway")
         view=WKWebView(frame:.zero,configuration:configuration);view.uiDelegate=self;view.navigationDelegate=self;view.load(URLRequest(url:URL(string:Self.index)!))
     }
@@ -43,7 +55,7 @@ import AppKit
     private struct Waiter {let revision:Int;let continuation:CheckedContinuation<[String:Any],Error>}
     private var waits:[String:Waiter]=[:]
     var changed:(()->Void)?
-    init(bundle:Bundle = .main)throws {guard let assets=bundle.url(forResource:"native-session",withExtension:nil),let registry=try JSONSerialization.jsonObject(with:Data(contentsOf:assets.appendingPathComponent("registry.json"))) as? [String:Any] else{throw ShopError.security};let sdk=try Data(contentsOf:assets.appendingPathComponent("wallet-auth-native-consumer.mjs"));guard SHA256.hash(data:sdk).map({String(format:"%02x",$0)}).joined()==AppleNativeEngine.sdkSHA else{throw ShopError.security};runtime=try AppleNativeProtectedRuntime(bundle:bundle);self.registry=registry;engine=try AppleNativeEngine(assets:assets,port:{[weak self] method,args in guard let self else{throw ShopError.contextChanged};return try self.port(method,args)},gateway:{[weak self] args in guard let self else{throw ShopError.contextChanged};return try await self.fetch(args)},completion:{[weak self] id,response in self?.complete(id,response)});Task{[weak self] in try? await Task.sleep(nanoseconds:15_000_000_000);guard let self,!ready,!closed else{return};bootFailure=ShopError.unavailable}}
+    init(bundle:Bundle = .main)throws {guard let assets=bundle.url(forResource:"native-session",withExtension:nil),let registry=try JSONSerialization.jsonObject(with:Data(contentsOf:assets.appendingPathComponent("registry.json"))) as? [String:Any] else{throw ShopError.security};_ = try AppleNativeEngine.verifySDK(assets);runtime=try AppleNativeProtectedRuntime(bundle:bundle);self.registry=registry;engine=try AppleNativeEngine(assets:assets,port:{[weak self] method,args in guard let self else{throw ShopError.contextChanged};return try self.port(method,args)},gateway:{[weak self] args in guard let self else{throw ShopError.contextChanged};return try await self.fetch(args)},completion:{[weak self] id,response in self?.complete(id,response)});Task{[weak self] in try? await Task.sleep(nanoseconds:15_000_000_000);guard let self,!ready,!closed else{return};bootFailure=ShopError.unavailable}}
     var current:ShopSession? {guard !closed,!denied,let active,let context=try? runtime.readContext(),let generation=context["generation"] as? Int,active.nativeGeneration==generation,ShopSession.parse(try? JSONEncoder().encode(active)) != nil else{return nil};return active}
     func restore()async throws {denied=false;_ = try await invoke("restore")}
     func connect()async throws {active=nil;denied=false;revision+=1;changed?();let value=try await invoke("connect");guard value["opened"] as? Bool==true else{throw ShopError.unavailable}}

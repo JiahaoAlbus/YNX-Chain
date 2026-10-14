@@ -30,3 +30,14 @@ android {
     testOptions { unitTests.returnDefaultValues = true }
 }
 dependencies { testImplementation "junit:junit:4.13.2"; testImplementation "org.json:json:20250517" }
+
+def nativeSDKOutput = layout.buildDirectory.dir("generated/commerce-native-r9")
+def generateCommerceNativeSDK = tasks.register("generateCommerceNativeSDK", Exec) {
+    inputs.files(file("../../scripts/generate-wallet-sdk.mjs"), file("../../../../seller-console/scripts/current-wallet-sdk.mjs"), file("../../../../seller-console/vendor/ynx-chain-wallet-auth-1.2.0-r9.tgz"))
+    inputs.dir(file("src/main/assets/native-session"))
+    outputs.dir(nativeSDKOutput)
+    commandLine(System.getenv("NODE_BINARY") ?: "node", file("../../scripts/generate-wallet-sdk.mjs").absolutePath, "android", nativeSDKOutput.get().asFile.absolutePath)
+}
+android.sourceSets.main.assets.setSrcDirs([nativeSDKOutput.map { new File(it.asFile, "assets") }])
+android.sourceSets.main.java.srcDir(nativeSDKOutput.map { new File(it.asFile, "sources") })
+tasks.named("preBuild").configure { dependsOn(generateCommerceNativeSDK) }
