@@ -1041,13 +1041,17 @@ $("#report").onclick = async () => {
 $("#comment").onsubmit = async event => {
   event.preventDefault();
   if (!currentVideo || !requireAccount()) return;
+  const form = event.target, target = currentVideo, revision = productRevision, selection = playbackSelectionRevision;
+  const body = form.elements[0].value;
+  const current = () => revision === productRevision && selection === playbackSelectionRevision && target === currentVideo && productConnected() && !productSignOutPending;
   try {
-    await privateAPI(`/v1/videos/${currentVideo.id}/comments`, json({body: event.target.elements[0].value}));
-    event.target.reset();
+    await privateAPI(`/v1/videos/${target.id}/comments`, json({body}));
+    if (!current()) return;
+    if (form.elements[0].value === body) form.reset();
     await loadComments();
-    notice("Comment persisted.");
+    if (current()) notice("Comment persisted.");
   } catch (error) {
-    notice(error.message, true);
+    if (current()) notice(error.message, true);
   }
 };
 
