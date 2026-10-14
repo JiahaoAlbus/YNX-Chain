@@ -1028,13 +1028,15 @@ $("#playlist-save-form").onsubmit=async event=>{
 
 $("#report").onclick = async () => {
   if (!currentVideo || !requireAccount()) return;
+  const target = currentVideo, revision = productRevision, selection = playbackSelectionRevision;
+  const current = () => revision === productRevision && selection === playbackSelectionRevision && target === currentVideo && productConnected() && !productSignOutPending;
   const reason = prompt("Reason for human review");
-  if (!reason) return;
+  if (!reason || !current()) return;
   try {
-    await privateAPI(`/v1/videos/${currentVideo.id}/reports`, json({reason, details: "Submitted from YNX Video viewer"}));
-    notice("Report submitted for human review. No automatic takedown occurred.");
+    await privateAPI(`/v1/videos/${target.id}/reports`, json({reason, details: "Submitted from YNX Video viewer"}));
+    if (current()) notice("Report submitted for human review. No automatic takedown occurred.");
   } catch (error) {
-    notice(error.message, true);
+    if (current()) notice(error.message, true);
   }
 };
 
