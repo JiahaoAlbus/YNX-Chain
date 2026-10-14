@@ -18,27 +18,38 @@ export type MnemonicAccountModalProps={
 export function MnemonicAccountModal(props:MnemonicAccountModalProps){
   const form=useMemo(()=>new MnemonicInputController(),[]);
   const epoch=useRef(0),actionBusy=useRef(false);
+  const onCloseRef=useRef(props.onClose);onCloseRef.current=props.onClose;
+  const session=useRef<{active:boolean;visible:boolean;mode:string;account:string;revision:number;backup:MnemonicAccountMaterial|undefined;deadline:number}>({active:false,visible:false,mode:props.mode,account:props.accountBinding,revision:props.operationRevision,backup:props.backup,deadline:0});
+  const timerRef=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
+  const [sessionOpen,setSessionOpen]=useState(false);
   const [,render]=useState(0),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [backupVisible,setBackupVisible]=useState(false),[answers,setAnswers]=useState(["","",""]);
   const zh=props.locale?.startsWith("zh")??false;
   const refresh=()=>render(value=>value+1);
-  const dismiss=useCallback(()=>{epoch.current++;actionBusy.current=false;form.clear();setBackupVisible(false);setAnswers(["","",""]);setError(null);setBusy(false);refresh();props.onClose();},[form,props.onClose]);
+  const clearSession=useCallback(()=>{session.current.active=false;clearTimeout(timerRef.current);timerRef.current=undefined;epoch.current++;actionBusy.current=false;form.clear();setSessionOpen(false);setBackupVisible(false);setAnswers(["","",""]);setError(null);setBusy(false);render(value=>value+1);},[form]);
+  const dismiss=useCallback(()=>{if(!session.current.active)return;clearSession();onCloseRef.current();},[clearSession]);
   useEffect(()=>{
-    epoch.current++;actionBusy.current=false;form.clear();setBackupVisible(false);setAnswers(["","",""]);setError(null);setBusy(false);
-    if(props.visible){try{props.assertCurrent();if(AppState.currentState!=="active"||props.mode==="backup"&&!props.backup)throw Error("Inactive or missing backup");form.begin(props.mode==="backup"?props.backup!.wordCount:12);}catch{dismiss();}}
-    refresh();return()=>{epoch.current++;actionBusy.current=false;form.clear();};
-  },[props.visible,props.mode,props.accountBinding,props.operationRevision,props.backup,form]);
+    const prior=session.current;
+    const opening=props.visible&&!prior.visible;
+    const changed=prior.mode!==props.mode||prior.account!==props.accountBinding||prior.revision!==props.operationRevision||prior.backup!==props.backup;
+    prior.visible=props.visible;
+    if(!props.visible){clearSession();return;}
+    if(changed&&prior.active){dismiss();return;}
+    if(!opening)return;
+    clearSession();
+    session.current={active:true,visible:true,mode:props.mode,account:props.accountBinding,revision:props.operationRevision,backup:props.backup,deadline:Date.now()+60000};
+    try{props.assertCurrent();if(AppState.currentState!=="active"||props.mode==="backup"&&!props.backup)throw Error("Inactive or missing backup");form.begin(props.mode==="backup"?props.backup!.wordCount:12);setSessionOpen(true);timerRef.current=setTimeout(dismiss,Math.max(0,session.current.deadline-Date.now()));refresh();}catch{dismiss();}
+  },[props.visible,props.mode,props.accountBinding,props.operationRevision,props.backup,form,clearSession,dismiss]);
   useEffect(()=>{
-    if(!props.visible)return;
     const subscription=AppState.addEventListener("change",state=>{if(state!=="active")dismiss();});
-    const timer=setTimeout(dismiss,60000);
-    return()=>{clearTimeout(timer);subscription.remove();};
-  },[props.visible,dismiss]);
+    return()=>{clearTimeout(timerRef.current);subscription.remove();session.current.active=false;epoch.current++;actionBusy.current=false;form.clear();};
+  },[form,dismiss]);
+  const isOpen=props.visible&&sessionOpen&&session.current.active&&session.current.mode===props.mode&&session.current.account===props.accountBinding&&session.current.revision===props.operationRevision&&session.current.backup===props.backup;
   const view=form.view(),words=props.mode==="backup"?props.backup?.phrase.split(" ")??[]:view.words;
   const positions=words.length?[0,Math.floor(words.length/2),words.length-1]:[];
   const backupReady=words.length>0&&positions.every((index,i)=>answers[i]?.trim()===words[index]);
   const commit=async()=>{
-    if(actionBusy.current)return;
+    if(actionBusy.current||!isOpen)return;
     const ticket=epoch.current;
     let check:()=>void=props.assertCurrent;
     try{
@@ -61,7 +72,7 @@ export function MnemonicAccountModal(props:MnemonicAccountModalProps){
       try{check();setError(zh?"无法确认账户操作。请保留备份并重新检查钱包状态。":"Account operation could not be confirmed. Keep your backup and check Wallet state.");}catch{/* Closed/locked requests stay hidden. */}
     }finally{if(ticket===epoch.current){actionBusy.current=false;setBusy(false);}}
   };
-  return <Modal visible={props.visible} transparent animationType="slide" onRequestClose={dismiss}>
+  return <Modal visible={isOpen} transparent animationType="slide" onRequestClose={dismiss}>
     <View style={styles.overlay}><View style={styles.sheet}>
       <Text style={styles.title}>{props.mode==="backup"?(zh?"备份助记词":"Back up recovery phrase"):(zh?"导入助记词":"Import recovery phrase")}</Text>
       <Text>{zh?"仅在此设备填写，不要发给任何人。助记词密码（passphrase）当前不支持；不要将其忽略。":"Enter locally; never share it. Passphrase-protected phrases are not supported; do not omit the passphrase."}</Text>

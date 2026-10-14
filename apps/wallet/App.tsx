@@ -4,7 +4,6 @@ import * as Clipboard from "expo-clipboard";
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync } from "expo-screen-capture";
 import { StatusBar } from "expo-status-bar";
-import { bytesToHex } from "@noble/hashes/utils.js";
 import { ArrowUpRight, Check, ChevronDown, Copy, Fingerprint, History, KeyRound, Languages, Lock, Plus, QrCode, ShieldCheck, Sparkles, Trash2, X } from "lucide-react-native";
 import QRCodeView from "react-native-qrcode-svg";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -54,6 +53,8 @@ import { cardApprovalCopy, cardApprovalLimitYNXT } from "./src/i18n/cardApproval
 import { financeOrderApprovalCopy } from "./src/i18n/financeOrderApprovalCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { BiometricProtectionRequired, prepareProtectedWallet, type BiometricProtectionReason } from "./src/security/biometricProtection";
+import { createMobileMnemonic, type MnemonicAccountMaterial, type MnemonicWordCount } from "./src/security/mnemonicAccount";
+import { MnemonicAccountModal } from "./src/state/MnemonicAccountModal";
 import { setupCopy } from "./src/i18n/setupCopy";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { createProductSessionKeyAccess } from "./src/security/productSessionKeyAccess";
@@ -66,7 +67,7 @@ import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
 import { initialLockState, reduceLockState } from "./src/state/lockState";
 import { needsOfflineKeyRecovery, reviewRecoveryKey } from "./src/state/recoveryReview";
 import { assertSecureStorageAvailable, platformSecureStorage, platformStorageHealth } from "./src/storage/secureStorage";
-import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
+import { type WalletAccount, type WalletManifest, type WalletRecoveryMaterial, WalletRepository } from "./src/storage/walletRepository";
 import { COLORS, HIGH_CONTRAST_LIGHT } from "./src/theme";
 import { UI_SIZES, appearanceCopy, loadUISize, saveUISize, textSizeScale, type UISize } from "./src/theme/appearance";
 
@@ -80,6 +81,10 @@ const WalletLocaleContext=createContext<WalletLocale>("en");
 const WalletRecoveryContext=createContext<()=>void>(()=>{});
 const WalletSignedPayIntegrationContext=createContext<WalletSignedPayIntegration|null>(null);
 const EMPTY_WALLET_ACCOUNTS:readonly WalletAccount[]=[];
+type SetupBinding=Readonly<{generation:number;account:string|null;deadline:number}>;
+type PendingAccountBackup=Readonly<{kind:"mnemonic";material:MnemonicAccountMaterial;label:string;binding:SetupBinding}>|Readonly<{kind:"private-key";secretHex:string;label:string}>;
+function assertSetupBinding(operations:WalletOperationLifecycle,binding:SetupBinding|null):asserts binding is SetupBinding{if(!binding)throw new Error("Wallet setup is no longer current");operations.assert(binding.generation,binding.account,false,binding.deadline);}
+
 function useWalletOperations(){const value=useContext(WalletOperationsContext);if(!value)throw new Error("Wallet operation lifecycle is unavailable");return value}
 function useOperationScope(visible=true,account?:string){const operations=useWalletOperations(),scope=useMemo(()=>operations.scope(),[operations]);useEffect(()=>operations.subscribe(()=>scope.cancel()),[operations,scope]);useEffect(()=>{if(!visible)scope.cancel();return()=>scope.cancel()},[scope,visible,account]);return scope}
 function useModalActionGate(account:string){const gate=useMemo(()=>new ModalActionGate(),[account]);useEffect(()=>{gate.open();return()=>gate.close()},[gate]);return gate}
@@ -124,7 +129,9 @@ function WalletApp(){
   const [notice,setNotice]=useState<string|null>(null);
   const [lockState,dispatchLock]=useReducer(reduceLockState,undefined,initialLockState);
   const [setup,setSetup]=useState<"closed"|"create"|"import"|"recover">("closed");
-  const [pendingRecovery,setPendingRecovery]=useState<{secretHex:string;label:string}|null>(null);
+  const [pendingRecovery,setPendingRecovery]=useState<PendingAccountBackup|null>(null);
+  const [setupBinding,setSetupBinding]=useState<SetupBinding|null>(null);
+  const setupStarting=useRef(false),setupAttempt=useRef(0);
   const [authorization,setAuthorization]=useState<ProductSessionReview|null>(null);
   const [applicationAction,setApplicationAction]=useState<ApplicationActionReview|null>(null);
   const [cardApproval,setCardApproval]=useState<CardApplicationApprovalReview|null>(null);
@@ -133,7 +140,7 @@ function WalletApp(){
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
   const [settings,setSettings]=useState(false);
-  const [protectionIntent,setProtectionIntent]=useState<{mode:"create"|"import"|"recover";reason:BiometricProtectionReason;error?:string}|null>(null);
+  const [protectionIntent,setProtectionIntent]=useState<{mode:"create"|"import"|"recover";wordCount?:MnemonicWordCount;reason:BiometricProtectionReason;error?:string}|null>(null);
   const [privacyAttempt,setPrivacyAttempt]=useState(0);
   const [privacyState,setPrivacyState]=useState<{ready:boolean;error:string|null}>({ready:false,error:null});
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
@@ -145,6 +152,7 @@ function WalletApp(){
   useEffect(()=>{const unsubscribe=operations.subscribe(()=>pendingRemovalRetry.cancel());return()=>{unsubscribe();pendingRemovalRetry.cancel()}},[operations,pendingRemovalRetry]);
   const loadRevision=useRef(0);
   useEffect(()=>operations.subscribe(()=>rootScope.cancel()),[operations,rootScope]);
+  useEffect(()=>operations.subscribe(()=>{setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setSetup("closed");setBusy(false)}),[operations]);
   useEffect(()=>{const unsubscribe=operations.subscribe(()=>corruptReset.cancel());return()=>{unsubscribe();corruptReset.cancel()}},[operations,corruptReset]);
   const readyRef=useRef(false);readyRef.current=!loading&&manifest!==null&&!storageRestartRequired&&!platformStorageHealth.requiresRestart&&AppState.currentState==="active";
   const queuedLink=useRef<string|null>(null),initialLinkRead=useRef(false);
@@ -154,7 +162,7 @@ function WalletApp(){
   const cardApprovals=useMemo(()=>new CardApplicationApprovalController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const financeOrderApprovals=useMemo(()=>new FinanceOrderApprovalController({storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),currentTime:(assertCurrent)=>walletSessionInventoryClient().currentTime(assertCurrent),openURL:(url)=>Linking.openURL(url)}),[operations]);
   const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();cardApprovals.cancel();financeOrderApprovals.cancel();setAuthorization(null);setApplicationAction(null);setCardApproval(null);setFinanceOrderApproval(null)},[productSessions,applicationActions,cardApprovals,financeOrderApprovals]);
-  const lock=()=>{if(selected)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selected.account));operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
+  const lock=()=>{if(selected)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selected.account));operations.lock();rootScope.cancel();cancelAuthorization();setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
   useEffect(()=>{if(!selected||!lockState.locked||storageRestartRequired||platformStorageHealth.requiresRestart)return;walletConnectRuntime.pauseForLock(evmAddressFromYNX(selected.account));void walletConnectRuntime.restore().catch(()=>{});},[selected?.account,lockState.locked,storageRestartRequired]);
   const updateManifest=useCallback((next:WalletManifest,preserveUnchangedReload=false)=>{if(!preserveUnchangedReload||JSON.stringify(next)!==JSON.stringify(manifestRef.current))void walletConnectRuntime.rejectPendingForLock().catch(()=>{});operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
@@ -163,7 +171,7 @@ function WalletApp(){
     // the durable account/outbox records; an interrupted send can be unknown.
     ++loadRevision.current;readyRef.current=false;queuedLink.current=null;
     void walletConnectRuntime.rejectPendingForLock().catch(()=>{});operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
-    setPendingRecovery(null);setSetup("closed");setSettings(false);setBusy(false);
+    setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setSetup("closed");setSettings(false);setBusy(false);
     setNotice(null);setLoading(false);setStorageRestartRequired(true);
     dispatchLock({type:"lock",reason:"user"});
   }),[operations,rootScope,corruptReset,cancelAuthorization]);
@@ -193,8 +201,8 @@ function WalletApp(){
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
   useEffect(()=>{if(!storageRestartRequired&&!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[storageRestartRequired,loading,manifest,handleLink]);
-  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){if(selectedRef.current)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selectedRef.current.account));reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore().catch(()=>{})}});return()=>{if(selectedRef.current)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selectedRef.current.account));operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
-  useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setPendingRecovery(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
+  useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){if(selectedRef.current)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selectedRef.current.account));reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current();void walletConnectRuntime.restore().catch(()=>{})}});return()=>{if(selectedRef.current)walletConnectRuntime.pauseForLock(evmAddressFromYNX(selectedRef.current.account));operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
+  useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
   useEffect(()=>{let active=true;setPrivacyState({ready:false,error:null});void preventScreenCaptureAsync("wallet-runtime").then(()=>{if(active)setPrivacyState({ready:true,error:null})}).catch((caught)=>{if(active){operations.lock();dispatchLock({type:"lock",reason:"user"});setPrivacyState({ready:false,error:`Wallet privacy protection failed: ${message(caught)}`})}});return()=>{active=false;void allowScreenCaptureAsync("wallet-runtime")}},[privacyAttempt,operations]);
 
@@ -203,20 +211,26 @@ function WalletApp(){
     try{lease=rootScope.begin({account:selected.account,requireUnlocked:false});await lease.step(()=>authorizeLocalKeyUse("unlock"));operations.unlock(lease);dispatchLock({type:"unlock",account:selected.account});}
     catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}
   };
-  const beginSetup=async(mode:"create"|"import"|"recover")=>{
-    if(busy||AppState.currentState!=="active")return;
-    let lease:WalletOperationLease|undefined,bytes:Uint8Array|undefined;setBusy(true);setError(null);
+  const beginSetup=async(mode:"create"|"import"|"recover",wordCount?:MnemonicWordCount)=>{
+    if(busy||setupStarting.current||AppState.currentState!=="active")return;
+    if(mode==="create"&&!wordCount){setPendingRecovery(null);setSetupBinding(null);setSetup("create");return;}
+    const ticket=++setupAttempt.current;setupStarting.current=true;
+    let lease:WalletOperationLease|undefined;setBusy(true);setError(null);
     try{
-      lease=rootScope.begin({requireUnlocked:false});
+      const binding:SetupBinding={generation:operations.capture(),account:operations.selectedAccount(),deadline:operations.time()+RECOVERY_DISPLAY_MS};
+      lease=rootScope.begin({requireUnlocked:false,ttlMs:RECOVERY_DISPLAY_MS});
       if(mode==="create"){
-        bytes=await prepareProtectedWallet(()=>assertStrongBiometrics(lease!.assert),()=>getRandomBytesAsync(32),lease.assert,value=>value.fill(0));
-        setPendingRecovery({secretHex:bytesToHex(bytes),label:"Account "+((manifest?.accounts.length??0)+1)});
+        const material=await createMobileMnemonic(wordCount!,count=>prepareProtectedWallet(()=>assertStrongBiometrics(lease!.assert),()=>getRandomBytesAsync(count),lease!.assert,value=>value.fill(0)),lease.assert);
+        lease.assert();assertSetupBinding(operations,binding);if(ticket!==setupAttempt.current)throw Error("Closed Wallet setup");
+        setPendingRecovery({kind:"mnemonic",material,label:"Account "+((manifest?.accounts.length??0)+1),binding});
       }else await lease.step(()=>assertStrongBiometrics(lease!.assert));
-      lease.assert();setProtectionIntent(null);setSetup(mode);
-    }catch(caught){if(!lease||lease.ownsScope()){
-      if(caught instanceof BiometricProtectionRequired)setProtectionIntent({mode,reason:caught.reason});
+      lease.assert();assertSetupBinding(operations,binding);if(ticket!==setupAttempt.current)throw Error("Closed Wallet setup");
+      setSetupBinding(binding);setProtectionIntent(null);setSetup(mode);
+    }catch(caught){if(ticket===setupAttempt.current&&(!lease||lease.ownsScope())){
+      setPendingRecovery(null);setSetupBinding(null);setSetup("closed");
+      if(caught instanceof BiometricProtectionRequired)setProtectionIntent({mode,wordCount,reason:caught.reason});
       else setError(localizeError(locale,caught));
-    }}finally{bytes?.fill(0);if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}
+    }}finally{if(ticket===setupAttempt.current){setupStarting.current=false;setBusy(false)}lease?.finish()}
   };
   const create=()=>beginSetup("create");
   const openProtectionSettings=async()=>{
@@ -229,7 +243,7 @@ function WalletApp(){
       }else await Linking.openSettings();
     }catch{setProtectionIntent(current=>current===intent?{...current,error:setupCopy(locale,"settingsUnavailable")}:current)}
   };
-  const saved=(next:WalletManifest)=>{setError(null);updateManifest(next);operations.lock();setSetup("closed");setPendingRecovery(null);setBusy(false);dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
+  const saved=(next:WalletManifest)=>{setError(null);updateManifest(next);operations.lock();setSetup("closed");setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setBusy(false);dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
   const restoreLegacy=async()=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=rootScope.begin({requireUnlocked:false});await lease.step(()=>authorizeLocalKeyUse("account-import"));const result=await lease.step(()=>repository.migrateLegacyIdentity(lease!.assert));if(result.migrated)saved(result.manifest);else setNotice("No previous Wallet identity is stored on this device.")}catch(caught){if(!lease||lease.ownsScope())await recoverAfterMutation(localizeError(locale,caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
   const recoverAfterMutation=async(text:string)=>{lock();if(await load()&&!platformStorageHealth.requiresRestart)setError(text)};
   const select=async(account:string)=>{operations.invalidate();rootScope.cancel();cancelAuthorization();let lease:WalletOperationLease|undefined;try{lease=rootScope.begin();const next=await lease.step(()=>repository.selectAccount(account));updateManifest(next);dispatchLock({type:"switch",account})}catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{lease?.finish()}};
@@ -289,10 +303,10 @@ function WalletApp(){
       <Text style={styles.sheetText}>{setupCopy(locale,"preserved")}</Text>
       {protectionIntent?.error?<Text accessibilityRole="alert" style={styles.error}>{protectionIntent.error}</Text>:null}
       {protectionIntent?.reason!=="hardware-unavailable"?<SecondaryButton label={setupCopy(locale,"settings")} disabled={busy} onPress={()=>void openProtectionSettings()}/>:null}
-      <Button label={setupCopy(locale,"continue")} disabled={busy} onPress={()=>{if(protectionIntent)void beginSetup(protectionIntent.mode)}}/>
+      <Button label={setupCopy(locale,"continue")} disabled={busy} onPress={()=>{if(protectionIntent)void beginSetup(protectionIntent.mode,protectionIntent.wordCount)}}/>
       <SecondaryButton label={translate(locale,"close")} disabled={busy} onPress={()=>{rootScope.cancel();setProtectionIntent(null)}}/>
     </Sheet></Modal>
-    <SetupModal mode={setup} accounts={manifest?.accounts??EMPTY_WALLET_ACCOUNTS} pending={pendingRecovery} close={()=>{setSetup("closed");setPendingRecovery(null);setBusy(false)}} saved={saved} busy={busy} setBusy={setBusy} setError={(value)=>{if(value)void recoverAfterMutation(value)}}/>
+    <SetupModal mode={setup} binding={setupBinding} createMnemonic={count=>void beginSetup("create",count)} accounts={manifest?.accounts??EMPTY_WALLET_ACCOUNTS} pending={pendingRecovery} close={()=>{setSetup("closed");setupAttempt.current++;setupStarting.current=false;setPendingRecovery(null);setSetupBinding(null);setBusy(false)}} saved={saved} busy={busy} setBusy={setBusy} setError={(value)=>{if(value)void recoverAfterMutation(value)}}/>
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.id} review={authorization} controller={productSessions} close={cancelAuthorization} onReturned={()=>setAuthorization(null)}/>:null}
     {applicationAction&&manifest&&selected?<ApplicationActionModal locale={locale} key={applicationAction.id} review={applicationAction} controller={applicationActions} close={cancelAuthorization} onReturned={()=>setApplicationAction(null)}/>:null}
     {cardApproval&&manifest&&selected?<CardApprovalModal locale={locale} key={cardApproval.id} review={cardApproval} controller={cardApprovals} close={cancelAuthorization} onReturned={()=>setCardApproval(null)}/>:null}
@@ -384,25 +398,57 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   </ScrollView>
 }
 
-function SetupModal({mode,accounts,pending,close,saved,busy,setBusy,setError}:{mode:"closed"|"create"|"import"|"recover";accounts:readonly WalletAccount[];pending:{secretHex:string;label:string}|null;close:()=>void;saved:(v:WalletManifest)=>void;busy:boolean;setBusy:(v:boolean)=>void;setError:(v:string|null)=>void}){
-  const locale=useContext(WalletLocaleContext),requestRecovery=useContext(WalletRecoveryContext);
-  const operations=useWalletOperations(),scope=useOperationScope(mode!=="closed"),[confirmation,setConfirmation]=useState(""),[secret,setSecret]=useState(""),[label,setLabel]=useState(()=>walletCopy(locale,"Imported account"));
+function SetupModal({mode,binding,createMnemonic,accounts,pending,close,saved,busy,setBusy,setError}:{mode:"closed"|"create"|"import"|"recover";binding:SetupBinding|null;createMnemonic:(count:MnemonicWordCount)=>void;accounts:readonly WalletAccount[];pending:PendingAccountBackup|null;close:()=>void;saved:(v:WalletManifest)=>void;busy:boolean;setBusy:(v:boolean)=>void;setError:(v:string|null)=>void}){
+  const locale=useContext(WalletLocaleContext),requestRecovery=useContext(WalletRecoveryContext),operations=useWalletOperations(),scope=useOperationScope(mode!=="closed");
+  const [confirmation,setConfirmation]=useState(""),[secret,setSecret]=useState(""),[label,setLabel]=useState(()=>walletCopy(locale,"Imported account"));
+  const [inputKind,setInputKind]=useState<"choose"|"mnemonic"|"review"|"private-key">("choose"),[reviewed,setReviewed]=useState<MnemonicAccountMaterial|null>(null);
   const [restoring,setRestoring]=useState<WalletAccount|null>(null),[setupError,setSetupError]=useState<string|null>(null);
-  const review=useMemo(()=>reviewRecoveryKey(secret,accounts),[secret,accounts]);
+  const capturedPhrase=useRef(false),actionBusy=useRef(false);
+  const review=useMemo(()=>reviewRecoveryKey(inputKind==="review"&&reviewed?reviewed.secretHex:secret,accounts),[inputKind,reviewed,secret,accounts]);
   const existing=review.kind==="existing"?review.account:restoring;
-  const dismiss=()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setSetupError(null);setBusy(false);close()};
-  useEffect(()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setSetupError(null);setLabel(walletCopy(locale,"Imported account"));setBusy(false)},[mode,scope,locale,accounts]);
-  useEffect(()=>operations.subscribe(()=>{scope.cancel();setSecret("");setConfirmation("");setRestoring(null);setBusy(false)}),[operations,scope]);
-  const persistCreate=async()=>{if(busy||!pending||confirmation!=="BACKED UP")return;let lease:WalletOperationLease|undefined;setBusy(true);setSetupError(null);try{lease=scope.begin({requireUnlocked:false});await lease.step(()=>assertStrongBiometrics(lease!.assert));const next=await lease.step(()=>repository.addAccount({secretHex:pending.secretHex,label:pending.label,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));saved(next)}catch(caught){if(!lease||lease.ownsScope()){if(caught instanceof BiometricProtectionRequired)setSetupError(setupCopy(locale,"changed"));else setError(message(caught))}}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
-  const persistImport=async()=>{if(busy||review.kind!=="new")return;let lease:WalletOperationLease|undefined;const accountLabel=label.trim();setBusy(true);try{lease=scope.begin({requireUnlocked:false});const material=lease.holdSecret(secret.trim().toLowerCase());setSecret("");await lease.step(()=>authorizeLocalKeyUse("account-import"));const next=await lease.step(()=>repository.addAccount({secretHex:material.read(),label:accountLabel,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));material.clear();saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope()){setSecret("");setBusy(false)}lease?.finish()}};
-  const persistRestore=async()=>{
-    if(busy||mode!=="recover"||review.kind!=="existing")return;
-    const target=review.account;let lease:WalletOperationLease|undefined;setBusy(true);setRestoring(target);
-    try{lease=scope.begin({requireUnlocked:false});const material=lease.holdSecret(secret.trim().toLowerCase());setSecret("");await lease.step(()=>authorizeLocalKeyUse("account-import"));const next=await lease.step(()=>repository.restoreAccountSecret(target.account,material.read(),lease!.assert));material.clear();saved(next)}
-    catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}
-    finally{if(!lease||lease.ownsScope()){setSecret("");setRestoring(null);setBusy(false)}lease?.finish()}
+  const clear=()=>{scope.cancel();actionBusy.current=false;capturedPhrase.current=false;setSecret("");setReviewed(null);setConfirmation("");setRestoring(null);setSetupError(null);setBusy(false)};
+  const dismiss=()=>{clear();close()};
+  useEffect(()=>{clear();setInputKind("choose");setLabel(walletCopy(locale,"Imported account"))},[mode,scope,locale,accounts]);
+  useEffect(()=>operations.subscribe(()=>{clear();setInputKind("choose")}),[operations,scope]);
+  const current=()=>assertSetupBinding(operations,mode==="create"&&pending?.kind==="mnemonic"?pending.binding:binding);
+  const leaseForSetup=()=>{current();const captured=mode==="create"&&pending?.kind==="mnemonic"?pending.binding:binding!;return scope.begin({account:captured.account,requireUnlocked:false,ttlMs:Math.max(0,captured.deadline-operations.time())})};
+  useEffect(()=>{
+    const captured=mode==="create"&&pending?.kind==="mnemonic"?pending.binding:binding;
+    if(mode==="closed"||!captured)return;
+    // Keep the original preflight deadline through entry and review. Opening a
+    // new view or an async biometric completion never starts another window.
+    const timer=setTimeout(dismiss,Math.max(0,captured.deadline-operations.time()));
+    return()=>clearTimeout(timer);
+  },[mode,binding,pending,operations,scope]);
+  const persistMnemonic=async(material:MnemonicAccountMaterial,formCurrent:()=>void=()=>{})=>{
+    if(actionBusy.current)return;let lease:WalletOperationLease|undefined;actionBusy.current=true;setBusy(true);setSetupError(null);
+    try{
+      formCurrent();current();lease=leaseForSetup();const guard=()=>{lease!.assert();current();formCurrent()};
+      const match=reviewRecoveryKey(material.secretHex,accounts);if(match.kind==="existing"&&mode!=="recover")throw Error("Use explicit account recovery for this existing account");
+      await lease.step(()=>mode==="create"?assertStrongBiometrics(guard):authorizeLocalKeyUse("account-import"));guard();
+      const next=match.kind==="existing"?await repository.restoreAccountMnemonic(match.account.account,material.phrase,guard):await repository.addMnemonicAccount({entropyHex:material.entropyHex,label:mode==="create"&&pending?pending.label:label.trim(),createdAt:new Date().toISOString(),backupConfirmed:true},guard);
+      guard();saved(next);
+    }catch(caught){if(!lease||lease.ownsScope()){if(caught instanceof BiometricProtectionRequired)setSetupError(setupCopy(locale,"changed"));else setError(message(caught))}}
+    finally{if(!lease||lease.ownsScope()){actionBusy.current=false;setBusy(false)}lease?.finish()}
   };
-  return <Modal visible={mode!=="closed"} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>{mode==="create"&&pending?<RecoverySheet error={setupError} pending={pending} confirmation={confirmation} setConfirmation={setConfirmation} busy={busy} save={()=>void persistCreate()} close={dismiss}/>:<Sheet title={walletCopy(locale,mode==="recover"?"Recover Wallet":"Import account")} close={dismiss}><Text style={styles.sheetText}>{walletCopy(locale,mode==="recover"?"Replacement-device recovery restores only the native account. Connected Apps, sessions, device approvals and audit history must be re-created.":"Enter a 64-character YNX recovery key. Import requires system biometrics and does not restore product device sessions.")}</Text>{existing?<><ReviewRow label={translate(locale,"account")} value={`${existing.label}\n${existing.account}`}/><InfoCard title={walletCopy(locale,"This account is already stored in Wallet")} body={walletCopy(locale,mode==="recover"?"Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":"Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.")}/></>:<Field label={walletCopy(locale,"Account label")} value={label} onChangeText={setLabel}/>}<Field label={walletCopy(locale,"Recovery key")} value={secret} onChangeText={setSecret} secure multiline/>{mode==="recover"&&existing?<Button label={walletCopy(locale,"Restore key protection for this existing account")} disabled={busy||review.kind!=="existing"} onPress={()=>void persistRestore()}/>:existing?<SecondaryButton label={walletCopy(locale,"Open account recovery")} disabled={busy} onPress={()=>{dismiss();requestRecovery()}}/>:<Button label={walletCopy(locale,mode==="recover"?"Recover into secure storage":"Import into secure storage")} disabled={busy||review.kind!=="new"} onPress={()=>void persistImport()}/>}</Sheet>}</Modal>
+  const persistCreate=async()=>{if(busy||!pending||pending.kind!=="private-key"||confirmation!=="BACKED UP")return;let lease:WalletOperationLease|undefined;setBusy(true);setSetupError(null);try{lease=leaseForSetup();await lease.step(()=>assertStrongBiometrics(lease!.assert));const next=await lease.step(()=>repository.addAccount({secretHex:pending.secretHex,label:pending.label,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  const persistImport=async()=>{if(busy||review.kind!=="new")return;let lease:WalletOperationLease|undefined;const accountLabel=label.trim();setBusy(true);try{lease=leaseForSetup();const material=lease.holdSecret(secret.trim().toLowerCase());setSecret("");await lease.step(()=>authorizeLocalKeyUse("account-import"));const next=await lease.step(()=>repository.addAccount({secretHex:material.read(),label:accountLabel,createdAt:new Date().toISOString(),backupConfirmed:true},lease!.assert));material.clear();saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope()){setSecret("");setBusy(false)}lease?.finish()}};
+  const persistRestore=async()=>{if(busy||mode!=="recover"||review.kind!=="existing")return;const target=review.account;let lease:WalletOperationLease|undefined;setBusy(true);setRestoring(target);try{lease=leaseForSetup();const material=lease.holdSecret(secret.trim().toLowerCase());setSecret("");await lease.step(()=>authorizeLocalKeyUse("account-import"));const next=await lease.step(()=>repository.restoreAccountSecret(target.account,material.read(),lease!.assert));material.clear();saved(next)}catch(caught){if(!lease||lease.ownsScope())setError(message(caught))}finally{if(!lease||lease.ownsScope()){setSecret("");setRestoring(null);setBusy(false)}lease?.finish()}};
+  if(mode==="create"&&pending?.kind==="mnemonic")return <MnemonicAccountModal visible mode="backup" locale={locale} accountBinding={pending.binding.account??"new-account"} operationRevision={pending.binding.generation} assertCurrent={current} backup={pending.material} onImport={async()=>{throw Error("Wrong backup mode")}} onConfirmBackup={persistMnemonic} onClose={dismiss}/>;
+  if((mode==="import"||mode==="recover")&&inputKind==="mnemonic")return <MnemonicAccountModal visible mode="import" locale={locale} accountBinding={binding?.account??"new-account"} operationRevision={binding?.generation??-1} assertCurrent={current} onImport={async(material,check)=>{check();current();capturedPhrase.current=true;setReviewed(material)}} onConfirmBackup={async()=>{throw Error("Wrong import mode")}} onClose={()=>{if(capturedPhrase.current){capturedPhrase.current=false;setInputKind("review")}else dismiss()}}/>;
+  return <Modal visible={mode!=="closed"} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>
+    {mode==="create"&&!pending?<Sheet title="Recovery phrase length" close={dismiss}><Text style={styles.sheetText}>Choose 12 or 24 English words before generating this account. Store the phrase offline.</Text>{([12,24]as const).map(count=><Button key={count} label={`${count} words`} disabled={busy} onPress={()=>createMnemonic(count)}/>)}</Sheet>:
+    mode==="create"&&pending?.kind==="private-key"?<RecoverySheet error={setupError} pending={pending} confirmation={confirmation} setConfirmation={setConfirmation} busy={busy} save={()=>void persistCreate()} close={dismiss}/>:
+    <Sheet title={walletCopy(locale,mode==="recover"?"Recover Wallet":"Import account")} close={dismiss}>
+      <Text style={styles.sheetText}>Recovery restores the native account only. Product sessions, device approvals and audit history are not restored.</Text>
+      {inputKind==="choose"?<><Button label="Recovery phrase (12 or 24 words)" disabled={busy} onPress={()=>setInputKind("mnemonic")}/><SecondaryButton label="Legacy private recovery key" disabled={busy} onPress={()=>setInputKind("private-key")}/></>:
+      <>{existing?<><ReviewRow label={translate(locale,"account")} value={`${existing.label}\n${existing.account}`}/><InfoCard title={walletCopy(locale,"This account is already stored in Wallet")} body={walletCopy(locale,mode==="recover"?"Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":"Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.")}/></>:<Field label={walletCopy(locale,"Account label")} value={label} onChangeText={setLabel}/>}
+      {inputKind==="private-key"?<Field label={walletCopy(locale,"Recovery key")} value={secret} onChangeText={setSecret} secure multiline/>:reviewed?<ReviewRow label="Reviewed account" value={reviewed.account}/>:null}
+      {mode==="recover"&&existing?<Button label={walletCopy(locale,"Restore key protection for this existing account")} disabled={busy||review.kind!=="existing"} onPress={()=>void(inputKind==="review"&&reviewed?persistMnemonic(reviewed):persistRestore())}/>:existing?<SecondaryButton label={walletCopy(locale,"Open account recovery")} disabled={busy} onPress={()=>{dismiss();requestRecovery()}}/>:<Button label={walletCopy(locale,mode==="recover"?"Recover into secure storage":"Import into secure storage")} disabled={busy||review.kind!=="new"} onPress={()=>void(inputKind==="review"&&reviewed?persistMnemonic(reviewed):persistImport())}/>}
+      <SecondaryButton label="Choose another recovery format" disabled={busy} onPress={()=>{setSecret("");setReviewed(null);setInputKind("choose")}}/></>}
+      {setupError?<Text style={styles.error}>{setupError}</Text>:null}
+    </Sheet>}
+  </Modal>;
 }
 
 function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
@@ -923,14 +969,17 @@ function RecoverySheet({error,pending,confirmation,setConfirmation,busy,save,clo
 }
 
 function RecoveryExportModal({visible,account,close}:{visible:boolean;account:WalletAccount;close:()=>void}){
-  const operations=useWalletOperations(),scope=useOperationScope(visible,account.account),[phase,setPhase]=useState<"idle"|"authorizing"|"ready"|"failed">("idle"),[secret,setSecret]=useState<string|null>(null),[error,setError]=useState<string|null>(null);
-  const dismiss=()=>{scope.cancel();setSecret(null);setPhase("idle");close()};
-  useEffect(()=>operations.subscribe(()=>{scope.cancel();setSecret(null);setPhase("idle")}),[operations,scope]);
-  useEffect(()=>{scope.cancel();setSecret(null);setError(null);if(!visible){setPhase("idle");return}let lease:WalletOperationLease|undefined;setPhase("authorizing");const timer=setTimeout(()=>{scope.cancel();setSecret(null);setPhase("idle");close()},RECOVERY_DISPLAY_MS);
-    void(async()=>{try{lease=scope.begin({account:account.account,ttlMs:RECOVERY_DISPLAY_MS});await lease.step(()=>preventScreenCaptureAsync("wallet-recovery-export"));await lease.step(()=>authorizeLocalKeyUse("recovery-view"));await lease.withSecret(()=>repository.accountSecret(account.account,lease!.assert,{allowLegacyMigration:true}),value=>{setSecret(value);setPhase("ready")})}catch(caught){if(!lease||lease.ownsScope()){setError(message(caught));setPhase("failed")}}})();
-    return()=>{clearTimeout(timer);scope.cancel();setSecret(null);void allowScreenCaptureAsync("wallet-recovery-export")}
+  const operations=useWalletOperations(),scope=useOperationScope(visible,account.account),locale=useContext(WalletLocaleContext);
+  const [phase,setPhase]=useState<"idle"|"authorizing"|"ready"|"failed">("idle"),[recovery,setRecovery]=useState<WalletRecoveryMaterial|null>(null),[error,setError]=useState<string|null>(null);
+  const displayLease=useRef<WalletOperationLease|null>(null);
+  const dismiss=()=>{scope.cancel();displayLease.current=null;setRecovery(null);setPhase("idle");close()};
+  useEffect(()=>operations.subscribe(()=>{scope.cancel();displayLease.current=null;setRecovery(null);setPhase("idle")}),[operations,scope]);
+  useEffect(()=>{scope.cancel();displayLease.current=null;setRecovery(null);setError(null);if(!visible){setPhase("idle");return}let lease:WalletOperationLease|undefined;setPhase("authorizing");const timer=setTimeout(dismiss,RECOVERY_DISPLAY_MS);
+    void(async()=>{try{lease=scope.begin({account:account.account,ttlMs:RECOVERY_DISPLAY_MS});displayLease.current=lease;await lease.step(()=>preventScreenCaptureAsync("wallet-recovery-export"));await lease.step(()=>authorizeLocalKeyUse("recovery-view"));const material=await lease.step(()=>repository.accountRecoveryMaterial(account.account,lease!.assert));lease.assert();setRecovery(material);setPhase("ready")}catch(caught){if(!lease||lease.ownsScope()){setError(message(caught));setPhase("failed")}}})();
+    return()=>{clearTimeout(timer);scope.cancel();displayLease.current=null;setRecovery(null);void allowScreenCaptureAsync("wallet-recovery-export")}
   },[visible,account.account,scope]);
-  return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title="Offline recovery key" close={dismiss}>{phase==="authorizing"?<><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.sheetText}>Confirm strong system biometrics to decrypt this account's recovery key.</Text></>:phase==="ready"&&secret?<><Text style={styles.sheetText}>This view closes after 60 seconds. Write this key offline now. Clipboard export and screenshots are disabled. Product sessions, devices and approvals are not restored with it.</Text><Text accessibilityLabel="YNX Wallet offline recovery key" style={styles.recoveryKey}>{secret}</Text><InfoCard title="Replacement-device boundary" body="Importing this key restores only the native account. Re-authorize each product device through the canonical Gateway."/></>:<><Text style={styles.error}>{error??"Recovery key is unavailable"}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label="Close recovery view" onPress={dismiss}/></>}</Sheet></Modal>}
+  if(visible&&phase==="ready"&&recovery?.kind==="mnemonic")return <MnemonicAccountModal visible mode="backup" locale={locale} accountBinding={account.account+"|"+account.accountPublicKey} operationRevision={operations.capture()} assertCurrent={()=>{if(!displayLease.current)throw Error("Closed recovery view");displayLease.current.assert()}} backup={recovery.material} onImport={async()=>{throw Error("Wrong export mode")}} onConfirmBackup={async(_material,check)=>{check();displayLease.current!.assert()}} onClose={dismiss}/>;
+  return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title="Offline recovery key" close={dismiss}>{phase==="authorizing"?<><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.sheetText}>Confirm strong system biometrics to decrypt this account's recovery material.</Text></>:phase==="ready"&&recovery?.kind==="private-key"?<><Text style={styles.sheetText}>This view closes after 60 seconds. Write this key offline now. Clipboard export and screenshots are disabled. Product sessions, devices and approvals are not restored with it.</Text><Text accessibilityLabel="YNX Wallet offline recovery key" style={styles.recoveryKey}>{recovery.secretHex}</Text><InfoCard title="Replacement-device boundary" body="Importing this key restores only the native account. Re-authorize each product device through the canonical Gateway."/></>:<><Text style={styles.error}>{error??"Recovery material is unavailable"}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label="Close recovery view" onPress={dismiss}/></>}</Sheet></Modal>}
 
 function RenameModal({visible,account,close,renamed}:{visible:boolean;account:WalletAccount;close:()=>void;renamed:(manifest:WalletManifest)=>void}){const[label,setLabel]=useState(account.label),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);useEffect(()=>{if(visible){setLabel(account.label);setError(null)}},[visible,account.label]);const save=async()=>{setBusy(true);setError(null);try{renamed(await repository.renameAccount(account.account,label.trim()))}catch(caught){setError(message(caught))}finally{setBusy(false)}};return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Rename account" close={close}><Text style={styles.sheetText}>The label is local metadata. It never changes the ynx1 address, public key, chain history or product authorization binding.</Text><Field label="Account label" value={label} onChangeText={setLabel}/>{error?<Text style={styles.error}>{error}</Text>:null}<Button label={busy?"Saving local label…":"Save account label"} disabled={busy||label.trim()===account.label||label.trim().length<1||label.trim().length>40} onPress={()=>void save()}/></Sheet></Modal>}
 
