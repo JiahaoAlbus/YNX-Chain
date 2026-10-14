@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
 	"time"
 
 	musicapp "github.com/JiahaoAlbus/YNX-Chain/apps/music"
@@ -94,7 +97,11 @@ func main() {
 		}
 	}
 	log.Printf("YNX Music listening on http://%s; public licensed catalog=false", *httpAddr)
-	log.Fatal(server.ListenAndServe())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := runHTTPServer(ctx, server, 15*time.Second); err != nil {
+		log.Fatal(err)
+	}
 }
 func env(k, v string) string {
 	if x := os.Getenv(k); x != "" {

@@ -1,11 +1,15 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/video"
@@ -75,7 +79,11 @@ func main() {
 		}
 	}
 	log.Printf("YNX Video listening on %s", addr)
-	log.Fatal(srv.ListenAndServe())
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := runHTTPServer(ctx, srv, 15*time.Second); err != nil {
+		log.Fatal(err)
+	}
 }
 func required(k string) string {
 	v := strings.TrimSpace(os.Getenv(k))
