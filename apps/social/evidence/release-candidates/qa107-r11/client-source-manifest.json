@@ -1,0 +1,3506 @@
+{
+  "origin": {
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/evidence/SOURCE_SELECTION.json",
+    "bytes": 103018,
+    "sha256": "b14f62c89471e6d2cbcbfd503208400c25eb1730bcfdc267362d50ad4c0b51a8"
+  },
+  "entries": [
+    {
+      "path": "App.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 162490,
+      "sha256": "843165ee018bb63c02f66c5159f2281fd7daf374ca6943413eb1415ddec34952"
+    },
+    {
+      "path": "android/.gitignore",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 183,
+      "sha256": "ed2e83b6a71e3b048dc2681be0bdf534a5ec81d4eded17012e78a6b252422465"
+    },
+    {
+      "path": "android/app/build.gradle",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16781,
+      "sha256": "c7162411c50fdd079b97118c1d7716a61b3ede08ad6c0bb3c44377dc45ca9e59"
+    },
+    {
+      "path": "android/app/proguard-rules.pro",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 562,
+      "sha256": "8bd4d7b69a1d78e8322b459b5e8d48234adce7481df04da34c0140d52ffb367a"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilEnrollmentPolicyCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2464,
+      "sha256": "a7966bc18648e10c5498e641d4ac3d6c1c57170b26e106bad75e9a9ac8f81b54"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilInstalledCoreCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7482,
+      "sha256": "451d35b2c92433bb33a46a56b361775a390e45583c2c2816d333db3aaf0d6dc9"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilNativeBridgeInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 31635,
+      "sha256": "674ca43c3e347d55843b673f0e174e26b7173b8243267c06c03d78c2621e2676"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilNativeBridgeLifecycleInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 46958,
+      "sha256": "ad6a6ed3e645f8714b2185425cdbbf4c25810ffb03d30f07e0841ce1bd327a8c"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilNativeFrozenVerifierInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15836,
+      "sha256": "ce4d78251b18f1de82ac7fb06bdfa247bd14d2bab6a49239d0e3b8779b88bae3"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilNativeSqlSnapshotInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12494,
+      "sha256": "aa02a6ebb43f8b1e02159d3d34bcece2f7776ee392f24678f0305d6dd77c2830"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPqAndroidInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5261,
+      "sha256": "9f5b6c50d90be94722d9be96e1663c5a927ac9557eeac1ad510204877b744533"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPqIdentityCandidate.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16183,
+      "sha256": "1781a077703e324e2a88ab7de5fbd80f498aeafa66719edb9b4e1dc234349244"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPqIdentityTypedCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10046,
+      "sha256": "099d6927eb531f423c4ea045171bff055718d4153998c45bd377e250cf19a36e"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPqInstalledInstrumentation.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17822,
+      "sha256": "0715d4886955c5212a4a99b611bae8721ce5c3bffae378d307913425d1a3190f"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPqQaObservation.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 382,
+      "sha256": "f515d02eb96b31ff6ea67835b46924e2b75eb0dd24f371d0d97ae175afc8cde4"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/matrix/VeilPublicWrapProcessInstalledCheck.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7820,
+      "sha256": "d00e9d35cb158b4d31b5d3c65514f9b9fa6ef1dbffa3deb489bd1a50a53050cc"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/pqauth/internal/EnginePlatformWrap.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8318,
+      "sha256": "f3498134fddde40aedb2e1616ee07c04577b330a32005fc3906c01d703ec5c5a"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/pqauth/internal/PublicWrapNonSecretProbe.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10192,
+      "sha256": "5f2535b95f5d28b9b50b09a724a9af9ac0bd20c7bc0d4f5854bea4bf958573d2"
+    },
+    {
+      "path": "android/app/src/androidTest/java/com/ynx/social/pqauth/internal/WrapRecord.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3969,
+      "sha256": "800b20d5d18ce42a4896cfccba6e5514bafa3fc6b18a3cf6fa0a83c0e286ea62"
+    },
+    {
+      "path": "android/app/src/debug/AndroidManifest.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 374,
+      "sha256": "fb1795032c764d975376e1612ab7022058eca2268a45efbe731a47a5d3ac0f60"
+    },
+    {
+      "path": "android/app/src/debugOptimized/AndroidManifest.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 374,
+      "sha256": "fb1795032c764d975376e1612ab7022058eca2268a45efbe731a47a5d3ac0f60"
+    },
+    {
+      "path": "android/app/src/m1Qa/AndroidManifest.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1770,
+      "sha256": "a81eba123044450cb2e32cca8aa249feef9eb879a8098d087c375cc2817a230a"
+    },
+    {
+      "path": "android/app/src/m1Qa/res/values/social-login.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 248,
+      "sha256": "88a29d3b1f5018e74c8982c1da8a553c138f7d9a3bad756b7b2b852a136edee2"
+    },
+    {
+      "path": "android/app/src/main/AndroidManifest.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3726,
+      "sha256": "1aed5b6c4b6a50a4c9b6ea6d29b2fc8af7b9a7c7a67744925bb25681c3f4ce67"
+    },
+    {
+      "path": "android/app/src/main/java/com/ynx/social/MainActivity.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2184,
+      "sha256": "35bae68b7be86744276df12c3f321deededa71ef90a6a65f02d2a70cdbb8d9e3"
+    },
+    {
+      "path": "android/app/src/main/java/com/ynx/social/MainApplication.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1653,
+      "sha256": "f496a7c6b2787a3ecbceee227fc519f980ebd27a6ae9df37f5fbb028d36ad2eb"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/ic_launcher_background.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 245,
+      "sha256": "51fca95679d075ddbe2b9fe7ad2efb5ef545c5770a9ad6cafe8bf610c18c67be"
+    },
+    {
+      "path": "android/app/src/main/res/drawable/rn_edit_text_material.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1917,
+      "sha256": "738e3aaad53180caba1419a6d5db8465a0742662fe59a4bbaf05f1061cbc3390"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-hdpi/splashscreen_logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 20754,
+      "sha256": "721c895579cb08ec4c9a0fe7dadafe9a97c33ef758d3578ad5e8b540de59f974"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-mdpi/splashscreen_logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12863,
+      "sha256": "f84b9b17a4a1c7d7dd840cd272c07a6c3fd66d5a9826b64bb53facb6f176bc24"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xhdpi/splashscreen_logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 29081,
+      "sha256": "e1c5250e339add5ed7849cb0859d052edb9781abb91db049e68ae3a4059247d7"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxhdpi/splashscreen_logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 47123,
+      "sha256": "23d97ccb41a821ee345b2c5bb0c9bdab730a751a9227925acbf0af021dc38a9b"
+    },
+    {
+      "path": "android/app/src/main/res/drawable-xxxhdpi/splashscreen_logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 66529,
+      "sha256": "be9fac5c4cda48c41dce592288c486524bba3e4ca7fa00c0a04a46928154b5bf"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 257,
+      "sha256": "03d70962a0beea2bb6ab1a838b015d90da6c33adb045ff85f7b198aca70df08d"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 257,
+      "sha256": "03d70962a0beea2bb6ab1a838b015d90da6c33adb045ff85f7b198aca70df08d"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1514,
+      "sha256": "cb363e8fb466e17f0bdf6b837416a616b61c17aecc543b5726ccfaa1cd641316"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3436,
+      "sha256": "981e24d8590c5499837404001773f85d2fc4c4f4d9d4fe600f8d26d0341d6602"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-hdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2112,
+      "sha256": "281382fbbb713989162f5e3cdbcfc6a734c19204c84b6a6586fbfdbcf71507fd"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 792,
+      "sha256": "cd2b60a27718afeade930b44b2b4bb5768913b06bb7a3a17a7f4b9786d98c428"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1834,
+      "sha256": "3648e7d300c380fa6265d5c390abe664346fcfd614dd33e65ce6a6de196c3342"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-mdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1234,
+      "sha256": "33789af4969997d56700d1c45c3bd73c4dc38391fbefa29bfaf50197b0200509"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2256,
+      "sha256": "8884abadc7887d07428a8a0cf85e1245e3d9ac00cee4d9ea09e90c158e759a70"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5184,
+      "sha256": "17a36dab98755a8c738df4949bd40302b2540bb9531f09951191cdcc208f153d"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3054,
+      "sha256": "0fa4c8fca5dae044ec589abccaed58f1fd26a2917e72eb6bce573e2a16f1a8ed"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3866,
+      "sha256": "8e992ab25fe962c73fb2d414cd2aae5f0cc40db3cc25652fae14e94f9993be22"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9264,
+      "sha256": "89adc5c073bd48a088b47300918c7b8e8d110a117585e2f4497e11000b034d0a"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5188,
+      "sha256": "685bf3d894306baf89c4a71515a0e88073ed8dd481cb1fcce5da8bf87c8411d9"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5966,
+      "sha256": "c77f0943588bcdbdb68fc7fef380416f1b54860dd0441e6da951c164ce0cc670"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14004,
+      "sha256": "be6c1472240efdffcdf5f56ac99df7261fc3a337da1d6eff3114686e4798bc1f"
+    },
+    {
+      "path": "android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7706,
+      "sha256": "b0992ab280c6e48143255646d5108185e1400ec212816d51ad1d099581dcf74d"
+    },
+    {
+      "path": "android/app/src/main/res/values/colors.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 172,
+      "sha256": "5d02bec5d173b71206e336e929f81cc28df4699fd12686008b393629612047ec"
+    },
+    {
+      "path": "android/app/src/main/res/values/social_login.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 436,
+      "sha256": "7b6fc523b5916556e2065ad89d91e5adbd2aee6bedfc4010d20782a1957603db"
+    },
+    {
+      "path": "android/app/src/main/res/values/strings.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 70,
+      "sha256": "13238468673e40e6ae057a14c81474037603e9f995b35d0dfaf0f2b5774782a8"
+    },
+    {
+      "path": "android/app/src/main/res/values/styles.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 592,
+      "sha256": "e40414258372e05336fde31cd6a59ba286f0735dcc548fec42180b59af12b0f0"
+    },
+    {
+      "path": "android/app/src/main/res/xml/veil_platform_network_security.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 27206,
+      "sha256": "a81434f9139f3780412c358d1cc782fe25339182d3dc141b35413f23d2b29f6a"
+    },
+    {
+      "path": "android/app/src/parallelQa/AndroidManifest.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1748,
+      "sha256": "4a7f30a81dde146927dad5b206d12550f5e3f66ccc3a7d13aefe1041c4c5864a"
+    },
+    {
+      "path": "android/app/src/parallelQa/res/values/social-login.xml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 170,
+      "sha256": "43891641ad0e3a0966b626dd84cff2bc801d926f38f527b04811f9bcfc32fc9a"
+    },
+    {
+      "path": "android/build.gradle",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 801,
+      "sha256": "a6baf08228f3d4b7cddec55f537b702917bda7515df53b6c8ffff152d136a225"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.jar",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 46175,
+      "sha256": "b3a875ddc1f044746e1b1a55f645584505f4a10438c1afea9f15e92a7c42ec13"
+    },
+    {
+      "path": "android/gradle/wrapper/gradle-wrapper.properties",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 252,
+      "sha256": "a180163249c7252412ddaee1c7adcf59f6494b1183136f690fbd9a3b8aaed00e"
+    },
+    {
+      "path": "android/gradle.properties",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2567,
+      "sha256": "d02b52da10bf3abb24279fd102df47694b8130a6b7fe6110cc47a9476ac8673c"
+    },
+    {
+      "path": "android/gradlew",
+      "type": "file",
+      "mode": "0o755",
+      "bytes": 8618,
+      "sha256": "fb68debc1b1acf8ec55dc0d5e5495e1dedd0bd6b61f304bee61613eeb2bd9b92"
+    },
+    {
+      "path": "android/gradlew.bat",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2995,
+      "sha256": "753400fb02ea31346d7f89b0b1de6659850fc008d68cdb49e1c783fe70013dd6"
+    },
+    {
+      "path": "android/settings.gradle",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1261,
+      "sha256": "09085c55e4014fd3cc7baaf65c669b0294cf0b9c2d87ac5f014cd29dee03ddd3"
+    },
+    {
+      "path": "app.config.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1751,
+      "sha256": "468a4a08b502b7af4ed72c9435632b0fd9ae2ed3b3762ac383fc5e5914d51a38"
+    },
+    {
+      "path": "assets/adaptive-icon.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 82395,
+      "sha256": "53d1169336936838b7c7c1bd3af7c2204ad35da2be62ce302fef530e6e525016"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-hdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1514,
+      "sha256": "cb363e8fb466e17f0bdf6b837416a616b61c17aecc543b5726ccfaa1cd641316"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-hdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3436,
+      "sha256": "981e24d8590c5499837404001773f85d2fc4c4f4d9d4fe600f8d26d0341d6602"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-hdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2112,
+      "sha256": "281382fbbb713989162f5e3cdbcfc6a734c19204c84b6a6586fbfdbcf71507fd"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-mdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 792,
+      "sha256": "cd2b60a27718afeade930b44b2b4bb5768913b06bb7a3a17a7f4b9786d98c428"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-mdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1834,
+      "sha256": "3648e7d300c380fa6265d5c390abe664346fcfd614dd33e65ce6a6de196c3342"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-mdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1234,
+      "sha256": "33789af4969997d56700d1c45c3bd73c4dc38391fbefa29bfaf50197b0200509"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2256,
+      "sha256": "8884abadc7887d07428a8a0cf85e1245e3d9ac00cee4d9ea09e90c158e759a70"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5184,
+      "sha256": "17a36dab98755a8c738df4949bd40302b2540bb9531f09951191cdcc208f153d"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3054,
+      "sha256": "0fa4c8fca5dae044ec589abccaed58f1fd26a2917e72eb6bce573e2a16f1a8ed"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3866,
+      "sha256": "8e992ab25fe962c73fb2d414cd2aae5f0cc40db3cc25652fae14e94f9993be22"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9264,
+      "sha256": "89adc5c073bd48a088b47300918c7b8e8d110a117585e2f4497e11000b034d0a"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5188,
+      "sha256": "685bf3d894306baf89c4a71515a0e88073ed8dd481cb1fcce5da8bf87c8411d9"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxxhdpi/ic_launcher.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5966,
+      "sha256": "c77f0943588bcdbdb68fc7fef380416f1b54860dd0441e6da951c164ce0cc670"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxxhdpi/ic_launcher_foreground.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14004,
+      "sha256": "be6c1472240efdffcdf5f56ac99df7261fc3a337da1d6eff3114686e4798bc1f"
+    },
+    {
+      "path": "assets/branding/android-res/mipmap-xxxhdpi/ic_launcher_round.webp",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7706,
+      "sha256": "b0992ab280c6e48143255646d5108185e1400ec212816d51ad1d099581dcf74d"
+    },
+    {
+      "path": "assets/branding/ynx-adaptive-foreground-1024.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 82395,
+      "sha256": "53d1169336936838b7c7c1bd3af7c2204ad35da2be62ce302fef530e6e525016"
+    },
+    {
+      "path": "assets/branding/ynx-apple-touch-icon-180.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7125,
+      "sha256": "71dca222979329c1641b7570f60becf6bcc37a718169e776883414610f96bfe4"
+    },
+    {
+      "path": "assets/branding/ynx-favicon-32.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 891,
+      "sha256": "04526c671f6001217d5a7f324ef66091a99f96fae7420f82f0e3fc0dba419c6c"
+    },
+    {
+      "path": "assets/branding/ynx-favicon-48.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1536,
+      "sha256": "2cae1fdfc6add5c5d39b456fbc0e0b460df0e92488278f59ab2d0fa788d704e1"
+    },
+    {
+      "path": "assets/branding/ynx-icon-1024.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 92889,
+      "sha256": "f6cc5b0e093ae49024ed0e47d572f01d5236e7f2f376b34e7c220fbc78a19454"
+    },
+    {
+      "path": "assets/icon.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 92889,
+      "sha256": "f6cc5b0e093ae49024ed0e47d572f01d5236e7f2f376b34e7c220fbc78a19454"
+    },
+    {
+      "path": "assets/splash.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 46434,
+      "sha256": "b00d32ede03aaa012dabb13ee5c4a7a0a9ed32742d1da79255674d2db9bb5ca8"
+    },
+    {
+      "path": "assets/ynx-original-logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilAppIsolation.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2471,
+      "sha256": "f0d5729cb10a84e5049fbf40d3ac77b3862bcc315007459093b7b84c575ee25c"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilApplicationContext.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1377,
+      "sha256": "c751ffb51b030107276ef1b3880a2ba74a4a7019c94adfd6e31808a6c4ac93f9"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilAttachmentNative.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2436,
+      "sha256": "5c6d8351141e3c6e10b7b8a7cf9a6f2ad104ba506da3cc90fa6e6d8a2fe85287"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilAttachmentOutbox.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5722,
+      "sha256": "24293dd435f17cd444d48f17d0e037fa13f1bbfc249fad24aba5264154464c52"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilAuthenticatedEnvelope.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8313,
+      "sha256": "b233e804df60eaabaf9e582baa192b718668185bdd94a5b50331f8329a562a6d"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilAuthorizedDeviceFanout.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21071,
+      "sha256": "e899944114318e464012efb0495b54916eb398b917e6704bf3df9ed52c85e2b8"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilBackupNative.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3417,
+      "sha256": "94b43458d3b78433784fe0b2bc4fe04dfa3bbd5173ce0d205400027ce81c0f4d"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilBoundedCipherRead.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2150,
+      "sha256": "bfd000215775f3904929d35befa734b869725cc6306555ace72dc01b6422b63b"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilContextAuthority.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2955,
+      "sha256": "8a5950e04746410430d944d82a21a6eab1734f1a61a25a6ef0cbb48560690c92"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilContextEncoding.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1136,
+      "sha256": "45b9e310a0ed4880c4bfa6a20c5da5185d17cb026fef84d5110692d9e92bb5a3"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilLocalGenesisInput.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4732,
+      "sha256": "3b3de709f1e12fbac7403706c0050cd35733f1cb52f2a6d9ca7dd87ea0b25b82"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilLocalGenesisJournalBinding.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3427,
+      "sha256": "e867b7d5c4f368b7e3caa5b185d06ff063e75839cbd02e28a0515776c26f74f7"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilLocalRecoveryInput.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3548,
+      "sha256": "329916b6eb55c62bd760f553187641f73044af762c3285ba1c3c8cc604cafa48"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilMatrixAttachmentRead.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1758,
+      "sha256": "3f982dd3ce022f2d3bb1244e86526e780c039020ac6abf377c5a73f5f6538ce9"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilMatrixAttachmentTransport.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9609,
+      "sha256": "097b29b400e652f6d2c47b23af9a7a126b544cc5836fca40cabb395819ebcd48"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilMatrixContextBinding.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3790,
+      "sha256": "60f01d7dec7e79423e0cf2f4348d212bd5a5a50214d500b87e3c0380cb20517e"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilMatrixJournal.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13607,
+      "sha256": "2fff610a231dae440f34c58f0cdefba4043470e309b8d038322509b20f064b60"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilOwnKeyColdRecoveryLease.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10260,
+      "sha256": "934200c987affac0bba35e8a34c618d6c03b854981ea024cc2a4f1855fdb613f"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilOwnKeyLocalStoreCallbacks.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2715,
+      "sha256": "89308f7151f464f015564951f67cdb5b00b0e9e069e72df352237eebe9577711"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilOwnKeyLocalStoreContext.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 20888,
+      "sha256": "782be564d6107795ef1f099d35ce50a2970ab8e404ced04780630812101de015"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilOwnKeyPrivateCommand.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 32767,
+      "sha256": "29ce204fcf0ff9ce3e0e4b7ec03ded4d2472b63efac5d7a9f988d21755bc099e"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilSignalAddress.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1013,
+      "sha256": "281096ff38e89ec881e55ccd9294188ecc55065b179cc226f85ffbab4aee986b"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilSignalInbox.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11104,
+      "sha256": "dc7214f582502978374a6126a881f34703e126f46d6a19bbb8476ae7e676a47d"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilSignalOutbox.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7541,
+      "sha256": "3077dedff43157094a14986fe7f1d5b8731840f45c861aa4532ea0f30ae4ae92"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilSignalProtocolStore.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13291,
+      "sha256": "f8f87a3290b8d8e5dd1206c132c066a93d39dd23db1329dea5bd5c959ad40c7d"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/matrix/VeilSignalRecordSnapshot.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10722,
+      "sha256": "7e590a852fd86d943e308c8d6647a5ccff68ae60914b0303000782e302b83385"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/pqauth/internal/VeilOwnKeyBootstrapPolicy.java",
+      "type": "file",
+      "mode": "0o444",
+      "bytes": 1792,
+      "sha256": "91d02c39b7ec7c95347a75c25045288600d8f10d20f05f2c2ef205a28e43f13e"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/pqauth/internal/VeilOwnKeyPlatformProtector.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 23400,
+      "sha256": "32cc57548fea589e911db58bd43cc2017be4c26527d24ec667fae48bea86084c"
+    },
+    {
+      "path": "crypto-engine/java/com/ynx/social/veil/VeilMessageFrame.java",
+      "type": "file",
+      "mode": "0o444",
+      "bytes": 4065,
+      "sha256": "48d72272986f886ee5bb5e5a8fc1daafc65817f69c9834f5647b480b6143d2bc"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilCheckpointCommit.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14596,
+      "sha256": "7a31f6f663b787224771765b3e61779d97304d434b93330c0b59cb1b2be9063b"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilCheckpointSqlite.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26278,
+      "sha256": "fa122a8160f5f58e59c24ccd55d769e93412894e4445aa4d59283c195c19ece7"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixBoundedDownload.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2222,
+      "sha256": "25e89688342116591b680d056f6ed7beafa73a43ed391a73dfe2f5d69103ac6a"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixOriginalEvent.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4363,
+      "sha256": "ccb858563608563129b8a63ddc9e6e180a129ae934a9eaf33adcb250346ef80b"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixPipeline.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 22501,
+      "sha256": "c89de4e0748d07c1f4a0b2bb463c0d93808694ea378c0d7ebafbea6a7ea0abcb"
+    },
+    {
+      "path": "crypto-engine/kotlin/com/ynx/social/matrix/VeilMatrixSdkCalls.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2679,
+      "sha256": "2723ce358295f93398059017a7468634913390cfd8ed952d59bd6e5dd4f1c6cc"
+    },
+    {
+      "path": "index.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 192,
+      "sha256": "88d1a57c369c606fe35298db3932249aebf06b4c9635d3d98581517964dc92f6"
+    },
+    {
+      "path": "modules/native-matrix/.gitignore",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 46,
+      "sha256": "bda1eb91ae5cbb95e2934a8ff38199fa7faf624b2b91ba3462e7ce54da2e839c"
+    },
+    {
+      "path": "modules/native-matrix/IMPLEMENTATION.md",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7833,
+      "sha256": "605d1212cf6a73649f0c49271a2f85e03917bb1bae55ff2bad198231d0e9955a"
+    },
+    {
+      "path": "modules/native-matrix/RECEIVED-MEDIA.md",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4148,
+      "sha256": "ede25c01dd913799b3a377c19c89ffc7eddaffd2b8344c2973126678e8b2aa7c"
+    },
+    {
+      "path": "modules/native-matrix/android/account-channel-proguard.pro",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 649,
+      "sha256": "9066ff93af48bf37852aad0841e901e2ffd7fce7116e28aa613f8c96c79149f7"
+    },
+    {
+      "path": "modules/native-matrix/android/build.gradle",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3975,
+      "sha256": "92286705fefa1705dc604b9c7160130bb71dde66819cd7352a21235a95f286e6"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBounds.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 926,
+      "sha256": "0d6f632eb70eda9e14e34af7f1d125fede3a685b4137861447537513d1d5405e"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/ImagePreviewBudget.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5251,
+      "sha256": "dde84c055ab86ad72cb751dc281cba9675edc8e5043669203aae0828efeb0f01"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixMediaDescriptor.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1877,
+      "sha256": "a9da4a26a0e6abfe10ffea6fd863fd540c705b3daf10ed835954761d999b6c0f"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixReceivedMedia.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6078,
+      "sha256": "6b9d9a8586b3ec036b4bcc751007e7f7b3f683e3323f182eb0a227266a8a17e3"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/MatrixVault.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9360,
+      "sha256": "8449c94d94715a11471ad983735d3fa51d154e4b11464de9cd82099df68263fd"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilAccountBindingHttpModule.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1350,
+      "sha256": "e8499e0db4c37bf25c6d417bca60d57213b80e566560b7922b2a463e6d65cd40"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilAccountBindingHttpTransport.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17828,
+      "sha256": "d7b76d6c1ea517f6219ea8a86559cdfe9331ee51f77b663fd3256e302d2dfd41"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilCryptoEngineModule.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 40064,
+      "sha256": "28779972ab072e21a70177eb85b63f7ab1fe4449762bdf37e9b050d833d3506e"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilCryptoEngineOwner.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 47474,
+      "sha256": "7c0b79750566c1f16456dd3bcc8511fd3c20a50d1965e0deded6d147584102a7"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilDeviceEnrollmentCoordinator.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17972,
+      "sha256": "aa75961eb511b042b65e92c6838d6b77adcb97886569192f6b126ccde0c20bcc"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilDeviceEnrollmentPendingStore.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 29285,
+      "sha256": "37d2efc62beccc229fb74ae78f96a96c4947b6e93a3a28d5ce0d77b896a31bde"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilFirstDeviceChallengeWire.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6227,
+      "sha256": "ae42637815636fd6edbe3192a7783973cb1701379dcf542f66450566c5199202"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilFirstDeviceEnrollmentWire.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14886,
+      "sha256": "e11ef2ce772ebb495b4e2b70f343da545c526f4ccc177a4539319e8c9fd4dd52"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilFirstDeviceSourceWire.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2789,
+      "sha256": "58af5bafec35261e3ea47b4b312a37675f9694824d264c1ea8f0190d7e3c9685"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilLocalDeviceAuthentication.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6040,
+      "sha256": "e69e4d1d05185da0e216ecefc5297db5719f20aede19c25096dfb8145ec4f68c"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilLocalGenesisProducer.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7896,
+      "sha256": "ab611b543a8fdb0a91f62e4e7cf740d6d9f0367b4df587fb90f7c0f966fcacb2"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilLoginFailureDiagnostic.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1827,
+      "sha256": "71fae346b48b697d2fb28c8e129ae57d978bdd5eb073596844ff743ad326d2b8"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilMatrixCiphertextHttpTransport.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 25667,
+      "sha256": "9f9be742a222866082719834c55db46847bfd7c1fc021b79920a2aa8bec70c69"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeAccountChannel.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5176,
+      "sha256": "e5c6f68b36bb00c430339a0fee0431d32020da44ec43b93ba6ba72b00b768318"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeAuthority.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9065,
+      "sha256": "30c6dad624c7d33e316e98a52becd57b22ab7a677bc942f7387006c2d97be32d"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeEnrollment.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4965,
+      "sha256": "da9538c96d5f660b455bbbc143ea3edc3da0f58a283f4b88ed77362e644996ae"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeMessageBusiness.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 76437,
+      "sha256": "13ebab8e6672b1668a9fedf85bc65d0f515b3614177482bb61cfa6eca6967850"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeMessageOutput.kt",
+      "type": "file",
+      "mode": "0o444",
+      "bytes": 3285,
+      "sha256": "44c2135a6b5b9647ef34c8eb1fa6ce47610239912b316691a477869aa96d57c9"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeProducerAuthority.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4592,
+      "sha256": "e84136c0a8531d452477720c75f5cebd95928ab6c02f81e9f315cb0080577983"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeProductPorts.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 25330,
+      "sha256": "7ec99625c12051328b1c90e0e07c21392da39c45df43fcb7aeb70b27e5cde6e8"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeRecordCursor.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1552,
+      "sha256": "f0980d2d3e58bd4f555a96bb4676d4aa400ad1a30fbd8f5d165b78994fa8aa9b"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeSqlSnapshot.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17293,
+      "sha256": "7f00739fb48358d4b0024f74f5b60c35a9f51b6ccb595922f4c17436255c0f97"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilNativeStore.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 24135,
+      "sha256": "17a4cb3ac8d791416ea2a4b2eab89aca2ac214ec1cedc1d7ee2d3d7477e63a99"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilRecordTransaction.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 395,
+      "sha256": "57b4baefb57bec77281cb21c914d9b6a2acd7abf005e5e5c67d1a7114e413634"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilReturnLinkDiagnostic.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2073,
+      "sha256": "d931086bffd5914737b82abc38054de6e9f63fe79cdef6222025feffe7e19f92"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSelectedCanonicalCheckpoint.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4917,
+      "sha256": "caf5947b883f6e255cb90d9443e274e83f02dae54f0acf0bceb506f557d638c5"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSignedDeviceGrantVerifier.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7819,
+      "sha256": "c3ecc6bde27aaa61736f2d8d3a6ad29f49c86206d590718e8bd085a6d0cd8302"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginBrowserPort.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11800,
+      "sha256": "8f2ccc5fa96975da7feb6b53b83af68164ea730efaf445d7158527e3ffeb20bd"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginCallbackActivity.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 833,
+      "sha256": "420b5472e6660364deb3e10ab7cd710fe85905e4290a39e502b6d8ac58f5e303"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginClient.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 45571,
+      "sha256": "0465ec256210b85db22cbc933112b6e1616390339100f1133c2827a73e674a92"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginCoordinator.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26518,
+      "sha256": "4fa310ec1d1687274d37ac9c3db9f2927153b0c7ff39c274bb149f6fd30eb282"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginProfile.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2076,
+      "sha256": "cf7dc6a0686bd5e8b9eebb8ab2afdb45e7c4082eba6797f0201cf43b22186b6f"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialMessagingCoordinator.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11675,
+      "sha256": "4f4a040629d8d67da35ab7725b2d9e2fd30ebe437071f77aa5240f666295056b"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialQaLoginCallbackActivity.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 835,
+      "sha256": "62a438db928339865245da3b495402ba8ec44960c0d297984c1ad4ef45ffdb46"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilTransactionResult.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 666,
+      "sha256": "5abddc18d46ba55d5f8d7a9a447ec6af7bced9c787c06ab3e46127af139f5b9c"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilWriteBudget.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 833,
+      "sha256": "e7312ed3a6178663e8ffa260b2ac2aa9f6088b983c85bf0fac8b541f50bb29a7"
+    },
+    {
+      "path": "modules/native-matrix/android/src/main/java/com/ynx/social/veil/VeilNativeProductControllerBridge.java",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3019,
+      "sha256": "119ca8b3826c60d59dd7688719b1efac505875f5d2115dba3ab950944bf78c71"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/ImagePreviewBudgetTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1961,
+      "sha256": "6a8e079d383564cf9f15796ce764102b30fe78542af5a909e5e9b4e238004bfe"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilFirstDeviceOriginalRecordsTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3015,
+      "sha256": "6d21082c2707a69f13b063aa450ebf3073bfc7417bead974c951c1db7cf4c350"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilMatrixCiphertextHttpTransportTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19012,
+      "sha256": "50c16ad05b95820cfcdd10f9acc6a88b3f72cfec3fd4c418c831f15b254235d9"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilNativeFirstDeviceSignatureBindingTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12401,
+      "sha256": "c1f21b759b04ddfd9b2a27a77b96b17be9ddfe175b9e93a505efb0ec404f45cd"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilNativeMessageBusinessTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 72884,
+      "sha256": "ac4feb8d0d9e0ddebda08de72df6809fba29da79140cec40a81a694d1a5ce4e6"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilNativeMessageOutputBindingTest.kt",
+      "type": "file",
+      "mode": "0o444",
+      "bytes": 6111,
+      "sha256": "bab47189ac0de9365a5345261b4bf83bd6e25bdd65006c8ba05cf52ffe858a57"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilNativeProductPortsObservationTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5614,
+      "sha256": "bf4859587963267c3fa7d9d821be191cbe71a9c1e44f9392184b8d4498166028"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilSocialLoginClientSourcePhaseTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 36681,
+      "sha256": "db22ea37d8838e3ef5acb97827d78e13003513c37b6443f3d65c1ac6c5b9620f"
+    },
+    {
+      "path": "modules/native-matrix/android/src/test/java/com/ynx/social/matrix/VeilSocialMessagingCoordinatorTest.kt",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9776,
+      "sha256": "7e8520e73b049161bea2450f26a83e5367ad6a5a1248c2df2a74ca3fad44f3a1"
+    },
+    {
+      "path": "modules/native-matrix/android/veil-kernel.gradle",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6022,
+      "sha256": "a8515210187238b4c3c2334ee59f2e9ceb21a4fd3f912f6b677c46b574822759"
+    },
+    {
+      "path": "modules/native-matrix/android/veil-native-product-jni.pro",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 857,
+      "sha256": "c83321e9892f6092df9ef77ed70170df5ac5cbd97e6ee474af34330cb050e493"
+    },
+    {
+      "path": "modules/native-matrix/expo-module.config.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 250,
+      "sha256": "3ccf984265be81fcbf37e94cf6e4826cc54453ff438f788de253f39a762b4aa9"
+    },
+    {
+      "path": "modules/native-matrix/ios/ImagePreviewBounds.swift",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2080,
+      "sha256": "ccbca115f1c7f9563a9d18dc5f78c9b4fc68f0dc347604a762f1655fc383daa7"
+    },
+    {
+      "path": "modules/native-matrix/ios/MatrixReceivedMedia.swift",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6117,
+      "sha256": "32403d1236cc933a82433c143b4f43316c9e4bbafd72e27a3fc331e9520f4d33"
+    },
+    {
+      "path": "modules/native-matrix/ios/MatrixRustSDK.podspec",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1489,
+      "sha256": "032a6350a272203e559abff57acfcaea2ddab41eaf33dfb1356bf0b6346ed6b1"
+    },
+    {
+      "path": "modules/native-matrix/ios/MatrixVault.swift",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10237,
+      "sha256": "f77062851f61e481541ae620a5c18974523dc4735a16e5d6426c9fc138ae5349"
+    },
+    {
+      "path": "modules/native-matrix/ios/SDK-INTEGRATION.md",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2044,
+      "sha256": "038f0fab37aa794cc7b91b61a4b1ad1abc9a92cd6c9a1c14e0030775bcb0294f"
+    },
+    {
+      "path": "modules/native-matrix/ios/YNXSocialMatrix.podspec",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 741,
+      "sha256": "d11157d81a306afd278f2b09b519a6f2bd20cf24d75f6af8355e2ba7f5ce1515"
+    },
+    {
+      "path": "modules/native-matrix/ios/YNXSocialMatrixModule.swift",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26966,
+      "sha256": "446d07468004bff1a0474a52e31afb52ccd0a2097d13193c59bb665ba3fb4c4f"
+    },
+    {
+      "path": "modules/native-matrix/package.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 175,
+      "sha256": "1f401d23c4dc6fd3f4177edbd64cb7df9b6db2f65225ee95646c133ff9756d8f"
+    },
+    {
+      "path": "package.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1477,
+      "sha256": "d0eed32db6b723603571290e3cefa3ab78a31e5fb9290e118767295e892fe603"
+    },
+    {
+      "path": "plugins/with-native-matrix.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 632,
+      "sha256": "f17cb8a18f04f22fc20087c1568f4316c429dd0ca23af328ba38b9b6f1aa5132"
+    },
+    {
+      "path": "src/BrandRoot.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1408,
+      "sha256": "9e75174810ba6edb5ee9062661a49feb03b8047eff5c97b9dc732f994ac7668c"
+    },
+    {
+      "path": "src/ChatAppearanceSettings.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15560,
+      "sha256": "e65a4aef71d5ed3c9d4ddd16501a2ee04bfdd459f37d3abaa1d1ecae6d59ab7e"
+    },
+    {
+      "path": "src/GuestWorkspace.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8498,
+      "sha256": "b966b97f21efd543c2506c5f7841a854b7a744b07806ea45d1ce482930552f1b"
+    },
+    {
+      "path": "src/NativeMatrixMediaViewer.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6718,
+      "sha256": "3d96b4efd7904aed728eb4851d392737734e4b813d82a6e1b9cb982aac454896"
+    },
+    {
+      "path": "src/NativeMatrixReceivedAttachment.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4882,
+      "sha256": "1f3658dcc21b182a8154c43a343acfe292c7d5cd13b323296f6d17842ecbb178"
+    },
+    {
+      "path": "src/NativeMatrixWorkspace.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14175,
+      "sha256": "a7ad12e1408d1c2760427c2df5f7b8080780ca05308bd487d44c9fb941ee9403"
+    },
+    {
+      "path": "src/NativeSessionPanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4177,
+      "sha256": "7bb1b39b7916334ab1e150079f2a7d8461bcd6f134ade0923d6ec793934ffa00"
+    },
+    {
+      "path": "src/SocialAppearance.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3052,
+      "sha256": "dc3de8169c967a88c5ed62b85745745a07af7b926de2a1ecece6bfdce0222e8a"
+    },
+    {
+      "path": "src/VeilSocialApp.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 41516,
+      "sha256": "246906009e1cfc14fa7c770afae63d049ac624c6b9caa50db1eb74c6367b16b1"
+    },
+    {
+      "path": "src/accountDeletionAuthorization.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2131,
+      "sha256": "53b6cf7199d9b296e704fb1771a281656cb6fc87da659f01ec5e8591633b7ed8"
+    },
+    {
+      "path": "src/accountIntentIndex.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2672,
+      "sha256": "c90f86b63511090d8120ba0d533a4fe42dfd871657f7542cc8fa73cbed71040c"
+    },
+    {
+      "path": "src/accountIntentIndex.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7656,
+      "sha256": "eda1c7a88995812f36ea2fa209bdfbf783353064a72258558d5390d8c6426768"
+    },
+    {
+      "path": "src/accountOutboxCleanup.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1290,
+      "sha256": "880bf2929f155f231cbc81c6325922046955f3ec5b3821949057b0b014207423"
+    },
+    {
+      "path": "src/aiPolicy.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 552,
+      "sha256": "ee3cd36f9ce4f641b4797a41507c14b3d03548117b9377fa3f89917c0da23d8d"
+    },
+    {
+      "path": "src/aiPolicy.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 854,
+      "sha256": "855b6e5ac57d2a5562f8b32eda6f74070ccdef84e400bdcaac7047ab2033d814"
+    },
+    {
+      "path": "src/api.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4846,
+      "sha256": "d1b9efe4a5b1d6e9763604fbeebffb52f690bd5ed33cce211b2d9e3bd1f645c9"
+    },
+    {
+      "path": "src/api.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19799,
+      "sha256": "a55516f5e13b989c00bc2b39afd3d228750c0ef6334eb1dac9c994694ad5bff9"
+    },
+    {
+      "path": "src/audienceClient.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3220,
+      "sha256": "ffe0bea1dac9f36345dc3a70ec3bf2dfcb6f571e8204bfddd72ed96cac36e486"
+    },
+    {
+      "path": "src/branding.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4436,
+      "sha256": "8e6986c55a6eb026f64528f9642650f273b4e18165c2b6bc8c3dd9a4626cf494"
+    },
+    {
+      "path": "src/chatAppearance.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5603,
+      "sha256": "df80df3cd7aacd82d7e6dfc3804af4573abff3637cf065cdf70baeded7ea40f2"
+    },
+    {
+      "path": "src/chatAppearance.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6690,
+      "sha256": "97b2c69c3c78c15f53b95477f42ddb8a3fadf1c69f42a7c6721adfed89e41078"
+    },
+    {
+      "path": "src/chatAppearanceBindings.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3771,
+      "sha256": "b2a4cf1c4766e3b5bdde3e164328aeafdc1be931629e3e9dd834e82205eabac0"
+    },
+    {
+      "path": "src/chatAppearanceBindings.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1348,
+      "sha256": "39189ba3eec5ea0ecb315591b2634c925764813aca158c45b190f914a23f7686"
+    },
+    {
+      "path": "src/chatAppearanceJournal.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7899,
+      "sha256": "b86201c77e4a5109bebccfc2d9082d770fdb5d3c93d88acfb5c34c50db4d91be"
+    },
+    {
+      "path": "src/chatAppearanceJournal.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3768,
+      "sha256": "6fdadca8f21d65dd7f987354a0f666a4c8adafd440a16310b4142986de49a4bb"
+    },
+    {
+      "path": "src/chatCrypto.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4692,
+      "sha256": "bb7483d8a38da3a749f0a90857f4e8d8fa3bb8be14229c967e15dba896f9d286"
+    },
+    {
+      "path": "src/chatCrypto.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11547,
+      "sha256": "3056c99ab49c3c45351095e395baec2dadf3f5399f5be56868e9b65a272c791d"
+    },
+    {
+      "path": "src/cloudAttachments.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4235,
+      "sha256": "94961f813760dccca850a9367c842a4d60f3dd5dac9edc975b6a0b216337e73e"
+    },
+    {
+      "path": "src/cloudAttachments.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5866,
+      "sha256": "0f45a16003a31235562eccbf1f3c7bf4dfed15946571bfaefacf7bbfd44c6d08"
+    },
+    {
+      "path": "src/cloudUploadCapture.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3943,
+      "sha256": "f26249b8beea50d7b03c25d6e64bcb21c50dfafb3f9fbb6c0635ce7e4e3d84a5"
+    },
+    {
+      "path": "src/confirmedAccountDeletion.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5534,
+      "sha256": "dc40aaa34b11b1db5def1313fee51f669b9dec676f87502e8a3b6238a9155995"
+    },
+    {
+      "path": "src/contactActionGuard.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1680,
+      "sha256": "29d3ff6e62cf566c107b1d890a97ba5305e8ba12abeff858eb80ac9ffea23213"
+    },
+    {
+      "path": "src/contactActionGuard.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 905,
+      "sha256": "bb7533470cfe2c59ad9f95555ac5bc47e4c1f289eb1ac408d1208ef274bdfa7f"
+    },
+    {
+      "path": "src/contactCamera.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3848,
+      "sha256": "501a91007e5635b79f973aeaa32a6818ed9e3975aeee0894e03b92d5939c1e97"
+    },
+    {
+      "path": "src/contactOperation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2163,
+      "sha256": "49393a50ecd2f6ab5bfad2203ba0975958ca160342e245cdfda9a2b478d2331f"
+    },
+    {
+      "path": "src/contactOperation.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1248,
+      "sha256": "787450d8bc43c9bb22352bffe109b47243ce41caf667bc88315e2e5b99d923e8"
+    },
+    {
+      "path": "src/contactPreview.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4114,
+      "sha256": "d020a6d69ad2ee80689174536eb980902f5d0be0db42cf476d5bcaf6e7f7eaf3"
+    },
+    {
+      "path": "src/contactProofCancellation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4215,
+      "sha256": "ba854785abadd6ddc1c54399c09fefff0f42e565b2ea0b68489a60098c5a0df5"
+    },
+    {
+      "path": "src/contactRequestCancellation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2439,
+      "sha256": "021cefe8c43c37779526a72f7150663a5c380029a02bdc89fb5bb3520835e582"
+    },
+    {
+      "path": "src/contactRequestFlow.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6268,
+      "sha256": "bb614a3f264c64e822e9d7da3c873a89bfa1f67b5a633b63c36e6347c9678c92"
+    },
+    {
+      "path": "src/contactRequestFlow.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6085,
+      "sha256": "b5c2e68879b56a0aa2879d17e30b26a702931a240a7f479f52b611d513cceaf8"
+    },
+    {
+      "path": "src/contactRetry.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2298,
+      "sha256": "28bf4904b6c54a35b5f45f07915c45b3edd38bcd251917ed00cb6b6b073bbe76"
+    },
+    {
+      "path": "src/currentMomentReport.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1811,
+      "sha256": "80ba1a21fb55062aeba83334d97b2f57766c5caebf86b53adba90017aa7e6a3f"
+    },
+    {
+      "path": "src/currentMomentReport.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 733,
+      "sha256": "7696743a38e473d3ea83d0de9636c66cc33e1c5eba7d85d6b4ac9bec59f4a7f1"
+    },
+    {
+      "path": "src/durableNativeMomentActions.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3196,
+      "sha256": "325a2986588e23ee683877cbfdba21a0f3ebdcb946f8a0dc5381cb8ce0da9786"
+    },
+    {
+      "path": "src/durableNativeMomentActions.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4494,
+      "sha256": "a2bb56ede93090879ba0ed28d3238c610b71d3047ed1241eebe1e05d9bf53dba"
+    },
+    {
+      "path": "src/durableOutbox.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2198,
+      "sha256": "673fa1849f5a3359d2cc89ae2495562d8c3c7c9ca97c747c4add79f646df3cc8"
+    },
+    {
+      "path": "src/durableOutbox.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4126,
+      "sha256": "70a85f97fc834472b5e830bcf0e522b14214731927986a774da274b0aad5cd2c"
+    },
+    {
+      "path": "src/guestRecoveryNotice.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 912,
+      "sha256": "e2e2eac23c1bd7f11bb117a031bcb56a0c2406a2973f76a812353ab48cf94125"
+    },
+    {
+      "path": "src/guestRecoveryNotice.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 369,
+      "sha256": "bf50939bc5de95111611df9793edc33a222c1d71572190c4d7cddce8a986695b"
+    },
+    {
+      "path": "src/i18n.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2111,
+      "sha256": "aabe3da0ab951b107f492a5b27d9252deceed0546a9c0542b2e63c5af1680315"
+    },
+    {
+      "path": "src/i18n.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33882,
+      "sha256": "b412a7c7b5cac81cdd50cbc2894b03d3931e4cc356dc83b7ebc36b3932b9f172"
+    },
+    {
+      "path": "src/i18nProvider.lifecycle.test.cjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3967,
+      "sha256": "82585d728c5cf7302546c3cba4dad1f718e3d622ff5de6272c4851e10bea353b"
+    },
+    {
+      "path": "src/i18nProvider.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2553,
+      "sha256": "b2fb95eb72ca48233a908451adbe45de83b0b3647dc40ae00708302a58178610"
+    },
+    {
+      "path": "src/independent-late-save-qa.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4828,
+      "sha256": "cba3f7839815262bfe9f38f4edd18a563b3b3d4b1c331a8706d53041781e5f2e"
+    },
+    {
+      "path": "src/independent-ui-review-epoch.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5770,
+      "sha256": "442bfa3e23aaa3003c1d80e3be783491699c2a10d29bb41efde5a63b7a564844"
+    },
+    {
+      "path": "src/independentDeleteReceiptSchemaReview.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1470,
+      "sha256": "0c64d876da8ed6bc2d5c21ad24d5bd64410c6cd70f45db8fda6609c86336e179"
+    },
+    {
+      "path": "src/independentRestrictedAttachments.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4492,
+      "sha256": "ee1e7625a2e7cdebc94509f69c8006a38b961c4bab74dade0df996001dab75d2"
+    },
+    {
+      "path": "src/invitationIntent.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1975,
+      "sha256": "79abaf8cb62e2b88ebd11fa856432efd6faf599762208fa333880b6bcca39189"
+    },
+    {
+      "path": "src/invitationIntent.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5808,
+      "sha256": "8deda31b512da8b17e098cd3b7c170b20f29e7eee9fbf71718de77d55a6b0443"
+    },
+    {
+      "path": "src/localClassifierSubscriptionCleanup.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1254,
+      "sha256": "34bd46c513e6fed9fc232e1d7804195be419496ddf04d1518737e41b1273563b"
+    },
+    {
+      "path": "src/localClassifierWorker.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10578,
+      "sha256": "a701bd03b3369ddb2621d5dbb7e5670af8e167de8ac305b90377584bd9b5adbc"
+    },
+    {
+      "path": "src/localClassifierWorker.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7513,
+      "sha256": "2f28c4a725977e4e942668f4466824a143c2af9fdfc7fd6574762f49e70b18db"
+    },
+    {
+      "path": "src/localContentDisplay.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7137,
+      "sha256": "261927c21d0b15dca46dd033c1acb638f0675651d00fd4ee8e3254d9234bbc59"
+    },
+    {
+      "path": "src/localContentDisplay.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9058,
+      "sha256": "28a49f677f8e5693ab2ecde4efc13f6cb7f50d846c7cc4408b59c5a07a442f3d"
+    },
+    {
+      "path": "src/localContentDisplayResult.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2518,
+      "sha256": "cb827360286f5e578b5ef93ea158b2011e17b9153f9fbf902c2d2a68598b4ec2"
+    },
+    {
+      "path": "src/localDeletionRecovery.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3987,
+      "sha256": "aa73a53a277e25e12d3364a16500093da5a82e24581132d9686586d9c60a9908"
+    },
+    {
+      "path": "src/localModelArtifact.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4734,
+      "sha256": "39c992fb9147d6fb943d54abac4a516db0bdbd06e3688e6613dc0f1be5735764"
+    },
+    {
+      "path": "src/localModelArtifact.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6681,
+      "sha256": "feadefab04b2dea6938ced89f4d591e2752d46b7612e6b12aec60282001be33d"
+    },
+    {
+      "path": "src/localModelBundle.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8161,
+      "sha256": "997aaec19bf57a62d062534eb0fa46ec5f551fcc9b458e67e97f8d2f10ca4a3a"
+    },
+    {
+      "path": "src/localModelBundle.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9742,
+      "sha256": "92685360b72d63b807f343553a0df74fe2424d3cd65c4d2f473dcf2eae0bd6e8"
+    },
+    {
+      "path": "src/mainAppEntry.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3506,
+      "sha256": "9a6d1faa3df6daaddff2da26a11daa3a5cac99f2cb02f6dfbb76d6b2eb4317a3"
+    },
+    {
+      "path": "src/messageOutbox.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1978,
+      "sha256": "b58347be03b2bb9f350a3d1d33d3be156ae0abfb8199f329dab64ad2d1480e9a"
+    },
+    {
+      "path": "src/messageOutbox.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4015,
+      "sha256": "32da38e151e2be7b05b4a9130bc972d98e04026c0d4fed6aba4d388eca75108c"
+    },
+    {
+      "path": "src/messageRecipientPreflight.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2645,
+      "sha256": "4f1373667474c17de59bfb7ae7e06195f0ae6607aa563368d1ce364e153ccd10"
+    },
+    {
+      "path": "src/messageSync.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1286,
+      "sha256": "98cb5ea93cdcdd87411c5289b71f739ef41f1dec48459f76558f5f8e784ed2eb"
+    },
+    {
+      "path": "src/nativeChatDeviceStore.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6894,
+      "sha256": "74aed3c97e35b36f8a5c2137f1fb98f808300f144e9c0e80f2b39ff3866d3175"
+    },
+    {
+      "path": "src/nativeChatDeviceStore.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4062,
+      "sha256": "db359d5a869ede247d914447d341da24479dd226e45050bc713c0a5ce9887fc6"
+    },
+    {
+      "path": "src/nativeContactIntent.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3858,
+      "sha256": "95ab5941cded2bf05967f2f1da8d490057f12660cbbf3d6855b00456bc7af873"
+    },
+    {
+      "path": "src/nativeContactIntent.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4210,
+      "sha256": "0ccb0c986aa7e11d0aab3ebfd747c9e95c341792115e65bf3bd8032addb7c1b6"
+    },
+    {
+      "path": "src/nativeContactIntentCapture.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2805,
+      "sha256": "d88b89790c046b861011f66cc37c231b120b5add6b87ca752e84bf9989b88ff6"
+    },
+    {
+      "path": "src/nativeDiscoveryIntent.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3534,
+      "sha256": "f4d2d9a5193970a39e133f6f056bea59d91f6dd0fab448bd370653145c53026f"
+    },
+    {
+      "path": "src/nativeDiscoveryIntent.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3026,
+      "sha256": "9be62a1ef16d3a29f41918089912bb87f7e162db63cb05ec787576f7072c162d"
+    },
+    {
+      "path": "src/nativeMatrix.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19637,
+      "sha256": "7e11ca23a7162dc8a2bfe2d74e1d61b80762aa71b808783b41deeb552262fc4e"
+    },
+    {
+      "path": "src/nativeMatrix.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21362,
+      "sha256": "aac4b329032d20cada3e7f7cc2d95f40a4e9a6e79df3b30202b5eea2cce50ef0"
+    },
+    {
+      "path": "src/nativeMatrixInstalled.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 388,
+      "sha256": "907c8952c0ef63fc4b105b48e5ae0e5455808f33c2fa995bed8f7843c37c4a02"
+    },
+    {
+      "path": "src/nativeMatrixMedia.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3930,
+      "sha256": "493b89cb2423fd4d79d4e458f97b0d3888c901ae1673328e37f3ba857f3663b7"
+    },
+    {
+      "path": "src/nativeMatrixMedia.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3725,
+      "sha256": "34d6e607a331b7d20abb430d19a19bc7badf578a1e6478675bd23df923cc31d5"
+    },
+    {
+      "path": "src/nativeMatrixMediaCleanup.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2552,
+      "sha256": "41519df37910af6a592095cfd7ecd223bb4dc116a9285454b7c3057b25d6a006"
+    },
+    {
+      "path": "src/nativeMatrixMediaLifecycle.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3650,
+      "sha256": "1b82c41de548b2d4f3ec42604fad5ec84a1edaeeab7817c37cc80ae327711681"
+    },
+    {
+      "path": "src/nativeMatrixPickerCaller.test.cjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5143,
+      "sha256": "de7da18bbe89ff205e418c71cf87ee971d627ce1c6232e55870c1873d12ab221"
+    },
+    {
+      "path": "src/nativeMatrixReceivedMedia.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6101,
+      "sha256": "bce32cf293e3f97af375a09f07c3276918bf2bbe5374c83b046922f715789c63"
+    },
+    {
+      "path": "src/nativeMatrixRecovery.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4250,
+      "sha256": "16573615fdb795a2ce1667c1d4e4f09f8ca1c4d148b70ac40b0738f0b0e3fd72"
+    },
+    {
+      "path": "src/nativeMatrixRecovery.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2073,
+      "sha256": "04270859389abfab5337375afd4031f46c417d374250a43821a688df76457d29"
+    },
+    {
+      "path": "src/nativeMediaDecodeFailure.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2816,
+      "sha256": "aa3b7d053390f5e13efd854c777fb97e1f4e382f09c13682cc32f3d2accc7e9d"
+    },
+    {
+      "path": "src/nativeMediaPresentation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2629,
+      "sha256": "a30e595cc1dd6ea4975d147e874f0a3b3c2cfc7e6081100f6665ad5281505a98"
+    },
+    {
+      "path": "src/nativeMediaPresentation.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1661,
+      "sha256": "a5bb30c48dbad02f8079886d94f88bb5d3ebcc22b5eba570f1c60d77058169a1"
+    },
+    {
+      "path": "src/nativeMomentActions.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3388,
+      "sha256": "c45ab708569a9289793ab4c7323949caa9c82d693c7e5ca1c764fe1e46b536f8"
+    },
+    {
+      "path": "src/nativeMomentActions.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2815,
+      "sha256": "0b8ce54536687380436a66605d0708bad8c15e07a9d535808fffa52570a1291f"
+    },
+    {
+      "path": "src/nativeMomentIntent.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9959,
+      "sha256": "ba4507dbd937e8a9768b4cc9ce8debeac484ad8d6dcd8a44f65e9b3a1da92301"
+    },
+    {
+      "path": "src/nativeMomentIntent.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7555,
+      "sha256": "b05e56620b00fdc52260536c9eca0874ddae27e420e3dea5a7a3b1765b867934"
+    },
+    {
+      "path": "src/nativeMomentIntentCapture.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4671,
+      "sha256": "1a94ea08c267582605dd52a3d257000c64c3f50a8181d3f0565c1c720f506b03"
+    },
+    {
+      "path": "src/nativeMomentReportIntents.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3258,
+      "sha256": "1f6917a3edee7121d167659893a2195f3d1bb0e09816f3d0d5aed015c8b884cc"
+    },
+    {
+      "path": "src/nativeMomentReportIntents.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5896,
+      "sha256": "9461c3c7fda7289df263e2e0f2bfd45b96aa57ffbe3c79195637004a9ddd68e1"
+    },
+    {
+      "path": "src/nativeMomentReportReview.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2437,
+      "sha256": "e726cb0c21cc04f25f721b404fa1fe0b4e539a157bde8fc29b0623c7303f7b41"
+    },
+    {
+      "path": "src/nativeSessionController.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4209,
+      "sha256": "f7d5155292216db27e7003eb24726d2d69776ca4aa2f57ed4968c4c1103c13aa"
+    },
+    {
+      "path": "src/nativeSessionController.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5594,
+      "sha256": "0ce8e162c076ac7c5812249107ae3bb4d9955f72054bc87e6b05724a005e955e"
+    },
+    {
+      "path": "src/nativeSessionRuntime.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5230,
+      "sha256": "7aa8c114201f92d5292c1ccd2368978eacade1f5ffffda1f0259619f31d202cc"
+    },
+    {
+      "path": "src/privacySettings.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 966,
+      "sha256": "03877c535f187b005c89d326fa4765f3b89d8c47b143111e1a97cec584ec9efb"
+    },
+    {
+      "path": "src/privacySettings.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1165,
+      "sha256": "042c613c94799703a06aa76331e5a69afbc1f44338cee82a3ff631f6a4c9a800"
+    },
+    {
+      "path": "src/receivedAttachmentCleanup.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4819,
+      "sha256": "fdf5de54c451b3d58f1a92a2db0c70756921c510dd2e8ab988babc3898ed61ed"
+    },
+    {
+      "path": "src/receivedAttachmentCleanup.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2488,
+      "sha256": "670e7b3b5d96114169f8ce641cd7f5f62a768ba2aa25c2d7383e4b92e1317120"
+    },
+    {
+      "path": "src/receivedAttachmentState.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1840,
+      "sha256": "b39814365b41a5e5e59d0229973c013435bb21de7baa46b5d6e9cfc408a87a47"
+    },
+    {
+      "path": "src/receivedAttachmentState.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1104,
+      "sha256": "1dd0c8e6536e57fb1dc9bc27f94dc33c2b6f9fc55713f3622f8e8270d7e5e850"
+    },
+    {
+      "path": "src/restrictedAttachments.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4105,
+      "sha256": "bfa27ac61070f208a187cd6f6edf2e72a34bf55d62819bbcbca04405c13f49e8"
+    },
+    {
+      "path": "src/restrictedMoments.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9139,
+      "sha256": "e5cf4c2975d03cb9e77adc20b8fbb90863d86f849eb886dc40b15344042e06eb"
+    },
+    {
+      "path": "src/restrictedMomentsIntegration.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11926,
+      "sha256": "826d65181a762b075d5379b2637fda9f5ae0e827ef905dbcf909c1a268a96481"
+    },
+    {
+      "path": "src/scopedSessionBridge.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4626,
+      "sha256": "3a837a1cccfe0d46b4dcf2e32db1cd193e1ac4efe76e5cfda567c15051177017"
+    },
+    {
+      "path": "src/scopedSessionBridge.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3512,
+      "sha256": "144ab82688fb65ea49ebfebdcda438def746472e4626aec556235d5bd46f30a1"
+    },
+    {
+      "path": "src/socialPresentation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1219,
+      "sha256": "631f79e1da189dd8fe3d1771664ab87cd55f22e2e295d9fccb8bf7f810e5d9cd"
+    },
+    {
+      "path": "src/socialPresentation.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 687,
+      "sha256": "d12f4086e2e43df117b0c265013b36165d29adb788ea6cc0a1cbaee9b7642529"
+    },
+    {
+      "path": "src/veil-product/AccountLoginPanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6582,
+      "sha256": "9169d32ca226d248d9048fa388fea7341561b4a1e7f07e6bcc8f15af241f0164"
+    },
+    {
+      "path": "src/veil-product/FirstDeviceChallengePanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3436,
+      "sha256": "9bf82366a059d739c500b4ed6657faadfa574054852ba8f38a176e9cf4c41b96"
+    },
+    {
+      "path": "src/veil-product/FirstDeviceEnrollmentPanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2649,
+      "sha256": "426ed3bd8041061ba2040fe0bfc50068ec592c53f5dfdf5498032ff8a9ee2548"
+    },
+    {
+      "path": "src/veil-product/LocalRecoveryPanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3439,
+      "sha256": "8db995883cb99e39a468d378b351508647799544b5f8bfa2b78eef675d2b3e2f"
+    },
+    {
+      "path": "src/veil-product/OwnerLifecyclePanel.tsx",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4326,
+      "sha256": "de76362e261d8b96fdb4b5875ed20c58fe3064ff65a0fab261054fbc5847de6d"
+    },
+    {
+      "path": "src/veil-product/accountBinding.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2789,
+      "sha256": "2a9a04145245857921e5d550c8767145ce0588cc361a63f55ea40d6eff39ddd6"
+    },
+    {
+      "path": "src/veil-product/accountBinding.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4004,
+      "sha256": "2fcd1fab954821d9de15882f2f7c3116bed641e40c8a175a27d347355e21ef7a"
+    },
+    {
+      "path": "src/veil-product/accountEntry.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2356,
+      "sha256": "4bb661b37f97fde7c84435ccf40fff5a05b100eaa92711c23b91041cf67bcbcd"
+    },
+    {
+      "path": "src/veil-product/accountEntry.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1755,
+      "sha256": "d5f9fb91f84a7e0f56517c1d1be0098931a631007194032a9459eb56754a1395"
+    },
+    {
+      "path": "src/veil-product/accountLogin.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10454,
+      "sha256": "6cbaeef6c1ec84199b9d04383d10407c8963d780eb7f5d2843235f25cea9b699"
+    },
+    {
+      "path": "src/veil-product/accountLogin.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7635,
+      "sha256": "b88df8cb2ff7e6ef9cf3f553966146921f1fe05e0c758d0cdd590989e85ffcb9"
+    },
+    {
+      "path": "src/veil-product/accountLoginModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1105,
+      "sha256": "1ce5b0e925ccd755caea6036245c1e5ec880dc9a309e05718bed4d4524fecddc"
+    },
+    {
+      "path": "src/veil-product/bindingContentTypeDelta.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3188,
+      "sha256": "94e5598e05d62f1f6eb9707d451beefb80b26c2482b5b209567e5c40b17e1db7"
+    },
+    {
+      "path": "src/veil-product/bindingFetchProvider.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1033,
+      "sha256": "569bb6d903b157df773a46fce11efd7ff8e3a18e9aeecafceffa06f5a0634902"
+    },
+    {
+      "path": "src/veil-product/bindingFinallyInterleave.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3466,
+      "sha256": "1d2507f02cfb6ed904d1a2a7e972ce4caaf83f1ec45ad97d2431e2ec7dc98499"
+    },
+    {
+      "path": "src/veil-product/bindingLateCompletion.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3246,
+      "sha256": "9211cf96a8ef82a22ad44c3823055a63c009a9ddbd4cb1881e0b91861599a8b2"
+    },
+    {
+      "path": "src/veil-product/bindingNativeAdapter.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8536,
+      "sha256": "0eca17a48f0724bd08c1b71d59547cb698a2edeff2b8ae72d49a3a1bdc06e631"
+    },
+    {
+      "path": "src/veil-product/bindingNativeAdapter.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7595,
+      "sha256": "1046ffca189928022e6b480ee63fe32f2f5d084c90b113e182b01da6b9bb392c"
+    },
+    {
+      "path": "src/veil-product/bindingNativeModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 706,
+      "sha256": "77bd59fd2ebfaca6b1c6dea404c75d9e8c037ab543ea0cfb797b84da326328c1"
+    },
+    {
+      "path": "src/veil-product/bindingQualificationDiagnostic.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 713,
+      "sha256": "2b0aafcf3dfee34f47e8cf71120d0b7c360eec3268853b7bdef14fdb8ef3b83e"
+    },
+    {
+      "path": "src/veil-product/bindingRequestLifecycle.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2968,
+      "sha256": "b49709f9145f815d5abfdd7ee7e62d779d1fbb2a47cdb0ed3180d30487ece1f5"
+    },
+    {
+      "path": "src/veil-product/bindingRequestLifecycle.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2504,
+      "sha256": "8f6403319bb6ff69ef1000a1c5b9289ec8ef5d6fb6b0872cb9e02acecad95e6d"
+    },
+    {
+      "path": "src/veil-product/bindingResidualRepair.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5817,
+      "sha256": "c3750b0c11f61886cae0e6fa4790975edd14eca4e3491ebcc181126a64bb6960"
+    },
+    {
+      "path": "src/veil-product/bindingTransport.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6840,
+      "sha256": "86ef45e048ebde488c07b49d418169e4bae30d2b9bb31de34d6358e1eda43616"
+    },
+    {
+      "path": "src/veil-product/bindingTransport.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5961,
+      "sha256": "5e0c8fd907c9a7c2c3ef4708b4b8d63ae8b117d0c13c1f58a230a9aa8dacd694"
+    },
+    {
+      "path": "src/veil-product/copy.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19880,
+      "sha256": "3ec4c05cdfc28300ab0161b93bf9e98393a0c9350ef3b5141f46e2aa2690d76e"
+    },
+    {
+      "path": "src/veil-product/emptyRecovery.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5039,
+      "sha256": "5adbf59c66e96c5fbc0d60c9f9de827a7df5b20a36873c871548f2be9f5244ca"
+    },
+    {
+      "path": "src/veil-product/entryPresentation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4186,
+      "sha256": "54335372bb3d224c3336abb8975898c2a62edbb93631320da98def74473cf6ca"
+    },
+    {
+      "path": "src/veil-product/entryPresentation.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1281,
+      "sha256": "5a7632581f824817293fdda9d542cee4b802cc8bb6ca7c9bbae2186d05b6a264"
+    },
+    {
+      "path": "src/veil-product/firstDeviceChallenge.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8154,
+      "sha256": "3a422e1d03d95ce6efd814803fdc7ee3769836b003ffed0a1e6254ef9d19aa4e"
+    },
+    {
+      "path": "src/veil-product/firstDeviceChallenge.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8111,
+      "sha256": "32833a4c5480078f4dfb8cd615dbb80cbb9800d9af104674be6b51cb5727152c"
+    },
+    {
+      "path": "src/veil-product/firstDeviceChallengeBridge.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2688,
+      "sha256": "88000e20ae660719c4b4ee4dd6c4cccce3c311ef2eaeea58317676a965119820"
+    },
+    {
+      "path": "src/veil-product/firstDeviceChallengeModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 403,
+      "sha256": "3d968366e0d8792c3d62cb1a0650c3b137ebc62024cd5c26cfdf4e7292379968"
+    },
+    {
+      "path": "src/veil-product/firstDeviceEnrollment.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5848,
+      "sha256": "b4c31f0f83944e148da04d21a949833e949ff7368bc8068ded16e3de089e866f"
+    },
+    {
+      "path": "src/veil-product/firstDeviceEnrollment.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5288,
+      "sha256": "468e259ea11a3a313fb5ddb5f20fd3e87ce79f7fa9bcf0b0dc1c0209d669ba0f"
+    },
+    {
+      "path": "src/veil-product/firstDeviceEnrollmentModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 394,
+      "sha256": "4b5743fa096395bf0dfd8c412291a4eec9ad4c42f2e37ed3646a9cadfff31807"
+    },
+    {
+      "path": "src/veil-product/firstDeviceEnrollmentOwnership.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3702,
+      "sha256": "807c7fcae3940a8890734bda82619173507f635746224d148cf14d0debf7634d"
+    },
+    {
+      "path": "src/veil-product/firstDeviceSourceCurrent.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2763,
+      "sha256": "5d97702ea332184112b9521f913d022d40aeedc22ba30edfaa6dcc8c15f607ef"
+    },
+    {
+      "path": "src/veil-product/keyboardLayout.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2086,
+      "sha256": "21b9013548326187671a69c89b62573d7e1429d58a6708cdc0ff12e081ce9b96"
+    },
+    {
+      "path": "src/veil-product/localAuthentication.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8877,
+      "sha256": "fdcc61b5ba9987659caac1150ced88c09b556e28f2e9960620159858fc2deb3c"
+    },
+    {
+      "path": "src/veil-product/localDeviceSetup.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2236,
+      "sha256": "b99d9ee6c55581ca82b0589719efc77eca37e44af84898a89d5fe46efb7557ef"
+    },
+    {
+      "path": "src/veil-product/localDeviceSetup.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8926,
+      "sha256": "afd0f42897bd1269f92d2e45000d9e3e3d4f657e9ed6e96d0faa424603fb94e5"
+    },
+    {
+      "path": "src/veil-product/localDeviceSetupModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1337,
+      "sha256": "00bc5a350501efe010007934a136ce0f192fcfc6ba5acf8d6c58050087677afe"
+    },
+    {
+      "path": "src/veil-product/localOwner.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6278,
+      "sha256": "edaf7abeb3734544c338de26e7b28d0cbdd0f172e58b25239ac5db265dae5bf3"
+    },
+    {
+      "path": "src/veil-product/localOwner.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7664,
+      "sha256": "cd2254565290b569f47f52cc45a56ab5bcbe31f5f66aeef9d09888f8a06b9d7d"
+    },
+    {
+      "path": "src/veil-product/localOwnerModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 723,
+      "sha256": "c123e47d405b6e6727edf05517b491f1ea78b483b383579c5f6be5a2465069c7"
+    },
+    {
+      "path": "src/veil-product/localRecovery.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4707,
+      "sha256": "ce072706dd9602cd46f400482daf4d310bbb8f4326d4e39cbd635e2415f16ab6"
+    },
+    {
+      "path": "src/veil-product/localRecovery.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3791,
+      "sha256": "8b59bb8c92da538f7b63c061b0049d382e93d999e78bc3a231304d070a9d7689"
+    },
+    {
+      "path": "src/veil-product/localRecoveryModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 660,
+      "sha256": "ae3ea663fb4d193bba79b280c31012257f90807f2260fa3a6f80ac529472b4e0"
+    },
+    {
+      "path": "src/veil-product/localePreferences.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 846,
+      "sha256": "9b8e3c3422deee3ad7a72a4a76fd32bae3245f44410a47adebd94820602683d1"
+    },
+    {
+      "path": "src/veil-product/loginFailureDiagnostic.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4676,
+      "sha256": "8df13199d8ebf6eadfc6cd4738b52038f8f536aef5909587dbaacc5121200b08"
+    },
+    {
+      "path": "src/veil-product/loginFailureDiagnostic.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2419,
+      "sha256": "7ee287a1fee9954fcf2df531096b4ef26c383e9f5f3cfd78195856fcb4862d37"
+    },
+    {
+      "path": "src/veil-product/nativeConsumer.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6846,
+      "sha256": "c75fa9afc06b7027d947a285ad2bf816f5de5f92367a53e022f96a22ff894728"
+    },
+    {
+      "path": "src/veil-product/nativeProductPorts.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17733,
+      "sha256": "e2c7561d06f1d381f51f220565be8cd8f85c7f6e5450381819840b515308f728"
+    },
+    {
+      "path": "src/veil-product/nativeProductPorts.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14805,
+      "sha256": "411c66a2058a5e0cdd30a09858998f6d5953b7502b880479baa9e7c8f9a4959c"
+    },
+    {
+      "path": "src/veil-product/nativeProductPortsModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1234,
+      "sha256": "16a453643767be7acaf0d4bd753292c8c18ff1c19c11f62275740bd3e1f8140c"
+    },
+    {
+      "path": "src/veil-product/originalBusinessReceipt.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4580,
+      "sha256": "8d67af0078ceecf654b3eca13e1306db1ffdd36ed6a647f87efa5724494d528e"
+    },
+    {
+      "path": "src/veil-product/originalQueuedInvalidation.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2321,
+      "sha256": "b23051f49c10f99a4ab8b61ab843a09b16fb1d0fa574865d4c5728756d4f1a12"
+    },
+    {
+      "path": "src/veil-product/ownerLifecycle.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4012,
+      "sha256": "08ea82d2fabfa83cb5f5b7b54cbad4b4444f7d7b3bc36483959d6bbd94719569"
+    },
+    {
+      "path": "src/veil-product/ownerLifecycle.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3732,
+      "sha256": "38cb3feefa5a7f60a67f2c99e9bbde0337a50b04baed44f7a4d54a46fd6946d9"
+    },
+    {
+      "path": "src/veil-product/ownerLifecycleModule.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 658,
+      "sha256": "a9fc3f74f460f098a7d8ce0104e7409c1bedcbf176416c12c7f4894470a0212f"
+    },
+    {
+      "path": "src/veil-product/ownerLifecycleRefusal.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 779,
+      "sha256": "5c11f5fb783fe31f90bb19cbcce0a19591b970e1868e276c86124ef5af2d765c"
+    },
+    {
+      "path": "src/veil-product/ownerObservationDeadline.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4013,
+      "sha256": "42942ee453dd36275e346e05a94ff487c4d2d51b76837ffd78b3cf01fdb50180"
+    },
+    {
+      "path": "src/veil-product/productBoundary.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17365,
+      "sha256": "43a2c28599f1c5fd9ceec904b7e4f0cbbff73352e8780690beae5cbabf8229e1"
+    },
+    {
+      "path": "src/veil-product/productController.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16144,
+      "sha256": "bbc21ebe19be4192a019798aa8aac584afffe93eb274bd7ff133c664f6a4bd79"
+    },
+    {
+      "path": "src/veil-product/productControllerObserverLifecycle.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5771,
+      "sha256": "1372286e5c9e785446c0ed9d4c770c9570133adb79a5ac549c6fe977ed8c32f0"
+    },
+    {
+      "path": "src/veil-product/productEntry.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10657,
+      "sha256": "c5cd72febb3fa5fd5c55a299f7c308ac912df1dfb26cf553b5ec7ed9323d53e0"
+    },
+    {
+      "path": "src/veil-product/productModel.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9211,
+      "sha256": "df1c3dbafa988742365b921f162fa87ce309334cb17dfd0f28bf7ed08c7f789d"
+    },
+    {
+      "path": "src/veil-product/productRecoveryBoundary.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14583,
+      "sha256": "e1018dc07f70987afb7e7eafc073180759d86ff33eb714ddb9836797c3740d5e"
+    },
+    {
+      "path": "src/veil-product/r4ReviewRepair.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6787,
+      "sha256": "76ce458aa325b91b28b85a5a4e16341a14fb2ced2dfa0f03a0ec4bfdc2966f98"
+    },
+    {
+      "path": "src/veil-product/returnLinkDiagnostic.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3237,
+      "sha256": "e026f594c3eda9f7f0cb5cad86ce00d8ff2e553d2ca5a18401edaba61e1b3d3f"
+    },
+    {
+      "path": "src/veil-product/returnLinkDiagnostic.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2071,
+      "sha256": "81f4a6c8377e7454190092f1ae8a82d024ca571b0a0c686dfedd75b73679b9bc"
+    },
+    {
+      "path": "src/veil-product/rootFeedback.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 670,
+      "sha256": "5863f9b8ec423570d8c3b816d423bda5fb3cd73d83339daa9baa7ab78c674fbe"
+    },
+    {
+      "path": "src/veil-product/theme.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6299,
+      "sha256": "4dbe17570107f47c11ef8c69e1e13824d345e5407c87598c3dc0cd85a0f9e126"
+    },
+    {
+      "path": "src/veilCryptoPolicy.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5708,
+      "sha256": "f2003b1b88a4a502d4317cda3e59866dcfdead5ee4f9b6a31aee3c11f4c644b2"
+    },
+    {
+      "path": "src/veilCryptoPolicy.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5552,
+      "sha256": "3695bc7aa12152aeb3f2de975ad04b1dbaa49dbd87c62bebc34b745124c1893a"
+    },
+    {
+      "path": "src/veilMatrixTransport.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6352,
+      "sha256": "d6e95517c6ff9dd428938930b6fdfe07506565a18faee3d2705cfbbf8f1f89a1"
+    },
+    {
+      "path": "src/veilMatrixTransport.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7413,
+      "sha256": "781706f4b315e5eb1f388cd5cd1950bd3ad3786cada83332a1f2847cef5ad063"
+    },
+    {
+      "path": "src/vendor/native-sdk-manifest.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16576,
+      "sha256": "efa8b4b81792d84f9b5eea2ac736ee8963ca5f6778984646d6fe9c3342febe42"
+    },
+    {
+      "path": "src/vendor/package.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33,
+      "sha256": "a90fc33418afa2b9cbf4768524b021135b965ecdf993457505bfae3ac44a8428"
+    },
+    {
+      "path": "src/vendor/product-session-native.d.mts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 34,
+      "sha256": "e747335bc7db47d79474deaa7a7285bf1688359763351705379d49efcddc6d75"
+    },
+    {
+      "path": "src/vendor/product-session-native.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 877346,
+      "sha256": "ceba7019856fa365afbc06533f76fce26e4dfc12658117dc7cbdd1b5b214e4b7"
+    },
+    {
+      "path": "src/vendor/product-session-registry.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    },
+    {
+      "path": "src/vendor/types/application-action-launcher.d.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "path": "src/vendor/types/index.d.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    },
+    {
+      "path": "src/walletAuth.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4794,
+      "sha256": "cf9056efe8e5504d6cb05416767b315360b6c7f8767821d2e6b9e2b8924a8ca2"
+    },
+    {
+      "path": "src/walletAuth.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15072,
+      "sha256": "3475ec18bcaf7692797e366c6782cc175756b3aceb8b130d30e41857d7d6ed88"
+    },
+    {
+      "path": "src/xmldomDependency.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1485,
+      "sha256": "6cf663b4088e87292c9fc97889038ae7465adfb42e49cb3a7d51863a0aa55822"
+    },
+    {
+      "path": "tsconfig.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 476,
+      "sha256": "903185200408b80772ed1c39374c62d9ee06bd01d5fbc14c9f04de2bcf0cec00"
+    },
+    {
+      "path": "web/.gitignore",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14,
+      "sha256": "63b5cb85ca2a5ec4818f1c6544eab8a863512d6e132312c7b87efa46777891e1"
+    },
+    {
+      "path": "web/app.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 18069,
+      "sha256": "80a0968613d204e5fef957785f56ab25b401393b27a01f2e4d07c1c56593337d"
+    },
+    {
+      "path": "web/assets/metamask.svg",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2635,
+      "sha256": "163dd1be1558ee648c266f4a533b6e10d40b737f838bbe40739d9637017cd35f"
+    },
+    {
+      "path": "web/assets/ynx-apple-touch-icon.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7125,
+      "sha256": "71dca222979329c1641b7570f60becf6bcc37a718169e776883414610f96bfe4"
+    },
+    {
+      "path": "web/assets/ynx-favicon-32.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 891,
+      "sha256": "04526c671f6001217d5a7f324ef66091a99f96fae7420f82f0e3fc0dba419c6c"
+    },
+    {
+      "path": "web/assets/ynx-favicon.svg",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 278095,
+      "sha256": "91903c16f512a7f273b6ec92b5622bc602880e6f8c4199f290d4de08ce559591"
+    },
+    {
+      "path": "web/assets/ynx-logo.png",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"
+    },
+    {
+      "path": "web/assets/ynx-wallet.svg",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 280,
+      "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"
+    },
+    {
+      "path": "web/build.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4293,
+      "sha256": "3c40db4ba9b8736735067d8c5a804d7c02600f614bb346cf03ee807b7a9d4480"
+    },
+    {
+      "path": "web/chat-workspace.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11468,
+      "sha256": "49dba78a5c4bde0f606cf2bf65c42d7982e0a8a97660838754ee75fef427b040"
+    },
+    {
+      "path": "web/chat-workspace.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19027,
+      "sha256": "22b3844d740d28f350be5c7e5a710125b565cf1d5976da7a07defebb9d1f5e0b"
+    },
+    {
+      "path": "web/contact-action.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2141,
+      "sha256": "87536abf779be2cc402847c23b6843d45859a623b62c769489498f510886d8b5"
+    },
+    {
+      "path": "web/contact-camera.browser.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8772,
+      "sha256": "518d0223c592978633b3a5c046553f40876d24a0ab58978c2781da2ffc7a12ad"
+    },
+    {
+      "path": "web/contact-camera.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5136,
+      "sha256": "4fdcdcd48e27f6392bdbda97926a4c856127419b73ad47b1dd7b4b8594d788d9"
+    },
+    {
+      "path": "web/contact-retry.browser.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8923,
+      "sha256": "cbf5f4aa18a8c13136372d7c35275a5c0650b5043ec259c508b381d0dae793e0"
+    },
+    {
+      "path": "web/contact-retry.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1611,
+      "sha256": "3f833d7280b7e796afdb691797044e4dd277e4dad0147222ed61435cdf8f70ea"
+    },
+    {
+      "path": "web/contact-review.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1858,
+      "sha256": "8dc17925d074976ffe659dfc6289c9041e257d7b1df6b6de40fa55aae321cf7f"
+    },
+    {
+      "path": "web/discovery-entry.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 617,
+      "sha256": "717cd5f7351d14938b58dd91358304dbcfd98931ad5ef09134906c41af4db9d3"
+    },
+    {
+      "path": "web/discovery-entry.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1274,
+      "sha256": "896d912946ab280173dfa2375e8c26dba9542bc607a6340fff4402f1ff9530b4"
+    },
+    {
+      "path": "web/empty-qa-journey.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9629,
+      "sha256": "7b00c84ccf3cb8028c72db6bc4836db3b36ad6c7020a9e5297792f1823866613"
+    },
+    {
+      "path": "web/generate-wallet-transports.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2473,
+      "sha256": "7824b64fd40096a96cc47c32c27ee3f3674d4f683aff732174cc58d81fa2df2c"
+    },
+    {
+      "path": "web/identity-entry.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12691,
+      "sha256": "fffccfc154bfec365e8e3c3dd4bc6135b4984f308143b4b4db8c2b505cb2df2c"
+    },
+    {
+      "path": "web/identity-entry.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 20332,
+      "sha256": "5a4b8768c785970a07a4fe7dfd2958f80df396606f6c893f60662e644eec4f30"
+    },
+    {
+      "path": "web/index.html",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26244,
+      "sha256": "83233286f7101319e3c4fce30a42b47f2ad6e50b48a3d886f1e4554cb1502c6e"
+    },
+    {
+      "path": "web/matrix/PRODUCTION-INTEGRATION.md",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6376,
+      "sha256": "2edd91628c29fb20b7fc5a4223824f48452110290c43b29f9aacc8d37296d260"
+    },
+    {
+      "path": "web/matrix/audience-client.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7445,
+      "sha256": "fe4f57995d0a94a943dd5ae1cd6d96142b5446ea1bfc49bc41f175ea81ae700f"
+    },
+    {
+      "path": "web/matrix/bounded-operation.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1638,
+      "sha256": "f454a8aab0a66166c692452f04d58190cdf4b2d2f4398ded41661d573e6d2687"
+    },
+    {
+      "path": "web/matrix/chat-appearance-ui.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13685,
+      "sha256": "78009292f09959659b54713d057d6cf7b4bb3b38871f374530912f0348d60769"
+    },
+    {
+      "path": "web/matrix/chat-chrome-copy.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1197,
+      "sha256": "76be9e6d7a96874fcd6a1139fffa290e54601077c0773b34307e34b44ec4b093"
+    },
+    {
+      "path": "web/matrix/chat-chrome-copy.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2964,
+      "sha256": "69e618a230e7a5e54fd7869ece0353da08e205f954bc6fc80c90889122c77c4e"
+    },
+    {
+      "path": "web/matrix/chat-confirmation.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4114,
+      "sha256": "c684e1416f5e67cc1c60ec9440c77e2b18ccf466b85d52d20137bab7cac852a6"
+    },
+    {
+      "path": "web/matrix/chat-confirmation.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6212,
+      "sha256": "f83597011b721309803e527a29dde6a0653d88f105d65a26bec0bdb852f65bd1"
+    },
+    {
+      "path": "web/matrix/chat-copy.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6849,
+      "sha256": "ae4390c0fb750b0c6a34e1cbd07ad5f38281a437313b8c4055013fb27867885d"
+    },
+    {
+      "path": "web/matrix/chat-layout.browser.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6077,
+      "sha256": "c8d7b2e5ea92969849e2da63bc6050425e82199f72221fffe1867ef8ff8dcd8e"
+    },
+    {
+      "path": "web/matrix/chat-presentation.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1911,
+      "sha256": "6cfcd3d9bcbe852aa31e444b3c3a0c9e8b7e3157e38dfc76c94891b1012ef8b2"
+    },
+    {
+      "path": "web/matrix/chat-presentation.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2469,
+      "sha256": "adf01f606febf567bce0f00b621316d1542c3c3cd35a7fbcad07ba714fdab51e"
+    },
+    {
+      "path": "web/matrix/contact-chat.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6142,
+      "sha256": "972d1eebc2f6916e96465e9cc2634d53bb3fb217c42e60e654a9468149ae68ce"
+    },
+    {
+      "path": "web/matrix/contact-chat.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9011,
+      "sha256": "596de3abf316cced04dcc72d6aa31ecd97241fbad64ccfbf2b79be9e63e70811"
+    },
+    {
+      "path": "web/matrix/crypto-store.failure.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4570,
+      "sha256": "0748a3c55558e8f6f60fa37dfa9ede3e0b28ec988bdc1ed11b0080272949f7e6"
+    },
+    {
+      "path": "web/matrix/crypto-store.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2922,
+      "sha256": "7a8911f9881d571fffae42ff1670acc0e1dfd319e3cfe96487d8be36ec65e7d1"
+    },
+    {
+      "path": "web/matrix/device-reauth.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3742,
+      "sha256": "9b02331e1629664ae792a2d929c25145fbcd02f29225e9ab6c32075f0665cc50"
+    },
+    {
+      "path": "web/matrix/legacy-reader.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2206,
+      "sha256": "69aa0af5ccc587d866929b3df4ce4bf64328abeb236c43b243ad6b096370a136"
+    },
+    {
+      "path": "web/matrix/local-filter-caller.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6237,
+      "sha256": "1494d998791022d90ab3155fc0152180c03d4028428d159bc1df34c51566c5e7"
+    },
+    {
+      "path": "web/matrix/local-filter-feed-caller.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16288,
+      "sha256": "754784b82f5e0a745e655efbe25d7bcacf6c0d65d5611356acf17b840bba2317"
+    },
+    {
+      "path": "web/matrix/local-filter-ui.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4358,
+      "sha256": "bdb51431d69d2a58d8c38740d39a59d320967df0e7bf6c25190ad18a78d5418d"
+    },
+    {
+      "path": "web/matrix/local-filter-ui.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4886,
+      "sha256": "d9e17c68fa1b41720330d5cd5954e91f6820ea773bbd660787da0d8df9d5da03"
+    },
+    {
+      "path": "web/matrix/login-callback-entry.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2658,
+      "sha256": "1f8123a3f64ce2e413aca17c749cc93f4035498759151b9d6cd56a79cb0e4922"
+    },
+    {
+      "path": "web/matrix/login-callback.html",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2985,
+      "sha256": "acff1b697a57a57ea8a7632f64ce75a5b11b08f0fba5d4d573ed849c2c4255d7"
+    },
+    {
+      "path": "web/matrix/login-callback.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10963,
+      "sha256": "6db60ef2451eb137c3ad4f808be8f02d35153f862d410fc3635ed8dd8b49c83c"
+    },
+    {
+      "path": "web/matrix/login.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11187,
+      "sha256": "815a2eb2c4a5f1907cd439dd44b29c268cf5ebc07e5f9ef5b60a5d7952e72da4"
+    },
+    {
+      "path": "web/matrix/login.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19142,
+      "sha256": "8371c662d001b36f209cb53c62c49e1ad0fe2a0734871db30196f8fdfae7e45d"
+    },
+    {
+      "path": "web/matrix/protected-drafts.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8920,
+      "sha256": "ae04a0bd17497980aeb781f60433bdd5ba294aae92a24993377e69bd7b45c42e"
+    },
+    {
+      "path": "web/matrix/restricted-attachments.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5489,
+      "sha256": "ee9064a10a0bcfe191b8d57680702538c9df26f461423751b0e3723d16855652"
+    },
+    {
+      "path": "web/matrix/restricted-comment-recovery.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4498,
+      "sha256": "e4e56a7fb400b39b8dc3db89491641aa7100ce2d2b2320146b210d842c23513a"
+    },
+    {
+      "path": "web/matrix/restricted-feed-ui.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12851,
+      "sha256": "f3e9807cbdf132092ba19eb08d1aa202ef49fc38267374268b4c7053568c77b6"
+    },
+    {
+      "path": "web/matrix/restricted-moments-ui.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17113,
+      "sha256": "5f73d427e6235be825e19b2e33494ea84aa759363b5a9553569edea2b90b6e22"
+    },
+    {
+      "path": "web/matrix/restricted-moments.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19567,
+      "sha256": "f4a48994e7b3e94526baf1049ccc3d6594fcc6247cc28fd35d1cf04b684a9e49"
+    },
+    {
+      "path": "web/matrix/session-ui.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33127,
+      "sha256": "58659ff3094e17ab918209681a9845876197404b18665c804f55272f12126e62"
+    },
+    {
+      "path": "web/matrix/session-ui.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 43891,
+      "sha256": "60c1907c007fa48795119d4c0d820c21a1ab2f09b19afce0c2140fbb10751522"
+    },
+    {
+      "path": "web/matrix/sso-reauth.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4482,
+      "sha256": "a9d250471c0f40a02af89d5e2fdf03992face353feb1bae8451deabb84ab5c66"
+    },
+    {
+      "path": "web/matrix/sso-reauth.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2231,
+      "sha256": "af23a723eb050143d88769c1b4c0b510de8b2ce9ce603e2e2d5d211eba357caf"
+    },
+    {
+      "path": "web/matrix/transport.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 22959,
+      "sha256": "1946e9dbfeba44cd31db030336d44a1076bf0f16e4fa77330c44a71e850d7ea6"
+    },
+    {
+      "path": "web/matrix/transport.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8885,
+      "sha256": "675e4c139dd59a1a1bfec2be26038a54e54f772e95671c2938af42d32787030d"
+    },
+    {
+      "path": "web/network-controls.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11223,
+      "sha256": "4b4685fc4aa61eb3ddecab85db15bd85ac644983bcee7b453a475d79f30f42c0"
+    },
+    {
+      "path": "web/private-session-ui.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 18831,
+      "sha256": "802ed4cf4ac59c218e1bf07e3c0af67139c6c47381f4a3c6cfdfac21b0c24d0d"
+    },
+    {
+      "path": "web/private-session.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8599,
+      "sha256": "d20f7964d6c3e3860e2535afa3c9da7addfab3b4fc72d8b9deed05a2c6b1f0a4"
+    },
+    {
+      "path": "web/private-session.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15273,
+      "sha256": "7c8f20c60ae627be09e36cdc959600d9d89f01e064224b03e95b3290cef12bc5"
+    },
+    {
+      "path": "web/product-shell.css",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11173,
+      "sha256": "ddcea0a9e1d250c32f452e6f91555469a089d1347534e3dc2a3d23ed77e8718c"
+    },
+    {
+      "path": "web/product-shell.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 36325,
+      "sha256": "4ea3f1fcd86efee8c2405bb4d418e6022b67e21cc071a981241b5b9a75f6501d"
+    },
+    {
+      "path": "web/product-shell.ui.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13917,
+      "sha256": "70bc8f193aeb5b2b67e083f584e323a69361dc0b50f78f3b805ce4b0c5c4d6f3"
+    },
+    {
+      "path": "web/profile-share.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3016,
+      "sha256": "bcfd890f56d6e167417cbc1ce22b888bf58608251e2d89a6c492fd41b2d553c8"
+    },
+    {
+      "path": "web/profile-share.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 775,
+      "sha256": "6667d9a5f5702eb2bd127b6c4dc40cd8715704b2781d68ccea7b1aa9aa67f6be"
+    },
+    {
+      "path": "web/protected-chat-devices.browser.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11600,
+      "sha256": "d702c17ed6d5d87585949a59b74df6b671656f2e7f1233e8b3dd92e907f62815"
+    },
+    {
+      "path": "web/protected-chat-devices.test.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6687,
+      "sha256": "ab4fb009cce799097c5161b82089169ad30a9ec9d8b52cd7e88e64b15a31f2ff"
+    },
+    {
+      "path": "web/protected-chat-devices.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8907,
+      "sha256": "fae172c8ae7828bf5a8f80c67704aab13a83b1c913148c981c9a4245d7844466"
+    },
+    {
+      "path": "web/social-provider-guidance-main-handoff-20260831.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1319,
+      "sha256": "f25f12991a58aefd8970a10f1c93de37fc8cba443b6b530de3b7a9803ee04a3b"
+    },
+    {
+      "path": "web/styles.css",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 36775,
+      "sha256": "fe90acaf556b16d747998602a3ce70cb18ef61e42b80a12883cfa0b48fc17c77"
+    },
+    {
+      "path": "web/vendor/private-sdk-manifest.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 660,
+      "sha256": "2a357886108123706e6bd2d781b0da0a20bf774cf5af3ca30832983348ce242a"
+    },
+    {
+      "path": "web/vendor/product-session-browser.d.mts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 102,
+      "sha256": "753a16b8a8707d4b4dda147e4c12691dff6c443bf6b69e2553c735c579a225db"
+    },
+    {
+      "path": "web/vendor/product-session-browser.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 238902,
+      "sha256": "c765eca415a6e9605d36ec0b1a1b7cdbfa8da723a635796b5df4fb8e9ba97f74"
+    },
+    {
+      "path": "web/vendor/product-session-registry.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10361,
+      "sha256": "359e6a26abc914251bf197df220348538bbd9b46dc4d253fcd80532528f118f2"
+    },
+    {
+      "path": "web/vendor/standard-wallet-browser.d.mts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 83,
+      "sha256": "6a13e4ddb6cc5b13ba45766a0f3dca0e6a3c93518223c105baf0c16363935f1d"
+    },
+    {
+      "path": "web/vendor/standard-wallet-browser.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 23341,
+      "sha256": "2eb63acdfc973020ed2deac89eb9ff01d457385861ef03915f4446d7074d9e23"
+    },
+    {
+      "path": "web/vendor/types/application-action-launcher.d.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1387,
+      "sha256": "a4608d0fc89a61adfaee5b1116778854caaa3af68f3e29e7757e58c949d156bd"
+    },
+    {
+      "path": "web/vendor/types/index.d.ts",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 103600,
+      "sha256": "25635a1c27cd4c382888196156cb8dd5677c065698b8b5fa5403d321228b4e47"
+    },
+    {
+      "path": "web/vendor/wallet-sdk-manifest.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 384,
+      "sha256": "9e96b57617c9f0e9ebf3879f4c4741d73e98cdbcee0608fdf6f024f4f197921c"
+    },
+    {
+      "path": "web/vendor/ynx-wallet-transports-b38f74d3b.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1067240,
+      "sha256": "fc29db08a32ae60a6ef0151b1e9a4db4c9c1d795f4476b13cedeb1ed4f6f1e3a"
+    },
+    {
+      "path": "web/vendor/ynx-wallet-transports-manifest.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 129998,
+      "sha256": "637a0ee7fa791c15926787948b38eec2062e63c93813347a56191d01d73b65c0"
+    },
+    {
+      "path": "web/wallet-chooser.browser.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6767,
+      "sha256": "8f357db1080a67a60e2ea447b93eedafb3e4d14d47cc05718494b62800a8aad8"
+    },
+    {
+      "path": "web/wallet-provider.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6757,
+      "sha256": "6cfcf13b2cebb3e8de876e5f3387cf4e0717ac246288d3c8c4a40fbff50ff1c3"
+    },
+    {
+      "path": "web/wallet-provider.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8872,
+      "sha256": "9984ded1a7cc977c4312fc2d9c073e2104d9a585433835cc80648eba9b969ab5"
+    },
+    {
+      "path": "web/wallet-transports.js",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4020,
+      "sha256": "ec53ee45f4fd669fc233e25b247c899a39e567e98222711c904b45c876a12adc"
+    },
+    {
+      "path": "web/wallet-transports.test.mjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5625,
+      "sha256": "015f02c3cf2e73dc41743f031bc94b463cf01de190e395bc7336465c218fe544"
+    },
+    {
+      "path": "web/workspace.css",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12648,
+      "sha256": "06c6511c683b1d3479a2522943fd4ca3b179861ccc4b9c44594d36cdd1e674e8"
+    },
+    {
+      "path": "evidence/libsignal-android-01040-20261004",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 120,
+      "sha256": "8f47080432d36bd7eb5c6eb6cc7fbdde6f0f811ff0a3735d430bb1504aad3b3e",
+      "literal": "/Users/huangjiahao/.codex/worktrees/social-wallet-chooser-20261001/apps/social/evidence/libsignal-android-01040-20261004"
+    }
+  ],
+  "leafCount": 499,
+  "nodeModules": "External previously pinned build dependency, not included",
+  "runtime": false
+}

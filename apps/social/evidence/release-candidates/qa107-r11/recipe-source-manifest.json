@@ -1,0 +1,174 @@
+{
+  "entries": [
+    {
+      "path": "source/build-matching-android-native.cjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21163,
+      "sha256": "e9c08499b637761663a59981dff82ef6a8540d334c4a14c5e6dd580570dd912b"
+    },
+    {
+      "path": "source/build-matching-host-service.cjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 580,
+      "sha256": "df3f4f592ad75c099a5570add34efa1fd218600c777a0f002eca8d601f775c11"
+    },
+    {
+      "path": "source/matching-recipe-controls.cjs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15109,
+      "sha256": "3d671df237aa70dd5d8ea52c8871742cca8cfa0e042dff2d822aacba320f96bb"
+    },
+    {
+      "path": "inputs/ANDROID_BUILD_INPUTS.cold-v1.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 62775,
+      "sha256": "f5e23ad843f506a23e68f2c0ccd176b48368ac7051c30d08839e1eefe4422114"
+    },
+    {
+      "path": "inputs/SELECTED_C_LINK_CLOSURE.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12839,
+      "sha256": "2366c9dd8d6651308f3e1d0c68e9af9c98fd5f75c1a2d1fedf2fbebcef7cf949"
+    },
+    {
+      "path": "inputs/NATIVE_SOURCE_MANIFEST.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 45595,
+      "sha256": "86a7fc7f417cad43c5f03d8c62c4e064e33326f53fbdf6868fd8a796672ccbfa"
+    },
+    {
+      "path": "inputs/upstream-1.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2789,
+      "sha256": "20ac9bf0aa7a5e2639f3aa26763297c9a07e33e890587a3bea1f8210904d5dd7"
+    },
+    {
+      "path": "inputs/upstream-2.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17799,
+      "sha256": "f7c41c61a87fd40424e146ce705bf010db6628f5ff69daa111fce443b5f818dc"
+    },
+    {
+      "path": "inputs/upstream-3.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 41698,
+      "sha256": "91a19bb13e30c056684a21763021b7fb7ff97545248bd40d5ea58a1da1810070"
+    },
+    {
+      "path": "inputs/upstream-4.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 992,
+      "sha256": "e2b54be5771022ce7bbfe4c1633227a05c0b874093f342a87fa7ec303dfa897a"
+    },
+    {
+      "path": "inputs/upstream-5.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2793,
+      "sha256": "cebb5449c86a521dd4e2014b0fda44a21414539d1f2681b1c620c9da8120b8e3"
+    },
+    {
+      "path": "inputs/upstream-6.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3820,
+      "sha256": "b13500030d98a750d0aadd46ccfaca7651fca77053a32b27cab4bc11dc945e5e"
+    },
+    {
+      "path": "inputs/upstream-7.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1243,
+      "sha256": "d37d3ddcadfd07cf9456526fcb4d2eae702cc7ac68536fd29532ad800af20392"
+    },
+    {
+      "path": "inputs/upstream-8.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1002,
+      "sha256": "14e775bfeaa80215292fc7e970510174c3c994aedd9534f3181280651336fc3f"
+    },
+    {
+      "path": "inputs/upstream-9.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5381,
+      "sha256": "618a88f36a8ca5b92f3375b3ef280344d7711323472474d1318a621278c2ebe3"
+    },
+    {
+      "path": "inputs/upstream-10.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1773,
+      "sha256": "c8123d80462a6635e9801dd42b71653ac4a8aa816981eb374ab08a0cfefc222f"
+    },
+    {
+      "path": "inputs/upstream-11.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33921,
+      "sha256": "96414b4c1e5879233fd7da2b2aff26f84cf9213a0ed1c19c5feecf4490d21d03"
+    },
+    {
+      "path": "inputs/upstream-12.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 52186,
+      "sha256": "a2e24206492b3b0b50c89dac4e2ec5bfdf03c07b9a6465ae6b1f4093a77a7186"
+    },
+    {
+      "path": "inputs/upstream-13.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3544,
+      "sha256": "63c9a786a03e64328c3779e79be1ecbd25f6a665287533bd7a5d07537c5199fc"
+    },
+    {
+      "path": "inputs/upstream-14.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21215,
+      "sha256": "10b8cc8ae2acb9b244f2c1e09c392a3cb20f19d45162b13f0ef3723309c9194a"
+    },
+    {
+      "path": "inputs/upstream-15.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2286,
+      "sha256": "3db9aa3f2e95ce0b0de0abcd5aa276c14a28f9ee9e45542be081aa4f12d72f3c"
+    },
+    {
+      "path": "inputs/upstream-16.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3599,
+      "sha256": "fc3522db0097e951d3f0ea689f7a188649136c26805ad5421462401ab8be3a54"
+    },
+    {
+      "path": "inputs/upstream-17.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3095,
+      "sha256": "f9ecdd99ae39922b5546cd30ae762702f5d4c3c27429f99476abd7691156eb24"
+    },
+    {
+      "path": "inputs/upstream-18.json",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19822,
+      "sha256": "013572ca2f79f03a48d712daeba358fc8de7b549ed2bf1a4d5718d1bf542f0d8"
+    }
+  ],
+  "externalToolsLibrariesAndUpstreamBodies": "Not bundled; exact input pins retained. This is not a hermetic or transitive-license-audited build bundle.",
+  "productSourceModified": false
+}

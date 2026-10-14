@@ -1,0 +1,135 @@
+{
+  "state": "SOURCE0_QA107_ACTUAL_CALLBACK_AND_ASSETLINKS_PUBLIC_TUPLE_CHECKED_NOT_PUBLISHED",
+  "source": 0,
+  "build": 0,
+  "heavy": 0,
+  "GUI": 0,
+  "publication": 0,
+  "noInflight": true,
+  "apk": {
+    "bytes": 181327362,
+    "sha256": "bc7e866e066f2fd4c319dcff5e3d0942e8093060b8004f255d3c8c9eff3051f9",
+    "package": "com.ynx.social.m1qa",
+    "versionCode": 8,
+    "versionName": "1.0.7-INCOMPLETE-QA",
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "callback": {
+    "activity": "com.ynx.social.matrix.VeilSocialQaLoginCallbackActivity",
+    "exported": true,
+    "launchMode": "standard",
+    "autoVerify": true,
+    "action": "android.intent.action.VIEW",
+    "categories": [
+      "android.intent.category.DEFAULT",
+      "android.intent.category.BROWSABLE"
+    ],
+    "scheme": "https",
+    "host": "social.ynxweb4.com",
+    "exactPath": "/sso/m1qa/callback",
+    "uri": "https://social.ynxweb4.com/sso/m1qa/callback",
+    "clientId": "ynx-social-v1-m1qa-sso-v1",
+    "productionCallbackActivityRemoved": true
+  },
+  "normalRules": {
+    "packageChoosesFixedM1QAProfile": true,
+    "requiresOperatorSuppliedSignerPins": true,
+    "installedSignerSetMustExactlyMatch": true,
+    "requiresApi31VerifiedDomainAndExactDedicatedActivityResolver": true,
+    "rawCallbackMaxChars": 2048,
+    "queryKeys": "exactly state+code OR state+error; each once",
+    "state": "same retained browser handoff, no replay",
+    "code": "canonical unpadded base64url 32-byte token",
+    "errors": [
+      "access_denied",
+      "login_required"
+    ],
+    "fragmentOrBackslashRefused": true,
+    "appLinkIsNotNativeCoreOrDeviceGrant": true
+  },
+  "assetlinks": {
+    "publicationHost": "social.ynxweb4.com",
+    "publicationPath": "/.well-known/assetlinks.json",
+    "sourceOutside499": true,
+    "originalQa106Image": {
+      "path": "/Volumes/Data/Users/huangjiahao/ynx-social-m1-continuous-20261011-main/main-qa106-same-tls-public-assets-r1-20261011/public-assets/.well-known/assetlinks.json",
+      "bytes": 339,
+      "sha256": "f8965a46e28dc2ab144cbd4f4f919742af60492988710dc5c8e754b647bcb825"
+    },
+    "qa107TupleMatchedImage": {
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-qa107-limited-qa-publication-preparation-20261014/evidence/QA107_VERIFIED_SAME_TUPLE_ASSETLINKS_IMAGE.json",
+      "bytes": 339,
+      "sha256": "f8965a46e28dc2ab144cbd4f4f919742af60492988710dc5c8e754b647bcb825"
+    },
+    "relation": "delegate_permission/common.handle_all_urls",
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.ynx.social.m1qa",
+      "sha256_cert_fingerprints": [
+        "D4:E5:62:61:0E:CB:4E:30:4F:A0:0E:E0:7E:7A:DA:E7:DA:86:2C:E1:08:BD:A7:BD:FE:93:3C:28:83:1F:15:4E"
+      ]
+    },
+    "afterActualApkTupleComparisonIdentical": true,
+    "noPathConstraintInAssetlinksItself": true,
+    "publishedThisTurn": false
+  },
+  "sources": [
+    {
+      "relative": "android/app/src/m1Qa/AndroidManifest.xml",
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/product/apps/social/android/app/src/m1Qa/AndroidManifest.xml",
+      "bytes": 1770,
+      "sha256": "a81eba123044450cb2e32cca8aa249feef9eb879a8098d087c375cc2817a230a",
+      "exactFrozen499Selection": true
+    },
+    {
+      "relative": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialQaLoginCallbackActivity.kt",
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/product/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialQaLoginCallbackActivity.kt",
+      "bytes": 835,
+      "sha256": "62a438db928339865245da3b495402ba8ec44960c0d297984c1ad4ef45ffdb46",
+      "exactFrozen499Selection": true
+    },
+    {
+      "relative": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginProfile.kt",
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/product/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginProfile.kt",
+      "bytes": 2076,
+      "sha256": "cf7dc6a0686bd5e8b9eebb8ab2afdb45e7c4082eba6797f0201cf43b22186b6f",
+      "exactFrozen499Selection": true
+    },
+    {
+      "relative": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginBrowserPort.kt",
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/product/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginBrowserPort.kt",
+      "bytes": 11800,
+      "sha256": "8f2ccc5fa96975da7feb6b53b83af68164ea730efaf445d7158527e3ffeb20bd",
+      "exactFrozen499Selection": true
+    },
+    {
+      "relative": "modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginClient.kt",
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/product/apps/social/modules/native-matrix/android/src/main/java/com/ynx/social/matrix/VeilSocialLoginClient.kt",
+      "bytes": 45571,
+      "sha256": "0465ec256210b85db22cbc933112b6e1616390339100f1133c2827a73e674a92",
+      "exactFrozen499Selection": true
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-main/m1-matching-recipes-r11-20261014/apk-qa107-r11/evidence/SOURCE_SELECTION.json",
+      "bytes": 103018,
+      "sha256": "b14f62c89471e6d2cbcbfd503208400c25eb1730bcfdc267362d50ad4c0b51a8"
+    },
+    {
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-qa107-limited-qa-publication-preparation-20261014/evidence/apk-public-manifest-tree.raw",
+      "bytes": 28611,
+      "sha256": "bb9e5c8b98f9a5f911dd4a64564a5d81867fa2156b07f5324919e41f2318c34d"
+    },
+    {
+      "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-qa107-limited-qa-publication-preparation-20261014/evidence/apksigner-public-verify.raw",
+      "bytes": 955,
+      "sha256": "62dd5561a0add09070a3b95c422b0bef938aab0b61feeba8e68b87a4f3dfda14"
+    }
+  ],
+  "difference": "Callback package/certificate/host/path/clientId tuple equals the existing normal M1QA tuple after APK+frozen-source comparison. APK bytes/versionCode/versionName changed to QA107; old QA106 artifact hash/version admission is NOT carried forward.",
+  "installed": false,
+  "domainVerificationRuntime": false,
+  "authAdmission": false,
+  "newDomainOrSourceConfiguration": false
+}

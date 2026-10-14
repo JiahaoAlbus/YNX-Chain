@@ -1,0 +1,101 @@
+{
+  "schema": "ynx-social-qa107-frozen-source-carrier-v1",
+  "repository": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+  "plannedRef": "refs/heads/codex/social-qa107-r11-source-20261014-01a02881",
+  "canonicalPath": "apps/social/evidence/release-candidates/qa107-r11",
+  "files": [
+    {
+      "path": "build-recipes.tar.gz",
+      "bytes": 107594,
+      "sha256": "fdcf40223ae9e097ccea085fc3c9317cedab1afa6888171edea126d76266c910"
+    },
+    {
+      "path": "callback-descriptor.json",
+      "bytes": 6635,
+      "sha256": "94e26675781fac200aad0a5b60ed3092fc1ff56c8ea97e0ab830e4ca58f63482"
+    },
+    {
+      "path": "client-source-manifest.json",
+      "bytes": 113202,
+      "sha256": "8e1cdb159b75bbaf2a480b04ad837cb6b7c4c1258b1b721a940fb4801dcc28c1"
+    },
+    {
+      "path": "client-source.tar.gz",
+      "bytes": 2513828,
+      "sha256": "1d477d774fd21e3ac05227fe001605ec365cf7f8e32ad326756205ab1971e177"
+    },
+    {
+      "path": "host-source-manifest.json",
+      "bytes": 235039,
+      "sha256": "08ca619cb005f6971bb2da51cd450b78aa91852d08c86053ae71f8b3e15fdc1a"
+    },
+    {
+      "path": "host-source.tar.gz",
+      "bytes": 2772567,
+      "sha256": "6c739b10167886f9aac2a30dc19510cc3a2cfbec07a507b8f899da7429bf7956"
+    },
+    {
+      "path": "native-source-manifest.json",
+      "bytes": 45595,
+      "sha256": "86a7fc7f417cad43c5f03d8c62c4e064e33326f53fbdf6868fd8a796672ccbfa"
+    },
+    {
+      "path": "native-source.tar.gz",
+      "bytes": 534470,
+      "sha256": "9d87681c999f1f83fdc7c10e3314854f7318afa478480295847994690c834906"
+    },
+    {
+      "path": "recipe-source-manifest.json",
+      "bytes": 5167,
+      "sha256": "5222a917f96a45221790c537e356cf7045635ecddedf959ca1e379b29b558bc5"
+    }
+  ],
+  "apk": {
+    "bytes": 181327362,
+    "sha256": "bc7e866e066f2fd4c319dcff5e3d0942e8093060b8004f255d3c8c9eff3051f9",
+    "package": "com.ynx.social.m1qa",
+    "versionCode": 8,
+    "versionName": "1.0.7-INCOMPLETE-QA",
+    "minSdk": 24,
+    "certificateSha256": "d4e562610ecb4e304fa00ee07e7adae7da862ce108bda7bdfe933c28831f154e"
+  },
+  "native": {
+    "sourceEntries": 152,
+    "sourceTree": "98e73af5c9f6d30322197fbe1844f9c345342a5817e34ff798fd25d0c2cfdf8d",
+    "unstrippedBytes": 34121408,
+    "unstrippedSha256": "0f540b53c1896a3976f7f1f246ad42d5b82c4bc277af0e2817b061abb8659445",
+    "packagedBytes": 19485472,
+    "packagedSha256": "42f583165bac32f49e2cbbadb7691e932e4e679eade0f2c7a2809cd2e0780eda",
+    "features": [
+      "abi5-final-native-link",
+      "predevice-cold-v1"
+    ]
+  },
+  "host": {
+    "overlays": 28,
+    "sourceEntries": 1048,
+    "bytes": 12153826,
+    "sha256": "6c3d43bd554c89f5f40cb31b4ffa5ee9b9f79f77d8fe7ce559a4fc79f652d72f",
+    "target": "darwin/arm64",
+    "LinuxDeployment": false
+  },
+  "counts": {
+    "client": 499,
+    "native": 152,
+    "host": 1048,
+    "recipeInputs": 24
+  },
+  "boundaries": {
+    "sourceTransportOnly": true,
+    "installed": false,
+    "started": false,
+    "firstDevice": false,
+    "twoClientChat": false,
+    "NativeCoreQualified": false,
+    "SourceGrant": false,
+    "issuedQaProfile": false,
+    "deployed": false,
+    "normalUserRecommendation": "NOT_CLEARED",
+    "fullGoalComplete": false
+  }
+}

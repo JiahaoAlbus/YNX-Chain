@@ -1,0 +1,1228 @@
+{
+  "sourceRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-native/native-execution-partial-response-cleanup-r11-20261014/source",
+  "parentRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/social-native/nativecore-purpose-durable-executor-r10-20261014/source",
+  "entries": [
+    {
+      "path": "c/include/veil_checked_store.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12373,
+      "sha256": "2bf311e05acaa079787ed1a976b24bee6ca2150d1860c7bf5a5ac140682c1b8a",
+      "gitBlob": "eb967581dcb2be5ee5e7020d13860330cb56210b"
+    },
+    {
+      "path": "c/src/veil_authority_registry.inc",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 27952,
+      "sha256": "07f72053ea11df5cbc1186f553004205afde3cc9038ce4c67eff7d28784416fd",
+      "gitBlob": "bb03449c78793c9191687edeb6f090964148c88a"
+    },
+    {
+      "path": "c/src/veil_checked_store.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 39717,
+      "sha256": "25ab75e967620eb8ba9d1e0bd2b474d37d99bc1f8bb2614b49176b8ee73d395b",
+      "gitBlob": "a789e447c155a4956c1e8ff40faafa401f3aff70"
+    },
+    {
+      "path": "c/src/veil_held_original.inc",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3842,
+      "sha256": "de8ee9fe63ed663a99c0639d7e4962fa34eec97f1a0649dfbdc2d822f56d1470",
+      "gitBlob": "464503d1e573e5f2f59b8a0d477bb5ed88dfe2db"
+    },
+    {
+      "path": "c/src/veil_producer_private.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6530,
+      "sha256": "abab9b5d9e2e17ffbbe69e0e0200ba5a0262bed832bc22cb14f10f41cede9ab6",
+      "gitBlob": "560328833511fa47b396e484b24a377ba828a875"
+    },
+    {
+      "path": "c/src/veil_producer_unavailable.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 36354,
+      "sha256": "6728dbeaf1665011807dad829929eaa7e70309dda61f3365c39f0d4d8f1b12c9",
+      "gitBlob": "75cd5bab7ce8303ff0c1581e47bd9cae4d696d38"
+    },
+    {
+      "path": "c/src/veil_producer.inc",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 36068,
+      "sha256": "eda9895fc35b2d3d98a8744934b82999d705ecfbff1bf54ec75cd889c25f4654",
+      "gitBlob": "6c478bf23c5e88a7938f508172dd9f99f14c1ce0"
+    },
+    {
+      "path": "c/src/veil_source_private.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5395,
+      "sha256": "0296ca3b24d9081b3f2b09c2f341baa316386d90cc6762a85911dc192852bc6d",
+      "gitBlob": "3713d404936d792dde77cbb26ebbc6edd05e1d6c"
+    },
+    {
+      "path": "c/src/veil_store_custody.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14664,
+      "sha256": "6980fba7a8d36aabcf2f88a233986e01973761f232154c7a7e1df1cb5cf59b79",
+      "gitBlob": "302395c369f4a1a9649dd719f961349a844d5f0b"
+    },
+    {
+      "path": "c/src/veil_store_custody.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2533,
+      "sha256": "91be9d757fe948ad0a39b7ea1420774e1a316c74710182f41e7075e3ccb41961",
+      "gitBlob": "1dd6564e1360b0d402cd7897f2ef8eff8b311fa2"
+    },
+    {
+      "path": "c/src/veil_supplier_owner_private.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6186,
+      "sha256": "1c5d5ef281866bab8e95810c44f6731e70142e44dcb7ea22c96278fdc8b49254",
+      "gitBlob": "35eaaab51caab67df4f9f73d2f41b1725c340b42"
+    },
+    {
+      "path": "native/Cargo.lock",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 154679,
+      "sha256": "8701f492195b503bac8c6413cc537b6aad3a7a6a0ae8732447bbb5e5aeafe7c2",
+      "gitBlob": "0aee933baeccad6f6cee41c0b2afec2110ce3646"
+    },
+    {
+      "path": "native/Cargo.toml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7566,
+      "sha256": "eaa1c1e33ab2a06ae4799f902650d7ac3a1881923d3b352dd0a11efd19c9d92f",
+      "gitBlob": "d2f1dee9f9ecbb07667927f70a6a6c57d8c1c766"
+    },
+    {
+      "path": "native/rust/account-keys",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 207,
+      "sha256": "6059e9f6d4ef781f35e6c23a96939d9d4f8731eb37dc0d761618c90d261748a3",
+      "gitBlob": "0392e3cf544757f77e54e1d84288adfae6ef43cf"
+    },
+    {
+      "path": "native/rust/attest",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 201,
+      "sha256": "66f81f34f0fd1fbf096856601a8627f1ad2163b2208f302b3ec234e621cf896d",
+      "gitBlob": "52ca320a22bd84a95f0b46eddace3e3d01fd7ed1"
+    },
+    {
+      "path": "native/rust/bridge",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 201,
+      "sha256": "32c8f85812c6d41f10a7b13eaa3c39a4c6a63e986a0b1829047cb5d33613c3c2",
+      "gitBlob": "713a95a79ed33431deabefe157640aa702b78544"
+    },
+    {
+      "path": "native/rust/cli-utils",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 204,
+      "sha256": "ab2a1e0471876639a7b6b796a7ced9f78119e5a64eb67aa5adcafb8c0b6254a1",
+      "gitBlob": "8b474721ff048926106ed27f4615074a896098ac"
+    },
+    {
+      "path": "native/rust/core",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 199,
+      "sha256": "3de03712b8ab036eb85e3d19685e67f78d12a4ae7380e00620e69f83b3fda167",
+      "gitBlob": "11ee2136335cb05b04f1e34628b3adaf8fc46105"
+    },
+    {
+      "path": "native/rust/crypto",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 201,
+      "sha256": "716004b727bd0342e724d80da075f8d73afc2dbcd37b7610bc8bc391aecfff66",
+      "gitBlob": "f1a8bccf8bd597d4a133a14b79a145c21b2034ac"
+    },
+    {
+      "path": "native/rust/debug",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 200,
+      "sha256": "939387ab724dfb784989b39de9a9835d051ee4e83622f639036a2cb1d0871d41",
+      "gitBlob": "9de9bd1fdf30cd8d35179d081a7b93cccec901a9"
+    },
+    {
+      "path": "native/rust/device-transfer",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 210,
+      "sha256": "5c3811ff7502edc694caa2b782b0dca0fecde5de378e63f434062cf65fbdf4fc",
+      "gitBlob": "986f2c3a83593aa8ed28998474d506f75704c4a4"
+    },
+    {
+      "path": "native/rust/keytrans",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 203,
+      "sha256": "01bf8e35454124546ecb5b145c2a1edc6060de9fa3bbb84b803d7091981a4df3",
+      "gitBlob": "dea2a2497640389e44d2795c2f6993a64b2fcc7f"
+    },
+    {
+      "path": "native/rust/media",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 200,
+      "sha256": "893f2a631ea6575463bf1ec9d1caeb2aabea0b010f03a6bed8da8cf05ae130d1",
+      "gitBlob": "76e68b5952a7192ac318493b2cc6634ffa0dd8ce"
+    },
+    {
+      "path": "native/rust/message-backup",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 209,
+      "sha256": "92dea98f70392230ff1182f2d8118e0765d421406988533c645abb8938a420f3",
+      "gitBlob": "c3dd228aa8eaecfc284e66d88cf5b81e0f2355d4"
+    },
+    {
+      "path": "native/rust/net",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 198,
+      "sha256": "c205babcb1ec2491d39d06267dfacaf8bc372d2b970d079f188d26257fac5dce",
+      "gitBlob": "9d9f6308e3ec82c6020f075f07ca63d4d8ab9368"
+    },
+    {
+      "path": "native/rust/poksho",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 201,
+      "sha256": "409a4715ee7a687b524369a979c13fd10968b522dbb2699d56fc0ddb1292e041",
+      "gitBlob": "bd275113f205834a7ed102917400ebf40a92746a"
+    },
+    {
+      "path": "native/rust/protocol",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 203,
+      "sha256": "85ea03c9caf7e89383d2186416a21cf8b793b8cadd52c6318575a06dd39f5361",
+      "gitBlob": "7113737e99d5ab9d1872efc31525ce9b96f1f3bf"
+    },
+    {
+      "path": "native/rust/svrb",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 199,
+      "sha256": "64be1b0b5c6037b83b59175883cdbf0430882a31e67aadfb989b8fe120ee324f",
+      "gitBlob": "b86e7e9e140f082540e2cc722043a42daeec7603"
+    },
+    {
+      "path": "native/rust/usernames",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 204,
+      "sha256": "c2ede1742ef8ee74c11f89a39940b6fb809e8866e79be813a0f1130c768c9754",
+      "gitBlob": "c1a8e3c19b6b537124d33ccc4e10872d42f4066a"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/Cargo.toml",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1558,
+      "sha256": "fd4064d69f353d7625e5ea5e483491ea60f1a7bfa306138cbd325cc5204cd551",
+      "gitBlob": "89350335b65f40f68b413b20d5af26bee166c393"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/examples/require_send.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 575,
+      "sha256": "e8a551ea2936f6faae73f24747c3b9fbf7541b501d0e147c494a9495f144c975",
+      "gitBlob": "92a521733f2005325526beccceefef1fc7df56ce"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/account_evidence.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 23041,
+      "sha256": "eb05fb4fdf8715ad2c9cba72a4322c716d22422eacda156858aed9159c3ccd75",
+      "gitBlob": "2b49fb03365239e4b307cb844628b984ee5c42dc"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/account_https.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21000,
+      "sha256": "85609698bf5a3fb3b2fe2b6cc1a616ae0fc468e022779184373c80c4914960e5",
+      "gitBlob": "8bdb8e94afcb667905a1ae02b858679296064de7"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/account_instance.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 53157,
+      "sha256": "2cb2de3d725f94a3288ec660dc12a8bbf3a078c333fd0253a3a8c4f98317ff35",
+      "gitBlob": "7c616b45c8ab7d7f7b3582a67bddfece83c568b7"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/affine_protocol_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8503,
+      "sha256": "bdbc051f4c51a30a4a872ba2e9b6026656cea584a24d08379d71ed8b68954f7e",
+      "gitBlob": "7584d97438fb00fabf7e8d0fe90df1866c8a71d7"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/lib.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4664,
+      "sha256": "4d2e9dfcc888d49b9dc2e5a0669c4ce912a87b9c203a16e048095c05c439fc3c",
+      "gitBlob": "8f6967c67ebff113c345afc03309e6b2c311d1ef"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/message_custody_ffi.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 109811,
+      "sha256": "905fd54a7a3e3810f886a9444447cfd9602c8e9a0613ee6cfcf66a0049d00ee7",
+      "gitBlob": "399a107daa2c3297c00702894bc57d0006b8d288"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/message_enrollment.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15974,
+      "sha256": "6962b85a0487c1b43b3b959a4f85545fa369c255ca7d9ca6b15d1b33e5a68670",
+      "gitBlob": "36d327ae67ef695e4055f0fa2892f030a1973c4b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/message_evidence.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 44812,
+      "sha256": "d52b9e25a773ab44e7e35e86746cf33fe47fa5390925ff4cf9b146caad0900d8",
+      "gitBlob": "7bcaefc496510353b67efc236d251711ca14fb08"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/message_execution.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 34884,
+      "sha256": "b8907a6b865df26b0b502c97879e5e10941647bd597c7a3cf1681498926cbf0a",
+      "gitBlob": "b312d7616c4ea5c7815010fa6dc568ae2bc4b2a5"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/prekey_callback_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5867,
+      "sha256": "40d3d154f483003b162b7d087d6e13995d2779055611f939277a798fc95bdff2",
+      "gitBlob": "eaf3052cb7a2876873552f0ae46851c040979411"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 38110,
+      "sha256": "a7f9a83a54a0e252759b695d52a5bdafeb8f6d3b60d69b1197bd6332955ef060",
+      "gitBlob": "65fbb104466961db6ffd8908e3819b27da71d8be"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/cold_install.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3888,
+      "sha256": "284ea3df7a0be7456522a6acb32a69d1fe1155e4c268035abbd7fc93475b244e",
+      "gitBlob": "878cef951edbea6ce48027c4c7c66694efb8a3ae"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/first_genesis.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5204,
+      "sha256": "50cedb74f3523067a58eeea358642b35827644791630d9fe6a72f330c5629cba",
+      "gitBlob": "b9084835cd460b4eb8c99fa78eca082ce015c3a6"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/held_reload.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11436,
+      "sha256": "c493a5a629b895ca428437919ebbfd24f92551a5924f24711a2739070b8f9b5a",
+      "gitBlob": "9d6c9a34eca0d802e554441ea47a015a3e5fdbbf"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/paired_attempt.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9605,
+      "sha256": "344a9a898c3743fca3f956fa095cdd043c332c7b5182e4aaad08ec9815317aa6",
+      "gitBlob": "be9cec710c12be630266cfbfdb63964af3d4d25d"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/paired_proof.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17221,
+      "sha256": "2a6a6bb12597a2b5be97b307b0e1c4fc8af1356b0b445ea076c670efa834d1ca",
+      "gitBlob": "d27b738c8db1515d1b8f88d09be948cf9975396f"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12233,
+      "sha256": "7470808cbc6859c839d71555518ebfaf809791dd5897df43022f66f3cbbb10b6",
+      "gitBlob": "ef709ca6da8c7626191d7cbe8d1bb1b63d9f8e1c"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port/capture.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14341,
+      "sha256": "d7406449d6606fba0a081bf59506e8b8e949db3ba0d89e817f90fa300b9f62ee",
+      "gitBlob": "d79a0a70b880fc231429a403ef5b5968fe70c395"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port/existing.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11388,
+      "sha256": "223c9b065247284fe82a509294589778558a28dddbf428a8f748d48121685988",
+      "gitBlob": "8527a7bd8b7b6dbc78432583906d8b230d48e0bd"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port/existing/cold.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 19151,
+      "sha256": "c50625a6e668d943981d54499ca34ceca1f46d8df538ebe7ffee8ed7d8966155",
+      "gitBlob": "602b744a2839bee2a21b55f0d381ee050c77977b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port/reconciliation.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2935,
+      "sha256": "e5cb616747cc9b47de8fbb5755be13ce9f3687e42accceaeb48288503d4623a4",
+      "gitBlob": "3a866a081ebbc9ad6b4e1e84bea008feb6dffb67"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/predevice_port/v3.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17453,
+      "sha256": "ab648b7ba502cea6abfff8d41368e67a37b5e07df0889ca4449162135ea39b5a",
+      "gitBlob": "a53652ca07d20693763da59e3442d8539a1afa6b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/rcj_fixtures.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1886,
+      "sha256": "03d1de73aacdd38d9cfa24a9fc0f857436118841085209a3f5d12709232d21ef",
+      "gitBlob": "016d445df85cf9cf947e27b129994812aa505e01"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/recovery.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15853,
+      "sha256": "957ea332597ff6fd047d439783760d663dd3617eb8ab66f21b61eb52a49e0085",
+      "gitBlob": "38fc4fc195aa676a08e3337c46f0773b02888499"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/reload_projection.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5291,
+      "sha256": "1587df0027c023e444333de297f99328b99bfbce3ba5c55a10a0ee0d1fac2668",
+      "gitBlob": "dda004e74330031977f82ded8f17d284893f09d9"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/source_request.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33446,
+      "sha256": "bdb2fbd193413a1ff37ee268d58c4ef04b8649726179228afc014c2b8bd13ba0",
+      "gitBlob": "371031e7324369a450cd1ab19052a75f509b6d8a"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_custodian_ffi/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8617,
+      "sha256": "6225bbe50149288bae772dd667ba6d367d6069a178412c1625c476874c901c08",
+      "gitBlob": "d2727166ca2d8d1be1eb8d6c6771821cd7ae2368"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_own_key.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11128,
+      "sha256": "619df9125abe1e986a50c1084135859466792ee0781c662050478bff78efdbd3",
+      "gitBlob": "b6e1b30312aa8c1d184f92ce4a699251d5a0393f"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/private_pq_storage.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7166,
+      "sha256": "fe6c1b6a145b4fa428eb80938e315ad2d7935cbb7a77c49816480144865c0fc2",
+      "gitBlob": "bc75542c762c7a6b9d5d247339188ab9637a91e9"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_controller.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 30967,
+      "sha256": "79e0a239290287f416e3f3187ac6f3ec938860ebb6664a6f243c31f82f4d3e50",
+      "gitBlob": "43a748d63548f1984f1c2548cfbaa47571308493"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_controller/cold_install.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2235,
+      "sha256": "aef0e60d46cdd659423388bc80a1945d622ffaef232db9ff315952758ee3051b",
+      "gitBlob": "378d2acbd79530e2ac2c464cd633401cd07b628b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_controller/view.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3189,
+      "sha256": "73072d1ab4bfb953c5c533ddab9d64a87e58804830af32ee65aecd4fea3f2309",
+      "gitBlob": "f39096cd4f78f9506ea1c6d8201abfa3a97ef4cd"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_entry.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2039,
+      "sha256": "9809536943180932f7cac767abdb737b5b6ff74cf49c5a4579e212160a22052e",
+      "gitBlob": "9b439c1e562cce92283b2903eb636e16889ef7d2"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 57019,
+      "sha256": "b7c80f2771b719631df65aa2bed23b3a311ca070e3a035a163cca014eb06980a",
+      "gitBlob": "de6e27c8ab1b9368bffd63709beb2c9c597652f3"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/cold_install.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15279,
+      "sha256": "16dd5468860611603aaf1caaa54cd8a5123aec57d9f2b157507f8d13e9ad2299",
+      "gitBlob": "962b5a6f07cd14017e02de0bfbd29a5109231b96"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/product_ports.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26523,
+      "sha256": "9e2b26bafdc23108acc014643241b32b5265edc571b499abdec8007703cc68a8",
+      "gitBlob": "90815deb0676c06255921e44f7f3e26138cf8acc"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/recovery.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16323,
+      "sha256": "406f488bb93cce11238020f871954bdfc43b03bc617a8da7baa0b28cdd6a2bb1",
+      "gitBlob": "cdd106efb1f2fca85f971e5e1ec5ad49144491fd"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/recovery/account_channel.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17385,
+      "sha256": "c81f038beb99581b9e9b4610eec156cbcb2d156131cf1443b21d513bf12bd359",
+      "gitBlob": "fc0540c58f391e245b4ee928a874002e535a17e2"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/recovery/reconciliation_v3.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3883,
+      "sha256": "b2374b819f625d70831be5c6e3a0cecf3974deed3ad9fde694eb8f79e8bc2bd5",
+      "gitBlob": "36c2b75a635514c71daf5b491be64b28ed7040ff"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/recovery/reconciliation_v3/accepted_context_controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7288,
+      "sha256": "c8bb02ada1ee60d0bacf78dd917ccaf0f1512121493f071c20b6588b1a3588f3",
+      "gitBlob": "21f24d3190377effeac50577bfe580cd2b910f52"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_jni/recovery/source_current.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9792,
+      "sha256": "54fa74ce5ec556097bc25e66fd80fe38a83737f525d89831beabfbdcd14cef62",
+      "gitBlob": "c006c2056995bb3aef75b5679289381f8f087bc4"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/product_message.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9680,
+      "sha256": "368c7b65fb67d26b8710ca4158c00de35a24eeeddfa14ea2471820616eb2ed8d",
+      "gitBlob": "5d08090f141664c15127af933e601654d358717b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/selected_key_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7267,
+      "sha256": "db216e56f0ef5341fa671b695ff5fa42f65742f6500bf7c09b3c7e5421a21880",
+      "gitBlob": "5869b6abd2777d2cbb557d2efe431292cc631f6f"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_collector.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 12667,
+      "sha256": "f26629eb0329276c525cdc76d080b488a3d3a50fefd83ad5fa1230e3d1b1e108",
+      "gitBlob": "c9e27d37f13942e79ba9cd446ffa4025798d8a10"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 47542,
+      "sha256": "53769f17467e0fe2704cfec09bb1e662bd3b622e8f98694aec81a2325b2683e2",
+      "gitBlob": "f556f6a2a27665038449bdd316523f5558509cec"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/catalog.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8004,
+      "sha256": "7c25d0ffd27e15b9180830281bade2a0b1aeebcc8d81fa27f94e6d194d13dab0",
+      "gitBlob": "5ae55bf31d6ca11551f512f280c02675513899d3"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/first_prepared.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8221,
+      "sha256": "c6f354297f665d7753089f2d006f90c6296083633d15d387c8992a7ab0eb42e6",
+      "gitBlob": "a0d3e6b0ce76f20b6741e5682632a6df941b5c07"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/namespace_prefix.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 21775,
+      "sha256": "f91dc0e87396ee96331ec7df4c8c76e47d89219736c3dbd5aac2cb9572930a46",
+      "gitBlob": "03cc08a683cac8e851f885efac0083a6e8917a7e"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/native_core_rights_v2.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 24304,
+      "sha256": "a00a638a7f4fb6c1850ebe633c47aa570c73f6773030eb524e21e47cf65110a6",
+      "gitBlob": "30b5ee09c7836854267a156e3b10053074915ac6"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/pending.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 15659,
+      "sha256": "f015c55b4c7a768ee143bcefb8d13889e8c83a5e006414e7a456310e5d33cd1a",
+      "gitBlob": "15cf519fd23cf1a5d0f94147c50606de9fd01f43"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/policy.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13114,
+      "sha256": "4adad7e3428d6a99b8d0a0357abda170b25ee7dc311ad57ff7ffb72995e4f55d",
+      "gitBlob": "e9e8bf23f317fc55e2cfe777c73fefe4e40b7587"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_evidence/source_holder.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9660,
+      "sha256": "b1238bc1de5a17c0be94f003c812670c29da4df27bbb5a470133abca3c0659ac",
+      "gitBlob": "80485ead2a3d219ead441ef1ded2144b155e2bc2"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_first_prepared_attempt.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6513,
+      "sha256": "a0902d894bb72e1068f61e73bbb2c1f39910c71ab0b94a5867c7e6cab8d821b7",
+      "gitBlob": "3d515272146bf0125fb55397545e27d94137e9de"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_first_prepared_holder_ffi.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16258,
+      "sha256": "aef24dc985bd78fb92f2d31bbfb5e9abdae14acb0b3d8b86028bdabce68b71a6",
+      "gitBlob": "f6000d9e1b211754968bfcce9264f15b0eff717c"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_first_prepared_holder.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17952,
+      "sha256": "ea82b413dd0aea39cee0332d97ae9cbb16c6b180a92212f7470aecf9cdbef262",
+      "gitBlob": "7f6b6696d8c9b18c458353e0f3bda59de17c52ed"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_infrastructure.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 47702,
+      "sha256": "4c337de4775f82d9125d5b3dbb36c95a87bd1069524260807f6e455365c4384b",
+      "gitBlob": "2936276cc0008a554fde075a255ea23d20ca4330"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/source_platform.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 37009,
+      "sha256": "1bcdd2573719b663b868ea8c9555b2148abc2b0b713e36a979711250b008a2be",
+      "gitBlob": "4a6864bc4b51fa73a5b238ca7008a66b2814ee48"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9995,
+      "sha256": "bc55106c161acc75a106e7a5cc219bdd52d51566c95b3df3188fca5166d4e15b",
+      "gitBlob": "09cc85a5a7ff220d2526b7bc9f45514ffc7f88af"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/cohort.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 20937,
+      "sha256": "3b0a1e57bf1d468abb0276e2960f03217dc947942531ab55f324c1025c0401f4",
+      "gitBlob": "d1271933b47f57a4401f7dbb61b019be7a1b89d1"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/cohort/persisted.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 13738,
+      "sha256": "8a1dbe90dc88d8511c199ffe740f8ffa054c8b23f3fde3f906e40e9990913790",
+      "gitBlob": "38b928ffcf0782cacd6d251b484842f2f45bfbb5"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/cohort/persisted/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5339,
+      "sha256": "425b8c4da27abf7bcd71753f20b9fabb7447c00d49684c79981707b99bcb71b9",
+      "gitBlob": "f3f617bdca7c533a089d4714ba0bd021b5a1f3f6"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/cohort/persisted/typed_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4332,
+      "sha256": "d038a6431fc0dc067a3ea601a92fa26bdde373028cf86a94c7d37cf5c07c6cf0",
+      "gitBlob": "c484d9d0ccbdfce312d71e4a3435cb4e70bc9cc5"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/cohort/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 20453,
+      "sha256": "76b0f77dc14c2e5c89594c764d00feaa7108d72bc0783cca43f4440560d255b3",
+      "gitBlob": "8e48ecd732819d3092709c874c2062db11bd08b9"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/output.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4148,
+      "sha256": "93fbfb313dacda89bc4219e9ea3d2942cc45bee128a4c1e02b1cddf3f06de8d3",
+      "gitBlob": "9b46936b64e286e06b1db48f9ec0b7b6103c411f"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 56241,
+      "sha256": "6c5813d25926f157975c1909c5f7df84693e0a762c931ff948c0aaca3703803a",
+      "gitBlob": "d59a3b1333186ea5ef3066c59d4c1e309c0db183"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi3.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 8241,
+      "sha256": "6743d3e1b07b1da85ffaf9ee5a5114c4324bb3f1c1538b7e88a91ae3c3425768",
+      "gitBlob": "98b739b606645a4ad12d30d8429e9a762ecb7327"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi4.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1534,
+      "sha256": "934bd5eec92ec9324ee9578d7ea4537fa1c8185138e7968a58843fd658634f19",
+      "gitBlob": "e80f8b51f6041ba28f3ea06a4f192a26c7434c38"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi4/linked.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10476,
+      "sha256": "ba9070b0840efba2b93ba3f0e5f6058dac76066babc79f7d88524465feea5816",
+      "gitBlob": "df56a9555af88a1e868c754291cc9326b13bd869"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2641,
+      "sha256": "bb82fe1c3deb9f0abd28b6e3817f14f5e806ada7d5c166bca852ce54794d2d7b",
+      "gitBlob": "cff2c9f3cb279207e49eff7997c05ca6c114264f"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/cleanup_port.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5371,
+      "sha256": "bddd6e23bffcacc3bb35b7ca9db128888b74acb24c58155aa8f5f8ae7d3e8202",
+      "gitBlob": "1f6be7133a5ed30e7364845a86ddde62c6a0af44"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17119,
+      "sha256": "233047f8d448f914b6fd74c87502ffc68c32e6aab268b78f047c2104a753de8e",
+      "gitBlob": "7d913c79710b94bc67e023ccb701ea0452aafa76"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/linked.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 61347,
+      "sha256": "89f207e3fd80db0ac25e2412056b4fe423d62276d306b9df1b4d250841077fda",
+      "gitBlob": "029a00ffb8f5acda7dc99ae83be509253ecd9d81"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/model_a_owner.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 49945,
+      "sha256": "4ce719cb1fd3bfc4553e68172449e01f39865ebf26220d3c389906c929483d0c",
+      "gitBlob": "e6c5601c5590e6c7debcddee6e8829f92d47b87b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/model_a_owner/drop_slot_controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3302,
+      "sha256": "cb8690cfb7d549bfd870b18b975f876b3f487341eb0c9cf7febdf64007f1def6",
+      "gitBlob": "376df40ce692605a505fdc45fc3a05941f10fb2c"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/quarantine.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5729,
+      "sha256": "9abe0e975485ac7a002777c3904fd05fc6afdfa817eeb7c40272864685de1770",
+      "gitBlob": "c5f5ff2203a473dbf670a301db4baeedf2ad2e5c"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/quarantine/controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5495,
+      "sha256": "a3eec9aac543efe4778758fba788317070c5e2d9706cdeef027ec75c135fd3bd",
+      "gitBlob": "307cd61fd494a8192ddb0972db13af9db453e2a2"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/quarantine/repair_controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4900,
+      "sha256": "e4e3b9bb0428645cc26aedaf2283d08e6af9a0f27fd0ddb05a3a64bd2bc33b89",
+      "gitBlob": "30f5058a6d4a17e65cadf44edbc6e4ffbccad9f7"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/source_owner_controls.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6155,
+      "sha256": "e37fcd4d961aee6929acefab637af37a897e51e11bd8e791e5f54f8c4be27e88",
+      "gitBlob": "8c004cf1ff37f6b524d31962ce1543067952e610"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/source.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2772,
+      "sha256": "7229c65c2fef23d4bc63d95e9e2b4989e993fc70b39df302ca93abea10ebc8f2",
+      "gitBlob": "74bce1aa081984a0258232b3ca386326585551e2"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/supervisor.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16836,
+      "sha256": "456beb62d792bb1b104420dc6ce7489111d1819ed3a92358a012f76dab4adc20",
+      "gitBlob": "45c78a45e6b2536e46d5bd562c205f14a82296b1"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/supervisor/routing_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 9304,
+      "sha256": "b091d3ac1cfa48414209db0ac587cdb9246c1d13eb3135efad374664a6639cd8",
+      "gitBlob": "b2b9767ccae17b949a867c76991067b2f3ff03ce"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/abi5/supervisor/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7180,
+      "sha256": "7dcb7593e375fe9c7506a85f8d4ddd978b687beaa8e9b22b25c05e483b560f36",
+      "gitBlob": "280a0ffd592f5f5b4e73d2371ce1014f580007e4"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/custody.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2358,
+      "sha256": "2f028b87afbb00e90a836a860211af5c3f8622a3dcbb1914a401f5ff54438cc2",
+      "gitBlob": "b5d1cbcc452302c196c26b31429803ba3683a12a"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/r23_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7104,
+      "sha256": "b17149b3274615165b3b4b96e72a6756abb0733c12946062622393a2b0a51785",
+      "gitBlob": "7f1575d6d8e8749e0a9ebfce3b5a246ebb05b9a4"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/r24_tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5596,
+      "sha256": "2198041674f4bb81ce792aca5726a0bb4492ea5d78dad53310800c6e38a52bf8",
+      "gitBlob": "dff4ab6057e44554ac9cbfc8cf6ceb23019c7043"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/r56_submitted_precheck.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5577,
+      "sha256": "8074abe12bf807feb26f7c17b94d7ab0abba6737eca2fdc3938d767abc0fa5a4",
+      "gitBlob": "f66f38f6bae64b9ae4ca03f132b9e57555022212"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/platform/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 26741,
+      "sha256": "2a7a43594dce4dcfa4fcb3195c8622735bc45b5d45154e84410b28e8fda411b3",
+      "gitBlob": "61e553dbee674a301ac9459356c78e7d1c4318a9"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/product_facade.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 18982,
+      "sha256": "daf53371e619efc213cb40dee68d347d9bb12b322159a3048b824f83c34bb615",
+      "gitBlob": "2816b7f214d2b6a206501ef3eb4cf5d2975a39ad"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/staging/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 16238,
+      "sha256": "c139cdd79cc4d51cb274cddbc6aa794af12d1b753d11f38a5d473d1474af17d1",
+      "gitBlob": "0a83c6a03897d45cca1fa289d5bcb156faa8a75b"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/tests.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 17995,
+      "sha256": "f9eb8a9db000bef0db00500617d1dab95e5851a9c2050ad5c10a103da2303326",
+      "gitBlob": "b7e865570c98e699a7b23d333601e568ff473577"
+    },
+    {
+      "path": "native/rust/ynx-native-operation/src/upstream_test_support.rs",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 14036,
+      "sha256": "2087e1e500744313af87460a336daeb758a632226f255020600e876c08477a60",
+      "gitBlob": "590e8bf378c25d973b49ff716034cbba068c32f3"
+    },
+    {
+      "path": "native/rust/zkcredential",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 207,
+      "sha256": "82875a2876c4c65131aec5193df6f252fbb0b9e0bd86a47dee80b921288328d9",
+      "gitBlob": "0e901b5f496195db0209563ccf4ed1945d96647c"
+    },
+    {
+      "path": "native/rust/zkgroup",
+      "type": "symlink",
+      "mode": "0o755",
+      "bytes": 202,
+      "sha256": "bc631911f9c2c775278fe0d6d9bade36a0621400caaa279b80b057a34ffd0e9e",
+      "gitBlob": "49b0ef4a60b11811ef10928f32946254ccfca560"
+    },
+    {
+      "path": "protected-source/include/veil_classic_protection.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1442,
+      "sha256": "ec8ad8e836f6d5d665c0653fe08d06836f2ae153027472c2929e197c13f7c5e2",
+      "gitBlob": "86830054236e294c4078a3d98a22e1d28010d31d"
+    },
+    {
+      "path": "protected-source/include/veil_pq_custodian.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3477,
+      "sha256": "b354c509947806ed464aef391ffbb11c6e7fca1cc6f74e10747152ac8b6c6b3e",
+      "gitBlob": "4043998cdbf42a48ef886eff812804a23081cde2"
+    },
+    {
+      "path": "protected-source/linux/ynx_message_enrollment_resolver.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11693,
+      "sha256": "d485e45dc31efcfa691efe40e8bd334ddcb84902a29c4e66c576a437cd06b77f",
+      "gitBlob": "b2d031a83c99491a10fcbada9450a9b642cf3344"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_administration_owner.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 77091,
+      "sha256": "fc4991beca99ee3172908a420b6355af3f0c890ae27891f4cb00faa4cbb062d9",
+      "gitBlob": "b99a88512eaa64efd963869347c7476a873f6c11"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_administration_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 2748,
+      "sha256": "0bda08e797c8802bf61375afbea67b6ac23f40e9ff2fbb408c1be5774682e70a",
+      "gitBlob": "99ce212b4280bd15e82c805a7ab6b799123acaac"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_final_owner.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4763,
+      "sha256": "7fb8a71d7f8b973131c37ddede5c65eeccd17d0f97cb2901e85507874e9ea68b",
+      "gitBlob": "b90e6925666a16fab7fc8c846455398448edd737"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_final_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1926,
+      "sha256": "5086adf18fcdfc3f67d11c780bcbf66a050a222312812e8d276bafb62de7bf54",
+      "gitBlob": "c58bc4eb70e2581ebb70436327226367a963893f"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_independent_reservation.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11100,
+      "sha256": "8ef8d912eb9be418d6c4e3795e648b5ccf8edac1831bb5278d49bae52cbff178",
+      "gitBlob": "f9134deb1262977d1edcac3ddda3803145d1bf57"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_independent_reservation.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3852,
+      "sha256": "ddcf89ac1937cd6aae21a945c4de1ddf57c0596d30976ad26817eb01fa950ee9",
+      "gitBlob": "481b58c65de435903bb7046fb92fa93d8f30be85"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_original_resource_owner.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 22862,
+      "sha256": "19b8f9543b382b8536fbb250b462f7b730bdfad1fac5fc6a1722b34781778ab6",
+      "gitBlob": "e8cbb227b75004f8c275213ca3484979d98a654f"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_original_resource_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3045,
+      "sha256": "73acdfb62b2cc0e1e0818ff530028eaad915c04aee5f08f0e2e36a93afd40e81",
+      "gitBlob": "d012eb448c20703daa90747bd769219ab8420ef5"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 27132,
+      "sha256": "56810df820dbb94f67e6f148701f03ac15101c05c89e53ec5f37c7d7916b1009",
+      "gitBlob": "7783727b22f72eba95e68973bf3dda2fdf71d2d6"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_platform_qualified.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 6704,
+      "sha256": "d66435a461c1a114e978c7794586928f66d26ab03475e025ecad049abeaf6e36",
+      "gitBlob": "fe428d6bbd46a58923bfdb349b84baf5f6aff9c7"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_sealed_role_launcher.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11260,
+      "sha256": "a4316ee4942756091618b60947b7b9b00be458a880824a25ca09d77214609cec",
+      "gitBlob": "c9a2a8d8a8cb075995c2c18fd77f83bd4c9217bf"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_sealed_role_launcher.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 3506,
+      "sha256": "aedf3c9e8ba26f2a08796350362a494c7a092459996e0077532a2fbd8a7d59fd",
+      "gitBlob": "220ee6d46c8a7d03cec4cc22314e66f36caf73bb"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_server_resource_owner.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 57171,
+      "sha256": "5df6aba8b2d0ccfbccb6d84a76c6b8b71122a845e585d025c9f995991d2ea7e3",
+      "gitBlob": "873d34154347b5ee5bc6a377b19027f50cd77bd3"
+    },
+    {
+      "path": "protected-source/linux/ynx_source_server_resource_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 10618,
+      "sha256": "1100a24244418d6925926643ed05ae294fcd567923b0f180462bd1f67fa18e74",
+      "gitBlob": "1c38321bd19fba79b4d36c7abe0afb12603bea4c"
+    },
+    {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 38219,
+      "sha256": "c8e5eadb0dc6ffd702bbbd67e180b9b42639d9e27b66b0edc4c8591eebb91b11",
+      "gitBlob": "c2cf00553e797560122ac4bd5829add2f085f3ba"
+    },
+    {
+      "path": "protected-source/linux/ynx_tpm2_esys_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 4574,
+      "sha256": "e5116498df131e887622bc23f257d370bba2adfbebd92e504721e6128f166612",
+      "gitBlob": "6790ac3ae2c6b7d1f4faea73cbcb1a1fe15f86b8"
+    },
+    {
+      "path": "protected-source/SERVER-TCB-CANDIDATE.md",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7588,
+      "sha256": "67a69a41e7323c920259a5ffdd8e7d30046d30c8a4d1dde171ef91a5f95ff2a0",
+      "gitBlob": "09c98f4cef53cf09eb9137b75cd7b3cd23ed93c3"
+    },
+    {
+      "path": "protected-source/source_server_private.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 7785,
+      "sha256": "b8e04a3fced2afc481954f6683c765c3b4f249689c19050d57b232cb2df60c11",
+      "gitBlob": "57c8370f3cfdaa63ef220576aaa8488be91cd349"
+    },
+    {
+      "path": "protected-source/source_server_private.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1246,
+      "sha256": "6ff35bcc7afeed39f5ef8f50ba1eeb804481a6df99758c848bd570e2c39d177c",
+      "gitBlob": "70892375a40b83741ec13a141a1ee480e978a070"
+    },
+    {
+      "path": "protected-source/ynx_message_platform_owner.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 1433,
+      "sha256": "8fcc4e45376e181aac959c64393a1961019be21c20c0c95ba0c8e5f4b05f4ef0",
+      "gitBlob": "c93e425d4c9ca9876d6e214e7bc0fcd82ffbb0c8"
+    },
+    {
+      "path": "protected-source/ynx_native_message_custody_node.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 11599,
+      "sha256": "5db3f9ff34127191d98c5787e3a06be415cb0f0034648327e23448a713078c05",
+      "gitBlob": "ce5c6ebdc32f7d48201807a4c4b5d7a384687743"
+    },
+    {
+      "path": "protected-source/ynx_native_message_custody_node.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 5491,
+      "sha256": "50e322fad9293ff3e45c5fb3c8f181e05fef1535517ff709c034f2b9c8021c8c",
+      "gitBlob": "9ccf5e2b1423ee80688f2912d9a657cf5df20379"
+    },
+    {
+      "path": "protected-source/ynx_source_platform_client.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 39759,
+      "sha256": "456a99eb1d1aa266d8370fb983df9d0b64ac7ab6a755cae870b03775bf748e2f",
+      "gitBlob": "36b3405cffd321da327374d0ef498b73d22aca1a"
+    },
+    {
+      "path": "protected-source/ynx_source_platform_private.h",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 33143,
+      "sha256": "0df212334b05d2909eb83c55d8d84629c27b8968f804b82417e3bea3f403ca3e",
+      "gitBlob": "b20269548c0cefd2411a451e1dd2987efec19f50"
+    },
+    {
+      "path": "protected-source/ynx_source_platform_unbound.c",
+      "type": "file",
+      "mode": "0o644",
+      "bytes": 18377,
+      "sha256": "9fe2fc6dc3ccf7a37a10de8c4c2a1709043513a47548dbe855e875c2cb4c5fe1",
+      "gitBlob": "4d1c5e8a3bbdd5e855c7c2955a64636b29903a57"
+    }
+  ],
+  "treeSHA256": "98e73af5c9f6d30322197fbe1844f9c345342a5817e34ff798fd25d0c2cfdf8d",
+  "modified": [
+    "native/rust/ynx-native-operation/src/message_execution.rs"
+  ],
+  "inheritedExact": 151,
+  "newProduction": 0
+}
