@@ -800,6 +800,7 @@ async function refreshSubscriptionButton() {
 async function showChannel(channelID) {
   currentChannelId=channelID;
   const epoch = ++libraryEpoch;
+  const selection = playbackSelectionRevision;
   currentView = "channel";
   activate(null);
   $("#content").setAttribute("aria-busy", "true");
@@ -811,7 +812,7 @@ async function showChannel(channelID) {
     $("#page-title").textContent = channel.Name || channel.name;
     renderVideos(view.videos || [], `@${channel.Handle || channel.handle} has no published videos`);
     notice(`${channel.Name || channel.name} · ${view.subscribers} persisted subscriber(s)`);
-    if ($("#player").open) {$("#video").pause(); $("#player").close();}
+    if ($("#player").open && selection === playbackSelectionRevision) {playbackSelectionRevision++; $("#video").pause(); $("#player").close();}
   } catch (error) {
     if (epoch === libraryEpoch) notice(error.message, true);
   } finally {
