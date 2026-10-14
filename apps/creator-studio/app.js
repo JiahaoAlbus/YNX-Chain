@@ -38,6 +38,20 @@ const creatorPendingStorageKey='ynx.creator.pending-mutations.v1';
 const creatorPendingLimit=64,creatorPendingBytes=65536;
 const creatorMutationIndex=record=>JSON.stringify([record.account,record.method,record.path]);
 function creatorStorageError(cause){return Object.assign(new Error('Creator cannot safely save this request. No new write was sent. Keep existing pending records and restore browser storage; reading Studio is still available.'),{code:'CREATOR_MUTATION_STORAGE_UNAVAILABLE',cause});}
+function creatorLockError(cause){return Object.assign(new Error('Creator needs secure cross-tab request coordination before sending this write. No new write was sent; reading Studio is still available.'),{code:'CREATOR_MUTATION_LOCK_UNAVAILABLE',cause});}
+async function withCreatorMutationLock(signal,callback){
+  signal?.throwIfAborted();
+  if(typeof isSecureContext==='undefined'||!isSecureContext||typeof navigator==='undefined'||typeof navigator.locks?.request!=='function')throw creatorLockError();
+  let entered=false;
+  try{
+    const result=await navigator.locks.request(creatorPendingStorageKey,{mode:'exclusive',signal},async lock=>{
+      entered=true;
+      if(!lock||lock.name!==creatorPendingStorageKey||lock.mode!=='exclusive')throw creatorLockError();
+      signal?.throwIfAborted();return callback();
+    });
+    if(!entered)throw creatorLockError();return result;
+  }catch(error){if(signal?.aborted)throw signal.reason;if(entered)throw error;throw creatorLockError(error)}
+}
 function readCreatorFences(){
   const raw=localStorage.getItem(creatorPendingStorageKey);
   if(raw===null)return [];
@@ -54,11 +68,13 @@ function readCreatorFences(){
 }
 function loadCreatorFences(){
   try{
-    for(const record of readCreatorFences()){
+    const records=readCreatorFences();
+    for(const record of records){
       const index=creatorMutationIndex(record),existing=creatorUnknownMutations.get(index);
       if(existing){if(existing.key!==record.key||existing.bodyDigest!==record.bodyDigest)throw Error('Pending operation conflict');continue;}
       creatorUnknownMutations.set(index,{...record,state:'UNKNOWN',firstCause:record.firstCause||{name:'Error',stage:'page-reinitialized-before-result'},restored:true});
     }
+    return records;
   }catch(cause){throw creatorStorageError(cause)}
 }
 function saveCreatorFences(records){
@@ -79,10 +95,14 @@ function creatorMutationError(pending){
     : 'This action is awaiting its original result. It will not be sent again.'),
     {code:pending.state==='UNKNOWN'?'CREATOR_MUTATION_UNKNOWN':'CREATOR_MUTATION_PENDING',cause:pending.firstCause,pending});
 }
-function unknownCreatorMutation(pending,cause){
+async function unknownCreatorMutation(pending,cause,signal){
   pending.state='UNKNOWN';pending.firstCause??=cause;
   // The pre-dispatch DISPATCHED record remains a fence if updating it fails.
-  try{loadCreatorFences();saveCreatorFences([...creatorUnknownMutations.values()])}catch(error){pending.storageError=error}
+  try{await withCreatorMutationLock(signal,()=>{
+    const records=readCreatorFences(),index=creatorMutationIndex(pending),original=records.find(record=>creatorMutationIndex(record)===index);
+    if(!original||original.key!==pending.key||original.bodyDigest!==pending.bodyDigest)throw creatorStorageError();
+    saveCreatorFences(records.map(record=>record===original?pending:record));
+  })}catch(error){pending.storageError=error}
   return creatorMutationError(pending);
 }
 let currentUpload=null,activeAIRequest=null,aiSelectionRevision=0,aiCreateRevision=0;
@@ -131,39 +151,56 @@ async function api(path,opt={}){
   if(!safeRead&&creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
   if(!safeRead){loadCreatorFences();if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));}
   const baseHeaders=Object.fromEntries(new Headers(opt.headers||{}));
-  if(!safeRead)baseHeaders['idempotency-key']||=crypto.randomUUID();
   const processing=path==='/v1/uploads'||/^\/v1\/videos\/[^/]+\/retry-processing$/.test(path);
   const operation=beginCreatorRequest(processing?300000:15000,opt.signal);
   try{
     const wire=await operation.wait(serializeMediaBody(path,method,opt.body,baseHeaders,operation.signal));assertCreatorSession(revision);operation.signal.throwIfAborted();
     let commitment;
     if(!safeRead){const bytes=typeof wire.body==='string'?new TextEncoder().encode(wire.body):wire.body??new Uint8Array();const digest=await operation.wait(crypto.subtle.digest('SHA-256',bytes));commitment={bodyDigest:[...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join(''),bodyBytes:bytes.length,contentType:wire.headers['content-type']||''};assertCreatorSession(revision);operation.signal.throwIfAborted();}
-    let response,pending;
+    let response,pending,dispatchStarted=false;
     for(let attempt=0;attempt<(safeRead?2:1);attempt++){
-      const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
-      assertCreatorSession(revision);operation.signal.throwIfAborted();
-      if(!safeRead){
-        // Another invocation may have dispatched while this proof was pending.
-        loadCreatorFences();
-        if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
-        pending={account,path,method,body:wire.body,headers:{...wire.headers},key:wire.headers['Idempotency-Key'],...commitment,state:'DISPATCHED',firstCause:null};
-        // Confirm durable storage before fetch can dispatch anything.
-        saveCreatorFences([...creatorUnknownMutations.values(),pending]);
-        creatorUnknownMutations.set(index,pending);
+      try{
+        if(!safeRead){
+          const dispatched=await operation.wait(withCreatorMutationLock(operation.signal,async()=>{
+            // The wait cannot authorize a retired account or stale operation.
+            assertCreatorSession(revision);operation.signal.throwIfAborted();
+            const records=loadCreatorFences();
+            if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
+            wire.headers['Idempotency-Key']||=crypto.randomUUID();
+            const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
+            assertCreatorSession(revision);operation.signal.throwIfAborted();
+            pending={account,path,method,body:wire.body,headers:{...wire.headers},key:wire.headers['Idempotency-Key'],...commitment,state:'DISPATCHED',firstCause:null};
+            // Reservation and entry into fetch share the same exclusive lock.
+            // Return its promise in an object so network waiting releases the lock.
+            saveCreatorFences([...records,pending]);creatorUnknownMutations.set(index,pending);
+            dispatchStarted=true;
+            const promise=fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal});
+            promise.catch(()=>{});return {promise};
+          }));
+          response=await operation.wait(dispatched.promise);
+        }else{
+          const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
+          assertCreatorSession(revision);operation.signal.throwIfAborted();
+          response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));
+        }
+        break;
       }
-      try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
       catch(error){
-        if(!safeRead){if(currentCreatorSession(revision)&&!operation.signal.aborted)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw unknownCreatorMutation(pending,error)}
+        if(!safeRead){if(!dispatchStarted)throw error;if(currentCreatorSession(revision)&&!operation.signal.aborted)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw await unknownCreatorMutation(pending,error,operation.signal)}
         assertCreatorSession(revision);if(operation.signal.aborted)throw error;if(attempt===1){reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw error}
       }
     }
     let data;
     try{data=await operation.wait(response.json())}
-    catch(error){if(!safeRead)throw unknownCreatorMutation(pending,error);if(operation.signal.aborted)throw error;data={error:'Invalid service response'}}
+    catch(error){if(!safeRead)throw await unknownCreatorMutation(pending,error,operation.signal);if(operation.signal.aborted)throw error;data={error:'Invalid service response'}}
     // A complete original HTTP result is known even if its account retired
     // while parsing. Fence its UI publication separately; never replay it.
     if(pending&&creatorUnknownMutations.get(index)===pending){
-      try{loadCreatorFences();saveCreatorFences([...creatorUnknownMutations.values()].filter(record=>record!==pending));creatorUnknownMutations.delete(index)}
+      try{await withCreatorMutationLock(operation.signal,()=>{
+        const records=readCreatorFences(),original=records.find(record=>creatorMutationIndex(record)===index);
+        if(!original||original.key!==pending.key||original.bodyDigest!==pending.bodyDigest)throw creatorStorageError();
+        saveCreatorFences(records.filter(record=>record!==original));creatorUnknownMutations.delete(index);
+      })}
       catch(error){pending.storageError=error} // Preserve the fence if cleanup cannot be confirmed.
     }
     assertCreatorSession(revision);

@@ -7,6 +7,7 @@ import { readFile } from "node:fs/promises";
 import { randomUUID, webcrypto } from "node:crypto";
 import {createServer} from 'node:http';
 import {once} from 'node:events';
+import {Worker} from 'node:worker_threads';
 
 const source = (await readFile(process.env.YNX_CREATOR_REQUEST_SOURCE || new URL("app.js", import.meta.url), "utf8"))
   .replace(/^import\b[\s\S]*?from\s*["'][^"']+["'];?\n/gm, "");
@@ -26,6 +27,25 @@ const privateSnapshot = marker => ({
 const privateLists = ["videos", "team-list", "rights-list", "revenue-list", "payout-list", "report-list", "appeal-list", "dispute-list"];
 const pendingStorageKey='ynx.creator.pending-mutations.v1';
 function memoryStorage(){const values=new Map();return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)};}
+// Standard exclusive queue: abort cancels a queued request, not a granted lock.
+class FixtureLockManager {
+  constructor(){this.names=new Map();}
+  request(name,{mode='exclusive',signal}={},callback){
+    assert.equal(mode,'exclusive');
+    return new Promise((resolve,reject)=>{
+      if(signal?.aborted){reject(signal.reason);return;}
+      const state=this.names.get(name)||{active:false,queue:[]};this.names.set(name,state);
+      const waiter={callback,resolve,reject,signal};
+      waiter.abort=()=>{state.queue=state.queue.filter(item=>item!==waiter);reject(signal.reason);};
+      signal?.addEventListener('abort',waiter.abort,{once:true});state.queue.push(waiter);this.pump(name);
+    });
+  }
+  pump(name){
+    const state=this.names.get(name);if(state.active||!state.queue.length)return;
+    const waiter=state.queue.shift();state.active=true;waiter.signal?.removeEventListener('abort',waiter.abort);
+    Promise.resolve().then(()=>waiter.callback({name,mode:'exclusive'})).then(waiter.resolve,waiter.reject).finally(()=>{state.active=false;this.pump(name);});
+  }
+}
 
 class Element {
   constructor() {
@@ -57,7 +77,7 @@ async function app(overrides = {}) {
     getElementById: id => element(`#${id}`), createElement: () => new Element(),
   };
   const dependencies = {createMediaBrowserIdentity:()=>({invalidate(){},signIn(){},authorization:(_session,proof)=>proof()}),
-    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: memoryStorage(), location: { origin: "https://creator.ynxweb4.com", search:"", hash:"", assign() {} },
+    window: {location:{origin:"https://creator.ynxweb4.com"}}, navigator:{locks:new FixtureLockManager()},isSecureContext:true,AbortController, document, localStorage: memoryStorage(), location: { origin: "https://creator.ynxweb4.com", search:"", hash:"", assign() {} },
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
@@ -73,6 +93,142 @@ async function app(overrides = {}) {
   const controller = await new AsyncFunction(...Object.keys(dependencies), `${source}\nreturn {refresh,restoreCreator,resumeNativeSignIn,renderProductState,showAI,providerStatus,api,readState:()=>({snapshot,currentAI,creatorAccount}),readUnknown:()=>typeof creatorUnknownMutations==='undefined'?[]:[...creatorUnknownMutations.values()]};`)(...Object.values(dependencies));
   return { ...controller, element, forms, click: id => element(`#${id}`).listeners.get("click")(), run: id => element(`#${id}`).onclick() };
 }
+
+// Separate agents are necessary to interleave synchronous Storage operations.
+// This is test-only: no product Worker, loader, service or LockManager shim.
+async function concurrentControllers(t, actors, paths) {
+  const shared=new SharedArrayBuffer(16+65536),control=new Int32Array(shared,0,4);
+  Atomics.store(control,1,-1);
+  const locks=new FixtureLockManager(),calls=[],keys=[],outcomes=[],workers=[],held=[];
+  const workerScript=`
+    const {parentPort,workerData}=require('node:worker_threads');
+    const {randomUUID,webcrypto}=require('node:crypto');
+    const assert=require('node:assert/strict');
+    (async()=>{
+      const {serializeMediaBody}=await import(${JSON.stringify(new URL('./business-wire.js',import.meta.url).href)});
+      const {connectMediaWallet}=await import(${JSON.stringify(new URL('./session-events.js',import.meta.url).href)});
+      const {dispatchPreparedProductRequest}=await import(${JSON.stringify(new URL('./product-session.js',import.meta.url).href)});
+      const source=workerData.source,AsyncFunction=Object.getPrototypeOf(async function(){}).constructor;
+      const Element=${Element.toString()};
+      const memoryStorage=${memoryStorage.toString()};
+      const FixtureLockManager=${FixtureLockManager.toString()};
+      const app=${app.toString()};
+      const response=${response.toString()},connected=${connected.toString()};
+      const pendingStorageKey=${JSON.stringify(pendingStorageKey)};
+      const control=new Int32Array(workerData.shared,0,4),bytes=new Uint8Array(workerData.shared,16);
+      let inExclusive=false,firstWrite=true,requestID=0,resolveResponse;
+      const requests=new Map(),abort=new AbortController();
+      const acquire=()=>{while(Atomics.compareExchange(control,0,0,1)!==0)Atomics.wait(control,0,1);};
+      const release=()=>{Atomics.store(control,0,0);Atomics.notify(control,0);};
+      const storage={
+        getItem(key){if(key!==pendingStorageKey)return null;acquire();try{const length=Atomics.load(control,1);return length<0?null:new TextDecoder().decode(bytes.slice(0,length));}finally{release();}},
+        setItem(key,value){
+          if(key!==pendingStorageKey)return;
+          // Delay an UNLOCKED first set before its linearization, until both
+          // independent callers have read the old snapshot. Exclusive owners
+          // cannot overlap here. Each get/set itself remains linearizable.
+          if(firstWrite&&!inExclusive){
+            Atomics.add(control,2,1);Atomics.notify(control,2);
+            while(Atomics.load(control,2)<2)Atomics.wait(control,2,1);
+            if(workerData.index===1)while(Atomics.load(control,3)<1)Atomics.wait(control,3,0);
+          }
+          firstWrite=false;const data=new TextEncoder().encode(String(value));
+          acquire();try{bytes.set(data);Atomics.store(control,1,data.length);}finally{release();}
+        },
+      };
+      const manager={request(name,{mode,signal},callback){
+        if(signal?.aborted)return Promise.reject(signal.reason);
+        return new Promise((resolve,reject)=>{
+          const id=++requestID,onAbort=()=>parentPort.postMessage({type:'lock-abort',id});
+          requests.set(id,{callback,resolve,reject,signal,onAbort});signal?.addEventListener('abort',onAbort,{once:true});
+          parentPort.postMessage({type:'lock-request',id,name,mode});
+        });
+      }};
+      const controller=await app({localStorage:storage,navigator:{locks:manager},isSecureContext:true,crypto:{randomUUID:()=>{const key=randomUUID();parentPort.postMessage({type:'key',key});return key;},subtle:webcrypto.subtle},fetch:(_url,input)=>{
+        parentPort.postMessage({type:'dispatch',key:input.headers['Idempotency-Key'],body:input.body});
+        return new Promise((resolve,reject)=>{resolveResponse=resolve;input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true});});
+      }});
+      controller.renderProductState(connected(workerData.actor));
+      parentPort.on('message',async message=>{
+        if(message.type==='lock-grant'){
+          const request=requests.get(message.id);request.signal?.removeEventListener('abort',request.onAbort);inExclusive=true;
+          try{const result=await request.callback({name:message.name,mode:'exclusive'});request.resolve(result);}catch(error){request.reject(error);}
+          finally{inExclusive=false;requests.delete(message.id);parentPort.postMessage({type:'lock-release',id:message.id});}
+        }else if(message.type==='lock-deny'){
+          const request=requests.get(message.id);request.signal?.removeEventListener('abort',request.onAbort);requests.delete(message.id);request.reject(new DOMException('Fixture lock aborted','AbortError'));
+        }else if(message.type==='start'){
+          controller.api(workerData.path,{method:'POST',body:'{}',signal:abort.signal}).then(data=>parentPort.postMessage({type:'outcome',ok:true,data}),error=>parentPort.postMessage({type:'outcome',ok:false,code:error.code,message:error.message}));
+        }else if(message.type==='respond')resolveResponse(response({saved:true}));
+        else if(message.type==='abort')abort.abort(new Error('Fixture cancelled'));
+      });
+      parentPort.postMessage({type:'ready'});
+    })().catch(error=>parentPort.postMessage({type:'error',message:error.stack}));
+  `;
+  const ready=[];
+  for(let index=0;index<2;index++){
+    const worker=new Worker(workerScript,{eval:true,workerData:{shared,source,index,actor:actors[index],path:paths[index]}});workers.push(worker);
+    const pending=new Map();held.push(pending);
+    ready.push(new Promise((resolve,reject)=>{
+      worker.once('error',reject);
+      worker.on('message',message=>{
+        if(message.type==='ready')resolve();
+        else if(message.type==='error')reject(new Error(message.message));
+        else if(message.type==='key')keys.push({index,key:message.key});
+        else if(message.type==='dispatch'){calls.push({index,actor:actors[index],path:paths[index],key:message.key});if(index===0){Atomics.store(control,3,1);Atomics.notify(control,3);}}
+        else if(message.type==='outcome')outcomes.push({index,...message});
+        else if(message.type==='lock-request'){
+          const cancelled=new AbortController();let release;
+          const done=new Promise(resolve=>{release=resolve;});pending.set(message.id,{cancelled,release});
+          locks.request(message.name,{mode:message.mode,signal:cancelled.signal},async()=>{worker.postMessage({type:'lock-grant',id:message.id,name:message.name});await done;})
+            .catch(()=>worker.postMessage({type:'lock-deny',id:message.id})).finally(()=>pending.delete(message.id));
+        }else if(message.type==='lock-abort')pending.get(message.id)?.cancelled.abort(new DOMException('Fixture lock cancelled','AbortError'));
+        else if(message.type==='lock-release')pending.get(message.id)?.release();
+      });
+    }));
+  }
+  t.after(async()=>{for(const pending of held)for(const request of pending.values()){request.cancelled.abort();request.release();}await Promise.all(workers.map(worker=>worker.terminate()));});
+  const wait=async predicate=>{for(let i=0;i<1000;i++){if(predicate())return;await new Promise(resolve=>setTimeout(resolve,5));}assert.fail('independent controller fixture timed out');};
+  await Promise.all(ready);for(const worker of workers)worker.postMessage({type:'start'});
+  const records=()=>{while(Atomics.compareExchange(control,0,0,1)!==0)Atomics.wait(control,0,1);try{const length=Atomics.load(control,1);return length<0?[]:JSON.parse(new TextDecoder().decode(new Uint8Array(shared,16,length).slice())).records;}finally{Atomics.store(control,0,0);Atomics.notify(control,0);}};
+  return {calls,keys,outcomes,records,wait,respond:index=>workers[index].postMessage({type:'respond'})};
+}
+
+test('cross-tab same-route concurrent reservation permits only one actual fetch and key',async t=>{
+  const c=await concurrentControllers(t,['owner-a','owner-a'],['/v1/channels','/v1/channels']);
+  await c.wait(()=>c.calls.length+c.outcomes.filter(item=>!item.ok).length>=2);
+  assert.equal(c.calls.length,1,'two actual independent controllers must not dispatch the same unresolved route');
+  assert.equal(c.keys.length,1,'queued duplicate must not mint a replayable replacement operation');
+  assert.equal(c.records().length,1);assert.equal(c.records()[0].key,c.calls[0].key);
+});
+test('cross-tab different-route reservations and exact cleanup retain the other pending operation',async t=>{
+  const c=await concurrentControllers(t,['owner-a','owner-a'],['/v1/channels','/v1/videos/other/metadata']);
+  await c.wait(()=>c.calls.length===2);assert.equal(c.records().length,2,'read/merge/set must not overwrite the other tab record');
+  c.respond(0);await c.wait(()=>c.outcomes.some(item=>item.index===0&&item.ok));
+  assert.equal(c.records().length,1);assert.equal(c.records()[0].key,c.calls.find(item=>item.index===1).key);
+});
+test('cross-tab different-account reservations preserve both actors',async t=>{
+  const c=await concurrentControllers(t,['owner-a','owner-b'],['/v1/channels','/v1/channels']);
+  await c.wait(()=>c.calls.length===2);assert.deepEqual(c.records().map(record=>record.account).sort(),['owner-a','owner-b']);
+});
+test('cross-tab lock missing denied or insecure refuses mutation and keeps safe reads',async()=>{
+  for(const mode of ['missing','denied','insecure']){
+    let writes=0,reads=0;const c=await app({navigator:mode==='missing'?{}:{locks:mode==='denied'?{request:()=>Promise.reject(new Error('Locks denied'))}:new FixtureLockManager()},isSecureContext:mode!=='insecure',fetch:async(_url,input)=>{if(input.method==='POST')writes++;else reads++;return response({team:[],videos:[]});}});
+    c.renderProductState(connected('owner-a'));let error;try{await c.api('/v1/channels',{method:'POST',body:'{}'});}catch(value){error=value;}
+    assert.equal(writes,0,mode);assert.equal(error.code,'CREATOR_MUTATION_LOCK_UNAVAILABLE');await c.api('/v1/studio');assert.equal(reads,1);
+  }
+});
+test('cross-tab queued lock cancellation and account change cannot dispatch with retired context',async()=>{
+  for(const accountChange of [false,true]){
+    const locks=new FixtureLockManager(),held=deferred();const holding=locks.request(pendingStorageKey,{},()=>held.promise);await turn();let calls=0;
+    const c=await app({navigator:{locks},fetch:async()=>{calls++;return response({});}});c.renderProductState(connected('owner-a'));const abort=new AbortController();
+    const outcome=c.api('/v1/channels',{method:'POST',body:'{}',signal:abort.signal}).then(data=>({data}),error=>({error}));
+    try{
+      for(let i=0;i<100&&!locks.names.get(pendingStorageKey).queue.length;i++)await new Promise(resolve=>setTimeout(resolve,5));
+      assert.equal(calls,0);if(accountChange)c.renderProductState(connected('owner-b'));else abort.abort(new Error('Caller cancelled'));
+      const result=await outcome;assert.match(result.error.message,/changed|cancelled/);assert.equal(calls,0);
+    }finally{held.resolve();await holding;}
+  }
+});
 
 function assertCleared(controller, marker) {
   assert.equal(controller.readState().snapshot, null);
