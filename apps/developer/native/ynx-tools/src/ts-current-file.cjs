@@ -33,8 +33,26 @@ function createTsCurrentFile(api, context, environment = process.env) {
   }
   function cancel() {
     generation++;
+    pending?.cancelSave?.();
     if (pending?.execution) pending.execution.terminate();
     if (pending?.session) void stop(pending);
+  }
+  function saveDocument(document, request, validate) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        if (request.cancelSave === cancelled) request.cancelSave = undefined;
+        error ? reject(error) : resolve(value);
+      };
+      const cancelled = () => finish(Error('TypeScript run was cancelled.'));
+      request.cancelSave = cancelled;
+      Promise.resolve().then(() => {
+        validate(); // A queued RPC must still belong to this original request.
+        return document.save();
+      }).then(value => finish(undefined, value), error => finish(error));
+    });
   }
   const ended = api.tasks.onDidEndTaskProcess(event => {
     const job = pending;
@@ -81,21 +99,54 @@ function createTsCurrentFile(api, context, environment = process.env) {
     const document = api.window.activeTextEditor?.document;
     const folder = document && api.workspace.getWorkspaceFolder(document.uri);
     let version, job, failure;
+    const request = { epoch }, savedDocuments = [];
+    const originalFile = document?.uri?.fsPath, folderPath = folder?.uri?.fsPath, workspacePath = environment.YNX_LOCAL_WORKSPACE;
     const validate = () => {
       if (disposed || generation !== epoch) throw Error('TypeScript run was cancelled.');
-      if (!api.workspace.isTrusted || environment.YNX_WORKSPACE_MODE !== 'local' || !folder || folder.uri.scheme !== 'file'
+      if (environment.YNX_LOCAL_WORKSPACE !== workspacePath || folder?.uri?.fsPath !== folderPath || document?.uri?.fsPath !== originalFile) throw Error('The active project or file changed. Run the intended TypeScript file again.');
+      for (const saved of savedDocuments) if (saved.document.isClosed || saved.document.isDirty || saved.document.version !== saved.version || saved.document.uri.scheme !== 'file' || saved.document.uri.fsPath !== saved.path) throw Error('The TypeScript file changed after saving. Run it again.');
+      if (!api.workspace.isTrusted || !path.isAbsolute(workspacePath || '') || environment.YNX_WORKSPACE_MODE !== 'local' || !folder || folder.uri.scheme !== 'file'
         || !document || document.isClosed || document.uri.scheme !== 'file'
         || !['typescript', 'typescriptreact'].includes(document.languageId) || !/\.(?:tsx?|mts|cts)$/i.test(document.uri.fsPath)) throw Error('Open a trusted local TypeScript file.');
       if (api.window.activeTextEditor?.document !== document || api.workspace.getWorkspaceFolder(document.uri) !== folder)
         throw Error('The active project or file changed. Run the intended TypeScript file again.');
       if (version !== undefined && (document.version !== version || document.isDirty)) throw Error('The TypeScript file changed after saving. Run it again.');
     };
-    pending = {};
+    pending = request;
     try {
-      validate(); if (!await api.workspace.saveAll(false)) return false;
+      validate();
+      const location = await assertWorkspacePath(document.uri.fsPath, folderPath);
+      if (location.realWorkspace !== await fs.realpath(workspacePath)) throw Error('TypeScript file belongs to a different project.');
+      validate();
+      // Save only admitted project files, including imported sources and config.
+      // The global saveAll API also touches models from unrelated projects.
+      const documents = new Set([document, ...(api.workspace.textDocuments || [])]);
+      const within = (file, root) => {
+        const relative = path.relative(root, file);
+        return relative && relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
+      };
+      for (const candidate of documents) {
+        if (candidate?.uri?.scheme !== 'file' || !within(candidate.uri.fsPath, folderPath) && !within(candidate.uri.fsPath, location.realWorkspace)) continue;
+        validate();
+        if (candidate.isClosed) throw Error('The TypeScript file changed after saving. Run it again.');
+        const candidatePath = candidate.uri.fsPath;
+        const validateCandidate = () => {
+          validate();
+          if (candidate.isClosed || candidate.uri.scheme !== 'file' || candidate.uri.fsPath !== candidatePath)
+            throw Error('The TypeScript file changed after saving. Run it again.');
+        };
+        await assertWorkspacePath(candidatePath, folderPath);
+        validateCandidate();
+        const saved = await saveDocument(candidate, request, validateCandidate);
+        if (candidate.isClosed) throw Error('The TypeScript file changed after saving. Run it again.');
+        validate();
+        if (!saved) return false;
+        if (candidate.isClosed || candidate.isDirty || candidate.uri.fsPath !== candidatePath) throw Error('The TypeScript file changed after saving. Run it again.');
+        // Fence compilation inputs; unrelated project notes may still be edited.
+        if (candidate === document || /\.(?:[cm]?[jt]sx?|json)$/i.test(candidatePath))
+          savedDocuments.push({ document: candidate, path: candidatePath, version: candidate.version });
+      }
       version = document.version; validate();
-      const location = await assertWorkspacePath(document.uri.fsPath, folder.uri.fsPath);
-      if (location.realWorkspace !== await fs.realpath(environment.YNX_LOCAL_WORKSPACE)) throw Error('TypeScript file belongs to a different project.');
       const compiler = path.resolve(__dirname, '../runtime/typescript/lib/typescript.js');
       await fs.access(compiler);
       const extension = api.extensions.getExtension('ms-vscode.js-debug');
@@ -144,7 +195,7 @@ function createTsCurrentFile(api, context, environment = process.env) {
       } catch (cleanupError) {
         if (failure) failure.cleanupError = cleanupError;
         else throw cleanupError;
-      } finally { pending = undefined; }
+      } finally { if (pending === request || pending === job) pending = undefined; }
     }
   }
   return { start, cancel };

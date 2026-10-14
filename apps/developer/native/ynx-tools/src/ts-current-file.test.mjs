@@ -117,7 +117,7 @@ async function lifecycle(fn) {
   await project(async ({ root, file }) => {
     await fs.writeFile(file, 'console.log(42)');
     const uri = p => ({ scheme: 'file', fsPath: p });
-    const document = { uri: uri(file), languageId: 'typescript', version: 1, isDirty: false };
+    const document = { uri: uri(file), languageId: 'typescript', version: 1, isDirty: false, save: async () => true };
     const folder = { uri: uri(root) }, handlers = {}, calls = [], subscriptions = [], faults = {};
     const event = key => handler => { handlers[key] = handler; return { dispose() { delete handlers[key]; } }; };
     const emit = (key, value) => handlers[key]?.(value);
@@ -137,7 +137,12 @@ async function lifecycle(fn) {
     };
     const module = { exports: {} }, filename = require.resolve('./ts-current-file.cjs');
     vm.runInNewContext(await fs.readFile(filename, 'utf8'), { module, process, __dirname: path.dirname(filename), require: id => id === 'node:fs/promises'
-      ? { ...fs, rm: (...args) => faults.rm ? faults.rm(...args) : fs.rm(...args), access: name => name.includes('/runtime/typescript/') ? Promise.resolve() : fs.access(name) } : require(id) });
+      ? { ...fs, rm: (...args) => faults.rm ? faults.rm(...args) : fs.rm(...args), access: name => name.includes('/runtime/typescript/') ? Promise.resolve() : fs.access(name) }
+      : id === './guards.cjs' ? { ...require(id), assertWorkspacePath: async (...args) => {
+        const result = await require(id).assertWorkspacePath(...args);
+        faults.afterAdmission?.(...args);
+        return result;
+      } } : require(id) });
     const runner = module.exports.createTsCurrentFile(api, { subscriptions }, { YNX_WORKSPACE_MODE: 'local', YNX_LOCAL_WORKSPACE: root });
     const waitTask = async () => { for (let i = 0; i < 100 && !calls.length; i++) await new Promise(resolve => setTimeout(resolve, 10)); assert.ok(calls.length); return calls[0]; };
     try { await fn({ runner, api, handlers, calls, document, waitTask, emit, dispose, faults }); }
@@ -171,7 +176,7 @@ test('debugger start rejection removes generated output and allows a retry', () 
   const [root, file, output] = task.task.execution.args.slice(1); compile(ts, root, file, output);
   f.handlers.process({ execution: task, exitCode: 0 });
   await assert.rejects(running, /adapter unavailable/); await assert.rejects(fs.access(output));
-  f.api.workspace.saveAll = async () => false; assert.equal(await f.runner.start(), false);
+  f.document.save = async () => false; assert.equal(await f.runner.start(), false);
 }));
 test('cancellation during debugger startup stops only the owned late session', () => lifecycle(async f => {
   let ready;
@@ -235,6 +240,69 @@ test('cleanup rejection preserves the compilation cause and does not lock the ne
   f.emit('process', { execution: task, exitCode: 1 });
   await assert.rejects(running, error => /compilation failed/.test(error.message) && error.cleanupError === cleanupError);
   await fs.access(output);
-  let saves = 0; f.api.workspace.saveAll = async () => { saves++; return false; };
+  let saves = 0; f.document.save = async () => { saves++; return false; };
   assert.equal(await f.runner.start(), false); assert.equal(saves, 1, 'retry entered instead of returning from the stale pending gate');
+}));
+
+test('TypeScript saves only admitted project documents instead of the global save-all gate', () => lifecycle(async f => {
+ const root=path.dirname(f.document.uri.fsPath),config=path.join(root,'tsconfig.json');await fs.writeFile(config,'{}');
+ const saved=[];f.document.save=async()=>{saved.push('source');return true;};
+ const projectConfig={uri:{scheme:'file',fsPath:config},version:1,isDirty:true,save:async()=>{saved.push('config');return false;}};
+ const foreign={uri:{scheme:'file',fsPath:path.join(root,'..','outside.ts')},isDirty:true,save:async()=>{saved.push('foreign');throw Error('foreign document must not be saved');}};
+ f.api.workspace.textDocuments=[f.document,projectConfig,foreign];f.api.workspace.saveAll=async()=>{saved.push('GLOBAL');return false;};
+ assert.equal(await f.runner.start(),false);assert.deepEqual(saved,['source','config']);assert.equal(f.calls.length,0);
+}));
+test('cancel retires a pending TypeScript save before its reply and allows retry without late revival', () => lifecycle(async f => {
+ let reply,result;const save=()=>new Promise(resolve=>reply=resolve);f.document.save=save;f.api.workspace.saveAll=save;
+ const pending=f.runner.start().then(v=>{result=v;return v},e=>{result=e.message;return e.message});await waitUntil(()=>reply);f.runner.cancel();
+ try{await new Promise(resolve=>setImmediate(resolve));await new Promise(resolve=>setImmediate(resolve));assert.match(result||'',/cancelled/);
+  f.document.save=async()=>false;f.api.workspace.saveAll=async()=>false;assert.equal(await f.runner.start(),false);reply(true);await new Promise(resolve=>setImmediate(resolve));assert.equal(f.calls.length,0);
+ }finally{reply(false);await pending;}
+}));
+
+test('dispose retires a pending save and releases listeners without waiting for its late reply', () => lifecycle(async f => {
+ let reply;f.document.save=()=>new Promise(resolve=>reply=resolve);const running=f.runner.start();const observed=running.then(()=> 'unexpected',error=>error.message);await waitUntil(()=>reply);f.dispose();
+ assert.match(await observed,/cancelled/);await waitUntil(()=>Object.keys(f.handlers).length===0);reply(true);await new Promise(resolve=>setImmediate(resolve));assert.equal(f.calls.length,0);
+}));
+test('closed or still dirty saved document blocks compilation and retry can enter the same runner', () => lifecycle(async f => {
+ for(const state of ['closed','dirty']){
+  f.document.isClosed=false;f.document.isDirty=false;f.document.save=async()=>{f.document.isClosed=state==='closed';f.document.isDirty=state==='dirty';return true;};
+  await assert.rejects(f.runner.start(),/changed after saving/);assert.equal(f.calls.length,0);
+ }
+ f.document.isClosed=false;f.document.isDirty=false;f.document.save=async()=>false;assert.equal(await f.runner.start(),false);
+}));
+test('late reply from a cancelled save cannot release or cancel a newer compile', () => lifecycle(async f => {
+ let reply;f.document.save=()=>new Promise(resolve=>reply=resolve);const first=f.runner.start().then(()=> 'unexpected',error=>error.message);await waitUntil(()=>reply);f.runner.cancel();assert.match(await first,/cancelled/);
+ f.document.save=async()=>true;const retry=f.runner.start();const observed=retry.then(()=> 'unexpected',error=>error.message);const task=await f.waitTask();reply(true);await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(await f.runner.start(),false,'new compile remains owned');assert.equal(f.calls.length,1);f.emit('process',{execution:task,exitCode:1});assert.match(await observed,/compilation failed/);
+}));
+test('saved source changing while another project document saves never starts compilation', () => lifecycle(async f => {
+ const config=path.join(path.dirname(f.document.uri.fsPath),'tsconfig.json');await fs.writeFile(config,'{}');f.document.save=async()=>true;
+ const other={uri:{scheme:'file',fsPath:config},version:1,isDirty:false,save:async()=>{f.document.version++;return true;}};f.api.workspace.textDocuments=[other];
+ await assert.rejects(f.runner.start(),/changed after saving/);assert.equal(f.calls.length,0);
+}));
+test('trust or local project change during a save refuses continuation', () => lifecycle(async f => {
+ f.document.save=async()=>{f.api.workspace.isTrusted=false;return true;};await assert.rejects(f.runner.start(),/trusted local TypeScript/);assert.equal(f.calls.length,0);
+ f.api.workspace.isTrusted=true;f.document.save=async()=>{f.api.window.activeTextEditor=undefined;return true;};await assert.rejects(f.runner.start(),/active project or file changed/);assert.equal(f.calls.length,0);
+}));
+test('a symlinked document outside the admitted project is not saved', () => lifecycle(async f => {
+ const root=path.dirname(f.document.uri.fsPath),outside=await fs.mkdtemp(path.join(tmpdir(),'ynx-ts-save-outside-'));try{
+  await fs.writeFile(path.join(outside,'outside.ts'),'untouched');await fs.symlink(path.join(outside,'outside.ts'),path.join(root,'linked.ts'));let writes=0;
+  f.api.workspace.textDocuments=[{uri:{scheme:'file',fsPath:path.join(root,'linked.ts')},version:1,isDirty:true,save:async()=>{writes++;return true;}}];
+  await assert.rejects(f.runner.start(),/outside this project/);assert.equal(writes,0);assert.equal(f.calls.length,0);assert.equal(await fs.readFile(path.join(outside,'outside.ts'),'utf8'),'untouched');
+ }finally{await fs.rm(outside,{recursive:true,force:true});}
+}));
+
+test('editing project notes during compilation does not invalidate the saved TypeScript inputs', () => lifecycle(async f => {
+ const root=path.dirname(f.document.uri.fsPath),note=path.join(root,'README.md');await fs.writeFile(note,'notes');
+ const readme={uri:{scheme:'file',fsPath:note},version:1,isDirty:false,save:async()=>true};f.api.workspace.textDocuments=[readme];
+ const running=f.runner.start(),task=await f.waitTask();const [workspace,file,output]=task.task.execution.args.slice(1);compile(ts,workspace,file,output);
+ readme.version++;readme.isDirty=true;f.emit('process',{execution:task,exitCode:0});assert.equal(await running,true);f.emit('debugEnd',{configuration:f.calls[1]});
+}));
+
+test('a project document moving during admission is never saved under its new path', () => lifecycle(async f => {
+ const root=path.dirname(f.document.uri.fsPath),config=path.join(root,'tsconfig.json');await fs.writeFile(config,'{}');let writes=0;
+ const other={uri:{scheme:'file',fsPath:config},version:1,isDirty:true,save:async()=>{writes++;return true;}};f.api.workspace.textDocuments=[other];
+ f.faults.afterAdmission=file=>{if(file===config)other.uri.fsPath=path.join(root,'..','foreign.json');};
+ await assert.rejects(f.runner.start(),/changed after saving/);assert.equal(writes,0);assert.equal(f.calls.length,0);
 }));
