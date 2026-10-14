@@ -18,6 +18,7 @@ import SwiftUI
     let api:APIClient,queue:OfflineQueue,invoiceHandoffs:InvoiceHandoffJournal,journey:AppleBuyerJourney
     private var presentedSession:ShopSession?
     private var operationRevision=0
+    private var ordersRefreshRevision=0
     @Published private(set) var mutationBusy=false
     @Published private(set) var checkoutRecoveryRequired=false
     @Published var profileName=""
@@ -38,7 +39,26 @@ import SwiftUI
     private func failure(_ error:Error){if let error=error as? ShopError{if error == .contextChanged{if signedIn && api.currentSession==nil{signOut()};return};if error == .signedOut{signOut();return}};state="unavailable"}
     func signOut(){cancelInvoicePresentation();api.invalidate();operationRevision+=1;mutationBusy=false;presentedSession=nil;signedIn=false;checkoutRecoveryRequired=false;cart=[];orders=[];selected=nil;privacyRevision+=1;if let url=privacyExportURL{try? FileManager.default.removeItem(at:url)};privacyExportURL=nil;clearProfilePresentation();do{try api.disconnectNative();state=""}catch{state="security_error"}}
     func loadCatalog()async{state="loading";do{let r:CatalogResponse=try await api.request("products?q=\(search.addingPercentEncoding(withAllowedCharacters:.urlQueryAllowed) ?? "")");products=r.products;state=products.isEmpty ? "empty_catalog":""}catch{failure(error)}}
-    func loadOrders()async{guard signedIn else{return};do{let check=try api.capture();let r:OrdersResponse=try await api.request("orders");try check();guard let account=api.currentSession?.account else{throw ShopError.signedOut};try r.orders.forEach{try AppleBuyerReceipt.validate($0,account:account)};orders=r.orders}catch{failure(error)}}
+    func loadOrders()async {
+        ordersRefreshRevision+=1
+        let refresh=ordersRefreshRevision,operation=operationRevision
+        guard signedIn else{return}
+        var authorization:(()throws->Void)?
+        do {
+            let check=try api.capture();authorization=check
+            let response:OrdersResponse=try await api.request("orders")
+            guard refresh==ordersRefreshRevision,operation==operationRevision else{return}
+            try check()
+            guard let account=api.currentSession?.account else{throw ShopError.signedOut}
+            try response.orders.forEach{try AppleBuyerReceipt.validate($0,account:account)}
+            orders=response.orders
+        } catch {
+            // Obsolete reads cannot replace a newer list or its error/loading state.
+            guard refresh==ordersRefreshRevision,operation==operationRevision else{return}
+            if let authorization {do{try authorization()}catch{return}}
+            failure(error)
+        }
+    }
     private func editCart(_ items:[CartItem])throws{let current=api.currentSession;guard current==presentedSession,signedIn == (current != nil) else{throw ShopError.contextChanged};if let current{try journey.edit(current.account,items:items)}else{try journey.editGuest(items)};cart=items}
     func add(_ product:Product,_ variant:Variant){guard !mutationBusy,variant.reserved>=0,variant.inventory>variant.reserved else{return};var next=cart;if let index=next.firstIndex(where:{$0.productID==product.productID && $0.variantID==variant.variantID}){guard next[index].quantity<20 else{return};next[index].quantity+=1}else{next.append(.init(productID:product.productID,variantID:variant.variantID,quantity:1))};do{try editCart(next)}catch{failure(error)}}
     func removeCart(_ item:CartItem,revision:Int?=nil){guard !mutationBusy,revision==nil || revision==privacyRevision else{return};do{try editCart(cart.filter{$0.productID != item.productID || $0.variantID != item.variantID})}catch{failure(error)}}
