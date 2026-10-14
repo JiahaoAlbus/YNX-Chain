@@ -35,3 +35,15 @@ test('normal owning builders select current profiles without reusing historical 
  assert.match(read('apps/music/webfs.go'),/go:generate node scripts\/build-current-web-sdk\.mjs/);
  for(const product of ['video','creator-studio'])assert.match(read(`apps/${product}/server.mjs`),/product-session-sdk-r9\.js/);
 });
+
+test('Creator native scope closure does not import browser SDK or its dynamic loader',async()=>{
+ const source=read('apps/creator-studio/native/session.mjs');
+ assert.match(source,/import \{creatorScope\} from '\.\.\/business-scope\.js'/);
+ assert.doesNotMatch(source,/from ['"]\.\.\/product-session\.js['"]/);
+ const scopeSource=read('apps/creator-studio/business-scope.js');
+ assert.doesNotMatch(scopeSource,/\bimport\b|product-session-sdk/);
+ const {creatorScope}=await import('../../creator-studio/business-scope.js');
+ assert.equal(creatorScope('/v1/account','GET'),'creator:account');
+ assert.equal(creatorScope('/v1/videos','POST'),'creator:publish');
+ assert.equal(creatorScope('/v1/revenue','GET'),'creator:revenue');
+});

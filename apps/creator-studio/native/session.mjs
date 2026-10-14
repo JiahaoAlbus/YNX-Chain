@@ -1,5 +1,5 @@
 import {createNativeProductSessionClient,ProductSessionGatewayFetchAdapter,productPlatformBinding} from '../../music/web/vendor/wallet-auth-5c5e8a23/artifacts/product-session-native.mjs';
-import {creatorScope} from '../product-session.js';
+import {creatorScope} from '../business-scope.js';
 import {serializeMediaBody,mediaBusinessAuthorization} from '../business-wire.js';
 
 const definitions=Object.freeze({
