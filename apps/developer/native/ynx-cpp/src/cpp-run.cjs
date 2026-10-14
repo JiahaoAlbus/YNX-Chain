@@ -198,7 +198,10 @@ function registerCppRun(vscode, context, env) {
   }));
   if (vscode.debug.onDidTerminateDebugSession) context.subscriptions.push(vscode.debug.onDidTerminateDebugSession(session => {
     const root = session.workspaceFolder?.uri?.fsPath, owner = root && active.get(root);
-    if (owner?.kind === 'debug' && (!owner.sessionId || owner.sessionId === session.id)) active.delete(root);
+    // An unrelated session can finish while this launch is still awaiting its
+    // adapter. Match the original request as well as the eventual session ID.
+    if (owner?.kind === 'debug' && session.configuration?.__ynxCppRunId === owner.requestId &&
+        typeof session.id === 'string' && session.id && (!owner.sessionId || owner.sessionId === session.id)) active.delete(root);
   }));
   async function validateScope(scope) {
     const folders = vscode.workspace.workspaceFolders;
@@ -356,7 +359,9 @@ function registerCppRun(vscode, context, env) {
         if (owner.launchTimedOut) return; // A late launch completion cannot revive this run.
         if (!started) throw Error(t('launchFailed'));
         const session = vscode.debug.activeDebugSession;
-        if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath && active.get(scope.root) === owner) owner.sessionId = session.id;
+        if (session?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath &&
+            session.configuration?.__ynxCppRunId === owner.requestId && typeof session.id === 'string' && session.id &&
+            (!owner.sessionId || owner.sessionId === session.id) && active.get(scope.root) === owner) owner.sessionId = session.id;
       }
     } finally {
       if (!sessionAccepted) {

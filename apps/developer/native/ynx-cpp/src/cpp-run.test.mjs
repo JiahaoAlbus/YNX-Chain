@@ -240,14 +240,14 @@ test('real TasksExt early success preserves exit0 and native cancellation ends o
 test('native commented empty Theia launch plus VSCode process tasks debugs captured source twice and preserves launch bytes',async()=>{
  const f=await fixture();await writeFile(f.path,'int main(){return 0;}');await mkdir(join(f.root,'.theia'));
  const launchPath=join(f.root,'.theia/launch.json'),bytes='{\n // Use IntelliSense to learn about possible attributes.\n "version":"0.2.0", "configurations":[]\n}';await writeFile(launchPath,bytes);
- let launches=0;const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;
+ let launches=0,ownedConfiguration;const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;
  // Re-register to observe the real debug session completion lifecycle.
  registerCppRun(f.vscode,{subscriptions:[]},f.env);
  f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
  f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
  f.vscode.tasks.fetchTasks=async()=>{throw Error('empty task discovery must not gate generated build');};
- f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
- for(let i=0;i<2;i++) {f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'native'});}
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{ownedConfiguration=configuration;launches++;assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ for(let i=0;i<2;i++) {f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'native',configuration:ownedConfiguration});}
  assert.equal(launches,2);assert.deepEqual(f.errors,[]);assert.equal(await readFile(launchPath,'utf8'),bytes);
  await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
 });
@@ -304,13 +304,13 @@ test('a mixed JS project can run and debug new C++ twice without replacing its e
  f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
  f.vscode.workspace.getConfiguration=section=>({get:(_key,fallback)=>section==='lldb-dap'?'/Library/Developer/CommandLineTools/usr/bin/lldb-dap':fallback});
  f.vscode.Uri={file:path=>({fsPath:path})};f.vscode.workspace.openTextDocument=async()=>({});f.vscode.window.showTextDocument=async()=>{};
- let launches=0,emptyPickers=0,compilerChoices=0;
+ let launches=0,emptyPickers=0,compilerChoices=0,ownedConfiguration;
  f.vscode.window.showQuickPick=async(items,options)=>{if(!items.length)emptyPickers++;if(options.title==='Select C/C++ compiler')compilerChoices++;return items[0];};
  f.vscode.tasks.fetchTasks=async()=>{throw Error('unobserved task cache must not gate generated build');};
- f.vscode.debug.startDebugging=async(folder,configuration)=>{launches++;assert.equal(configuration.type,'lldb-dap');assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{ownedConfiguration=configuration;launches++;assert.equal(configuration.type,'lldb-dap');assert.ok(configuration.program.startsWith(f.env.TMPDIR+'/cpp-'));assert.equal(configuration.cwd,f.root);assert.equal(configuration.preLaunchTask,undefined);assert.ok((await readFile(configuration.program)).length>0);return true;};
  for(let i=0;i<2;i++) {
   f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.runActive')();
-  f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'mixed'});
+  f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();terminated.fire({workspaceFolder:f.folder,id:'mixed',configuration:ownedConfiguration});
  }
  assert.deepEqual(f.errors,[]);assert.equal(emptyPickers,0);assert.equal(launches,2);assert.equal(compilerChoices,1);assert.equal(f.output.filter(text=>text==='MIXED CPP 42').length,2);
  assert.equal(await readFile(launchPath,'utf8'),bytes);await assert.rejects(readFile(join(f.root,'.vscode/launch.json')),{code:'ENOENT'});
@@ -420,4 +420,27 @@ test('owned LLDB deadline is cancelled on success, stop or exit; stop rejection 
  assert.equal(stops,1);assert.equal(state.active.size,1);assert.ok(f.errors.some(text=>/could not be stopped/.test(text)));
  f.vscode.window.activeTextEditor={document:f.document};await f.commands.get('ynx.cpp.debugActive')();assert.ok(f.output.some(text=>/already running/.test(text)));
  terminated.fire(session);assert.equal(state.active.size,0);
+});
+
+test('foreign same-project termination during C++ startup cannot release its owner or bind a foreign active session', async () => {
+ const f=await fixture();await writeFile(f.path,'int main(){return 0;}');
+ const terminated=emitter();f.vscode.debug.onDidTerminateDebugSession=terminated.event;
+ const state=registerCppRun(f.vscode,{subscriptions:[]},f.env);
+ f.vscode.extensions={getExtension:()=>({activate:async()=>{}})};
+ f.vscode.workspace.getConfiguration=()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'});
+ let current;
+ f.vscode.debug.startDebugging=async(folder,configuration)=>{
+  current={workspaceFolder:folder,id:'owned-new',configuration};
+  const owner=state.active.get(f.root);assert.ok(owner);
+  const foreign={workspaceFolder:folder,id:'foreign-old',configuration:{__ynxCppRunId:'unrelated'}};
+  terminated.fire(foreign);
+  assert.equal(state.active.get(f.root),owner,'an unrelated termination must not release startup ownership');
+  f.vscode.debug.activeDebugSession=foreign;return true;
+ };
+ await f.commands.get('ynx.cpp.debugActive')();
+ assert.deepEqual(f.errors,[]);
+ assert.equal(state.active.get(f.root)?.sessionId,undefined,'start completion must not adopt a foreign activity selection');
+ terminated.fire({...current,configuration:{__ynxCppRunId:'foreign'}});assert.equal(state.active.size,1);
+ terminated.fire({...current,id:undefined});assert.equal(state.active.size,1);
+ terminated.fire(current);assert.equal(state.active.size,0,'the actual owned termination releases startup ownership');
 });
