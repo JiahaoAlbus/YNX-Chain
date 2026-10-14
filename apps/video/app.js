@@ -918,10 +918,12 @@ function showSettings() {
   if(epoch===null)return;
   $("#content").innerHTML='<section class="settings-panel"><h2>Your Video data</h2><p>Delete your watch history, subscriptions, playlists and comment text. Original videos remain available, and the service retains a minimal deletion audit record.</p><button id="delete-viewer-data" class="danger">Delete my Video data</button></section>';
   $("#delete-viewer-data").onclick=async event=>{
+    if(epoch!==libraryEpoch||currentView!=="settings")return;
     if(!confirm("Delete your Video history, subscriptions, playlists and comment text? This cannot be undone. Original videos are not deleted."))return;
     const button=event.currentTarget;button.disabled=true;
+    let scope;
     try{
-      const scope=playlistScope();
+      scope=playlistScope(()=>{if(epoch!==libraryEpoch||currentView!=="settings")throw new DOMException("Video view changed.","AbortError");});
       $("#video").pause();
       await flushWatch(false);scope.current();
       watchProgress?.discard();
@@ -930,8 +932,8 @@ function showSettings() {
       if(currentVideo)startWatchProgress(currentVideo);
       currentPlaylist=null;notice("Your saved Video data was deleted.");await refreshSubscriptionButton();
     }
-    catch(error){notice(error.message,true);}
-    finally{button.disabled=false;}
+    catch(error){if(scope?.matches())notice(error.message,true);}
+    finally{if(scope?.matches())button.disabled=false;}
   };
 }
 
