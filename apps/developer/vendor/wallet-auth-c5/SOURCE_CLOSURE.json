@@ -1206,11 +1206,11 @@
     },
     {
       "path": "packages/wallet-auth/src/product-session-recovery.js",
-      "origin": "aa65ea80525e1956214cf4c8848093034e52c77d",
-      "bytes": 55530,
+      "origin": "b72144ac67bc76ee16f3bad1329be149e9efbf0d",
+      "bytes": 59279,
       "mode": "0o644",
-      "gitBlob": "6e967b336e75640774d65448526142a7a0987bf2",
-      "sha256": "c671e33dca10022a173a14b29e1a761d93b8efa464edc162eadf0e9f4397c950"
+      "gitBlob": "80aab06beb422ec740a6c0593bbbc7b8ba1eda16",
+      "sha256": "e80eeb44d78d0b91f67c18c8593bea4be89235eef20b3e7b66c664d2b4555b8b"
     },
     {
       "path": "packages/wallet-auth/src/product-session-registry.js",
@@ -2225,7 +2225,7 @@
   "protectedCapabilitySupplied": false,
   "normalNativeLinkage": "Original owner R22/Auth15 fixed relative package/module layout is separate; this browser package projection does not supply a Native borrow.",
   "composition": {
-    "kind": "same-copy-current276-plus-normal-R7-coordinator-delta",
+    "kind": "same-copy-current276-plus-normal-R7-coordinator-and-R8-return-deltas",
     "base": {
       "sourceCommit": "aa65ea80525e1956214cf4c8848093034e52c77d",
       "sourceTree": "114d5000f373499419adcd17299c3ce14a18cc86",
@@ -2243,14 +2243,30 @@
         "sha256": "b757fb45c464dfe74aa763e5c87a941ac2e65d4809f1aa62ee055890b9cad674",
         "beforeBytes": 10482,
         "beforeSha256": "f5372e25dc714ede370063b5eaaf029d66313938908e1ac68195a0f3c86d0a34"
+      },
+      {
+        "path": "src/product-session-recovery.js",
+        "sourceCommit": "b72144ac67bc76ee16f3bad1329be149e9efbf0d",
+        "sourceTree": "11dc8ae3904355700967104db2329fdd4f74a635",
+        "source": "/Users/huangjiahao/ynx-wallet-sdk-return-lifecycle-r8-20261014/source/packages/wallet-auth/src/product-session-recovery.js",
+        "bytes": 59279,
+        "sha256": "e80eeb44d78d0b91f67c18c8593bea4be89235eef20b3e7b66c664d2b4555b8b",
+        "beforeBytes": 55530,
+        "beforeSha256": "c671e33dca10022a173a14b29e1a761d93b8efa464edc162eadf0e9f4397c950",
+        "gitBlob": "80aab06beb422ec740a6c0593bbbc7b8ba1eda16"
       }
     ],
     "normalR7NpmProjection": {
       "files": 170,
       "adoptedWholePackage": false
     },
-    "protectedCapabilitySupplied": false
+    "protectedCapabilitySupplied": false,
+    "normalR8Recovery": {
+      "adoptedWholePackage": false,
+      "instanceSigningCacheDurableAcrossRestart": false,
+      "privateGrantSupplied": false
+    }
   },
-  "contentRoot": "7156b40b5f959eacfd4c45183d7522227000f468f3c1e1128f21d46be60ba3c6",
+  "contentRoot": "cbe75636ac91d71f509d5bdfe15330fad811d0711eb54c71b6c5be415ace6ff3",
   "contentRootAlgorithm": "sha256-json-complete-files-array-v1"
 }
