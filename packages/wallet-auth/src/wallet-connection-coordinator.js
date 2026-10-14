@@ -42,16 +42,18 @@ export class WalletConnectionCoordinator {
   }
 
   async restore(networkAvailable = true) {
+    const generation = ++this.#evmGeneration;
     const sessionState = await this.#client.restore(networkAvailable);
+    if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
     // A retained pending request is connecting but explicitly not an automatic
     // open. Only a newly detected automatic attempt may launch from restore.
     if (sessionState.automatic !== true) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState });
-    return this.#openIfConnecting(sessionState);
+    return this.#openIfConnecting(sessionState, generation);
   }
-  async beginYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.beginDetected(false)); }
-  async retryYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.retryDetected()); }
-  async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }
-  setNetworkAvailable(available) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }
+  async beginYNX() { const generation = ++this.#evmGeneration; return this.#openIfConnecting(await this.#client.beginDetected(false), generation); }
+  async retryYNX() { const generation = ++this.#evmGeneration; return this.#openIfConnecting(await this.#client.retryDetected(), generation); }
+  async handleReturn(url) { this.#evmGeneration += 1; await this.#client.handleReturn(url); return this.#currentSession(); }
+  setNetworkAvailable(available) { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }
   enterGuest() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
   async disconnect() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() }); }
 
@@ -83,15 +85,23 @@ export class WalletConnectionCoordinator {
     }
   }
 
-  async #openIfConnecting(sessionState) {
+  #isCurrent(generation, sessionState) { return generation === this.#evmGeneration && this.#client.current === sessionState; }
+  #currentSession() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.current }); }
+
+  async #openIfConnecting(sessionState, generation) {
+    // This fence does not undo an entered platform open or resolve its outcome.
+    // It only prevents stale callbacks from replacing the current UI/session.
+    if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
     if (sessionState.status !== PRODUCT_SESSION_CLIENT_STATE.CONNECTING) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState });
     const route = sessionState.route, requestId = `req_ps_open_${sessionState.request.nonce}`;
     try {
       const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
+      if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
       exactFields(result, result?.opened === true ? ["opened"] : ["opened", "code"], "Wallet opener result");
       if (result.opened !== true) fail(openerCode(result.code), "Platform did not open the registered Wallet route");
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED, requestId, url: route.url, automatic: sessionState.automatic === true, sessionState });
     } catch (error) {
+      if (!this.#isCurrent(generation, sessionState)) return this.#currentSession();
       const code = error instanceof WalletAuthError ? error.code : "WALLET_OPEN_FAILED";
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPEN_FAILED, requestId, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), sessionState });
     }
