@@ -21,6 +21,7 @@ let playbackSelectionRevision = 0;
 let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
 let subscriptionRevision = 0;
+let commentsRevision = 0;
 let productState = {status: "guest"};
 let productExpiryTimer;
 let productRevision = 0;
@@ -732,13 +733,14 @@ async function openVideo(video, selection = ++playbackSelectionRevision) {
 
 async function loadComments() {
   if (!currentVideo) return;
-  const target = currentVideo;
+  const target = currentVideo, selection = playbackSelectionRevision, operation = ++commentsRevision;
+  const current = () => target === currentVideo && selection === playbackSelectionRevision && operation === commentsRevision;
   try {
     const comments = await api(`/v1/videos/${target.id}/comments`);
-    if (target !== currentVideo) return;
+    if (!current()) return;
     $("#comments").innerHTML = comments.length ? comments.map(c => `<article><b>${esc(c.Author || c.author)}</b><p>${esc(c.Body || c.body)}</p></article>`).join("") : '<p class="meta">No comments yet.</p>';
   } catch (error) {
-    if (target === currentVideo) $("#comments").textContent = error.message;
+    if (current()) $("#comments").textContent = error.message;
   }
 }
 
@@ -778,7 +780,7 @@ async function showSubscriptions(button) {
 }
 
 async function refreshSubscriptionButton() {
-  const target = currentVideo;
+  const target = currentVideo, selection = playbackSelectionRevision;
   const operation = ++subscriptionRevision;
   const button = $("#subscribe");
   button.disabled = false;
@@ -788,7 +790,7 @@ async function refreshSubscriptionButton() {
   const account = productState.session.account;
   try {
     const channels = await privateAPI("/v1/subscriptions");
-    if (operation !== subscriptionRevision || target !== currentVideo || productState.session?.account !== account || !productConnected()) return;
+    if (operation !== subscriptionRevision || selection !== playbackSelectionRevision || target !== currentVideo || productState.session?.account !== account || !productConnected()) return;
     const subscribed = channels.some(channel => field(channel,"id","ID") === target.channel_id);
     button.textContent = subscribed ? "Unsubscribe" : "Subscribe";
     button.dataset.subscribed = String(subscribed);
