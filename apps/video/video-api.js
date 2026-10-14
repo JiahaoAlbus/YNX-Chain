@@ -115,8 +115,11 @@ export function createVideoAPI({baseURL, fetch: request = globalThis.fetch.bind(
       }
       check();
       resultKnown=true;if(pending&&unresolved.get(index)===pending){
-        try{await exclusive(signal,()=>{const rows=readSaved(),original=rows.find(row=>identity(row)===index);if(!original||original.key!==pending.key||original.bodyDigest!==pending.bodyDigest)throw storageError();save(rows.filter(row=>row!==original));unresolved.delete(index);});}catch(error){pending.storageError=error;}
+        try{await exclusive(signal,()=>{check();const rows=readSaved(),original=rows.find(row=>identity(row)===index);if(!original||original.key!==pending.key||original.bodyDigest!==pending.bodyDigest)throw storageError();save(rows.filter(row=>row!==original));unresolved.delete(index);});}catch(error){pending.storageError=error;}
       }
+      // Cleanup can queue behind another tab. A complete original result is
+      // known, but its private body/401 must never cross a retired context.
+      check();
       if (!response.ok) {
         const error = Object.assign(new Error(data.error || `Video service returned HTTP ${response.status}.`), {status: response.status});
         if (needsAccount && response.status === 401) onUnauthorized(error);

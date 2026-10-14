@@ -80,3 +80,25 @@ test('durable Video account switch and library snapshot never release original U
   account=null;const reinitialized=client(environment,fetch,()=>account);await reinitialized('/v1/videos');account='owner-b';await post(reinitialized);assert.equal(rows(environment).length,1);assert.equal(rows(environment)[0].key,original);
   account='owner-a';await reinitialized('/v1/playlists',{private:true});await assert.rejects(post(reinitialized),{code:'VIDEO_MUTATION_UNKNOWN'});assert.equal(writes,2);assert.equal(rows(environment)[0].key,original);
 });
+
+test('Video cleanup await cannot publish retired private body or invalidate a new account',async t=>{
+  for(const change of ['account','revision','abort','late401'])await t.test(change,async()=>{
+    const environment=browser(),held=deferred(),cleanupQueued=deferred(),cancel=new AbortController();let account='owner-a',revision=true,unauthorized=0,requests=0,blocker;
+    const locks=environment.navigator.locks,request=locks.request.bind(locks);
+    locks.request=(name,options,callback)=>{if(++requests===2)cleanupQueued.resolve();return request(name,options,callback);};
+    const api=client(environment,async()=>{
+      // Queue a real exclusive holder behind reservation, ahead of cleanup.
+      blocker=request(key,{},()=>held.promise);
+      return {ok:change!=='late401',status:change==='late401'?401:200,json:async()=>({private:'old-owner-body',error:'old401'})};
+    },()=>account,{onUnauthorized:()=>unauthorized++});
+    const result=post(api,'/v1/playlists',{signal:cancel.signal,assertCurrent:()=>{if(!revision)throw Error('Video revision retired');}}).then(data=>({data}),error=>({error}));
+    try{
+      await cleanupQueued.promise;
+      if(change==='account'||change==='late401')account='owner-b';else if(change==='revision')revision=false;else cancel.abort(new DOMException('Caller cancelled','AbortError'));
+      held.resolve();await blocker;const outcome=await result;
+      assert.equal(outcome.data,undefined,'old private body must not cross the cleanup await');assert.equal(unauthorized,0,'late old401 must not invalidate the new context');assert.match(outcome.error.message,/changed|retired|cancelled/);
+      assert.notEqual(outcome.error.code,'VIDEO_MUTATION_UNKNOWN','complete original HTTP result and retired publication context are different facts');
+      assert.equal(rows(environment)[0]?.state,'DISPATCHED','retired context cannot perform unconfirmed cleanup or rewrite original result as UNKNOWN');
+    }finally{held.resolve();await blocker;await result;}
+  });
+});
