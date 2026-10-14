@@ -513,13 +513,23 @@ window.addEventListener?.('focus', () => void resumeNativeSignIn());
 document.addEventListener?.('visibilitychange', () => {if (document.visibilityState === 'visible') void resumeNativeSignIn();});
 
 async function refreshLibraryView() {
-  if (returnPlayerVideo && currentVideo?.id===returnPlayerVideo && !$("#player").open) {$("#player").showModal();returnPlayerVideo=null;}
-  const button = document.querySelector(`nav button[data-view="${currentView}"]`);
-  if (currentView === "subscriptions") return showSubscriptions(button);
-  if (currentView === "playlists") return currentPlaylist ? showPlaylist(currentPlaylist) : showPlaylists(button);
-  if (currentView === "history") return showHistory(button);
-  if (currentView === "channel" && currentChannelId) return showChannel(currentChannelId);
-  if (currentView === "settings") return showSettings();
+  const returning = returnPlayerVideo, target = currentVideo, selection = playbackSelectionRevision;
+  const revision = productRevision, account = productState.session?.account, view = currentView;
+  const button = document.querySelector(`nav button[data-view="${view}"]`);
+  let refresh;
+  if (view === "subscriptions") refresh = showSubscriptions(button);
+  if (view === "playlists") refresh = currentPlaylist ? showPlaylist(currentPlaylist) : showPlaylists(button);
+  if (view === "history") refresh = showHistory(button);
+  if (view === "channel" && currentChannelId) refresh = showChannel(currentChannelId);
+  if (view === "settings") refresh = showSettings();
+  const epoch = libraryEpoch;
+  const result = await refresh;
+  if (returning && returning === returnPlayerVideo && target === currentVideo && target?.id === returning &&
+      selection === playbackSelectionRevision && revision === productRevision && account === productState.session?.account &&
+      view === currentView && epoch === libraryEpoch && !productSignOutPending && !$("#player").open) {
+    $("#player").showModal();returnPlayerVideo = null;
+  }
+  return result;
 }
 
 function beginLibrary(view, button) {
