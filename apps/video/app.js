@@ -18,6 +18,7 @@ const savedWalletStateKey = "ynx.video.walletState";
 let currentWallet = null;
 let currentVideo = null;
 let playbackSelectionRevision = 0;
+let navigationRevision = 0;
 let currentChannelId = null, returnPlayerVideo = null;
 let watchProgress = null;
 let subscriptionRevision = 0;
@@ -990,7 +991,7 @@ $("#product-signin").onclick = focusSignIn;
 $("#product-connect").onclick = prepareVideoSignIn;
 $("#product-retry").onclick = restoreVideoAccount;
 $("#product-disconnect").onclick = signOutVideoAccount;
-$("#search").onsubmit = event => {event.preventDefault();currentView="discover";currentPlaylist=null;activate(document.querySelector('[data-view="discover"]'));loadVideos($("#query").value);};
+$("#search").onsubmit = event => {event.preventDefault();navigationRevision++;currentView="discover";currentPlaylist=null;activate(document.querySelector('[data-view="discover"]'));loadVideos($("#query").value);};
 $("#close").onclick = () => {playbackSelectionRevision++;$("#video").pause();$("#player").close();void flushWatch(false);};
 $("#player").addEventListener("cancel",()=>{playbackSelectionRevision++;$("#video").pause();void flushWatch(false);});
 $("#video").addEventListener("timeupdate",()=>{const video=$("#video");watchProgress?.sample({position:video.currentTime,paused:video.paused,seeking:video.seeking,rate:video.playbackRate});});
@@ -1080,12 +1081,12 @@ $("#comment").onsubmit = async event => {
 };
 
 const nav = [...document.querySelectorAll("nav button")];
-nav.find(b => b.dataset.view === "discover").onclick = event => { currentView="discover";currentPlaylist=null;activate(event.currentTarget);loadVideos(); };
-nav.find(b => b.dataset.view === "subscriptions").onclick = event => showSubscriptions(event.currentTarget);
-nav.find(b => b.dataset.view === "playlists").onclick = event => showPlaylists(event.currentTarget);
-nav.find(b => b.dataset.view === "history").onclick = event => showHistory(event.currentTarget);
+nav.find(b => b.dataset.view === "discover").onclick = event => { navigationRevision++;currentView="discover";currentPlaylist=null;activate(event.currentTarget);loadVideos(); };
+nav.find(b => b.dataset.view === "subscriptions").onclick = event => {navigationRevision++;return showSubscriptions(event.currentTarget);};
+nav.find(b => b.dataset.view === "playlists").onclick = event => {navigationRevision++;return showPlaylists(event.currentTarget);};
+nav.find(b => b.dataset.view === "history").onclick = event => {navigationRevision++;return showHistory(event.currentTarget);};
 
-$("#privacy").onclick = showSettings;
+$("#privacy").onclick = () => {navigationRevision++;return showSettings();};
 
 clearLegacySession();
 renderProductState({status:"guest"});
@@ -1094,14 +1095,19 @@ resetWallet("EVM wallet not connected.");
 void i18nReady.catch(() => null);
 const catalogReady = loadVideos();
 const linkedVideo = new URLSearchParams(location.search).get("video");
-if (linkedVideo) {
-  api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(async error=>{await catalogReady;notice(error.message,true);});
-}
 const returnedView = new URLSearchParams(location.search).get('mediaView') || location.hash.slice(1);
 if (['subscriptions','playlists','history','settings','channel'].includes(returnedView)) {currentView=returnedView;activate(returnedView==='settings'?$("#privacy"):document.querySelector('nav button[data-view="'+returnedView+'"]'));}
 const returnedParams=new URLSearchParams(location.search);
 if (/^[A-Za-z0-9_-]{1,128}$/.test(returnedParams.get('mediaPlaylist')||''))currentPlaylist=returnedParams.get('mediaPlaylist');
 if (/^[A-Za-z0-9_-]{1,128}$/.test(returnedParams.get('mediaChannel')||''))currentChannelId=returnedParams.get('mediaChannel');
+if (linkedVideo) {
+  const selection = ++playbackSelectionRevision, navigation = navigationRevision, view = currentView;
+  const playlist = currentPlaylist, channel = currentChannelId;
+  const current = () => selection === playbackSelectionRevision && navigation === navigationRevision &&
+    view === currentView && playlist === currentPlaylist && channel === currentChannelId;
+  api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(video=>{if(current())return openVideo(video,selection);})
+    .catch(async error=>{if(!current())return;await catalogReady;if(current())notice(error.message,true);});
+}
 void restoreVideoAccount();
 videoProductSession.subscribe?.(() => {
   if (nativeReturn?.launched) {void resumeNativeSignIn(); return;}
