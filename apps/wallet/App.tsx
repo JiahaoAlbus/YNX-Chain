@@ -571,7 +571,10 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
   const locale=useContext(WalletLocaleContext);
   const scope=useOperationScope(visible,account.account),[to,setTo]=useState(""),[amount,setAmount]=useState(""),[review,setReview]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null);
   const [stored,setStored]=useState<NativeTransferOutboxEntry|null>(null),[loaded,setLoaded]=useState(false),[reload,setReload]=useState(0);
-  const operations=useWalletOperations(),recipientInput=useMemo(()=>new PaymentRecipientInput(operations),[operations]);
+  const operations=useWalletOperations(),recipientInput=useMemo(()=>new PaymentRecipientInput(operations),[operations]),actionGate=useModalActionGate(account.account);
+  const draftRevision=useRef(0),actionContext=useRef(""),actionContextKey=JSON.stringify([visible,account.account,scannedRecipient,reload]);
+  if(actionContext.current!==actionContextKey){draftRevision.current++;actionGate.close();if(visible)actionGate.open();actionContext.current=actionContextKey}
+  const reviewedRevision=draftRevision.current;
   const [pasting,setPasting]=useState(false),[recipientAdded,setRecipientAdded]=useState(false);
   const inputContext=useRef("");
   const onSentRef=useRef(onSent);onSentRef.current=onSent;
@@ -579,7 +582,8 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
   // Invalidate an old clipboard result during a changed render, before effects.
   if(inputContext.current!==contextKey){recipientInput.cancel();inputContext.current=contextKey}
   const cancelInput=()=>{recipientInput.cancel();setPasting(false);setRecipientAdded(false)};
-  const dismiss=()=>{cancelInput();scope.cancel();setBusy(false);close()};
+  const invalidateDraft=()=>{draftRevision.current++;actionGate.close();scope.cancel();actionGate.open();setBusy(false)};
+  const dismiss=()=>{actionGate.close();cancelInput();scope.cancel();setBusy(false);close()};
   useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("");setAmount("");setReview(false);setBusy(false);setPasting(false);setRecipientAdded(false);setError(null);setStored(null);setLoaded(false);if(!visible)return;let current=true,lease:WalletOperationLease|undefined;
     void (async()=>{try{
       lease=scope.begin({account:account.account});const activeLease=lease;setBusy(true);
@@ -599,14 +603,18 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
   const pasteRecipient=async()=>{
     if(!visible||!loaded||stored||review||busy)return;
     let attempt:PaymentRecipientInputAttempt|undefined;
-    try{attempt=recipientInput.begin(account.account);setPasting(true);setError(null);const parsed=await attempt.read(()=>Clipboard.getStringAsync());attempt.assert();setTo(parsed.recipient);setAmount("");setReview(false);setRecipientAdded(true)}
+    try{attempt=recipientInput.begin(account.account);setPasting(true);setError(null);const parsed=await attempt.read(()=>Clipboard.getStringAsync());attempt.assert();invalidateDraft();setTo(parsed.recipient);setAmount("");setReview(false);setRecipientAdded(true)}
     catch(caught){if(!attempt||attempt.isCurrent())setError(walletCopy(locale,caught instanceof PaymentRequestError?(caught.code==="UNSUPPORTED_PAYMENT_NETWORK"?"This receiving link is for a different network or asset.":"Use a valid native ynx1 address or YNX Testnet receiving link."):"Clipboard could not be read. Paste the native address manually."))}
     finally{if(!attempt||attempt.ownsScope())setPasting(false);attempt?.finish()}
   };
-  const changeRecipient=(value:string)=>{cancelInput();setTo(value);setReview(false);setError(null)};
-  const changeAmount=(value:string)=>{cancelInput();setAmount(value);setReview(false);setError(null)};
+  const changeRecipient=(value:string)=>{invalidateDraft();cancelInput();setTo(value);setReview(false);setError(null)};
+  const changeAmount=(value:string)=>{invalidateDraft();cancelInput();setAmount(value);setReview(false);setError(null)};
   let valid=false;try{valid=evmAddressFromYNX(to)!==evmAddressFromYNX(account.account)&&/^\d+$/.test(amount)&&Number.isSafeInteger(Number(amount)+1)&&Number(amount)>0}catch{valid=false}
-  const act=async(mode:"new"|"retry"|"done"|"check")=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);const request=Object.freeze({account:account.account,accountPublicKey:account.accountPublicKey,to,amount:Number(amount)});
+  const act=async(mode:"new"|"retry"|"done"|"check")=>{
+    if(!visible||!loaded||busy||actionContext.current!==actionContextKey||draftRevision.current!==reviewedRevision||mode==="new"&&(!review||!valid||stored))return;
+    const action=actionGate.acquire();if(!action)return;
+    const currentAction=()=>action.isCurrent()&&actionContext.current===actionContextKey&&draftRevision.current===reviewedRevision;
+    let lease:WalletOperationLease|undefined;setBusy(true);setError(null);const request=Object.freeze({account:account.account,accountPublicKey:account.accountPublicKey,to,amount:Number(amount)});
     try{lease=scope.begin({account:request.account});const activeLease=lease,client=stored&&mode!=="new"?storedChainClient(stored.origin):chainClient();let result:NativeTransferOutboxEntry;
       if(mode==="new"||mode==="done"){
         const payBinding=await activeLease.step(()=>walletPayFlow.hasRetainedPayment(request.account));
@@ -628,9 +636,9 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
       }
       // The outbox records late network facts even when this screen has closed.
       // A cancelled lease only suppresses UI/callback updates, never that write.
-      activeLease.assert();setStored(result.phase==="done"?null:result);if(result.phase==="observed"||result.phase==="accepted")onSent();if(mode==="done")dismiss();
-    }catch(caught){if(lease?.isCurrent()||!lease){setError(message(caught));try{const value=await nativeOutbox.read(request.account);if(lease?.isCurrent()||!lease){setStored(value?.phase==="done"?null:value);setLoaded(true)}}catch{if(lease?.isCurrent()||!lease)setLoaded(false)}}}
-    finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}
+      activeLease.assert();if(!currentAction())return;setStored(result.phase==="done"?null:result);if(result.phase==="observed"||result.phase==="accepted")onSent();if(mode==="done")dismiss();
+    }catch(caught){if(currentAction()&&(lease?.isCurrent()||!lease)){setError(message(caught));try{const value=await nativeOutbox.read(request.account);if(currentAction()&&(lease?.isCurrent()||!lease)){setStored(value?.phase==="done"?null:value);setLoaded(true)}}catch{if(currentAction()&&(lease?.isCurrent()||!lease))setLoaded(false)}}}
+    finally{const owns=action.finish();if(owns&&(!lease||lease.ownsScope()))setBusy(false);lease?.finish()}
   };
   const problem=error?<><Text style={styles.error}>{needsOfflineKeyRecovery(error)?walletCopy(locale,"Key protection needs recovery"):networkRecoveryCopy(locale,error)}</Text><RecoveryRequiredNotice error={error}/></>:null;
   const title=stored?walletCopy(locale,stored.phase==="accepted"?"Transfer durably confirmed":"Stored transfer needs confirmation"):review?"Send Review":"Send YNXT";
@@ -640,7 +648,7 @@ function SendModal({visible,account,scannedRecipient="",close,onSent}:{visible:b
     {stored.localRetention?<View><Text accessibilityRole="alert" style={styles.error}>{locale.startsWith("zh")?"仅本次运行中保留 · 不是节点的内存状态":"Retained in this process only · not node memory state"}</Text>{stored.localRetention.originalCause?<ReviewRow label={locale.startsWith("zh")?"原操作原因":"Original operation cause"} value={stored.localRetention.originalCause.message}/>:null}{stored.localRetention.storageCause?<ReviewRow label={locale.startsWith("zh")?"保存失败原因":"Storage failure cause"} value={stored.localRetention.storageCause.message}/>:null}</View>:null}
     {stored.phase==="pending_durable"?<InfoCard title={walletCopy(locale,"Awaiting a mined block")} body={walletCopy(locale,"The node has saved the pending transfer locally. It has not confirmed mined inclusion. Keep this transaction and check again.")}/>:stored.phase==="memory_only"?<InfoCard title={walletCopy(locale,"Local durability unavailable")} body={walletCopy(locale,"This node only reports memory state. The original transfer remains unconfirmed and stored.")}/>:stored.phase==="not_found"?<InfoCard title={walletCopy(locale,"Transaction not observed by this node")} body={walletCopy(locale,"Not found does not prove rejection or allow a replacement transaction. Keep the original and check again.")}/>:stored.phase==="unsupported"?<InfoCard title={walletCopy(locale,"Durability capability unavailable")} body={walletCopy(locale,"This node does not provide the required versioned durability capability. The original transfer stays unconfirmed.")}/>:null}
     {problem}{stored.localRetention?null:stored.phase==="accepted"?<Button label="Done" disabled={busy} onPress={()=>void act("done")}/>:<><InfoCard title={walletCopy(locale,"Retry the original transaction")} body={walletCopy(locale,"After system biometric confirmation, Wallet resends only the stored signed request. It does not sign again or change its amount, recipient or nonce.")}/><Button label={walletCopy(locale,busy?"Waiting for the original transaction…":"Check transaction status")} disabled={busy} onPress={()=>void act("check")}/><SecondaryButton label={walletCopy(locale,"Authorize and resend original transaction")} disabled={busy} onPress={()=>void act("retry")}/></>}<SecondaryButton label={stored.localRetention?(locale.startsWith("zh")?"关闭此窗口（不退出 Wallet）":"Close this window (keep Wallet running)"):walletCopy(locale,"Close and keep transfer")} onPress={dismiss}/>
-  </>:review?<><ReviewRow label="From" value={`${account.label}\n${account.account}`}/><ReviewRow label="To" value={to}/><ReviewRow label="Amount" value={`${amount} YNXT`}/><ReviewRow label="Network fee" value="1 YNXT"/><ReviewRow label="Network" value="ynx_6423-1"/><InfoCard title="Final biometric confirmation" body="Wallet will fetch the current authoritative nonce and balance, sign the exact canonical transfer, store and verify its original bytes, and POST it only to the configured YNX RPC origin."/>{problem}<SecondaryButton label="Edit transfer" disabled={busy} onPress={()=>{cancelInput();setReview(false)}}/><Button label={busy?"Signing and broadcasting…":"Sign and broadcast"} disabled={busy||!valid} onPress={()=>void act("new")}/></>:<><Text style={styles.sheetText}>{walletCopy(locale,"Copy a receiving link from a QR code, then paste it here.")}</Text>{problem}<SecondaryButton label={walletCopy(locale,pasting?"Reading clipboard…":"Paste address or receiving link")} disabled={pasting||busy} onPress={()=>void pasteRecipient()}/>{recipientAdded?<InfoCard title="YNX Testnet · YNXT" body={walletCopy(locale,"Recipient added. Enter an amount and review the transfer.")}/>:null}<Field label={walletCopy(locale,"Recipient ynx1 address")} value={to} onChangeText={changeRecipient}/><Field label={walletCopy(locale,"Whole YNXT amount")} value={amount} onChangeText={changeAmount}/><Button label={walletCopy(locale,"Review transfer")} disabled={!valid||pasting||busy} onPress={()=>{cancelInput();setReview(true)}}/></>}</Sheet></Modal>
+  </>:review?<><ReviewRow label="From" value={`${account.label}\n${account.account}`}/><ReviewRow label="To" value={to}/><ReviewRow label="Amount" value={`${amount} YNXT`}/><ReviewRow label="Network fee" value="1 YNXT"/><ReviewRow label="Network" value="ynx_6423-1"/><InfoCard title="Final biometric confirmation" body="Wallet will fetch the current authoritative nonce and balance, sign the exact canonical transfer, store and verify its original bytes, and POST it only to the configured YNX RPC origin."/>{problem}<SecondaryButton label="Edit transfer" disabled={busy} onPress={()=>{invalidateDraft();cancelInput();setReview(false)}}/><Button label={busy?"Signing and broadcasting…":"Sign and broadcast"} disabled={busy||!valid} onPress={()=>void act("new")}/></>:<><Text style={styles.sheetText}>{walletCopy(locale,"Copy a receiving link from a QR code, then paste it here.")}</Text>{problem}<SecondaryButton label={walletCopy(locale,pasting?"Reading clipboard…":"Paste address or receiving link")} disabled={pasting||busy} onPress={()=>void pasteRecipient()}/>{recipientAdded?<InfoCard title="YNX Testnet · YNXT" body={walletCopy(locale,"Recipient added. Enter an amount and review the transfer.")}/>:null}<Field label={walletCopy(locale,"Recipient ynx1 address")} value={to} onChangeText={changeRecipient}/><Field label={walletCopy(locale,"Whole YNXT amount")} value={amount} onChangeText={changeAmount}/><Button label={walletCopy(locale,"Review transfer")} disabled={!valid||pasting||busy} onPress={()=>{invalidateDraft();cancelInput();setReview(true)}}/></>}</Sheet></Modal>
 }
 
 function NativeTransferHistoryModal({account,close}:{account:WalletAccount;close:()=>void}){
