@@ -31,10 +31,48 @@ const authorizeCreator=(path,method,body)=>{const original=creatorPrivateSession
 let payoutFlight=null;
 let creatorExpiryTimer;
 const creatorRequestFlights=new Set();
-// Retain the original wire within this tab when a dispatched mutation loses its
-// result. Studio reads cannot reconcile an idempotency record, so never unlock
-// it merely because a refresh or account switch succeeded.
+// Persist only the wire commitment, never its private body or authorization.
+// Reinitialization is not permission to replay a dispatched operation.
 const creatorUnknownMutations=new Map();
+const creatorPendingStorageKey='ynx.creator.pending-mutations.v1';
+const creatorPendingLimit=64,creatorPendingBytes=65536;
+const creatorMutationIndex=record=>JSON.stringify([record.account,record.method,record.path]);
+function creatorStorageError(cause){return Object.assign(new Error('Creator cannot safely save this request. No new write was sent. Keep existing pending records and restore browser storage; reading Studio is still available.'),{code:'CREATOR_MUTATION_STORAGE_UNAVAILABLE',cause});}
+function readCreatorFences(){
+  const raw=localStorage.getItem(creatorPendingStorageKey);
+  if(raw===null)return [];
+  if(typeof raw!=='string'||raw.length>creatorPendingBytes||new TextEncoder().encode(raw).length>creatorPendingBytes)throw Error('Pending records exceed bound');
+  const parsed=JSON.parse(raw);
+  if(parsed.version!==1||!Array.isArray(parsed.records)||parsed.records.length>creatorPendingLimit)throw Error('Invalid pending records');
+  const seen=new Set();
+  for(const record of parsed.records){
+    if(!record||Object.keys(record).sort().join(',')!=='account,bodyBytes,bodyDigest,contentType,firstCause,key,method,path,state')throw Error('Invalid pending record fields');
+    if(typeof record.account!=='string'||!record.account||record.account.length>256||typeof record.path!=='string'||!record.path.startsWith('/v1/')||record.path.length>2048||record.path.includes('..')||!['POST','PUT','PATCH','DELETE'].includes(record.method)||!['UNKNOWN','DISPATCHED'].includes(record.state)||typeof record.key!=='string'||!/^[-A-Za-z0-9._:]{16,128}$/.test(record.key)||typeof record.bodyDigest!=='string'||!/^[a-f0-9]{64}$/.test(record.bodyDigest)||!Number.isSafeInteger(record.bodyBytes)||record.bodyBytes<0||record.bodyBytes>512*1024*1024+65536||typeof record.contentType!=='string'||record.contentType.length>256||record.firstCause!==null&&(!record.firstCause||Object.keys(record.firstCause).sort().join(',')!=='name,stage'||!['Error','TypeError','AbortError','TimeoutError'].includes(record.firstCause.name)||!['transport-or-body-loss','page-reinitialized-before-result'].includes(record.firstCause.stage)))throw Error('Invalid pending operation');
+    const index=creatorMutationIndex(record);if(seen.has(index))throw Error('Duplicate pending operation');seen.add(index);
+  }
+  return parsed.records;
+}
+function loadCreatorFences(){
+  try{
+    for(const record of readCreatorFences()){
+      const index=creatorMutationIndex(record),existing=creatorUnknownMutations.get(index);
+      if(existing){if(existing.key!==record.key||existing.bodyDigest!==record.bodyDigest)throw Error('Pending operation conflict');continue;}
+      creatorUnknownMutations.set(index,{...record,state:'UNKNOWN',firstCause:record.firstCause||{name:'Error',stage:'page-reinitialized-before-result'},restored:true});
+    }
+  }catch(cause){throw creatorStorageError(cause)}
+}
+function saveCreatorFences(records){
+  try{
+    if(records.length>creatorPendingLimit)throw Error('Pending operation capacity reached');
+    const saved=records.map(record=>({account:record.account,path:record.path,method:record.method,key:record.key,bodyDigest:record.bodyDigest,bodyBytes:record.bodyBytes,contentType:record.contentType,state:record.state,firstCause:record.firstCause?{name:['Error','TypeError','AbortError','TimeoutError'].includes(record.firstCause.name)?record.firstCause.name:'Error',stage:record.firstCause.stage==='page-reinitialized-before-result'?'page-reinitialized-before-result':'transport-or-body-loss'}:null}));
+    const raw=JSON.stringify({version:1,records:saved});
+    if(new TextEncoder().encode(raw).length>creatorPendingBytes)throw Error('Pending record capacity reached');
+    localStorage.setItem(creatorPendingStorageKey,raw);
+    if(localStorage.getItem(creatorPendingStorageKey)!==raw)throw Error('Pending record write unconfirmed');
+  }catch(cause){throw creatorStorageError(cause)}
+}
+// A denied/corrupt storage area must not prevent read-only initialization.
+try{loadCreatorFences()}catch{}
 function creatorMutationError(pending){
   return Object.assign(new Error(pending.state==='UNKNOWN'
     ? 'Result unconfirmed. The request was sent once and will not be repeated. Refresh Studio to check saved records; this action stays blocked until its original result is confirmed.'
@@ -43,6 +81,8 @@ function creatorMutationError(pending){
 }
 function unknownCreatorMutation(pending,cause){
   pending.state='UNKNOWN';pending.firstCause??=cause;
+  // The pre-dispatch DISPATCHED record remains a fence if updating it fails.
+  try{loadCreatorFences();saveCreatorFences([...creatorUnknownMutations.values()])}catch(error){pending.storageError=error}
   return creatorMutationError(pending);
 }
 let currentUpload=null,activeAIRequest=null,aiSelectionRevision=0,aiCreateRevision=0;
@@ -89,20 +129,26 @@ async function api(path,opt={}){
   if(!path.startsWith('/v1/')||path.includes('..'))throw new Error('Invalid Creator service route.');
   const method=(opt.method||'GET').toUpperCase(),safeRead=['GET','HEAD'].includes(method),index=JSON.stringify([account,method,path]);
   if(!safeRead&&creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
+  if(!safeRead){loadCreatorFences();if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));}
   const baseHeaders=Object.fromEntries(new Headers(opt.headers||{}));
   if(!safeRead)baseHeaders['idempotency-key']||=crypto.randomUUID();
   const processing=path==='/v1/uploads'||/^\/v1\/videos\/[^/]+\/retry-processing$/.test(path);
   const operation=beginCreatorRequest(processing?300000:15000,opt.signal);
   try{
     const wire=await operation.wait(serializeMediaBody(path,method,opt.body,baseHeaders,operation.signal));assertCreatorSession(revision);operation.signal.throwIfAborted();
+    let commitment;
+    if(!safeRead){const bytes=typeof wire.body==='string'?new TextEncoder().encode(wire.body):wire.body??new Uint8Array();const digest=await operation.wait(crypto.subtle.digest('SHA-256',bytes));commitment={bodyDigest:[...new Uint8Array(digest)].map(value=>value.toString(16).padStart(2,'0')).join(''),bodyBytes:bytes.length,contentType:wire.headers['content-type']||''};assertCreatorSession(revision);operation.signal.throwIfAborted();}
     let response,pending;
     for(let attempt=0;attempt<(safeRead?2:1);attempt++){
       const headers={...wire.headers,...await operation.wait(authorizeCreator(path,method,wire.body))};
       assertCreatorSession(revision);operation.signal.throwIfAborted();
       if(!safeRead){
         // Another invocation may have dispatched while this proof was pending.
+        loadCreatorFences();
         if(creatorUnknownMutations.has(index))throw creatorMutationError(creatorUnknownMutations.get(index));
-        pending={account,path,method,body:wire.body,headers:{...wire.headers},key:wire.headers['Idempotency-Key'],state:'DISPATCHED',firstCause:null};
+        pending={account,path,method,body:wire.body,headers:{...wire.headers},key:wire.headers['Idempotency-Key'],...commitment,state:'DISPATCHED',firstCause:null};
+        // Confirm durable storage before fetch can dispatch anything.
+        saveCreatorFences([...creatorUnknownMutations.values(),pending]);
         creatorUnknownMutations.set(index,pending);
       }
       try{response=await operation.wait(fetch(API+path,{...opt,body:wire.body,headers,credentials:'same-origin',redirect:'error',signal:operation.signal}));break}
@@ -116,7 +162,10 @@ async function api(path,opt={}){
     catch(error){if(!safeRead)throw unknownCreatorMutation(pending,error);if(operation.signal.aborted)throw error;data={error:'Invalid service response'}}
     // A complete original HTTP result is known even if its account retired
     // while parsing. Fence its UI publication separately; never replay it.
-    if(pending&&creatorUnknownMutations.get(index)===pending)creatorUnknownMutations.delete(index);
+    if(pending&&creatorUnknownMutations.get(index)===pending){
+      try{loadCreatorFences();saveCreatorFences([...creatorUnknownMutations.values()].filter(record=>record!==pending));creatorUnknownMutations.delete(index)}
+      catch(error){pending.storageError=error} // Preserve the fence if cleanup cannot be confirmed.
+    }
     assertCreatorSession(revision);
     if(!response.ok){if(response.status===401){renderProductState({status:'retry-required',message:'Your Creator sign-in needs to be checked. Sign in again.'});status(data.error||'Your sign-in expired.',true);}if(response.status>=500)reduceWallet({type:'PRIVATE_SESSION_DEGRADED'});throw Object.assign(new Error(data.error||('HTTP '+response.status)),{status:response.status,details:data})}
     reduceWallet({type:'PRIVATE_SESSION_READY'});return data;

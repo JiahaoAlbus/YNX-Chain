@@ -24,6 +24,8 @@ const privateSnapshot = marker => ({
   reports: [{ id: marker }], appeals: [{ id: marker }], disputes: [{ id: marker }],
 });
 const privateLists = ["videos", "team-list", "rights-list", "revenue-list", "payout-list", "report-list", "appeal-list", "dispute-list"];
+const pendingStorageKey='ynx.creator.pending-mutations.v1';
+function memoryStorage(){const values=new Map();return {getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,String(value)),removeItem:key=>values.delete(key)};}
 
 class Element {
   constructor() {
@@ -55,7 +57,7 @@ async function app(overrides = {}) {
     getElementById: id => element(`#${id}`), createElement: () => new Element(),
   };
   const dependencies = {createMediaBrowserIdentity:()=>({invalidate(){},signIn(){},authorization:(_session,proof)=>proof()}),
-    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: { getItem: () => null }, location: { origin: "https://creator.ynxweb4.com", search:"", hash:"", assign() {} },
+    window: {location:{origin:"https://creator.ynxweb4.com"}}, AbortController, document, localStorage: memoryStorage(), location: { origin: "https://creator.ynxweb4.com", search:"", hash:"", assign() {} },
     crypto: { randomUUID, subtle: webcrypto.subtle }, TextDecoder, Uint8Array, FormData,
     atRegisteredOrigin: () => true, prepareProductSignIn: async () => ({ url: "test:creator-signin" }),
     restoreProductSession: async () => ({ status: "disconnected", message: "Sign in" }),
@@ -165,9 +167,9 @@ test('unknown channel submit keeps first cause/key and offers read-only Studio r
 });
 
 test('unknown mutation survives account cancellation without replay and blocks only original account route',async()=>{
-  let calls=0;const c=await app({fetch:(_url,input)=>{calls++;if(calls>1)return Promise.resolve(response({saved:true}));return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}});
+  let calls=0;const dispatched=deferred();const c=await app({fetch:(_url,input)=>{calls++;if(calls>1)return Promise.resolve(response({saved:true}));dispatched.resolve();return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}});
   c.renderProductState(connected('owner-a'));const pending=c.api('/v1/channels',{method:'POST',body:'original'});
-  const rejected=assert.rejects(pending,error=>error.code==='CREATOR_MUTATION_UNKNOWN');await turn();c.renderProductState(connected('owner-b'));await rejected;
+  const rejected=assert.rejects(pending,error=>error.code==='CREATOR_MUTATION_UNKNOWN');await dispatched.promise;c.renderProductState(connected('owner-b'));await rejected;
   assert.equal(calls,1);assert.equal(c.readUnknown()[0].account,'owner-a');assert.equal(c.readUnknown()[0].state,'UNKNOWN');
   assert.deepEqual(await c.api('/v1/channels',{method:'POST',body:'new account'}),{saved:true});
   c.renderProductState(connected('owner-a'));await assert.rejects(c.api('/v1/channels',{method:'POST',body:'new body'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN');
@@ -184,6 +186,56 @@ test('safe GET account switch aborts without another dispatch or mutation journa
   let calls=0;const c=await app({fetch:(_url,input)=>{calls++;return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}});
   c.renderProductState(connected('owner-a'));const pending=c.api('/v1/studio');const rejected=assert.rejects(pending,/Creator account changed/);
   await turn();c.renderProductState(connected('owner-b'));await rejected;assert.equal(calls,1);assert.deepEqual(c.readUnknown(),[]);
+});
+
+test('reload UNKNOWN restores original key/digest and never dispatches or mints a replacement key',async()=>{
+  const storage=memoryStorage();let calls=0,keys=0;const cause=new TypeError('private diagnostic not for disk'),body='{"private":"original source"}';
+  const dependencies={localStorage:storage,crypto:{randomUUID:()=>{keys++;return randomUUID();},subtle:webcrypto.subtle},productAuthorization:async()=>({'X-YNX-Product-Session-Proof-V2':'private-proof-token'}),fetch:async(_url,input)=>{if(input.method==='POST'){calls++;if(calls===1)throw cause;return response({saved:true});}return response({team:[],videos:[]});}};
+  const first=await app(dependencies);first.renderProductState(connected('owner-a'));await assert.rejects(first.api('/v1/channels',{method:'POST',body}));
+  const second=await app(dependencies);second.renderProductState(connected('owner-a'));let error;try{await second.api('/v1/channels',{method:'POST',body:'different'});}catch(value){error=value;}
+  assert.equal(calls,1);assert.equal(keys,1);assert.equal(error.code,'CREATOR_MUTATION_UNKNOWN');
+  const record=JSON.parse(storage.getItem(pendingStorageKey)).records[0];const digest=Buffer.from(await webcrypto.subtle.digest('SHA-256',new TextEncoder().encode(body))).toString('hex');
+  assert.equal(record.bodyDigest,digest);assert.equal(record.bodyBytes,new TextEncoder().encode(body).length);assert.equal(record.key,first.readUnknown()[0].key);assert.equal(error.pending.key,record.key);
+  assert.equal(record.firstCause.name,'TypeError');assert.equal(record.state,'UNKNOWN');assert.doesNotMatch(storage.getItem(pendingStorageKey),/private-proof-token|original source|private diagnostic|Authorization/);
+  await second.refresh();second.renderProductState({status:'expired'});second.renderProductState(connected('owner-a'));await assert.rejects(second.api('/v1/channels',{method:'POST',body}),error=>error.code==='CREATOR_MUTATION_UNKNOWN');assert.equal(calls,1);
+});
+
+test('reload DISPATCHED reserves the original operation before an unsettled response',async()=>{
+  const storage=memoryStorage();let calls=0,keys=0;const cancel=new AbortController();
+  const dependencies={localStorage:storage,crypto:{randomUUID:()=>{keys++;return randomUUID();},subtle:webcrypto.subtle},fetch:(_url,input)=>{calls++;if(calls>1)return Promise.resolve(response({saved:true}));return new Promise((_,reject)=>input.signal.addEventListener('abort',()=>reject(input.signal.reason),{once:true}));}};
+  const first=await app(dependencies);first.renderProductState(connected('owner-a'));const operation=first.api('/v1/channels',{method:'POST',body:'{}',signal:cancel.signal});const rejected=assert.rejects(operation);
+  try{
+    for(let i=0;i<100&&calls===0;i++)await new Promise(resolve=>setTimeout(resolve,5));assert.equal(calls,1);
+    const second=await app(dependencies);second.renderProductState(connected('owner-a'));try{await second.api('/v1/channels',{method:'POST',body:'new'});}catch{}
+    assert.equal(calls,1);assert.equal(keys,1);assert.equal(second.readUnknown()[0].state,'UNKNOWN');assert.equal(JSON.parse(storage.getItem(pendingStorageKey)).records[0].state,'DISPATCHED');
+  }finally{cancel.abort(new Error('fixture stop'));await rejected;}
+});
+
+test('reload storage write failure rejects before dispatch while safe reads remain usable',async()=>{
+  for(const mode of ['quota','unavailable','silent-write','corrupt']){
+    const storage=memoryStorage();if(mode==='quota')storage.setItem=()=>{throw new DOMException('Full','QuotaExceededError')};if(mode==='unavailable')storage.getItem=()=>{throw new Error('Storage denied')};if(mode==='silent-write')storage.setItem=()=>{};
+    if(mode==='corrupt')storage.setItem(pendingStorageKey,'{');
+    let writes=0,reads=0;const c=await app({localStorage:storage,fetch:async(_url,input)=>{if(input.method==='POST')writes++;else reads++;return response({team:[],videos:[]});}});c.renderProductState(connected('owner-a'));
+    let error;try{await c.api('/v1/channels',{method:'POST',body:'{}'});}catch(value){error=value;}
+    assert.equal(writes,0,mode);assert.equal(error.code,'CREATOR_MUTATION_STORAGE_UNAVAILABLE');await c.api('/v1/studio');assert.equal(reads,1);
+  }
+});
+
+test('reload preserves pre-dispatch fence when UNKNOWN persistence fails after response loss',async()=>{
+  const storage=memoryStorage(),write=storage.setItem;let saves=0,calls=0;
+  storage.setItem=(key,value)=>{if(++saves>1)throw new DOMException('Full','QuotaExceededError');write(key,value);};
+  const first=await app({localStorage:storage,fetch:async()=>{calls++;throw new TypeError('result lost');}});first.renderProductState(connected('owner-a'));await assert.rejects(first.api('/v1/channels',{method:'POST',body:'{}'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN'&&error.cause.message==='result lost');
+  const raw=storage.getItem(pendingStorageKey);assert.equal(typeof raw,'string','original pre-dispatch fence must already be durable');assert.equal(JSON.parse(raw).records[0].state,'DISPATCHED');
+  const second=await app({localStorage:storage,fetch:async()=>{calls++;return response({saved:true});}});second.renderProductState(connected('owner-a'));await assert.rejects(second.api('/v1/channels',{method:'POST',body:'{}'}),error=>error.code==='CREATOR_MUTATION_UNKNOWN');assert.equal(calls,1);assert.equal(storage.getItem(pendingStorageKey),raw);
+});
+
+test('reload fences are account/route scoped and never pruned for expiry or quota',async()=>{
+  const storage=memoryStorage();const record={account:'owner-a',path:'/v1/channels',method:'POST',key:'original-stable-key-12345',bodyDigest:'0'.repeat(64),bodyBytes:2,contentType:'application/json',state:'UNKNOWN',firstCause:{name:'TypeError',stage:'transport-or-body-loss'}};
+  storage.setItem(pendingStorageKey,JSON.stringify({version:1,records:[record]}));let calls=0;const c=await app({localStorage:storage,fetch:async()=>{calls++;return response({saved:true,team:[],videos:[]});}});
+  c.renderProductState(connected('owner-a'));await assert.rejects(c.api('/v1/channels',{method:'POST',body:'{}'}));assert.equal(calls,0);
+  c.renderProductState(connected('owner-b'));await c.api('/v1/channels',{method:'POST',body:'{}'});c.renderProductState(connected('owner-a'));await c.api('/v1/videos/other/metadata',{method:'PATCH',body:'{}'});await c.refresh();c.renderProductState({status:'expired'});assert.equal(calls,3);assert.equal(JSON.parse(storage.getItem(pendingStorageKey)).records[0].key,record.key);
+  const records=Array.from({length:64},(_,i)=>({...record,path:`/v1/channels/item-${i}`}));const original=JSON.stringify({version:1,records});storage.setItem(pendingStorageKey,original);
+  const reloaded=await app({localStorage:storage,fetch:async()=>{assert.fail('full unresolved fence store must not dispatch')}});reloaded.renderProductState(connected('owner-a'));await assert.rejects(reloaded.api('/v1/channels/new',{method:'POST',body:'{}'}),error=>error.code==='CREATOR_MUTATION_STORAGE_UNAVAILABLE');assert.equal(storage.getItem(pendingStorageKey),original);
 });
 
 test('caller cancellation aborts the request and cannot trigger automatic retry', async () => {
