@@ -847,7 +847,7 @@ async function showPlaylists(button) {
         if (!confirm('Delete this playlist? The original videos will remain available.')) return;
         const button = event.currentTarget; button.disabled = true;
         try {scope.current();await changeOriginalPlaylist("delete",id,null,scope);scope.current();await showPlaylists(document.querySelector('[data-view="playlists"]'));}
-        catch(error) {if(scope.matches()){button.disabled=false;await renderPlaylistOperations(changes,scope).catch(()=>{});notice(error.message,true);}}
+        catch(error) {if(scope.matches()){button.disabled=false;await renderPlaylistOperations(changes,scope).catch(()=>{});if(scope.matches())notice(error.message,true);}}
       };
       box.append(article);
     }
@@ -881,7 +881,7 @@ async function showPlaylist(playlistId) {
         if(!confirm("Remove this item from the playlist? The original video will remain available."))return;
         const button=event.currentTarget;button.disabled=true;
         try{scope.current();await changeOriginalPlaylist("remove",playlistId,id,scope);scope.current();await showPlaylist(playlistId);}
-        catch(error){if(scope.matches()){button.disabled=false;await renderPlaylistOperations(changes,scope).catch(()=>{});notice(error.message,true);}}
+        catch(error){if(scope.matches()){button.disabled=false;await renderPlaylistOperations(changes,scope).catch(()=>{});if(scope.matches())notice(error.message,true);}}
       };
       box.append(row);
       labelJobs.push(async()=>{
