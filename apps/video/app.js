@@ -707,11 +707,12 @@ async function revokeWallet(reason = "user") {
 function startWatchProgress(video) {
   const previousProgress = watchProgress;
   void previousProgress?.flush(false).catch(() => {});
-  const account = productState.session?.account, revision = productRevision;
-  watchProgress = createWatchProgress({signedIn: () => revision === productRevision && productConnected() && productState.session?.account === account,
-    onError: error => {if (revision === productRevision && currentVideo === video) notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);},
+  const account = productState.session?.account, revision = productRevision, selection = playbackSelectionRevision;
+  const tracker = createWatchProgress({signedIn: () => revision === productRevision && productConnected() && productState.session?.account === account,
+    onError: error => {if (watchProgress === tracker && selection === playbackSelectionRevision && revision === productRevision && currentVideo === video) notice(error.code==='VIDEO_MUTATION_UNKNOWN'?error.message:"Watch history could not be saved. Playback remains available.", true);},
     send: (body, {idempotencyKey}) => privateAPI(`/v1/videos/${video.id}/watch`, {...json(body),
       headers: {"Content-Type": "application/json", "Idempotency-Key": idempotencyKey}})});
+  watchProgress = tracker;
 }
 
 async function openVideo(video, selection = ++playbackSelectionRevision) {
