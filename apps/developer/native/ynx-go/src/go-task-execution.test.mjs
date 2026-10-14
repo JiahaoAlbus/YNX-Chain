@@ -30,7 +30,7 @@ async function requestFixture() {
  const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'},helpers=require('./go-toolchain.cjs');
  vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
- const document={uri:{scheme:'file',fsPath:file}},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
+ const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
  const executions=[],submitted=[],hooks={buildExit:0};
  class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
@@ -242,7 +242,7 @@ test('first Go run proceeds while its informational notification stays open or r
    class ProcessExecution {constructor(command,args,options){Object.assign(this,{command,args,options});}}
    const api={
     workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;}})},
-    window:{activeTextEditor:{document:{uri:{scheme:'file',fsPath:file}}},showQuickPick:async items=>items[0],showInformationMessage:()=>{notices++;return notification();}},
+    window:{activeTextEditor:{document:{uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true}},showQuickPick:async items=>items[0],showInformationMessage:()=>{notices++;return notification();}},
     CancellationTokenSource:class {token={};cancel(){}dispose(){}},ConfigurationTarget:{WorkspaceFolder:3},
     tasks:{registerTaskProvider:()=>({dispose(){}}),onDidEndTaskProcess:fn=>{listeners.add(fn);return{dispose:()=>listeners.delete(fn)};},onDidEndTask:()=>({dispose(){}}),executeTask:async task=>{launches++;const execution={task,terminate(){}};setImmediate(()=>{for(const fn of listeners)fn({execution,exitCode:1});});return execution;}},
     Task,ProcessExecution,TaskGroup:{Build:'build'},TaskRevealKind:{Always:1},TaskPanelKind:{Shared:1,Dedicated:2}
@@ -258,4 +258,53 @@ test('first Go run proceeds while its informational notification stays open or r
    workflow.dispose();
   } finally {await rm(root,{recursive:true,force:true});}
  }
+});
+
+test('Run and Test cross the save RPC even while the dirty mirror is clean and a false save never launches',{timeout:2000},async()=>{
+ for(const method of ['run','test']){const f=await requestFixture();try{
+  let saves=0;f.document.isDirty=false;f.document.save=async()=>{saves++;return false;};f.api.workspace.textDocuments=[f.document];
+  await assert.rejects(f.workflow[method](),/Save the Go sources/);assert.equal(saves,1);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+  f.document.save=async()=>{saves++;return true;};await f.workflow[method]();assert.equal(saves,2);assert.deepEqual(f.executions,method==='run'?['build','run']:['test']);
+ }finally{await f.close();}}
+});
+test('Run and Test refuse closed or still dirty sources after the normal save reply',{timeout:2000},async()=>{
+ for(const method of ['run','test'])for(const state of ['closed','dirty']){const f=await requestFixture();try{
+  f.document.isDirty=true;f.api.workspace.textDocuments=[f.document];f.document.save=async()=>{f.document.isDirty=state==='dirty';f.document.isClosed=state==='closed';return true;};
+  await assert.rejects(f.workflow[method](),/Save the Go sources/);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}}
+});
+test('save cancellation settles without its late reply launching a task and retry remains usable',{timeout:2000},async()=>{
+ const f=await requestFixture();try{let reply;f.document.isDirty=true;f.document.save=()=>new Promise(resolve=>reply=resolve);f.api.workspace.textDocuments=[f.document];
+  const pending=f.workflow.run();while(!reply)await new Promise(resolve=>setImmediate(resolve));assert.equal(f.workflow.cancel(),true);
+  assert.equal((await pending).cancelled,true);assert.equal(f.workflow.status().running,false);assert.deepEqual(f.executions,[]);
+  f.document.isDirty=false;reply(true);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.executions,[]);
+  f.document.save=async()=>true;await f.workflow.run();assert.deepEqual(f.executions,['build','run']);
+ }finally{await f.close();}
+});
+test('all project Go files cross save while foreign and non-Go documents stay untouched',{timeout:2000},async()=>{
+ const f=await requestFixture();try{let currentSaves=0,otherSaves=0,foreignSaves=0;f.document.save=async()=>{currentSaves++;return true;};
+  const other={uri:{scheme:'file',fsPath:join(f.document.uri.fsPath,'..','other.go')},version:1,isDirty:false,save:async()=>{otherSaves++;return true;}};
+  const outside={uri:{scheme:'file',fsPath:join(f.document.uri.fsPath,'..','..','foreign.go')},isDirty:true,save:async()=>{foreignSaves++;return true;}};
+  const readme={uri:{scheme:'file',fsPath:join(f.document.uri.fsPath,'..','README.md')},save:outside.save};
+  f.api.workspace.textDocuments=[f.document,other,outside,readme];await f.workflow.test();assert.equal(currentSaves,1);assert.equal(otherSaves,1);assert.equal(foreignSaves,0);assert.deepEqual(f.executions,['test']);
+ }finally{await f.close();}
+});
+test('edits to an already saved source during another save invalidate the same request',{timeout:2000},async()=>{
+ const f=await requestFixture();try{f.document.isDirty=false;f.document.version=1;f.document.save=async()=>true;
+  const other={uri:{scheme:'file',fsPath:join(f.document.uri.fsPath,'..','other.go')},version:1,isDirty:false,save:async()=>{f.document.version++;return true;}};
+  f.api.workspace.textDocuments=[f.document,other];await assert.rejects(f.workflow.test(),/Save the Go sources/);assert.deepEqual(f.executions,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+
+test('an edit during Go compilation prevents running the completed older binary',{timeout:2000},async()=>{
+ const f=await requestFixture();try{const execute=f.api.tasks.executeTask;f.api.tasks.executeTask=async task=>{const result=await execute(task);if(task.definition.stage==='build')f.document.version++;return result;};
+  await assert.rejects(f.workflow.run(),/Save the Go sources/);assert.deepEqual(f.executions,['build']);assert.equal(f.workflow.status().running,false);
+  f.api.tasks.executeTask=execute;await f.workflow.run();assert.deepEqual(f.executions,['build','build','run']);
+ }finally{await f.close();}
+});
+test('switching editor during a pending save cancels the old request without waiting for its reply',{timeout:2000},async()=>{
+ const f=await requestFixture();try{let reply;f.document.save=()=>new Promise(resolve=>reply=resolve);const pending=f.workflow.test();while(!reply)await new Promise(resolve=>setImmediate(resolve));
+  f.switchEditor({uri:{scheme:'file',fsPath:f.document.uri.fsPath+'-other.go'}});f.switchEditor(f.document);assert.equal((await pending).cancelled,true);assert.equal(f.workflow.status().running,false);
+  reply(true);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.executions,[]);f.document.save=async()=>true;await f.workflow.test();assert.deepEqual(f.executions,['test']);
+ }finally{await f.close();}
 });

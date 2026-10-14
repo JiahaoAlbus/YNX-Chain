@@ -107,13 +107,14 @@ function createGoTasks(api,context,environment,t=text=>text) {
   if(active || configuring)throw Error(t('A Go operation is already running. Cancel it before running again.'));
   // Claim the original request before the first asynchronous read. Configuration
   // and execution share this owner; callbacks cannot create a second Run.
-  const operation={cancelled:false,preparing:true,document:api.window?.activeTextEditor?.document};
+  const operation={cancelled:false,preparing:true,document:api.window?.activeTextEditor?.document,cancelController:new AbortController(),savedSources:[]};
   operation.onCleanup=()=>{if(active===operation)active=undefined;};active=operation;
   try {
    const binding=await project();
    operation.verify=async()=>{
     await binding.verify();
     if(active!==operation || operation.cancelled || api.window?.activeTextEditor?.document!==operation.document)throw Error(t('The Go project changed. Configure or run it again.'));
+    for(const saved of operation.savedSources)if(saved.document.isClosed || saved.document.isDirty || saved.document.version!==saved.version || saved.document.uri.scheme!=='file' || saved.document.uri.fsPath!==saved.path)throw Error(t('Save the Go sources before running.'));
    };
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    let config=readConfiguration(binding);
@@ -121,10 +122,21 @@ function createGoTasks(api,context,environment,t=text=>text) {
    if(operation.cancelled)return {cancelled:true};await operation.verify();
    const prepared=await tasks(binding,config);
    if(operation.cancelled)return {cancelled:true};
-   // Saving uses the normal editor API; no task silently ignores unsaved code.
-   for(const document of api.workspace.textDocuments) {
-    const relative=path.relative(binding.root,document.uri.fsPath||'');
-    if(document.uri.scheme==='file' && document.uri.fsPath.endsWith('.go') && relative && !relative.startsWith('..'+path.sep) && !path.isAbsolute(relative) && document.isDirty && !await document.save())throw Error(t('Save the Go sources before running.'));
+   // The dirty flag is an asynchronous mirror. Cross the editor's normal save
+   // RPC even when it still appears clean; no compiler may read an old disk copy.
+   const documents=new Set([...(api.workspace.textDocuments||[]),operation.document]);
+   for(const document of documents) {
+    if(document?.uri?.scheme!=='file' || !document.uri.fsPath.endsWith('.go'))continue;
+    const relative=path.relative(binding.root,document.uri.fsPath);
+    if(!relative || relative==='..' || relative.startsWith('..'+path.sep) || path.isAbsolute(relative))continue;
+    if(operation.cancelled)return {cancelled:true};await operation.verify();
+    if(document.isClosed)throw Error(t('Save the Go sources before running.'));
+    let saved;
+    try {saved=await waitForSignal(()=>document.save(),operation.cancelController.signal);}
+    catch(error){if(operation.cancelled)return {cancelled:true};throw error;}
+    if(operation.cancelled)return {cancelled:true};await operation.verify();
+    if(!saved || document.isClosed || document.isDirty)throw Error(t('Save the Go sources before running.'));
+    operation.savedSources.push({document,path:document.uri.fsPath,version:document.version});
    }
    if(operation.cancelled)return {cancelled:true};await operation.verify();operation.preparing=false;
    // Tests compile their own test binary, including library packages. Reuse
@@ -136,6 +148,7 @@ function createGoTasks(api,context,environment,t=text=>text) {
    }
    const buildExit=await executeGoTask(api,prepared.build,operation);await binding.verify();
    if(operation.cancelled)return {cancelled:true};
+   await operation.verify();
    if(buildExit===undefined)return {unknown:true};
    if(buildExit!==0)throw Error(t('Go build failed. Read the task terminal diagnostics, fix the sources or provide local dependencies, and run again.'));
    const stat=await fs.lstat(prepared.output);const header=await fs.open(prepared.output,require('node:fs').constants.O_RDONLY|require('node:fs').constants.O_NOFOLLOW);let magic;try{const bytes=Buffer.alloc(4);await header.read(bytes,0,4,0);magic=bytes.toString('hex');}finally{await header.close();}
@@ -145,10 +158,10 @@ function createGoTasks(api,context,environment,t=text=>text) {
    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
   } finally {if(active===operation && !operation.cleanupPending)active=undefined;}
  }
- const lifetime={configure,run:()=>execute('run'),test:()=>execute('test'),cancel(){if(active)active.cancelled=true;if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
+ const lifetime={configure,run:()=>execute('run'),test:()=>execute('test'),cancel(){if(active){active.cancelled=true;active.cancelController.abort();}if(configurationAbort){configurationAbort.abort();return true;}if(!active)return false;active.execution?.terminate();return true;},dispose(){disposed=true;lifetime.cancel();},status:()=>({running:!!active,configuring})};
  if(api.workspace.onDidChangeWorkspaceFolders)context.subscriptions.push(api.workspace.onDidChangeWorkspaceFolders(()=>lifetime.cancel()));
  if(api.window?.onDidChangeActiveTextEditor)context.subscriptions.push(api.window.onDidChangeActiveTextEditor(editor=>{
-  if(active?.preparing && editor?.document!==active.document){active.cancelled=true;configurationAbort?.abort();}
+  if(active?.preparing && editor?.document!==active.document){active.cancelled=true;active.cancelController.abort();configurationAbort?.abort();}
  }));
  context.subscriptions.push(api.tasks.registerTaskProvider('ynx-go',{async provideTasks(){const binding=await project(),config=readConfiguration(binding);if(!config)return [];const prepared=await tasks(binding,config,randomUUID(),false);return [prepared.build];},async resolveTask(){return undefined;}}),lifetime);
  return lifetime;
