@@ -666,7 +666,7 @@ function renderWalletChoices(candidates) {
     const label = candidate.label || candidate.name || "Wallet";
     const role = candidate.isYNXWallet ? "ynx" : candidate.isMetaMask ? "metamask" : "eip1193";
     const extra = candidate.isYNXWallet ? " · YNX Wallet" : candidate.isMetaMask ? " · MetaMask" : "";
-    item.setAttribute("title", `${esc(candidate.label || label)} · ${item.dataset.walletBrand}`);
+    item.setAttribute("title", `${candidate.label || label} · ${item.dataset.walletBrand}`);
     item.innerHTML = `<span class="wallet-choice-logo ${role}" aria-hidden="true">${iconMarkup}</span><span>${esc(label + extra)}</span>`;
     item.onclick = async () => {
       if (!current()) return;
