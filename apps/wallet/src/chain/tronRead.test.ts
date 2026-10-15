@@ -7,11 +7,18 @@ const config={network:'nile' as const,genesisBlockId:'a'.repeat(64),rpcURL:'http
 const word=(n:bigint|number)=>BigInt(n).toString(16).padStart(64,'0');
 const abiText=(text:string)=>{const bytes=hexlify(toUtf8Bytes(text)).slice(2);return word(32)+word(bytes.length/2)+bytes.padEnd(Math.ceil(bytes.length/64)*64,'0');};
 const constant=(encoded:string)=>({result:{result:true},constant_result:[encoded],transaction:{ret:[{ret:'SUCESS',contractRet:'SUCCESS'}]}});
-function fixture(change:(data:any)=>void=()=>{},assertCurrent=()=>{}){
-  const data:any={genesis:{blockID:config.genesisBlockId,block_header:{raw_data:{}}},account:{address:tronPublicAddress(A).hex,balance:'9223372036854775807'},
+type ContractFixture={result:{result:boolean};constant_result:string[];transaction?:{ret:Array<{ret:string;contractRet:string}>}};
+type ContractSelector='decimals()'|'symbol()'|'name()'|'balanceOf(address)';
+type FixtureData={genesis:{blockID:string;block_header:{raw_data:{number?:unknown}}};account:unknown}&Record<ContractSelector,ContractFixture>;
+function fixture(change:(data:FixtureData)=>void=()=>{},assertCurrent=()=>{}){
+  const data:FixtureData={genesis:{blockID:config.genesisBlockId,block_header:{raw_data:{}}},account:{address:tronPublicAddress(A).hex,balance:'9223372036854775807'},
     'decimals()':constant(word(6)),'symbol()':constant(abiText('PUBLIC')),'name()':constant(abiText('Public Token')),'balanceOf(address)':constant(word((1n<<256n)-1n))};
-  change(data);const calls:{url:string;body:any;init:RequestInit}[]=[];
-  const fetchImpl:typeof fetch=async(url,init)=>{const body=JSON.parse(String(init?.body));calls.push({url:String(url),body,init:init!});const value=String(url).endsWith('/getblockbynum')?data.genesis:String(url).endsWith('/getaccount')?data.account:data[body.function_selector];return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});};
+  change(data);const calls:{url:string;body:Record<string,unknown>;init:RequestInit}[]=[];
+  const fetchImpl:typeof fetch=async(url,init)=>{assert.ok(init);const parsed:unknown=JSON.parse(String(init.body));assert.ok(parsed&&typeof parsed==='object'&&!Array.isArray(parsed));const body=parsed as Record<string,unknown>;calls.push({url:String(url),body,init});let value:unknown;
+    if(String(url).endsWith('/getblockbynum'))value=data.genesis;
+    else if(String(url).endsWith('/getaccount'))value=data.account;
+    else{const selector=body.function_selector;assert.ok(selector==='decimals()'||selector==='symbol()'||selector==='name()'||selector==='balanceOf(address)');value=data[selector]}
+    return new Response(JSON.stringify(value),{headers:{'content-type':'application/json'}});};
   return {reader:createTronReader(config,{fetchImpl,assertCurrent}),calls,data,fetchImpl};
 }
 test('strict TRON base58check/hex normalize public vectors, never EVM/YNX or bad checksum',()=>{
@@ -20,7 +27,8 @@ test('strict TRON base58check/hex normalize public vectors, never EVM/YNX or bad
 });
 test('native TRX integer64 exact display binds source network/account without full-wallet claims',async()=>{
   const f=fixture(),r=await f.reader.read({address:A});assert.equal(r.trx.sun,'9223372036854775807');assert.equal(r.trx.display,'9223372036854.775807');assert.equal(r.address,A);assert.equal(r.network,'nile');assert.equal(r.genesisBlockId,config.genesisBlockId);assert.equal(r.source.verification,'provider-reported-not-consensus');assert.equal(r.source.rpcURL,config.rpcURL);assert.equal(f.calls.length,2);assert(Object.isFrozen(r.trx));
-  assert.equal(f.calls[0].url,config.rpcURL+'/wallet/getblockbynum');assert.deepEqual(f.calls[1].body,{address:tronPublicAddress(A).hex,visible:false});
+  const genesisCall=f.calls[0],accountCall=f.calls[1];assert.ok(genesisCall);assert.ok(accountCall);
+  assert.equal(genesisCall.url,config.rpcURL+'/wallet/getblockbynum');assert.deepEqual(accountCall.body,{address:tronPublicAddress(A).hex,visible:false});
   for(const c of f.calls){assert.equal(c.init.method,'POST');assert.equal(c.init.redirect,'error');assert.equal(c.init.credentials,'omit');assert(c.init.signal);}
 });
 test('only empty account object means unactivated zero; activated omitted balance is zero',async()=>{
@@ -40,7 +48,8 @@ test('wrong genesis stops before account/contract calls',async()=>{
   const f=fixture(d=>{d.genesis.blockID='b'.repeat(64);});await assert.rejects(f.reader.read({address:A,contract:B}),{code:'TRON_READ_NETWORK_MISMATCH'});assert.equal(f.calls.length,1);
 });
 test('contract failure, metadata changes, unsafe ABI/UTF8/padding/decimals never become zero',async()=>{
-  for(const change of [d=>{d['decimals()']=constant(word(256));},d=>{d['decimals()']=constant(word(18));},d=>{d['symbol()']=constant(word(0));},d=>{d['symbol()']=constant(abiText('bad\u202e'));},d=>{d['name()']=constant(word(32)+word(1)+'ff'+'0'.repeat(62));},d=>{d['name()']=constant(abiText('Name')+'00');},d=>{d['balanceOf(address)']={result:{result:false},constant_result:[word(0)]};},d=>{d['balanceOf(address)'].transaction.ret[0].contractRet='REVERT';},d=>{d['balanceOf(address)']=constant(word(0)+'00');}]){
+  const mutations:Array<(data:FixtureData)=>void>=[d=>{d['decimals()']=constant(word(256));},d=>{d['decimals()']=constant(word(18));},d=>{d['symbol()']=constant(word(0));},d=>{d['symbol()']=constant(abiText('bad\u202e'));},d=>{d['name()']=constant(word(32)+word(1)+'ff'+'0'.repeat(62));},d=>{d['name()']=constant(abiText('Name')+'00');},d=>{d['balanceOf(address)']={result:{result:false},constant_result:[word(0)]};},d=>{const transaction=d['balanceOf(address)'].transaction;assert.ok(transaction);const ret=transaction.ret[0];assert.ok(ret);ret.contractRet='REVERT';},d=>{d['balanceOf(address)']=constant(word(0)+'00');}];
+  for(const change of mutations){
     const f=fixture(change);await assert.rejects(f.reader.read({address:A,contract:B,expectedDecimals:6}));
   }
   assert.equal(tronReadDisplay('1',0),'1');assert.equal(tronReadDisplay('1',255),'0.'+'0'.repeat(254)+'1');assert.throws(()=>tronReadDisplay('01'));assert.throws(()=>tronReadDisplay('1',256));
