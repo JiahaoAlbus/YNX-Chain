@@ -100,10 +100,11 @@ function resetWallet(message = "Wallet disconnected. Guest playback remains avai
 }
 
 function renderWalletState(state) {
+  const network = String(state.chainId).toLowerCase() === YNX_TESTNET.evmChainHex ? "YNX Testnet" : "network";
   $("#signin").textContent = `${getWalletName(state)} · ${maskAccount(state.account)}`;
   $("#wallet-status").classList.add("wallet-connected");
   $("#revoke").hidden = false;
-  setConnectionMessage(`Connected to ${getWalletName(state)} on YNX Testnet (${state.chainId}). ` +
+  setConnectionMessage(`Connected to ${getWalletName(state)} on ${network} (${state.chainId}). ` +
     "This EVM connection does not sign in to your Video account.");
   $("#wallet-install").hidden = true;
   storageState.write({
@@ -139,12 +140,12 @@ function bindWalletEvents(walletState) {
 
   const onChainChanged = (chainId) => {
     if (!current()) return;
-    if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) {
-      setConnectionMessage(`Wallet chain changed away from ${YNX_TESTNET.evmChainHex}; reconnect or switch back in your Wallet to continue.`);
-      return;
-    }
     currentWallet = {...currentWallet, chainId: String(chainId).toLowerCase()};
     renderWalletState(currentWallet);
+    if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) {
+      setConnectionMessage(`Wallet chain changed away from ${YNX_TESTNET.evmChainHex} to ${currentWallet.chainId}; reconnect or switch back in your Wallet to continue.`);
+      return;
+    }
     setConnectionMessage(`Wallet switched back to ${currentWallet.chainId}.`);
   };
 
