@@ -9,6 +9,7 @@ require('./debug-variable-fetch-adapter').install();
 require('./problem-marker-lifecycle').install();
 require('./filesystem-move-widget-owner').install();
 require('./filesystem-save-as-owner').install();
+require('./model-save-version').install();
 const debugStatePersistence = require('./debug-state-persistence');
 debugStatePersistence.install();
 require('./test-range-adapter').install();
