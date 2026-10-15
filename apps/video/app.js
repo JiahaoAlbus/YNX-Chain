@@ -591,8 +591,12 @@ function esc(value) {
 }
 
 function empty(title, detail = "Published videos will appear here.", retry = false) {
+  const epoch = libraryEpoch, navigation = navigationRevision;
   $("#content").innerHTML = `<div class="empty"><h2>${esc(title)}</h2><p>${esc(detail)}</p>${retry ? `<button id="retry-load">${esc(t("retry"))}</button>` : ""}</div>`;
-  $("#retry-load")?.addEventListener("click", () => loadVideos($("#query").value));
+  $("#retry-load")?.addEventListener("click", () => {
+    if (epoch !== libraryEpoch || navigation !== navigationRevision) return;
+    return loadVideos($("#query").value);
+  });
 }
 
 function activate(button) {
