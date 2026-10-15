@@ -189,6 +189,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
       !debug?.registerDebugConfigurationProvider || localJsApis.has(debug)) return;
   localJsApis.add(debug);
   const launches = new Map(), pendingCleanup = new Set(), cleanupErrors = [], register = debug.registerDebugConfigurationProvider;
+  let stopped = false;
   const request = message => new Promise((ok, bad) => {
     const socket = require('node:net').connect(environment.YNX_JS_DEBUG_SOCKET); socket.setEncoding('utf8'); let buffer = '', settled = false;
     const timer = setTimeout(() => { socket.destroy(); bad(Error('Local JavaScript supervisor did not admit this launch')); }, 5000);
@@ -239,6 +240,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   }
   async function configure(configuration, choice) {
     if (!configuration || configuration.request !== 'launch' || configuration.__pendingTargetId) return configuration;
+    if (stopped) throw Error('Local JavaScript launch has ended');
     if (configuration.__ynxJsLaunch) { if (!launches.has(configuration.__ynxJsLaunch)) throw Error('Unknown local JavaScript launch correlation'); return configuration; }
     const runtime = configuration.runtimeExecutable;
     if (runtime && runtime !== 'node' && runtime !== environment.YNX_JS_DEBUG_NODE) throw Error('Select the bundled Node runtime for supervised local JavaScript debugging. Custom runtime configuration was retained.');
@@ -254,6 +256,12 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     const timer = setTimeout(() => { release(prepared.launchId)?.catch(error => console.error('JavaScript launch expiry:', error)); }, 30000); timer.unref?.();
     const record = { timer };
     launches.set(prepared.launchId, record);
+    if (stopped) {
+      // A prepare response may outlive disposal. Retire exactly the launch it
+      // actually admitted; never return an executable late configuration.
+      await release(prepared.launchId)?.catch(() => {});
+      throw Error('Local JavaScript launch has ended');
+    }
     if (configuration.noDebug === true && configuration.console === 'integratedTerminal') {
       try {
         record.observation = await require('./local-js-launch-observer').observeLocalJsLaunch(environment, prepared.launchId, result => {
@@ -262,6 +270,13 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
           finishObservedLaunch(prepared.launchId, record);
         });
       } catch (error) { await release(prepared.launchId); throw error; }
+    }
+    if (stopped || launches.get(prepared.launchId) !== record) {
+      // An observer can acknowledge after disposal already removed its record.
+      // Close that late subscription even though release is now a no-op.
+      record.observation?.dispose();
+      await release(prepared.launchId)?.catch(() => {});
+      throw Error('Local JavaScript launch has ended');
     }
     const mapping = prepared.sourceMapping;
     if (mapping && (configuration.localRoot || configuration.remoteRoot) && (configuration.localRoot !== mapping.localRoot || configuration.remoteRoot !== mapping.remoteRoot)) { await release(prepared.launchId); throw Error('Existing localRoot/remoteRoot conflicts with this verified local project alias. Configuration was retained.'); }
@@ -280,6 +295,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
       const choice = childChoice(args[1]);
       const result = provider.resolveDebugConfiguration ? await provider.resolveDebugConfiguration.apply(provider, args) : args[1];
       if (!result || result.request !== 'launch' || result.__pendingTargetId) return result;
+      if (stopped) throw Error('Local JavaScript launch has ended');
       if (choice.explicit && choice.value !== undefined && typeof choice.value !== 'boolean') throw Error('Invalid explicit child-process debugging configuration');
       if (choice.explicit && choice.value === true) throw Error('Child-process debugging requires separate supervised endpoints; use a single Node launch in this local profile.');
       if (!choice.explicit && result.autoAttachChildProcesses === true) await notifySingleTarget();
@@ -320,7 +336,7 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
   });
   return {
     async whenIdle() { while (pendingCleanup.size) await Promise.allSettled([...pendingCleanup]); if (cleanupErrors.length) throw new AggregateError(cleanupErrors.splice(0), 'Local JavaScript debug cleanup failed'); },
-    async dispose() { for (const id of [...launches.keys()]) release(id); await this.whenIdle(); }
+    async dispose() { stopped = true; for (const id of [...launches.keys()]) release(id); await this.whenIdle(); }
   };
 };
 let debugRequestId = 0;
