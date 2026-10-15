@@ -15,7 +15,7 @@ function fixture(result, native = true) {
   }
   const target = native ? { ynxDesktopFiles: { open: async options => { events.push(options.kind); return result; } } } : {};
   install({ Contribution, URI, open: async (_, uri) => events.push(['editor', uri.value]), parse: JSON.parse, target, localize: (_, t) => t,
-    fileOpenMenu: ['file'], commands: { OPEN_FILE: { id: 'file' }, OPEN_FOLDER: { id: 'folder' } } });
+    fileOpenMenu: ['file'], commands: { OPEN_FILE: { id: 'file' }, OPEN_FOLDER: { id: 'folder' } }, getCurrentEditor: () => instance.editorManager?.currentEditor });
   const instance = new Contribution();
   instance.fileService = { resolve: async () => ({ isFile: true }), readFile: async () => ({ value: Buffer.from('{"folders":[{"path":"."}]}') }) };
   instance.workspaceService = { open: async uri => events.push(['workspace', uri.value]) };
@@ -119,4 +119,51 @@ test('injected picker bridge settles cancellation and ignores late replies befor
   listeners.pagehide();
   await assert.rejects(third, /document closed/);
   assert.equal(requests.length, 3);
+});
+
+const held = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; };
+function currentOpenFixture() {
+  const f = fixture({ uris: ['file:///qa/selected.cpp'], rootUri: 'file:///qa' });
+  f.instance.workspaceService.workspace = { resource: 'file:///qa' };
+  f.instance.workspaceService.tryGetRoots = () => [f.root]; f.root = { resource: 'file:///qa' };
+  let version = 1;
+  f.document = { textEditorModel: { getVersionId: () => version }, isDisposed: () => false };
+  f.widget = { isDisposed: false, editor: { document: f.document, uri: { toString: () => 'file:///qa/unsaved.cpp' } } };
+  f.instance.editorManager = { currentEditor: f.widget };
+  f.edit = () => { version += 1; };
+  return f;
+}
+test('R34 root change while native panel is pending never reads old backend', async () => {
+  const f = currentOpenFixture(), panel = held(); f.target.ynxDesktopFiles.open = () => panel.promise;
+  const pending = f.instance.doOpenFile(); f.instance.workspaceService.workspace = { resource: 'file:///new' }; f.root = { resource: 'file:///new' };
+  f.instance.fileService.resolve = async () => { f.events.push('STALE-read'); return { isFile: true }; };
+  panel.resolve({ uris: ['file:///qa/old.cpp'], rootUri: 'file:///qa' }); await pending; assert.deepEqual(f.events, []);
+});
+test('R34 switched editor while file stat is pending cannot be replaced by stale open', async () => {
+  const f = currentOpenFixture(), stat = held(); f.instance.fileService.resolve = () => stat.promise;
+  const pending = f.instance.doOpenFile(); await Promise.resolve(); f.instance.editorManager.currentEditor = { editor: { document: {} } };
+  stat.resolve({ isFile: true }); await pending; assert.deepEqual(f.events, ['file']);
+});
+test('R34 newer open request wins over older file resolve in same editor', async () => {
+  const f = currentOpenFixture(), stat = held(); let call = 0;
+  f.target.ynxDesktopFiles.open = async () => ({ uris: [`file:///qa/${++call}.cpp`], rootUri: 'file:///qa' });
+  f.instance.fileService.resolve = async uri => uri.value.endsWith('/1.cpp') ? stat.promise : { isFile: true };
+  const first = f.instance.doOpenFile(); await Promise.resolve(); await f.instance.doOpenFile(); stat.resolve({ isFile: true }); await first;
+  assert.deepEqual(f.events, [['editor', 'file:///qa/2.cpp']]);
+});
+test('R34 editing current document during workspace read cancels stale navigation without altering draft', async () => {
+  const f = currentOpenFixture(), content = held(); f.instance.fileService.resolve = async () => ({ isFile: true, size: 20 }); f.instance.fileService.readFile = () => content.promise;
+  f.target.ynxDesktopFiles.open = async () => ({ uris: ['file:///qa/current.code-workspace'], rootUri: 'file:///qa' });
+  const pending = f.instance.doOpenWorkspace(); await Promise.resolve(); await Promise.resolve(); f.edit();
+  content.resolve({ value: Buffer.from('{"folders":[{"path":"."}]}') }); await pending; assert.deepEqual(f.events, []); assert.equal(f.document.textEditorModel.getVersionId(), 2);
+});
+test('R34 disposed originating editor cannot receive late file error', async () => {
+  const f = currentOpenFixture(), stat = held(); f.instance.fileService.resolve = () => stat.promise;
+  const pending = f.instance.doOpenFile(); await Promise.resolve(); f.widget.isDisposed = true;
+  stat.reject(Error('TEST_ONLY_old_file_error')); await pending; assert.deepEqual(f.events, ['file']);
+});
+test('R34 current original open and current first error remain functional', async () => {
+  const good = currentOpenFixture(); await good.instance.doOpenFile(); assert.deepEqual(good.events, ['file', ['editor', 'file:///qa/selected.cpp']]);
+  const failed = currentOpenFixture(); failed.instance.fileService.resolve = async () => { throw Error('TEST_ONLY_exact_original_error'); };
+  await failed.instance.doOpenFile(); assert.deepEqual(failed.events, ['file', ['error', 'TEST_ONLY_exact_original_error']]);
 });

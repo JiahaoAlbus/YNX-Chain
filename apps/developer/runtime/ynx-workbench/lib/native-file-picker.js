@@ -12,9 +12,10 @@ function workspaceMatchesRoot(data, fileUri, rootUri) {
   // Do not normalize arbitrary ../ or symlink-containing paths into authority.
   return folder.path === rootPath || (folder.path === '.' && parent === rootPath);
 }
-function install({ Contribution, URI, open, parse, target, localize, fileOpenMenu, commands }) {
+function install({ Contribution, URI, open, parse, target, localize, fileOpenMenu, commands, getCurrentEditor = () => undefined }) {
   const prototype = Contribution.prototype;
   if (prototype.__ynxNativeFilePicker) return;
+  const requests = new WeakMap();
   Object.defineProperty(prototype, '__ynxNativeFilePicker', { value: true });
   const registerMenus = prototype.registerMenus;
   prototype.registerMenus = function (menus) {
@@ -29,14 +30,26 @@ function install({ Contribution, URI, open, parse, target, localize, fileOpenMen
     prototype[method] = async function (...args) {
       const bridge = target.ynxDesktopFiles;
       if (!bridge) return original.apply(this, args);
+      const request = {}, workspace = this.workspaceService.workspace;
+      const roots = this.workspaceService.tryGetRoots?.();
+      const widget = getCurrentEditor(), document = widget?.editor?.document;
+      const version = document?.textEditorModel?.getVersionId();
+      requests.set(this, request);
+      const current = () => requests.get(this) === request && target.ynxDesktopFiles === bridge &&
+        this.workspaceService.workspace === workspace && getCurrentEditor() === widget && !widget?.isDisposed &&
+        widget?.editor?.document === document && !document?.isDisposed?.() && document?.textEditorModel?.getVersionId() === version &&
+        (!roots || (() => { const now = this.workspaceService.tryGetRoots(); return now.length === roots.length && now.every((root, index) => root === roots[index]); })());
       try {
         const result = await bridge.open({ kind });
+        if (!current()) return undefined;
         if (result.cancelled || result.openedInNewWindow || !result.uris?.length) return undefined;
         const uri = new URI(result.uris[0]);
         if (kind === 'workspace') {
           const info = await this.fileService.resolve(uri);
+          if (!current()) return undefined;
           if (!info.isFile || info.size > 2 * 1024 * 1024) throw new Error(localize('nativeWorkspaceTooLarge', 'Choose a workspace file smaller than 2 MiB.'));
           const content = await this.fileService.readFile(uri);
+          if (!current()) return undefined;
           if (content.value.byteLength > 2 * 1024 * 1024) throw new Error(localize('nativeWorkspaceTooLarge', 'Choose a workspace file smaller than 2 MiB.'));
           const errors = [], data = parse(content.value.toString(), errors, { allowTrailingComma: true });
           if (errors.length || !workspaceMatchesRoot(data, result.uris[0], result.rootUri)) {
@@ -46,10 +59,12 @@ function install({ Contribution, URI, open, parse, target, localize, fileOpenMen
           return uri;
         }
         const stat = await this.fileService.resolve(uri);
+        if (!current()) return undefined;
         if (!stat.isFile) throw new Error(localize('nativeSelectedFileMissing', 'The selected file is no longer available.'));
         await open(this.openerService, uri);
         return [uri];
       } catch (error) {
+        if (!current()) return undefined;
         await this.messageService.error(error.message || localize('nativeOpenFailed', 'The selected file could not be opened.'));
         return undefined;
       }

@@ -147,18 +147,21 @@ const translateWorkbench = (key, text) => nls.localize('ynx/workbench/' + key,
 const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 const nativeFilePicker = require('./native-file-picker');
 const NativeFileURI = require('@theia/core/lib/common/uri').default;
+let nativeFilePickerEditors;
 nativeFilePicker.install({
   Contribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
   URI: NativeFileURI, open: require('@theia/core/lib/browser').open,
   parse: require('jsonc-parser').parse, target: window, localize: translateWorkbench,
   fileOpenMenu: require('@theia/core/lib/browser').CommonMenus.FILE_OPEN,
   commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
+  getCurrentEditor: () => nativeFilePickerEditors?.currentEditor,
 });
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() {
+      nativeFilePickerEditors = context.container.get(EditorManager);
       nativeFilePicker.installProjectSaveDefault({
-        dialogs: context.container.get(FileDialogService), editors: context.container.get(EditorManager),
+        dialogs: context.container.get(FileDialogService), editors: nativeFilePickerEditors,
         workspace: context.container.get(WorkspaceService), fileService: context.container.get(FileService),
       });
     },
