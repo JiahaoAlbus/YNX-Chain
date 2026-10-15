@@ -336,6 +336,13 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       });
     },
   })).inSingletonScope();
+  bind(FrontendApplicationContribution).toDynamicValue(context => {
+    let disconnect;
+    return {
+      onStart() { disconnect = require('./model-save-version').connectSaveErrors(context.container.get(MessageService)); },
+      onStop() { if (disconnect) disconnect(); },
+    };
+  }).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new DraftRecoveryContribution(
     context.container.get(EditorManager), WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-draft-recovery'),
     context.container.get(MessageService), context.container.get(FrontendApplicationStateService),

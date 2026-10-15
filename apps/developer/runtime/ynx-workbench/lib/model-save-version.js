@@ -1,10 +1,11 @@
 'use strict';
 const installed = new WeakSet();
-function installOn(prototype) {
+function installOn(prototype, reportError = failure => saveErrorReporter && saveErrorReporter(failure)) {
     if (installed.has(prototype)) return;
     const doSave = prototype.doSave;
-    prototype.doSave = function (...args) {
+    prototype.doSave = async function (...args) {
         const document = this;
+        const resourceUri = this.resource && this.resource.uri;
         let captured = false;
         let writtenVersion;
         let writtenModel;
@@ -63,12 +64,34 @@ function installOn(prototype) {
                 return typeof value === 'function' ? value.bind(target) : value;
             }
         });
-        return doSave.apply(facade, args);
+        try {
+            return await doSave.apply(facade, args);
+        } catch (error) {
+            try {
+                const notice = reportError && reportError({ error, resourceUri });
+                if (notice && typeof notice.catch === 'function') notice.catch(() => {});
+            } catch (_) { /* keep the original save failure, including UNKNOWN */ }
+            throw error;
+        }
     };
     installed.add(prototype);
 }
+
+let saveErrorReporter;
+function setErrorReporter(reporter) {
+    saveErrorReporter = reporter;
+    return () => { if (saveErrorReporter === reporter) saveErrorReporter = undefined; };
+}
+function connectSaveErrors(messages) {
+    return setErrorReporter(({ resourceUri }) => {
+        const name = resourceUri && resourceUri.path ? resourceUri.path.base : 'file';
+        return messages.error('Could not confirm saving "' + name +
+            '". Your changes remain unsaved. Check the destination before saving again.');
+    });
+}
+
 function install() {
     const { MonacoEditorModel } = require('@theia/monaco/lib/browser/monaco-editor-model');
-    installOn(MonacoEditorModel.prototype);
+    installOn(MonacoEditorModel.prototype, failure => saveErrorReporter && saveErrorReporter(failure));
 }
-module.exports = { install, installOn };
+module.exports = { install, installOn, setErrorReporter, connectSaveErrors };
