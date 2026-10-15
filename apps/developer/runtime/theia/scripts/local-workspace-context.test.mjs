@@ -108,3 +108,41 @@ test('initial mismatch prompt cannot block startup and its later recovery choice
   choose('Return to Open Project');await settle();assert.equal(f.opened.length,1);
   assert.equal(f.opened[0].uri.toString(),bound.toString());await startup;
 });
+
+test('R35 New Project normal command invokes only OS folder creation chooser, never caller path', async t => {
+  const f = fixture(t); await f.contribution.onStart();
+  assert.equal(f.commands.isEnabled('ynx.workbench.newProject'), true);
+  await f.commands.executeCommand('ynx.workbench.newProject', '/TEST_ONLY/untrusted', { workspace: '/outside' });
+  assert.deepEqual(f.posted, [{ action: 'new-project' }]); assert.deepEqual(f.opened, []);
+  assert.equal(f.contribution.boundRoot.toString(), bound.toString());
+});
+test('R35 New Project remains unavailable without native route and after owning contribution stops', async t => {
+  const web = fixture(t, { native: false }); await web.contribution.onStart();
+  assert.equal(web.commands.isEnabled('ynx.workbench.newProject'), false);
+  await assert.rejects(web.commands.executeCommand('ynx.workbench.newProject')); assert.deepEqual(web.posted, []);
+  const native = fixture(t); await native.contribution.onStart(); native.contribution.onStop();
+  assert.equal(native.commands.isEnabled('ynx.workbench.newProject'), false);
+  await assert.rejects(native.commands.executeCommand('ynx.workbench.newProject')); assert.deepEqual(native.posted, []);
+});
+test('R35 OS-created project directory obtains persistent actual root and original first-terminal cwd source binding', async t => {
+  const { mkdtemp, mkdir, realpath, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os'); const { join } = await import('node:path');
+  const { localProjectContext } = await import('../../../desktop/local-workbench.mjs');
+  const temporary = await realpath(await mkdtemp(join(tmpdir(), 'ynx-r35-project-'))); t.after(() => rm(temporary, { recursive: true, force: true }));
+  const projectDirectory = join(temporary, 'New YNX 项目 #1'); await mkdir(projectDirectory, { mode: 0o700 });
+  const input = { supportRoot: join(temporary, 'support'), projectDirectory };
+  const context = await localProjectContext(input), restored = await localProjectContext(input);
+  assert.equal(context.workspace, projectDirectory); assert.equal(restored.id, context.id); assert.equal(restored.profile, context.profile);
+  const binding = JSON.parse(readFileSync(join(context.profile, 'ynx-local-project.json'), 'utf8'));
+  assert.equal(binding.projectId, context.id); assert.equal(binding.workspace, projectDirectory);
+  const f = fixture(t, { getContext: async () => ({ mode: 'local', workspace: context.workspace }) }); f.change([URI.fromComponents({ scheme: 'file', path: context.workspace })]); await f.contribution.onStart();
+  assert.equal(f.contribution.boundRoot.toString(), URI.fromComponents({ scheme: 'file', path: projectDirectory }).toString()); assert.deepEqual(f.warnings, []);
+  const native = readFileSync(new URL('../../../desktop/macos/main.m', import.meta.url), 'utf8');
+  assert.match(native, /@selector\(newLocalProject:\)/); assert.match(native, /\[body\[@"action"\] isEqual:@"new-project"\]/);
+  assert.match(native, /panel\.canCreateDirectories=YES/); assert.match(native, /YNXCanonicalPickedLocalDirectory\(panel\.URL\)/);
+  assert.match(native, /@"YNX_LOCAL_WORKSPACE":selectedWorkspace/); assert.match(native, /configuration\.createsNewApplicationInstance=YES/);
+  // The package supplies the original TerminalWidget method. Read-only source
+  // evidence establishes its rootURI caller; it is not a spawned PTY or GUI test.
+  const terminal = readFileSync(require.resolve('@theia/terminal/lib/browser/terminal-widget-impl'), 'utf8');
+  assert.match(terminal, /async createTerminal\(\)[\s\S]*?this\.options\.cwd\?\.toString\(\)[\s\S]*?await this\.workspaceService\.roots[\s\S]*?rootURI = root\?\.resource\?\.toString\(\)[\s\S]*?this\.shellTerminalServer\.create\(\{/);
+});

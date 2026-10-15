@@ -3,6 +3,10 @@ const URI = require('@theia/core/lib/common/uri').default;
 class LocalWorkspaceContext {
   constructor(workspace, context, commands, messages, target = window, translate = (key, text) => text) { Object.assign(this, { workspace, context, commands, messages, target, translate }); this.stopped = false; }
   registerCommands(registry) {
+    registry.registerCommand({ id: 'ynx.workbench.newProject', label: this.translate('newProject', 'New Project…'), category: 'YNX' }, {
+      isEnabled: () => !this.stopped && !!this.target.webkit?.messageHandlers?.ynxLocalWorkbench,
+      execute: () => this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'new-project' }),
+    });
     registry.registerCommand({ id: 'ynx.workbench.openFolder', label: this.translate('openFolder', 'Open Folder…'), category: 'YNX' }, {
       isEnabled: () => !!this.target.webkit?.messageHandlers?.ynxLocalWorkbench,
       execute: () => this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'open-folder' }),

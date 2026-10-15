@@ -143,7 +143,7 @@ static BOOL YNXLocalCommandResult(id value,NSDictionary *pending) {
     if(body.count==4&&(![body[@"error"] isKindOfClass:NSString.class]||[body[@"error"] length]>160))return NO;
     return YES;
 }
-static BOOL YNXLocalOpenFolderPayload(id value) {return [value isKindOfClass:NSDictionary.class]&&[value count]==1&&[value[@"action"] isEqual:@"open-folder"];}
+static BOOL YNXLocalOpenFolderPayload(id value) {return [value isKindOfClass:NSDictionary.class]&&[value count]==1&&[@[@"open-folder",@"new-project"] containsObject:value[@"action"]];}
 static BOOL YNXLocalLocalePayload(id value) {
     return [value isKindOfClass:NSDictionary.class]&&[value count]==2&&[value[@"action"] isEqual:@"locale"]&&[value[@"locale"] isKindOfClass:NSString.class]&&[@[@"zh-cn",@"en"] containsObject:value[@"locale"]];
 }
@@ -153,7 +153,7 @@ static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
     static NSDictionary *labels;static dispatch_once_t once;dispatch_once(&once,^{labels=@{
         @"File":@"文件",@"Edit":@"编辑",@"Selection":@"选择",@"View":@"视图",@"Go":@"转到",@"Run":@"运行",@"Terminal":@"终端",@"Window":@"窗口",@"Help":@"帮助",
         @"About YNX Developer":@"关于 YNX Developer",@"Settings…":@"设置…",@"Quit YNX Developer":@"退出 YNX Developer",
-        @"New Text File":@"新建文本文件",@"Open File…":@"打开文件…",@"Open Folder…":@"打开文件夹…",@"Open Workspace from File…":@"从文件打开工作区…",@"Save":@"保存",@"Save As…":@"另存为…",@"Save All":@"全部保存",@"Close Editor":@"关闭编辑器",
+        @"New Text File":@"新建文本文件",@"New Project…":@"新建项目…",@"Create Project":@"创建项目",@"Create a new folder with New Folder, select it, then choose Create Project. It opens in its own isolated project window; existing project files and terminals remain open.":@"使用“新建文件夹”创建项目目录，选中后点“创建项目”。新项目会在独立窗口中打开，现有项目文件和终端将保留。",@"Open File…":@"打开文件…",@"Open Folder…":@"打开文件夹…",@"Open Workspace from File…":@"从文件打开工作区…",@"Save":@"保存",@"Save As…":@"另存为…",@"Save All":@"全部保存",@"Close Editor":@"关闭编辑器",
         @"Undo":@"撤销",@"Redo":@"重做",@"Cut":@"剪切",@"Copy":@"复制",@"Paste":@"粘贴",@"Find":@"查找",@"Replace":@"替换",@"Toggle Line Comment":@"切换行注释",@"Format Document":@"格式化文档",
         @"Select All":@"全选",@"Expand Selection":@"扩大选区",@"Shrink Selection":@"缩小选区",@"Select All Occurrences":@"选择所有匹配项",@"Add Cursor Above":@"在上方添加光标",@"Add Cursor Below":@"在下方添加光标",
         @"Command Palette…":@"命令面板…",@"Explorer":@"资源管理器",@"Search":@"搜索",@"Source Control":@"源代码管理",@"Run and Debug":@"运行和调试",@"Extensions":@"扩展",@"Problems":@"问题",@"Output":@"输出",@"Outline":@"大纲",
@@ -843,6 +843,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [self localCommandItem:app title:@"Settings…" command:@"preferences:open" key:@"," modifiers:NSEventModifierFlagCommand];
     [app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:YNXLocalMenuLabel(@"Quit YNX Developer",_localLocale) action:@selector(terminate:) keyEquivalent:@"q"];
     NSMenu *file=[self localMenu:main title:@"File"];
+    NSMenuItem *newProject=[file addItemWithTitle:YNXLocalMenuLabel(@"New Project…",_localLocale) action:@selector(newLocalProject:) keyEquivalent:@""];newProject.target=self;
     [self localCommandItem:file title:@"New Text File" command:@"workbench.action.files.newUntitledFile" key:@"n" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:file title:@"Open File…" command:@"workspace:openFile" key:@"o" modifiers:NSEventModifierFlagCommand];
     [self localCommandItem:file title:@"Open Workspace from File…" command:@"workspace:openWorkspace" key:@"" modifiers:0];
@@ -968,10 +969,13 @@ static NSString *YNXDesktopTitle(NSString *label) {
             if(error||![invoked isEqual:@YES]){[self.pendingLocalCommands removeObjectForKey:request];[self localCommandUnavailable:nil];}
         }];
 }
-- (void)openLocalFolder:(id)sender {
+- (void)newLocalProject:(id)sender { [self chooseLocalProjectFolder:YES]; }
+- (void)openLocalFolder:(id)sender { [self chooseLocalProjectFolder:NO]; }
+- (void)chooseLocalProjectFolder:(BOOL)creating {
     if(!_localWorkbenchMode||!_window||_window.attachedSheet||_localFolderPanel||_localFilePanel)return;
     NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=NO;panel.canChooseDirectories=YES;panel.allowsMultipleSelection=NO;panel.canCreateDirectories=YES;
-    panel.title=YNXLocalMenuLabel(@"Open Folder…",_localLocale);panel.prompt=YNXLocalMenuLabel(@"Open",_localLocale);
+    panel.title=YNXLocalMenuLabel(creating?@"New Project…":@"Open Folder…",_localLocale);panel.prompt=YNXLocalMenuLabel(creating?@"Create Project":@"Open",_localLocale);
+    if(creating)panel.message=YNXLocalMenuLabel(@"Create a new folder with New Folder, select it, then choose Create Project. It opens in its own isolated project window; existing project files and terminals remain open.",_localLocale);
     // Keep selection asynchronous without attaching a sheet: on the supported
     // macOS runtime the sheet's directory confirmation remains disabled.
     self.localFolderPanel=panel;
@@ -1616,11 +1620,11 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if([body[@"action"] isEqual:@"pick-file"]){
         if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self pickLocalFile:body];return;
     }
-    if([body[@"action"] isEqual:@"open-folder"]){
+    if([body[@"action"] isEqual:@"open-folder"]||[body[@"action"] isEqual:@"new-project"]){
         // Only the genuine OS picker may select a new workspace. A page/hash
         // cannot submit a filesystem path or alter this instance's binding.
         if(!YNXLocalOpenFolderPayload(body)||!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!_localCommandDocumentReady||!_server.running)return;
-        [self openLocalFolder:nil];return;
+        if([body[@"action"] isEqual:@"new-project"])[self newLocalProject:nil];else [self openLocalFolder:nil];return;
     }
     if([body[@"action"] isEqual:@"command-result"]){
         if(!YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)||!YNXLocalEditorDocumentURL(_webView.URL,_port)||!YNXLocalCommandResult(body,_pendingLocalCommands))return;
