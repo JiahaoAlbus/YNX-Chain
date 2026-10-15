@@ -20,6 +20,15 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+test('R46 final quote configuration read cannot publish after lock, account or network retirement; explicit retry works',async()=>{
+ for(const boundary of ['lock','account','network']){
+  const f=mounted(),context={account:f.review.account,revision:1,locked:false},config={revision:1,selected:'n',networks:[f.review.network],tokens:[]};let reads=0,privateCalls=0,service;
+  service=new MultichainService({config:{read:async()=>{const snapshot=structuredClone(config);if(++reads===3){if(boundary==='lock')context.locked=true;else if(boundary==='account')context.account='0x'+'3'.repeat(40);else config.revision++;context.revision++;service.invalidate()}return snapshot}},journal:{blocking:async()=>[]},adapter:{prepare:async()=>({amount:'1',fee:'2',transaction:{nonce:'0'}})},getContext:async()=>({...context}),withSecret:async()=>{privateCalls++;throw Error('Unexpected private call')}});
+  try{const input={asset:'native',to:f.review.to,amount:'1'};await assert.rejects(service.prepare(input),{code:'MULTICHAIN_CONTEXT_CHANGED'},boundary);assert.equal(service.reviews.size,0,boundary);context.locked=false;
+   const retry=await service.prepare(input);assert.equal(retry.account,context.account);assert.equal(service.reviews.size,1);assert.equal((await service.cancel(retry.id)).cancelled,true);assert.equal(service.reviews.size,0);assert.equal(privateCalls,0);
+  }finally{f.ui.dispose()}
+ }
+});
 test('R45 real EVM prepare producer retains the successor review after an older quote completes',async()=>{
  const f=mounted();try{
   const gate=deferred(),entered=deferred(),config={revision:1,selected:'n',networks:[f.review.network],tokens:[]};let calls=0,ids=0,privateCalls=0;
