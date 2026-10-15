@@ -711,7 +711,7 @@ async function restoreChannelView(studio,revision){
  for(const id of ids){const option=document.createElement("option");option.value=id;option.textContent=id;choice.append(option);}
  const typed=channelForms.map(id=>document.getElementById(id)?.elements.channel_id?.value).find(id=>ids.includes(id));
  const selected=ids.includes(selectedChannelId)?selectedChannelId:typed||ids[0];choice.value=selected;
- choice.onchange=async()=>{if(!currentCreatorSession(revision)||!ids.includes(choice.value))return;try{await loadChannelView(choice.value,revision);}catch{if(currentCreatorSession(revision))status("The channel could not be loaded. Refresh Studio to try again.",true);}};
+ choice.onchange=async()=>{if(!currentCreatorSession(revision)||!ids.includes(choice.value))return;const read=channelReadRevision+1;try{await loadChannelView(choice.value,revision);}catch{if(currentCreatorSession(revision)&&read===channelReadRevision)status("The channel could not be loaded. Refresh Studio to try again.",true);}};
  await loadChannelView(selected,revision);
 }
 
