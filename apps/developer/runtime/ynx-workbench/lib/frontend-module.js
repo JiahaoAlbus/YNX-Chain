@@ -7,6 +7,7 @@ require('./task-terminal-attachment').install();
 require('./tree-cycle-guard').install();
 require('./debug-variable-fetch-adapter').install();
 require('./problem-marker-lifecycle').install();
+require('./filesystem-move-widget-owner').install();
 const debugStatePersistence = require('./debug-state-persistence');
 debugStatePersistence.install();
 require('./test-range-adapter').install();
