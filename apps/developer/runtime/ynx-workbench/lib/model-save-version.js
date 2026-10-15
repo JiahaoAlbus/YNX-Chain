@@ -108,8 +108,44 @@ function connectSaveErrors(messages) {
     });
 }
 
+
+const saveAllInstalled = new WeakSet();
+function installSaveAllOn(prototype, getSaveable) {
+    if (saveAllInstalled.has(prototype)) return;
+    const saveAll = prototype.saveAll;
+    prototype.saveAll = function (...args) {
+        const shell = this;
+        const service = shell.saveableService;
+        const attempted = new Set();
+        const guardedService = new Proxy(service, {
+            get(target, key) {
+                if (key === 'save') return (widget, ...options) => {
+                    const saveable = getSaveable(widget);
+                    if (saveable && attempted.has(saveable)) return Promise.resolve();
+                    if (saveable) attempted.add(saveable);
+                    return target.save(widget, ...options);
+                };
+                const value = Reflect.get(target, key, target);
+                return typeof value === 'function' ? value.bind(target) : value;
+            }
+        });
+        const facade = new Proxy(shell, {
+            get(target, key) {
+                if (key === 'saveableService') return guardedService;
+                const value = Reflect.get(target, key, target);
+                return typeof value === 'function' ? value.bind(target) : value;
+            }
+        });
+        return saveAll.apply(facade, args);
+    };
+    saveAllInstalled.add(prototype);
+}
+
 function install() {
+    const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
+    const { Saveable } = require('@theia/core/lib/browser/saveable');
+    installSaveAllOn(ApplicationShell.prototype, widget => Saveable.get(widget));
     const { MonacoEditorModel } = require('@theia/monaco/lib/browser/monaco-editor-model');
     installOn(MonacoEditorModel.prototype, failure => saveErrorReporter && saveErrorReporter(failure));
 }
-module.exports = { install, installOn, setErrorReporter, connectSaveErrors };
+module.exports = { install, installOn, installSaveAllOn, setErrorReporter, connectSaveErrors };
