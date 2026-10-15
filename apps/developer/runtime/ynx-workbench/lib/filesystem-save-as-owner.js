@@ -1,7 +1,7 @@
 'use strict';
 const installed = new WeakSet();
 const retired = Symbol('retired save-as request');
-function installOn(prototype, nativeRevert) {
+function installOn(prototype, nativeRevert, WidgetOpenHandler) {
     if (installed.has(prototype)) return;
     const saveAs = prototype.saveAs;
     const saveSnapshot = prototype.saveSnapshot;
@@ -101,7 +101,16 @@ function installOn(prototype, nativeRevert) {
                     if (!mayOpen()) return { open: async () => undefined };
                     const opener = await service.openerService.getOpener(...originalReference(args));
                     return proxy(opener, {
-                        open: (...openArgs) => mayOpen() ? opener.open(...originalReference(openArgs)) : undefined
+                        open: (...openArgs) => {
+                            if (!mayOpen()) return undefined;
+                            // Native open awaits widget creation before doOpen. Check
+                            // again at that final seam, before shell insertion/closeRef.
+                            const receiver = WidgetOpenHandler && opener instanceof WidgetOpenHandler
+                                ? proxy(opener, {
+                                    doOpen: (...args) => mayOpen() ? opener.doOpen(...args) : Promise.resolve()
+                                }) : opener;
+                            return opener.open.apply(receiver, originalReference(openArgs));
+                        }
                     });
                 }
             });
@@ -180,6 +189,7 @@ async function revertForSaveAs(saveable, args, nativeRevert, onEdited) {
 function install() {
     const { FilesystemSaveableService } = require('@theia/filesystem/lib/browser/filesystem-saveable-service');
     const { MonacoEditorModel } = require('@theia/monaco/lib/browser/monaco-editor-model');
-    installOn(FilesystemSaveableService.prototype, MonacoEditorModel.prototype.revert);
+    const { WidgetOpenHandler } = require('@theia/core/lib/browser/widget-open-handler');
+    installOn(FilesystemSaveableService.prototype, MonacoEditorModel.prototype.revert, WidgetOpenHandler);
 }
 module.exports = { install, installOn };
