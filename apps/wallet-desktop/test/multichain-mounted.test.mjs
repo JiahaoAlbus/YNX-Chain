@@ -20,6 +20,28 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+test('R43 expired review cancellation rejection cannot overwrite the successor review',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');const gate=deferred(),entered=deferred();let first=true;
+  f.api.multichainCancel=async()=>{if(first){first=false;entered.resolve();await gate.promise;throw Error('PUBLIC old cancellation')}return {ok:true,value:{cancelled:true}}};
+  const old=f.nodes['multichain-cancel'].emit('click');await entered.promise;f.review.expiresAt=Date.now()-1;await new Promise(r=>setTimeout(r,1100));assert.equal(f.nodes['multichain-review'].open,false);
+  f.api.multichainPrepare=async()=>({ok:true,value:{...f.review,id:'PUBLIC-successor',expiresAt:Date.now()+120000}});await reviewButton(f).emit('click');const text=f.nodes['multichain-review-status'].textContent;
+  gate.resolve();await old;assert.equal(f.nodes['multichain-review-status'].textContent,text);assert.equal(f.nodes['multichain-review'].open,true);assert.equal(f.nodes['multichain-cancel'].disabled,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+ }finally{f.ui.dispose()}
+});
+test('R43 expiry retires cancellation ownership and old finally cannot unlock a successor cancellation',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');const oldGate=deferred(),entered=deferred(),nextGate=deferred();let count=0;
+  f.api.multichainCancel=async()=>{if(++count===1){entered.resolve();await oldGate.promise;throw Error('PUBLIC old cancellation')}if(count===3)return nextGate.promise;return {ok:true,value:{cancelled:true}}};
+  const old=f.nodes['multichain-cancel'].emit('click');await entered.promise;f.review.expiresAt=Date.now()-1;await new Promise(r=>setTimeout(r,1100));assert.equal(f.nodes['multichain-review'].open,false);
+  f.api.multichainPrepare=async()=>({ok:true,value:{...f.review,id:'PUBLIC-successor',expiresAt:Date.now()+120000}});await reviewButton(f).emit('click');const next=f.nodes['multichain-cancel'].emit('click');assert.equal(count,3,'successor cancel is admitted');assert.equal(f.nodes['multichain-cancel'].disabled,true);
+  oldGate.resolve();await old;assert.equal(f.nodes['multichain-cancel'].disabled,true,'old finally cannot clear successor busy state');assert.equal(f.nodes['multichain-review-status'].textContent,'Review the exact network, recipient, amount and maximum fee.');
+  nextGate.resolve({ok:true,value:{cancelled:true}});await next;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+ }finally{f.ui.dispose()}
+});
+test('R43 current cancellation failure remains visible and retryable on the same review',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');f.api.multichainCancel=async()=>{throw Error('PUBLIC current cancellation')};await f.nodes['multichain-cancel'].emit('click');assert.equal(f.nodes['multichain-review-status'].textContent,'Network request failed: IPC_UNAVAILABLE');assert.equal(f.nodes['multichain-review'].open,true);assert.equal(f.nodes['multichain-cancel'].disabled,false);
+  f.api.multichainCancel=async()=>({ok:true,value:{cancelled:true}});await f.nodes['multichain-cancel'].emit('click');assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+ }finally{f.ui.dispose()}
+});
 const originalRow=f=>({id:'r',account:f.review.account,network:f.review.network,state:'signing-unknown',to:f.review.to,amount:'1',hash:null});
 const originalHistory=(f,records)=>({ok:true,value:{account:f.review.account,networkId:'n',configRevision:1,records}});
 const reviewButton=f=>f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer');
