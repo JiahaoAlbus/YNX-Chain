@@ -22,7 +22,7 @@ export function createMultichainUI({document,api,getContext,copy=setWalletCopy})
   const originalStatus=document.createElement('p');originalStatus.setAttribute('role','status');originalStatus.hidden=true;root.append(originalStatus);
   const refreshButton=button('Refresh',root,()=>refresh());
   const editButton=button('Edit network',root,()=>{const n=snapshot?.networks.find(n=>n.id===networks.value);if(n){name.value=n.name;rpc.value=n.rpcUrl;chain.value=n.chainId;symbol.value=n.symbol;genesis.value=n.genesis;networkDetails.open=true}});
-  const removeButton=button('Remove network',root,()=>{if(!snapshot?.selected)return;return run(()=>api.multichainRemove(networks.value),refresh)});
+  const removeButton=button('Remove network',root,()=>{if(!snapshot?.selected)return;historyReady=false;return run(()=>api.multichainRemove(networks.value),refresh)});
   const networkDetails=document.createElement('details');root.append(networkDetails);text('summary','Add or edit EVM network',networkDetails);
   text('p','Use a network template',networkDetails);
   text('p','Templates fill the form only. Verify and save before using the network.',networkDetails);
