@@ -27,6 +27,39 @@ function harness(request = async () => ({ok: true, value: {family: 'bitcoin', ne
   return {ui, family, network, button, status, address, path, settings, rpc: settings.children[2], genesis: settings.children[4], save: settings.children[5], refresh, balance, tokenSection, tokenContract: tokenSection.children[2], importToken: tokenSection.children[3], historyRefresh: history.children[1], records: history.children[2], sheet: registry.get('#family-sheet'), open: () => registry.get('#open-family').handlers.click(), change: value => {context = {...context, ...value};}};
 }
 const recordFixture = {id: 'PUBLIC-id', family: 'bitcoin', network: 'mainnet', state: 'unknown', txid: 'a'.repeat(64), queryable: true};
+// Real normal family UI, PUBLIC deferred IPC replies only. These controls do
+// not claim native IPC delivery timing, provider availability or custody tests.
+function networkOwnerHarness(accountRequest){
+  const pending=[];
+  const h=harness(accountRequest,{familyNetwork:input=>new Promise((resolve,reject)=>pending.push({input,resolve,reject}))});h.open();h.rpc.value='https://public.example/api';
+  return {h,pending,switchNetwork(){h.network.value='signet';h.network.handlers.change();h.rpc.value='https://other.example/api'}};
+}
+for(const outcome of ['success','failure'])test(`Mac network save owner: late old ${outcome} cannot release current save`,async()=>{
+  const f=networkOwnerHarness(),first=f.h.save.handlers.click();f.switchNetwork();const second=f.h.save.handlers.click();assert.equal(f.pending.length,2);assert.equal(f.h.save.disabled,true);f.h.status.textContent='PUBLIC_CURRENT_PROGRESS';
+  if(outcome==='success')f.pending[0].resolve({ok:true,value:{revision:1}});else f.pending[0].reject(Error('PUBLIC_OLD_FAILURE'));await first;
+  const observed={disabled:f.h.save.disabled,status:f.h.status.textContent};f.pending[1].resolve({ok:true,value:{revision:2}});await second;assert.equal(observed.disabled,true);assert.equal(observed.status,'PUBLIC_CURRENT_PROGRESS');assert.equal(f.h.save.disabled,false);
+});
+test('Mac network save owner: duplicate click before render admits only one original request',async()=>{
+  const f=networkOwnerHarness(),first=f.h.save.handlers.click();const duplicate=f.h.save.handlers.click();const calls=f.pending.length;for(const [index,p]of f.pending.entries())p.resolve({ok:true,value:{revision:index+1}});await Promise.all([first,duplicate]);assert.equal(calls,1);assert.equal(f.h.save.disabled,false);
+});
+test('Mac network save owner: close/reopen retires old save without disabling new view',async()=>{
+  const f=networkOwnerHarness(),first=f.h.save.handlers.click();f.h.sheet.close();f.h.open();const enabledOnReopen=f.h.save.disabled===false;const second=f.h.save.handlers.click();f.pending[0].resolve({ok:true,value:{revision:1}});await first;const stillCurrent=f.h.save.disabled;f.pending[1].resolve({ok:true,value:{revision:2}});await second;assert.equal(enabledOnReopen,true);assert.equal(stillCurrent,true);assert.equal(f.h.save.disabled,false);
+});
+test('Mac network save owner: locked view cannot submit even a retained enabled callback',async()=>{
+  let calls=0;const h=harness(undefined,{familyNetwork:async()=>{calls++;return {ok:true,value:{revision:1}}}});h.open();h.change({locked:true});h.ui.invalidate();await h.save.handlers.click();assert.equal(calls,0);assert.equal(h.save.disabled,true);
+});
+test('Mac network save owner: old save cannot release new receiving-address busy owner',async()=>{
+  let releaseAccount;const f=networkOwnerHarness(()=>new Promise(resolve=>releaseAccount=resolve)),first=f.h.save.handlers.click();f.switchNetwork();const address=f.h.button.handlers.click();f.pending[0].resolve({ok:true,value:{revision:1}});await first;const duplicate=f.h.save.handlers.click(),calls=f.pending.length;for(const p of f.pending.slice(1))p.resolve({ok:true,value:{revision:2}});await duplicate;releaseAccount({ok:false,error:{code:'PUBLIC_ADDRESS_UNAVAILABLE'}});await address;assert.equal(calls,1);assert.equal(f.h.button.disabled,false);
+});
+test('Mac network save owner: changed account fences late success and failure without relying on DOM invalidation',async()=>{
+  for(const reply of [{ok:true,value:{revision:1}},{ok:false,error:{code:'PUBLIC_OLD_ERROR'}}]){const f=networkOwnerHarness(),pending=f.h.save.handlers.click();f.h.change({account:'PUBLIC-other',revision:2});f.h.status.textContent='PUBLIC_CURRENT_ACCOUNT';f.pending[0].resolve(reply);await pending;assert.equal(f.h.status.textContent,'PUBLIC_CURRENT_ACCOUNT')}
+});
+test('Mac network save owner: lock during pending verification prevents late success and keeps save disabled',async()=>{
+  const f=networkOwnerHarness(),pending=f.h.save.handlers.click();f.h.change({locked:true});f.pending[0].resolve({ok:true,value:{revision:1}});await pending;assert.equal(f.h.status.textContent,'');assert.equal(f.h.save.disabled,true);
+});
+test('Mac network save owner: closed dialog cannot admit retained save callback',async()=>{
+  const f=networkOwnerHarness();f.h.sheet.close();await f.h.save.handlers.click();assert.equal(f.pending.length,0);
+});
 test('TRON receive code bridge is reached only from selected public receiving address',async()=>{let calls=0,input;const identity={family:'tron',network:'nile',vaultAccount:'PUBLIC-base',address:'TJRabPrwbZy45sbavfcjinPJC18kjpRTv8',path:"m/44'/195'/0'/0/0"};const h=harness(async()=>({ok:true,value:identity}),{familyNetworks:async()=>({ok:true,value:{revision:0,networks:[{family:'tron',network:'nile',genesis:'a'.repeat(64),rpcUrl:'https://public.example'}]}}),familyTronReceiveCode:async value=>{calls++;input=value;return {ok:false};}});h.open();h.family.value='tron';h.family.handlers.change();h.network.value='nile';h.network.handlers.change();await h.button.handlers.click();assert.equal(calls,1);assert.deepEqual(input,{family:'tron',network:'nile',vaultAccount:'PUBLIC-base',address:identity.address,revision:1});h.sheet.close();assert.equal(h.address.value,'');});
 function settingsErrorHarness(request,extraAPI={}) {
   const reads=[];

@@ -34,7 +34,7 @@ export function createFamilyUI({document, api, getContext}) {
   const tronTransferUI=createTronTransferUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronSubmissionUI=createTronSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronReceiveUI=createTronReceiveCodeUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
-  function invalidate() { epoch++; settingsRevision++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); tronReceiveUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  function invalidate() { epoch++; settingsRevision++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); tronReceiveUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; save.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
   tokenRefresh.addEventListener('click',async()=>{
     if(busy||family.value!=='tron'||!api.familyTokens)return;
     const token=++epoch,context={...getContext()},selected=network.value;busy=true;tokenRefresh.disabled=true;tokenRows.replaceChildren();
@@ -111,8 +111,13 @@ export function createFamilyUI({document, api, getContext}) {
     finally {if (token === epoch) {busy = false; importToken.disabled = Boolean(getContext().locked);}}
   });
   save.addEventListener('click', async () => {
-    invalidate(); const token = epoch; save.disabled = true;
-    try { const reply = await api.familyNetwork({family: family.value, network: network.value, rpcUrl: rpc.value.trim(), genesis: family.value === 'bitcoin' ? null : genesis.value.trim().toLowerCase()}); if (token !== epoch || !sheet.open) return; if (!reply.ok) status.textContent = reply.error?.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; else { setWalletCopy(status, 'Verify and save network'); settings.open = false; } } catch (error) { if (token === epoch) status.textContent = error.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; } finally { save.disabled = false; }
+    if (busy || getContext().locked || !sheet.open) return;
+    invalidate(); const token = epoch, context = {...getContext()}; busy = true; save.disabled = true;
+    const input = {family: family.value, network: network.value, rpcUrl: rpc.value.trim(), genesis: family.value === 'bitcoin' ? null : genesis.value.trim().toLowerCase()};
+    const current = () => {const active = getContext();return token === epoch && sheet.open && !active.locked && active.account === context.account && active.revision === context.revision && family.value === input.family && network.value === input.network;};
+    try { const reply = await api.familyNetwork(input); if (!current()) return; if (!reply.ok) status.textContent = reply.error?.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; else { setWalletCopy(status, 'Verify and save network'); settings.open = false; } }
+    catch (error) { if (current()) status.textContent = error.code ?? 'FAMILY_NETWORK_UNAVAILABLE'; }
+    finally { if (token === epoch) {busy = false; save.disabled = Boolean(getContext().locked);} }
   });
   refresh.addEventListener('click', async () => {
     if (busy || getContext().locked) return;
