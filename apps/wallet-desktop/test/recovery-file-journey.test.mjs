@@ -6,7 +6,7 @@ import {DesktopKeyLifecycle} from "../src/key-lifecycle.mjs";
 const {createPasswordVaultUI}=await import(process.env.YNX_RECOVERY_UI_SOURCE??"../src/password-vault-ui.mjs");
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return{promise,resolve,reject}};
 function fixture(){
-  const nodes=new Map(),calls=[];let keyState={locked:true,revision:1};
+  const nodes=new Map(),calls=[],renders=[];let keyState={locked:true,revision:1};
   const accounts=["account-a","account-b"].map(account=>({account,ynxAccount:account,state:"protected"}));
   const status={initialized:true,passwordConfigured:true,account:"account-a",accounts};
   const fieldIDs=["local-password","local-confirm","recovery-value","recovery-file","recovery-backup-password","recovery-current-password","recovery-new-password","recovery-confirm"];
@@ -32,13 +32,43 @@ function fixture(){
   },createElement:()=>new Node(),createTextNode:text=>({textContent:text})};
   const api={lock:async()=>{keyState={locked:true,revision:keyState.revision+1};return keyState},accountStatus:async()=>({ok:true,value:status}),recoveryHistory:async()=>({ok:true,value:[]}),
     prepareRecovery:async input=>{calls.push({...input});return{ok:true,value:{previewId:"review-a",account:input.account,resetPassword:input.resetPassword,recoveryRequiredAccounts:[],expiresAt:Date.now()+60_000}}},commitRecovery:async id=>{calls.push({commit:id});return{ok:true,value:{...status,remoteDisconnectFailures:[]}}}};
-  const ui=createPasswordVaultUI({api,document:doc,getKeyState:()=>keyState,getAccountStatus:()=>status,renderAccount(){}});
+  const ui=createPasswordVaultUI({api,document:doc,getKeyState:()=>keyState,getAccountStatus:()=>status,renderAccount:payload=>renders.push(payload)});
   const open=async()=>{await get("recover-wallet").emit("click");get("recovery-account").value=status.account;get("recovery-kind").value="encrypted-json";get("recovery-password-mode").value="keep";};
   const choose=(node,file)=>{node.emit("click");node.files=[file];node.emit("change")};
   const submit=()=>get("recovery-form").emit("submit");
-  return{get,api,ui,calls,status,open,choose,submit};
+  return{get,api,ui,calls,status,open,choose,submit,renders,setKeyState:value=>{keyState=value}};
 }
 const backup=text=>({size:Buffer.byteLength(text),text:async()=>text.replace(/^\uFEFF/,""),arrayBuffer:async()=>new TextEncoder().encode(text).buffer,slice(start,end){return backup(text.slice(start,end))}});
+for(const change of ['new-account','later-unlock'])test(`R38 old recovery receipt after ${change} cannot announce success or refresh a newer owner`,async()=>{
+ const h=fixture();await h.open();h.choose(h.get('recovery-file'),backup('PUBLIC current encrypted JSON'));await h.submit();
+ const pending=deferred();h.api.commitRecovery=()=>pending.promise;const completing=h.get('commit-recovery').emit('click');
+ const oldResult={...h.status,account:'account-a',remoteDisconnectFailures:[]},renderCount=h.renders.length;
+ h.ui.cancel();h.status.account=change==='new-account'?'account-b':'account-a';h.setKeyState({locked:change==='new-account',revision:50,account:h.status.account,authenticating:false});
+ h.get('unlock-result').textContent='New owner notice';h.get('recovery-current-password').value='New fictional draft';
+ pending.resolve({ok:true,value:oldResult});await completing;
+ assert.equal(h.get('unlock-result').textContent,'New owner notice');assert.equal(h.get('recovery-current-password').value,'New fictional draft');assert.equal(h.renders.length,renderCount);
+});
+test('R38 exact own main custody notifications still publish the recovered public account once',async t=>{
+ const h=fixture(),life=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>{},method:'PUBLIC no-key fixture'}});life.setFocused(true);life.setAccount('account-b');t.after(()=>life.lock());
+ h.status.account='account-b';h.setKeyState(life.status());
+ const unsubscribe=life.subscribe(state=>{h.setKeyState(state);h.ui.cancel()});t.after(unsubscribe);
+ h.api.lock=async()=>{life.lock();return life.status()};
+ await h.open();h.get('recovery-account').value='account-a';h.get('recovery-account').emit('change');h.choose(h.get('recovery-file'),backup('PUBLIC current encrypted JSON'));await h.submit();
+ let publishes=0,revokes=0;
+ const context={accountChangeInProgress:false,walletConnectProposalActions:new Set(),keyAccess:life,walletConnectInbox:{pending:()=>[]},walletAuthority:{permissions:{revokeAll:async()=>{revokes++}}},walletConnect:{sessions:()=>[]},mainWindow:{webContents:{send:(name,value)=>{if(name==='wallet:account-status-result')Object.assign(h.status,value)}}}};
+ const source=readFileSync(new URL('../src/main.mjs',import.meta.url),'utf8'),start=source.indexOf('async function custodyChange('),end=source.indexOf('app.on("open-url"',start);assert.ok(start>=0&&end>start);runInNewContext(source.slice(start,end),context);
+ h.api.commitRecovery=async()=>({ok:true,value:await context.custodyChange(async(guard,beforePublish)=>{guard.assert();await beforePublish();guard.assert();publishes++;return {...h.status,account:'account-a'};})});
+ await h.get('commit-recovery').emit('click');assert.equal(life.status().account,'account-a');assert.equal(life.status().locked,true);assert.equal(h.status.account,'account-a');assert.equal(h.renders.at(-1).value.account,'account-a');assert.match(h.get('unlock-result').textContent,/Account recovery is saved/);assert.equal(publishes,1);assert.equal(revokes,1);assert.equal(context.accountChangeInProgress,false);
+});
+test('R38 own recovery public refresh cannot publish after a same-revision later unlock',async()=>{
+ const h=fixture();await h.open();h.choose(h.get('recovery-file'),backup('PUBLIC current encrypted JSON'));await h.submit();
+ const read=deferred();let reading;const entered=new Promise(resolve=>reading=resolve);
+ h.api.accountStatus=async()=>{reading();return read.promise};
+ h.api.commitRecovery=async()=>{h.ui.cancel();h.setKeyState({locked:true,revision:4,account:'account-a',authenticating:false});return {ok:true,value:{...h.status,remoteDisconnectFailures:[]}}};
+ const pending=h.get('commit-recovery').emit('click');await entered;const renders=h.renders.length;
+ h.setKeyState({locked:false,revision:4,account:'account-a',authenticating:false});h.get('unlock-result').textContent='Later unlock notice';
+ read.resolve({ok:true,value:h.status});await pending;assert.equal(h.renders.length,renders);assert.equal(h.get('unlock-result').textContent,'Later unlock notice');
+});
 for(const boundary of ["same-account-reopen","account-switch","source-change"])test(`native chooser from ${boundary} cannot supply a backup to the new recovery draft`,async()=>{
   const h=fixture();await h.open();const old=h.get("recovery-file");old.emit("click");
   if(boundary==="source-change"){h.get("recovery-kind").value="private-key";h.get("recovery-kind").emit("change");h.get("recovery-kind").value="encrypted-json";h.get("recovery-kind").emit("change")}

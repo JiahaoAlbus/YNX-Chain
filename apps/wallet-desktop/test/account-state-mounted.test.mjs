@@ -71,6 +71,8 @@ test("ordinary import own account event is acknowledged without rereading or rep
   h.context.keyState={locked:true,revision:2,account:other,authenticating:false};h.event(status(other));
   const view=h.context.accountViewRevision;h.requests.get("importAccount")[0].resolve(status(other));await pending;
   assert.equal(h.context.activeAccount,other);assert.equal(h.context.accountViewRevision,view);
+  assert.equal(h.get('#receive-address').value,status(other).value.ynxAccount);
+  assert.equal(h.get('#receive-evm-address').value,other);
   assert.equal(h.get("#import-result").textContent,"Account imported. Save a backup and keep it safe.");
 });
 

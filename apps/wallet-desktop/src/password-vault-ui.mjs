@@ -25,10 +25,10 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   const message = result => result?.error?.message ?? "Wallet could not complete this operation. It remains locked.";
   const showError = (node,result) => {if(!renderPermissionError(node,result?.error))node.textContent=message(result)};
   const clear = () => { recoveryFile.invalidate();for (const field of doc.querySelectorAll('#password-sheet input,#recovery-sheet input')) field.value = ""; };
-  async function refreshPublicStatus() {
+  async function refreshPublicStatus(accept = () => true, acceptError = accept) {
     const revision = getKeyState().revision, intent = viewIntent;
-    try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent) renderAccount(status); }
-    catch { if (revision === getKeyState().revision && intent === viewIntent) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
+    try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent && accept(status)) renderAccount(status); }
+    catch { if (revision === getKeyState().revision && intent === viewIntent && acceptError()) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
   }
   function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; reviewedRecovery = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
   function render() {
@@ -154,18 +154,29 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   $("#commit-recovery").addEventListener("click", async () => {
     if (busy || !previewId || !reviewedRecovery) return;
     const token = generation, intent = viewIntent, id = previewId, review = reviewedRecovery; previewId = null; reviewedRecovery = null; setBusy(true);
+    const before=getKeyState(),revision=before.revision;
+    // custodyChange publishes exactly setAccount (if changed) and its final
+    // lock before the IPC receipt. Only that own locked owner may acknowledge
+    // across generation cancellation; a later unlock/lock/account owns its UI.
+    const commitRevision=revision+(before.account===review.account?1:2);
+    let acceptedCommit=false;
+    const current=()=>intent===viewIntent&&token===generation&&revision===getKeyState().revision;
+    const ownCommit=()=>{const state=getKeyState();return intent===viewIntent&&state.locked===true&&!state.authenticating&&state.account===review.account&&state.revision===commitRevision&&getAccountStatus()?.account===review.account};
+    const ownsFeedback=()=>current()||acceptedCommit&&ownCommit();
     try {
       const result = await api.commitRecovery(id);
       if (intent !== viewIntent) return;
       if (result.ok) {
         const status=result.value,accounts=status?.accounts;
         if(status?.initialized!==true||status.passwordConfigured!==true||status.account!==review.account||!Array.isArray(accounts)||accounts.length!==review.accounts.length||new Set(accounts.map(item=>item?.account)).size!==accounts.length||review.accounts.some(expected=>!accounts.some(item=>item?.account===expected.account&&item.state===expected.state)))throw new Error("Recovery did not finish. Check the current Wallet before retrying.");
+        if(!current()&&!ownCommit())return;
+        acceptedCommit=true;
         if (token === generation) recoverySheet.close();
         renderRecoveryOutcome($("#unlock-result"),!Array.isArray(status.remoteDisconnectFailures)||status.remoteDisconnectFailures.length!==0,doc);
       }
-      else { if (token === generation) showError($("#recovery-result"),result); showError($("#unlock-result"),result); }
-    } catch { if (token === generation) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
-    finally { if (intent === viewIntent) await refreshPublicStatus(); if (token === generation) setBusy(false); }
+      else if(current()){showError($("#recovery-result"),result);showError($("#unlock-result"),result);}
+    } catch { if (current()) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
+    finally { if(ownsFeedback())await refreshPublicStatus(payload=>ownsFeedback()&&payload?.ok===true&&payload.value?.account===review.account,ownsFeedback);if(current())setBusy(false); }
   });
   for (const button of doc.querySelectorAll("[data-custody-cancel]")) button.addEventListener("click", () => { cancel({ explicit: true }); void api.lock(); });
   for (const sheet of [passwordSheet, recoverySheet]) sheet.addEventListener("cancel", event => { event.preventDefault(); cancel({ explicit: true }); void api.lock(); });
