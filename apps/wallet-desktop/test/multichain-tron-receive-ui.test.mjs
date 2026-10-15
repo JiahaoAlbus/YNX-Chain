@@ -13,6 +13,17 @@ function harness(){const nodes=[],downloads=[];let context={account:'PUBLIC',rev
   const ui=createTronReceiveCodeUI({document,parent:{append(){}},api,getContext:()=>context,getSelection:()=>selection,isOpen:()=>open});
   return {ui,identity,api,nodes,downloads,change:x=>Object.assign(context,x),config:()=>revision++,close:()=>{open=false;ui.invalidate();},png:f=>onPNG=f};}
 test('normal public receive renders and downloads network-specific PNG without YNX URI',async()=>{const h=harness();await h.ui.refresh(h.identity);assert.equal(h.nodes[0].hidden,false);assert.match(h.nodes[2].textContent,/nile/);await h.ui.exportPNG();assert.equal(h.downloads.length,1);assert.equal(h.downloads[0].name,`TRON-nile-receive-${address}.png`);});
+test('R41 TRON retired network recheck cannot clear the successor QR or PNG control',async()=>{
+ for(const phase of ['refresh','export-before','export-after']){
+  const h=harness();if(phase!=='refresh')await h.ui.refresh(h.identity);
+  let enter,release,calls=0;const entered=new Promise(resolve=>enter=resolve),released=new Promise(resolve=>release=resolve),read=h.api.familyNetworks;
+  h.api.familyNetworks=async()=>{const response=await read();if(++calls===(phase==='export-before'?1:2)){enter();await released}return response};
+  const old=phase==='refresh'?h.ui.refresh(h.identity):h.ui.exportPNG();await entered;
+  h.api.familyNetworks=read;h.config();h.change({revision:2});await h.ui.refresh(h.identity);assert.equal(h.nodes[0].hidden,false);
+  release();await old;assert.equal(h.nodes[0].hidden,false,phase);assert.equal(h.nodes[3].disabled,false,phase);assert.equal(h.downloads.length,0,phase);
+  await h.ui.exportPNG();assert.equal(h.downloads.length,1,phase);assert.equal(h.downloads[0].name,`TRON-nile-receive-${address}.png`);
+ }
+});
 for(const boundary of ['locked','authenticating','account','revision','config','close'])test(`PNG refuses ${boundary} boundary`,async()=>{const h=harness();await h.ui.refresh(h.identity);h.png(()=>{if(boundary==='close')h.close();else if(boundary==='config')h.config();else h.change({[boundary]:boundary==='account'?'OTHER':boundary==='revision'?2:true});});await h.ui.exportPNG();assert.equal(h.downloads.length,0);});
 test('late code does not resurrect closed receive',async()=>{const h=harness();let release;h.api.familyTronReceiveCode=()=>new Promise(resolve=>release=resolve);const pending=h.ui.refresh(h.identity);await Promise.resolve();await Promise.resolve();h.close();release({ok:false});await pending;assert.equal(h.nodes[0].hidden,true);assert.equal(h.nodes[1].textContent,'');});
 test('PNG save failure reports failure rather than claiming saved',async()=>{const h=harness();await h.ui.refresh(h.identity);h.png(()=>{throw Error('PUBLIC download failure');});await h.ui.exportPNG();assert.equal(h.downloads.length,0);assert.match(h.nodes[1].textContent,/could not start/);});

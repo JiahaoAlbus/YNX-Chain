@@ -45,6 +45,17 @@ function btcUIFixture(){
   const ui=createBitcoinReceiveCodeUI({document,parent:{append(){}},api,getContext:f.context,getSelection:()=>({family:'bitcoin',network:'mainnet'}),isOpen:()=>open});
   return {...f,...p,ui,api,nodes,downloads,png:callback=>onPNG=callback,close(){open=false;ui.invalidate()}};
 }
+test('R41 BTC retired network recheck cannot clear the successor QR or PNG control',async()=>{
+ for(const phase of ['refresh','export-before','export-after']){
+  const h=btcUIFixture();if(phase!=='refresh')await h.ui.refresh(h.identity);
+  const read=h.api.familyNetworks,entered=deferred(),released=deferred();let calls=0;
+  h.api.familyNetworks=async()=>{const response=await read();if(++calls===(phase==='export-before'?1:2)){entered.resolve();await released.promise}return response};
+  const old=phase==='refresh'?h.ui.refresh(h.identity):h.ui.exportPNG();await entered.promise;
+  h.api.familyNetworks=read;h.config();h.change({revision:2});await h.ui.refresh(h.identity);assert.equal(h.canvas.hidden,false);
+  released.resolve();await old;assert.equal(h.canvas.hidden,false,phase);assert.equal(h.nodes[3].disabled,false,phase);assert.equal(h.downloads.length,0,phase);
+  await h.ui.exportPNG();assert.equal(h.downloads.length,1,phase);assert.equal(h.downloads[0].name,`BTC-mainnet-receive-${BTC_PUBLIC}.png`);
+ }
+});
 test('BTC receive: normal producer bridge renders and exports real PNG that independently decodes exact BTC URI',async()=>{
   const h=btcUIFixture();await h.ui.refresh(h.identity);assert.equal(h.canvas.hidden,false);await h.ui.exportPNG();assert.equal(h.downloads.length,1);assert.equal(h.downloads[0].name,`BTC-mainnet-receive-${BTC_PUBLIC}.png`);const png=PNG.sync.read(Buffer.from(h.downloads[0].data.split(',')[1],'base64'));assert.equal(jsQR(new Uint8ClampedArray(png.data),png.width,png.height).data,`bitcoin:${BTC_PUBLIC}`);
 });

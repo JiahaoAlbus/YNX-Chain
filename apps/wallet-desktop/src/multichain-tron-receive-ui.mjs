@@ -30,15 +30,15 @@ export function createTronReceiveCodeUI({document,parent,api,getContext,getSelec
     try{const snapshot=await api.familyNetworks();if(!live(expected,token))return;if(own(snapshot,'ok')!==true)throw Error();Object.assign(expected,receiveNetwork(own(snapshot,'value'),expected.network));
       const reply=await api.familyTronReceiveCode({family:expected.family,network:expected.network,vaultAccount:expected.vaultAccount,address:expected.address,revision:expected.revision});
       if(!live(expected,token))return;if(own(reply,'ok')!==true)throw Error();draw(canvas,own(reply,'value'),expected);
-      if(!live(expected,token)||!await sameNetwork(expected,token)){invalidate();return;}
+      if(!live(expected,token)||!await sameNetwork(expected,token)){if(token===epoch)invalidate();return;}
       rendered={expected,token};canvas.hidden=false;download.disabled=false;label.textContent=`TRON · ${expected.network} · ${expected.genesis}`;setWalletCopy(status,'A receiving address does not verify the network or balance. Never send assets on another network.');
     }catch{if(live(expected,token)){canvas.hidden=true;download.disabled=true;setWalletCopy(status,'The receiving code is unavailable. Reopen Receive to try again.');}}
   }
   async function exportPNG(){const original=rendered;if(!original||!live(original.expected,original.token))return;
-    try{if(!await sameNetwork(original.expected,original.token)){invalidate();return;}const data=canvas.toDataURL('image/png');
+    try{if(!await sameNetwork(original.expected,original.token)){if(original.token===epoch)invalidate();return;}const data=canvas.toDataURL('image/png');
       if(!live(original.expected,original.token)||rendered!==original)return;
       if(typeof data!=='string'||data.length>8*1024*1024||!/^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(data))throw Error();
-      if(!await sameNetwork(original.expected,original.token)){invalidate();return;}
+      if(!await sameNetwork(original.expected,original.token)){if(original.token===epoch)invalidate();return;}
       if(rendered!==original||!live(original.expected,original.token))return;
       const anchor=document.createElement('a');anchor.href=data;anchor.download=`TRON-${original.expected.network}-receive-${publicTronAddress(original.expected.address)}.png`;
       document.body.append(anchor);try{anchor.click();}finally{anchor.remove();}
