@@ -1,5 +1,6 @@
 const supported=["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"];
-const requested=new URLSearchParams(location.search).get("lang"),stored=localStorage.getItem("ynx.video.locale");
+function readLocale(){try{return localStorage.getItem("ynx.video.locale")}catch{return null}}
+const requested=new URLSearchParams(location.search).get("lang"),stored=readLocale();
 let locale="en";
 if (supported.includes(stored)) locale=stored;
 if (supported.includes(requested)) locale=requested;
