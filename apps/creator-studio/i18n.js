@@ -1,7 +1,8 @@
 const supported=["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"];
-const stored=localStorage.getItem("ynx.creator.locale");
+function readPreference(key){try{return localStorage.getItem(key)}catch{return null}}
+const stored=readPreference("ynx.creator.locale");
 let locale=supported.includes(stored)?stored:"en",catalog={};
-const aiStored=localStorage.getItem("ynx.creator.ai-locale")||locale;
+const aiStored=readPreference("ynx.creator.ai-locale")||locale;
 const studio={
 en:{overview:"Overview",channel:"Channel",team:"Team",rights:"Rights",content:"Content",upload:"Upload",assets:"Media assets",earn:"Earn & Pay",moderation:"Moderation",audit:"Revenue audit",ai:"AI workspace",creatorOverview:"Creator overview",uploadOwned:"Upload owned media",eligibility:"Eligibility and payout intent",reportsAppeals:"Reports, takedowns and appeals",revenueDisputes:"Revenue audit and disputes",aiProduction:"AI production workspace"},
 "zh-CN":{overview:"概览",channel:"频道",team:"团队",rights:"权利",content:"内容",upload:"上传",assets:"媒体资产",earn:"收益与支付",moderation:"审核",audit:"收益审计",ai:"AI 工作区",creatorOverview:"创作者概览",uploadOwned:"上传自有或获授权媒体",eligibility:"资格与付款意向",reportsAppeals:"举报、下架与申诉",revenueDisputes:"收益审计与争议",aiProduction:"AI 制作工作区"},
