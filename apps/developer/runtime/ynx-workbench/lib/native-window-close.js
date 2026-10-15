@@ -1,3 +1,65 @@
+function watchCloseEditors(shell) {
+  if (!shell) return { unchanged: () => true, dispose() {} };
+  const { Saveable } = require('@theia/core/lib/browser/saveable');
+  const disposables = [];
+  let changed = false;
+  const state = widget => {
+    const saveable = Saveable.get(widget);
+    const document = widget.editor?.document || saveable?.editor?.document || saveable;
+    return { widget, saveable, document, version: document?.version,
+      dirty: saveable?.dirty, uri: String(document?.uri || widget.getResourceUri?.() || widget.uri || '') };
+  };
+  const before = (shell.widgets || []).map(state).filter(item => item.saveable);
+  for (const item of before) {
+    for (const event of [item.saveable?.onContentChanged, item.saveable?.onDirtyChanged]) {
+      if (typeof event === 'function') disposables.push(event.call(item.saveable, () => { changed = true; }));
+    }
+  }
+  return {
+    unchanged() {
+      if (changed) return false;
+      const after = (shell.widgets || []).map(state).filter(item => item.saveable);
+      return before.length === after.length && before.every((item, index) =>
+        Object.keys(item).every(key => item[key] === after[index][key]));
+    },
+    dispose() { for (const disposable of disposables) disposable?.dispose(); }
+  };
+}
+
+const guardedClosePrototypes = new WeakSet();
+const saveCloseActions = new WeakSet();
+function installCloseSaveGuardOn(prototype) {
+  if (!prototype || guardedClosePrototypes.has(prototype) || typeof prototype.onWillStop !== 'function') return;
+  const original = prototype.onWillStop;
+  prototype.onWillStop = function (...args) {
+    const owner = this;
+    const shell = owner.shell;
+    const confirm = owner.confirmExitWithOrWithoutSaving;
+    const facade = new Proxy(owner, {
+      get(target, key) {
+        if (key === 'confirmExitWithOrWithoutSaving') return async (...parameters) => {
+          const choice = await confirm.apply(owner, parameters);
+          // Save is an acknowledgement of the current dirty state, not merely
+          // completion of a promise: native model.run logs write failures.
+          // Keep the native explicit Don't Save and Cancel choices unchanged.
+          if (owner.shell !== shell || (choice === true && shell.canSaveAll())) return undefined;
+          return choice;
+        };
+        const value = Reflect.get(target, key, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+      set(target, key, value) { return Reflect.set(target, key, value, target); }
+    });
+    const veto = original.apply(facade, args);
+    if (veto && typeof veto.action === 'function') saveCloseActions.add(veto);
+    return veto;
+  };
+  guardedClosePrototypes.add(prototype);
+}
+function installCloseSaveGuard() {
+  const { CommonFrontendContribution } = require('@theia/core/lib/browser/common-frontend-contribution');
+  installCloseSaveGuardOn(CommonFrontendContribution.prototype);
+}
 // The native host asks the normal framework shutdown service to resolve dirty
 // editors and extension vetoes before destroying its window or backend.
 class NativeWindowClose {
@@ -10,23 +72,64 @@ class NativeWindowClose {
     // the still-empty shell. The framework also stores layout on shutdown.
     if (this.layout) this.layout.shouldStoreLayout = false;
     const { StopReason } = require('@theia/core/lib/common/frontend-application-state');
-    this.close = async requestId => {
+    const close = async requestId => {
+      const current = () => this.target.__ynxLocalWorkbenchClose === close;
       if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return;
       if (!this.pendingClose) this.pendingClose = (async () => {
         const previousAllowVetoes = this.windows.allowVetoes;
         let committed = false;
+        let editors;
         try {
           if (this.initialized) this.layout?.storeLayout(application); await this.storage?.flush?.();
-          const safe = await this.windows.isSafeToShutDown(StopReason.Close);
-          if (!safe) return false;
+          if (!current()) return false;
+          // The framework logs contribution action failures and otherwise
+          // continues approval. Preserve its original error, but veto this close.
+          let actionFailed = false;
+          const windows = this.windows;
+          editors = watchCloseEditors(application?.shell);
+          const logger = new Proxy(windows.logger || {}, {
+            get(target, key) {
+              if (key === 'error') return (...values) => {
+                actionFailed = true;
+                return target.error?.(...values);
+              };
+              const value = Reflect.get(target, key, target);
+              return typeof value === 'function' ? value.bind(target) : value;
+            }
+          });
+          const guardedWindows = new Proxy(windows, {
+            get(target, key, receiver) {
+              if (key === 'logger') return logger;
+              if (key === 'collectContributionUnloadVetoes') return (...parameters) =>
+                target.collectContributionUnloadVetoes.apply(receiver, parameters).map(veto => {
+                  if (!saveCloseActions.has(veto)) return veto;
+                  return { ...veto, action: async (...values) => {
+                    const approved = await veto.action(...values);
+                    if (approved) {
+                      editors.dispose();
+                      editors = watchCloseEditors(application?.shell);
+                    }
+                    return approved;
+                  } };
+                });
+              return Reflect.get(target, key, receiver);
+            }
+          });
+          const safe = await guardedWindows.isSafeToShutDown(StopReason.Close);
+          if (!safe || actionFailed || !current()) return false;
+          if (!editors.unchanged()) return false;
           await this.persistDebugState?.();
+          if (!current() || !editors.unchanged()) return false;
           if (this.initialized) this.layout?.storeLayout(application);
           await this.storage?.flush?.();
+          if (!current() || !editors.unchanged()) return false;
           await this.stopDebugSessions();
+          if (!current() || !editors.unchanged()) return false;
           committed = true;
           return true;
         } catch { return false; }
         finally {
+          editors?.dispose();
           // DefaultWindowService consumes its veto permission on approval.
           // Persistence is part of this same close transaction: if it fails,
           // continued editing must receive the ordinary dirty-file veto again.
@@ -38,7 +141,8 @@ class NativeWindowClose {
       if (this.pendingClose === pending) this.pendingClose = undefined;
       this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'close-result', requestId, accepted: accepted === true });
     };
-    this.target.__ynxLocalWorkbenchClose = this.close;
+    this.close = close;
+    this.target.__ynxLocalWorkbenchClose = close;
   }
   async stopDebugSessions() {
     const manager = this.getDebugManager?.();
@@ -78,4 +182,4 @@ class NativeWindowClose {
   }
   onStop() { if (this.target.__ynxLocalWorkbenchClose === this.close) delete this.target.__ynxLocalWorkbenchClose; }
 }
-module.exports = { NativeWindowClose };
+module.exports = { NativeWindowClose, installCloseSaveGuard, installCloseSaveGuardOn };

@@ -58,6 +58,7 @@ const { WidgetFactory, WidgetManager } = require('@theia/core/lib/browser/widget
 const { ApplicationShell } = require('@theia/core/lib/browser/shell/application-shell');
 const { WindowService } = require('@theia/core/lib/browser/window/window-service');
 const { NativeWindowClose } = require('./native-window-close');
+require('./native-window-close').installCloseSaveGuard();
 const { NativeWorkbenchCommands, selectNativeGoToolchain } = require('./native-workbench-commands');
 const { LocalWorkspaceContext } = require('./local-workspace-context');
 const { LocalTerminalDefaults } = require('./local-terminal-defaults');
