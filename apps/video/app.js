@@ -928,7 +928,7 @@ async function showPlaylist(playlistId) {
     const box = $("#content"); box.replaceChildren();
     const heading = document.createElement("div"); heading.className="library-heading";
     heading.innerHTML = '<button class="outline">All playlists</button><h2>'+esc(field(list,"name","Name"))+'</h2>';
-    heading.querySelector("button").onclick=()=>showPlaylists(document.querySelector('[data-view="playlists"]'));
+    heading.querySelector("button").onclick=()=>{if(!scope.matches())return;return showPlaylists(document.querySelector('[data-view="playlists"]'));};
     box.append(heading);
     const changes=document.createElement("section");changes.className="playlist-recovery playlist-operation-recovery";box.append(changes);await renderPlaylistOperations(changes,scope);scope.current();
     const ids = field(list,"video_ids","VideoIDs") || [];
