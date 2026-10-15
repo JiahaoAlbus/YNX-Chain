@@ -600,12 +600,16 @@ function activate(button) {
 }
 
 function videoCard(video) {
+  const epoch = libraryEpoch, navigation = navigationRevision;
   const article = document.createElement("article");
   article.className = "card";
   const thumb = video.thumbnail_key ? `<img class="thumb image" src="${API}/media/${encodeURI(video.thumbnail_key)}" alt="">` : '<span class="thumb thumb-fallback">Play video</span>';
   const state = video.takedown?.state ? `Takedown: ${video.takedown.state}` : `${video.status} · ${video.visibility}`;
   article.innerHTML = `<button class="card-open" aria-label="Play ${esc(video.title)}">${thumb}</button><h2>${esc(video.title)}</h2><p class="meta">${esc(state)}</p><p>${esc(video.description || "No description")}</p>`;
-  article.querySelector("button").onclick = () => openVideo(video);
+  article.querySelector("button").onclick = () => {
+    if (epoch !== libraryEpoch || navigation !== navigationRevision) return;
+    return openVideo(video);
+  };
   return article;
 }
 
