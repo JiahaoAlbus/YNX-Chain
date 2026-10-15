@@ -271,6 +271,18 @@ function registerCppRun(vscode, context, env) {
   }
   async function operation(debug) {
     const scope = await sourceContext(vscode, env);
+    const previous = active.get(scope.root);
+    if (previous?.kind === 'debug' && previous.cleanupPending && previous.terminalPrepared && !previous.debugStartRequested) {
+      // A fresh user request can retry only the exact pre-adapter holder's
+      // original cleanup. Terminal closure cannot confirm an unknown adapter.
+      const recovery = previous.cleanupRetry ||= Promise.resolve().then(async () => {
+        await vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal', previous.requestId, true);
+        if (active.get(scope.root) === previous) active.delete(scope.root);
+      });
+      try { await recovery; }
+      finally { if (previous.cleanupRetry === recovery) previous.cleanupRetry = undefined; }
+      await validateScope(scope);
+    }
     if (active.has(scope.root) || (debug && vscode.debug.activeDebugSession?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath)) { vscode.window.showInformationMessage(t('busy')); return; }
     const owner = { kind: debug ? 'debug' : 'run', folder: scope.folder.uri.fsPath, requestId: randomUUID() };
     active.set(scope.root, owner);
@@ -370,7 +382,7 @@ function registerCppRun(vscode, context, env) {
         try {
           if (owner.terminalPrepared) await vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal', owner.requestId, !owner.debugStartRequested);
         } catch (cleanup) {
-          cleanupFailed = true;
+          cleanupFailed = true; owner.cleanupPending = true;
           if (!operationFailed) throw cleanup;
           // Preserve the original user operation failure and keep UNKNOWN
           // cleanup ownership blocked until its actual terminal is retired.

@@ -496,3 +496,75 @@ test('R47 late cleanup cannot remove replacement owner or replace original error
 test('R47 outer cleanup reporting failure cannot replace original primary',async()=>{
  const f=await r47OuterScenario({mode:'debug-start',reportThrows:true});await assert.rejects(f.run(),e=>e===f.primary);assert.equal(f.active.size,1);
 });
+
+async function r48RegisteredScenario(options={}) {
+ const outer=await readFile(new URL('./cpp-run.cjs',import.meta.url),'utf8');
+ const inner=await readFile(new URL('../../../runtime/ynx-workbench/lib/cpp-debug-terminal.js',import.meta.url),'utf8');
+ const outerModule={exports:{}},innerModule={exports:{}};vm.runInNewContext(inner,{module:innerModule,exports:innerModule.exports});
+ const root='/TEST_ONLY_R48',folder={uri:{scheme:'file',fsPath:root}},document={uri:{scheme:'file',fsPath:root+'/main.cpp'},languageId:'cpp',version:1,isDirty:false,save:async()=>true};
+ const commands=new Map(),errors=[],notices=[],activeEvents=emitter(),primary=Error('TEST_ONLY_R48_START'),secondary=Error('TEST_ONLY_R48_CLEANUP_UNKNOWN');
+ let failStart=true,failCleanup=true,terminalStarts=0,closeAttempts=0,debuggerStarts=0,requestId,cleanupGate,cleanupEntered,replaceOwner,taskExecutions=0;
+ class URI{constructor(value){this.value=value}withScheme(){return this}toString(){return'file://'+this.value}}
+ const terminal={terminalId:7,onTerminalDidClose:()=>({dispose(){}}),onDidDispose:()=>({dispose(){}}),
+  start:async()=>{terminalStarts++;if(failStart)throw primary},
+  shellTerminalServer:{close:async()=>{closeAttempts++;cleanupEntered?.();if(cleanupGate)await cleanupGate;if(failCleanup)throw secondary;if(replaceOwner)state.active.set(root,replaceOwner)}}};
+ const contribution=new innerModule.exports.CppDebugTerminalContribution({getContext:async()=>({mode:'local',workspace:root}),getCppTerminalDevice:async()=>({device:'/dev/ttys001'})},{newTerminal:async()=>terminal,open:async()=>{}},{},URI,()=>{},{error:m=>errors.push(m)});
+ class TestProcessExecution{constructor(process,args=[],options={}){Object.assign(this,{process,args,options})}}
+ class TestTask{constructor(definition,scope,name,source,execution,problemMatchers){Object.assign(this,{definition,scope,name,source,execution,problemMatchers})}}
+ const taskEnd=emitter(),taskClosed=emitter(),token={isCancellationRequested:false,onCancellationRequested:emitter().event};
+ const selected={type:'lldb-dap',request:'launch',name:'TEST_ONLY_R48_DEFAULT',program:root+'/prebuilt'};
+ const build={launchConfiguration:()=>selected,installedCompiler:async()=>({}),existingConfiguration:async(r,kind)=>r+'/.vscode/'+kind+'.json',readGeneratedTasks:async()=>({configuration:{tasks:[{label:'YNX: Build active C++',command:'/TEST_ONLY/clang++',args:['-g',root+'/main.cpp','-o',root+'/main'],options:{cwd:root}},{label:'YNX: Run active C++',command:root+'/main',args:[],options:{cwd:root}}]},digest:'TEST_ONLY'}),createLaunchConfiguration:async()=>({configuration:selected,path:root+'/.vscode/launch.json'})};
+ vm.runInNewContext(outer,{module:outerModule,exports:outerModule.exports,process,Buffer,setTimeout,clearTimeout,require:id=>id==='node:fs/promises'?{realpath:async p=>p,access:async()=>{}}:id==='./build-tasks.cjs'?build:id==='./project-root.cjs'?{cppProjectRoot:()=>root}:require(id)});
+ const vscode={Task:TestTask,ProcessExecution:TestProcessExecution,ProgressLocation:{Notification:1},tasks:{onDidEndTaskProcess:taskEnd.event,onDidEndTask:taskClosed.event,executeTask:async task=>{taskExecutions++;const execution={task,terminate(){}};queueMicrotask(()=>{taskEnd.fire({execution,exitCode:0});taskClosed.fire({execution});});return execution;}},env:{language:'en'},workspace:{workspaceFolders:[folder],isTrusted:true,textDocuments:[],getConfiguration:()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'})},
+  window:{activeTextEditor:{document},withProgress:async(_options,fn)=>fn({},token),showErrorMessage:m=>errors.push(m),showInformationMessage:m=>notices.push(m)},extensions:{getExtension:()=>({activate:async()=>{}})},
+  debug:{onDidTerminateDebugSession:activeEvents.event,startDebugging:async(_folder,configuration)=>{debuggerStarts++;if(options.adapterUnknown)throw primary;vscode.debug.activeDebugSession={id:'R48_ACTUAL_CURRENT',workspaceFolder:folder,configuration};return true}},
+  commands:{registerCommand:(id,fn)=>{commands.set(id,fn);return{dispose(){}}},executeCommand:async(id,request,workspace)=>{requestId=request;return id==='ynx.cpp.prepareDebugTerminal'?contribution.prepare(request,workspace):contribution.release(request,true)}}};
+ const state=outerModule.exports.registerCppRun(vscode,{subscriptions:[]},{});
+ return{run:()=>commands.get('ynx.cpp.debugActive')(),runOrdinary:()=>commands.get('ynx.cpp.runActive')(),state,contribution,document,vscode,root,errors,notices,primary,secondary,
+  failStart(value){failStart=value},failCleanup(value){failCleanup=value},
+  holdCleanup(){let release,entered;cleanupGate=new Promise(r=>release=r);const waiting=new Promise(r=>entered=r);cleanupEntered=entered;return{waiting,release}},
+  replaceOnCleanup(owner){replaceOwner=owner},confirmOriginalCleanup:()=>vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal',requestId,true),
+  terminateCurrent(){activeEvents.fire(vscode.debug.activeDebugSession)},
+  get taskExecutions(){return taskExecutions},get terminalStarts(){return terminalStarts},get closeAttempts(){return closeAttempts},get debuggerStarts(){return debuggerStarts}};
+}
+test('R48 registered user retry recovers after original pre-start terminal cleanup confirmed',async()=>{
+ const f=await r48RegisteredScenario();await f.run();assert.equal(f.state.active.size,1);assert.equal(f.contribution.records.size,1);
+ f.failCleanup(false);await f.confirmOriginalCleanup();assert.equal(f.contribution.records.size,0);
+ f.failStart(false);await f.run();assert.equal(f.terminalStarts,2);assert.equal(f.debuggerStarts,1);assert.equal(f.state.active.size,1);
+ f.terminateCurrent();assert.equal(f.state.active.size,0);
+});
+test('R48 explicit user retry can confirm original cleanup then start while UNKNOWN retry stays blocked',async()=>{
+ const f=await r48RegisteredScenario();await f.run();await f.run();assert.equal(f.terminalStarts,1);assert.equal(f.debuggerStarts,0);assert.equal(f.state.active.size,1);
+ f.failCleanup(false);f.failStart(false);await f.run();assert.equal(f.terminalStarts,2);assert.equal(f.debuggerStarts,1);
+});
+test('R48 concurrent registered retries share exact cleanup and launch only one successor',async()=>{
+ const f=await r48RegisteredScenario();await f.run();f.failCleanup(false);f.failStart(false);const gate=f.holdCleanup(),before=f.closeAttempts;
+ const a=f.run(),b=f.run();try{await Promise.race([gate.waiting,Promise.all([a,b]).then(()=>{throw Error('TEST_ONLY expected original cleanup retry')})]);assert.equal(f.closeAttempts,before+1);}finally{gate.release();}await Promise.all([a,b]);assert.equal(f.terminalStarts,2);assert.equal(f.debuggerStarts,1);
+});
+test('R48 old cleanup success cannot delete or run over a replacement owner',async()=>{
+ const f=await r48RegisteredScenario();await f.run();const replacement={kind:'debug',requestId:'TEST_ONLY_REPLACEMENT'};f.replaceOnCleanup(replacement);f.failCleanup(false);f.failStart(false);
+ await f.run();assert.equal(f.state.active.get(f.root),replacement);assert.equal(f.terminalStarts,1);assert.equal(f.debuggerStarts,0);
+});
+test('R48 changed project permission during cleanup prevents captured user retry from launching',async()=>{
+ const f=await r48RegisteredScenario();await f.run();f.failCleanup(false);f.failStart(false);const gate=f.holdCleanup(),pending=f.run();try{await Promise.race([gate.waiting,pending.then(()=>{throw Error('TEST_ONLY expected cleanup retry before scope check')})]);f.vscode.workspace.isTrusted=false;}finally{gate.release();}await pending;
+ assert.equal(f.terminalStarts,1);assert.equal(f.debuggerStarts,0);assert.equal(f.state.active.size,0);
+});
+test('R48 terminal cleanup cannot release UNKNOWN adapter whose start was already requested',async()=>{
+ const f=await r48RegisteredScenario({adapterUnknown:true});f.failStart(false);await f.run();assert.equal(f.debuggerStarts,1);assert.equal(f.state.active.size,1);f.failCleanup(false);await f.confirmOriginalCleanup();await f.run();assert.equal(f.terminalStarts,1);assert.equal(f.debuggerStarts,1);assert.equal(f.state.active.size,1);
+});
+test('R48 ordinary accepted start and primary error reporting retain original behavior',async()=>{
+ const normal=await r48RegisteredScenario();normal.failStart(false);normal.failCleanup(false);await normal.run();assert.equal(normal.debuggerStarts,1);assert.equal(normal.closeAttempts,0);assert.deepEqual(normal.errors,[]);
+ const failed=await r48RegisteredScenario();await failed.run();assert.ok(failed.errors.includes(failed.primary.message));assert.equal(failed.debuggerStarts,0);
+});
+
+test('R48 ordinary Run command proceeds through original build/run tasks after pre-start cleanup recovery',async()=>{
+ const f=await r48RegisteredScenario();await f.run();f.failCleanup(false);f.failStart(false);await f.runOrdinary();
+ assert.equal(f.taskExecutions,2);assert.equal(f.debuggerStarts,0);assert.equal(f.state.active.size,0);assert.equal(f.contribution.records.size,0);
+});
+
+test('R48 rejected old cleanup after replacement cannot release new owner or launch old request',async()=>{
+ const f=await r48RegisteredScenario();await f.run();const gate=f.holdCleanup(),pending=f.run();
+ try{await Promise.race([gate.waiting,pending.then(()=>{throw Error('TEST_ONLY expected owned retry')})]);f.state.active.set(f.root,{kind:'debug',requestId:'TEST_ONLY_NEW_AFTER_RETRY'});}
+ finally{gate.release();}
+ await pending;assert.equal(f.state.active.get(f.root).requestId,'TEST_ONLY_NEW_AFTER_RETRY');assert.equal(f.terminalStarts,1);assert.equal(f.debuggerStarts,0);
+});
