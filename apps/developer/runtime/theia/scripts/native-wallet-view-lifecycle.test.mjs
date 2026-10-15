@@ -303,3 +303,50 @@ test('R40 callback observed while confirmed Cancel drains remains explicit and v
   sdk.resolve();await pending;assert.equal(f.controller.callback,f.urls[1]);assert.equal(f.controller.state.hasPendingReturn,true);assert.equal(f.calls.filter(x=>Array.isArray(x)&&x[0]==='return'&&x[1]===f.urls[1]).length,0);
  }finally{cleanup.resolve();sdk.resolve();await cancelled;await pending;f.widget.dispose();await f.controller.dispose();}
 });
+
+const flushReviewEnd=()=>new Promise(resolve=>setImmediate(resolve));
+test('R41 ended local review lifetime leaves waiting UI without authorizing or erasing protected SDK state',async()=>{
+ const f=await fixture(),finished=deferred(),saved={status:'connecting',request:{TEST_ONLY:'retained'}};
+ f.runtime.finished=finished.promise;f.runtime.connection.current=saved;
+ try{f.widget.buttons.connect.click();await f.operations.connect;assert.equal(f.controller.state.awaitingCallback,true);
+  finished.resolve();await flushReviewEnd();
+  assert.equal(f.controller.state.awaitingCallback,false);assert.equal(f.controller.state.sessionCurrent,false);assert.equal(f.controller.state.busy,false);assert.equal(f.controller.runtime,undefined);
+  assert.equal(f.widget.buttons.connect.disabled,false);assert.equal(f.widget.buttons.restore.disabled,false);assert.equal(f.runtime.connection.current,saved);
+  assert.equal(f.calls.filter(x=>x==='beginYNX').length,1);assert.equal(f.calls.includes('restore'),false);assert.equal(f.calls.includes('guest'),false);
+ }finally{finished.resolve();f.widget.dispose();await f.controller.dispose();}
+});
+test('R41 already resolved local lifetime cannot leave a newly returned wallet-opened result stuck',async()=>{
+ const f=await fixture();f.runtime.finished=Promise.resolve();
+ try{f.widget.buttons.connect.click();await f.operations.connect;await flushReviewEnd();assert.equal(f.controller.state.awaitingCallback,false);assert.equal(f.widget.buttons.connect.disabled,false);assert.equal(f.controller.inFlight,undefined);}
+ finally{f.widget.dispose();await f.controller.dispose();}
+});
+test('R41 old lifetime completion cannot overwrite a replacement request',async()=>{
+ const f=await fixture(),oldFinished=deferred(),newFinished=deferred();f.runtime.finished=oldFinished.promise;
+ const fresh={connection:{...f.runtime.connection},finished:newFinished.promise,endNativeOperation:async()=>{}};
+ try{f.widget.buttons.connect.click();await f.operations.connect;f.widget.buttons.cancel.click();await f.operations.cancel;
+  f.api.beginDeveloperWalletV2Connection=async()=>fresh;f.widget.buttons.connect.click();await f.operations.connect;const state=f.controller.state;
+  oldFinished.resolve();await flushReviewEnd();assert.equal(f.controller.state,state);assert.equal(f.controller.runtime,fresh);assert.equal(f.controller.state.awaitingCallback,true);
+ }finally{oldFinished.resolve();newFinished.resolve();f.widget.dispose();await f.controller.dispose();}
+});
+test('R41 ordinary completed Restore remains SDK result rather than local lifetime cancellation',async()=>{
+ const f=await fixture(),finished=deferred();f.runtime.finished=finished.promise;
+ try{f.widget.buttons.restore.click();await f.operations.restore;const state=f.controller.state;finished.resolve();await flushReviewEnd();
+  assert.equal(f.controller.state,state);assert.equal(state.phase,'ready');assert.equal(state.sessionCurrent,true);assert.equal(state.awaitingCallback,false);assert.equal(f.calls.filter(x=>x==='restore').length,1);
+ }finally{finished.resolve();f.widget.dispose();await f.controller.dispose();}
+});
+test('R41 return after local review ends remains explicit and reaches original public rejection route only on click',async()=>{
+ const f=await callbackFixture(),finished=deferred();f.runtime.finished=finished.promise;
+ try{f.widget.buttons.connect.click();await f.operations.connect;finished.resolve();await flushReviewEnd();f.controller.receiveCallback(f.urls[0]);
+  assert.equal(f.controller.state.awaitingCallback,false);assert.equal(f.controller.state.hasPendingReturn,true);assert.equal(f.widget.buttons.returned.disabled,false);assert.equal(f.calls.filter(x=>Array.isArray(x)&&x[0]==='return').length,0);
+  const fresh={...f.runtime,connection:{...f.runtime.connection},finished:new Promise(()=>{}),endNativeOperation:async()=>{}};
+  f.api.beginDeveloperWalletV2Connection=async()=>fresh;f.widget.buttons.returned.click();await f.operations.resumeCallback;
+  assert.equal(f.calls.filter(x=>Array.isArray(x)&&x[0]==='return'&&x[1]===f.urls[0]).length,1);assert.equal(f.controller.state.session.status,'disconnected');assert.equal(f.controller.state.awaitingCallback,false);assert.equal(f.controller.state.phase,'ready');
+ }finally{finished.resolve();f.widget.dispose();await f.controller.dispose();}
+});
+
+test('R41 unknown rejected lifetime is not treated as permission to retire waiting UI',async()=>{
+ const f=await fixture(),finished=deferred();f.runtime.finished=finished.promise;
+ try{f.widget.buttons.connect.click();await f.operations.connect;const state=f.controller.state;
+  finished.reject(Error('TEST_ONLY_local_lifetime_UNKNOWN'));await flushReviewEnd();assert.equal(f.controller.state,state);assert.equal(f.controller.state.awaitingCallback,true);assert.equal(f.controller.runtime,f.runtime);assert.equal(f.calls.includes('restore'),false);
+ }finally{f.widget.dispose();await f.controller.dispose();}
+});

@@ -67,6 +67,17 @@ class NativeWalletController {
       if (this.disposed || epoch !== this.epoch) return;
       const awaitingCallback = result?.status === 'wallet-opened';
       this.publish({ phase: awaitingCallback ? 'wallet-opened' : 'ready', busy: false, awaitingCallback, session: publicSessionState(result, runtime), sessionCurrent: true, message: result?.message || '' });
+      if (awaitingCallback && typeof runtime.finished?.then === 'function') {
+        const observedRuntime = runtime;
+        // Local lifetime is presentation, never Session truth or a grant.
+        // Let the original request drain before retiring only its waiting UI.
+        void Promise.resolve(observedRuntime.finished).then(() => operation).then(() => {
+          if (this.disposed || epoch !== this.epoch || this.runtime !== observedRuntime || !this.state.awaitingCallback || this.inFlight) return;
+          this.runtime = undefined;
+          this.publish({ phase: 'cancelled', busy: false, awaitingCallback: false, sessionCurrent: false, message: 'Local Wallet review ended. Protected pending/session records were preserved; connect or restore explicitly.' });
+          if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
+        }).catch(() => { /* Unknown completion is not evidence that waiting UI can be retired. */ });
+      }
       if (action === 'return') { this.callbackQueue = this.callbackQueue.filter(url => url !== returnURL); this.callback = this.callbackQueue[0]; this.publish({ hasPendingReturn: Boolean(this.callback) }); }
       if (!awaitingCallback) { await runtime.endNativeOperation(); if (this.runtime === runtime) this.runtime = undefined; }
     }).catch(async error => {
