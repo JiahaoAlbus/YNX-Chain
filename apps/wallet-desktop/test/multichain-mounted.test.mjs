@@ -20,6 +20,19 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+test('R47 failed network selection retires old snapshot admission until explicit coherent refresh',async()=>{
+ for(const outcome of ['before-write','after-write','lost-ack']){
+  const f=mounted();try{const original=f.review.network,next={...original,id:'PUBLIC-next',name:'PUBLIC next network'};let selected='n',revision=1;
+   f.api.multichainSnapshot=async()=>({ok:true,value:{revision,account:f.review.account,networks:[original,next],selected}});
+   f.api.multichainBalances=async()=>({ok:true,value:{account:f.review.account,networkId:selected,configRevision:revision,assets:[{address:'native',symbol:'QA',display:'1'}]}});
+   f.api.multichainHistory=async()=>({ok:true,value:{account:f.review.account,networkId:selected,configRevision:revision,records:[]}});
+   f.api.multichainSelect=async id=>{if(outcome!=='before-write'){selected=id;revision++}if(outcome==='lost-ack')throw Error('PUBLIC lost selection ACK');return {ok:false,error:{code:'MULTICHAIN_STORE_UNAVAILABLE'}}};
+   await f.open();const select=f.all().find(n=>n.tag==='select');assert.equal(reviewButton(f).disabled,false);select.value=next.id;await select.emit('change');assert.equal(reviewButton(f).disabled,true,outcome);assert(f.all().some(n=>n.textContent==='Network request failed: '+(outcome==='lost-ack'?'IPC_UNAVAILABLE':'MULTICHAIN_STORE_UNAVAILABLE')));await reviewButton(f).emit('click');assert.equal(f.calls.filter(c=>c[0]==='prepare').length,0);assert.equal(f.nodes['multichain-review'].open,false);
+   await f.all().find(n=>n.tag==='button'&&n.textContent==='Refresh').emit('click');assert.equal(select.value,selected);assert.equal(reviewButton(f).disabled,false);
+   f.api.multichainPrepare=async input=>{f.calls.push(['prepare',input]);return {ok:true,value:{...f.review,network:selected==='n'?original:next}}};await reviewButton(f).emit('click');assert.equal(f.nodes['multichain-review'].open,true);assert.equal(f.calls.filter(c=>c[0]==='prepare').length,1);await f.nodes['multichain-cancel'].emit('click');assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+  }finally{f.ui.dispose()}
+ }
+});
 test('R46 final quote configuration read cannot publish after lock, account or network retirement; explicit retry works',async()=>{
  for(const boundary of ['lock','account','network']){
   const f=mounted(),context={account:f.review.account,revision:1,locked:false},config={revision:1,selected:'n',networks:[f.review.network],tokens:[]};let reads=0,privateCalls=0,service;

@@ -58,7 +58,7 @@ export function createMultichainUI({document,api,getContext,copy=setWalletCopy})
   cancel.addEventListener('click',cancelReview);reviewSheet.addEventListener('cancel',cancelReview);
   confirm.addEventListener('click',()=>{if(!review||review.approved||review.expiresAt<=Date.now()||getContext().locked||busy||reading||!historyReady||unresolved)return;const id=review.id;review.approved=true;return run(()=>api.multichainSend(id),async value=>{if(unresolvedStates.has(value.state))pendingOriginal={id,networkId:snapshot?.selected};clearReview();copy(status,'Transaction status: {state}',{state:value.state});await refresh()})});
   for(const input of [to,amount,assetSelect])input.addEventListener('input',discardReview);
-  networks.addEventListener('change',()=>{discardReview();retireReads();assets.replaceChildren();assetSelect.replaceChildren();history.replaceChildren();networkFacts.replaceChildren();return run(()=>api.multichainSelect(networks.value),refresh)});
+  networks.addEventListener('change',()=>{historyReady=false;discardReview();retireReads();assets.replaceChildren();assetSelect.replaceChildren();history.replaceChildren();networkFacts.replaceChildren();return run(()=>api.multichainSelect(networks.value),refresh)});
   async function refresh(){
     const read=++readRevision,ticket=generation,context=securityKey(),account=getContext().account?.toLowerCase();const owns=()=>read===readRevision&&current(ticket,context);reading=true;historyReady=false;setBusy(busy);
     try{
