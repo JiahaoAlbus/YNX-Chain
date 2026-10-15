@@ -903,7 +903,7 @@ async function showPlaylists(button) {
       const id = field(list,"id","ID"), ids = field(list,"video_ids","VideoIDs") || [];
       const article = document.createElement("article"); article.className = "library-row";
       article.innerHTML = '<div><h2>'+esc(field(list,"name","Name"))+'</h2><p class="meta">'+ids.length+' saved videos</p></div><div class="row-actions"><button class="open-list">Open playlist</button><button class="outline delete-list">Delete playlist</button></div>';
-      article.querySelector(".open-list").onclick = () => showPlaylist(id);
+      article.querySelector(".open-list").onclick = () => {if(!scope.matches())return;return showPlaylist(id);};
       article.querySelector(".delete-list").onclick = async event => {
         if (!confirm('Delete this playlist? The original videos will remain available.')) return;
         const button = event.currentTarget; button.disabled = true;
