@@ -26,14 +26,22 @@ class NativeWalletWidget extends BaseWidget {
     this.session = element(document, 'p'); this.detail = element(document, 'p'); this.source = element(document, 'small');
     const details = element(document, 'details'); details.append(element(document, 'summary', t('details')), this.source);
     this.node.append(element(document, 'h3', t('title')), this.status, this.session, this.detail, element(document, 'p', t('project')), element(document, 'p', t('standard')), element(document, 'p', t('closed')), details);
-    this.buttons = {};
+    this.buttons = {}; let live = true;
     const operations = { connect: 'connect', restore: 'restore', returned: 'resumeCallback', disconnect: 'disconnect', cancel: 'cancel', guest: 'guest' };
     for (const [key, operation] of Object.entries(operations)) {
       const button = element(document, 'button', t(key)); button.type = 'button'; button.className = 'theia-button secondary';
-      button.addEventListener('click', () => { void service.controller[operation]().catch(error => service.controller.publish({ phase: 'error', message: error.message })); });
+      button.addEventListener('click', () => {
+        if (!live) return;
+        // Bind before invocation: state listeners can start a newer generation.
+        const controller = service.controller, epoch = controller.epoch + 1;
+        void controller[operation]().catch(error => {
+          if (live && service.controller === controller && !controller.disposed && controller.epoch === epoch)
+            controller.publish({ phase: 'error', message: error.message });
+        });
+      });
       this.buttons[key] = button; this.node.append(button);
     }
-    const update = state => this.renderState(state); service.listeners.add(update); this.toDispose.push({ dispose: () => { service.listeners.delete(update); void service.controller.cancel(); } });
+    const update = state => this.renderState(state); service.listeners.add(update); this.toDispose.push({ dispose: () => { live = false; service.listeners.delete(update); void service.controller.cancel(); } });
     this.renderState(service.controller.state); void service.controller.inspect();
   }
   renderState(state) {
