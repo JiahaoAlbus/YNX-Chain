@@ -905,6 +905,7 @@ async function showPlaylists(button) {
       article.innerHTML = '<div><h2>'+esc(field(list,"name","Name"))+'</h2><p class="meta">'+ids.length+' saved videos</p></div><div class="row-actions"><button class="open-list">Open playlist</button><button class="outline delete-list">Delete playlist</button></div>';
       article.querySelector(".open-list").onclick = () => {if(!scope.matches())return;return showPlaylist(id);};
       article.querySelector(".delete-list").onclick = async event => {
+        if (!scope.matches()) return;
         if (!confirm('Delete this playlist? The original videos will remain available.')) return;
         const button = event.currentTarget; button.disabled = true;
         try {scope.current();await changeOriginalPlaylist("delete",id,null,scope);scope.current();await showPlaylists(document.querySelector('[data-view="playlists"]'));}
