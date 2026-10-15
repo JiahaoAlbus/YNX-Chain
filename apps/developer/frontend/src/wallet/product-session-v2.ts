@@ -1,7 +1,7 @@
 import { canonicalJSON, developerWalletV2Bridge, developerWalletV2Device, type DeveloperWalletBridge, type NativeDeveloperWalletDevice } from "./transport";
 // @ts-ignore The accepted ESM package is vendored byte-for-byte under Developer ownership.
 import { createProductWalletConnection, PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN } from "../../../vendor/wallet-auth-c5/src/product-wallet-connection.js";
-import { walletConnectionChoices } from "../../../vendor/wallet-auth-c5/src/product-session-router.js";
+import { walletConnectionChoices, canonicalReturnTarget } from "../../../vendor/wallet-auth-c5/src/product-session-router.js";
 import { PRODUCT_SESSION_CLIENT_STATE } from "../../../vendor/wallet-auth-c5/src/product-session-recovery.js";
 import registry from "../../../vendor/wallet-auth-c5/product-session-registry.json";
 
@@ -195,6 +195,18 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   // too, so an abandoned review cannot permanently block explicit reconnect.
   if (active) expirationTimer = setTimeout(() => { void endNativeOperation().catch(() => {}); }, 300_000);
   return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation, finished });
+}
+
+/** Public request correlation only; no approval parsing, clock or authorization. */
+export function classifyDeveloperWalletV2Return(runtime: DeveloperWalletV2Runtime, callbackURL: string): "current" | "mismatch" | "pending" {
+  const request = runtime.connection.current?.request;
+  if (!request) return "pending";
+  try {
+    const target = canonicalReturnTarget(registry, "developer", "macos").callback;
+    const url = new URL(callbackURL), nonce = url.searchParams.getAll("nonce"), state = url.searchParams.getAll("state");
+    url.search = "";
+    return request.callback === target && url.toString() === target && nonce.length === 1 && state.length === 1 && nonce[0] === request.nonce && state[0] === request.state ? "current" : "mismatch";
+  } catch { return "mismatch"; }
 }
 
 export async function inspectDeveloperWalletV2Runtime() {
