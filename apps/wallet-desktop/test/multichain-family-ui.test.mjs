@@ -27,6 +27,15 @@ function harness(request = async () => ({ok: true, value: {family: 'bitcoin', ne
   return {ui, family, network, button, status, address, path, settings, rpc: settings.children[2], genesis: settings.children[4], save: settings.children[5], refresh, balance, tokenSection, tokenContract: tokenSection.children[2], importToken: tokenSection.children[3], historyRefresh: history.children[1], records: history.children[2], sheet: registry.get('#family-sheet'), open: () => registry.get('#open-family').handlers.click(), change: value => {context = {...context, ...value};}};
 }
 const recordFixture = {id: 'PUBLIC-id', family: 'bitcoin', network: 'mainnet', state: 'unknown', txid: 'a'.repeat(64), queryable: true};
+test('BTC receive normal caller: selected owned identity reaches existing receive-code IPC request shape',async()=>{
+  let calls=0,input;const identity={family:'bitcoin',network:'mainnet',vaultAccount:'PUBLIC-base',address:'bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu',path:"m/84'/0'/0'/0/0",index:0,account:0};
+  const h=harness(async()=>({ok:true,value:identity}),{familyNetworks:async()=>({ok:true,value:{revision:0,networks:[{family:'bitcoin',network:'mainnet',genesis:null,rpcUrl:'https://public.example/api'}]}}),receiveCode:async value=>{calls++;input=value;return {ok:false}}});
+  h.open();await h.button.handlers.click();assert.equal(calls,1);assert.deepEqual(input,{family:'bitcoin',network:'mainnet',vaultAccount:'PUBLIC-base',address:identity.address,revision:1});h.sheet.close();assert.equal(h.address.value,'');
+});
+test('BTC receive normal caller: Main retains native YNX route and binds object route to existing family owner under sensitive IPC',async()=>{
+  const main=await readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),ui=await readFile(new URL('../src/receive-code-ui.mjs',import.meta.url),'utf8'),html=await readFile(new URL('../src/index.html',import.meta.url),'utf8');
+  assert.match(main,/typeof expectedAccount==='string'\s*\? safeIPC\(\(\) => createReceiveCode/);assert.match(main,/: sensitiveIPC\(\(\) => .*createBitcoinReceiveCode\(expectedAccount/);assert.match(main,/readAccount:value=>familyAccounts\.account\(value\)/);assert.match(main,/readNetworks:\(\)=>familyRead\.snapshot\(\)/);assert.match(ui,/paintReceiveModules\(canvas/);assert.match(html,/img-src 'self';/);assert.doesNotMatch(html,/img-src[^;]*data:/);
+});
 // Real normal family UI, PUBLIC deferred IPC replies only. These controls do
 // not claim native IPC delivery timing, provider availability or custody tests.
 function networkOwnerHarness(accountRequest){

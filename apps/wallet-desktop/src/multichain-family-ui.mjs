@@ -4,6 +4,7 @@ import {createBitcoinSubmissionUI} from './multichain-family-bitcoin-submit-ui.m
 import {createTronTransferUI} from './multichain-family-tron-ui.mjs';
 import {createTronSubmissionUI} from './multichain-family-tron-submit-ui.mjs';
 import {createTronReceiveCodeUI} from './multichain-tron-receive-ui.mjs';
+import {createBitcoinReceiveCodeUI} from './receive-code-ui.mjs';
 export function createFamilyUI({document, api, getContext}) {
   const entry = document.createElement('button'); entry.type = 'button'; entry.id = 'open-family'; entry.textContent = 'BTC / TRON'; document.querySelector('.toolbar').append(entry);
   const sheet = document.querySelector('#family-sheet'), content = document.querySelector('#family-content');
@@ -34,7 +35,8 @@ export function createFamilyUI({document, api, getContext}) {
   const tronTransferUI=createTronTransferUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronSubmissionUI=createTronSubmissionUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
   const tronReceiveUI=createTronReceiveCodeUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
-  function invalidate() { epoch++; settingsRevision++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); tronReceiveUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; save.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
+  const bitcoinReceiveUI=createBitcoinReceiveCodeUI({document,parent:content,api,getContext,getSelection:()=>({family:family.value,network:network.value}),isOpen:()=>sheet.open});
+  function invalidate() { epoch++; settingsRevision++; busy = false; transferUI.invalidate(); submissionUI.invalidate(); tronTransferUI.invalidate(); tronSubmissionUI.invalidate(); tronReceiveUI.invalidate(); bitcoinReceiveUI.invalidate(); address.value = ''; path.textContent = ''; status.textContent = ''; balance.textContent = ''; records.replaceChildren(); tokenRows.replaceChildren(); button.disabled = Boolean(getContext().locked); refresh.disabled = button.disabled; importToken.disabled = button.disabled; save.disabled = button.disabled; tokenSection.hidden = family.value !== 'tron'; }
   tokenRefresh.addEventListener('click',async()=>{
     if(busy||family.value!=='tron'||!api.familyTokens)return;
     const token=++epoch,context={...getContext()},selected=network.value;busy=true;tokenRefresh.disabled=true;tokenRows.replaceChildren();
@@ -134,7 +136,7 @@ export function createFamilyUI({document, api, getContext}) {
   });
   button.addEventListener('click', async () => {
     if (busy || getContext().locked) return;
-    tronReceiveUI.invalidate();
+    tronReceiveUI.invalidate();bitcoinReceiveUI.invalidate();
     const token = ++epoch, context = {...getContext()}; busy = true; button.disabled = true; address.value = ''; path.textContent = ''; setWalletCopy(status, 'Checking account…');
     try {
       const reply = await api.familyAccount({family: family.value, network: network.value, index: 0, account: 0});
@@ -143,7 +145,7 @@ export function createFamilyUI({document, api, getContext}) {
       if (!reply.ok) { status.textContent = reply.error?.code ?? 'FAMILY_ACCOUNT_UNAVAILABLE'; return; }
       if (reply.value.vaultAccount !== context.account || reply.value.family !== family.value || reply.value.network !== network.value) { status.textContent = 'FAMILY_ACCOUNT_CHANGED'; return; }
       address.value = reply.value.address; path.textContent = reply.value.path; setWalletCopy(status, 'Receiving address');
-      await tronReceiveUI.refresh(reply.value);
+      if(reply.value.family==='bitcoin')await bitcoinReceiveUI.refresh(reply.value);else await tronReceiveUI.refresh(reply.value);
     } catch (error) { if (token === epoch && sheet.open) status.textContent = error.code ?? 'FAMILY_ACCOUNT_UNAVAILABLE'; }
     finally { if (token === epoch) { busy = false; button.disabled = Boolean(getContext().locked); } }
   });

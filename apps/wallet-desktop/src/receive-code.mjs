@@ -16,3 +16,30 @@ export async function createReceiveCode(expectedAccount, readAccountStatus) {
   if (!current?.initialized || current.ynxAccount !== expectedAccount || current.account !== status.account) fail();
   return { account: expectedAccount, chainId: "ynx_6423-1", asset: "YNXT", uri, size: modules.size, modules: Array.from(modules.data) };
 }
+
+function bitcoinField(object,key){const d=object&&typeof object==='object'&&Object.getOwnPropertyDescriptor(object,key);if(!d||!Object.hasOwn(d,'value'))throw Error('BTC_RECEIVE_INVALID');return d.value;}
+function bitcoinReceiveNetwork(snapshot,network){
+  const revision=bitcoinField(snapshot,'revision'),networks=bitcoinField(snapshot,'networks');
+  if(!Number.isSafeInteger(revision)||revision<0||!Array.isArray(networks)||!['mainnet','testnet3','testnet4','signet'].includes(network))throw Error('BTC_RECEIVE_INVALID');
+  const row=networks.find(n=>bitcoinField(n,'family')==='bitcoin'&&bitcoinField(n,'network')===network);if(!row)throw Error('FAMILY_NETWORK_REQUIRED');
+  const rpcUrl=bitcoinField(row,'rpcUrl'),genesis=bitcoinField(row,'genesis');if(genesis!==null||typeof rpcUrl!=='string'||!rpcUrl.startsWith('https://'))throw Error('BTC_RECEIVE_INVALID');
+  return {configRevision:revision,rpcUrl,genesis};
+}
+/** Selected owned BIP84 public identity only. QR is not a network attestation
+ * or a grant to sign. Protected mnemonic custody remains in existing caller. */
+export async function createBitcoinReceiveCode(input,{readAccount,readNetworks,getContext}){
+  const keys=['family','network','vaultAccount','address','revision'];if(!input||Reflect.ownKeys(input).length!==keys.length)throw Error('BTC_RECEIVE_INVALID');
+  const request=Object.fromEntries(keys.map(key=>[key,bitcoinField(input,key)]));
+  const {validateBitcoinAddress,bitcoinDerivationPath}=await import('./multichain-bitcoin.mjs');
+  if(request.family!=='bitcoin'||validateBitcoinAddress(request.address,request.network).address!==request.address)throw Error('BTC_RECEIVE_INVALID');
+  const live=c=>c.account&&!c.locked&&!c.authenticating&&c.account===request.vaultAccount&&c.revision===request.revision;
+  if(!live(await getContext()))throw Error('FAMILY_ACCOUNT_CHANGED');
+  const config=bitcoinReceiveNetwork(await readNetworks(),request.network);
+  const account=await readAccount({family:'bitcoin',network:request.network,index:0,account:0});
+  for(const key of ['family','network','vaultAccount','address'])if(bitcoinField(account,key)!==request[key])throw Error('FAMILY_ACCOUNT_CHANGED');
+  const path=bitcoinDerivationPath(request.network,{account:0,change:0,index:0});
+  if(bitcoinField(account,'index')!==0||bitcoinField(account,'account')!==0||bitcoinField(account,'path')!==path)throw Error('BTC_RECEIVE_INVALID');
+  const payload=`bitcoin:${request.address}`,qr=QRCode.create(payload,{errorCorrectionLevel:'M'});
+  if(!live(await getContext())||JSON.stringify(config)!==JSON.stringify(bitcoinReceiveNetwork(await readNetworks(),request.network))||!live(await getContext()))throw Error('FAMILY_ACCOUNT_CHANGED');
+  return Object.freeze({...request,...config,path,payload,size:qr.modules.size,modules:Array.from(qr.modules.data),networkVerified:false});
+}

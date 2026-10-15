@@ -39,7 +39,7 @@ import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
 import { WalletConnectRequestInbox } from "./walletconnect-request-inbox.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
-import { createReceiveCode } from "./receive-code.mjs";
+import { createReceiveCode, createBitcoinReceiveCode } from "./receive-code.mjs";
 import { NativeContractClient } from "./native-contract.mjs";
 import { createNativeContractService } from "./native-contract-service.mjs";
 import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
@@ -457,7 +457,9 @@ handleWalletIPC("wallet:commit-mnemonic-account", (_event,input) => safeIPC(asyn
   return result;
 }));
 handleWalletIPC("wallet:recovery-phrase", (_event,password) => sensitiveIPC(() => walletAuthority.vault.recoveryPhrase(password)));
-handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus())));
+handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => typeof expectedAccount==='string'
+  ? safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus()))
+  : sensitiveIPC(() => {if(!familyAccounts||!familyRead)throw new Error('Wallet is starting.');return createBitcoinReceiveCode(expectedAccount,{readAccount:value=>familyAccounts.account(value),readNetworks:()=>familyRead.snapshot(),getContext:()=>familyRead.getContext()});}));
 handleWalletIPC("wallet:payment-recipient", (_event, input) => safeIPC(() => parsePaymentRecipient(input)));
 handleWalletIPC("wallet:payment-qr", (_event, input) => safeIPC(() => {
   if (!(input?.bytes instanceof ArrayBuffer) || input.bytes.byteLength > 10 * 1024 * 1024) throw new Error("Invalid QR image");
