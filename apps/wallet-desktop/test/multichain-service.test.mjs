@@ -7,7 +7,7 @@ import {Wallet} from 'ethers';
 import {MultiConfigStore} from '../src/multichain-config.mjs';
 import {MultiJournal} from '../src/multichain-journal.mjs';
 import {EVMAdapter} from '../src/multichain-evm.mjs';
-import {MultichainService} from '../src/multichain-service.mjs';
+import {MultichainService,installMultichainIPC} from '../src/multichain-service.mjs';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 const input={name:'PUBLIC synthetic local-chain fixture',rpcUrl:'https://qa.example.test',chainId:'31337',symbol:'QA',decimals:18,genesis:'0x'+'1'.repeat(64)},secret='0x'+'0'.repeat(63)+'1',account=new Wallet(secret).address.toLowerCase(),to='0x'+'2'.repeat(40);
 // PUBLIC scalar-one key and fake authorizer only. Exercise the production
@@ -48,7 +48,7 @@ test('R2 real-step deferred cancellation and lock with store outage preserves pr
     f.journal.transition=async(id,next)=>{if(['signed','unknown'].includes(next.state))throw Error('PUBLIC offline persistent custody storage failure');return transition(id,next)};
     const sending=f.send(review).catch(error=>error);await entered.promise;const cancelling=f.service.cancel(review.id);f.lifecycle.lock();gate.resolve();
     const outcome=await sending;assert.equal(f.stepRejections(),1);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);
-    assert.equal((await f.journal.list(review.network.id,account))[0].state,'prepared');await f.restore();
+    assert.equal((await f.journal.list(review.network.id,account))[0].state,'signing-unknown');await f.restore();
     await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
     const held=(await f.service.history()).records[0];assert.equal(held.state,'unknown');assert.equal(held.hash,output.hash);assert.equal(Object.hasOwn(held,'raw'),false);
     f.journal.transition=transition;f.adapter.reconcile=async()=>({state:'unknown',receipt:null});assert.equal((await f.service.check(review.id)).state,'unknown');
@@ -76,6 +76,67 @@ test('receipt errors remain unknown; exact synthetic inclusion releases blocking
 test('pending nonce change rejects before signature; unresolved network cannot be removed',async()=>{const f=await fixture();try{let review=await f.prepare();const rpc=f.adapter.rpc;f.adapter.rpc=(u,m,p)=>m==='eth_getTransactionCount'?Promise.resolve('0x1'):rpc(u,m,p);await assert.rejects(f.service.send(review.id,f.guard),{code:'MULTICHAIN_NONCE_CHANGED'});assert.deepEqual(f.effects(),{signs:0,broadcasts:0});f.adapter.rpc=rpc;review=await f.prepare();await f.service.send(review.id,f.guard);await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});assert.equal((await f.config.read()).networks.length,1)}finally{await f.close()}});
 test('uncertain signed journal commit is retained and cannot cause broadcast or another signature',async()=>{const f=await fixture();try{const review=await f.prepare(),transition=f.journal.transition.bind(f.journal);f.journal.transition=async(id,next)=>{const result=await transition(id,next);if(next.state==='signed')throw Error('synthetic post-rename failure');return result};await assert.rejects(f.service.send(review.id,f.guard));assert.deepEqual(f.effects(),{signs:1,broadcasts:0});const records=await f.journal.list(review.network.id,account);assert.equal(records[0].state,'unknown');assert.ok(records[0].raw);await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'})}finally{await f.close()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+function coldService(f){return new MultichainService({config:f.config,journal:new MultiJournal({filePath:path.join(f.dir,'journal.json')}),adapter:f.adapter,getContext:f.service.getContext,withSecret:async()=>{throw Error('R36 cold recovery must not access a key')},now:()=>1000});}
+test('R36 cold normal check cannot cancel an interrupted signer or admit a replacement',async()=>{
+ const f=await fixture(),entered=deferred(),release=deferred();let sending;
+ try{
+  const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter);let produced;
+  f.adapter.sign=async(...args)=>{produced=await sign(...args);entered.resolve();await release.promise;throw Error('R36 interrupted producer returned no signature acknowledgement')};
+  sending=f.service.send(review.id,f.guard).catch(error=>error);await entered.promise;
+  const cold=coldService(f),checked=await cold.check(review.id);
+  assert.match(produced.hash,/^0x[0-9a-f]{64}$/);
+  assert.equal(checked.state,'signing-unknown');assert.equal(checked.hash,null);assert.equal(Object.hasOwn(checked,'raw'),false);
+  await assert.rejects(cold.prepare({asset:'native',to,amount:'0.1'}),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  await assert.rejects(cold.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  for(let i=0;i<2;i++)assert.equal((await cold.check(review.id)).state,'signing-unknown');
+  release.resolve();assert.equal((await sending).code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');
+  assert.equal((await cold.journal.list(review.network.id,account))[0].state,'signing-unknown');assert.equal(f.effects().broadcasts,0);
+ }finally{release.resolve();await sending;await f.close()}
+});
+test('R36 ambiguous signer rejection remains blocked on cold recovery without producing or sending again',async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare();let producerCalls=0;f.adapter.sign=async()=>{producerCalls++;throw Error('R36 producer ACK unavailable')};
+  const outcome=await f.service.send(review.id,f.guard).catch(error=>error);
+  assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');
+  const cold=coldService(f);assert.equal((await cold.check(review.id)).state,'signing-unknown');
+  await assert.rejects(cold.prepare({asset:'native',to,amount:'0.1'}),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  assert.equal(producerCalls,1);assert.equal(f.effects().broadcasts,0);
+ }finally{await f.close()}
+});
+for(const boundary of ['before-write','after-commit'])test(`R36 signing barrier ${boundary} failure prevents producer entry and cold cancellation`,async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare(),transition=f.journal.transition.bind(f.journal);let producers=0;
+  f.adapter.sign=async()=>{producers++;throw Error('Producer must not enter')};
+  f.journal.transition=async(id,next)=>{if(next.state==='signing-unknown'){if(boundary==='after-commit')await transition(id,next);throw Error('R36 signing barrier storage failure')}return transition(id,next)};
+  const result=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(result.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.match(result.cause.message,/storage failure/);
+  const cold=coldService(f);assert.equal((await cold.check(review.id)).state,'signing-unknown');
+  await assert.rejects(cold.prepare({asset:'native',to,amount:'0.1'}),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  assert.equal(producers,0);assert.equal(f.effects().broadcasts,0);
+ }finally{await f.close()}
+});
+test('R36 legacy prepared record has no cold no-sign proof and stays unresolved without RPC',async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare();await f.journal.reserve({id:review.id,network:review.network,account,nonce:review.transaction.nonce,asset:'native',to,amount:review.amount,transaction:review.transaction,state:'prepared',raw:null,hash:null,receipt:null,createdAt:1000,updatedAt:1000});
+  f.adapter.reconcile=async()=>{throw Error('R36 must not query a null transaction hash')};
+  const cold=coldService(f);assert.equal((await cold.check(review.id)).state,'signing-unknown');
+  const row=(await cold.history()).records[0];assert.equal(row.state,'signing-unknown');assert.equal(Object.hasOwn(row,'raw'),false);
+  await assert.rejects(cold.journal.transition(review.id,{state:'cancelled',updatedAt:1000}),{code:'MULTICHAIN_INTENT_CONFLICT'});
+  assert.deepEqual(f.effects(),{signs:0,broadcasts:0});
+ }finally{await f.close()}
+});
+test('R36 normal IPC cold check and history preserve the original signing barrier',async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare();f.adapter.sign=async()=>{throw Error('R36 interrupted producer')};
+  await assert.rejects(f.service.send(review.id,f.guard),{code:'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN'});
+  const service=coldService(f),handlers=new Map(),safe=async action=>{try{return {ok:true,value:await action()}}catch(error){return {ok:false,error:{code:error.code}}}};
+  installMultichainIPC({handle:(name,callback)=>handlers.set(name,callback),safe,sensitive:safe,service,getGuard:()=>f.guard});
+  const checked=await handlers.get('wallet:multichain-check')({},review.id);assert.equal(checked.ok,true);assert.equal(checked.value.state,'signing-unknown');
+  const history=await handlers.get('wallet:multichain-history')({});assert.equal(history.value.records[0].state,'signing-unknown');assert.equal(Object.hasOwn(history.value.records[0],'raw'),false);
+  const cancel=await handlers.get('wallet:multichain-cancel')({},review.id);assert.equal(cancel.value.cancelled,false);
+  const prepared=await handlers.get('wallet:multichain-prepare')({},{asset:'native',to,amount:'0.1'});assert.equal(prepared.ok,false);assert.equal(prepared.error.code,'MULTICHAIN_RESOLUTION_REQUIRED');
+  assert.equal(f.effects().broadcasts,0);
+ }finally{await f.close()}
+});
 test('P2 repair F1 original in-flight preflight cancel prevents later signing and submit',async()=>{const f=await fixture();try{const review=await f.prepare(),entered=deferred(),gate=deferred();f.adapter.verify=async()=>{entered.resolve();await gate.promise};const sending=f.service.send(review.id,f.guard).catch(error=>error);await entered.promise;const cancelled=Promise.resolve(f.service.cancel(review.id));gate.resolve();const outcome=await sending;assert.equal((await cancelled).cancelled,true);assert.deepEqual(f.effects(),{signs:0,broadcasts:0});assert.equal(outcome.code,'MULTICHAIN_CANCELLED')}finally{await f.close()}});
 test('P2 repair F1 cancellation after submit start never claims no effect or discards unknown',async()=>{const f=await fixture();try{const review=await f.prepare(),entered=deferred(),gate=deferred();let sends=0;f.adapter.broadcast=async()=>{sends++;entered.resolve();await gate.promise;throw Error('PUBLIC synthetic timeout')};const sending=f.service.send(review.id,f.guard);await entered.promise;const cancellation=await f.service.cancel(review.id);gate.resolve();const result=await sending;assert.equal(cancellation.cancelled,false);assert.equal(cancellation.reason,'submit-started');assert.equal(result.state,'unknown');const records=await f.journal.list(review.network.id,account);assert.equal(records[0].hash,result.hash);assert.ok(records[0].raw);assert.equal(sends,1);await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'})}finally{await f.close()}});
 test('P2 repair F1 signed pre-submit cancellation retains original signed custody',async()=>{const f=await fixture();try{const review=await f.prepare(),entered=deferred(),gate=deferred(),validate=f.adapter.validateSend.bind(f.adapter);let checks=0;f.adapter.validateSend=async(...args)=>{if(++checks===2){entered.resolve();await gate.promise}return validate(...args)};const sending=f.service.send(review.id,f.guard).catch(error=>error);await entered.promise;const before=(await f.journal.list(review.network.id,account))[0];assert.equal(before.state,'signed');const cancelling=Promise.resolve(f.service.cancel(review.id));gate.resolve();await sending;const cancellation=await cancelling,after=(await f.journal.list(review.network.id,account))[0];assert.equal(cancellation.cancelled,true);assert.equal(after.raw,before.raw);assert.equal(after.hash,before.hash);assert.equal(f.effects().broadcasts,0)}finally{await f.close()}});
@@ -85,7 +146,22 @@ test('P2 repair F1 uncertain cancellation commit quarantines same raw/hash as un
 test('P2 repair F1 final synchronous submit fence observes cancel without outward call',async()=>{const f=await fixture();try{const review=await f.prepare();let cancellation;f.guard.submit=action=>{cancellation=f.service.cancel(review.id);return action()};const result=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(result.code,'MULTICHAIN_CANCELLED');assert.equal((await cancellation).cancelled,true);assert.equal(f.effects().broadcasts,0);assert.equal((await f.journal.list(review.network.id,account))[0].state,'local-cancelled-before-broadcast')}finally{await f.close()}});
 test('R1 custody post-sign current-read cancellation preserves original returned bytes on reopen',async()=>{const f=await fixture();try{const review=await f.prepare(),entered=deferred(),gate=deferred(),sign=f.adapter.sign.bind(f.adapter),read=f.config.read.bind(f.config);let output,paused=false;f.adapter.sign=async(...args)=>{output=await sign(...args);return output};f.config.read=async()=>{if(output&&!paused){paused=true;entered.resolve();await gate.promise}return read()};const sending=f.service.send(review.id,f.guard).catch(error=>error);await entered.promise;const cancelling=f.service.cancel(review.id);gate.resolve();assert.equal((await sending).code,'MULTICHAIN_CANCELLED');const cancellation=await cancelling;assert.equal(cancellation.reason,'local-cancelled-before-broadcast');const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.equal(record.nonce,review.transaction.nonce);assert.deepEqual(record.transaction,review.transaction);assert.equal(record.state,'local-cancelled-before-broadcast');assert.deepEqual(f.effects(),{signs:1,broadcasts:0});assert.equal(Object.hasOwn((await f.service.history()).records[0],'raw'),false)}finally{await f.close()}});
 test('R1 custody cancel while signer resolves and signed write rejects remains same-byte UNKNOWN',async()=>{const f=await fixture();try{const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal);let output,cancelling,failed=false;f.adapter.sign=async(...args)=>{output=await sign(...args);cancelling=f.service.cancel(review.id);return output};f.journal.transition=async(id,next)=>{if(next.state==='signed'&&!failed){failed=true;throw Error('PUBLIC synthetic precommit signed write failure')}return transition(id,next)};const outcome=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.state,'unknown');assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.deepEqual(record.transaction,review.transaction);await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});assert.deepEqual(f.effects(),{signs:1,broadcasts:0})}finally{await f.close()}});
-test('R1 custody persistent signed-store outage keeps private original hold without unsigned cleanup',async()=>{const f=await fixture();try{const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal);let output,cancelling;f.adapter.sign=async(...args)=>{output=await sign(...args);cancelling=f.service.cancel(review.id);return output};f.journal.transition=async(id,next)=>{if(['signed','unknown'].includes(next.state))throw Error('PUBLIC synthetic persistent store outage');return transition(id,next)};const outcome=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);assert.equal(outcome.data.transactionHash,output.hash);assert.equal((await f.journal.list(review.network.id,account))[0].state,'prepared');await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});const held=(await f.service.history()).records[0];assert.equal(held.state,'unknown');assert.equal(held.hash,output.hash);assert.equal(Object.hasOwn(held,'raw'),false);f.journal.transition=transition;f.adapter.reconcile=async()=>({state:'unknown',receipt:null});assert.equal((await f.service.check(review.id)).state,'unknown');const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.deepEqual(f.effects(),{signs:1,broadcasts:0})}finally{await f.close()}});
+test('R1 custody persistent signed-store outage keeps private original hold without unsigned cleanup',async()=>{
+ const f=await fixture();try{
+  const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal);let output,cancelling;
+  f.adapter.sign=async(...args)=>{output=await sign(...args);cancelling=f.service.cancel(review.id);return output};
+  f.journal.transition=async(id,next)=>{if(['signed','unknown'].includes(next.state))throw Error('PUBLIC synthetic persistent store outage');return transition(id,next)};
+  const outcome=await f.service.send(review.id,f.guard).catch(error=>error);
+  assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);assert.equal(outcome.data.transactionHash,output.hash);
+  assert.equal((await f.journal.list(review.network.id,account))[0].state,'signing-unknown');
+  // A cold owner cannot use the absent in-memory bytes to cancel this attempt.
+  assert.equal((await coldService(f).check(review.id)).state,'signing-unknown');
+  await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});await assert.rejects(f.service.remove(review.network.id),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});
+  const held=(await f.service.history()).records[0];assert.equal(held.state,'unknown');assert.equal(held.hash,output.hash);assert.equal(Object.hasOwn(held,'raw'),false);
+  f.journal.transition=transition;f.adapter.reconcile=async()=>({state:'unknown',receipt:null});assert.equal((await f.service.check(review.id)).state,'unknown');
+  const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.deepEqual(f.effects(),{signs:1,broadcasts:0});
+ }finally{await f.close()}
+});
 test('R1 custody post-sign lock retains output while original guard still prohibits broadcast',async()=>{const f=await fixture();try{const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter);let output;f.adapter.sign=async(...args)=>{output=await sign(...args);f.setContext({locked:true});return output};const outcome=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.equal(record.state,'unknown');assert.deepEqual(f.effects(),{signs:1,broadcasts:0})}finally{await f.close()}});
 test('R1 custody uncertain post-rename signed acknowledgment preserves original UNKNOWN without cancel success',async()=>{const f=await fixture();try{const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter),transition=f.journal.transition.bind(f.journal);let output,cancelling,failed=false;f.adapter.sign=async(...args)=>{output=await sign(...args);cancelling=f.service.cancel(review.id);return output};f.journal.transition=async(id,next)=>{const result=await transition(id,next);if(next.state==='signed'&&!failed){failed=true;throw Error('PUBLIC synthetic post-rename signed ACK uncertainty')}return result};const outcome=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');assert.equal((await cancelling).cancelled,false);const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.state,'unknown');assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.equal(record.nonce,review.transaction.nonce);await assert.rejects(f.prepare(),{code:'MULTICHAIN_RESOLUTION_REQUIRED'});assert.deepEqual(f.effects(),{signs:1,broadcasts:0})}finally{await f.close()}});
 test('R1 custody post-sign current account and expiry changes retain original tuple without submission',async()=>{for(const change of ['account','expiry']){const f=await fixture();try{const review=await f.prepare(),sign=f.adapter.sign.bind(f.adapter);let output;f.adapter.sign=async(...args)=>{output=await sign(...args);if(change==='account')f.setContext({account:to});else f.setClock(review.expiresAt);return output};const outcome=await f.service.send(review.id,f.guard).catch(error=>error);assert.equal(outcome.code,'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN');const record=(await new MultiJournal({filePath:path.join(f.dir,'journal.json')}).list(review.network.id,account))[0];assert.equal(record.state,'unknown');assert.equal(record.account,account);assert.equal(record.raw,output.raw);assert.equal(record.hash,output.hash);assert.deepEqual(record.transaction,review.transaction);assert.deepEqual(f.effects(),{signs:1,broadcasts:0})}finally{await f.close()}}});

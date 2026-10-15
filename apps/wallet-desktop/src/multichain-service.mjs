@@ -12,7 +12,7 @@ export class MultichainService{
     this.#heldSigned.set(record.id,{...record,state:'unknown'});
     const stored=(await this.journal.list(record.network.id,record.account)).find(r=>r.id===record.id);
     if(!stored)throw multiError('MULTICHAIN_UNKNOWN_INTENT','Keep the original signed custody.');
-    if(stored.state==='prepared')await this.journal.transition(record.id,{state:'signed',raw:record.raw,hash:record.hash,updatedAt:Math.max(stored.updatedAt,record.updatedAt)});
+    if(['prepared','signing-unknown'].includes(stored.state))await this.journal.transition(record.id,{state:'signed',raw:record.raw,hash:record.hash,updatedAt:Math.max(stored.updatedAt,record.updatedAt)});
     else if(stored.raw!==record.raw||stored.hash!==record.hash)throw multiError('MULTICHAIN_INTENT_CONFLICT','Keep the original signed custody.');
     await this.journal.transition(record.id,{state:'unknown',updatedAt:Math.max(stored.updatedAt,record.updatedAt)});
     this.#heldSigned.delete(record.id);
@@ -40,7 +40,7 @@ export class MultichainService{
   }
   async send(id,guard){
     const entry=this.reviews.get(id);if(!entry||entry.review.expiresAt<=this.now())throw multiError('MULTICHAIN_REVIEW_EXPIRED','Prepare and review the transfer again.');if(this.sending)throw multiError('MULTICHAIN_BUSY','A send is already being recorded.');
-    this.sending=true;this.reviews.delete(id);let record,reservationStarted=false,reserved=false,signatureCreated=false,signed=false,permit,finish;
+    this.sending=true;this.reviews.delete(id);let record,reservationStarted=false,reserved=false,signingStarted=false,signatureCreated=false,signed=false,permit,finish;
     const attempt={cancelled:false,submissionStarted:false,hash:null,done:new Promise(resolve=>{finish=resolve})};this.#attempts.set(id,attempt);
     try{
       const {review,context,revision}=entry;
@@ -52,6 +52,9 @@ export class MultichainService{
       reservationStarted=true;permit=await this.journal.reserve(record);reserved=true;await live();
       await this.withSecret(async(secret,identity,keyGuard)=>{
         await live();keyGuard.assert();if(identity.account.toLowerCase()!==record.account)throw multiError('MULTICHAIN_ACCOUNT_CHANGED','Signing account changed.');
+        // A crash or rejected producer ACK cannot prove that signing did not
+        // occur. Commit this barrier before entering the original producer.
+        signingStarted=true;await this.journal.transition(record.id,{state:'signing-unknown',updatedAt:this.now()});await live();keyGuard.assert();
         const result=await this.adapter.sign(secret,record);
         // Capture inside the original action before returning to withSecret's
         // post-action lease.step gate. Its rejection must not erase produced
@@ -72,6 +75,10 @@ export class MultichainService{
         attempt.cancellation={cancelled:false,reason:'record-needs-resolution',hash:record.hash};
         throw Object.assign(multiError('MULTICHAIN_RECORDED_OUTCOME_UNKNOWN','Signed custody persistence is uncertain. Keep the original record.'),{data:{code:'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN',outcomeUnknown:true,transactionHash:record.hash}});
       }
+      if(signingStarted&&!signatureCreated){
+        attempt.cancellation={cancelled:false,reason:'record-needs-resolution',hash:null};
+        throw Object.assign(multiError('MULTICHAIN_RECORDED_OUTCOME_UNKNOWN','The original signing result is unknown. Preserve its journal; do not sign or send a replacement.'),{cause:error,data:{code:'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN',outcomeUnknown:true,transactionHash:null}});
+      }
       if(attempt.cancelled&&!attempt.submissionStarted){
         try{
           if(reservationStarted&&!reserved)throw error;
@@ -91,7 +98,24 @@ export class MultichainService{
     }finally{permit?.retire();this.sending=false;this.#attempts.delete(id);finish()}
   }
   async history(){const {context,config,network}=await this.selected(),records=await this.journal.list(network.id,context.account);for(const held of this.#heldSigned.values()){if(held.network.id===network.id&&held.account===context.account){const index=records.findIndex(r=>r.id===held.id);if(index<0)records.push(structuredClone(held));else records[index]=structuredClone(held)}}await this.assert(context,config.revision);return {account:context.account,networkId:network.id,configRevision:config.revision,records:records.map(publicRecord).reverse()}}
-  async check(id){if(this.sending)throw multiError('MULTICHAIN_BUSY','Wait until the send has been recorded.');const {context,config,network}=await this.selected();const held=this.#heldSigned.get(id);if(held){if(held.network.id!==network.id||held.account!==context.account)throw multiError('MULTICHAIN_UNKNOWN_INTENT','Transaction not found for this account and network.');await this.#retainUnknown(held);await this.assert(context,config.revision)}const record=(await this.journal.list(network.id,context.account)).find(r=>r.id===id);if(!record)throw multiError('MULTICHAIN_UNKNOWN_INTENT','Transaction not found for this account and network.');if(['cancelled','local-cancelled-before-broadcast'].includes(record.state))return publicRecord(record);let next;if(record.state==='prepared')next={state:'cancelled',receipt:null};else{try{next=await this.adapter.reconcile(network,record)}catch{next={state:'unknown',receipt:null}}}await this.assert(context,config.revision);await this.journal.transition(id,{...next,updatedAt:this.now()});return publicRecord({...record,...next});}
+  async check(id){
+    if(this.sending)throw multiError('MULTICHAIN_BUSY','Wait until the send has been recorded.');
+    const {context,config,network}=await this.selected(),held=this.#heldSigned.get(id);
+    if(held){
+      if(held.network.id!==network.id||held.account!==context.account)throw multiError('MULTICHAIN_UNKNOWN_INTENT','Transaction not found for this account and network.');
+      await this.#retainUnknown(held);await this.assert(context,config.revision);
+    }
+    const record=(await this.journal.list(network.id,context.account)).find(r=>r.id===id);
+    if(!record)throw multiError('MULTICHAIN_UNKNOWN_INTENT','Transaction not found for this account and network.');
+    await this.assert(context,config.revision);
+    if(['cancelled','local-cancelled-before-broadcast','signing-unknown'].includes(record.state))return publicRecord(record);
+    let next;
+    // Legacy prepared records predate the pre-sign barrier. A cold reader has
+    // no live no-sign permit and cannot turn those records into cancellation.
+    if(record.state==='prepared')next={state:'signing-unknown',receipt:null};
+    else{try{next=await this.adapter.reconcile(network,record)}catch{next={state:'unknown',receipt:null}}}
+    await this.assert(context,config.revision);await this.journal.transition(id,{...next,updatedAt:this.now()});return publicRecord({...record,...next});
+  }
 }
 
 /** Production mount uses the existing trusted-main-frame and key lifecycle gates. */
