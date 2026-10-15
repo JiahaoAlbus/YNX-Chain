@@ -77,8 +77,9 @@ class NativeWalletController {
         this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error.code === 'string' ? error.code : undefined, message: error.message || 'Wallet operation failed.' });
       }
     }).finally(() => {
+      if (this.inFlight !== operation) return;
       if (action === 'return' && this.returningCallback === returnURL) this.returningCallback = undefined;
-      if (this.inFlight === operation) this.inFlight = undefined;
+      this.inFlight = undefined;
       if (!this.disposed && epoch !== this.epoch) this.publish({ busy: false });
       if (!this.disposed && !this.returningCallback) this.selectCurrentCallback();
       if (!this.disposed && this.state.awaitingCallback && this.callback && this.runtime && this.classifyCallback(this.callback) === 'current') void this.run('return', this.runtime);
@@ -135,11 +136,21 @@ class NativeWalletController {
     else if (!this.inFlight && this.callback) this.publish({ message: 'A Wallet return is waiting. Review it explicitly; no connection approval was inferred.' });
   }
   async cancel() {
-    ++this.epoch;
+    const epoch = ++this.epoch, operation = this.inFlight;
     const runtime = this.runtime; this.runtime = undefined;
     this.callbackQueue = []; this.callback = undefined;
     this.publish({ phase: 'cancelled', hasPendingReturn: false, busy: Boolean(this.inFlight), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
-    if (runtime) await runtime.endNativeOperation().catch(() => {});
+    if (runtime) {
+      let released = false;
+      try { await runtime.endNativeOperation(); released = true; } catch { /* Unknown cleanup keeps the pending slot owned. */ }
+      if (released && epoch === this.epoch && this.inFlight === operation) {
+        // Only confirmed retirement of this exact native capability permits a
+        // retry while its old SDK response drains. Protected records stay SDK-owned.
+        this.inFlight = undefined; this.returningCallback = undefined;
+        this.publish({ busy: false });
+        if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
+      }
+    }
   }
   async guest() {
     const epoch = this.epoch + 1;

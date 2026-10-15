@@ -244,3 +244,62 @@ test('R39 current UNKNOWN retains first error, frees slot and permits explicit R
   fail=false;assert.equal(f.widget.buttons.restore.disabled,false);f.widget.buttons.restore.click();await f.operations.restore;assert.equal(f.calls.filter(x=>x==='restore').length,1);assert.equal(f.controller.state.phase,'ready');assert.equal(f.controller.inFlight,undefined);
  }finally{f.widget.dispose();await f.controller.dispose();}
 });
+
+// R40: only a completed original native cleanup may release the UI slot while
+// the retired SDK promise drains. No private admission or SDK record is changed.
+for(const outcome of ['success','error']){
+ test('R40 confirmed Cancel permits retry while old '+outcome+' drains without changing new busy owner',async()=>{
+  const f=await fixture(),oldGate=deferred(),entered=deferred(),freshGate=deferred(),freshEntered=deferred();let oldRun,newRun;
+  f.runtime.connection.beginYNX=async()=>{entered.resolve();return oldGate.promise;};
+  const fresh={connection:{...f.runtime.connection,beginYNX:async()=>{f.calls.push('TEST_ONLY_new_begin');freshEntered.resolve();return freshGate.promise;}},endNativeOperation:async()=>{f.calls.push('TEST_ONLY_new_end');}};
+  try{
+   f.widget.buttons.connect.click();oldRun=f.operations.connect;await entered.promise;
+   f.widget.buttons.cancel.click();await f.operations.cancel;
+   assert.equal(f.controller.inFlight,undefined);assert.equal(f.widget.buttons.connect.disabled,false);
+   f.api.beginDeveloperWalletV2Connection=async()=>fresh;f.widget.buttons.connect.click();newRun=f.operations.connect;await freshEntered.promise;
+   assert.equal(f.controller.state.busy,true);assert.equal(f.controller.inFlight,newRun);assert.equal(f.controller.runtime,fresh);
+   if(outcome==='error')oldGate.reject(Object.assign(Error('TEST_ONLY_retired_UNKNOWN'),{code:'TEST_ONLY_OLD_UNKNOWN'}));else oldGate.resolve({status:'wallet-opened',sessionState:{status:'connecting'}});
+   await oldRun;assert.equal(f.controller.inFlight,newRun);assert.equal(f.controller.runtime,fresh);assert.equal(f.controller.state.busy,true);assert.equal(f.controller.state.failureCode,undefined);assert.equal(f.calls.includes('TEST_ONLY_new_end'),false);
+   freshGate.resolve({status:'wallet-opened',sessionState:{status:'connecting'}});await newRun;assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.state.awaitingCallback,true);assert.equal(f.controller.runtime,fresh);
+  }finally{oldGate.resolve({status:'wallet-opened'});freshGate.resolve({status:'wallet-opened'});await oldRun;await newRun;f.widget.dispose();await f.controller.dispose();}
+ });
+}
+test('R40 Cancel keeps exact request busy until native cleanup has actually resolved',async()=>{
+ const f=await fixture(),sdk=deferred(),entered=deferred(),cleanup=deferred(),cleaning=deferred();let pending,cancelled;
+ f.runtime.connection.beginYNX=async()=>{entered.resolve();return sdk.promise;};
+ f.runtime.endNativeOperation=async()=>{cleaning.resolve();await cleanup.promise;};
+ try{
+  f.widget.buttons.connect.click();pending=f.operations.connect;await entered.promise;
+  f.widget.buttons.cancel.click();cancelled=f.operations.cancel;await cleaning.promise;
+  assert.equal(f.controller.inFlight,pending);assert.equal(f.widget.buttons.connect.disabled,true);assert.equal(f.controller.state.busy,true);
+  cleanup.resolve();await cancelled;assert.equal(f.controller.inFlight,undefined);assert.equal(f.widget.buttons.connect.disabled,false);assert.equal(f.controller.state.phase,'cancelled');
+ }finally{cleanup.resolve();sdk.resolve({status:'wallet-opened'});await cancelled;await pending;f.widget.dispose();await f.controller.dispose();}
+});
+test('R40 failed native cleanup cannot release admission slot for an overlapping retry',async()=>{
+ const f=await fixture(),sdk=deferred(),entered=deferred();let pending;
+ f.runtime.connection.beginYNX=async()=>{entered.resolve();return sdk.promise;};
+ f.runtime.endNativeOperation=async()=>{throw Error('TEST_ONLY_native_cleanup_UNKNOWN');};
+ try{f.widget.buttons.connect.click();pending=f.operations.connect;await entered.promise;f.widget.buttons.cancel.click();await f.operations.cancel;
+  assert.equal(f.controller.inFlight,pending);assert.equal(f.widget.buttons.connect.disabled,true);assert.equal(f.controller.state.busy,true);
+ }finally{sdk.resolve({status:'wallet-opened'});await pending;f.widget.dispose();await f.controller.dispose();}
+});
+test('R40 native acquisition without returned runtime remains owned until it is safely retired',async()=>{
+ const f=await fixture(),native=deferred(),entered=deferred();let pending;
+ f.api.beginDeveloperWalletV2Connection=async()=>{entered.resolve();return native.promise;};
+ try{f.widget.buttons.connect.click();pending=f.operations.connect;await entered.promise;f.widget.buttons.cancel.click();await f.operations.cancel;
+  assert.equal(f.controller.inFlight,pending);assert.equal(f.widget.buttons.connect.disabled,true);
+  native.resolve(f.runtime);await pending;assert.equal(f.calls.includes('beginYNX'),false);assert.equal(f.calls.includes('end'),true);assert.equal(f.controller.inFlight,undefined);assert.equal(f.widget.buttons.connect.disabled,false);
+ }finally{native.resolve(f.runtime);await pending;f.widget.dispose();await f.controller.dispose();}
+});
+
+test('R40 callback observed while confirmed Cancel drains remains explicit and visible',async()=>{
+ const f=await callbackFixture(),sdk=deferred(),entered=deferred(),cleanup=deferred(),cleaning=deferred();let pending,cancelled;
+ await f.controller.connect();const original=f.runtime.connection.handleReturn;
+ f.runtime.connection.handleReturn=async url=>{entered.resolve();await sdk.promise;return original(url);};
+ f.runtime.endNativeOperation=async()=>{cleaning.resolve();await cleanup.promise;};
+ try{f.controller.receiveCallback(f.urls[0]);await entered.promise;pending=f.controller.inFlight;cancelled=f.controller.cancel();await cleaning.promise;
+  f.controller.receiveCallback(f.urls[1]);cleanup.resolve();await cancelled;
+  assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.returningCallback,undefined);assert.equal(f.controller.callback,f.urls[1]);assert.equal(f.controller.state.hasPendingReturn,true);assert.equal(f.controller.state.awaitingCallback,false);assert.equal(f.widget.buttons.returned.disabled,false);
+  sdk.resolve();await pending;assert.equal(f.controller.callback,f.urls[1]);assert.equal(f.controller.state.hasPendingReturn,true);assert.equal(f.calls.filter(x=>Array.isArray(x)&&x[0]==='return'&&x[1]===f.urls[1]).length,0);
+ }finally{cleanup.resolve();sdk.resolve();await cancelled;await pending;f.widget.dispose();await f.controller.dispose();}
+});
