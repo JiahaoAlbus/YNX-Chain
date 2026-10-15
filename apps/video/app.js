@@ -891,7 +891,9 @@ async function showPlaylists(button) {
     form.innerHTML = '<label for="new-playlist-name">Create a playlist</label><div><input id="new-playlist-name" name="name" maxlength="80" required placeholder="Playlist name"><button type="submit">Create</button></div>';
     const recovery=document.createElement("section");recovery.className="playlist-recovery";
     form.onsubmit = async event => {
-      event.preventDefault(); const button=form.querySelector('button[type="submit"]');button.disabled=true;
+      event.preventDefault();
+      if(!scope.matches())return;
+      const button=form.querySelector('button[type="submit"]');button.disabled=true;
       try {scope.current();await createOriginalPlaylist(form.elements.name.value,scope);scope.current();await showPlaylists(document.querySelector('[data-view="playlists"]'));}
       catch(error){if(error.name!=="AbortError"&&scope.matches()){try{await renderPlaylistRecovery(form,recovery,scope);}catch{}if(scope.matches())notice(error.message,true);}}
       finally{if(scope.matches())button.disabled=false;}
