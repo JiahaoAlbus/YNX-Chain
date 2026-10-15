@@ -824,7 +824,7 @@ async function showSubscriptions(button) {
       const id = field(channel, "id", "ID");
       const article = document.createElement("article"); article.className = "library-row";
       article.innerHTML = '<div><h2>'+esc(field(channel,"name","Name"))+'</h2><p class="meta">@'+esc(field(channel,"handle","Handle"))+'</p></div><div class="row-actions"><button class="open-channel">Open channel</button><button class="outline unsubscribe">Unsubscribe</button></div>';
-      article.querySelector(".open-channel").onclick = () => showChannel(id);
+      article.querySelector(".open-channel").onclick = () => {if(!scope.matches())return;return showChannel(id);};
       article.querySelector(".unsubscribe").onclick = async event => {
         if (!scope.matches()) return;
         const action = event.currentTarget;
