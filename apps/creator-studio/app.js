@@ -674,19 +674,22 @@ document.querySelectorAll("nav button").forEach(button=>button.onclick=()=>{docu
 
 async function refresh(){
   const revision=creatorSessionRevision,read=++studioReadRevision;
+  let channelRead;
   if(!currentCreatorSession(revision))return false;
   try{
     const nextSnapshot=await api("/v1/studio");
     if(!currentCreatorSession(revision)||read!==studioReadRevision)return false;
     snapshot=nextSnapshot;
-    await restoreChannelView(nextSnapshot,revision);
-    if(!currentCreatorSession(revision)||read!==studioReadRevision)return false;
+    const restoring=restoreChannelView(nextSnapshot,revision);
+    channelRead=channelReadRevision;
+    await restoring;
+    if(!currentCreatorSession(revision)||read!==studioReadRevision||channelRead!==channelReadRevision)return false;
     const a=snapshot?.analytics||{};
     $("#views").textContent=a.views??"—";$("#watch").textContent=a.watch_seconds==null?"—":`${a.watch_seconds}s`;$("#subs").textContent=a.subscribers??"—";$("#revenue").textContent=a.revenue_ynxt==null?"—":`${a.revenue_ynxt} YNXT`;
     renderContent();renderTeam();renderRights();renderAudit();renderSavedAI();
     const unresolved=[...creatorUnknownMutations.values()].some(record=>record.account===creatorAccount&&record.state==='UNKNOWN');
     status(unresolved?'Studio records loaded. A sent action still has an unconfirmed result; refreshing does not authorize repeating it.':"Studio state loaded from persistent records.",unresolved);return true;
-  }catch(error){if(currentCreatorSession(revision)&&read===studioReadRevision)status(error.message||t("unavailable"),true);return false}
+  }catch(error){if(currentCreatorSession(revision)&&read===studioReadRevision&&(channelRead===undefined||channelRead===channelReadRevision))status(error.message||t("unavailable"),true);return false}
 }
 const channelForms=["upload-form","team-invite-form","team-role-form","team-revoke-form"];
 async function loadChannelView(channelID,revision){
