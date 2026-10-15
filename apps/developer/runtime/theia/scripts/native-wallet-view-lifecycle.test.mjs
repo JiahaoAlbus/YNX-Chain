@@ -350,3 +350,55 @@ test('R41 unknown rejected lifetime is not treated as permission to retire waiti
   finished.reject(Error('TEST_ONLY_local_lifetime_UNKNOWN'));await flushReviewEnd();assert.equal(f.controller.state,state);assert.equal(f.controller.state.awaitingCallback,true);assert.equal(f.controller.runtime,f.runtime);assert.equal(f.calls.includes('restore'),false);
  }finally{f.widget.dispose();await f.controller.dispose();}
 });
+
+for (const route of ['repeat-button','close-reopen']) {
+ test('R42 '+route+' retains cleanup ownership and enables retry only after confirmed cleanup', async()=>{
+  const f=await fixture(),sdk=deferred(),entered=deferred(),cleanup=deferred(),cleaning=deferred();let pending,first,replacement;
+  f.runtime.connection.beginYNX=async()=>{entered.resolve();return sdk.promise;};
+  f.runtime.endNativeOperation=async()=>{cleaning.resolve();await cleanup.promise;};
+  try {
+   f.widget.buttons.connect.click();pending=f.operations.connect;await entered.promise;
+   f.widget.buttons.cancel.click();first=f.operations.cancel;await cleaning.promise;
+   if(route==='repeat-button'){assert.equal(f.widget.buttons.cancel.disabled,false);f.widget.buttons.cancel.click();await f.operations.cancel;}
+   else{f.widget.dispose();replacement=new NativeWalletWidget(f.service);await f.operations.cancel;}
+   assert.equal(f.controller.state.busy,true);assert.equal((replacement||f.widget).buttons.connect.disabled,true);
+   cleanup.resolve();await first;
+   assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.state.busy,false);assert.equal((replacement||f.widget).buttons.connect.disabled,false);
+  }finally{cleanup.resolve();sdk.resolve({status:'wallet-opened'});await first;await pending;replacement?.dispose();f.widget.dispose();await f.controller.dispose();}
+ });
+}
+for (const outcome of ['success','unknown']) {
+ test('R42 waiting review '+outcome+' cleanup blocks new Connect until its actual outcome',async()=>{
+  const f=await fixture(),cleanup=deferred(),entered=deferred();let cancelled;
+  await f.controller.connect();const original=f.runtime.endNativeOperation;let acquired=0;
+  f.api.beginDeveloperWalletV2Connection=async()=>{acquired++;return f.runtime;};
+  f.runtime.endNativeOperation=async()=>{entered.resolve();return cleanup.promise;};
+  try{
+   f.widget.buttons.cancel.click();cancelled=f.operations.cancel;await entered.promise;
+   assert.equal(f.controller.state.busy,true);assert.equal(f.widget.buttons.connect.disabled,true);
+   await f.controller.connect();assert.equal(acquired,0);
+   if(outcome==='unknown')cleanup.reject(Error('TEST_ONLY_UNKNOWN'));else cleanup.resolve();
+   await cancelled;assert.equal(f.controller.state.busy,outcome==='unknown');
+   assert.equal(f.widget.buttons.connect.disabled,outcome==='unknown');
+  }finally{cleanup.resolve();await cancelled;f.runtime.endNativeOperation=original;f.widget.dispose();await f.controller.dispose();}
+ });
+}
+test('R42 ordinary completed cancel permits exactly one subsequent original Connect',async()=>{
+ const f=await fixture();try{await f.controller.connect();await f.controller.cancel();assert.equal(f.widget.buttons.connect.disabled,false);f.widget.buttons.connect.click();await f.operations.connect;assert.equal(f.calls.filter(x=>x==='beginYNX').length,2);assert.equal(f.controller.state.awaitingCallback,true);}finally{f.widget.dispose();await f.controller.dispose();}
+});
+
+for(const outcome of ['success','unknown']){
+ test('R42 drained original SDK cannot release or strand '+outcome+' native cleanup ownership',async()=>{
+  const f=await fixture(),sdk=deferred(),entered=deferred(),cleanup=deferred(),cleaning=deferred();let pending,cancelled;let ends=0;
+  f.runtime.connection.beginYNX=async()=>{entered.resolve();return sdk.promise;};
+  f.runtime.endNativeOperation=async()=>{if(++ends===1){cleaning.resolve();await cleanup.promise;}};
+  try{
+   f.widget.buttons.connect.click();pending=f.operations.connect;await entered.promise;
+   f.widget.buttons.cancel.click();cancelled=f.operations.cancel;await cleaning.promise;
+   sdk.resolve({status:'wallet-opened'});await pending;
+   assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.state.busy,true);assert.equal(f.widget.buttons.connect.disabled,true);
+   if(outcome==='success')cleanup.resolve();else cleanup.reject(Error('TEST_ONLY_UNKNOWN'));
+   await cancelled;assert.equal(f.controller.state.busy,outcome==='unknown');assert.equal(f.widget.buttons.connect.disabled,outcome==='unknown');
+  }finally{cleanup.resolve();sdk.resolve({status:'wallet-opened'});await cancelled;await pending;f.widget.dispose();await f.controller.dispose();}
+ });
+}

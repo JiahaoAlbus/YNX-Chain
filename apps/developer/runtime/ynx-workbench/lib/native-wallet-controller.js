@@ -28,7 +28,7 @@ class NativeWalletController {
   disconnect() { return this.run('disconnect'); }
   resumeCallback() { if (!this.callback) return Promise.resolve(); return this.run('return'); }
   run(action, existingRuntime) {
-    if (this.disposed || this.inFlight || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
+    if (this.disposed || this.inFlight || this.cancelling || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
     const epoch = ++this.epoch;
     let runtime = existingRuntime;
     const returnURL = action === 'return' ? this.callback : undefined;
@@ -91,7 +91,7 @@ class NativeWalletController {
       if (this.inFlight !== operation) return;
       if (action === 'return' && this.returningCallback === returnURL) this.returningCallback = undefined;
       this.inFlight = undefined;
-      if (!this.disposed && epoch !== this.epoch) this.publish({ busy: false });
+      if (!this.disposed && epoch !== this.epoch) this.publish({ busy: Boolean(this.cancelling) });
       if (!this.disposed && !this.returningCallback) this.selectCurrentCallback();
       if (!this.disposed && this.state.awaitingCallback && this.callback && this.runtime && this.classifyCallback(this.callback) === 'current') void this.run('return', this.runtime);
     });
@@ -149,15 +149,19 @@ class NativeWalletController {
   async cancel() {
     const epoch = ++this.epoch, operation = this.inFlight;
     const runtime = this.runtime; this.runtime = undefined;
+    // Widget close/pagehide may cancel again while this exact cleanup awaits.
+    // Ownership follows the native cleanup, not the latest UI epoch.
+    const cleanup = runtime ? { runtime, operation } : this.cancelling;
+    if (runtime) this.cancelling = cleanup;
     this.callbackQueue = []; this.callback = undefined;
-    this.publish({ phase: 'cancelled', hasPendingReturn: false, busy: Boolean(this.inFlight), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
+    this.publish({ phase: 'cancelled', hasPendingReturn: false, busy: Boolean(this.inFlight || this.cancelling), awaitingCallback: false, sessionCurrent: false, message: 'Cancelled locally. Protected pending/session records were preserved; restore is explicit.' });
     if (runtime) {
       let released = false;
       try { await runtime.endNativeOperation(); released = true; } catch { /* Unknown cleanup keeps the pending slot owned. */ }
-      if (released && epoch === this.epoch && this.inFlight === operation) {
+      if (released && this.cancelling === cleanup && (!this.inFlight || this.inFlight === operation) && !this.runtime) {
         // Only confirmed retirement of this exact native capability permits a
         // retry while its old SDK response drains. Protected records stay SDK-owned.
-        this.inFlight = undefined; this.returningCallback = undefined;
+        this.cancelling = undefined; this.inFlight = undefined; this.returningCallback = undefined;
         this.publish({ busy: false });
         if (!this.disposed && epoch === this.epoch && !this.inFlight) this.selectCurrentCallback();
       }
