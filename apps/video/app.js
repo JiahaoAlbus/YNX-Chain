@@ -17,6 +17,7 @@ const savedWalletStateKey = "ynx.video.walletState";
 
 let currentWallet = null;
 let walletRevision = 0;
+let walletConnectionRevision = 0;
 let currentVideo = null;
 let playbackSelectionRevision = 0;
 let navigationRevision = 0;
@@ -83,6 +84,7 @@ function setConnectionMessage(message) {
 
 function resetWallet(message = "Wallet disconnected. Guest playback remains available.") {
   walletRevision++;
+  walletConnectionRevision++;
   currentWallet = null;
   setConnectionMessage(message + " Your Video sign-in is separate.");
   $("#signin").textContent = "Connect EVM wallet";
@@ -119,8 +121,8 @@ function bindWalletEvents(walletState) {
   unsubscribeEvents = [];
   const provider = walletState.connection?.provider || walletState.provider;
   if (!provider || typeof provider.on !== "function") return;
-  const revision = walletRevision;
-  const current = () => revision === walletRevision && (currentWallet?.connection?.provider || currentWallet?.provider) === provider;
+  const revision = walletConnectionRevision;
+  const current = () => revision === walletConnectionRevision && (currentWallet?.connection?.provider || currentWallet?.provider) === provider;
 
   const onAccountsChanged = (accounts) => {
     if (!current()) return;
@@ -689,6 +691,7 @@ function walletChoiceOptions(error, autoCandidates = []) {
 
 async function connectVideoWalletInteractive(walletId = null) {
   const revision = ++walletRevision;
+  walletConnectionRevision++;
   try {
     $("#signin").disabled = true;
     showInstallOptions(false);
