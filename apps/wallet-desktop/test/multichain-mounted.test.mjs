@@ -20,6 +20,26 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+test('R45 real EVM prepare producer retains the successor review after an older quote completes',async()=>{
+ const f=mounted();try{
+  const gate=deferred(),entered=deferred(),config={revision:1,selected:'n',networks:[f.review.network],tokens:[]};let calls=0,ids=0,privateCalls=0;
+  const service=new MultichainService({config:{read:async()=>config},journal:{blocking:async()=>[],list:async()=>[]},getContext:async()=>({account:f.review.account,revision:1,locked:false}),withSecret:async()=>{privateCalls++;throw Error('Unexpected private call')},id:()=>`PUBLIC-review-${++ids}`,adapter:{balance:async()=> '1',prepare:async(_network,_account,_asset,to,amount)=>{if(++calls===1){entered.resolve();await gate.promise}return {amount,fee:'2',transaction:{nonce:'0',gasLimit:'21000',gasPrice:'1',data:'0x'},to}}}});
+  const routes=new Map(),safe=async fn=>{try{return {ok:true,value:await fn()}}catch(e){return {ok:false,error:{code:e.code}}}};
+  installMultichainIPC({handle:(name,fn)=>routes.set(name,fn),safe,sensitive:safe,service,getGuard:()=>{throw Error('Unexpected signing guard')}});const invoke=(name,input)=>routes.get('wallet:multichain-'+name)({},input);
+  Object.assign(f.api,{multichainSnapshot:()=>invoke('snapshot'),multichainBalances:()=>invoke('balances'),multichainHistory:()=>invoke('history'),multichainPrepare:input=>invoke('prepare',input),multichainCancel:id=>invoke('cancel',id)});
+  await f.open();const inputs=f.all().filter(n=>n.tag==='input');inputs.at(-2).value=f.review.to;inputs.at(-1).value='1';f.all().filter(n=>n.tag==='select')[1].value='native';
+  const old=reviewButton(f).emit('click');await entered.promise;f.nodes['multichain-sheet'].close();await f.open();inputs.at(-2).value=f.review.to;inputs.at(-1).value='2';f.all().filter(n=>n.tag==='select')[1].value='native';await reviewButton(f).emit('click');
+  const successor=[...service.reviews.keys()][0];assert(successor);assert.equal(f.nodes['multichain-review'].open,true);gate.resolve();await old;
+  assert.equal(service.reviews.has(successor),true,'older quote must not evict the current main-process review');assert.equal(service.reviews.size,1);await f.nodes['multichain-cancel'].emit('click');assert.equal(service.reviews.size,0);assert.equal(f.nodes['multichain-review'].open,false);assert.equal(privateCalls,0);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+ }finally{f.ui.dispose()}
+});
+test('R45 failed newest quote cannot resurrect an older request and explicit retry remains available',async()=>{
+ const f=mounted(),gate=deferred(),entered=deferred();let calls=0;
+ const service=new MultichainService({config:{read:async()=>({revision:1,selected:'n',networks:[f.review.network],tokens:[]})},journal:{blocking:async()=>[]},getContext:async()=>({account:f.review.account,revision:1,locked:false}),withSecret:async()=>{throw Error('Unexpected private call')},adapter:{prepare:async()=>{if(++calls===1){entered.resolve();await gate.promise}else if(calls===2)throw Object.assign(Error('PUBLIC quote unavailable'),{code:'MULTICHAIN_RPC_UNAVAILABLE'});return {amount:'1',fee:'2',transaction:{nonce:'0'}}}}});
+ try{const input={asset:'native',to:f.review.to,amount:'1'},old=service.prepare(input);const oldResult=old.catch(e=>e);await entered.promise;await assert.rejects(service.prepare(input),{code:'MULTICHAIN_RPC_UNAVAILABLE'});gate.resolve();assert.equal((await oldResult).code,'MULTICHAIN_CONTEXT_CHANGED');assert.equal(service.reviews.size,0);
+  const retry=await service.prepare(input);assert.equal(service.reviews.has(retry.id),true);assert.equal((await service.cancel(retry.id)).cancelled,true);assert.equal(service.reviews.size,0);assert.equal(calls,3);
+ }finally{f.ui.dispose()}
+});
 test('R44 late unsigned quote after closing the sheet is cancelled by exact ID without touching a successor review',async()=>{
  const f=mounted();try{await f.open();const gate=deferred(),entered=deferred();f.api.multichainPrepare=async()=>{entered.resolve();return gate.promise};
   const old=reviewButton(f).emit('click');await entered.promise;f.nodes['multichain-sheet'].close();await f.open();
