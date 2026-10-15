@@ -62,3 +62,78 @@ test('actual Theia deferred process/channel exit drains output and retains owned
  assert.equal(owned.disposed,0);assert.equal(owned.finished,0);owned.writes.shift()();assert.equal(owned.finished,1);assert.equal(owned.disposed,0);assert.equal(owned.value.isAttachedCloseListener,true);owned.value.finalizeAndDispose();assert.equal(owned.writes.length,0);owned.pressClose();assert.equal(owned.disposed,1);
  }
 });
+
+const pendingDebug = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+function selectedDebugTerminal(id) {
+ const calls={start:0,execute:[],close:[],options:[]};
+ const terminal={terminalId:id,isDisposed:false,processId:Promise.resolve(10000+id),start:async()=>{calls.start++;},executeCommand:async options=>{calls.execute.push(options);},dispose(){terminal.isDisposed=true;},shellTerminalServer:{close:async value=>{calls.close.push(value);}}};
+ return {terminal,calls};
+}
+function selectedDebugSession(id,owned,open) {
+ const configuration={...config(),name:'TEST_ONLY_selected_launch_'+id,program:'/project/'+id+'.js',cwd:'/project'};
+ const value=session(configuration);value.data.id=id;
+ value.terminalServer={newTerminal:async options=>{owned.calls.options.push(options);return owned.terminal;},open:open||(async()=>{})};
+ return {value,configuration,request:{arguments:{kind:'integrated',title:configuration.name,cwd:configuration.cwd,args:['node',configuration.program],env:{TEST_ONLY:'preserved'}}}};
+}
+test('R37 destroyed session awaiting terminal open cannot execute after replacement starts',async()=>{
+ const {manager,contribution}=fixture(),old=selectedDebugTerminal(701),fresh=selectedDebugTerminal(702),opening=pendingDebug(),entered=pendingDebug();
+ const a=selectedDebugSession('old',old,()=>{entered.resolve();return opening.promise;}),b=selectedDebugSession('new',fresh);
+ try {
+  manager.onDidCreateDebugSessionEmitter.fire(a.value);const pending=a.value.runInTerminal(a.request);await entered.promise;
+  manager.onDidDestroyDebugSessionEmitter.fire(a.value);manager.onDidCreateDebugSessionEmitter.fire(b.value);
+  assert.deepEqual(await b.value.runInTerminal(b.request),{shellProcessId:10702});opening.resolve();await assert.rejects(pending,/has ended/);
+  assert.equal(old.calls.execute.length,0);assert.deepEqual(old.calls.close,[701]);assert.equal(fresh.calls.execute.length,1);assert.deepEqual(fresh.calls.close,[]);
+  assert.equal(contribution.records.has(a.value),false);assert.equal(contribution.records.has(b.value),true);assert.equal(b.value.configuration,b.configuration);
+ }finally{contribution.onStop();}
+});
+test('R37 owner shutdown during selected launch open cannot dispatch a late command',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(703),opening=pendingDebug(),entered=pendingDebug();
+ const current=selectedDebugSession('closing',owned,()=>{entered.resolve();return opening.promise;});
+ manager.onDidCreateDebugSessionEmitter.fire(current.value);const pending=current.value.runInTerminal(current.request);await entered.promise;
+ contribution.onStop();opening.resolve();await assert.rejects(pending,/has ended/);assert.equal(owned.calls.execute.length,0);assert.deepEqual(owned.calls.close,[703]);
+});
+test('R37 selected terminal disposed during open cannot execute or return a live PID',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(704),opening=pendingDebug(),entered=pendingDebug();
+ const current=selectedDebugSession('disposed',owned,()=>{entered.resolve();return opening.promise;});
+ try {manager.onDidCreateDebugSessionEmitter.fire(current.value);const pending=current.value.runInTerminal(current.request);await entered.promise;
+  owned.terminal.dispose();opening.resolve();await assert.rejects(pending,/has ended/);assert.equal(owned.calls.execute.length,0);assert.deepEqual(owned.calls.close,[704]);
+ }finally{contribution.onStop();}
+});
+test('R37 current selected launch preserves configuration cwd, original terminal execution and exact cleanup',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(705),current=selectedDebugSession('selected',owned);
+ try {manager.onDidCreateDebugSessionEmitter.fire(current.value);assert.deepEqual(await current.value.runInTerminal(current.request),{shellProcessId:10705});
+  assert.equal(current.value.configuration,current.configuration);assert.equal(current.configuration.cwd,'/project');assert.equal(owned.calls.options[0].cwd,'/project');assert.deepEqual(owned.calls.options[0].env,current.request.arguments.env);
+  assert.equal(owned.calls.start,1);assert.equal(owned.calls.execute.length,1);assert.equal(owned.calls.execute[0].args,current.request.arguments.args);assert.equal(owned.calls.execute[0].cwd,'/project');assert.equal(owned.calls.execute[0].env,undefined);
+  manager.onDidDestroyDebugSessionEmitter.fire(current.value);await Promise.resolve();await Promise.resolve();assert.deepEqual(owned.calls.close,[705]);assert.equal(contribution.records.size,0);
+ }finally{contribution.onStop();}
+});
+test('R37 late context admission remains retired without creating terminal or replacing current session',async()=>{
+ const {manager,contribution}=fixture(),context=pendingDebug(),entered=pendingDebug(),old=selectedDebugTerminal(706),fresh=selectedDebugTerminal(707);
+ let queries=0;contribution.context.getContext=()=>++queries===1?(entered.resolve(),context.promise):Promise.resolve({mode:'local',workspace:'/project'});
+ const a=selectedDebugSession('admission-old',old),b=selectedDebugSession('admission-new',fresh);
+ try {manager.onDidCreateDebugSessionEmitter.fire(a.value);const pending=a.value.runInTerminal(a.request);await entered.promise;
+  manager.onDidDestroyDebugSessionEmitter.fire(a.value);manager.onDidCreateDebugSessionEmitter.fire(b.value);assert.deepEqual(await b.value.runInTerminal(b.request),{shellProcessId:10707});
+  context.resolve({mode:'local',workspace:'/project'});await assert.rejects(pending,/has ended/);assert.equal(old.calls.options.length,0);assert.equal(fresh.calls.execute.length,1);assert.equal(contribution.records.has(b.value),true);
+ }finally{contribution.onStop();}
+});
+
+test('R37 newly disposed terminal returned from creation cannot start',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(708),current=selectedDebugSession('create-closed',owned);
+ owned.terminal.dispose();
+ try {manager.onDidCreateDebugSessionEmitter.fire(current.value);await assert.rejects(current.value.runInTerminal(current.request),/has ended/);assert.equal(owned.calls.start,0);assert.equal(owned.calls.execute.length,0);
+ }finally{contribution.onStop();}
+});
+test('R37 terminal closes during start cannot enter later open or execute',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(709),starting=pendingDebug(),entered=pendingDebug();let opens=0;
+ owned.terminal.start=async()=>{owned.calls.start++;entered.resolve();await starting.promise;};
+ const current=selectedDebugSession('start-closed',owned,async()=>{opens++;});
+ try {manager.onDidCreateDebugSessionEmitter.fire(current.value);const pending=current.value.runInTerminal(current.request);await entered.promise;owned.terminal.dispose();starting.resolve();await assert.rejects(pending,/has ended/);assert.equal(opens,0);assert.equal(owned.calls.execute.length,0);assert.deepEqual(owned.calls.close,[709]);
+ }finally{contribution.onStop();}
+});
+test('R37 closed terminal waiting for PID cannot report a successful live shell',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(710),pid=pendingDebug(),entered=pendingDebug();
+ Object.defineProperty(owned.terminal,'processId',{get(){entered.resolve();return pid.promise;}});
+ const current=selectedDebugSession('pid-closed',owned);
+ try {manager.onDidCreateDebugSessionEmitter.fire(current.value);const pending=current.value.runInTerminal(current.request);await entered.promise;owned.terminal.dispose();pid.resolve(10710);await assert.rejects(pending,/has ended/);assert.equal(owned.calls.execute.length,1);assert.deepEqual(owned.calls.close,[710]);
+ }finally{contribution.onStop();}
+});
