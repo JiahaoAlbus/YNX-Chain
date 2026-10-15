@@ -111,10 +111,11 @@ class NativeWalletController {
     if (runtime) await runtime.endNativeOperation().catch(() => {});
   }
   async guest() {
+    const epoch = this.epoch + 1;
     await this.cancel();
-    const epoch = this.epoch;
+    if (this.disposed || epoch !== this.epoch) return;
     const result = await this.api.enterDeveloperWalletV2Guest();
-    if (epoch === this.epoch && result.available) this.publish({ phase: 'guest', session: publicSessionState(result), message: result.sessionState.message, source: result.source });
+    if (!this.disposed && epoch === this.epoch && result.available) this.publish({ phase: 'guest', session: publicSessionState(result), message: result.sessionState.message, source: result.source });
   }
   dispose() { if (this.disposed) return Promise.resolve(); const cleanup = this.cancel(); this.disposed = true; this.unsubscribe(); this.callback = undefined; return cleanup; }
 }

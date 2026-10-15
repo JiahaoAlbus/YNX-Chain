@@ -235,3 +235,46 @@ test('R27 admission stale rejection cannot replace cancellation or prevent expli
  assert.equal(f.controller.state.phase, 'cancelled'); assert.equal(f.controller.state.failureCode, undefined); assert.equal(f.calls.includes('native-approval'), false);
  f.admission.assertCurrent = () => true; await f.controller.connect(); assert.equal(f.controller.state.awaitingCallback, true); await f.controller.dispose();
 });
+
+// R28 scheduling fixtures exercise the actual Guest button controller only.
+for (const invalidation of ['connect', 'cancel', 'dispose']) {
+ test('R28 guest cleanup wait cannot adopt newer ' + invalidation + ' generation', async () => {
+  const f = fixture(), entered = deferred(), cleanup = deferred(); let guests = 0;
+  f.api.enterDeveloperWalletV2Guest = async () => { ++guests; return { available: true, sessionState: { status: STATES.GUEST, message: 'TEST_ONLY guest' } }; };
+  await f.controller.connect(); const oldRuntime = f.runtime;
+  oldRuntime.endNativeOperation = async () => { f.calls.push('old-end-entered'); entered.resolve(); await cleanup.promise; };
+  const oldGuest = f.controller.guest(); await entered.promise;
+  const newer = { ...oldRuntime, endNativeOperation: async () => f.calls.push('new-end') };
+  if (invalidation === 'connect') { f.api.beginDeveloperWalletV2Connection = async () => newer; await f.controller.connect(); }
+  else await f.controller[invalidation]();
+  const epoch = f.controller.epoch, state = f.controller.state, reference = f.controller.runtime;
+  cleanup.resolve(); await oldGuest;
+  assert.equal(guests, 0, 'Superseded Guest cannot enter its API after old cleanup');
+  assert.equal(f.controller.epoch, epoch); assert.equal(f.controller.state, state); assert.equal(f.controller.runtime, reference);
+  if (invalidation === 'connect') { assert.equal(reference, newer); assert.equal(f.calls.includes('new-end'), false); }
+  if (invalidation !== 'dispose') await f.controller.dispose();
+ });
+ test('R28 guest response wait cannot replace newer ' + invalidation + ' state', async () => {
+  const f = fixture(), entered = deferred(), reply = deferred(); let guests = 0;
+  f.api.enterDeveloperWalletV2Guest = async () => { ++guests; entered.resolve(); return reply.promise; };
+  const oldGuest = f.controller.guest(); await entered.promise;
+  if (invalidation === 'connect') await f.controller.connect(); else await f.controller[invalidation]();
+  const epoch = f.controller.epoch, state = f.controller.state, runtime = f.controller.runtime;
+  reply.resolve({ available: true, sessionState: { status: STATES.GUEST, message: 'TEST_ONLY old response' } }); await oldGuest;
+  assert.equal(guests, 1); assert.equal(f.controller.epoch, epoch); assert.equal(f.controller.state, state); assert.equal(f.controller.runtime, runtime);
+  if (invalidation !== 'dispose') await f.controller.dispose();
+ });
+}
+test('R28 guest direct normal entry calls local Guest exactly once without native approval', async () => {
+ const f = fixture(); let calls = 0; f.api.enterDeveloperWalletV2Guest = async () => { ++calls; return { available: true, sessionState: { status: STATES.GUEST, message: 'TEST_ONLY guest' } }; };
+ await f.controller.guest(); assert.equal(calls, 1); assert.equal(f.controller.state.phase, 'guest');
+ assert.equal(f.controller.state.session.status, STATES.GUEST); assert.equal(f.calls.includes('native-approval'), false); await f.controller.dispose();
+});
+
+test('R28 guest synchronous cancellation notification cannot adopt a reentrant connection', async () => {
+ const f = fixture(); let newer, guests = 0, once = true;
+ f.api.enterDeveloperWalletV2Guest = async () => { ++guests; return { available: true, sessionState: { status: STATES.GUEST, message: 'TEST_ONLY guest' } }; };
+ f.controller.emit = state => { if (once && state.phase === 'cancelled') { once = false; newer = f.controller.connect(); } };
+ await f.controller.guest(); await newer; assert.equal(guests, 0);
+ assert.equal(f.controller.state.awaitingCallback, true); assert.equal(f.controller.runtime, f.runtime); await f.controller.dispose();
+});
