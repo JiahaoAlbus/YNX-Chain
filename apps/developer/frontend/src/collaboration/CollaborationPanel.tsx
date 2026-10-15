@@ -104,6 +104,7 @@ export function CollaborationPanel({
     (async () => {
       try {
         await runtimeHealth();
+        if (disposed) return;
         const access = await collaborationAccess(roomId);
         if (disposed) return;
         setRole(access.role);
@@ -155,7 +156,9 @@ export function CollaborationPanel({
             );
             if (value.action === "join" && access.role === "owner")
               collaborationAccess(roomId)
-                .then((next) => setMembers(next.members || []))
+                .then((next) => {
+                  if (!disposed && socket.current === ws) setMembers(next.members || []);
+                })
                 .catch(() => {});
           } else if (value.type === "chat")
             setChat((current) => [...current, value].slice(-100));
