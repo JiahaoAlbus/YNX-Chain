@@ -10,6 +10,7 @@ function summary(entry,status=stage(entry)){
   if(entry.nativeOnly)return Object.freeze({account:entry.account,hash:entry.hash,nativeOnly:true,localRetention:entry.localRetention,status:"transfer_unconfirmed",checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false});
   const {record}=entry;
   return Object.freeze({account:record.account,hash:record.transfer.hash,invoiceId:record.invoice.id,merchant:record.invoice.merchantName,recipient:record.invoice.payoutAddress,
+    chainId:record.intent.chainId,asset:record.invoice.asset,
     amount:record.invoice.amount,fee:record.invoice.fee,total:record.intent.total,status,checkpointVerified:!!entry.evidence,settlementVerified:!!entry.settlement,
     settlementAttempted:entry.settlementAttempted,broadcastAttempted:entry.broadcastAttempted,consensusFinality:false,...(entry.localRetention?{localRetention:entry.localRetention}:{})});
 }
@@ -62,6 +63,7 @@ export function createDesktopPayService({getContext,getIdentity,getRuntime,now=D
         const token=id();if(typeof token!=="string"||!token||token.length>128)fail("PAY_REVIEW_INVALID");
         review={id:token,guard,request:{rawInvoice:quote.invoice,rawIntent:quote.intent,reviewedIntentDigest:quote.intentDigest,review:{...selected,to:quote.intent.payoutAddress,amount:quote.intent.amount}}};
         return {kind:"review",review:{id:token,account:selected.account,invoiceId,merchant:quote.invoice.merchantName,recipient:quote.invoice.payoutAddress,
+          chainId:quote.intent.chainId,asset:quote.invoice.asset,
           amount:quote.intent.amount,fee:quote.intent.fee,total:quote.intent.total,expiresAt:quote.intent.quoteExpiresAt,intentDigest:quote.intentDigest,paymentAuthorized:false}};
       });
     },

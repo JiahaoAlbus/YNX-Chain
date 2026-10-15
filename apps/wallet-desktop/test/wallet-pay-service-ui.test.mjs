@@ -16,6 +16,29 @@ import {payTestSecret,signedPayFixture} from "./fixture-signed-pay.mjs";
 import {fixtureKeyAuthorization} from "./fixture-key-authorization.mjs";
 import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/native-json-contract-fixture.json",import.meta.url),"utf8"));
+test('R39 normal Pay review carries the verified invoice network and asset into exact visible facts without approval',async()=>{
+ const f=await harness();try{
+  const preview=await f.api.payReview(f.input.rawInvoice.id);assert.equal(preview.ok,true);
+  assert.equal(preview.value.review.chainId,f.input.rawIntent.chainId);assert.equal(preview.value.review.asset,f.input.rawInvoice.asset);
+  const nodes=new Map(),make=()=>({open:false,value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},async emit(type,event={}){await this.listeners.get(type)?.(event);await new Promise(resolve=>setImmediate(resolve))},showModal(){this.open=true},close(){this.open=false;this.listeners.get('close')?.()},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}}),get=s=>{if(!nodes.has(s))nodes.set(s,make());return nodes.get(s)};
+  mountDesktopPayUI({document:{querySelector:s=>fileInputDOM(get(s),next=>nodes.set(s,next)),createElement:make},api:f.api,getContext:()=>({account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:f.lifecycle.status().locked})});
+  const idle=async()=>{for(let n=0;n<200;n++){if(!get('#protected-pay-restore').disabled)return;await new Promise(resolve=>setTimeout(resolve,2))}throw Error('Normal Pay IPC did not become idle')};
+  await get('#open-protected-pay').emit('click');await idle();get('#protected-pay-reference').value=f.input.rawInvoice.id;await get('#protected-pay-form').emit('submit',{preventDefault(){}});await idle();
+  const facts=get('#protected-pay-facts').children.map(node=>node.textContent);
+  const field=key=>facts[facts.indexOf(key)+1];
+  for(const [key,value]of [['Network',f.input.rawIntent.chainId],['Paying account',f.identity.account],['Recipient',f.input.rawInvoice.payoutAddress],['Amount','25 YNXT'],['Network fee','1 YNXT'],['Total','26 YNXT']]){assert.ok(facts.includes(key));assert.equal(field(key),value)}
+  assert.equal(get('#protected-pay-approve').hidden,false);assert.equal(f.posts(),0);assert.equal(f.submits(),0);assert.equal(f.decryptions(),0);get('#protected-pay-sheet').close();
+ }finally{f.lifecycle.lock()}
+});
+test('R39 review contract metadata must be exact before any approval is offered',async()=>{
+ const f=await harness();try{
+  const valid=(await f.api.payReview(f.input.rawInvoice.id)).value.review;
+  for(const patch of [{chainId:'other-network'},{asset:'OTHER'},{chainId:undefined}]){
+   const views=[],ui=createDesktopPayUI({getContext:()=>({open:true,account:f.identity.account,keyRevision:1,locked:false}),api:{...f.api,payReview:async()=>({ok:true,value:{kind:'review',review:{...valid,...patch}}})},render:view=>views.push(view)});
+   await ui.open();await ui.review(f.input.rawInvoice.id);assert.equal(views.at(-1).review,null);assert.ok(views.at(-1).error);await ui.approve();assert.equal(f.posts(),0);assert.equal(f.submits(),0);assert.equal(f.decryptions(),0);
+  }
+ }finally{f.lifecycle.lock()}
+});
 test('r5 normal Pay IPC save-only retains full original internally and never calls signer or outward client',async()=>{
  const f=await harness(),transfer=createSignedNativeTransfer({accountSecret:payTestSecret,to:f.input.review.to,amount:25,nonce:2}),paymentResult=createSignedPayPaymentResult({accountSecret:payTestSecret,intent:f.input.rawIntent,transferPayload:transfer.payload,issuedAt:new Date(f.input.now()).toISOString()},new Date(f.input.now()));
  const record={version:2,account:f.identity.account,origin:CANONICAL_RPC_URL,invoice:f.input.rawInvoice,intent:f.input.rawIntent,session:f.authority.session,transfer,paymentResult},account=evmAddressFromYNX(f.identity.account);await f.store.reserveOriginal(account,'pay');f.store.captureOriginal(account,record,'pay');
@@ -31,7 +54,7 @@ test('r5 default uncomposed Pay save does not activate integration or access a k
 
 for(const boundary of ["reopen","account","key","lock","locked-entry"])test(`old open cancellation cannot capture a new ${boundary} epoch or clear its review`,async()=>{
   const context={open:true,account:"original",keyRevision:1,locked:false},views=[];let cancelCalls=0,resolveOld,statusCalls=0,restoreCalls=0;
-  const api={payCancel:()=>++cancelCalls===2?new Promise(resolve=>resolveOld=resolve):{ok:true},payStatus:async()=>{statusCalls++;return {ok:true,value:{available:true,paymentAuthorized:false}}},payRestore:async()=>{restoreCalls++;return {ok:true,value:{kind:"original",original:null}}},payReview:async()=>({ok:true,value:{kind:"review",review:{account:context.account,id:"new-review",invoiceId:"inv_"+"a".repeat(20),merchant:"merchant",recipient:"payee",amount:25,fee:1,total:26,intentDigest:"a".repeat(64),expiresAt:"2026-10-03T23:00:00Z",paymentAuthorized:false}}})};
+  const api={payCancel:()=>++cancelCalls===2?new Promise(resolve=>resolveOld=resolve):{ok:true},payStatus:async()=>{statusCalls++;return {ok:true,value:{available:true,paymentAuthorized:false}}},payRestore:async()=>{restoreCalls++;return {ok:true,value:{kind:"original",original:null}}},payReview:async()=>({ok:true,value:{kind:"review",review:{account:context.account,chainId:'ynx_6423-1',asset:'YNXT',id:"new-review",invoiceId:"inv_"+"a".repeat(20),merchant:"merchant",recipient:"payee",amount:25,fee:1,total:26,intentDigest:"a".repeat(64),expiresAt:"2026-10-03T23:00:00Z",paymentAuthorized:false}}})};
   const ui=createDesktopPayUI({api,getContext:()=>({...context}),render:view=>views.push(view)});
   await ui.open();if(boundary==="locked-entry")context.locked=true;const pending=ui.open();await Promise.resolve();assert.equal(typeof resolveOld,"function");
   if(boundary==="reopen"){context.open=false;await ui.clear();context.open=true}
@@ -139,9 +162,9 @@ test("Desktop cancellation after protected key await prevents journal publicatio
 });
 test("Desktop renderer state machine explicit review → approve → check → settle → Done → history uses real service",async()=>{
   const f=await harness(),views=[],context={open:true,account:f.identity.account,keyRevision:f.lifecycle.status().revision,locked:false},ui=createDesktopPayUI({api:f.api,getContext:()=>({...context}),render:view=>views.push(view)});
-  await ui.open();await ui.review(f.input.rawInvoice.id);assert.ok(views.at(-1).review);assert.equal(f.posts(),0);await ui.approve();assert.equal(views.at(-1).original.status,"transfer_unconfirmed");
+  await ui.open();await ui.review(f.input.rawInvoice.id);assert.ok(views.at(-1).review);assert.equal(f.posts(),0);await ui.approve();assert.equal(views.at(-1).original.status,"transfer_unconfirmed");assert.equal(views.at(-1).original.chainId,f.input.rawIntent.chainId);assert.equal(views.at(-1).original.asset,f.input.rawInvoice.asset);
   await ui.action("settle");assert.equal(f.submits(),0);await ui.action("check");assert.equal(views.at(-1).original.checkpointVerified,true);await ui.action("settle");assert.equal(views.at(-1).original.status,"settled");await ui.action("done");assert.equal(views.at(-1).original.status,"archived");
-  const history=await ui.history();assert.equal(history.length,1);assert.equal(history[0].status,"archived");assert.equal(f.decryptions(),1);assert.equal(f.posts(),1);assert.equal(f.submits(),1);await ui.clear();f.lifecycle.lock();
+  const history=await ui.history();assert.equal(history.length,1);assert.equal(history[0].status,"archived");assert.equal(history[0].chainId,f.input.rawIntent.chainId);assert.equal(history[0].asset,f.input.rawInvoice.asset);assert.equal(f.decryptions(),1);assert.equal(f.posts(),1);assert.equal(f.submits(),1);await ui.clear();f.lifecycle.lock();
 });
 test("Desktop service same known hash Done is idempotent after active record release",async()=>{
   const f=await harness(),review=(await f.api.payReview(f.input.rawInvoice.id)).value.review,approved=(await f.api.payAction({action:"approve",id:review.id})).value.original;
@@ -169,7 +192,7 @@ test("Desktop renderer lost settlement disables repeat submission until original
 });
 test("Desktop Pay history paging rejects wrong-account, duplicate, pending and forged-finality rows",async()=>{
   const f=await harness(),views=[],context={open:true,account:f.identity.account,keyRevision:1,locked:false};
-  const record={account:context.account,hash:"0x"+"1".repeat(64),invoiceId:f.input.rawInvoice.id,merchant:"<script>merchant</script>",recipient:f.input.rawInvoice.payoutAddress,amount:25,fee:1,total:26,status:"archived",checkpointVerified:true,settlementVerified:true,settlementAttempted:true,broadcastAttempted:true,consensusFinality:false};
+  const record={account:context.account,chainId:'ynx_6423-1',asset:'YNXT',hash:"0x"+"1".repeat(64),invoiceId:f.input.rawInvoice.id,merchant:"<script>merchant</script>",recipient:f.input.rawInvoice.payoutAddress,amount:25,fee:1,total:26,status:"archived",checkpointVerified:true,settlementVerified:true,settlementAttempted:true,broadcastAttempted:true,consensusFinality:false};
   let page={account:context.account,records:[record],nextCursor:record.hash};const cursors=[],api={...f.api,payHistory:async cursor=>{cursors.push(cursor);return {ok:true,value:page}}},ui=createDesktopPayUI({api,getContext:()=>({...context}),render:view=>views.push(view)});await ui.open();assert.equal((await ui.history()).length,1);
   page={account:context.account,records:[{...record,hash:"0x"+"2".repeat(64)}],nextCursor:null};assert.equal((await ui.history(true)).length,2);assert.deepEqual(cursors,[null,record.hash]);assert.equal(views.at(-1).historyCursor,null);
   for(const patch of [{account:"other"},{status:"transfer_unconfirmed",settlementVerified:false,checkpointVerified:false},{consensusFinality:true},{payload:"signed-original"}]){page={account:context.account,records:[{...record,...patch}],nextCursor:null};assert.equal(await ui.history(),null);assert.ok(views.at(-1).error)}

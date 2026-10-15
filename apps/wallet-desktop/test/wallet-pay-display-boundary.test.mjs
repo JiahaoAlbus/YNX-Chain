@@ -6,9 +6,9 @@ import {fileInputDOM} from "./fixture-file-input-dom.mjs";
 // Public renderer DTOs only. No factory, authority, real key or payment exists
 // in this harness; malformed displays must never unlock an approval action.
 const account="original-account",invoiceId="inv_"+"a".repeat(20);
-const review=()=>({id:"original-review",account,invoiceId,merchant:"Merchant",recipient:"recipient",amount:25,fee:1,total:26,
+const review=()=>({id:"original-review",account,chainId:'ynx_6423-1',asset:'YNXT',invoiceId,merchant:"Merchant",recipient:"recipient",amount:25,fee:1,total:26,
   expiresAt:"2026-10-04T00:00:00Z",intentDigest:"a".repeat(64),paymentAuthorized:false});
-const archived=()=>({account,hash:"0x"+"b".repeat(64),invoiceId,merchant:"Merchant",recipient:"recipient",amount:25,fee:1,total:26,
+const archived=()=>({account,chainId:'ynx_6423-1',asset:'YNXT',hash:"0x"+"b".repeat(64),invoiceId,merchant:"Merchant",recipient:"recipient",amount:25,fee:1,total:26,
   status:"archived",checkpointVerified:true,settlementVerified:true,settlementAttempted:true,broadcastAttempted:true,consensusFinality:false});
 function harness(){
   const views=[],calls={restore:0,approve:0};
