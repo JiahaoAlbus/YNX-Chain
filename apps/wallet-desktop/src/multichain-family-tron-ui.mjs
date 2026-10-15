@@ -17,7 +17,7 @@ export function createTronTransferUI({document,parent,api,getContext,getSelectio
   prepare.addEventListener('click',async()=>{
     if(busy||getContext().locked||getSelection().family!=='tron')return;
     const ticket=++epoch,binding=key(),selection={...getSelection()},account=getContext().account;busy=true;update();
-    try{await discard(id);id=null;signingSupported=false;facts.replaceChildren();if(!current(ticket,binding))return;
+    try{await discard(id);if(!current(ticket,binding))return;id=null;signingSupported=false;facts.replaceChildren();
       const isNative=asset.value==='trx',reply=await api.familyTronPrepare({network:selection.network,to:to.input.value.trim(),amount:amount.input.value.trim(),asset:isNative?'trx':'trc20',...(isNative?{}:{contract:asset.value}),feeLimitSun:isNative?'0':feeLimit.input.value.trim()||undefined,maxFeeSun:maxFee.input.value.trim()});
       if(!current(ticket,binding)){if(reply?.ok)await discard(reply.value.id);return;}if(!reply.ok){status.textContent=reply.error?.code??'FAMILY_PREVIEW_UNAVAILABLE';return;}const value=reply.value;id=value.id;
       if(value.family!=='tron'||value.network!==selection.network||value.vaultAccount!==account||value.state!=='prepared'||typeof value.signingSupported!=='boolean'||value.broadcastSupported!==false)throw Error('FAMILY_RECOVERY_BINDING');signingSupported=value.signingSupported&&typeof api.familyTronSign==='function';

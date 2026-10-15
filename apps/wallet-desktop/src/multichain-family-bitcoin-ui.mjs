@@ -17,8 +17,7 @@ export function createBitcoinTransferUI({document,parent,api,getContext,getSelec
     if(busy||getContext().locked||getSelection().family!=='bitcoin')return;
     const ticket=++epoch,binding=key(),selection={...getSelection()},context={...getContext()};busy=true;update();
     try{
-      await discard(id);id=null;review.replaceChildren();
-      if(!current(ticket,binding))return;
+      await discard(id);if(!current(ticket,binding))return;id=null;review.replaceChildren();
       const result=await api.familyBitcoinPrepare({network:selection.network,to:to.value.trim(),amount:amount.value.trim(),feeRateSatPerVbyte:rate.value.trim(),maxFeeSats:maxFee.value.trim()});
       if(!current(ticket,binding)){if(result?.ok)await discard(result.value.id);return;}
       if(!result.ok){status.textContent=result.error?.code??'FAMILY_PREVIEW_UNAVAILABLE';return;}
