@@ -937,7 +937,7 @@ async function showPlaylist(playlistId) {
     for (const id of ids) {
       const row = document.createElement("article"); row.className="library-row";
       row.innerHTML='<div><h3>Saved video</h3><p class="meta">'+esc(id)+'</p></div><div class="row-actions"><button class="play-saved">Play</button><button class="outline remove-saved">Remove from playlist</button></div>';
-      row.querySelector(".play-saved").onclick=()=>openSavedVideo(id);
+      row.querySelector(".play-saved").onclick=()=>{if(!scope.matches())return;return openSavedVideo(id);};
       row.querySelector(".remove-saved").onclick=async event=>{
         if(!confirm("Remove this item from the playlist? The original video will remain available."))return;
         const button=event.currentTarget;button.disabled=true;
