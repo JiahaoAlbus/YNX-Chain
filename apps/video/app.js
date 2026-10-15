@@ -564,10 +564,15 @@ function beginLibrary(view, button) {
 function libraryFailure(error, epoch, retry) {
   if (epoch !== libraryEpoch) return;
   if (!productConnected()) return renderAccountRequired();
+  const navigation = navigationRevision, revision = productRevision, account = productState.session?.account;
   empty("Your library could not load", "Your saved items remain on the service. Retry when the connection is available.");
   const button = document.createElement("button");
   button.textContent = "Retry";
-  button.onclick = retry;
+  button.onclick = () => {
+    if (epoch !== libraryEpoch || navigation !== navigationRevision || revision !== productRevision ||
+        account !== productState.session?.account || !productConnected() || productSignOutPending) return;
+    return retry();
+  };
   $("#content .empty").append(button);
   notice(error.message, true);
 }
