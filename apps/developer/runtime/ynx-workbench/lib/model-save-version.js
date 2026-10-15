@@ -10,6 +10,8 @@ function installOn(prototype, reportError = failure => saveErrorReporter && save
         let writtenVersion;
         let writtenModel;
         let newer = false;
+        let currentResource;
+        let fullResource;
         const models = new WeakMap();
         const modelFacade = model => {
             if (!models.has(model)) models.set(model, new Proxy(model, {
@@ -32,6 +34,22 @@ function installOn(prototype, reportError = failure => saveErrorReporter && save
         const facade = new Proxy(document, {
             get(target, key) {
                 if (key === 'model') return modelFacade(target.model);
+                if (key === 'resource') {
+                    if (currentResource !== target.resource) {
+                        currentResource = target.resource;
+                        fullResource = new Proxy(currentResource, {
+                            get(resource, property) {
+                                // No public incremental error proves no write occurred.
+                                // Choose the original complete save before any I/O,
+                                // rather than attempting delta then replaying on error.
+                                if (property === 'saveContentChanges') return undefined;
+                                const value = Reflect.get(resource, property, resource);
+                                return typeof value === 'function' ? value.bind(resource) : value;
+                            }
+                        });
+                    }
+                    return fullResource;
+                }
                 if (key === 'setDirty') return dirty => {
                     if (!dirty && captured &&
                         (target.model !== writtenModel || target.model.getAlternativeVersionId() !== writtenVersion)) {

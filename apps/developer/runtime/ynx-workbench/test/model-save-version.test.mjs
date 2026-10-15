@@ -97,16 +97,11 @@ test('rebound model while write pending is not marked clean',async()=>{
  write.done.resolve();await pending;assert.equal(f.s.dirty,true);assert.equal(f.s.bufferSavedVersionId,0);
  assert.equal(f.s.model.text,'TEST_ONLY_REBOUND');assert.deepEqual(f.saveEvents,[]);
 });
-test('incremental resource Save branch keeps later content dirty without replay',async()=>{
- const f=setup(),entered=deferred();let calls=0;
- f.model.text='TEST_ONLY_LONG_CONTENT_'.repeat(20);
- f.s.resource.saveContentChanges=async changes=>{
-  calls++;const entry={content:changes.map(x=>x.text).join(''),done:deferred()};f.writes.push(entry);entered.resolve();
-  await entry.done.promise;f.state.stored=entry.content;f.s.resource.version='TEST_ONLY_V1';
- };
- const pending=f.s.save();await entered.promise;
- // Resource.save awaits the incremental helper; its primitive is now pending.
- assert.equal(f.writes.length,1);f.type('TEST_ONLY_INCREMENTAL_NEW');f.writes[0].done.resolve();await pending;
- assert.equal(calls,1);assert.equal(f.s.dirty,true);assert.equal(f.s.bufferSavedVersionId,1);
+test('full Save selection for incremental-capable resource keeps later edits dirty',async()=>{
+ const f=setup();let calls=0;
+ f.s.resource.saveContentChanges=async()=>{calls++};
+ const pending=f.s.save(),write=await f.waitWrite();f.type('TEST_ONLY_INCREMENTAL_NEW');
+ write.done.resolve();await pending;
+ assert.equal(calls,0);assert.equal(f.s.dirty,true);assert.equal(f.s.bufferSavedVersionId,1);
  assert.deepEqual(f.s.contentChanges,[{text:'TEST_ONLY_INCREMENTAL_NEW'}]);assert.deepEqual(f.saveEvents,[]);
 });
