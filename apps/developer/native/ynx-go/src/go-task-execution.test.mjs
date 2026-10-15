@@ -308,3 +308,49 @@ test('switching editor during a pending save cancels the old request without wai
   reply(true);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(f.executions,[]);f.document.save=async()=>true;await f.workflow.test();assert.deepEqual(f.executions,['test']);
  }finally{await f.close();}
 });
+
+// R36 joins the real generic Run handler, real Go extension registration and
+// retained requestFixture's original Go workflow/task callbacks. Toolchain and
+// task-process boundaries stay fixture controls, not a real compiler or App run.
+async function currentGoButtonFixture() {
+ const f=await requestFixture(),require=createRequire(import.meta.url),handlers=new Map(),calls=[],warnings=[],errors=[];
+ const api=f.api;
+ api.window.showWarningMessage=async message=>warnings.push(message);api.window.showErrorMessage=async message=>errors.push(message);
+ api.commands={registerCommand:(id,execute)=>{handlers.set(id,{execute});return{dispose(){}};},executeCommand:async(id,...args)=>{calls.push(id);const handler=handlers.get(id);if(!handler)throw Error('Unexpected fallback: '+id);return handler.execute(...args);},isEnabled:id=>handlers.has(id)};
+ const module={exports:{}};
+ vm.runInNewContext(await readFile(new URL('./extension.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,require:name=>name==='vscode'?api:name==='./go-tasks.cjs'?{createGoTasks:()=>f.workflow}:require(name)});
+ module.exports.activate({subscriptions:[]});
+ const {DebugSelectionContribution}=require('../../../runtime/ynx-workbench/lib/debug-selection.js');
+ const editors={currentEditor:{editor:{uri:{scheme:'file'},document:{languageId:'go'}}}},configurations={};
+ const contribution=new DebugSelectionContribution(api.commands,editors,configurations);
+ contribution.registerCommands({registerCommand:(command,handler)=>handlers.set(command.id,handler)});
+ return {...f,api,handlers,calls,warnings,errors,editors,configurations,contribution,workflow:f.workflow};
+}
+test('R36 normal generic Run reaches original Go task terminal, cwd and repeat result with first notice open',{timeout:2000},async()=>{
+ const f=await currentGoButtonFixture();try {
+  const run=f.handlers.get('ynx.workbench.runCurrentFile');assert.equal(run.isEnabled(),true);
+  assert.equal((await run.execute()).exitCode,0);assert.deepEqual(f.executions,['build','run']);assert.deepEqual(f.counts(),{picks:1,notices:1});
+  for(const task of f.submitted){assert.equal(task.execution.options.cwd,join(f.document.uri.fsPath,'..'));assert.equal(task.presentationOptions.reveal,f.api.TaskRevealKind.Always);assert.equal(task.presentationOptions.panel,f.api.TaskPanelKind.Shared);}
+  const first=f.submitted[0].definition.runId;assert.equal((await run.execute()).exitCode,0);assert.deepEqual(f.executions,['build','run','build','run']);assert.notEqual(f.submitted[2].definition.runId,first);
+  assert.deepEqual(f.counts(),{picks:1,notices:1});assert.deepEqual(f.errors,[]);assert.deepEqual(f.warnings,[]);assert.equal(f.workflow.status().running,false);assert.deepEqual(f.calls,['ynx.go.run','ynx.go.run']);
+ }finally{await f.close();}
+});
+test('R36 generic Run retains owned cancel, terminal exit and retry instead of starting stale run',{timeout:2000},async()=>{
+ const f=await currentGoButtonFixture();try {
+  let deliver,terminated=0,entered;
+  const entry=new Promise(resolve=>{entered=resolve;});
+  f.hooks.execute=(task,execution,listeners)=>new Promise(resolve=>{execution.terminate=()=>{terminated++;for(const fn of listeners)fn({execution,exitCode:143});};deliver=()=>resolve(execution);entered();});
+  const pending=f.handlers.get('ynx.workbench.runCurrentFile').execute();
+  // Abort quickly on the old incorrect fallback, without a timeout polling loop.
+  await Promise.race([pending.then(()=>{throw Error('Run returned before Go task entry');}),entry]);
+  assert.equal(await f.handlers.get('ynx.go.cancel').execute(),true);deliver();assert.equal((await pending).cancelled,true);assert.equal(terminated,1);assert.deepEqual(f.executions,['build']);assert.equal(f.workflow.status().running,false);
+  delete f.hooks.execute;assert.equal((await f.handlers.get('ynx.workbench.runCurrentFile').execute()).exitCode,0);assert.deepEqual(f.executions,['build','build','run']);assert.deepEqual(f.errors,[]);assert.equal(f.workflow.status().running,false);
+ }finally{await f.close();}
+});
+test('R36 generic Go Run preserves explicit launch ownership and unconfigured debug selection',async()=>{
+ const f=await currentGoButtonFixture();try {
+  assert.equal(f.contribution.currentFileCommand(true),'select.debug.configuration');
+  f.configurations.current={name:'TEST_ONLY_user_launch'};
+  assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');assert.deepEqual(f.executions,[]);
+ }finally{await f.close();}
+});

@@ -12,6 +12,7 @@ class DebugSelectionContribution {
       javascript: ['ynx.js.runActive', 'ynx.js.debugActive'],
       typescript: ['ynx.ts.runActive', 'ynx.ts.debugActive'], typescriptreact: ['ynx.ts.runActive', 'ynx.ts.debugActive'],
       python: ['python.execInTerminal', 'debugpy.debugInTerminal'],
+      go: ['ynx.go.run', 'select.debug.configuration'],
     }[language];
     return pair ? pair[Number(debug)] : debug ? 'select.debug.configuration' : 'workbench.action.debug.run';
   }
