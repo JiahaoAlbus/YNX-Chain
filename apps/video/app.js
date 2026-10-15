@@ -87,6 +87,7 @@ function resetWallet(message = "Wallet disconnected. Guest playback remains avai
   setConnectionMessage(message + " Your Video sign-in is separate.");
   $("#signin").textContent = "Connect EVM wallet";
   $("#signin").disabled = false;
+  if ($("#wallet-chooser").open) $("#wallet-chooser").close();
   $("#revoke").hidden = true;
   $("#wallet-status").classList.remove("wallet-connected");
   for (const unsub of unsubscribeEvents) {
@@ -638,6 +639,14 @@ async function loadVideos(query = "") {
 
 function renderWalletChoices(candidates) {
   const chooser = $("#wallet-chooser");
+  const revision = walletRevision;
+  const current = () => revision === walletRevision && chooser.open;
+  const cancel = event => {
+    event?.preventDefault?.();
+    if (!current()) return;
+    walletRevision++;chooser.close();
+    if (currentWallet) bindWalletEvents(currentWallet);
+  };
   $("#wallet-choices").replaceChildren();
 
   for (const candidate of candidates) {
@@ -657,12 +666,14 @@ function renderWalletChoices(candidates) {
     item.setAttribute("title", `${esc(candidate.label || label)} · ${item.dataset.walletBrand}`);
     item.innerHTML = `<span class="wallet-choice-logo ${role}" aria-hidden="true">${iconMarkup}</span><span>${esc(label + extra)}</span>`;
     item.onclick = async () => {
+      if (!current()) return;
       chooser.close();
       await connectVideoWalletInteractive(walletId);
     };
     $("#wallet-choices").append(item);
   }
-  $("#wallet-chooser-close").onclick = () => chooser.close();
+  $("#wallet-chooser-close").onclick = cancel;
+  chooser.oncancel = cancel;
   chooser.showModal();
 }
 
