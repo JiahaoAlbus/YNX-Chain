@@ -115,13 +115,13 @@ async function asyncPythonAdapterFixture(options={}) {
  const helper=require('../../ynx-workbench/lib/python-terminal-creation');helper.registerCompiledCreationContract(helper.CONTRACT);
  const sockets=[],factories=new Map(),calls=[],errors=[],events=new Emitter();let sessionNumber=0;
  const socketFactory=()=>{const socket=new NodeEmitter();socket.destroyed=false;socket.setEncoding=()=>{};socket.write=raw=>{const message=JSON.parse(raw);calls.push({id:message.op,socket});if(message.op==='start')queueMicrotask(()=>socket.emit('data',JSON.stringify({kind:'ready'})+'\n'));};socket.end=()=>{socket.destroyed=true;};sockets.push(socket);queueMicrotask(()=>socket.emit('connect'));return socket;};
- const api={EventEmitter:Emitter,DebugAdapterInlineImplementation:class{constructor(value){Object.assign(this,value);}},debug:{registerDebugAdapterDescriptorFactory(type,factory){factories.set(type,factory);return{dispose(){}};},onDidTerminateDebugSession:events.event},commands:{executeCommand(id,...args){calls.push({id,args});return options.command?.(id,args)??Promise.resolve(true);}},window:{createTerminal(input){helper.takeCreationAttributes(input);calls.push({id:'createTerminal'});const terminal={id:{promise:options.idPromise??Promise.resolve('OWNED_TERMINAL')},show(){calls.push({id:'showTerminal'});}};return terminal;}}};
+ const api={EventEmitter:Emitter,DebugAdapterInlineImplementation:class{constructor(value){Object.assign(this,value);}},debug:{registerDebugAdapterDescriptorFactory(type,factory){factories.set(type,factory);return{dispose(){}};},onDidTerminateDebugSession(listener){options.onListener?.(1);const d=events.event(listener);let disposed=false;return{dispose(){if(!disposed){disposed=true;d.dispose();options.onListener?.(-1);}}};}},commands:{executeCommand(id,...args){calls.push({id,args});return options.command?.(id,args)??Promise.resolve(true);}},window:{createTerminal(input){helper.takeCreationAttributes(input);calls.push({id:'createTerminal'});const terminal={id:{promise:options.idPromise??Promise.resolve('OWNED_TERMINAL')},show(){calls.push({id:'showTerminal'});}};return terminal;}}};
  const module={exports:{}},source=readFileSync(new URL('../../ynx-workbench/lib/plugin-vscode-init-adapter.js',import.meta.url),'utf8');
  vm.runInNewContext(source,{module,exports:module.exports,require:id=>id==='node:net'?{connect:socketFactory}:id==='./python-terminal-creation'?helper:require(id),process,Buffer,setTimeout,clearTimeout,console:{error:(...args)=>errors.push(args)}});
  module.exports.adaptLocalDebugging(api,{YNX_WORKSPACE_MODE:'local',YNX_DEBUG_SOCKET:'/TEST_ONLY/debug.sock',YNX_DEBUG_CREDENTIAL:'a'.repeat(64),YNX_DEBUG_PROJECT:'TEST_ONLY',YNX_LOCAL_PROJECT_ID:'TEST_ONLY'});
- api.debug.registerDebugAdapterDescriptorFactory('debugpy',{createDebugAdapterDescriptor:async()=>({command:'/TEST_ONLY/python',args:[]})});
+ api.debug.registerDebugAdapterDescriptorFactory('debugpy',{createDebugAdapterDescriptor:options.factory||(async()=>({command:'/TEST_ONLY/python',args:[]}))});
  const open=async()=>{const session={id:'OWNED_SESSION_'+(++sessionNumber),configuration:{type:'debugpy',request:'launch',console:'integratedTerminal'}},adapter=await factories.get('debugpy').createDebugAdapterDescriptor(session);return {session,adapter,socket:sockets.at(-1),request(){this.socket.emit('data',JSON.stringify({kind:'dap',message:{type:'request',seq:1,command:'runInTerminal',arguments:{kind:'integrated'}}})+'\n');},cancel(){events.fire(session);}};};
- return{open,calls,errors,dispose(){for(const socket of sockets)socket.end();events.dispose();}};
+ return{open,calls,errors,factories,events,sockets,dispose(){for(const socket of sockets)socket.end();events.dispose();}};
 }
 const flushPythonCallbacks=async()=>{await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));};
 
@@ -176,4 +176,40 @@ test('late Python creation cleanup UNKNOWN is retained and is not retried or rep
  try{const run=await f.open();run.request();await preparing;run.cancel();reply(cap);await flushPythonCallbacks();run.adapter.dispose();await flushPythonCallbacks();
   assert.ok(f.errors.some(args=>args.includes(unknown)));assert.equal(f.calls.filter(x=>x.id===COMMANDS.abandon).length,1);assert.equal(f.calls.some(x=>x.id==='createTerminal'||x.id===COMMANDS.finish),false);
  }finally{f.dispose();}
+});
+
+function r43Deferred(){let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return{promise,resolve,reject};}
+async function r43Fixture(factory){
+ let listeners=0;
+ const f=await asyncPythonAdapterFixture({factory,onListener(delta){listeners+=delta;}});
+ const session={id:'R43_OWNED_SESSION',configuration:{type:'debugpy',request:'launch',console:'integratedTerminal'}};
+ return{...f,session,get listeners(){return listeners;},start(){return f.factories.get('debugpy').createDebugAdapterDescriptor(session);}};
+}
+test('R43 cancelled session during official factory await never starts late supervisor socket',async()=>{
+ const gate=r43Deferred(),f=await r43Fixture(()=>gate.promise);let adapter;
+ try{const pending=f.start();const failed=assert.rejects(pending,/cancelled/);f.events.fire(f.session);gate.resolve({command:'/TEST_ONLY/python',args:[]});await failed;assert.equal(f.sockets.length,0);assert.equal(f.listeners,0);}
+ finally{adapter?.dispose();f.dispose();}
+});
+test('R43 unrelated termination preserves normal launch then exact termination cleans listener',async()=>{
+ const gate=r43Deferred(),f=await r43Fixture(()=>gate.promise);let adapter;
+ try{const pending=f.start();assert.equal(f.listeners,1);f.events.fire({id:'OTHER_SESSION'});gate.resolve({command:'/TEST_ONLY/python',args:[]});adapter=await pending;assert.equal(f.sockets.length,1);assert.equal(f.listeners,1);f.events.fire(f.session);assert.equal(f.sockets[0].destroyed,true);assert.equal(f.listeners,0);}
+ finally{adapter?.dispose();f.dispose();}
+});
+test('R43 attach returns exact official descriptor without supervisor or retained listener',async()=>{
+ const descriptor={command:'/TEST_ONLY/attach',args:[]},f=await r43Fixture(async()=>descriptor);f.session.configuration.request='attach';
+ try{assert.equal(await f.start(),descriptor);assert.equal(f.sockets.length,0);assert.equal(f.listeners,0);}finally{f.dispose();}
+});
+for(const kind of ['rejected-after-cancel','synchronous-throw']){
+ test('R43 '+kind+' preserves original factory failure and releases listener',async()=>{
+  const gate=r43Deferred(),error=Error('TEST_ONLY_ORIGINAL_FACTORY_FAILURE'),f=await r43Fixture(()=>{if(kind==='synchronous-throw')throw error;return gate.promise;});
+  try{const pending=f.start(),failed=assert.rejects(pending,e=>e===error);if(kind==='rejected-after-cancel'){f.events.fire(f.session);gate.reject(error);}await failed;assert.equal(f.sockets.length,0);assert.equal(f.listeners,0);}finally{f.dispose();}
+ });
+}
+test('R43 malformed official launch descriptor rejects without leaking observer',async()=>{
+ const f=await r43Fixture(async()=>({command:'/TEST_ONLY/python'}));
+ try{await assert.rejects(f.start(),/reviewed debugpy executable/);assert.equal(f.sockets.length,0);assert.equal(f.listeners,0);}finally{f.dispose();}
+});
+test('R43 normal launch and explicit adapter disposal release exact listener once',async()=>{
+ const f=await r43Fixture(async()=>({command:'/TEST_ONLY/python',args:[]}));let adapter;
+ try{adapter=await f.start();assert.equal(f.sockets.length,1);assert.equal(f.listeners,1);adapter.dispose();adapter.dispose();assert.equal(f.sockets[0].destroyed,true);assert.equal(f.listeners,0);}finally{adapter?.dispose();f.dispose();}
 });

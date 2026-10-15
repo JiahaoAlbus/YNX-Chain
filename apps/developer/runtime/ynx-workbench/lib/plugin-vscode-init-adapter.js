@@ -26,15 +26,23 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
     if (!['debugpy', 'python'].includes(type)) return register.call(this, type, factory);
     return register.call(this, type, {
       async createDebugAdapterDescriptor(session, executable) {
+        // Stop can arrive while the official factory is still resolving.
+        // Keep one exact session observer through preparation and adapter life.
+        let ended = false, transferred = false, terminateSession;
+        const termination = debug.onDidTerminateDebugSession?.(event => {
+          if (event.id === session.id) { ended = true; terminateSession?.(); }
+        });
+        try {
         const descriptor = await factory.createDebugAdapterDescriptor(session, executable);
         if (session.configuration?.request !== 'launch') return descriptor;
+        if (ended) throw Error('Python debug session was cancelled');
         if (!descriptor?.command || !Array.isArray(descriptor.args)) throw Error('Local Python launch requires the reviewed debugpy executable');
         if (session.configuration.console === 'externalTerminal') throw Error('External Python debug terminals are not supported by the local sandbox; select internalConsole or integratedTerminal');
         const { connect } = require('node:net');
         const { randomUUID } = require('node:crypto');
         const emitter = new api.EventEmitter(), writes = new api.EventEmitter(), exits = new api.EventEmitter();
         const socket = connect(environment.YNX_DEBUG_SOCKET); socket.setEncoding('utf8');
-        let ready = false, disposed = false, graceful = false, buffer = '', terminal, terminalExited = false, terminalRequest, termination;
+        let ready = false, disposed = false, graceful = false, buffer = '', terminal, terminalExited = false, terminalRequest;
         let terminalCapability, terminalClosed = false, terminalResultPublished = false, terminalAbandonment, deferredTermination, drainTimer, processing = Promise.resolve();
         const pending = new Map();
         const send = message => { if (!disposed && !socket.destroyed) socket.write(JSON.stringify(message) + '\n'); };
@@ -157,8 +165,15 @@ exports.adaptLocalDebugging = (api, environment = process.env) => {
             }).catch(fail);
           }
         });
-        termination = debug.onDidTerminateDebugSession?.(ended => { if (ended.id === session.id) { if (!ready) reject(Error('Python debug session was cancelled')); dispose(); } });
+        terminateSession = () => { if (!ready) reject(Error('Python debug session was cancelled')); dispose(); };
+        transferred = true;
+        if (ended) terminateSession();
         return preparation;
+        } finally {
+          // Attach, failed/cancelled factory and invalid descriptors never own
+          // an adapter; retain no listener once those paths leave this wrapper.
+          if (!transferred) termination?.dispose();
+        }
       },
     });
   };
