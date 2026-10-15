@@ -22,6 +22,7 @@ class CppDebugTerminalContribution {
     if (this.stopped || !UUID.test(id || '') || this.records.has(id)) throw Error('C/C++ terminal request is invalid');
     const record = { workspace, ended: false, preparing: true }; this.records.set(id, record);
     const current = () => !this.stopped && !record.ended && this.records.get(id) === record;
+    let preparationFailed = false;
     try {
       const context = await this.context.getContext();
       if (!current() || context.mode !== 'local' || context.workspace !== workspace) throw Error('C/C++ terminal project changed');
@@ -37,8 +38,20 @@ class CppDebugTerminalContribution {
       await this.terminals.open(record.terminal, { mode: 'activate', widgetOptions: { area: 'bottom' } });
       if (!current()) throw Error('C/C++ terminal request ended');
       return info;
-    } catch (error) { record.ended = true; throw error; }
-    finally { record.preparing = false; if (record.ended) await this.release(id, true); }
+    } catch (error) { preparationFailed = true; record.ended = true; throw error; }
+    finally {
+      record.preparing = false;
+      if (record.ended) {
+        try { await this.release(id, true); }
+        catch (cleanup) {
+          if (!preparationFailed) throw cleanup;
+          // Preserve the original preparation/cancellation failure. Unknown
+          // cleanup stays owned for the existing exact-record retry path.
+          try { this.reportCleanup(record, cleanup); }
+          catch { /* Reporting cannot replace the user's primary failure. */ }
+        }
+      }
+    }
   }
   reportCleanup(record, error) {
     record.cleanupError = error;

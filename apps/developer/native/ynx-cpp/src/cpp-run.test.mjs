@@ -444,3 +444,55 @@ test('foreign same-project termination during C++ startup cannot release its own
  terminated.fire({...current,id:undefined});assert.equal(state.active.size,1);
  terminated.fire(current);assert.equal(state.active.size,0,'the actual owned termination releases startup ownership');
 });
+
+async function r47OuterScenario(options={}) {
+ const outer=await readFile(new URL('./cpp-run.cjs',import.meta.url),'utf8');
+ const inner=await readFile(new URL('../../../runtime/ynx-workbench/lib/cpp-debug-terminal.js',import.meta.url),'utf8');
+ const innerModule={exports:{}};vm.runInNewContext(inner,{module:innerModule,exports:innerModule.exports});
+ const start=outer.indexOf('  async function operation(debug) {'),end=outer.indexOf('  function command(',start);
+ assert.ok(start>=0&&end>start);
+ const root='/TEST_ONLY_R47',primary=Error('TEST_ONLY_R47_PRIMARY'),secondary=Error('TEST_ONLY_R47_CLEANUP_UNKNOWN'),reports=[],active=new Map(),replacement={kind:'debug',requestId:'TEST_ONLY_NEW_OWNER'};
+ let contribution,requestId,closeAttempts=0,debuggerStarts=0;
+ class URI{constructor(value){this.value=value}withScheme(){return this}toString(){return'file://'+this.value}}
+ const terminal={terminalId:2,onTerminalDidClose:()=>({dispose(){}}),onDidDispose:()=>({dispose(){}}),
+  start:async()=>{if(options.mode==='cancel')await contribution.release(requestId,true);else if(options.mode!=='debug-start'&&options.mode!=='normal')throw primary},
+  shellTerminalServer:{close:async()=>{closeAttempts++;if(options.replaceOwner)active.set(root,replacement);if(options.cleanupFails!==false)throw secondary}}};
+ contribution=new innerModule.exports.CppDebugTerminalContribution({getContext:async()=>({mode:'local',workspace:root}),getCppTerminalDevice:async()=>({device:'/dev/ttys001'})},{newTerminal:async()=>terminal,open:async()=>{}},{},URI,()=>{},{error:m=>reports.push(m)});
+ const folder={uri:{scheme:'file',fsPath:root}},scope={root,folder,path:root+'/main.cpp',language:'cpp',document:{version:1,isDirty:false}};
+ const selected={type:'lldb-dap',request:'launch',name:'YNX',program:'$'+'{fileDirname}/$'+'{fileBasenameNoExtension}',preLaunchTask:'YNX: Build active C++'};
+ const vscode={debug:{startDebugging:async()=>{debuggerStarts++;if(options.mode==='debug-start')throw primary;return true}},
+  extensions:{getExtension:()=>({activate:async()=>{}})},workspace:{textDocuments:[],getConfiguration:()=>({get:()=>'/Library/Developer/CommandLineTools/usr/bin/lldb-dap'})},
+  window:{withProgress:async(_settings,fn)=>fn({},{}),showInformationMessage(){},showErrorMessage(m){reports.push(m);if(options.reportThrows)throw Error('TEST_ONLY_R47_REPORTING');return Promise.resolve();}},
+  ProgressLocation:{Notification:1},commands:{executeCommand:async(id,request,workspace)=>{requestId=request;return id==='ynx.cpp.prepareDebugTerminal'?contribution.prepare(request,workspace):contribution.release(request,true)}}};
+ const deps={sourceContext:async()=>scope,env:{},active,vscode,randomUUID,t:key=>key,setup:async()=>({path:root+'/tasks.json'}),generatedPair:async()=>({digest:'TEST_ONLY'}),
+  constants:{X_OK:1},existingConfiguration:async()=>root+'/launch.json',createLaunchConfiguration:async()=>({configuration:selected,path:root+'/launch.json'}),
+  isAbsolute:require('node:path').isAbsolute,realpath:async p=>p,access:async()=>{},isDeepStrictEqual:require('node:util').isDeepStrictEqual,
+  launchConfiguration:()=>selected,validateScope:async()=>{},createDebugBuildTarget:async()=>({validate:async()=>{}}),buildCaptured:async()=>({binary:root+'/program',folder:root}),
+  terminalLaunchConfiguration:configuration=>configuration};
+ const operation=Function(...Object.keys(deps),'return ('+outer.slice(start,end).trim()+');')(...Object.values(deps));
+ return{run:()=>operation(true),primary,secondary,reports,active,root,replacement,get closeAttempts(){return closeAttempts},get debuggerStarts(){return debuggerStarts}};
+}
+for(const mode of ['prepare','debug-start']){
+ test('R47 outer '+mode+' error identity survives secondary cleanup and retains UNKNOWN owner',async()=>{
+  const f=await r47OuterScenario({mode});await assert.rejects(f.run(),e=>e===f.primary);
+  assert.equal(f.active.size,1);assert.ok(f.reports.includes('launchStopFailed'));
+  assert.equal(f.debuggerStarts,mode==='debug-start'?1:0);
+  const starts=f.debuggerStarts;await f.run();assert.equal(f.debuggerStarts,starts);
+ });
+}
+test('R47 outer failure with successful cleanup releases exact owner and preserves primary',async()=>{
+ const f=await r47OuterScenario({mode:'debug-start',cleanupFails:false});await assert.rejects(f.run(),e=>e===f.primary);
+ assert.equal(f.active.size,0);assert.equal(f.closeAttempts,1);
+});
+test('R47 ordinary accepted C++ session preserves running owner without premature cleanup',async()=>{
+ const f=await r47OuterScenario({mode:'normal',cleanupFails:false});await f.run();assert.equal(f.debuggerStarts,1);assert.equal(f.closeAttempts,0);assert.equal(f.active.size,1);assert.deepEqual(f.reports,[]);
+});
+test('R47 cancelled preparation remains ended when outer cleanup is also UNKNOWN',async()=>{
+ const f=await r47OuterScenario({mode:'cancel'});await assert.rejects(f.run(),/request ended/);assert.equal(f.active.size,1);assert.equal(f.debuggerStarts,0);
+});
+test('R47 late cleanup cannot remove replacement owner or replace original error',async()=>{
+ const f=await r47OuterScenario({mode:'debug-start',replaceOwner:true});await assert.rejects(f.run(),e=>e===f.primary);assert.equal(f.active.get(f.root),f.replacement);
+});
+test('R47 outer cleanup reporting failure cannot replace original primary',async()=>{
+ const f=await r47OuterScenario({mode:'debug-start',reportThrows:true});await assert.rejects(f.run(),e=>e===f.primary);assert.equal(f.active.size,1);
+});

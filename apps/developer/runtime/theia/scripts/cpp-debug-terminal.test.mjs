@@ -104,3 +104,43 @@ test('disposal reports retained Theia backend termination rejection and retries 
  assert.deepEqual(terminated,['owned-disposal-rejection','owned-disposal-rejection']);
  assert.equal(h.counts().close,1);assert.equal(h.contribution.records.size,0);
 });
+
+for(const stage of ['start','device','open']){
+ test('R46 '+stage+' primary preparation failure survives unknown exact holder cleanup and permits owned retry',async()=>{
+  const h=setup(),primary=Error('TEST_ONLY_CPP_PRIMARY_'+stage),secondary=Error('TEST_ONLY_CPP_CLEANUP_UNKNOWN'),reports=[],attempts=[];
+  const originalClose=h.terminal.shellTerminalServer.close;
+  h.contribution.messages={error:message=>reports.push(message)};
+  if(stage==='start')h.terminal.start=async()=>{h.terminal.terminalId=2;throw primary};
+  if(stage==='device')h.context.getCppTerminalDevice=async()=>{throw primary};
+  if(stage==='open')h.terminals.open=async()=>{throw primary};
+  h.terminal.shellTerminalServer.close=async terminalId=>{attempts.push(terminalId);throw secondary};
+  try{
+   await assert.rejects(h.contribution.prepare(id,'/project'),error=>error===primary);
+   assert.deepEqual(attempts,[2]);assert.equal(h.contribution.records.get(id).cleanupError,secondary);
+   assert.equal(reports.length,1);assert.match(reports[0],/CPP_CLEANUP_UNKNOWN/);
+   h.terminal.shellTerminalServer.close=originalClose;await h.contribution.release(id,true);
+   assert.equal(h.contribution.records.size,0);assert.equal(h.counts().close,1);
+  }finally{h.terminal.shellTerminalServer.close=originalClose;await h.contribution.onStop();}
+ });
+}
+test('R46 preparation failure with successful cleanup preserves primary and leaves no holder record',async()=>{
+ const h=setup(),primary=Error('TEST_ONLY_DEVICE_PRIMARY'),reports=[];h.contribution.messages={error:m=>reports.push(m)};h.context.getCppTerminalDevice=async()=>{throw primary};
+ try{await assert.rejects(h.contribution.prepare(id,'/project'),error=>error===primary);assert.equal(h.contribution.records.size,0);assert.equal(h.counts().close,1);assert.deepEqual(reports,[]);}finally{await h.contribution.onStop();}
+});
+test('R46 normal prepare and release retain device and exact single close',async()=>{
+ const h=setup();try{assert.deepEqual(await h.contribution.prepare(id,'/project'),{device:'/dev/ttys001'});assert.equal(h.counts().opens,1);await h.contribution.release(id,true);await h.contribution.release(id,true);assert.equal(h.counts().close,1);assert.equal(h.contribution.records.size,0);}finally{await h.contribution.onStop();}
+});
+test('R46 cancellation during pending start retains ended primary and unknown cleanup obligation',async()=>{
+ const h=setup(),originalClose=h.terminal.shellTerminalServer.close,reports=[];let complete,entered;const ready=new Promise(r=>entered=r);
+ h.contribution.messages={error:m=>reports.push(m)};h.terminal.start=()=>{entered();return new Promise(r=>complete=()=>{h.terminal.terminalId=2;r()})};
+ h.terminal.shellTerminalServer.close=async()=>{throw Error('TEST_ONLY_CANCEL_CLEANUP_UNKNOWN')};
+ try{const pending=h.contribution.prepare(id,'/project'),failed=assert.rejects(pending,/request ended/);await ready;await h.contribution.release(id,true);complete();await failed;assert.equal(h.contribution.records.has(id),true);assert.equal(reports.length,1);h.terminal.shellTerminalServer.close=originalClose;await h.contribution.release(id,true);assert.equal(h.counts().close,1);assert.equal(h.contribution.records.size,0);}finally{h.terminal.shellTerminalServer.close=originalClose;await h.contribution.onStop();}
+});
+test('R46 standalone cleanup failure still propagates exact secondary and remains retryable',async()=>{
+ const h=setup(),originalClose=h.terminal.shellTerminalServer.close,secondary=Error('TEST_ONLY_STANDALONE_CLEANUP');await h.contribution.prepare(id,'/project');h.terminal.shellTerminalServer.close=async()=>{throw secondary};
+ try{await assert.rejects(h.contribution.release(id,true),error=>error===secondary);assert.equal(h.contribution.records.has(id),true);h.terminal.shellTerminalServer.close=originalClose;await h.contribution.release(id,true);assert.equal(h.contribution.records.size,0);assert.equal(h.counts().close,1);}finally{h.terminal.shellTerminalServer.close=originalClose;await h.contribution.onStop();}
+});
+test('R46 reporting failure cannot replace primary preparation error',async()=>{
+ const h=setup(),primary=Error('TEST_ONLY_PRIMARY'),originalClose=h.terminal.shellTerminalServer.close;h.context.getCppTerminalDevice=async()=>{throw primary};h.terminal.shellTerminalServer.close=async()=>{throw Error('TEST_ONLY_CLEANUP')};h.contribution.messages={error(){throw Error('TEST_ONLY_REPORTING')}};
+ try{await assert.rejects(h.contribution.prepare(id,'/project'),error=>error===primary);assert.equal(h.contribution.records.has(id),true);}finally{h.terminal.shellTerminalServer.close=originalClose;await h.contribution.onStop();}
+});

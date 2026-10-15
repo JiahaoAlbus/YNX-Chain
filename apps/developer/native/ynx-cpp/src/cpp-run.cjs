@@ -274,7 +274,7 @@ function registerCppRun(vscode, context, env) {
     if (active.has(scope.root) || (debug && vscode.debug.activeDebugSession?.workspaceFolder?.uri?.fsPath === scope.folder.uri.fsPath)) { vscode.window.showInformationMessage(t('busy')); return; }
     const owner = { kind: debug ? 'debug' : 'run', folder: scope.folder.uri.fsPath, requestId: randomUUID() };
     active.set(scope.root, owner);
-    let sessionAccepted = false;
+    let sessionAccepted = false, operationFailed = false;
     try {
       const config = await setup(scope); if (!config) return;
       if (!debug) {
@@ -363,10 +363,21 @@ function registerCppRun(vscode, context, env) {
             session.configuration?.__ynxCppRunId === owner.requestId && typeof session.id === 'string' && session.id &&
             (!owner.sessionId || owner.sessionId === session.id) && active.get(scope.root) === owner) owner.sessionId = session.id;
       }
-    } finally {
+    } catch (error) { operationFailed = true; throw error; }
+    finally {
       if (!sessionAccepted) {
-        if (owner.terminalPrepared) await vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal', owner.requestId, !owner.debugStartRequested);
-        if (active.get(scope.root) === owner) active.delete(scope.root);
+        let cleanupFailed = false;
+        try {
+          if (owner.terminalPrepared) await vscode.commands.executeCommand('ynx.cpp.releaseDebugTerminal', owner.requestId, !owner.debugStartRequested);
+        } catch (cleanup) {
+          cleanupFailed = true;
+          if (!operationFailed) throw cleanup;
+          // Preserve the original user operation failure and keep UNKNOWN
+          // cleanup ownership blocked until its actual terminal is retired.
+          try { Promise.resolve(vscode.window.showErrorMessage(t('launchStopFailed'))).catch(() => {}); }
+          catch { /* Reporting cannot replace the original operation failure. */ }
+        }
+        if (!cleanupFailed && active.get(scope.root) === owner) active.delete(scope.root);
       }
     }
   }
