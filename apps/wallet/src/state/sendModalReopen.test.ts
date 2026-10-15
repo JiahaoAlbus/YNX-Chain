@@ -8,8 +8,47 @@ import {createSignedNativeTransfer,ynxAddressFromEVM} from '@ynx-chain/wallet-au
 import {NativeTransferOutbox,NATIVE_OUTBOX_PREFIX,NativeOutboxBlocked} from '../chain/nativeTransferOutbox';
 import {NativeChainClient} from '../chain/nativeTransfer';
 import {NATIVE_DURABILITY_MODEL} from '../chain/nativeDurability';
+import {ModalActionGate} from './modalActionGate';
 
 const app=readFileSync(new URL('../../App.tsx',import.meta.url),'utf8');
+const viewStart=app.indexOf('  const draftRevision=useRef(0)',app.indexOf('function SendModal(')),viewEnd=app.indexOf('  const [pasting,',viewStart);
+const closeStart=app.indexOf('  const cancelInput=',viewEnd),closeEnd=app.indexOf('  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo',closeStart);
+const actStart=app.indexOf('  const act=async(mode:',closeEnd),actEnd=app.indexOf('  const problem=',actStart);
+assert.ok(viewStart>=0&&viewEnd>viewStart&&closeStart>viewEnd&&closeEnd>closeStart&&actEnd>actStart);
+// Same existing exact-caller extraction style. Only PUBLIC state/status-read
+// stand-ins; this never signs/sends or exercises OS storage/device authority.
+const viewProgram=ts.transpileModule(app.slice(viewStart,viewEnd)+app.slice(closeStart,closeEnd)+app.slice(actStart,actEnd)+'return {dismiss,cancelInput,invalidateDraft,act};',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+function viewCaller(){
+  const operations=new WalletOperationLifecycle();operations.setAccount('PUBLIC A');const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();
+  const scope=operations.scope(),actionGate=new ModalActionGate(),refs:Array<{current:any}>=[],pending:Array<{resolve:(v:any)=>void;reject:(e:Error)=>void}>=[],events:string[]=[];
+  let cursor=0;const ui:any={busy:false,error:null,stored:'PUBLIC original',loaded:true,closes:0,pasteClears:0};
+  const context:any={scope,actionGate,useRef:(initial:any)=>{const index=cursor++;return refs[index]??(refs[index]={current:initial})},recipientInput:{cancel(){ui.pasteClears++}},
+    setBusy:(v:boolean)=>{ui.busy=v},setPasting(){ui.pasteClears++},setRecipientAdded(){ui.pasteClears++},setError:(v:any)=>{ui.error=v},setStored:(v:any)=>{ui.stored=v},setLoaded:(v:any)=>{ui.loaded=v},close(){ui.closes++},message:(e:Error)=>e.message,
+    storedChainClient:(origin:string)=>({origin}),chainClient:()=>({origin:'PUBLIC original'}),onSent(){events.push('onSent')},
+    nativeOutbox:{read:async()=>{events.push('fallback');return null},checkStatus:(_account:any,_hash:any,_client:any,guard:()=>void)=>{guard();events.push('check');return new Promise((resolve,reject)=>pending.push({resolve,reject}))},sendNew:()=>assert.fail('No sign or broadcast in view-owner controls'),retry:()=>assert.fail('No resend'),acknowledge:()=>assert.fail('No acknowledgement')},
+    walletPayFlow:{hasRetainedPayment:()=>assert.fail('No payment/sign preparation')}};
+  const invoke=new Function(...Object.keys(context),'visible','account','scannedRecipient','reload','loaded','busy','stored','review','valid','to','amount',viewProgram);
+  const render=(visible=true,owner='PUBLIC A')=>{cursor=0;return invoke(...Object.values(context),visible,{account:owner,accountPublicKey:'PUBLIC key'},'',0,true,false,{hash:'PUBLIC original',origin:'PUBLIC original'},true,true,'PUBLIC recipient','1')};
+  return {scope,actionGate,pending,events,ui,render};
+}
+test('Send view owner: retained A dismiss and input cancel cannot touch reopened same-account B',()=>{
+  const h=viewCaller(),old=h.render();old.dismiss();h.render(false);const current=h.render(),token=h.actionGate.acquire()!,lease=h.scope.begin({requireUnlocked:false});h.ui.busy=true;const before={...h.ui};
+  old.dismiss();old.cancelInput();old.invalidateDraft();assert.equal(token.isCurrent(),true);assert.equal(lease.ownsScope(),true);assert.deepEqual(h.ui,before);current.dismiss();assert.equal(lease.ownsScope(),false);
+});
+test('Send view owner: current close cancels its own status read once and blocks late UI',async()=>{
+  const h=viewCaller(),current=h.render(),pending=current.act('check');assert.equal(h.pending.length,1);current.dismiss();current.dismiss();assert.equal(h.ui.closes,1);const before={...h.ui};h.pending[0]!.resolve({phase:'accepted',marker:'old'});await pending;assert.deepEqual(h.ui,before);assert.deepEqual(h.events,['check']);
+});
+for(const result of ['success','failure'] as const)test(`Send view owner: late A ${result} and close cannot release B status operation`,async()=>{
+  const h=viewCaller(),old=h.render(),first=old.act('check');old.dismiss();h.render(false);const current=h.render(),next=current.act('check');assert.equal(h.pending.length,2);old.dismiss();
+  if(result==='success')h.pending[0]!.resolve({phase:'accepted',marker:'A'});else h.pending[0]!.reject(Error('PUBLIC old failure'));await first;assert.equal(h.ui.busy,true);assert.equal(h.ui.error,null);assert.equal(h.ui.stored,'PUBLIC original');assert.equal(h.ui.closes,1);assert.deepEqual(h.events,['check','check']);
+  h.pending[1]!.resolve({phase:'unknown',marker:'B'});await next;assert.equal(h.ui.busy,false);assert.equal(h.ui.stored.marker,'B');
+});
+test('Send view owner: current close still works after draft revision changes',()=>{
+  const h=viewCaller(),current=h.render();current.invalidateDraft();const token=h.actionGate.acquire()!,lease=h.scope.begin({requireUnlocked:false});h.ui.busy=true;current.dismiss();assert.equal(token.isCurrent(),false);assert.equal(lease.ownsScope(),false);assert.equal(h.ui.busy,false);assert.equal(h.ui.closes,1);
+});
+test('Send view owner: delayed parent visibility cannot revive a dismissed owner',async()=>{
+  const h=viewCaller(),old=h.render();old.dismiss();const lag=h.render(true);await lag.act('check');lag.dismiss();assert.deepEqual(h.events,[]);assert.equal(h.ui.closes,1);h.render(false);const next=h.render(),pending=next.act('check');assert.equal(h.pending.length,1);h.pending[0]!.resolve({phase:'unknown'});await pending;
+});
 const start=app.indexOf('  useEffect(()=>{recipientInput.cancel();scope.cancel();setTo("")');
 assert.ok(start>=0);
 const effect=app.slice(start,app.indexOf('  const pasteRecipient=',start));
