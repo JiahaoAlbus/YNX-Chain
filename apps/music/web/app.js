@@ -8,8 +8,9 @@ const $$=selector=>[...document.querySelectorAll(selector)];
 const status=$('#status');
 const audio=$('#audio');
 let wallet=null;
+let statusRevision=0;
 
-function tell(message,error=false){status.textContent=message;status.classList.toggle('error',error)}
+function tell(message,error=false){statusRevision++;status.textContent=message;status.classList.toggle('error',error)}
 function walletMessage(message,error=false){const target=$('#walletStatus');target.textContent=message;target.classList.toggle('error',error)}
 async function connectWallet(choice){
   privateSession.invalidate();
@@ -45,7 +46,8 @@ const business=createMusicBusiness({document,audio,tell});
 export async function activateMusicBusiness(request){return business.activate(request)}
 export function invalidateMusicBusiness(){privateSession.invalidate()}
 
-fetch('health').then(async response=>{const health=await response.json();if(!response.ok)throw new Error('service integrity check failed');const release=health.build?.release||'local';if(business.isActive())return;tell(`Service healthy · ${release} · central registry merge pending. No licensed public catalog or production streaming is claimed.`)}).catch(error=>tell(`Service unavailable · ${error.message}`,true));
+const healthRevision=statusRevision;
+fetch('health').then(async response=>{const health=await response.json();if(!response.ok)throw new Error('service integrity check failed');const release=health.build?.release||'local';if(business.isActive()||healthRevision!==statusRevision)return;tell(`Service healthy · ${release} · central registry merge pending. No licensed public catalog or production streaming is claimed.`)}).catch(error=>{if(!business.isActive()&&healthRevision===statusRevision)tell(`Service unavailable · ${error.message}`,true)});
 
 const privateSession=createMusicSession({load:loadCanonicalMusicRelease,activate:request=>business.activate(request),dispose:()=>business.dispose()});
 const signIn=document.querySelector('#musicSignIn'),openWallet=document.querySelector('#musicOpenWallet'),signOutRetry=document.querySelector('#musicSignOutRetry');
