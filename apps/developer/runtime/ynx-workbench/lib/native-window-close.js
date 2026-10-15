@@ -22,7 +22,13 @@ function watchCloseEditors(shell) {
       return before.length === after.length && before.every((item, index) =>
         Object.keys(item).every(key => item[key] === after[index][key]));
     },
-    dispose() { for (const disposable of disposables) disposable?.dispose(); }
+    dispose() {
+      let firstError, failed = false;
+      for (const disposable of disposables.splice(0)) {
+        try { disposable?.dispose(); } catch (error) { if (!failed) firstError = error; failed = true; }
+      }
+      if (failed) throw firstError;
+    }
   };
 }
 
@@ -129,17 +135,24 @@ class NativeWindowClose {
           return true;
         } catch { return false; }
         finally {
-          editors?.dispose();
+          let cleanupFailed = false;
+          try { editors?.dispose(); } catch (error) {
+            cleanupFailed = true;
+            committed = false;
+            try { this.windows.logger?.error?.(error); } catch { /* preserve close veto */ }
+          }
+          if (!current()) committed = false;
           // DefaultWindowService consumes its veto permission on approval.
           // Persistence is part of this same close transaction: if it fails,
           // continued editing must receive the ordinary dirty-file veto again.
           if (!committed && typeof previousAllowVetoes === 'boolean') this.windows.allowVetoes = previousAllowVetoes;
+          if (cleanupFailed) return false;
         }
       })();
       const pending = this.pendingClose;
       const accepted = await pending;
       if (this.pendingClose === pending) this.pendingClose = undefined;
-      this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'close-result', requestId, accepted: accepted === true });
+      this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'close-result', requestId, accepted: accepted === true && current() });
     };
     this.close = close;
     this.target.__ynxLocalWorkbenchClose = close;
