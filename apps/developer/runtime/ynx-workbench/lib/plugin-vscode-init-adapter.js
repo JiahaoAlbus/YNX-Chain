@@ -284,8 +284,15 @@ exports.adaptLocalJsDebugging = (api, environment = process.env) => {
     if (!['node', 'pwa-node'].includes(type)) return registerFactory.call(this, type, factory);
     const wrapper = Object.create(factory);
     wrapper.createDebugAdapterDescriptor = async (...args) => {
-      try { return await factory.createDebugAdapterDescriptor.apply(factory, args); }
-      catch (error) { await release(args[0]?.configuration?.__ynxJsLaunch)?.catch(cleanup => console.error('JavaScript descriptor cleanup:', cleanup)); throw error; }
+      const launchId = args[0]?.configuration?.__ynxJsLaunch;
+      const record = launchId && launches.get(launchId);
+      try {
+        if (launchId && !record) throw Error('Local JavaScript launch has ended');
+        const descriptor = await factory.createDebugAdapterDescriptor.apply(factory, args);
+        if (launchId && launches.get(launchId) !== record) throw Error('Local JavaScript launch has ended');
+        return descriptor;
+      }
+      catch (error) { await release(launchId)?.catch(cleanup => console.error('JavaScript descriptor cleanup:', cleanup)); throw error; }
     };
     return registerFactory.call(this, type, wrapper);
   };
