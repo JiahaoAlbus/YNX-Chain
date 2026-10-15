@@ -662,7 +662,7 @@ function renderWalletChoices(candidates) {
     item.dataset.walletBrand = candidate.isYNXWallet ? "YNX Wallet" : candidate.isMetaMask ? "MetaMask" : "EIP-1193";
     item.dataset.walletRdns = candidate.info?.rdns || "";
     const icon = candidate.providerInfo?.icon || candidate.icon || candidate.info?.icon || "";
-    const iconMarkup = icon ? `<img src="${icon}" alt="${esc(candidate.label)}" />` : "";
+    const iconMarkup = icon ? `<img src="${esc(icon)}" alt="${esc(candidate.label)}" />` : "";
     const label = candidate.label || candidate.name || "Wallet";
     const role = candidate.isYNXWallet ? "ynx" : candidate.isMetaMask ? "metamask" : "eip1193";
     const extra = candidate.isYNXWallet ? " · YNX Wallet" : candidate.isMetaMask ? " · MetaMask" : "";
