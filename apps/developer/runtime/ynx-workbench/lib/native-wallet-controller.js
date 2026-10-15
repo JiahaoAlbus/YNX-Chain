@@ -43,6 +43,7 @@ class NativeWalletController {
     };
     const operation = Promise.resolve().then(async () => {
       await admit();
+      if (this.disposed || epoch !== this.epoch) return;
       runtime ||= await this.api.beginDeveloperWalletV2Connection();
       if (this.disposed || epoch !== this.epoch) { await runtime.endNativeOperation(); return; }
       this.runtime = runtime;
@@ -50,6 +51,7 @@ class NativeWalletController {
       if (binding?.productId !== 'developer' || binding.platform !== 'macos' || binding.applicationId !== 'com.ynxweb4.developer.testnetpreview') throw Error('Native Wallet returned a different registered product binding.');
       this.publish({ phase: action === 'return' ? 'verifying' : action === 'restore' ? 'restoring' : action === 'disconnect' ? 'disconnecting' : 'requesting', source: runtime.source });
       await admit();
+      if (this.disposed || epoch !== this.epoch) return;
       let result;
       if (action === 'return') { const url = this.callback; if (!url) throw Error('No Wallet return is pending.'); result = await runtime.connection.handleReturn(url); }
       else if (action === 'restore') result = await runtime.connection.restore();
@@ -57,6 +59,7 @@ class NativeWalletController {
       else result = await runtime.connection.beginYNX();
       if (this.disposed || epoch !== this.epoch) { await runtime.endNativeOperation(); return; }
       await admit();
+      if (this.disposed || epoch !== this.epoch) return;
       const awaitingCallback = result?.status === 'wallet-opened';
       this.publish({ phase: awaitingCallback ? 'wallet-opened' : 'ready', busy: false, awaitingCallback, session: publicSessionState(result, runtime), sessionCurrent: true, message: result?.message || '' });
       if (action === 'return') { this.callback = undefined; this.publish({ hasPendingReturn: false }); }

@@ -41,8 +41,8 @@ test('repeat Connect deduplicates and the exact callback uses the original runti
  assert.deepEqual(f.calls.find(call => Array.isArray(call) && call[0] === 'handleReturn'), ['handleReturn', url]); assert.equal(f.controller.state.hasPendingReturn, false); assert.equal(f.controller.state.session.status, STATES.RETRY_REQUIRED); assert.ok(f.calls.includes('end')); await f.controller.dispose();
 });
 test('cancel during native approval fences the late runtime and never begins Wallet review', async () => {
- const f = fixture(), gate = deferred(); f.api.beginDeveloperWalletV2Connection = async () => { await gate.promise; return f.runtime; };
- const pending = f.controller.connect(); await Promise.resolve(); await f.controller.cancel(); gate.resolve(); await pending;
+ const f = fixture(), gate = deferred(), entered = deferred(); f.api.beginDeveloperWalletV2Connection = async () => { entered.resolve(); await gate.promise; return f.runtime; };
+ const pending = f.controller.connect(); await entered.promise; await f.controller.cancel(); gate.resolve(); await pending;
  assert.ok(!f.calls.includes('beginYNX')); assert.ok(f.calls.includes('end')); assert.equal(f.controller.state.phase, 'cancelled'); assert.equal(f.controller.state.busy, false); await f.controller.dispose();
 });
 test('unmount cleanup remains permitted after service admission revocation and does not revoke the session implicitly', async () => {
@@ -196,4 +196,42 @@ test('original project snapshot receives decline without replacing a Session ret
   assert.equal(f.controller.callback,sessionURL);assert.equal(f.controller.resourcePending,pending);assert.equal(f.calls.length,0);
   assert.throws(()=>f.controller.setResourcePending({...pending,operationId:'replacement'}));
  }finally{await f.controller.dispose();}
+});
+
+// R27: actual controller ownership across all three service-admission awaits.
+// Admission and runtime are scheduling fixtures; no Native, signer or service grant.
+for (const stage of [1, 2, 3]) for (const invalidation of ['cancel', 'dispose']) {
+ test('R27 admission stage ' + stage + ' cannot continue after ' + invalidation, async () => {
+  const f = fixture(), entered = deferred(), gate = deferred(); let checks = 0;
+  f.admission.assertCurrent = async () => { if (++checks === stage) { entered.resolve(); await gate.promise; } return true; };
+  const pending = f.controller.connect(); await entered.promise;
+  await f.controller[invalidation](); const callBoundary = f.calls.length; gate.resolve(); await pending;
+  const late = f.calls.slice(callBoundary);
+  assert.equal(late.includes('native-approval'), false, 'Cancelled admission must not request native approval');
+  assert.equal(late.includes('beginYNX'), false, 'Cancelled admission must not enter SDK');
+  assert.equal(f.controller.state.sessionCurrent, false); assert.equal(f.controller.state.awaitingCallback, false);
+  assert.equal(f.controller.state.phase, 'cancelled');
+  if (stage > 1) assert.ok(f.calls.includes('end'), 'Existing owned runtime must be released');
+  if (invalidation === 'cancel') {
+   assert.equal(f.controller.state.busy, false); f.admission.assertCurrent = () => true;
+   await f.controller.connect(); assert.equal(f.controller.state.awaitingCallback, true);
+   await f.controller.dispose();
+  }
+ });
+}
+test('R27 admission current UNKNOWN retains first cause through failed runtime cleanup', async () => {
+ const f = fixture(), original = Object.assign(Error('original protected outcome unknown'), { code: 'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN' }); let checks = 0;
+ f.admission.assertCurrent = () => { if (++checks === 2) throw original; return true; };
+ f.runtime.endNativeOperation = async () => { f.calls.push('end'); throw Error('secondary cleanup failure'); };
+ await f.controller.connect(); assert.equal(f.controller.state.failureCode, original.code);
+ assert.equal(f.controller.state.message, original.message); assert.equal(f.calls.includes('beginYNX'), false);
+ await f.controller.dispose();
+});
+test('R27 admission stale rejection cannot replace cancellation or prevent explicit retry', async () => {
+ const f = fixture(), entered = deferred(); let reject; const gate = new Promise((_, fail) => { reject = fail; });
+ f.admission.assertCurrent = () => { entered.resolve(); return gate; };
+ const pending = f.controller.connect(); await entered.promise; await f.controller.cancel();
+ reject(Object.assign(Error('old admission outcome unknown'), { code: 'ORIGINAL_PRIVATE_OUTCOME_UNKNOWN' })); await pending;
+ assert.equal(f.controller.state.phase, 'cancelled'); assert.equal(f.controller.state.failureCode, undefined); assert.equal(f.calls.includes('native-approval'), false);
+ f.admission.assertCurrent = () => true; await f.controller.connect(); assert.equal(f.controller.state.awaitingCallback, true); await f.controller.dispose();
 });
