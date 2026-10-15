@@ -6,6 +6,74 @@ import {readFileSync} from "node:fs";
 import ts from "typescript";
 import {WalletOperationLifecycle} from "../security/operationLifecycle";
 import {ModalActionGate} from "./modalActionGate";
+
+// Exact export caller, with PUBLIC marker/auth/capture stand-ins only.
+// No real recovery material, OS authority, vault, network or signer is used.
+const recoveryApp=readFileSync(new URL('../../App.tsx',import.meta.url),'utf8');
+const exportStart=recoveryApp.indexOf('function RecoveryExportModal('),exportEnd=recoveryApp.lastIndexOf('\n',recoveryApp.indexOf('return <MnemonicAccountModal',exportStart));
+assert.ok(exportStart>=0&&exportEnd>exportStart);
+const exportCode=ts.transpileModule(recoveryApp.slice(exportStart,exportEnd)+'return {dismiss,ready:typeof ready!=="undefined"?ready:false,assertDisplay:typeof assertDisplay!=="undefined"?assertDisplay:undefined};}\nreturn RecoveryExportModal(props);',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+const exportWait=()=>{let resolve!:()=>void,reject!:(reason:Error)=>void;const promise=new Promise<void>((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}};
+async function flushExport(){for(let i=0;i<20;i++)await Promise.resolve()}
+function recoveryExportCaller(){
+  const operations=new WalletOperationLifecycle(()=>0);operations.setAccount('PUBLIC QA A');
+  const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();
+  const scope=operations.scope(),slots:any[]=[],queued:Array<()=>void>=[],auths:Array<ReturnType<typeof exportWait>>=[],timers:Array<()=>void>=[],events:string[]=[];
+  let cursor=0,closes=0,owner='PUBLIC QA A';
+  const changed=(a:any[],b:any[])=>!a||a.length!==b.length||a.some((v,i)=>!Object.is(v,b[i]));
+  const context={useWalletOperations:()=>operations,useOperationScope:()=>scope,useContext:()=> 'en',WalletLocaleContext:{},
+    useRef(value:any){const i=cursor++;if(!slots[i])slots[i]={value:{current:value}};return slots[i].value},
+    useState(value:any){const i=cursor++;if(!slots[i])slots[i]={value,state:true};return [slots[i].value,(value:any)=>{slots[i].value=value}]},
+    useEffect(effect:()=>void|(()=>void),deps:any[]){const i=cursor++,old=slots[i];if(!old||changed(old.deps,deps))queued.push(()=>{old?.cleanup?.();slots[i]={deps,effect,cleanup:effect()}})},
+    setTimeout(callback:()=>void){timers.push(callback);return timers.length},clearTimeout(){},RECOVERY_DISPLAY_MS:60000,
+    preventScreenCaptureAsync:async()=>{events.push('capture-protected')},allowScreenCaptureAsync:async()=>{events.push('capture-released')},
+    authorizeLocalKeyUse:async()=>{events.push('authorize-public-stand-in');const auth=exportWait();auths.push(auth);await auth.promise},
+    repository:{accountRecoveryMaterial:async(_account:string,guard:()=>void)=>{guard();events.push('read-public-marker');return {kind:'private-key',secretHex:'PUBLIC NON-KEY MARKER'}}},message:(error:Error)=>error.message};
+  const invoke=new Function(...Object.keys(context),'props',exportCode);
+  const render=(visible=true,effects=true)=>{cursor=0;const result=invoke(...Object.values(context),{visible,account:{account:owner,accountPublicKey:'PUBLIC KEY ID'},close:()=>{closes++}});if(effects)while(queued.length)queued.shift()!();return result as {dismiss:()=>void;ready:boolean;assertDisplay:()=>void}};
+  return {operations,scope,auths,timers,events,render,closes:()=>closes,state:()=>slots.filter(s=>s?.state).map(s=>s.value),unmount:()=>{for(const s of slots)s?.cleanup?.()},replayEffects:()=>{for(const s of slots)s?.cleanup?.();for(const s of slots)if(s?.effect)s.cleanup=s.effect()},account:(value:string)=>{owner=value;operations.setAccount(value)}};
+}
+test('Recovery view owner: retained A close cannot cancel reopened B authorization',async()=>{
+  const h=recoveryExportCaller(),old=h.render();await flushExport();old.dismiss();h.render(false);h.render();await flushExport();const before=h.closes();old.dismiss();h.auths[1]!.resolve();await flushExport();assert.equal(h.closes(),before);assert.ok(h.events.includes('read-public-marker'));
+});
+test('Recovery view owner: queued A expiry cannot close reopened B',async()=>{
+  const h=recoveryExportCaller(),old=h.render();await flushExport();const expiry=h.timers[0]!;old.dismiss();h.render(false);h.render();await flushExport();const before=h.closes();expiry();assert.equal(h.closes(),before);h.auths[1]!.resolve();await flushExport();assert.ok(h.events.includes('read-public-marker'));
+});
+test('Recovery view owner: close is idempotent before parent renders hidden',async()=>{
+  const h=recoveryExportCaller(),view=h.render();await flushExport();view.dismiss();view.dismiss();assert.equal(h.closes(),1);
+});
+test('Recovery view owner: unmounted retained close cannot notify parent again',async()=>{
+  const h=recoveryExportCaller(),view=h.render();await flushExport();h.unmount();view.dismiss();assert.equal(h.closes(),0);
+});
+test('Recovery view owner: current close clears successfully displayed marker',async()=>{
+  const h=recoveryExportCaller(),view=h.render();await flushExport();h.auths[0]!.resolve();await flushExport();assert.ok(h.events.includes('read-public-marker'));view.dismiss();assert.equal(h.closes(),1);assert.ok(!JSON.stringify(h.state()).includes('PUBLIC NON-KEY MARKER'));
+});
+test('Recovery view owner: lock during authorization prevents material read',async()=>{
+  const h=recoveryExportCaller();h.render();await flushExport();h.operations.lock();h.auths[0]!.resolve();await flushExport();assert.ok(!h.events.includes('read-public-marker'));assert.ok(!JSON.stringify(h.state()).includes('PUBLIC NON-KEY MARKER'));
+});
+for(const outcome of ['success','failure'])test(`Recovery view owner: late A ${outcome} cannot overwrite B`,async()=>{
+  const h=recoveryExportCaller(),old=h.render();await flushExport();old.dismiss();h.render(false);h.render();await flushExport();if(outcome==='success')h.auths[0]!.resolve();else h.auths[0]!.reject(Error('PUBLIC A refusal'));await flushExport();assert.ok(!JSON.stringify(h.state()).includes('PUBLIC A refusal'));assert.equal(h.events.filter(e=>e==='read-public-marker').length,0);h.auths[1]!.resolve();await flushExport();assert.equal(h.events.filter(e=>e==='read-public-marker').length,1);
+});
+test('Recovery view owner: reopened render hides old ready marker before effects',async()=>{
+  const h=recoveryExportCaller();h.render();await flushExport();h.auths[0]!.resolve();await flushExport();const old=h.render();assert.equal(old.ready,true);old.assertDisplay();
+  h.render(false,false);const next=h.render(true,false);assert.equal(next.ready,false);assert.throws(old.assertDisplay,/Closed recovery view/);h.unmount();
+  assert.match(recoveryApp,/if\(visible&&ready&&recovery\?\.kind==="mnemonic"\)/);assert.match(recoveryApp,/:ready&&recovery\?\.kind==="private-key"/);
+});
+test('Recovery view owner: superseded render fences authorization before passive cleanup',async()=>{
+  const h=recoveryExportCaller();h.render();await flushExport();h.render(false,false);h.render(true,false);h.auths[0]!.resolve();await flushExport();assert.ok(!h.events.includes('read-public-marker'));assert.equal(h.closes(),0);h.unmount();
+});
+test('Recovery view owner: close before passive setup cannot restart authorization',async()=>{
+  const h=recoveryExportCaller(),view=h.render(true,false);view.dismiss();h.render();await flushExport();assert.equal(h.auths.length,0);assert.equal(h.closes(),1);assert.ok(!h.events.includes('read-public-marker'));h.unmount();
+});
+test('Recovery view owner: effect replay reauthorizes only current opening',async()=>{
+  const h=recoveryExportCaller();h.render();await flushExport();const oldExpiry=h.timers[0]!;h.replayEffects();await flushExport();assert.equal(h.auths.length,2);h.auths[0]!.resolve();await flushExport();assert.ok(!h.events.includes('read-public-marker'));h.auths[1]!.resolve();await flushExport();assert.equal(h.render().ready,true);oldExpiry();assert.equal(h.closes(),1);assert.ok(!JSON.stringify(h.state()).includes('PUBLIC NON-KEY MARKER'));
+});
+test('Recovery view owner: current authorization failure stays failed and closeable',async()=>{
+  const h=recoveryExportCaller(),view=h.render();await flushExport();h.auths[0]!.reject(Error('PUBLIC biometric refusal'));await flushExport();assert.ok(h.state().includes('failed'));assert.ok(h.state().includes('PUBLIC biometric refusal'));assert.ok(!h.events.includes('read-public-marker'));assert.equal(h.render().ready,false);view.dismiss();assert.equal(h.closes(),1);
+});
+test('Recovery view owner: account replacement fences old close and authorization',async()=>{
+  const h=recoveryExportCaller(),old=h.render();await flushExport();h.account('PUBLIC QA B');h.render();await flushExport();old.dismiss();h.auths[0]!.resolve();await flushExport();assert.equal(h.closes(),0);assert.ok(!h.events.includes('read-public-marker'));h.auths[1]!.resolve();await flushExport();assert.equal(h.render().ready,true);
+});
 const secret="1".padStart(64,"0"),other="2".padStart(64,"0");
 const account={...walletIdentity(secret),label:"Existing fixture",createdAt:"2026-09-06T00:00:00.000Z",backupConfirmed:true};
 test("recovery review matches exact public identity without exposing the entered offline key",()=>{
