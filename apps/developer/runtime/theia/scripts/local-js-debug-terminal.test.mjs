@@ -137,3 +137,37 @@ test('R37 closed terminal waiting for PID cannot report a successful live shell'
  try {manager.onDidCreateDebugSessionEmitter.fire(current.value);const pending=current.value.runInTerminal(current.request);await entered.promise;owned.terminal.dispose();pid.resolve(10710);await assert.rejects(pending,/has ended/);assert.equal(owned.calls.execute.length,1);assert.deepEqual(owned.calls.close,[710]);
  }finally{contribution.onStop();}
 });
+
+for(const stage of ['start','open','execute']){
+ test('R45 '+stage+' first cause survives unknown shell cleanup and exact owned retry remains possible',async()=>{
+  const {manager,contribution}=fixture(),owned=selectedDebugTerminal(801),primary=Error('TEST_ONLY_ORIGINAL_'+stage),secondary=Error('TEST_ONLY_CLEANUP_UNKNOWN'),logs=[];
+  const current=selectedDebugSession('R45_'+stage,owned,stage==='open'?async()=>{throw primary}:undefined);
+  current.value.logger={error:(...args)=>logs.push(args)};
+  if(stage==='start')owned.terminal.start=async()=>{throw primary};
+  if(stage==='execute')owned.terminal.executeCommand=async()=>{throw primary};
+  owned.terminal.shellTerminalServer.close=async id=>{owned.calls.close.push(id);throw secondary};
+  try{
+   manager.onDidCreateDebugSessionEmitter.fire(current.value);
+   await assert.rejects(current.value.runInTerminal(current.request),error=>error===primary);
+   assert.equal(logs.length,1);assert.equal(logs[0][1],secondary);assert.deepEqual(owned.calls.close,[801]);
+   assert.equal(contribution.records.get(current.value).terminals.has(owned.terminal),true);
+   owned.terminal.shellTerminalServer.close=async id=>{owned.calls.close.push(id)};
+   manager.onDidDestroyDebugSessionEmitter.fire(current.value);await new Promise(resolve=>setImmediate(resolve));
+   assert.deepEqual(owned.calls.close,[801,801]);assert.equal(contribution.records.has(current.value),false);
+  }finally{owned.terminal.shellTerminalServer.close=async()=>{};current.value.logger={error(){}};contribution.onStop();}
+ });
+}
+test('R45 original failure with successful cleanup removes exact terminal without secondary diagnostic',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(802),current=selectedDebugSession('R45_CLEANUP_OK',owned),primary=Error('TEST_ONLY_PRIMARY'),logs=[];
+ owned.terminal.start=async()=>{throw primary};current.value.logger={error:(...args)=>logs.push(args)};
+ try{manager.onDidCreateDebugSessionEmitter.fire(current.value);await assert.rejects(current.value.runInTerminal(current.request),error=>error===primary);assert.deepEqual(owned.calls.close,[802]);assert.deepEqual(logs,[]);assert.equal(contribution.records.get(current.value).terminals.has(owned.terminal),false);manager.onDidDestroyDebugSessionEmitter.fire(current.value);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(owned.calls.close,[802]);}finally{contribution.onStop();}
+});
+test('R45 normal current terminal still executes original command and closes exact shell once',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(803),current=selectedDebugSession('R45_NORMAL',owned);
+ try{manager.onDidCreateDebugSessionEmitter.fire(current.value);assert.deepEqual(await current.value.runInTerminal(current.request),{shellProcessId:10803});assert.equal(owned.calls.execute.length,1);assert.equal(owned.calls.execute[0].args,current.request.arguments.args);assert.equal(owned.calls.execute[0].cwd,'/project');assert.equal(owned.calls.execute[0].env,undefined);manager.onDidDestroyDebugSessionEmitter.fire(current.value);await new Promise(resolve=>setImmediate(resolve));assert.deepEqual(owned.calls.close,[803]);}finally{contribution.onStop();}
+});
+test('R45 diagnostic sink failure cannot replace original launch failure',async()=>{
+ const {manager,contribution}=fixture(),owned=selectedDebugTerminal(804),current=selectedDebugSession('R45_LOGGER',owned),primary=Error('TEST_ONLY_PRIMARY');
+ owned.terminal.start=async()=>{throw primary};owned.terminal.shellTerminalServer.close=async()=>{throw Error('TEST_ONLY_SECONDARY')};current.value.logger={error(){throw Error('TEST_ONLY_DIAGNOSTIC_SINK')}};
+ try{manager.onDidCreateDebugSessionEmitter.fire(current.value);await assert.rejects(current.value.runInTerminal(current.request),error=>error===primary);assert.equal(contribution.records.get(current.value).terminals.has(owned.terminal),true);}finally{owned.terminal.shellTerminalServer.close=async()=>{};current.value.logger={error(){}};contribution.onStop();await new Promise(resolve=>setImmediate(resolve));}
+});

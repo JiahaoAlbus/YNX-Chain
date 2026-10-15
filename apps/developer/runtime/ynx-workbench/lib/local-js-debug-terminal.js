@@ -63,7 +63,16 @@ class LocalJsDebugTerminalContribution {
         result = { processId: await terminal.processId };
         if (!current()) throw Error('Local JavaScript terminal launch has ended');
         if (!Number.isSafeInteger(result.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
-      } catch (error) { await owner.closeTerminal(terminal); record.terminals.delete(terminal); throw error; }
+      } catch (error) {
+        try { await owner.closeTerminal(terminal); record.terminals.delete(terminal); }
+        catch (cleanup) {
+          // Preserve the user's actual launch failure. Unknown cleanup remains
+          // owned so the existing session teardown can retry that exact shell.
+          try { session.logger?.error?.('Local JavaScript shell cleanup failed after terminal launch failure', cleanup); }
+          catch { /* A diagnostic sink must not replace the launch failure. */ }
+        }
+        throw error;
+      }
       if (!Number.isSafeInteger(result?.processId) || result.processId <= 0) throw Error('Local terminal did not return a real shell PID');
       const { processId, ...remaining } = result;
       // No-debug targets have no Inspector telemetry. Their authenticated host
