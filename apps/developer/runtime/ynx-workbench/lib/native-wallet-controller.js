@@ -30,7 +30,6 @@ class NativeWalletController {
   run(action, existingRuntime) {
     if (this.disposed || this.inFlight || (this.state.awaitingCallback && !existingRuntime)) return Promise.resolve();
     const epoch = ++this.epoch;
-    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, sessionCurrent: false, message: '', failureCode: undefined });
     let runtime = existingRuntime;
     const returnURL = action === 'return' ? this.callback : undefined;
     if (action === 'return') this.returningCallback = returnURL;
@@ -84,7 +83,11 @@ class NativeWalletController {
       if (!this.disposed && !this.returningCallback) this.selectCurrentCallback();
       if (!this.disposed && this.state.awaitingCallback && this.callback && this.runtime && this.classifyCallback(this.callback) === 'current') void this.run('return', this.runtime);
     });
-    this.inFlight = operation; return operation;
+    // Render/dispose listeners may re-enter. Claim this exact request before
+    // publishing so a cancelled old caller cannot overwrite a retry's owner.
+    this.inFlight = operation;
+    this.publish({ phase: existingRuntime ? 'verifying' : 'approving', busy: true, awaitingCallback: false, sessionCurrent: false, message: '', failureCode: undefined });
+    return operation;
   }
   // Called only by the original request producer before review, never a return.
   setResourcePending(snapshot) {

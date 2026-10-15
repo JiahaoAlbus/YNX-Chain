@@ -208,3 +208,39 @@ test('R30 callback observed while cancelled return drains remains explicit until
  f.runtime.connection.handleReturn = valid; await f.controller.connect(); if (f.controller.inFlight) await f.controller.inFlight;
  assert.deepEqual(f.calls.filter(c => Array.isArray(c) && c[0] === 'return'), [['return', f.urls[0]], ['return', f.urls[1]]]); f.widget.dispose(); await f.controller.dispose();
 });
+
+// R39 exercises actual Widget click/render/dispose with the real controller.
+// Native factory/admission/SDK effects are scheduling fixtures; no grant runs.
+for (const action of ['connect','restore','disconnect']) {
+ test('R39 '+action+' claims its pending slot before close/reopen state listeners can retry', async () => {
+  const f=await fixture();let first=true,observedOwner,replacement,reentered,blocked;
+  const listener=state=>{if(!first||state.phase!=='approving')return;first=false;observedOwner=f.controller.inFlight;
+   f.widget.dispose();replacement=new NativeWalletWidget(f.service);blocked=replacement.buttons[action].disabled;
+   // Respect the actual rendered button state; no click through disabled UI.
+   if(!blocked){replacement.buttons[action].click();reentered=f.operations[action];}
+  };
+  f.service.listeners.add(listener);
+  try {
+   f.widget.buttons[action].click();const original=f.operations[action];await original;if(reentered)await reentered;
+   assert.equal(observedOwner,original);assert.equal(blocked,true);assert.equal(f.calls.includes('beginYNX'),false);assert.equal(f.calls.includes('restore'),false);assert.equal(f.calls.includes('disconnect'),false);
+   assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.state.phase,'cancelled');assert.equal(f.controller.state.busy,false);assert.equal(replacement.buttons[action].disabled,false);
+   replacement.buttons[action].click();await f.operations[action];
+   assert.equal(f.calls.filter(x=>x===(action==='connect'?'beginYNX':action)).length,1);assert.equal(f.controller.inFlight,undefined);assert.equal(f.controller.state.busy,false);
+   assert.equal(f.controller.state.phase,action==='connect'?'wallet-opened':'ready');assert.equal(f.controller.state.projectCapability,'not-supplied');
+  }finally{f.service.listeners.delete(listener);replacement?.dispose();f.widget.dispose();await f.controller.dispose();}
+ });
+}
+test('R39 normal Connect Cancel Guest buttons retain selected state and local guest branch',async()=>{
+ const f=await fixture();try {
+  f.widget.buttons.connect.click();await f.operations.connect;assert.equal(f.calls.filter(x=>x==='beginYNX').length,1);assert.equal(f.controller.state.awaitingCallback,true);assert.equal(f.controller.inFlight,undefined);assert.equal(f.widget.buttons.cancel.disabled,false);
+  f.widget.buttons.cancel.click();await f.operations.cancel;assert.equal(f.controller.state.phase,'cancelled');assert.equal(f.controller.state.sessionCurrent,false);assert.equal(f.controller.state.awaitingCallback,false);
+  assert.equal(f.widget.buttons.guest.disabled,false);f.widget.buttons.guest.click();await f.operations.guest;assert.equal(f.calls.filter(x=>x==='guest').length,1);assert.equal(f.controller.state.phase,'guest');assert.equal(f.controller.state.session.status,'guest');assert.equal(f.controller.state.projectCapability,'not-supplied');
+ }finally{f.widget.dispose();await f.controller.dispose();}
+});
+test('R39 current UNKNOWN retains first error, frees slot and permits explicit Restore retry',async()=>{
+ const f=await fixture(),original=Object.assign(Error('TEST_ONLY_original_UNKNOWN'),{code:'TEST_ONLY_OUTCOME_UNKNOWN'});let fail=true;
+ f.controller.admission.assertCurrent=()=>{if(fail)throw original;return true;};
+ try {f.widget.buttons.connect.click();await f.operations.connect;assert.equal(f.controller.state.failureCode,original.code);assert.equal(f.controller.state.message,original.message);assert.equal(f.controller.state.busy,false);assert.equal(f.controller.inFlight,undefined);
+  fail=false;assert.equal(f.widget.buttons.restore.disabled,false);f.widget.buttons.restore.click();await f.operations.restore;assert.equal(f.calls.filter(x=>x==='restore').length,1);assert.equal(f.controller.state.phase,'ready');assert.equal(f.controller.inFlight,undefined);
+ }finally{f.widget.dispose();await f.controller.dispose();}
+});
