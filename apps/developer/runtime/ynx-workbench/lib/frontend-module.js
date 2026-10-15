@@ -6,6 +6,7 @@ require('./terminal-ui-trace').install();
 require('./task-terminal-attachment').install();
 require('./tree-cycle-guard').install();
 require('./debug-variable-fetch-adapter').install();
+require('./problem-marker-lifecycle').install();
 const debugStatePersistence = require('./debug-state-persistence');
 debugStatePersistence.install();
 require('./test-range-adapter').install();
