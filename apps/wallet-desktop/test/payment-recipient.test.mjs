@@ -7,11 +7,21 @@ import { createReceiveCode } from "../src/receive-code.mjs";
 import { drawReceiveCode } from "../src/receive-code-ui.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "../src/payment-recipient.mjs";
 import { createPaymentRecipientUI } from "../src/payment-recipient-ui.mjs";
+import {NativeWalletService} from '../src/native-wallet-service.mjs';
+import {ynxAddressFromEVM} from '@ynx-chain/wallet-auth';
+import {fixtureEVMCapabilities} from './fixture-evm-capabilities.mjs';
 
 const account = "ynx1sj7g39cewyrc63g2clxrrkdywawkuvr9fmrvvt", evm = "0x84bc88971971078d450ac7cc31d9a4775d6e3065";
 const uri = `ynx:${account}?chainId=ynx_6423-1&asset=YNXT`;
 const success = value => ({ ok: true, value });
 const deferred = () => { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; };
+test('R40 original manual and QR parser must not offer the zero recipient rejected by normal transfer preparation',async()=>{
+ const zero='0x'+'0'.repeat(40),ynxZero=ynxAddressFromEVM(zero),link=`ynx:${ynxZero}?chainId=ynx_6423-1&asset=YNXT`;
+ const native=new NativeWalletService({vault:{status:async()=>{throw Error('Zero destination must fail before account access')}}});
+ await assert.rejects(native.prepareTransfer({to:zero,amount:'1'}),error=>error.data?.code==='INVALID_TRANSFER');
+ for(const value of [zero,ynxZero,link])assert.throws(()=>parsePaymentRecipient(value),{code:'INVALID_PAYMENT_RECIPIENT'});
+ assert.throws(()=>decodePaymentRecipientQR({bytes:pngHeader(1,1),mimeType:'image/png',createImage:()=>({isEmpty:()=>false,getSize:()=>({width:1,height:1}),toBitmap:()=>Buffer.alloc(4)}),decode:()=>({data:link})}),{code:'INVALID_PAYMENT_RECIPIENT'});
+});
 function harness(overrides = {}) {
   const context = { account: evm, keyRevision: 1, locked: false, open: true }, applied = [], reports = [], calls = [];
   const ui = createPaymentRecipientUI({ getContext: () => ({ ...context }), parse: async input => { calls.push(input); return success(parsePaymentRecipient(input)); }, decode: async input => { calls.push(input); return success(parsePaymentRecipient(uri)); }, apply: address => applied.push(address), report: value => reports.push(value), ...overrides });
@@ -46,6 +56,23 @@ test("actual generated Klein blue QR pixels are decoded by jsQR into the exact S
   drawReceiveCode(canvas, code, account);
   const result = decodePaymentRecipientQR({ bytes: pngHeader(canvas.width,canvas.height), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: canvas.width, height: canvas.height }), toBitmap: () => bgra }) });
   assert.equal(result.ynxAccount, account); assert.equal(result.account, evm);
+  // Original input consumer -> original normal preparation -> explicit cancel.
+  // Public addresses and a controlled preparation quote only; no RPC, key or
+  // signer exists in this fixture. QR never supplies an amount or approval.
+  for(const mode of ['manual','image']){
+    const sender='0x'+'3'.repeat(40),quoted=[];let keyUses=0;
+    const native=new NativeWalletService({
+      vault:{status:async()=>({initialized:true,account:sender}),withSecret:async()=>{keyUses++;throw Error('No key belongs to receive/preview')}},
+      network:{capabilities:async()=>fixtureEVMCapabilities,balance:async()=>String(2n*10n**18n)},
+      sender:{prepare:async(from,input)=>{quoted.push({from,...input});return Object.freeze({...input,nonce:'0x0',type:0,gasLimit:'0x61a8',gasPrice:'0x246139ca8000'})}}
+    });
+    const h=harness({decode:async input=>success(decodePaymentRecipientQR({...input,bytes:Buffer.from(input.bytes),createImage:()=>({isEmpty:()=>false,getSize:()=>({width:canvas.width,height:canvas.height}),toBitmap:()=>bgra})}))});h.context.account=sender;
+    if(mode==='manual')await h.ui.text(uri);else{const bytes=pngHeader(canvas.width,canvas.height);await h.ui.image({type:'image/png',size:bytes.length,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)})}
+    assert.deepEqual(h.applied,[account]);assert.equal(native.pending.size,0);assert.equal(quoted.length,0);
+    const review=await native.prepareTransfer({to:h.applied[0],amount:'1'});
+    assert.equal(review.to,evm);assert.equal(review.ynxTo,account);assert.equal(review.account,sender);assert.equal(review.chainId,'0x1917');assert.equal(review.symbol,'YNXT');assert.equal(review.amount,'1.0');assert.equal(review.total,'2.0');assert.equal(quoted.length,1);assert.equal(keyUses,0);
+    assert.deepEqual(await native.transferAction(review.id,'reject'),{rejected:true,transactionCreated:false});assert.equal(native.pending.size,0);assert.equal(keyUses,0);
+  }
 });
 
 test("untrusted QR image bounds and WalletConnect/URL content cannot become payment recipients", () => {

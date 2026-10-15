@@ -23,6 +23,7 @@ export function parsePaymentRecipient(input, { requireURI = false } = {}) {
       account = getAddress(address).toLowerCase();
     } else invalid();
   } catch { invalid(); }
+  if(account === "0x0000000000000000000000000000000000000000") invalid();
   const ynxAccount = ynxAddressFromEVM(account);
   return Object.freeze({ account, ynxAccount, kind, chainId: "ynx_6423-1", asset: "YNXT" });
 }
