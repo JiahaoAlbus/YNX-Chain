@@ -59,4 +59,4 @@ document.querySelector('#musicDisconnect').onclick=signOutMusic;signOutRetry.onc
 window.addEventListener('pageshow',()=>void restoreMusic());
 window.addEventListener('online',()=>void restoreMusic());
 window.addEventListener('offline',()=>privateSession.invalidate());
-window.addEventListener('storage',()=>{privateSession.invalidate();void restoreMusic()});
+window.addEventListener('storage',event=>{if(event.key==='ynx.media.display.v1')return;privateSession.invalidate();void restoreMusic()});
