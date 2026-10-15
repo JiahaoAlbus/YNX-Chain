@@ -74,7 +74,7 @@ const helperExports = {};
 vm.runInNewContext(transpiled.outputText, { exports: helperExports, URL, require: id => {
  if (id === './transport') return {};
  if (id.endsWith('/product-wallet-connection.js')) return { PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN: 'https://wallet-auth.ynxweb4.com' };
- if (id.endsWith('/product-session-router.js')) return router;
+ if (id.endsWith('/product-session-router.js')) return { walletConnectionChoices: router.walletConnectionChoices };
  if (id.endsWith('/product-session-recovery.js')) return {};
  if (id.endsWith('/product-session-registry.json')) return { default: registry };
  throw Error('Unexpected callback helper dependency ' + id);
@@ -180,7 +180,7 @@ test('R30 cold callback requires explicit original native approval, no automatic
  f.widget.buttons.returned.click(); await f.operations.resumeCallback;
  assert.deepEqual(f.calls.filter(c => Array.isArray(c) && c[0] === 'return'), [['return', f.urls[0]]]); f.widget.dispose(); await f.controller.dispose();
 });
-test('R30 routing hint uses original SDK target and public request identity without authorizing payload', async () => {
+test('R32 routing hint consumes actual SDK current request without undeclared public exports', async () => {
  const f = await callbackFixture(); await f.controller.connect();
  const classify = url => helperExports.classifyDeveloperWalletV2Return(f.runtime, url);
  assert.equal(classify(f.urls[0]), 'current'); assert.equal(classify(f.urls[1]), 'mismatch');
