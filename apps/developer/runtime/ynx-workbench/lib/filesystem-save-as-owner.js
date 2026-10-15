@@ -1,7 +1,7 @@
 'use strict';
 const installed = new WeakSet();
 const retired = Symbol('retired save-as request');
-function installOn(prototype) {
+function installOn(prototype, nativeRevert) {
     if (installed.has(prototype)) return;
     const saveAs = prototype.saveAs;
     const saveSnapshot = prototype.saveSnapshot;
@@ -73,7 +73,10 @@ function installOn(prototype) {
                         if (wrote) retainSource();
                         return Promise.resolve();
                     }
-                    const result = await saveable.revert(...args);
+                    const result = await revertForSaveAs(saveable, args, nativeRevert, () => {
+                        retained = true;
+                        if (wrote) retainSource();
+                    });
                     reverted = true;
                     completionVersion = document.version;
                     return result;
@@ -142,8 +145,41 @@ function installOn(prototype) {
     };
     installed.add(prototype);
 }
+
+// Preserve the native Monaco revert/sync implementation. A user edit cancels
+// that revert's sync token, but native revert otherwise still marks the newest
+// version clean after its await. Fence only this Save As call's final clean mark.
+async function revertForSaveAs(saveable, args, nativeRevert, onEdited) {
+    if (!nativeRevert || saveable.revert !== nativeRevert) return saveable.revert(...args);
+    let edited = false;
+    const facade = new Proxy(saveable, {
+        get(target, key) {
+            if (key === 'sync') return async (...syncArgs) => {
+                const version = target.version;
+                const pending = target.sync(...syncArgs);
+                const token = target.syncCancellationTokenSource.token;
+                try {
+                    return await pending;
+                } finally {
+                    if (token.isCancellationRequested && target.version !== version) edited = true;
+                }
+            };
+            if (key === 'setDirty') return dirty => {
+                if (dirty === false && edited) return target.setDirty(true);
+                return target.setDirty(dirty);
+            };
+            const value = Reflect.get(target, key, target);
+            return typeof value === 'function' ? value.bind(target) : value;
+        }
+    });
+    const result = await nativeRevert.apply(facade, args);
+    if (edited) onEdited();
+    return result;
+}
+
 function install() {
     const { FilesystemSaveableService } = require('@theia/filesystem/lib/browser/filesystem-saveable-service');
-    installOn(FilesystemSaveableService.prototype);
+    const { MonacoEditorModel } = require('@theia/monaco/lib/browser/monaco-editor-model');
+    installOn(FilesystemSaveableService.prototype, MonacoEditorModel.prototype.revert);
 }
 module.exports = { install, installOn };
