@@ -43,4 +43,23 @@ ru:['Использовать шаблон сети','Шаблон только 
 ar:['استخدام قالب شبكة','القوالب تملأ النموذج فقط. تحقق واحفظ قبل استخدام الشبكة.'],
 id:['Gunakan templat jaringan','Templat hanya mengisi formulir. Verifikasi dan simpan sebelum menggunakan jaringan.']
 };
-export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value)||presetRows[locale]?.length!==presetKeys.length)throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(presetKeys.map((key,index)=>[key,presetRows[locale][index]]))})]})));
+const originalKeys=[
+ 'Signing result unknown. Preserve the original record. Do not sign or send a replacement.',
+ 'Original transaction records could not be verified. Refresh before preparing another transfer.',
+ 'An original transaction is unresolved. Keep its progress and check the original result before creating another transfer.'
+];
+const originalRows={
+ en:originalKeys,
+ 'zh-Hans':['签名结果未知。请保留原操作记录，不要重新签名或发送替代交易。','无法核实原交易记录。请刷新核对后再预览新转账。','原交易尚未解决。请保留其进度，核对原结果后再创建新转账。'],
+ 'zh-Hant':['簽名結果未知。請保留原操作紀錄，不要重新簽名或傳送替代交易。','無法核實原交易紀錄。請重新整理核對後再預覽新轉帳。','原交易尚未解決。請保留其進度，核對原結果後再建立新轉帳。'],
+ ja:['署名結果は不明です。元の記録を保持し、再署名や代わりの送信を行わないでください。','元の取引記録を確認できませんでした。新しい送金の準備前に更新してください。','元の取引が未解決です。進捗を保持し、元の結果を確認してから新しい送金を作成してください。'],
+ ko:['서명 결과를 알 수 없습니다. 원래 기록을 보존하고 다시 서명하거나 대체 거래를 보내지 마세요.','원래 거래 기록을 확인하지 못했습니다. 새 전송을 준비하기 전에 새로 고침하세요.','원래 거래가 미해결 상태입니다. 진행 상태를 보존하고 원래 결과를 확인한 뒤 새 전송을 만드세요.'],
+ es:['Resultado de firma desconocido. Conserva el registro original. No vuelvas a firmar ni envíes una transacción de reemplazo.','No se pudieron verificar los registros originales. Actualiza antes de preparar otra transferencia.','Una transacción original sigue sin resolverse. Conserva su progreso y comprueba su resultado antes de crear otra transferencia.'],
+ fr:['Résultat de signature inconnu. Conservez le dossier original. Ne signez pas à nouveau et n’envoyez pas de remplacement.','Les transactions originales n’ont pas pu être vérifiées. Actualisez avant de préparer un autre transfert.','Une transaction originale reste non résolue. Conservez sa progression et vérifiez son résultat avant de créer un autre transfert.'],
+ de:['Signaturergebnis unbekannt. Originaldatensatz aufbewahren. Nicht erneut signieren oder eine Ersatztransaktion senden.','Originaltransaktionen konnten nicht geprüft werden. Vor einer weiteren Überweisung aktualisieren.','Eine Originaltransaktion ist ungeklärt. Fortschritt bewahren und das ursprüngliche Ergebnis vor einer neuen Überweisung prüfen.'],
+ pt:['Resultado da assinatura desconhecido. Preserve o registro original. Não assine novamente nem envie uma transação substituta.','Não foi possível verificar os registros originais. Atualize antes de preparar outra transferência.','Uma transação original continua pendente de resolução. Preserve seu progresso e confira o resultado antes de criar outra transferência.'],
+ ru:['Результат подписи неизвестен. Сохраните исходную запись. Не подписывайте повторно и не отправляйте замену.','Не удалось проверить исходные записи транзакций. Обновите их перед подготовкой нового перевода.','Исходная транзакция не разрешена. Сохраните её состояние и проверьте исходный результат перед новым переводом.'],
+ ar:['نتيجة التوقيع غير معروفة. احتفظ بالسجل الأصلي. لا توقّع مجددًا ولا ترسل معاملة بديلة.','تعذر التحقق من سجلات المعاملات الأصلية. حدّثها قبل إعداد تحويل آخر.','هناك معاملة أصلية غير محسومة. احتفظ بتقدمها وتحقق من نتيجتها الأصلية قبل إنشاء تحويل آخر.'],
+ id:['Hasil tanda tangan tidak diketahui. Simpan catatan asli. Jangan tanda tangani ulang atau kirim transaksi pengganti.','Catatan transaksi asli tidak dapat diverifikasi. Muat ulang sebelum menyiapkan transfer lain.','Transaksi asli belum terselesaikan. Pertahankan progresnya dan periksa hasil asli sebelum membuat transfer lain.']
+};
+export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value)||presetRows[locale]?.length!==presetKeys.length||originalRows[locale]?.length!==originalKeys.length||originalRows[locale].some(value=>!value))throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(presetKeys.map((key,index)=>[key,presetRows[locale][index]])),...Object.fromEntries(originalKeys.map((key,index)=>[key,originalRows[locale][index]]))})]})));

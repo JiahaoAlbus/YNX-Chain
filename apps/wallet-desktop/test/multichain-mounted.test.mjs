@@ -20,6 +20,86 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+const originalRow=f=>({id:'r',account:f.review.account,network:f.review.network,state:'signing-unknown',to:f.review.to,amount:'1',hash:null});
+const originalHistory=(f,records)=>({ok:true,value:{account:f.review.account,networkId:'n',configRevision:1,records}});
+const reviewButton=f=>f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer');
+test('R37 normal history explains unknown signing and blocks button and direct preview admission',async()=>{
+ const f=mounted();try{f.api.multichainHistory=async()=>originalHistory(f,[originalRow(f)]);await f.open();
+  assert.equal(reviewButton(f).disabled,true);await reviewButton(f).emit('click');assert.equal(f.calls.length,0);
+  assert.ok(f.all().some(n=>n.textContent==='Signing result unknown. Preserve the original record. Do not sign or send a replacement.'));
+  assert.equal(f.nodes['multichain-review'].open,false);
+ }finally{f.ui.dispose()}
+});
+test('R37 unverifiable history cannot enable fresh preview even with a successful balance read',async()=>{
+ const f=mounted();try{f.api.multichainHistory=async()=>({ok:false,error:{code:'STORAGE_UNAVAILABLE'}});await f.open();
+  assert.equal(reviewButton(f).disabled,true);await reviewButton(f).emit('click');assert.equal(f.calls.length,0);
+  assert.ok(f.all().some(n=>n.textContent==='Original transaction records could not be verified. Refresh before preparing another transfer.'));
+ }finally{f.ui.dispose()}
+});
+test('R37 interrupted send refreshes original history and never leaves a new preview opportunity',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');let reads=0;
+  f.api.multichainSend=async()=>({ok:false,error:{code:'MULTICHAIN_RECORDED_OUTCOME_UNKNOWN'}});
+  f.api.multichainHistory=async()=>{reads++;return originalHistory(f,[originalRow(f)])};
+  await f.nodes['multichain-confirm'].emit('click');assert.equal(reads,1);assert.equal(f.nodes['multichain-review'].open,false);
+  assert.equal(reviewButton(f).disabled,true);await reviewButton(f).emit('click');assert.equal(f.calls.filter(c=>c[0]==='prepare').length,1);
+ }finally{f.ui.dispose()}
+});
+test('R37 all unresolved states keep original check available without fresh prepare or send',async()=>{
+ for(const state of ['prepared','signing-unknown','signed','unknown','submitted']){
+  const f=mounted();try{f.api.multichainHistory=async()=>originalHistory(f,[{...originalRow(f),state}]);let checks=0;f.api.multichainCheck=async id=>{assert.equal(id,'r');checks++;return {ok:true,value:{state}}};await f.open();
+   assert.equal(reviewButton(f).disabled,true);const check=f.all().find(n=>n.tag==='button'&&n.textContent==='Check original transaction');assert.equal(check.disabled,false);await check.emit('click');assert.equal(checks,1);assert.equal(reviewButton(f).disabled,true);assert.equal(f.calls.length,0);
+  }finally{f.ui.dispose()}
+ }
+});
+test('R37 verified terminal originals allow ordinary preview but do not submit automatically',async()=>{
+ for(const state of ['included','reverted','cancelled','local-cancelled-before-broadcast']){
+  const f=mounted();try{f.api.multichainHistory=async()=>originalHistory(f,[{...originalRow(f),state}]);await f.open();assert.equal(reviewButton(f).disabled,false);await reviewButton(f).emit('click');assert.equal(f.calls.filter(c=>c[0]==='prepare').length,1);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+  }finally{f.ui.dispose()}
+ }
+});
+test('R37 missing original after unknown ACK keeps the UI hold until that exact original is terminal',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');await f.nodes['multichain-confirm'].emit('click');assert.equal(reviewButton(f).disabled,true);
+  const refresh=f.all().find(n=>n.tag==='button'&&n.textContent==='Refresh');
+  f.api.multichainHistory=async()=>originalHistory(f,[{...originalRow(f),id:'other',state:'included'}]);await refresh.emit('click');assert.equal(reviewButton(f).disabled,true);
+  f.api.multichainHistory=async()=>originalHistory(f,[{...originalRow(f),state:'included'}]);await refresh.emit('click');assert.equal(reviewButton(f).disabled,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,1);
+ }finally{f.ui.dispose()}
+});
+test('R37 history read failure retains same-context original progress with an explicit stale warning',async()=>{
+ const f=mounted();try{f.api.multichainHistory=async()=>originalHistory(f,[originalRow(f)]);await f.open();const row=f.all().find(n=>n.className==='multichain-record');
+  f.api.multichainHistory=async()=>({ok:false,error:{code:'READ_FAILED'}});await f.all().find(n=>n.tag==='button'&&n.textContent==='Refresh').emit('click');
+  assert.equal(f.all().find(n=>n.className==='multichain-record'),row);assert.equal(reviewButton(f).disabled,true);
+  assert.ok(f.all().some(n=>n.textContent==='Original transaction records could not be verified. Refresh before preparing another transfer.'));
+ }finally{f.ui.dispose()}
+});
+test('R37 lost send IPC ACK recovers by original history without a second send',async()=>{
+ const f=mounted();try{await f.open();await reviewButton(f).emit('click');let sends=0;f.api.multichainSend=async()=>{sends++;throw Error('Original IPC ACK lost')};f.api.multichainHistory=async()=>originalHistory(f,[originalRow(f)]);
+  await f.nodes['multichain-confirm'].emit('click');assert.equal(f.nodes['multichain-review'].open,false);assert.equal(reviewButton(f).disabled,true);await f.nodes['multichain-confirm'].emit('click');assert.equal(sends,1);
+ }finally{f.ui.dispose()}
+});
+test('R37 normal mounted history and check use the actual original IPC service without key or producer access',async()=>{
+ const f=mounted();try{
+  const network=validateNetwork({name:'PUBLIC R37 original',rpcUrl:'https://qa.example.test',chainId:'31337',symbol:'QA',decimals:18,genesis:'0x'+'1'.repeat(64)});
+  const config=new MultiConfigStore({file:memoryFile({version:1,revision:1,selected:network.id,networks:[network],tokens:[]},validateConfig)});
+  const record={id:'00000000-0000-0000-0000-000000000037',network,account:f.review.account,nonce:'0',asset:'native',to:f.review.to,amount:'1',transaction:{chainId:network.chainId,nonce:'0',to:f.review.to,value:'1',data:'0x',gasLimit:'21000',gasPrice:'1',type:0},state:'signing-unknown',raw:null,hash:null,receipt:null,createdAt:1000,updatedAt:1000};
+  const journal=new MultiJournal({file:memoryFile({version:1,records:[record]},validateJournal)});let keyUses=0,producers=0;
+  const service=new MultichainService({config,journal,getContext:async()=>({account:f.review.account,revision:1,locked:false}),withSecret:async()=>{keyUses++;throw Error('Unexpected key access')},adapter:{balance:async()=> '1000000',prepare:async()=>{producers++;throw Error('Unexpected prepare')},reconcile:async()=>{throw Error('Unknown signature has no queryable hash')}}});
+  const routes=new Map(),safe=async action=>{try{return {ok:true,value:await action()}}catch(error){return {ok:false,error:{code:error.code}}}};
+  installMultichainIPC({handle:(name,callback)=>routes.set(name,callback),safe,sensitive:safe,service,getGuard:()=>{throw Error('Unexpected send guard')}});
+  const call=(name,input)=>routes.get('wallet:multichain-'+name)({},input);
+  Object.assign(f.api,{multichainSnapshot:()=>call('snapshot'),multichainBalances:()=>call('balances'),multichainHistory:()=>call('history'),multichainCheck:id=>call('check',id),multichainPrepare:input=>call('prepare',input)});
+  await f.open();assert.equal(reviewButton(f).disabled,true);
+  await f.all().find(n=>n.tag==='button'&&n.textContent==='Check original transaction').emit('click');
+  await reviewButton(f).emit('click');assert.equal(reviewButton(f).disabled,true);assert.equal((await journal.list(network.id,f.review.account))[0].state,'signing-unknown');
+  assert.equal(keyUses,0);assert.equal(producers,0);assert.equal(f.calls.length,0);
+ }finally{f.ui.dispose()}
+});
+test('R37 locked or retired history results cannot restore another context preview admission',async()=>{
+ const f=mounted();try{await f.open();const history=deferred();f.api.multichainHistory=()=>history.promise;
+  const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Refresh').emit('click');await tick();
+  f.setContext({locked:true,revision:2});f.ui.render();history.resolve(originalHistory(f,[]));await pending;
+  assert.equal(reviewButton(f).disabled,true);assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.all().some(n=>n.className==='multichain-record'),false);assert.equal(f.calls.length,0);
+ }finally{f.ui.dispose()}
+});
 test('EVM templates fill exact editable form without saving, selecting or requesting RPC',async()=>{const f=mounted();try{await f.open();const selects=f.all().filter(n=>n.tag==='select'),before=selects[0].value;let saved=0;f.api.multichainNetwork=async()=>{saved++;throw Error('Unexpected save')};for(const preset of EVM_NETWORK_PRESETS){const button=f.all().find(n=>n.tag==='button'&&n.textContent===preset.name);await button.emit('click');const inputs=f.all().filter(n=>n.tag==='input');assert.deepEqual(inputs.slice(1,6).map(n=>n.value),[preset.name,preset.rpcUrl,preset.chainId,preset.symbol,preset.genesis]);assert.equal(selects[0].value,before);assert.equal(saved,0);assert.equal(f.calls.length,0)}assert.equal(Object.isFrozen(EVM_NETWORK_PRESETS),true);for(const preset of EVM_NETWORK_PRESETS){assert.equal(Object.isFrozen(preset),true);assert.equal(validateNetwork(preset).decimals,18)}}finally{f.ui.dispose()}});
 test('chosen EVM template uses ordinary explicit verify/save, not implicit addition',async()=>{const f=mounted();try{await f.open();const preset=EVM_NETWORK_PRESETS[0],writes=[];f.api.multichainNetwork=async input=>{writes.push(input);return {ok:true,value:{}}};await f.all().find(n=>n.tag==='button'&&n.textContent===preset.name).emit('click');assert.equal(writes.length,0);await f.all().find(n=>n.tag==='button'&&n.textContent==='Verify and save network').emit('click');assert.deepEqual(writes,[preset]);assert.equal(f.calls.length,0)}finally{f.ui.dispose()}});
 test('production service rejects template chain or genesis mismatch before persisting network',async()=>{for(const preset of EVM_NETWORK_PRESETS){for(const mismatch of ['chain','genesis']){const config=new MultiConfigStore({file:memoryFile({version:1,revision:0,selected:null,networks:[],tokens:[]},validateConfig)}),calls=[],adapter=new EVMAdapter({rpc:async(_url,method)=>{calls.push(method);return method==='eth_chainId'?(mismatch==='chain'?'0x1':validateNetwork(preset).chainId):{hash:mismatch==='genesis'?'0x'+'1'.repeat(64):preset.genesis}}}),service=new MultichainService({config,journal:{},adapter,getContext:async()=>({account:'0x'+'1'.repeat(40),revision:1,locked:false})});await assert.rejects(service.putNetwork(preset),{code:'MULTICHAIN_NETWORK_MISMATCH'});assert.deepEqual(await config.read(),{version:1,revision:0,selected:null,networks:[],tokens:[]});assert.deepEqual(calls,['eth_chainId','eth_getBlockByNumber'])}}});
