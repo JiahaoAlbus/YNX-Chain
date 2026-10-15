@@ -25,6 +25,7 @@ import { offerWalletConnectDeepLink } from "./src/walletConnect/inbox";
 import { WalletPayFlow, type WalletPayReceipt } from "./src/state/walletPayFlow";
 import type { WalletPayReview } from "./src/state/walletPayReview";
 import { ModalActionGate } from "./src/state/modalActionGate";
+import { PublicChainWatchModal } from "./src/state/PublicChainWatchModal";
 import { WalletSignedPayFlow, type SignedPayRecovery } from "./src/state/walletSignedPayFlow";
 import type { WalletSignedPayIntegration } from "./src/state/walletSignedPayIntegration";
 import type { WalletSignedPayReceipt } from "./src/state/walletSignedPaySettlement";
@@ -334,6 +335,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const [contracts,setContracts]=useState(false);
   const [payHistory,setPayHistory]=useState(false);
   const [nativeHistory,setNativeHistory]=useState(false);
+  const [publicWatch,setPublicWatch]=useState(false);
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
   const chainRefreshGeneration=useRef(0),chainMounted=useRef(false);
@@ -372,6 +374,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <FaucetButton secondary label={walletCopy(locale,"View offline recovery key")} onPress={()=>setRecovery(true)}/>
     <SecondaryButton label={walletDashboardCopy(locale,"contracts")} onPress={()=>setContracts(true)}/>
     <FaucetButton secondary label={walletCopy(locale,"0x EVM compatibility and contract simulation")} onPress={()=>setEvm(true)}/>
+    <SecondaryButton label={locale.startsWith("zh")?"BTC / TRON · 只读观察地址":"BTC / TRON · watch-only addresses"} onPress={()=>setPublicWatch(true)}/>
     <SecondaryButton label={walletCopy(locale,"Connected Apps, Sessions and Devices")} onPress={()=>setCenter(true)}/>
     <SecondaryButton label={walletCopy(locale,"Review stored transfer")} onPress={()=>setSend(true)}/>
     <SecondaryButton label={walletDashboardCopy(locale,"confirmedHistory")} onPress={()=>setNativeHistory(true)}/>
@@ -388,6 +391,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {nativeHistory?<NativeTransferHistoryModal key={selected.account} account={selected} close={()=>setNativeHistory(false)}/>:null}
     {faucet?<FaucetModal account={selected} close={()=>{setFaucet(false);void refreshChain()}}/>:null}
     <EvmCompatibilityModal visible={evm} account={selected} close={()=>setEvm(false)}/>
+    {publicWatch?<PublicChainWatchModal key={selected.account} account={selected.account} operations={operations} storage={platformSecureStorage} locale={locale} textScale={styles.sheetText.fontSize/14} colors={ACTIVE_COLORS} close={()=>setPublicWatch(false)}/>:null}
     <NativeContractModal visible={contracts} account={selected} close={()=>setContracts(false)}/>
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
     <WalletControlCenter visible={controls} locale={locale} close={()=>setControls(false)}/>
