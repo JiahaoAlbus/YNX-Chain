@@ -549,16 +549,16 @@ function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];valu
 }
 
 function NativeReceiveModal({account,close}:{account:WalletAccount;close:()=>void}){
-  const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account);
+  const locale=useContext(WalletLocaleContext),scope=useOperationScope(true,account.account),gate=useModalActionGate(account.account);
   const [busy,setBusy]=useState(false),[feedback,setFeedback]=useState("");
   const c=(en:string,_zh:string)=>walletAppFlowCopy(locale,en);
   const uri=createPaymentURI(account.account);
-  const dismiss=()=>{scope.cancel();close()};
-  const copy=async(link:boolean)=>{let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
+  const dismiss=()=>{gate.close();scope.cancel();close()};
+  const copy=async(link:boolean)=>{const action=gate.acquire();if(!action)return;let lease:WalletOperationLease|undefined;setBusy(true);setFeedback("");try{
     lease=scope.begin({account:account.account});lease.assert();
     await copyPublicValueWithExpiry(Clipboard,link?uri:account.account,{guard:lease.assert});lease.assert();
     setFeedback(c(link?"Receiving link copied for 30 seconds.":"Address copied for 30 seconds.",link?"收款链接已复制，30 秒后自动清除。":"收款地址已复制，30 秒后自动清除。"));
-  }catch{if(!lease||lease.isCurrent())setFeedback(c("Clipboard unavailable. Select and copy the address below.","暂时无法使用剪贴板，请选择并复制下方地址。"))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
+  }catch{if(action.isCurrent()&&(!lease||lease.isCurrent()))setFeedback(c("Clipboard unavailable. Select and copy the address below.","暂时无法使用剪贴板，请选择并复制下方地址。"))}finally{if(action.isCurrent()&&(!lease||lease.ownsScope()))setBusy(false);action.finish();lease?.finish()}};
   return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={c("Receive YNXT","接收 YNXT")} close={dismiss}>
     <View style={styles.qr}><QRCodeView value={uri} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{account.account}</Text>
     <InfoCard title="YNX Testnet · YNXT" body={c("This code and link contain only your public receiving address, network and asset. They do not set an amount or authorize payment. A sender must enter an amount and review the transfer.","二维码和链接仅包含公开收款地址、网络及资产，不包含金额或付款授权。付款方仍须填写金额并核对转账。")}/>

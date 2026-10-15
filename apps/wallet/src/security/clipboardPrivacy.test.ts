@@ -3,6 +3,46 @@ import { test } from "node:test";
 import {readFileSync} from "node:fs";
 import { copyPublicValueWithExpiry, type ClipboardSchedule } from "./clipboardPrivacy";
 import {WalletOperationLifecycle,WalletOperationCancelled} from "./operationLifecycle";
+import ts from "typescript";
+import {ModalActionGate} from "../state/modalActionGate";
+
+// Real Receive caller + real serialized clipboard helper; PUBLIC adapter only.
+const receiveApp=readFileSync(new URL('../../App.tsx',import.meta.url),'utf8');
+const receiveStart=receiveApp.indexOf('function NativeReceiveModal('),receiveEnd=receiveApp.indexOf('  return <Modal',receiveStart);
+assert.ok(receiveStart>=0&&receiveEnd>receiveStart);
+const receiveCode=ts.transpileModule(receiveApp.slice(receiveStart,receiveEnd)+'return {copy,dismiss};}\nreturn NativeReceiveModal(props);',{compilerOptions:{target:ts.ScriptTarget.ES2022}}).outputText;
+async function flushReceive(){for(let i=0;i<16;i++)await Promise.resolve()}
+function receiveCaller(){
+  const operations=new WalletOperationLifecycle();operations.setAccount('PUBLIC QA');const unlock=operations.scope().begin({requireUnlocked:false});operations.unlock(unlock);unlock.finish();const scope=operations.scope(),gate=new ModalActionGate();operations.subscribe(()=>scope.cancel());
+  const slots:any[]=[],writes:string[]=[],pending:Array<{resolve:()=>void;reject:(error:Error)=>void}>=[],expiry:Array<()=>void|Promise<void>>=[];let cursor=0,closes=0,pause=true;
+  const clipboard={value:'',async getStringAsync(){return this.value},async setStringAsync(value:string){writes.push(value);if(pause)await new Promise<void>((resolve,reject)=>pending.push({resolve,reject}));this.value=value}};
+  const context={useContext:()=> 'en',WalletLocaleContext:{},useOperationScope:()=>scope,useModalActionGate:()=>gate,
+    useState(value:any){const i=cursor++;if(!slots[i])slots[i]={value};return [slots[i].value,(v:any)=>{slots[i].value=v}]},walletAppFlowCopy:(_locale:string,text:string)=>text,createPaymentURI:(account:string)=>'ynx:'+account,
+    Clipboard:clipboard,copyPublicValueWithExpiry:(adapter:typeof clipboard,value:string,{guard}:{guard:()=>void})=>copyPublicValueWithExpiry(adapter,value,{guard,schedule(task){expiry.push(task);return {cancel(){}}}})};
+  const invoke=new Function(...Object.keys(context),'props',receiveCode),render=()=>{cursor=0;return invoke(...Object.values(context),{account:{account:'PUBLIC QA'},close:()=>closes++}) as {copy:(link:boolean)=>Promise<void>;dismiss:()=>void}};
+  return {render,pending,expiry,writes,clipboard,scope,operations,closes:()=>closes,state:()=>({busy:slots[0].value,feedback:slots[1].value}),resume:()=>{pause=false},unmount:()=>{gate.close();scope.cancel()}};
+}
+test('Receive copy owner: duplicate callback cannot release admitted copy busy',async()=>{
+  const h=receiveCaller(),view=h.render(),first=view.copy(false);await flushReceive();assert.equal(h.pending.length,1);await view.copy(false);const observed=h.state();h.resume();h.pending[0]!.resolve();await first;assert.equal(observed.busy,true);
+});
+test('Receive copy owner: rejected duplicate is not a real clipboard error',async()=>{
+  const h=receiveCaller(),view=h.render(),first=view.copy(false);await flushReceive();await view.copy(true);const observed=h.state();h.resume();h.pending[0]!.resolve();await first;assert.equal(observed.feedback,'');assert.equal(h.writes.length,1);
+});
+test('Receive copy owner: successful copy retains expiry after UI completion',async()=>{
+  const h=receiveCaller(),first=h.render().copy(false);await flushReceive();h.resume();h.pending[0]!.resolve();await first;assert.equal(h.state().busy,false);assert.match(h.state().feedback,/Address copied/);assert.equal(h.expiry.length,1);await h.expiry[0]!();assert.equal(h.clipboard.value,'');
+});
+test('Receive copy owner: genuine clipboard denial stays an error without retry',async()=>{
+  const h=receiveCaller(),first=h.render().copy(false);await flushReceive();h.pending[0]!.reject(Error('PUBLIC denied'));await first;assert.equal(h.state().busy,false);assert.match(h.state().feedback,/Clipboard unavailable/);assert.equal(h.expiry.length,0);assert.equal(h.writes.length,1);
+});
+test('Receive copy owner: lock during OS write blocks success but preserves expiry',async()=>{
+  const h=receiveCaller(),first=h.render().copy(false);await flushReceive();h.operations.lock();h.resume();h.pending[0]!.resolve();await first;assert.equal(h.state().feedback,'');assert.equal(h.expiry.length,1);await h.expiry[0]!();assert.equal(h.clipboard.value,'');
+});
+test('Receive copy owner: close during pending copy cannot publish late success',async()=>{
+  const h=receiveCaller(),view=h.render(),first=view.copy(false);await flushReceive();view.dismiss();h.resume();h.pending[0]!.resolve();await first;assert.equal(h.closes(),1);assert.equal(h.state().feedback,'');assert.equal(h.expiry.length,1);
+});
+test('Receive copy owner: a later admitted copy works after the first completes',async()=>{
+  const h=receiveCaller(),first=h.render().copy(false);await flushReceive();h.resume();h.pending[0]!.resolve();await first;await h.render().copy(true);assert.equal(h.writes.length,2);assert.match(h.state().feedback,/Receiving link copied/);assert.equal(h.state().busy,false);
+});
 
 class MemoryClipboard {
   value = "";
