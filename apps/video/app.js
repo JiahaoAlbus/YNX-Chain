@@ -965,12 +965,14 @@ async function showHistory(button) {
     if(epoch!==libraryEpoch)return;
     const box=$("#content");box.replaceChildren();
     if(!events.length){empty("No watch history yet","Videos you watch while signed in will appear here.");return;}
+    const navigation=navigationRevision;
+    const scope=playlistScope(()=>{if(epoch!==libraryEpoch||navigation!==navigationRevision||currentView!=="history")throw new DOMException("Video view changed.","AbortError");});
     for(const item of events){
       const id=field(item,"video_id","VideoID");
       const row=document.createElement("article");row.className="library-row";
       const date=new Date(field(item,"created_at","CreatedAt"));
       row.innerHTML='<div><h2>Watched video</h2><p>'+esc(field(item,"seconds","Seconds"))+' seconds watched</p><p class="meta">'+esc(Number.isNaN(date.getTime())?"":date.toLocaleString())+'</p></div><button>Play video</button>';
-      row.querySelector("button").onclick=()=>openSavedVideo(id);
+      row.querySelector("button").onclick=()=>{if(!scope.matches())return;return openSavedVideo(id);};
       box.append(row);
     }
   }catch(error){libraryFailure(error,epoch,()=>showHistory(button));}
