@@ -20,6 +20,22 @@ test('mounted confirm uses only issued review id and shows unknown without retry
 test('12 locales cover all new copy with identical interpolation fields',()=>{const keys=Object.keys(MULTICHAIN_COPY.en);assert.equal(Object.keys(MULTICHAIN_COPY).length,12);for(const row of Object.values(MULTICHAIN_COPY)){assert.deepEqual(Object.keys(row),keys);for(const key of keys)assert.deepEqual(row[key].match(/\{\w+\}/g),key.match(/\{\w+\}/g))}});
 test('stale IPC results after security change cannot reopen review or fill address',async()=>{const f=mounted();try{await f.open();let resolve;f.api.multichainPrepare=()=>new Promise(r=>{resolve=r});const pending=f.all().find(n=>n.tag==='button'&&n.textContent==='Review transfer').emit('click');f.setContext({revision:2,locked:true});f.ui.render();resolve({ok:true,value:f.review});await pending;assert.equal(f.nodes['multichain-review'].open,false);assert.equal(f.nodes['multichain-confirm'].disabled,true);assert.equal(f.calls.filter(c=>c[0]==='send').length,0)}finally{f.ui.dispose()}});
 function deferred(){let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}}
+test('R44 late unsigned quote after closing the sheet is cancelled by exact ID without touching a successor review',async()=>{
+ const f=mounted();try{await f.open();const gate=deferred(),entered=deferred();f.api.multichainPrepare=async()=>{entered.resolve();return gate.promise};
+  const old=reviewButton(f).emit('click');await entered.promise;f.nodes['multichain-sheet'].close();await f.open();
+  f.api.multichainPrepare=async()=>({ok:true,value:{...f.review,id:'PUBLIC-successor'}});await reviewButton(f).emit('click');assert.equal(f.nodes['multichain-review'].open,true);
+  gate.resolve({ok:true,value:{...f.review,id:'PUBLIC-retired'}});await old;
+  assert.deepEqual(f.calls.filter(c=>c[0]==='cancel'),[['cancel','PUBLIC-retired']]);assert.equal(f.nodes['multichain-review'].open,true);assert.equal(f.nodes['multichain-cancel'].disabled,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+  await f.nodes['multichain-cancel'].emit('click');assert.deepEqual(f.calls.at(-1),['cancel','PUBLIC-successor']);
+ }finally{f.ui.dispose()}
+});
+test('R44 failed retired-quote cleanup neither retries nor corrupts a successor review',async()=>{
+ const f=mounted();try{await f.open();const gate=deferred(),entered=deferred();f.api.multichainPrepare=async()=>{entered.resolve();return gate.promise};const old=reviewButton(f).emit('click');await entered.promise;
+  f.nodes['multichain-sheet'].close();await f.open();f.api.multichainPrepare=async()=>({ok:true,value:{...f.review,id:'PUBLIC-successor'}});await reviewButton(f).emit('click');let cancels=0;
+  f.api.multichainCancel=async id=>{cancels++;assert.equal(id,'PUBLIC-retired');throw Error('PUBLIC cleanup unavailable')};gate.resolve({ok:true,value:{...f.review,id:'PUBLIC-retired'}});await old;
+  assert.equal(cancels,1);assert.equal(f.nodes['multichain-review'].open,true);assert.equal(f.nodes['multichain-review-status'].textContent,'Review the exact network, recipient, amount and maximum fee.');assert.equal(f.nodes['multichain-cancel'].disabled,false);assert.equal(f.calls.filter(c=>c[0]==='send').length,0);
+ }finally{f.ui.dispose()}
+});
 test('R43 expired review cancellation rejection cannot overwrite the successor review',async()=>{
  const f=mounted();try{await f.open();await reviewButton(f).emit('click');const gate=deferred(),entered=deferred();let first=true;
   f.api.multichainCancel=async()=>{if(first){first=false;entered.resolve();await gate.promise;throw Error('PUBLIC old cancellation')}return {ok:true,value:{cancelled:true}}};
