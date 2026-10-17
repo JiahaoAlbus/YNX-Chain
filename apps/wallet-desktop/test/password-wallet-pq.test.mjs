@@ -280,8 +280,10 @@ test('normal lawful legacy session requires the same fresh committed source inst
 test('original source acquisition reservation prevents overlapping session and transaction resources before either returns',async t=>{
  const f=await fixture(t),s=sessionQA(f);let release,entered;const acquired=new Promise(resolve=>{entered=resolve;});
  const authority=new DesktopWalletAuthority({...s.options,pqSessionSource:async()=>{s.counts.acquire++;entered();await new Promise(resolve=>{release=resolve;});return s.resource;},pqPolicySource:async()=>{assert.fail('must not acquire a second original');},pqPolicyRecognized:()=>true});
- const first=f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));await acquired;
- await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
- await assert.rejects(f.lifecycle.run(()=>authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
- f.lifecycle.lock();release();await assert.rejects(first);await authority.shutdownPQReviews();assert.equal(s.counts.acquire,1);assert.equal(s.counts.close,1);
+ await assert.rejects(f.lifecycle.run(async()=>{
+  const first=authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account);await acquired;
+  await assert.rejects(authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
+  await assert.rejects(authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
+  f.lifecycle.lock();release();await assert.rejects(first);
+ }));await authority.shutdownPQReviews();assert.equal(s.counts.acquire,1);assert.equal(s.counts.close,1);
 });

@@ -2,8 +2,9 @@ import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {decodePQTransferRequest,decodePQMigrationRequest,pqU64} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {parseDurabilityProof,DURABILITY_MODEL} from './transaction-durability.mjs';
-// Candidate source contract only; full Chain CI/deployment is a separate gate.
-export const PQ_HTTP_CONTRACT_CANDIDATE='1646f01578e2d27409f24b081d93519df5dc24ce';
+// Fixed source contract with focused CI success, NOT public deployment or
+// authority to submit. Unsupported terminal-revocation states fail closed.
+export const PQ_HTTP_CONTRACT_SOURCE='69e788b4bd726689ea5d1709fd5ba0162c6ec0da';
 const fail=()=>{throw Object.assign(new Error('The PQ response cannot be bound to this original.'),{code:'PQ_RESPONSE_INVALID'});};
 const hash=value=>typeof value==='string'&&/^0x[0-9a-f]{64}$/.test(value);
 const nativeHash=value=>typeof value==='string'&&/^(?:0x)?[0-9a-f]{64}$/.test(value)?(value.startsWith('0x')?value:'0x'+value):null;

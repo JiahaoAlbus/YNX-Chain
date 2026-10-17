@@ -41,6 +41,9 @@ test('POST uncertainty and every observed HTTP refusal preserve the original and
   for(const status of [400,413,415,422]){const rejected=parsePQSubmissionResponse(original,status,JSON.stringify({error:'PUBLIC refusal'}));assert.equal(rejected.outcome,'rejection-observed');assert.equal(rejected.clearsOriginal,false);assert.equal(rejected.retryAuthorized,false);}
  }
 });
+test('fixed-contract terminal revocation migration replay never becomes a false active result',()=>{
+ for(const status of ['revocation_pending','revoked']){const body=posted(migration);body.status=status;invalid(()=>parsePQSubmissionResponse(migration,200,JSON.stringify(body)));}
+});
 test('GET pending checkpoint and uncertain observed inclusion are distinct from local durable inclusion',()=>{
  for(const original of [transfer,migration]){
   const pending=parsePQReadResponse(original,200,JSON.stringify(read(original)));assert.equal(pending.outcome,'pending-local-durable');assert.equal(pending.decimalFields.nonce,nonce);
