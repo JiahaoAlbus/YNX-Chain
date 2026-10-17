@@ -61,20 +61,9 @@ func readCompletedTerminalResults(directory string, expected terminalStreamRepor
 	capturedBytes := 0
 	for segment := 0; segment < expected.Segments; segment++ {
 		name := filepath.Join(absolute, fmt.Sprintf("terminal-%06d.jsonl", segment))
-		before, err := os.Lstat(name)
+		raw, err := captureTerminalSegment(name, int64((16<<20)-capturedBytes))
 		if err != nil {
 			return nil, err
-		}
-		if !before.Mode().IsRegular() {
-			return nil, errors.New("terminal segment is not a regular file")
-		}
-		raw, err := readBounded(name, int64(terminalSegmentRecords*(terminalRowLimit+1)+8192))
-		if err != nil {
-			return nil, err
-		}
-		after, err := os.Lstat(name)
-		if err != nil || !os.SameFile(before, after) || before.Size() != int64(len(raw)) || after.Size() != int64(len(raw)) {
-			return nil, errors.New("terminal segment changed while captured")
 		}
 		capturedBytes += len(raw)
 		if capturedBytes > 16<<20 {
@@ -145,4 +134,30 @@ func restoreCompletedSlotReport(work string, manifestRaw []byte, m consensus.Eph
 	}
 	r.Transactions = rows
 	return nil
+}
+
+func captureTerminalSegment(name string, budget int64) ([]byte, error) {
+	limit := int64(terminalSegmentRecords*(terminalRowLimit+1) + 8192)
+	if budget < limit {
+		limit = budget
+	}
+	if limit <= 0 {
+		return nil, errors.New("terminal readback byte budget exhausted")
+	}
+	before, err := os.Lstat(name)
+	if err != nil {
+		return nil, err
+	}
+	if !before.Mode().IsRegular() {
+		return nil, errors.New("terminal segment is not a regular file")
+	}
+	raw, err := readBounded(name, limit)
+	if err != nil {
+		return nil, err
+	}
+	after, err := os.Lstat(name)
+	if err != nil || !os.SameFile(before, after) || before.Size() != int64(len(raw)) || after.Size() != int64(len(raw)) {
+		return nil, errors.New("terminal segment changed while captured")
+	}
+	return raw, nil
 }

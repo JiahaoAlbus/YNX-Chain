@@ -69,9 +69,6 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	}
 	var observed report
 	reportRaw := read(filepath.Join(work, "transactions-result.json"), &observed)
-	if observed.RetentionMode != "" {
-		t.Fatal("partial slot reports require sealed-prefix reconciliation; latest slots are not full terminal history")
-	}
 	if observed.SenderMode != "ready-pool" {
 		t.Fatal("requires ready pool identity journal")
 	}
@@ -83,6 +80,31 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	recovered, err := decodeReadySenderJournal(context.Background(), journalRaw, manifestRaw, m, initial, observed.RoundsRequested)
 	if err != nil {
 		t.Fatal(err)
+	}
+	var terminalPrefix *terminalPrefixReadback
+	var terminalEvidenceError string
+	var reportedRows []terminalReportedObservation
+	if observed.RetentionMode != "" {
+		if observed.SchemaVersion != 12 || observed.RetentionMode != "latest_per_account_slots" || len(observed.Transactions) != len(initial) {
+			t.Fatal("invalid partial slot report")
+		}
+		sum := sha256.Sum256(manifestRaw)
+		binding := readySenderJournalHeader{"YNX_LOCAL_READY_SENDER_V1", hex.EncodeToString(sum[:]), m.MigrationStateHash, m.GenesisHash}
+		prefix, prefixErr := readTerminalPrefix(filepath.Join(work, "transactions-result.json.terminal-stream"), binding, len(initial), recovered.Transactions)
+		if prefixErr != nil {
+			// Terminal diagnostics cannot manufacture outcomes, and must not
+			// erase independently verifiable signed intents or node state.
+			terminalEvidenceError = prefixErr.Error()
+		}
+		terminalPrefix = &prefix
+		reportedRows, err = mergeTerminalPrefixAndLatest(prefix.Rows, observed.Transactions, len(initial), recovered.Transactions)
+		if err != nil {
+			t.Fatal(err)
+		}
+	} else {
+		for _, r := range observed.Transactions {
+			reportedRows = append(reportedRows, terminalReportedObservation{r, "full_report"})
+		}
 	}
 	expected := map[string]cmt.Tx{}
 	for _, raw := range recovered.Transactions {
@@ -96,26 +118,31 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 		expected[hash] = raw
 	}
 	type transaction struct {
-		Hash           string   `json:"hash"`
-		OriginalStatus string   `json:"originalStatus"`
-		Submitted      bool     `json:"submitted"`
-		DurableNodes   []string `json:"durableNodes"`
+		Hash               string   `json:"hash"`
+		OriginalStatus     string   `json:"originalStatus"`
+		Submitted          bool     `json:"submitted"`
+		SubmissionRecorded bool     `json:"submissionRecorded"`
+		ObservationSource  string   `json:"observationSource"`
+		DurableNodes       []string `json:"durableNodes"`
 	}
 	rows := map[string]*transaction{}
 	for hash := range expected {
-		rows[hash] = &transaction{Hash: hash, OriginalStatus: "prepared_not_reported", DurableNodes: []string{}}
+		rows[hash] = &transaction{Hash: hash, OriginalStatus: "intent_only_outcome_unknown", ObservationSource: "signed_intent_only", DurableNodes: []string{}}
 	}
-	for _, r := range observed.Transactions {
+	for _, observation := range reportedRows {
+		r := observation.Result
 		if r.SignedTransaction == "" {
 			continue
 		}
 		raw, e := base64.StdEncoding.DecodeString(r.SignedTransaction)
 		hash := strings.ToUpper(r.Hash)
-		if e != nil || !bytes.Equal(expected[hash], raw) {
+		if e != nil || len(raw) == 0 || expected[hash] == nil || !bytes.Equal(expected[hash], raw) {
 			t.Fatal("report identity differs from signed journal")
 		}
 		rows[hash].OriginalStatus = r.Status
 		rows[hash].Submitted = r.SubmittedAt != nil
+		rows[hash].SubmissionRecorded = true
+		rows[hash].ObservationSource = observation.Source
 	}
 	type nodeEvidence struct {
 		Name                string `json:"name"`
@@ -249,15 +276,17 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	}
 	sum := sha256.Sum256(reportRaw)
 	output := struct {
-		Schema                int            `json:"schema"`
-		VerifiedAt            time.Time      `json:"verifiedAt"`
-		ObservationSHA256     string         `json:"observationSha256"`
-		SignedRecords         int            `json:"signedRecords"`
-		JournalIncompleteTail bool           `json:"journalIncompleteTail"`
-		Nodes                 []nodeEvidence `json:"nodes"`
-		Transactions          []*transaction `json:"transactions"`
-		Interpretation        string         `json:"interpretation"`
-	}{1, time.Now().UTC(), hex.EncodeToString(sum[:]), recovered.Records, recovered.IncompleteTail, nodes, transactions, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
+		Schema                int                     `json:"schema"`
+		VerifiedAt            time.Time               `json:"verifiedAt"`
+		ObservationSHA256     string                  `json:"observationSha256"`
+		SignedRecords         int                     `json:"signedRecords"`
+		JournalIncompleteTail bool                    `json:"journalIncompleteTail"`
+		Nodes                 []nodeEvidence          `json:"nodes"`
+		Transactions          []*transaction          `json:"transactions"`
+		TerminalPrefix        *terminalPrefixReadback `json:"terminalPrefix,omitempty"`
+		TerminalEvidenceError string                  `json:"terminalEvidenceError,omitempty"`
+		Interpretation        string                  `json:"interpretation"`
+	}{2, time.Now().UTC(), hex.EncodeToString(sum[:]), recovered.Records, recovered.IncompleteTail, nodes, transactions, terminalPrefix, terminalEvidenceError, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Missing terminal evidence leaves signed-intent outcomes unknown, never unsubmitted by inference. A sealed terminal prefix is a structural observation record, not an observed writer Sync or consensus proof. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
 	encoded, e := json.MarshalIndent(output, "", "  ")
 	if e != nil {
 		t.Fatal(e)
