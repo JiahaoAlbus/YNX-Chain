@@ -20,7 +20,7 @@ export function renderRecoveryOutcome(node,remoteCleanupUnconfirmed,doc=node.own
 }
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
-  let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, reviewedRecovery = null, busy = false;
+  let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, reviewedRecovery = null, busy = false, pendingRecoveryFeedback = null;
   // Public status is a view read, not permission to erase a later user draft.
   // Capture only event occurrence; never inspect input/credential contents.
   let publicViewRevision=0;
@@ -38,6 +38,13 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; reviewedRecovery = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
   function render() {
     const status = getAccountStatus(), state = getKeyState();
+    const owner=pendingRecoveryFeedback;
+    if(owner&&owner.intent===viewIntent&&status!==owner.beforeStatus&&status!==owner.publishedStatus){
+      // Bind only the first public projection of this exact completed custody.
+      // Any subsequent public view owns its notice, even for the same actor.
+      if(!owner.dismissed&&owner.publishedStatus===null&&state.locked&&!state.authenticating&&state.account===owner.account&&state.revision===owner.commitRevision&&status?.account===owner.account)owner.publishedStatus=status;
+      else owner.dismissed=true;
+    }
     $("#recover-wallet").hidden = !(status?.accounts?.length > 0);
     $("#recover-wallet").disabled = state.authenticating;
     $("#unlock-wallet").disabled = !status || !state.unlockAvailable || state.authenticating;
@@ -181,8 +188,10 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     // across generation cancellation; a later unlock/lock/account owns its UI.
     const commitRevision=revision+(before.account===review.account?1:2);
     let acceptedCommit=false;
-    const current=()=>intent===viewIntent&&token===generation&&revision===getKeyState().revision;
-    const ownCommit=()=>{const state=getKeyState();return intent===viewIntent&&state.locked===true&&!state.authenticating&&state.account===review.account&&state.revision===commitRevision&&getAccountStatus()?.account===review.account};
+    const owner={intent,view:publicViewRevision,beforeStatus:getAccountStatus(),publishedStatus:null,dismissed:false,account:review.account,commitRevision};pendingRecoveryFeedback=owner;
+    const ownsView=()=>pendingRecoveryFeedback===owner&&!owner.dismissed&&intent===viewIntent&&owner.view===publicViewRevision;
+    const current=()=>ownsView()&&token===generation&&revision===getKeyState().revision&&getAccountStatus()===owner.beforeStatus;
+    const ownCommit=()=>{const state=getKeyState();return ownsView()&&owner.publishedStatus!==null&&getAccountStatus()===owner.publishedStatus&&state.locked===true&&!state.authenticating&&state.account===review.account&&state.revision===commitRevision};
     const ownsFeedback=()=>current()||acceptedCommit&&ownCommit();
     try {
       const result = await api.commitRecovery(id);
@@ -197,7 +206,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       }
       else if(current()){showError($("#recovery-result"),result);showError($("#unlock-result"),result);}
     } catch { if (current()) setWalletCopy($("#recovery-result"),"Recovery did not finish. Check the current Wallet before retrying."); }
-    finally { if(ownsFeedback())await refreshPublicStatus(payload=>ownsFeedback()&&payload?.ok===true&&payload.value?.account===review.account,ownsFeedback);if(current())setBusy(false); }
+    finally { if(ownsFeedback())await refreshPublicStatus(payload=>ownsFeedback()&&payload?.ok===true&&payload.value?.account===review.account,ownsFeedback);if(intent===viewIntent&&token===generation)setBusy(false);if(pendingRecoveryFeedback===owner)pendingRecoveryFeedback=null; }
   });
   for (const button of doc.querySelectorAll("[data-custody-cancel]")) button.addEventListener("click", () => { cancel({ explicit: true }); void api.lock(); });
   for (const sheet of [passwordSheet, recoverySheet]) sheet.addEventListener("cancel", event => { event.preventDefault(); cancel({ explicit: true }); void api.lock(); });
