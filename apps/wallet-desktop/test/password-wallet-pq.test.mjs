@@ -15,6 +15,10 @@ import * as backupSDK from '../../../packages/wallet-auth/src/pq-wallet-backup.j
 import * as contractSDK from '../../../packages/wallet-auth/src/pq-wallet-contract.js';
 import {pqPublicBindingToRegistrationKeys,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+import {DesktopWalletAuthority,MemoryPermissionStore} from '../src/desktop-wallet-authority.mjs';
+import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
+import {runInNewContext} from 'node:vm';
 const SDK=Object.freeze({...keySDK,...backupSDK,...contractSDK}),PASSWORD='isolated-PQ-app-fixture-password',SECRET='1'.padStart(64,'0'),CHAIN='a'.repeat(64);
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
@@ -135,4 +139,69 @@ test('original Vault captures and retires a restored handle returned after a loc
  let armed=false,lock=()=>{},late,actions=0;const sdk={...SDK,restorePQWalletKeyHandle:async(...args)=>{const handle=await SDK.restorePQWalletKeyHandle(...args);if(armed){late=handle;lock();}return handle;}};
  const f=await fixture(t,sdk);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));lock=()=>f.lifecycle.lock();armed=true;
  await assert.rejects(f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,()=>{actions++;})));assert.equal(actions,0);assert.equal(SDK.readPQWalletKeyCleanupOutcome(late).cleanupComplete,true);
+});
+async function approvalFixture(t,{onRecheck,acquire}={}){
+ const f=await fixture(t),{snapshot}=syntheticTransfer(f);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));
+ const counts={acquire:0,recheck:0,retire:0,join:0,close:0},at=Date.now(),view=Object.freeze({version:'YNX-WALLET-TRANSACTION-POLICY/v1',networkId:CHAIN,nativeChainId:'6423',canonicalOwner:f.account,authorization:snapshot,observedAt:new Date(at-1000).toISOString(),expiresAt:new Date(at+60000).toISOString()});let retired=false;
+ const resource={assertCurrent(){if(retired)throw Error('QA_RETIRED');},readOriginal(){return view;},async recheck(){counts.recheck++;await onRecheck?.();},retire(){counts.retire++;retired=true;},async join(){counts.join++;},async close(){counts.close++;}};
+ const source=async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.networkId,CHAIN);assert.equal(input.nativeChainId,'6423');assert.equal(input.operation,'transfer');if(acquire)await acquire();return resource;};
+ const store=new FileTransactionIntentStore({filePath:path.join(f.directory,'journal.json')}),authority=new DesktopWalletAuthority({vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:store}},pqPolicySource:source,pqPolicyRecognized:value=>value===resource,pqNetworkId:CHAIN});
+ return {...f,authority,store,counts,resource};
+}
+test('normal original pending approval performs actual protected typed signing and local save only',async t=>{
+ const f=await approvalFixture(t),response=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ assert.equal(response.request.method,'ynx_signPQNativeTransfer');assert.equal('snapshot' in response.request,false);assert.equal('resource' in response.request,false);assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);
+ const result=await f.lifecycle.run(()=>f.authority.approve(response.request.id));assert.equal(result.status,'success');assert.equal(result.result.submitted,false);assert.equal(result.result.confirmed,false);
+ const [record]=await f.store.readPQOriginals(f.account,()=>{});assert.equal(record.hash,result.result.hash);assert.equal(decodePQTransferRequest(Buffer.from(record.wire,'base64url')).transfer.nonce,'9007199254740994');
+ assert.deepEqual(f.counts,{acquire:1,recheck:1,retire:1,join:1,close:1});await assert.rejects(f.lifecycle.run(()=>f.authority.approve(response.request.id)));
+});
+test('normal original review refuses missing source before any policy acquisition or signature',async t=>{
+ const f=await fixture(t),authority=new DesktopWalletAuthority({vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{}});
+ await assert.rejects(f.lifecycle.run(()=>authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),e=>e.data?.code==='PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED');assert.equal(authority.pendingRequests().length,0);
+});
+test('normal policy recheck refusal precedes journal reservation and retires the original once',async t=>{
+ const failure=Error('QA_POLICY_CHANGED'),f=await approvalFixture(t,{onRecheck:()=>{throw failure;}}),request=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(request.request.id)),e=>e===failure);assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal(f.counts.retire,1);assert.equal(f.counts.close,1);
+});
+test('normal failed factory retains nonenumerable partial before qualification or live checks',async t=>{
+ let failure;const f=await approvalFixture(t,{acquire:()=>{throw failure;}});failure=Object.assign(Error('AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED'),{code:'AUTH_WALLET_TRANSACTION_POLICY_NOT_SUPPLIED'});Object.defineProperty(failure,'partial',{value:f.resource});f.resource.readOriginal=()=>{throw Error('PARTIAL_MUST_NOT_BE_READ');};
+ await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),e=>e===failure);assert.equal(f.authority.pendingRequests().length,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.deepEqual(f.counts,{acquire:1,recheck:0,retire:1,join:1,close:1});
+});
+test('normal unrecognized factory result cannot enter policy parsing or key custody',async t=>{
+ const f=await approvalFixture(t);f.resource.readOriginal=()=>{throw Error('UNRECOGNIZED_MUST_NOT_BE_READ');};const authority=new DesktopWalletAuthority({vault:f.vault,permissions:new MemoryPermissionStore(),transactionSender:{submissions:{intentStore:f.store}},pqPolicySource:async()=>f.resource,pqPolicyRecognized:()=>false,pqNetworkId:CHAIN});
+ await assert.rejects(f.lifecycle.run(()=>authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),e=>e.data?.code==='PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED');assert.equal(f.counts.retire,1);assert.equal(f.counts.close,1);assert.equal(await f.store.unresolvedPreparation(f.account),null);
+});
+test('normal approval retains signed original when lock occurs immediately after capture',async t=>{
+ const f=await approvalFixture(t),request=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),capture=f.store.captureOriginal.bind(f.store);
+ f.store.captureOriginal=(...args)=>{const saved=capture(...args);f.lifecycle.lock();return saved;};
+ await assert.rejects(f.lifecycle.run(()=>f.authority.approve(request.request.id)));assert.ok(f.store.localOriginal(f.account).pq.wire);assert.equal((await f.store.unresolvedPreparation(f.account)).kind,'pq-transfer');assert.equal(f.counts.close,1);
+});
+test('normal request captures and closes a policy resource returned after the original lifecycle locks',{timeout:5000},async t=>{
+ let release,entered;const pause=new Promise(r=>{release=r;}),entry=new Promise(r=>{entered=r;}),f=await approvalFixture(t,{acquire:()=>{entered();return pause;}});
+ const pending=f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ await entry;f.lifecycle.lock();release();await assert.rejects(pending);
+ assert.equal(f.authority.pendingRequests().length,0);assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal(f.counts.retire,1);assert.equal(f.counts.close,1);
+});
+test('normal cancellation drains original resource once without reserving or signing',async t=>{
+ const f=await approvalFixture(t),request=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));
+ assert.throws(()=>f.authority.reject(request.request.id));await f.authority.shutdownPQReviews();assert.equal(await f.store.unresolvedPreparation(f.account),null);assert.equal(f.counts.recheck,0);assert.equal(f.counts.retire,1);assert.equal(f.counts.join,1);assert.equal(f.counts.close,1);
+});
+test('normal policy join failure is retained and never hidden by close or replacement acquisition',async t=>{
+ const f=await approvalFixture(t),request=await f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));f.resource.join=async()=>{f.counts.join++;throw false;};
+ assert.throws(()=>f.authority.reject(request.request.id));await assert.rejects(f.authority.shutdownPQReviews());assert.equal(f.counts.close,0);assert.equal(f.counts.join,1);
+ const same=f.authority.shutdownPQReviews();await assert.rejects(same);assert.equal(f.counts.join,1);await assert.rejects(f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})));assert.equal(f.counts.acquire,1);
+});
+test('normal shutdown waits for late original acquisition and selects one cleanup promise',{timeout:5000},async t=>{
+ let release,entered;const pause=new Promise(r=>{release=r;}),entry=new Promise(r=>{entered=r;}),f=await approvalFixture(t,{acquire:()=>{entered();return pause;}});
+ const request=f.lifecycle.run(()=>f.authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'}));await entry;f.lifecycle.lock();const shutdown=f.authority.shutdownPQReviews();assert.equal(shutdown,f.authority.shutdownPQReviews());let done=false;void shutdown.then(()=>{done=true;});await Promise.resolve();assert.equal(done,false);release();await assert.rejects(request);await shutdown;assert.equal(f.counts.retire,1);assert.equal(f.counts.join,1);assert.equal(f.counts.close,1);
+});
+test('mounted normal UI click reaches actual original main request and approval bodies with QA crypto',async t=>{
+ const f=await approvalFixture(t),main=await fs.readFile(new URL('../src/main.mjs',import.meta.url),'utf8'),handlers=new Map(),events=[];
+ const context={handleWalletIPC:(name,callback)=>handlers.set(name,callback),walletAuthority:f.authority,keyAccess:f.lifecycle,mainWindow:{webContents:{send:(...args)=>events.push(args)}},sensitiveIPC:(action,options)=>f.lifecycle.run(action,options),walletConnectRequests:new Map(),accountChangeInProgress:false};
+ const start=main.indexOf("handleWalletIPC('wallet:pq-transfer-review'"),end=main.indexOf('\nhandleWalletIPC("wallet:transaction-history"',start),a=main.indexOf('handleWalletIPC("wallet:provider-action"'),b=main.indexOf('\nasync function handleCallback',a);
+ assert.ok(start>=0&&end>start&&a>=0&&b>a);runInNewContext(main.slice(start,end)+'\n'+main.slice(a,b),context);
+ const nodes=new Map(),node=()=>({value:'',textContent:'',disabled:false,append(value){this.child=value;},addEventListener(name,callback){this[name]=callback;}}),doc={querySelector:id=>{if(!nodes.has(id))nodes.set(id,node());return nodes.get(id);},createElement:node};doc.querySelector('#transfer-to').value='0x'+'2'.repeat(40);doc.querySelector('#transfer-amount').value='3';
+ const ui=createPQTransferReviewUI({document:doc,getKeyState:()=>f.lifecycle.status(),api:{preparePQTransfer:async input=>({ok:true,value:await handlers.get('wallet:pq-transfer-review')({},input)})}});ui.render();assert.equal(doc.querySelector('#transfer-form').child.disabled,false);assert.equal(doc.querySelector('#transfer-form').child.type,'button');
+ await doc.querySelector('#transfer-form').child.click();assert.match(doc.querySelector('#transfer-result').textContent,/approval window/);assert.equal(events.length,1);assert.equal(events[0][0],'wallet:provider-request');
+ const result=await handlers.get('wallet:provider-action')({},events[0][1].id,'approve');assert.equal(result.status,'success');assert.equal(result.result.submitted,false);assert.equal(result.responseDelivered,false);assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,1);
 });

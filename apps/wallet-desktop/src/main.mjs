@@ -27,6 +27,11 @@ import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
 import { PasswordWalletVault } from "./password-wallet-vault.mjs";
+import * as pqKeySDK from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import * as pqBackupSDK from '@ynx-chain/wallet-auth/pq-wallet-backup';
+import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
+import {acquireOriginalWalletTransactionPolicy,isOriginalWalletTransactionPolicy} from './original-policy-supplier/transaction-resource.mjs';
+import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID} from './original-policy-supplier/operator-query.mjs';
 import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
 import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
 import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
@@ -200,7 +205,7 @@ handleWalletIPC('wallet:original-admission-status',()=>safeIPC(()=>originalAdmis
 handleWalletIPC('wallet:original-admission-review',()=>safeIPC(()=>originalAdmissionEntry.review()));
 handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC(()=>originalAdmissionEntry.confirm(reviewId)));
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
-function createOriginalAdmissionExitGate({entry,lock,quit,report}){
+function createOriginalAdmissionExitGate({entry,lock,quit,report,shutdownWallet=async()=>{}}){
   let pass=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
   const quitOnce=()=>{if(!quitEntered){quitEntered=true;setImmediate(quit);}};
   function request(){
@@ -208,12 +213,12 @@ function createOriginalAdmissionExitGate({entry,lock,quit,report}){
     let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});
     const failed=()=>{try{report();}catch{}reject(Object.assign(new Error('Original admission cleanup is incomplete'),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'}));};
     // Lock/cancel synchronously in the original close event, after reserving.
-    try{lock();void Promise.resolve(entry.shutdown()).then(()=>{allowed=true;resolve();},failed);}catch{failed();}
+    try{lock();void Promise.all([entry.shutdown(),shutdownWallet()]).then(()=>{allowed=true;resolve();},failed);}catch{failed();}
     void pass.catch(()=>{});return pass;
   }
   return Object.freeze({close(event,window){if(allowed)return;event.preventDefault();if(closingWindows.has(window))return;closingWindows.add(window);void request().then(()=>window.destroy(),()=>{});},beforeQuit(event){if(allowed)return;event.preventDefault();void request().then(quitOnce,()=>{});},allClosed(){void request().then(quitOnce,()=>{});},request});
 }
-const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup incomplete','The original operation has not finished cleanup. Wallet remains open; no operation will be retried. 原操作尚未完成清理，钱包保持打开，不会重试。')});
+const originalAdmissionExit=createOriginalAdmissionExitGate({entry:originalAdmissionEntry,shutdownWallet:()=>walletAuthority?.shutdownPQReviews(),lock:()=>keyAccess.lock('closed'),quit:()=>app.quit(),report:()=>dialog.showErrorBox('Wallet cleanup incomplete','The original operation has not finished cleanup. Wallet remains open; no operation will be retried. 原操作尚未完成清理，钱包保持打开，不会重试。')});
 app.on('before-quit',event=>originalAdmissionExit.beforeQuit(event));
 const recipientCameraPermission = createRecipientCameraPermission({
   getContext: () => ({...keyAccess.status(), focused: mainWindow?.isFocused() === true, changing: accountChangeInProgress}),
@@ -410,6 +415,11 @@ handleWalletIPC("wallet:invoice-reference-qr",(_event,input)=>safeIPC(()=>{
   return decodeInvoiceReferenceQR({bytes:Buffer.from(input.bytes),mimeType:input.mimeType,createImage:bytes=>nativeImage.createFromBuffer(bytes)});
 }));
 handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
+handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(async()=>{
+  const response=await walletAuthority.requestPQTransfer(input);
+  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
+  return {requestId:response.request.id,submitted:false};
+}));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;
   const page = await walletAuthority.transactionSender.submissions.history(account, cursor ?? null);
@@ -695,7 +705,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   }
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
-  const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
+  const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess, pqSDK:Object.freeze({...pqKeySDK,...pqBackupSDK,...pqContractSDK}) });
   originalAdmissionVault=passwordVault;
   const originalIdentityStartup=initializeOriginalAuthIdentityStartup(passwordVault);
   if(!originalIdentityStartup.implementingModuleAvailable)console.warn('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
@@ -713,6 +723,11 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   familyBitcoinSubmission = new FamilyBitcoinSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
+    // Auth's fixed normal factory enforces pinned node/build/genesis. Its
+    // undeployed or unhealthy query is a refusal, never a substitute policy.
+    pqPolicySource:acquireOriginalWalletTransactionPolicy,
+    pqPolicyRecognized:isOriginalWalletTransactionPolicy,
+    pqNetworkId:PQ_CANONICAL_NETWORK_ID,
     vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
     transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), intentStore: new FileTransactionIntentStore({ filePath: path.join(userData, "transaction-intents-v1.json") }) })

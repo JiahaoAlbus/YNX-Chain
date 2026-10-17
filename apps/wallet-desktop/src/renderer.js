@@ -5,6 +5,8 @@ import { createReceiveCodeUI } from "./receive-code-ui.mjs";
 import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 import { createTransactionHistoryUI } from "./transaction-history-ui.mjs";
 import { projectTransactionResolution, projectPendingTransactions } from "./transaction-resolution-display.mjs";
+import {createPQTransferReviewUI} from './wallet-pq-transfer-ui.mjs';
+const pqTransferReviewUI=createPQTransferReviewUI({api:window.ynxWallet,getKeyState:()=>keyState});
 import { createReceiveShareUI } from "./receive-share-ui.mjs";
 import { createNativeContractUI } from "./native-contract-ui.mjs";
 import { createInvoiceReferenceUI } from "./wallet-invoice-reference-ui.mjs";
@@ -1180,6 +1182,7 @@ function renderKeyState(state) {
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   const previousKeyState=keyState;
   keyState = state;
+  if(typeof pqTransferReviewUI!=='undefined')pqTransferReviewUI.render();
   updateOriginalAdmissionSecurity(previousKeyState,state);
   if(securityChanged)familyUI?.invalidate();
   multichainUI?.render();
