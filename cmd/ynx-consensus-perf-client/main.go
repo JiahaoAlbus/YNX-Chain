@@ -149,31 +149,32 @@ type summary struct {
 }
 
 type report struct {
-	SchemaVersion        int                 `json:"schemaVersion"`
-	RoundsRequested      int                 `json:"roundsRequested"`
-	RoundsCompleted      int                 `json:"roundsCompleted"`
-	Kind                 string              `json:"kind"`
-	ChainID              string              `json:"chainId"`
-	GenesisSHA256        string              `json:"genesisSha256"`
-	Endpoints            []string            `json:"endpoints"`
-	Concurrency          int                 `json:"concurrency"`
-	OfferedRate          float64             `json:"configuredOfferedRate"`
-	ObserverConcurrency  int                 `json:"observerConcurrency"`
-	LoadMode             string              `json:"loadMode"`
-	LoadQueues           pacedStatistics     `json:"loadQueues"`
-	DurableReadback      durableReaderStats  `json:"durableReadback"`
-	TimeoutMs            int64               `json:"timeoutMs"`
-	PollMs               int64               `json:"pollMs"`
-	StartedAt            time.Time           `json:"startedAt"`
-	MeasurementStartedAt *time.Time          `json:"measurementStartedAt,omitempty"`
-	FinishedAt           time.Time           `json:"finishedAt"`
-	GoVersion            string              `json:"goVersion"`
-	Platform             string              `json:"platform"`
-	GOMAXPROCS           int                 `json:"gomaxprocs"`
-	Summary              summary             `json:"summary"`
-	Transactions         []transactionResult `json:"transactions"`
-	SetupErrors          []errorObservation  `json:"setupErrors"`
-	Interpretation       []string            `json:"interpretation"`
+	SchemaVersion        int                     `json:"schemaVersion"`
+	RoundsRequested      int                     `json:"roundsRequested"`
+	RoundsCompleted      int                     `json:"roundsCompleted"`
+	Kind                 string                  `json:"kind"`
+	ChainID              string                  `json:"chainId"`
+	GenesisSHA256        string                  `json:"genesisSha256"`
+	Endpoints            []string                `json:"endpoints"`
+	Concurrency          int                     `json:"concurrency"`
+	OfferedRate          float64                 `json:"configuredOfferedRate"`
+	ObserverConcurrency  int                     `json:"observerConcurrency"`
+	LoadMode             string                  `json:"loadMode"`
+	LoadQueues           pacedStatistics         `json:"loadQueues"`
+	DurableReadback      durableReaderStats      `json:"durableReadback"`
+	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
+	TimeoutMs            int64                   `json:"timeoutMs"`
+	PollMs               int64                   `json:"pollMs"`
+	StartedAt            time.Time               `json:"startedAt"`
+	MeasurementStartedAt *time.Time              `json:"measurementStartedAt,omitempty"`
+	FinishedAt           time.Time               `json:"finishedAt"`
+	GoVersion            string                  `json:"goVersion"`
+	Platform             string                  `json:"platform"`
+	GOMAXPROCS           int                     `json:"gomaxprocs"`
+	Summary              summary                 `json:"summary"`
+	Transactions         []transactionResult     `json:"transactions"`
+	SetupErrors          []errorObservation      `json:"setupErrors"`
+	Interpretation       []string                `json:"interpretation"`
 }
 
 func main() {
@@ -395,13 +396,20 @@ func matchManifestValidators(m consensus.EphemeralNetworkManifest, validators []
 }
 
 func verifyConfirmation(m consensus.EphemeralNetworkManifest, trusted *cmttypes.ValidatorSet, validators *coretypes.ResultValidators, result *coretypes.ResultCommit, tx *coretypes.ResultTx, raw cmttypes.Tx) error {
-	if result == nil || result.Header == nil || result.Commit == nil || tx == nil || validators == nil || trusted == nil {
+	if tx == nil {
+		return errors.New("missing transaction evidence")
+	}
+	if err := verifyBlockConfirmation(m, trusted, validators, result, tx.Height); err != nil {
+		return err
+	}
+	return verifyTransactionInclusion(result, tx, raw)
+}
+
+func verifyBlockConfirmation(m consensus.EphemeralNetworkManifest, trusted *cmttypes.ValidatorSet, validators *coretypes.ResultValidators, result *coretypes.ResultCommit, height int64) error {
+	if result == nil || result.Header == nil || result.Commit == nil || validators == nil || trusted == nil {
 		return errors.New("missing confirmation evidence")
 	}
-	if tx.Height <= 0 || tx.TxResult.Code != 0 || !bytes.Equal(tx.Hash, raw.Hash()) || !bytes.Equal(tx.Tx, raw) {
-		return errors.New("transaction result identity or execution code mismatch")
-	}
-	if validators.BlockHeight != tx.Height || validators.Total != 4 || validators.Count != 4 {
+	if height <= 0 || validators.BlockHeight != height || validators.Total != 4 || validators.Count != 4 {
 		return errors.New("validator response height or pagination mismatch")
 	}
 	if err := matchManifestValidators(m, validators.Validators); err != nil {
@@ -414,11 +422,20 @@ func verifyConfirmation(m consensus.EphemeralNetworkManifest, trusted *cmttypes.
 	if err := result.SignedHeader.ValidateBasic(m.ChainID); err != nil {
 		return err
 	}
-	if result.Header.Height != tx.Height || !bytes.Equal(result.Header.ValidatorsHash, trusted.Hash()) {
+	if result.Header.Height != height || !bytes.Equal(result.Header.ValidatorsHash, trusted.Hash()) {
 		return errors.New("signed header height or validator hash mismatch")
 	}
-	if err := trusted.VerifyCommitLight(m.ChainID, result.Commit.BlockID, tx.Height, result.Commit); err != nil {
+	if err := trusted.VerifyCommitLight(m.ChainID, result.Commit.BlockID, height, result.Commit); err != nil {
 		return fmt.Errorf("quorum signature verification: %w", err)
+	}
+	return nil
+}
+
+// The caller must first authenticate this exact signed header with
+// verifyBlockConfirmation. Each transaction still supplies its own proof.
+func verifyTransactionInclusion(result *coretypes.ResultCommit, tx *coretypes.ResultTx, raw cmttypes.Tx) error {
+	if result == nil || result.Header == nil || tx == nil || tx.Height <= 0 || tx.Height != result.Header.Height || tx.TxResult.Code != 0 || !bytes.Equal(tx.Hash, raw.Hash()) || !bytes.Equal(tx.Tx, raw) {
+		return errors.New("transaction result identity or execution code mismatch")
 	}
 	if !bytes.Equal(tx.Proof.Data, raw) || tx.Proof.Proof.Index != int64(tx.Index) {
 		return errors.New("transaction proof identity/index mismatch")
@@ -742,7 +759,7 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 7, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 8, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
@@ -846,12 +863,22 @@ func execute(o options) error {
 			}
 			roundStarted := time.Now()
 			if o.offeredRate > 0 {
-				r.LoadMode = "paced_submission_and_observation"
-				roundQueues := runPacedTransactions(ctx, o, roundStarted, results,
+				r.LoadMode = "paced_submission_and_grouped_observation"
+				workerStats := make([]groupedObservationStats, o.observers)
+				roundQueues := runPacedWorkers(ctx, o, roundStarted, results,
 					func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &results[i]) },
-					func(i int, start time.Time) {
-						observeAcceptedTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &results[i], start)
+					func(worker int, queue <-chan acceptedObservation, completed func(int)) {
+						observationClients := make([]observationClient, len(clients))
+						for i, client := range clients {
+							observationClients[i] = client
+						}
+						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}}
+						runGroupedObservationLoop(ctx, o.poll, queue, completed, func(pending []acceptedObservation) []acceptedObservation { return observer.step(ctx, pending) })
+						workerStats[worker] = observer.stats
 					})
+				for _, stats := range workerStats {
+					r.GroupedObservation.add(stats)
+				}
 				if roundQueues.PeakAwaitingSubmission > r.LoadQueues.PeakAwaitingSubmission {
 					r.LoadQueues.PeakAwaitingSubmission = roundQueues.PeakAwaitingSubmission
 				}

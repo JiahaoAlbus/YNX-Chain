@@ -12,6 +12,11 @@ type pacedStatistics struct {
 	PeakAwaitingObservation int64 `json:"peakAcceptedAwaitingObservationCompletion"`
 }
 
+type acceptedObservation struct {
+	index   int
+	started time.Time
+}
+
 func atomicMaximum(target *atomic.Int64, value int64) {
 	for previous := target.Load(); value > previous; previous = target.Load() {
 		if target.CompareAndSwap(previous, value) {
@@ -42,27 +47,32 @@ func waitUntil(ctx context.Context, target time.Time) bool {
 // are bounded by maxTransactions input transactions. An unknown submission outcome
 // never enters observation as an accepted transaction and is never retried.
 func runPacedTransactions(ctx context.Context, o options, started time.Time, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, time.Time)) pacedStatistics {
+	return runPacedWorkers(ctx, o, started, results, submit, func(_ int, accepted <-chan acceptedObservation, completed func(int)) {
+		for job := range accepted {
+			observe(job.index, job.started)
+			completed(1)
+		}
+	})
+}
+
+// Each accepted transaction has exactly one observation owner. Grouped workers
+// can retain pending work across polls without occupying a worker per transaction.
+func runPacedWorkers(ctx context.Context, o options, started time.Time, results []transactionResult, submit func(int) (time.Time, bool), workerLoop func(int, <-chan acceptedObservation, func(int))) pacedStatistics {
 	type job struct {
 		index   int
 		offered time.Time
 	}
-	type acceptedJob struct {
-		index   int
-		started time.Time
-	}
 	jobs := make(chan job, len(results))
-	accepted := make(chan acceptedJob, len(results))
+	accepted := make([]chan acceptedObservation, o.observers)
 	var pendingSubmit, peakSubmit, pendingObserve, peakObserve atomic.Int64
 	var submitters, observers sync.WaitGroup
 	for worker := 0; worker < o.observers; worker++ {
+		accepted[worker] = make(chan acceptedObservation, len(results))
 		observers.Add(1)
-		go func() {
+		go func(worker int) {
 			defer observers.Done()
-			for job := range accepted {
-				observe(job.index, job.started)
-				pendingObserve.Add(-1)
-			}
-		}()
+			workerLoop(worker, accepted[worker], func(n int) { pendingObserve.Add(-int64(n)) })
+		}(worker)
 	}
 	for worker := 0; worker < o.concurrency; worker++ {
 		submitters.Add(1)
@@ -77,7 +87,7 @@ func runPacedTransactions(ctx context.Context, o options, started time.Time, res
 				}
 				if ok {
 					atomicMaximum(&peakObserve, pendingObserve.Add(1))
-					accepted <- acceptedJob{job.index, start}
+					accepted[job.index%o.observers] <- acceptedObservation{job.index, start}
 				}
 			}
 		}()
@@ -96,7 +106,9 @@ func runPacedTransactions(ctx context.Context, o options, started time.Time, res
 	}
 	close(jobs)
 	submitters.Wait()
-	close(accepted)
+	for _, queue := range accepted {
+		close(queue)
+	}
 	observers.Wait()
 	return pacedStatistics{peakSubmit.Load(), peakObserve.Load()}
 }
