@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "measurement": "native_execution_synthetic_account_tables_warm_signature_not_business_tps",
+  "gomaxprocs": 1,
+  "nice": 10,
+  "benchtime": "100ms",
+  "repetitions": 3,
+  "sourceFile": "internal/consensus/account_scale_test.go",
+  "sourceSHA256": "29d2e6722cc2280c2aaffb3170c20d5f9679a2877d7689bb479b43af46821bf2",
+  "binary": "artifacts/chain-performance-20261017/account-scale-before.test",
+  "binarySHA256": "f7ba9282805a63c601fc0dddb7a0d673ac59b691c4d6aac7ce10003fc76a5c20",
+  "rows": [
+    {
+      "accounts": 256,
+      "iterations": 15426,
+      "nsPerOp": 6945,
+      "bytesPerOp": 26400,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 256,
+      "iterations": 17359,
+      "nsPerOp": 6959,
+      "bytesPerOp": 26400,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 256,
+      "iterations": 17113,
+      "nsPerOp": 7000,
+      "bytesPerOp": 26400,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 2048,
+      "iterations": 4218,
+      "nsPerOp": 29820,
+      "bytesPerOp": 182052,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 2048,
+      "iterations": 4154,
+      "nsPerOp": 28759,
+      "bytesPerOp": 182052,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 2048,
+      "iterations": 4165,
+      "nsPerOp": 28789,
+      "bytesPerOp": 182052,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 8192,
+      "iterations": 1033,
+      "nsPerOp": 112548,
+      "bytesPerOp": 722730,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 8192,
+      "iterations": 985,
+      "nsPerOp": 109227,
+      "bytesPerOp": 722729,
+      "allocsPerOp": 22
+    },
+    {
+      "accounts": 8192,
+      "iterations": 976,
+      "nsPerOp": 111502,
+      "bytesPerOp": 722730,
+      "allocsPerOp": 22
+    }
+  ],
+  "collection": "Actual exec session24045 output, transcribed from original tool output; no rerun replacing results",
+  "validation": "real signature verified once; every measured branch executes nonce/balance/lot/fee handling and final assertions verify unchanged input and actual result; no migration/proposal/Commit/BFT"
+}
