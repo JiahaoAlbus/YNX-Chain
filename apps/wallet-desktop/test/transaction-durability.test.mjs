@@ -33,7 +33,11 @@ async function fixture(t, changes = {}) {
     if (request.method === "eth_sendRawTransaction") {
       state.raw.push(request.params[0]); state.hash = Transaction.from(request.params[0]).hash;
       const journal = JSON.parse(await fs.readFile(filePath, "utf8"));
-      assert.equal(journal.schemaVersion, 2); assert.equal(journal.records[0].raw, request.params[0]); assert.equal(journal.records[0].hash, state.hash); // Actual on-disk marker before every POST.
+      // Original-owner reservation legitimately preserves V5 instead of
+      // downgrading to V2. A stale fixture assertion here masked the intended
+      // lost-ACK/retry response as a transport failure before it was returned.
+      assert.ok([2,5].includes(journal.schemaVersion));assert.deepEqual(journal.preparations??[],[]);
+      assert.equal(journal.records[0].raw, request.params[0]); assert.equal(journal.records[0].hash, state.hash); // Actual on-disk original before every POST.
       await state.onBroadcast?.(request);
       if (state.mode === "timeout") throw new Error("fixture lost ACK");
       if (state.mode === "reject") error = { code: -32003, message: "fixture definite rejection" }; else result = state.hash;
