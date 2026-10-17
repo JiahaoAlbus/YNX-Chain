@@ -790,7 +790,10 @@ func dexEventAuditHash(value BFTDexEvent) string {
 }
 
 func cloneDexPools(values []BFTDexPool) []BFTDexPool {
-	if values == nil {
+	// DexPools has omitempty in both the durable state and hash document.
+	// Preserve the decoded nil shape for an empty inventory, otherwise every
+	// in-memory clone recreates [] and differs from the persisted restart state.
+	if len(values) == 0 {
 		return nil
 	}
 	out := make([]BFTDexPool, len(values))

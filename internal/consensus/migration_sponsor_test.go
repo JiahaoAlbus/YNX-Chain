@@ -171,6 +171,12 @@ func TestMigratedSponsorExecutesReplaysAndRestarts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(a.committed, restarted.committed) {
+		before, after := reflect.ValueOf(a.committed), reflect.ValueOf(restarted.committed)
+		for i := 0; i < before.NumField(); i++ {
+			if !reflect.DeepEqual(before.Field(i).Interface(), after.Field(i).Interface()) {
+				t.Logf("restart difference in %s: before=%#v after=%#v", before.Type().Field(i).Name, before.Field(i).Interface(), after.Field(i).Interface())
+			}
+		}
 		t.Fatal("restart lost source sponsor or live state")
 	}
 	check, err := restarted.CheckTx(ctx, &abcitypes.RequestCheckTx{Tx: replaySponsor})

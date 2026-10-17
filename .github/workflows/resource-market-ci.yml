@@ -107,7 +107,7 @@ jobs:
         run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth
       - name: Verify native ledger and HTTP PQ integration
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
-        run: go test -p 1 -count=1 -timeout=180s -run '^TestPQ' ./internal/chain ./internal/api
+        run: go test -p 1 -count=1 -timeout=180s ./internal/chain ./internal/api
       - name: Compile production entry points
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-app-gatewayd ./internal/consensus ./internal/appgateway ./internal/paygateway
@@ -115,7 +115,7 @@ jobs:
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
-          go test -p 1 -count=1 -timeout=180s -run '^(TestMigratedSponsor|TestResourceSponsor|TestABCIAccountPolicy|TestABCIPQEnvelope|TestMigration)' ./internal/consensus
+          go test -p 1 -count=1 -timeout=180s ./internal/consensus
       - name: Verify account session policy and merchant ownership
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/appgateway ./internal/paygateway

@@ -41,7 +41,11 @@ type signerState struct {
 // authenticated registry delivery, and engine/remote-signer wiring are separate.
 // The state file is trusted anti-rollback storage; restoring an older copy is
 // unsafe, just as restoring an old upstream FilePV last-sign state is unsafe.
-type Signer struct {
+type Signer struct{ *signerCore }
+
+// All value copies share one reservation history, mutex and lock lifetime.
+// Copying the exported handle must never create another live signing state.
+type signerCore struct {
 	mu        sync.Mutex
 	key       *CandidateKey
 	registry  Registry
@@ -92,7 +96,7 @@ func ResumeSigner(path string, key *CandidateKey, registry Registry) (*Signer, e
 			s.Close()
 		}
 	}()
-	f, err := os.Open(s.path)
+	f, err := openSignerState(s.path)
 	if err != nil {
 		return nil, err
 	}
@@ -133,11 +137,16 @@ func openSigner(path string, key *CandidateKey, registry Registry) (*Signer, err
 	if err != nil {
 		return nil, err
 	}
+	parent, err := filepath.EvalSymlinks(filepath.Dir(p))
+	if err != nil {
+		return nil, err
+	}
+	p = filepath.Join(parent, filepath.Base(p))
 	lock, err := acquireSignerLock(p + ".lock")
 	if err != nil {
 		return nil, err
 	}
-	return &Signer{key: key, registry: registry, path: p, lock: lock, write: writeSignerState}, nil
+	return &Signer{signerCore: &signerCore{key: key, registry: registry, path: p, lock: lock, write: writeSignerState}}, nil
 }
 
 func (k *CandidateKey) publicMaterial() ([]byte, []byte, error) {
@@ -280,7 +289,7 @@ func extensionPrecommitMessage(request Request, epoch uint64) ([]byte, error) {
 // are also conflicts. A completed exact retry returns the original signature.
 // Consensus still decides proposer selection, voting power, quorum and liveness.
 func (s *Signer) Sign(request Request) ([]byte, error) {
-	if s == nil {
+	if s == nil || s.signerCore == nil {
 		return nil, errors.New("missing consensus signer")
 	}
 	s.mu.Lock()
@@ -382,7 +391,7 @@ func (s *Signer) Sign(request Request) ([]byte, error) {
 }
 
 func (s *Signer) Close() error {
-	if s == nil {
+	if s == nil || s.signerCore == nil {
 		return nil
 	}
 	s.mu.Lock()

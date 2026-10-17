@@ -1,8 +1,15 @@
 # Consensus signer source checkpoint R1
 
-This checkpoint is source only. It has been formatted and reviewed, but neither
-the Go tests nor a Comet node have run with this code. It does not activate a
-validator or change the public testnet's authoritative-producer model.
+The original tests passed in GitHub Actions run 39055064993 at commit
+1d0930338c9d33e29f5f4a453f28fe57bcd8671c. Run 39056001285 at
+a5466bebcf1b298360db1a9bbeb7f57dc745e59a then established three real failures:
+value-copy equivocation, a copied close leaving the original handle usable, and
+a final-component symlink forking live history. Both conflicting vote signatures
+were cryptographically verified in the equivocation tests. The next fix shares
+all mutable signer state and lock lifetime through one core, resolves parent
+directory aliases and refuses symlink/non-regular/multiply-linked state files.
+The original three regressions remain unchanged; this fix awaits its own CI.
+No Comet node has run with this code and no public validator has been activated.
 
 ## Actual implementation
 
@@ -57,7 +64,7 @@ historical verification, double-sign evidence and extension enablement rules.
 The account policy registry is not a validator-key registry, and the current
 public service's validator metadata is not evidence of a running BFT quorum.
 
-## Tests prepared, not executed
+## Test scope and evidence
 
 The original routing/codec controls remain explicitly non-cryptographic spies.
 New tests use actual fresh CIRCL keys and both real signatures, test each branch
@@ -67,7 +74,8 @@ same-coordinate conflict, restart, missing/corrupted state, current-registry
 rechecks, pre-reservation failure, reservation UNKNOWN, failed final persistence,
 and ordinary-precommit/extension binding with exact replay.
 
-The next authorized focused command is a bounded single-worker test of
-`./internal/ynxconsensusauth`, after the native resource observer is repaired and
-the coordinator supplies a fresh heavy-task grant. No test result or deployment
-claim is implied by this checkpoint.
+Remote isolated CI is authorized and uses GOMAXPROCS=2, -p 1 and fixed timeouts.
+Local Go compilation remains outside the current capacity grant. Run 1 and Run 2
+raw logs and metadata are saved under docs/protocol/evidence. A passing primitive
+or signer test is not engine, quorum, light-client, remote custody or deployment
+acceptance.
