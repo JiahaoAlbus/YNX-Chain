@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "kind": "stopped-replay-admission-rejected",
+  "session": 40250,
+  "terminalExit": 1,
+  "testBinaryStarted": false,
+  "goCompilationStarted": false,
+  "firstCause": "native memory pressure is not normal: {\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0}",
+  "elapsedMs": 563,
+  "controllerLauncher": 77983,
+  "probePids": [
+    78473
+  ],
+  "sampledRssWithControlReserve": 79822848,
+  "nativePressure": {
+    "source": "kern.memorystatus_vm_pressure_level",
+    "readable": true,
+    "dispatchLevel": 2,
+    "errno": 0
+  },
+  "retainedBinarySHA256": "a77ce29169a4277df163a4cb4b156e32f7a7d3cf2b99bb75d1a6ae66853a19cc",
+  "limits": {
+    "ownedRSSBytes": 419430400,
+    "totalMs": 45000,
+    "cleanupMs": 15000
+  },
+  "hashes": {
+    "artifacts/chain-performance-20261017/matched-before-stopped-light-result-20261018.json": {
+      "bytes": 5343,
+      "sha256": "5e4f938937c025db4e32b2b48b43e3a0e53083b06a2696265018a0303bc81169"
+    },
+    "artifacts/chain-performance-20261017/matched-before-stopped-light-cleanup-20261018.json": {
+      "bytes": 828,
+      "sha256": "35c11b9c3b944b29d424025825d32bc6fe4b6eac0d7bf2fd6d8a8e1e52c2585f"
+    },
+    "artifacts/chain-network-performance/window-eEfGE7/derived-observer-diagnosis.json": {
+      "bytes": 2311,
+      "sha256": "6cce5e34b07f1cabc367fb2d79fc58ed25042dda77d50242a639b97fb2d4b7b4"
+    }
+  },
+  "nodePlanTests": {
+    "tests": 3,
+    "pass": 3,
+    "fail": 0,
+    "exit": 0,
+    "isolation": "none",
+    "durationMs": 7.996
+  },
+  "prepareOnly": {
+    "exit": 0,
+    "processesStarted": 0
+  },
+  "earlierFailures": [
+    {
+      "toolChunk": "ad3949",
+      "kind": "Node test runner child EAGAIN errno -35",
+      "testFileExecuted": false
+    },
+    {
+      "kind": "unified exec CreateProcess os35 before prepare-only",
+      "processStarted": false
+    }
+  ],
+  "capacityCheck": {
+    "at": "2026-10-17T17:03:29.961Z",
+    "psVisibleProcesses": 917,
+    "conflicting": [],
+    "interpretation": "Not a substitute for native pressure admission; visibility differs from native host enumeration."
+  },
+  "interpretation": "Native pressure dispatch2 stopped the one granted attempt before retained test binary launch. No stopped replay/account PASS or network result; no automatic retry."
+}

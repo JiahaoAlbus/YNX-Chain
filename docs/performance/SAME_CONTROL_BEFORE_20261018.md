@@ -23,3 +23,11 @@ YNX_CHAIN_STOPPED_WINDOW="$PWD/artifacts/chain-network-performance/window-eEfGE7
 ```
 
 This reuses the retained older test binary for its existing completed-window checks, requires resource admission, and writes new exclusive evidence files. It does not compile the new partial-prefix source. It has not been executed for this window. No automatic cached run, retry, resubmission, reset or deployment is authorized.
+
+## Observer and workload sizing diagnosis
+
+All 8,079 interim occurrences are accounted for: 7,776 block_scan_wait observations (including 128 block-results-not-yet-available responses) and 303 durable-height waits. All 1,024 transactions ultimately passed the required gates. No failure-rate inference should count polling waits as terminal business failures.
+
+Mean submission-to-qualified-final time was 1,191.975ms. The per-transaction residual from inclusion observation to qualified final observation averaged269.411ms (P95 554.393ms); it includes local readback and observer overhead and is not an internal consensus timer. With the same mean lifetime, Little-law sizing suggests about1,192 in-flight transactions for1,000/s, versus this run's256 sender slots. This is a sizing inference, not measured capacity: higher load can change latency. The existing small matched pair isolates cache effects but cannot establish target capacity; later scaling needs an independently scheduled larger continuous workload and resource budget.
+
+[Derived diagnostics](evidence/same-control-before-observer-diagnosis-20261018.json). [First offline admission attempt](STOPPED_BEFORE_ADMISSION_20261018.md) was rejected by native pressure2 before the test binary started; stopped-node proofs remain pending.
