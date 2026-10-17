@@ -1,8 +1,11 @@
-import {keyGen, exportKeyMaterial, importKeyMaterial, destroyKey} from '@ynx/batch-v01-candidate';
+import {keyGen, exportKeyMaterial, importKeyMaterial, destroyKey, batchSign, extract, encodeMember, discardBatch} from '@ynx/batch-v01-candidate';
 import {Buffer} from 'node:buffer';
 import {PQ_PROTOCOL_VERSION, PQ_SUITE, validatePQPublicBinding, assertPQPublicBindingMatches,
   pqBase64url, pqDecodeBase64url, pqError, validatePQNetworkBinding} from './pq-wallet-contract.js';
 import {sealPQWalletBackup, openPQWalletBackup} from './pq-wallet-backup.js';
+import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrationIntent,
+  preparePQTransferTransport} from './pq-wallet-authorization.js';
+import {planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
 
 // Protected main only. A key-custody handle never asserts migration, active
 // registration, signing approval, a product session, or transaction authority.
@@ -101,4 +104,40 @@ export async function restorePQWalletKeyHandle(wire, credential, expectedBinding
     material.pkcs8A.fill(0); material.pkcs8B.fill(0);
     a?.fill(0); b?.fill(0);
   }
+}
+
+function signingBinding(state, {chainId, owner}, pkA, pkB) {
+  const binding = state.binding;
+  if (binding.chainId !== chainId || binding.owner !== owner ||
+      Buffer.from(pqDecodeBase64url(binding.pkA, {exact: 2592, max: 2592})).toString('hex') !== pkA ||
+      Buffer.from(pqDecodeBase64url(binding.pkB, {exact: 64, max: 64})).toString('hex') !== pkB) throw pqError('PQ_CURRENT_REGISTERED_KEY_MISMATCH');
+}
+function signOne(handle, state, message, purpose, whole) {
+  live(handle);
+  const signed = batchSign(state.native, {chainId: Buffer.from(state.binding.chainId, 'hex'), owner: state.binding.owner, purpose}, [message]);
+  try {
+    const wire = whole ? Buffer.from(signed.wholeWire) : encodeMember(extract(signed.batch, 0));
+    live(handle); return wire;
+  } finally { discardBatch(signed.batch); }
+}
+// Typed cryptographic operations for the original protected Wallet approval
+// branch only. No RPC, permission creation, generic raw signer or classic key.
+// App must use its original pending review/WeakMap guard and lease, revalidate
+// the current node snapshot, and assert the guard before and after these calls.
+export function signPQWalletNativeTransfer(handle, transfer, snapshot) {
+  const state = live(handle), plan = planPQNativeTransfer(snapshot, transfer), active = plan.policy.activeRecord;
+  signingBinding(state, {chainId: plan.policy.chainId, owner: plan.policy.owner}, active.pkA, active.pkB);
+  return preparePQTransferTransport(signOne(handle, state, encodePQNativeTransfer(plan.transfer), 'TX-BATCH', false));
+}
+export function createPQWalletMigrationPossession(handle, value) {
+  const state = live(handle), intent = normalizePQRegistrationIntent(value);
+  signingBinding(state, intent, intent.pkA, intent.pkB);
+  // This new-pair proof is not current-account authorization or registration.
+  return signOne(handle, state, encodePQRegistrationIntent(intent), 'ACCOUNT-MIGRATION', true);
+}
+export function signPQWalletCurrentMigration(handle, value, snapshot) {
+  const state = live(handle), plan = planPQAccountMigration(snapshot, value), active = plan.policy.activeRecord;
+  if (plan.policy.mode !== 'pq' || !active) throw pqError('PQ_ACTIVE_CURRENT_KEY_REQUIRED');
+  signingBinding(state, {chainId: plan.policy.chainId, owner: plan.policy.owner}, active.pkA, active.pkB);
+  return signOne(handle, state, encodePQRegistrationIntent(plan.intent), 'ACCOUNT-MIGRATION', false);
 }

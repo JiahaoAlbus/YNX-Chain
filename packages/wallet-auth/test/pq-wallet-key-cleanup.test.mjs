@@ -8,7 +8,7 @@ async function faultModule(mode) {
   let source = await readFile(new URL('../src/pq-wallet-key-backup.js', import.meta.url), 'utf8');
   const id = 'pq-cleanup-test-' + mode;
   const control = {destroyCalls: 0, keygenCalls: 0}; globalThis[id] = control;
-  source = source.replace("import {keyGen, exportKeyMaterial, importKeyMaterial, destroyKey} from '@ynx/batch-v01-candidate';", `
+  source = source.replace(/^import \{.*\} from '@ynx\/batch-v01-candidate';$/m, `
     const control = globalThis[${JSON.stringify(id)}];
     const keyGen = () => {control.keygenCalls++; return {privateKey: {}, publicKey: {pkA: new Uint8Array(${mode === 'bad-public' ? 1 : 2592}), pkB: new Uint8Array(64)}};};
     const destroyKey = () => {control.destroyCalls++; throw ${mode === 'bad-public' ? 'false' : 'null'};};
@@ -17,6 +17,7 @@ async function faultModule(mode) {
   `);
   source = source.replaceAll("'./pq-wallet-contract.js'", JSON.stringify(new URL('../src/pq-wallet-contract.js', import.meta.url).href));
   source = source.replaceAll("'./pq-wallet-backup.js'", JSON.stringify(new URL('../src/pq-wallet-backup.js', import.meta.url).href));
+  for (const name of ['pq-wallet-authorization.js', 'pq-wallet-policy.js']) source = source.replaceAll("'./" + name + "'", JSON.stringify(new URL('../src/' + name, import.meta.url).href));
   return {sdk: await import('data:text/javascript;base64,' + Buffer.from(source).toString('base64')), control, id};
 }
 test('failed acquisition keeps public-format first cause when provider cleanup throws false', async () => {
