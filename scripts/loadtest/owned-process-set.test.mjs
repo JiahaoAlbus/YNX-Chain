@@ -13,11 +13,13 @@ test('includes recursive compiler descendants even if a descendant changes group
 });
 
 test('group members remain owned after parent exits; unrelated processes stay excluded', () => {
-  assert.deepEqual(ownedProcessSet('40 1 30\n41 40 41\n70 1 70\n', 20, 30), [20, 40, 41]);
+  assert.deepEqual(ownedProcessSet('20 1093 20\n40 1 30\n41 40 41\n70 1 70\n', 20, 30), [20, 40, 41]);
 });
 
-test('terminal absent job does not invent a readable PID or include shared parent', () => {
-  assert.deepEqual(ownedProcessSet('1093 1 1093\n20 1093 20\n', 20, 30), [20]);
+test('missing job and missing launcher fail closed instead of sampling a partial set', () => {
+  assert.throws(() => ownedProcessSet('1093 1 1093\n20 1093 20\n', 20, 30), /job.*unavailable/);
+  assert.throws(() => ownedProcessSet('30 20 30\n', 20, 30), /launcher.*unavailable/);
+  assert.throws(() => ownedProcessSet('', 20, 30));
 });
 
 test('excess descendants fail closed rather than silently truncating watched set', () => {

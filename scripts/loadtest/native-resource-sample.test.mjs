@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {validateNativeResourceSample} from './native-resource-sample.mjs';
-const sample = () => ({rssWithControlReserveBytes:54755328, threadsWithControlReserve:9, processes:[{pid:76461,readable:true}], host:{scanComplete:true}, memoryPressure:{source:'kern.memorystatus_vm_pressure_level',readable:true,dispatchLevel:1,errno:0}, forkProbe:{available:true,forkSucceeded:true,forkErrno:0,waitErrno:0,childExitCode:0,childSignal:0}});
+const sample = () => ({rssWithControlReserveBytes:54755328, threadsWithControlReserve:9, processes:[{pid:76461,readable:true,rssBytes:51216384,threads:7}], host:{scanComplete:true}, memoryPressure:{source:'kern.memorystatus_vm_pressure_level',readable:true,dispatchLevel:1,errno:0}, forkProbe:{available:true,forkSucceeded:true,forkErrno:0,waitErrno:0,childExitCode:0,childSignal:0}});
 
 test('retains real fork failure errno instead of a generic monitor failure', () => {
   const s=sample();
@@ -24,3 +24,17 @@ test('normal native pressure admits a valid sample despite low free-page metadat
 test('warning critical missing unknown and unreadable native pressure fail closed',()=>{for(const level of [0,2,3,4,8,-1,undefined]){const s=sample();s.memoryPressure.dispatchLevel=level;assert.throws(()=>validateNativeResourceSample(s,76461),/native memory pressure is not normal/)}const s=sample();s.memoryPressure.readable=false;assert.throws(()=>validateNativeResourceSample(s,76461));delete s.memoryPressure;assert.throws(()=>validateNativeResourceSample(s,76461))});
 
 test('fast samples skip host enumeration/fork only, retaining kernel and pressure gates',()=>{const s=sample();delete s.host;delete s.forkProbe;assert.doesNotThrow(()=>validateNativeResourceSample(s,76461,{full:false}));assert.throws(()=>validateNativeResourceSample(s,76461));s.memoryPressure.dispatchLevel=2;assert.throws(()=>validateNativeResourceSample(s,76461,{full:false}),/native memory pressure/);s.memoryPressure.dispatchLevel=1;s.processes[0].readable=false;assert.throws(()=>validateNativeResourceSample(s,76461,{full:false}),/launcher task info/)});
+
+test('unreadable owned child cannot disappear from the charged sample',()=>{
+  const s=sample();s.processes.push({pid:76462,readable:false,errno:3});
+  assert.throws(()=>validateNativeResourceSample(s,76461),/owned task info/);
+});
+
+test('expected watched identities reject missing duplicate or unexpected rows',()=>{
+  const s=sample();
+  assert.throws(()=>validateNativeResourceSample(s,76461,{expectedPIDs:[76461,76462]}),/watched identities/);
+  s.processes.push({...s.processes[0]});
+  assert.throws(()=>validateNativeResourceSample(s,76461,{expectedPIDs:[76461]}),/duplicate/);
+  s.processes[1]={pid:76462,readable:true,rssBytes:100,threads:1};
+  assert.throws(()=>validateNativeResourceSample(s,76461,{expectedPIDs:[76461]}),/watched identities/);
+});

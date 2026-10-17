@@ -31,7 +31,7 @@ async function sample(initial=false){
  ids=[...new Set(ids)];if(ids.length>16)throw Error('kernel probe watched PID bound');
  const raw=await probe.run(['--full',...ids.map(String)]);const s=JSON.parse(raw.stdout);
  result.lastAttemptedResourceSample=s;
- validateNativeResourceSample(s,process.pid);
+ validateNativeResourceSample(s,process.pid,{expectedPIDs:ids});
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
  if(s.rssWithControlReserveBytes>400*1024*1024)throw Error('400MiB control/owned RSS cap');

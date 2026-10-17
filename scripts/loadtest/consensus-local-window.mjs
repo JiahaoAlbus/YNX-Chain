@@ -181,7 +181,7 @@ async function sampleResources(full) {
     throw Error('native resource probe returned invalid JSON; raw failure retained');
   }
   lastResourceSample = sample;
-  validateNativeResourceSample(sample, process.pid, { full });
+  validateNativeResourceSample(sample, process.pid, { full, expectedPIDs: watched });
   if (full) hostSamples.push({ sampledAt: new Date().toISOString(), ...sample });
   peakRSSBytes = Math.max(peakRSSBytes, sample.rssWithControlReserveBytes);
   peakThreadsWithControlReserve = Math.max(peakThreadsWithControlReserve, sample.threadsWithControlReserve);

@@ -53,7 +53,14 @@ static bool parse_pid(const char *text, pid_t *out) {
     return true;
 }
 
+#include "owned-process-snapshot.h"
+
 int main(int argc, char **argv) {
+    if (argc > 1 && strcmp(argv[1], "--owned-full") == 0) {
+        pid_t launcher, job;
+        if (argc != 4 || !parse_pid(argv[2], &launcher) || !parse_pid(argv[3], &job) || launcher == job) return 2;
+        return ynx_owned_snapshot(launcher, job);
+    }
     bool full = argc > 1 && strcmp(argv[1], "--full") == 0;
     int first = full ? 2 : 1;
     if (argc - first < 1 || argc - first > 16) return 2;
