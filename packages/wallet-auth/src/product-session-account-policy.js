@@ -1,6 +1,7 @@
 import {canonicalJSON,WalletAuthError} from './canonical.js';
 import {evmAddressFromYNX} from './crypto.js';
-import {exactPQRecord} from './pq-wallet-contract.js';
+import {exactPQRecord,validatePQPublicBinding,pqBase64url,PQ_PROTOCOL_VERSION,PQ_SUITE} from './pq-wallet-contract.js';
+import {hexToBytes} from '@noble/hashes/utils.js';
 import {registerAccountPolicyObservation,readAccountPolicyObservation} from './product-session-account-private.js';
 const fail=code=>{throw new WalletAuthError(code,code)};
 const integer=value=>{if(typeof value!=='string'||!/^(0|[1-9][0-9]{0,19})$/.test(value)||BigInt(value)>(1n<<64n)-1n)fail('ACCOUNT_POLICY_INTEGER_INVALID');return BigInt(value)};
@@ -42,3 +43,11 @@ export function captureProductSessionAccountPolicy(resource,expected,at=new Date
   });
 }
 export function readProductSessionAccountPolicy(ref,account,at=new Date()){return readAccountPolicyObservation(ref,account,at)}
+/** Original committed policy -> backup/Vault public binding. No nonce or
+ * execution DTO is invented and no backup preview becomes registered policy. */
+export function pqProductSessionRegisteredPublicBinding(ref,account,at=new Date()){
+  const view=readAccountPolicyObservation(ref,account,at);
+  if(view.algorithmVersion!=='YNX-BATCH/v0.1'||!view.activeRecord)fail('ACTIVE_PQ_ACCOUNT_REQUIRED');
+  return validatePQPublicBinding({protocolVersion:PQ_PROTOCOL_VERSION,suite:PQ_SUITE,chainId:view.networkId,owner:view.canonicalOwner,
+    pkA:pqBase64url(hexToBytes(view.activeRecord.pkA)),pkB:pqBase64url(hexToBytes(view.activeRecord.pkB))});
+}

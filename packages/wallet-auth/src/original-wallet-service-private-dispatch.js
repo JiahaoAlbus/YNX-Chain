@@ -1,3 +1,4 @@
+import {assertOriginalPrivatePQCarrier} from './original-wallet-service-private-pq-budget.js';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
@@ -24,13 +25,13 @@ const fail=code=>{throw new WalletAuthError(code,'Original private service is un
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const operations=new Set(['beginYNX','handleReturn','restore','disconnect']);
 export function decodeOriginalWalletServicePrivateRequest(raw){
- if(typeof raw!=='string'||Buffer.byteLength(raw)>65536)fail('ORIGINAL_PRIVATE_CAPACITY');
+ if(typeof raw!=='string'||Buffer.byteLength(raw)>262144)fail('ORIGINAL_PRIVATE_CAPACITY');
  let value;try{value=JSON.parse(raw);}catch{fail('ORIGINAL_PRIVATE_REQUEST_INVALID');}
- exactFields(value,['requestId','operation','phase','body','proofHeader'],'Original private request');
+ const budget=assertOriginalPrivatePQCarrier(value);if(Buffer.byteLength(raw)>budget.envelope)fail('ORIGINAL_PRIVATE_CAPACITY');
  if(canonicalJSON(value)!==raw||!/^req_[A-Za-z0-9_-]{12,80}$/.test(value.requestId)||!operations.has(value.operation)||!['time','effect'].includes(value.phase))fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
  if(value.phase==='time'){if(value.body!==null||value.proofHeader!==null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');}
  else{
-  if(typeof value.body!=='string'||Buffer.byteLength(value.body)>49152||!(value.proofHeader===null||typeof value.proofHeader==='string'&&Buffer.byteLength(value.proofHeader)<=16384))fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
+  if(typeof value.body!=='string'||Buffer.byteLength(value.body)>budget.body||!(value.proofHeader===null||typeof value.proofHeader==='string'&&Buffer.byteLength(value.proofHeader)<=16384))fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
   let body;try{body=JSON.parse(value.body);}catch{fail('ORIGINAL_PRIVATE_REQUEST_INVALID');}if(canonicalJSON(body)!==value.body)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
   const fields={beginYNX:['request','approval'],handleReturn:['request','approval','completion'],restore:['requiredScopes'],disconnect:[]};exactFields(body,fields[value.operation],'Original four-op body');
   if(['beginYNX','handleReturn'].includes(value.operation)?value.proofHeader!==null:value.proofHeader===null)fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
@@ -91,7 +92,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    if([...records.values()].some(row=>row.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
    const key=input.operation+':'+input.phase+':'+input.requestId;if(records.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');if(records.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY');
    const row={inputDigest:hash(raw),originalRaw:raw,result:null,hostOwner:null,unknown:false,terminal:false,fulfilled:false,localFailurePresent:false,localCause:undefined};records.set(key,row);
-   const promise=Promise.resolve().then(()=>{
+   const promise=Promise.resolve().then(async()=>{
     try{
     current(input.operation);
     // Recheck at execution, not just reservation. The synchronous catch below
@@ -105,7 +106,7 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
     runtime.assertObservationCurrent(observation);current(input.operation);
     row.unknown=true;
     if([...records.values()].some(other=>other!==row&&other.localFailurePresent))fail('ORIGINAL_PRIVATE_LOCAL_FAILURE_UNRESOLVED');
-    const result=ProductSessionGatewayNodeHost.prototype.executeOriginalWalletServicePrivateTransaction.call(host,row.hostOwner);
+    const result=await ProductSessionGatewayNodeHost.prototype.executeOriginalWalletServicePrivateTransactionWithPolicy.call(host,row.hostOwner);
     row.result=result;current(input.operation);runtime.assertObservationCurrent(observation);current(input.operation);
     ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,result);
     row.fulfilled=true;return result;

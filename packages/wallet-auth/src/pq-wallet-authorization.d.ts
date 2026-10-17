@@ -38,3 +38,10 @@ export function preparePQMigrationTransport(wire: Uint8Array): PQTransportReques
  * math validation, chain admission or finality. All returned data are detached/frozen. */
 export function decodePQTransferRequest(wire: Uint8Array): Readonly<{transfer: Readonly<PQNativeTransfer>; purpose: 'TX-BATCH'; N: 1; index: 0; pkA: string; pkB: string; transportHash: string}>;
 export function preparePQTransferTransport(wire: Uint8Array): PQTransportRequest;
+/** Public original signer output only, fixed 0x lowercase SEC1 pub and 32-byte
+ * r/s. A private key, signature callback, chain grant or permission is not input. */
+export interface PQClassicSignerPublicResult {readonly publicKey:string;readonly r:string;readonly s:string}
+export interface PQClassicMigrationProof {readonly classicPublicKey:Uint8Array;readonly classicSignature:Uint8Array}
+/** Canonical DER/compressed public-key conversion + exact intent/owner math;
+ * normal main should use preparePQClassicMigrationProof for the policy gate. */
+export function encodePQClassicMigrationProof(intent:PQRegistrationIntentInput,signature:PQClassicSignerPublicResult):PQClassicMigrationProof;

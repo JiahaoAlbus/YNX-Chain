@@ -1,5 +1,5 @@
 import type {PQPublicBinding} from './pq-wallet-contract.js';
-import type {PQNativeTransferInput, PQNativeTransfer, PQRegistrationIntentInput, PQRegistrationIntent, PQMigrationProofs, PQTransportRequest} from './pq-wallet-authorization.js';
+import type {PQNativeTransferInput, PQNativeTransfer, PQRegistrationIntentInput, PQRegistrationIntent, PQMigrationProofs, PQTransportRequest,PQClassicSignerPublicResult,PQClassicMigrationProof} from './pq-wallet-authorization.js';
 export interface PQPolicyRecord { readonly algorithmVersion: 'YNX-BATCH/v0.1'; readonly owner: string; readonly pkA: string; readonly pkB: string; readonly revision: string; readonly registeredAt: string; readonly activeFrom: string; readonly ledgerNonce: string }
 export interface PQAuthorizationDTO { readonly owner: string; readonly executionHeight: string; readonly ledgerNonce: string; readonly algorithmVersion: 'legacy' | 'YNX-BATCH/v0.1'; readonly enabled: boolean; readonly records: readonly PQPolicyRecord[]; readonly policyVersion?: 'YNX-ACCOUNT-POLICY/v1'; readonly networkId?: string; readonly enableAt?: string; readonly activeRevision?: string }
 declare const snapshot: unique symbol;
@@ -29,4 +29,7 @@ export function classifyPQRegistration(snapshot: PQAuthorizationSnapshot, intent
  * signs digest=SHA256(full canonical intent) as low-S DER using its lawful old key.
  * This helper contains no classic private key or signing callback and refuses active PQ. */
 export function preparePQClassicMigrationAuthorization(snapshot: PQAuthorizationSnapshot, intent: PQRegistrationIntentInput): Readonly<{plan: PQMigrationReviewPlan; intentBytes: Uint8Array; digest: Uint8Array}>;
+/** Original protected signer signs the existing helper's exact digest once;
+ * this converts its PUBLIC result and rejects active PQ/classic fallback. */
+export function preparePQClassicMigrationProof(snapshot:PQAuthorizationSnapshot,intent:PQRegistrationIntentInput,signature:PQClassicSignerPublicResult):PQClassicMigrationProof;
 export function preparePQReviewedMigrationTransport(snapshot: PQAuthorizationSnapshot, proofs: PQMigrationProofs): Readonly<{plan: PQMigrationReviewPlan; request: PQTransportRequest}>;

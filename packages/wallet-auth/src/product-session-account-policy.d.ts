@@ -1,3 +1,4 @@
+import type {PQPublicBinding} from './pq-wallet-contract.js';
 export interface ProductSessionCommittedPolicyView {
   readonly version:'YNX-PRODUCT-SESSION-ACCOUNT-POLICY/v1'; readonly networkId:string; readonly canonicalOwner:string;
   readonly checkpoint:Readonly<{kind:'trusted-node-committed/v1';height:string;blockHash:string}>;
@@ -18,3 +19,6 @@ export interface ProductSessionAccountPolicyObservation {readonly [observation]:
 /** Borrows resource: original owner separately rechecks, retires, joins/closes and retains UNKNOWN. */
 export function captureProductSessionAccountPolicy(resource:OriginalProductSessionAccountPolicyResource,expected:{networkId:string;account:string},at?:Date):ProductSessionAccountPolicyObservation;
 export function readProductSessionAccountPolicy(ref:ProductSessionAccountPolicyObservation,account:string,at?:Date):ProductSessionCommittedPolicyView;
+/** Same current committed observation, full original registered pair. No fake
+ * transaction nonce/DTO and no registration trust from a backup preview. */
+export function pqProductSessionRegisteredPublicBinding(ref:ProductSessionAccountPolicyObservation,account:string,at?:Date):PQPublicBinding;

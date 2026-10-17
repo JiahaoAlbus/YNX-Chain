@@ -1,3 +1,4 @@
+import {originalPrivateCarrierBudget,originalPrivateSessionCarrier} from './original-wallet-service-private-carrier.js';
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from './product-session-gateway-snapshot-v2.js';
 import { canonicalJSON, exactFields, WalletAuthError } from './canonical.js';
 
@@ -25,14 +26,16 @@ export class OriginalWalletServicePrivateClient {
     if (!OPERATIONS.has(operation) || !['time', 'effect'].includes(phase) || typeof requestId !== 'string' || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
     if (phase === 'time') { if (body !== null || proofHeader !== null) fail('ORIGINAL_PRIVATE_REQUEST_INVALID'); }
     else {
-      if (typeof body !== 'string' || size(body) > 49152 || !(proofHeader === null || typeof proofHeader === 'string' && size(proofHeader) <= 16384)) fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
+      if (typeof body !== 'string' || size(body) > 196608 || !(proofHeader === null || typeof proofHeader === 'string' && size(proofHeader) <= 16384)) fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
       let parsed; try { parsed = JSON.parse(body); } catch { fail('ORIGINAL_PRIVATE_REQUEST_INVALID'); }
       if (canonicalJSON(parsed) !== body) fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
       exactFields(parsed, {beginYNX: ['request', 'approval'], handleReturn: ['request', 'approval', 'completion'], restore: ['requiredScopes'], disconnect: []}[operation], 'Original four-operation body');
       if (['beginYNX', 'handleReturn'].includes(operation) ? proofHeader !== null : proofHeader === null) fail('ORIGINAL_PRIVATE_REQUEST_INVALID');
     }
-    const input = canonicalJSON({requestId, operation, phase, body, proofHeader});
-    if (size(input) > 65536) fail('ORIGINAL_PRIVATE_CAPACITY');
+    const carrier=originalPrivateSessionCarrier({requestId,operation,phase,body,proofHeader}),budget=originalPrivateCarrierBudget(carrier);
+    if(typeof body==='string'&&size(body)>budget.body)fail('ORIGINAL_PRIVATE_CAPACITY');
+    const input = canonicalJSON(carrier);
+    if (size(input) > budget.envelope) fail('ORIGINAL_PRIVATE_CAPACITY');
     if (this.#state.unknown) fail('ORIGINAL_PRIVATE_OUTCOME_UNKNOWN');
     const key = `${operation}:${phase}:${requestId}`;
     if (this.#state.records.has(key)) fail('ORIGINAL_PRIVATE_ALREADY_ENTERED');
