@@ -25,6 +25,7 @@ Validation:
 - A mixed block includes native/action/Ethereum/UserOperation transactions plus an invalid duplicate nonce. It checks proposal isolation, exact ordered fee records, expected balance/nonce changes, the rejected duplicate and byte-identical full state after persistent restart.
 - The six performance runs each offered/accepted/executed 1,024 valid native transfers, with zero failures/rejections and 1,024 persisted fee records. All 16 AppHashes and final snapshot bytes match across all six runs and the first checkpoint's final snapshot.
 - Existing signature/chain ID/replay, failed commit, fee audit and account-abstraction controls remain passing.
+- After the host reboot, a separate child-process test now exits abruptly with `os.Exit(17)` after FinalizeBlock or after durable Commit. A fresh parent application recovers only the last committed height, balances, nonce and fee history; the uncommitted transfer remains admissible, while the durably committed nonce is rejected as a replay. This covers the application commit boundary, not a four-node crash/recovery drill.
 
 ## Same-condition comparison
 
