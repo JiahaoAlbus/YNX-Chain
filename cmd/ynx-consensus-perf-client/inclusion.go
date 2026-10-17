@@ -39,7 +39,7 @@ func summarizeBlocks(results []transactionResult) blockStatistics {
 				lastOffer = *r.OfferedAt
 			}
 		}
-		if !r.TransactionProofVerified || !r.QuorumVerified || r.ExecutionCode == nil || *r.ExecutionCode != 0 || r.BlockTime == nil || r.Height <= 0 || r.BlockTxTotal < 1 {
+		if !verifiedBusinessInclusion(r) || r.BlockTime == nil || r.BlockTxTotal < 1 {
 			continue
 		}
 		block := byHeight[r.Height]

@@ -21,13 +21,18 @@ type observationClient interface {
 }
 
 type groupedObservationStats struct {
-	TransactionQueries   uint64 `json:"transactionQueries"`
-	CommitQueries        uint64 `json:"commitQueries"`
-	ValidatorQueries     uint64 `json:"validatorQueries"`
-	QuorumVerifications  uint64 `json:"quorumVerifications"`
-	DurableBatches       uint64 `json:"durableBatches"`
-	LargestDurableBatch  uint64 `json:"largestDurableBatch"`
-	PublishedInfoQueries uint64 `json:"publishedInfoQueries"`
+	TransactionQueries     uint64 `json:"transactionQueries"`
+	CommitQueries          uint64 `json:"commitQueries"`
+	ValidatorQueries       uint64 `json:"validatorQueries"`
+	QuorumVerifications    uint64 `json:"quorumVerifications"`
+	DurableBatches         uint64 `json:"durableBatches"`
+	LargestDurableBatch    uint64 `json:"largestDurableBatch"`
+	PublishedInfoQueries   uint64 `json:"publishedInfoQueries"`
+	BlockQueries           uint64 `json:"blockQueries"`
+	BlockResultsQueries    uint64 `json:"blockResultsQueries"`
+	ScannedBlocks          uint64 `json:"scannedBlocks"`
+	CachedConfirmationHits uint64 `json:"cachedConfirmationHits"`
+	PeakCachedBlockBytes   uint64 `json:"peakCachedBlockBytesPerScanner"`
 }
 
 func (s *groupedObservationStats) add(other groupedObservationStats) {
@@ -37,6 +42,13 @@ func (s *groupedObservationStats) add(other groupedObservationStats) {
 	s.QuorumVerifications += other.QuorumVerifications
 	s.DurableBatches += other.DurableBatches
 	s.PublishedInfoQueries += other.PublishedInfoQueries
+	s.BlockQueries += other.BlockQueries
+	s.BlockResultsQueries += other.BlockResultsQueries
+	s.ScannedBlocks += other.ScannedBlocks
+	s.CachedConfirmationHits += other.CachedConfirmationHits
+	if other.PeakCachedBlockBytes > s.PeakCachedBlockBytes {
+		s.PeakCachedBlockBytes = other.PeakCachedBlockBytes
+	}
 	if other.LargestDurableBatch > s.LargestDurableBatch {
 		s.LargestDurableBatch = other.LargestDurableBatch
 	}
@@ -80,14 +92,50 @@ func runGroupedObservationLoop(ctx context.Context, poll time.Duration, queue <-
 }
 
 type groupedObserver struct {
-	manifest consensus.EphemeralNetworkManifest
-	trusted  *cmttypes.ValidatorSet
-	reader   *durableReader
-	clients  []observationClient
-	txs      []cmttypes.Tx
-	results  []transactionResult
-	included map[int]*coretypes.ResultTx
-	stats    groupedObservationStats
+	manifest      consensus.EphemeralNetworkManifest
+	trusted       *cmttypes.ValidatorSet
+	reader        *durableReader
+	clients       []observationClient
+	txs           []cmttypes.Tx
+	results       []transactionResult
+	included      map[int]*coretypes.ResultTx
+	stats         groupedObservationStats
+	inclusionMode string
+	scanners      map[int]*blockInclusionScanner
+}
+
+func (g *groupedObserver) refreshBlockScans(ctx context.Context, pending []acceptedObservation) map[int]error {
+	errorsByNode := map[int]error{}
+	if g.inclusionMode != "block-scan" {
+		return errorsByNode
+	}
+	needed := map[int]bool{}
+	for _, job := range pending {
+		if g.included[job.index] == nil {
+			needed[job.index%4] = true
+		}
+	}
+	if g.scanners == nil {
+		g.scanners = map[int]*blockInclusionScanner{}
+	}
+	for node := 0; node < 4; node++ {
+		if !needed[node] {
+			continue
+		}
+		scanner := g.scanners[node]
+		if scanner == nil {
+			client, ok := g.clients[node].(blockObservationClient)
+			if !ok {
+				errorsByNode[node] = errors.New("block-scan client capability unavailable")
+				continue
+			}
+			start := int64(g.reader.migration.Height) + 1
+			scanner = &blockInclusionScanner{manifest: g.manifest, trusted: g.trusted, client: client, stats: &g.stats, start: start, next: start}
+			g.scanners[node] = scanner
+		}
+		errorsByNode[node] = scanner.refresh(ctx)
+	}
+	return errorsByNode
 }
 
 func (g *groupedObserver) fail(job acceptedObservation, stage string, err error) {
@@ -118,6 +166,7 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 		height int64
 	}
 	groups := map[groupKey][]acceptedObservation{}
+	scanErrors := g.refreshBlockScans(ctx, pending)
 	var waiting []acceptedObservation
 	for _, job := range pending {
 		if err := observationDeadline(ctx); err != nil {
@@ -125,13 +174,36 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 			continue
 		}
 		i := job.index
+		if err := scanErrors[i%4]; err != nil && !errors.Is(err, errBlockScanNotReady) {
+			g.fail(job, "block_scan_verification", err)
+			continue
+		}
 		raw, r := g.txs[i], &g.results[i]
 		included := g.included[i]
 		if included == nil {
-			g.stats.TransactionQueries++
-			queried, err := g.clients[i%4].Tx(ctx, raw.Hash(), true)
+			var queried *coretypes.ResultTx
+			var err error
+			stage := "tx_query"
+			if g.inclusionMode == "block-scan" {
+				stage = "block_scan_wait"
+				if scanner := g.scanners[i%4]; scanner != nil {
+					queried, err = scanner.find(raw)
+				} else {
+					err = scanErrors[i%4]
+				}
+			} else {
+				g.stats.TransactionQueries++
+				queried, err = g.clients[i%4].Tx(ctx, raw.Hash(), true)
+			}
 			if err != nil {
-				addError(&r.Errors, "tx_query", err)
+				if g.inclusionMode == "block-scan" && !errors.Is(err, errBlockScanNotReady) {
+					g.fail(job, "block_scan_verification", err)
+					continue
+				}
+				if g.inclusionMode == "block-scan" && scanErrors[i%4] != nil {
+					err = scanErrors[i%4]
+				}
+				addError(&r.Errors, stage, err)
 				waiting = append(waiting, job)
 				continue
 			}
@@ -167,6 +239,12 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 	})
 	for _, key := range keys {
 		jobs := groups[key]
+		if scanner := g.scanners[key.node]; g.inclusionMode == "block-scan" && scanner != nil && scanner.poisoned != nil {
+			for _, job := range jobs {
+				g.fail(job, "block_scan_verification", scanner.poisoned)
+			}
+			continue
+		}
 		client, height := g.clients[key.node], key.height
 		if err := observationDeadline(ctx); err != nil {
 			for _, job := range jobs {
@@ -174,11 +252,23 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 			}
 			continue
 		}
-		g.stats.CommitQueries++
-		commit, err := client.Commit(ctx, &height)
+		var commit *coretypes.ResultCommit
+		if g.inclusionMode == "block-scan" {
+			if scanner := g.scanners[key.node]; scanner != nil {
+				commit = scanner.confirmation(height)
+			}
+		}
+		cached := commit != nil
+		var err error
+		if cached {
+			g.stats.CachedConfirmationHits++
+		} else {
+			g.stats.CommitQueries++
+			commit, err = client.Commit(ctx, &height)
+		}
 		stage := "commit_query"
 		var validators *coretypes.ResultValidators
-		if err == nil {
+		if err == nil && !cached {
 			g.stats.ValidatorQueries++
 			page, perPage := 1, 100
 			validators, err = client.Validators(ctx, &height, &page, &perPage)
@@ -191,8 +281,11 @@ func (g *groupedObserver) step(ctx context.Context, pending []acceptedObservatio
 			waiting = append(waiting, jobs...)
 			continue
 		}
-		g.stats.QuorumVerifications++
-		if err := verifyBlockConfirmation(g.manifest, g.trusted, validators, commit, height); err != nil {
+		if !cached {
+			g.stats.QuorumVerifications++
+			err = verifyBlockConfirmation(g.manifest, g.trusted, validators, commit, height)
+		}
+		if err != nil {
 			for _, job := range jobs {
 				g.fail(job, "confirmation_verification", err)
 			}

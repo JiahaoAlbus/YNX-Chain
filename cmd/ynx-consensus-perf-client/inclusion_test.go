@@ -12,7 +12,7 @@ func TestInclusionIntervalsExcludeEdgesGapsAndUnverifiedTransactions(t *testing.
 	for block := 0; block < 4; block++ {
 		at := start.Add(time.Duration(block) * time.Second)
 		for index := 0; index < 2; index++ {
-			results = append(results, transactionResult{Height: int64(10 + block), BlockTime: &at, BlockHash: string(rune('a' + block)), BlockTxIndex: uint32(index), BlockTxTotal: 2, ExecutionCode: &zero, TransactionProofVerified: true, QuorumVerified: true, OfferedAt: &start})
+			results = append(results, transactionResult{Height: int64(10 + block), BlockTime: &at, BlockHash: string(rune('a' + block)), DurableStateVerified: true, DurableStateHeight: int64(10 + block), DurableSnapshotSHA256: "unit-gate-fixture", BlockTxIndex: uint32(index), BlockTxTotal: 2, ExecutionCode: &zero, TransactionProofVerified: true, QuorumVerified: true, OfferedAt: &start})
 		}
 	}
 	results[len(results)-1].OfferedAt = &end
@@ -25,6 +25,11 @@ func TestInclusionIntervalsExcludeEdgesGapsAndUnverifiedTransactions(t *testing.
 		t.Fatal("round barriers invented continuous offered throughput")
 	}
 	results[len(results)-1].Round = 1
+	results[2].DurableStateVerified = false
+	if got := summarizeBlocks(results); got.ActiveOfferInteriorTPS != nil {
+		t.Fatal("proof and RPC code alone inflated effective inclusion")
+	}
+	results[2].DurableStateVerified = true
 	results[2].TransactionProofVerified = false
 	s = summarizeBlocks(results)
 	if s.ActiveOfferInteriorTPS != nil {
@@ -33,6 +38,8 @@ func TestInclusionIntervalsExcludeEdgesGapsAndUnverifiedTransactions(t *testing.
 	results[2].TransactionProofVerified = true
 	results[4].Height = 20
 	results[5].Height = 20
+	results[4].DurableStateHeight = 20
+	results[5].DurableStateHeight = 20
 	s = summarizeBlocks(results)
 	if s.ActiveOfferInteriorIntervals != 1 {
 		t.Fatalf("gap was treated as a consecutive interval: %+v", s)
@@ -48,7 +55,7 @@ func TestInclusionIntervalsDoNotInventSteadyStateForSmallSamples(t *testing.T) {
 	}
 	zero := uint32(0)
 	at := time.Unix(100, 0)
-	result := transactionResult{Height: 1, BlockTime: &at, BlockHash: "block", BlockTxTotal: 1, ExecutionCode: &zero, TransactionProofVerified: true, QuorumVerified: true, OfferedAt: &at}
+	result := transactionResult{Height: 1, DurableStateVerified: true, DurableStateHeight: 1, DurableSnapshotSHA256: "unit-gate-fixture", BlockTime: &at, BlockHash: "block", BlockTxTotal: 1, ExecutionCode: &zero, TransactionProofVerified: true, QuorumVerified: true, OfferedAt: &at}
 	if got := summarizeBlocks([]transactionResult{result}); got.ActiveOfferInteriorTPS != nil {
 		t.Fatal("single block invented interior rate")
 	}

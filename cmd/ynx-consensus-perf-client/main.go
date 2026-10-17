@@ -42,6 +42,7 @@ type options struct {
 	concurrency                    int
 	rounds                         int
 	senderMode                     string
+	inclusionMode                  string
 	observers                      int
 	offeredRate                    float64
 	timeout, poll                  time.Duration
@@ -123,6 +124,7 @@ type summary struct {
 	CheckTxRejected            int             `json:"checkTxRejected"`
 	CheckTxUnverified          int             `json:"checkTxUnverifiedResponses"`
 	IncludedCodeZero           int             `json:"includedCodeZero"`
+	EffectiveBusinessIncluded  int             `json:"effectiveBusinessIncluded"`
 	ExecutionFailed            int             `json:"executionFailed"`
 	QuorumConfirmed            int             `json:"quorumConfirmed"`
 	FinalSubmitted             int             `json:"finalSubmitted"`
@@ -135,6 +137,7 @@ type summary struct {
 	SubmissionRate             float64         `json:"rpcSubmissionsPerMeasurementSecond"`
 	AcceptanceRate             float64         `json:"checkTxAcceptedPerMeasurementSecond"`
 	InclusionRate              float64         `json:"codeZeroIncludedPerMeasurementSecond"`
+	EffectiveInclusionRate     float64         `json:"effectiveBusinessIncludedPerMeasurementSecond"`
 	ConfirmationRate           float64         `json:"quorumConfirmedPerMeasurementSecond"`
 	FinalSubmissionRate        float64         `json:"finalSubmittedPerMeasurementSecond"`
 	OfferedEventSpanSeconds    float64         `json:"offeredEventSpanSeconds"`
@@ -146,6 +149,7 @@ type summary struct {
 	QueueDelay                 percentiles     `json:"submissionQueueDelayMs"`
 	CheckTxLatency             percentiles     `json:"checkTxLatencyMs"`
 	InclusionLatency           percentiles     `json:"inclusionLatencyMs"`
+	EffectiveInclusionLatency  percentiles     `json:"effectiveBusinessInclusionLatencyMs"`
 	ConfirmationLatency        percentiles     `json:"confirmationLatencyMs"`
 }
 
@@ -165,6 +169,7 @@ type report struct {
 	DurableReadback      durableReaderStats      `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
 	SenderMode           string                  `json:"senderMode"`
+	InclusionMode        string                  `json:"inclusionMode"`
 	ReadySenders         readySenderStats        `json:"readySenders"`
 	TimeoutMs            int64                   `json:"timeoutMs"`
 	PollMs               int64                   `json:"pollMs"`
@@ -192,6 +197,7 @@ func main() {
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.IntVar(&o.rounds, "rounds", 1, "bounded rounds using retained fixture senders (1..32; total transactions at most 2048); each round waits for durable finality")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
+	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -204,6 +210,12 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.inclusionMode != "" && o.inclusionMode != "tx-query" && o.inclusionMode != "block-scan" {
+		return errors.New("unsupported inclusion mode")
+	}
+	if o.inclusionMode == "block-scan" && (o.offeredRate <= 0 || o.observers != 4) {
+		return errors.New("block-scan requires paced submission and four node-affine observers")
+	}
 	if o.senderMode != "" && o.senderMode != "rounds" && o.senderMode != "ready-pool" {
 		return errors.New("unsupported sender mode")
 	}
@@ -470,7 +482,7 @@ func newClients(m consensus.EphemeralNetworkManifest) ([]*rpchttp.HTTP, func(), 
 			}
 			return dialer.DialContext(ctx, network, address)
 		}}
-	client := &http.Client{Transport: transport, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("RPC redirects are forbidden") }}
+	client := &http.Client{Transport: boundedRPCTransport{base: transport}, Timeout: 3 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("RPC redirects are forbidden") }}
 	clients := make([]*rpchttp.HTTP, 4)
 	for i, n := range m.Nodes {
 		c, err := rpchttp.NewWithClient(n.RPCURL, "/websocket", client)
@@ -666,7 +678,7 @@ func distribution(values []float64) percentiles {
 
 func summarize(results []transactionResult, seconds float64) summary {
 	s := summary{Input: len(results), MeasurementWindowSeconds: seconds}
-	var check, inclusion, confirmation []float64
+	var check, inclusion, confirmation, effectiveInclusion []float64
 	var offered, submissions []time.Time
 	var queue []float64
 	for _, r := range results {
@@ -698,6 +710,12 @@ func summarize(results []transactionResult, seconds float64) summary {
 		}
 		if r.IncludedObservedAt != nil && r.ExecutionCode != nil && *r.ExecutionCode == 0 && r.TransactionProofVerified {
 			s.IncludedCodeZero++
+		}
+		if verifiedBusinessInclusion(r) {
+			s.EffectiveBusinessIncluded++
+			if r.InclusionMs != nil {
+				effectiveInclusion = append(effectiveInclusion, *r.InclusionMs)
+			}
 		}
 		if r.ExecutionCode != nil && *r.ExecutionCode != 0 {
 			s.ExecutionFailed++
@@ -738,6 +756,7 @@ func summarize(results []transactionResult, seconds float64) summary {
 		s.SubmissionRate = float64(s.Submitted) / seconds
 		s.AcceptanceRate = float64(s.CheckTxAccepted) / seconds
 		s.InclusionRate = float64(s.IncludedCodeZero) / seconds
+		s.EffectiveInclusionRate = float64(s.EffectiveBusinessIncluded) / seconds
 		s.ConfirmationRate = float64(s.QuorumConfirmed) / seconds
 		s.FinalSubmissionRate = float64(s.FinalSubmitted) / seconds
 	}
@@ -746,10 +765,21 @@ func summarize(results []transactionResult, seconds float64) summary {
 	s.OfferedEventSpanSeconds, s.OfferedEventSpanRate = eventSpanRate(offered)
 	s.SubmissionEventSpanSeconds, s.SubmissionEventSpanRate = eventSpanRate(submissions)
 	s.InclusionBlocks = summarizeBlocks(results)
+	s.EffectiveInclusionLatency = distribution(effectiveInclusion)
 	return s
 }
 
+// RPC execution codes and inclusion proofs alone do not prove successful
+// business execution. Actual fee/nonce readback and publication must corroborate
+// it before it enters an effective inclusion count or block-rate calculation.
+func verifiedBusinessInclusion(r transactionResult) bool {
+	return r.Height > 0 && r.ExecutionCode != nil && *r.ExecutionCode == 0 && r.QuorumVerified && r.TransactionProofVerified && r.DurableStateVerified && r.DurableStateHeight >= r.Height && r.DurableSnapshotSHA256 != "" && (!isJournalLayout(r.DurableStoreFormat) || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight))
+}
+
 func execute(o options) error {
+	if o.inclusionMode == "" {
+		o.inclusionMode = "tx-query"
+	}
 	if o.senderMode == "" {
 		o.senderMode = "rounds"
 	}
@@ -772,10 +802,11 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 9, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 10, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
+		"RPC code-zero inclusion/quorum fields are stage observations. Effective business inclusion counts and block rates additionally require actual signed-transaction fee/nonce readback and journal publication evidence; they do not infer execution from an unsigned RPC code. Inclusion and finality latency remain client observations, not internal node timestamps.",
 		"Configured offered rate, measured offered/submission interarrival rates, queue delay and full-window final-submission throughput are separate. Interarrival rate uses (event count - 1)/(last - first); steady-state effective TPS remains null for this short bounded probe.",
 		"Code-zero execution is reported by local tx RPC. Confirmation independently verifies weighted CometBFT commit signatures and transaction Merkle inclusion against the signed header; this is not a cryptographic proof of the RPC execution result.",
 		"Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
@@ -885,7 +916,7 @@ func execute(o options) error {
 						for i, client := range clients {
 							observationClients[i] = client
 						}
-						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}}
+						observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: txs, results: results, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
 						runGroupedObservationLoop(ctx, o.poll, queue, completed, func(pending []acceptedObservation) []acceptedObservation { return observer.step(ctx, pending) })
 						workerStats[worker] = observer.stats
 					})
@@ -922,6 +953,7 @@ func execute(o options) error {
 			}
 		}
 		r.SenderMode = o.senderMode
+		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {
 			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"
 			for i, text := range r.Interpretation {
@@ -943,7 +975,7 @@ func execute(o options) error {
 					for i, client := range clients {
 						observationClients[i] = client
 					}
-					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}}
+					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}, inclusionMode: o.inclusionMode}
 					runGroupedObservationLoop(ctx, o.poll, queue, func(int) {}, func(pending []acceptedObservation) []acceptedObservation {
 						remaining := observer.step(ctx, pending)
 						keep := make(map[int]bool, len(remaining))

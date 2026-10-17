@@ -53,5 +53,11 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
 		if(ok){const p=JSON.parse(r.stdout);assert.equal(p.senderMode,mode);assert.equal(p.totalTransactions,128);assert.equal(p.caps.clientTimeout,'10s');assert.equal(p.caps.rssBytes,1024**3);assert.equal(p.caps.dataBytes,32*1024**2);}
 		assert.equal(fs.existsSync(work),false);
 	}
+	for(const [mode,rate,ok] of [['block-scan',256,true],['block-scan',0,false],['other',256,false]]){
+		const r=spawnSync(process.execPath,[runner,'--count','128','--rounds','4','--sender-mode','ready-pool','--inclusion-mode',mode,'--offered-rate',String(rate),'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work],{encoding:'utf8',timeout:5000});
+		assert.equal(r.status===0,ok,r.stderr);
+		if(ok){const p=JSON.parse(r.stdout);assert.equal(p.inclusionMode,'block-scan');assert.equal(p.senderMode,'ready-pool');assert.equal(p.totalTransactions,512);assert.equal(p.caps.clientObservers,4);assert.equal(p.caps.clientTimeout,'10s');assert.equal(p.caps.dataBytes,32*1024**2);}
+		assert.equal(fs.existsSync(work),false);
+	}
   } finally { fs.rmSync(root, { recursive: true }); }
 });
