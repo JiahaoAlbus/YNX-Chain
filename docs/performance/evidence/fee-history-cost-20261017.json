@@ -1,0 +1,302 @@
+{
+  "business_tps": null,
+  "finality_latency": null,
+  "fixture": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1234288681/state.json",
+  "fixture_fee_events": 1024,
+  "go_version": "go1.25.7",
+  "gomaxprocs": 1,
+  "inclusion_latency": null,
+  "measurement": "synthetic_fee_history_structural_cost_not_executed_transactions_or_tps",
+  "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+  "rows": [
+    {
+      "attempts": 32,
+      "commit_ms": 29.230083,
+      "commit_phases_ms": {
+        "close_file": 0.012333,
+        "directory_sync": 7.281125,
+        "file_sync": 14.458875,
+        "json_encode": 3.296084,
+        "prepare_file": 0.151916,
+        "rename": 0.120958,
+        "validate": 3.75925,
+        "write": 0.116834
+      },
+      "history_events": 1024,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001916
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 221184,
+        "ms": 0.017
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 7380992,
+        "ms": 2.345333
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 0,
+      "snapshot_bytes": 812656,
+      "snapshot_sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 22.896167,
+      "commit_phases_ms": {
+        "close_file": 0.040291,
+        "directory_sync": 8.501333,
+        "file_sync": 8.345875,
+        "json_encode": 2.674417,
+        "prepare_file": 0.16625,
+        "rename": 0.257167,
+        "validate": 2.755958,
+        "write": 0.133417
+      },
+      "history_events": 1024,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001792
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 221184,
+        "ms": 0.008584
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 7380992,
+        "ms": 1.448833
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 1,
+      "snapshot_bytes": 812656,
+      "snapshot_sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 23.338666,
+      "commit_phases_ms": {
+        "close_file": 0.014416,
+        "directory_sync": 8.6025,
+        "file_sync": 8.913459,
+        "json_encode": 2.588583,
+        "prepare_file": 0.193542,
+        "rename": 0.200542,
+        "validate": 2.676375,
+        "write": 0.132916
+      },
+      "history_events": 1024,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.004875
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 221184,
+        "ms": 0.01825
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 7380992,
+        "ms": 1.722667
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 2,
+      "snapshot_bytes": 812656,
+      "snapshot_sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 60.971875,
+      "commit_phases_ms": {
+        "close_file": 0.010541,
+        "directory_sync": 8.002,
+        "file_sync": 16.15225,
+        "json_encode": 21.318708,
+        "prepare_file": 0.1435,
+        "rename": 0.185625,
+        "validate": 14.698334,
+        "write": 0.420417
+      },
+      "history_events": 8192,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001958
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 1712128,
+        "ms": 0.076292
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 56950784,
+        "ms": 11.87325
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 0,
+      "snapshot_bytes": 5432432,
+      "snapshot_sha256": "3dd070cce8228a11fdbbf4e8ae9d7dee8c4923ab21f9ba1a56658a9067b5c972"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 57.658791,
+      "commit_phases_ms": {
+        "close_file": 0.026917,
+        "directory_sync": 8.733167,
+        "file_sync": 13.81725,
+        "json_encode": 18.022458,
+        "prepare_file": 0.133084,
+        "rename": 0.812083,
+        "validate": 14.922833,
+        "write": 1.179583
+      },
+      "history_events": 8192,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001166
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 1712128,
+        "ms": 0.035208
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 56950784,
+        "ms": 12.725708
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 1,
+      "snapshot_bytes": 5432432,
+      "snapshot_sha256": "3dd070cce8228a11fdbbf4e8ae9d7dee8c4923ab21f9ba1a56658a9067b5c972"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 62.462708,
+      "commit_phases_ms": {
+        "close_file": 0.030334,
+        "directory_sync": 8.735458,
+        "file_sync": 15.650458,
+        "json_encode": 21.179,
+        "prepare_file": 0.13,
+        "rename": 0.2795,
+        "validate": 15.212542,
+        "write": 1.146458
+      },
+      "history_events": 8192,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.002542
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 1712128,
+        "ms": 0.089084
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 56950784,
+        "ms": 10.921708
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 2,
+      "snapshot_bytes": 5432432,
+      "snapshot_sha256": "3dd070cce8228a11fdbbf4e8ae9d7dee8c4923ab21f9ba1a56658a9067b5c972"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 742.444834,
+      "commit_phases_ms": {
+        "close_file": 0.038791,
+        "directory_sync": 582.029541,
+        "file_sync": 18.584792,
+        "json_encode": 70.390916,
+        "prepare_file": 0.13975,
+        "rename": 3.154084,
+        "validate": 55.108792,
+        "write": 12.914792
+      },
+      "history_events": 32768,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001625
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 6823936,
+        "ms": 0.311666
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 226918400,
+        "ms": 42.406125
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 0,
+      "snapshot_bytes": 21271664,
+      "snapshot_sha256": "41b22bd59b2232f2ee2b4854bf5e9442430617a465a0a73ba15ed01168ca2c9d"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 187.586833,
+      "commit_phases_ms": {
+        "close_file": 0.045375,
+        "directory_sync": 7.238542,
+        "file_sync": 38.36275,
+        "json_encode": 73.42525,
+        "prepare_file": 0.122958,
+        "rename": 0.397833,
+        "validate": 54.570042,
+        "write": 13.385292
+      },
+      "history_events": 32768,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.001708
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 6823936,
+        "ms": 0.234542
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 226918400,
+        "ms": 53.721
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 1,
+      "snapshot_bytes": 21271664,
+      "snapshot_sha256": "41b22bd59b2232f2ee2b4854bf5e9442430617a465a0a73ba15ed01168ca2c9d"
+    },
+    {
+      "attempts": 32,
+      "commit_ms": 247.770542,
+      "commit_phases_ms": {
+        "close_file": 0.050875,
+        "directory_sync": 86.038708,
+        "file_sync": 18.564917,
+        "json_encode": 73.515125,
+        "prepare_file": 0.147875,
+        "rename": 1.3315,
+        "validate": 55.363166,
+        "write": 12.719167
+      },
+      "history_events": 32768,
+      "journal_append": {
+        "allocated_bytes": 7168,
+        "ms": 0.002125
+      },
+      "journal_materialize_once": {
+        "allocated_bytes": 6823936,
+        "ms": 0.298208
+      },
+      "legacy_copy_and_append": {
+        "allocated_bytes": 226918400,
+        "ms": 48.357667
+      },
+      "ordered_outputs_equal": true,
+      "readback_equal": true,
+      "repetition": 2,
+      "snapshot_bytes": 21271664,
+      "snapshot_sha256": "41b22bd59b2232f2ee2b4854bf5e9442430617a465a0a73ba15ed01168ca2c9d"
+    }
+  ],
+  "schema": 1
+}
