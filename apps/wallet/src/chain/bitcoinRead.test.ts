@@ -18,6 +18,11 @@ test('mobile BTC watch-only exact sat balance, source and network use original p
   assert.deepEqual(f.calls.map(c=>c.url.slice(origin.length)),['/block-height/0',`/address/${ADDRESS}/utxo`,'/block-height/0']);
   assert.equal((await fixture([]).client.readAddress(ADDRESS)).totalBTC,'0.00000000');
 });
+
+test('mobile BTC exact byte limit still accepts a valid single-output public response',async()=>{
+ const template=JSON.stringify([{...row(),note:''}]),raw=JSON.stringify([{...row(),note:'x'.repeat(1000000-template.length)}]);assert.equal(new TextEncoder().encode(raw).byteLength,1000000);
+ const f=fixture(undefined,(_path,n)=>n===2?new Response(raw,{headers:{'content-type':'application/json'}}):undefined),result=await f.client.readAddress(ADDRESS);assert.equal(result.totalSats,'1');assert.equal(result.watchOnly,true);
+});
 test('mobile BTC Bech32 matches desktop supported scope and refuses YNX ETH wrong-network checksum mixed-case',async()=>{
   assert.equal(validateBitcoinReadAddress(ADDRESS,'mainnet'),ADDRESS);
   for(const address of ['ynx1abcdef','0x'+'1'.repeat(40),ADDRESS.slice(0,-1)+'q','bC'+ADDRESS.slice(2),'1BoatSLRHtKNngkdXEeobR76b53LETtpyT',' '+ADDRESS]){const f=fixture();await assert.rejects(f.client.readAddress(address));assert.equal(f.calls.length,0);}
@@ -47,4 +52,28 @@ test('mobile BTC lifecycle guard runs before and after awaits and cannot leak la
   let live=true;const f=fixture(undefined,(_path,n)=>{if(n===2)live=false;return undefined;});
   await assert.rejects(f.client.readAddress(ADDRESS,{guard:()=>{if(!live)throw Object.assign(new Error('changed'),{code:'PUBLIC_CONTEXT_CHANGED'});}}),{code:'PUBLIC_CONTEXT_CHANGED'});assert.equal(f.calls.length,2);
   const unavailable=new BitcoinReadClient({network:'mainnet',baseURL:origin,fetchImpl:async()=>{throw new Error('private platform diagnostic');}});await assert.rejects(unavailable.readAddress(ADDRESS),{code:'BTC_READ_UNAVAILABLE'});
+});
+
+test('mobile BTC byte cap rejects multibyte JSON in text-only fetch transports',async()=>{
+ const raw=JSON.stringify([{...row(),note:'é'.repeat(510000)}]);assert.ok(raw.length<1000000);assert.ok(new TextEncoder().encode(raw).byteLength>1000000);
+ const f=fixture(undefined,(_path,n)=>n===2?{status:200,redirected:false,url:'',headers:new Headers({'content-type':'application/json'}),text:async()=>raw} as Response:undefined);
+ await assert.rejects(f.client.readAddress(ADDRESS),{code:'BTC_RESPONSE_SIZE'});assert.equal(f.calls.length,2);
+});
+test('mobile BTC stream cap cancels before buffering the whole oversized provider response',async()=>{
+ let pulls=0,cancelled=0,textCalls=0;
+ const body=new ReadableStream<Uint8Array>({pull(controller){pulls++;controller.enqueue(new Uint8Array(600000).fill(32));if(pulls===6)controller.close()},cancel(){cancelled++}});
+ const response=new Response(body,{headers:{'content-type':'application/json'}}),text=response.text.bind(response);response.text=()=>{textCalls++;return text()};
+ const f=fixture(undefined,(_path,n)=>n===2?response:undefined);await assert.rejects(f.client.readAddress(ADDRESS),{code:'BTC_RESPONSE_SIZE'});
+ assert.equal(textCalls,0);assert.ok(pulls<=3);assert.equal(cancelled,1);assert.equal(f.calls.length,2);
+});
+test('mobile BTC cancellation also cancels a pending response reader which ignores fetch AbortSignal',async()=>{
+ let cancelled=0;
+ const body=new ReadableStream<Uint8Array>({pull:()=>new Promise<void>(()=>{}),cancel(){cancelled++}}),response=new Response(body,{headers:{'content-type':'application/json'}});
+ const controller=new AbortController(),f=fixture(undefined,(_path,n)=>n===2?response:undefined),pending=f.client.readAddress(ADDRESS,{signal:controller.signal});
+ await new Promise(r=>setImmediate(r));controller.abort();await assert.rejects(pending,{code:'BTC_REQUEST_CANCELLED'});await new Promise(r=>setImmediate(r));assert.equal(cancelled,1);
+});
+test('mobile BTC bounded stream preserves split multibyte UTF8 and normal leading BOM semantics',async()=>{
+ const raw='\uFEFF'+JSON.stringify([{...row(),note:'漢字'}]),bytes=new TextEncoder().encode(raw);
+ const response=new Response(new ReadableStream<Uint8Array>({start(c){for(let at=0;at<bytes.length;at+=7)c.enqueue(bytes.slice(at,at+7));c.close()}}),{headers:{'content-type':'application/json'}});
+ const f=fixture(undefined,(_path,n)=>n===2?response:undefined),result=await f.client.readAddress(ADDRESS);assert.equal(result.totalSats,'1');assert.equal(result.watchOnly,true);assert.equal(f.calls.length,3);
 });

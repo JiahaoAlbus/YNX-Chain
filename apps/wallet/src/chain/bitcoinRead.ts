@@ -1,3 +1,4 @@
+import {toUtf8Bytes,toUtf8String} from 'ethers';
 /** Watch-only public P2WPKH reads; no account derivation, custody or writes.
  * Semantics match desktop multichain-bitcoin.mjs. Esplora API source:
  * https://github.com/Blockstream/esplora/blob/master/API.md */
@@ -9,6 +10,7 @@ const NETWORKS = Object.freeze({
   signet: {hrp:'tb',genesis:'00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6'},
 });
 const MAX_SATS=2100000000000000n, ALPHABET='qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+const MAX_BODY=1_000_000;
 export class BitcoinReadError extends Error {constructor(readonly code:string){super(code);this.name='BitcoinReadError';}}
 const fail=(code:string):never=>{throw new BitcoinReadError(code);};
 function network(id:BitcoinNetwork){if(!Object.hasOwn(NETWORKS,id))return fail('BTC_NETWORK_UNSUPPORTED');return NETWORKS[id];}
@@ -66,6 +68,7 @@ export class BitcoinReadClient {
     const stop=(code:string)=>{if(stopped)return;stopped=code;controller.abort();rejectStop(new BitcoinReadError(code));};
     const abort=()=>stop('BTC_REQUEST_CANCELLED');
     const current=()=>{if(stopped)return fail(stopped);if(signal?.aborted)return fail('BTC_REQUEST_CANCELLED');guard();};
+    const boundary=async<T>(promise:Promise<T>):Promise<T>=>{current();const value=await Promise.race([promise,interrupted]);current();return value;};
     const get=async(path:string,json:boolean)=>{
       current();const url=source+path;
       const response=await fetchImpl(url,{method:'GET',redirect:'error',credentials:'omit',headers:{Accept:json?'application/json':'text/plain'},signal:controller.signal});current();
@@ -73,7 +76,22 @@ export class BitcoinReadClient {
       const declared=response.headers.get('content-length');if(declared!==null&&(! /^(0|[1-9][0-9]*)$/.test(declared)||BigInt(declared)>1000000n))return fail('BTC_RESPONSE_SIZE');
       const mime=(response.headers.get('content-type')??'').split(';')[0]!.trim().toLowerCase();
       if(json?mime!=='application/json':!['text/plain','application/octet-stream'].includes(mime))return fail('BTC_HTTP_RESPONSE');
-      const text=await response.text();current();if(text.length>1000000)return fail('BTC_RESPONSE_SIZE');
+      let text:string;
+      if(response.body?.getReader){
+        const reader=response.body.getReader(),chunks:Uint8Array[]=[];let size=0;
+        try{
+          while(true){const chunk=await boundary(reader.read());if(chunk.done)break;if(!(chunk.value instanceof Uint8Array))return fail('BTC_HTTP_RESPONSE');size+=chunk.value.byteLength;if(size>MAX_BODY)return fail('BTC_RESPONSE_SIZE');chunks.push(chunk.value)}
+          const bytes=new Uint8Array(size);let at=0;for(const chunk of chunks){bytes.set(chunk,at);at+=chunk.byteLength}
+          try{text=toUtf8String(bytes).replace(/^\uFEFF/,'')}catch{return fail('BTC_HTTP_RESPONSE')}
+        }finally{void reader.cancel().catch(()=>{});}
+      }else{
+        // Text-only RN transports cannot enforce a streaming cap. Check exact
+        // UTF-8 bytes immediately after the same guarded, cancellable await.
+        text=await boundary(response.text());if(text.length>MAX_BODY)return fail('BTC_RESPONSE_SIZE');
+        let bytes:Uint8Array;try{bytes=toUtf8Bytes(text)}catch{return fail('BTC_HTTP_RESPONSE')}
+        if(bytes.byteLength>MAX_BODY)return fail('BTC_RESPONSE_SIZE');
+      }
+      current();
       if(!json)return text.trim();try{return JSON.parse(text) as unknown;}catch{return fail('BTC_UTXO_RESPONSE');}
     };
     const run=async()=>{

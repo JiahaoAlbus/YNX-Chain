@@ -196,7 +196,7 @@ handleWalletIPC('wallet:original-admission-confirm',(_event,reviewId)=>safeIPC((
 handleWalletIPC('wallet:original-admission-cancel',()=>safeIPC(()=>originalAdmissionEntry.cancel()));
 function createOriginalAdmissionExitGate({entry,lock,quit,report}){
   let pass=null,allowed=false,quitEntered=false;const closingWindows=new WeakSet();
-  const quitOnce=()=>{if(!quitEntered){quitEntered=true;quit();}};
+  const quitOnce=()=>{if(!quitEntered){quitEntered=true;setImmediate(quit);}};
   function request(){
     if(pass)return pass;
     let resolve,reject;pass=new Promise((yes,no)=>{resolve=yes;reject=no;});

@@ -7,7 +7,7 @@ import {types} from 'node:util';
 // New controls execute only exact lexical consumer bodies with PUBLIC stand-ins.
 // No Electron/Vault/crypto/native module is imported or executed.
 const root=process.env.PUBLIC_NATIVE_PARENT?new URL('file://'+process.env.PUBLIC_NATIVE_PARENT+'/'):new URL('../src/',import.meta.url);
-const source=name=>readFileSync(new URL(name,root),'utf8');
+const source=name=>readFileSync(name==='main.mjs'&&process.env.PUBLIC_EXIT_MAIN?new URL('file://'+process.env.PUBLIC_EXIT_MAIN):new URL(name,root),'utf8');
 function r21ExecutorFixture(withPrivate=true,initial=''){
  const broker=source('original-admission-broker.mjs');
  const canonical=broker.slice(broker.indexOf('export function admissionCanonical'),broker.indexOf('export function captureInstalledAdmission')).replace('export ','');
@@ -81,6 +81,7 @@ function publicRenderer(api={}){
  return {context,nodes,...context.api};
 }
 const ticks=async(n=12)=>{for(let i=0;i<n;i++)await Promise.resolve();};
+const exitTicks=async()=>{await ticks();await new Promise(setImmediate);};
 test('R13 PUBLIC normal controller custody callback ends with original local live fence',async()=>{
  for(const reason of ['cancel','expiry']){
   let time=1000,phase='',spawns=0;const state={account:'PUBLIC-A',revision:1,focused:true,locked:false,unlockExpiresAt:2000},executor={applicationId:'PUBLIC-app',consumerManifestDigest:'PUBLIC-digest',instanceId:'PUBLIC-instance',currentReference:'PUBLIC-ref'},raw={expiresAtMs:2000,expectedRequest:executor};
@@ -93,7 +94,7 @@ test('R13 PUBLIC normal controller custody callback ends with original local liv
 });
 function publicExit(f){
  const main=source('main.mjs'),start=main.indexOf('function createOriginalAdmissionExitGate('),end=main.indexOf('\nconst originalAdmissionExit=',start),handlers=new Map();assert.ok(start>=0&&end>start,'normal exit gate missing');
- const context={entry:f.entry};let prevented=0,destroyed=0,quits=0,reports=0;
+ const context={entry:f.entry,setImmediate};let prevented=0,destroyed=0,quits=0,reports=0;
  runInNewContext(main.slice(start,end)+'\nthis.make=createOriginalAdmissionExitGate;',context);
  const gate=context.make({entry:f.entry,lock:()=>{f.state.locked=true;f.state.revision++;f.entry.securityChanged();},quit:()=>{quits++;},report:()=>{reports++;}});
  const window={on:(event,handler)=>handlers.set(event,handler),destroy:()=>{destroyed++;}},app={on:(event,handler)=>handlers.set(event,handler)};
@@ -109,24 +110,24 @@ test('R13 PUBLIC actual close and quit wait late acquisition and same configurat
  const acquire=deferred(),closing=deferred(),started=deferred();let reentered=false;
  const f=publicEntry({open:()=>{started.resolve();return acquire.promise;},close:()=>{if(!reentered){reentered=true;f.entry.securityChanged();}return closing.promise;}}),exit=publicExit(f);
  const review=f.entry.review();void review.catch(()=>{});await started.promise;
- exit.close();exit.close();exit.quit();exit.all();await ticks();assert.equal(exit.counts().destroyed,0);assert.equal(exit.counts().quits,0);
- acquire.resolve({PUBLIC:'late exact selection'});await ticks();assert.equal(f.closes(),1);assert.equal(exit.counts().quits,0);assert.equal(exit.counts().destroyed,0);
- closing.resolve();await assert.rejects(review,/UNAVAILABLE/);await exit.gate.request();await ticks();assert.equal(f.closes(),1);assert.equal(exit.counts().destroyed,1);assert.equal(exit.counts().quits,1);
+ exit.close();exit.close();exit.quit();exit.all();await exitTicks();assert.equal(exit.counts().destroyed,0);assert.equal(exit.counts().quits,0);
+ acquire.resolve({PUBLIC:'late exact selection'});await exitTicks();assert.equal(f.closes(),1);assert.equal(exit.counts().quits,0);assert.equal(exit.counts().destroyed,0);
+ closing.resolve();await assert.rejects(review,/UNAVAILABLE/);await exit.gate.request();await exitTicks();assert.equal(f.closes(),1);assert.equal(exit.counts().destroyed,1);assert.equal(exit.counts().quits,1);
  assert.equal(exit.gate.request(),exit.gate.request());await assert.rejects(f.entry.review(),/SHUTDOWN_ENTERED/);
 });
 test('R13 PUBLIC normal exit waits pending Confirm child join before selection close',async()=>{
  const joined=deferred(),started=deferred(),closed=deferred(),f=publicEntry({close:()=>closed.promise}),exit=publicExit(f);await f.entry.review();
  let active=false;const status=f.controller.status;f.controller.status=()=>({...status(),busy:active,ownerRetained:active});
  f.controller.confirm=async()=>{active=true;started.resolve();await joined.promise;active=false;};
- const confirming=f.entry.confirm('PUBLIC-id');await started.promise;exit.quit();await ticks();assert.equal(f.closes(),0);assert.equal(exit.counts().quits,0);
- joined.resolve();await ticks();assert.equal(f.closes(),1);assert.equal(exit.counts().quits,0);
- closed.resolve();await confirming;await exit.gate.request();await ticks();assert.equal(exit.counts().quits,1);assert.equal(exit.counts().reports,0);
+ const confirming=f.entry.confirm('PUBLIC-id');await started.promise;exit.quit();await exitTicks();assert.equal(f.closes(),0);assert.equal(exit.counts().quits,0);
+ joined.resolve();await exitTicks();assert.equal(f.closes(),1);assert.equal(exit.counts().quits,0);
+ closed.resolve();await confirming;await exit.gate.request();await exitTicks();assert.equal(exit.counts().quits,1);assert.equal(exit.counts().reports,0);
 });
 test('R13 PUBLIC failed cleanup or UNKNOWN prevents false-clean quit and does not replay close',async()=>{
  for(const kind of ['cleanup','unknown']){
   const f=publicEntry({close:()=>{if(kind==='cleanup')throw false;}}),exit=publicExit(f);await f.entry.review();
   if(kind==='unknown'){const status=f.controller.status;f.controller.status=()=>({...status(),outcomeUnknown:true});}
-  exit.close();exit.quit();exit.all();await assert.rejects(exit.gate.request(),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'});await ticks();
+  exit.close();exit.quit();exit.all();await assert.rejects(exit.gate.request(),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'});await exitTicks();
   assert.equal(exit.counts().quits,0);assert.equal(exit.counts().destroyed,0);assert.equal(exit.counts().reports,1);assert.equal(f.closes(),1);
   exit.quit();await assert.rejects(exit.gate.request(),{code:'ADMISSION_SHUTDOWN_INCOMPLETE'});assert.equal(f.closes(),1);assert.equal(exit.counts().reports,1);
  }
