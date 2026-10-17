@@ -107,7 +107,20 @@ async function createNativeRuntime(bridge: DeveloperWalletBridge, grantedDevice?
   }
   let pendingOperation: { method: string } | undefined;
   let expirationTimer: ReturnType<typeof setTimeout> | undefined;
-  const releaseNativeOperation = async () => { if (!active) return; active = false; clearTimeout(expirationTimer); try { await bridge.endConnection!(); } finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; finishNativeOperation(); } };
+  let nativeRelease: Promise<void> | undefined;
+  const releaseNativeOperation = () => {
+    if (nativeRelease) return nativeRelease;
+    if (!active) return Promise.resolve();
+    active = false; clearTimeout(expirationTimer);
+    // Claim the shared cleanup before invoking a possibly reentrant bridge.
+    // Unknown failure remains the same rejection for every waiter: it is not
+    // confirmation that a later cancellation may release the UI pending slot.
+    nativeRelease = Promise.resolve().then(async () => {
+      try { await bridge.endConnection!(); }
+      finally { if (explicitNativeOwner === owner) explicitNativeOwner = null; finishNativeOperation(); }
+    });
+    return nativeRelease;
+  };
   const endNativeOperation = async () => { if (active && pendingOperation) sdk.setNetworkAvailable(false); await releaseNativeOperation(); };
   const sdk = createProductWalletConnection({
     registry,
