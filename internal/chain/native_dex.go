@@ -239,6 +239,12 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 	if err := d.requireLegacyAccountLocked(input.Signer); err != nil {
 		return Transaction{}, NativeDexMutation{}, false, err
 	}
+	return d.submitNativeDexActionLocked(input, "signed chain-native DEX action")
+}
+
+// Only the legacy entrypoint above and the PQ entrypoint may call this mutation
+// after their own authorization under d.mu. No public verification flag exists.
+func (d *Devnet) submitNativeDexActionLocked(input NativeDexSignedActionInput, memo string) (Transaction, NativeDexMutation, bool, error) {
 	signer, ok := d.accounts[input.Signer]
 	if !ok {
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX signer account does not exist")
@@ -287,7 +293,7 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 	if to == "" {
 		to = mutation.Event.Asset0
 	}
-	tx := Transaction{Hash: input.Hash, Type: input.Action, From: input.Signer, To: to, Fee: input.Fee, Nonce: input.Nonce, Timestamp: now, LotFlows: flows, Memo: "signed chain-native DEX action"}
+	tx := Transaction{Hash: input.Hash, Type: input.Action, From: input.Signer, To: to, Fee: input.Fee, Nonce: input.Nonce, Timestamp: now, LotFlows: flows, Memo: memo}
 	d.pending = append(d.pending, tx)
 	tx, err = d.persistMutationLocked(tx, rollback)
 	if err != nil && tx.Hash == "" {
@@ -394,6 +400,9 @@ func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, ev
 		if err != nil || shares < p.MinShares {
 			return NativeDexMutation{}, errors.New("DEX minted shares are below minimum or ratio is invalid")
 		}
+		if pool.Reserve0 < 0 || pool.Reserve1 < 0 || pool.TotalShares < 0 || pool.Shares[input.Signer] < 0 || pool.Reserve0 > math.MaxInt64-p.Amount0 || pool.Reserve1 > math.MaxInt64-p.Amount1 || pool.TotalShares > math.MaxInt64-shares || pool.Shares[input.Signer] > math.MaxInt64-shares {
+			return NativeDexMutation{}, errors.New("DEX liquidity reserve or share overflow")
+		}
 		if err = d.requireNativeDexDebit(pool, true, input.Signer, p.Amount0); err != nil {
 			return NativeDexMutation{}, err
 		}
@@ -459,6 +468,9 @@ func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, ev
 		if err != nil || out < p.MinAmountOut {
 			return NativeDexMutation{}, errors.New("DEX exact-input output is below minimum")
 		}
+		if rin > math.MaxInt64-p.AmountIn {
+			return NativeDexMutation{}, errors.New("DEX exact-input reserve overflow")
+		}
 		if err = d.requireNativeDexDebit(pool, in0, input.Signer, p.AmountIn); err != nil {
 			return NativeDexMutation{}, err
 		}
@@ -496,6 +508,9 @@ func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, ev
 		amountIn, err := NativeDexExactOutputQuote(rin, rout, p.AmountOut, pool.FeeBps)
 		if err != nil || amountIn > p.MaxAmountIn {
 			return NativeDexMutation{}, errors.New("DEX exact-output input exceeds maximum")
+		}
+		if rin > math.MaxInt64-amountIn {
+			return NativeDexMutation{}, errors.New("DEX exact-output reserve overflow")
 		}
 		if err = d.requireNativeDexDebit(pool, !out0, input.Signer, amountIn); err != nil {
 			return NativeDexMutation{}, err
@@ -636,6 +651,9 @@ func NativeDexExactInputQuote(rin, rout, amount int64, fee uint16) (int64, error
 	if err != nil || effective <= 0 {
 		return 0, errors.New("DEX input is too small after fee")
 	}
+	if rin > math.MaxInt64-effective {
+		return 0, errors.New("DEX exact-input quote reserve overflow")
+	}
 	return nativeDexMulDivFloor(rout, effective, rin+effective)
 }
 func NativeDexExactOutputQuote(rin, rout, out int64, fee uint16) (int64, error) {
@@ -649,6 +667,9 @@ func NativeDexExactOutputQuote(rin, rout, out int64, fee uint16) (int64, error) 
 	return nativeDexMulDivCeil(effective, 10000, int64(10000-fee))
 }
 func (d *Devnet) requireNativeDexDebit(pool NativeDexPool, asset0 bool, account string, amount int64) error {
+	if amount <= 0 {
+		return errors.New("DEX debit amount must be positive")
+	}
 	asset := pool.Asset1
 	if asset0 {
 		asset = pool.Asset0
@@ -660,12 +681,18 @@ func (d *Devnet) requireNativeDexDebit(pool NativeDexPool, asset0 bool, account 
 		return nil
 	}
 	a := d.accounts[account]
-	if a == nil || a.Balance < amount+1 {
+	if a == nil || amount == math.MaxInt64 || a.Balance < amount+1 {
 		return errors.New("insufficient YNXT balance for DEX action and fee")
 	}
 	total := int64(0)
 	for _, v := range a.Lots {
 		if v > 0 {
+			// Only the required debit+fee matters. Saturating at that bound
+			// avoids summing an account's unrelated lots into signed overflow.
+			if v >= amount+1-total {
+				total = amount + 1
+				break
+			}
 			total += v
 		}
 	}
@@ -697,6 +724,9 @@ func (d *Devnet) debitNativeDexToPool(pool *NativeDexPool, asset0 bool, account 
 			m = remaining
 		}
 		if m > 0 {
+			if lots[k] < 0 || lots[k] > math.MaxInt64-m {
+				return errors.New("DEX pool provenance lot overflow")
+			}
 			a.Lots[k] -= m
 			lots[k] += m
 			remaining -= m
@@ -738,6 +768,9 @@ func (d *Devnet) creditNativeDexFromPool(pool *NativeDexPool, asset0 bool, accou
 			m = remaining
 		}
 		if m > 0 {
+			if a.Lots[k] < 0 || a.Lots[k] > math.MaxInt64-m {
+				return errors.New("DEX recipient provenance lot overflow")
+			}
 			lots[k] -= m
 			a.Lots[k] += m
 			remaining -= m

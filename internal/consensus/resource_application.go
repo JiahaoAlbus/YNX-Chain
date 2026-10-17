@@ -12,6 +12,7 @@ import (
 )
 
 func (a *Application) applyResourceAction(state executionState, raw []byte, tx SignedApplicationAction, height int64, blockTime time.Time, validationOnly bool) (executionState, transactionExecution, error) {
+	state.accounts = cloneAccounts(state.accounts)
 	txHash := ApplicationActionHash(raw)
 	idempotencyKey, requestHash, err := resourceActionIdentity(tx)
 	if err != nil {
@@ -75,7 +76,7 @@ func (a *Application) applyResourceAction(state executionState, raw []byte, tx S
 		if input.PolicyHash != policy.PolicyHash {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource rental policy hash is stale or unknown"))
 		}
-		if input.Provider != chain.ProtocolResourceProvider && !hasActiveResourceDelegation(state.resourceDelegations, input.Provider) {
+		if input.Provider != chain.ProtocolResourceProvider && !hasActiveResourceDelegation(state.resourceDelegations, input.Provider) && !hasLegacyActiveResourceDelegation(state.legacyResourceMarket, input.Provider) {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("Resource provider has no active delegation"))
 		}
 		if !validationOnly {
@@ -115,7 +116,9 @@ func (a *Application) applyResourceAction(state executionState, raw []byte, tx S
 		state.accounts[signerIndex].Balance -= quote.PriceYNXT
 		state.accounts[providerIndex].Balance += providerIncome
 		state.accounts[treasuryIndex].Balance += protocolFee
-		reduceResourceUsage(&state.accounts[signerIndex].ResourceUsage, input)
+		if err := reduceUnreservedResourceUsage(&state.accounts[signerIndex].ResourceUsage, input, state.resourcePools, tx.Signer); err != nil {
+			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+		}
 
 		quoteRecord := BFTResourceQuote{ResourceQuote: quote, Signer: tx.Signer, BlockHeight: height, TxHash: txHash}
 		quoteRecord.AuditHash = resourceQuoteAuditHash(quoteRecord)
@@ -220,6 +223,7 @@ func capacityLimit(base, staked, divisor int64) int64 {
 
 func buildBFTResourceAnalytics(migration chain.ConsensusMigrationState, state CommittedState) chain.ResourceAnalytics {
 	result := chain.ResourceAnalytics{Network: migration.Network, ActiveDelegationCount: len(state.ResourceDelegations), ResourceRentalCount: len(state.ResourceRentals), ResourceIncomeRecordCount: len(state.ResourceIncome), Policy: migration.ResourcePolicy, PolicyID: migration.ResourcePolicy.ID, PolicyVersion: migration.ResourcePolicy.Version, PolicyHash: migration.ResourcePolicy.PolicyHash, GovernanceStatus: migration.ResourcePolicy.GovernanceStatus, TruthfulStatus: "committed_bft_state"}
+	addLegacyResourceMarketAnalytics(&result, state.LegacyResourceMarket)
 	for _, value := range state.ResourceDelegations {
 		result.DelegatedYNXT += value.AmountYNXT
 	}

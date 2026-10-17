@@ -106,19 +106,20 @@ type ResourcePriceComponent struct {
 }
 
 type ResourceDelegation struct {
-	ID            string    `json:"id"`
-	Provider      string    `json:"provider"`
-	Beneficiary   string    `json:"beneficiary"`
-	AmountYNXT    int64     `json:"amountYnxt"`
-	Bandwidth     int64     `json:"bandwidth"`
-	Compute       int64     `json:"compute"`
-	AICredits     int64     `json:"aiCredits"`
-	TrustCredits  int64     `json:"trustCredits"`
-	PolicyID      string    `json:"policyId"`
-	PolicyVersion string    `json:"policyVersion"`
-	PolicyHash    string    `json:"policyHash"`
-	Status        string    `json:"status"`
-	CreatedAt     time.Time `json:"createdAt"`
+	PQTransactionHash string    `json:"pqTransactionHash,omitempty"`
+	ID                string    `json:"id"`
+	Provider          string    `json:"provider"`
+	Beneficiary       string    `json:"beneficiary"`
+	AmountYNXT        int64     `json:"amountYnxt"`
+	Bandwidth         int64     `json:"bandwidth"`
+	Compute           int64     `json:"compute"`
+	AICredits         int64     `json:"aiCredits"`
+	TrustCredits      int64     `json:"trustCredits"`
+	PolicyID          string    `json:"policyId"`
+	PolicyVersion     string    `json:"policyVersion"`
+	PolicyHash        string    `json:"policyHash"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"createdAt"`
 }
 
 type Block struct {
@@ -770,6 +771,7 @@ type ResourceQuote struct {
 }
 
 type ResourceRental struct {
+	PQTransactionHash  string    `json:"pqTransactionHash,omitempty"`
 	ID                 string    `json:"id"`
 	QuoteID            string    `json:"quoteId"`
 	Address            string    `json:"address"`
@@ -790,16 +792,17 @@ type ResourceRental struct {
 }
 
 type ResourceIncomeRecord struct {
-	ID            string    `json:"id"`
-	Provider      string    `json:"provider"`
-	RentalID      string    `json:"rentalId"`
-	Source        string    `json:"source"`
-	Amount        int64     `json:"amount"`
-	Currency      string    `json:"currency"`
-	PolicyID      string    `json:"policyId"`
-	PolicyVersion string    `json:"policyVersion"`
-	PolicyHash    string    `json:"policyHash"`
-	CreatedAt     time.Time `json:"createdAt"`
+	PQTransactionHash string    `json:"pqTransactionHash,omitempty"`
+	ID                string    `json:"id"`
+	Provider          string    `json:"provider"`
+	RentalID          string    `json:"rentalId"`
+	Source            string    `json:"source"`
+	Amount            int64     `json:"amount"`
+	Currency          string    `json:"currency"`
+	PolicyID          string    `json:"policyId"`
+	PolicyVersion     string    `json:"policyVersion"`
+	PolicyHash        string    `json:"policyHash"`
+	CreatedAt         time.Time `json:"createdAt"`
 }
 
 type ResourceAnalytics struct {

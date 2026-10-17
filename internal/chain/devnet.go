@@ -1303,6 +1303,16 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	if err := d.requireLegacyAccountLocked(address); err != nil {
 		return Transaction{}, ResourceBalance{}, err
 	}
+	tx, balance, err := d.applyStakeLocked(address, amount)
+	if err != nil {
+		return Transaction{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return tx, balance, err
+}
+
+func (d *Devnet) applyStakeLocked(address string, amount int64) (Transaction, ResourceBalance, error) {
 	account := d.account(address)
 	if account.Balance < amount {
 		return Transaction{}, ResourceBalance{}, errors.New("insufficient balance")
@@ -1312,9 +1322,7 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	account.ResourceUsage.ComputeUsed++
 	tx := d.newTxLocked("stake", address, "ynx_staking", amount, 0, nil, "stake for resources and voting weight")
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, resourceBalance(account, d.resourcePolicy), err
+	return tx, resourceBalance(account, d.resourcePolicy), nil
 }
 
 func (d *Devnet) Resources(address string) (ResourceBalance, error) {
@@ -2559,6 +2567,16 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	if err := d.requireLegacyAccountLocked(provider); err != nil {
 		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
 	}
+	delegation, tx, balance, err := d.applyResourceDelegationLocked(provider, beneficiary, amount)
+	if err != nil {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return delegation, tx, balance, err
+}
+
+func (d *Devnet) applyResourceDelegationLocked(provider, beneficiary string, amount int64) (ResourceDelegation, Transaction, ResourceBalance, error) {
 	policy := d.resourcePolicy.withCurrentHash()
 	if err := policy.Validate(); err != nil {
 		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
@@ -2589,9 +2607,7 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	d.resourceDelegations[delegation.ID] = delegation
 	tx := d.newTxLocked("resource_delegate", provider, beneficiary, amount, 0, nil, "delegate YNXT into resource capacity")
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return delegation, tx, resourceBalance(beneficiaryAccount, policy), err
+	return delegation, tx, resourceBalance(beneficiaryAccount, policy), nil
 }
 
 func (d *Devnet) ResourceDelegations(address string) []ResourceDelegation {
@@ -2617,6 +2633,18 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 	if err := d.requireLegacyAccountLocked(address); err != nil {
 		return ResourceRental{}, ResourceBalance{}, err
 	}
+	rental, balance, err := d.applyResourceRentalLocked(provider, quote)
+	if err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
+	err = d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	return rental, balance, err
+}
+
+func (d *Devnet) applyResourceRentalLocked(provider string, quote ResourceQuote) (ResourceRental, ResourceBalance, error) {
+	address := quote.Address
+	bandwidth, compute, aiCredits, trustCredits := quote.Bandwidth, quote.Compute, quote.AICredits, quote.TrustCredits
 	if provider == "" {
 		provider = ProtocolResourceProvider
 	}
@@ -2633,7 +2661,7 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		return ResourceRental{}, ResourceBalance{}, err
 	}
 	if provider != ProtocolResourceProvider {
-		providerIncome = quote.PriceYNXT * policy.ProviderShareBps / 10000
+		providerIncome = quote.PriceYNXT/10000*policy.ProviderShareBps + quote.PriceYNXT%10000*policy.ProviderShareBps/10000
 	}
 	protocolFee := quote.PriceYNXT - providerIncome
 	account.Balance -= quote.PriceYNXT
@@ -2693,9 +2721,7 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 		}
 		d.resourceIncome[income.ID] = income
 	}
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return rental, resourceBalance(account, policy), err
+	return rental, resourceBalance(account, policy), nil
 }
 
 func (d *Devnet) ResourceIncome(address string) []ResourceIncomeRecord {

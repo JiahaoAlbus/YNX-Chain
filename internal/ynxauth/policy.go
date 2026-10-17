@@ -41,17 +41,18 @@ type Record struct {
 // coordinated protocol admission height, independent of each account's switch.
 // Empty state preserves historical legacy networks without choosing a rollout.
 type State struct {
-	Version   string   `json:"version"`
-	NetworkID []byte   `json:"networkId"`
-	EnableAt  uint64   `json:"enableAt"`
-	Records   []Record `json:"records"`
+	Version     string             `json:"version"`
+	NetworkID   []byte             `json:"networkId"`
+	EnableAt    uint64             `json:"enableAt"`
+	Records     []Record           `json:"records"`
+	Revocations []RevocationRecord `json:"revocations,omitempty"`
 }
 
 func (s State) Validate(network []byte) error {
-	if s.Version == "" && len(s.NetworkID) == 0 && s.EnableAt == 0 && len(s.Records) == 0 {
+	if s.Version == "" && len(s.NetworkID) == 0 && s.EnableAt == 0 && len(s.Records) == 0 && len(s.Revocations) == 0 {
 		return nil
 	}
-	if s.Version != PolicyVersion || len(network) != 32 || !bytes.Equal(s.NetworkID, network) || s.EnableAt == 0 {
+	if !supportedPolicyVersion(s.Version) || len(network) != 32 || !bytes.Equal(s.NetworkID, network) || s.EnableAt == 0 {
 		return errors.New("invalid account policy network or activation")
 	}
 	var prior Record
@@ -71,12 +72,13 @@ func (s State) Validate(network []byte) error {
 		}
 		prior = r
 	}
-	return nil
+	return s.validateRevocations()
 }
 
 func (s State) Clone() State {
 	s.NetworkID = bytes.Clone(s.NetworkID)
 	s.Records = append([]Record(nil), s.Records...)
+	s.Revocations = append([]RevocationRecord(nil), s.Revocations...)
 	for i := range s.Records {
 		s.Records[i].PKA = bytes.Clone(s.Records[i].PKA)
 		s.Records[i].PKB = bytes.Clone(s.Records[i].PKB)
@@ -85,8 +87,10 @@ func (s State) Clone() State {
 }
 
 // PolicyAt never treats a pending revision as active and never restores classic
-// authorization after the first activation. The caller holds its state lock or
-// supplies an immutable ledger snapshot for the entire verification/transition.
+// authorization after the first activation. Its bool means an activated PQ
+// registration exists, INCLUDING after permanent revocation; it is not signing
+// eligibility. Use TrustedRegistration or VerifyMember to authorize. The caller
+// holds its state lock or supplies an immutable snapshot throughout a transition.
 func (s State) PolicyAt(owner string, height uint64) (Record, bool) {
 	var found Record
 	active := false
@@ -127,7 +131,7 @@ func (s State) VerifyMember(owner, purpose string, message, wire []byte, height 
 	if err := s.Validate(s.NetworkID); err != nil {
 		return err
 	}
-	if s.Version != PolicyVersion || height < s.EnableAt {
+	if !supportedPolicyVersion(s.Version) || height < s.EnableAt {
 		return ErrPolicy
 	}
 	m, err := ynxbatch.DecodeMember(wire)
@@ -138,11 +142,7 @@ func (s State) VerifyMember(owner, purpose string, message, wire []byte, height 
 		return errors.New("authorization message or sender mismatch")
 	}
 	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: s.NetworkID, Purpose: purpose, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
-		r, ok := s.PolicyAt(req.Owner, req.Height)
-		if !ok {
-			return ynxbatch.Registration{}, ErrPolicy
-		}
-		return registration(r, s.NetworkID, purpose), nil
+		return s.TrustedRegistration(req.Owner, purpose, req.Height)
 	}})
 	if err != nil {
 		return err
@@ -238,7 +238,12 @@ func (s State) AdmitMigration(m Migration, height, currentNonce uint64) (State, 
 	if err := s.Validate(s.NetworkID); err != nil {
 		return State{}, err
 	}
-	if s.Version != PolicyVersion || height < s.EnableAt || !bytes.Equal(m.Intent.ChainID, s.NetworkID) {
+	if !supportedPolicyVersion(s.Version) || height < s.EnableAt || !bytes.Equal(m.Intent.ChainID, s.NetworkID) {
+		return State{}, ErrPolicy
+	}
+	// A terminal revocation also freezes any already admitted pending pair.
+	// Its future effective height never opens a window for another registration.
+	if _, exists := s.revocationFor(m.Intent.Owner); exists {
 		return State{}, ErrPolicy
 	}
 	msg, err := m.Intent.SigningBytes()

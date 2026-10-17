@@ -14,6 +14,7 @@ import (
 )
 
 func readPQBody(w http.ResponseWriter, r *http.Request, max int64) ([]byte, bool) {
+	w.Header().Set("Cache-Control", "no-store")
 	if strings.ToLower(strings.TrimSpace(strings.Split(r.Header.Get("Content-Type"), ";")[0])) != "application/octet-stream" {
 		writeError(w, http.StatusUnsupportedMediaType, "Content-Type application/octet-stream is required")
 		return nil, false

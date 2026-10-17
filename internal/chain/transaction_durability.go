@@ -13,6 +13,7 @@ const TransactionDurabilityVersion = "ynx-local-durability-v1"
 
 type TransactionDurability struct {
 	Status                 string
+	ExecutionHeight        uint64
 	CheckpointHeight       uint64
 	CheckpointHash         string
 	SnapshotIntegrity      string
@@ -141,6 +142,10 @@ func (d *Devnet) TransactionWithDurability(hash string) (Transaction, Transactio
 		status.Status = "not_found"
 		return tx, status, false
 	}
+	status.ExecutionHeight = tx.BlockNum
+	if status.ExecutionHeight == 0 {
+		status.ExecutionHeight = d.accountExecutionHeightLocked()
+	}
 	if d.dataDir == "" {
 		status.Status = "memory_only"
 		return tx, status, true
@@ -149,7 +154,7 @@ func (d *Devnet) TransactionWithDurability(hash string) (Transaction, Transactio
 	if !checkpointCovers(cp, tx) {
 		return tx, status, true
 	}
-	status = TransactionDurability{Status: "pending_durable", CheckpointHeight: cp.height, CheckpointHash: cp.hash, SnapshotIntegrity: cp.integrity}
+	status = TransactionDurability{Status: "pending_durable", ExecutionHeight: status.ExecutionHeight, CheckpointHeight: cp.height, CheckpointHash: cp.hash, SnapshotIntegrity: cp.integrity}
 	entry := cp.transactions[tx.Hash]
 	if entry.mined && tx.BlockNum > 0 && tx.BlockNum <= cp.height {
 		status.Status = "durable"

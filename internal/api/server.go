@@ -128,6 +128,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("POST /transactions/pq/broadcast", s.handlePQTransfer)
 	s.mux.HandleFunc("POST /transactions/pq/batches/broadcast", s.handlePQBatch)
+	s.mux.HandleFunc("POST /transactions/pq/actions/broadcast", s.handlePQAction)
 	s.mux.HandleFunc("GET /accounts/{address}/authorization", s.handleAccountAuthorization)
 	s.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", s.handleAccountMigration)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
@@ -490,12 +491,14 @@ func (s *Server) handleBlockByHeight(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, block)
 }
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
-	tx, ok := s.devnet.Transaction(r.PathValue("hash"))
+	hash := r.PathValue("hash")
+	tx, durability, ok := s.devnet.TransactionWithDurability(hash)
+	w.Header().Set("Cache-Control", "no-store")
 	if !ok {
-		writeError(w, http.StatusNotFound, "transaction not found")
+		writeJSON(w, http.StatusNotFound, map[string]any{"error": "transaction not found", "status": "not_found", "transactionHash": hash, "source": "authoritative_producer", "consensusFinality": false, "ynxDurability": transactionDurabilityRPC(hash, tx, durability)})
 		return
 	}
-	writeJSON(w, http.StatusOK, tx)
+	writeJSON(w, http.StatusOK, transactionReadResponse(tx, durability))
 }
 func (s *Server) handleRecentTransactions(w http.ResponseWriter, r *http.Request) {
 	limit := 25

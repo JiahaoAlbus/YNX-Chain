@@ -119,7 +119,10 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 			}
 		}
 	}
-	return validatePQBatchSnapshot(snapshot)
+	if err := validatePQBatchSnapshot(snapshot); err != nil {
+		return err
+	}
+	return validatePQActionSnapshot(snapshot)
 }
 
 func equalAccountPolicyRecord(a, b ynxauth.Record) bool {

@@ -33,7 +33,9 @@ func MigrationExecutionBlockers(m chain.ConsensusMigrationState) []MigrationModu
 	add("pay", len(r.PayIntents)+len(r.Invoices)+len(r.Refunds)+len(r.PaySettlements)+len(r.Webhooks)+len(r.PayEvents), "source merchant records lack BFT signer/action provenance; refund totals and original webhook identity require a source-compatible execution adapter")
 	add("ai", len(r.AIPerms)+len(r.AIActions), "source permissions have no signed principal or transaction; cannot create BFT signer authority during import")
 	add("trust_governance", len(r.RiskLabels)+len(r.Evidence)+len(r.Governance)+len(r.Appeals)+len(r.Tracking)+len(r.Transp), "source IDs, authority and audit domains differ; original evidence and correction semantics require an adapter")
-	add("resource_market", len(r.Delegation)+len(r.Rentals)+len(r.Income), "source rental quote bodies and signed creation provenance are unavailable; synthetic quote/transaction reconstruction is forbidden")
+	if err := validateLegacyResourceMarket(migrationResourceMarket(m), CommittedState{Version: CommittedStateVersion}, m); err != nil {
+		add("resource_market", 1, err.Error())
+	}
 	if err := validateSourceSponsorReplayCoverage(migrationResourceSponsor(m), m); err != nil {
 		add("resource_sponsor", 1, err.Error())
 	}

@@ -1,8 +1,9 @@
 # Native PQ action wire R1
 
-Status: source specification and codec candidate. This revision adds no HTTP,
-Devnet or ABCI execution route. A successful decode establishes syntax only.
-The new Go tests have not been compiled or executed locally. Independent Node
+Status: source specification and codec candidate, with a separate native Devnet
+admission adapter in `internal/chain/pq_action*.go`. A successful decode alone
+establishes syntax only. These new Go tests have not been compiled or executed
+locally. Independent Node
 vector generation and `gofmt` are separate evidence; the next authorized CI run
 must execute the Go tests before claiming Go interoperability.
 
@@ -180,6 +181,50 @@ Action object is mutable and is not a verified handle: callers must consume the
 exact message returned by the cryptographic verifier, never a separately mutable
 or separately supplied replacement object. These functions do not sign, verify
 signatures, mutate state, check a local wall clock or return a success receipt.
+
+## Native admission and retained execution proof
+
+`Devnet.SubmitPQAction(memberWire) (Transaction, bool, error)` takes an original
+MemberWire of any legal protocol batch size, bounded to 128 KiB for this action
+message family. Under one ledger lock it binds the trusted network/native chain,
+calls `State.VerifyMember` with `TX-BATCH` and the complete message, enforces the
+exact next nonce, then invokes the existing private business mutation. Native
+stake/delegate/rent charge fee 0; native DEX charges fee 1 with its existing
+traceable-lot fee accounting. The classic entrypoints retain their legacy gate.
+This does not yet add mixed-action Whole admission or ABCI action execution.
+
+The transaction hash is `0x || lowercaseHex(SHA256(originalMemberWire))`.
+The authoritative memo is `ynx-pq-action-v1:` followed by lowercase hex of
+`E(originalMemberWire, originalResourcePolicyJSON)`. The second field is empty
+for stake/DEX and is the complete typed execution-time ResourceMarketPolicy JSON
+for delegation/rental, bounded to 8192 bytes. Parsing requires exact typed JSON
+re-encoding, rejecting unknown/duplicate keys and trailing bytes. Its computed
+policy hash must equal the policy hash inside the signed full action payload.
+The policy is auxiliary execution evidence; it never replaces the complete
+signed action or its complete MemberWire. Historic quotes are checked against
+this original policy and the original transaction timestamp, never today's
+policy or wall clock.
+
+Delegation/rental/income records add only an optional `pqTransactionHash` reverse
+reference. Old records omit it and keep their old JSON encoding. Each successful
+PQ action must have exactly the full expected business records; every PQ reverse
+reference must resolve to its original transaction; and every PQ DEX action must
+have one matching execution event. Legacy rentals without proof are not assigned
+fabricated quotes, signatures, nonces or reverse references.
+
+PQ resource object IDs retain 24 lowercase hex characters:
+`hex(SHA256(E("YNX-PQ-RESOURCE-OBJECT/v1", network32, owner, kind,
+idempotencyKey))[0:12])`. Different signed bodies cannot reuse an existing ID.
+The complete original member identifies retries: a duplicate only reconciles
+its original durable result and never recreates a receipt using a new policy.
+Income IDs are `hex(SHA256(E("YNX-PQ-RESOURCE-INCOME/v1", transactionHashASCII,
+source))[0:12])`, with source `resource-rental` or `protocol-resource-fee`.
+
+Business state, nonce and retained proof use the existing single mutation
+checkpoint. A pre-rename failure rolls them all back; a post-rename uncertain
+durability acknowledgement retains them all, returns UNKNOWN and reconciles the
+same wire/hash on retry. The new tests cover restart and both failure boundaries;
+their execution is still pending authorized CI at this source freeze.
 
 ## Reproducible public vectors
 

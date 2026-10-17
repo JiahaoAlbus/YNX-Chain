@@ -42,6 +42,7 @@ type transactionError struct {
 }
 
 type executionState struct {
+	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
 	traceLots                  map[string]chain.TrustTraceLot
 	accountPolicy              *ynxauth.State
@@ -215,6 +216,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	if queryLegacySponsor(response, req.Path, a.committed) {
 		return response, nil
 	}
+	if queryLegacyResourceMarket(response, req.Path, a.committed.LegacyResourceMarket, a.committed) {
+		return response, nil
+	}
 	switch {
 	case req.Path == "/migration/compatibility":
 		response.Value, _ = json.Marshal(MigrationExecutionBlockers(a.migration))
@@ -355,6 +359,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	case strings.HasPrefix(req.Path, "/resource/delegations/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/delegations/"), a.committed.ResourceDelegations, func(v BFTResourceDelegation) string { return v.ID }, "Resource delegation")
+	case req.Path == "/resource/rentals":
+		response.Value, _ = json.Marshal(a.committed.ResourceRentals)
+		return response, nil
 	case strings.HasPrefix(req.Path, "/resource/rentals/"):
 		return queryPayRecord(response, strings.TrimPrefix(req.Path, "/resource/rentals/"), a.committed.ResourceRentals, func(v BFTResourceRental) string { return v.ID }, "Resource rental")
 	case req.Path == "/resource/income":
@@ -588,6 +595,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
+		legacyResourceMarket:  cloneLegacyResourceMarket(a.committed.LegacyResourceMarket),
 		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
 		traceLots:             cloneTraceLots(a.committed.TraceLots),
 		accountPolicy:         cloneConsensusAccountPolicy(a.committed.AccountPolicy),
