@@ -641,15 +641,14 @@ func (a *Application) cloneExecutionState() executionState {
 }
 
 func (a *Application) applyTransaction(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
-	// Every transaction executes against an isolated copy. Action handlers may
-	// charge fees or mutate nested records before a later business-rule check;
-	// an error must never leak those partial writes into the surrounding block.
-	state = cloneExecutionStateValue(state)
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	if kind == SignedActionType {
+		// Action handlers may mutate nested records before a later check fails.
+		// Preserve their full transaction-level rollback boundary.
+		state = cloneExecutionStateValue(state)
 		next, execution, err := a.applyApplicationAction(state, payload, height, blockTime)
 		if err != nil {
 			return executionState{}, transactionExecution{}, err
@@ -661,7 +660,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 		return next, execution, nil
 	}
 	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType || kind == EthereumDynamicFeeTransferType {
-		return a.applyEthereumValueTransfer(state, payload, height, blockTime)
+		return a.applyEthereumValueTransfer(cloneExecutionStateValue(state), payload, height, blockTime)
 	}
 	tx, err := DecodeSignedTransaction(payload)
 	if err != nil {
@@ -689,6 +688,11 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
 	}
+	// Native transfers only change these accounts and append a fee event.
+	// Isolate them before either lot movement: even the fee movement can fail
+	// after the amount has moved. Other application records remain read-only.
+	state = cloneNativeTransferState(state, tx.From, tx.To, a.feeRecipient)
+	accounts = state.accounts
 	accounts, _ = ensureAccount(accounts, tx.To)
 	accounts, _ = ensureAccount(accounts, a.feeRecipient)
 	senderIndex, _ = accountIndex(accounts, tx.From)
@@ -708,6 +712,36 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	state.accounts = accounts
 	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
+}
+
+func cloneNativeTransferState(state executionState, addresses ...string) executionState {
+	// Copy the slice because ensureAccount may insert and shift its elements.
+	// Lots is the only reference field in ConsensusAccount; clone it for each
+	// unique account this transaction can modify, including aliased fee payees.
+	state.accounts = append([]chain.ConsensusAccount(nil), state.accounts...)
+	for i, address := range addresses {
+		duplicate := false
+		for _, previous := range addresses[:i] {
+			if previous == address {
+				duplicate = true
+				break
+			}
+		}
+		if duplicate {
+			continue
+		}
+		if index, exists := accountIndex(state.accounts, address); exists {
+			lots := state.accounts[index].Lots
+			state.accounts[index].Lots = make(map[string]int64, len(lots))
+			for id, amount := range lots {
+				state.accounts[index].Lots[id] = amount
+			}
+		}
+	}
+	// Preserve independent successful branches even when the input slice has
+	// spare capacity. A plain append to shared history would overwrite siblings.
+	state.feeEvents = append([]BFTFeeEvent(nil), state.feeEvents...)
+	return state
 }
 
 func (a *Application) applyEthereumValueTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
