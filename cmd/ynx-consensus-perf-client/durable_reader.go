@@ -31,13 +31,14 @@ type durableEvidence struct {
 }
 
 type durableReaderStats struct {
-	Attempts                 uint64 `json:"attempts"`
-	BytesHashed              uint64 `json:"bytesHashed"`
-	SnapshotValidations      uint64 `json:"snapshotValidations"`
-	SnapshotCacheHits        uint64 `json:"snapshotCacheHits"`
-	TransactionVerifications uint64 `json:"transactionVerifications"`
-	BlockReplayBlocks        uint64 `json:"blockJournalReplayedBlocks"`
-	BlockReplayTxInputs      uint64 `json:"blockJournalReplayedTransactionInputs"`
+	Attempts                 uint64                                  `json:"attempts"`
+	BytesHashed              uint64                                  `json:"bytesHashed"`
+	SnapshotValidations      uint64                                  `json:"snapshotValidations"`
+	SnapshotCacheHits        uint64                                  `json:"snapshotCacheHits"`
+	TransactionVerifications uint64                                  `json:"transactionVerifications"`
+	BlockReplayBlocks        uint64                                  `json:"blockJournalReplayedBlocks"`
+	BlockReplayTxInputs      uint64                                  `json:"blockJournalReplayedTransactionInputs"`
+	ReplayNativeFacts        consensus.BlockJournalVerificationStats `json:"blockJournalNativeVerificationFacts"`
 }
 
 type durableFeeKey struct {
@@ -62,8 +63,9 @@ type durableSnapshotSlot struct {
 // Slots are bound to at most four manifest paths and a privately cloned
 // migration. No parsed state, index or mutable slice escapes to an observer.
 type durableReader struct {
-	migration chain.ConsensusMigrationState
-	slots     map[string]*durableSnapshotSlot
+	migration    chain.ConsensusMigrationState
+	slots        map[string]*durableSnapshotSlot
+	blockDecoder *consensus.BlockJournalDecoder
 }
 
 func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (*durableReader, error) {
@@ -81,6 +83,11 @@ func newDurableReader(migration chain.ConsensusMigrationState, paths []string) (
 	if err := json.Unmarshal(data, &r.migration); err != nil {
 		return nil, err
 	}
+	decoder, err := consensus.NewBlockJournalDecoder(r.migration)
+	if err != nil {
+		return nil, err
+	}
+	r.blockDecoder = decoder
 	for _, path := range paths {
 		if path == "" || r.slots[path] != nil {
 			return nil, errors.New("durable paths must be nonempty and unique")
@@ -104,6 +111,7 @@ func (r *durableReader) stats() durableReaderStats {
 		total.BlockReplayBlocks += s.BlockReplayBlocks
 		total.BlockReplayTxInputs += s.BlockReplayTxInputs
 	}
+	total.ReplayNativeFacts = r.blockDecoder.VerificationStats()
 	return total
 }
 
@@ -271,7 +279,7 @@ func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slo
 			release = nil
 		}
 		slot.stats.SnapshotValidations++
-		decoded, err := decodeDurableSnapshot(ctx, data, r.migration)
+		decoded, err := decodeDurableSnapshotWithFacts(ctx, data, r.migration, r.blockDecoder)
 		if err != nil {
 			return evidence, err
 		}
@@ -346,9 +354,19 @@ type decodedDurableSnapshot struct {
 }
 
 func decodeDurableSnapshot(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (decodedDurableSnapshot, error) {
+	return decodeDurableSnapshotWithFacts(ctx, data, migration, nil)
+}
+
+func decodeDurableSnapshotWithFacts(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, decoder *consensus.BlockJournalDecoder) (decodedDurableSnapshot, error) {
 	var decoded decodedDurableSnapshot
 	if consensus.IsBlockJournal(data) {
-		journal, err := consensus.DecodeBlockJournal(ctx, data, migration)
+		var journal consensus.BlockJournalReadback
+		var err error
+		if decoder == nil {
+			journal, err = consensus.DecodeBlockJournal(ctx, data, migration)
+		} else {
+			journal, err = decoder.Decode(ctx, data)
+		}
 		if err != nil {
 			return decoded, err
 		}

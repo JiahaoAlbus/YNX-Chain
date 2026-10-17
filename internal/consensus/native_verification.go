@@ -99,8 +99,12 @@ func (a *Application) decodeVerifiedNativeTransaction(payload []byte) (SignedTra
 		return DecodeSignedTransaction(payload)
 	}
 	chainID := a.migration.Network.ChainID
+	cache := &a.nativeVerification
+	if a.replayVerificationFacts != nil {
+		cache = a.replayVerificationFacts
+	}
 	key := nativeVerificationKey{chainID: chainID, digest: sha256.Sum256(payload)}
-	if tx, ok := a.nativeVerification.lookup(key, payload); ok {
+	if tx, ok := cache.lookup(key, payload); ok {
 		return tx, nil
 	}
 	// Own the miss bytes before decoding/verifying and retaining them. Neither
@@ -115,6 +119,6 @@ func (a *Application) decodeVerifiedNativeTransaction(payload []byte) (SignedTra
 	if err := tx.Verify(chainID); err != nil {
 		return SignedTransaction{}, err
 	}
-	a.nativeVerification.rememberVerified(key, canonical, tx)
+	cache.rememberVerified(key, canonical, tx)
 	return tx, nil
 }

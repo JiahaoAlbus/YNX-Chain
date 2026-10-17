@@ -42,6 +42,7 @@ type Application struct {
 	snapshotRestore          *stateSyncSnapshotRestore
 	commitTimings            *commitTimings // nil outside the opt-in local performance probe
 	nativeVerification       nativeVerificationCache
+	replayVerificationFacts  *nativeVerificationCache // decoder-owned crypto facts only; never mutable execution state
 }
 
 type transactionError struct {

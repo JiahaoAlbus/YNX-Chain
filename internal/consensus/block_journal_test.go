@@ -178,6 +178,23 @@ func TestBlockJournalReplaysMixedNativeEthereumAndActionWorkflow(t *testing.T) {
 	if err != nil || !journalStateEqual(t, loaded.committed, atomic.committed) || len(loaded.committed.AIActions) != 1 {
 		t.Fatal("mixed workflow replay state changed", err)
 	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoder, err := NewBlockJournalDecoder(migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 2; i++ {
+		decoded, err := decoder.Decode(context.Background(), data)
+		if err != nil || !journalStateEqual(t, decoded.State, atomic.committed) {
+			t.Fatal("shared native facts changed mixed replay", err)
+		}
+	}
+	if decoder.VerificationStats().SuccessfulVerifications != 1 {
+		t.Fatal("non-native inputs entered native crypto facts")
+	}
 }
 
 func TestBlockJournalTornTailAndRecomputedChecksumCannotHideReplayMismatch(t *testing.T) {

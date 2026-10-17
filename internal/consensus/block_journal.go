@@ -112,6 +112,10 @@ func readBlockJournalFrameLimit(r io.Reader, limit uint64) ([]byte, int64, bool,
 // Full FinalizeBlock requests are stored as owned protobuf bytes, including
 // failed transactions and metadata; replay compares the entire response hash.
 func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal) (CommittedState, error) {
+	return replayBlockJournalWithFacts(ctx, r, migration, j, nil)
+}
+
+func replayBlockJournalWithFacts(ctx context.Context, r io.Reader, migration chain.ConsensusMigrationState, j *blockJournal, facts *nativeVerificationCache) (CommittedState, error) {
 	header := make([]byte, len(j.io.header))
 	if _, err := io.ReadFull(r, header); err != nil || !bytes.Equal(header, j.io.header) {
 		return CommittedState{}, errors.New("block journal format/migration mismatch")
@@ -120,6 +124,7 @@ func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.Consen
 	if err != nil {
 		return CommittedState{}, err
 	}
+	replay.replayVerificationFacts = facts
 	j.io.end = int64(len(header))
 	for {
 		if err := ctx.Err(); err != nil {

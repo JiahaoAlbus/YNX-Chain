@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -23,6 +24,44 @@ func IsBlockJournal(data []byte) bool { return bytes.HasPrefix(data, []byte(bloc
 // opening a file, acquiring a writer lease, Sync, truncation or submission.
 // Live callers must separately lock stable input and corroborate published Info.
 func DecodeBlockJournal(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (BlockJournalReadback, error) {
+	return decodeBlockJournalWithFacts(ctx, data, migration, nil)
+}
+
+// BlockJournalDecoder retains bounded successful native cryptographic facts
+// across independent full replays. It holds no reconstructed state/file data,
+// and does not authorize execution, nonce advancement, publication or durability.
+// The cache's own mutex permits concurrent Decode calls without sharing Apps.
+// Like its mutex-containing cache, a decoder must not be copied after use.
+type BlockJournalDecoder struct {
+	migration chain.ConsensusMigrationState
+	native    nativeVerificationCache
+}
+
+type BlockJournalVerificationStats nativeVerificationStats
+
+func NewBlockJournalDecoder(migration chain.ConsensusMigrationState) (*BlockJournalDecoder, error) {
+	if err := migration.Validate(); err != nil {
+		return nil, err
+	}
+	raw, err := migration.CanonicalJSON()
+	if err != nil {
+		return nil, err
+	}
+	d := &BlockJournalDecoder{}
+	if err = json.Unmarshal(raw, &d.migration); err != nil {
+		return nil, err
+	}
+	return d, nil
+}
+
+func (d *BlockJournalDecoder) Decode(ctx context.Context, data []byte) (BlockJournalReadback, error) {
+	return decodeBlockJournalWithFacts(ctx, data, d.migration, &d.native)
+}
+func (d *BlockJournalDecoder) VerificationStats() BlockJournalVerificationStats {
+	return BlockJournalVerificationStats(d.native.stats())
+}
+
+func decodeBlockJournalWithFacts(ctx context.Context, data []byte, migration chain.ConsensusMigrationState, facts *nativeVerificationCache) (BlockJournalReadback, error) {
 	var result BlockJournalReadback
 	if err := ctx.Err(); err != nil {
 		return result, err
@@ -35,7 +74,7 @@ func DecodeBlockJournal(ctx context.Context, data []byte, migration chain.Consen
 		return result, errors.New("block journal readback exceeds bounded capacity")
 	}
 	j := &blockJournal{io: &snapshotJournal{header: header}}
-	state, err := replayBlockJournal(ctx, bytes.NewReader(data), migration, j)
+	state, err := replayBlockJournalWithFacts(ctx, bytes.NewReader(data), migration, j, facts)
 	if err != nil {
 		return result, err
 	}
