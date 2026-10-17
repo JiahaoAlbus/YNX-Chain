@@ -139,7 +139,17 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 	})
 	dexPools := make([]NativeDexPool, 0, len(d.dexPools))
 	for _, pool := range d.dexPools {
-		dexPools = append(dexPools, cloneNativeDexPool(pool))
+		copy := cloneNativeDexPool(pool)
+		// Match the full runtime's durable JSON representation: these two
+		// optional maps decode as nil when empty. Keep every populated lot and
+		// the required Shares map intact, and never change the live source.
+		if len(copy.NativeLots0) == 0 {
+			copy.NativeLots0 = nil
+		}
+		if len(copy.NativeLots1) == 0 {
+			copy.NativeLots1 = nil
+		}
+		dexPools = append(dexPools, copy)
 		if pool.Asset0 == NativeDexAssetID {
 			liquidSupply += pool.Reserve0
 		}

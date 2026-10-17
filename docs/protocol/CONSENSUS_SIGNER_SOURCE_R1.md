@@ -8,7 +8,9 @@ a final-component symlink forking live history. Both conflicting vote signatures
 were cryptographically verified in the equivocation tests. The next fix shares
 all mutable signer state and lock lifetime through one core, resolves parent
 directory aliases and refuses symlink/non-regular/multiply-linked state files.
-The original three regressions remain unchanged; this fix awaits its own CI.
+The original three regressions remained unchanged and passed in run 39056469787
+at ea10ad31a94f80698b73a49ba7638275b5cb571a, together with the full
+ynxconsensusauth package and added parent-alias/hard-link controls.
 No Comet node has run with this code and no public validator has been activated.
 
 ## Actual implementation

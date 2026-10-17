@@ -1,10 +1,67 @@
 package chain
 
 import (
+	"encoding/json"
 	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestConsensusMigrationPreservesLiveDEXPoolAcrossDurableBoundary(t *testing.T) {
+	// The source fixture admits asset creation, pool creation and liquidity
+	// through the real native DEX path, then persists their committed block.
+	d, _ := dexPersistenceFixture(t, NativeDexActionSwapExactInput)
+	original := d.dexPools["dex_test_pool"]
+	if original.Reserve0 != 1000 || original.Reserve1 != 2000 || len(original.NativeLots0) == 0 || original.NativeLots1 == nil || len(original.NativeLots1) != 0 {
+		t.Fatalf("fixture does not exercise a populated pool with an empty optional lot map: %+v", original)
+	}
+	m, err := d.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(m.DexPools) != 1 || !reflect.DeepEqual(m.DexPools[0], m.Runtime.DexPools[original.ID]) {
+		t.Fatal("execution pool and complete source pool differ after export")
+	}
+	originalWire, err := json.Marshal(original)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exportedWire, err := json.Marshal(m.DexPools[0])
+	if err != nil || string(originalWire) != string(exportedWire) {
+		t.Fatalf("export changed a persisted pool field: source=%s exported=%s err=%v", originalWire, exportedWire, err)
+	}
+	if d.dexPools[original.ID].NativeLots1 == nil {
+		t.Fatal("export mutated live source map ownership")
+	}
+	wire, err := m.CanonicalJSON()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var restored ConsensusMigrationState
+	if err := json.Unmarshal(wire, &restored); err != nil {
+		t.Fatal(err)
+	}
+	if err := restored.Validate(); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(m.DexPools, restored.DexPools) || m.StateHash != restored.StateHash {
+		t.Fatal("durable migration roundtrip changed pool state or its anchor")
+	}
+	for lotID, amount := range m.DexPools[0].NativeLots0 {
+		m.DexPools[0].NativeLots0[lotID] = amount + 1
+		if m.Runtime.DexPools[original.ID].NativeLots0[lotID] != amount || d.dexPools[original.ID].NativeLots0[lotID] != amount {
+			t.Fatal("execution pool aliases the source runtime or live source")
+		}
+		m.StateHash, err = m.calculateHash()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := m.Validate(); err == nil || !strings.Contains(err.Error(), "DEX pool mismatch") {
+			t.Fatalf("contradictory native provenance passed the complete-state boundary: %v", err)
+		}
+		break
+	}
+}
 
 func TestConsensusMigrationRejectsAppliedPendingAndUnknown(t *testing.T) {
 	d := NewDevnet(DefaultNetworkConfig("testnet"))
