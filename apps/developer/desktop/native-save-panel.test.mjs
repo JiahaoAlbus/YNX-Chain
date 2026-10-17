@@ -31,6 +31,19 @@ test('cancel leaves the unsaved document untouched and permits retry', async () 
   const next = f.dialogs.showSaveDialog({}); f.finish({ uri: 'file:///qa/retry.cpp', rootUri: 'file:///qa' });
   assert.equal((await next).toString(), 'file:///qa/retry.cpp');
 });
+test('repeated Save while the native panel is open cannot invalidate its original selection', async () => {
+  const f = fixture(); let finish, nativeCalls = 0;
+  f.target.ynxDesktopFiles.save = () => {
+    nativeCalls++;
+    if (nativeCalls > 1) throw Error('A file selection is already pending or invalid.');
+    return new Promise(resolve => { finish = resolve; });
+  };
+  const first = f.dialogs.showSaveDialog({ inputValue: 'original.cpp' });
+  assert.equal(await f.dialogs.showSaveDialog({ inputValue: 'duplicate.cpp' }), undefined);
+  assert.equal(nativeCalls, 1);
+  finish({ uri: 'file:///qa/original.cpp', rootUri: 'file:///qa' });
+  assert.equal((await first).toString(), 'file:///qa/original.cpp');
+});
 test('late save selection cannot save a changed document, switched editor, root or bridge', async () => {
   for (const mutate of [f => f.edit(), f => { f.editors.currentEditor = {}; }, f => { f.workspace.workspace = {}; }, f => { f.target.ynxDesktopFiles = {}; }]) {
     const f = fixture(), pending = f.dialogs.showSaveDialog({}); mutate(f);

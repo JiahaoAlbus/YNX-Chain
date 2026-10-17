@@ -89,6 +89,9 @@ function installProjectSaveDefault({ dialogs, editors, workspace, fileService, t
   dialogs.showSaveDialog = async (props, folder) => {
     const bridge = target.ynxDesktopFiles;
     if (typeof bridge?.save === 'function') {
+      // A duplicate Save must not replace the owner of an already visible
+      // system panel, nor reuse its destination for another saveable.
+      if (active) return undefined;
       const request = {}, roots = workspace.tryGetRoots(), binding = workspace.workspace;
       const editor = editors.currentEditor, document = editor?.editor?.document;
       const version = document?.textEditorModel?.getVersionId();
