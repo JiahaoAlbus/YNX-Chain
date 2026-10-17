@@ -177,7 +177,10 @@ test('R12 PUBLIC actual async Review fences late lock and retains returned selec
  assert.equal(f.entry.status().preparing,false);assert.equal(f.entry.status().account,'PUBLIC-A');
 });
 test('R12 PUBLIC actual async Review rejects account generation change and cold unresolved state',async()=>{
- const pending=deferred(),f=publicEntry({read:()=>pending.promise});const operation=f.entry.review();
+ const pending=deferred(),started=deferred(),f=publicEntry({read:()=>{started.resolve();return pending.promise;}});const operation=f.entry.review();
+ // operation() enters the actual reader on a microtask. Retire only AFTER that
+ // entry, otherwise this is a legal fresh review of the newly selected actor.
+ await started.promise;
  f.state.account='PUBLIC-B';f.state.revision++;f.entry.securityChanged();pending.resolve({state:'read',records:[],runtimeRecords:[],unresolved:false});
  await assert.rejects(operation,/UNAVAILABLE/);assert.equal(f.reviews(),0);
  const g=publicEntry({read:async()=>({state:'read',records:[{state:'UNKNOWN'}],runtimeRecords:[],unresolved:true})});
@@ -203,13 +206,26 @@ test('R12 PUBLIC summary preserves all 32 admission and 64 runtime states withou
  assert.throws(()=>api.projectOriginalAdmissionSummary({...summary,runtimeRecords:[...summary.runtimeRecords,{nonce:nonce(64),state:'pending'}]},'PUBLIC-A'),/INVALID/);
  assert.throws(()=>api.projectOriginalAdmissionSummary(summary,'PUBLIC-B'),/INVALID/);
 });
-test('R12 PUBLIC absent fixed producer stays unavailable and late configuration is cleanup-owned',async()=>{
- const absent=publicSupply(),guard={account:'PUBLIC-A',assert(){}};assert.equal(await absent.openOriginalAdmissionSupply({},guard),null);
+test('R12 PUBLIC absent fixed producer fails explicitly, never as an empty configured Vault',async()=>{
+ const absent=publicSupply(),guard={account:'PUBLIC-A',assert(){}};
+ await assert.rejects(absent.openOriginalAdmissionSupply({},guard),{code:'ADMISSION_CONFIGURATION_PRODUCER_NOT_IMPLEMENTED'});
  assert.equal((await absent.readOriginalAdmissionSummary({},guard)).records,null);
- const pending=deferred(),calls=[],vault={},owned={vault};let locked=false;
+ assert.equal(absent.originalAdmissionSelectionUnresolved(),false);
+});
+test('R12 PUBLIC late configuration remains first-cause-owned after cleanup; no replay',async()=>{
+ const pending=deferred(),calls=[],vault={},owned={vault},cause=Error('PUBLIC_LOCKED');let locked=false;
  const api=publicSupply({acquireOriginalAdmissionConfiguration:()=>pending.promise,retireOriginalAdmissionConfiguration:value=>{assert.equal(value,owned);calls.push('retire');},joinOriginalAdmissionConfiguration:async()=>{calls.push('join');},closeOriginalAdmissionConfiguration:async()=>{calls.push('close');}});
- const operation=api.openOriginalAdmissionSupply(vault,{assert(){if(locked)throw Error('PUBLIC_LOCKED');}});await Promise.resolve();locked=true;pending.resolve(owned);
- await assert.rejects(operation,/PUBLIC_LOCKED/);assert.deepEqual(calls,['retire','join','close']);assert.equal(api.originalAdmissionSelectionUnresolved(),false);
+ const operation=api.openOriginalAdmissionSupply(vault,{assert(){if(locked)throw cause;}});await Promise.resolve();locked=true;pending.resolve(owned);
+ await assert.rejects(operation,error=>error===cause);assert.deepEqual(calls,['retire','join','close']);assert.equal(api.originalAdmissionSelectionUnresolved(),true);
+ // Cleanup completed does not erase the late original or grant a new attempt.
+ await assert.rejects(api.openOriginalAdmissionSupply(vault,{assert(){}}),{code:'ADMISSION_CONFIGURATION_UNRESOLVED'});
+ assert.deepEqual(calls,['retire','join','close']);
+});
+test('R12 PUBLIC present fixed producer explicitly returning null is distinct from missing producer',async()=>{
+ let acquired=0;
+ const api=publicSupply({acquireOriginalAdmissionConfiguration:async()=>{acquired++;return null;}});
+ assert.equal(await api.openOriginalAdmissionSupply({},{assert(){}}),null);
+ assert.equal(acquired,1);assert.equal(api.originalAdmissionSelectionUnresolved(),false);
 });
 test('R12 PUBLIC normal cancel releases idle selection and cleanup failure blocks new review',async()=>{
  const f=publicEntry();const reviewed=await f.entry.review();assert.equal(reviewed.preparing,false);await f.entry.cancel();assert.equal(f.closes(),1);assert.equal(f.supply(),null);
