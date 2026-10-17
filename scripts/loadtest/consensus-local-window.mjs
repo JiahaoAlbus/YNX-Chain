@@ -5,6 +5,7 @@ import path from 'node:path';
 import net from 'node:net';
 import { spawn } from 'node:child_process';
 import { createNativeResourceProbe } from './native-resource-probe.mjs';
+import { validateNativeResourceSample } from './native-resource-sample.mjs';
 import { parseArgs } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -16,6 +17,8 @@ const { values } = parseArgs({ options: {
   rounds: { type: 'string', default: '1' },
   'sender-mode': { type: 'string', default: 'rounds' },
   'inclusion-mode': { type: 'string', default: 'tx-query' },
+  'terminal-stream': { type: 'boolean', default: false },
+  'reuse-result-slots': { type: 'boolean', default: false },
 	'state-layout': {type:'string',default:'atomic-json'},
   'offered-rate': { type: 'string', default: '0' },
 } });
@@ -30,6 +33,10 @@ if (!Number.isInteger(rounds) || rounds < 1 || rounds > 32 || count * rounds > 2
 const offeredRate = Number(values['offered-rate']);
 const senderMode=values['sender-mode'];
 const inclusionMode=values['inclusion-mode'];
+const terminalStream=values['terminal-stream'];
+const reuseResultSlots=values['reuse-result-slots'];
+if(terminalStream&&senderMode!=='ready-pool')throw Error('terminal-stream requires ready-pool');
+if(reuseResultSlots&&(!terminalStream||senderMode!=='ready-pool'))throw Error('reuse-result-slots requires ready-pool and terminal-stream');
 if(!['tx-query','block-scan'].includes(inclusionMode))throw Error('unsupported inclusion-mode');
 if(inclusionMode==='block-scan'&&offeredRate<=0)throw Error('block-scan requires paced submission');
 if(!['rounds','ready-pool'].includes(senderMode))throw Error('unsupported sender-mode');
@@ -47,9 +54,9 @@ const commands = {
   host: path.join(bin, 'ynx-consensus-perf-host'),
 };
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
-const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1 };
+const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1, gogc: '100', gomemlimit: 'off' };
 if (!values.execute) {
-  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, senderMode, inclusionMode, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
+  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, stateLayout, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
@@ -112,7 +119,7 @@ function launch(name, command, args, persistent = false) {
   if (children.filter(c => !c.exited).length >= caps.longLivedChildren) throw Error('long-lived owned child process cap reached');
   const out = fs.openSync(path.join(work, `${name}.log`), 'wx', 0o600);
   const child = spawn('nice', ['-n', '10', command, ...args], {
-    detached: true, env: { ...process.env, GOMAXPROCS: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+    detached: true, env: { ...process.env, GOMAXPROCS: String(caps.gomaxprocs), GOGC: caps.gogc, GOMEMLIMIT: caps.gomemlimit }, stdio: ['ignore', 'pipe', 'pipe'],
   });
   const record = { name, pid: child.pid, child, bytes: 0, exitCode: null, signal: null, exited: false, persistent };
   children.push(record);
@@ -157,7 +164,9 @@ function signalGroup(record, signal) {
 async function sampleResources(full) {
   const live = children.filter(c => c.pid && !c.exited);
   peakLongLivedChildren = Math.max(peakLongLivedChildren, live.length);
-  const watched = [...new Set([process.pid, process.ppid, ...live.map(c => c.pid)])];
+  // An arbitrary ancestor can be the shared app-server. Count only the owned
+  // launcher/children and native sampler reserve, as in the light controller.
+  const watched = [...new Set([process.pid, ...live.map(c => c.pid)])];
   let result;
   try {
     result = await resourceProbe.run([...(full ? ['--full'] : []), ...watched.map(String)]);
@@ -171,15 +180,13 @@ async function sampleResources(full) {
     probeFailures.push({ sampledAt: new Date().toISOString(), error: error.message, stdout: result.stdout.slice(0,65536), stderr: result.stderr.slice(0,65536) });
     throw Error('native resource probe returned invalid JSON; raw failure retained');
   }
-  if (!Number.isFinite(sample.rssWithControlReserveBytes) || !Number.isInteger(sample.threadsWithControlReserve)) throw Error('invalid kernel resource sample');
-  if (!sample.processes.some(p => p.pid === process.pid && p.readable)) throw Error('launcher task info unavailable');
   lastResourceSample = sample;
+  validateNativeResourceSample(sample, process.pid, { full });
   if (full) hostSamples.push({ sampledAt: new Date().toISOString(), ...sample });
   peakRSSBytes = Math.max(peakRSSBytes, sample.rssWithControlReserveBytes);
   peakThreadsWithControlReserve = Math.max(peakThreadsWithControlReserve, sample.threadsWithControlReserve);
   if (sample.rssWithControlReserveBytes > caps.rssBytes) throw Error(`owned/control RSS with sampler reserve exceeded ${caps.rssBytes} bytes`);
   if (sample.threadsWithControlReserve > caps.threadsWithControlReserve) throw Error('owned/control kernel thread count with reserve exceeded 320');
-  if (full && !sample.forkProbe?.available) throw Error(`ordinary fork probe unavailable: ${JSON.stringify(sample.forkProbe)}`);
 }
 
 try {
@@ -219,7 +226,7 @@ try {
       await delay(100);
     }
   }
-  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate), '-rounds', String(rounds), ...(senderMode==='ready-pool'?['-sender-mode',senderMode]:[]), ...(inclusionMode==='block-scan'?['-inclusion-mode',inclusionMode]:[])]));
+  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate), '-rounds', String(rounds), ...(senderMode==='ready-pool'?['-sender-mode',senderMode]:[]), ...(inclusionMode==='block-scan'?['-inclusion-mode',inclusionMode]:[]), ...(terminalStream?['-terminal-stream']:[]), ...(reuseResultSlots?['-reuse-result-slots']:[])]));
 } catch (error) {
   fail(error.message);
 } finally {
@@ -243,7 +250,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 4, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 5, sharedParentExcluded: process.ppid, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, terminalStream, reuseResultSlots, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: owned launcher/live children plus native sampler and conservative fork-child reserve; shared parent excluded', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

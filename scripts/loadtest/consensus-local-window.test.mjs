@@ -28,6 +28,8 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
       assert.equal(plan.caps.activeMs, 45000);
       assert.equal(plan.caps.cleanupMs, 15000);
       assert.equal(plan.caps.rootDiskReserveBytes, 425 * 1024 ** 2);
+      assert.equal(plan.caps.gogc, '100');
+      assert.equal(plan.caps.gomemlimit, 'off');
       assert.equal(fs.existsSync(work), false);
     }
 	for (const layout of ['snapshot-journal','block-journal','unsafe-layout']) {
@@ -59,5 +61,11 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
 		if(ok){const p=JSON.parse(r.stdout);assert.equal(p.inclusionMode,'block-scan');assert.equal(p.senderMode,'ready-pool');assert.equal(p.totalTransactions,512);assert.equal(p.caps.clientObservers,4);assert.equal(p.caps.clientTimeout,'10s');assert.equal(p.caps.dataBytes,32*1024**2);}
 		assert.equal(fs.existsSync(work),false);
 	}
+    for (const [terminal,slots,mode,ok] of [[false,false,'ready-pool',true],[true,false,'ready-pool',true],[true,true,'ready-pool',true],[false,true,'ready-pool',false],[true,false,'rounds',false]]) {
+      const result=spawnSync(process.execPath,[runner,'--count','32','--rounds','2','--offered-rate','128','--sender-mode',mode,...(terminal?['--terminal-stream']:[]),...(slots?['--reuse-result-slots']:[]),'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work],{encoding:'utf8',timeout:5000});
+      assert.equal(result.status===0,ok,result.stderr);
+      if(ok){const plan=JSON.parse(result.stdout);assert.equal(plan.terminalStream,terminal);assert.equal(plan.reuseResultSlots,slots);assert.equal(plan.totalTransactions,64);assert.equal(plan.caps.activeMs,45000);assert.equal(plan.caps.cleanupMs,15000);assert.equal(plan.caps.rssBytes,1024**3);assert.equal(plan.caps.dataBytes,32*1024**2);assert.equal(plan.caps.clientTimeout,'10s');}
+      assert.equal(fs.existsSync(work),false);
+    }
   } finally { fs.rmSync(root, { recursive: true }); }
 });
