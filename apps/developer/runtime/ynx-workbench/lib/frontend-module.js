@@ -161,6 +161,13 @@ nativeFilePicker.install({
   commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
   getCurrentEditor: () => nativeFilePickerEditors?.currentEditor,
 });
+nativeFilePicker.installNativeNewFile({
+  Contribution: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommandContribution,
+  command: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands.NEW_FILE,
+  target: window, open: require('@theia/core/lib/browser').open,
+  uniqueResource: require('@theia/filesystem/lib/common').FileSystemUtils.generateUniqueResourceURI,
+  getCurrentEditor: () => nativeFilePickerEditors?.currentEditor,
+});
 module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => {
   bind(FrontendApplicationContribution).toDynamicValue(context => ({
     onStart() {

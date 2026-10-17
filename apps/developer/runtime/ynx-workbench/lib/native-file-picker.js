@@ -128,4 +128,43 @@ function installProjectSaveDefault({ dialogs, editors, workspace, fileService, t
     return original(props, start);
   };
 }
-module.exports = { install, workspaceMatchesRoot, NativeInitialFile, installProjectSaveDefault };
+// Explorer's upstream New File command constructs an HTML input dialog
+// directly. Route this desktop entry through the same native destination
+// picker as Save As; filesystem creation still belongs to the project backend.
+function installNativeNewFile({ Contribution, command, target, open, uniqueResource, getCurrentEditor }) {
+  if (!target.ynxDesktopFiles || Contribution.prototype.__ynxNativeNewFile) return;
+  const prototype = Contribution.prototype, register = prototype.registerCommands;
+  const pending = new WeakSet();
+  Object.defineProperty(prototype, '__ynxNativeNewFile', { value: true });
+  prototype.registerCommands = function (registry) {
+    register.call(this, registry);
+    registry.registerHandler(command.id, this.newWorkspaceRootUriAwareCommandHandler({
+      execute: async uri => {
+        if (pending.has(this)) return;
+        const bridge = target.ynxDesktopFiles, binding = this.workspaceService.workspace;
+        const roots = this.workspaceService.tryGetRoots(), editor = getCurrentEditor();
+        const current = () => target.ynxDesktopFiles === bridge && this.workspaceService.workspace === binding &&
+          getCurrentEditor() === editor && !editor?.isDisposed &&
+          (() => { const now = this.workspaceService.tryGetRoots(); return now.length === roots.length && now.every((root, i) => root === roots[i]); })();
+        pending.add(this);
+        try {
+          const parent = await this.getDirectory(uri);
+          if (!current() || !parent || !roots.some(root => root.resource.isEqualOrParent(parent.resource))) return;
+          const { fileName, fileExtension } = this.getDefaultFileConfig();
+          const suggested = uniqueResource(parent, parent.resource.resolve(fileName + fileExtension), false);
+          const selected = await this.fileDialogService.showSaveDialog({ inputValue: suggested.path.base }, parent);
+          if (!current() || !selected || selected.scheme !== 'file' || !roots.some(root => root.resource.isEqualOrParent(selected))) return;
+          // create() defaults to overwrite:false: native replacement consent
+          // must never turn New File into truncating an existing project file.
+          await this.fileService.create(selected, undefined, { overwrite: false });
+          this.fireCreateNewFile({ parent: selected.parent, uri: selected });
+          if (current()) await open(this.openerService, selected);
+          return selected;
+        } catch (error) {
+          if (current()) await this.messageService.error(error?.message || 'The new file could not be created.');
+        } finally { pending.delete(this); }
+      },
+    }));
+  };
+}
+module.exports = { installNativeNewFile, install, workspaceMatchesRoot, NativeInitialFile, installProjectSaveDefault };
