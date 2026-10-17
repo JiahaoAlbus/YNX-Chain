@@ -1,3 +1,4 @@
+import { inspectBundledNodeVersion } from './local-startup-process.mjs';
 import localAIChannel from '../runtime/ynx-workbench/lib/local-ai-tools-channel.js';
 import { createLocalAIToolsHost } from './local-ai-tools-host.mjs';
 import admissionChannel from '../runtime/ynx-workbench/lib/wallet-admission-channel.js';
@@ -258,7 +259,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   await regular(node);
   if (!exact(lockHelper)) throw Error('The bundled local profile lock helper is required.');
   await regular(lockHelper);
-  const version = (await exec(node, ['--version'], { timeout: 5000 })).stdout.trim();
+  const version = await inspectBundledNodeVersion(node);
   if (!isSupportedLocalNodeVersion(version)) throw Error('The sealed macOS workbench requires an exact reviewed bundled Node runtime.');
   const runtime = await prepareLocalRuntime({ payload, supportRoot });
   if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
