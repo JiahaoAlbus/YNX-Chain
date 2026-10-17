@@ -960,6 +960,13 @@ static NSString *YNXDesktopTitle(NSString *label) {
     // A workbench edit never falls back to WebKit's unrelated undo stack.
     if(!webResponder&&editSelector&&responder){[NSApp sendAction:editSelector to:responder from:sender];return;}
     if(window!=_window||!_localCommandDocumentReady||!_server.running||!YNXLocalEditorDocumentURL(_webView.URL,_port)||_localCloseRequest)return;
+    // Clipboard data belongs to this native event. An asynchronous registry
+    // round trip can read a later pasteboard value after the original sender
+    // restores it. Let WebKit produce its genuine clipboard event exactly once;
+    // Monaco still owns editor undo/redo and selection through the registry.
+    if(webResponder&&[@[@"core.cut",@"core.copy",@"core.paste"] containsObject:command]){
+        [NSApp sendAction:editSelector to:responder from:sender];return;
+    }
     if(!_pendingLocalCommands)_pendingLocalCommands=[NSMutableDictionary new];
     if(_pendingLocalCommands.count>=32){[self localCommandUnavailable:@"Finish the current actions before starting another one."];return;}
     NSString *request=NSUUID.UUID.UUIDString.lowercaseString;_pendingLocalCommands[request]=command;
