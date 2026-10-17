@@ -40,7 +40,15 @@ async function selectNativeGoToolchain(target, ...args) {
   if(args.length)throw Error('Go toolchain selection accepts no supplied paths or arguments.');
   const bridge=target.ynxDesktopGo;
   if(!bridge || typeof bridge.selectToolchain!=='function')throw Error('Go toolchain selection requires the native YNX Developer App.');
-  const result=await bridge.selectToolchain();
+  let result;
+  try { result=await bridge.selectToolchain(); }
+  catch(error) {
+    // Keep an ordinary OS-panel cancel out of the extension RPC error path.
+    // Error custom properties do not reliably survive that boundary; a plain
+    // result cancels configuration without reporting a toolchain failure.
+    if(error?.cancelled===true)return {cancelled:true};
+    throw error;
+  }
   if(result?.effective!=='after-reopen' || typeof result.version!=='string')throw Error('Go toolchain selection did not return a verified selection.');
   return result;
 }

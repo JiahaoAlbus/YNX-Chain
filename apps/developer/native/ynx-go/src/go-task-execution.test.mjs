@@ -24,6 +24,36 @@ test('first-use Go uses native admission without granting or launching in the ol
   assert.equal(launches,0);assert.equal(writes,0);assert.deepEqual(workflow.status(),{running:false,configuring:false});workflow.dispose();
  } finally {await rm(root,{recursive:true,force:true});}
 });
+test('native Go picker cancellation crosses command RPC as a normal result, permitting retry without launch',async()=>{
+ const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-native-cancel-')));
+ try {
+  const {createGoTasks}=createRequire(import.meta.url)('./go-tasks.cjs');let selections=0,launches=0,writes=0;
+  const api={workspace:{isTrusted:true,workspaceFolders:[{uri:{scheme:'file',fsPath:root}}],getConfiguration:()=>({inspect:()=>({}),update:()=>{writes++;}})},
+   CancellationTokenSource:class{token={};cancel(){}dispose(){}},
+   commands:{executeCommand:async()=>JSON.parse(JSON.stringify(await selectNativeGoToolchain({ynxDesktopGo:{selectToolchain:async()=>{selections++;throw Object.assign(Error('Go toolchain selection cancelled.'),{cancelled:true});}}})))},
+   tasks:{registerTaskProvider:()=>({dispose(){}}),executeTask:()=>{launches++;}}};
+  const workflow=createGoTasks(api,{subscriptions:[]},{YNX_LOCAL_WORKSPACE:root,YNX_LOCAL_PROJECT_ID:'00000000-0000-4000-8000-000000000001',YNX_WORKSPACE_MODE:'local'});
+  try {await workflow.run();await workflow.run();assert.equal(selections,2);assert.equal(launches,0);assert.equal(writes,0);assert.deepEqual(workflow.status(),{running:false,configuring:false});}
+  finally{workflow.dispose();}
+ }finally{await rm(root,{recursive:true,force:true});}
+});
+test('native Go selection preserves real errors instead of interpreting their text as cancellation',async()=>{
+ const failure=Error('Go toolchain selection cancelled.');
+ await assert.rejects(selectNativeGoToolchain({ynxDesktopGo:{selectToolchain:async()=>{throw failure;}}}),error=>error===failure);
+});
+test('actual injected native Go bridge cancellation becomes a serializable result, then selects on retry',async()=>{
+ const source=await readFile(new URL('../../../desktop/macos/main.m',import.meta.url),'utf8');
+ const injected=source.match(/NSString \*goScript=@"(.*)";/)[1];const posted=[];let sequence=0;
+ const target={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:value=>posted.push(value)}}}};
+ vm.runInNewContext(injected,{window:target,location:{pathname:'/'},crypto:{randomUUID:()=>String(++sequence)},addEventListener(){}});
+ const first=selectNativeGoToolchain(target);
+ target.__ynxNativeGoReply({id:posted[0].requestId,status:'cancelled',error:'Go toolchain selection cancelled.'});
+ assert.deepEqual(JSON.parse(JSON.stringify(await first)),{cancelled:true});
+ const retry=selectNativeGoToolchain(target);
+ target.__ynxNativeGoReply({id:posted[0].requestId,status:'selected',version:'late'});
+ target.__ynxNativeGoReply({id:posted[1].requestId,status:'selected',version:'go version go1.25.7 darwin/arm64'});
+ assert.equal((await retry).effective,'after-reopen');assert.equal(posted.length,2);
+});
 
 async function requestFixture() {
  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-request-'))),require=createRequire(import.meta.url),module={exports:{}};
