@@ -19,10 +19,14 @@ import (
 const durableSnapshotLimit = 16 << 20
 
 type durableEvidence struct {
-	Height           int64
-	AppHash          string
-	SnapshotSHA256   string
-	SnapshotCacheHit bool
+	Height                int64
+	AppHash               string
+	SnapshotSHA256        string
+	SnapshotCacheHit      bool
+	StoreSHA256           string
+	StoreFormat           string
+	JournalCompleteBytes  int
+	JournalIncompleteTail bool
 }
 
 type durableReaderStats struct {
@@ -39,13 +43,17 @@ type durableFeeKey struct {
 }
 
 type durableSnapshotSlot struct {
-	mu     sync.Mutex
-	buffer [32 << 10]byte
-	digest [sha256.Size]byte
-	state  *consensus.CommittedState
-	fees   map[durableFeeKey]struct{}
-	nonces map[string]uint64
-	stats  durableReaderStats
+	mu                    sync.Mutex
+	buffer                [32 << 10]byte
+	digest                [sha256.Size]byte
+	snapshotDigest        [sha256.Size]byte
+	format                string
+	journalCompleteBytes  int
+	journalIncompleteTail bool
+	state                 *consensus.CommittedState
+	fees                  map[durableFeeKey]struct{}
+	nonces                map[string]uint64
+	stats                 durableReaderStats
 }
 
 // Slots are bound to at most four manifest paths and a privately cloned
@@ -113,10 +121,44 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 	if err != nil {
 		return evidence, err
 	}
-	defer f.Close()
+	var release func()
+	defer func() {
+		if release != nil {
+			release()
+		}
+		if f != nil {
+			_ = f.Close()
+		}
+	}()
+	var prefix [64]byte
+	n, _ := f.ReadAt(prefix[:], 0)
+	journal := consensus.IsSnapshotJournal(prefix[:n])
+	if journal {
+		release, err = consensus.LockSnapshotJournalRead(path)
+		if errors.Is(err, consensus.ErrSnapshotJournalBusy) {
+			return evidence, errDurableNotReady
+		}
+		if err != nil {
+			return evidence, err
+		}
+		_ = f.Close()
+		f, err = os.Open(path)
+		if err != nil {
+			return evidence, err
+		}
+	}
 	info, err := f.Stat()
 	if err != nil {
 		return evidence, err
+	}
+	if journal {
+		entry, err := os.Lstat(path)
+		if err != nil {
+			return evidence, err
+		}
+		if !entry.Mode().IsRegular() || !os.SameFile(entry, info) || info.Mode().Perm() != 0o600 {
+			return evidence, errors.New("journal path must be a regular 0600 file")
+		}
 	}
 	if !info.Mode().IsRegular() || info.Size() > durableSnapshotLimit {
 		return evidence, errors.New("durable input must be a regular file within the size limit")
@@ -157,14 +199,23 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 		if len(data) > durableSnapshotLimit || sha256.Sum256(data) != digest {
 			return evidence, errors.New("durable state changed during readback")
 		}
-		var state consensus.CommittedState
-		if err := strictJSON(data, &state); err != nil {
-			return evidence, err
+		if journal && !consensus.IsSnapshotJournal(data) {
+			return evidence, errors.New("journal layout changed during readback")
+		}
+		if !journal && consensus.IsSnapshotJournal(data) {
+			return evidence, errors.New("journal readback requires writer synchronization")
+		}
+		if release != nil {
+			release()
+			release = nil
 		}
 		slot.stats.SnapshotValidations++
-		if err := state.Validate(r.migration); err != nil {
-			return evidence, fmt.Errorf("durable state validation: %w", err)
+		decoded, err := decodeDurableSnapshot(ctx, data, r.migration)
+		if err != nil {
+			return evidence, err
 		}
+		state := decoded.state
+
 		if err := ctx.Err(); err != nil {
 			return evidence, err
 		}
@@ -176,9 +227,19 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 		for _, account := range state.Accounts {
 			nonces[account.Address] = account.Nonce
 		}
+		if err := ctx.Err(); err != nil {
+			return evidence, err
+		}
+		slot.snapshotDigest = sha256.Sum256(decoded.payload)
+		slot.format = decoded.format
+		slot.journalCompleteBytes, slot.journalIncompleteTail = decoded.completeBytes, decoded.incompleteTail
 		slot.state, slot.digest, slot.fees, slot.nonces = &state, digest, fees, nonces
 	} else {
 		slot.stats.SnapshotCacheHits++
+	}
+	if release != nil {
+		release()
+		release = nil
 	}
 	state := slot.state
 	if !state.Initialized || state.Height < height {
@@ -199,5 +260,39 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 	if err := ctx.Err(); err != nil {
 		return evidence, err
 	}
-	return durableEvidence{Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(digest[:]), SnapshotCacheHit: hit}, nil
+	return durableEvidence{Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(slot.snapshotDigest[:]), SnapshotCacheHit: hit, StoreSHA256: hex.EncodeToString(digest[:]), StoreFormat: slot.format, JournalCompleteBytes: slot.journalCompleteBytes, JournalIncompleteTail: slot.journalIncompleteTail}, nil
+}
+
+type decodedDurableSnapshot struct {
+	state          consensus.CommittedState
+	payload        []byte
+	format         string
+	completeBytes  int
+	incompleteTail bool
+}
+
+func decodeDurableSnapshot(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (decodedDurableSnapshot, error) {
+	var decoded decodedDurableSnapshot
+	if consensus.IsSnapshotJournal(data) {
+		journal, err := consensus.DecodeSnapshotJournal(ctx, data, migration)
+		if errors.Is(err, consensus.ErrSnapshotJournalEmpty) {
+			return decoded, errDurableNotReady
+		}
+		if err != nil {
+			return decoded, err
+		}
+		decoded = decodedDurableSnapshot{state: journal.State, payload: journal.SnapshotJSON, format: "snapshot-journal", completeBytes: journal.CompleteBytes, incompleteTail: journal.IncompleteTail}
+	} else {
+		if err := strictJSON(data, &decoded.state); err != nil {
+			return decoded, err
+		}
+		if err := decoded.state.Validate(migration); err != nil {
+			return decoded, fmt.Errorf("durable state validation: %w", err)
+		}
+		decoded.payload, decoded.format = data, "atomic-json"
+	}
+	if err := ctx.Err(); err != nil {
+		return decodedDurableSnapshot{}, err
+	}
+	return decoded, nil
 }

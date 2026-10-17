@@ -122,6 +122,8 @@ func TestStoppedNetworkReplay(t *testing.T) {
 		Height               int64  `json:"height"`
 		AppHash              string `json:"appHash"`
 		SnapshotSHA256       string `json:"snapshotSha256"`
+		StoreSHA256          string `json:"storeSha256"`
+		StoreFormat          string `json:"storeFormat"`
 		ReplayedTransactions int    `json:"replayedTransactions"`
 		ReadOnlyBlockstore   bool   `json:"readOnlyBlockstore"`
 		ExactStateEqual      bool   `json:"exactStateEqual"`
@@ -130,11 +132,15 @@ func TestStoppedNetworkReplay(t *testing.T) {
 	var proofs []proof
 	var expectedSnapshot []byte
 	for index, node := range m.Nodes {
-		var state consensus.CommittedState
-		snapshotRaw := read(node.ABCIStatePath, &state)
-		if err := state.Validate(migration); err != nil {
+		storeRaw, err := readBounded(node.ABCIStatePath, durableSnapshotLimit)
+		if err != nil {
 			t.Fatal(err)
 		}
+		decoded, err := decodeDurableSnapshot(context.Background(), storeRaw, migration)
+		if err != nil || decoded.incompleteTail {
+			t.Fatal("stopped window has incomplete/invalid durable state", err)
+		}
+		state, snapshotRaw := decoded.state, decoded.payload
 		if len(state.FeeEvents) != len(txs) || state.Height <= int64(migration.Height) || state.Height-int64(migration.Height) > 128 {
 			t.Fatal("state is outside bounded window")
 		}
@@ -223,7 +229,8 @@ func TestStoppedNetworkReplay(t *testing.T) {
 			t.Fatal("full replayed state differs from durable state")
 		}
 		sum := sha256.Sum256(snapshotRaw)
-		nodes = append(nodes, nodeResult{Name: node.Moniker, Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(sum[:]), ReplayedTransactions: len(seen), ReadOnlyBlockstore: true, ExactStateEqual: true})
+		storeSum := sha256.Sum256(storeRaw)
+		nodes = append(nodes, nodeResult{StoreSHA256: hex.EncodeToString(storeSum[:]), StoreFormat: decoded.format, Name: node.Moniker, Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(sum[:]), ReplayedTransactions: len(seen), ReadOnlyBlockstore: true, ExactStateEqual: true})
 	}
 	resultSum := sha256.Sum256(resultRaw)
 	output := struct {

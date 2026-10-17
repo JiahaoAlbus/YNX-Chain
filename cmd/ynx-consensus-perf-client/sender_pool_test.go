@@ -282,7 +282,7 @@ func TestSenderProcessExitRecoveryFence(t *testing.T) {
 }
 
 func TestSenderRoundFailureNeverSignsOrSubmitsLaterNonce(t *testing.T) {
-	for _, mode := range []string{"unknown", "timeout", "rejected", "wrong_hash", "missing_durable", "missing_quorum", "cancel"} {
+	for _, mode := range []string{"unknown", "timeout", "rejected", "wrong_hash", "missing_durable", "missing_quorum", "journal_unpublished", "cancel"} {
 		t.Run(mode, func(t *testing.T) {
 			path, raw, m, migration, txs := senderFixture(t)
 			p, err := loadSenderPool(path, raw, m, migration, txs, 3)
@@ -315,6 +315,8 @@ func TestSenderRoundFailureNeverSignsOrSubmitsLaterNonce(t *testing.T) {
 					current[1].DurableStateVerified = false
 				case "missing_quorum":
 					current[1].QuorumVerified = false
+				case "journal_unpublished":
+					current[1].DurableStoreFormat = "snapshot-journal"
 				case "cancel":
 					cancel()
 				}

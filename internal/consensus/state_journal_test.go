@@ -91,6 +91,14 @@ func TestSnapshotJournalActualTransactionsMatchAtomicAcrossCompactions(t *testin
 		if !journalStateEqual(t, loaded.committed, atomic.committed) {
 			t.Fatal("journal restart differs from atomic", nonce)
 		}
+		stored, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := DecodeSnapshotJournal(context.Background(), stored, migration)
+		if err != nil || decoded.IncompleteTail || decoded.CompleteBytes != len(stored) || decoded.Records != loaded.journal.records || !journalStateEqual(t, decoded.State, loaded.committed) {
+			t.Fatal("read-only journal decoder differs from writer recovery", err)
+		}
 		check, err := loaded.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: raw})
 		if err != nil || check.Code != CodeInvalidNonce {
 			t.Fatal("restart lost replay fence", err)
@@ -210,6 +218,12 @@ func TestSnapshotJournalFaultBoundariesRetainEvidenceAndRetireWriter(t *testing.
 			}
 			previous := app.committed
 			app.journal.fault = func(at string) error {
+				if release, readErr := LockSnapshotJournalRead(path); !errors.Is(readErr, ErrSnapshotJournalBusy) {
+					if release != nil {
+						release()
+					}
+					t.Fatal("readback entered active writer", readErr)
+				}
 				if at == stage {
 					return errors.New("injected persistence boundary failure")
 				}
@@ -443,4 +457,75 @@ func journalStateEqual(t *testing.T, a, b CommittedState) bool {
 		t.Fatal(err)
 	}
 	return bytes.Equal(left, right)
+}
+
+func TestSnapshotJournalCommitWaitsForBoundedReadback(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commitJournalBlock(t, app, 1)
+	release, err := LockSnapshotJournalRead(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	raw := journalTransfer(t, 2)
+	_, err = app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: int64(migration.Height) + 2, Time: time.Unix(1802736002, 0), Txs: [][]byte{raw}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() { _, err := app.Commit(context.Background(), &abci.RequestCommit{}); done <- err }()
+	select {
+	case err := <-done:
+		t.Fatal("readback caused premature Commit outcome", err)
+	case <-time.After(20 * time.Millisecond):
+	}
+	release()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatal("legitimate reader poisoned writer", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("commit failed to resume after reader release")
+	}
+	if app.committed.Height != int64(migration.Height)+2 {
+		t.Fatal("resumed commit did not publish state")
+	}
+}
+
+func TestSnapshotJournalStuckReadbackHasBoundedWriterFailure(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commitJournalBlock(t, app, 1)
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	release, err := LockSnapshotJournalRead(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	_, err = app.FinalizeBlock(context.Background(), &abci.RequestFinalizeBlock{Height: int64(migration.Height) + 2, Time: time.Unix(1802736002, 0), Txs: [][]byte{journalTransfer(t, 2)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	started := time.Now()
+	if _, err := app.Commit(context.Background(), &abci.RequestCommit{}); err == nil {
+		t.Fatal("stuck reader did not fail within writer bound")
+	}
+	if time.Since(started) > 3*time.Second || !app.journal.poisoned || app.committed.Height != int64(migration.Height)+1 {
+		t.Fatal("bounded reader wait lost committed-state boundary")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(before, after) {
+		t.Fatal("blocked writer changed stored evidence", err)
+	}
 }

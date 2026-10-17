@@ -737,8 +737,9 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 // commitTimings is opt-in, local instrumentation of the actual durable write.
 // A nil recorder avoids clock reads and allocation in normal operation.
 type commitTimings struct {
-	stages map[string]time.Duration
-	bytes  int
+	stages  map[string]time.Duration
+	bytes   int
+	onStage func(string) // nil except explicit owned resource probes
 }
 
 func (t *commitTimings) start() time.Time {
@@ -757,6 +758,9 @@ func (t *commitTimings) mark(stage string, started time.Time) time.Time {
 		t.stages = make(map[string]time.Duration)
 	}
 	t.stages[stage] = now.Sub(started)
+	if t.onStage != nil {
+		t.onStage(stage)
+	}
 	return now
 }
 

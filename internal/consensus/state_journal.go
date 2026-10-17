@@ -72,31 +72,50 @@ func syncJournalDirectory(path string) error {
 	return errors.Join(d.Sync(), d.Close())
 }
 
-func (j *snapshotJournal) lock() (*os.File, error) {
-	lockPath := j.path + ".lock"
-	// Creation does not replace an existing lock inode. The lock file is never
-	// deleted, including on failures; the kernel releases only our own flock.
+type snapshotJournalLocks struct{ writer, readers *os.File }
+
+func openJournalLockFile(lockPath string) (*os.File, error) {
 	created, err := os.OpenFile(lockPath, os.O_CREATE|os.O_EXCL|os.O_RDWR, 0o600)
 	if err == nil {
-		err = errors.Join(created.Sync(), created.Close(), syncJournalDirectory(lockPath))
-		if err != nil {
+		if err := errors.Join(created.Sync(), created.Close(), syncJournalDirectory(lockPath)); err != nil {
 			return nil, err
 		}
 	} else if !errors.Is(err, os.ErrExist) {
 		return nil, err
 	}
-	f, err := journalRegularFile(lockPath, os.O_RDWR)
+	return journalRegularFile(lockPath, os.O_RDWR)
+}
+
+func (j *snapshotJournal) lock() (*snapshotJournalLocks, error) {
+	writer, err := openJournalLockFile(j.path + ".lock")
 	if err != nil {
 		return nil, err
 	}
-	if err := lockSnapshotJournal(f); err != nil {
-		_ = f.Close()
+	if err := lockSnapshotJournal(writer); err != nil {
+		_ = writer.Close()
 		return nil, fmt.Errorf("snapshot journal writer already active or lock unavailable: %w", err)
 	}
-	return f, nil
+	readers, err := openJournalLockFile(j.path + ".read.lock")
+	if err != nil {
+		unlockSnapshotJournal(writer)
+		_ = writer.Close()
+		return nil, err
+	}
+	if err := lockSnapshotJournalReadersForWrite(readers); err != nil {
+		_ = readers.Close()
+		unlockSnapshotJournal(writer)
+		_ = writer.Close()
+		return nil, err
+	}
+	return &snapshotJournalLocks{writer: writer, readers: readers}, nil
 }
 
-func releaseJournalLock(f *os.File) { unlockSnapshotJournal(f); _ = f.Close() }
+func releaseJournalLock(locks *snapshotJournalLocks) {
+	unlockSnapshotJournal(locks.readers)
+	_ = locks.readers.Close()
+	unlockSnapshotJournal(locks.writer)
+	_ = locks.writer.Close()
+}
 
 func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (*snapshotJournal, CommittedState, error) {
 	j := &snapshotJournal{path: path, header: []byte(snapshotJournalMagic + migration.StateHash + "\n"), height: int64(migration.Height)}
@@ -122,7 +141,7 @@ func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (
 	} else if !errors.Is(err, os.ErrExist) {
 		return nil, CommittedState{}, err
 	}
-	f, err = journalRegularFile(path, os.O_RDONLY)
+	f, err = journalRegularFile(path, os.O_RDWR)
 	if err != nil {
 		return nil, CommittedState{}, err
 	}
@@ -194,6 +213,11 @@ func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (
 	}
 	if err := state.Validate(migration); err != nil {
 		return nil, CommittedState{}, fmt.Errorf("validate journal state: %w", err)
+	}
+	// A complete record can come from an unacknowledged prior write. Sync it
+	// during recovery before Info publishes its height, without truncating it.
+	if err := f.Sync(); err != nil {
+		return nil, CommittedState{}, fmt.Errorf("sync recovered journal state: %w", err)
 	}
 	return j, state, nil
 }

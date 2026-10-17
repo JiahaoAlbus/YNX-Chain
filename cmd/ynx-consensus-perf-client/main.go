@@ -59,44 +59,51 @@ type errorObservation struct {
 }
 
 type transactionResult struct {
-	offerMonotonic           time.Time
-	submitMonotonic          time.Time
-	Index                    int                `json:"index"`
-	Round                    int                `json:"round,omitempty"`
-	SignedTransaction        string             `json:"signedTransaction,omitempty"`
-	Hash                     string             `json:"hash"`
-	Endpoint                 string             `json:"endpoint"`
-	Bytes                    int                `json:"bytes"`
-	Status                   string             `json:"status"`
-	SubmittedAt              *time.Time         `json:"submittedAt,omitempty"`
-	ScheduledAt              *time.Time         `json:"scheduledAt,omitempty"`
-	OfferedAt                *time.Time         `json:"offeredAt,omitempty"`
-	QueueDelayMs             *float64           `json:"queueDelayMs,omitempty"`
-	CheckTxObservedAt        *time.Time         `json:"checkTxObservedAt,omitempty"`
-	IncludedObservedAt       *time.Time         `json:"includedObservedAt,omitempty"`
-	ConfirmedObservedAt      *time.Time         `json:"confirmedObservedAt,omitempty"`
-	CheckTxMs                *float64           `json:"checkTxMs,omitempty"`
-	InclusionMs              *float64           `json:"inclusionMs,omitempty"`
-	ConfirmationMs           *float64           `json:"confirmationMs,omitempty"`
-	CheckTxCode              *uint32            `json:"checkTxCode,omitempty"`
-	CheckTxIdentityVerified  bool               `json:"checkTxIdentityVerified"`
-	ExecutionCode            *uint32            `json:"executionCode,omitempty"`
-	CheckTxLog               string             `json:"checkTxLog,omitempty"`
-	ExecutionLog             string             `json:"executionLog,omitempty"`
-	Height                   int64              `json:"height,omitempty"`
-	BlockTxIndex             uint32             `json:"blockTxIndex"`
-	BlockTxTotal             int64              `json:"blockTxTotal"`
-	BlockTime                *time.Time         `json:"blockTime,omitempty"`
-	BlockHash                string             `json:"blockHash,omitempty"`
-	HeaderAppHash            string             `json:"headerAppHash,omitempty"`
-	QuorumVerified           bool               `json:"quorumVerified"`
-	TransactionProofVerified bool               `json:"transactionProofVerified"`
-	DurableStateVerified     bool               `json:"durableStateVerified"`
-	DurableStateHeight       int64              `json:"durableStateHeight,omitempty"`
-	DurableStateAppHash      string             `json:"durableStateAppHash,omitempty"`
-	DurableSnapshotSHA256    string             `json:"durableSnapshotSha256,omitempty"`
-	DurableSnapshotCacheHit  bool               `json:"durableSnapshotCacheHit"`
-	Errors                   []errorObservation `json:"errors"`
+	offerMonotonic               time.Time
+	submitMonotonic              time.Time
+	Index                        int                `json:"index"`
+	Round                        int                `json:"round,omitempty"`
+	SignedTransaction            string             `json:"signedTransaction,omitempty"`
+	Hash                         string             `json:"hash"`
+	Endpoint                     string             `json:"endpoint"`
+	Bytes                        int                `json:"bytes"`
+	Status                       string             `json:"status"`
+	SubmittedAt                  *time.Time         `json:"submittedAt,omitempty"`
+	ScheduledAt                  *time.Time         `json:"scheduledAt,omitempty"`
+	OfferedAt                    *time.Time         `json:"offeredAt,omitempty"`
+	QueueDelayMs                 *float64           `json:"queueDelayMs,omitempty"`
+	CheckTxObservedAt            *time.Time         `json:"checkTxObservedAt,omitempty"`
+	IncludedObservedAt           *time.Time         `json:"includedObservedAt,omitempty"`
+	ConfirmedObservedAt          *time.Time         `json:"confirmedObservedAt,omitempty"`
+	CheckTxMs                    *float64           `json:"checkTxMs,omitempty"`
+	InclusionMs                  *float64           `json:"inclusionMs,omitempty"`
+	ConfirmationMs               *float64           `json:"confirmationMs,omitempty"`
+	CheckTxCode                  *uint32            `json:"checkTxCode,omitempty"`
+	CheckTxIdentityVerified      bool               `json:"checkTxIdentityVerified"`
+	ExecutionCode                *uint32            `json:"executionCode,omitempty"`
+	CheckTxLog                   string             `json:"checkTxLog,omitempty"`
+	ExecutionLog                 string             `json:"executionLog,omitempty"`
+	Height                       int64              `json:"height,omitempty"`
+	BlockTxIndex                 uint32             `json:"blockTxIndex"`
+	BlockTxTotal                 int64              `json:"blockTxTotal"`
+	BlockTime                    *time.Time         `json:"blockTime,omitempty"`
+	BlockHash                    string             `json:"blockHash,omitempty"`
+	HeaderAppHash                string             `json:"headerAppHash,omitempty"`
+	QuorumVerified               bool               `json:"quorumVerified"`
+	TransactionProofVerified     bool               `json:"transactionProofVerified"`
+	DurableStateVerified         bool               `json:"durableStateVerified"`
+	DurableStateHeight           int64              `json:"durableStateHeight,omitempty"`
+	DurableStateAppHash          string             `json:"durableStateAppHash,omitempty"`
+	DurableSnapshotSHA256        string             `json:"durableSnapshotSha256,omitempty"`
+	DurableSnapshotCacheHit      bool               `json:"durableSnapshotCacheHit"`
+	DurableStoreSHA256           string             `json:"durableStoreSha256,omitempty"`
+	DurableStoreFormat           string             `json:"durableStoreFormat,omitempty"`
+	DurableJournalCompleteBytes  int                `json:"durableJournalCompleteBytes,omitempty"`
+	DurableJournalIncompleteTail bool               `json:"durableJournalIncompleteTail"`
+	DurableInfoVerified          bool               `json:"durableInfoVerified"`
+	DurableInfoHeight            int64              `json:"durableInfoHeight,omitempty"`
+	DurableInfoAppHash           string             `json:"durableInfoAppHash,omitempty"`
+	Errors                       []errorObservation `json:"errors"`
 }
 
 type percentiles struct {
@@ -558,6 +565,19 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					blockTime := commit.Header.Time.UTC()
 					result.BlockTime = &blockTime
 					state, err := reader.verify(ctx, statePath, raw, height)
+					if err == nil && state.StoreFormat == "snapshot-journal" {
+						published, infoErr := client.ABCIInfo(ctx)
+						if infoErr != nil {
+							err = fmt.Errorf("%w: journal published-state query: %v", errDurableNotReady, infoErr)
+						} else {
+							err = verifyJournalPublishedState(state, published)
+							if err == nil {
+								result.DurableInfoVerified = true
+								result.DurableInfoHeight = published.Response.LastBlockHeight
+								result.DurableInfoAppHash = fmt.Sprintf("%X", published.Response.LastBlockAppHash)
+							}
+						}
+					}
 					if err != nil {
 						if ctx.Err() != nil {
 							result.Status = "timeout"
@@ -592,6 +612,8 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					result.Status, result.QuorumVerified, result.TransactionProofVerified = "confirmed", true, true
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
 					result.DurableSnapshotSHA256, result.DurableSnapshotCacheHit = state.SnapshotSHA256, state.SnapshotCacheHit
+					result.DurableStoreSHA256, result.DurableStoreFormat = state.StoreSHA256, state.StoreFormat
+					result.DurableJournalCompleteBytes, result.DurableJournalIncompleteTail = state.JournalCompleteBytes, state.JournalIncompleteTail
 					return
 				}
 			}
@@ -655,7 +677,7 @@ func summarize(results []transactionResult, seconds float64) summary {
 		}
 		if r.QuorumVerified && r.TransactionProofVerified {
 			s.QuorumConfirmed++
-			if r.ConfirmedObservedAt != nil && r.DurableStateVerified {
+			if r.ConfirmedObservedAt != nil && r.DurableStateVerified && (r.DurableStoreFormat != "snapshot-journal" || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight)) {
 				s.FinalSubmitted++
 			}
 		}
@@ -720,7 +742,7 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 5, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 6, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
@@ -728,6 +750,7 @@ func execute(o options) error {
 		"Code-zero execution is reported by local tx RPC. Confirmation independently verifies weighted CometBFT commit signatures and transaction Merkle inclusion against the signed header; this is not a cryptographic proof of the RPC execution result.",
 		"Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
 		"Every durable observation freshly streams and hashes the current file. Only identical bytes reuse whole-snapshot validation; transaction signatures and matching fee/nonce are still checked. Snapshot size remains bounded at16MiB; this client is not yet a ten-minute high-history load driver.",
+		"Journal readback takes a shared writer lock, validates complete records and reports store versus selected snapshot digests separately. Live finality additionally requires the node post-Sync committed ABCI view to reach that snapshot height. Neither local file checks nor Info RPC are a cryptographic execution proof.",
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}

@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"sort"
 	"testing"
@@ -119,6 +120,61 @@ func TestABCITransferPerformance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	storageProbe := os.Getenv("YNX_CHAIN_PERF_STORAGE_PROBE") == "1"
+	storageSamples := []map[string]any{}
+	var peakStorageBytes int64
+	sampleStorage := func(stage string) {
+		if !storageProbe {
+			return
+		}
+		var logical, accounted int64
+		physicalKnown := true
+		entries, err := os.ReadDir(runDir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, entry := range entries {
+			if !entry.Type().IsRegular() {
+				t.Fatal("unexpected probe artifact")
+			}
+			info, err := entry.Info()
+			if err != nil {
+				t.Fatal(err)
+			}
+			logical += info.Size()
+			allocated := info.Size()
+			meta := reflect.ValueOf(info.Sys())
+			if meta.IsValid() && meta.Kind() == reflect.Pointer {
+				meta = meta.Elem()
+			}
+			if meta.IsValid() && meta.Kind() == reflect.Struct {
+				blocks := meta.FieldByName("Blocks")
+				if blocks.IsValid() && blocks.CanInt() {
+					if n := blocks.Int() * 512; n > allocated {
+						allocated = n
+					}
+				} else {
+					physicalKnown = false
+				}
+			} else {
+				physicalKnown = false
+			}
+			accounted += allocated
+		}
+		if accounted > peakStorageBytes {
+			peakStorageBytes = accounted
+		}
+		storageSamples = append(storageSamples, map[string]any{"stage": stage, "logical_bytes": logical, "accounted_bytes": accounted, "physical_blocks_available": physicalKnown, "files": len(entries)})
+	}
+	if storageProbe && app.journal != nil {
+		app.journal.fault = func(stage string) error {
+			if stage == "compaction_synced" {
+				sampleStorage(stage)
+			}
+			return nil
+		}
+	}
+	sampleStorage("setup")
 	// Transactions use independent senders within a block: CheckTx currently
 	// checks committed nonce, not speculative mempool nonce.
 	work := make([][][]byte, blocks)
@@ -187,6 +243,13 @@ func TestABCITransferPerformance(t *testing.T) {
 		}
 		hashes = append(hashes, hex.EncodeToString(finalized.AppHash))
 		app.commitTimings = &commitTimings{}
+		if storageProbe {
+			app.commitTimings.onStage = func(stage string) {
+				if stage == "file_sync" {
+					sampleStorage(stage)
+				}
+			}
+		}
 		ts = time.Now()
 		if _, err := app.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
 			t.Fatal(err)
@@ -196,6 +259,7 @@ func TestABCITransferPerformance(t *testing.T) {
 			commitStages[name] = append(commitStages[name], duration)
 		}
 		snapshotBytesWritten += app.commitTimings.bytes
+		sampleStorage("after_commit")
 	}
 	elapsed := time.Since(start)
 	runtime.ReadMemStats(&after)
@@ -257,6 +321,7 @@ func TestABCITransferPerformance(t *testing.T) {
 		t.Fatalf("expected %d durable commit phases, got %d", phaseCount, len(commitStages))
 	}
 	report := map[string]any{
+		"storage_probe_enabled": storageProbe, "peak_owned_store_accounted_bytes": peakStorageBytes, "storage_samples": storageSamples,
 		"native_signature_cache": app.nativeVerification.stats(),
 		"storage_layout":         layout, "storage_bytes": storageBytes, "journal_compactions": journalCompactions,
 		"schema": 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
