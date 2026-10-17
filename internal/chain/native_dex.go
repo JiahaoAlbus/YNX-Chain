@@ -236,6 +236,9 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 		}
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX action hash conflicts with a non-DEX transaction")
 	}
+	if err := d.requireLegacyAccountLocked(input.Signer); err != nil {
+		return Transaction{}, NativeDexMutation{}, false, err
+	}
 	signer, ok := d.accounts[input.Signer]
 	if !ok {
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX signer account does not exist")

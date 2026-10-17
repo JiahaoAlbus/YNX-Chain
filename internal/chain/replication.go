@@ -11,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
 // MaxReplicationSnapshotBytes bounds the authenticated, decompressed state
@@ -110,7 +112,7 @@ func (d *Devnet) replicationBatchJSONWithLimit(afterHeight uint64, afterHash str
 			SourceHeight: source.Height, SourceBlockHash: source.Hash,
 			Complete: candidateEnd == source.Height, Blocks: blocks,
 		}
-		if batch.Complete && len(blocks) > 0 {
+		if batch.Complete && (len(blocks) > 0 || d.accountPolicy != nil) {
 			state := d.snapshotLocked()
 			state.Blocks = nil
 			integrity, err := replicationStateIntegrity(state)
@@ -192,7 +194,17 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		d.mu.RUnlock()
 		return ReplicationApplyResult{}, fmt.Errorf("replication batch base %d/%s does not match local tip %d/%s", batch.BaseHeight, batch.BaseBlockHash, current.Height, current.Hash)
 	}
-	if len(batch.Blocks) == 0 {
+	if batch.Complete {
+		var incomingPolicy *ynxauth.State
+		if batch.State != nil {
+			incomingPolicy = batch.State.AccountPolicy
+		}
+		if err := validateAccountPolicyContinuation(d.accountPolicy, incomingPolicy); err != nil {
+			d.mu.RUnlock()
+			return ReplicationApplyResult{}, err
+		}
+	}
+	if len(batch.Blocks) == 0 && batch.State == nil {
 		d.mu.RUnlock()
 		return result, nil
 	}
@@ -226,8 +238,8 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	currentHeight, currentHash := current.Height, current.Hash
 	d.mu.RUnlock()
 
-	if err := validateReplicationState(*batch.State, d.cfg); err != nil {
-		return ReplicationApplyResult{}, fmt.Errorf("validate final replication state: %w", err)
+	if err := validateAccountPolicySnapshot(candidate); err != nil {
+		return ReplicationApplyResult{}, err
 	}
 	// A public testnet with a long run of empty blocks must not rewrite the full
 	// append-only history snapshot every few seconds. Compare only authoritative
@@ -237,6 +249,7 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	// bypasses this path and is persisted immediately below.
 	d.mu.RLock()
 	durableHeight := d.replicationDurableHeight
+	persistenceNeedsConfirmation := d.lastPersistenceError != ""
 	localApplicationIntegrity, err := replicationApplicationStateIntegrity(d.snapshotLocked())
 	d.mu.RUnlock()
 	if err != nil {
@@ -246,7 +259,7 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	if err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("hash source replication application state: %w", err)
 	}
-	if hmac.Equal([]byte(localApplicationIntegrity), []byte(sourceApplicationIntegrity)) &&
+	if !persistenceNeedsConfirmation && hmac.Equal([]byte(localApplicationIntegrity), []byte(sourceApplicationIntegrity)) &&
 		batch.SourceHeight >= durableHeight && batch.SourceHeight-durableHeight < ReplicationDurableCheckpointBlocks {
 		d.mu.Lock()
 		defer d.mu.Unlock()
@@ -254,8 +267,17 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 		if current.Height != batch.BaseHeight || current.Hash != batch.BaseBlockHash {
 			return ReplicationApplyResult{}, fmt.Errorf("replication batch base %d/%s does not match local tip %d/%s", batch.BaseHeight, batch.BaseBlockHash, current.Height, current.Hash)
 		}
+		if err := validateAccountPolicyContinuation(d.accountPolicy, candidate.AccountPolicy); err != nil {
+			return ReplicationApplyResult{}, err
+		}
+		// The policy may have been extended at this same height while hashing.
+		// Equality must still hold before selecting the no-state-change path.
+		currentIntegrity, err := replicationApplicationStateIntegrity(d.snapshotLocked())
+		if err != nil || d.lastPersistenceError != "" || !hmac.Equal([]byte(currentIntegrity), []byte(sourceApplicationIntegrity)) {
+			return ReplicationApplyResult{}, errors.New("local application state changed during replication")
+		}
 		d.blocks = append(d.blocks, batch.Blocks...)
-		result.Applied = true
+		result.Applied = len(batch.Blocks) > 0
 		return result, nil
 	}
 	candidate.StateIntegrity = ""
@@ -275,24 +297,11 @@ func (d *Devnet) ApplyReplicationBatchJSON(payload []byte) (ReplicationApplyResu
 	if err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("seal replication batch snapshot: %w", err)
 	}
-	// Integrity hashing, JSON encoding, fsync and atomic rename can take seconds
-	// for the append-only public history. They operate on a complete immutable
-	// candidate before the short in-memory commit lock.
-	if err := d.persistPreparedSnapshot(sealed); err != nil {
+	// Policy continuation, durable state and memory state form one serialized
+	// commit. Validation and hashing above do not hold the write lock.
+	if err := d.commitReplicationSnapshot(sealed, currentHeight, currentHash); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("persist replication batch: %w", err)
 	}
-
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	current = d.blocks[len(d.blocks)-1]
-	if current.Height != currentHeight || current.Hash != currentHash {
-		return ReplicationApplyResult{}, fmt.Errorf("local chain advanced while persisting replication batch")
-	}
-	localPeers := d.validatorPeers
-	localPeerSyncs := d.validatorPeerSyncs
-	d.applySnapshotLocked(sealed)
-	d.validatorPeers = localPeers
-	d.validatorPeerSyncs = localPeerSyncs
 	result.Applied = true
 	return result, nil
 }
@@ -365,12 +374,12 @@ func validateReplicationBatch(batch replicationBatch, cfg NetworkConfig) error {
 		if batch.EndBlockHash != batch.SourceBlockHash {
 			return errors.New("complete replication batch source hash mismatch")
 		}
-		if len(batch.Blocks) > 0 {
-			if batch.State == nil {
-				return errors.New("complete replication batch is missing source state")
-			}
-			if batch.State.Config.ChainID != cfg.ChainID || batch.State.Config.Slug != cfg.Slug {
-				return errors.New("replication batch source state network mismatch")
+		if len(batch.Blocks) > 0 && batch.State == nil {
+			return errors.New("complete replication batch is missing source state")
+		}
+		if batch.State != nil {
+			if err := validateReplicationState(*batch.State, cfg); err != nil {
+				return fmt.Errorf("validate complete replication source state: %w", err)
 			}
 		}
 	} else if batch.State != nil {
@@ -439,7 +448,10 @@ func replicationApplicationStateIntegrity(state devnetSnapshot) (string, error) 
 }
 
 func validateReplicationState(state devnetSnapshot, cfg NetworkConfig) error {
-	if state.Version != devnetSnapshotVersion {
+	if len(state.Blocks) != 0 {
+		return errors.New("replication source state must omit block history")
+	}
+	if state.Version != devnetSnapshotVersion && state.Version != pqDevnetSnapshotVersion {
 		return fmt.Errorf("unsupported replication state version %d", state.Version)
 	}
 	if state.Config.ChainID != cfg.ChainID || state.Config.Slug != cfg.Slug {
@@ -457,7 +469,7 @@ func validateReplicationState(state devnetSnapshot, cfg NetworkConfig) error {
 	if !hmac.Equal(actual, expected) {
 		return errors.New("replication state integrity mismatch")
 	}
-	return nil
+	return validateAccountPolicySnapshot(state)
 }
 
 func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritativeRebase bool) (ReplicationApplyResult, error) {
@@ -479,9 +491,25 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 	current := d.blocks[len(d.blocks)-1]
 	incoming := snapshot.Blocks[len(snapshot.Blocks)-1]
 	result := ReplicationApplyResult{Height: incoming.Height, BlockHash: incoming.Hash, SnapshotAt: snapshot.SavedAt}
-	if current.Height == incoming.Height && current.Hash == incoming.Hash {
+	if err := validateAccountPolicyContinuation(d.accountPolicy, snapshot.AccountPolicy); err != nil {
 		d.mu.RUnlock()
-		return result, nil
+		return ReplicationApplyResult{}, err
+	}
+	if current.Height == incoming.Height && current.Hash == incoming.Hash {
+		identical := d.accountPolicy == nil && snapshot.AccountPolicy == nil
+		if !identical {
+			localIntegrity, localErr := replicationApplicationStateIntegrity(d.snapshotLocked())
+			sourceIntegrity, sourceErr := replicationApplicationStateIntegrity(snapshot)
+			if localErr != nil || sourceErr != nil {
+				d.mu.RUnlock()
+				return ReplicationApplyResult{}, errors.New("hash same-height replication application state")
+			}
+			identical = hmac.Equal([]byte(localIntegrity), []byte(sourceIntegrity))
+		}
+		if identical && d.lastPersistenceError == "" {
+			d.mu.RUnlock()
+			return result, nil
+		}
 	}
 	if !allowAuthoritativeRebase && incoming.Height < current.Height {
 		d.mu.RUnlock()
@@ -490,30 +518,12 @@ func (d *Devnet) ApplyReplicationSnapshotJSON(payload []byte, allowAuthoritative
 	currentHeight, currentHash := current.Height, current.Hash
 	d.mu.RUnlock()
 
-	// Persist the fully validated authoritative snapshot before taking the
-	// in-memory write lock. A public follower can take seconds to fsync a large
-	// append-only history; keeping that disk I/O outside the lock preserves
-	// concurrent status, account and DEX reads during replication. The producer
-	// snapshot has already passed its signed state-integrity validation, so
-	// re-sealing the entire history here would only duplicate hundreds of MiB.
-	if err := d.persistPreparedSnapshot(snapshot); err != nil {
+	// The complete document has already passed integrity and history checks.
+	// Commit under one write lock so no checkpoint can write an older policy
+	// between durable replacement and in-memory replacement.
+	if err := d.commitReplicationSnapshot(snapshot, currentHeight, currentHash); err != nil {
 		return ReplicationApplyResult{}, fmt.Errorf("persist replication snapshot: %w", err)
 	}
-
-	d.mu.Lock()
-	defer d.mu.Unlock()
-	current = d.blocks[len(d.blocks)-1]
-	if current.Height != currentHeight || current.Hash != currentHash {
-		return ReplicationApplyResult{}, fmt.Errorf("local chain advanced while persisting replication snapshot")
-	}
-	// Peer observations are node-local operational evidence, not replicated
-	// chain state. Preserve the newest observations gathered while the snapshot
-	// was being written, not the producer's observations.
-	localPeers := d.validatorPeers
-	localPeerSyncs := d.validatorPeerSyncs
-	d.applySnapshotLocked(snapshot)
-	d.validatorPeers = localPeers
-	d.validatorPeerSyncs = localPeerSyncs
 	result.Applied = true
 	return result, nil
 }
@@ -527,8 +537,8 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 	if err != nil {
 		return err
 	}
-	// Normal checkpoints hold d.mu for reading; replication persists an
-	// immutable prepared state outside it. Serialize their shared temp paths.
+	// Normal checkpoints and replication both hold d.mu while persisting.
+	// Serialize their shared temp paths without acquiring d.mu here.
 	// No code holding persistenceMu acquires d.mu, avoiding lock inversion.
 	d.persistenceMu.Lock()
 	defer d.persistenceMu.Unlock()
@@ -543,7 +553,11 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 	if err := writeDurableSnapshotJSON(path, snapshot); err != nil {
 		return err
 	}
-	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
+	marker := "2\n"
+	if snapshot.Version == pqDevnetSnapshotVersion {
+		marker = "3\n"
+	}
+	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte(marker)); err != nil {
 		return fmt.Errorf("%w: persist devnet snapshot integrity marker: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	d.durableCheckpoint.Store(checkpoint)
@@ -551,7 +565,7 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 }
 
 func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) error {
-	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion {
+	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
 		return fmt.Errorf("unsupported replication snapshot version %d", snapshot.Version)
 	}
 	if snapshot.Config.ChainID != cfg.ChainID || snapshot.Config.Slug != cfg.Slug {
@@ -565,6 +579,9 @@ func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) err
 	}
 	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
 		return fmt.Errorf("validate replication Resource sponsor snapshot: %w", err)
+	}
+	if err := validateAccountPolicySnapshot(snapshot); err != nil {
+		return err
 	}
 	return validateReplicationBlockHistory(snapshot, cfg)
 }
@@ -607,6 +624,9 @@ func validateReplicationBlockHistory(snapshot devnetSnapshot, cfg NetworkConfig)
 
 func sealDevnetSnapshot(snapshot devnetSnapshot) (devnetSnapshot, error) {
 	snapshot.Version = devnetSnapshotVersion
+	if snapshot.AccountPolicy != nil {
+		snapshot.Version = pqDevnetSnapshotVersion
+	}
 	snapshot.StateIntegrity = ""
 	integrity, err := devnetSnapshotIntegrity(snapshot)
 	if err != nil {
@@ -617,13 +637,19 @@ func sealDevnetSnapshot(snapshot devnetSnapshot) (devnetSnapshot, error) {
 }
 
 func validateDevnetSnapshotIntegrity(snapshot devnetSnapshot) error {
+	if snapshot.Version < pqDevnetSnapshotVersion && snapshot.AccountPolicy != nil {
+		return errors.New("legacy snapshot must not contain account policy")
+	}
+	if snapshot.Version == pqDevnetSnapshotVersion && snapshot.AccountPolicy == nil {
+		return errors.New("v3 snapshot must contain account policy")
+	}
 	if snapshot.Version == legacyDevnetSnapshotVersion {
 		if snapshot.StateIntegrity != "" {
 			return errors.New("legacy devnet snapshot must not claim v2 state integrity")
 		}
 		return nil
 	}
-	if snapshot.Version != devnetSnapshotVersion {
+	if snapshot.Version != devnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
 		return fmt.Errorf("unsupported devnet snapshot version %d", snapshot.Version)
 	}
 	actual, err := hex.DecodeString(snapshot.StateIntegrity)
@@ -644,7 +670,11 @@ func validateDevnetSnapshotIntegrity(snapshot devnetSnapshot) error {
 func devnetSnapshotIntegrity(snapshot devnetSnapshot) (string, error) {
 	snapshot.StateIntegrity = ""
 	digest := sha256.New()
-	_, _ = digest.Write([]byte(devnetSnapshotHashDomain))
+	domain := devnetSnapshotHashDomain
+	if snapshot.Version == pqDevnetSnapshotVersion {
+		domain = pqDevnetSnapshotHashDomain
+	}
+	_, _ = digest.Write([]byte(domain))
 	_, _ = digest.Write([]byte{0})
 	stream := jsonBodyWriter{target: digest}
 	if err := json.NewEncoder(&stream).Encode(snapshot); err != nil {
@@ -694,11 +724,16 @@ func (w *jsonBodyWriter) Finish() error {
 
 func (d *Devnet) snapshotLocked() devnetSnapshot {
 	snapshot := devnetSnapshot{Version: devnetSnapshotVersion, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, PaySettlements: d.paySettlements, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Pools: d.resourcePools, Sponsors: d.resourceSponsorships, SponsorIDs: d.resourceSponsorIdem, ActionRefs: d.resourceActionRefs, SponsorLog: d.resourceSponsorAudit, Contracts: d.contracts, DexAssets: d.dexAssets, DexBalances: d.dexBalances, DexPools: d.dexPools, DexEvents: d.dexEvents}
+	snapshot.AccountPolicy = cloneAccountPolicy(d.accountPolicy)
+	if snapshot.AccountPolicy != nil {
+		snapshot.Version = pqDevnetSnapshotVersion
+	}
 	snapshot.SponsorIntegrity = resourceSponsorSnapshotIntegrity(snapshot)
 	return snapshot
 }
 
 func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
+	d.accountPolicy = cloneAccountPolicy(snapshot.AccountPolicy)
 	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.validatorPeerSyncs, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.PeerSyncs, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.paySettlements, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.PaySettlements, snapshot.Webhooks, snapshot.PayEvents
 	d.riskLabels, d.evidencePackets = snapshot.RiskLabels, snapshot.Evidence

@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -43,9 +44,11 @@ func main() {
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
 	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
 	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "export deterministic BFT migration state to a file and exit")
+	pqAdmissionHeight := flag.String("pq-admission-height", envOrDefault("YNX_PQ_ADMISSION_HEIGHT", ""), "optional coordinated future account PQ admission height; persists immutable schedule")
 	flag.Parse()
 
 	cfg := nodeRuntimeConfig{
+		PQAdmissionHeight:        strings.TrimSpace(*pqAdmissionHeight),
 		HTTPAddr:                 *httpAddr,
 		Network:                  *network,
 		BlockInterval:            *blockInterval,
@@ -68,6 +71,7 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
+	PQAdmissionHeight        string
 	EthereumNativeTransfers  bool
 	HTTPAddr                 string
 	Network                  string
@@ -94,6 +98,12 @@ type nodeStartupInputs struct {
 
 func loadNodeStartupInputs(cfg nodeRuntimeConfig) (nodeStartupInputs, error) {
 	networkConfig := chain.DefaultNetworkConfig(cfg.Network)
+	if cfg.PQAdmissionHeight != "" {
+		h, err := strconv.ParseUint(cfg.PQAdmissionHeight, 10, 64)
+		if err != nil || h == 0 || strconv.FormatUint(h, 10) != cfg.PQAdmissionHeight {
+			return nodeStartupInputs{}, errors.New("invalid canonical PQ admission height")
+		}
+	}
 	if cfg.EthereumNativeTransfers && networkConfig.Slug == "mainnet" {
 		return nodeStartupInputs{}, errors.New("Ethereum native adapter is not enabled for mainnet")
 	}
@@ -152,6 +162,12 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(inputs.NetworkConfig, cfg.DataDir, inputs.Validators, inputs.Peers)
 	if err != nil {
 		return err
+	}
+	if cfg.PQAdmissionHeight != "" {
+		h, _ := strconv.ParseUint(cfg.PQAdmissionHeight, 10, 64)
+		if err := devnet.EnableAccountPQ(h); err != nil {
+			return err
+		}
 	}
 	if err := devnet.SetEthereumNativeTransfers(cfg.EthereumNativeTransfers); err != nil {
 		return err

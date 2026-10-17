@@ -1,0 +1,145 @@
+{
+  "startedAt": "2026-10-17T17:12:14.637Z",
+  "rootGrant": "Root crypto_go first-run conditional grant 2026-10-18 via parent; sole Go/C window",
+  "launcher": 13359,
+  "sharedParentExcluded": 1093,
+  "root": "/Users/huangjiahao/.codex/worktrees/ynx-batch-v01/YNX Chain",
+  "config": {
+    "target": "./internal/ynxbatch",
+    "goArguments": [
+      "test",
+      "-p",
+      "1",
+      "./internal/ynxbatch",
+      "-count=1",
+      "-timeout=90s"
+    ],
+    "goEnvironment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "768MiB"
+    },
+    "caps": {
+      "totalMs": 120000,
+      "activeMs": 105000,
+      "cleanupMs": 15000,
+      "termGraceMs": 2000,
+      "ownedRSSBytes": 1073741824,
+      "threadsWithControlReserve": 320,
+      "freeDiskFloorBytes": 1073741824,
+      "rootDiskReserveBytes": 445644800,
+      "maximumCompileDeltaBytes": 1073741824,
+      "logBytes": 1048576,
+      "sampleMs": 500
+    },
+    "requires": "Fresh Root heavy grant, native normal pressure dispatchLevel 1, successful fork/full-host sample, no other authorized heavy job, pinned existing native binary. Admission failure is terminal with no retry."
+  },
+  "hostBinary": {
+    "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure",
+    "sha256": "3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6"
+  },
+  "sources": {
+    "docs/protocol/crypto-go-first-run.json": "ebb52752a9131fda9c56957f7c068b0365b218eebb197bdb1872c4a7f763d11f",
+    "docs/protocol/crypto-go-first-run.mjs": "f439a15fe14e1a944546e4678d54d3786a10d24a3e5c4f3997d4d446fb42d362",
+    "go.mod": "f2ce0b7119c26464cfe77453335ef30f4062cb789fade4df7f5ead4275831cba",
+    "go.sum": "dad172fe25bc35096f1c0c72d8fcb638c4cf82dd5d3a51804349844f1a3798cb",
+    "internal/ynxbatch/codec.go": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2",
+    "internal/ynxbatch/nist_test.go": "b4e3b81232662ce78102ec1453000e4158bb2e0f400899cdbc3c127e292bbcf8",
+    "internal/ynxbatch/provider.go": "702eb55b625a429dc37d6d2ae2374e036992da4cd5da583dbea63c45bddfecca",
+    "internal/ynxbatch/sign.go": "f20a23b80e1b121c79b71b339cd0e9f129e93c579f2e824684935c4657bacd79",
+    "internal/ynxbatch/testdata/js-interop.json": "c8d72589dd36c961b50b1016f8d0a8ebf8bbae8fcf5890a22d71e14308410e6d",
+    "internal/ynxbatch/testdata/nist-acvp.json": "6fb257e68050bd6bc9f57cc08ba74fafe55cebcb9ba3f84b711f2d2c5ce4a398",
+    "internal/ynxbatch/tree.go": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387",
+    "internal/ynxbatch/verify.go": "182e78c1c5040609c0c0562e2363eb2f895c9d1b862ccb6f72c9fe9bcc5b582a",
+    "internal/ynxbatch/ynxbatch_test.go": "ec8e1551bb1dd454e6f53b59e702f2d842716c1ad888d09b3769b5fbe6bf409d",
+    "scripts/loadtest/native-resource-probe.mjs": "57e6cc9764ccbeab062fe859f725bbe34753280c2ab25272379570dbf17c0a84",
+    "scripts/loadtest/native-resource-sample.mjs": "108c37cffb691ad9fdddfbd9603512c94ef8190393875a8148cc79ce2f315ea9",
+    "scripts/loadtest/owned-process-set.mjs": "46495a37051c13829d6567e8a1ef51342fc5c6e497e930267811e5404fc0151a"
+  },
+  "interopOut": "/Users/huangjiahao/.codex/worktrees/ynx-batch-v01/YNX Chain/internal/ynxbatch/testdata/go-interop-20261018-01.json",
+  "ownedScope": "launcher plus detached Go group and complete transitive descendants; native sampler control reserve; unrelated processes never signalled",
+  "firstCause": "native memory pressure is not normal: {\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0}",
+  "peakRSS": 0,
+  "peakThreads": 0,
+  "samples": [],
+  "probes": [
+    {
+      "startedAt": "2026-10-17T17:12:14.637Z",
+      "pid": 13360,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":13359,\"readable\":true,\"rssBytes\":57262080,\"virtualBytes\":501403893760,\"threads\":11}],\"watchedRssBytes\":57262080,\"watchedThreads\":11,\"samplerRssBytes\":1769472,\"samplerThreads\":1,\"rssWithControlReserveBytes\":60801024,\"threadsWithControlReserve\":13,\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":true,\"dispatchLevel\":2,\"errno\":0},\"host\":{\"processCount\":971,\"uid\":501,\"uidProcessCount\":803,\"unreadableBsdInfo\":168,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3964,\"capacityBytes\":8060,\"returnedBytes\":3888,\"queryErrno\":0,\"readErrno\":0,\"slots\":972,\"nonPositiveEntries\":1,\"positiveEntries\":971,\"duplicateEntries\":0,\"readableBsdInfo\":803,\"esrch\":0,\"eperm\":168,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":2496}\n",
+      "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":42}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":201}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":1350}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":1385}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":1974}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":2488}\n",
+      "exited": true,
+      "groupGone": true,
+      "elapsedMs": 13.911875000000002
+    }
+  ],
+  "go": null,
+  "groupGone": true,
+  "lastAttemptedResourceSample": {
+    "schema": 1,
+    "scope": "proc_pidtaskinfo watched processes",
+    "processes": [
+      {
+        "pid": 13359,
+        "readable": true,
+        "rssBytes": 57262080,
+        "virtualBytes": 501403893760,
+        "threads": 11
+      }
+    ],
+    "watchedRssBytes": 57262080,
+    "watchedThreads": 11,
+    "samplerRssBytes": 1769472,
+    "samplerThreads": 1,
+    "rssWithControlReserveBytes": 60801024,
+    "threadsWithControlReserve": 13,
+    "memoryPressure": {
+      "source": "kern.memorystatus_vm_pressure_level",
+      "readable": true,
+      "dispatchLevel": 2,
+      "errno": 0
+    },
+    "host": {
+      "processCount": 971,
+      "uid": 501,
+      "uidProcessCount": 803,
+      "unreadableBsdInfo": 168,
+      "scanComplete": true,
+      "maxproc": 6000,
+      "maxprocperuid": 4000,
+      "rlimitNprocSoft": 4000
+    },
+    "hostEnumeration": {
+      "requiredBytes": 3964,
+      "capacityBytes": 8060,
+      "returnedBytes": 3888,
+      "queryErrno": 0,
+      "readErrno": 0,
+      "slots": 972,
+      "nonPositiveEntries": 1,
+      "positiveEntries": 971,
+      "duplicateEntries": 0,
+      "readableBsdInfo": 803,
+      "esrch": 0,
+      "eperm": 168,
+      "eacces": 0,
+      "noErrno": 0,
+      "otherErrno": 0
+    },
+    "forkProbe": {
+      "available": true,
+      "forkSucceeded": true,
+      "forkErrno": 0,
+      "waitErrno": 0,
+      "childExitCode": 0,
+      "childSignal": 0
+    },
+    "elapsedMicroseconds": 2496
+  },
+  "elapsedMs": 14,
+  "freeDiskBytesAfter": 37828608000,
+  "sourcesUnchanged": true
+}

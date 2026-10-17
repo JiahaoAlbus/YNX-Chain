@@ -156,12 +156,13 @@ type Transaction struct {
 // Signature decoding stays at the API boundary; state application rechecks all
 // deterministic balance, nonce, fee, address, replay, and persistence rules.
 type SignedTransferInput struct {
-	Hash   string
-	From   string
-	To     string
-	Amount int64
-	Fee    int64
-	Nonce  uint64
+	PQMember []byte
+	Hash     string
+	From     string
+	To       string
+	Amount   int64
+	Fee      int64
+	Nonce    uint64
 	// EthereumRaw is independently verified at state admission. It is preserved
 	// in the existing authenticated Memo field, not mislabeled as a native signature.
 	EthereumRaw []byte

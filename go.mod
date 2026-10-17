@@ -3,6 +3,7 @@ module github.com/JiahaoAlbus/YNX-Chain
 go 1.25.13
 
 require (
+	github.com/cloudflare/circl v1.6.5
 	github.com/cometbft/cometbft v0.38.23
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
 	golang.org/x/crypto v0.55.0

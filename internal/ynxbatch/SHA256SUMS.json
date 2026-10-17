@@ -1,0 +1,54 @@
+{
+  "internal/ynxbatch/README.md": {
+    "bytes": 5790,
+    "sha256": "56258dae71a3705900780f7dfca366121efab4374897ce5c16f0d8104fdd5ead"
+  },
+  "internal/ynxbatch/codec.go": {
+    "bytes": 10489,
+    "sha256": "e92ab044072c4c410e769df912a927bb29ba1d5709f4642c066da7c7038203d2"
+  },
+  "internal/ynxbatch/nist_test.go": {
+    "bytes": 2701,
+    "sha256": "b4e3b81232662ce78102ec1453000e4158bb2e0f400899cdbc3c127e292bbcf8"
+  },
+  "internal/ynxbatch/provider.go": {
+    "bytes": 3230,
+    "sha256": "702eb55b625a429dc37d6d2ae2374e036992da4cd5da583dbea63c45bddfecca"
+  },
+  "internal/ynxbatch/sign.go": {
+    "bytes": 3653,
+    "sha256": "f20a23b80e1b121c79b71b339cd0e9f129e93c579f2e824684935c4657bacd79"
+  },
+  "internal/ynxbatch/testdata/acvp-sources.json": {
+    "bytes": 3014,
+    "sha256": "cad091fe8bb98a4e4ac455b4fba6d50b3c1a24328d4a79ebf2a514b065eee1a9"
+  },
+  "internal/ynxbatch/testdata/generate-js-fixture.mjs": {
+    "bytes": 3223,
+    "sha256": "cc11302b3ee9434953ef2f8d9b9d8e9a09aeb19fdcacaf633a2983337668f5a1"
+  },
+  "internal/ynxbatch/testdata/js-interop.json": {
+    "bytes": 249023,
+    "sha256": "c8d72589dd36c961b50b1016f8d0a8ebf8bbae8fcf5890a22d71e14308410e6d"
+  },
+  "internal/ynxbatch/testdata/nist-acvp.json": {
+    "bytes": 2215673,
+    "sha256": "6fb257e68050bd6bc9f57cc08ba74fafe55cebcb9ba3f84b711f2d2c5ce4a398"
+  },
+  "internal/ynxbatch/testdata/verify-go-fixture.mjs": {
+    "bytes": 1511,
+    "sha256": "23d23fb7089122b76d97dd865a219aa9203d472fcb7cf42a106e8d96483d3d78"
+  },
+  "internal/ynxbatch/tree.go": {
+    "bytes": 3853,
+    "sha256": "2affe538430a6bca557ecd7a726dbe750bebc51b1983c2c3df241adf1e6fb387"
+  },
+  "internal/ynxbatch/verify.go": {
+    "bytes": 8022,
+    "sha256": "182e78c1c5040609c0c0562e2363eb2f895c9d1b862ccb6f72c9fe9bcc5b582a"
+  },
+  "internal/ynxbatch/ynxbatch_test.go": {
+    "bytes": 13892,
+    "sha256": "ec8e1551bb1dd454e6f53b59e702f2d842716c1ad888d09b3769b5fbe6bf409d"
+  }
+}

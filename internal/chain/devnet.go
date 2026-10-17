@@ -23,6 +23,7 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
 const (
@@ -64,6 +65,7 @@ var requestValidityRules = []RequestValidityRule{
 }
 
 type Devnet struct {
+	accountPolicy            *ynxauth.State
 	mu                       sync.RWMutex
 	persistenceMu            sync.Mutex
 	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
@@ -264,6 +266,7 @@ func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
 }
 
 type devnetSnapshot struct {
+	AccountPolicy    *ynxauth.State                        `json:"accountPolicy,omitempty"`
 	Version          int                                   `json:"version"`
 	SavedAt          time.Time                             `json:"savedAt"`
 	StateIntegrity   string                                `json:"stateIntegrity,omitempty"`
@@ -995,6 +998,9 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(from); err != nil {
+		return Transaction{}, err
+	}
 	sender, receiver := d.accountReadOnly(from), d.accountReadOnly(to)
 	const fee int64 = 1
 	if amount > math.MaxInt64-fee || sender.Balance < amount+fee {
@@ -1074,6 +1080,9 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		}
 		return existing, true, nil
 	}
+	if err := d.verifyPQTransferLocked(input); err != nil {
+		return Transaction{}, false, err
+	}
 	sender, ok := d.accounts[input.From]
 	if !ok {
 		return Transaction{}, false, errors.New("signed transaction sender account does not exist")
@@ -1123,6 +1132,9 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 	}
 	if len(input.EthereumRaw) > 0 {
 		tx.Memo = ethnative.MemoPrefix + hex.EncodeToString(input.EthereumRaw)
+	}
+	if len(input.PQMember) > 0 {
+		tx.Memo = pqTransferMemo + hex.EncodeToString(input.PQMember)
 	}
 	d.pending = append(d.pending, tx)
 	tx, err = d.persistTransferLocked(tx, undo)
@@ -1271,6 +1283,9 @@ func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalan
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(address); err != nil {
+		return Transaction{}, ResourceBalance{}, err
+	}
 	account := d.account(address)
 	if account.Balance < amount {
 		return Transaction{}, ResourceBalance{}, errors.New("insufficient balance")
@@ -2524,6 +2539,9 @@ func (d *Devnet) DelegateResources(provider, beneficiary string, amount int64) (
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(provider); err != nil {
+		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
+	}
 	policy := d.resourcePolicy.withCurrentHash()
 	if err := policy.Validate(); err != nil {
 		return ResourceDelegation{}, Transaction{}, ResourceBalance{}, err
@@ -2579,6 +2597,9 @@ func (d *Devnet) RentResources(address, provider string, bandwidth, compute, aiC
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(address); err != nil {
+		return ResourceRental{}, ResourceBalance{}, err
+	}
 	if provider == "" {
 		provider = ProtocolResourceProvider
 	}
@@ -2718,6 +2739,9 @@ func (d *Devnet) DeployContractWithArgs(deployer, name, source string, construct
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(deployer); err != nil {
+		return ContractArtifact{}, Transaction{}, err
+	}
 	account := d.account(deployer)
 	const fee int64 = 10
 	if account.Balance < fee {
@@ -2860,6 +2884,9 @@ func (d *Devnet) ExecuteContract(caller, address, callData string) (ContractCall
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(caller); err != nil {
+		return ContractCallResult{}, Transaction{}, err
+	}
 	artifact, ok := d.contracts[address]
 	if !ok {
 		artifact, ok = d.contracts[evmAddressForLog(address)]
@@ -3429,11 +3456,18 @@ func (d *Devnet) loadSnapshot() error {
 	if err != nil {
 		return err
 	}
-	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion {
+	if snapshot.Version != legacyDevnetSnapshotVersion && snapshot.Version != devnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
 		return fmt.Errorf("unsupported devnet snapshot version %d", snapshot.Version)
 	}
 	if markerPresent && snapshot.Version < devnetSnapshotVersion {
 		return errors.New("devnet snapshot integrity downgrade rejected after v2 migration")
+	}
+	marker, markerErr := readSnapshotIntegrityVersion(d.snapshotIntegrityMarkerPath())
+	if markerErr != nil {
+		return markerErr
+	}
+	if marker == pqDevnetSnapshotVersion && snapshot.Version != pqDevnetSnapshotVersion {
+		return errors.New("PQ snapshot downgrade rejected")
 	}
 	if snapshot.Config.ChainID != d.cfg.ChainID {
 		return fmt.Errorf("snapshot chain ID %d does not match configured chain ID %d", snapshot.Config.ChainID, d.cfg.ChainID)
@@ -3449,6 +3483,9 @@ func (d *Devnet) loadSnapshot() error {
 	}
 	if err := validateResourceSponsorSnapshot(snapshot); err != nil {
 		return fmt.Errorf("validate Resource sponsor snapshot: %w", err)
+	}
+	if err := validateAccountPolicySnapshot(snapshot); err != nil {
+		return err
 	}
 	d.applySnapshotLocked(snapshot)
 	return nil
@@ -3527,7 +3564,7 @@ func validateSnapshotIntegrityMarker(path string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("read devnet snapshot integrity marker: %w", err)
 	}
-	if string(payload) != "2\n" {
+	if string(payload) != "2\n" && string(payload) != "3\n" {
 		return false, errors.New("devnet snapshot integrity marker is invalid")
 	}
 	return true, nil

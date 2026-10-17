@@ -145,6 +145,9 @@ func (d *Devnet) CreateResourcePool(input ResourcePoolCreateInput) (ResourcePool
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(auth.Signer); err != nil {
+		return ResourcePool{}, Transaction{}, err
+	}
 	if pool, tx, replay, err := d.resourcePoolReplayLocked(auth.Signer, normalized.IdempotencyKey, ResourcePoolCreateAction, requestHash); replay || err != nil {
 		return pool, tx, err
 	}
@@ -191,6 +194,9 @@ func (d *Devnet) FundResourcePool(input ResourcePoolFundInput) (ResourcePool, Tr
 	requestHash := resourceSponsorRequestHash(ResourcePoolFundAction, input)
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(auth.Signer); err != nil {
+		return ResourcePool{}, Transaction{}, err
+	}
 	if pool, tx, replay, err := d.resourcePoolReplayLocked(auth.Signer, input.IdempotencyKey, ResourcePoolFundAction, requestHash); replay || err != nil {
 		return pool, tx, err
 	}
@@ -244,6 +250,9 @@ func (d *Devnet) UpdateResourcePoolPolicy(input ResourcePoolPolicyInput) (Resour
 	requestHash := resourceSponsorRequestHash(ResourcePoolPolicyAction, normalized)
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(auth.Signer); err != nil {
+		return ResourcePool{}, Transaction{}, err
+	}
 	if pool, tx, replay, err := d.resourcePoolReplayLocked(auth.Signer, normalized.IdempotencyKey, ResourcePoolPolicyAction, requestHash); replay || err != nil {
 		return pool, tx, err
 	}
@@ -298,6 +307,9 @@ func (d *Devnet) UpdateResourcePoolStatus(input ResourcePoolStatusInput) (Resour
 	requestHash := resourceSponsorRequestHash(ResourcePoolStatusAction, input)
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(auth.Signer); err != nil {
+		return ResourcePool{}, Transaction{}, err
+	}
 	if pool, tx, replay, err := d.resourcePoolReplayLocked(auth.Signer, input.IdempotencyKey, ResourcePoolStatusAction, requestHash); replay || err != nil {
 		return pool, tx, err
 	}
@@ -349,6 +361,9 @@ func (d *Devnet) SponsorResource(input ResourceSponsorshipInput) (ResourceSponso
 	requestHash := resourceSponsorRequestHash(ResourceSponsorAction, normalized)
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if err := d.requireLegacyAccountLocked(auth.Signer); err != nil {
+		return ResourceSponsorship{}, Transaction{}, err
+	}
 	if sponsorship, tx, replay, err := d.resourceSponsorshipReplayLocked(auth.Signer, normalized.IdempotencyKey, requestHash); replay || err != nil {
 		return sponsorship, tx, err
 	}
@@ -365,6 +380,11 @@ func (d *Devnet) SponsorResource(input ResourceSponsorshipInput) (ResourceSponso
 	pool, err := d.selectResourcePoolLocked(normalized, time.Now().UTC())
 	if err != nil {
 		return ResourceSponsorship{}, Transaction{}, err
+	}
+	if accountaddress.IsCanonical(pool.Owner) {
+		if err := d.requireLegacyAccountLocked(pool.Owner); err != nil {
+			return ResourceSponsorship{}, Transaction{}, err
+		}
 	}
 	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
