@@ -31,6 +31,7 @@ import * as pqKeySDK from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import * as pqBackupSDK from '@ynx-chain/wallet-auth/pq-wallet-backup';
 import * as pqContractSDK from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {acquireOriginalWalletTransactionPolicy,isOriginalWalletTransactionPolicy} from './original-policy-supplier/transaction-resource.mjs';
+import {acquireOriginalAccountPolicy,isOriginalAccountPolicyResource} from './original-policy-supplier/session-resource.mjs';
 import {CANONICAL_NETWORK_ID as PQ_CANONICAL_NETWORK_ID} from './original-policy-supplier/operator-query.mjs';
 import {initializeOriginalAuthIdentityStartup} from './original-auth-identity-startup.mjs';
 import {originalAuthIdentityStartupUnresolved} from '../../../packages/wallet-auth/src/original-auth-identity-private-joint-registration.js';
@@ -732,6 +733,8 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     // undeployed or unhealthy query is a refusal, never a substitute policy.
     pqPolicySource:acquireOriginalWalletTransactionPolicy,
     pqPolicyRecognized:isOriginalWalletTransactionPolicy,
+    pqSessionSource:acquireOriginalAccountPolicy,
+    pqSessionRecognized:isOriginalAccountPolicyResource,
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,
     vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),

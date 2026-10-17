@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
-import {webcrypto} from 'node:crypto';
+import {webcrypto,createECDH} from 'node:crypto';
 import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 import {PasswordWalletVault} from '../src/password-wallet-vault.mjs';
@@ -20,6 +20,10 @@ import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
 import {createPQTransferReviewUI} from '../src/wallet-pq-transfer-ui.mjs';
 import {createPQMigrationReviewUI} from '../src/wallet-pq-migration-ui.mjs';
 import {runInNewContext} from 'node:vm';
+import {createProductSessionRequest,ynxAddressFromEVM} from '@ynx-chain/wallet-auth';
+import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
+import {captureProductSessionAccountPolicy} from '@ynx-chain/wallet-auth/product-session-account-policy';
+import {verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 const SDK=Object.freeze({...keySDK,...backupSDK,...contractSDK}),PASSWORD='isolated-PQ-app-fixture-password',SECRET='1'.padStart(64,'0'),CHAIN='a'.repeat(64);
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
@@ -248,4 +252,36 @@ test('mounted migration form reaches original main and pending approval with act
  const form=nodes.get('#pq-migration-form'),height=nodes.get('#pq-migration-height'),button=form.children[3],notice=form.children[4];height.value='60';assert.equal(button.disabled,false);
  await form.submit({preventDefault(){}});assert.match(notice.textContent,/approval window/);assert.equal(events.length,1);assert.equal(events[0][1].method,'ynx_signPQMigration');assert.equal((await f.store.readPQOriginals(f.account,()=>{})).length,0);
  const result=await handlers.get('wallet:provider-action')({},events[0][1].id,'approve');assert.equal(result.result.submitted,false);assert.equal(result.responseDelivered,false);assert.equal((await f.store.readPQOriginals(f.account,()=>{}))[0].kind,'pq-migration');
+});
+function sessionQA(f,{legacy=false}={}){
+ const at=new Date(),keys=pqPublicBindingToRegistrationKeys(f.binding),counts={acquire:0,recheck:0,retire:0,join:0,close:0};let retired=false;
+ const view=Object.freeze({version:'YNX-PRODUCT-SESSION-ACCOUNT-POLICY/v1',networkId:CHAIN,canonicalOwner:f.account,checkpoint:Object.freeze({kind:'trusted-node-committed/v1',height:'9007199254740993',blockHash:'22'.repeat(32)}),policyVersion:'YNX-ACCOUNT-POLICY/v1',algorithmVersion:legacy?'legacy':'YNX-BATCH/v0.1',activeRecord:legacy?null:Object.freeze({revision:'1',registeredAt:'10',activeFrom:'20',pkA:keys.pkA,pkB:keys.pkB}),observedAt:at.toISOString(),expiresAt:new Date(at.getTime()+60000).toISOString()});
+ const resource={readOriginal:()=>view,assertCurrent(){if(retired)throw Error('QA_RETIRED');},async recheck(){counts.recheck++;},retire(){counts.retire++;retired=true;},async join(){counts.join++;},async close(){counts.close++;}};
+ const device=createECDH('prime256v1');device.setPrivateKey(Buffer.alloc(32,7));
+ const request=createProductSessionRequest(PRODUCT_SESSION_REGISTRY,{productId:'finance',platform:'web',deviceId:'a'.repeat(43),deviceKey:device.getPublicKey(null,'compressed').toString('base64url'),scopes:['finance.portfolio.read'],purpose:'Explicit isolated QA sign-in',nonce:'b'.repeat(43),state:'c'.repeat(43)},at);
+ const options={vault:f.vault,permissions:new MemoryPermissionStore(),clock:()=>at,pqNetworkId:CHAIN,pqSessionSource:async input=>{counts.acquire++;assert.equal(input.owner,f.account);assert.equal(input.operation,'approval');return resource;},pqSessionRecognized:value=>value===resource};
+ return {at,view,resource,request,counts,options};
+}
+test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
+ let classic=0;f.vault.withSecret=()=>{classic++;assert.fail('active PQ cannot use classic approval');};
+ const result=await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));assert.equal(result.approval.version,'3');assert.ok(result.callbackUrl.length>4096);assert.ok(result.callbackUrl.length<=262144);assert.equal(classic,0);assert.equal('verifiedApproval' in result,false);assert.equal('observation' in result,false);
+ const independent={...s.resource,assertCurrent(){},readOriginal:()=>s.view},observation=captureProductSessionAccountPolicy(independent,{networkId:CHAIN,account:ynxAddressFromEVM(f.account)},s.at);
+ assert.equal(verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,s.request,result.approval,observation,s.at).approval.walletProof,result.approval.walletProof);assert.deepEqual(s.counts,{acquire:1,recheck:2,retire:1,join:1,close:1});
+});
+test('normal session source failure captures its partial and never enters classic fallback',async t=>{
+ const f=await fixture(t),s=sessionQA(f),failure=Object.assign(new Error('QA_SOURCE_REFUSED'),{code:'QA_SOURCE_REFUSED'});Object.defineProperty(failure,'partial',{value:s.resource});let signs=0;f.vault.withSecret=()=>{signs++;};
+ const authority=new DesktopWalletAuthority({...s.options,pqSessionSource:async()=>{throw failure;}});await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e===failure);assert.equal(signs,0);assert.equal(s.counts.retire,1);assert.equal(s.counts.join,1);assert.equal(s.counts.close,1);
+});
+test('normal lawful legacy session requires the same fresh committed source instead of treating the PQ backup as activation',async t=>{
+ const f=await fixture(t),s=sessionQA(f,{legacy:true}),authority=new DesktopWalletAuthority(s.options);
+ const result=await f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));assert.equal(result.approval.version,'2');assert.ok(result.callbackUrl.length<=4096);assert.equal(s.counts.recheck,2);assert.equal(s.counts.close,1);
+});
+test('original source acquisition reservation prevents overlapping session and transaction resources before either returns',async t=>{
+ const f=await fixture(t),s=sessionQA(f);let release,entered;const acquired=new Promise(resolve=>{entered=resolve;});
+ const authority=new DesktopWalletAuthority({...s.options,pqSessionSource:async()=>{s.counts.acquire++;entered();await new Promise(resolve=>{release=resolve;});return s.resource;},pqPolicySource:async()=>{assert.fail('must not acquire a second original');},pqPolicyRecognized:()=>true});
+ const first=f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account));await acquired;
+ await assert.rejects(f.lifecycle.run(()=>authority.approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
+ await assert.rejects(f.lifecycle.run(()=>authority.requestPQTransfer({to:'0x'+'2'.repeat(40),amount:'3'})),error=>error.data?.code==='PQ_POLICY_RESOURCE_UNRESOLVED');
+ f.lifecycle.lock();release();await assert.rejects(first);await authority.shutdownPQReviews();assert.equal(s.counts.acquire,1);assert.equal(s.counts.close,1);
 });

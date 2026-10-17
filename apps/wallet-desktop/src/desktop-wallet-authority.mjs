@@ -1,12 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
-import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval,evmAddressFromYNX } from "@ynx-chain/wallet-auth";
+import { createProductSessionReturnURL, parseProductSessionWalletURL, signProductSessionApproval,evmAddressFromYNX,ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "./permission-lease.mjs";
 import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding,planPQAccountMigration,preparePQClassicMigrationAuthorization,preparePQClassicMigrationProof,preparePQReviewedMigrationTransport} from '@ynx-chain/wallet-auth/pq-wallet-policy';
-import {signPQWalletNativeTransfer,createPQWalletMigrationPossession} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import {signPQWalletNativeTransfer,createPQWalletMigrationPossession,signPQWalletProductSessionApproval} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import {captureProductSessionAccountPolicy,readProductSessionAccountPolicy,pqProductSessionRegisteredPublicBinding} from '@ynx-chain/wallet-auth/product-session-account-policy';
+import {preparePQProductSessionApproval,verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
 import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
@@ -31,8 +33,10 @@ export class DesktopWalletAuthority {
   #activeReviews = new Map();
   #pqReviews = new WeakMap();
   #pqPolicySource; #pqPolicyRecognized; #pqNetworkId; #pqOwners=new Set();
+  #pqSessionSource; #pqSessionRecognized;
+  #pqAcquiring=false;
   #pqInFlight=new Set(); #pqShuttingDown=false; #pqShutdownPass=null;
-  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null }) {
+  constructor({ vault, permissions, transactionSender, requestId = randomUUID, clock = () => new Date(), pqPolicySource = null, pqPolicyRecognized = null, pqNetworkId = null, pqSessionSource = null, pqSessionRecognized = null }) {
     this.vault = vault;
     this.permissions = permissions;
     this.transactionSender = transactionSender;
@@ -45,6 +49,8 @@ export class DesktopWalletAuthority {
     if(pqNetworkId!==null&&(typeof pqNetworkId!=='string'||! /^[0-9a-f]{64}$/.test(pqNetworkId)))throw Error('PQ_POLICY_NETWORK_INVALID');
     if(pqPolicyRecognized!==null&&typeof pqPolicyRecognized!=='function')throw Error('PQ_POLICY_PREDICATE_INVALID');
     this.#pqPolicySource=pqPolicySource;this.#pqPolicyRecognized=pqPolicyRecognized;this.#pqNetworkId=pqNetworkId;
+    if(pqSessionSource!==null&&typeof pqSessionSource!=='function'||pqSessionRecognized!==null&&typeof pqSessionRecognized!=='function')throw Error('PQ_SESSION_SOURCE_INVALID');
+    this.#pqSessionSource=pqSessionSource;this.#pqSessionRecognized=pqSessionRecognized;
   }
   #closePQ(owner,...causes){
     if(causes.length)owner.retire(causes[0]);
@@ -64,9 +70,10 @@ export class DesktopWalletAuthority {
     if(migration?typeof input.activateAt!=='string'||! /^[1-9][0-9]{0,19}$/.test(input.activateAt):typeof input.amount!=='string'||! /^[1-9][0-9]{0,18}$/.test(input.amount))throw providerError(-32602,'PQ_TRANSFER_INPUT_INVALID','Use canonical integer values.');
     const guard=this.vault.authorization.current(),permission=this.permissions.authorizationLease('ynx-wallet:local-pq');guard.assert();permission.assert();
     if(!this.#pqPolicySource||!this.#pqPolicyRecognized||!this.#pqNetworkId)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Trusted current transaction policy is not supplied. Nothing was signed or sent.');
-    this.#pruneExpired();if(this.#pqOwners.size)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
+    this.#pruneExpired();if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
     const status=await this.vault.status();guard.assert();permission.assert();if(!status.initialized||status.account!==guard.account)throw providerError(4100,'ACCOUNT_CHANGED','Review the original selected account.');
-    let resource;
+    if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
+    let resource;this.#pqAcquiring=true;
     try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation:migration?'migration':'transfer',at:this.clock().toISOString()});}
     catch(error){
       // Auth's failed initialization throws an original partial, even though
@@ -74,7 +81,7 @@ export class DesktopWalletAuthority {
       let partial;try{const descriptor=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(descriptor&&Object.hasOwn(descriptor,'value'))partial=descriptor.value;}catch{}
       if(partial){const owner=retainPQPolicyResource(partial,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);try{await this.#closePQ(owner,error);}catch{}}
       throw error;
-    }
+    }finally{this.#pqAcquiring=false;}
     // Capture a returned original before ANY post-await lifecycle check.
     const owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);
     try{
@@ -105,6 +112,9 @@ export class DesktopWalletAuthority {
   async selectAccount(account) { this.cancelAll(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
   async approveCanonicalAuthorization(request, issuedAt, expectedAccount, permission) {
     if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
+    // Normal main always supplies this port. Its refusal never falls through
+    // to historical classic authorization, even on cached/cold requests.
+    if(this.#pqSessionSource)return this.#trackPQ(()=>this.#approveCurrentSession(request,expectedAccount,permission));
     return this.vault.withSecret((secret, identity) => {
       permission?.assert();
       if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
@@ -112,6 +122,43 @@ export class DesktopWalletAuthority {
       const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt, ...(request.serviceConsent ? { approvedServiceConsent: request.serviceConsent } : {}) }, at);
       return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
     },permission);
+  }
+  async #approveCurrentSession(request,account,permission){
+    const guard=bindPermissionGuard(this.vault.authorization.current(),permission);guard.assert();
+    if(guard.account!==account)throw providerError(4100,'ACCOUNT_CHANGED','Review the selected original account.');
+    if(!this.#pqNetworkId||!this.#pqSessionRecognized)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','The fixed committed policy source is required.');
+    if(this.#pqOwners.size||this.#pqAcquiring)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy cleanup first.');
+    let resource,owner,failed=false,cause,result;
+    try{
+      this.#pqAcquiring=true;
+      try{resource=await this.#pqSessionSource({networkId:this.#pqNetworkId,owner:account,operation:'approval',at:this.clock().toISOString()});}
+      catch(error){const d=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'partial'):null;if(d&&Object.hasOwn(d,'value')&&d.value){owner=retainPQPolicyResource(d.value,{networkId:this.#pqNetworkId,account,now:this.clock});this.#pqOwners.add(owner);}throw error;}
+      finally{this.#pqAcquiring=false;}
+      // Capture before qualification/lifecycle checks. This wrapper owns only
+      // cleanup here; the distinct SDK session parser owns committed policy.
+      owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account,now:this.clock});this.#pqOwners.add(owner);guard.assert();
+      if(this.#pqSessionRecognized(resource)!==true)throw providerError(4100,'ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','The original committed source is not recognized.');
+      const originalAccount=ynxAddressFromEVM(account),observation=captureProductSessionAccountPolicy(resource,{networkId:this.#pqNetworkId,account:originalAccount},this.clock());
+      if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();owner.assert();
+      const at=this.clock(),policy=readProductSessionAccountPolicy(observation,originalAccount,at);
+      if(policy.algorithmVersion==='legacy'){
+        result=await this.vault.withSecret((secret,identity)=>{
+          guard.assert();assertReviewedAccount(identity.account,account);readProductSessionAccountPolicy(observation,originalAccount,this.clock());
+          const approval=signProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{accountSecret:secret,scopes:request.scopes,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},this.clock());
+          return Object.freeze({approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval},this.clock())});
+        },permission);
+      }else{
+        const binding=pqProductSessionRegisteredPublicBinding(observation,originalAccount,at),plan=preparePQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,{account:originalAccount,expiresAt:request.expiresAt,...(request.serviceConsent?{approvedServiceConsent:request.serviceConsent}:{})},observation,at);
+        result=await this.vault.withPQKeys(binding,handle=>{
+          guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
+          const approval=signPQWalletProductSessionApproval(handle,plan,this.clock()),verified=verifyPQProductSessionApproval(PRODUCT_SESSION_REGISTRY,request,approval,observation,this.clock());
+          return Object.freeze({approval:verified.approval,callbackUrl:createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY,request,{result:'approved',approval:verified.approval},this.clock(),verified.verifiedApproval)});
+        },permission);
+      }
+      guard.assert();if(await resource.recheck()!==undefined)throw providerError(4100,'ACCOUNT_POLICY_CURRENT_REFUSED','Current source recheck failed.');guard.assert();readProductSessionAccountPolicy(observation,originalAccount,this.clock());
+    }catch(error){failed=true;cause=error;}
+    finally{if(owner)try{await this.#closePQ(owner,...(failed?[cause]:[]));}catch(error){if(!failed){failed=true;cause=error;}}}
+    if(failed)throw cause;guard.assert();return result;
   }
   async approveOrigin(originInput, expectedAccount = null) {
     const origin = exactHttpsOrigin(originInput);
