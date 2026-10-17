@@ -162,9 +162,15 @@ export function preparePQMigrationTransport(wire) {
   return Object.freeze({method: 'POST', path: '/accounts/' + decoded.intent.owner + '/authorization/migrate', contentType: 'application/octet-stream', get body() { return Buffer.from(snapshot); },
     transportHash: pqWireHash(snapshot), admissionIsFinality: false});
 }
-export function preparePQTransferTransport(memberWire) {
+export function decodePQTransferRequest(memberWire) {
   const body = copyWire(memberWire, 262144), member = decodeMember(body), transfer = decodePQNativeTransfer(member.message);
   certificateMatches(member.certificate, {chainId: transfer.chainId, owner: transfer.from}, 'TX-BATCH');
   if (member.certificate.N !== 1 || member.index !== 0 || member.pathA.length !== 0 || member.pathB.length !== 0) throw pqError('PQ_STANDALONE_N1_REQUIRED');
-  return Object.freeze({method: 'POST', path: '/transactions/pq/broadcast', contentType: 'application/octet-stream', get body() { return Buffer.from(body); }, transportHash: pqWireHash(body), admissionIsFinality: false});
+  return Object.freeze({transfer, purpose: 'TX-BATCH', N: 1, index: 0,
+    pkA: member.certificate.pkA.toString('hex'), pkB: member.certificate.pkB.toString('hex'),
+    transportHash: pqWireHash(body)});
+}
+export function preparePQTransferTransport(memberWire) {
+  const body = copyWire(memberWire, 262144), decoded = decodePQTransferRequest(body);
+  return Object.freeze({method: 'POST', path: '/transactions/pq/broadcast', contentType: 'application/octet-stream', get body() { return Buffer.from(body); }, transportHash: decoded.transportHash, admissionIsFinality: false});
 }

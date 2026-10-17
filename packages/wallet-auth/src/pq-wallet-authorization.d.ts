@@ -34,4 +34,7 @@ export function pqWireHash(wire: Uint8Array): string;
 export function preparePQAuthorizationQuery(owner: string): Readonly<{method: 'GET'; path: string}>;
 export function preparePQOriginalLookup(hash: string): Readonly<{method: 'GET'; path: string}>;
 export function preparePQMigrationTransport(wire: Uint8Array): PQTransportRequest;
+/** Structural/context binding and exact N1 only; not account authority, signature
+ * math validation, chain admission or finality. All returned data are detached/frozen. */
+export function decodePQTransferRequest(wire: Uint8Array): Readonly<{transfer: Readonly<PQNativeTransfer>; purpose: 'TX-BATCH'; N: 1; index: 0; pkA: string; pkB: string; transportHash: string}>;
 export function preparePQTransferTransport(wire: Uint8Array): PQTransportRequest;
