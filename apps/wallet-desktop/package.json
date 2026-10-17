@@ -52,6 +52,7 @@
       "main": "code/apps/wallet-desktop/src/main.mjs"
     },
     "removePackageScripts": false,
+    "removePackageKeywords": false,
     "protocols": [
       {
         "name": "YNX Wallet Authorization",

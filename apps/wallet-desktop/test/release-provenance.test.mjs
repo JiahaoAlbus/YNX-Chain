@@ -14,6 +14,17 @@ import {walletAuthDependencyPlan} from '../scripts/wallet-auth-dependencies.mjs'
 test('normal builder metadata selects canonical entry before its post-afterPack sanity check',()=>{
  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));assert.equal(pkg.main,'src/main.mjs');assert.equal(pkg.build.extraMetadata.main,CANONICAL_MAIN);
 });
+test('R24 normal builder retains pinned dependency metadata before canonical assembly',async()=>{
+ const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url))),{createTransformer}=require('app-builder-lib/out/fileTransformer.js');
+ assert.equal(pkg.build.removePackageScripts,false);assert.equal(pkg.build.removePackageKeywords,false);
+ const keep=createTransformer(project,pkg.build),old=createTransformer(project,{...pkg.build,removePackageKeywords:true});
+ for(const name of ['curves','hashes']){
+  const relative='@noble/'+name+'/package.json',file=path.join(dependencyRoot,relative),bytes=readFileSync(file),pin=dependencyManifest.files.find(p=>p.path===relative);
+  assert.equal(bytes.length,pin.bytes);assert.equal(createHash('sha256').update(bytes).digest('hex'),pin.sha256);
+  assert.equal(await keep(file),null);const changed=await old(file);assert.equal(typeof changed,'string');assert.notEqual(createHash('sha256').update(changed).digest('hex'),pin.sha256);
+  const original=JSON.parse(bytes);delete original.keywords;assert.deepEqual(JSON.parse(changed),original);
+ }
+});
 test('Native normal build has the six Auth-frozen units and libbsm for every architecture',()=>{
  for(const arch of ['arm64','x64','universal']){
   const p=originalAuthNativeBuildPlan(arch,'/PUBLIC/headers');
