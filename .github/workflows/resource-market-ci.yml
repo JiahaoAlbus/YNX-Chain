@@ -12,12 +12,18 @@ on:
       - 'scripts/verify/resource-market*'
       - '.github/workflows/resource-market-ci.yml'
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: Exact candidate commit for the isolated PQ branch only
+        required: false
+        type: string
 
 permissions:
   contents: read
 
 jobs:
   verify:
+    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -69,3 +75,49 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 6
+
+  focused-go:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' && inputs.candidate_sha == github.sha
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOMAXPROCS: '2'
+      GOGC: '50'
+      GOMEMLIMIT: '1536MiB'
+      CGO_ENABLED: '0'
+      GOPROXY: https://proxy.golang.org
+      GOSUMDB: sum.golang.org
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.candidate_sha }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Record exact candidate identity
+        run: |
+          git rev-parse HEAD
+          go version
+          git status --porcelain
+      - name: Verify pure dual-PQ protocol and account authorization
+        run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth
+      - name: Verify native ledger and HTTP PQ integration
+        run: go test -p 1 -count=1 -timeout=180s -run '^TestPQ' ./internal/chain ./internal/api
+      - name: Compile production entry points
+        run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-app-gatewayd ./internal/consensus ./internal/appgateway ./internal/paygateway
+      - name: Emit public inverse interop fixture
+        env:
+          YNX_BATCH_INTEROP_OUT: /tmp/ynx-go-public-interop.json
+        run: |
+          go test -p 1 -count=1 -timeout=90s -run '^TestRealSigner$' ./internal/ynxbatch
+          test -s "$YNX_BATCH_INTEROP_OUT"
+          sha256sum "$YNX_BATCH_INTEROP_OUT"
+      - name: Upload public signature fixture
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-public-go-interop-${{ github.sha }}
+          path: /tmp/ynx-go-public-interop.json
+          if-no-files-found: error
+          retention-days: 7
