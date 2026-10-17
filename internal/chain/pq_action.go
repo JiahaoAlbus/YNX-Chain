@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"math"
+	"reflect"
 	"strings"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
@@ -258,8 +259,18 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 	if tx.Type != typeName || tx.To != to || tx.Amount != amount || tx.Fee != wantFee {
 		return errors.New("PQ historical action execution fields mismatch")
 	}
-	if tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" || len(tx.Logs) != 0 {
+	if tx.Sponsor != "" || tx.SponsorPoolID != "" || tx.ResourceSource != "" || tx.ResourceType != "" || tx.ResourceConsumed != 0 || tx.ActionReference != "" {
 		return errors.New("PQ action history contains unsigned execution metadata")
+	}
+	// ProduceBlock adds the deterministic system log after admission. Check its
+	// full projection here; the complete snapshot pass separately binds both
+	// positional indices to the actual containing block, not to these claims.
+	var txIndex, logIndex uint64
+	if len(tx.Logs) == 1 {
+		txIndex, logIndex = tx.Logs[0].TransactionIndex, tx.Logs[0].LogIndex
+	}
+	if err := validatePQActionLogs(tx, txIndex, logIndex); err != nil {
+		return err
 	}
 	var feeLots int64
 	for _, flow := range tx.LotFlows {
@@ -272,4 +283,32 @@ func validateHistoricalPQAction(tx Transaction, state *ynxauth.State, height uin
 		return errors.New("PQ action fee lacks exact provenance")
 	}
 	return state.VerifyMember(a.Owner, ynxauth.TransactionPurpose, h.Message, h.Wire, height)
+}
+
+func validatePQActionLogs(tx Transaction, txIndex, firstLogIndex uint64) error {
+	if tx.BlockNum == 0 {
+		if tx.BlockHash != "" || len(tx.Logs) != 0 {
+			return errors.New("pending PQ action contains block identity or logs")
+		}
+		return nil
+	}
+	if tx.BlockHash == "" {
+		return errors.New("mined PQ action lacks block identity")
+	}
+	// These actions generate exactly the ordinary system projection. Contract
+	// execution logs and arbitrary caller metadata are outside this dispatch.
+	switch tx.Type {
+	case "stake", "resource_delegate", "resource_rent",
+		NativeDexActionAssetCreate, NativeDexActionAssetMint, NativeDexActionAssetTransfer,
+		NativeDexActionPoolCreate, NativeDexActionLiquidityAdd, NativeDexActionLiquidityRemove,
+		NativeDexActionSwapExactInput, NativeDexActionSwapExactOutput:
+	default:
+		return errors.New("unsupported PQ action log projection")
+	}
+	projection := Devnet{}
+	expected := projection.evmLogsForTransactionLocked(tx, txIndex, firstLogIndex)
+	if len(expected) != 1 || !reflect.DeepEqual(tx.Logs, expected) {
+		return errors.New("PQ action log differs from deterministic execution projection")
+	}
+	return nil
 }

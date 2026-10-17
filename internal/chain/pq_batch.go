@@ -103,7 +103,7 @@ func authenticatePQBatch(wire []byte, state *ynxauth.State, height uint64, chain
 	if len(wire) == 0 || len(wire) > MaxPQBatchBytes {
 		return nil, errors.New("PQ batch wire exceeds bound")
 	}
-	if state == nil || state.Version != ynxauth.PolicyVersion || height < state.EnableAt {
+	if state == nil || !accountPolicyVersionSupported(state.Version) || height < state.EnableAt {
 		return nil, ynxauth.ErrPolicy
 	}
 	if err := state.Validate(state.NetworkID); err != nil {
@@ -118,11 +118,7 @@ func authenticatePQBatch(wire []byte, state *ynxauth.State, height uint64, chain
 		return nil, err
 	}
 	v, err := ynxbatch.NewVerifier(ynxbatch.VerifierOptions{ChainID: state.NetworkID, Purpose: ynxauth.TransactionPurpose, CacheEntries: 1, Optimized: true, ResolveTrustedOwner: func(req ynxbatch.TrustRequest) (ynxbatch.Registration, error) {
-		r, ok := state.PolicyAt(req.Owner, req.Height)
-		if !ok || req.Height < state.EnableAt {
-			return ynxbatch.Registration{}, ynxauth.ErrPolicy
-		}
-		return ynxbatch.Registration{AlgorithmVersion: r.AlgorithmVersion, Owner: r.Owner, Purpose: ynxauth.TransactionPurpose, PolicyRevision: strconv.FormatUint(r.Revision, 10), ChainID: state.NetworkID, PKA: r.PKA, PKB: r.PKB, Enabled: true, ActiveFrom: r.ActiveFrom}, nil
+		return state.TrustedRegistration(req.Owner, ynxauth.TransactionPurpose, req.Height)
 	}})
 	if err != nil {
 		return nil, err
@@ -146,8 +142,14 @@ func (a *pqBatchAdmission) transfer(index uint32, height uint64) (ynxauth.Transf
 	// Refresh complete trusted registration on every member without decoding or
 	// copying the 57 KiB certificate again. The private object was constructed
 	// only after genuine AND verification and complete dual-tree coverage.
-	if a.state == nil || a.state.Version != ynxauth.PolicyVersion || a.state.EnableAt != a.enableAt || height < a.enableAt || !bytes.Equal(a.state.NetworkID, a.whole.Certificate.ChainID) || a.whole.Certificate.Purpose != ynxauth.TransactionPurpose {
+	if a.state == nil || !accountPolicyVersionSupported(a.state.Version) || a.state.EnableAt != a.enableAt || height < a.enableAt || !bytes.Equal(a.state.NetworkID, a.whole.Certificate.ChainID) || a.whole.Certificate.Purpose != ynxauth.TransactionPurpose {
 		return ynxauth.Transfer{}, ynxauth.ErrPolicy
+	}
+	// Bare Record equality omits revocation. Re-resolve effective eligibility for
+	// every member before applying any effect, including on a previously verified
+	// Whole. Historical calls use their original execution height here as well.
+	if _, err := a.state.TrustedRegistration(a.whole.Certificate.Owner, ynxauth.TransactionPurpose, height); err != nil {
+		return ynxauth.Transfer{}, err
 	}
 	current, active := a.state.PolicyAt(a.whole.Certificate.Owner, height)
 	if !active || !equalAccountPolicyRecord(current, a.trusted) || current.AlgorithmVersion != ynxbatch.Version || !bytes.Equal(current.PKA, a.whole.Certificate.PKA) || !bytes.Equal(current.PKB, a.whole.Certificate.PKB) {

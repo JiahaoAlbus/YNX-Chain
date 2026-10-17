@@ -45,5 +45,16 @@ func transactionReadResponse(tx chain.Transaction, durability chain.TransactionD
 			}
 		}
 	}
+	if strings.HasPrefix(tx.Memo, "ynx-pq-revocation-v1:") {
+		out.WireHash = tx.Hash
+		wire, err := hex.DecodeString(strings.TrimPrefix(tx.Memo, "ynx-pq-revocation-v1:"))
+		if err == nil {
+			if revoked, err := ynxauth.DecodeRevocation(wire); err == nil {
+				for name, value := range revocationDecimalFields(revoked.Intent) {
+					fields[name] = value
+				}
+			}
+		}
+	}
 	return out
 }

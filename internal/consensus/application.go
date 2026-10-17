@@ -42,6 +42,7 @@ type transactionError struct {
 }
 
 type executionState struct {
+	legacyContracts            *LegacyContracts
 	legacyResourceMarket       *LegacyResourceMarket
 	legacyResourceSponsor      *LegacyResourceSponsor
 	traceLots                  map[string]chain.TrustTraceLot
@@ -217,6 +218,9 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 		return response, nil
 	}
 	if queryLegacyResourceMarket(response, req.Path, a.committed.LegacyResourceMarket, a.committed) {
+		return response, nil
+	}
+	if queryLegacyContracts(response, req.Path, a.committed) {
 		return response, nil
 	}
 	switch {
@@ -595,6 +599,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
+		legacyContracts:       cloneLegacyContracts(a.committed.LegacyContracts),
 		legacyResourceMarket:  cloneLegacyResourceMarket(a.committed.LegacyResourceMarket),
 		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
 		traceLots:             cloneTraceLots(a.committed.TraceLots),

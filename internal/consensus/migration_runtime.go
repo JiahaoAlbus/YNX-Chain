@@ -39,7 +39,7 @@ func MigrationExecutionBlockers(m chain.ConsensusMigrationState) []MigrationModu
 	if err := validateSourceSponsorReplayCoverage(migrationResourceSponsor(m), m); err != nil {
 		add("resource_sponsor", 1, err.Error())
 	}
-	add("contracts", len(r.Contracts), "original address/storage must be retained; actual deployed bytecode and supported-runtime identity are required, never reconstructed by rerunning constructors")
+	blockers = append(blockers, migrationContractBlockers(m)...)
 	return blockers
 }
 

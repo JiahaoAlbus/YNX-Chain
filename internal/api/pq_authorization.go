@@ -115,6 +115,7 @@ func (s *Server) handleAccountAuthorization(w http.ResponseWriter, r *http.Reque
 			result["committedActiveRevision"] = strconv.FormatUint(record.Revision, 10)
 		}
 	}
+	addAccountRevocationView(result, owner, view)
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -151,6 +152,14 @@ func (s *Server) handleAccountMigration(w http.ResponseWriter, r *http.Request) 
 				status = "active"
 			} else if current.Revision > m.Intent.NewRevision {
 				status = "superseded"
+			}
+		}
+		for _, revoked := range state.Revocations {
+			if revoked.Owner == owner {
+				status = "revocation_pending"
+				if height >= revoked.RevokedFrom {
+					status = "revoked"
+				}
 			}
 		}
 	}

@@ -110,6 +110,7 @@ type AccountAuthorizationDetail struct {
 	ExecutionHeight, LedgerNonce, CommittedHeight uint64
 	CommittedBlockHash                            string
 	CheckpointStatus, CheckpointIntegrity         string
+	GlobalPolicyVersion                           string
 }
 
 // AccountAuthorizationDetails returns next-execution policy and committed tip
@@ -132,6 +133,7 @@ func (d *Devnet) AccountAuthorizationDetails(owner string) AccountAuthorizationD
 		return view
 	}
 	s := d.accountPolicy.Clone()
+	view.GlobalPolicyVersion = s.Version
 	out := s.Records[:0]
 	for _, r := range s.Records {
 		if r.Owner == owner {
@@ -139,6 +141,20 @@ func (d *Devnet) AccountAuthorizationDetails(owner string) AccountAuthorizationD
 		}
 	}
 	s.Records = out
+	revocations := s.Revocations[:0]
+	for _, r := range s.Revocations {
+		if r.Owner == owner {
+			revocations = append(revocations, r)
+		}
+	}
+	s.Revocations = revocations
+	// This is a complete OWNER projection, not a global ledger replacement.
+	// An unaffected owner retains v1 semantics even when another owner caused
+	// the global v2 upgrade. Preserve that actual version separately above. Never
+	// feed this projection into persistence or historical full-state validation.
+	if s.Version == ynxauth.PolicyRevocationVersion && len(s.Revocations) == 0 {
+		s.Version = ynxauth.PolicyVersion
+	}
 	view.State = &s
 	return view
 }
@@ -264,6 +280,9 @@ func (d *Devnet) SubmitAccountMigration(wire []byte) (Transaction, bool, error) 
 // Historical PQ envelopes retain their complete signed bytes. This is separate
 // from current account policy; a key rotation cannot invalidate old history.
 func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, height uint64, chainID int64) error {
+	if strings.HasPrefix(tx.Memo, pqRevocationMemo) {
+		return validateHistoricalPQRevocation(tx, state, height)
+	}
 	if strings.HasPrefix(tx.Memo, pqActionMemo) {
 		return validateHistoricalPQAction(tx, state, height, chainID)
 	}
@@ -305,28 +324,25 @@ func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, heigh
 		if tx.Type != "account_migration" || tx.Hash != "0x"+hex.EncodeToString(h[:]) || tx.From != m.Intent.Owner || tx.To != m.Intent.Owner || tx.Nonce != m.Intent.LedgerNonce || tx.Amount != 0 || tx.Fee != 1 {
 			return errors.New("PQ migration historical execution mismatch")
 		}
-		before := state.Clone()
-		kept := before.Records[:0]
 		var record *ynxauth.Record
-		for _, r := range before.Records {
-			if r.Owner == m.Intent.Owner && r.Revision >= m.Intent.NewRevision {
-				if r.Revision == m.Intent.NewRevision {
-					copy := r
-					record = &copy
-				}
-				continue
+		for _, r := range state.Records {
+			if r.Owner == m.Intent.Owner && r.Revision == m.Intent.NewRevision {
+				copy := r
+				record = &copy
 			}
-			kept = append(kept, r)
 		}
-		before.Records = kept
 		if record == nil || record.RegisteredAt != height || record.ActiveFrom != m.Intent.ActivateAt || record.LedgerNonce != m.Intent.LedgerNonce || !bytes.Equal(record.PKA, m.Intent.PKA) || !bytes.Equal(record.PKB, m.Intent.PKB) {
 			return errors.New("PQ migration differs from registered history")
+		}
+		before, err := accountPolicyBeforeEvent(state, m.Intent.Owner, height, m.Intent.LedgerNonce)
+		if err != nil {
+			return err
 		}
 		_, err = before.AdmitMigration(m, height, m.Intent.LedgerNonce-1)
 		return err
 	}
-	if tx.Type == "account_migration" {
-		return errors.New("missing original migration proof")
+	if tx.Type == "account_migration" || tx.Type == "account_revocation" {
+		return errors.New("missing original account policy proof")
 	}
 	// Classic history remains valid at its original height. Once active, no
 	// unrecognized classic/action/delegation envelope can spend for this owner.

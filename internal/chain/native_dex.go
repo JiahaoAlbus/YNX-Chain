@@ -465,7 +465,10 @@ func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, ev
 		}
 		rin, rout := nativeDexReserves(pool, in0)
 		out, err := NativeDexExactInputQuote(rin, rout, p.AmountIn, pool.FeeBps)
-		if err != nil || out < p.MinAmountOut {
+		if err != nil {
+			return NativeDexMutation{}, err
+		}
+		if out < p.MinAmountOut {
 			return NativeDexMutation{}, errors.New("DEX exact-input output is below minimum")
 		}
 		if rin > math.MaxInt64-p.AmountIn {

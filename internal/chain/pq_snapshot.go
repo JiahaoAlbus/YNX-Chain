@@ -28,7 +28,7 @@ func cloneAccountPolicy(state *ynxauth.State) *ynxauth.State {
 // value is accepted by the policy package for historical callers, but cannot
 // represent an enabled v3 ledger or replace a previously enabled policy.
 func validateAccountPolicyShape(state *ynxauth.State, network []byte) error {
-	if state == nil || state.Version != ynxauth.PolicyVersion {
+	if state == nil || !accountPolicyVersionSupported(state.Version) {
 		return errors.New("snapshot account policy is missing or uninitialized")
 	}
 	return state.Validate(network)
@@ -64,6 +64,7 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 		revision uint64
 	}
 	proofs := make(map[registrationID]uint64)
+	revocationProofs := make(map[string]uint64)
 	validateTransaction := func(tx Transaction, height uint64) error {
 		if strings.HasPrefix(tx.Memo, pqBatchMemo) {
 			// Complete shared batch coverage is checked once below.
@@ -85,6 +86,14 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 			proofs[id]++
 			if proofs[id] != 1 {
 				return errors.New("duplicate historical account migration proof")
+			}
+		}
+		if strings.HasPrefix(tx.Memo, pqRevocationMemo) {
+			// The historical verifier above bound this full wire to the unique
+			// owner's immutable tombstone and original height/nonce/fee.
+			revocationProofs[tx.From]++
+			if revocationProofs[tx.From] != 1 {
+				return errors.New("duplicate historical account revocation proof")
 			}
 		}
 		return nil
@@ -115,6 +124,14 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 				}
 				if proofs[registrationID{record.Owner, record.Revision}] != 1 {
 					return errors.New("account registration is missing its original migration proof")
+				}
+			}
+			for _, revoked := range snapshot.AccountPolicy.Revocations {
+				if revoked.RegisteredAt > height {
+					return errors.New("account revocation is ahead of snapshot execution height")
+				}
+				if revocationProofs[revoked.Owner] != 1 {
+					return errors.New("account revocation is missing its original dual-key proof")
 				}
 			}
 		}
@@ -150,7 +167,8 @@ func validateAccountPolicyContinuation(previous, next *ynxauth.State) error {
 	if err := validateAccountPolicyShape(previous, previous.NetworkID); err != nil {
 		return fmt.Errorf("invalid current account policy: %w", err)
 	}
-	if previous.Version != next.Version || previous.EnableAt != next.EnableAt || !bytes.Equal(previous.NetworkID, next.NetworkID) {
+	versionAllowed := previous.Version == next.Version || (previous.Version == ynxauth.PolicyVersion && next.Version == ynxauth.PolicyRevocationVersion)
+	if !versionAllowed || previous.EnableAt != next.EnableAt || !bytes.Equal(previous.NetworkID, next.NetworkID) {
 		return errors.New("account policy network or activation rewrite rejected")
 	}
 	j := 0
@@ -161,6 +179,19 @@ func validateAccountPolicyContinuation(previous, next *ynxauth.State) error {
 		}
 		if j == len(next.Records) || !equalAccountPolicyRecord(old, next.Records[j]) {
 			return errors.New("account policy history removal or rewrite rejected")
+		}
+		j++
+	}
+	// v2 is an explicit append-only upgrade. Shape validation requires at least
+	// one tombstone; complete snapshot validation separately requires its genuine
+	// original proof. No previously terminal owner may disappear or be rewritten.
+	j = 0
+	for _, old := range previous.Revocations {
+		for j < len(next.Revocations) && next.Revocations[j].Owner < old.Owner {
+			j++
+		}
+		if j == len(next.Revocations) || old != next.Revocations[j] {
+			return errors.New("account revocation removal or rewrite rejected")
 		}
 		j++
 	}

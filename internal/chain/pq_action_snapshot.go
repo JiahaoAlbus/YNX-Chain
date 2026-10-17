@@ -45,13 +45,31 @@ func validatePQActionSnapshot(s devnetSnapshot) error {
 		return nil
 	}
 	for _, b := range s.Blocks {
-		for _, tx := range b.Transactions {
+		var firstLogIndex uint64
+		for txIndex, tx := range b.Transactions {
+			if strings.HasPrefix(tx.Memo, pqActionMemo) {
+				if tx.BlockNum != b.Height || tx.BlockHash != b.Hash {
+					return errors.New("PQ action block identity differs from containing block")
+				}
+				if err := validatePQActionLogs(tx, uint64(txIndex), firstLogIndex); err != nil {
+					return err
+				}
+			}
 			if err := remember(tx); err != nil {
 				return err
 			}
+			firstLogIndex += uint64(len(tx.Logs))
 		}
 	}
 	for _, tx := range s.Pending {
+		if strings.HasPrefix(tx.Memo, pqActionMemo) {
+			if tx.BlockNum != 0 || tx.BlockHash != "" {
+				return errors.New("pending PQ action claims block inclusion")
+			}
+			if err := validatePQActionLogs(tx, 0, 0); err != nil {
+				return err
+			}
+		}
 		if err := remember(tx); err != nil {
 			return err
 		}

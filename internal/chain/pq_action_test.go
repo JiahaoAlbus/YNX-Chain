@@ -511,3 +511,89 @@ func TestPQActionDexCheckedArithmetic(t *testing.T) {
 		})
 	}
 }
+
+func TestPQActionHistoricalSystemProjectionIsBound(t *testing.T) {
+	f := newPQLedger(t)
+	f.activate(t)
+	// An actual preceding transaction gives both indices a nonzero position.
+	// Their source is the containing block, not the log's own claims.
+	_, err := f.d.Faucet(f.to, 1)
+	pqMust(t, err)
+	tx, _, err := f.d.SubmitPQAction(f.actionMember(t, ynxauth.ActionStake, ynxauth.StakePayload{Amount: 5}, 2, 0, 1))
+	pqMust(t, err)
+	pending := pqBatchSnapshotCopy(t, f.d)
+	pqMust(t, validateAccountPolicySnapshot(pending))
+	pendingRaw, err := json.Marshal(pending)
+	pqMust(t, err)
+	for _, change := range []func(*Transaction){
+		func(tx *Transaction) { tx.Logs = []EVMLog{{TransactionHash: tx.Hash}} },
+		func(tx *Transaction) { tx.BlockNum = 2 },
+		func(tx *Transaction) { tx.BlockHash = strings.Repeat("a", 64) },
+	} {
+		var candidate devnetSnapshot
+		pqMust(t, json.Unmarshal(pendingRaw, &candidate))
+		change(&candidate.Pending[1])
+		if err := validateAccountPolicySnapshot(candidate); err == nil {
+			t.Fatal("pending action accepted caller-supplied logs or block inclusion")
+		}
+	}
+	f.d.ProduceBlock()
+	mined := pqBatchSnapshotCopy(t, f.d)
+	pqMust(t, validateAccountPolicySnapshot(mined))
+	blockIndex := len(mined.Blocks) - 1
+	if len(mined.Blocks[blockIndex].Transactions) != 2 {
+		t.Fatal("fixture lost the preceding transaction")
+	}
+	actual := mined.Blocks[blockIndex].Transactions[1]
+	if actual.Hash != tx.Hash || len(actual.Logs) != 1 || actual.Logs[0].TransactionIndex != 1 || actual.Logs[0].LogIndex != 1 {
+		t.Fatal("ProduceBlock did not emit the expected real system projection")
+	}
+	minedRaw, err := json.Marshal(mined)
+	pqMust(t, err)
+	for _, tc := range []struct {
+		name string
+		edit func(*Transaction)
+	}{
+		{"missing log", func(tx *Transaction) { tx.Logs = nil }},
+		{"duplicate log", func(tx *Transaction) { tx.Logs = append(tx.Logs, tx.Logs[0]) }},
+		{"log address", func(tx *Transaction) { tx.Logs[0].Address = f.to }},
+		{"log data", func(tx *Transaction) { tx.Logs[0].Data = "0x00" }},
+		{"log topic", func(tx *Transaction) { tx.Logs[0].Topics[0] = "0x" + strings.Repeat("0", 64) }},
+		{"extra topic", func(tx *Transaction) { tx.Logs[0].Topics = append(tx.Logs[0].Topics, "0x00") }},
+		{"log block hash", func(tx *Transaction) { tx.Logs[0].BlockHash = "0x" + strings.Repeat("0", 64) }},
+		{"log block height", func(tx *Transaction) { tx.Logs[0].BlockNumber++ }},
+		{"transaction block hash", func(tx *Transaction) {
+			tx.BlockHash = strings.Repeat("b", 64)
+			tx.Logs[0].BlockHash = evmHash(tx.BlockHash)
+		}},
+		{"transaction block height", func(tx *Transaction) {
+			tx.BlockNum++
+			tx.Logs[0].BlockNumber = tx.BlockNum
+		}},
+		{"log transaction hash", func(tx *Transaction) { tx.Logs[0].TransactionHash = "0x" + strings.Repeat("0", 64) }},
+		{"log transaction index", func(tx *Transaction) { tx.Logs[0].TransactionIndex = 0 }},
+		{"log global index", func(tx *Transaction) { tx.Logs[0].LogIndex = 0 }},
+		{"log removed", func(tx *Transaction) { tx.Logs[0].Removed = true }},
+		{"sponsor", func(tx *Transaction) { tx.Sponsor = f.to }},
+		{"sponsor pool", func(tx *Transaction) { tx.SponsorPoolID = "unsigned-pool" }},
+		{"resource source", func(tx *Transaction) { tx.ResourceSource = "unsigned-source" }},
+		{"resource type", func(tx *Transaction) { tx.ResourceType = "bandwidth" }},
+		{"resource consumed", func(tx *Transaction) { tx.ResourceConsumed = 1 }},
+		{"action reference", func(tx *Transaction) { tx.ActionReference = "unsigned-reference" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var candidate devnetSnapshot
+			pqMust(t, json.Unmarshal(minedRaw, &candidate))
+			tc.edit(&candidate.Blocks[blockIndex].Transactions[1])
+			if err := validateAccountPolicySnapshot(candidate); err == nil {
+				t.Fatal("rewritten system projection or unsigned metadata accepted")
+			}
+		})
+	}
+	// A block-global index depends on all preceding logs, including non-PQ
+	// transactions; checking just the current transaction's index is insufficient.
+	mined.Blocks[blockIndex].Transactions[0].Logs = append(mined.Blocks[blockIndex].Transactions[0].Logs, mined.Blocks[blockIndex].Transactions[0].Logs[0])
+	if err := validateAccountPolicySnapshot(mined); err == nil {
+		t.Fatal("PQ log global index ignored changed preceding log coverage")
+	}
+}

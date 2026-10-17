@@ -131,6 +131,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transactions/pq/actions/broadcast", s.handlePQAction)
 	s.mux.HandleFunc("GET /accounts/{address}/authorization", s.handleAccountAuthorization)
 	s.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", s.handleAccountMigration)
+	s.mux.HandleFunc("POST /accounts/{address}/authorization/revoke", s.handleAccountRevocation)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
 	s.mux.HandleFunc("POST /faucet/requests", s.handleFaucet)

@@ -28,6 +28,10 @@ func (a *Application) applyIDEAction(state executionState, payload []byte, tx Si
 		}
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("IDE request was already committed"))
 	}
+	// Candidate execution may fail after charging or after interpreting code.
+	// Detach mutable state so a rejected call cannot leak into its sibling txs.
+	state.accounts = cloneAccounts(state.accounts)
+	state.contracts = cloneBFTContracts(state.contracts)
 	if err := a.chargeApplicationAction(&state, tx); err != nil {
 		return executionState{}, transactionExecution{}, err
 	}
@@ -58,7 +62,20 @@ func (a *Application) applyIDEAction(state executionState, payload []byte, tx Si
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("committed IDE contract not found"))
 		}
 		contract := state.contracts[index]
-		transition, err := chain.ExecuteBoundedContract(contract.DeployedBytecode, input.Calldata, tx.Signer, contract.RuntimeStorage)
+		var transition chain.BoundedContractTransition
+		var err error
+		if contract.SourceAnchor != "" {
+			if state.legacyContracts == nil || state.legacyContracts.SourceAnchor != contract.SourceAnchor {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("imported contract source authority missing"))
+			}
+			original, exists := state.legacyContracts.Contracts[contract.Address]
+			if !exists {
+				return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("imported contract source record missing"))
+			}
+			transition, err = chain.ExecuteConsensusSourceContract(original, contract.DeployedBytecode, input.Calldata, tx.Signer, contract.RuntimeStorage)
+		} else {
+			transition, err = chain.ExecuteBoundedContract(contract.DeployedBytecode, input.Calldata, tx.Signer, contract.RuntimeStorage)
+		}
 		if err != nil {
 			return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("bounded IDE execution failed: "+err.Error()))
 		}
@@ -190,12 +207,19 @@ func validateIDECommittedState(state CommittedState) error {
 	previous := ""
 	contracts := make(map[string]BFTContract, len(state.Contracts))
 	for _, contract := range state.Contracts {
-		bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
-		if err != nil || contract.Address == "" || !IsNativeAddress(contract.Address) || (previous != "" && contract.Address <= previous) || !IsNativeAddress(contract.Deployer) || contract.DeployedBytecodeHash != bytecodeHash || contract.RuntimeMode != chain.BoundedContractRuntimeMode || contract.BlockHeight <= 0 || !validResourceTxHash(contract.TxHash) || contract.LastUpdatedHeight < contract.BlockHeight || contract.Address != ideContractAddress(contract.Deployer, contract.TxHash) || contract.AuditHash != bftContractAuditHash(contract) {
+		if contract.Address == "" || !IsNativeAddress(contract.Address) || (previous != "" && contract.Address <= previous) || !IsNativeAddress(contract.Deployer) || contract.RuntimeMode != chain.BoundedContractRuntimeMode || contract.AuditHash != bftContractAuditHash(contract) {
 			return errors.New("committed IDE contracts must be pinned, complete, audited, and sorted")
 		}
-		if contract.LastUpdatedHeight == contract.BlockHeight && contract.LastCallTxHash != "" || contract.LastUpdatedHeight > contract.BlockHeight && !validResourceTxHash(contract.LastCallTxHash) {
-			return errors.New("committed IDE contract update anchor is invalid")
+		if contract.SourceAnchor == "" {
+			bytecodeHash, err := chain.ValidateBoundedPinnedIdentity(contract.Name, contract.SourceHash, contract.DeployedBytecode)
+			if err != nil || contract.DeployedBytecodeHash != bytecodeHash || contract.BlockHeight <= 0 || !validResourceTxHash(contract.TxHash) || contract.LastUpdatedHeight < contract.BlockHeight || contract.Address != ideContractAddress(contract.Deployer, contract.TxHash) {
+				return errors.New("native IDE deployment identity is invalid")
+			}
+			if contract.LastUpdatedHeight == contract.BlockHeight && contract.LastCallTxHash != "" || contract.LastUpdatedHeight > contract.BlockHeight && !validResourceTxHash(contract.LastCallTxHash) {
+				return errors.New("committed IDE contract update anchor is invalid")
+			}
+		} else if contract.LastCallTxHash != "" && !validResourceTxHash(contract.LastCallTxHash) {
+			return errors.New("imported IDE call hash is invalid")
 		}
 		for key, value := range contract.RuntimeStorage {
 			if !ideWordPattern.MatchString(key) || !ideWordPattern.MatchString(value) {

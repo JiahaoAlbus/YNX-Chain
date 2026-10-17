@@ -34,6 +34,7 @@ type BFTNativeTransfer struct {
 // for restart recovery but excluded from AppHash because empty blocks do not
 // change application state.
 type CommittedState struct {
+	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
@@ -89,6 +90,7 @@ type CommittedState struct {
 }
 
 type committedStateHashDocument struct {
+	LegacyContracts            *LegacyContracts                `json:"legacyContracts,omitempty"`
 	LegacyResourceMarket       *LegacyResourceMarket           `json:"legacyResourceMarket,omitempty"`
 	LegacyResourceSponsor      *LegacyResourceSponsor          `json:"legacyResourceSponsor,omitempty"`
 	TraceLots                  map[string]chain.TrustTraceLot  `json:"traceLots,omitempty"`
@@ -143,7 +145,12 @@ type committedStateHashDocument struct {
 
 func initialCommittedState(migration chain.ConsensusMigrationState) CommittedState {
 	dexAssets, dexBalances, dexPools, dexEvents := dexStateFromMigration(migration)
+	contracts, _ := migrationContracts(migration) // Constructor validates closure before this projection.
+	if contracts == nil {
+		contracts = []BFTContract{}
+	}
 	return CommittedState{
+		LegacyContracts:            migrationLegacyContracts(migration),
 		LegacyResourceMarket:       migrationResourceMarket(migration),
 		LegacyResourceSponsor:      migrationResourceSponsor(migration),
 		TraceLots:                  migrationTraceLots(migration),
@@ -184,7 +191,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		TrustEvidence:              []BFTTrustEvidence{},
 		TrackingReviews:            []BFTTrackingReview{},
 		Transparency:               []BFTTransparencyEntry{},
-		Contracts:                  []BFTContract{},
+		Contracts:                  contracts,
 		EVMReceipts:                []BFTEVMReceipt{},
 		EVMLogs:                    []BFTEVMLog{},
 		IDEIdempotency:             []BFTIDEIdempotency{},
@@ -200,6 +207,7 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 
 func sealCommittedState(migration chain.ConsensusMigrationState, height int64, execution executionState) (CommittedState, error) {
 	state := CommittedState{
+		LegacyContracts:            cloneLegacyContracts(execution.legacyContracts),
 		LegacyResourceMarket:       cloneLegacyResourceMarket(execution.legacyResourceMarket),
 		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
 		TraceLots:                  cloneTraceLots(execution.traceLots),
@@ -284,6 +292,9 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 		return err
 	}
 	if err := validateLegacyResourceMarket(s.LegacyResourceMarket, s, migration); err != nil {
+		return err
+	}
+	if err := validateLegacyContracts(s, migration); err != nil {
 		return err
 	}
 	if s.ChainID != migration.Network.ChainID || s.MigrationStateHash != migration.StateHash {
@@ -407,6 +418,7 @@ func (s CommittedState) calculateHash() (string, error) {
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
 	doc := committedStateHashDocument{
+		LegacyContracts:            s.LegacyContracts,
 		LegacyResourceMarket:       s.LegacyResourceMarket,
 		LegacyResourceSponsor:      s.LegacyResourceSponsor,
 		TraceLots:                  s.TraceLots,
@@ -485,6 +497,12 @@ func (s CommittedState) hasNonMigrationApplicationRecords() bool {
 	copy.ResourcePools = nil
 	for _, pool := range s.ResourcePools {
 		if pool.SourceAnchor == "" || pool.LastAction != "" {
+			return true
+		}
+	}
+	copy.Contracts = nil
+	for _, contract := range s.Contracts {
+		if contract.SourceAnchor == "" || contract.LastCallTxHash != "" {
 			return true
 		}
 	}
@@ -654,7 +672,7 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
 	}
-	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || state.TraceLots != nil || migration.AccountPolicy != nil || state.LegacyResourceSponsor != nil || migrationResourceSponsor(migration) != nil || state.LegacyResourceMarket != nil || migrationResourceMarket(migration) != nil) {
+	if state.Version < 15 && (state.AccountPolicy != nil || len(state.PQHistory) != 0 || state.TraceLots != nil || migration.AccountPolicy != nil || state.LegacyResourceSponsor != nil || migrationResourceSponsor(migration) != nil || state.LegacyResourceMarket != nil || migrationResourceMarket(migration) != nil || state.LegacyContracts != nil || migrationLegacyContracts(migration) != nil) {
 		return CommittedState{}, errors.New("legacy state cannot import or erase v15 authorization/lineage fields")
 	}
 	if state.Version == 13 {

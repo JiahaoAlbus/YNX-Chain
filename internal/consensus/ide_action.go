@@ -36,6 +36,7 @@ type IDEContractCallPayload struct {
 }
 
 type BFTContract struct {
+	SourceAnchor         string            `json:"sourceAnchor,omitempty"`
 	Address              string            `json:"address"`
 	Name                 string            `json:"name"`
 	Deployer             string            `json:"deployer"`

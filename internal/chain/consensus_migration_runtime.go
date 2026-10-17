@@ -69,13 +69,27 @@ func (d *Devnet) exportConsensusRuntimeLocked() (ConsensusRuntimeState, error) {
 
 func (s ConsensusMigrationState) validateRuntimeBoundary() error {
 	if s.Version == LegacyConsensusMigrationVersion {
-		if s.Runtime != nil || s.AccountPolicy != nil || s.OriginalGenesisHash != "" {
+		if s.Runtime != nil || s.AccountPolicy != nil || s.OriginalGenesisHash != "" || len(s.ContractMaterials) != 0 {
 			return errors.New("legacy migration cannot carry uncommitted v2 runtime or account policy")
 		}
 		return nil
 	}
 	if s.Runtime == nil {
 		return errors.New("v2 migration requires complete typed source runtime")
+	}
+	for name, material := range s.ContractMaterials {
+		found := false
+		for _, original := range s.Runtime.Contracts {
+			if original.Name == name {
+				found = true
+				if _, err := ValidateConsensusContractMaterial(original, material); err != nil {
+					return fmt.Errorf("source contract %s: %w", original.Address, err)
+				}
+			}
+		}
+		if !found {
+			return errors.New("migration contains contract material without a source contract")
+		}
 	}
 	r := devnetSnapshot(*s.Runtime)
 	if !reflect.DeepEqual(r.Config, s.Network) || len(r.Blocks) == 0 || len(r.Pending) != 0 {
