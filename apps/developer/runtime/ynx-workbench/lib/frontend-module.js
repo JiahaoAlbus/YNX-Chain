@@ -232,7 +232,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
     () => context.container.get(DebugSessionManager),
   )).inSingletonScope();
   bind(FrontendApplicationContribution).toDynamicValue(context => new NativeWorkbenchCommands(
-    context.container.get(CommandRegistry), window, nls.locale,
+    context.container.get(CommandRegistry), window, nls.locale, context.container.get(ContextKeyService),
   )).inSingletonScope();
   bind(CommandContribution).toDynamicValue(context => ({ registerCommands(commands) {
     const rpc = WebSocketConnectionProvider.createProxy(context.container, '/services/ynx-public-chain');

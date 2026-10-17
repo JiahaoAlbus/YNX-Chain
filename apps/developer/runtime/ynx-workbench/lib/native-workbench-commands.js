@@ -11,7 +11,7 @@ const NATIVE_COMMANDS = new Set([
   'terminal:new', 'workbench.action.terminal.toggleTerminal', 'terminal:split', 'terminal:clear', 'task:run:build', 'workbench.action.tasks.runTask',
 ]);
 class NativeWorkbenchCommands {
-  constructor(commands, target = window, locale = 'en') { Object.assign(this, { commands, target, locale }); }
+  constructor(commands, target = window, locale = 'en', contextKeys) { Object.assign(this, { commands, target, locale, contextKeys }); }
   onStart() {
     const bridge = this.target.webkit?.messageHandlers?.ynxLocalWorkbench;
     if (!bridge) return;
@@ -20,8 +20,17 @@ class NativeWorkbenchCommands {
       let result;
       try {
         if (!NATIVE_COMMANDS.has(commandId)) throw Error('This menu command is not supported.');
-        if (!this.commands.getCommand(commandId) || !this.commands.isEnabled(commandId)) throw Error('This command is unavailable in the current editor.');
-        await this.commands.executeCommand(commandId);
+        // Cocoa sends the upstream IDs. Before a session starts, use the same
+        // language/configuration selection as the editor Run button. Preserve
+        // upstream Start/Continue during a session, and never guess if the
+        // actual framework context is unavailable.
+        let selected = commandId;
+        if ((commandId === 'workbench.action.debug.start' || commandId === 'workbench.action.debug.run') && this.contextKeys?.match('inDebugMode') === false) {
+          if (commandId === 'workbench.action.debug.start') selected = 'ynx.workbench.debugCurrentFile';
+          if (commandId === 'workbench.action.debug.run') selected = 'ynx.workbench.runCurrentFile';
+        }
+        if (!this.commands.getCommand(selected) || !this.commands.isEnabled(selected)) throw Error('This command is unavailable in the current editor.');
+        await this.commands.executeCommand(selected);
         result = { action: 'command-result', requestId, accepted: true };
       } catch (error) {
         // Do not forward backend exception text (which may contain file paths).
