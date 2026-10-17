@@ -128,3 +128,27 @@ calls succeeded. This does not establish a global fix for that host condition.
 Sustained ten-minute 1,000 valid business commits/s remains unproven. Large-state
 retention, the read ceiling, per-transaction full-store readback and continuous
 account-pool scheduling are still work toward the original goal.
+
+## Separate prepared candidate
+
+Core/client source commit is
+`46645ba99e802dc5c15e5c2a943f0c6b9520590b`. Both executables were built from
+that clean checkout in `network-bin-journal-readback`; unchanged fixture/host
+executables were linked from their prior frozen candidates and their hashes
+matched. Preparation did not create a network directory or launch any nodes.
+Fresh build admission found 68,604,039,168 bytes free in the workspace filesystem.
+
+The receipt
+`artifacts/chain-performance-20261017/journal-readback-network-prepared-46645ba99.json`
+is 12,538 bytes, SHA-256
+`cd130d8eb17c1debd6c6b41c7d3b68ff697842ab11b88c8a373c646757959a0f`.
+Its tracked copy is [here](evidence/journal-readback-preparation-20261017.json).
+App SHA-256 is
+`e37a06be433009e2e44368938ae8f8b7ec27c1be99f8d14bcf7da926ee448ebb`;
+client SHA-256 is
+`8f898d32bbbfba81273b24c864a4903b8390c88ba4a129c660f289ad018a0172`;
+the standalone runner SHA-256 is
+`b2765152ea0e60c9291939b711892f730f1d073d7ae180b413d914b2518bbd6c`.
+Build information and source hashes are independently recorded; no unavailable
+embedded VCS stamp or network acceptance is inferred. The plan remains only
+64 total transactions under all original strict caps, awaiting a fresh Root slot.
