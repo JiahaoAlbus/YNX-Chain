@@ -7,12 +7,13 @@ import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
 const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'}}});
-if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',command:'GOMAXPROCS=1 nice -n 10 go test -p 1 ./cmd/ynx-consensus-perf-client -run TestTerminalStream|TestReadySender -count=1 -timeout=45s',caps:{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
+if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',command:'GOMAXPROCS=1 GOGC=50 GOMEMLIMIT=160MiB nice -n 10 go test -p 1 ./cmd/ynx-consensus-perf-client -run TestTerminalStream|TestReadySender -count=1 -timeout=45s',caps:{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
 const probe=createNativeResourceProbe(root+'/artifacts/chain-performance-20261017/network-bin-replay-facts/ynx-consensus-perf-host');
-const result={startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve',firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const goEnvironment={GOMAXPROCS:'1',GOGC:'50',GOMEMLIMIT:'160MiB'};
+const result={startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const fail=e=>result.firstCause??=String(e);
 let child,done=false,busy=false,monitor;
 const kill=()=>{if(child?.pid)try{process.kill(-child.pid,'SIGKILL')}catch(e){if(e.code!=='ESRCH')fail(e)}};
@@ -32,7 +33,7 @@ async function sample(initial=false){
 try{
  await sample(true);
  if(Date.now()-started>=45000||result.firstCause)throw Error(result.firstCause??'preflight deadline');
- child=spawn('nice',['-n','10','/opt/homebrew/bin/go','test','-p','1','./cmd/ynx-consensus-perf-client','-run','TestTerminalStream|TestReadySender','-count=1','-timeout=45s'],{detached:true,env:{...process.env,GOMAXPROCS:'1'},stdio:['ignore','pipe','pipe']});
+ child=spawn('nice',['-n','10','/opt/homebrew/bin/go','test','-p','1','./cmd/ynx-consensus-perf-client','-run','TestTerminalStream|TestReadySender','-count=1','-timeout=45s'],{detached:true,env:{...process.env,...goEnvironment},stdio:['ignore','pipe','pipe']});
  result.go={pid:child.pid,code:null,signal:null,stdout:'',stderr:'',exited:false};console.log(JSON.stringify({startedAt:result.startedAt,launcher:process.pid,go:child.pid}));
  const capture=key=>d=>{if(Buffer.byteLength(result.go.stdout)+Buffer.byteLength(result.go.stderr)+d.length>1024*1024){fail('1MiB log cap');kill()}else result.go[key]+=d.toString()};child.stdout.on('data',capture('stdout'));child.stderr.on('data',capture('stderr'));
  const closed=new Promise(resolve=>{child.on('error',e=>{fail(e.message)});child.on('close',(code,signal)=>{result.go.code=code;result.go.signal=signal;result.go.exited=true;done=true;resolve()})});

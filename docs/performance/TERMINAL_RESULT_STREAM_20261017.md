@@ -105,3 +105,30 @@ next Wallet full-package window. No automatic retry occurred.
 node scripts/loadtest/consensus-light-window.mjs --execute \
   --output artifacts/chain-performance-20261017/terminal-stream-light-owned-result.json
 ```
+
+## Correct-scope attempt: real compilation resource ceiling
+
+The separately scheduled corrected wrapper started at 15:29:47.921 UTC,
+owned shell 54072 / launcher 54073 / Go 54100, session 5053. It terminated
+with exit 1 after 3,094 ms on the unchanged 400 MiB owned/control RSS cap.
+Peak sampled RSS was **468,533,248 bytes**: launcher 57,556,992, Go 45,383,680,
+owned child 54120 at 322,912,256, children 54130/54131 at 15,761,408/23,347,200,
+and native sampler/fork reserve 3,571,712. This time no shared ancestor was
+included. Fresh free memory was 1,389,199,360 bytes and native fork checks passed.
+
+Go was killed with SIGKILL and exited before producing test output. This is
+**not a Go assertion failure or a test PASS**. The original group was gone;
+at 15:30:08.571 UTC all 13 observed owned/sampler PIDs independently returned
+ESRCH. [Original correct-scope receipt, cleanup and byte hashes](evidence/terminal-stream-light-owned-cap-20261017.json)
+are preserved. The slot was returned to Root before any further compilation;
+no retry or network run occurred.
+
+For the next separately scheduled attempt the source wrapper prepares
+`GOGC=50 GOMEMLIMIT=160MiB`, inherited by Go tool children, while keeping vet,
+GOMAXPROCS=1, Go -p1, the exact test target, 45 s deadline plus 15 s cleanup,
+and the actual 400 MiB aggregate monitor. The per-process Go memory setting is
+a soft runtime target, **not** a substitute for actual aggregate measurement.
+The available evidence only shows the earlier compilation crossed the cap after
+three seconds; it cannot prove a cold compilation fits 45 seconds. A new
+attempt must stop at that original deadline, with no automatic time/cap increase.
+This changed environment has been syntax/prepare-only checked, not executed.
