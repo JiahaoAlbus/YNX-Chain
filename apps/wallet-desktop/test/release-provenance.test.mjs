@@ -166,7 +166,7 @@ test('actual PUBLIC ASAR becomes canonical source closure with one SDK alias and
  }
  const extracted=path.join(f.root,'extracted');asar.extractAll(f.archive,extracted);
  const fromMain=createRequire(path.join(extracted,CANONICAL_MAIN));assert.equal(fromMain.resolve('@ynx-chain/wallet-auth'),realpathSync(path.join(extracted,'code/packages/wallet-auth/src/index.js')));
- assert.equal(result.sdkRuntimeDependencies.filesVerified,211);
+ assert.equal(result.sdkRuntimeDependencies.filesVerified,316);
  for(const name of ['curves','hashes'])assert.equal(JSON.parse(asar.extractFile(f.archive,'code/packages/wallet-auth/node_modules/@noble/'+name+'/package.json')).version,'2.2.0');
  assert.equal(f.git('status','--porcelain','--untracked-files=no'),'');
  const canonicalBytes=readFileSync(f.archive);assert.throws(()=>relocateDesktopPackage(f.resources,f.app),/already applied|foreign code tree/);assert.deepEqual(readFileSync(f.archive),canonicalBytes);
