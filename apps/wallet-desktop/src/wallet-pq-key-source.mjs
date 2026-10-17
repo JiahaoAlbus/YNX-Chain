@@ -5,7 +5,7 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
  * The repository must use the existing protected Vault; no renderer key store
  * or alternative crypto implementation is constructed here. */
 export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,getRegisteredBinding,readRestoreInput}){
-  for(const name of ['createPQWalletKeyHandle','readPQWalletKeyPublic','restorePQWalletKeyHandle','assertPQPublicBindingMatches','validatePQNetworkBinding'])if(typeof sdk?.[name]!=='function')fail('PQ_SDK_NOT_SUPPLIED');
+  for(const name of ['createPQWalletKeyHandle','readPQWalletKeyPublic','restorePQWalletKeyHandle','assertPQPublicBindingMatches','validatePQNetworkBinding','destroyPQWalletKeyHandle','readPQWalletKeyCleanupOutcome'])if(typeof sdk?.[name]!=='function')fail('PQ_SDK_NOT_SUPPLIED');
   for(const name of ['saveKeys','readKeys','verifySavedKeys'])if(typeof repository?.[name]!=='function')fail('PQ_PROTECTED_VAULT_NOT_SUPPLIED');
   if([getOriginalNetwork,getRegisteredBinding,readRestoreInput].some(v=>typeof v!=='function'))fail('PQ_ORIGINAL_BINDING_SOURCE_REQUIRED');
   const materials=new WeakMap();
@@ -15,11 +15,12 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
     return original;
   }
   function selected(material){const value=materials.get(material);if(!value)fail('PQ_ORIGINAL_KEY_HANDLE_REQUIRED');return value;}
-  async function current(material,binding,guard){
+  async function current(material,binding,guard,readOnly=false){
     const value=selected(material),network=await networkFor(binding,guard);
-    if(value.binding===null){const original=sdk.readPQWalletKeyPublic(value.handle);if(original.chainId!==value.network.chainId||original.owner!==value.network.owner)fail('PQ_KEY_BINDING_CHANGED');value.binding=original;}
+    if(value.publicCausePresent)throw value.publicCause;
+    if(value.retired&&!readOnly)fail('PQ_KEY_HANDLE_RETIRED');
     if(value.account!==binding.account||value.binding.chainId!==network.chainId||value.binding.owner!==network.owner)fail('PQ_KEY_BINDING_CHANGED');
-    const original=sdk.readPQWalletKeyPublic(value.handle);sdk.assertPQPublicBindingMatches(original,value.binding);guard.assert();return value;
+    if(!value.retired){const original=sdk.readPQWalletKeyPublic(value.handle);sdk.assertPQPublicBindingMatches(original,value.binding);}guard.assert();return value;
   }
   return Object.freeze({
     async prepare(kind,{binding,guard}){
@@ -37,9 +38,10 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
       // public-key accessor can throw. The controller receives this exact
       // private material even if the original lifecycle has just locked.
       const material=Object.freeze(Object.create(null));
-      materials.set(material,{handle,account:binding.account,binding:null,network});
-      // Public-key verification is deferred to persistence while unlocked;
-      // returning custody here is not registration, authorization or success.
+      const value={handle,account:binding.account,binding:null,network,retired:false,retirementEntered:false,publicCausePresent:false,publicCause:undefined};materials.set(material,value);
+      // Capture metadata while the SDK handle is still readable, but never
+      // lose a returned handle if its public accessor itself fails.
+      try{value.binding=sdk.readPQWalletKeyPublic(handle);}catch(error){value.publicCause=error;value.publicCausePresent=true;}
       return material;
     },
     async persist(material,{binding,operationId,guard}){
@@ -47,13 +49,14 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
       return repository.saveKeys({handle:value.handle,publicBinding:value.binding,operationId,account:binding.account,guard});
     },
     async reconcile(material,{binding,operationId,guard}){
-      const value=await current(material,binding,guard);
-      return repository.readKeys({handle:value.handle,publicBinding:value.binding,operationId,account:binding.account,guard});
+      const value=await current(material,binding,guard,true);
+      return repository.readKeys({handle:value.handle,publicBinding:value.binding,operationId,account:binding.account,readOnly:true,guard});
     },
     async verifyPersisted(material,receipt,{binding,operationId,guard}){
-      const value=await current(material,binding,guard);
-      const verified=await repository.verifySavedKeys({handle:value.handle,publicBinding:value.binding,receipt,operationId,account:binding.account,guard});guard.assert();return verified===true;
+      const value=await current(material,binding,guard,true);
+      const verified=await repository.verifySavedKeys({handle:value.handle,publicBinding:value.binding,receipt,operationId,account:binding.account,readOnly:true,guard});guard.assert();return verified===true;
     },
+    retire(material){const value=selected(material);value.retired=true;if(!value.retirementEntered){value.retirementEntered=true;sdk.destroyPQWalletKeyHandle(value.handle);}return sdk.readPQWalletKeyCleanupOutcome(value.handle);},
     // Main-only selection for eventual protected-vault recovery/retirement.
     // Never export this function through the renderer preload.
     selectOriginal(material,observer){if(typeof observer!=='function')fail('PQ_KEY_RECOVERY_OBSERVER_REQUIRED');return observer(Object.freeze({...selected(material)}));},

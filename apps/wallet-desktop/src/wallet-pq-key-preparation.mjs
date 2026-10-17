@@ -6,9 +6,9 @@ const failure=code=>Object.assign(new Error(code),{code});
  * by another KeyGen. Persistence uncertainty permits read-only reconciliation,
  * not an automatic second save, regeneration, migration or transaction. */
 export function createDualPQKeyPreparation({lifecycle,getBinding,source,id,onState=()=>{}}){
-  for(const name of ['prepare','persist','reconcile','verifyPersisted'])if(typeof source?.[name]!=='function')throw failure('PQ_KEY_SOURCE_REQUIRED');
-  if(typeof lifecycle?.run!=='function'||typeof getBinding!=='function'||typeof id!=='function')throw failure('PQ_KEY_CUSTODY_REQUIRED');
-  let phase='idle',active=false,revision=0,record=null,firstCause,firstCausePresent=false;
+  for(const name of ['prepare','persist','reconcile','verifyPersisted','retire'])if(typeof source?.[name]!=='function')throw failure('PQ_KEY_SOURCE_REQUIRED');
+  if(typeof lifecycle?.run!=='function'||typeof lifecycle.subscribe!=='function'||typeof lifecycle.status!=='function'||typeof getBinding!=='function'||typeof id!=='function')throw failure('PQ_KEY_CUSTODY_REQUIRED');
+  let phase='idle',active=false,revision=0,record=null,firstCause,firstCausePresent=false,cleanupCause,cleanupCausePresent=false,closed=false,invalidated=false,operationBinding=null,scopeRevision=null;
   const retain=e=>{if(!firstCausePresent){firstCause=e;firstCausePresent=true;}};
   const publicBinding=()=>{
     const b=getBinding();
@@ -16,9 +16,25 @@ export function createDualPQKeyPreparation({lifecycle,getBinding,source,id,onSta
     return Object.freeze({account:b.account,network:b.network});
   };
   const same=(a,b)=>a.account===b.account&&a.network===b.network;
-  const retainedPhase=()=>record?.persisted?'saved':record?.prepareUnknown?'prepare-unknown':record?.persistenceAttempted?'save-unknown':record?'retained':'failed';
-  const status=()=>Object.freeze({phase,busy:active,hasOriginal:record!==null&&record.material!==null,preparationUnknown:record?.prepareUnknown??false,persistenceAttempted:record?.persistenceAttempted??false,persisted:record?.persisted??false,recoveryRequired:record!==null&&!record.persisted,error:firstCausePresent?'PQ_KEY_PREPARATION_INCOMPLETE':null});
+  const retainedPhase=()=>record?.persisted?'saved':record?.prepareUnknown?'prepare-unknown':record?.persistenceAttempted?'save-unknown':record?.keyRetired?'retired':record?'retained':'failed';
+  const status=()=>Object.freeze({phase,busy:active,hasOriginal:record!==null&&record.material!==null,preparationUnknown:record?.prepareUnknown??false,persistenceAttempted:record?.persistenceAttempted??false,persisted:record?.persisted??false,keyRetired:record?.keyRetired??false,cleanupDebt:cleanupCausePresent,recoveryRequired:record!==null&&!record.persisted,error:firstCausePresent?'PQ_KEY_PREPARATION_INCOMPLETE':null});
   const notify=()=>{try{onState(status());}catch{/* Observation cannot change custody. */}};
+  function retireOriginal(){
+    if(!record||record.material===null||record.retirementEntered)return;
+    record.retirementEntered=true;record.keyRetired=true;
+    try{
+      const result=source.retire(record.material);record.cleanupResult=result;
+      if(result&&typeof result.then==='function'){void Promise.resolve(result).catch(()=>{});throw failure('PQ_KEY_CLEANUP_UNKNOWN');}
+      if(result?.retired!==true||result.cleanupComplete!==true||result.cleanupUnknown!==false)throw failure('PQ_KEY_CLEANUP_UNKNOWN');
+    }catch(error){if(!cleanupCausePresent){cleanupCause=error;cleanupCausePresent=true;}}
+  }
+  function invalidate(){
+    if(invalidated)return status();invalidated=true;revision++;retireOriginal();
+    if(!active)phase=record?retainedPhase():'cancelled';notify();return status();
+  }
+  const unsubscribe=lifecycle.subscribe(security=>{
+    if((active||record)&&scopeRevision!==null&&(security.locked||security.revision!==scopeRevision||security.account!==operationBinding.account))invalidate();
+  });
   function check(binding,token,guard){guard.assert();if(guard.account!==binding.account||token!==revision||!same(binding,publicBinding()))throw failure('PQ_KEY_PREPARATION_CANCELLED');}
   async function persistOriginal(binding,token,guard){
     check(binding,token,guard);
@@ -32,9 +48,10 @@ export function createDualPQKeyPreparation({lifecycle,getBinding,source,id,onSta
     check(binding,token,guard);record.persisted=true;phase='saved';notify();
   }
   async function prepare(kind){
-    if(active||record!==null)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
+    if(closed||active||record!==null)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
     const binding=publicBinding(),operationId=id();
     if(typeof operationId!=='string'||!operationId||operationId.length>128)throw failure('PQ_KEY_OPERATION_ID_INVALID');
+    operationBinding=binding;scopeRevision=lifecycle.status().revision;invalidated=false;
     const token=revision;active=true;phase='preparing';notify();
     let entered=false;
     try{
@@ -52,26 +69,28 @@ export function createDualPQKeyPreparation({lifecycle,getBinding,source,id,onSta
       // The SDK may fail after producing private output without returning a
       // handle. Keep the exact entered attempt as unknown; never auto-KeyGen.
       if(!record&&entered)record={material:null,binding,operationId,kind,persistenceAttempted:false,persisted:false,receiptReturned:false,receipt:null,prepareUnknown:true};
+      retireOriginal();
       phase=retainedPhase();notify();throw failure('PQ_KEY_PREPARATION_INCOMPLETE');
     }finally{active=false;notify();}
     return status();
   }
   return Object.freeze({status,
     generate:()=>prepare('generate'),restore:()=>prepare('restore'),
-    cancel(){revision++;if(!active)phase=record?retainedPhase():'cancelled';notify();return status();},
+    cancel:invalidate,
+    dispose(){closed=true;const value=invalidate();unsubscribe();return value;},
     async saveRetained(){
-      if(active||!record||record.prepareUnknown||record.persistenceAttempted||record.persisted)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
+      if(closed||active||!record||record.keyRetired||record.prepareUnknown||record.persistenceAttempted||record.persisted)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
       const binding=publicBinding();if(!same(binding,record.binding))throw failure('PQ_KEY_BINDING_CHANGED');
       const token=revision;active=true;
       try{await lifecycle.run(guard=>persistOriginal(binding,token,guard));}
-      catch(error){retain(error);phase=retainedPhase();throw failure('PQ_KEY_PREPARATION_INCOMPLETE');}
+      catch(error){retain(error);retireOriginal();phase=retainedPhase();throw failure('PQ_KEY_PREPARATION_INCOMPLETE');}
       finally{active=false;notify();}
       return status();
     },
     async reconcile(){
-      if(active||!record||record.prepareUnknown||!record.persistenceAttempted||record.persisted)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
+      if(closed||active||!record||record.prepareUnknown||!record.persistenceAttempted||record.persisted)throw failure('PQ_KEY_ORIGINAL_REQUIRES_RECOVERY');
       const binding=publicBinding();if(!same(binding,record.binding))throw failure('PQ_KEY_BINDING_CHANGED');
-      const token=revision;active=true;phase='reconciling';notify();
+      const token=revision;scopeRevision=lifecycle.status().revision;operationBinding=binding;invalidated=false;active=true;phase='reconciling';notify();
       try{
         await lifecycle.run(async guard=>{
           check(binding,token,guard);
@@ -81,11 +100,11 @@ export function createDualPQKeyPreparation({lifecycle,getBinding,source,id,onSta
           if(await source.verifyPersisted(record.material,receipt,{binding,operationId:record.operationId,guard})!==true)throw failure('PQ_KEY_PERSISTENCE_UNCONFIRMED');
           check(binding,token,guard);record.receipt=receipt;record.receiptReturned=true;record.persisted=true;phase='saved';
         });
-      }catch(error){retain(error);phase=retainedPhase();throw failure('PQ_KEY_PREPARATION_INCOMPLETE');}
+      }catch(error){retain(error);retireOriginal();phase=retainedPhase();throw failure('PQ_KEY_PREPARATION_INCOMPLETE');}
       finally{active=false;notify();}
       return status();
     },
     // Private main recovery only. Never serialize this result to the renderer.
-    selectRetainedOutcome(observer){if(typeof observer!=='function')throw failure('PQ_KEY_RECOVERY_OBSERVER_REQUIRED');return observer(Object.freeze({record:record?Object.freeze({...record}):null,firstCause,firstCausePresent}));},
+    selectRetainedOutcome(observer){if(typeof observer!=='function')throw failure('PQ_KEY_RECOVERY_OBSERVER_REQUIRED');return observer(Object.freeze({record:record?Object.freeze({...record}):null,firstCause,firstCausePresent,cleanupCause,cleanupCausePresent}));},
   });
 }

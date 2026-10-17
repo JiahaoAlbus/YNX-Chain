@@ -9,7 +9,7 @@ async function fixture(){
  const material=Object.freeze({TEST_ONLY_SECRET:'not-real-key-material'}),receipt=Object.freeze({TEST_ONLY_RECEIPT:true}),states=[];
  const lifecycle=new DesktopKeyLifecycle({authorizer:{available:()=>true,authenticate:async()=>{},inProcess:true},focused:()=>true,schedule:()=>null,unschedule:()=>{}});
  lifecycle.setAccount(account);await lifecycle.unlock();
- const source={prepare:async kind=>{prepareCalls++;mode=kind;return material;},persist:async value=>{saveCalls++;assert.equal(value,material);return receipt;},reconcile:async value=>{readCalls++;assert.equal(value,material);return receipt;},verifyPersisted:async(value,r)=>value===material&&r===receipt};
+ const source={prepare:async kind=>{prepareCalls++;mode=kind;return material;},persist:async value=>{saveCalls++;assert.equal(value,material);return receipt;},reconcile:async value=>{readCalls++;assert.equal(value,material);return receipt;},verifyPersisted:async(value,r)=>value===material&&r===receipt,retire:()=>({retired:true,cleanupComplete:true,cleanupUnknown:false})};
  const controller=createDualPQKeyPreparation({lifecycle,getBinding:()=>binding,source,id:()=> 'TEST-ONLY-operation',onState:s=>states.push(s)});
  return {controller,lifecycle,source,material,receipt,states,setBinding:b=>binding=b,counts:()=>({prepareCalls,saveCalls,readCalls,mode})};
 }
@@ -26,8 +26,8 @@ for(const boundary of ['lock','cancel','account','network'])test(`PQ returned or
  const work=f.controller.generate();await gate.promise;
  if(boundary==='lock')f.lifecycle.lock();else if(boundary==='cancel')f.controller.cancel();else f.setBinding({...{account,network},[boundary]:boundary==='network'?'3'.repeat(64):'0x'+'3'.repeat(40)});
  pending.resolve();await assert.rejects(work,{code:'PQ_KEY_PREPARATION_INCOMPLETE'});
- assert.equal(f.controller.status().phase,'retained');assert.equal(f.controller.selectRetainedOutcome(x=>x.record.material),f.material);assert.equal(f.counts().saveCalls,0);
- if(boundary==='lock')await f.lifecycle.unlock();f.setBinding({account,network});await f.controller.saveRetained();assert.equal(f.counts().saveCalls,1);f.lifecycle.lock();
+ assert.equal(f.controller.status().phase,'retired');assert.equal(f.controller.selectRetainedOutcome(x=>x.record.material),f.material);assert.equal(f.counts().saveCalls,0);
+ if(boundary==='lock')await f.lifecycle.unlock();f.setBinding({account,network});await assert.rejects(f.controller.saveRetained());assert.equal(f.counts().saveCalls,0);f.lifecycle.lock();
 });
 test('PQ a lost save acknowledgement is not retried; only the original is read back',async()=>{
  const f=await fixture();let saves=0;f.source.persist=async()=>{saves++;throw null;};
@@ -61,4 +61,33 @@ test('PQ reconciliation refuses wrong binding and unverified readback without a 
  const f=await fixture();f.source.persist=async()=>{throw Error('TEST_ONLY lost ack');};await assert.rejects(f.controller.generate());
  f.setBinding({account,network:'3'.repeat(64)});await assert.rejects(f.controller.reconcile(),{code:'PQ_KEY_BINDING_CHANGED'});assert.equal(f.counts().readCalls,0);
  f.setBinding({account,network});f.source.reconcile=async()=>null;await assert.rejects(f.controller.reconcile());assert.equal(f.controller.status().phase,'save-unknown');f.lifecycle.lock();
+});
+test('PQ lifecycle lock retires a late returned key once while preserving its original reference',async()=>{
+ const f=await fixture(),entered=deferred(),finish=deferred();let retires=0;
+ f.source.retire=material=>{assert.equal(material,f.material);retires++;return {retired:true,cleanupComplete:true,cleanupUnknown:false};};
+ f.source.prepare=async()=>{entered.resolve();return finish.promise;};
+ const work=f.controller.generate();await entered.promise;f.lifecycle.lock();finish.resolve(f.material);await assert.rejects(work);
+ assert.equal(retires,1);assert.equal(f.controller.status().keyRetired,true);assert.equal(f.controller.selectRetainedOutcome(x=>x.record.material),f.material);
+ f.controller.cancel();assert.equal(retires,1);
+});
+test('PQ failed retirement preserves separate falsy cleanup debt and never automatically retries destroy',async()=>{
+ const f=await fixture(),entered=deferred(),finish=deferred();let retires=0;
+ f.source.retire=()=>{retires++;throw false;};f.source.prepare=async()=>{entered.resolve();return finish.promise;};
+ const work=f.controller.generate();await entered.promise;f.controller.cancel();finish.resolve(f.material);await assert.rejects(work);
+ assert.equal(retires,1);assert.equal(f.controller.status().cleanupDebt,true);
+ assert.equal(f.controller.selectRetainedOutcome(x=>x.cleanupCausePresent),true);assert.equal(f.controller.selectRetainedOutcome(x=>x.cleanupCause),false);
+ assert.equal(f.controller.selectRetainedOutcome(x=>x.firstCausePresent),true);f.controller.cancel();assert.equal(retires,1);
+});
+test('PQ locking after verified storage retires the key without erasing the saved fact',async()=>{
+ const f=await fixture();let retires=0;f.source.retire=()=>{retires++;return {retired:true,cleanupComplete:true,cleanupUnknown:false};};
+ await f.controller.generate();f.lifecycle.lock();assert.equal(retires,1);assert.equal(f.controller.status().phase,'saved');assert.equal(f.controller.status().persisted,true);assert.equal(f.controller.status().keyRetired,true);
+});
+test('PQ disposing during key preparation joins no new work and retires the late original',async()=>{
+ const f=await fixture(),entered=deferred(),finish=deferred();let retires=0;f.source.retire=()=>{retires++;return {retired:true,cleanupComplete:true,cleanupUnknown:false};};f.source.prepare=async()=>{entered.resolve();return finish.promise;};
+ const work=f.controller.generate();await entered.promise;f.controller.dispose();finish.resolve(f.material);await assert.rejects(work);assert.equal(retires,1);
+ await assert.rejects(f.controller.generate());await assert.rejects(f.controller.saveRetained());assert.equal(f.counts().saveCalls,0);
+});
+test('PQ an idle cancellation cannot suppress retirement of a later explicit preparation',async()=>{
+ const f=await fixture();let retires=0;f.source.retire=()=>{retires++;return {retired:true,cleanupComplete:true,cleanupUnknown:false};};
+ f.controller.cancel();await f.controller.generate();f.lifecycle.lock();assert.equal(retires,1);assert.equal(f.controller.status().keyRetired,true);
 });

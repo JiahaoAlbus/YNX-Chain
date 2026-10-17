@@ -6,7 +6,7 @@ function fixture(){
  let locked=false,created=0,restored=0,saved=0,read=0,verified=0,lastExpected;
  const handle=Object.freeze({TEST_ONLY_SECRET_HANDLE:true}),pub=Object.freeze({...network,pkA:'TEST-public-A',pkB:'TEST-public-B'}),receipt=Object.freeze({TEST_ONLY_RECEIPT:true});
  const guard={account:binding.account,assert(){if(locked)throw Error('TEST locked');}};
- const sdk={validatePQNetworkBinding:n=>Object.freeze({...n}),createPQWalletKeyHandle:async n=>{assert.deepEqual(n,network);created++;return handle;},readPQWalletKeyPublic:h=>{assert.equal(h,handle);return pub;},restorePQWalletKeyHandle:async(wire,credential,expected)=>{assert.equal(credential,'TEST-credential');assert.equal(wire[0],7);lastExpected=expected;restored++;return handle;},assertPQPublicBindingMatches(a,b){assert.deepEqual(a,b);return a;}};
+ const sdk={validatePQNetworkBinding:n=>Object.freeze({...n}),createPQWalletKeyHandle:async n=>{assert.deepEqual(n,network);created++;return handle;},readPQWalletKeyPublic:h=>{assert.equal(h,handle);return pub;},restorePQWalletKeyHandle:async(wire,credential,expected)=>{assert.equal(credential,'TEST-credential');assert.equal(wire[0],7);lastExpected=expected;restored++;return handle;},assertPQPublicBindingMatches(a,b){assert.deepEqual(a,b);return a;},destroyPQWalletKeyHandle:()=>true,readPQWalletKeyCleanupOutcome:()=>({retired:true,cleanupComplete:true,cleanupUnknown:false})};
  const repository={saveKeys:async o=>{guard.assert();assert.equal(o.handle,handle);assert.deepEqual(o.publicBinding,pub);saved++;return receipt;},readKeys:async()=>{read++;return receipt;},verifySavedKeys:async o=>{verified++;return o.handle===handle&&o.receipt===receipt;}};
  const dependencies={sdk,repository,getOriginalNetwork:async()=>network,getRegisteredBinding:async()=>pub,readRestoreInput:async()=>({wire:Uint8Array.of(7),credential:'TEST-credential',expectedBinding:{owner:'UNTRUSTED_FILE_OWNER'}})};
  return {dependencies,sdk,repository,guard,handle,pub,receipt,source:()=>createPQKeyPreparationSource(dependencies),lock:()=>locked=true,unlock:()=>locked=false,counts:()=>({created,restored,saved,read,verified,lastExpected})};
@@ -38,4 +38,17 @@ test('PQ App read-only reconciliation uses the same handle, never re-generates o
 });
 test('PQ renderer-shaped objects cannot replace main-retained originals',async()=>{
  const f=fixture(),s=f.source(),args={binding,operationId:'TEST-op',guard:f.guard};await assert.rejects(s.persist({handle:f.handle},args),{code:'PQ_ORIGINAL_KEY_HANDLE_REQUIRED'});assert.equal(f.counts().saved,0);
+});
+test('PQ retired handle is fenced once, while read-only saved-result recovery does not reopen it',async()=>{
+ const f=fixture();let retired=false,destroys=0;f.sdk.destroyPQWalletKeyHandle=()=>{retired=true;destroys++;return true;};
+ const readPublic=f.sdk.readPQWalletKeyPublic;f.sdk.readPQWalletKeyPublic=h=>{if(retired)throw Error('TEST retired private capability');return readPublic(h);};
+ const s=f.source(),args={binding,operationId:'TEST-op',guard:f.guard},material=await s.prepare('generate',args);
+ s.retire(material);s.retire(material);assert.equal(destroys,1);
+ await assert.rejects(s.persist(material,args),{code:'PQ_KEY_HANDLE_RETIRED'});
+ const receipt=await s.reconcile(material,args);assert.equal(await s.verifyPersisted(material,receipt,args),true);assert.equal(f.counts().saved,0);
+});
+test('PQ public accessor failure never hides the already returned key handle',async()=>{
+ const f=fixture(),cause=Error('TEST public accessor failed');f.sdk.readPQWalletKeyPublic=()=>{throw cause;};const s=f.source(),args={binding,operationId:'TEST-op',guard:f.guard};
+ const material=await s.prepare('generate',args);assert.equal(s.selectOriginal(material,x=>x.handle),f.handle);
+ await assert.rejects(s.persist(material,args),e=>e===cause);assert.equal(s.retire(material).cleanupComplete,true);assert.equal(f.counts().saved,0);
 });
