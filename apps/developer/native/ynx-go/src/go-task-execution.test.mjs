@@ -27,12 +27,13 @@ test('first-use Go uses native admission without granting or launching in the ol
 
 async function requestFixture() {
  const root=await realpath(await mkdtemp(join(tmpdir(),'ynx-go-request-'))),require=createRequire(import.meta.url),module={exports:{}};
- const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'},helpers=require('./go-toolchain.cjs');
- vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
+ const toolchain={root:'/fixture/go',executable:'/fixture/go/bin/go'},helpers=require('./go-toolchain.cjs'),hooks={buildExit:0};
+ const originalFS=require('node:fs/promises'),observedFS={...originalFS,async open(...args){const handle=await originalFS.open(...args);const read=handle.read.bind(handle);handle.read=async(...values)=>{await hooks.headerRead?.();return read(...values);};return handle;}};
+ vm.runInNewContext(await readFile(new URL('./go-tasks.cjs',import.meta.url),'utf8'),{module,exports:module.exports,process,AbortController,Buffer,require:name=>name==='node:fs/promises'?observedFS:name==='./go-toolchain.cjs'?{...helpers,admittedToolchain:async()=>toolchain,verifyToolchain:async()=>toolchain}:require(name)});
  const file=join(root,'hello.go');await writeFile(file,'package main; func main() {}');
  const document={uri:{scheme:'file',fsPath:file},version:1,isDirty:false,isClosed:false,save:async()=>true},folder={uri:{scheme:'file',fsPath:root}},listeners=new Set(),editorListeners=new Set();
  let saved,picks=0,notices=0,workflow;
- const executions=[],submitted=[],hooks={buildExit:0};
+ const executions=[],submitted=[];
  class Task {constructor(definition,scope,name,source,execution,matchers){Object.assign(this,{definition,scope,name,source,execution,matchers});}}
  class ProcessExecution {constructor(command,args,options){Object.assign(this,{command,args,options});}}
  const api={workspace:{isTrusted:true,workspaceFolders:[folder],textDocuments:[],getConfiguration:()=>({inspect:()=>({workspaceFolderValue:saved}),update:async(key,value)=>{saved=value;await hooks.update?.();}})},
@@ -353,4 +354,22 @@ test('R36 generic Go Run preserves explicit launch ownership and unconfigured de
   f.configurations.current={name:'TEST_ONLY_user_launch'};
   assert.equal(f.contribution.currentFileCommand(false),'workbench.action.debug.run');assert.equal(f.contribution.currentFileCommand(true),'workbench.action.debug.start');assert.deepEqual(f.executions,[]);
  }finally{await f.close();}
+});
+
+test('Go final launch refuses source, editor or permission changes during executable inspection and permits retry',{timeout:5000},async()=>{
+ for(const change of ['source','editor','trust']){
+  const f=await requestFixture();try {
+   f.hooks.headerRead=()=>{
+    if(change==='source'){f.document.version++;f.document.isDirty=true;}
+    if(change==='editor')f.switchEditor({uri:{scheme:'file',fsPath:f.document.uri.fsPath+'-other.go'}});
+    if(change==='trust')f.api.workspace.isTrusted=false;
+   };
+   await assert.rejects(f.workflow.run(),change==='source'?/Save the Go sources/:/changed/);
+   assert.deepEqual(f.executions,['build'],'Invalidated request must not launch the old program');
+   assert.equal(f.workflow.status().running,false);
+   delete f.hooks.headerRead;f.document.isDirty=false;f.api.workspace.isTrusted=true;f.switchEditor(f.document);
+   assert.equal((await f.workflow.run()).exitCode,0);
+   assert.deepEqual(f.executions,['build','build','run']);assert.equal(f.counts().picks,1);
+  }finally{await f.close();}
+ }
 });

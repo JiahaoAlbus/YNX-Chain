@@ -154,6 +154,9 @@ function createGoTasks(api,context,environment,t=text=>text) {
    const stat=await fs.lstat(prepared.output);const header=await fs.open(prepared.output,require('node:fs').constants.O_RDONLY|require('node:fs').constants.O_NOFOLLOW);let magic;try{const bytes=Buffer.alloc(4);await header.read(bytes,0,4,0);magic=bytes.toString('hex');}finally{await header.close();}
    if(!stat.isFile() || stat.isSymbolicLink() || !(stat.mode&0o111) || !['cffaedfe','feedfacf','7f454c46'].includes(magic) && !magic.startsWith('4d5a'))throw Error(t('This Go package is a library, not a runnable main package. The build completed; no program was executed.'));
    if(operation.cancelled)return {cancelled:true};
+   // Executable inspection crosses asynchronous filesystem reads. Recheck the
+   // original source/editor/project owner before admitting its program task.
+   await operation.verify();
    const exitCode=await executeGoTask(api,prepared.run,operation);await binding.verify();
    return operation.cancelled ? {cancelled:true} : exitCode===undefined ? {unknown:true} : {exitCode};
   } finally {if(active===operation && !operation.cleanupPending)active=undefined;}
