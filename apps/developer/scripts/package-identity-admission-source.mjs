@@ -79,7 +79,7 @@ export async function copyIdentityAdmissionSource(destination) {
 }
 // Canonical source custody is independent of runtime service admission. Keep the
 // original SDK loader relative to its unique apps/wallet-desktop Native module.
-export const CANONICAL_IDENTITY_INPUTS_SHA256 = '6e6db94cb57a8bae69bb99520fced8921e0473a33658a1d86d73d95c062cb440';
+export const CANONICAL_IDENTITY_INPUTS_SHA256 = '8fc2b10c409930bc3bf1c2d2427795b43455f30827ecb618c528f2a75d312eb0';
 const canonicalOwned = resolve(developer, '../../packages/wallet-auth');
 async function canonicalInputs() {
   const bytes = await readFile(new URL('./canonical-identity-inputs.json', import.meta.url));
@@ -199,6 +199,14 @@ export function validateCanonicalNativeBuildReceipt(record, inputs, targetArchit
     const pin = pins.get(row.relative);
     if (!safeRelative(row.relative) || seen.has(row.relative) || !pin || pin.bytes !== row.bytes || pin.sha256 !== row.sha256) throw Error('Canonical Native source pin differs.');
     seen.add(row.relative);
+  }
+  // The original builder records the Native source closure, including headers
+  // and textual includes. Six translation units alone cannot bind the module
+  // to a changed transport header. Keep the IDE-only supplier and standalone
+  // C++ controls outside the Node component's existing build inventory.
+  for (const pin of inputs.nativeSources) {
+    if (!pin.path.startsWith('apps/developer/') && !pin.path.endsWith('.test.cc')
+      && !seen.has(pin.path)) throw Error('Canonical Native build input closure differs.');
   }
   const units = ['apps/wallet-desktop/native/original-auth-identity-node.mm',
     'packages/wallet-auth/native/original-auth-identity-joint-owner.mm',

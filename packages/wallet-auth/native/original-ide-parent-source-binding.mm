@@ -54,5 +54,15 @@ bool SourceBinding::current(NSError **error){
  if(![now isEqual:selection_]||(uint64_t)(NSDate.date.timeIntervalSince1970*1000)>=[request_[@"expiresAtMs"] unsignedLongLongValue])return fail(@"IDE_SOURCE_CURRENT_BINDING_CHANGED",error);
  return true;
 }
-NSNumber *SourceBinding::currentSequence(NSError **error){std::lock_guard<std::recursive_mutex> lock(mutex_);if(!current(error))return nil;return [source_ copyOriginalCurrentSequence:error];}
+NSNumber *SourceBinding::currentSequence(NSError **error){
+ std::lock_guard<std::recursive_mutex> lock(mutex_);
+ if(!current(error))return nil;
+ NSNumber *sequence=[source_ copyOriginalCurrentSequence:error];
+ if(!sequence){fail(@"IDE_SOURCE_CURRENT_SEQUENCE_UNAVAILABLE",error);return nil;}
+ // The original callback may run through verification while this request
+ // expires or its selection changes. Never publish a pre-fence-only result.
+ if(!current(error))return nil;
+ return sequence;
 }
+}
+

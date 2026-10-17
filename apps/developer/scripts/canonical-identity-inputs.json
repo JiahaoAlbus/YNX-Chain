@@ -1961,8 +1961,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
-      "bytes": 6521,
-      "sha256": "7535ddab40c43ed717aec7466feec63fa886e51b1671a0dd1e05364ba5286e38"
+      "bytes": 6825,
+      "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
     },
     {
       "path": "apps/developer/desktop/macos/original-ide-parent-supplier.h",
@@ -1971,13 +1971,13 @@
     },
     {
       "path": "apps/developer/desktop/macos/original-ide-parent-supplier.mm",
-      "bytes": 11619,
-      "sha256": "f24c84022ee2d0bc63d905e57ee9a94378e5905649358a74b42866f77972e54f"
+      "bytes": 12009,
+      "sha256": "813c0951fe600c26bf91b49b819a32106eab2f4b7e2443334219278292c9c42d"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-transport.h",
-      "bytes": 2271,
-      "sha256": "cd8df5682e8bec39032a68b6ea3d0bf6a3b0324bc5b1f15d9c47eb3605bb3e4a"
+      "bytes": 2582,
+      "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-transport.test.cc",
@@ -13890,6 +13890,32 @@
       "path": "zlib.h",
       "bytes": 97418,
       "sha256": "d6e12754edb0c019107c7560902c741eab10c15ced7e5f249e642b82c007c0bf"
+    }
+  ],
+  "nativeSourceUpdates": [
+    {
+      "handoff": "ide-sequence-post-fence-r2-20261017/HANDOFF.json",
+      "handoffSha256": "82560f6f20236d3859bcee69aebfe7ad7835d91f235651694c02af9c16c643e7",
+      "path": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+      "parentSha256": "7535ddab40c43ed717aec7466feec63fa886e51b1671a0dd1e05364ba5286e38",
+      "bytes": 6825,
+      "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
+    },
+    {
+      "handoff": "ide-prelude-deadline-r3-20261017/HANDOFF.json",
+      "handoffSha256": "3840dedd388e3a2ddd9e9900faddc3f43f9d06dab9a3e1df4fc88e6678d56b1b",
+      "path": "packages/wallet-auth/native/original-ide-parent-transport.h",
+      "parentSha256": "cd8df5682e8bec39032a68b6ea3d0bf6a3b0324bc5b1f15d9c47eb3605bb3e4a",
+      "bytes": 2582,
+      "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
+    },
+    {
+      "handoff": "ide-retire-drain-r4-20261017/HANDOFF.json",
+      "handoffSha256": "5dfbe5edf937d57704d453c85988dfad85555d2b79e63114db8158089dd35392",
+      "path": "apps/developer/desktop/macos/original-ide-parent-supplier.mm",
+      "parentSha256": "f24c84022ee2d0bc63d905e57ee9a94378e5905649358a74b42866f77972e54f",
+      "bytes": 12009,
+      "sha256": "813c0951fe600c26bf91b49b819a32106eab2f4b7e2443334219278292c9c42d"
     }
   ]
 }

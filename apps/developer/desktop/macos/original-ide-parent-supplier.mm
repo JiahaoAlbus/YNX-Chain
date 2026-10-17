@@ -66,7 +66,18 @@ static NSMutableSet<YNXOriginalIDEParentGuard*> *RecognizedGuards(){static NSMut
   _adopted=YES;return YES;
  }catch(const std::exception&e){return [self failure:error code:[NSString stringWithUTF8String:e.what()]];}}@catch(id exception){return [self failure:error code:@"IDE_ORIGINAL_ADOPT_EXCEPTION"];} }
 }
-- (void)retire {@synchronized(self){_retired=YES;_lifetime.retire();if(_retireSelected)return;_retireSelected=YES;@try{if(_peerAdmitted){NSError *failure=nil;if(!_observation.retireEndpoint(&failure)&&!_cleanup)_cleanup=failure;_peerAdmitted=NO;}[_source retire];}@catch(id exception){if(!_first&&!_originalCause)_originalCause=exception;if(!_cleanup)_cleanup=ParentFailure(@"IDE_ORIGINAL_RETIRE_UNKNOWN");}}}
+- (void)retire {
+ @synchronized(self){
+  _retired=YES;_lifetime.retire();if(_retireSelected)return;_retireSelected=YES;
+  @try{if(_peerAdmitted){NSError *failure=nil;if(!_observation.retireEndpoint(&failure)&&!_cleanup)_cleanup=failure;}}
+  @catch(id exception){if(!_first&&!_originalCause)_originalCause=exception;if(!_cleanup)_cleanup=ParentFailure(@"IDE_ORIGINAL_RETIRE_UNKNOWN");}
+  _peerAdmitted=NO; // Selected once, even when endpoint retirement is UNKNOWN.
+  // Independent original custody must still be fenced if endpoint retirement
+  // throws. Preserve its first error; do not retry either resource operation.
+  @try{[_source retire];}
+  @catch(id exception){if(!_first&&!_originalCause)_originalCause=exception;if(!_cleanup)_cleanup=ParentFailure(@"IDE_ORIGINAL_RETIRE_UNKNOWN");}
+ }
+}
 - (BOOL)finish:(NSError **)error {
  @synchronized(self){if(_closeSelected){if(!_closeComplete&&error)*error=_cleanup;return _closeComplete;}[self retire];_closeSelected=YES;
   NSError *observationFailure=nil,*joinFailure=nil,*closeFailure=nil;BOOL observed=_observation.closeOnce(&observationFailure),sourceJoined=YES,sourceClosed=YES;
@@ -107,3 +118,4 @@ BOOL YNXOriginalAdoptIDEAdmissionChild(id<YNXWalletAdmissionParentGuard> guard,p
  return [(YNXOriginalIDEParentGuard*)guard adopt:actualChild error:error];
 }
 void YNXOriginalRetireIDEAdmissionParent(id<YNXWalletAdmissionParentGuard> guard){BOOL recognized=NO;@synchronized(RecognizedGuards()){recognized=[RecognizedGuards() containsObject:guard];}if(recognized)[(YNXOriginalIDEParentGuard*)guard retire];}
+
