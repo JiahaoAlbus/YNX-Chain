@@ -20,7 +20,7 @@ const owners=new WeakMap();
 const owner=store=>{let slots=owners.get(store);if(!slots){slots=new Map();owners.set(store,slots)}return slots};
 const freezePublic=value=>{if(value&&typeof value==="object"){for(const child of Object.values(value))freezePublic(child);Object.freeze(value)}return value};
 export function publicOriginalCause(error){return error?Object.freeze({name:String(error.name??"Error").slice(0,128),code:typeof error.code==="string"?error.code.slice(0,128):null,message:String(error.message??"Operation failed").slice(0,2048)}):null}
-export function originalRetention(slot){return Object.freeze({scope:"operation-memory",durable:false,originalCause:publicOriginalCause(slot.originalCause),storageCause:publicOriginalCause(slot.storageCause)})}
+export function originalRetention(slot){return Object.freeze({scope:"operation-memory",durable:false,originalCausePresent:slot.originalCausePresent===true||slot.originalCause!=null,storageCausePresent:slot.storageCausePresent===true||slot.storageCause!=null,originalCause:publicOriginalCause(slot.originalCause),storageCause:publicOriginalCause(slot.storageCause)})}
 function validateIntent(record, legacy = false) {
   const keys = legacy ? "account,attempts,capabilities,chainId,hash,nonce,to,value" : "account,attempts,capabilities,chainId,hash,nonce,origin,raw,to,value";
   if (!record || Object.keys(record).sort().join() !== keys || typeof record.account !== "string" || !ACCOUNT.test(record.account) || typeof record.to !== "string" || !ACCOUNT.test(record.to) || record.to === record.account || typeof record.hash !== "string" || !HASH.test(record.hash) || record.chainId !== "0x1917" || !quantity(record.nonce) || !quantity(record.value) || BigInt(record.value) <= 0n || !Number.isSafeInteger(record.attempts) || record.attempts < 1) throw invalid();
@@ -103,7 +103,7 @@ export class FileTransactionIntentStore {
   async reserveOriginal(account,kind){
     if(!ACCOUNT.test(account??"")||!["native","pay"].includes(kind))throw invalid();
     const slots=owner(this);if(slots.has(account)||slots.size>=ORIGINAL_OWNER_LIMIT)throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original operation capacity or account conflict; nothing new was signed.");
-    const slot={account,kind,native:null,pay:null,originalCause:null,storageCause:null};slots.set(account,slot);
+    const slot={account,kind,native:null,pay:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false};slots.set(account,slot);
     try{await this.#mutate(async()=>{
       const state=paySuccessor(await this.#read());
       if(state.preparations?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
@@ -117,7 +117,16 @@ export class FileTransactionIntentStore {
     else{if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
     return slot;
   }
-  originalFailed(account,error,{storage=false}={}){const slot=owner(this).get(account);if(slot){if(storage)slot.storageCause=error;else if(!slot.originalCause&&error!==slot.storageCause&&error?.cause!==slot.storageCause)slot.originalCause=error}}
+  originalFailed(account,error,{storage=false}={}){
+    const slot=owner(this).get(account);if(!slot)return;
+    if(storage){if(!slot.storageCausePresent){slot.storageCause=error;slot.storageCausePresent=true;}return;}
+    if(slot.originalCausePresent)return;
+    // A storage wrapper is not a second operation failure. Presence, not
+    // truthiness, preserves even a thrown null/false/undefined first cause.
+    let cause;try{const descriptor=error&&typeof error==='object'?Object.getOwnPropertyDescriptor(error,'cause'):null;if(descriptor&&Object.hasOwn(descriptor,'value'))cause=descriptor;}catch{}
+    if(slot.storageCausePresent&&(error===slot.storageCause||cause&&cause.value===slot.storageCause))return;
+    slot.originalCause=error;slot.originalCausePresent=true;
+  }
   originalSaved(account){owner(this).delete(account)}
   // SAVE is custody only. No producer, RPC or outward-effect capability is
   // consumed here; the renderer cannot provide the original being published.
