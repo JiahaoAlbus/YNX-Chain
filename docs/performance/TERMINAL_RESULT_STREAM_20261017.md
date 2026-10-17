@@ -132,3 +132,8 @@ The available evidence only shows the earlier compilation crossed the cap after
 three seconds; it cannot prove a cold compilation fits 45 seconds. A new
 attempt must stop at that original deadline, with no automatic time/cap increase.
 This changed environment has been syntax/prepare-only checked, not executed.
+
+Latest source connects optional -reuse-result-slots and cumulative bounded interval
+statistics; see [slot reporting](READY_RESULT_SLOTS_20261017.md). Default retention
+remains unchanged. Go execution is still pending, so earlier implementation-stage
+notes above are not new validation evidence.

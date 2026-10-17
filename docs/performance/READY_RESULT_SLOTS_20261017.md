@@ -1,11 +1,12 @@
 # Ready controller: bounded per-account result slots
 
-The controller now has an internal opt-in `reuseResultSlots` branch. Existing
-CLI runs retain their full-history arrays; no CLI switch exposes the slot branch
-before cumulative summaries and stream-backed reporting are connected. This is
-implemented controller groundwork, not a ten-minute driver or measured memory
+The controller now exposes opt-in `-reuse-result-slots`, requiring ready-pool
+mode and `-terminal-stream`. Default CLI runs retain full-history arrays. Slot
+mode has cumulative counts and bounded interval latency statistics connected to
+the terminal handoff; it does not summarize only the latest slot generation.
+This is source implementation, not a ten-minute driver or measured memory
 improvement yet. Go regressions have not run because scheduled admissions stopped
-before tests; do not treat the following test sources as passing evidence.
+before tests; do not treat test sources as passing evidence.
 
 The branch uses exactly one transaction/result slot per sender. Jobs, accepted
 queues and terminal channels are bounded by that slot count, instead of total
@@ -40,9 +41,45 @@ Pending focused Go coverage, under the existing `TestReadySender` target:
   full-history and slot reuse, requiring six sealed terminal rows and exact
   expected balances/nonces/fees in each mode.
 
-Remaining integration: cumulative verified stage counts and fixed-memory latency
-statistics, streamed raw-result report references, bounded signed-intent segment
-rotation and long-history durability readback. Current CLI summary still depends
-on lifetime arrays; it is deliberately not replaced with a summary of only the
-last slot generation. Ten-minute acceptance and stable 1,000 final business TPS
-remain unproven.
+Remaining integration: bounded signed-intent segment rotation, safely extended
+cycle/duration/funding limits and long-history durability readback, followed by
+measured comparisons and abnormal-exit recovery for slot reports. Ten-minute
+acceptance and stable 1,000 final business TPS remain unproven.
+
+## Cumulative CLI reporting (Go execution pending)
+
+Schema12 labels retentionMode as latest_per_account_slots: transactions contains
+only the most recently prepared/observed per-account slots, while every terminal
+handoff is written to the bounded segmented stream. Prepared but never offered
+identities remain in the original signed-intent journal; no resubmission or
+resumption is introduced. Input remains the full planned count, not slot count.
+
+Counts accumulate once per controller completion, before reuse. Raw ACK, code0
+proof and quorum observations stay distinct from actual effective business
+inclusion and finality. The latter require a hash binding to that slot's exact
+raw transaction, existing durable fee/nonce/publication gates, and for finality
+the confirmed status and identity-bound successful CheckTx. Unknown, timeout,
+failed execution and unsubmitted counts remain explicit. Future/unoffered inputs
+are counted as unsubmitted, not dropped from the denominator.
+
+Six fixed histograms cover queue, CheckTx, authenticated inclusion, effective
+business inclusion, qualified finality and offer-to-final. The last adds each
+transaction's saved queue and final spans before histogram aggregation. Their
+closed nanosecond intervals are in readySenders.boundedSummary.latencyIntervalsNs.
+Old exact point-percentile fields remain null; callers must not present interval
+estimates as exact quantiles. A threshold crossed by an interval needs exact
+offline sorting of raw terminal evidence. Steady/interior TPS remains withheld.
+
+Invalid latency excludes the entire row from histograms and fails the run, but
+preserves actual stage counts and increments invalidLatencyRecords. It must not
+relabel a known actual submission as unsubmitted. Missing monotonic event times
+withhold interarrival rate rather than subtracting UTC clocks. Overall rates use
+the complete workload including terminal segment close/Sync, as with signing and
+intent Sync. This does not count report-file serialization as business execution.
+
+Pending counterexamples compare cumulative counts against full-history results
+after out-of-order terminal handoffs; reject business promotion with missing or
+unbound evidence; preserve counts on bad latency while avoiding partial histogram
+updates; enforce input bounds; and reject slot CLI without durable terminal output.
+The 96-input/3-slot controller test additionally asserts all 96 cumulative counts.
+All existing 2,048 input / 32-cycle / 30s CLI caps remain unchanged.

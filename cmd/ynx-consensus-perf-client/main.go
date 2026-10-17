@@ -174,6 +174,7 @@ type report struct {
 	SenderMode           string                  `json:"senderMode"`
 	InclusionMode        string                  `json:"inclusionMode"`
 	ReadySenders         readySenderStats        `json:"readySenders"`
+	RetentionMode        string                  `json:"retentionMode,omitempty"`
 	TerminalStream       *terminalStreamReport   `json:"terminalStream,omitempty"`
 	TimeoutMs            int64                   `json:"timeoutMs"`
 	PollMs               int64                   `json:"pollMs"`
@@ -203,6 +204,7 @@ func main() {
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
+	flag.BoolVar(&o.reuseResultSlots, "reuse-result-slots", false, "one result slot per sender with cumulative interval statistics; requires terminal-stream; finite caps unchanged")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -229,6 +231,9 @@ func validateOptions(o options) error {
 	}
 	if o.terminalStream && (o.senderMode != "ready-pool" || o.output == "") {
 		return errors.New("terminal stream requires ready-pool and a new output")
+	}
+	if o.reuseResultSlots && (!o.terminalStream || o.senderMode != "ready-pool") {
+		return errors.New("result slot reuse requires ready-pool and terminal-stream")
 	}
 	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
 		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
@@ -823,6 +828,11 @@ func execute(o options) error {
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
 		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
+	if o.reuseResultSlots {
+		r.SchemaVersion = 12
+		r.RetentionMode = "latest_per_account_slots"
+		r.Interpretation = append(r.Interpretation, "Schema12 slot retention: transactions contains only the latest per-account slot. Every handed-back terminal result is in the segmented terminal stream. Summary stage counts are cumulative; exact point percentiles are withheld and bounded intervals are in readySenders.boundedSummary.latencyIntervalsNs. No lifetime block list or sustained TPS is inferred.")
+	}
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)
 		if err != nil {
@@ -880,7 +890,12 @@ func execute(o options) error {
 				return err
 			}
 		}
-		r.Transactions = make([]transactionResult, len(txs)*o.rounds)
+		storageCount := len(txs) * o.rounds
+		if o.reuseResultSlots {
+			storageCount = len(txs)
+		}
+		r.Transactions = make([]transactionResult, storageCount)
+		r.Summary = summary{Input: len(txs) * o.rounds, NotSubmitted: len(txs) * o.rounds}
 		for i := range r.Transactions {
 			r.Transactions[i] = transactionResult{Index: i, Round: i/len(txs) + 1, Status: "not_submitted", Errors: []errorObservation{}}
 		}
@@ -1020,14 +1035,23 @@ func execute(o options) error {
 			r.RoundsCompleted, roundErr = runSenderRounds(ctx, o.rounds, txs, pool, r.Transactions, runRound)
 		}
 
-		r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
-		if o.senderMode == "ready-pool" {
+		if o.reuseResultSlots {
+			if r.ReadySenders.BoundedSummary == nil {
+				return errors.Join(roundErr, errors.New("missing cumulative slot summary"))
+			}
+			r.Summary = r.ReadySenders.BoundedSummary.Counts
+			readySummaryRates(&r.Summary, time.Since(started).Seconds())
+			r.ReadySenders.BoundedSummary.Counts = r.Summary
+		} else {
+			r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
+		}
+		if o.senderMode == "ready-pool" && !o.reuseResultSlots {
 			r.Summary.InclusionBlocks.Interpretation = "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."
 		}
 		if roundErr != nil {
 			return roundErr
 		}
-		if r.Summary.FinalSubmitted != len(r.Transactions) {
+		if r.Summary.FinalSubmitted != len(txs)*o.rounds {
 			return errors.New("bounded run incomplete: inspect per-transaction outcomes; no submission will be retried")
 		}
 		return nil
@@ -1036,7 +1060,7 @@ func execute(o options) error {
 	if runErr != nil {
 		addError(&r.SetupErrors, "run", runErr)
 	}
-	if r.MeasurementStartedAt == nil {
+	if r.MeasurementStartedAt == nil && !o.reuseResultSlots {
 		r.Summary = summarize(r.Transactions, 0)
 	}
 	if output != nil {

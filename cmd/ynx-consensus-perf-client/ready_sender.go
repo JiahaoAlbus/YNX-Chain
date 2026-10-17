@@ -133,13 +133,14 @@ func (p *ephemeralSenderPool) nextForSender(sender int, prior transactionResult)
 }
 
 type readySenderStats struct {
-	Prepared        int             `json:"prepared"`
-	Offered         int             `json:"offered"`
-	Completed       int             `json:"completed"`
-	Quarantined     int             `json:"quarantinedAccounts"`
-	PeakInFlight    int             `json:"peakInFlightAccounts"`
-	RoundsCompleted int             `json:"roundsCompleted"`
-	Queues          pacedStatistics `json:"queues"`
+	Prepared        int                    `json:"prepared"`
+	Offered         int                    `json:"offered"`
+	Completed       int                    `json:"completed"`
+	Quarantined     int                    `json:"quarantinedAccounts"`
+	PeakInFlight    int                    `json:"peakInFlightAccounts"`
+	RoundsCompleted int                    `json:"roundsCompleted"`
+	Queues          pacedStatistics        `json:"queues"`
+	BoundedSummary  *readyCumulativeReport `json:"boundedSummary,omitempty"`
 }
 
 // This controller alone signs/advances account state. Submitters and observers
@@ -172,6 +173,21 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			return results[index].Index
 		}
 		return index
+	}
+	if o.reuseResultSlots {
+		cumulative, err := newReadyCumulativeSummary(senders * o.rounds)
+		if err != nil {
+			return stats, err
+		}
+		started := time.Now()
+		originalSink := o.terminalSink
+		o.terminalSink = func(r transactionResult) error {
+			// Preserve observed counts even if evidence output fails; that error
+			// still stops signing. Counts are not a claim of stream durability.
+			bound := r.Hash == fmt.Sprintf("%X", txs[storageIndex(r.Index)].Hash())
+			return errors.Join(originalSink(r), cumulative.add(r, bound))
+		}
+		defer func() { stats.BoundedSummary = cumulative.snapshot(time.Since(started).Seconds()) }()
 	}
 	defer func() { p.stopped = true }()
 	journal, err := newReadySenderJournal(p)

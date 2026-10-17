@@ -67,7 +67,10 @@ func TestReadySenderSlotsRecycleAcrossAllBoundedCycles(t *testing.T) {
 			if len(journal) == 0 {
 				t.Error("missing durable intent before submission")
 			}
-			return time.Now(), true
+			now := time.Now()
+			at := now.UTC()
+			results[slot].SubmittedAt, results[slot].submitMonotonic = &at, now
+			return now, true
 		},
 		func(_ int, queue <-chan acceptedObservation, terminal func(int)) {
 			for job := range queue {
@@ -76,12 +79,18 @@ func TestReadySenderSlotsRecycleAcrossAllBoundedCycles(t *testing.T) {
 				gate := gateResult(txs[slot], int64(previous.Round+1))
 				gate.Index, gate.Round = previous.Index, previous.Round
 				gate.SignedTransaction = previous.SignedTransaction
+				gate.OfferedAt, gate.offerMonotonic = previous.OfferedAt, previous.offerMonotonic
+				gate.SubmittedAt, gate.submitMonotonic = previous.SubmittedAt, previous.submitMonotonic
+				gate.QueueDelayMs = previous.QueueDelayMs
 				results[slot] = gate
 				terminal(slot)
 			}
 		})
 	if err != nil || stats.Completed != count*32 || stats.RoundsCompleted != 32 || stats.PeakInFlight > count || len(seen) != count*32 || len(results) != count || len(txs) != count {
 		t.Fatal("slot lifetime storage/counters differ", stats, err)
+	}
+	if stats.BoundedSummary == nil || stats.BoundedSummary.TerminalRecords != count*32 || stats.BoundedSummary.Counts.Input != count*32 || stats.BoundedSummary.Counts.Submitted != count*32 || stats.BoundedSummary.Counts.FinalSubmitted != count*32 || stats.BoundedSummary.Counts.NotSubmitted != 0 {
+		t.Fatal("cumulative summary counted only the last slot generation", stats.BoundedSummary)
 	}
 	if err = stream.close(); err != nil || stream.report.DurableRecords != count*32 {
 		t.Fatal("terminal evidence lost", err, stream.report)

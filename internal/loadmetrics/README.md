@@ -1,8 +1,8 @@
 # Bounded load-driver latency statistics
 
-This package is groundwork for replacing the performance client's lifetime
-latency arrays when account result slots are recycled. It is not yet imported
-by that client. Current frozen client semantics and workload caps are unchanged.
+This package now backs the performance client's optional per-account result-slot
+mode. Default full-history reporting and workload caps remain unchanged. The
+new CLI/cumulative source has not completed Go validation yet.
 
 `Histogram.Add` takes nonnegative `time.Duration` spans produced from monotonic
 measurements. It keeps 60,001 uint64 buckets (480,008 bytes), exact min/max and
