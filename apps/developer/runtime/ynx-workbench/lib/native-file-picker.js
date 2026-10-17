@@ -81,11 +81,33 @@ class NativeInitialFile {
     catch { await this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.')); }
   }
 }
-// Only supply a missing Save As start folder; the standard dialog still owns
-// destination selection, cancellation, overwrite confirmation and saving.
-function installProjectSaveDefault({ dialogs, editors, workspace, fileService }) {
+// Native panels select a destination; the existing saveable still owns the
+// write and its overwrite checks. Browser mode keeps its normal dialog.
+function installProjectSaveDefault({ dialogs, editors, workspace, fileService, target = {}, URI }) {
   const original = dialogs.showSaveDialog.bind(dialogs);
+  let active;
   dialogs.showSaveDialog = async (props, folder) => {
+    const bridge = target.ynxDesktopFiles;
+    if (typeof bridge?.save === 'function') {
+      const request = {}, roots = workspace.tryGetRoots(), binding = workspace.workspace;
+      const editor = editors.currentEditor, document = editor?.editor?.document;
+      const version = document?.textEditorModel?.getVersionId();
+      active = request;
+      const current = () => active === request && target.ynxDesktopFiles === bridge && workspace.workspace === binding &&
+        editors.currentEditor === editor && !editor?.isDisposed && editor?.editor?.document === document &&
+        !document?.isDisposed?.() && document?.textEditorModel?.getVersionId() === version &&
+        (() => { const now = workspace.tryGetRoots(); return now.length === roots.length && now.every((root, index) => root === roots[index]); })();
+      try {
+        const result = await bridge.save({ name: props?.inputValue || '' });
+        if (!current() || result.cancelled || typeof result.uri !== 'string' || typeof result.rootUri !== 'string' || !roots.length) return undefined;
+        const selected = new URI(result.uri);
+        if (selected.scheme !== 'file' || !roots.some(root => root.resource.toString().replace(/\/$/, '') === result.rootUri.replace(/\/$/, '') && root.resource.isEqualOrParent(selected))) return undefined;
+        return selected;
+      } catch (error) {
+        if (current()) throw error;
+        return undefined;
+      } finally { if (active === request) active = undefined; }
+    }
     if (folder) return original(props, folder);
     const roots = workspace.tryGetRoots();
     const root = roots[0];

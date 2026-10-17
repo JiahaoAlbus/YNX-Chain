@@ -168,6 +168,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       nativeFilePicker.installProjectSaveDefault({
         dialogs: context.container.get(FileDialogService), editors: nativeFilePickerEditors,
         workspace: context.container.get(WorkspaceService), fileService: context.container.get(FileService),
+        target: window, URI: NativeFileURI,
       });
     },
   }));

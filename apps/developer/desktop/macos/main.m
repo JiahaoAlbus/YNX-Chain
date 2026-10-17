@@ -635,7 +635,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic,copy) NSString *localSupportRoot;
 @property(nonatomic,copy) NSString *localWorkspace;
 @property(nonatomic,strong) NSOpenPanel *localFolderPanel;
-@property(nonatomic,strong) NSOpenPanel *localFilePanel;
+@property(nonatomic,strong) NSSavePanel *localFilePanel;
 @property(nonatomic,strong) NSAlert *localFileConsent;
 @property(nonatomic) NSUInteger localFileGeneration;
 @property(nonatomic,copy) NSString *localFileRequest;
@@ -735,7 +735,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(walletScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *goScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeGoReply',{value:r=>{const j=jobs.get(r.id);if(!j)return;jobs.delete(r.id);r.status==='selected'?j.resolve({effective:'after-reopen',version:r.version}):j.reject(Object.assign(new Error(r.error||'Go toolchain selection cancelled.'),{cancelled:r.status==='cancelled'}));}});Object.defineProperty(window,'ynxDesktopGo',{value:Object.freeze({selectToolchain(){if(jobs.size)return Promise.reject(new Error('Go selection is already pending.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'select-go-toolchain',requestId});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Go selection document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(goScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
-    NSString *fileScript=[NSString stringWithFormat:@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();let initial=%@;Object.defineProperty(window,'__ynxNativeFileReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.error?j.reject(new Error(r.error)):j.resolve(r);}});Object.defineProperty(window,'ynxDesktopFiles',{value:Object.freeze({takeInitialFile(){const value=initial;initial=null;return value;},open(options){if(!options||!['file','folder','workspace','any'].includes(options.kind)||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'pick-file',requestId,kind:options.kind});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('File selection document closed.'));jobs.clear();},{once:true});})();",YNXJSON(_localInitialFile?[NSURL fileURLWithPath:_localInitialFile].absoluteString:NSNull.null)];
+    NSString *fileScript=[NSString stringWithFormat:@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();let initial=%@;Object.defineProperty(window,'__ynxNativeFileReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.error?j.reject(new Error(r.error)):j.resolve(r);}});Object.defineProperty(window,'ynxDesktopFiles',{value:Object.freeze({takeInitialFile(){const value=initial;initial=null;return value;},save(options){const name=options?.name??'';if(typeof name!=='string'||name.includes('/')||name.includes(String.fromCharCode(0))||['.','..'].includes(name)||new TextEncoder().encode(name).length>255||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'save-file',requestId,name});});},open(options){if(!options||!['file','folder','workspace','any'].includes(options.kind)||jobs.size)return Promise.reject(new Error('A file selection is already pending or invalid.'));return new Promise((resolve,reject)=>{const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'pick-file',requestId,kind:options.kind});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('File selection document closed.'));jobs.clear();},{once:true});})();",YNXJSON(_localInitialFile?[NSURL fileURLWithPath:_localInitialFile].absoluteString:NSNull.null)];
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(fileScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     NSString *trashScript=@"(()=>{if(location.pathname!=='/')return;const jobs=new Map();Object.defineProperty(window,'__ynxNativeTrashReply',{value:r=>{const j=jobs.get(r.requestId);if(!j)return;jobs.delete(r.requestId);r.ok?j.resolve():j.reject(Object.assign(new Error(r.error||'Move to Trash failed.'),{cancelled:r.cancelled===true,recoveryPath:r.recoveryPath}));}});Object.defineProperty(window,'ynxDesktopTrash',{value:Object.freeze({trash(relativePath){return new Promise((resolve,reject)=>{if(typeof relativePath!=='string'||jobs.size>=32){reject(new Error('Invalid or excessive native Trash requests.'));return;}const requestId=crypto.randomUUID();jobs.set(requestId,{resolve,reject});window.webkit.messageHandlers.ynxLocalWorkbench.postMessage({action:'trash',requestId,relativePath});});}})});addEventListener('pagehide',()=>{for(const j of jobs.values())j.reject(new Error('Native Trash document closed.'));jobs.clear();},{once:true});})();";
     [configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(trashScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
@@ -1004,9 +1004,32 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSString *request=_localFileRequest,*document=_localFileDocument;
     _localFileRequest=nil;_localFileDocument=nil;
     if(reply&&request)[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];
-    NSOpenPanel *panel=_localFilePanel;_localFilePanel=nil;[panel cancel:nil];
+    NSSavePanel *panel=_localFilePanel;_localFilePanel=nil;[panel cancel:nil];
     NSAlert *consent=_localFileConsent;_localFileConsent=nil;
     if(consent)[_window endSheet:consent.window returnCode:NSModalResponseCancel];
+}
+- (void)saveLocalFile:(NSDictionary *)body {
+    if(!YNXNativeSavePayload(body))return;
+    NSString *request=body[@"requestId"],*document=_webView.URL.absoluteString;
+    if(!_localCommandDocumentReady||!_server.running||_localCloseRequest||_window.attachedSheet||_localFolderPanel||_localFilePanel){[self replyLocalFile:request document:document value:@{@"error":@"Finish the current dialog before opening another file."}];return;}
+    NSString *root=[self localTrashAdmittedBinding][@"workspace"];
+    if(!root){[self replyLocalFile:request document:document value:@{@"error":@"Open a project folder before saving a file."}];return;}
+    _localFileRequest=request;_localFileDocument=document;
+    NSUInteger generation=++_localFileGeneration;
+    NSSavePanel *panel=[NSSavePanel savePanel];_localFilePanel=panel;
+    panel.directoryURL=[NSURL fileURLWithPath:root isDirectory:YES];panel.canCreateDirectories=YES;
+    panel.nameFieldStringValue=[body[@"name"] length]?body[@"name"]:@"Untitled";
+    panel.title=[_localLocale isEqual:@"zh-cn"]?@"存储文件":@"Save File";
+    panel.prompt=[_localLocale isEqual:@"zh-cn"]?@"存储":@"Save";
+    [panel beginWithCompletionHandler:^(NSModalResponse result){
+        if(self.localFilePanel!=panel||self.localFileGeneration!=generation)return;
+        self.localFilePanel=nil;
+        if(![document isEqual:self.webView.URL.absoluteString])return;
+        if(result!=NSModalResponseOK||!self.localCommandDocumentReady||!self.server.running||self.localCloseRequest||![root isEqual:[self localTrashAdmittedBinding][@"workspace"]]){[self replyLocalFile:request document:document value:@{@"cancelled":@YES}];return;}
+        NSString *selected=YNXNativeSavePath(panel.URL,root);
+        if(!selected){[self replyLocalFile:request document:document value:@{@"error":[self.localLocale isEqual:@"zh-cn"]?@"请存储到当前项目文件夹中。文件内容仍保留在编辑器内。":@"Choose a location inside the current project folder. Your unsaved file remains in the editor."}];return;}
+        [self replyLocalFile:request document:document value:@{@"uri":[NSURL fileURLWithPath:selected].absoluteString,@"rootUri":[NSURL fileURLWithPath:root].absoluteString}];
+    }];
 }
 - (void)pickLocalFile:(NSDictionary *)body {
     NSString *request=body[@"requestId"],*kind=body[@"kind"],*document=_webView.URL.absoluteString;
@@ -1616,6 +1639,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
             // menu tracking before replacing only this local window's labels.
             [NSApp.mainMenu cancelTrackingWithoutAnimation];[self installLocalMenus];
         }return;
+    }
+    if([body[@"action"] isEqual:@"save-file"]){
+        if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self saveLocalFile:body];return;
     }
     if([body[@"action"] isEqual:@"pick-file"]){
         if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port)&&YNXLocalEditorDocumentURL(_webView.URL,_port))[self pickLocalFile:body];return;
