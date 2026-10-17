@@ -7,15 +7,16 @@ import path from 'node:path';
 
 // Execute the production Objective-C menu method against controlled responders.
 // This tests dispatch ordering, not real WebKit clipboard or CUA acceptance.
-test('native clipboard consumes the current event synchronously, preserving editor undo and scope guards', async () => {
-  if (process.platform !== 'darwin') return;
+test('native clipboard dispatch is synchronous, preserving editor undo and scope guards', { skip: process.platform !== 'darwin' }, async () => {
   const source = await readFile(new URL('./macos/main.m', import.meta.url), 'utf8');
   const method = source.slice(source.indexOf('- (void)localWorkbenchCommand:(NSMenuItem *)sender {'), source.indexOf('- (void)newLocalProject:'));
+  const selectorHelper = source.slice(source.indexOf('static SEL YNXLocalNativeEditSelector('), source.indexOf('static NSString *YNXLocalHTMLEscape('));
   assert.ok(method.length > 1000);
+  assert.ok(selectorHelper.includes('NSSelectorFromString'));
   const dir = await mkdtemp(path.join(tmpdir(), 'ynx-clipboard-dispatch-'));
   try {
     const harness = `#import <Foundation/Foundation.h>
-static NSString *clipboard; static NSString *consumed; static int actions, asyncCalls;
+static NSString *clipboard; static NSString *consumed; static NSString *sentSelector; static id sentTarget; static int actions, asyncCalls;
 @interface FakeView:NSObject
 @property BOOL inside; @property NSURL *URL;
 - (BOOL)isDescendantOf:(id)view;
@@ -34,7 +35,7 @@ static NSString *clipboard; static NSString *consumed; static int actions, async
 - (BOOL)sendAction:(SEL)selector to:(id)target from:(id)sender;
 @end
 @implementation FakeApplication
-- (BOOL)sendAction:(SEL)selector to:(id)target from:(id)sender{actions++;consumed=clipboard;return YES;}
+- (BOOL)sendAction:(SEL)selector to:(id)target from:(id)sender{actions++;consumed=clipboard;sentSelector=NSStringFromSelector(selector);sentTarget=target;return YES;}
 @end
 static FakeApplication *application;
 @interface FakeMenu:NSObject
@@ -52,7 +53,7 @@ static FakeApplication *application;
 #define NSMenuItem FakeMenu
 #define WKContentWorld FakeWorld
 static NSSet *YNXLocalWorkbenchCommands(void){return [NSSet setWithArray:@[@"core.cut",@"core.copy",@"core.paste",@"core.undo",@"core.redo",@"core.selectAll"]];}
-static SEL YNXLocalNativeEditSelector(NSString *command){NSDictionary *m=@{@"core.cut":@"cut:",@"core.copy":@"copy:",@"core.paste":@"paste:",@"core.undo":@"undo:",@"core.redo":@"redo:",@"core.selectAll":@"selectAll:"};return m[command]?NSSelectorFromString(m[command]):NULL;}
+${selectorHelper}
 static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port){return [url.absoluteString isEqual:@"http://127.0.0.1:1234/"];}
 static NSString *YNXOrigin(NSInteger port){return @"http://127.0.0.1:1234";}
 @interface Host:NSObject {
@@ -76,9 +77,9 @@ if([scenario isEqual:@"server-stopped"])h->_server.running=NO;
 if([scenario isEqual:@"closing"])h->_localCloseRequest=@YES;
 if([scenario isEqual:@"native-field"]){FakeView *field=[FakeView new];field.inside=NO;h->_window.firstResponder=field;}
 FakeMenu *item=[FakeMenu new];item.representedObject=[scenario hasPrefix:@"core."]?scenario:@"core.paste";
-actions=0;asyncCalls=0;consumed=nil;clipboard=@"intended-current-clipboard";
+actions=0;asyncCalls=0;consumed=nil;sentSelector=nil;sentTarget=nil;clipboard=@"intended-current-clipboard";
 [h localWorkbenchCommand:item];clipboard=@"restored-previous-clipboard";
-[results addObject:@{@"scenario":scenario,@"nativeActions":@(actions),@"asyncCalls":@(asyncCalls),@"consumed":consumed?:@"none"}];
+[results addObject:@{@"scenario":scenario,@"nativeActions":@(actions),@"asyncCalls":@(asyncCalls),@"consumed":consumed?:@"none",@"selector":sentSelector?:@"none",@"currentResponder":@(sentTarget==application.keyWindow.firstResponder)}];
 }
 NSData *data=[NSJSONSerialization dataWithJSONObject:results options:0 error:nil];puts([[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding].UTF8String);
 }return 0;}`;
@@ -91,6 +92,8 @@ NSData *data=[NSJSONSerialization dataWithJSONObject:results options:0 error:nil
       assert.equal(row.nativeActions, clipboard ? 1 : 0, row.scenario + ': native responder count');
       assert.equal(row.asyncCalls, ['core.undo', 'core.redo', 'core.selectAll'].includes(row.scenario) ? 1 : 0, row.scenario + ': async registry count');
       assert.equal(row.consumed, clipboard ? 'intended-current-clipboard' : 'none', row.scenario + ': clipboard ordering');
+      assert.equal(row.selector, clipboard ? (row.scenario === 'native-field' ? 'paste:' : row.scenario.slice(5) + ':') : 'none', row.scenario + ': correct native selector');
+      assert.equal(row.currentResponder, clipboard ? 1 : 0, row.scenario + ': exact current responder');
     }
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
