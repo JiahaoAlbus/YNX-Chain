@@ -134,3 +134,21 @@ The 256-count/short-duration driver, history input limits and full-snapshot
 growth also remain barriers to the original ten-minute 1,000 business TPS gate.
 This removes measured per-transaction copy amplification without redefining that
 uncompleted goal.
+
+## Isolated build prepared for Root
+
+After clean source commit `aa121ecc1f868ac725e351666a65df0a12e4d67e`, a separate
+ABCI executable was built in `network-bin-native-delta` without replacing the
+previous candidates. Its SHA-256 is
+`8a2b7e74a342caac68d50721fe975ee21d9a6e5532fffdf5f3e61b5ff1170338`.
+The `deaad807c` client, fixture, sampler and CometBFT bytes still match the prior
+frozen inputs. The resolved consensus import directory is this worktree; the
+build HEAD, source hashes and Go build information are recorded independently
+without claiming an unavailable embedded VCS stamp.
+
+Prepare-only validation passed for 256 transactions offered at 128/s with the
+existing 1 GiB/32 MiB/45+15-second limits and 10-second client deadline.
+[The preparation receipt](evidence/native-delta-preparation-20261017.json) has
+SHA-256 `c0f2eb3f7bfcc47dd72260a3354f75adca2d974210e7e0dc4ab4dd235b86c0c9`.
+It requires a fresh Root schedule. No network process started or network result
+was produced for this new core build during this stage.
