@@ -82,6 +82,7 @@ type transactionResult struct {
 	ExecutionLog             string             `json:"executionLog,omitempty"`
 	Height                   int64              `json:"height,omitempty"`
 	BlockTxIndex             uint32             `json:"blockTxIndex"`
+	BlockTxTotal             int64              `json:"blockTxTotal"`
 	BlockTime                *time.Time         `json:"blockTime,omitempty"`
 	BlockHash                string             `json:"blockHash,omitempty"`
 	HeaderAppHash            string             `json:"headerAppHash,omitempty"`
@@ -101,37 +102,38 @@ type percentiles struct {
 }
 
 type summary struct {
-	Input                      int         `json:"input"`
-	Offered                    int         `json:"offered"`
-	Submitted                  int         `json:"submitted"`
-	CheckTxResponses           int         `json:"checkTxResponses"`
-	CheckTxAccepted            int         `json:"checkTxAccepted"`
-	CheckTxRejected            int         `json:"checkTxRejected"`
-	CheckTxUnverified          int         `json:"checkTxUnverifiedResponses"`
-	IncludedCodeZero           int         `json:"includedCodeZero"`
-	ExecutionFailed            int         `json:"executionFailed"`
-	QuorumConfirmed            int         `json:"quorumConfirmed"`
-	FinalSubmitted             int         `json:"finalSubmitted"`
-	SubmissionUnknown          int         `json:"submissionUnknown"`
-	TimedOut                   int         `json:"timedOut"`
-	ObservationFailed          int         `json:"observationFailed"`
-	NotSubmitted               int         `json:"notSubmitted"`
-	ErrorOccurrences           int         `json:"errorOccurrences"`
-	MeasurementWindowSeconds   float64     `json:"measurementWindowSeconds"`
-	SubmissionRate             float64     `json:"rpcSubmissionsPerMeasurementSecond"`
-	AcceptanceRate             float64     `json:"checkTxAcceptedPerMeasurementSecond"`
-	InclusionRate              float64     `json:"codeZeroIncludedPerMeasurementSecond"`
-	ConfirmationRate           float64     `json:"quorumConfirmedPerMeasurementSecond"`
-	FinalSubmissionRate        float64     `json:"finalSubmittedPerMeasurementSecond"`
-	OfferedEventSpanSeconds    float64     `json:"offeredEventSpanSeconds"`
-	OfferedEventSpanRate       *float64    `json:"offeredInterarrivalRate"`
-	SubmissionEventSpanSeconds float64     `json:"submissionEventSpanSeconds"`
-	SubmissionEventSpanRate    *float64    `json:"submissionInterarrivalRate"`
-	SteadyStateEffectiveTPS    *float64    `json:"steadyStateEffectiveTPS"`
-	QueueDelay                 percentiles `json:"submissionQueueDelayMs"`
-	CheckTxLatency             percentiles `json:"checkTxLatencyMs"`
-	InclusionLatency           percentiles `json:"inclusionLatencyMs"`
-	ConfirmationLatency        percentiles `json:"confirmationLatencyMs"`
+	Input                      int             `json:"input"`
+	Offered                    int             `json:"offered"`
+	Submitted                  int             `json:"submitted"`
+	CheckTxResponses           int             `json:"checkTxResponses"`
+	CheckTxAccepted            int             `json:"checkTxAccepted"`
+	CheckTxRejected            int             `json:"checkTxRejected"`
+	CheckTxUnverified          int             `json:"checkTxUnverifiedResponses"`
+	IncludedCodeZero           int             `json:"includedCodeZero"`
+	ExecutionFailed            int             `json:"executionFailed"`
+	QuorumConfirmed            int             `json:"quorumConfirmed"`
+	FinalSubmitted             int             `json:"finalSubmitted"`
+	SubmissionUnknown          int             `json:"submissionUnknown"`
+	TimedOut                   int             `json:"timedOut"`
+	ObservationFailed          int             `json:"observationFailed"`
+	NotSubmitted               int             `json:"notSubmitted"`
+	ErrorOccurrences           int             `json:"errorOccurrences"`
+	MeasurementWindowSeconds   float64         `json:"measurementWindowSeconds"`
+	SubmissionRate             float64         `json:"rpcSubmissionsPerMeasurementSecond"`
+	AcceptanceRate             float64         `json:"checkTxAcceptedPerMeasurementSecond"`
+	InclusionRate              float64         `json:"codeZeroIncludedPerMeasurementSecond"`
+	ConfirmationRate           float64         `json:"quorumConfirmedPerMeasurementSecond"`
+	FinalSubmissionRate        float64         `json:"finalSubmittedPerMeasurementSecond"`
+	OfferedEventSpanSeconds    float64         `json:"offeredEventSpanSeconds"`
+	OfferedEventSpanRate       *float64        `json:"offeredInterarrivalRate"`
+	SubmissionEventSpanSeconds float64         `json:"submissionEventSpanSeconds"`
+	SubmissionEventSpanRate    *float64        `json:"submissionInterarrivalRate"`
+	SteadyStateEffectiveTPS    *float64        `json:"steadyStateEffectiveTPS"`
+	InclusionBlocks            blockStatistics `json:"validInclusionBlocks"`
+	QueueDelay                 percentiles     `json:"submissionQueueDelayMs"`
+	CheckTxLatency             percentiles     `json:"checkTxLatencyMs"`
+	InclusionLatency           percentiles     `json:"inclusionLatencyMs"`
+	ConfirmationLatency        percentiles     `json:"confirmationLatencyMs"`
 }
 
 type report struct {
@@ -512,6 +514,7 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 			} else {
 				result.ExecutionCode, result.ExecutionLog, result.Height = &queried.TxResult.Code, queried.TxResult.Log, queried.Height
 				result.BlockTxIndex = queried.Index
+				result.BlockTxTotal = queried.Proof.Proof.Total
 				if queried.TxResult.Code != 0 {
 					result.Status = "execution_failed"
 					return
@@ -538,6 +541,10 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					return
 				} else {
 					result.QuorumVerified, result.TransactionProofVerified = true, true
+					result.BlockHash = fmt.Sprintf("%X", commit.Commit.BlockID.Hash)
+					result.HeaderAppHash = fmt.Sprintf("%X", commit.Header.AppHash)
+					blockTime := commit.Header.Time.UTC()
+					result.BlockTime = &blockTime
 					state, err := verifyDurableExecution(statePath, migration, raw, height)
 					if err != nil {
 						addError(&result.Errors, "local_durable_readback", err)
@@ -556,10 +563,6 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					result.ConfirmedObservedAt, result.ConfirmationMs = &now, &elapsed
 					result.Status, result.QuorumVerified, result.TransactionProofVerified = "confirmed", true, true
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
-					result.BlockHash = fmt.Sprintf("%X", commit.Commit.BlockID.Hash)
-					result.HeaderAppHash = fmt.Sprintf("%X", commit.Header.AppHash)
-					blockTime := commit.Header.Time.UTC()
-					result.BlockTime = &blockTime
 					return
 				}
 			}
@@ -664,6 +667,7 @@ func summarize(results []transactionResult, seconds float64) summary {
 	s.QueueDelay = distribution(queue)
 	s.OfferedEventSpanSeconds, s.OfferedEventSpanRate = eventSpanRate(offered)
 	s.SubmissionEventSpanSeconds, s.SubmissionEventSpanRate = eventSpanRate(submissions)
+	s.InclusionBlocks = summarizeBlocks(results)
 	return s
 }
 
@@ -763,6 +767,7 @@ func execute(o options) error {
 					observeAcceptedTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i], start)
 				})
 		} else {
+			r.ObserverConcurrency = 0 // closed-loop workers observe their own submissions
 			jobs := make(chan int, len(txs))
 			for i := range txs {
 				jobs <- i

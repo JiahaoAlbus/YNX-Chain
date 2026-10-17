@@ -50,6 +50,7 @@ let peakThreadsWithControlReserve = 0;
 let peakLongLivedChildren = 0;
 let lastFullHostSample = 0;
 const hostSamples = [];
+const probeFailures = [];
 let lastResourceSample;
 let monitor;
 const fail = reason => { if (!firstCause) firstCause = String(reason); };
@@ -131,8 +132,16 @@ function sampleResources(full) {
   peakLongLivedChildren = Math.max(peakLongLivedChildren, live.length);
   const watched = [...new Set([process.pid, process.ppid, ...live.map(c => c.pid)])];
   const result = spawnSync(commands.host, [...(full ? ['--full'] : []), ...watched.map(String)], { encoding: 'utf8', timeout: 1500, maxBuffer: 1024 * 1024 });
-  if (result.error || result.signal || result.status !== 0) throw Error(`native resource probe failed: ${result.error ?? result.signal ?? result.status}`);
-  const sample = JSON.parse(result.stdout);
+  if (result.error || result.signal || result.status !== 0) {
+    probeFailures.push({ sampledAt: new Date().toISOString(), error: result.error?.message, status: result.status, signal: result.signal, stdout: result.stdout?.slice(0,65536), stderr: result.stderr?.slice(0,65536) });
+    throw Error(`native resource probe failed: ${result.error ?? result.signal ?? result.status}`);
+  }
+  let sample;
+  try { sample = JSON.parse(result.stdout); }
+  catch (error) {
+    probeFailures.push({ sampledAt: new Date().toISOString(), error: error.message, stdout: result.stdout.slice(0,65536), stderr: result.stderr.slice(0,65536) });
+    throw Error('native resource probe returned invalid JSON; raw failure retained');
+  }
   if (!Number.isFinite(sample.rssWithControlReserveBytes) || !Number.isInteger(sample.threadsWithControlReserve)) throw Error('invalid kernel resource sample');
   if (!sample.processes.some(p => p.pid === process.pid && p.readable)) throw Error('launcher task info unavailable');
   lastResourceSample = sample;
@@ -201,7 +210,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 3, startedAt: new Date(started).toISOString(), work, caps, count, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 3, startedAt: new Date(started).toISOString(), work, caps, count, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

@@ -10,6 +10,8 @@ The next proposed scenarios are 128 or 256 transactions at an offered rate of 64
 
 Reports separate configured rate, measured offer/submission interarrival rates, queue delays, per-stage successes/failures, full observation-window effective inclusion/final-submission rates and per-transaction confirmation latency. Signed header time and block transaction index are retained. Short finite probes do not establish steady state; that metric stays null until an appropriate sustained measurement exists.
 
+The report also groups verified transactions into signed blocks. It offers a finite active-offer interior-block rate only when consecutive interior blocks are fully covered by observed valid transaction proofs and their signed timestamps lie within the offering window. Edge blocks are excluded; any coverage gap, duplicate proof index or incomplete block withholds the rate instead of selecting only successful intervals. This diagnostic is not a 10-minute steady-state result. Changing offered load is workload calibration and cannot be presented as a like-for-like consensus optimization.
+
 Unit checks prove the scheduler submits remaining offered work while an earlier confirmation is blocked, stops unoffered work after cancellation and neither observes unknown submissions as accepted nor retries them. Existing actual signature/quorum, inclusion-proof, persistent-state and tamper checks remain in the confirmation path. These scheduler tests are workflow tests, not additional business transactions or network TPS evidence.
 
 ## Resource telemetry
