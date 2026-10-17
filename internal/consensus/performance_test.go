@@ -42,7 +42,25 @@ func TestABCITransferPerformance(t *testing.T) {
 	if os.Getenv("YNX_CHAIN_PERF") != "1" {
 		t.Skip("set YNX_CHAIN_PERF=1 for the bounded local ABCI probe")
 	}
-	const accounts, batch, blocks = 256, 64, 16
+	const accounts = 256
+	batch, blocks := 64, 16
+	if os.Getenv("YNX_CHAIN_PERF_BLOCKS") == "32" {
+		batch, blocks = 32, 32
+	} else if value := os.Getenv("YNX_CHAIN_PERF_BLOCKS"); value != "" && value != "16" {
+		t.Fatal("bounded benchmark supports 16 or 32 blocks only")
+	}
+	layout := os.Getenv("YNX_CHAIN_PERF_LAYOUT")
+	constructor := NewPersistentApplication
+	phaseCount := 8
+	if layout == "snapshot-journal" {
+		constructor = NewJournaledApplication
+		phaseCount = 7
+	} else if layout != "" && layout != "atomic-json" {
+		t.Fatal("unsupported benchmark storage layout")
+	}
+	if layout == "" {
+		layout = "atomic-json"
+	}
 	root := os.Getenv("YNX_CHAIN_PERF_DIR")
 	if root == "" {
 		root = t.TempDir()
@@ -97,7 +115,7 @@ func TestABCITransferPerformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	statePath := filepath.Join(runDir, "state.json")
-	app, err := NewPersistentApplication(migration, statePath)
+	app, err := constructor(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -181,17 +199,17 @@ func TestABCITransferPerformance(t *testing.T) {
 	}
 	elapsed := time.Since(start)
 	runtime.ReadMemStats(&after)
-	restarted, err := NewPersistentApplication(migration, statePath)
+	restarted, err := constructor(migration, statePath)
 	if err != nil {
 		t.Fatal(err)
 	}
 	info, err := restarted.Info(ctx, &abcitypes.RequestInfo{})
-	if err != nil || info.LastBlockHeight != int64(migration.Height)+blocks || hex.EncodeToString(info.LastBlockAppHash) != hashes[len(hashes)-1] {
+	if err != nil || info.LastBlockHeight != int64(migration.Height)+int64(blocks) || hex.EncodeToString(info.LastBlockAppHash) != hashes[len(hashes)-1] {
 		t.Fatalf("restart mismatch: %v %+v", err, info)
 	}
 	for i := 0; i < batch; i++ {
-		assertConsensusAccount(t, restarted, addresses[i], 10000-blocks*2, blocks)
-		assertConsensusAccount(t, restarted, addresses[batch+i], 10000+blocks, 0)
+		assertConsensusAccount(t, restarted, addresses[i], int64(10000-blocks*2), uint64(blocks))
+		assertConsensusAccount(t, restarted, addresses[batch+i], int64(10000+blocks), 0)
 	}
 	if len(restarted.committed.FeeEvents) != batch*blocks {
 		t.Fatal("fee audit count mismatch")
@@ -203,6 +221,18 @@ func TestABCITransferPerformance(t *testing.T) {
 	stored, err := os.ReadFile(statePath)
 	if err != nil {
 		t.Fatal(err)
+	}
+	storageBytes := len(stored)
+	journalCompactions := 0
+	if app.journal != nil {
+		journalCompactions = app.journal.compactions
+		stored, err = encodeCommittedStateJSON(restarted.committed)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(runDir, "canonical-state.json"), stored, 0o600); err != nil {
+			t.Fatal(err)
+		}
 	}
 	decoded, err := json.Marshal(app.committed)
 	if err != nil {
@@ -223,12 +253,13 @@ func TestABCITransferPerformance(t *testing.T) {
 		}
 		commitSummaries[name] = samples.summary()
 	}
-	if len(commitStages) != 8 {
-		t.Fatalf("expected 8 durable commit phases, got %d", len(commitStages))
+	if len(commitStages) != phaseCount {
+		t.Fatalf("expected %d durable commit phases, got %d", phaseCount, len(commitStages))
 	}
 	report := map[string]any{
 		"native_signature_cache": app.nativeVerification.stats(),
-		"schema":                 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+		"storage_layout":         layout, "storage_bytes": storageBytes, "journal_compactions": journalCompactions,
+		"schema": 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
 		"label": os.Getenv("YNX_CHAIN_PERF_LABEL"), "commit_stages": commitSummaries, "snapshot_bytes_written": snapshotBytesWritten,
 		"go_version": runtime.Version(), "goos": runtime.GOOS, "goarch": runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0),
 		"accounts_seeded": accounts, "senders": batch, "txs_per_block": batch, "blocks": blocks, "offered": batch * blocks,

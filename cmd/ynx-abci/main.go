@@ -20,6 +20,7 @@ func main() {
 	transport := flag.String("transport", "socket", "ABCI transport: socket or grpc")
 	migrationPath := flag.String("migration-state", "", "validated YNX consensus migration JSON path")
 	statePath := flag.String("state", "", "durable ABCI committed state path (default: <migration-state>.abci-state.json)")
+	layout := flag.String("state-layout", "atomic-json", "persistent layout: atomic-json or explicit snapshot-journal (incompatible file format)")
 	flag.Parse()
 	if *migrationPath == "" {
 		log.Fatal("-migration-state is required")
@@ -27,12 +28,19 @@ func main() {
 	if *statePath == "" {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
-	if err := run(*listen, *transport, *migrationPath, *statePath); err != nil {
+	if err := runWithLayout(*listen, *transport, *migrationPath, *statePath, *layout); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func run(listen, transport, migrationPath, statePath string) error {
+	return runWithLayout(listen, transport, migrationPath, statePath, "atomic-json")
+}
+
+func runWithLayout(listen, transport, migrationPath, statePath, layout string) error {
+	if layout != "atomic-json" && layout != "snapshot-journal" {
+		return fmt.Errorf("unsupported state layout %q", layout)
+	}
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
 		return fmt.Errorf("read migration state: %w", err)
@@ -41,7 +49,12 @@ func run(listen, transport, migrationPath, statePath string) error {
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return fmt.Errorf("decode migration state: %w", err)
 	}
-	app, err := consensus.NewPersistentApplication(state, statePath)
+	var app *consensus.Application
+	if layout == "snapshot-journal" {
+		app, err = consensus.NewJournaledApplication(state, statePath)
+	} else {
+		app, err = consensus.NewPersistentApplication(state, statePath)
+	}
 	if err != nil {
 		return err
 	}

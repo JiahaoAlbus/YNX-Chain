@@ -196,7 +196,7 @@ func (a *Application) ApplySnapshotChunk(_ context.Context, req *abcitypes.Reque
 		a.snapshotRestore = nil
 		return &abcitypes.ResponseApplySnapshotChunk{Result: abcitypes.ResponseApplySnapshotChunk_REJECT_SNAPSHOT}, nil
 	}
-	if err := saveCommittedState(a.statePath, state, a.migration); err != nil {
+	if err := a.persistState(state, nil); err != nil {
 		a.snapshotRestore = nil
 		return &abcitypes.ResponseApplySnapshotChunk{Result: abcitypes.ResponseApplySnapshotChunk_ABORT}, nil
 	}

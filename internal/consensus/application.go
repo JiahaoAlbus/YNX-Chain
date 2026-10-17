@@ -33,6 +33,7 @@ type Application struct {
 	committed          CommittedState
 	pending            *CommittedState
 	statePath          string
+	journal            *snapshotJournal // explicit opt-in; default atomic JSON remains unchanged
 	feeRecipient       string
 	snapshotExports    map[uint64]stateSyncSnapshotExport
 	snapshotRestore    *stateSyncSnapshotRestore
@@ -162,6 +163,31 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 		statePath:    strings.TrimSpace(statePath),
 		feeRecipient: feeRecipient,
 	}, nil
+}
+
+// NewJournaledApplication is an explicit alternative full-snapshot layout.
+// Existing JSON state files are never converted or overwritten by this API.
+func NewJournaledApplication(state chain.ConsensusMigrationState, path string) (*Application, error) {
+	if strings.TrimSpace(path) == "" {
+		return nil, errors.New("journal requires an explicit durable path")
+	}
+	a, err := NewPersistentApplication(state, "")
+	if err != nil {
+		return nil, err
+	}
+	j, committed, err := openSnapshotJournal(path, a.migration)
+	if err != nil {
+		return nil, err
+	}
+	a.journal, a.committed, a.statePath = j, committed, path
+	return a, nil
+}
+
+func (a *Application) persistState(state CommittedState, timings *commitTimings) error {
+	if a.journal != nil {
+		return a.journal.save(state, a.migration, timings)
+	}
+	return saveCommittedStateWithTimings(a.statePath, state, a.migration, timings)
 }
 
 func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
@@ -623,7 +649,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
 	}
-	if err := saveCommittedStateWithTimings(a.statePath, *a.pending, a.migration, a.commitTimings); err != nil {
+	if err := a.persistState(*a.pending, a.commitTimings); err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
 	a.committed = *a.pending
