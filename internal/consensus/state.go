@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -197,7 +198,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		Initialized:                true,
 		Height:                     height,
 		Accounts:                   cloneAccounts(execution.accounts),
-		FeeEvents:                  append([]BFTFeeEvent(nil), execution.feeEvents...),
+		FeeEvents:                  execution.feeEvents.events(),
 		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
 		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
 		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
@@ -730,17 +731,53 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 }
 
 func saveCommittedState(path string, state CommittedState, migration chain.ConsensusMigrationState) error {
+	return saveCommittedStateWithTimings(path, state, migration, nil)
+}
+
+// commitTimings is opt-in, local instrumentation of the actual durable write.
+// A nil recorder avoids clock reads and allocation in normal operation.
+type commitTimings struct {
+	stages map[string]time.Duration
+	bytes  int
+}
+
+func (t *commitTimings) start() time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return time.Now()
+}
+
+func (t *commitTimings) mark(stage string, started time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	now := time.Now()
+	if t.stages == nil {
+		t.stages = make(map[string]time.Duration)
+	}
+	t.stages[stage] = now.Sub(started)
+	return now
+}
+
+func saveCommittedStateWithTimings(path string, state CommittedState, migration chain.ConsensusMigrationState, timings *commitTimings) error {
 	if strings.TrimSpace(path) == "" {
 		return nil
 	}
+	started := timings.start()
 	if err := state.Validate(migration); err != nil {
 		return err
 	}
+	started = timings.mark("validate", started)
 	payload, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
 		return fmt.Errorf("encode committed state: %w", err)
 	}
 	payload = append(payload, '\n')
+	if timings != nil {
+		timings.bytes = len(payload)
+	}
+	started = timings.mark("json_encode", started)
 	dir := filepath.Dir(path)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("create committed state directory: %w", err)
@@ -755,20 +792,25 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 		_ = temp.Close()
 		return fmt.Errorf("secure committed state temp file: %w", err)
 	}
+	started = timings.mark("prepare_file", started)
 	if _, err := temp.Write(payload); err != nil {
 		_ = temp.Close()
 		return fmt.Errorf("write committed state temp file: %w", err)
 	}
+	started = timings.mark("write", started)
 	if err := temp.Sync(); err != nil {
 		_ = temp.Close()
 		return fmt.Errorf("sync committed state temp file: %w", err)
 	}
+	started = timings.mark("file_sync", started)
 	if err := temp.Close(); err != nil {
 		return fmt.Errorf("close committed state temp file: %w", err)
 	}
+	started = timings.mark("close_file", started)
 	if err := os.Rename(tempPath, path); err != nil {
 		return fmt.Errorf("replace committed state: %w", err)
 	}
+	started = timings.mark("rename", started)
 	directory, err := os.Open(dir)
 	if err == nil {
 		err = directory.Sync()
@@ -777,6 +819,7 @@ func saveCommittedState(path string, state CommittedState, migration chain.Conse
 	if err != nil {
 		return fmt.Errorf("sync committed state directory: %w", err)
 	}
+	timings.mark("directory_sync", started)
 	return nil
 }
 

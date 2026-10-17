@@ -19,8 +19,8 @@ func TestNativeTransferPreservesInputOnLotFailure(t *testing.T) {
 			// after account insertion and a partial lot movement have occurred.
 			state := executionState{accounts: []chain.ConsensusAccount{{Address: sender, Balance: 100, Lots: map[string]int64{"lot": lotBalance}}}}
 			state = cloneExecutionStateValue(state)
-			state.feeEvents = make([]BFTFeeEvent, 1, 8)
-			state.feeEvents[0] = BFTFeeEvent{ID: "existing"}
+			state.feeEvents = feeEventJournal{base: make([]BFTFeeEvent, 1, 8)}
+			state.feeEvents.base[0] = BFTFeeEvent{ID: "existing"}
 			before := cloneExecutionStateValue(state)
 			tx, err := NewSignedTransfer(key, 6423, receiver, 3, 1)
 			if err != nil {
@@ -50,8 +50,8 @@ func TestNativeTransferBranchesPreserveAccountsAndFeeHistory(t *testing.T) {
 			app := &Application{migration: chain.ConsensusMigrationState{Network: chain.DefaultNetworkConfig("testnet")}, feeRecipient: fee}
 			state := executionState{accounts: []chain.ConsensusAccount{{Address: sender, Balance: 100, Lots: map[string]int64{"lot": 100}}}}
 			state = cloneExecutionStateValue(state)
-			state.feeEvents = make([]BFTFeeEvent, 1, 8)
-			state.feeEvents[0] = BFTFeeEvent{ID: "existing"}
+			state.feeEvents = feeEventJournal{base: make([]BFTFeeEvent, 1, 8)}
+			state.feeEvents.base[0] = BFTFeeEvent{ID: "existing"}
 			before := cloneExecutionStateValue(state)
 			apply := func(amount int64) executionState {
 				tx, err := NewSignedTransfer(key, 6423, receiver, amount, 1)
@@ -92,11 +92,11 @@ func TestNativeTransferBranchesPreserveAccountsAndFeeHistory(t *testing.T) {
 				for _, account := range next.accounts {
 					total += account.Balance
 				}
-				if total != 100 || len(next.feeEvents) != 2 || next.feeEvents[0].ID != "existing" || next.feeEvents[1].GrossFeeYNXT != 1 {
+				if total != 100 || len(next.feeEvents.events()) != 2 || next.feeEvents.events()[0].ID != "existing" || next.feeEvents.events()[1].GrossFeeYNXT != 1 {
 					t.Fatal("supply or fee history changed")
 				}
 			}
-			if first.feeEvents[1].TxHash == second.feeEvents[1].TxHash {
+			if first.feeEvents.events()[1].TxHash == second.feeEvents.events()[1].TxHash {
 				t.Fatal("sibling fee events overwrote one another")
 			}
 		})

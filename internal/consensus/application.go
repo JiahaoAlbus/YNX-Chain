@@ -36,6 +36,7 @@ type Application struct {
 	feeRecipient    string
 	snapshotExports map[uint64]stateSyncSnapshotExport
 	snapshotRestore *stateSyncSnapshotRestore
+	commitTimings   *commitTimings // nil outside the opt-in local performance probe
 }
 
 type transactionError struct {
@@ -45,7 +46,7 @@ type transactionError struct {
 
 type executionState struct {
 	accounts                   []chain.ConsensusAccount
-	feeEvents                  []BFTFeeEvent
+	feeEvents                  feeEventJournal
 	strategyMandates           []assetauth.StrategyMandate
 	strategyVaults             []assetauth.StrategyVault
 	assetAuditEvents           []BFTAssetAuditEvent
@@ -619,7 +620,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
 	}
-	if err := saveCommittedState(a.statePath, *a.pending, a.migration); err != nil {
+	if err := saveCommittedStateWithTimings(a.statePath, *a.pending, a.migration, a.commitTimings); err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
 	a.committed = *a.pending
@@ -629,7 +630,7 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), smartAccounts: cloneSmartAccounts(a.committed.SmartAccounts), paymasters: clonePaymasters(a.committed.Paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), a.committed.UserOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		accounts: cloneAccounts(a.committed.Accounts), feeEvents: feeEventJournal{base: a.committed.FeeEvents}, strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), smartAccounts: cloneSmartAccounts(a.committed.SmartAccounts), paymasters: clonePaymasters(a.committed.Paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), a.committed.UserOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
@@ -655,7 +656,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 		}
 		tx, _ := DecodeSignedApplicationAction(payload)
 		if tx.Fee > 0 {
-			next.feeEvents = append(next.feeEvents, newCurrentFeeEvent(ApplicationActionHash(payload), tx.Action, tx.Signer, a.feeRecipient, tx.Fee, height, blockTime))
+			next.feeEvents = next.feeEvents.append(newCurrentFeeEvent(ApplicationActionHash(payload), tx.Action, tx.Signer, a.feeRecipient, tx.Fee, height, blockTime))
 		}
 		return next, execution, nil
 	}
@@ -710,7 +711,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	accounts[receiverIndex].Balance += tx.Amount
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
-	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
 }
 
@@ -738,9 +739,7 @@ func cloneNativeTransferState(state executionState, addresses ...string) executi
 			}
 		}
 	}
-	// Preserve independent successful branches even when the input slice has
-	// spare capacity. A plain append to shared history would overwrite siblings.
-	state.feeEvents = append([]BFTFeeEvent(nil), state.feeEvents...)
+	// Fee history and pending nodes are immutable and safe to share.
 	return state
 }
 
@@ -794,7 +793,7 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 	accounts[receiverIndex].Balance += tx.Value
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
-	state.feeEvents = append(state.feeEvents, newEthereumGasFeeEvent(tx.Hash, tx.EnvelopeType, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	state.feeEvents = state.feeEvents.append(newEthereumGasFeeEvent(tx.Hash, tx.EnvelopeType, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	receipt := BFTEVMReceipt{
 		TxHash: tx.Hash, From: tx.From, To: tx.To, Action: tx.EnvelopeType,
 		Status: "success", EncodedResult: "0x", Logs: []BFTEVMLog{}, BlockHeight: height,
@@ -823,7 +822,7 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 
 func cloneExecutionStateValue(state executionState) executionState {
 	return executionState{
-		accounts: cloneAccounts(state.accounts), feeEvents: append([]BFTFeeEvent(nil), state.feeEvents...), strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		accounts: cloneAccounts(state.accounts), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
 		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),

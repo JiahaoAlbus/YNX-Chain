@@ -272,7 +272,7 @@ func (a *Application) applyAccountAbstractionAction(state executionState, raw []
 		event := BFTUserOperationEvent{ID: ApplicationActionRecordID("user-operation", txHash), OperationHash: operationHash, Account: input.Operation.Account, Bundler: tx.Signer, FeePayer: feePayer, PaymasterID: input.Operation.PaymasterPolicy, CallCount: len(input.Operation.Calls), ValueYNXT: total, FeeYNXT: UserOperationFeeYNXT, BlockHeight: height, ExecutedAt: blockTime, TransactionHash: txHash}
 		event.AuditHash = userOperationAuditHash(event)
 		state.userOperationEvents = append(state.userOperationEvents, event)
-		state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(txHash, "user_operation", feePayer, a.feeRecipient, int64(UserOperationFeeYNXT), height, blockTime))
+		state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(txHash, "user_operation", feePayer, a.feeRecipient, int64(UserOperationFeeYNXT), height, blockTime))
 		recordID = event.ID
 	default:
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("unsupported account abstraction action"))

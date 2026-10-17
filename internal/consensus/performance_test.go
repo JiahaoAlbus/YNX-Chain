@@ -124,6 +124,8 @@ func TestABCITransferPerformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	stages := map[string]performanceSamples{}
+	commitStages := map[string]performanceSamples{}
+	var snapshotBytesWritten int
 	accepted, executed := 0, 0
 	hashes := make([]string, 0, blocks)
 	var before, after runtime.MemStats
@@ -166,11 +168,16 @@ func TestABCITransferPerformance(t *testing.T) {
 			executed++
 		}
 		hashes = append(hashes, hex.EncodeToString(finalized.AppHash))
+		app.commitTimings = &commitTimings{}
 		ts = time.Now()
 		if _, err := app.Commit(ctx, &abcitypes.RequestCommit{}); err != nil {
 			t.Fatal(err)
 		}
 		stages["durable_commit"] = append(stages["durable_commit"], time.Since(ts))
+		for name, duration := range app.commitTimings.stages {
+			commitStages[name] = append(commitStages[name], duration)
+		}
+		snapshotBytesWritten += app.commitTimings.bytes
 	}
 	elapsed := time.Since(start)
 	runtime.ReadMemStats(&after)
@@ -209,8 +216,19 @@ func TestABCITransferPerformance(t *testing.T) {
 	for name, samples := range stages {
 		summaries[name] = samples.summary()
 	}
+	commitSummaries := map[string]any{}
+	for name, samples := range commitStages {
+		if len(samples) != blocks {
+			t.Fatalf("missing commit phase %s samples: %d", name, len(samples))
+		}
+		commitSummaries[name] = samples.summary()
+	}
+	if len(commitStages) != 8 {
+		t.Fatalf("expected 8 durable commit phases, got %d", len(commitStages))
+	}
 	report := map[string]any{
-		"schema": 1, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+		"schema": 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+		"label": os.Getenv("YNX_CHAIN_PERF_LABEL"), "commit_stages": commitSummaries, "snapshot_bytes_written": snapshotBytesWritten,
 		"go_version": runtime.Version(), "goos": runtime.GOOS, "goarch": runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0),
 		"accounts_seeded": accounts, "senders": batch, "txs_per_block": batch, "blocks": blocks, "offered": batch * blocks,
 		"accepted": accepted, "executed_code_zero": executed, "failed": 0, "rejected": 0, "persisted_fee_events": len(restarted.committed.FeeEvents),
