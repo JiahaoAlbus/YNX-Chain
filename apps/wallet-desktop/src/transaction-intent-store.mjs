@@ -224,6 +224,10 @@ export class FileTransactionIntentStore {
     if(!ACCOUNT.test(account??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
     return (state.pqOriginals??[]).filter(x=>x.account===account).map(parsePQOriginalRecord);
   }
+  async pqSummaries(account){
+    if(!ACCOUNT.test(account??''))throw invalid();const state=await this.#read();
+    return (state.pqOriginals??[]).filter(x=>x.account===account).map(row=>{const original=parsePQOriginalRecord(row);return Object.freeze({hash:original.hash,account,kind:original.kind,operationId:original.operationId,status:'pq-signed-unsubmitted',canRetryExact:false});});
+  }
   async reconcilePQOriginal(account,hash,guard){
     if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();
     return this.#mutate(async()=>{

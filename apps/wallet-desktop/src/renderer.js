@@ -861,6 +861,12 @@ async function refreshTransactions() {
     for (const record of records) {
       const row = document.createElement("div"), description = document.createElement("p");
       if(record.signingUnknown){description.textContent="An interrupted signing operation has an unknown result. No complete original is available to this view. New signatures and retries remain blocked; preserve the journal.";row.append(description);list.append(row);continue}
+      if(['pq-transfer','pq-migration'].includes(record.kind)){
+        const kind=record.kind==='pq-transfer'?'PQ 转账 / PQ transfer':'PQ 账户迁移 / PQ account migration';
+        description.textContent=kind+' · '+record.hash;row.append(description);
+        const notice=document.createElement('p');notice.textContent=record.status==='pq-save-unconfirmed'?'签名结果已保留，持久化保存尚未确认。请保持钱包运行；不会重新签名或发送。 / Signed result retained; durable saving is unconfirmed. Keep Wallet running; no replacement signature or send.':'签名结果已本地保存，尚未提交。不是链上确认或迁移成功，不允许直接重试。 / Signed result saved locally, not submitted. Not chain confirmation or migration success; no direct retry.';
+        row.append(notice);list.append(row);continue;
+      }
       copyUI(description,"{amount} YNXT to {to} · {hash}",{amount:record.amount,to:record.to,hash:record.hash}); row.append(description);
       if(record.localRetention){
         const warning=document.createElement("p");warning.textContent="Original signed transaction retained only in this running Wallet. Durable saving is unresolved; keep Wallet running. Do not resend or sign a replacement.";row.append(warning);

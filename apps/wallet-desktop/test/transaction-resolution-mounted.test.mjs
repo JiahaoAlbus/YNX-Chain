@@ -20,6 +20,11 @@ function harness(){
   context.clearTransactionResolution??=()=>{context.transactionRevision++;context.transactionActionRevision++;get("#pending-transactions").replaceChildren();get("#transaction-resolution").hidden=true;get("#transaction-resolution-result").textContent=""};
   return {context,get,reads,actions,async load(response={ok:true,value:[record]}){const pending=context.refreshTransactions();reads.at(-1)?.resolve(response);await pending;return get("#pending-transactions").children[0]?.children.filter(item=>typeof item.click==="function")}};
 }
+test('normal renderer shows PQ stored custody without check retry save or signing actions',async()=>{
+ const h=harness(),buttons=await h.load({ok:true,value:[{account,hash,kind:'pq-transfer',operationId:'QA-original',status:'pq-signed-unsubmitted',canRetryExact:false}]});
+ assert.equal(buttons.length,0);assert.equal(h.actions.length,0);assert.equal(h.context.assetRefreshes,0);
+ const text=h.get('#pending-transactions').children[0].children.map(x=>x.textContent).join(' ');assert.match(text,/not submitted/);assert.match(text,/Not chain confirmation/);
+});
 test('r5 actual normal renderer saves original without check retry or signer and reports only local custody',async()=>{
  const h=harness(),saves=[],retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:null};h.context.window.ynxWallet.saveTransactionOriginal=value=>new Promise(resolve=>saves.push({value,resolve}));
  const [save]=await h.load({ok:true,value:[{...record,status:'signed_unpersisted',canRetryExact:false,localRetention:retention}]});assert.match(save.textContent,/Save original locally/);const pending=save.click();await save.click();assert.equal(saves.length,1);assert.equal(saves[0].value,hash);assert.equal(h.actions.length,0);

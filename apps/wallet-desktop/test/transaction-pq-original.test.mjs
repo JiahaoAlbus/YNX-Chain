@@ -4,6 +4,8 @@ import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
 import {FileTransactionIntentStore} from '../src/transaction-intent-store.mjs';
+import {TransactionSubmissions} from '../src/transaction-submissions.mjs';
+import {projectPendingTransactions} from '../src/transaction-resolution-display.mjs';
 import {createPQOriginalRecord,parsePQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {createPQWalletKeyHandle,readPQWalletKeyPublic,destroyPQWalletKeyHandle,createPQWalletMigrationPossession,signPQWalletCurrentMigration,signPQWalletNativeTransfer} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
 import {pqPublicBindingToRegistrationKeys,encodePQMigrationRequest,preparePQMigrationTransport,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
@@ -71,4 +73,10 @@ test('PQ transfer cannot masquerade as migration and getters cannot supply the o
  assert.throws(()=>store.captureOriginal(account,transferOriginal,'pq-migration'));assert.throws(()=>parsePQOriginalRecord({...transferOriginal,kind:'pq-migration'}));
  assert.throws(()=>store.captureOriginal(account,original,'pq-transfer'));assert.equal(store.localOriginal(account).pq,null);
  store.captureOriginal(account,transferOriginal,'pq-transfer');assert.equal(store.localOriginal(account).pq.hash,transferOriginal.hash);
+});
+test('original normal pending caller displays PQ custody without signed bytes or legacy retry authority',async t=>{
+ const {store}=await fixture(t),submissions=new TransactionSubmissions({intentStore:store});await store.reserveOriginal(account,'pq-transfer');store.captureOriginal(account,transferOriginal,'pq-transfer');
+ const held=projectPendingTransactions({ok:true,value:await submissions.list(account)},account);assert.equal(held[0].status,'pq-save-unconfirmed');
+ await store.saveOriginal(account,transferOriginal.hash,guard);const saved=projectPendingTransactions({ok:true,value:await submissions.list(account)},account);assert.equal(saved[0].status,'pq-signed-unsubmitted');assert.equal(saved[0].canRetryExact,false);assert.equal(saved[0].kind,'pq-transfer');
+ assert.equal(JSON.stringify(saved).includes(transferOriginal.wire),false);assert.equal(Object.hasOwn(saved[0],'raw'),false);assert.equal(Object.hasOwn(saved[0],'wire'),false);
 });

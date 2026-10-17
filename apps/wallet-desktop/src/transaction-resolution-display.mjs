@@ -23,10 +23,17 @@ export function projectPendingTransactions(response,account){
   for(let index=0;index<length;index++){
     if(!descriptors[index]||!Object.hasOwn(descriptors[index],"value"))throw Error("Invalid pending row");
     const source=descriptors[index].value,local=Object.getOwnPropertyDescriptor(source??{},"localRetention"),unknown=Object.getOwnPropertyDescriptor(source??{},"signingUnknown");
+    if(Object.getOwnPropertyDescriptor(source??{},'kind')){
+      const row=values(source,['hash','account','status','canRetryExact','kind','operationId']);
+      if(row.account!==account||typeof row.hash!=='string'||!HASH.test(row.hash)||!['pq-transfer','pq-migration'].includes(row.kind)||!['pq-signed-unsubmitted','pq-save-unconfirmed'].includes(row.status)||row.canRetryExact!==false||typeof row.operationId!=='string'||! /^[A-Za-z0-9_-]{1,128}$/.test(row.operationId))throw Error('Invalid PQ pending display');
+      records.push(Object.freeze(row));continue;
+    }
     if(unknown){const row=values(source,["hash","account","status","canRetryExact","to","amount","signingUnknown"]);if(row.account!==account||row.hash!==null||row.to!==null||row.amount!==null||row.status!=="signing_unknown"||row.canRetryExact!==false||row.signingUnknown!==true)throw Error("Invalid unknown signing display");records.push(Object.freeze(row));continue}
     const record=values(source,["hash","account","status","canRetryExact","to","amount",...(local?["localRetention"]:[])]);
     if(local){
-      const retention=values(record.localRetention,["scope","durable","originalCause","storageCause"]);
+      const flags=Object.hasOwn(record.localRetention,'originalCausePresent')||Object.hasOwn(record.localRetention,'storageCausePresent');
+      const retention=values(record.localRetention,["scope","durable","originalCause","storageCause",...(flags?['originalCausePresent','storageCausePresent']:[])]);
+      if(flags&&(typeof retention.originalCausePresent!=='boolean'||typeof retention.storageCausePresent!=='boolean'||retention.originalCause!==null&&!retention.originalCausePresent||retention.storageCause!==null&&!retention.storageCausePresent))throw Error('Invalid local cause presence');
       if(retention.scope!=="operation-memory"||retention.durable!==false||record.status!=="signed_unpersisted"||record.canRetryExact!==false)throw Error("Invalid local original");
       for(const cause of [retention.originalCause,retention.storageCause])if(cause!==null){const c=values(cause,["name","code","message"]);if(typeof c.name!=="string"||c.name.length>128||typeof c.message!=="string"||c.message.length>2048||c.code!==null&&(typeof c.code!=="string"||c.code.length>128))throw Error("Invalid local cause")}
       record.localRetention=Object.freeze(retention);

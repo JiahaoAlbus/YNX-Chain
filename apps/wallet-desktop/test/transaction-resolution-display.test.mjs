@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {projectTransactionResolution,projectPendingTransactions} from "../src/transaction-resolution-display.mjs";
 import {TransactionSubmissions} from "../src/transaction-submissions.mjs";
+import {originalRetention} from '../src/transaction-intent-store.mjs';
 import {parseFeeModel} from "../src/rpc-capabilities.mjs";
 import {DURABILITY_MODEL} from "../src/transaction-durability.mjs";
 import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
@@ -10,6 +11,11 @@ import {CANONICAL_RPC_URL} from "../src/rpc.mjs";
 const literal=JSON.parse(await readFile(new URL("./fixtures/transaction-durability/ethereum-block-marker.json",import.meta.url),"utf8"));
 const receipt=literal.recoveredReceipt,account=receipt.from,hash=receipt.transactionHash;
 const context={account,hash};
+test('normal pending view accepts original first-cause presence flags including thrown null',()=>{
+ const row={hash,account,status:'signed_unpersisted',canRetryExact:false,to:receipt.to,amount:'2.0',localRetention:originalRetention({originalCause:null,originalCausePresent:true,storageCause:null,storageCausePresent:false})};
+ const view=projectPendingTransactions({ok:true,value:[row]},account);assert.equal(view[0].localRetention.originalCausePresent,true);assert.equal(view[0].localRetention.storageCausePresent,false);
+ assert.throws(()=>projectPendingTransactions({ok:true,value:[{...row,localRetention:{...row.localRetention,originalCausePresent:'true'}}]},account));
+});
 test("r4 unknown signing DTO never implies available raw bytes or retry permission",()=>{
  const row={hash:null,account,status:'signing_unknown',canRetryExact:false,to:null,amount:null,signingUnknown:true};assert.equal(projectPendingTransactions({ok:true,value:[row]},account)[0].signingUnknown,true);
  for(const extra of [{raw:'0xsigned'},{canRetryExact:true},{hash},{signingUnknown:'true'}])assert.throws(()=>projectPendingTransactions({ok:true,value:[{...row,...extra}]},account));
