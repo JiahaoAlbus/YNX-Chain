@@ -78,3 +78,30 @@ test('native injected save bridge settles cancel, rejects path injection and ign
   window.__ynxNativeFileReply({ requestId: calls[1].requestId, uri: 'file:///qa/retry.cpp' });
   assert.equal((await next).uri, 'file:///qa/retry.cpp');
 });
+
+test('native save starts in selected project subdirectory without widening root', async () => {
+  const f=fixture();
+  const folder={resource:new (f.root.resource.constructor)('file:///qa/sub%20folder')};
+  const pending=f.dialogs.showSaveDialog({inputValue:'nested.cpp'},folder);
+  assert.deepEqual(f.calls,[{name:'nested.cpp',directoryUri:'file:///qa/sub%20folder'}]);
+  f.finish({uri:'file:///qa/sub%20folder/nested.cpp',rootUri:'file:///qa'});
+  assert.equal((await pending).toString(),'file:///qa/sub%20folder/nested.cpp');
+});
+test('foreign and non-file starting hints are not forwarded to native panel', async () => {
+  for(const value of ['file:///outside','https://example.com/qa']){
+    const f=fixture(),folder={resource:new (f.root.resource.constructor)(value)};
+    const pending=f.dialogs.showSaveDialog({},folder);
+    assert.deepEqual(f.calls,[{name:''}]);f.finish({cancelled:true});await pending;
+  }
+});
+test('actual injected bridge forwards directory hint and rejects non-string hint', { timeout: 2000 }, async () => {
+  const {readFile}=await import('node:fs/promises'),{runInNewContext}=await import('node:vm');
+  const source=await readFile(new URL('./macos/main.m',import.meta.url),'utf8');
+  const injected=source.match(/NSString \*fileScript=\[NSString stringWithFormat:@"(.*)",YNXJSON/)[1].replace('%@','null');
+  const calls=[],window={webkit:{messageHandlers:{ynxLocalWorkbench:{postMessage:v=>calls.push(v)}}}};
+  runInNewContext(injected,{window,location:{pathname:'/'},crypto:{randomUUID:()=> 'id'},TextEncoder,addEventListener(){}});
+  await assert.rejects(window.ynxDesktopFiles.save({name:'x.cpp',directoryUri:{}}),/starting directory/);
+  const p=window.ynxDesktopFiles.save({name:'x.cpp',directoryUri:'file:///qa/sub%20folder'});
+  assert.equal(calls[0].directoryUri,'file:///qa/sub%20folder');
+  window.__ynxNativeFileReply({requestId:'id',cancelled:true});await p;
+});

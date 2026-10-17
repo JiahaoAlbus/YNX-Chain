@@ -101,7 +101,13 @@ function installProjectSaveDefault({ dialogs, editors, workspace, fileService, t
         !document?.isDisposed?.() && document?.textEditorModel?.getVersionId() === version &&
         (() => { const now = workspace.tryGetRoots(); return now.length === roots.length && now.every((root, index) => root === roots[index]); })();
       try {
-        const result = await bridge.save({ name: props?.inputValue || '' });
+        const options = { name: props?.inputValue || '' };
+        // The selected Explorer directory is a starting-location hint only;
+        // the native side independently checks it against the admitted root.
+        if (folder?.resource?.scheme === 'file' && roots.some(root => root.resource.isEqualOrParent(folder.resource))) {
+          options.directoryUri = folder.resource.toString();
+        }
+        const result = await bridge.save(options);
         if (!current() || result.cancelled || typeof result.uri !== 'string' || typeof result.rootUri !== 'string' || !roots.length) return undefined;
         const selected = new URI(result.uri);
         if (selected.scheme !== 'file' || !roots.some(root => root.resource.toString().replace(/\/$/, '') === result.rootUri.replace(/\/$/, '') && root.resource.isEqualOrParent(selected))) return undefined;

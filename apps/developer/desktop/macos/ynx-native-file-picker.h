@@ -7,7 +7,7 @@ static BOOL YNXNativePickerPayload(id body) {
     return [body isKindOfClass:NSDictionary.class]&&[body count]==3&&[body[@"action"] isEqual:@"pick-file"]&&[body[@"requestId"] isKindOfClass:NSString.class]&&[[NSUUID alloc]initWithUUIDString:body[@"requestId"]]&&[@[@"file",@"folder",@"workspace",@"any"] containsObject:body[@"kind"]];
 }
 static BOOL YNXNativeSavePayload(id body) {
-    if(![body isKindOfClass:NSDictionary.class]||[body count]!=3||![body[@"action"] isEqual:@"save-file"]||![body[@"requestId"] isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:body[@"requestId"]]||![body[@"name"] isKindOfClass:NSString.class])return NO;
+    if(![body isKindOfClass:NSDictionary.class]||!([body count]==3||([body count]==4&&[body[@"directoryUri"] isKindOfClass:NSString.class]&&[body[@"directoryUri"] length]<=16384))||![body[@"action"] isEqual:@"save-file"]||![body[@"requestId"] isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:body[@"requestId"]]||![body[@"name"] isKindOfClass:NSString.class])return NO;
     NSString *name=body[@"name"];
     return [name lengthOfBytesUsingEncoding:NSUTF8StringEncoding]<=255&&[name rangeOfString:@"/"].location==NSNotFound&&[name rangeOfString:[NSString stringWithFormat:@"%C",(unichar)0]].location==NSNotFound&&![name isEqual:@"."]&&![name isEqual:@".."];
 }
@@ -19,6 +19,16 @@ static NSString *YNXNativePickedPath(NSURL *url) {
 }
 static BOOL YNXNativePathInside(NSString *path,NSString *root) {
     return path&&root&&([path isEqual:root]||[path hasPrefix:[root stringByAppendingString:@"/"]]);
+}
+// A starting location is not an authority: resolve symlinks and require an
+// existing directory inside the current project's canonical root.
+static NSString *YNXNativeSaveDirectory(id input,NSString *root) {
+    if(!input)return root;
+    if(![input isKindOfClass:NSString.class])return nil;
+    NSURL *url=[NSURL URLWithString:input];
+    if(!url.isFileURL||url.host.length||url.query||url.fragment)return nil;
+    NSString *directory=YNXNativePickedPath(url);struct stat st;
+    return YNXNativePathInside(directory,root)&&lstat(directory.fileSystemRepresentation,&st)==0&&S_ISDIR(st.st_mode)?directory:nil;
 }
 // A new filename has no realpath yet. Resolve only its existing parent and
 // reject existing symlinks/devices/directories; this never grants a new root.

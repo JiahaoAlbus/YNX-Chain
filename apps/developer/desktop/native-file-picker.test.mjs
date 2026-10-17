@@ -69,6 +69,8 @@ test('native canonical boundary rejects sibling-prefix/symlink escape and invali
   const directory = await mkdtemp(join(tmpdir(), 'ynx-native-picker-boundary-'));
   try {
     await mkdir(join(directory, 'project')); await mkdir(join(directory, 'outside'));
+    await mkdir(join(directory, 'project', '子目录 with spaces'));
+    await symlink(join(directory, 'outside'), join(directory, 'project', 'outside-dir'));
     await writeFile(join(directory, 'project', 'hello.cpp'), 'int main(){}');
     await writeFile(join(directory, 'outside', 'other.cpp'), 'int main(){}');
     await symlink(join(directory, 'outside', 'other.cpp'), join(directory, 'project', 'escape.cpp'));
@@ -95,6 +97,14 @@ assert(!YNXNativeSavePath([NSURL fileURLWithPath:[root stringByAppendingPathComp
 assert(!YNXNativeSavePath([NSURL fileURLWithPath:[root stringByAppendingPathComponent:@"missing/new.cpp"]],root));
 NSDictionary *save=@{@"action":@"save-file",@"name":@"你好.cpp",@"requestId":NSUUID.UUID.UUIDString};
 assert(YNXNativeSavePayload(save));
+assert([YNXNativeSaveDirectory(nil,root) isEqual:root]);
+NSString *nested=[root stringByAppendingPathComponent:@"子目录 with spaces"];
+NSString *nestedURI=[NSURL fileURLWithPath:nested].absoluteString;
+assert([YNXNativeSaveDirectory(nestedURI,root) isEqual:nested]);
+for(id hint in @[@42,@"https://example.com",@"file://evil/qa",[NSURL fileURLWithPath:file].absoluteString,[NSURL fileURLWithPath:[root stringByAppendingPathComponent:@"outside-dir"]].absoluteString,[NSURL fileURLWithPath:[root stringByAppendingPathComponent:@"missing"]].absoluteString])assert(!YNXNativeSaveDirectory(hint,root));
+NSMutableDictionary *hintSave=[save mutableCopy];hintSave[@"directoryUri"]=nestedURI;assert(YNXNativeSavePayload(hintSave));
+hintSave[@"directoryUri"]=@42;assert(!YNXNativeSavePayload(hintSave));
+hintSave[@"directoryUri"]=nestedURI;hintSave[@"extra"]=@YES;assert(!YNXNativeSavePayload(hintSave));
 NSMutableDictionary *badSave=[save mutableCopy];badSave[@"name"]=@"../other.cpp";assert(!YNXNativeSavePayload(badSave));
 badSave[@"name"]=@"..";assert(!YNXNativeSavePayload(badSave));
 badSave[@"name"]=@"ok.cpp";badSave[@"root"]=root;assert(!YNXNativeSavePayload(badSave));
