@@ -89,6 +89,7 @@ static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port){return [url.hos
 @interface Owner:NSObject
 @property BOOL localWindowPresented,localStartupFailed,localReadyComplete,localCloseRequest,localCommandDocumentReady;
 @property NSUInteger localPresentationGeneration;
+@property NSUInteger focusInstalls;
 @property NSInteger port;
 @property(strong) NSTimer *localPresentationDeadline;
 @property(strong) FakeWindow *window;
@@ -96,22 +97,24 @@ static BOOL YNXLocalEditorDocumentURL(NSURL *url,NSInteger port){return [url.hos
 @property(strong) YNXWalletAdmissionBackendTask *server;
 - (void)synchronizeLocalWindowVisibility;
 - (void)recordLocalPresentation:(NSString *)phase;
+- (void)installLocalProjectFocus;
 @end
 @implementation Owner
 - (void)synchronizeLocalWindowVisibility{}
 - (void)recordLocalPresentation:(NSString *)phase{}
+- (void)installLocalProjectFocus{self.focusInstalls++;}
 ${present}
 ${accept}
 @end
 int main(){@autoreleasepool{
 NSApp=[FakeApp new];Owner *o=[Owner new];o.window=[FakeWindow new];o.webView=[FakeView new];o.server=[YNXWalletAdmissionBackendTask new];o.server.running=YES;o.port=1234;o.webView.URL=[NSURL URLWithString:@"http://127.0.0.1:1234/"];
 NSDictionary *body=@{@"action":@"workbench-ready",@"documentId":NSUUID.UUID.UUIDString};
-[o acceptLocalWorkbenchPresentation:body];if(o.webView.pending||o.window.shows)return 1;
+[o acceptLocalWorkbenchPresentation:body];if(o.webView.pending||o.window.shows||o.focusInstalls)return 1;
 o.localReadyComplete=YES;[o acceptLocalWorkbenchPresentation:body];if(!o.webView.pending||o.window.shows)return 2;
 o.localPresentationGeneration++;o.webView.pending(@YES,nil);if(o.window.shows)return 3;
 [o acceptLocalWorkbenchPresentation:body];o.webView.pending(@NO,nil);if(o.window.shows)return 4;
-[o acceptLocalWorkbenchPresentation:body];o.localStartupFailed=YES;o.webView.pending(@YES,nil);if(o.window.shows)return 5;
-o.localStartupFailed=NO;[o acceptLocalWorkbenchPresentation:body];o.webView.pending(@YES,nil);if(o.window.shows!=1||!o.localCommandDocumentReady)return 6;
+[o acceptLocalWorkbenchPresentation:body];o.localStartupFailed=YES;o.webView.pending(@YES,nil);if(o.window.shows||o.focusInstalls)return 5;
+o.localStartupFailed=NO;[o acceptLocalWorkbenchPresentation:body];o.webView.pending(@YES,nil);if(o.window.shows!=1||!o.localCommandDocumentReady||o.focusInstalls!=1)return 6;
 o.localCommandDocumentReady=NO;[o acceptLocalWorkbenchPresentation:body];o.webView.pending(@YES,nil);if(o.window.shows!=1||!o.localCommandDocumentReady)return 7;
 return 0;}}
 `);
