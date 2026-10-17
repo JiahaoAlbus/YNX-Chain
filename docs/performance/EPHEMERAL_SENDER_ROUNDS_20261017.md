@@ -100,3 +100,25 @@ It must verify actual second-nonce inclusion, quorum, local durable state,
 all-node stopped replay and cleanup. Preparation or source tests grant no
 permission to execute it. Prior frozen binaries and completed windows remain
 unchanged; no old permission is reused.
+
+Source commit `038cebd98d6f287fee608b1925c80f763cc9d79f` was clean when the
+new fixture/client were built separately in `network-bin-sender-rounds`.
+The actual consensus import resolves to this worktree. App/core, host sampler
+and CometBFT bytes remain the prior frozen inputs; no runtime core was rebuilt.
+Go build metadata and source/binary hashes are separately retained without
+claiming an unavailable embedded VCS stamp. Fresh build admission found
+70,257,168,384 bytes free on the external workspace filesystem.
+
+The preparation receipt is
+`artifacts/chain-performance-20261017/sender-rounds-network-prepared-038cebd98.json`
+(11,870 bytes), SHA-256
+`5409f1c2cd2d27ff1e36b7021e0b0cc1b6cebe13bb0ac80fd9fad4c242be127b`.
+Its tracked copy is [here](evidence/sender-rounds-preparation-20261017.json).
+The standalone runner SHA-256 is
+`4b52be69e51bb4257468c55e7663d3e5647929ce5ea8a35ca48b8121d6b9d9cc`;
+new fixture/client hashes are respectively
+`ee04f25ea40f0bd0f075a3a801cf9b0e216a841578e3da2fa28b244f241d35e1`
+and `92f0dd462aa6f72864185dbc8773ad37fdba286c00a998e03c505a9db1d5304f`.
+The plan remains prepare-only: 32 senders, two rounds, 64 total transactions,
+128 offered/s per round, unchanged 1 GiB/32 MiB/45+15-second window and
+10-second client deadline. No nodes or client submission processes started.
