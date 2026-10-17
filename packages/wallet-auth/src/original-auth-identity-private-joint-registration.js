@@ -1,5 +1,6 @@
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
+import {types} from 'node:util';
 import {assertOriginalAdmissionVault,captureOriginalServiceRoleLocalCurrentSource} from '../../../apps/wallet-desktop/src/password-wallet-vault.mjs';
 
 // Fixed packaged implementing module. No path/provider/callback option and no
@@ -66,7 +67,11 @@ export function readOriginalAuthIdentityJointConfiguration(ref){const s=state(re
 export function assertOriginalAuthIdentityJointCurrent(ref){return current(state(ref));}
 export function assertOriginalAuthIdentityJointExecutorChild(ref,executor,child){const s=state(ref);current(s);if(executor!==s.installed.executor||s.binding.assertOriginalJointExecutorChild(s.joint,executor,child)!==undefined)throw failure('AUTH_IDENTITY_EXECUTOR_CHILD_MISMATCH');return current(s);}
 export function assertOriginalAuthIdentityJointSuccession(ref,request){const s=state(ref);current(s);if(s.binding.assertOriginalJointSuccession(s.joint,request)!==undefined)throw failure('AUTH_IDENTITY_SUCCESSION_MISMATCH');return current(s);}
-export function retireOriginalAuthIdentityJointConfiguration(ref){const s=state(ref);s.retired=true;return undefined;}
+export function retireOriginalAuthIdentityJointConfiguration(ref){
+ const s=state(ref);s.retired=true;let failed=false,cause;
+ for(const host of s.ideHosts??[])try{host.retire();}catch(error){if(!failed){failed=true;cause=error;}}
+ if(failed)throw cause;return undefined;
+}
 export function joinOriginalAuthIdentityJointConfiguration(ref){const s=state(ref);return Promise.resolve().then(async()=>{while(s.entered.size)await Promise.allSettled([...s.entered]);return undefined;});}
 export function closeOriginalAuthIdentityJointConfiguration(ref){
  const s=state(ref);if(s.closing)return s.closing;s.retired=true;debt.add(s);
@@ -74,9 +79,10 @@ export function closeOriginalAuthIdentityJointConfiguration(ref){
   while(s.entered.size)await Promise.allSettled([...s.entered]);
   let failed=false,cause;
   const cleanup=async operation=>{try{if(await operation()!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');}catch(error){if(!failed){failed=true;cause=error;}}};
-  if(s.joint)await cleanup(async()=>{if(s.binding.retireOriginalJoint(s.joint)!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');if(await s.binding.joinOriginalJoint(s.joint)!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');return s.binding.closeOriginalJoint(s.joint);});
+  for(const host of s.ideHosts??[])await cleanup(()=>host.close());
+  if(s.joint){await cleanup(()=>s.binding.retireOriginalJoint(s.joint));await cleanup(()=>s.binding.joinOriginalJoint(s.joint));await cleanup(()=>s.binding.closeOriginalJoint(s.joint));}
   if(s.local)await cleanup(()=>s.local.close());
-  if(s.administration)await cleanup(async()=>{if(s.binding.retireOriginalAdministrationProfile(s.administration)!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');if(await s.binding.joinOriginalAdministrationProfile(s.administration)!==undefined)throw failure('AUTH_IDENTITY_CLEANUP_INCOMPLETE');return s.binding.closeOriginalAdministrationProfile(s.administration);});
+  if(s.administration){await cleanup(()=>s.binding.retireOriginalAdministrationProfile(s.administration));await cleanup(()=>s.binding.joinOriginalAdministrationProfile(s.administration));await cleanup(()=>s.binding.closeOriginalAdministrationProfile(s.administration));}
   if(failed)throw cause;s.cleanupComplete=true;if(!s.unknown)debt.delete(s);return undefined;
  }).catch(cause=>{s.cleanupFailurePresent=true;first(s,cause);throw cause;});return s.closing;
 }
@@ -84,4 +90,97 @@ export function originalAuthIdentityJointOutcome(ref){const s=state(ref);return 
 export function originalAuthIdentityStartupUnresolved(vault){
  if(vault===null)return false;assertOriginalAdmissionVault(vault);const startup=startups.get(vault);
  return startup?[...startup.acquisitions].some(ref=>{const s=state(ref);return !s.cleanupComplete&&(s.retired||s.unknown)||s.unknown||s.cleanupFailurePresent;}):false;
+}
+
+// Original-main transport custody only, never an IDE guard or a public factory.
+// The only input is an existing private SDK joint ref; the original Native joint
+// and intent remain inside this module. No descriptor/path/Source can be injected.
+const ideMethods=['reserveOriginalIDEParentIntent','readOriginalIDEParentIntent','beginOriginalIDEParentPrelude','takeOriginalIDEParentSenderDescriptor','readOriginalIDEParentInstalledFrame','assertOriginalIDEParentAcknowledgement','assertOriginalIDEParentIntentCurrent','retireOriginalIDEParentIntent','joinOriginalIDEParentIntent','closeOriginalIDEParentIntent'];
+export function reserveOriginalAuthIdentityIDEParentHost(ref){
+ const parent=state(ref);current(parent);
+ if(parent.ideHostSelected)throw failure('AUTH_IDENTITY_IDE_HOST_ALREADY_SELECTED');
+ parent.ideHostSelected=true;
+ if(ideMethods.some(name=>typeof parent.binding[name]!=='function'))throw failure('AUTH_IDENTITY_IDE_IMPLEMENTATION_NOT_SUPPLIED');
+ const h={native:null,retired:false,unknown:false,firstPresent:false,first:undefined,cleanupPresent:false,cleanup:undefined,retireSelected:false,retireFailed:false,retireCause:undefined,beginSelected:false,beginPromise:null,preludeComplete:false,senderSelected:false,frameSelected:false,ackSelected:false,joining:null,closing:null,closed:false};
+ const remember=cause=>{
+  h.retired=true;h.unknown=true;if(!h.firstPresent){h.firstPresent=true;h.first=cause;}
+  first(parent,cause);parent.unknown=true;parent.retired=true;debt.add(parent);
+ };
+ const invoke=(name,...args)=>parent.binding[name](h.native,...args);
+ const assertCurrent=()=>{
+  try{
+   if(h.retired||h.closed)throw h.firstPresent?h.first:failure('AUTH_IDENTITY_IDE_HOST_RETIRED');
+   current(parent);if(!h.native||invoke('assertOriginalIDEParentIntentCurrent')!==undefined)throw failure('AUTH_IDENTITY_IDE_INTENT_NOT_CURRENT');
+   current(parent);if(h.retired||h.closed)throw h.firstPresent?h.first:failure('AUTH_IDENTITY_IDE_HOST_RETIRED');return undefined;
+  }catch(cause){remember(cause);throw cause;}
+ };
+ const call=(name,...args)=>{try{assertCurrent();return invoke(name,...args);}catch(cause){remember(cause);throw cause;}};
+ const retire=()=>{
+  h.retired=true;if(h.retireSelected){if(h.retireFailed)throw h.retireCause;return undefined;}h.retireSelected=true;
+  try{if(!h.native){if(h.firstPresent)throw h.first;return undefined;}if(invoke('retireOriginalIDEParentIntent')!==undefined)throw failure('AUTH_IDENTITY_IDE_RETIRE_INCOMPLETE');return undefined;}
+  catch(cause){h.retireFailed=true;h.retireCause=cause;remember(cause);throw cause;}
+ };
+ const join=()=>{
+  if(h.joining)return h.joining;
+  if(!h.retireSelected)throw failure('AUTH_IDENTITY_IDE_INTENT_NOT_RETIRED');
+  h.joining=Promise.resolve().then(async()=>{
+   if(!h.native){if(h.firstPresent)throw h.first;return undefined;}
+   const result=invoke('joinOriginalIDEParentIntent');
+   if(!types.isPromise(result)||await result!==undefined)throw failure('AUTH_IDENTITY_IDE_JOIN_INCOMPLETE');return undefined;
+  });void h.joining.catch(()=>{});return h.joining;
+ };
+ const close=()=>{
+  if(h.closing)return h.closing;
+  h.retired=true;
+  // Reserve the pass before any Native retire hook can synchronously reenter.
+  h.closing=Promise.resolve().then(async()=>{
+   let failed=false,cause;
+   const cleanup=async operation=>{try{if(await operation()!==undefined)throw failure('AUTH_IDENTITY_IDE_CLEANUP_INCOMPLETE');}catch(error){if(!failed){failed=true;cause=error;}}};
+   await cleanup(retire);await cleanup(join);
+   await cleanup(async()=>{
+    if(!h.native){if(h.firstPresent)throw h.first;return undefined;}
+    const result=invoke('closeOriginalIDEParentIntent');
+    if(!types.isPromise(result)||await result!==undefined)throw failure('AUTH_IDENTITY_IDE_CLOSE_INCOMPLETE');return undefined;
+   });
+   if(failed){h.cleanupPresent=true;h.cleanup=cause;remember(cause);throw cause;}
+   h.closed=true;return undefined;
+  });void h.closing.catch(()=>{});return h.closing;
+ };
+ const api=Object.freeze({
+  assertCurrent,
+  readPending:()=>call('readOriginalIDEParentIntent'),
+  beginPrelude(){
+   try{
+    assertCurrent();if(h.beginSelected)throw failure('AUTH_IDENTITY_IDE_PRELUDE_ALREADY_SELECTED');h.beginSelected=true;
+    // Enter Native now, without a microtask/await, so its worker can service
+    // the caller's immediately following real spawn and inherited fd4.
+    const result=invoke('beginOriginalIDEParentPrelude');
+    if(!types.isPromise(result))throw failure('AUTH_IDENTITY_IDE_PRELUDE_PROMISE_REQUIRED');
+    h.beginPromise=result.then(value=>{if(value!==undefined)throw failure('AUTH_IDENTITY_IDE_PRELUDE_INCOMPLETE');assertCurrent();h.preludeComplete=true;return undefined;}).catch(cause=>{remember(cause);throw cause;});
+    void h.beginPromise.catch(()=>{});return h.beginPromise;
+   }catch(cause){remember(cause);throw cause;}
+  },
+  takeSenderDescriptor(){
+   try{assertCurrent();if(!h.preludeComplete||h.senderSelected)throw failure('AUTH_IDENTITY_IDE_SENDER_NOT_AVAILABLE');h.senderSelected=true;
+    // Native transfers this exact duplicate to caller custody. No post-call
+    // JS fence may throw and discard it before the caller captures ownership.
+    return invoke('takeOriginalIDEParentSenderDescriptor');
+   }catch(cause){remember(cause);throw cause;}
+  },
+  readInstalledFrame(){
+   try{assertCurrent();if(!h.preludeComplete||!h.senderSelected||h.frameSelected)throw failure('AUTH_IDENTITY_IDE_FRAME_NOT_AVAILABLE');h.frameSelected=true;return invoke('readOriginalIDEParentInstalledFrame');}
+   catch(cause){remember(cause);throw cause;}
+  },
+  acknowledge(raw){
+   try{assertCurrent();if(!h.frameSelected||h.ackSelected)throw failure('AUTH_IDENTITY_IDE_ACK_NOT_AVAILABLE');h.ackSelected=true;
+    if(invoke('assertOriginalIDEParentAcknowledgement',raw)!==undefined)throw failure('AUTH_IDENTITY_IDE_ACK_INCOMPLETE');return assertCurrent();
+   }catch(cause){remember(cause);throw cause;}
+  },
+  retire,join,close,
+  outcome:()=>Object.freeze({nativeIntentRetained:h.native!==null,preludeStarted:h.beginSelected,preludeComplete:h.preludeComplete,senderTaken:h.senderSelected,retired:h.retired,unknown:h.unknown,firstCausePresent:h.firstPresent,firstCause:h.first,cleanupCausePresent:h.cleanupPresent,cleanupCause:h.cleanup,cleanupComplete:h.closed}),
+ });
+ (parent.ideHosts??=new Set()).add(api);
+ try{h.native=parent.binding.reserveOriginalIDEParentIntent(parent.joint);if(!h.native)throw failure('AUTH_IDENTITY_IDE_ORIGINAL_INTENT_NOT_SUPPLIED');}
+ catch(cause){remember(cause);} // Return exact partial SDK custody for cleanup.
+ return api;
 }

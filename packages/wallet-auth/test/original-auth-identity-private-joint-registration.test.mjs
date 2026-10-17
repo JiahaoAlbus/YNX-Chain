@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
+import {types} from 'node:util';
 test('R15 actual joint startup and both fixed loaders decode paths without Native calls',()=>{
  const joint=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
  const dispatch=readFileSync(new URL('../src/original-wallet-service-private-dispatch.js',import.meta.url),'utf8').match(/function loadFixedOriginalNativeServiceBinding\(\)\{[^]*?\n\}/)[0];
@@ -24,23 +25,111 @@ test('R15 actual joint startup and both fixed loaders decode paths without Nativ
 // PUBLIC lexical machinery controls. No real .node module, root/profile,
 // protected file, crypto or Native authority is loaded or supplied.
 const text=readFileSync(new URL('../src/original-auth-identity-private-joint-registration.js',import.meta.url),'utf8');
-function fixture({missing=false,commitFailure=false}={}){
+function fixture({missing=false,commitFailure=false,hostNative={}}={}){
  const association={account:'PUBLIC_ACCOUNT',clientId:'PUBLIC_CLIENT',productId:'developer',platform:'macos',applicationId:'PUBLIC_APP',deviceId:'PUBLIC_DEVICE'},original={},joint={},localRef={},events=[];
- let live=true,closed=0,commits=0;const localOriginal={scope:'LOCAL_SELECTED_VAULT',account:'PUBLIC_ACCOUNT',nativeQualified:false,independentLatest:false};
- const guard={assert(){if(!live)throw false;}};
+ let live=true,closed=0,commits=0,guardHook=null;const localOriginal={scope:'LOCAL_SELECTED_VAULT',account:'PUBLIC_ACCOUNT',nativeQualified:false,independentLatest:false};
+ const guard={assert(){if(!live)throw false;guardHook?.();}};
  const local={read:async()=>localOriginal,assertObservationCurrent:value=>{assert.equal(value,localOriginal);guard.assert();},close:async()=>{events.push('local-close');}};
  const vault={acquireOriginalServiceRoleLocalCurrentSource:async()=>localRef};
  local.vault=vault;
  const installed={vault,association,raw:{PUBLIC:'original'},executor:{PUBLIC:'executor'},observer:{PUBLIC:'observer'}};
  const native={acquireOriginalAdministrationProfile:async()=>original,readOriginalAdministrationProfile:value=>{assert.equal(value,original);return {association,expectedLocalCurrent:{PUBLIC:true}};},assertOriginalAdministrationProfileCurrent:value=>{assert.equal(value,original);guard.assert();},reserveOriginalJointRegistration:async(value,localValue)=>{assert.equal(value,original);assert.equal(localValue,localOriginal);events.push('reserved');return joint;},commitOriginalJointRegistration:async value=>{assert.equal(value,joint);commits++;if(commitFailure)throw undefined;return {PUBLIC:'original-commit'};},readOriginalJointRegistration:value=>{assert.equal(value,joint);return installed;},assertOriginalJointCurrent:value=>{assert.equal(value,joint);guard.assert();},assertOriginalJointExecutorChild:(value,executor,child)=>{assert.equal(value,joint);assert.equal(executor,installed.executor);if(child==='FOREIGN')throw Error('PUBLIC_CHILD_MISMATCH');},assertOriginalJointSuccession:()=>guard.assert(),retireOriginalJoint:()=>{events.push('retire');},joinOriginalJoint:async()=>{events.push('join');},closeOriginalJoint:async()=>{closed++;events.push('native-close');}};
  Object.assign(native,{retireOriginalAdministrationProfile:value=>assert.equal(value,original),joinOriginalAdministrationProfile:async()=>undefined,closeOriginalAdministrationProfile:async()=>{events.push('admin-close');}});
- const context=vm.createContext({PUBLIC_NATIVE:missing?{}:native,assertOriginalAdmissionVault:value=>{if(value!==vault)throw Error('PUBLIC_FOREIGN_VAULT');},captureOriginalServiceRoleLocalCurrentSource:value=>{assert.equal(value,localRef);return local;}});
+ Object.assign(native,hostNative);
+ const context=vm.createContext({types,PUBLIC_NATIVE:missing?{}:native,assertOriginalAdmissionVault:value=>{if(value!==vault)throw Error('PUBLIC_FOREIGN_VAULT');},captureOriginalServiceRoleLocalCurrentSource:value=>{assert.equal(value,localRef);return local;}});
  const body=text.replace(/^import .*;$/mg,'').replace('const requireOriginal=createRequire(import.meta.url);','').replace(/^const loadOriginalNative=.*;$/m,'const loadOriginalNative=()=>PUBLIC_NATIVE;').replaceAll('export ','');
- vm.runInContext(body+'\nthis.api={initializeOriginalAuthIdentityPrivateStartup,originalAuthIdentityStartupStatus,acquireOriginalAuthIdentityJointConfiguration,readOriginalAuthIdentityJointConfiguration,assertOriginalAuthIdentityJointCurrent,assertOriginalAuthIdentityJointExecutorChild,retireOriginalAuthIdentityJointConfiguration,joinOriginalAuthIdentityJointConfiguration,closeOriginalAuthIdentityJointConfiguration,originalAuthIdentityJointOutcome,originalAuthIdentityStartupUnresolved};',context);
- return {api:context.api,vault,guard,installed,events,invalidate(){live=false;},closed:()=>closed,commits:()=>commits};
+ vm.runInContext(body+'\nthis.api={initializeOriginalAuthIdentityPrivateStartup,originalAuthIdentityStartupStatus,acquireOriginalAuthIdentityJointConfiguration,readOriginalAuthIdentityJointConfiguration,assertOriginalAuthIdentityJointCurrent,assertOriginalAuthIdentityJointExecutorChild,retireOriginalAuthIdentityJointConfiguration,joinOriginalAuthIdentityJointConfiguration,closeOriginalAuthIdentityJointConfiguration,originalAuthIdentityJointOutcome,originalAuthIdentityStartupUnresolved,reserveIDE:typeof reserveOriginalAuthIdentityIDEParentHost===\"function\"?reserveOriginalAuthIdentityIDEParentHost:null};',context);
+ return {api:context.api,vault,guard,installed,events,setGuardHook(fn){guardHook=fn;},invalidate(){live=false;},closed:()=>closed,commits:()=>commits};
 }
 test('R11 PUBLIC fixed startup refuses missing implementing exports and never claims qualification',async()=>{
  const f=fixture({missing:true});assert.throws(()=>f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault),/NOT_IMPLEMENTED/);assert.equal(f.api.originalAuthIdentityStartupStatus(f.vault).implementingModuleAvailable,false);assert.equal(f.api.originalAuthIdentityStartupStatus(f.vault).nativeQualified,false);await assert.rejects(f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard),/NOT_IMPLEMENTED/);assert.equal(f.commits(),0);
+});
+
+// R19: actual SDK source with explicitly PUBLIC Native lexical stand-ins.
+// These controls never create an endpoint, run spawn, sign, or supply a grant.
+async function hostFixture({reserveFailure=false,readFailure=false,retireFailure=false,joinFailure=false,closeFailure=false,badBegin=false}={}){
+ const intent={},frame=Buffer.from('PUBLIC original installed bytes\n'),ack=Buffer.from('PUBLIC ack bytes');let reserved=0,ready=false,resolveBegin,rejectBegin;
+ const prefix=new Promise((resolve,reject)=>{resolveBegin=()=>{ready=true;resolve();};rejectBegin=reject;});
+ void prefix.catch(()=>{});
+ const events=[];const same=handle=>assert.equal(handle,intent);
+ const hostNative={
+  reserveOriginalIDEParentIntent(){reserved++;events.push('intent-reserve');if(reserveFailure)throw undefined;return intent;},
+  readOriginalIDEParentIntent(handle){same(handle);events.push('intent-read');if(readFailure)throw false;return {pending:true,descriptor:40,currentReference:'PUBLIC',requestNonce:'PUBLIC'};},
+  beginOriginalIDEParentPrelude(handle){same(handle);events.push('begin');return badBegin?undefined:prefix;},
+  takeOriginalIDEParentSenderDescriptor(handle){same(handle);assert(ready);events.push('take');return 41;},
+  readOriginalIDEParentInstalledFrame(handle){same(handle);assert(ready);events.push('frame');return frame;},
+  assertOriginalIDEParentAcknowledgement(handle,raw){same(handle);assert.equal(raw,ack);events.push('ack');},
+  assertOriginalIDEParentIntentCurrent(handle){same(handle);},
+  retireOriginalIDEParentIntent(handle){same(handle);events.push('intent-retire');rejectBegin(undefined);if(retireFailure)throw false;},
+  joinOriginalIDEParentIntent(handle){same(handle);events.push('intent-join');return joinFailure?Promise.reject(false):Promise.resolve();},
+  closeOriginalIDEParentIntent(handle){same(handle);events.push('intent-close');return closeFailure?Promise.reject(0):Promise.resolve();},
+ };
+ const f=fixture({hostNative});f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);const ref=await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard);
+ assert.equal(typeof f.api.reserveIDE,'function','actual shared Host factory missing');
+ const host=f.api.reserveIDE(ref);return {...f,ref,host,events,frame,ack,resolveBegin,rejectBegin,reserved:()=>reserved};
+}
+test('R19 PUBLIC original joint Host starts prelude immediately, then preserves fd and wire identities',async()=>{
+ const f=await hostFixture();const pending=f.host.readPending();assert.equal(pending.descriptor,40);
+ const begin=f.host.beginPrelude();assert.deepEqual(f.events,['intent-reserve','intent-read','begin']);
+ f.events.push('actual-spawn-would-pass-borrowed-40-as-child-fd4');f.resolveBegin();assert.equal(await begin,undefined);
+ assert.equal(f.host.takeSenderDescriptor(),41);assert.equal(f.host.readInstalledFrame(),f.frame);assert.equal(f.host.acknowledge(f.ack),undefined);
+ const close=f.host.close();assert.equal(f.host.close(),close);assert.equal(await close,undefined);assert.equal(f.reserved(),1);
+ assert.equal(f.events.filter(x=>x==='intent-close').length,1);
+});
+test('R19 PUBLIC pending read falsy failure retains opaque cleanup and blocks new reservation',async()=>{
+ const f=await hostFixture({readFailure:true});assert.throws(()=>f.host.readPending(),error=>error===false);
+ assert.equal(f.host.outcome().firstCause,false);assert.equal(f.host.outcome().unknown,true);
+ assert.equal(await f.host.close(),undefined);assert.equal(f.events.filter(x=>x==='intent-close').length,1);
+ assert.throws(()=>f.api.reserveIDE(f.ref));assert.equal(f.reserved(),1);
+});
+test('R19 PUBLIC parent cleanup retires and drains pending prelude before closing original joint',async()=>{
+ const f=await hostFixture();const begin=f.host.beginPrelude();void begin.catch(()=>{});
+ assert.equal(await f.api.closeOriginalAuthIdentityJointConfiguration(f.ref),undefined);
+ assert.equal(f.events.filter(x=>x==='intent-retire').length,1);assert.equal(f.events.filter(x=>x==='intent-join').length,1);assert.equal(f.events.filter(x=>x==='intent-close').length,1);
+ assert.equal(f.closed(),1);assert.equal(f.host.outcome().cleanupComplete,true);
+});
+test('R19 PUBLIC join and close failures are both attempted once and preserve first falsy cleanup',async()=>{
+ const f=await hostFixture({joinFailure:true,closeFailure:true});const close=f.host.close();
+ await assert.rejects(close,error=>error===false);assert.equal(f.host.close(),close);
+ assert.equal(f.events.filter(x=>x==='intent-retire').length,1);assert.equal(f.events.filter(x=>x==='intent-join').length,1);assert.equal(f.events.filter(x=>x==='intent-close').length,1);
+ assert.equal(f.host.outcome().cleanupCause,false);assert.equal(f.host.outcome().cleanupComplete,false);
+ await assert.rejects(f.api.closeOriginalAuthIdentityJointConfiguration(f.ref),error=>error===false);assert.equal(f.closed(),1);
+});
+test('R19 PUBLIC a synchronous void begin is not promoted to a completed Native prelude',async()=>{
+ const f=await hostFixture({badBegin:true});assert.throws(()=>f.host.beginPrelude(),{code:'AUTH_IDENTITY_IDE_PRELUDE_PROMISE_REQUIRED'});
+ assert.equal(f.host.outcome().unknown,true);assert.equal(await f.host.close(),undefined);
+});
+test('R19 PUBLIC current-hook close prevents Native begin before its effect',async()=>{
+ const f=await hostFixture();let close;
+ f.setGuardHook(()=>{f.setGuardHook(null);close=f.host.close();});
+ assert.throws(()=>f.host.beginPrelude(),{code:'AUTH_IDENTITY_IDE_HOST_RETIRED'});
+ assert.equal(f.events.includes('begin'),false);assert.equal(f.host.outcome().preludeStarted,false);assert.equal(await close,undefined);
+});
+test('R19 PUBLIC explicit retire failure is stable and close still attempts join and Native close',async()=>{
+ const f=await hostFixture({retireFailure:true});assert.throws(()=>f.host.retire(),error=>error===false);assert.throws(()=>f.host.retire(),error=>error===false);
+ await assert.rejects(f.host.close(),error=>error===false);
+ assert.equal(f.events.filter(x=>x==='intent-retire').length,1);assert.equal(f.events.filter(x=>x==='intent-join').length,1);assert.equal(f.events.filter(x=>x==='intent-close').length,1);
+ assert.equal(f.host.outcome().cleanupCause,false);assert.equal(f.host.outcome().cleanupComplete,false);
+});
+test('R19 PUBLIC uncertain reserve returns cleanup custody with its first undefined failure retained',async()=>{
+ const f=await hostFixture({reserveFailure:true});assert.equal(f.host.outcome().nativeIntentRetained,false);
+ assert.equal(f.host.outcome().firstCausePresent,true);assert.equal(f.host.outcome().firstCause,undefined);
+ assert.throws(()=>f.host.readPending(),error=>error===undefined);await assert.rejects(f.host.close(),error=>error===undefined);
+ assert.equal(f.host.outcome().cleanupCausePresent,true);assert.equal(f.reserved(),1);assert.throws(()=>f.api.reserveIDE(f.ref));
+});
+test('R19 PUBLIC rejected prelude preserves undefined UNKNOWN through completed resource cleanup',async()=>{
+ const f=await hostFixture();const begin=f.host.beginPrelude();f.rejectBegin(undefined);await assert.rejects(begin,error=>error===undefined);
+ assert.equal(f.host.outcome().unknown,true);assert.equal(f.host.outcome().firstCausePresent,true);assert.equal(f.host.outcome().firstCause,undefined);
+ assert.equal(await f.host.close(),undefined);assert.equal(f.host.outcome().cleanupComplete,true);assert.equal(f.host.outcome().unknown,true);
+ assert.equal(f.api.originalAuthIdentityStartupUnresolved(f.vault),true);assert.equal(f.events.filter(x=>x==='begin').length,1);
+});
+test('R19 PUBLIC transferred descriptor, original frame and ACK each cross Native at most once',async()=>{
+ for(const operation of ['take','frame','ack']){
+  const f=await hostFixture();const begin=f.host.beginPrelude();f.resolveBegin();await begin;f.host.takeSenderDescriptor();
+  if(operation!=='take')f.host.readInstalledFrame();if(operation==='ack')f.host.acknowledge(f.ack);
+  assert.throws(()=>operation==='take'?f.host.takeSenderDescriptor():operation==='frame'?f.host.readInstalledFrame():f.host.acknowledge(f.ack));
+  assert.equal(f.events.filter(x=>x===operation).length,1);assert.equal(await f.host.close(),undefined);
+ }
 });
 test('R11 PUBLIC joint machinery reserves commits reads back original association, rejects foreign owner and child',async()=>{
  const f=fixture();f.api.initializeOriginalAuthIdentityPrivateStartup(f.vault);const ref=await f.api.acquireOriginalAuthIdentityJointConfiguration(f.vault,f.guard),selected=f.api.readOriginalAuthIdentityJointConfiguration(ref);
