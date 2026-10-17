@@ -125,6 +125,14 @@ function syntheticTransfer(f){
  const keys=pqPublicBindingToRegistrationKeys(f.binding),snapshot=parsePQAccountAuthorization({owner:f.account,executionHeight:'30',ledgerNonce:'9007199254740993',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:CHAIN,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:keys.algorithmVersion,owner:f.account,pkA:keys.pkA,pkB:keys.pkB,revision:'1',registeredAt:'10',activeFrom:'20',ledgerNonce:'1'}]},{chainId:CHAIN,nativeChainId:'6423',owner:f.account});
  return {snapshot,transfer:{chainId:CHAIN,nativeChainId:'6423',from:f.account,to:'0x'+'2'.repeat(40),amount:'3',fee:'1',nonce:'9007199254740994'}};
 }
+test('normal migration proposal reads only same protected public pair without claiming registration',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-proposed-key-source'}));
+ const proposal=await f.lifecycle.run(()=>f.vault.readPQProposalBinding(CHAIN));assert.deepEqual(proposal,f.binding);assert.equal(Object.isFrozen(proposal),true);assert.equal('credential' in proposal,false);assert.equal('handle' in proposal,false);
+ await assert.rejects(f.lifecycle.run(()=>f.vault.readPQProposalBinding('b'.repeat(64))),e=>e.data?.code==='PQ_KEY_BINDING_CHANGED');
+ const intent={...pqPublicBindingToRegistrationKeys(proposal),priorRevision:'0',newRevision:'1',ledgerNonce:'1',activateAt:'60'};
+ const possession=await f.lifecycle.run(()=>f.vault.withPQKeys(proposal,handle=>SDK.createPQWalletMigrationPossession(handle,intent)));assert.ok(possession instanceof Uint8Array);assert.ok(possession.length>1000);
+ f.lifecycle.lock();await assert.rejects(f.vault.readPQProposalBinding(CHAIN));
+});
 test('original Vault typed-sign caller restores only the matching pair and retires its temporary handle',async t=>{
  const f=await fixture(t),{snapshot,transfer}=syntheticTransfer(f);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));let selected;
  const result=await f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,(handle,binding,guard)=>{guard.assert();selected=handle;assert.deepEqual(binding,f.binding);return SDK.signPQWalletNativeTransfer(handle,transfer,snapshot);}));

@@ -124,8 +124,18 @@ export class PasswordWalletVault {
     const original=await this.readPQKeys({operationId,publicBinding});
     return receipt?.version===1&&receipt.account===original.account&&receipt.operationId===original.operationId&&receipt.recordDigest===original.recordDigest;
   }
+  /** Main-only public proposal read. This proves protected local custody,
+   * not registration or current-account authority; PoP remains separate. */
+  async readPQProposalBinding(networkId){
+    const guard=this.authorization.current(),current=await this.#readUnlocked(guard),account=current.vault.activeAccount;
+    if(guard.account!==account)throw cancelled();const record=current.vault.pqKeyRecords?.find(row=>row.account===account);
+    if(!record)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','Create and back up the independent proposed key pair first.');
+    if(record.binding.chainId!==networkId||record.binding.owner!==account)fail('PQ_KEY_BINDING_CHANGED','The proposed pair belongs to another original network or account.');
+    await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();return Object.freeze({...record.binding});
+  }
   /** Original-main callback only. Expected keys must come from the trusted
-   * reviewed registration, not backup metadata. Never expose this via IPC. */
+   * reviewed registration or original protected proposal, not a renderer or
+   * backup preview. Custody is not account authorization. Never expose via IPC. */
   async withPQKeys(expectedBinding,action,permission){
     if(typeof action!=='function')fail('PQ_KEY_CALLBACK_REQUIRED','Original main key operation is required.');
     const sdk=this.#pqRequired(),guard=bindPermissionGuard(this.authorization.current(),permission);
