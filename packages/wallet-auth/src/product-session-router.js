@@ -75,12 +75,12 @@ export function prepareWalletAttempt(registryInput, requestInput, at = new Date(
     installation: "unverified", automatic: false, actions: Object.freeze([]) });
 }
 
-export function createProductSessionReturnURL(registryInput, requestInput, result, at = new Date()) {
+export function createProductSessionReturnURL(registryInput, requestInput, result, at = new Date(),verifiedPQApproval=null) {
   const request = parseProductSessionRequest(registryInput, requestInput, at);
   exactFields(result, result.result === "approved" ? ["result", "approval"] : ["result", "reason"], "Product Session return result");
   const target = new URL(request.callback);
   if (result.result === "approved") {
-    const approval = parseProductSessionApproval(registryInput, request, result.approval, at);
+    const approval = parseProductSessionApproval(registryInput, request, result.approval, at,verifiedPQApproval);
     target.searchParams.set("result", "approved");
     target.searchParams.set("approval", encodeBase64url(new TextEncoder().encode(canonicalJSON(approval))));
   } else if (result.result === "rejected" && result.reason === "user_rejected") {
@@ -91,16 +91,18 @@ export function createProductSessionReturnURL(registryInput, requestInput, resul
   }
   target.searchParams.set("nonce", request.nonce);
   target.searchParams.set("state", request.state);
-  return target.toString();
+  const url=target.toString();
+  if(url.length>(result.approval?.version==='3'?262144:4096))fail('INVALID_ROUTE_PAYLOAD','Product Session return exceeds its bounded protocol encoding');
+  return url;
 }
 
-export function parseProductSessionReturnURL(registryInput, pendingRequest, url, at = new Date()) {
+export function parseProductSessionReturnURL(registryInput, pendingRequest, url, at = new Date(),verifiedPQApproval=null) {
   let request;
   try { request = parseProductSessionRequest(registryInput, pendingRequest, at); } catch (error) {
     if (error instanceof WalletAuthError && error.code === "SESSION_EXPIRED") return routeState(WALLET_ROUTE_STATUS.SESSION_EXPIRED, "The Wallet approval request expired", ["retry", "return-to-product"]);
     throw error;
   }
-  const parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid");
+  const parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid",verifiedPQApproval===null?4096:262144);
   const expected = new URL(request.callback);
   const result = parsed.searchParams.get("result");
   const allowed = result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];
@@ -111,7 +113,7 @@ export function parseProductSessionReturnURL(registryInput, pendingRequest, url,
   if (result === "rejected" && new URL(url).searchParams.get("reason") === "user_rejected") return routeState(WALLET_ROUTE_STATUS.USER_REJECTED, "No Product Session was created", ["guest", "retry", "return-to-product"]);
   if (result !== "approved") return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet callback result was not recognized", ["retry", "return-to-product"]);
   try {
-    const approval = parseProductSessionApproval(registryInput, request, decodeJSON(new URL(url).searchParams.get("approval"), "Wallet approval"), at);
+    const approval = parseProductSessionApproval(registryInput, request, decodeJSON(new URL(url).searchParams.get("approval"), "Wallet approval"), at,verifiedPQApproval);
     return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, request, approval, actions: Object.freeze([]) });
   } catch (error) {
     if (error instanceof WalletAuthError) return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Wallet approval did not match the pending product request", ["retry", "return-to-product"]);
@@ -126,5 +128,5 @@ export function canonicalReturnTarget(registryInput, productId, platform) {
 
 function routeState(status, message, actions) { return Object.freeze({ status, message, actions: Object.freeze(actions) }); }
 function decodeJSON(value, label) { try { const bytes = decodeBase64url(value ?? "", label); return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes)); } catch { fail("INVALID_ROUTE_PAYLOAD", `${label} encoding is invalid`); } }
-function safeURL(value, code, message) { if (typeof value !== "string" || value.length > 4096) fail(code, message); try { return new URL(value); } catch { fail(code, message); } }
+function safeURL(value, code, message,maxLength=4096) { if (typeof value !== "string" || value.length > maxLength) fail(code, message); try { return new URL(value); } catch { fail(code, message); } }
 function fail(code, message) { throw new WalletAuthError(code, message); }

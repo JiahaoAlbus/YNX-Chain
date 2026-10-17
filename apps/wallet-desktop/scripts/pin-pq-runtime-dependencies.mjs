@@ -19,6 +19,6 @@ function visit(relative){
 for(const [name,version] of Object.entries(versions)){const metadata=JSON.parse(readFileSync(path.join(supplier,name,'package.json')));if(metadata.name!==name||metadata.version!==version)throw Error('DEPENDENCY_VERSION');visit(name);}
 if(files.length!==316)throw Error('DEPENDENCY_COUNT_CHANGED');
 files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
-const manifest={schemaVersion:2,sdkCommit:'0ec5ce5d9a65649dd8f8f4b591c2beaf2d003bfc',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files};
+const manifest={schemaVersion:2,sdkCommit:'b07b03889b8d688334c54df212dccfa87ffbfb30',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files};
 writeFileSync(path.join(root,'apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({runtimeFiles:files.length,providerSHA256:sha(archive),network:false,scriptsExecuted:false}));

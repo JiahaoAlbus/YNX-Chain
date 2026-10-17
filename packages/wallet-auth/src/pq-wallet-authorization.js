@@ -117,6 +117,23 @@ function validateClassicAuthorization(publicKey, signature, intent, owner) {
       !secp256k1.verify(signature, sha256(intent), publicKey, {prehash: false, lowS: true, format: 'der'})) throw Error();
   } catch { throw pqError('PQ_CLASSIC_AUTHORIZATION_INVALID'); }
 }
+/** Converts only original lawful signer's PUBLIC r/s result; no private key or
+ * signer. Exact intent, low-S DER and preserved owner are independently checked.
+ * Caller must separately enforce the current pre-activation policy/permission. */
+export function encodePQClassicMigrationProof(value,signature){
+  const intent=normalizePQRegistrationIntent(value);
+  exactPQRecord(signature,['publicKey','r','s']);
+  if(typeof signature.publicKey!=='string'||!/^0x(?:(?:02|03)[0-9a-f]{64}|04[0-9a-f]{128})$/.test(signature.publicKey)||
+    ![signature.r,signature.s].every(x=>typeof x==='string'&&/^0x[0-9a-f]{64}$/.test(x)))throw pqError('PQ_CLASSIC_AUTHORIZATION_INVALID');
+  try{
+    const pub=Buffer.from(secp256k1.Point.fromHex(signature.publicKey.slice(2)).toBytes(true));
+    const parsed=new secp256k1.Signature(BigInt(signature.r),BigInt(signature.s));
+    if(parsed.hasHighS())throw Error();
+    const der=Buffer.from(parsed.toBytes('der'));
+    validateClassicAuthorization(pub,der,encodePQRegistrationIntent(intent),intent.owner);
+    return Object.freeze({get classicPublicKey(){return new Uint8Array(pub);},get classicSignature(){return new Uint8Array(der);}});
+  }catch{throw pqError('PQ_CLASSIC_AUTHORIZATION_INVALID');}
+}
 // Syntactic and classic-proof validation only. PQ signatures and current policy
 // must still be verified against the trusted, current registered account state.
 export function decodePQMigrationRequest(wire) {

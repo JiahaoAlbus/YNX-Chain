@@ -5,7 +5,7 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {exactPQRecord, pqError, validatePQPublicBinding, pqBase64url, PQ_SUITE} from './pq-wallet-contract.js';
 import {PQ_POLICY_VERSION, PQ_U64_MAX, pqU64, pqHex, pqCanonicalAddress,
   normalizePQNativeTransfer, normalizePQRegistrationIntent, decodePQMigrationRequest, encodePQRegistrationIntent,
-  encodePQMigrationRequest, preparePQMigrationTransport} from './pq-wallet-authorization.js';
+  encodePQMigrationRequest, preparePQMigrationTransport,encodePQClassicMigrationProof} from './pq-wallet-authorization.js';
 export const PQ_MAX_POLICY_RECORDS = 1024;
 const snapshots = new WeakMap();
 const decimal = value => {
@@ -128,4 +128,11 @@ export function preparePQClassicMigrationAuthorization(snapshot, value) {
 export function preparePQReviewedMigrationTransport(snapshot, proofs) {
   const wire = encodePQMigrationRequest(proofs), plan = assertPQMigrationRequestPolicy(snapshot, wire);
   return Object.freeze({plan, request: preparePQMigrationTransport(wire)});
+}
+/** Original signer signs preparePQClassicMigrationAuthorization(...).digest.
+ * Convert its public r/s result only after checking the same current policy.
+ * Active PQ accounts cannot call this as a classic migration fallback. */
+export function preparePQClassicMigrationProof(snapshot,value,signature){
+  const {plan}=preparePQClassicMigrationAuthorization(snapshot,value);
+  return encodePQClassicMigrationProof(plan.intent,signature);
 }
