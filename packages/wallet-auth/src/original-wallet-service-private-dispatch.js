@@ -76,12 +76,15 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    await cleanup(()=>originalNativeServiceBinding.retire(original));
    while(entered.size)await Promise.allSettled([...entered]);
    for(const row of records.values())if(row.hostOwner)await cleanup(()=>ProductSessionGatewayNodeHost.prototype.closeOriginalWalletServicePrivateTransaction.call(host,row.hostOwner));
+   await cleanup(()=>ProductSessionGatewayNodeHost.prototype.retireOriginalWalletServicePrivateTerminal.call(host));
+   await cleanup(()=>ProductSessionGatewayNodeHost.prototype.joinOriginalWalletServicePrivateTerminal.call(host));
+   await cleanup(()=>ProductSessionGatewayNodeHost.prototype.closeOriginalWalletServicePrivateTerminal.call(host));
    await cleanup(()=>originalNativeServiceBinding.join(original));await cleanup(()=>originalNativeServiceBinding.close(original));if(failed)throw cause;
    state.cleanupComplete=true;pendingCustody.delete(state);return undefined;
   }).catch(cause=>{cleanupCause=cause;cleanupFailed=true;state.cleanupFailed=true;state.cleanupCause=cause;throw cause;});return closing;
  };
  acquired.close=close;
- try{current(null);state.hostSource=ProductSessionGatewayNodeHost.prototype.captureOriginalWalletServiceRuntimeSource.call(host);admission=prepareOriginalWalletServiceAdmission(original.sourceSelection,original.receiptSelection,original.expectedRequest,()=>new Date());current(null);}catch(cause){remember(cause);retired=true;void close().catch(()=>{});throw cause;}
+ try{current(null);state.hostSource=ProductSessionGatewayNodeHost.prototype.captureOriginalWalletServiceRuntimeSource.call(host);admission=prepareOriginalWalletServiceAdmission(original.sourceSelection,original.receiptSelection,original.expectedRequest,()=>new Date());current(null);ProductSessionGatewayNodeHost.prototype.bindOriginalWalletServicePrivateTerminal.call(host,original);current(null);}catch(cause){remember(cause);retired=true;void close().catch(()=>{});throw cause;}
  return Object.freeze({
   dispatch(raw){
    const input=decodeOriginalWalletServicePrivateRequest(raw);current(input.operation);
@@ -115,8 +118,10 @@ export function createOriginalWalletServicePrivateDispatch(host,runtime,nativeBo
    try{current(operation);if(!row?.result||!row.hostOwner||!row.fulfilled||row.localFailurePresent||row.terminal||hash(canonicalJSON(row.result))!==resultDigest)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');
     const input=decodeOriginalWalletServicePrivateRequest(row.originalRaw);
     ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,row.result);
+    ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTerminal.call(host,input,row,resultDigest,original.association);
     if(originalNativeServiceBinding.assertTerminal(original,operation,phase,requestId,resultDigest)!==undefined)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID');current(operation);
     ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTransactionReadback.call(host,row.hostOwner,input,row.result);
+    ProductSessionGatewayNodeHost.prototype.assertOriginalWalletServicePrivateTerminal.call(host,input,row,resultDigest,original.association);
     row.terminal=true;row.unknown=false;return undefined;
    }catch(cause){remember(cause);if(row){if(!row.localFailurePresent){row.localFailurePresent=true;row.localCause=cause;}row.unknown=true;if(row.hostOwner)ProductSessionGatewayNodeHost.prototype.markOriginalWalletServicePrivateTransactionUnknown.call(host,row.hostOwner,cause);}throw cause;}
   },

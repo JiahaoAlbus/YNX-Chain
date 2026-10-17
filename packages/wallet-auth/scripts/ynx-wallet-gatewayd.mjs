@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import {loadCentralOIDCConfiguration} from '../src/central-oidc-provider.js';
+import {loadOriginalAuthSourceCurrentService,handleOriginalAuthSourceCurrent} from '../src/original-auth-identity-source-current.js';
 import {loadCentralBackendConfiguration} from '../src/central-browser-backend-auth.js';
 import { readFileSync, lstatSync, openSync, closeSync, fstatSync, constants } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -58,7 +59,17 @@ const deployment=build?{build,remoteDeployed}:{remoteDeployed};
 const host=new CanonicalWalletGatewayNodeHost(registry,{emitEvent,statePath,now:()=>new Date()},deployment);
 const productRegistry=JSON.parse(readFileSync(productSessionRegistryPath,'utf8'));
 const ProductHost=productSessionStateVersion==='3'?ProductSessionControlNodeHost:ProductSessionGatewayNodeHost;
-const productHost=new ProductHost(productRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{})});
+const originalAuthSourceStartup=loadOriginalAuthSourceCurrentService();
+if(originalAuthSourceStartup?.partial){
+ let cleanupCause,cleanupCausePresent=false;
+ try{originalAuthSourceStartup.partial.retire();originalAuthSourceStartup.partial.join();originalAuthSourceStartup.partial.close();}catch(cause){cleanupCause=cause;cleanupCausePresent=true;}
+ // Preserve original partial custody and even falsy close failure; never
+ // compress it into a disposable startup error or retry the acquisition.
+ const failure=new Error('AUTH_SOURCE_CURRENT_STARTUP_FAILED',{cause:originalAuthSourceStartup.error});
+ Object.assign(failure,{partial:originalAuthSourceStartup.partial,cleanupCausePresent,cleanupCause});throw failure;
+}
+const originalAuthSourceCurrent=originalAuthSourceStartup;
+const productHost=new ProductHost(productRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString('base64url'),...(productSessionStateVersion==='3'?{capacityPolicy}:{authIdentitySourceCurrent:originalAuthSourceCurrent})});
 // Separate identity-only history; never migrate/reset either existing product
 // state format or its clock/nonce/control high-water marks to enable SSO.
 if(!centralBrowser&&process.env.YNX_CENTRAL_OIDC_CONFIG_FILE)throw new Error('OIDC requires explicit Central browser adoption');
@@ -67,6 +78,10 @@ const admission=new GatewayAdmissionController({maxConcurrent:integer(process.en
 const legacyHandler=host.handler(),productHandler=productHost.handler();
 const gatewayHandler=async(request,response)=>{
   const path=new URL(request.url,'http://127.0.0.1').pathname;
+  if(path==='/v1/auth-identity/source-current'){
+    if(!originalAuthSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
+    const result=handleOriginalAuthSourceCurrent(originalAuthSourceCurrent,request.method,request.url);response.writeHead(result.status,result.headers);response.end(result.body);return;
+  }
   if(central?.handles(path)){
     let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk)}body=Buffer.concat(chunks).toString('utf8');}
     const result=central.handle({method:request.method,url:request.url,headers:request.headers,body});response.writeHead(result.status,result.headers);response.end(result.body);return;
@@ -98,12 +113,17 @@ function drainOriginalOwners(){
  if(originalOwnerDrain)return originalOwnerDrain;
  originalOwnerDrain=Promise.resolve().then(async()=>{
   let privateFailure=false,privateCause;
-  if(originalPrivateDispatch)originalPrivateDispatch.retire();
-  try{if(originalPrivateDispatch)await originalPrivateDispatch.join();await closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition);}catch(cause){privateFailure=true;privateCause=cause;}
-  const status=originalWalletServicePrivateDispatchAcquisitionStatus(originalPrivateAcquisition);
-  originalPrivateTerminalUnknown=status.unknown;
-  if(status.businessFailurePresent&&!originalStartupFailure){originalStartupFailure=true;}
-  try{await originalRuntimeLifetime.join();await originalRuntimeLifetime.close();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}
+  const cleanup=async action=>{try{await action();}catch(cause){if(!privateFailure){privateFailure=true;privateCause=cause;}}};
+  await cleanup(()=>{if(originalPrivateDispatch)originalPrivateDispatch.retire();});
+  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.retire();});
+  await cleanup(async()=>{if(originalPrivateDispatch)await originalPrivateDispatch.join();});
+  await cleanup(()=>closeOriginalWalletServicePrivateDispatchAcquisition(originalPrivateAcquisition));
+  originalPrivateTerminalUnknown=true;
+  await cleanup(()=>{const status=originalWalletServicePrivateDispatchAcquisitionStatus(originalPrivateAcquisition);originalPrivateTerminalUnknown=status.unknown;if(status.businessFailurePresent&&!originalStartupFailure)originalStartupFailure=true;});
+  await cleanup(()=>originalRuntimeLifetime.join());
+  await cleanup(()=>originalRuntimeLifetime.close());
+  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.join();});
+  await cleanup(()=>{if(originalAuthSourceCurrent)originalAuthSourceCurrent.close();});
   if(privateFailure)throw privateCause;
  });return originalOwnerDrain;
 }
