@@ -86,6 +86,15 @@ int main(int argc, char **argv) {
     printf("],\"watchedRssBytes\":%llu,\"watchedThreads\":%u,\"samplerRssBytes\":%llu,\"samplerThreads\":%u,\"rssWithControlReserveBytes\":%llu,\"threadsWithControlReserve\":%u",
            rss, threads, own.pti_resident_size, own.pti_threadnum,
            rss + 2 * own.pti_resident_size, threads + own.pti_threadnum + 1);
+    // This sysctl returns dispatch NOTE_* levels (1/2/4), not the kernel's
+    // internal enum. It is a pressure signal, never an available-byte estimate.
+    int pressure = -1;
+    size_t pressure_size = sizeof(pressure);
+    errno = 0;
+    bool pressure_readable = sysctlbyname("kern.memorystatus_vm_pressure_level", &pressure, &pressure_size, NULL, 0) == 0 && pressure_size == sizeof(pressure);
+    int pressure_error = errno;
+    printf(",\"memoryPressure\":{\"source\":\"kern.memorystatus_vm_pressure_level\",\"readable\":%s,\"dispatchLevel\":%d,\"errno\":%d}",
+           pressure_readable ? "true" : "false", pressure, pressure_error);
     if (full) {
         stage("list_query", started);
         errno = 0;

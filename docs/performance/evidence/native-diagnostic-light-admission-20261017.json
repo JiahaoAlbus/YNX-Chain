@@ -1,0 +1,181 @@
+{
+  "schema": 1,
+  "sourceCommit": "2e64dc0ce",
+  "receipt": {
+    "hostBinary": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/ynx-consensus-perf-host-diagnostics",
+      "sha256": "5aee5be7d63195434b919524dd473765ee0fbdb9d5bcca1194bad6eb8f743f7c"
+    },
+    "startedAt": "2026-10-17T15:41:03.613Z",
+    "launcher": 30281,
+    "sharedParentExcluded": 30280,
+    "ownedScope": "launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve",
+    "goEnvironment": {
+      "GOMAXPROCS": "1",
+      "GOGC": "50",
+      "GOMEMLIMIT": "160MiB"
+    },
+    "firstCause": "fresh free memory below 400MiB",
+    "peakRSS": 56999936,
+    "peakThreads": 9,
+    "samples": [
+      {
+        "at": "2026-10-17T15:41:04.027Z",
+        "schema": 1,
+        "scope": "proc_pidtaskinfo watched processes",
+        "processes": [
+          {
+            "pid": 30281,
+            "readable": true,
+            "rssBytes": 53493760,
+            "virtualBytes": 501370863616,
+            "threads": 7
+          }
+        ],
+        "watchedRssBytes": 53493760,
+        "watchedThreads": 7,
+        "samplerRssBytes": 1753088,
+        "samplerThreads": 1,
+        "rssWithControlReserveBytes": 56999936,
+        "threadsWithControlReserve": 9,
+        "host": {
+          "processCount": 950,
+          "uid": 501,
+          "uidProcessCount": 785,
+          "unreadableBsdInfo": 165,
+          "scanComplete": true,
+          "maxproc": 6000,
+          "maxprocperuid": 4000,
+          "rlimitNprocSoft": 4000
+        },
+        "hostEnumeration": {
+          "requiredBytes": 3880,
+          "capacityBytes": 7976,
+          "returnedBytes": 3804,
+          "queryErrno": 0,
+          "readErrno": 0,
+          "slots": 951,
+          "nonPositiveEntries": 1,
+          "positiveEntries": 950,
+          "duplicateEntries": 0,
+          "readableBsdInfo": 785,
+          "esrch": 0,
+          "eperm": 165,
+          "eacces": 0,
+          "noErrno": 0,
+          "otherErrno": 0
+        },
+        "forkProbe": {
+          "available": true,
+          "forkSucceeded": true,
+          "forkErrno": 0,
+          "waitErrno": 0,
+          "childExitCode": 0,
+          "childSignal": 0
+        },
+        "elapsedMicroseconds": 102127
+      }
+    ],
+    "probes": [
+      {
+        "startedAt": "2026-10-17T15:41:03.614Z",
+        "pid": 30282,
+        "status": 0,
+        "signal": null,
+        "error": null,
+        "stdout": "{\"schema\":1,\"scope\":\"proc_pidtaskinfo watched processes\",\"processes\":[{\"pid\":30281,\"readable\":true,\"rssBytes\":53493760,\"virtualBytes\":501370863616,\"threads\":7}],\"watchedRssBytes\":53493760,\"watchedThreads\":7,\"samplerRssBytes\":1753088,\"samplerThreads\":1,\"rssWithControlReserveBytes\":56999936,\"threadsWithControlReserve\":9,\"host\":{\"processCount\":950,\"uid\":501,\"uidProcessCount\":785,\"unreadableBsdInfo\":165,\"scanComplete\":true,\"maxproc\":6000,\"maxprocperuid\":4000,\"rlimitNprocSoft\":4000},\"hostEnumeration\":{\"requiredBytes\":3880,\"capacityBytes\":7976,\"returnedBytes\":3804,\"queryErrno\":0,\"readErrno\":0,\"slots\":951,\"nonPositiveEntries\":1,\"positiveEntries\":950,\"duplicateEntries\":0,\"readableBsdInfo\":785,\"esrch\":0,\"eperm\":165,\"eacces\":0,\"noErrno\":0,\"otherErrno\":0},\"forkProbe\":{\"available\":true,\"forkSucceeded\":true,\"forkErrno\":0,\"waitErrno\":0,\"childExitCode\":0,\"childSignal\":0},\"elapsedMicroseconds\":102127}\n",
+        "stderr": "{\"stage\":\"list_query\",\"elapsedMicroseconds\":42}\n{\"stage\":\"list_returned\",\"elapsedMicroseconds\":411}\n{\"stage\":\"bsd_scan_complete\",\"elapsedMicroseconds\":1843}\n{\"stage\":\"fork_begin\",\"elapsedMicroseconds\":1876}\n{\"stage\":\"wait_begin\",\"elapsedMicroseconds\":33012}\n{\"stage\":\"fork_complete\",\"elapsedMicroseconds\":102100}\n",
+        "exited": true,
+        "groupGone": true,
+        "elapsedMs": 412.067209
+      }
+    ],
+    "go": null,
+    "lastAttemptedResourceSample": {
+      "schema": 1,
+      "scope": "proc_pidtaskinfo watched processes",
+      "processes": [
+        {
+          "pid": 30281,
+          "readable": true,
+          "rssBytes": 53493760,
+          "virtualBytes": 501370863616,
+          "threads": 7
+        }
+      ],
+      "watchedRssBytes": 53493760,
+      "watchedThreads": 7,
+      "samplerRssBytes": 1753088,
+      "samplerThreads": 1,
+      "rssWithControlReserveBytes": 56999936,
+      "threadsWithControlReserve": 9,
+      "host": {
+        "processCount": 950,
+        "uid": 501,
+        "uidProcessCount": 785,
+        "unreadableBsdInfo": 165,
+        "scanComplete": true,
+        "maxproc": 6000,
+        "maxprocperuid": 4000,
+        "rlimitNprocSoft": 4000
+      },
+      "hostEnumeration": {
+        "requiredBytes": 3880,
+        "capacityBytes": 7976,
+        "returnedBytes": 3804,
+        "queryErrno": 0,
+        "readErrno": 0,
+        "slots": 951,
+        "nonPositiveEntries": 1,
+        "positiveEntries": 950,
+        "duplicateEntries": 0,
+        "readableBsdInfo": 785,
+        "esrch": 0,
+        "eperm": 165,
+        "eacces": 0,
+        "noErrno": 0,
+        "otherErrno": 0
+      },
+      "forkProbe": {
+        "available": true,
+        "forkSucceeded": true,
+        "forkErrno": 0,
+        "waitErrno": 0,
+        "childExitCode": 0,
+        "childSignal": 0
+      },
+      "elapsedMicroseconds": 102127
+    },
+    "freeBytes": 109592576,
+    "groupGone": true,
+    "elapsedMs": 419
+  },
+  "cleanup": {
+    "at": "2026-10-17T15:41:10.533Z",
+    "checks": [
+      {
+        "pid": 30280,
+        "absent": true
+      },
+      {
+        "pid": 30281,
+        "absent": true
+      },
+      {
+        "pid": 30282,
+        "absent": true
+      }
+    ]
+  },
+  "inputs": [
+    {
+      "path": "artifacts/chain-performance-20261017/native-diagnostic-light-result.json",
+      "sha256": "09d4382f7da47e2ab46387aa29c938d2a11ca1d1f510ded7dd2c1cb9727f8869"
+    },
+    {
+      "path": "artifacts/chain-performance-20261017/native-diagnostic-light-cleanup.json",
+      "sha256": "3aec48129eba8391ff338ad64f7f0e6d4742cab3ec283a02a45589d5360f3ee7"
+    }
+  ],
+  "interpretation": "New diagnostics/fork succeeded once; no Go launched because the old free-pages-only admission rejected 109592576B. Free pages are not available capacity. Original refusal remains intact; proposed native-pressure admission and 400MiB RSS cap do not claim host permanently recovered."
+}

@@ -13,7 +13,7 @@ if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_process
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
-const hostPath=root+'/artifacts/chain-performance-20261017/ynx-consensus-perf-host-diagnostics';
+const hostPath=root+'/artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure';
 const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSync(hostPath)).digest('hex')};
 const probe=createNativeResourceProbe(hostPath);
 const goEnvironment={GOMAXPROCS:'1',GOGC:'50',GOMEMLIMIT:'160MiB'};
@@ -33,7 +33,7 @@ async function sample(initial=false){
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
  if(s.rssWithControlReserveBytes>400*1024*1024)throw Error('400MiB control/owned RSS cap');
- if(initial){const {stdout}=await exec('/usr/bin/vm_stat',[],{timeout:1500,killSignal:'SIGKILL',maxBuffer:65536});const free=Number(stdout.match(/Pages free:\s+(\d+)/)?.[1])*Number(stdout.match(/page size of (\d+)/)?.[1]);result.freeBytes=free;if(!Number.isFinite(free)||free<400*1024*1024)throw Error('fresh free memory below 400MiB')}
+ if(initial){const {stdout}=await exec('/usr/bin/vm_stat',[],{timeout:1500,killSignal:'SIGKILL',maxBuffer:65536});const free=Number(stdout.match(/Pages free:\s+(\d+)/)?.[1])*Number(stdout.match(/page size of (\d+)/)?.[1]);result.vmStat={sampledAt:new Date().toISOString(),raw:stdout,freePageBytes:Number.isFinite(free)?free:null,interpretation:'Diagnostic free pages only, not available bytes; admission uses native memoryPressure dispatch level and actual owned RSS cap'}}
 }
 try{
  await sample(true);

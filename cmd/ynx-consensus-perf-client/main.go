@@ -48,6 +48,7 @@ type options struct {
 	timeout, poll                  time.Duration
 	terminalStream                 bool
 	terminalSink                   func(transactionResult) error
+	reuseResultSlots               bool
 }
 
 type transactionInput struct {

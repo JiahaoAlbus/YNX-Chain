@@ -31,6 +31,11 @@ func readyResults(count int) []transactionResult {
 // Real native signatures/execution/durability/restart are exercised below.
 // Quorum flags remain explicit unit gate inputs, not a network consensus result.
 func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
+	t.Run("full_history", func(t *testing.T) { testReadySenderFastAccount(t, false) })
+	t.Run("reused_slots", func(t *testing.T) { testReadySenderFastAccount(t, true) })
+}
+
+func testReadySenderFastAccount(t *testing.T, reuseSlots bool) {
 	path, manifest, m, migration, initial := senderFixture(t)
 	p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
 	if err != nil {
@@ -46,6 +51,10 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	}
 	txs := make([]cmttypes.Tx, 6)
 	results := readyResults(3)
+	if reuseSlots {
+		txs = txs[:3]
+		results = results[:3]
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 	var releaseSlow, slowFinished, fastOffered atomic.Bool
@@ -55,13 +64,13 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append}, p, txs, results,
+	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			data, readErr := os.ReadFile(filepath.Join(p.root, readySenderJournalName))
 			if readErr != nil || !bytes.Contains(data, []byte(base64.StdEncoding.EncodeToString(txs[index]))) {
 				t.Error("dispatch without durable public input identity")
 			}
-			if index == 4 {
+			if results[index].Index == 4 {
 				if slowFinished.Load() {
 					t.Error("fast sender waited for slow account")
 				}
@@ -94,7 +103,7 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 						t.Error(execErr)
 					}
 					gate := gateResult(txs[job.index], height)
-					gate.Index, gate.Round = job.index, job.index/3+1
+					gate.Index, gate.Round = results[job.index].Index, results[job.index].Round
 					gate.SignedTransaction = results[job.index].SignedTransaction
 					gate.OfferedAt, gate.ScheduledAt, gate.offerMonotonic = results[job.index].OfferedAt, results[job.index].ScheduledAt, results[job.index].offerMonotonic
 					results[job.index] = gate

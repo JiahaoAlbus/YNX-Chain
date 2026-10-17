@@ -74,3 +74,44 @@ The new wrapper syntax and prepare-only checks passed; execute was not invoked.
 are retained. Go terminal-stream regression and loadmetrics tests remain pending.
 Next: use this exact candidate only in a fresh Root window, preserve any new
 failure without retry, then resume result-slot reuse and bounded-stat integration.
+
+## Actual diagnostic admission and corrected macOS capacity semantics
+
+A later exact scheduled attempt ran the new `5aee5b...` native binary once.
+It enumerated required/capacity/returned bytes **3,880 / 7,976 / 3,804**:
+951 slots, one non-positive PID, 950 unique positive entries, no duplicates,
+785 readable BSD entries and 165 EPERM entries. Its real fork succeeded.
+Stage timestamps and raw errno categories were retained. The attempt then
+stopped before Go on the old `freePageBytes >=400MiB` admission rule, which saw
+109,592,576 bytes of free pages. No Go test result or lasting host recovery is
+inferred. Original shell/launcher/probe 30280/30281/30282 were all independently
+absent at 15:41:10.533 UTC. [Original receipt and cleanup](evidence/native-diagnostic-light-admission-20261017.json)
+remain unchanged.
+
+Free pages are a diagnostic count, not macOS available working-set capacity.
+The new capacity gate therefore reads the native
+`kern.memorystatus_vm_pressure_level` signal directly, keeping raw vm_stat output
+and free-page bytes only as metadata. It does not estimate available bytes from
+a percentage or add overlapping inactive/compressed/purgeable categories.
+The [Apple sysctl handler and conversion](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_memorystatus_notify.c)
+return dispatch NOTE levels: 1 normal, 2 warning (including urgent), 4 critical;
+these differ from internal kernel enum values. This private native signal must
+be readable on this host; unavailable/unknown values fail closed.
+
+Admission and every later resource sample require native level 1. Warning,
+critical, invalid or unreadable pressure stops the window. Actual aggregate
+owned RSS remains hard-capped at400MiB, with 45s active +15s cleanup and the
+same Go target/vet/worker count. This is a pressure policy, not a promise that
+400MiB is available or that a future run will succeed. A targeted read during
+this source work returned level2, so no new Go run was started.
+
+Sixteen Node tests passed (412.437 ms), including low free-page metadata with
+normal native pressure and refusal of warning/critical/unknown/unreadable
+pressure. The new native candidate compiled with -Wall/-Wextra/-Werror to a
+new immutable path, not executed:
+`artifacts/chain-performance-20261017/ynx-consensus-perf-host-pressure`, SHA-256
+`3025b7f5bac1220e18cac1e9e14051553d918348df07873f392f33c700ba3cc6`.
+The previous `5aee5b...` and original `dfd3...` binaries remain unchanged.
+Wrapper syntax and prepare-only passed; another execute requires a fresh Root
+window and new receipt path. Slot-controller changes also mean the next Go
+candidate must be pinned anew; it is no longer the unchanged d535 source.
