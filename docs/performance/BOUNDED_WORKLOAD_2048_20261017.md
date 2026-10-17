@@ -83,3 +83,23 @@ total input count, 16 MiB snapshot-reader bound and whole-history persistence
 still prevent ten-minute qualification. A streaming account/nonce driver,
 grouped observation, controlled larger-history handling and a fresh long Root
 window remain required for the original sustained 1,000 TPS goal.
+
+## Independently frozen tools
+
+Clean source `bfc41ea238f84965b458b73aed8b64efd360ad00` built separate fixture and
+client executables in `network-bin-bounded2048`; the app remains the frozen
+`aa121ecc1` sparse-native candidate. Host sampler and CometBFT are unchanged.
+The updated launcher is copied to a separate immutable preparation path rather
+than replacing any earlier frozen runner.
+
+- Fixture SHA-256: `0cd52c2d74e32725f7a5d96a2c6b16efb44d80ebbef2f79550a7318d4471a10d`.
+- Client SHA-256: `1c594098e7d78c36da54adbd8000b35b78817ecf7387fcb51695708f11d435cb`.
+- Launcher SHA-256: `7e9103ec85fd337f72d1ff56701d67cb109bd8466fcc9990d5538c75032c33e5`.
+
+Actual-binary prepare-only plans passed for 256@128, 512@256, 1,024@1,000 and
+2,048@1,000. The source/build identities, exact caps and plans are retained in
+[the preparation receipt](evidence/bounded2048-preparation-20261017.json), SHA-256
+`4db0242660d8a8c734c761fedc98c097b8f9e0078e1b8ec69276bea2f906bfcb`.
+It explicitly requires a fresh Root slot and records zero network startup. These
+are build/preparation results; they establish neither resource fit at the upper
+bound nor inclusion, execution or final confirmation under those plans.
