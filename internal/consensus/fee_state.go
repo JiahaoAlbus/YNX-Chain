@@ -3,7 +3,7 @@ package consensus
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
+	"strconv"
 	"time"
 )
 
@@ -65,7 +65,30 @@ func newFeeEvent(txHash, txType, payer, recipient string, fee int64, source stri
 }
 
 func feeEventAuditHash(event BFTFeeEvent) string {
-	payload := fmt.Sprintf("YNX_FEE_EVENT_AUDIT_V1\x00%s\x00%d\x00%s\x00%s\x00%s\x00%s\x00%d\x00%d\x00%d\x00%d\x00%d\x00%d\x00%t\x00%s\x00%d\x00%s", event.ID, event.PolicyVersion, event.TxHash, event.TransactionType, event.Payer, event.Recipient, event.GrossFeeYNXT, event.BurnYNXT, event.ValidatorYNXT, event.ProviderYNXT, event.ProtocolYNXT, event.TreasuryYNXT, event.Sponsored, event.Source, event.BlockHeight, event.RecordedAt.UTC().Format(time.RFC3339Nano))
-	sum := sha256.Sum256([]byte(payload))
+	// Keep the V1 byte contract while avoiding variadic formatting and a
+	// formatted string allocation for every historical event on validation.
+	// Larger fields still grow normally; this is not a record-size restriction.
+	var buffer [768]byte
+	payload := append(buffer[:0], "YNX_FEE_EVENT_AUDIT_V1\x00"...)
+	text := func(value string) { payload = append(payload, value...); payload = append(payload, 0) }
+	number := func(value int64) { payload = strconv.AppendInt(payload, value, 10); payload = append(payload, 0) }
+	text(event.ID)
+	number(int64(event.PolicyVersion))
+	text(event.TxHash)
+	text(event.TransactionType)
+	text(event.Payer)
+	text(event.Recipient)
+	number(event.GrossFeeYNXT)
+	number(event.BurnYNXT)
+	number(event.ValidatorYNXT)
+	number(event.ProviderYNXT)
+	number(event.ProtocolYNXT)
+	number(event.TreasuryYNXT)
+	payload = strconv.AppendBool(payload, event.Sponsored)
+	payload = append(payload, 0)
+	text(event.Source)
+	number(event.BlockHeight)
+	payload = event.RecordedAt.UTC().AppendFormat(payload, time.RFC3339Nano)
+	sum := sha256.Sum256(payload)
 	return hex.EncodeToString(sum[:])
 }
