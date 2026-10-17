@@ -1,0 +1,140 @@
+{
+  "schema": 1,
+  "kind": "pq-production-fixed-baseline-performance-plan",
+  "source": {
+    "commit": "aa97f102fc72ee89ef3c61b6125256b288694b39",
+    "tree": "b6a42bf1a68b9d8d2fa688b21f994970b33c8e82",
+    "repo": "/Users/huangjiahao/.codex/worktrees/ynx-pq-public-upgrade/YNX Chain",
+    "readOnly": true,
+    "ownerReportedCI": "GitHub Run39057017794, not independently inspected by performance owner; no benchmark result inferred"
+  },
+  "execution": false,
+  "measurementLayers": [
+    {
+      "kind": "single_producer_checkpoint",
+      "source": "internal/chain/pq_batch.go SubmitPQBatch",
+      "measure": [
+        "Whole signing outside server timer and inside separate end-to-end timer",
+        "full dual verification/tree work",
+        "per-member actual business outcomes",
+        "persisted checkpoint ACK",
+        "cold restore/replay and same identity no-extra-business check"
+      ],
+      "not": "Not ABCI/BFT or timed block inclusion; status durable may still be pending"
+    },
+    {
+      "kind": "single_producer_actual_block",
+      "measure": [
+        "actual distinct admitted member inclusion in a produced block",
+        "persisted block checkpoint",
+        "cold readback and fees/nonces/balances/lots"
+      ],
+      "not": "Timed devnet production is not four-validator BFT finality"
+    },
+    {
+      "kind": "four_validator_pq_candidate",
+      "prerequisite": "Protocol owner supplies actual PQ transaction dispatch/state migration through consensus candidate; legacy perf client and old fixture cannot stand in for it",
+      "measure": [
+        "submission/receipt/valid business inclusion/final durable committed rates",
+        "weighted cryptographic quorum and Merkle inclusion",
+        "four-node durable state/readback and stopped full replay",
+        "P50/P95/P99 from monotonic per-transaction observed spans"
+      ]
+    }
+  ],
+  "matchedFirstProfile": {
+    "candidate": "Same fixed commit, actual Go/provider/dependencies/source hashes for both modes",
+    "controls": {
+      "sizes": [
+        1,
+        16,
+        64
+      ],
+      "trialsPerVariant": 3,
+      "ordering": "interleaved paired fresh isolated ledger clones; same workload/policy/block schedule/resource budget",
+      "single": "Extract each signed member from the exact same complete Whole; submit individual PQ transfers",
+      "batch": "Submit the exact Whole once",
+      "expected": "Every distinct business nonce/amount/fee admitted; both modes have same business state projection",
+      "difference": "Endpoint work and checkpoint granularity intentionally differ: N per-member checkpoints versus one shared batch checkpoint. Cannot attribute overall gain exclusively to signature CPU.",
+      "stateEquality": "Compare balances, nonces, fee totals/recipients and lot ownership/flow semantics. Validate each mode own exact transaction/proof identities; standalone/member hashes and batch references/history layout differ, so do not require or claim byte-identical snapshots."
+    },
+    "resource": "Keep first run bounded to existing32MiB data policy only if fresh serialized snapshot/temp/retained evidence estimates fit; otherwise stop and ask Root for a separately budgeted case. No cap silently increased."
+  },
+  "laterSizes": [
+    256,
+    1024
+  ],
+  "fixtureRequirements": {
+    "owner": "One owner per Whole; exact real registered full public-key pair and activation policy in isolated cloned ledgers",
+    "nonces": "distinct sequential2..N+1 after migration nonce1",
+    "amount": "1",
+    "fee": "1",
+    "minimumInitialFunding": "2*N+1 before migration, plus explicit extra workload reserve; existing1000-balance fixture cannot admit1024 distinct amount1/fee1 transfers",
+    "warning": "Existing N1024 repeated-nonce control admits only one transaction; it is not a1024-valid-business performance fixture",
+    "credentials": "Fresh local QA key material only; no production account/provider substitution"
+  },
+  "wireAndStorage": {
+    "wholeMaxBytes": 8388608,
+    "memberNMax": 1024,
+    "nPowerOfTwo": true,
+    "single": "Per-member certificate/proof repeats in historical memo; actual wire/snapshot/temp high-water bytes must be measured",
+    "batch": "One shared Whole plus member references; proof retained for historical independent replay",
+    "budgetWarning": "Rough fixed-signature/certificate duplication for N1024 can exceed100MiB after hex JSON encoding, before other snapshot/retained files. This is a sizing estimate, not measured disk data."
+  },
+  "counterRules": [
+    "Count individual distinct admitted transaction hashes, never one whole batch asN automatic successes",
+    "Verify canonical full wire hash, zero-based index/application transaction identity and exact decimal strings",
+    "Deduplicate member identity globally across ACKs, retries and reconnects; the pure classifier is per-response, not the complete run ledger",
+    "Replayed identities are not new offered/submitted/executed business",
+    "uncertain/not_committed/memory/HTTP200 cannot supply durable inclusion or finality",
+    "Separate server-reported checkpoint counts from independently verified actual persisted state, produced blocks and BFT final commits",
+    "UNKNOWN remains unresolved until original identity is reconciled read-only; no new identity, nonce or automatic resubmission"
+  ],
+  "latency": [
+    "Signing to offer to submission queue to response/checkpoint to actual inclusion to applicable finality",
+    "Batching wait belongs in end-to-end per-member latency; do not start every timer at batch flush",
+    "P50/P95/P99 of per-member original monotonic spans; no sum of independent percentiles",
+    "Report nonobserved/failed/rejected members separately and keep UNKNOWN/timeouts in denominator interpretation"
+  ],
+  "parser": {
+    "sources": [
+      {
+        "path": "scripts/loadtest/pq-batch-receipt.mjs",
+        "bytes": 3531,
+        "sha256": "6a0df0a5e83f35c2efa319b41a6e1ef74db48b2cae24cee0e305e0b1dda5e84f"
+      },
+      {
+        "path": "scripts/loadtest/pq-batch-receipt.test.mjs",
+        "bytes": 3981,
+        "sha256": "27b714b8b404cc7d77d8ba0165aa5886197da886a9b3f55e74f6e02054dc967f"
+      }
+    ],
+    "tests": {
+      "red": {
+        "tool": "79f5ba",
+        "total": 6,
+        "pass": 5,
+        "fail": 1,
+        "actualExit": 1,
+        "reason": "missing U32 field count in independent identity codec"
+      },
+      "pass": {
+        "tool": "780dbd",
+        "total": 6,
+        "pass": 6,
+        "fail": 0,
+        "actualExit": 0,
+        "durationMs": 10.1455
+      }
+    },
+    "scope": "Offline identity/decimal/status accounting only, no PQ signing/verification or valid business workload; inclusion/finality fields deliberately null"
+  },
+  "remaining": [
+    "Candidate-specific signed fixture generator and bounded persisted driver not implemented or run yet",
+    "Root fresh resource slot for each compile/run",
+    "Worker-exit qualification of native guard still unresolved; no automatic new guard adoption",
+    "Old frozen before/cached comparison remains historical and unfinished; do not present it as PQ candidate speedup",
+    "At least10min sustained valid final commits>=1000/s with errors/backlog/resources and latency still requires full actual chain scope"
+  ],
+  "next": "Ask Root to route fixture/consensus interface details from the original owner; implement bounded persisted driver in an isolated fixed-aa97 source checkout, then one controlled case after fresh grant. Do not alter owner worktree or public nodes."
+}
