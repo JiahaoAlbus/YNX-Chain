@@ -1,8 +1,8 @@
 # Complete slot-report terminal history readback
 
-Source implementation only: **Go validation has not executed yet**. These
-changes complete the bounded successful-window readback path, not ten-minute
-acceptance, host recovery, or a new TPS measurement.
+Candidate c68642365 passed focused Go validation (scope below). These changes
+complete the bounded successful-window readback implementation, not ten-minute
+acceptance, general host recovery, or a new TPS measurement.
 
 Schema12 reports retain only the latest per-account slots in memory. Existing
 offline checks must reconstruct the complete original observation list from
@@ -33,7 +33,7 @@ remain; the account check additionally requires a clean completed/retired window
 receipt. Signature, nonce, fee and state verification remain at their existing
 independent gates. The stream hash chain is not a signature or consensus proof.
 
-Pending focused Go coverage (under TestTerminalStream / TestReadySender):
+Focused Go coverage passed (under TestTerminalStream / TestReadySender):
 
 - restore all 96 original signed identities from the three-slot /32-cycle
   controller test, rather than only its last three results;
@@ -59,3 +59,9 @@ journal remains the recovery authority; no automatic resume is introduced.
 Next: pin this candidate for Root's scheduled Go regression after native normal
 memory pressure, then add partial-prefix reconciliation and run the actual
 bounded network comparison before extending duration or claiming stable TPS.
+
+## Focused Go validation actually completed
+
+Candidate c68642365 passed the exact scheduled selector TestTerminalStream|TestReadySender. Go reported 2.144 s; the complete compiler/test/controller window was 6,867 ms with sampled owned/control peak398,671,872 bytes (<400MiB419,430,400). All13 valid native samples had pressure level1, firstCause was null, Go exited0 and original process groups were independently absent. No four-node run occurred. Full-package/race, standalone loadmetrics package tests (including600k/zero-allocation controls), and explicit-env stopped-network tests were not run.
+
+[Original receipt, independent cleanup and source/binary hashes](evidence/ready-slots-focused-pass-20261018.json) preserve the exact scope. The selected fixtures validate local signature/execution/persistence/restart and bounded-controller/readback logic; synthetic observation flags remain unit inputs, not real BFT proof. Schema12 CLI has not completed a real four-node journey yet.

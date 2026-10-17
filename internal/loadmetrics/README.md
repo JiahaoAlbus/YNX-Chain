@@ -2,7 +2,8 @@
 
 This package now backs the performance client's optional per-account result-slot
 mode. Default full-history reporting and workload caps remain unchanged. The
-new CLI/cumulative source has not completed Go validation yet.
+client cumulative/slot integration passed focused tests at c68642365. The
+standalone package controls below have not run yet.
 
 `Histogram.Add` takes nonnegative `time.Duration` spans produced from monotonic
 measurements. It keeps 60,001 uint64 buckets (480,008 bytes), exact min/max and
@@ -26,7 +27,7 @@ and does not call synthetic sample input effective business TPS.
 Test sources cover deterministic comparison to exact sorted nearest ranks,
 overflow and the 60 s boundary, empty/invalid/bounded input, and 600,000 synthetic
 latency samples with fixed storage and zero normal-path Add allocations.
-**These Go tests have not been executed yet.** They are a separate future light
+**These standalone package Go tests have not been executed yet.** They are a separate future light
 target and were not added to the pending frozen client's resource window:
 
 ```

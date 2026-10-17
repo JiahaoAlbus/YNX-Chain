@@ -137,3 +137,9 @@ Latest source connects optional -reuse-result-slots and cumulative bounded inter
 statistics; see [slot reporting](READY_RESULT_SLOTS_20261017.md). Default retention
 remains unchanged. Go execution is still pending, so earlier implementation-stage
 notes above are not new validation evidence.
+
+## Focused Go validation actually completed
+
+Candidate c68642365 passed the exact scheduled selector TestTerminalStream|TestReadySender. Go reported 2.144 s; the complete compiler/test/controller window was 6,867 ms with sampled owned/control peak398,671,872 bytes (<400MiB419,430,400). All13 valid native samples had pressure level1, firstCause was null, Go exited0 and original process groups were independently absent. No four-node run occurred. Full-package/race, standalone loadmetrics package tests (including600k/zero-allocation controls), and explicit-env stopped-network tests were not run.
+
+[Original receipt, independent cleanup and source/binary hashes](evidence/ready-slots-focused-pass-20261018.json) preserve the exact scope. The selected fixtures validate local signature/execution/persistence/restart and bounded-controller/readback logic; synthetic observation flags remain unit inputs, not real BFT proof. Schema12 CLI has not completed a real four-node journey yet.

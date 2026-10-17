@@ -5,8 +5,8 @@ mode and `-terminal-stream`. Default CLI runs retain full-history arrays. Slot
 mode has cumulative counts and bounded interval latency statistics connected to
 the terminal handoff; it does not summarize only the latest slot generation.
 This is source implementation, not a ten-minute driver or measured memory
-improvement yet. Go regressions have not run because scheduled admissions stopped
-before tests; do not treat test sources as passing evidence.
+improvement yet. Focused Go regression passed at candidate c68642365 after earlier admission
+failures; full/race/network scope remains pending (see validation below).
 
 The branch uses exactly one transaction/result slot per sender. Jobs, accepted
 queues and terminal channels are bounded by that slot count, instead of total
@@ -31,7 +31,7 @@ rule and no catch-up bursts remain. Round-completion counters use the minimum
 successfully completed nonce cycle over all senders, so they need no lifetime
 result slices. Total workload is still <=2,048, cycles <=32, and nonce <=32.
 
-Pending focused Go coverage, under the existing `TestReadySender` target:
+Focused Go coverage passed, under the existing `TestReadySender` target:
 
 - 96 real signed identities across 32 cycles using only three slots (finality
   flags are explicit synthetic unit inputs, not network consensus evidence);
@@ -46,7 +46,7 @@ cycle/duration/funding limits and long-history durability readback, followed by
 measured comparisons and abnormal-exit recovery for slot reports. Ten-minute
 acceptance and stable 1,000 final business TPS remain unproven.
 
-## Cumulative CLI reporting (Go execution pending)
+## Cumulative CLI reporting (focused components passed)
 
 Schema12 labels retentionMode as latest_per_account_slots: transactions contains
 only the most recently prepared/observed per-account slots, while every terminal
@@ -77,7 +77,7 @@ withhold interarrival rate rather than subtracting UTC clocks. Overall rates use
 the complete workload including terminal segment close/Sync, as with signing and
 intent Sync. This does not count report-file serialization as business execution.
 
-Pending counterexamples compare cumulative counts against full-history results
+Passing focused counterexamples compare cumulative counts against full-history results
 after out-of-order terminal handoffs; reject business promotion with missing or
 unbound evidence; preserve counts on bad latency while avoiding partial histogram
 updates; enforce input bounds; and reject slot CLI without durable terminal output.
@@ -85,5 +85,11 @@ The 96-input/3-slot controller test additionally asserts all 96 cumulative count
 All existing 2,048 input / 32-cycle / 30s CLI caps remain unchanged.
 
 Completed schema12 history reconstruction is now connected in source; see
-[terminal readback](SLOT_TERMINAL_READBACK_20261018.md). Go execution is pending;
+[terminal readback](SLOT_TERMINAL_READBACK_20261018.md). Focused Go controls passed;
 partial reports still fail closed rather than treating latest slots as history.
+
+## Focused Go validation actually completed
+
+Candidate c68642365 passed the exact scheduled selector TestTerminalStream|TestReadySender. Go reported 2.144 s; the complete compiler/test/controller window was 6,867 ms with sampled owned/control peak398,671,872 bytes (<400MiB419,430,400). All13 valid native samples had pressure level1, firstCause was null, Go exited0 and original process groups were independently absent. No four-node run occurred. Full-package/race, standalone loadmetrics package tests (including600k/zero-allocation controls), and explicit-env stopped-network tests were not run.
+
+[Original receipt, independent cleanup and source/binary hashes](evidence/ready-slots-focused-pass-20261018.json) preserve the exact scope. The selected fixtures validate local signature/execution/persistence/restart and bounded-controller/readback logic; synthetic observation flags remain unit inputs, not real BFT proof. Schema12 CLI has not completed a real four-node journey yet.
