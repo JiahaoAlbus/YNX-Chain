@@ -529,3 +529,68 @@ func TestSnapshotJournalStuckReadbackHasBoundedWriterFailure(t *testing.T) {
 		t.Fatal("blocked writer changed stored evidence", err)
 	}
 }
+
+func TestSnapshotJournalByteTargetCompactsAndRestartsWithoutStateChange(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	atomic, err := NewPersistentApplication(migration, filepath.Join(t.TempDir(), "state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var target int64
+	compactions := 0
+	for nonce := uint64(1); nonce <= 8; nonce++ {
+		if target > 0 {
+			app.journal.targetBytes = target
+		}
+		before := app.journal.compactions
+		commitJournalBlock(t, app, nonce)
+		compactions += app.journal.compactions - before
+		commitJournalBlock(t, atomic, nonce)
+		if !journalStateEqual(t, app.committed, atomic.committed) {
+			t.Fatal("byte compaction changed canonical execution state")
+		}
+		if target == 0 {
+			target = app.journal.end * 2
+		}
+		if app.journal.records > 2 {
+			t.Fatal("small byte target accumulated extra old snapshots")
+		}
+		loaded, err := NewJournaledApplication(migration, path)
+		if err != nil || !journalStateEqual(t, loaded.committed, atomic.committed) {
+			t.Fatal("byte compacted state did not recover", err)
+		}
+		if loaded.journal.targetBytes != snapshotJournalTargetBytes {
+			t.Fatal("restart lost production retention policy")
+		}
+		app = loaded
+	}
+	if compactions < 2 {
+		t.Fatal("test did not cross byte-triggered compaction before record-count boundary")
+	}
+}
+
+func TestSnapshotJournalSoftByteTargetDoesNotPretendToBoundLargeFrames(t *testing.T) {
+	migration, path := journalFixture(t)
+	app, err := NewJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	app.journal.targetBytes = 1 // every real snapshot necessarily exceeds this test target
+	commitJournalBlock(t, app, 1)
+	commitJournalBlock(t, app, 2)
+	if app.journal.compactions != 0 || app.journal.records != 2 || app.journal.end <= app.journal.targetBytes {
+		t.Fatal("single-record rewrite pretended to meet a soft target")
+	}
+	commitJournalBlock(t, app, 3)
+	if app.journal.compactions != 1 || app.journal.records != 2 {
+		t.Fatal("large frame retention did not converge to two complete states")
+	}
+	loaded, err := NewJournaledApplication(migration, path)
+	if err != nil || !journalStateEqual(t, loaded.committed, app.committed) {
+		t.Fatal("large-frame soft target lost restart state", err)
+	}
+}

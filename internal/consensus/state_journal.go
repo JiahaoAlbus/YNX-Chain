@@ -18,6 +18,7 @@ const snapshotJournalMagic = "YNX_ABCI_SNAPSHOT_JOURNAL_V1\n"
 const snapshotJournalHeader = 8 + 2*sha256.Size
 const snapshotJournalMaxPayload = 32 * 1024 * 1024
 const snapshotJournalCompactRecords = 16
+const snapshotJournalTargetBytes = 4 * 1024 * 1024
 
 // This opt-in backend keeps the exact full snapshot JSON, not transaction
 // deltas. Append+file Sync amortizes directory Sync over atomic compactions.
@@ -34,6 +35,7 @@ type snapshotJournal struct {
 	height       int64
 	poisoned     bool
 	compactions  int
+	targetBytes  int64              // initialized on open; a soft retention target, not a payload limit
 	fault        func(string) error // nil in normal operation; owned fault-injection tests only
 }
 
@@ -118,7 +120,7 @@ func releaseJournalLock(locks *snapshotJournalLocks) {
 }
 
 func openSnapshotJournal(path string, migration chain.ConsensusMigrationState) (*snapshotJournal, CommittedState, error) {
-	j := &snapshotJournal{path: path, header: []byte(snapshotJournalMagic + migration.StateHash + "\n"), height: int64(migration.Height)}
+	j := &snapshotJournal{path: path, header: []byte(snapshotJournalMagic + migration.StateHash + "\n"), height: int64(migration.Height), targetBytes: snapshotJournalTargetBytes}
 	initial := initialCommittedState(migration)
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, CommittedState{}, err
@@ -324,7 +326,10 @@ func (j *snapshotJournal) save(state CommittedState, migration chain.ConsensusMi
 	if !os.SameFile(info, j.identity) || info.Size() != j.observedSize {
 		return errors.New("journal changed since load or previous commit")
 	}
-	if j.records >= snapshotJournalCompactRecords {
+	// Keeping only the latest record cannot shrink further. Large snapshots
+	// may necessarily exceed this soft target; never repeatedly compact one
+	// unchanged record just to pretend a hard disk bound was met.
+	if j.records >= snapshotJournalCompactRecords || (j.records > 1 && j.end+int64(snapshotJournalHeader+len(payload)) > j.targetBytes) {
 		if err := j.compact(f); err != nil {
 			return err
 		}
