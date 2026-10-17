@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID,createPrivateKey,createPublicKey } from "node:crypto";
+import { randomBytes, randomUUID,createPrivateKey,createPublicKey,createHash } from "node:crypto";
 import {canonicalJSON,exactFields} from '../../../packages/wallet-auth/src/canonical.js';
 import {captureOriginalRecoveryJSON} from '../../../packages/wallet-auth/src/original-operation-recovery-state.js';
 import {createOriginalWalletServiceRoleEnrollmentCodec,publicOriginalWalletServiceRoleEnrollmentReadback,createOriginalWalletServiceRolePublicApprovalVerifier} from '../../../packages/wallet-auth/src/original-wallet-service-role-enrollment-state.js';
@@ -15,7 +15,7 @@ import { keyAccessError } from "./key-lifecycle.mjs";
 import {bindPermissionGuard} from "./permission-lease.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
 import { PasswordVaultFile, vaultStorageError } from "./password-vault-file.mjs";
-import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog } from "./password-vault-crypto.mjs";
+import { parsePasswordVault, readPasswordVaultPublicMetadata, createPasswordVault, unlockPasswordVault, rewritePasswordVault, decryptPasswordVaultRecord, decryptPasswordVaultMnemonic, closePasswordVaultSession,decryptPasswordVaultOriginalAdmissionCatalog,preparePasswordVaultPQRecord,decryptPasswordVaultPQRecord } from "./password-vault-crypto.mjs";
 
 const fail = (code, message) => { throw providerError(4100, code, message); };
 const cancelled = () => keyAccessError("WALLET_OPERATION_CANCELLED");
@@ -66,10 +66,63 @@ export function captureOriginalAdmissionProductionContext(ref){
 export class PasswordWalletVault {
   #session = null; #digest = null; #preview = null; #previewEpoch = 0; #mutations = Promise.resolve();
   #mnemonicDraft = null; #mnemonicEpoch = 0;
-  constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now } = {}) {
+  #pqSDK = null;
+  #pqRecoveryDebt = new Set();
+  constructor({ filePath, legacyFilePaths = [], safeStorage, authorization, fileStore = new PasswordVaultFile(filePath), randomSecret = () => randomBytes(32).toString("hex"), now = Date.now, pqSDK = null } = {}) {
     if (!filePath || !authorization) throw new Error("Password Wallet requires storage and authorization");
     this.filePath = filePath; this.files = fileStore; this.legacyFilePaths = [...new Set(legacyFilePaths)]; this.safeStorage = safeStorage; this.authorization = authorization; this.randomSecret = randomSecret; this.now = now;
     originalVaults.add(this);
+    this.#pqSDK=pqSDK;
+  }
+  #pqRequired(){
+    for(const name of ['createPQRecoveryCredential','exportPQWalletBackup','restorePQWalletKeyHandle','readPQWalletKeyPublic','destroyPQWalletKeyHandle','assertPQPublicBindingMatches','pqWalletKeyCleanupUnresolved'])if(typeof this.#pqSDK?.[name]!=='function')fail('PASSWORD_VAULT_PQ_SDK_REQUIRED','The reviewed dual-key SDK is not supplied. Existing Wallet data was kept.');
+    return this.#pqSDK;
+  }
+  async #verifyPQRecovery(payload,expected,guard){
+    const sdk=this.#pqRequired();let restored,failed=false,cause,cleanupFailed=false,cleanupCause;
+    try{restored=await sdk.restorePQWalletKeyHandle(payload.wire,payload.credential,expected);guard.assert();sdk.assertPQPublicBindingMatches(sdk.readPQWalletKeyPublic(restored),expected);guard.assert();}
+    catch(error){failed=true;cause=error;}
+    finally{if(restored)try{if(sdk.destroyPQWalletKeyHandle(restored)!==true)fail('PQ_KEY_CLEANUP_UNRESOLVED','Dual-key cleanup is unconfirmed.');}catch(error){cleanupFailed=true;cleanupCause=error;this.#pqRecoveryDebt.add({handle:restored,firstCause:cause,firstCausePresent:failed,cleanupCause:error});}}
+    if(failed)throw cause;if(cleanupFailed)throw cleanupCause;
+  }
+  pqCleanupUnresolved(){return this.#pqRecoveryDebt.size!==0||this.#pqSDK?.pqWalletKeyCleanupUnresolved?.()===true;}
+  async assertPQPreparationAvailable(){
+    const guard=this.authorization.current();return this.#serialize(async()=>{const current=await this.#readUnlocked(guard);if(!guard.account||guard.account!==current.vault.activeAccount)throw cancelled();if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','Use the original dual-key record or explicit recovery; do not generate replacement keys.');return undefined;});
+  }
+  async savePQKeys({handle,publicBinding,operationId}={}){
+    const guard=this.authorization.current(),sdk=this.#pqRequired();
+    if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Resolve the original key cleanup before creating another record.');
+    return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard);if(guard.account!==current.vault.activeAccount||publicBinding?.owner!==guard.account)throw cancelled();
+      sdk.assertPQPublicBindingMatches(sdk.readPQWalletKeyPublic(handle),publicBinding);
+      if(current.vault.pqKeyRecords?.some(r=>r.account===guard.account))fail('PASSWORD_VAULT_PQ_ORIGINAL_EXISTS','The original dual-key record is retained.');
+      let credential,wire,candidate;
+      try{
+        credential=sdk.createPQRecoveryCredential();wire=await sdk.exportPQWalletBackup(handle,credential);guard.assert();
+        candidate=await preparePasswordVaultPQRecord(current.vault,current.session,{account:guard.account,operationId,binding:publicBinding,wire,credential},options(guard));
+        const checked=await decryptPasswordVaultPQRecord(candidate.vault,guard.account,candidate.session,options(guard));
+        try{await this.#verifyPQRecovery(checked,publicBinding,guard);}finally{checked.wire.fill(0);checked.credential=null;}
+        await this.#publish(candidate,current.snapshot.digest,guard,true);candidate=null;
+        return this.#pqPublicReceipt(await this.#readUnlocked(guard),guard.account,operationId,publicBinding);
+      }finally{wire?.fill(0);credential=null;closePasswordVaultSession(candidate?.session);}
+    });
+  }
+  #pqPublicReceipt(current,account,operationId,expected){
+    const record=current.vault.pqKeyRecords?.find(r=>r.account===account);
+    if(!record||record.operationId!==operationId)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','The original stored dual-key record is required.');
+    this.#pqRequired().assertPQPublicBindingMatches(record.binding,expected);
+    return Object.freeze({version:1,account,operationId,publicBinding:record.binding,recordDigest:createHash('sha256').update(canonicalJSON(record)).digest('hex'),chainRegistrationVerified:false});
+  }
+  async readPQKeys({operationId,publicBinding}={}){
+    const guard=this.authorization.current();return this.#serialize(async()=>{
+      const current=await this.#readUnlocked(guard);if(guard.account!==current.vault.activeAccount)throw cancelled();
+      const receipt=this.#pqPublicReceipt(current,guard.account,operationId,publicBinding),payload=await decryptPasswordVaultPQRecord(current.vault,guard.account,current.session,options(guard));
+      try{await this.#verifyPQRecovery(payload,publicBinding,guard);return receipt;}finally{payload.wire.fill(0);payload.credential=null;}
+    });
+  }
+  async verifySavedPQKeys({receipt,operationId,publicBinding}={}){
+    const original=await this.readPQKeys({operationId,publicBinding});
+    return receipt?.version===1&&receipt.account===original.account&&receipt.operationId===original.operationId&&receipt.recordDigest===original.recordDigest;
   }
   authorizer() { return Object.freeze({ available: () => true, method: "local-password-encrypted-vault", inProcess: true, authenticate: (input, guard) => this.authenticate(input, guard), invalidate: () => this.lock() }); }
   lock() { closePasswordVaultSession(this.#session); this.#session = null; this.#digest = null; this.cancelRecovery(); this.cancelMnemonicAccount(); }
@@ -502,6 +555,7 @@ export class PasswordWalletVault {
       } else {material=await importSecret({ kind: input.kind, value: input.value, password: input.backupPassword ?? "",passphrase:input.passphrase??"" }, guard,true);secret=material.secretHex;}
       if (identityFor(secret).account !== record.account) fail("PASSWORD_VAULT_IDENTITY_MISMATCH", "This backup belongs to a different account. Existing accounts were kept.");
       if (input.resetPassword === true) {
+        if(snapshot&&parsePasswordVault(snapshot.text).pqKeyRecords?.length)fail('PQ_INDEPENDENT_BACKUP_REQUIRED','The old mnemonic cannot restore the new dual keys. Preserve this encrypted Wallet and use its independent dual-key backup and credential; password reset cannot discard those records.');
         if(snapshot&&parsePasswordVault(snapshot.text).records.find(item=>item.account===record.account)?.mnemonic&&!material?.entropyHex)fail("MNEMONIC_BACKUP_REQUIRED","This account has a recovery phrase. Use that phrase or its mnemonic-preserving encrypted backup to reset the password without losing it.");
         passwordPair(input.newPassword, input.confirmation);
         candidate = await createPasswordVault({ password: input.newPassword, revision: (catalog.revision ?? 0) + 1, activeAccount: record.account, accounts: catalog.accounts.map(item => item.account === record.account ? { ...item, state: "protected", secretHex: secret,...(material?.entropyHex?{mnemonicEntropyHex:material.entropyHex}:{}) } : { ...item, state: "recovery-required" }) }, options(guard));

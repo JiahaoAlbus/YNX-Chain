@@ -6,7 +6,7 @@ const fail=code=>{throw Object.assign(new Error(code),{code});};
  * or alternative crypto implementation is constructed here. */
 export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,getRegisteredBinding,readRestoreInput}){
   for(const name of ['createPQWalletKeyHandle','readPQWalletKeyPublic','restorePQWalletKeyHandle','assertPQPublicBindingMatches','validatePQNetworkBinding','destroyPQWalletKeyHandle','readPQWalletKeyCleanupOutcome'])if(typeof sdk?.[name]!=='function')fail('PQ_SDK_NOT_SUPPLIED');
-  for(const name of ['saveKeys','readKeys','verifySavedKeys'])if(typeof repository?.[name]!=='function')fail('PQ_PROTECTED_VAULT_NOT_SUPPLIED');
+  for(const name of ['assertCanPrepare','saveKeys','readKeys','verifySavedKeys'])if(typeof repository?.[name]!=='function')fail('PQ_PROTECTED_VAULT_NOT_SUPPLIED');
   if([getOriginalNetwork,getRegisteredBinding,readRestoreInput].some(v=>typeof v!=='function'))fail('PQ_ORIGINAL_BINDING_SOURCE_REQUIRED');
   const materials=new WeakMap();
   async function networkFor(binding,guard){
@@ -25,6 +25,7 @@ export function createPQKeyPreparationSource({sdk,repository,getOriginalNetwork,
   return Object.freeze({
     async prepare(kind,{binding,guard}){
       const network=await networkFor(binding,guard);let handle;
+      await repository.assertCanPrepare({kind,account:binding.account,network,guard});guard.assert();
       if(kind==='generate')handle=await sdk.createPQWalletKeyHandle(network);
       else if(kind==='restore'){
         const expected=await getRegisteredBinding({network,account:binding.account,guard});guard.assert();
