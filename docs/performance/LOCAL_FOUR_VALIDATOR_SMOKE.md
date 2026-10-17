@@ -30,11 +30,14 @@ The fixture creates 32 fresh sending keys in memory, funds only new test account
 - `GOMAXPROCS=1` and nice 10 for each child.
 - Active deadline 45 seconds, then up to 15 seconds for shutdown.
 - Client setup/workload deadline 10 seconds; 4 workers cover whole submit-and-observe lifetimes.
-- Combined sampled child RSS cap 2 GiB; sample interval 250 ms.
+- Combined sampled launcher, waiting shell and owned-child RSS cap 2 GiB; sample interval 250 ms. The short-lived sampler is additional control overhead.
+- At most 9 live long-lived owned children; native macOS thread rows are sampled each second and stop the run above 320. This thread counter is explicitly limited to macOS.
 - Test data/output cap 128 MiB; each child log capped at 1 MiB.
 - Children each have an isolated process group. Shutdown sends SIGINT, waits, then uses SIGKILL only for surviving owned groups. Receipt records PID, exit code/signal, group disappearance, peak RSS/data and the first failure cause.
 
 The caps are monitored at finite intervals, not OS hard quotas. The receipt provides the observed peaks and any violation. A cap violation is a failed run, not a benchmark success. Files are retained for diagnosis; no automatic retry resubmits uncertain transactions.
+
+The completed first window used launcher schema 1, which measured child RSS only. Schema 2 adds control RSS, thread rows and child-process count after Root reported a concurrent process-creation resource error. The new guards have passed syntax/prepare-only and native counter format checks; their live execution awaits another scheduled window. They do not prove the cause of the earlier host error is resolved.
 
 ## Evidence semantics
 
@@ -65,3 +68,5 @@ env GOMAXPROCS=2 nice -n 10 go test -p 1 \
 ```
 
 Tests exercise real generated signatures and Merkle proofs without starting nodes: equal and unequal voting-power thresholds, insufficient quorum, tampered signatures/weights/transactions/proofs, rejected execution, bounded local inputs, unknown/timeout accounting, actual persistent application readback and tampered state rejection.
+
+For a completed stopped window, the explicit `TestStoppedNetworkReplay` opt-in opens all four blockstores with `ReadOnly: true`, verifies their stored signed blocks against the bound genesis and replays every actual block into a fresh in-memory application. The resulting complete state must equal each persisted snapshot. It exports public signed block proofs and does not start or resubmit to any node.

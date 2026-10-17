@@ -14,6 +14,7 @@ const { values } = parseArgs({ options: {
   count: { type: 'string', default: '32' },
 } });
 const count = Number(values.count);
+if (process.platform !== 'darwin') throw Error('this launcher currently requires the validated macOS ps -M thread counter');
 if (!Number.isInteger(count) || count < 1 || count > 64) throw Error('count must be 1..64');
 if (!values['bin-dir'] || !values['comet-bin']) throw Error('prebuilt --bin-dir and --comet-bin are required');
 const bin = path.resolve(values['bin-dir']);
@@ -24,7 +25,7 @@ const commands = {
   comet: path.resolve(values['comet-bin']),
 };
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
-const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 128 * 1024 * 1024, rssBytes: 2 * 1024 ** 3, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, gomaxprocs: 1 };
+const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 128 * 1024 * 1024, rssBytes: 2 * 1024 ** 3, longLivedChildren: 9, threadRows: 320, threadSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, gomaxprocs: 1 };
 if (!values.execute) {
   console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
@@ -40,6 +41,9 @@ let firstCause = null;
 let stopping = false;
 let peakRSSBytes = 0;
 let peakDataBytes = 0;
+let peakThreadRows = 0;
+let peakLongLivedChildren = 0;
+let lastThreadSample = 0;
 let monitor;
 const fail = reason => { if (!firstCause) firstCause = String(reason); };
 const deadline = setTimeout(() => fail('active window exceeded 45 seconds'), caps.activeMs);
@@ -70,6 +74,7 @@ function directoryBytes(dir) {
 
 function launch(name, command, args, persistent = false) {
   requireActive();
+  if (children.filter(c => !c.exited).length >= caps.longLivedChildren) throw Error('long-lived owned child process cap reached');
   const out = fs.openSync(path.join(work, `${name}.log`), 'wx', 0o600);
   const child = spawn('nice', ['-n', '10', command, ...args], {
     detached: true, env: { ...process.env, GOMAXPROCS: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
@@ -119,14 +124,29 @@ try {
   monitor = setInterval(() => {
     try {
       const live = children.filter(c => c.pid && !c.exited);
-      if (live.length) {
-        const result = spawnSync('ps', ['-o', 'rss=', '-p', live.map(c => c.pid).join(',')], { encoding: 'utf8', timeout: 1000, maxBuffer: 65536 });
+      peakLongLivedChildren = Math.max(peakLongLivedChildren, live.length);
+      // Include the launcher and its waiting shell, rather than reporting only
+      // node RSS. The short-lived sampler itself is additional control overhead.
+      const watched = [...new Set([process.pid, process.ppid, ...live.map(c => c.pid)])].join(',');
+      {
+        const result = spawnSync('ps', ['-o', 'rss=', '-p', watched], { encoding: 'utf8', timeout: 1000, maxBuffer: 65536 });
         if (result.error || result.signal) throw Error(`RSS sampling failed: ${result.error ?? result.signal}`);
-        if (result.status !== 0 && result.stdout.trim()) throw Error('RSS sampling returned inconsistent output');
+        if (result.status !== 0 || !result.stdout.trim()) throw Error('RSS sampling returned no reliable control/node sample');
         const rss = result.stdout.trim().split(/\s+/).filter(Boolean).reduce((sum, value) => sum + Number(value) * 1024, 0);
         if (!Number.isFinite(rss)) throw Error('invalid RSS sample');
         peakRSSBytes = Math.max(peakRSSBytes, rss);
         if (rss > caps.rssBytes) fail('process RSS exceeded 2 GiB');
+      }
+      if (Date.now() - lastThreadSample >= caps.threadSampleMs) {
+        lastThreadSample = Date.now();
+        // On macOS -M prints one row per thread and its own header, ignoring
+        // custom -o formatting. Keep that native output parsing explicit.
+        const sample = spawnSync('ps', ['-M', '-p', watched], { encoding: 'utf8', timeout: 1000, maxBuffer: 1024 * 1024 });
+        if (sample.error || sample.signal || sample.status !== 0) throw Error(`thread sampling failed: ${sample.error ?? sample.signal ?? sample.status}`);
+        const rows = sample.stdout.split('\n').filter(line => line.trim() && !/^USER\s+PID\s/.test(line));
+        if (!rows.length) throw Error('thread sampler produced no owned/control thread rows');
+        peakThreadRows = Math.max(peakThreadRows, rows.length);
+        if (rows.length > caps.threadRows) fail('owned/control thread rows exceeded 320');
       }
       const size = directoryBytes(work);
       peakDataBytes = Math.max(peakDataBytes, size);
@@ -176,7 +196,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 1, startedAt: new Date(started).toISOString(), work, caps, count, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, peakDataBytes, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 2, startedAt: new Date(started).toISOString(), work, caps, count, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'launcher, waiting parent, live owned children; sampler overhead additional', peakDataBytes, peakThreadRows, peakLongLivedChildren, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;
