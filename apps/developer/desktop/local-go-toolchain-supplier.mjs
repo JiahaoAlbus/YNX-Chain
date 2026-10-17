@@ -12,6 +12,10 @@ const execFile=promisify(callbackExecFile),sha=bytes=>createHash('sha256').updat
 const NOFOLLOW=0x20000000;
 const id=s=>({dev:String(s.dev),ino:String(s.ino),uid:String(s.uid),mode:Number(s.mode)&0o777});
 const fileIdentity=s=>({...id(s),size:String(s.size),mtime:String(s.mtimeNs),ctime:String(s.ctimeNs),nlink:String(s.nlink)});
+// Finder/system xattrs can change a directory's ctime without changing its
+// contents. Bind its vnode, ownership, mode, links, mtime and exact entries;
+// regular files retain the stricter ctime/size/hash checks above.
+const directoryIdentity=s=>({...id(s),gid:String(s.gid),mtime:String(s.mtimeNs),nlink:String(s.nlink)});
 const equal=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
 const order=(a,b)=>a.path<b.path?-1:a.path>b.path?1:0;
 const check=signal=>signal?.throwIfAborted();
@@ -38,7 +42,13 @@ async function scan(root,signal){
  const rows=[];let total=0;
  async function visit(relative){check(signal);const item=path.join(root,relative),s=await fs.lstat(item,{bigint:true});
   if(await fs.realpath(item)!==item||s.isSymbolicLink()||![0n,BigInt(process.getuid())].includes(s.uid)||(Number(s.mode)&0o022)||rows.length>=50000)throw Error('Go closure contains an unsafe path or exceeds its bound.');
-  if(s.isDirectory()){const identity=fileIdentity(s);rows.push({path:relative,kind:'directory',identity});for(const name of(await fs.readdir(item)).sort())await visit(relative?relative+'/'+name:name);if(!equal(identity,fileIdentity(await fs.lstat(item,{bigint:true}))))throw Error('Go directory changed during inventory.');}
+  if(s.isDirectory()){
+   const identity=directoryIdentity(s),entries=(await fs.readdir(item)).sort();
+   rows.push({path:relative,kind:'directory',identity,entries});
+   for(const name of entries)await visit(relative?relative+'/'+name:name);
+   const after=await fs.lstat(item,{bigint:true});
+   if(!after.isDirectory()||await fs.realpath(item)!==item||!equal(identity,directoryIdentity(after))||!equal(entries,(await fs.readdir(item)).sort()))throw Error('Go directory changed during inventory.');
+  }
   else {const file=await readRegular(item,signal);total+=file.bytes.length;if(total>512*1024*1024)throw Error('Go closure exceeds 512 MiB.');rows.push({path:relative,kind:'file',identity:file.identity,sha256:file.sha256});}
  }
  await visit('');return rows;
