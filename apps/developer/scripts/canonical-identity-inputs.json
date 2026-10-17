@@ -2016,8 +2016,8 @@
     },
     {
       "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 17318,
-      "sha256": "35658a809f9c1330032cda5c25c6c06e24bd7141cbed1dae03d65bca58a63839"
+      "bytes": 17320,
+      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763"
     },
     {
       "path": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
@@ -13937,6 +13937,14 @@
       "parentSha256": "ABSENT",
       "bytes": 2993,
       "sha256": "5f9865eb1b5e9dc3621bf9a0622dab6d121d74778844943117d2472e8083ed8b"
+    },
+    {
+      "handoff": "source-verifier-parentheses-r6-20261017",
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "parentSha256": "35658a809f9c1330032cda5c25c6c06e24bd7141cbed1dae03d65bca58a63839",
+      "bytes": 17320,
+      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763",
+      "change": "One explicit pair of parentheses; exact behavior unchanged."
     }
   ]
 }

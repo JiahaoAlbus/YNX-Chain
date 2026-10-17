@@ -127,7 +127,7 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    id parsed=[NSJSONSerialization JSONObjectWithData:result options:0 error:nil];NSDictionary *projection=[parsed isKindOfClass:NSDictionary.class]?parsed[@"projection"]:nil;
    if(![projection isKindOfClass:NSDictionary.class]||![projection[@"selection"] isKindOfClass:NSDictionary.class]||![projection[@"head"] isKindOfClass:NSString.class])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_PROJECTION_INVALID" error:error];
    uint64_t after=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0),sequence=[projection[@"sequence"] unsignedLongLongValue],floor=[projection[@"floor"] unsignedLongLongValue],expires=[projection[@"expiresAtMs"] unsignedLongLongValue];
-   if(after<before||after<_timeFloor||sequence<_sequence||floor<_floor||floor>sequence||after>=expires||sequence==_sequence&&_sequence&&![projection[@"head"] isEqual:_headDigest]||![self heldCurrent:error])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_POST_FENCE_FAILED" error:error];
+   if(after<before||after<_timeFloor||sequence<_sequence||floor<_floor||floor>sequence||after>=expires||(sequence==_sequence&&_sequence&&![projection[@"head"] isEqual:_headDigest])||![self heldCurrent:error])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_POST_FENCE_FAILED" error:error];
    _selection=[projection[@"selection"] copy];_sequence=sequence;_floor=floor;_headDigest=[projection[@"head"] copy];_timeFloor=after;return YES;
   }@catch(NSException *){return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_UNKNOWN" error:error];}
   @finally{_entered=NO;}
