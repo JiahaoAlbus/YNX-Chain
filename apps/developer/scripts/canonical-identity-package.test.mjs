@@ -49,7 +49,8 @@ test('PUBLIC build receipt validation requires the exact six-unit Native closure
   assert.equal(packager.validateCanonicalNativeBuildReceipt(record,inputs,'arm64'),record);
   for(const change of [r=>r.nativeQualified=true,r=>r.inputFiles.pop(),r=>r.inputFiles[0].sha256='1'.repeat(64),
     r=>r.output.relative='vendor/identity-admission/original-auth-identity.node',r=>r.relativeBases.inputFiles='app-root',r=>r.architectures=['x64'],r=>r.headers[0].sha256='2'.repeat(64),r=>r.commands[0].argv.pop(),r=>r.commandsKind='executed-normal-build',r=>delete r.existingComponentEvidence,
-    r=>r.inputFiles=r.inputFiles.filter(pin=>!pin.relative.endsWith('/original-ide-parent-transport.h'))]){
+    r=>r.inputFiles=r.inputFiles.filter(pin=>!pin.relative.endsWith('/original-ide-parent-transport.h')),
+    r=>r.inputFiles=r.inputFiles.filter(pin=>!pin.relative.endsWith('/original-source-verifier-io.h'))]){
     const altered=structuredClone(record);change(altered);
     assert.throws(()=>packager.validateCanonicalNativeBuildReceipt(altered,inputs,'arm64'),/differs|required/);
   }

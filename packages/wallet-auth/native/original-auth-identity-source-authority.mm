@@ -1,4 +1,5 @@
 #import "original-auth-identity-source-authority.h"
+#include "original-source-verifier-io.h"
 #import "original-auth-identity-joint-owner.h"
 #include "original-auth-identity-native-release.h"
 #include <CommonCrypto/CommonDigest.h>
@@ -114,10 +115,15 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
    _task=[NSTask new];_task.executableURL=[NSURL fileURLWithPath:[NSString stringWithUTF8String:_policy->nodeImagePath.c_str()]];_task.arguments=@[[NSString stringWithUTF8String:_policy->verifierImagePath.c_str()]];_task.environment=@{};_task.standardInput=in;_task.standardOutput=out;_task.standardError=errors;
    NSError *launch=nil;if(![_task launchAndReturnError:&launch])return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_EXEC_UNAVAILABLE" error:error];
    NSTask *owned=_task;dispatch_after(dispatch_time(DISPATCH_TIME_NOW,7*NSEC_PER_SEC),dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{if(owned.running)[owned terminate];});
-   [in.fileHandleForWriting writeData:raw];NSUInteger writer=[_pipeHandles indexOfObjectIdenticalTo:in.fileHandleForWriting];_pipeStates[writer]=@2;NSError *writerError=nil;BOOL writerDone=[in.fileHandleForWriting closeAndReturnError:&writerError];_pipeStates[writer]=writerDone?@1:@2;
-   NSData *result=[out.fileHandleForReading readDataToEndOfFile];NSData *stderr=[errors.fileHandleForReading readDataToEndOfFile];[_task waitUntilExit];
+   NSUInteger writer=[_pipeHandles indexOfObjectIdenticalTo:in.fileHandleForWriting];BOOL writerDone=NO;
+   std::vector<unsigned char> verifiedBytes;
+   try{
+    verifiedBytes=ynx_auth_private::boundedVerifierIO(in.fileHandleForWriting.fileDescriptor,out.fileHandleForReading.fileDescriptor,errors.fileHandleForReading.fileDescriptor,
+     (const unsigned char *)raw.bytes,raw.length,[&](){_pipeStates[writer]=@2;NSError *writerError=nil;writerDone=[in.fileHandleForWriting closeAndReturnError:&writerError];_pipeStates[writer]=writerDone?@1:@2;return (bool)writerDone;},[&](){return (bool)_task.running;});
+   }catch(const std::exception &failure){return [self fail:[NSString stringWithUTF8String:failure.what()] error:error];}
+   NSData *result=[NSData dataWithBytes:verifiedBytes.data() length:verifiedBytes.size()];
    if(!writerDone||![self closeHeldPipes])return [self fail:@"AUTH_IDENTITY_NATIVE_VERIFIER_CLOSE_UNKNOWN" error:error];
-   if(_task.terminationStatus!=0||result.length>65536||stderr.length!=0)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_VERIFICATION_FAILED" error:error];
+   if(_task.terminationStatus!=0||result.length>65536)return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_VERIFICATION_FAILED" error:error];
    id parsed=[NSJSONSerialization JSONObjectWithData:result options:0 error:nil];NSDictionary *projection=[parsed isKindOfClass:NSDictionary.class]?parsed[@"projection"]:nil;
    if(![projection isKindOfClass:NSDictionary.class]||![projection[@"selection"] isKindOfClass:NSDictionary.class]||![projection[@"head"] isKindOfClass:NSString.class])return [self fail:@"AUTH_IDENTITY_NATIVE_SOURCE_PROJECTION_INVALID" error:error];
    uint64_t after=(uint64_t)(NSDate.date.timeIntervalSince1970*1000.0),sequence=[projection[@"sequence"] unsignedLongLongValue],floor=[projection[@"floor"] unsignedLongLongValue],expires=[projection[@"expiresAtMs"] unsignedLongLongValue];
@@ -138,3 +144,4 @@ struct SourceHeldPublic {int fd;struct stat identity;NSString *__strong path;boo
   NSError *cause=nil;BOOL custodyClosed=[_custody close:&cause];_cleanupComplete=filesClosed&&custodyClosed;if(!_cleanupComplete)_cleanupCause=cause?:[NSError errorWithDomain:@"YNXOriginalSourceAuthority" code:1 userInfo:@{NSLocalizedDescriptionKey:@"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN"}];if(error)*error=_cleanupCause;return _cleanupComplete;}
 }
 @end
+

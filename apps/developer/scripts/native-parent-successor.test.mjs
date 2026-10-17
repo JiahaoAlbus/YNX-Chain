@@ -15,6 +15,8 @@ for (const [name, objectiveC] of [
   ['sequence-post-fence.test.mm', true],
   ['deadline-post-io.test.cc', false],
   ['transport-regression.test.cc', false],
+  ['bounded-io.test.cc', false],
+  ['foundation-pump.test.mm', true],
 ]) {
   test(`actual candidate Native lifecycle: ${name}`, () => {
     const directory = mkdtempSync(join(tmpdir(), 'ynx-ide-native-successor-'));
