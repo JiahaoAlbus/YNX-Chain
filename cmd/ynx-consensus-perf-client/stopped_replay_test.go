@@ -74,6 +74,9 @@ func TestStoppedNetworkReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := restoreCompletedSlotReport(work, manifestRaw, m, &result, len(txs)); err != nil {
+		t.Fatal(err)
+	}
 	if result.RoundsRequested > 1 {
 		if result.RoundsRequested > 32 || len(txs)*result.RoundsRequested > maxTransactions || result.RoundsCompleted != result.RoundsRequested || len(result.Transactions) != len(txs)*result.RoundsRequested {
 			t.Fatal("incomplete bounded sender rounds")

@@ -22,6 +22,7 @@ func TestStoppedReadySenderAccountReadback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	manifestRaw := append([]byte(nil), raw...)
 	var m consensus.EphemeralNetworkManifest
 	if err = json.Unmarshal(raw, &m); err != nil {
 		t.Fatal(err)
@@ -43,6 +44,30 @@ func TestStoppedReadySenderAccountReadback(t *testing.T) {
 	var report report
 	if err = json.Unmarshal(raw, &report); err != nil {
 		t.Fatal(err)
+	}
+	receiptRaw, err := readBounded(filepath.Join(work, "window-receipt.json"), 16<<20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var receipt struct {
+		AllGroupsGone bool
+		FirstCause    *string
+	}
+	if err = json.Unmarshal(receiptRaw, &receipt); err != nil || !receipt.AllGroupsGone || receipt.FirstCause != nil || len(report.SetupErrors) != 0 {
+		t.Fatal("requires a clean completed and retired window", err)
+	}
+	if report.RetentionMode != "" {
+		input, err := readBounded(filepath.Join(work, "network", "transactions.json"), 8<<20)
+		if err != nil {
+			t.Fatal(err)
+		}
+		initial, err := decodeTransactions(input)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err = restoreCompletedSlotReport(work, manifestRaw, m, &report, len(initial)); err != nil {
+			t.Fatal(err)
+		}
 	}
 	if report.SenderMode != "ready-pool" || report.RoundsCompleted != report.RoundsRequested || report.Summary.FinalSubmitted != len(report.Transactions) || report.ReadySenders.Quarantined != 0 {
 		t.Fatal("requires complete ready sender window")

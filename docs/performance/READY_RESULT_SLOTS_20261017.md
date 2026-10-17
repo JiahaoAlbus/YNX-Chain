@@ -83,3 +83,7 @@ unbound evidence; preserve counts on bad latency while avoiding partial histogra
 updates; enforce input bounds; and reject slot CLI without durable terminal output.
 The 96-input/3-slot controller test additionally asserts all 96 cumulative counts.
 All existing 2,048 input / 32-cycle / 30s CLI caps remain unchanged.
+
+Completed schema12 history reconstruction is now connected in source; see
+[terminal readback](SLOT_TERMINAL_READBACK_20261018.md). Go execution is pending;
+partial reports still fail closed rather than treating latest slots as history.

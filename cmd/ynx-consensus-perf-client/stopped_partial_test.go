@@ -69,6 +69,9 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	}
 	var observed report
 	reportRaw := read(filepath.Join(work, "transactions-result.json"), &observed)
+	if observed.RetentionMode != "" {
+		t.Fatal("partial slot reports require sealed-prefix reconciliation; latest slots are not full terminal history")
+	}
 	if observed.SenderMode != "ready-pool" {
 		t.Fatal("requires ready pool identity journal")
 	}

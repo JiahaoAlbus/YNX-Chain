@@ -87,6 +87,13 @@ func newTerminalStream(directory string, p *ephemeralSenderPool) (*terminalStrea
 	if p == nil || len(p.pending) < 1 || len(p.pending) > maxTransactions || p.manifestSHA256 == "" || p.migrationHash == "" || p.genesisHash == "" {
 		return nil, errors.New("invalid terminal stream fixture")
 	}
+	// Readback can run from a different working directory (for example go test
+	// in this package), so the receipt must retain an absolute original path.
+	absolute, err := filepath.Abs(directory)
+	if err != nil {
+		return nil, err
+	}
+	directory = absolute
 	if err := os.Mkdir(directory, 0700); err != nil {
 		return nil, err
 	}

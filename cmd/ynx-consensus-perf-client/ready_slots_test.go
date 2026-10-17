@@ -95,6 +95,15 @@ func TestReadySenderSlotsRecycleAcrossAllBoundedCycles(t *testing.T) {
 	if err = stream.close(); err != nil || stream.report.DurableRecords != count*32 {
 		t.Fatal("terminal evidence lost", err, stream.report)
 	}
+	restored, err := readCompletedTerminalResults(stream.report.Directory, stream.report, stream.binding, count, count*32)
+	if err != nil || len(restored) != count*32 {
+		t.Fatal("full history not recoverable from fixed slots", err)
+	}
+	for index, r := range restored {
+		if r.Index != index || r.Hash != seen[index] {
+			t.Fatal("restored identity differs from original terminal handoff")
+		}
+	}
 	for slot, r := range results {
 		if r.Index != 31*count+slot || r.Round != 32 {
 			t.Fatal("last generation differs", r)
