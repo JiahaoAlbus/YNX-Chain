@@ -6,6 +6,16 @@
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
   "type": "module",
   "exports": {
+    "./pq-wallet-contract": {
+      "types": "./src/pq-wallet-contract.d.ts",
+      "import": "./src/pq-wallet-contract.js",
+      "default": "./src/pq-wallet-contract.js"
+    },
+    "./pq-wallet-backup": {
+      "types": "./src/pq-wallet-backup.d.ts",
+      "import": "./src/pq-wallet-backup.js",
+      "default": "./src/pq-wallet-backup.js"
+    },
     "./central-browser-session-contract": {
       "types": "./src/central-browser-session-contract.d.ts",
       "import": "./src/central-browser-session-contract.js",
