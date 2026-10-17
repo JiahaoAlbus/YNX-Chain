@@ -1,0 +1,1087 @@
+{
+  "schema": 1,
+  "measurement": "native_signature_verification_reuse_single_process_ABCI_not_network_tps_or_finality",
+  "baselineSource": "c14e7e403b2b84cef7152d3c6326090111ec122b plus dormant cache implementation and identical performance counters",
+  "gomaxprocs": 1,
+  "nice": 10,
+  "micro": [
+    {
+      "label": "before",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 110605,
+      "bytesPerOp": 33785,
+      "allocsPerOp": 70,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t    2346\t    110605 ns/op\t   33785 B/op\t      70 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 9940,
+      "bytesPerOp": 30111,
+      "allocsPerOp": 29,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t   24747\t      9940 ns/op\t   30111 B/op\t      29 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 9423,
+      "bytesPerOp": 30111,
+      "allocsPerOp": 29,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t   24100\t      9423 ns/op\t   30111 B/op\t      29 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "before",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 101683,
+      "bytesPerOp": 33785,
+      "allocsPerOp": 70,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t    2350\t    101683 ns/op\t   33785 B/op\t      70 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "before",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 100977,
+      "bytesPerOp": 33785,
+      "allocsPerOp": 70,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t    2244\t    100977 ns/op\t   33785 B/op\t      70 allocs/op\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "scope": "same exact signed nonce checked repeatedly; candidate warm cache after first miss; not fresh-transfer capacity",
+      "nsPerOp": 9507,
+      "bytesPerOp": 30111,
+      "allocsPerOp": 29,
+      "stdout": "goos: darwin\ngoarch: arm64\npkg: github.com/JiahaoAlbus/YNX-Chain/internal/consensus\ncpu: Apple M4\nBenchmarkCheckTxTransfer \t   25774\t      9507 ns/op\t   30111 B/op\t      29 allocs/op\nPASS\n",
+      "stderr": ""
+    }
+  ],
+  "runs": [
+    {
+      "label": "before",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-3531545580/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 197004192,
+        "application_pipeline_seconds": 1.014136917,
+        "application_pipeline_tx_per_second": 1009.7255930976033,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.019375,
+            "p95_ms": 0.035417,
+            "p99_ms": 0.035417,
+            "samples": 16,
+            "total_ms": 0.280584
+          },
+          "directory_sync": {
+            "p50_ms": 7.017666,
+            "p95_ms": 61.514084,
+            "p99_ms": 61.514084,
+            "samples": 16,
+            "total_ms": 170.541083
+          },
+          "file_sync": {
+            "p50_ms": 7.092041,
+            "p95_ms": 150.529541,
+            "p99_ms": 150.529541,
+            "samples": 16,
+            "total_ms": 303.033834
+          },
+          "json_encode": {
+            "p50_ms": 1.767959,
+            "p95_ms": 3.56475,
+            "p99_ms": 3.56475,
+            "samples": 16,
+            "total_ms": 28.3005
+          },
+          "prepare_file": {
+            "p50_ms": 0.128167,
+            "p95_ms": 0.180667,
+            "p99_ms": 0.180667,
+            "samples": 16,
+            "total_ms": 2.059043
+          },
+          "rename": {
+            "p50_ms": 0.202833,
+            "p95_ms": 0.881333,
+            "p99_ms": 0.881333,
+            "samples": 16,
+            "total_ms": 4.096375
+          },
+          "validate": {
+            "p50_ms": 1.01225,
+            "p95_ms": 2.471833,
+            "p99_ms": 2.471833,
+            "samples": 16,
+            "total_ms": 18.386417
+          },
+          "write": {
+            "p50_ms": 0.076709,
+            "p95_ms": 1.812791,
+            "p99_ms": 1.812791,
+            "samples": 16,
+            "total_ms": 3.170998
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 30,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-before",
+        "mallocs": 565195,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 0,
+          "retained_string_bytes": 0,
+          "lookups": 0,
+          "hits": 0,
+          "successful_verifications": 0
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.145725375,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.096667,
+            "p95_ms": 0.18,
+            "p99_ms": 0.287875,
+            "samples": 1024,
+            "total_ms": 112.434768
+          },
+          "durable_commit": {
+            "p50_ms": 17.056,
+            "p95_ms": 164.606,
+            "p99_ms": 164.606,
+            "samples": 16,
+            "total_ms": 530.289751
+          },
+          "finalize_block": {
+            "p50_ms": 8.840375,
+            "p95_ms": 11.278459,
+            "p99_ms": 11.278459,
+            "samples": 16,
+            "total_ms": 143.652044
+          },
+          "prepare_proposal": {
+            "p50_ms": 7.007708,
+            "p95_ms": 10.226084,
+            "p99_ms": 10.226084,
+            "samples": 16,
+            "total_ms": 116.238958
+          },
+          "process_proposal": {
+            "p50_ms": 6.645209,
+            "p95_ms": 10.557125,
+            "p99_ms": 10.557125,
+            "samples": 16,
+            "total_ms": 111.391503
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-3531545580/result.json pipeline_tx_per_second=1009.73 accepted=1024 executed=1024 duration=1.014136917s\n--- PASS: TestABCITransferPerformance (1.19s)\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1333118510/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 187086864,
+        "application_pipeline_seconds": 0.541198666,
+        "application_pipeline_tx_per_second": 1892.0963120038437,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.023209,
+            "p95_ms": 0.043833,
+            "p99_ms": 0.043833,
+            "samples": 16,
+            "total_ms": 0.334667
+          },
+          "directory_sync": {
+            "p50_ms": 6.606791,
+            "p95_ms": 40.079833,
+            "p99_ms": 40.079833,
+            "samples": 16,
+            "total_ms": 139.28354
+          },
+          "file_sync": {
+            "p50_ms": 10.143958,
+            "p95_ms": 11.292834,
+            "p99_ms": 11.292834,
+            "samples": 16,
+            "total_ms": 159.564334
+          },
+          "json_encode": {
+            "p50_ms": 1.810167,
+            "p95_ms": 2.830333,
+            "p99_ms": 2.830333,
+            "samples": 16,
+            "total_ms": 26.897917
+          },
+          "prepare_file": {
+            "p50_ms": 0.112,
+            "p95_ms": 0.231542,
+            "p99_ms": 0.231542,
+            "samples": 16,
+            "total_ms": 1.933002
+          },
+          "rename": {
+            "p50_ms": 0.240875,
+            "p95_ms": 0.468791,
+            "p99_ms": 0.468791,
+            "samples": 16,
+            "total_ms": 4.288917
+          },
+          "validate": {
+            "p50_ms": 1.122625,
+            "p95_ms": 1.831291,
+            "p99_ms": 1.831291,
+            "samples": 16,
+            "total_ms": 17.893082
+          },
+          "write": {
+            "p50_ms": 0.081625,
+            "p95_ms": 0.328708,
+            "p99_ms": 0.328708,
+            "samples": 16,
+            "total_ms": 1.696207
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 25,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-after",
+        "mallocs": 442304,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 1024,
+          "retained_string_bytes": 730416,
+          "lookups": 4096,
+          "hits": 3072,
+          "successful_verifications": 1024
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.14771375,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.11025,
+            "p95_ms": 0.155792,
+            "p99_ms": 0.261458,
+            "samples": 1024,
+            "total_ms": 121.764516
+          },
+          "durable_commit": {
+            "p50_ms": 20.045333,
+            "p95_ms": 51.259958,
+            "p99_ms": 51.259958,
+            "samples": 16,
+            "total_ms": 352.318124
+          },
+          "finalize_block": {
+            "p50_ms": 2.708125,
+            "p95_ms": 3.634625,
+            "p99_ms": 3.634625,
+            "samples": 16,
+            "total_ms": 43.738041
+          },
+          "prepare_proposal": {
+            "p50_ms": 0.477375,
+            "p95_ms": 1.446125,
+            "p99_ms": 1.446125,
+            "samples": 16,
+            "total_ms": 10.354666
+          },
+          "process_proposal": {
+            "p50_ms": 0.809375,
+            "p95_ms": 1.442083,
+            "p99_ms": 1.442083,
+            "samples": 16,
+            "total_ms": 12.892997
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1333118510/result.json pipeline_tx_per_second=1892.10 accepted=1024 executed=1024 duration=541.198666ms\n--- PASS: TestABCITransferPerformance (0.72s)\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-139734427/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 187086352,
+        "application_pipeline_seconds": 0.502581625,
+        "application_pipeline_tx_per_second": 2037.4799814855944,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.020333,
+            "p95_ms": 0.036709,
+            "p99_ms": 0.036709,
+            "samples": 16,
+            "total_ms": 0.328126
+          },
+          "directory_sync": {
+            "p50_ms": 7.301209,
+            "p95_ms": 8.243041,
+            "p99_ms": 8.243041,
+            "samples": 16,
+            "total_ms": 117.446958
+          },
+          "file_sync": {
+            "p50_ms": 9.176625,
+            "p95_ms": 10.141,
+            "p99_ms": 10.141,
+            "samples": 16,
+            "total_ms": 144.330875
+          },
+          "json_encode": {
+            "p50_ms": 1.611167,
+            "p95_ms": 3.989958,
+            "p99_ms": 3.989958,
+            "samples": 16,
+            "total_ms": 29.324835
+          },
+          "prepare_file": {
+            "p50_ms": 0.110208,
+            "p95_ms": 0.134125,
+            "p99_ms": 0.134125,
+            "samples": 16,
+            "total_ms": 1.76704
+          },
+          "rename": {
+            "p50_ms": 0.286167,
+            "p95_ms": 0.3375,
+            "p99_ms": 0.3375,
+            "samples": 16,
+            "total_ms": 4.373249
+          },
+          "validate": {
+            "p50_ms": 0.951959,
+            "p95_ms": 1.716667,
+            "p99_ms": 1.716667,
+            "samples": 16,
+            "total_ms": 16.899126
+          },
+          "write": {
+            "p50_ms": 0.095875,
+            "p95_ms": 0.395084,
+            "p99_ms": 0.395084,
+            "samples": 16,
+            "total_ms": 1.902501
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 25,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-after",
+        "mallocs": 442300,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 1024,
+          "retained_string_bytes": 730416,
+          "lookups": 4096,
+          "hits": 3072,
+          "successful_verifications": 1024
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.144496625,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.10525,
+            "p95_ms": 0.15725,
+            "p99_ms": 0.288375,
+            "samples": 1024,
+            "total_ms": 118.237794
+          },
+          "durable_commit": {
+            "p50_ms": 20.616959,
+            "p95_ms": 22.528625,
+            "p99_ms": 22.528625,
+            "samples": 16,
+            "total_ms": 316.754336
+          },
+          "finalize_block": {
+            "p50_ms": 2.572292,
+            "p95_ms": 4.31825,
+            "p99_ms": 4.31825,
+            "samples": 16,
+            "total_ms": 43.501252
+          },
+          "prepare_proposal": {
+            "p50_ms": 0.447333,
+            "p95_ms": 2.0685,
+            "p99_ms": 2.0685,
+            "samples": 16,
+            "total_ms": 12.202957
+          },
+          "process_proposal": {
+            "p50_ms": 0.518583,
+            "p95_ms": 1.242417,
+            "p99_ms": 1.242417,
+            "samples": 16,
+            "total_ms": 11.750581
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-139734427/result.json pipeline_tx_per_second=2037.48 accepted=1024 executed=1024 duration=502.581625ms\n--- PASS: TestABCITransferPerformance (0.67s)\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "before",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1228892159/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 197003696,
+        "application_pipeline_seconds": 0.803851459,
+        "application_pipeline_tx_per_second": 1273.8671909283678,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.020292,
+            "p95_ms": 0.106917,
+            "p99_ms": 0.106917,
+            "samples": 16,
+            "total_ms": 0.385585
+          },
+          "directory_sync": {
+            "p50_ms": 7.0195,
+            "p95_ms": 7.924875,
+            "p99_ms": 7.924875,
+            "samples": 16,
+            "total_ms": 115.263708
+          },
+          "file_sync": {
+            "p50_ms": 8.750167,
+            "p95_ms": 10.561709,
+            "p99_ms": 10.561709,
+            "samples": 16,
+            "total_ms": 141.059793
+          },
+          "json_encode": {
+            "p50_ms": 1.626875,
+            "p95_ms": 3.258875,
+            "p99_ms": 3.258875,
+            "samples": 16,
+            "total_ms": 29.692917
+          },
+          "prepare_file": {
+            "p50_ms": 0.121125,
+            "p95_ms": 0.169125,
+            "p99_ms": 0.169125,
+            "samples": 16,
+            "total_ms": 1.974668
+          },
+          "rename": {
+            "p50_ms": 0.235625,
+            "p95_ms": 0.337417,
+            "p99_ms": 0.337417,
+            "samples": 16,
+            "total_ms": 3.971416
+          },
+          "validate": {
+            "p50_ms": 0.983958,
+            "p95_ms": 2.0045,
+            "p99_ms": 2.0045,
+            "samples": 16,
+            "total_ms": 18.45829
+          },
+          "write": {
+            "p50_ms": 0.089291,
+            "p95_ms": 0.144125,
+            "p99_ms": 0.144125,
+            "samples": 16,
+            "total_ms": 1.430414
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 30,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-before",
+        "mallocs": 565194,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 0,
+          "retained_string_bytes": 0,
+          "lookups": 0,
+          "hits": 0,
+          "successful_verifications": 0
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.14428175,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.105458,
+            "p95_ms": 0.145458,
+            "p99_ms": 0.281583,
+            "samples": 1024,
+            "total_ms": 115.125782
+          },
+          "durable_commit": {
+            "p50_ms": 19.608959,
+            "p95_ms": 21.710792,
+            "p99_ms": 21.710792,
+            "samples": 16,
+            "total_ms": 312.572752
+          },
+          "finalize_block": {
+            "p50_ms": 9.056833,
+            "p95_ms": 11.647792,
+            "p99_ms": 11.647792,
+            "samples": 16,
+            "total_ms": 151.679417
+          },
+          "prepare_proposal": {
+            "p50_ms": 6.715333,
+            "p95_ms": 9.605666,
+            "p99_ms": 9.605666,
+            "samples": 16,
+            "total_ms": 111.936875
+          },
+          "process_proposal": {
+            "p50_ms": 6.997167,
+            "p95_ms": 8.284625,
+            "p99_ms": 8.284625,
+            "samples": 16,
+            "total_ms": 112.38525
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-1228892159/result.json pipeline_tx_per_second=1273.87 accepted=1024 executed=1024 duration=803.851459ms\n--- PASS: TestABCITransferPerformance (0.97s)\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "before",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-2053526057/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 197005720,
+        "application_pipeline_seconds": 0.783838625,
+        "application_pipeline_tx_per_second": 1306.391350643125,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.019625,
+            "p95_ms": 0.02925,
+            "p99_ms": 0.02925,
+            "samples": 16,
+            "total_ms": 0.306918
+          },
+          "directory_sync": {
+            "p50_ms": 7.203083,
+            "p95_ms": 8.376208,
+            "p99_ms": 8.376208,
+            "samples": 16,
+            "total_ms": 118.693538
+          },
+          "file_sync": {
+            "p50_ms": 8.969833,
+            "p95_ms": 10.067375,
+            "p99_ms": 10.067375,
+            "samples": 16,
+            "total_ms": 142.24254
+          },
+          "json_encode": {
+            "p50_ms": 1.532,
+            "p95_ms": 2.916167,
+            "p99_ms": 2.916167,
+            "samples": 16,
+            "total_ms": 27.571499
+          },
+          "prepare_file": {
+            "p50_ms": 0.120208,
+            "p95_ms": 0.187917,
+            "p99_ms": 0.187917,
+            "samples": 16,
+            "total_ms": 2.020624
+          },
+          "rename": {
+            "p50_ms": 0.294375,
+            "p95_ms": 0.38625,
+            "p99_ms": 0.38625,
+            "samples": 16,
+            "total_ms": 4.702585
+          },
+          "validate": {
+            "p50_ms": 0.94025,
+            "p95_ms": 1.984625,
+            "p99_ms": 1.984625,
+            "samples": 16,
+            "total_ms": 16.212668
+          },
+          "write": {
+            "p50_ms": 0.083834,
+            "p95_ms": 0.200959,
+            "p99_ms": 0.200959,
+            "samples": 16,
+            "total_ms": 1.497126
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 31,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-before",
+        "mallocs": 565212,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 0,
+          "retained_string_bytes": 0,
+          "lookups": 0,
+          "hits": 0,
+          "successful_verifications": 0
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.149156542,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.102375,
+            "p95_ms": 0.146833,
+            "p99_ms": 0.251083,
+            "samples": 1024,
+            "total_ms": 114.208036
+          },
+          "durable_commit": {
+            "p50_ms": 19.81375,
+            "p95_ms": 23.17375,
+            "p99_ms": 23.17375,
+            "samples": 16,
+            "total_ms": 313.610792
+          },
+          "finalize_block": {
+            "p50_ms": 8.712417,
+            "p95_ms": 10.155666,
+            "p99_ms": 10.155666,
+            "samples": 16,
+            "total_ms": 140.899792
+          },
+          "prepare_proposal": {
+            "p50_ms": 6.528583,
+            "p95_ms": 7.823667,
+            "p99_ms": 7.823667,
+            "samples": 16,
+            "total_ms": 108.083998
+          },
+          "process_proposal": {
+            "p50_ms": 6.554375,
+            "p95_ms": 7.42575,
+            "p99_ms": 7.42575,
+            "samples": 16,
+            "total_ms": 106.898334
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-2053526057/result.json pipeline_tx_per_second=1306.39 accepted=1024 executed=1024 duration=783.838625ms\n--- PASS: TestABCITransferPerformance (0.96s)\nPASS\n",
+      "stderr": ""
+    },
+    {
+      "label": "after",
+      "reportPath": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-167524449/result.json",
+      "snapshotSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+      "report": {
+        "accepted": 1024,
+        "accounts_seeded": 256,
+        "allocated_bytes": 187087080,
+        "application_pipeline_seconds": 0.505078166,
+        "application_pipeline_tx_per_second": 2027.4089614873592,
+        "block_app_hashes": [
+          "bbc286b4b4276e675d7ba57f6f7ab2dc0e9ac3e205c70ab7e2ef490b4be7ee9f",
+          "1d846d2fd26d01ba8863dbe7231201807bdeb54fdc00ec84248054a40832933d",
+          "d314e9268abbec39946167de5f12fe5e7c3038cfdb45994816eff6da55d0fcb9",
+          "c14a9e82af5db270dc3f2aeaa50f6e46eb9e58fc5717c6365d656b014928137d",
+          "23e24eb8b922a4500ee89eadc4066f29728e01355620120d05e82e64e2178775",
+          "fa3b7aa604a8bc99cd513dfce259166d49c0478f05e4ba9bd03539119f66dd0c",
+          "efb97780958ab4617d29042199e944383a81781ecb6675375cfce9f1387341e1",
+          "ed0f8d147d51ee7259edfd58b34068fee01e5a6bb31b054a28c5cdc403b019f4",
+          "313d56a6416a552c569c4d2950a7732f5882666a8bb90155b35f8220efac3a9d",
+          "14695d39b4732a0ed77a7dead747f4d4e6d469dc2f69445156d74c397ca19bbc",
+          "441b8edff4d673f8596b0a3e26b8f53e41ed78c948af0a0080297c50792d33ed",
+          "8c6031a56ee531f3ea63178f247c22ffc69a35f6e163c914afbc8b3587ca970f",
+          "8bef8ed3e70b6afec625389cdbd08946e4a1ff39b18e04be040ae7aa6a9462db",
+          "49290e3413a688525df54ee6966f3db5f58c8a43fcfb6432132b9373be5f28dc",
+          "eab64a79605bb8bafb65bb1949b5db4526e6c490098503ccbed4d7f5795f8bfa",
+          "319286dab91464e63ab63dcd1f30236259abcf5172b484845d98e262c1ac5e65"
+        ],
+        "blocks": 16,
+        "commit_stages": {
+          "close_file": {
+            "p50_ms": 0.020791,
+            "p95_ms": 0.038209,
+            "p99_ms": 0.038209,
+            "samples": 16,
+            "total_ms": 0.317833
+          },
+          "directory_sync": {
+            "p50_ms": 6.500583,
+            "p95_ms": 7.194041,
+            "p99_ms": 7.194041,
+            "samples": 16,
+            "total_ms": 103.865123
+          },
+          "file_sync": {
+            "p50_ms": 10.478917,
+            "p95_ms": 11.976375,
+            "p99_ms": 11.976375,
+            "samples": 16,
+            "total_ms": 161.456501
+          },
+          "json_encode": {
+            "p50_ms": 1.81125,
+            "p95_ms": 2.928833,
+            "p99_ms": 2.928833,
+            "samples": 16,
+            "total_ms": 27.792418
+          },
+          "prepare_file": {
+            "p50_ms": 0.114792,
+            "p95_ms": 0.175833,
+            "p99_ms": 0.175833,
+            "samples": 16,
+            "total_ms": 2.010457
+          },
+          "rename": {
+            "p50_ms": 0.289459,
+            "p95_ms": 0.386334,
+            "p99_ms": 0.386334,
+            "samples": 16,
+            "total_ms": 4.388209
+          },
+          "validate": {
+            "p50_ms": 1.04875,
+            "p95_ms": 1.53475,
+            "p99_ms": 1.53475,
+            "samples": 16,
+            "total_ms": 17.541041
+          },
+          "write": {
+            "p50_ms": 0.0865,
+            "p95_ms": 0.16775,
+            "p99_ms": 0.16775,
+            "samples": 16,
+            "total_ms": 1.401793
+          }
+        },
+        "consensus_inclusion_tps": null,
+        "executed_code_zero": 1024,
+        "failed": 0,
+        "finality_latency": null,
+        "gc_cycles": 26,
+        "go_version": "go1.25.7",
+        "goarch": "arm64",
+        "gomaxprocs": 1,
+        "goos": "darwin",
+        "inclusion_latency": null,
+        "label": "native-verification-after",
+        "mallocs": 442306,
+        "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+        "mempool_accept_tps": null,
+        "migration_hash": "4fbc70d7d9d917c4b1c7311728371befb5c20660dde3137ba38a3781e7bf0d13",
+        "native_signature_cache": {
+          "capacity": 4096,
+          "string_byte_limit": 4194304,
+          "entries": 1024,
+          "retained_string_bytes": 730416,
+          "lookups": 4096,
+          "hits": 3072,
+          "successful_verifications": 1024
+        },
+        "offered": 1024,
+        "offline_signing_seconds_excluded": 0.145918417,
+        "persisted_fee_events": 1024,
+        "rejected": 0,
+        "replay_rejected_after_restart": true,
+        "restart_full_state_equal": true,
+        "rpc_submit_tps": null,
+        "schema": 2,
+        "senders": 64,
+        "snapshot_bytes": 812656,
+        "snapshot_bytes_written": 7787256,
+        "stages": {
+          "check_tx": {
+            "p50_ms": 0.106083,
+            "p95_ms": 0.165916,
+            "p99_ms": 0.261875,
+            "samples": 1024,
+            "total_ms": 117.732384
+          },
+          "durable_commit": {
+            "p50_ms": 20.796625,
+            "p95_ms": 23.318291,
+            "p99_ms": 23.318291,
+            "samples": 16,
+            "total_ms": 319.302541
+          },
+          "finalize_block": {
+            "p50_ms": 2.713417,
+            "p95_ms": 4.007833,
+            "p99_ms": 4.007833,
+            "samples": 16,
+            "total_ms": 43.426168
+          },
+          "prepare_proposal": {
+            "p50_ms": 0.495791,
+            "p95_ms": 1.378958,
+            "p99_ms": 1.378958,
+            "samples": 16,
+            "total_ms": 12.555794
+          },
+          "process_proposal": {
+            "p50_ms": 0.465792,
+            "p95_ms": 1.430375,
+            "p99_ms": 1.430375,
+            "samples": 16,
+            "total_ms": 11.909583
+          }
+        },
+        "txs_per_block": 64
+      },
+      "stdout": "=== RUN   TestABCITransferPerformance\n    performance_test.go:250: report=/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-167524449/result.json pipeline_tx_per_second=2027.41 accepted=1024 executed=1024 duration=505.078166ms\n--- PASS: TestABCITransferPerformance (0.67s)\nPASS\n",
+      "stderr": ""
+    }
+  ],
+  "errors": [],
+  "allSnapshotsAndBlockHashesIdentical": true,
+  "binaries": {
+    "before": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/verification-before.test",
+      "sha256": "6ae3ab5009df2fd178cc0dbc41eebc5ad03308b321776525d107c2a180df08fc"
+    },
+    "after": {
+      "path": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/verification-after.test",
+      "sha256": "7d193f319fd18e48639858a667340855d685d43aa7f9047bf4f40972c1fcabb8"
+    }
+  },
+  "sourceFiles": {
+    "internal/consensus/application.go": "cf34d791c3cd773138d4c6ace3c6b32ea13d739c22bc689eb7a48d64a17d8d98",
+    "internal/consensus/native_verification.go": "59c1b607cbc2c36112d9c4f521d62022d653a35e6ce77bef5db286bd5dab70a2",
+    "internal/consensus/native_verification_test.go": "263373f1c8fcbe750dc9d2ad82aa351a328db377d018ccae5bdd8455a615c455",
+    "internal/consensus/performance_test.go": "04cbc3ef1bb29896fc642af8777adaad50a458670e68e537b5f86efd8763f07b"
+  },
+  "validation": {
+    "focusedNativeTests": "PASS: exact bytes/chain/owned values; invalid not cached; entry and byte eviction; concurrent publication; mutable state and durable restart",
+    "fullConsensusSuite": "PASS: final candidate binary from package cwd; all ordinary tests",
+    "raceDetectorRun": false,
+    "earlierAddedTestFailure": {
+      "assertion": "reflect.DeepEqual of in-memory and reloaded CommittedState",
+      "diagnosis": "DexPools nil versus empty representation normalized by existing loader; complete canonical JSON remains equal",
+      "finalAssertion": "exact complete canonical JSON equality, plus exact final snapshot bytes and block hashes in A/B"
+    },
+    "firstUsePerUniqueCandidateTransactionActuallyVerified": true,
+    "eachCandidateRunExpectedCounters": {
+      "lookups": 4096,
+      "hits": 3072,
+      "successful_verifications": 1024,
+      "entries": 1024
+    },
+    "baselineCounterScope": "cache helper is dormant in baseline; zero cache counters do not mean zero original cryptographic verification",
+    "baselineTestsNote": "same performance probe/counters; baseline binary predates test-only correction of nil/empty DexPools restart comparison",
+    "networkProcessesStarted": 0
+  }
+}

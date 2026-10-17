@@ -227,7 +227,8 @@ func TestABCITransferPerformance(t *testing.T) {
 		t.Fatalf("expected 8 durable commit phases, got %d", len(commitStages))
 	}
 	report := map[string]any{
-		"schema": 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
+		"native_signature_cache": app.nativeVerification.stats(),
+		"schema":                 2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
 		"label": os.Getenv("YNX_CHAIN_PERF_LABEL"), "commit_stages": commitSummaries, "snapshot_bytes_written": snapshotBytesWritten,
 		"go_version": runtime.Version(), "goos": runtime.GOOS, "goarch": runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0),
 		"accounts_seeded": accounts, "senders": batch, "txs_per_block": batch, "blocks": blocks, "offered": batch * blocks,

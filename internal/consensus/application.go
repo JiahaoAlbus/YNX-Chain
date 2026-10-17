@@ -28,15 +28,16 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu              sync.RWMutex
-	migration       chain.ConsensusMigrationState
-	committed       CommittedState
-	pending         *CommittedState
-	statePath       string
-	feeRecipient    string
-	snapshotExports map[uint64]stateSyncSnapshotExport
-	snapshotRestore *stateSyncSnapshotRestore
-	commitTimings   *commitTimings // nil outside the opt-in local performance probe
+	mu                 sync.RWMutex
+	migration          chain.ConsensusMigrationState
+	committed          CommittedState
+	pending            *CommittedState
+	statePath          string
+	feeRecipient       string
+	snapshotExports    map[uint64]stateSyncSnapshotExport
+	snapshotRestore    *stateSyncSnapshotRestore
+	commitTimings      *commitTimings // nil outside the opt-in local performance probe
+	nativeVerification nativeVerificationCache
 }
 
 type transactionError struct {
@@ -671,11 +672,8 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if kind == EthereumLegacyTransferType || kind == EthereumAccessListTransferType || kind == EthereumDynamicFeeTransferType {
 		return a.applyEthereumValueTransfer(cloneExecutionStateValue(state), payload, height, blockTime)
 	}
-	tx, err := DecodeSignedTransaction(payload)
+	tx, err := a.decodeVerifiedNativeTransaction(payload)
 	if err != nil {
-		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
-	}
-	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	accounts := state.accounts
