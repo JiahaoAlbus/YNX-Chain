@@ -134,3 +134,29 @@ client's observation cost still require work. Actual four-validator inclusion,
 durable finality, errors/backlog/resources and at least ten continuous minutes
 at 1,000 valid business commits/s remain open. Further network runs require a
 fresh Root-scheduled slot; the source result does not complete the overall goal.
+
+## Updated isolated network candidate
+
+After source commit `2f446351fc69535ebe54c566bd9d280452da77c1`, a separate local
+ABCI binary was built with `GOMAXPROCS=1`, nice 10 and `-p 1` in
+`artifacts/chain-performance-20261017/network-bin-native-verification/`. Its SHA-256
+is `074487eb00468ba6b2a6cecbb6f99d782a608fba06d66a64f9b9be102893f292`.
+The fixture, client, host probe and pinned CometBFT bytes still match the old
+frozen candidate. No original binary was overwritten.
+
+Prepare-only validation of the stricter launcher passed for 128 transactions at
+64 offered/s, client deadline 10 seconds, four submit/four observer workers,
+1 GiB owned/control RSS, 32 MiB data growth, 45 seconds active plus 15 seconds
+cleanup. Future execution must use a real owned parent shell and separately
+report the resident shared tool service baseline. Disk admission and any Root
+reserve must be checked again at execution time. No process/node startup or
+resource-window permission is implied by preparation.
+
+The Go executable does not contain an embedded VCS stamp, including after an
+explicit `-buildvcs=true` build. This is retained as an observed limitation, not
+filled with a fabricated stamp. The clean build HEAD, resolved consensus import
+directory, source digests, build commands/info and all five binary digests are
+captured independently in
+[the preparation receipt](evidence/native-verification-preparation-20261017.json).
+That receipt requires a fresh Root-scheduled slot and records no network process
+startup. It is a build/preparation artifact, not a runtime acceptance result.
