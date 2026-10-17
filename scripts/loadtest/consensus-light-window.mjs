@@ -1,7 +1,9 @@
 import fs from 'node:fs';
+import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {parseArgs} from 'node:util';
 import {ownedProcessSet} from './owned-process-set.mjs';
+import {validateNativeResourceSample} from './native-resource-sample.mjs';
 import {spawn,execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -11,9 +13,11 @@ if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_process
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
 const exec=promisify(execFile),started=Date.now(),root=process.cwd();
-const probe=createNativeResourceProbe(root+'/artifacts/chain-performance-20261017/network-bin-replay-facts/ynx-consensus-perf-host');
+const hostPath=root+'/artifacts/chain-performance-20261017/ynx-consensus-perf-host-diagnostics';
+const hostBinary={path:hostPath,sha256:createHash('sha256').update(fs.readFileSync(hostPath)).digest('hex')};
+const probe=createNativeResourceProbe(hostPath);
 const goEnvironment={GOMAXPROCS:'1',GOGC:'50',GOMEMLIMIT:'160MiB'};
-const result={startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
+const result={hostBinary,startedAt:new Date().toISOString(),launcher:process.pid,sharedParentExcluded:process.ppid,ownedScope:'launcher plus complete Go process group/descendants; native sampler and conservative fork-child reserve',goEnvironment,firstCause:null,peakRSS:0,peakThreads:0,samples:[],probes:probe.records,go:null};
 const fail=e=>result.firstCause??=String(e);
 let child,done=false,busy=false,monitor;
 const kill=()=>{if(child?.pid)try{process.kill(-child.pid,'SIGKILL')}catch(e){if(e.code!=='ESRCH')fail(e)}};
@@ -24,7 +28,8 @@ async function sample(initial=false){
  if(child?.pid){const {stdout}=await exec('/bin/ps',['-axo','pid=,ppid=,pgid='],{timeout:1500,killSignal:'SIGKILL',maxBuffer:1024*1024});ids=ownedProcessSet(stdout,process.pid,child.pid)}
  ids=[...new Set(ids)];if(ids.length>16)throw Error('kernel probe watched PID bound');
  const raw=await probe.run(['--full',...ids.map(String)]);const s=JSON.parse(raw.stdout);
- if(!Number.isFinite(s.rssWithControlReserveBytes)||!s.processes?.some(p=>p.pid===process.pid&&p.readable)||!s.forkProbe?.available)throw Error('native monitor unavailable');
+ result.lastAttemptedResourceSample=s;
+ validateNativeResourceSample(s,process.pid);
  result.peakRSS=Math.max(result.peakRSS,s.rssWithControlReserveBytes);result.peakThreads=Math.max(result.peakThreads,s.threadsWithControlReserve);
  result.samples.push({at:new Date().toISOString(),...s});
  if(s.rssWithControlReserveBytes>400*1024*1024)throw Error('400MiB control/owned RSS cap');

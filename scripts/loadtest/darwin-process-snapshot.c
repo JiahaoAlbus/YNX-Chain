@@ -15,6 +15,28 @@
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
+#include "process-snapshot-counts.h"
+
+static bool read_pid_uid(pid_t pid, uid_t *uid, int *error, void *context) {
+    (void)context;
+    struct proc_bsdinfo bsd;
+    memset(&bsd, 0, sizeof(bsd));
+    errno = 0;
+    int size = proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &bsd, sizeof(bsd));
+    *error = errno;
+    if (size != sizeof(bsd)) return false;
+    *uid = bsd.pbi_uid;
+    return true;
+}
+
+static void stage(const char *name, struct timespec started) {
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    long long elapsed = (now.tv_sec - started.tv_sec) * 1000000LL +
+                        (now.tv_nsec - started.tv_nsec) / 1000;
+    fprintf(stderr, "{\"stage\":\"%s\",\"elapsedMicroseconds\":%lld}\n", name, elapsed);
+    fflush(stderr);
+}
 
 static int read_limit(const char *name) {
     int value = 0;
@@ -65,26 +87,35 @@ int main(int argc, char **argv) {
            rss, threads, own.pti_resident_size, own.pti_threadnum,
            rss + 2 * own.pti_resident_size, threads + own.pti_threadnum + 1);
     if (full) {
+        stage("list_query", started);
+        errno = 0;
         int needed = proc_listpids(PROC_ALL_PIDS, 0, NULL, 0);
-        if (needed <= 0 || needed > (int)(65536 * sizeof(pid_t)) - 4096) return 4;
+        int query_error = errno;
+        if (needed <= 0 || needed > YNX_MAX_PID_BYTES - 4096 || needed % sizeof(pid_t)) {
+            fprintf(stderr, "invalid PID size query: needed=%d errno=%d\n", needed, query_error);
+            return 4;
+        }
         int capacity = needed + 4096;
         pid_t *pids = calloc(1, capacity);
         if (!pids) return 5;
+        errno = 0;
         int got = proc_listpids(PROC_ALL_PIDS, 0, pids, capacity);
-        int process_count = 0, uid_count = 0, unreadable = 0;
-        for (int i = 0; i < got / (int)sizeof(pid_t); i++) {
-            if (pids[i] <= 0) continue;
-            process_count++;
-            struct proc_bsdinfo bsd;
-            if (proc_pidinfo(pids[i], PROC_PIDTBSDINFO, 0, &bsd, sizeof(bsd)) == sizeof(bsd)) {
-                if (bsd.pbi_uid == getuid()) uid_count++;
-            } else unreadable++;
+        int list_error = errno;
+        stage("list_returned", started);
+        if (!ynx_pid_bytes_valid(needed, capacity, got)) {
+            fprintf(stderr, "invalid PID buffer: needed=%d capacity=%d returned=%d errno=%d\n", needed, capacity, got, list_error);
+            free(pids);
+            return 4;
         }
+        ynx_pid_counts counts = ynx_count_pids(pids, got / (int)sizeof(pid_t), getuid(), read_pid_uid, NULL);
+        stage("bsd_scan_complete", started);
         free(pids);
         struct rlimit limit;
         long long soft = getrlimit(RLIMIT_NPROC, &limit) == 0 && limit.rlim_cur != RLIM_INFINITY ? (long long)limit.rlim_cur : -1;
         printf(",\"host\":{\"processCount\":%d,\"uid\":%u,\"uidProcessCount\":%d,\"unreadableBsdInfo\":%d,\"scanComplete\":%s,\"maxproc\":%d,\"maxprocperuid\":%d,\"rlimitNprocSoft\":%lld}",
-               process_count, getuid(), uid_count, unreadable, got > 0 && got < capacity ? "true" : "false", read_limit("kern.maxproc"), read_limit("kern.maxprocperuid"), soft);
+               counts.process_count, getuid(), counts.uid_count, counts.unreadable, got < capacity ? "true" : "false", read_limit("kern.maxproc"), read_limit("kern.maxprocperuid"), soft);
+        printf(",\"hostEnumeration\":{\"requiredBytes\":%d,\"capacityBytes\":%d,\"returnedBytes\":%d,\"queryErrno\":%d,\"readErrno\":%d,\"slots\":%d,\"nonPositiveEntries\":%d,\"positiveEntries\":%d,\"duplicateEntries\":%d,\"readableBsdInfo\":%d,\"esrch\":%d,\"eperm\":%d,\"eacces\":%d,\"noErrno\":%d,\"otherErrno\":%d}",
+               needed, capacity, got, query_error, list_error, counts.slots, counts.non_positive, counts.positive_entries, counts.duplicates, counts.readable, counts.esrch, counts.eperm, counts.eacces, counts.no_errno, counts.other);
         // An inherited SIGCHLD ignore/SA_NOCLDWAIT would make waitpid fail
         // despite a successful fork. Reset only this disposable helper's
         // disposition, not anything in the launcher or host.
@@ -93,12 +124,14 @@ int main(int argc, char **argv) {
         action.sa_handler = SIG_DFL;
         sigemptyset(&action.sa_mask);
         if (sigaction(SIGCHLD, &action, NULL) != 0) return 6;
+        stage("fork_begin", started);
         errno = 0;
         pid_t child = fork();
         int fork_error = errno;
         int wait_error = 0, child_exit = -1, child_signal = 0;
         bool available = false;
         if (child == 0) _exit(0);
+        stage(child < 0 ? "fork_refused" : "wait_begin", started);
         if (child > 0) {
             int status;
             pid_t waited;
@@ -108,6 +141,7 @@ int main(int argc, char **argv) {
             else if (WIFEXITED(status)) child_exit = WEXITSTATUS(status);
             else if (WIFSIGNALED(status)) child_signal = WTERMSIG(status);
         }
+        stage("fork_complete", started);
         printf(",\"forkProbe\":{\"available\":%s,\"forkSucceeded\":%s,\"forkErrno\":%d,\"waitErrno\":%d,\"childExitCode\":%d,\"childSignal\":%d}",
                available ? "true" : "false", child > 0 ? "true" : "false", child < 0 ? fork_error : 0, wait_error, child_exit, child_signal);
     }
