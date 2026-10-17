@@ -51,7 +51,11 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	var releaseSlow, slowFinished, fastOffered atomic.Bool
 	var execution sync.Mutex
 	height := int64(migration.Height)
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4}, p, txs, results,
+	stream, err := newTerminalStream(filepath.Join(t.TempDir(), "terminal"), p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			data, readErr := os.ReadFile(filepath.Join(p.root, readySenderJournalName))
 			if readErr != nil || !bytes.Contains(data, []byte(base64.StdEncoding.EncodeToString(txs[index]))) {
@@ -105,6 +109,9 @@ func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 		})
 	if err != nil || !fastOffered.Load() || stats.Completed != 6 || stats.Offered != 6 || stats.Prepared != 6 || stats.RoundsCompleted != 2 || stats.Quarantined != 0 || stats.PeakInFlight > 3 || !p.stopped {
 		t.Fatalf("continuous ready run failed: %+v %v", stats, err)
+	}
+	if err = stream.close(); err != nil || stream.report.DurableRecords != 6 {
+		t.Fatal("actual executed terminal evidence was not sealed", stream.report, err)
 	}
 	restarted, err := consensus.NewPersistentApplication(migration, statePath)
 	if err != nil {

@@ -220,6 +220,11 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 		}
 		active--
 		inFlight[sender] = false
+		if o.terminalSink != nil {
+			if err := o.terminalSink(results[index]); err != nil {
+				runErr = errors.Join(runErr, fmt.Errorf("terminal evidence: %w", err))
+			}
+		}
 		if err := verifySenderRound([]cmttypes.Tx{txs[index]}, []transactionResult{results[index]}); err != nil {
 			stats.Quarantined++
 			return

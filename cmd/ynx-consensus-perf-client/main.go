@@ -46,6 +46,8 @@ type options struct {
 	observers                      int
 	offeredRate                    float64
 	timeout, poll                  time.Duration
+	terminalStream                 bool
+	terminalSink                   func(transactionResult) error
 }
 
 type transactionInput struct {
@@ -171,6 +173,7 @@ type report struct {
 	SenderMode           string                  `json:"senderMode"`
 	InclusionMode        string                  `json:"inclusionMode"`
 	ReadySenders         readySenderStats        `json:"readySenders"`
+	TerminalStream       *terminalStreamReport   `json:"terminalStream,omitempty"`
 	TimeoutMs            int64                   `json:"timeoutMs"`
 	PollMs               int64                   `json:"pollMs"`
 	StartedAt            time.Time               `json:"startedAt"`
@@ -198,6 +201,7 @@ func main() {
 	flag.IntVar(&o.rounds, "rounds", 1, "bounded rounds using retained fixture senders (1..32; total transactions at most 2048); each round waits for durable finality")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
+	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -221,6 +225,9 @@ func validateOptions(o options) error {
 	}
 	if o.senderMode == "ready-pool" && (o.rounds < 2 || o.offeredRate <= 0 || o.output == "") {
 		return errors.New("ready-pool requires paced submission, 2..32 nonce cycles and a new durable output")
+	}
+	if o.terminalStream && (o.senderMode != "ready-pool" || o.output == "") {
+		return errors.New("terminal stream requires ready-pool and a new output")
 	}
 	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
 		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
@@ -956,6 +963,14 @@ func execute(o options) error {
 		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {
 			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"
+			var stream *terminalStream
+			if o.terminalStream {
+				stream, err = newTerminalStream(o.output+".terminal-stream", pool)
+				if err != nil {
+					return err
+				}
+				o.terminalSink = stream.append
+			}
 			for i, text := range r.Interpretation {
 				if strings.HasPrefix(text, "Repeated rounds use") {
 					r.Interpretation[i] = "Ready-pool mode waits only for each account's own verified finality. UNKNOWN/failed accounts are quarantined; signing, durable input journaling and idle sender waits are included. This bounded finite pool is not sustained capacity."
@@ -993,6 +1008,10 @@ func execute(o options) error {
 				})
 			for _, stats := range workerStats {
 				r.GroupedObservation.add(stats)
+			}
+			if stream != nil {
+				roundErr = errors.Join(roundErr, stream.close())
+				r.TerminalStream = &stream.report
 			}
 			r.RoundsCompleted = r.ReadySenders.RoundsCompleted
 			r.LoadQueues = r.ReadySenders.Queues
