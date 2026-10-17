@@ -8,20 +8,36 @@ import {assertOriginalAdmissionVault,captureOriginalServiceRoleLocalCurrentSourc
 // Native qualification proved by JavaScript or by a .node type tag.
 const requireOriginal=createRequire(import.meta.url);
 const loadOriginalNative=()=>requireOriginal(fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url)));
-const startups=new WeakMap(),owned=new WeakMap(),debt=new Set();
+const startups=new WeakMap(),ideStartups=new WeakMap(),owned=new WeakMap(),debt=new Set();
+const genericLane=Symbol('original-generic-source'),ideLane=Symbol('original-ide-source');
 const failure=code=>Object.assign(new Error(code),{code});
 const methods=['acquireOriginalAdministrationProfile','readOriginalAdministrationProfile','assertOriginalAdministrationProfileCurrent','retireOriginalAdministrationProfile','joinOriginalAdministrationProfile','closeOriginalAdministrationProfile','reserveOriginalJointRegistration','commitOriginalJointRegistration','readOriginalJointRegistration','assertOriginalJointCurrent','assertOriginalJointExecutorChild','assertOriginalJointSuccession','retireOriginalJoint','joinOriginalJoint','closeOriginalJoint'];
 function state(ref){const s=owned.get(ref);if(!s)throw failure('AUTH_IDENTITY_ORIGINAL_JOINT_OWNER_REQUIRED');return s;}
 function first(s,cause){if(!s.firstPresent){s.firstPresent=true;s.firstCause=cause;}}
 function live(s){if(s.retired)throw s.firstPresent?s.firstCause:failure('AUTH_IDENTITY_JOINT_RETIRED');}
 export function initializeOriginalAuthIdentityPrivateStartup(vault){
- assertOriginalAdmissionVault(vault);if(startups.has(vault))throw failure('AUTH_IDENTITY_STARTUP_ALREADY_SELECTED');
- const entry={binding:null,firstPresent:false,firstCause:undefined,acquisitions:new Set()};startups.set(vault,entry);
- try{const binding=loadOriginalNative();if(methods.some(name=>typeof binding?.[name]!=='function'))throw failure('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');entry.binding=binding;return undefined;}
+ return initializeStartup(vault,startups,'acquireOriginalAdministrationProfile');
+}
+export function initializeOriginalAuthIdentityIDEPrivateStartup(vault){
+ return initializeStartup(vault,ideStartups,'acquireOriginalIDEAdministrationProfile');
+}
+function initializeStartup(vault,table,acquireName){
+ assertOriginalAdmissionVault(vault);if(table.has(vault))throw failure('AUTH_IDENTITY_STARTUP_ALREADY_SELECTED');
+ const entry={binding:null,acquireAdministration:null,firstPresent:false,firstCause:undefined,acquisitions:new Set()};table.set(vault,entry);
+ try{const binding=loadOriginalNative();const required=methods.filter(name=>name!=='acquireOriginalAdministrationProfile');
+  if([...required,acquireName].some(name=>typeof binding?.[name]!=='function'))throw failure('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
+  // These two names are selected only by the explicit private entry points
+  // above, never a caller scope/path/flag or fallback to another acquisition.
+  entry.acquireAdministration=()=>binding[acquireName]();entry.binding=binding;return undefined;
+ }
  catch(cause){entry.firstPresent=true;entry.firstCause=cause;throw failure('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');}
 }
 export function originalAuthIdentityStartupStatus(vault){
  assertOriginalAdmissionVault(vault);const entry=startups.get(vault);
+ return Object.freeze({initialized:!!entry,implementingModuleAvailable:!!entry?.binding,nativeQualified:false,resourceSupplied:false});
+}
+export function originalAuthIdentityIDEStartupStatus(vault){
+ assertOriginalAdmissionVault(vault);const entry=ideStartups.get(vault);
  return Object.freeze({initialized:!!entry,implementingModuleAvailable:!!entry?.binding,nativeQualified:false,resourceSupplied:false});
 }
 function current(s){
@@ -34,13 +50,19 @@ function current(s){
  }catch(cause){first(s,cause);s.retired=true;s.unknown=true;debt.add(s);throw cause;}
 }
 export async function acquireOriginalAuthIdentityJointConfiguration(vault,guard){
+ return acquireJointConfiguration(vault,guard,startups,genericLane);
+}
+export async function acquireOriginalAuthIdentityIDEJointConfiguration(vault,guard){
+ return acquireJointConfiguration(vault,guard,ideStartups,ideLane);
+}
+async function acquireJointConfiguration(vault,guard,table,lane){
  assertOriginalAdmissionVault(vault);if(debt.size)throw failure('AUTH_IDENTITY_JOINT_UNRESOLVED');guard.assert();
- const startup=startups.get(vault);if(!startup?.binding)throw failure('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
- const s={binding:startup.binding,vault,guard,administration:null,local:null,localOriginal:null,joint:null,result:null,retired:false,firstPresent:false,firstCause:undefined,unknown:false,closing:null,entered:new Set(),cleanupFailurePresent:false};
+ const startup=table.get(vault);if(!startup?.binding)throw failure('AUTH_IDENTITY_NATIVE_IMPLEMENTATION_NOT_IMPLEMENTED');
+ const s={binding:startup.binding,lane,vault,guard,administration:null,local:null,localOriginal:null,joint:null,result:null,retired:false,firstPresent:false,firstCause:undefined,unknown:false,closing:null,entered:new Set(),cleanupFailurePresent:false};
  const ref=Object.freeze({});owned.set(ref,s);debt.add(s);startup.acquisitions.add(ref);
  const acquisition=Promise.resolve().then(async()=>{
   // Native reads its original protected administration/profile, not caller JSON.
-  s.administration=await s.binding.acquireOriginalAdministrationProfile();
+  s.administration=await startup.acquireAdministration();
   if(s.administration===null)throw failure('AUTH_IDENTITY_ORIGINAL_PROFILE_NOT_SUPPLIED');guard.assert();
   const selected=s.binding.readOriginalAdministrationProfile(s.administration);
   if(s.binding.assertOriginalAdministrationProfileCurrent(s.administration)!==undefined)throw failure('AUTH_IDENTITY_ADMINISTRATION_CHANGED');
@@ -88,8 +110,8 @@ export function closeOriginalAuthIdentityJointConfiguration(ref){
 }
 export function originalAuthIdentityJointOutcome(ref){const s=state(ref);return Object.freeze({result:s.result,unknown:s.unknown,firstCausePresent:s.firstPresent,cleanupFailurePresent:s.cleanupFailurePresent});}
 export function originalAuthIdentityStartupUnresolved(vault){
- if(vault===null)return false;assertOriginalAdmissionVault(vault);const startup=startups.get(vault);
- return startup?[...startup.acquisitions].some(ref=>{const s=state(ref);return !s.cleanupComplete&&(s.retired||s.unknown)||s.unknown||s.cleanupFailurePresent;}):false;
+ if(vault===null)return false;assertOriginalAdmissionVault(vault);
+ return [startups.get(vault),ideStartups.get(vault)].some(startup=>startup?[...startup.acquisitions].some(ref=>{const s=state(ref);return !s.cleanupComplete&&(s.retired||s.unknown)||s.unknown||s.cleanupFailurePresent;}):false);
 }
 
 // Original-main transport custody only, never an IDE guard or a public factory.
@@ -97,7 +119,7 @@ export function originalAuthIdentityStartupUnresolved(vault){
 // and intent remain inside this module. No descriptor/path/Source can be injected.
 const ideMethods=['reserveOriginalIDEParentIntent','readOriginalIDEParentIntent','beginOriginalIDEParentPrelude','takeOriginalIDEParentSenderDescriptor','readOriginalIDEParentInstalledFrame','assertOriginalIDEParentAcknowledgement','assertOriginalIDEParentIntentCurrent','retireOriginalIDEParentIntent','joinOriginalIDEParentIntent','closeOriginalIDEParentIntent'];
 export function reserveOriginalAuthIdentityIDEParentHost(ref){
- const parent=state(ref);current(parent);
+ const parent=state(ref);if(parent.lane!==ideLane)throw failure('AUTH_IDENTITY_IDE_SOURCE_REQUIRED');current(parent);
  if(parent.ideHostSelected)throw failure('AUTH_IDENTITY_IDE_HOST_ALREADY_SELECTED');
  parent.ideHostSelected=true;
  if(ideMethods.some(name=>typeof parent.binding[name]!=='function'))throw failure('AUTH_IDENTITY_IDE_IMPLEMENTATION_NOT_SUPPLIED');

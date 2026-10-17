@@ -47,5 +47,25 @@ export interface OriginalIDEParentHost {
 }
 /** Only an existing same-copy private joint configuration ref is accepted.
  * Native joint/intent refs are never returned. Reserve failures with partial
- * custody return a cleanup facade; invalid/retired parent refs fail closed. */
+ * custody return a cleanup facade; invalid/retired/generic parent refs fail
+ * closed. The ref must originate from the explicit typed IDE acquisition. */
 export declare function reserveOriginalAuthIdentityIDEParentHost(originalJointConfiguration: object): OriginalIDEParentHost;
+
+export interface OriginalAuthIdentityIDEStartupStatus {
+  readonly initialized: boolean;
+  readonly implementingModuleAvailable: boolean;
+  readonly nativeQualified: false;
+  readonly resourceSupplied: false;
+}
+/** Select the fixed dedicated Native acquireOriginalIDEAdministrationProfile()
+ * dependency once for this original Vault. No profile/resource I/O occurs here.
+ * This is separate from the existing generic startup; there is no fallback. */
+export declare function initializeOriginalAuthIdentityIDEPrivateStartup(originalVault: object): void;
+export declare function originalAuthIdentityIDEStartupStatus(originalVault: object): OriginalAuthIdentityIDEStartupStatus;
+/** Requires typed startup above. Calls only the dedicated zero-argument Native
+ * admin acquisition; no scope, path, descriptor or caller-selected source.
+ * Returns the existing SDK private joint ref. Existing common read/current/
+ * child/succession/retire/join/close functions retain the exact same lifecycle.
+ * Partial admin custody is captured before read/current; failure retains its
+ * first cause and cleanup debt, including original falsy causes. */
+export declare function acquireOriginalAuthIdentityIDEJointConfiguration(originalVault: object, originalGuard: {assert(): void}): Promise<object>;
