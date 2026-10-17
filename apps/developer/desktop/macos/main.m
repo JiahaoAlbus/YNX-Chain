@@ -1292,8 +1292,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     _localStartupFailed=YES;
     // A conflicting backend never becomes an editor or loads another port.
     // Offer ordinary Cocoa recovery while the genuine owner is contacted.
+    _window.appearance=[NSAppearance appearanceNamed:NSAppearanceNameAqua];
     NSView *content=[[NSView alloc]initWithFrame:_webView.frame];
-    content.wantsLayer=YES;content.layer.backgroundColor=NSColor.windowBackgroundColor.CGColor;
+    content.wantsLayer=YES;content.layer.backgroundColor=[NSColor colorWithWhite:0.96 alpha:1].CGColor;
     NSTextField *title=[NSTextField labelWithString:[_localLocale isEqual:@"zh-cn"]?@"项目已在另一个窗口打开":@"This project is already open"];
     title.font=[NSFont boldSystemFontOfSize:22];
     NSTextField *detail=[NSTextField wrappingLabelWithString:[_localLocale isEqual:@"zh-cn"]?@"未保存的文件和终端保留在原工作台。可以唤起已有窗口，也可以打开其他文件夹。":@"Unsaved files and terminals stay in the existing workbench. Show that window or open another folder."];
