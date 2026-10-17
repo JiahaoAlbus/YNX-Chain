@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import {createRequire} from 'node:module';
+import {exportReceivePNG,receivePNGBase64,receivePNGFilename} from './receivePNG';
+import {receivePNGCopy} from '../i18n/receivePNGCopy';
+import {SUPPORTED_LOCALES} from '../i18n/i18n';
+import {receivePNGAvailable,saveReceivePNG} from '../../modules/ynx-receive-png';
+const account='ynx1zp6c2ra98djygdwldzx75jqwzgvgyjy7gu862s';
+// Public QR generated from the real receiving-link parser, not a key fixture.
+const require=createRequire(import.meta.url),QR=require('../../../wallet-desktop/node_modules/qrcode'),{PNG}=require('../../../wallet-desktop/node_modules/pngjs'),decode=require('../../../wallet-desktop/node_modules/jsqr');
+const uri=`ynx:${account}?chainId=ynx_6423-1&asset=YNXT`;
+const png=(()=>{const symbol=QR.create(uri),size=(symbol.modules.size+8)*4,image=new PNG({width:size,height:size});for(let y=0;y<size;y++)for(let x=0;x<size;x++){const row=Math.floor(y/4)-4,col=Math.floor(x/4)-4,dark=row>=0&&col>=0&&row<symbol.modules.size&&col<symbol.modules.size&&symbol.modules.get(row,col),offset=(y*size+x)*4;image.data.fill(dark?0:255,offset,offset+3);image.data[offset+3]=255}return PNG.sync.write(image).toString('base64')})();
+const render=(cb:(base64:string)=>void)=>cb(png);
+test('actual public receiving PNG bytes decode to the original account and network',async()=>{
+ let calls=0;const result=await exportReceivePNG(account,render,async(base64,filename)=>{calls++;assert.equal(filename,`YNX-Testnet-receive-${account}.png`);const image=PNG.sync.read(Buffer.from(base64,'base64'));assert.equal(decode(new Uint8ClampedArray(image.data),image.width,image.height).data,uri);return {status:'saved'}},()=>{});
+ assert.deepEqual(result,{status:'saved'});assert.equal(calls,1);
+});
+test('picker cancel stays cancelled, not saved',async()=>{assert.deepEqual(await exportReceivePNG(account,render,async()=>({status:'cancelled'}),()=>{}),{status:'cancelled'})});
+test('missing native exporter fails closed, without a web/download fallback',async()=>{assert.equal(receivePNGAvailable(),false);await assert.rejects(saveReceivePNG(png,receivePNGFilename(account)),/RECEIVE_PNG_UNAVAILABLE/)});
+test('SVG rendering exception cannot open a native file picker',async()=>{let calls=0;await assert.rejects(exportReceivePNG(account,()=>{throw Error('renderer failed')},async()=>{calls++;return {status:'saved'}},()=>{}),/renderer failed/);assert.equal(calls,0)});
+test('invalid account cannot invoke renderer or native save',async()=>{await assert.rejects(exportReceivePNG('../private',()=>{throw Error('render called')},async()=>{throw Error('save called')},()=>{}));assert.throws(()=>receivePNGFilename('private-key'))});
+test('retired public view before rendering cannot open a file picker',async()=>{await assert.rejects(exportReceivePNG(account,()=>{throw Error('render called')},async()=>{throw Error('save called')},()=>{throw Error('retired')}),/retired/)});
+test('retired view after PNG callback cannot dispatch a file write',async()=>{let active=true;await assert.rejects(exportReceivePNG(account,cb=>{active=false;cb(png)},async()=>{throw Error('save called')},()=>{if(!active)throw Error('retired')}),/retired/)});
+test('malformed and over-limit image payloads are refused before native code',()=>{for(const value of ['', 'private key','data:image/png;base64,'+png,png+'\n','iVBORw0KGgo'+'A'.repeat(700000)])assert.throws(()=>receivePNGBase64(value));assert.equal(receivePNGBase64(png),png)});
+test('duplicate SVG callback resolves only the original bytes and saves once',async()=>{let calls=0;await exportReceivePNG(account,cb=>{cb(png);cb('not-an-image')},async b=>{calls++;assert.equal(b,png);return {status:'saved'}},()=>{});assert.equal(calls,1)});
+test('native failure or unrecognized result never reports saved and never retries',async()=>{let calls=0;await assert.rejects(exportReceivePNG(account,render,async()=>{calls++;throw Error('write unknown')},()=>{}),/write unknown/);assert.equal(calls,1);await assert.rejects(exportReceivePNG(account,render,async()=>({status:'unexpected'} as never),()=>{}))});
+test('render timeout does not open native picker, including late callback',async()=>{let callback:((s:string)=>void)|undefined,calls=0;await assert.rejects(exportReceivePNG(account,cb=>{callback=cb},async()=>{calls++;return {status:'saved'}},()=>{},5),/PNG_RENDER_TIMEOUT/);callback?.(png);assert.equal(calls,0)});
+test('App renders a quiet zone and exposes Android export only when native module exists',()=>{const app=readFileSync(process.env.PUBLIC_WALLET_APP_SOURCE??new URL('../../App.tsx',import.meta.url),'utf8');assert.match(app,/getRef=\{[^}]+\}/);assert.match(app,/quietZone=\{16\}/);assert.match(app,/Platform\.OS===\"android\"&&receivePNGAvailable\(\)/);assert.match(app,/exportReceivePNG\(account\.account/)});
+test('all supported locales have explicit save/cancel/unconfirmed feedback',()=>{for(const locale of SUPPORTED_LOCALES)for(const key of ['save','saving','saved','cancelled','failed'] as const)assert.ok(receivePNGCopy(locale,key).length>3)});
+test('native source uses user-selected documents only, separate cancellation, bounded PNG, no write replay',()=>{const source=readFileSync(new URL('../../modules/ynx-receive-png/android/src/main/java/com/ynxweb4/receivepng/YnxReceivePngModule.kt',import.meta.url),'utf8'),manifest=readFileSync(new URL('../../modules/ynx-receive-png/android/src/main/AndroidManifest.xml',import.meta.url),'utf8');assert.match(source,/Intent\.ACTION_CREATE_DOCUMENT/);assert.match(source,/Activity\.RESULT_CANCELED/);assert.match(source,/compareAndSet\(false, true\)/);assert.match(source,/bytes\.size > 524288/);assert.match(source,/bounds\.outWidth !in 64\.\.2048/);assert.match(source,/openOutputStream\(uri, "w"\)/);assert.doesNotMatch(source,/takePersistableUriPermission|SecureStore|startActivityForResult|grantUriPermission|repeat\(/);assert.doesNotMatch(manifest,/uses-permission/)});

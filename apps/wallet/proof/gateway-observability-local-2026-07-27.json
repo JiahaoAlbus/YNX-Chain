@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "product": "wallet-auth",
+  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "generatedAt": "2026-07-27T15:00:49Z",
+  "classification": "local-loopback-runtime-evidence",
+  "runtime": {
+    "service": "ynx-wallet-gatewayd",
+    "transport": "loopback HTTP",
+    "remoteDeployed": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "monitorIntegrated": false
+  },
+  "interfaces": {
+    "health": "/health",
+    "readiness": "/ready",
+    "version": "/version",
+    "metrics": "/metrics",
+    "requestIdHeader": "x-request-id",
+    "traceIdHeader": "x-trace-id",
+    "errorIdHeader": "x-error-id",
+    "metricsFormat": "Prometheus text exposition 0.0.4",
+    "observabilitySchemaVersion": 1
+  },
+  "truthBoundaries": {
+    "runtimeReadyDoesNotImplyPublicDeployment": true,
+    "publicDeploymentReadyRequiresRemoteDeployed": true,
+    "remoteDeploymentRequiresExactBuildIdentity": true,
+    "requiredBuildIdentity": [
+      "full 40-character lowercase source commit",
+      "bounded release identifier",
+      "canonical ISO-8601 UTC build time"
+    ],
+    "localUnboundBuildIsExplicit": true
+  },
+  "privacyAndCardinality": {
+    "eventFieldsExclude": [
+      "request body",
+      "Product Session proof",
+      "authorization headers",
+      "private keys",
+      "seed or recovery material",
+      "signatures",
+      "provider secrets",
+      "state path"
+    ],
+    "metricRouteLabelsAreBounded": true,
+    "metricErrorLabelsUseBoundedPublicCodes": true,
+    "eventSinkFailureIsolated": true,
+    "eventSinkDropMetric": "ynx_wallet_gateway_events_dropped_total"
+  },
+  "verification": {
+    "walletAuthPackage": "94/94 passed",
+    "gatewayNodeHost": "8/8 passed",
+    "cliLoopbackSmoke": "passed",
+    "remoteWithoutBuildIdentity": "startup rejected",
+    "sourceHashes": {
+      "packages/wallet-auth/package.json": "3af6ec65ebd551db23795f41595ac43fa0ab9a1862e15cbb1a42b489cdc2bac9",
+      "packages/wallet-auth/src/index.js": "87fb21b398fd6f7b39afa02a88ca64e4cd28f054f90f3b070fa452bbdc4a2b75",
+      "packages/wallet-auth/src/index.d.ts": "2b8df6d8e23e2086b6d23b26e9032d727e1310076df3084f750cfcdc42bedb37",
+      "packages/wallet-auth/src/gateway-node-host.js": "0dc321eb6fcf4d9982840c26070722009b11fc47c9978a9f7490d55f719c8195",
+      "packages/wallet-auth/src/gateway-node-host.d.ts": "a1baae4bcb8a957a040dfcfffe6ec4d36f4e65465ac7695844a7ccb740e7e32e",
+      "packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs": "5f0cddffd5e87ac300490e1a2e161872103b230940d16f4e5c833aa8de040677",
+      "packages/wallet-auth/test/gateway-node-host.test.mjs": "2265e08dde1432cb783146a34419fec3300dbde102c1920d1353feb636f26986"
+    },
+    "nodeHostSubpathExport": "passed",
+    "mobileUniversalRootBundle": "Android and iOS Hermes exports passed without Node built-ins"
+  },
+  "notClaimed": [
+    "central App Gateway merge",
+    "durable production telemetry storage",
+    "staging or public endpoint",
+    "Monitor dashboard or alert acceptance",
+    "distributed trace propagation across products",
+    "production SLO compliance"
+  ]
+}

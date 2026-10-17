@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet",
+  "name": "YNX Wallet",
+  "aliases": ["YNX Auth", "YNX Web4 Identity"],
+  "canonicalRoute": "/wallet",
+  "title": "YNX Wallet — Web4 identity and Testnet signing",
+  "metaDescription": "A self-custody Testnet wallet for YNX identity, product-scoped sessions, exact transaction review, revocation and recovery.",
+  "h1": "Your YNX identity and signing root",
+  "features": ["Self-custody accounts", "Product-scoped sessions", "Exact permission review", "Signed Testnet transfers", "Recovery and revocation"],
+  "risks": ["Testnet assets have no real-world value", "Recovery material cannot be restored by YNX", "Smart Account and capital candidates are not centrally deployed"],
+  "releaseStatus": "testnet-engineering-preview",
+  "sourceCandidate": {
+    "tag": "wallet-auth-v1.0.0-source-candidate",
+    "sourceCommit": "c7a6bded387223429f0708f80b50f086d8ff944d",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-source-candidate",
+    "sourceArchiveSha256": "e19dc8bb23dd130655abae8f3387525c5397fd77e4fee2584eb44629774302db",
+    "sourceOnly": true
+  },
+  "sourceRelease": {
+    "tag": "wallet-auth-v1.0.0-testnet-preview.2",
+    "sourceCommit": "6c9d67765f5c05967ca3984e2a5ac6902d8779ec",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/wallet-auth-v1.0.0-testnet-preview.2"
+  },
+  "downloads": [
+    {"platform":"android","signingClass":"local-test-signed","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-Android-test-da82c8b.apk","sha256":"3d7dd0b349721f2364a2ec0519269bee2933c8b718ba26fc68e7e3354ae15256"},
+    {"platform":"ios-simulator","signingClass":"unsigned-simulator-build","url":"https://github.com/JiahaoAlbus/YNX-Chain/releases/download/wallet-auth-evidence-da82c8b/YNXWallet-iOS-Simulator-da82c8b.zip","sha256":"1396a275c90b1333c8cda80acf4428553e995cdcc87f8eaa3baf11fbfc7b3a43"}
+  ],
+  "supportUrl": "https://ynxweb4.com/support",
+  "privacyUrl": "https://ynxweb4.com/privacy",
+  "securityUrl": "https://ynxweb4.com/security",
+  "statusUrl": "https://ynxweb4.com/status",
+  "websiteHandoff": {
+    "canonicalProductRoute": "https://ynxweb4.com/wallet",
+    "contentIntegrated": true,
+    "contentDeployedPublic": true,
+    "productRuntimeDeployed": false,
+    "walletRouteDirectlyVerified": true,
+    "evidence": [
+      "../../release/evidence/website-public-acceptance-2026-07-26.json",
+      "proof/wallet-public-route-2026-07-28.json"
+    ],
+    "requestedPromptDomain": {
+      "url": "https://huangjeo.com",
+      "ynxProductAuthority": false,
+      "reason": "The domain currently serves HuangJeo | Future Builder, not the YNX product site."
+    }
+  },
+  "structuredDataSuggestion": "SoftwareApplication with operatingSystem, softwareVersion, downloadUrl and explicit Testnet engineering-preview status"
+}

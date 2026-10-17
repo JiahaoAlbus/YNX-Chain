@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "capturedAt": "2026-08-22T04:51:20Z",
+  "releaseChannel": "testnet-preview",
+  "authority": {
+    "sharedProviderSourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "desktopImplementationCommit": "9df04c15a3ebd64a25344c700856390c268ea5f3",
+    "releaseSourceCommit": "7c18f403420e71274521c68af18e7d67e70311ca",
+    "standardWalletIndependentOfProductSession": true,
+    "privateServiceFailureState": "DEGRADED",
+    "chain": {
+      "cosmosChainId": "ynx_6423-1",
+      "evmChainIdDecimal": 6423,
+      "evmChainIdHex": "0x1917",
+      "nativeSymbol": "YNXT"
+    }
+  },
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.2.0-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-provider-authority/ynx-wallet-macos-0.2.0-universal.dmg",
+    "format": "dmg",
+    "version": "0.2.0",
+    "bytes": 256369610,
+    "sha256": "3ae6b9f424764a470d830aa672fbe79aa3fad6e164bfff553ce9b8de189b383d",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable ad-hoc only",
+    "teamIdentifier": null,
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "dmgChecksumVerified": true,
+    "dmgCrc32": "FD30D844"
+  },
+  "nativeLifecycle": {
+    "host": "macOS native arm64 host",
+    "dmgMounted": true,
+    "copiedToIsolatedApplicationsDirectory": true,
+    "coldLaunch": true,
+    "secondLaunch": true,
+    "visibleWindow": true,
+    "windowTitle": "YNX Wallet",
+    "reportedVersion": "0.2.0",
+    "launchCount": 2,
+    "accountCreatedOnFirstLaunch": true,
+    "accountRestoredOnSecondLaunch": true,
+    "approvedAccount": "0x8e8aa8bac6d35a623887a7d09f8015ea448491aa",
+    "canonicalRpcEndpoint": "https://rpc.ynxweb4.com/evm",
+    "ethChainId": "0x1917",
+    "testnetRpcConnectionProved": true,
+    "vaultStorageMode": "os-encrypted-local",
+    "vaultFileMode": "0600",
+    "plainTextSecretFound": false
+  },
+  "providerAuthority": {
+    "permissionsRequireExactHttpsOriginApproval": true,
+    "accountHiddenBeforeApproval": true,
+    "onlyApproved0xAccountExposed": true,
+    "crossOriginPermissionsIsolated": true,
+    "permissionWideningRejected": true,
+    "personalSignRecoverableToApprovedAccount": true,
+    "eip712SignRecoverableToApprovedAccount": true,
+    "transactionReviewBindsAccountChainAndPayload": true,
+    "unsupportedMethodsFailClosed": true,
+    "supportedMethods": [
+      "eth_chainId",
+      "eth_accounts",
+      "eth_requestAccounts",
+      "wallet_getPermissions",
+      "wallet_requestPermissions",
+      "wallet_revokePermissions",
+      "personal_sign",
+      "eth_signTypedData_v4",
+      "eth_sendTransaction"
+    ]
+  },
+  "verification": {
+    "desktopTests": {"passed": 16, "failed": 0},
+    "productionDependencyAuditHigh": {"vulnerabilities": 0},
+    "walletAuthPackageTests": {
+      "passed": 111,
+      "failed": 2,
+      "failureScope": "pre-existing absent devtools SampleEVMWriteCounter artifact fixture; no desktop authority assertion failed"
+    }
+  },
+  "releaseTruth": {
+    "sourceImplemented": true,
+    "dmgBuilt": true,
+    "installedLocal": true,
+    "coldLaunchProved": true,
+    "secondLaunchProved": true,
+    "testnetRpcConnectionProved": true,
+    "localAccountCreated": true,
+    "localSignatureUnitProved": true,
+    "walletConnectConfigured": false,
+    "walletConnectSessionPaired": false,
+    "externalDappConnected": false,
+    "accountSwitchProved": false,
+    "disconnectProved": false,
+    "transactionBroadcastProved": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "blocked": [
+    "YNX_WALLETCONNECT_PROJECT_ID is not present; WalletConnect initialization and pairing fail closed.",
+    "No real external DApp WalletConnect session has been approved on this artifact.",
+    "No Testnet transaction broadcast or confirmation has been claimed.",
+    "The 0.2.0 immutable DMG has not yet been uploaded to an official YNX domain."
+  ]
+}

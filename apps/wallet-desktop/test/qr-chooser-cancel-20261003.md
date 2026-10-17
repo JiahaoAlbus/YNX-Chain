@@ -1,0 +1,7 @@
+# Desktop QR chooser cancellation
+
+Successor to d676557e7cf5f408446038fa67efafe22528bb78. Native DOM cancel and empty FileList now invoke a cancellation callback, never image decoding. Detached replaced nodes cannot invoke current callbacks. Receiving Scan can retry the same visible picker after cancellation. Ordinary invoice cancellation clears its selection attempt without replacing the typed reference. Protected Pay cancellation restores availability/original-read controls only when the captured account/key revision, open sheet and picker generation remain current; repeated cancellation consumes no new intent. Close/edit/account/key/lock invalidations remain in place.
+
+Mounted Pay tests use the real Desktop service and controlled authority/vault/IO, checking reference preservation, controls restored after native cancel and empty change, duplicate/stale cancel suppression, and zero review, decryption, broadcast and settlement. Generic DOM and receiving tests cover cancellation/no decoding and retry. No fixture or production composition was enabled by this change.
+
+Targeted tests 35/35; full isolated Desktop suite 659/659, zero failures/cancellations/skips. Full log: /tmp/ynx-wallet-published-inheritance-test-20261003-weuJ6Z/apps/wallet-desktop/chooser-cancel-regression.log. This is controlled DOM/service verification, not real Electron file-picker, installed OS, public Pay or user acceptance evidence. No real vault/account/profile, formal version, installer, website or shared source changed.

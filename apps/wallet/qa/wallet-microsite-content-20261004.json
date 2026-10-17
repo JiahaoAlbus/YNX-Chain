@@ -1,0 +1,52 @@
+{
+  "kind": "PURE_CONTENT_HANDOFF_NOT_WEBSITE_IMPLEMENTATION",
+  "observedAt": "2026-10-04T07:30:07Z",
+  "ownership": {"native": "Capability and artifact facts only", "website": "Landing page UI and website source", "A": "Shared Web runtime, routing/Host, signing and publication"},
+  "routes": {"landing": "/wallet", "observedEffectiveLanding": "https://www.ynxweb4.com/dapp/wallet", "openWeb": "https://wallet.ynxweb4.com/", "openWebTarget": "same-tab", "preserve": ["existing deep routes", "WalletPair", "SSO and Matrix callbacks", "API and download URLs", "back forward refresh locale"]},
+  "publicBrowsing": {"autoConnect": false, "autoLogin": false, "autoSign": false, "automaticDevicePermissions": false},
+  "zh": {
+    "title": "YNX Wallet",
+    "headline": "一个钱包，连接你的 YNX 体验",
+    "summary": "查看资产、管理账户和备份，在同一个钱包里使用收款、转账与 Pay。当前提供测试网预览，具体能力以所选平台和可用服务为准。",
+    "primaryCta": "打开网页版",
+    "secondaryCta": "查看下载",
+    "navigation": ["功能", "下载", "帮助", "隐私"],
+    "capabilities": [
+      {"title": "账户与备份", "body": "管理钱包账户，使用加密备份与恢复功能。请妥善保管密码和备份。"},
+      {"title": "收款与转账", "body": "使用收款地址或二维码，核对网络、地址与金额后再确认转账。"},
+      {"title": "Pay 与扫码", "body": "钱包内整合支付请求与扫码入口。二维码不是付款完成凭证；实际支付需要可用服务和明确授权。"},
+      {"title": "记录与恢复", "body": "查看交易记录，恢复中保留未明确完成的交易状态，避免误认为已成功或重复提交。"}
+    ],
+    "previewNotice": "测试网预览，不代表正式签名、应用商店发行或全部业务流程已验收。",
+    "illustrationLabel": "产品示意图 · 非真实账户或交易凭证"
+  },
+  "en": {
+    "title": "YNX Wallet",
+    "headline": "One wallet for your YNX experience",
+    "summary": "View assets, manage accounts and backups, and access receive, send and Pay in one wallet. Testnet previews are available; capabilities depend on the selected platform and available services.",
+    "primaryCta": "Open Web Wallet",
+    "secondaryCta": "View downloads",
+    "navigation": ["Features", "Downloads", "Help", "Privacy"],
+    "capabilities": [
+      {"title": "Accounts and backups", "body": "Manage wallet accounts with encrypted backup and recovery. Keep passwords and backups safe."},
+      {"title": "Receive and send", "body": "Use a receiving address or QR code. Review the network, address and amount before confirming a transfer."},
+      {"title": "Pay and scanning", "body": "Payment requests and scanning belong in the wallet. A QR code is not a payment receipt; payment requires available services and explicit authorization."},
+      {"title": "History and recovery", "body": "Review transaction history and preserve unresolved states during recovery to avoid false success or duplicate submission."}
+    ],
+    "previewNotice": "Testnet preview. Production signing, store release and acceptance of every business flow are not claimed.",
+    "illustrationLabel": "Product illustration · not a real account or transaction receipt"
+  },
+  "publicCatalogReadback": {
+    "url": "https://www.ynxweb4.com/assets/ecosystemCatalog-CV_SF-iT.js",
+    "previousAssetDgrhXrIF": "HTTP404; historical receipt preserved",
+    "scope": "Fresh first-party HTML and current catalog bytes only; catalog claims are not a new artifact download or installed-flow verification",
+    "android": {"version": "1.0.28-testnet-preview", "versionCode": 34, "source": "a9fff0d84fe0e4b67a520136ab9c8d4721f6c23e", "signing": "local test signed; not production or store release"},
+    "macos": {"version": "0.6.8", "architecture": "universal", "sourcePrefix": "6f332753", "sha256": "f7c8a6d3f639ba950e701355f567608542aaf6fd4bdd8a15c956330f831bd25f"},
+    "webPwa": {"version": "0.1.19", "sourcePrefix": "c38502f2c", "sha256": "aa25d535817c3a954a550615ad250836431ecf2211c1607ce9949546337c4f6d"},
+    "downloadsMustUseWebsiteCurrentCatalog": true,
+    "engineeringCandidateMustNotReplacePublicLatest": true
+  },
+  "visualInput": {"direction": "Blue and white, readable 14-16px text, proportional original YNX logo, hero copy and product illustration", "realCurrentUserScreenshot": "NOT_SUPPLIED", "fabricatedBalancesAccountsUsersReceipts": false, "useLabeledIllustrationIfNeeded": true},
+  "helpPrivacyPaths": "Reuse verified existing website destinations; no new route asserted by Native",
+  "nativeAppMustRemainProductNotMarketingShell": true
+}

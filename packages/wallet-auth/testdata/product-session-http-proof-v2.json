@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 2,
+  "description": "Deterministic P-256 sender-constrained origin-bound Product Session HTTP proof",
+  "session": {
+    "verifierVersion": "wallet-auth-v2",
+    "sessionBinding": "ba75a7657c220f7475ce3ae53785d46134cdfc2690a65fd606c88d811121720a",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "origin": "https://social.ynxweb4.com",
+    "callback": "ynx-social://com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "deviceBinding": "ee6b7e084a1600ad4d51af604adeed7827602a7481c35e770d048b354c95a1f6",
+    "requestDigest": "04f8b963e449530a5a6ce60eb3412d63c8f57bf9ed344bfbd24419efbb020df2",
+    "approvalDigest": "742d7d2bf74cd112e7a7ad0776f900820258508c8872388e6d49fc62af80b285",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "scopes": ["account:read", "profile:link"],
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:03:00.000Z"
+  },
+  "input": {
+    "method": "POST",
+    "path": "/v1/wallet/sessions/introspect",
+    "bodyDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "nonce": "proof_nonce_abcdefghijklmnopqrstu",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:00:30.000Z"
+  },
+  "proof": {
+    "version": "2",
+    "sessionBinding": "ba75a7657c220f7475ce3ae53785d46134cdfc2690a65fd606c88d811121720a",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "origin": "https://social.ynxweb4.com",
+    "method": "POST",
+    "path": "/v1/wallet/sessions/introspect",
+    "bodyDigest": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "nonce": "proof_nonce_abcdefghijklmnopqrstu",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:00:30.000Z",
+    "signature": "MEQCIC70J1c8s-6jBpgvwvhtdO2-Q2IXI-vUZYoc6gNmnZqKAiBWQc0KrfZW4CvpQP0DWG38Y-2Zl_bFuXEX3H94Fh62AA"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "scope": "Owned Desktop Pay renderer display and QR reference acceptance; not private authority or enabled production Pay",
+  "baseHead": "38913a103ac06290933229d68cecce46a878b9e7",
+  "source": "apps/wallet-desktop/src/wallet-pay-ui.mjs",
+  "sourceSHA256": "abd11e707e6fd5a77600afbcd16173aea666c8df28aea1a682c7d0d31d69aa2a",
+  "test": "apps/wallet-desktop/test/wallet-pay-display-boundary.test.mjs",
+  "testSHA256": "8fdf102c09d8c23c8476f23349df5985773fef5713011c07d3734584e11e7625",
+  "changes": [
+    "Require literal ok true for readiness, reviewed operations/history, and locally decoded QR response",
+    "Snapshot bounded primitive plain or null-prototype public DTOs without response getter or iterator execution; reject cycles custom prototypes sparse arrays symbols and excessive sizes",
+    "Detach and freeze stored display review original and history so later producer or consumer mutation cannot change retained facts",
+    "Recheck current sheet account key revision and lock after snapshot before publishing"
+  ],
+  "bounds": {"visits": 4096, "depth": 8, "stringCharacters": 512, "arrayLength": 50, "objectKeys": 64},
+  "validation": {
+    "originalGitBaseline": {"head": "38913a103ac06290933229d68cecce46a878b9e7", "pass": 0, "fail": 8, "exit": 1, "log": "pay-display-final-original-baseline.log", "sha256": "2c1d9ac498baaf7497cebd8d7173c4ebf39ac1e5c46316980012040a3f0eee13"},
+    "newRegression": {"pass": 8, "fail": 0, "exit": 0},
+    "actualServiceMountedAndLocaleBatch": {"command": "node --test --test-concurrency=1 test/wallet-pay-display-boundary.test.mjs test/wallet-pay-service-ui.test.mjs test/wallet-pay-locale.test.mjs", "pass": 44, "fail": 0, "exit": 0, "log": "pay-display-final-service-and-locale-after.log", "sha256": "38620ba51c574e5e266633728fb731e69c9c9bcab5e542d17283b2d4c2bbc96c"},
+    "matchingSdk": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d 1.2.0 in own isolated candidate; not live 1.1.0 fallback",
+    "diffCheck": "PASS"
+  },
+  "unchanged": ["shared SDK Auth registry", "Native App.tsx and startup assets", "Main service policy identity current authority and quote verification", "protected key signing settlement and original journal", "actual factory remains unavailable without genuine ports", "QR is reference-only no automatic review signing payment", "old account and UNKNOWN preservation"],
+  "nativeAppSHA256": "2d0a7e397d27f1387e25b111e48d8d9532f0971c3f3090959de460d06238a763",
+  "notVerified": ["independent review of this successor", "actual Electron contextBridge and OS camera", "real 37 platform producer", "real private business flow", "final installed upgrade", "official publication", "MONSTER"],
+  "overall": "NOT_COMPLETED"
+}

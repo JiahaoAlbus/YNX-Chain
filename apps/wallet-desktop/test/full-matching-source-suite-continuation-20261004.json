@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "baseline": "ece459f754f8fc5312c44a766f9986d650706fd6",
+  "candidate": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "matchingSDKSource": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "AFullFreeze": {"files": 782, "manifestSHA256": "7bd85f0cf52cf9b5a5f90516b08de7f9908f05c571362e6b56c430f8656cd5c3", "contentRoot": "52b2657c14feaa7a5ffb20b4bf6c00839554e6f0e79b3b57fc9299344869299e", "allFreshBytesMatched": true},
+  "nativeFullOriginalSuite": {"tests": 1077, "pass": 1068, "fail": 9, "exit": 1, "log": "native-complete-tests.log"},
+  "nativeFailures": {
+    "eightDesktopParityTargets": "Missing candidate Desktop SDK/dependency installation; original eight passed after original Desktop graph was cloned and same candidate SDK link verified. No signature/quote assertion changed.",
+    "registryTarget": "Unresolved source-contract difference: original owned assertion expects Music Android/iOS-only and Web refusal, while matching c5 registry declares Android/iOS/macOS/Web. No registry, expected assertion, scope or runtime grant changed in this batch.",
+    "postBindingTargets": {"tests": 8, "pass": 8, "fail": 0, "log": "native-desktop-parity-after-dependency-binding.log"}
+  },
+  "desktopFullOriginalSuite": {"tests": 1102, "pass": 1099, "fail": 3, "exit": 1, "log": "desktop-complete-tests.log"},
+  "desktopFailures": {
+    "twoRootInputs": "Candidate omitted original .gitattributes and Windows CI source files. Exact original Git inputs restored; only the two failed targets rerun, both passed. Original failures and intermediate missing-arm64-workflow preparation log preserved.",
+    "mountedContract": "Host-realm UI injected into VM renderer made a legitimate VM request fail the unchanged ordinary-prototype boundary before IPC. Fixture now mounts exact UI and renderer source in the same realm and copies public IPC results into that realm like contextBridge. All original request/result/cancel assertions retained; production UI unchanged.",
+    "postRootInputs": {"tests": 2, "pass": 2, "fail": 0, "log": "desktop-root-inputs-complete.log"},
+    "postMountedFixture": {"tests": 2, "pass": 2, "fail": 0, "log": "contract-mounted-same-realm.log"},
+    "contractSourceRegressionBatch": {"tests": 27, "pass": 27, "fail": 0, "log": "contract-whole-source-after-fixture.log", "unchangedPriorTargetsIncluded": 25}
+  },
+  "sourceChange": "One mounted-test fixture and this receipt only; no product App/Main/UI, shared SDK/registry, version, real account/key/UNKNOWN or A-stage edit.",
+  "softwareLock": "Matching SDK declares 1.2.0; original lock records 1.1.0. Full package/bin/subpath/install closure remains a composition task, not solved by these tests.",
+  "SDKExecutionScope": "Source tests evaluated exact SDK with original controlled fixtures. No real provider, private business, normal OS unlock, signing or deployment performed.",
+  "formalUpgrade": "QA source code22 is not a normal upgrade over original public code34.",
+  "genuineNative37AndPayFactory": "NOT_VERIFIED",
+  "MONSTER": "NOT_RUN",
+  "overall": "NOT_COMPLETED"
+}

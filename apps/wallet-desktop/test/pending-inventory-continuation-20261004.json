@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "57616502b980664967ec4b0ed4d6159e48f390c3",
+  "scope": "Owned Desktop complete pending inventory to existing check/exact-retry display path. Shared SDK, Main authority, private journal, receipt/retry producer, signing and Native App unchanged.",
+  "originalCounterexamples": "Original mounted renderer37 cases:26 PASS11 FAIL. Foreign account, invalid hash/status/amount/recipient, truthy retry, raw-bearing record, custom iterator/index/record getter and malformed second row could produce or retain public action rows.",
+  "repair": "Before any rendering, project exact literal successful envelope and dense ordinary own-data array into frozen primitive records bound to current account; no custom iterators/getters. Original journal enforces unique unresolved account, so producer list(account) admits zero or one record. Preserve five original in-memory status tags, literal retry flag, valid original hash/recipient and positive whole-YNXT formatEther amount through original int64 limit. Reject whole invalid list; remove previous visible rows on failure. Old buttons remain revision-retired. Failure envelope retains existing error display.",
+  "verification": {
+    "final": "101 PASS0 FAIL0 SKIP across six source-level files: transaction-resolution-display, transaction-resolution-mounted, transaction-history-ui, transaction-history-producer-ui, history-container-boundary and transaction-history-locale-mounted",
+    "producer": "Original TransactionSubmissions list/check/retry and receipt validator exercised with public controlled fixtures and original ethers formatting. Existing private store source unique-account and whole-YNXT/int64 invariants inspected; actual FileTransactionIntentStore/shared SDK/private journal not executed.",
+    "positive": "Empty/other-account inventories, legacy no-raw check-only path, all original in-memory status values, original maximum amount, immutable action target for both check and retry, and retirement of previous buttons after invalid replacement are covered.",
+    "fixtureCorrection": "Initial101=100 PASS1 FAIL: test tried second original button after first completion triggered existing revision refresh, correctly retiring that button. Changed test to fresh original mounted context per action; original retirement assertions unchanged and failure log retained, not misclassified as product failure.",
+    "evidenceDirectory": "/tmp/ynx-wallet-pending-inventory-20261004-VfRqSW",
+    "syntax": "renderer node --check and git diff --check exit0"
+  },
+  "remaining": ["Exact complete successor independent source review and A adoption", "Current complete SDK/factory admission", "Real retained-journal installed UNKNOWN recovery across platforms", "Current formal signing/notarization and matching website installers", "Actual camera/contracts/private Pay and user acceptance", "MONSTER NOT_RUN"],
+  "overallGoal": "NOT_COMPLETED"
+}

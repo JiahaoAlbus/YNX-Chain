@@ -1,0 +1,473 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { runInNewContext } from "node:vm";
+import test from "node:test";
+import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
+import { CANONICAL_RPC_URL, LEGACY_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
+import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
+import { createPasswordVaultUI } from "../src/password-vault-ui.mjs";
+
+test("desktop shell consumes the authoritative Product Session v2 contract and chain", async () => {
+  assert.equal(YNX_TESTNET_CHAIN_QUANTITY, "0x1917");
+  assert.equal(packagedChainId, YNX_TESTNET_CHAIN_QUANTITY);
+  assert.equal(YNX_EVM_CHAIN_ID, 6423);
+  const source = await readFile(new URL("../src/product-session-v2.js", import.meta.resolve("@ynx-chain/wallet-auth")));
+  assert.equal(WALLET_AUTH_PROTOCOL_SOURCE.sourceSha256, createHash("sha256").update(source).digest("hex"));
+  assert.equal(WALLET_AUTH_PROTOCOL_SOURCE.protocol, "product-session-v2");
+});
+
+test("desktop packaging exposes real platform installer formats", async () => {
+  const packageJson = JSON.parse(
+    await readFile(new URL("../package.json", import.meta.url), "utf8")
+  );
+
+  assert.match(packageJson.scripts["dist:windows"], /--win nsis/);
+  assert.match(packageJson.scripts["dist:mac"], /scripts\/build-mac\.mjs/);
+  assert.deepEqual(packageJson.build.mac.target, ["dmg"]);
+  assert.deepEqual(packageJson.build.win.target, ["nsis"]);
+  assert.equal(packageJson.build.mac.artifactName, "ynx-wallet-macos-${version}-${arch}.${ext}");
+  assert.equal(packageJson.build.win.artifactName, "ynx-wallet-desktop-${version}-${arch}.${ext}");
+  assert.equal(packageJson.build.win.executableName, "YNX Wallet");
+  assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
+  assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
+  const lock = JSON.parse(await readFile(new URL("../package-lock.json", import.meta.url), "utf8"));
+  assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(packageJson.version, lock.version);
+  assert.equal(packageJson.version, lock.packages[""].version);
+  assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
+  assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
+  assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
+});
+
+test("macOS packaging hook removes localhost transport exceptions", async () => {
+  const hook = await readFile(new URL("../scripts/after-pack.mjs", import.meta.url), "utf8");
+  assert.match(hook, /NSAppTransportSecurity/);
+  assert.match(hook, /NSAllowsArbitraryLoads: false/);
+  assert.match(hook, /NSAllowsLocalNetworking: false/);
+  assert.match(hook, /CFBundleURLTypes/);
+  assert.match(hook, /com\.ynxweb4\.wallet\.macos/);
+  assert.match(hook, /context\.packager\.appInfo\.version/);
+  assert.doesNotMatch(hook, /CFBundleShortVersionString[^\n]*0\.1\.2/);
+  assert.match(hook, /LSMinimumSystemVersion/);
+  assert.doesNotMatch(hook, /NSExceptionDomains/);
+});
+
+test("native Windows lifecycle drives visible provider authority and preserves missing WalletConnect fail-closed", async () => {
+  const gate = await readFile(new URL("../scripts/provider-authority-ui-gate.mjs", import.meta.url), "utf8");
+  const callbackGateGenerator = await readFile(new URL("../scripts/generate-callback-gate-urls.mjs", import.meta.url), "utf8");
+  const x64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows.yml", import.meta.url), "utf8");
+  const arm64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows-arm64.yml", import.meta.url), "utf8");
+  assert.match(gate, /#create-account/);
+  assert.match(gate, /window\.ynxWallet\.accountStatus\(\)/);
+  assert.match(gate, /window\.ynxWallet\.walletConnectStatus\(\)/);
+  assert.match(gate, /native\.custody === "os-encrypted-local"/);
+  assert.match(gate, /state\.selectedAccount === account/);
+  assert.match(gate, /native\.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE"/);
+  assert.match(gate, /secretDecryptionProved: false/);
+  assert.doesNotMatch(gate, /Secure Testnet account ready|OS-encrypted local custody|WalletConnect not configured/);
+  assert.match(callbackGateGenerator, /encodeProductSessionWalletURL/);
+  assert.match(callbackGateGenerator, /createProductSessionRequest/);
+  for (const workflow of [x64Workflow, arm64Workflow]) {
+    assert.match(workflow, /provider-authority-ui-gate\.mjs .* create/);
+    assert.match(workflow, /provider-authority-ui-gate\.mjs .* restore/);
+    assert.match(workflow, /providerAuthorityAccount/);
+    assert.match(workflow, /accountRestoredOnSecondLaunch = \$true/);
+    assert.match(workflow, /walletConnectConfigured = \$false/);
+    assert.match(workflow, /canonicalAuthorizeProtocolRegistered = \$true/);
+    assert.match(workflow, /canonicalAuthorizeCallbackReceived = \$true/);
+    assert.match(workflow, /callback-ui-gate\.mjs \$targets reject/);
+    assert.match(workflow, /callback-ui-gate\.mjs \$targets approve/);
+    assert.match(workflow, /verify-windows-callback-capture\.mjs/);
+    assert.match(workflow, /canonicalAuthorizeCallbackSignatureVerified = \$true/);
+    assert.match(workflow, /CloseMainWindow\(\)/);
+    assert.match(workflow, /WaitForExit\(15000\)/);
+    assert.doesNotMatch(workflow, /Stop-Process -Id \$(cold|second|failed)\.Id -Force/);
+    assert.match(workflow, /Uninstall YNX Wallet\.exe/);
+    assert.match(workflow, /-Filter 'YNX Wallet\.exe'/);
+  }
+});
+
+test("shell is explicit and fail closed", async () => {
+  const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
+  const main = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8");
+  const rpc = await readFile(new URL("../src/rpc.mjs", import.meta.url), "utf8");
+  assert.match(html, /Create secure Testnet account/);
+  assert.match(html, /WALLETCONNECT/);
+  assert.match(html, /id="provider-request"/);
+  assert.match(html, /Approve request/);
+  assert.match(html, /Reject request/);
+  assert.match(html, /Every message, typed-data and transaction request requires visible approval/);
+  assert.match(rpc, /payload\?\.result !== expectedChainId/);
+  assert.match(main, /CANONICAL_RPC_URL/);
+  assert.doesNotMatch(main, /https:\/\/evm\.ynxweb4\.com/);
+  assert.match(main, /wallet-auth-contract\.mjs/);
+  assert.match(main, /appVersion: app\.getVersion\(\)/);
+  assert.match(main, /externalAccountExposureRequiresOriginApproval: true/);
+  assert.match(main, /walletConnect\.status\(\)\.configured/);
+  assert.match(main, /app\.on\("open-url"/);
+  assert.match(main, /app\.requestSingleInstanceLock\(\)/);
+  assert.match(main, /app\.on\("second-instance"/);
+  assert.match(main, /extractYNXWalletProtocolUrl\(argv\)/);
+  assert.match(main, /app\.setAsDefaultProtocolClient\("ynxwallet"\)/);
+  assert.match(main, /app\.isDefaultProtocolClient\("ynxwallet"\)/);
+  assert.match(main, /callbackEmitted: false/);
+  assert.match(main, /CANONICAL_AUTHORIZATION_SIGN_FAILED/);
+  assert.match(await readFile(new URL("../src/callback-policy.mjs", import.meta.url), "utf8"), /CANONICAL_CALLBACK_LAUNCH_FAILED/);
+  assert.match(main, /OS_SECRET_DECRYPT_FAILED/);
+  assert.match(main, /AUTHORIZATION_TIME_INVALID/);
+  assert.match(await readFile(new URL("../src/renderer.js", import.meta.url), "utf8"), /underlyingCode/);
+  assert.match(main, /window\.isVisible\(\)/);
+  assert.match(main, /window\.getTitle\(\)/);
+});
+
+test("security invalidation clears old unlock success while an unchanged locked refresh preserves current feedback", async () => {
+  const renderer = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  const start = renderer.indexOf("function renderKeyState(state) {");
+  const end = renderer.indexOf("\npasswordUI = createPasswordVaultUI", start);
+  assert.ok(start >= 0 && end > start);
+  for (const fixture of [
+    { before: { locked: false, revision: 4 }, after: { locked: true, revision: 5 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
+    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 6 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
+    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 5 }, message: "The password is incorrect or the encrypted Wallet was changed.", expected: "The password is incorrect or the encrypted Wallet was changed." },
+    { before: { locked: false, revision: 5 }, after: { locked: false, revision: 5 }, message: "", expected: "" },
+    { before: { locked: false, revision: 5, account:"qa-one" }, after: { locked: false, revision: 5, account:"qa-two" }, message: "", expected: "" },
+    { before: { locked: false, revision: 5, authenticating:false }, after: { locked: false, revision: 5, authenticating:true }, message: "", expected: "" }
+  ]) {
+    const elements = new Map();
+    const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
+    document.querySelector("#unlock-result").textContent = fixture.message;
+    let invalidatedInputs = 0, invalidatedContracts = 0, invalidatedInvoices = 0, invalidatedFamilies = 0;
+    const copyHelper=renderer.match(/^function copyUI\([^\n]+/m)?.[0];assert.ok(copyHelper);
+    const invoiceClear=renderer.match(/^function clearInvoiceInput\([^\n]+/m)?.[0];assert.ok(invoiceClear);
+    const owners=renderer.slice(renderer.indexOf("let accountSecurityIntent="),renderer.indexOf('createAccount.addEventListener("click"'));
+    runInNewContext(`${copyHelper}\n${invoiceClear}\n${owners}\n${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
+      document, familyUI:{invalidate(){invalidatedFamilies++;}}, multichainUI:{render(){}}, keyState: fixture.before, securityViewRevision:0, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null,
+      passwordUI: { cancel() {}, render() {} }, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){invalidatedInvoices++;}}, contractUI: {clear() {invalidatedContracts++;}}, renderKeyDetail() {}, presentApproval() {}, invalidateWalletConnectSessions(){},invalidatePaymentInput() { invalidatedInputs++; }
+    });
+    assert.equal(document.querySelector("#key-security-title").textContent, fixture.after.locked ? "Wallet locked" : "Wallet unlocked");
+    assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
+    assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
+    assert.equal(invalidatedContracts, invalidatedInputs);
+    assert.equal(invalidatedInvoices, invalidatedInputs);
+    const familyChanged=["revision","locked","account","authenticating"].some(key=>fixture.before[key]!==fixture.after[key]);
+    assert.equal(invalidatedFamilies, familyChanged?1:0, "unchanged security refresh must preserve the family operation; real context changes must retire it");
+  }
+});
+
+async function sendEntryHarness() {
+  const source = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  const nodes = new Map(), calls = [];
+  let focused = null;
+  const get = selector => {
+    if (!nodes.has(selector)) {
+      const listeners = new Map();
+      const node = { value: "", textContent: "", hidden: false, disabled: false, open: false, dataset: {},
+        addEventListener(type, listener) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(listener); },
+        async emit(type) { for (const listener of listeners.get(type) ?? []) await listener({ preventDefault() {} }); },
+        click() { return this.disabled ? Promise.resolve() : this.emit("click"); },
+        children: [], append(...children) { this.children.push(...children);if(["#recovery-account","#recovery-history"].includes(selector))for(const child of children)if(child.selected||!this.value)this.value=child.value??""; }, replaceChildren(...children) { this.children = children;if(["#recovery-account","#recovery-history"].includes(selector))this.value=""; },
+        showModal() { this.open = true; }, close() { this.open = false; }, focus() { focused = selector; },
+        cloneNode() {const key=`replacement-${++elementId}`;const next=get(key);next.disabled=this.disabled;return next;},
+        replaceWith(next) {for(const [key,node]of nodes)if(node===this)nodes.set(key,next);}
+      };
+      nodes.set(selector, node);
+    }
+    return nodes.get(selector);
+  };
+  let elementId = 0;
+  const document = { querySelector: get, createElement: () => get(`fixture-element-${++elementId}`), createTextNode: text => ({textContent: text}), querySelectorAll(selector) {
+    if (selector === "dialog[open]") return [...nodes].filter(([key, node]) => /sheet|review/.test(key) && node.open).map(([, node]) => node);
+    if (selector.includes("input[type=") || selector === "#password-sheet input,#recovery-sheet input") return [get("#local-password"), get("#local-confirm")];
+    if (selector === "[data-custody-cancel]") return [get("#custody-cancel")];
+    return selector.split(",").map(get);
+  } };
+  const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
+  const sendMarkup = html.match(/<button[^>]*id="open-send"[^>]*>([^<]+)<\/button>/);
+  assert.ok(sendMarkup, "Actual Send entry markup is required");
+  get("#open-send").textContent = sendMarkup[1];
+  const account = { initialized: true, passwordConfigured: true, account: "qa-public-account", accounts: [], balance: "111" };
+  const api = {
+    async unlock(input) { calls.push(["unlock", input]); return { ok: false, error: { message: "Fixture password rejected" } }; },
+    async setupPassword() { calls.push(["setup"]); throw new Error("Unexpected setup"); },
+    async lock() { calls.push(["lock"]); return context.keyState; },
+    async accountStatus() { return { ok: true, value: account }; },
+    async prepareTransfer() { calls.push(["prepare"]); return { ok: false, error: { message: "Fixture refuses transfer" } }; },
+    async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
+  };
+  const context = { document, window: { ynxWallet: api }, accountViewRevision:0, securityViewRevision:0, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+    signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {}, suspend() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
+    familyUI:{invalidate(){}}, multichainUI:{render(){}}, paymentDraftRevision: 0, invoiceUI: {clear() {}}, invoiceQR:{invalidate(){}}, contractUI: {clear() {}}, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
+    invalidateWalletConnectSessions(){},invalidatePaymentInput() { context.paymentDraftRevision++; },
+  };
+  const extract = (startText, endText) => {
+    const start = source.indexOf(startText), end = source.indexOf(endText, start);
+    assert.ok(start >= 0 && end > start, `Actual renderer fragment missing: ${startText}`);
+    return source.slice(start, end);
+  };
+  runInNewContext([
+    source.match(/^function copyUI\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual copy helper missing")})(),
+    source.match(/^function clearInvoiceInput\([^\n]+/m)?.[0] ?? (()=>{throw Error("Actual invoice clear missing")})(),
+    extract("let accountSecurityIntent=",'createAccount.addEventListener("click"'),
+    extract("function renderKeyDetail()", "\npasswordUI = createPasswordVaultUI"),
+    extract('document.querySelector("#open-send").addEventListener', '\ndocument.querySelector("#send-sheet").addEventListener'),
+    extract('document.querySelector("#transfer-form").addEventListener', "\nfunction setView(name)"),
+  ].join("\n"), context);
+  context.passwordUI = createPasswordVaultUI({ api, document, getKeyState: () => context.keyState, getAccountStatus: () => account, renderAccount() {} });
+  const render = patch => { context.renderKeyState({ ...context.keyState, ...patch }); };
+  render({});
+  return { context, get, calls, api, render, account, focused: () => focused };
+}
+
+test("locked Send opens the existing password form without unlocking or preparing a transaction", async () => {
+  const h = await sendEntryHarness();
+  for (const balance of ["111", "0"]) {
+    h.account.balance = balance; h.render({});
+    assert.equal(h.get("#open-send").textContent, "Unlock to send");
+    assert.equal(h.get("#open-send").disabled, false);
+    await h.get("#open-send").click();
+    assert.equal(h.get("#password-sheet").open, true);
+    assert.equal(h.get("#password-title").textContent, "Unlock Wallet");
+    assert.equal(h.focused(), "#local-password");
+    assert.equal(h.get("#send-sheet").open, false);
+    assert.deepEqual(h.calls, []);
+    h.context.passwordUI.cancel();
+  }
+});
+
+test("unchanged security notifications preserve the actual pending Prepare owner, but an edited draft releases it",async()=>{
+  const h=await sendEntryHarness();h.render({locked:false,revision:2});
+  h.get("#send-sheet").open=true;h.get("#transfer-to").value="public-recipient";h.get("#transfer-amount").value="1";
+  let reject;h.api.prepareTransfer=()=>new Promise((_yes,no)=>{reject=no});
+  const job=h.get("#transfer-form").emit("submit");assert.equal(h.get("#prepare-transfer").disabled,true);
+  h.render({});assert.equal(h.get("#prepare-transfer").disabled,true);
+  h.context.invalidatePaymentInput();h.render({});assert.equal(h.get("#prepare-transfer").disabled,false);
+  h.get("#transfer-result").textContent="edited draft";reject(Error("old failure"));await job;
+  assert.equal(h.get("#transfer-result").textContent,"edited draft");assert.equal(h.get("#prepare-transfer").disabled,false);
+});
+
+test("unchanged security notifications cannot release a pending explicit transfer approval",async()=>{
+  const h=await sendEntryHarness();h.render({locked:false,revision:2});
+  h.get("#transfer-review").open=true;h.context.transferReview={id:"original-review"};let reject;
+  h.api.transferAction=()=>new Promise((_yes,no)=>{reject=no});
+  const job=h.context.actOnTransfer("approve");assert.equal(h.get("#confirm-transfer").disabled,true);
+  h.render({});assert.equal(h.get("#confirm-transfer").disabled,true);
+  h.render({locked:true,revision:3});h.get("#transfer-result").textContent="new locked view";
+  reject(Error("old unknown response"));await job;assert.equal(h.get("#transfer-result").textContent,"new locked view");
+  assert.equal(h.get("#confirm-transfer").disabled,true);assert.equal(h.context.transferInFlight,false);
+});
+
+for (const outcome of ["success", "failure", "throw"]) test(`cancelled recovery ${outcome} cannot replace a newer password journey`, async () => {
+  const h = await sendEntryHarness();
+  h.account.accounts = [{account: h.account.account, ynxAccount: "public-fixture-account"}];
+  h.api.lock = async () => { h.render({ locked: true, revision: h.context.keyState.revision + 1 }); return h.context.keyState; };
+  h.api.recoveryHistory = async () => ({ok:true,value:[]});
+  h.api.prepareRecovery = async () => ({ok:true,value:{previewId:"owned-preview",account:h.account.account,resetPassword:false,recoveryRequiredAccounts:[],expiresAt:Date.now()+60_000}});
+  await h.get("#recover-wallet").click();
+  assert.equal(h.get("#recovery-sheet").open, true);
+  h.get("#recovery-kind").value = "private-key";
+  await h.get("#recovery-form").emit("submit");
+  assert.equal(h.get("#recovery-review").hidden, false);
+  let finish, fail, statusReads = 0;
+  h.api.commitRecovery = () => new Promise((resolve,reject) => {finish=resolve;fail=reject;});
+  h.api.accountStatus = async () => {statusReads++;return {ok:true,value:h.account};};
+  const old = h.get("#commit-recovery").click();
+  await h.get("#custody-cancel").click();
+  await h.get("#open-send").click();
+  h.get("#local-password").value = "new-fixture-draft";
+  h.get("#unlock-result").textContent = "new journey notice";
+  if(outcome === "throw") fail(Error("old recovery failed"));
+  else finish(outcome === "success" ? {ok:true} : {ok:false,error:{message:"old recovery rejected"}});
+  await old;
+  assert.equal(h.get("#unlock-result").textContent,"new journey notice");
+  assert.equal(h.get("#local-password").value,"new-fixture-draft");
+  assert.equal(h.get("#password-sheet").open,true);
+  assert.equal(statusReads,0);
+});
+
+test("Send cannot bypass unavailable or in-progress unlock, including direct handler invocation", async () => {
+  for (const patch of [{ unlockAvailable: false }, { authenticating: true }]) {
+    const h = await sendEntryHarness(); h.render(patch);
+    assert.equal(h.get("#open-send").disabled, true);
+    await h.get("#open-send").emit("click");
+    assert.equal(h.get("#password-sheet").open, false); assert.equal(h.get("#send-sheet").open, false);
+    await h.get("#transfer-form").emit("submit");
+    h.context.transferReview = { id: "old-review" };
+    await h.context.actOnTransfer("approve");
+    assert.deepEqual(h.calls, []);
+  }
+});
+
+test("password failure and cancellation preserve locked Send and do not prepare or submit", async () => {
+  const h = await sendEntryHarness(); await h.get("#open-send").click();
+  h.get("#local-password").value = "local-fixture-password";
+  await h.get("#password-form").emit("submit");
+  assert.equal(h.calls.length, 1); assert.equal(h.calls[0][0], "unlock");
+  assert.equal(h.get("#password-result").textContent, "Fixture password rejected");
+  assert.equal(h.context.keyState.locked, true); assert.equal(h.get("#send-sheet").open, false);
+  await h.get("#custody-cancel").click();
+  assert.equal(h.get("#password-sheet").open, false); assert.equal(h.get("#local-password").value, "");
+  assert.equal(h.get("#open-send").textContent, "Unlock to send");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+test("actual password form localizes only the owned permission refusal in all twelve languages and retains the locked journey", async () => {
+  const {initWalletLocale,WALLET_LOCALES,WALLET_COPY}=await import("../src/wallet-locale.mjs");
+  const {PERMISSION_STORE_NOTICE}=await import("../src/wallet-locale-permissions.mjs");
+  const h=await sendEntryHarness();
+  const doc={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]};
+  for(const key of ["#password-result","#unlock-result"])h.get(key).ownerDocument=doc;
+  const locale=initWalletLocale({document:doc});
+  h.api.unlock=async()=>({ok:false,error:{code:"PERMISSION_STORE_INVALID",message:PERMISSION_STORE_NOTICE}});
+  await h.get("#open-send").click();await h.get("#password-form").emit("submit");
+  for(const language of WALLET_LOCALES){locale.select(language);for(const key of ["#password-result","#unlock-result"])assert.equal(h.get(key).textContent,WALLET_COPY[language][PERMISSION_STORE_NOTICE]);}
+  assert.equal(h.context.keyState.locked,true);assert.equal(h.get("#send-sheet").open,false);assert.deepEqual(h.calls,[]);
+  h.api.unlock=async()=>({ok:false,error:{code:"REMOTE_ERROR",message:"Raw original <diagnostic> العربية"}});
+  await h.get("#password-form").emit("submit");locale.select("zh-Hans");
+  assert.equal(h.get("#password-result").textContent,"Raw original <diagnostic> العربية");
+});
+
+test("a successful explicit unlock still needs a new Send click and subsequent lock closes the draft", async () => {
+  const h = await sendEntryHarness();
+  h.api.unlock = async input => { h.calls.push(["unlock", input]); h.render({ locked: false, revision: 2 }); return { ok: true }; };
+  await h.get("#open-send").click(); h.get("#local-password").value = "local-fixture-password";
+  await h.get("#password-form").emit("submit");
+  assert.equal(h.get("#send-sheet").open, false); assert.equal(h.get("#open-send").textContent, "Send YNXT");
+  await h.get("#open-send").click();
+  assert.equal(h.get("#send-sheet").open, true); assert.equal(h.focused(), "#transfer-to");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+  h.render({ locked: true, revision: 3 });
+  assert.equal(h.get("#send-sheet").open, false); assert.equal(h.get("#open-send").textContent, "Unlock to send");
+  assert.equal(h.get("#prepare-transfer").disabled, true); assert.equal(h.get("#confirm-transfer").disabled, true);
+  await h.get("#transfer-form").emit("submit");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+
+for(const outcome of ["old-locked-same-generation","old-unlocked-before-lock","failure"])test(`initial security ${outcome} cannot undo a newer real security event`,async()=>{
+  const h=await sendEntryHarness(),source=await readFile(new URL("../src/renderer.js",import.meta.url),"utf8");
+  let notify,resolve,reject;
+  h.api.onSecurityState=callback=>{notify=callback;};h.api.securityStatus=()=>new Promise((yes,no)=>{resolve=yes;reject=no;});
+  const start=source.indexOf("window.ynxWallet.onSecurityState?.(renderKeyState)"),end=source.indexOf('document.querySelector("#lock-wallet").addEventListener',start);
+  assert.ok(start>=0&&end>start);runInNewContext(source.slice(start,end),h.context);
+  const next=outcome==="old-locked-same-generation"?{...h.context.keyState,locked:false}:{...h.context.keyState,locked:true,revision:2};notify(next);
+  h.get("#key-security-detail").textContent="new security notice";
+  if(outcome==="failure")reject(Error("old status failed"));else resolve({...next,locked:!next.locked,revision:outcome==="old-unlocked-before-lock"?1:next.revision});
+  await new Promise(done=>setImmediate(done));
+  assert.equal(h.context.keyState.locked,next.locked);assert.equal(h.context.keyState.revision,next.revision);assert.equal(h.get("#key-security-detail").textContent,"new security notice");
+});
+test("an older generation security notification cannot unlock the current locked view",async()=>{
+  const h=await sendEntryHarness();h.render({locked:true,revision:4});h.get("#local-password").value="new draft";
+  h.render({locked:false,revision:3});assert.equal(h.context.keyState.locked,true);assert.equal(h.context.keyState.revision,4);assert.equal(h.get("#local-password").value,"new draft");
+});
+
+for(const source of ["accountStatus","recoveryHistory"])for(const outcome of ["failure","throw"])test(`recovery opening retains records and reports ${source} ${outcome} without unhandled rejection`,async()=>{
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>({ok:true,value:[]});
+  h.api[source]=async()=>{if(outcome==="throw")throw Error("local read failed");return {ok:false,error:{message:"retained-file refusal"}};};
+  await h.get("#recover-wallet").click();
+  assert.equal(h.context.keyState.locked,true);assert.equal(h.account.accounts.length,1);
+  if(source==="accountStatus"){assert.equal(h.get("#recovery-sheet").open,false);assert.match(h.get("#unlock-result").textContent,outcome==="throw"?/Reopen the current Wallet/:/retained-file refusal/);}
+  else {assert.equal(h.get("#recovery-sheet").open,true);assert.match(h.get("#recovery-result").textContent,/history is unavailable/);}
+  assert.equal(h.calls.some(([kind])=>["setup","prepare","send"].includes(kind)),false);
+});
+for(const source of ["accountStatus","recoveryHistory"])test(`late recovery ${source} rejection cannot overwrite a newer password draft`,async()=>{
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>({ok:true,value:[]});
+  let reject,entered;const ready=new Promise(resolve=>{entered=resolve;});
+  h.api[source]=()=>new Promise((_resolve,no)=>{reject=no;entered();});
+  const pending=h.get("#recover-wallet").click();await ready;
+  await h.get("#unlock-wallet").click();h.get("#local-password").value="new-fixture-draft";h.get("#unlock-result").textContent="new journey notice";
+  reject(Error("old read failed"));await pending;
+  assert.equal(h.get("#password-sheet").open,true);assert.equal(h.get("#local-password").value,"new-fixture-draft");assert.equal(h.get("#unlock-result").textContent,"new journey notice");assert.equal(h.get("#recovery-sheet").open,false);
+});
+test("actual unavailable recovery history notice covers all twelve locales without disabling offline-backup recovery",async()=>{
+  const {initWalletLocale,WALLET_LOCALES,WALLET_COPY}=await import("../src/wallet-locale.mjs");
+  const {RECOVERY_HISTORY_NOTICE}=await import("../src/wallet-locale-password.mjs");
+  const h=await sendEntryHarness();h.account.accounts=[{account:h.account.account,ynxAccount:"public-fixture-account"}];
+  h.api.lock=async()=>{h.render({locked:true,revision:h.context.keyState.revision+1});return h.context.keyState;};
+  h.api.recoveryHistory=async()=>{throw Error("history unavailable");};
+  const doc={documentElement:{},querySelector:()=>null,querySelectorAll:()=>[]};h.get("#recovery-result").ownerDocument=doc;const locale=initWalletLocale({document:doc});
+  await h.get("#recover-wallet").click();
+  for(const language of WALLET_LOCALES){locale.select(language);assert.equal(h.get("#recovery-result").textContent,WALLET_COPY[language][RECOVERY_HISTORY_NOTICE]);}
+  assert.equal(h.get("#recovery-sheet").open,true);assert.equal(h.get("#recovery-form").hidden,false);assert.equal(h.get("#recovery-kind").disabled,false);assert.equal(h.get("#prepare-recovery").disabled,false);
+  assert.equal(h.account.accounts.length,1);assert.equal(h.context.keyState.locked,true);
+});
+
+for (const operation of ["unlock", "setup", "migrate"]) for (const outcome of ["success", "failure", "throw"]) test(`cancelled password ${operation} ${outcome} cannot publish into a newer password journey`, async () => {
+  const h = await sendEntryHarness();
+  h.account.passwordConfigured = operation === "unlock";
+  h.account.initialized = operation !== "setup";
+  let finish, fail, statusReads = 0;
+  h.api.unlock = h.api.setupPassword = () => new Promise((resolve, reject) => { finish = resolve; fail = reject; });
+  h.api.accountStatus = async () => { statusReads++; return { ok: true, value: h.account }; };
+  await h.get("#unlock-wallet").click();
+  h.get("#local-password").value = "old-fixture-password";
+  h.get("#local-confirm").value = "old-fixture-password";
+  const old = h.get("#password-form").emit("submit");
+  await h.get("#custody-cancel").click();
+  await h.get("#unlock-wallet").click();
+  h.get("#local-password").value = "new-fixture-draft";
+  h.get("#unlock-result").textContent = "new journey notice";
+  if (outcome === "throw") fail(Error("old request failed"));
+  else finish(outcome === "success" ? { ok: true } : { ok: false, error: { message: "old request rejected" } });
+  await old;
+  assert.equal(h.get("#unlock-result").textContent, "new journey notice");
+  assert.equal(h.get("#password-result").textContent, "");
+  assert.equal(h.get("#local-password").value, "new-fixture-draft");
+  assert.equal(h.get("#password-sheet").open, true);
+  assert.equal(statusReads, 0, "an obsolete operation cannot start a status refresh for the newer view");
+});
+
+test("private Product Session methods cannot alter the independent standard Provider connection", async () => {
+  const provider = { async request({ method }) { return method === "eth_requestAccounts" ? ["0x1234567890abcdef1234567890abcdef12345678"] : "0x1917"; } };
+  const client = new StandardWalletConnection({ provider, origin: "https://example.test", metadata: { name: "Standard DApp", url: "https://example.test" } });
+  const connected = await client.connect();
+  await assert.rejects(client.request({ method: "ynx_productSession" }), error => error.code === 4200);
+  assert.equal(client.current, connected);
+  assert.equal(client.current.connected, true);
+  assert.equal(client.current.selectedChain, "0x1917");
+  assert.equal(client.current.selectedAccount, "0x1234567890abcdef1234567890abcdef12345678");
+});
+
+test("RPC probe uses canonical HTTPS, proves 0x1917, and classifies failures", async () => {
+  const successFetch = async () => new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x1917" }), { status: 200 });
+  assert.deepEqual(await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: successFetch }), {
+    available: true,
+    chainId: "0x1917",
+    endpoint: new URL(CANONICAL_RPC_URL).href,
+    errorCode: null,
+    signingEnabled: false,
+    attemptedEndpoints: [CANONICAL_RPC_URL],
+    fallbackUsed: false
+  });
+  for (const rpcUrl of ["http://rpc.ynxweb4.com/evm", "https://localhost:6420", "https://127.0.0.1:6420"]) {
+    const rejected = await probeYNXTestnetRPC({ rpcUrl, expectedChainId: "0x1917", fetchImpl: successFetch });
+    assert.equal(rejected.available, false);
+    assert.equal(rejected.errorCode, "RPC_ENDPOINT_REJECTED");
+  }
+  const wrongChainFetch = async () => new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: "0x1" }), { status: 200 });
+  assert.equal((await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: wrongChainFetch })).errorCode, "RPC_CHAIN_MISMATCH");
+  const unavailableFetch = async () => { throw new TypeError("unreachable"); };
+  assert.equal((await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: unavailableFetch })).errorCode, "RPC_UNAVAILABLE");
+
+  const attempts = [];
+  const fallback = await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: async url => {
+    attempts.push(url);
+    if (url === new URL(CANONICAL_RPC_URL).href) throw new TypeError("canonical unreachable");
+    return successFetch();
+  } });
+  assert.equal(fallback.available, true);
+  assert.equal(fallback.endpoint, LEGACY_RPC_URL);
+  assert.deepEqual(fallback.attemptedEndpoints, [CANONICAL_RPC_URL, LEGACY_RPC_URL]);
+  assert.equal(fallback.fallbackUsed, true);
+  assert.deepEqual(attempts, [new URL(CANONICAL_RPC_URL).href, LEGACY_RPC_URL]);
+
+  const wrongChainAttempts = [];
+  await probeYNXTestnetRPC({ expectedChainId: "0x1917", fetchImpl: async url => {
+    wrongChainAttempts.push(url);
+    return wrongChainFetch();
+  } });
+  assert.deepEqual(wrongChainAttempts, [new URL(CANONICAL_RPC_URL).href]);
+});

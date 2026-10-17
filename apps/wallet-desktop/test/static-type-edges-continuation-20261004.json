@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "baseline": "402113f43d46c7b009499368e142fdf4ca58346c",
+  "defect": "The previous direct-module-edge helper dropped all-specifier-type import/export-from declarations, but verbatimModuleSyntax can emit empty import/export-from declarations that still load the module.",
+  "proof": {
+    "tool": "Local TypeScript compiler used only to transpile synthetic strings; no SDK execution",
+    "version": "6.0.3",
+    "compilerSHA256": "569177652966bd528c319171c7dd22860dbf72bde116cbc4f644f1d02bb12e39",
+    "verbatimTrue": "Emits import {} and export {} from the two original module paths",
+    "verbatimFalse": "Erases both edges",
+    "actualProductEmitterMode": "NOT_VERIFIED"
+  },
+  "repair": "Conservatively retain compiler-dependent specifier-only type module edges. Declaration-level import/export type remains excluded. Runtime imported-name diagnostics remain unchanged.",
+  "tests": {"original": "9 PASS / 1 FAIL", "final": "10 PASS / 0 FAIL / 0 SKIP"},
+  "testCorrection": "Previous mixed/type edge case expected omission incorrectly; corrected module-edge expectation preserves all existing mixed/declaration checks and adds an independently failing verbatim regression. Named SDK type-import exclusion test is unchanged.",
+  "originalSDKFourJavaScriptSources": "Hashes matched; direct edges remain 57 index reexports plus 6, 1 and 5 imports.",
+  "currentSDK": "SOURCE_IMPORT_MISMATCH: 13 names / 25 uses",
+  "evidenceDirectory": "/tmp/ynx-wallet-static-type-edges-20261004-8juyG8",
+  "limits": ["Potentially-runtime direct ESM edge upper bound, not whole executable graph", "No SDK module execution, copying, alias or shared-source change", "Product App/Main, accounts, keys, UNKNOWN and installer state unchanged", "Prior 402 freeze and errors retained", "Independent review NOT_RUN; MONSTER NOT_RUN; overall goal NOT_COMPLETED"]
+}

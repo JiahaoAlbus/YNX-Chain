@@ -1,0 +1,30 @@
+{
+  "kind": "OWNED_MATCHING_SOURCE_CONTINUATION",
+  "date": "2026-10-04",
+  "baseProductHead": "7f63eff696026ab57b6532035a849661fde56185",
+  "matchingSdkHead": "c5e4178bb548baa05f552e8e1bc0f566ddc6f72d",
+  "matchingSdkTree": "01ec8a64f1472fefa99d9c20a733a23ac20d7b65",
+  "frozenInputManifestSha256": "7bd85f0cf52cf9b5a5f90516b08de7f9908f05c571362e6b56c430f8656cd5c3",
+  "candidateRoot": "/tmp/ynx-wallet-owned-matching-suite-20261004-dWCPfk",
+  "changes": [
+    "Synchronize registry tests to exact frozen Music Android iOS macOS Web identity contract; retain payer and merchant authority restrictions",
+    "Add Linux Windows rejection, native to Web callback rejection, and payer merchant invented private scope rejection",
+    "Native and Desktop package-lock differ only at ../../packages/wallet-auth metadata, exact byte match to offline npm generated locks"
+  ],
+  "validation": {
+    "registry": {"pass": 4, "fail": 0, "exit": 0, "log": "registry-matching-contract-after-type-fix.log", "sha256": "27fe8e98f505f2b9d05f2c573d8160ea513e3eca9d5e1998b3cff9674af4ec6d"},
+    "nativeTypecheck": {"exit": 0, "log": "native-post-contract-typecheck-after-fix.log", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "sdkOfflineLockedInstall": {"exit": 0, "ignoreScripts": true, "workspace": false, "packagesAdded": 113, "log": "sdk-locked-install-offline-after-space-recovery.log", "sha256": "d08c0ff72d31440db766699e7c50c46e6933c6baf622afaa56fb7514d6483f0e"},
+    "sdkInstalledDirectVersions": {"@noble/curves": "2.2.0", "@noble/hashes": "2.2.0", "@walletconnect/sign-client": "2.23.10", "qrcode": "1.5.4"},
+    "diffCheck": "PASS"
+  },
+  "preservedFailures": {
+    "sdkInstall": {"exit": 1, "reason": "ENOSPC", "log": "sdk-locked-install-offline.log", "sha256": "f3e0a0d6c1b5257db0b65523ee8c4fee1793425e135eb9b82085297513f9e0cf"},
+    "initialTypecheck": {"exit": 2, "reason": "test platform string inference TS2322; fixed with literal type", "log": "native-post-contract-typecheck.log", "sha256": "78a9ddb8c5cfe23371423f11d308c5742e065959c893fd34b4dc2c60a419ede9"},
+    "fullSuite": "Original Native 1068/1077 and Desktop 1099/1102 red logs preserved in previous full-suite handoff; this is a focused recovery, not a fresh all-green full-suite run"
+  },
+  "resourceRecovery": {"receipt": "native-resource-recovery-20261004.json", "sha256": "f27864856e6e745458461b2b7521afe9f5b4d6bf697058713f31536123869c78", "removed": "Only owned no-holder iOS intermediates and caches; cannot claim removed paths as retained artifacts", "preserved": "Products source dependencies logs accounts keys databases UNKNOWN and immutable handoffs"},
+  "integrationBoundary": "These owned locks target A frozen SDK 1.2.0; live worktree shared SDK remains 1.1.0. Do not claim the live checkout has integrated shared source or run its old SDK as a substitute",
+  "notVerified": ["whole Native or Desktop fresh install closure", "SDK CLI execution and subpath install closure", "production 37 platform factory", "actual private backend or key lease", "actual OS signing approval business journey", "final installer upgrade", "website publication", "independent review of this successor", "MONSTER"],
+  "overall": "NOT_COMPLETED"
+}

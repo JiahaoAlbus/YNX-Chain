@@ -1,0 +1,497 @@
+{
+  "schemaVersion": 1,
+  "kind": "YNX_WALLET_ORIGINAL_NATIVE_BUILD",
+  "relativeBases": {
+    "inputFiles": "repository-root",
+    "output": "repository-root",
+    "headers": "pinned-header-root"
+  },
+  "sourceRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source",
+  "headerRoot": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node",
+  "napiVersion": 8,
+  "headerVersion": "22.13.1",
+  "minimumSystemVersion": "13.0",
+  "architectures": [
+    "arm64"
+  ],
+  "commandsKind": "normal-build-plan",
+  "commands": [
+    {
+      "tool": "/usr/bin/clang++",
+      "argv": [
+        "-std=c++17",
+        "-fobjc-arc",
+        "-dynamiclib",
+        "-undefined",
+        "dynamic_lookup",
+        "-DNAPI_VERSION=8",
+        "-mmacosx-version-min=13.0",
+        "-I/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node",
+        "-I/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native",
+        "-framework",
+        "Foundation",
+        "-framework",
+        "Security",
+        "-lbsm",
+        "-arch",
+        "arm64",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-node.mm",
+        "-o",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/apps/wallet-desktop/native/original-auth-identity.node"
+      ]
+    }
+  ],
+  "inputFiles": [
+    {
+      "relative": "apps/wallet-desktop/native/original-auth-identity-node.mm",
+      "bytes": 42981,
+      "sha256": "6ddf21be464f24c3decb9208b5a9cab0b3a6daed941ca701bd80e9e73fba4741"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-joint-owner.h",
+      "bytes": 980,
+      "sha256": "a29c61d6345a78bb7807d369ba3e8fa8d2e5c999c5ee57d4d8e24f2faa40bcd9"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+      "bytes": 10675,
+      "sha256": "1c1d1119ae1c80688d23ae87c14603282b82fc36a571369ea0278047e59b1124"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs",
+      "bytes": 1838,
+      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-native-release.h",
+      "bytes": 847,
+      "sha256": "c890ef905a583ab4f019abc1316cb0620d3b25f8aa5fb552513743a2bce7593e"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-source-authority.h",
+      "bytes": 2716,
+      "sha256": "f783162a41a8d827b3cd235e365047c123011f9bd4e800f1bcc5bea2e09e8014"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+      "bytes": 16913,
+      "sha256": "3d38f2384b4c17ab59755e3bb20c6cd69e91ba106edcec8fdb9e311bfa6a57fe"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
+      "bytes": 8851,
+      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-auth-identity-source-verifier.mjs",
+      "bytes": 14212,
+      "sha256": "c2ea179983d082ad362017a9c15036ef23cb9ac3e8eac70dc7836cc06846ddf3"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-host-dirfd-journal.h",
+      "bytes": 8863,
+      "sha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-joint.inc.mm",
+      "bytes": 34023,
+      "sha256": "fb4e5de63dac3e1d87db7a4a50d6403f53b4dac92a3accf759ed0fb4f93ad54b"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-kernel.h",
+      "bytes": 1183,
+      "sha256": "e040bb3f95cc0ee21432243bd6acc155b291bfb8804f1928fb929f8605eab6e2"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-kernel.mm",
+      "bytes": 8223,
+      "sha256": "6937d0e337632778f2a3d4712bb8e7e5f865c9858ffea3317eeb9f17fc6d74ce"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-lifetime.h",
+      "bytes": 3841,
+      "sha256": "893e9a1e55306589357f61d8a52f97e410464bb5b12b2cc30a18c99127ec7fa3"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-node.h",
+      "bytes": 550,
+      "sha256": "acb96a6f5d6c7046b9724ad8ea7afb8758671050dd014d32a7f3890cad191156"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-node.mm",
+      "bytes": 9245,
+      "sha256": "46745a8bdb25ad419ed9f08a1b00d6d045943b223c6d9fcde9d3bfae2468456a"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-observation.h",
+      "bytes": 1321,
+      "sha256": "9ec1cf58d69f5bdff5448619f2b6e663ce0f0717060c36b14195a76eb13fd264"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-observation.mm",
+      "bytes": 11812,
+      "sha256": "c6ec72a4e2f30f04750185c5d451ba9ec2ed23f555bbd351c37d2d6df062b109"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-prelude.h",
+      "bytes": 4851,
+      "sha256": "f8a3fd797c6ec21b80c4d44986ded1974396a193385e137af515b5998674f83f"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-source-binding.h",
+      "bytes": 1001,
+      "sha256": "61fc21b1e49f2f36647b4622b67aa84e2047335b2bdff81386c0a8cbe6cc2127"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+      "bytes": 6521,
+      "sha256": "7535ddab40c43ed717aec7466feec63fa886e51b1671a0dd1e05364ba5286e38"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-parent-transport.h",
+      "bytes": 2271,
+      "sha256": "cd8df5682e8bec39032a68b6ea3d0bf6a3b0324bc5b1f15d9c47eb3605bb3e4a"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-ide-public-originals.h",
+      "bytes": 736,
+      "sha256": "9bbc4e7630e59d71bc038b3924f0ed0810e2433ec86bad854d671ec2a7d9edb9"
+    }
+  ],
+  "headers": [
+    {
+      "relative": "js_native_api.h",
+      "bytes": 32182,
+      "sha256": "89393f07881fcba3ed097a5989fba1746f1c2cf611f19ba4dcb17071da8a661e"
+    },
+    {
+      "relative": "js_native_api_types.h",
+      "bytes": 7033,
+      "sha256": "0410c31e227f81e2981363c4d543f4832ac3df785343ec64cee621742ff8a034"
+    },
+    {
+      "relative": "node.h",
+      "bytes": 68726,
+      "sha256": "82a29424389bfcd828f97e243a71cb3e7ad92e3d2024ad41ab16469a488179f7"
+    },
+    {
+      "relative": "node_api.h",
+      "bytes": 10731,
+      "sha256": "a6d6732d02b9ece6b53168edc3f8a53af2653db6a7ae13b1c03987e32e2d0125"
+    },
+    {
+      "relative": "node_api_types.h",
+      "bytes": 1603,
+      "sha256": "8d5d854088d5725fec9775510e0aeeeb790a41ad083c49bb721d950b86e6bd61"
+    },
+    {
+      "relative": "node_buffer.h",
+      "bytes": 3684,
+      "sha256": "48077ade87e863a88e75a74c61fd948cb9ae16d7546cc5d61e1207fc95a7ac48"
+    },
+    {
+      "relative": "node_object_wrap.h",
+      "bytes": 3867,
+      "sha256": "c16090af77c11039e6982761b71ad555f08cceb9bf800791048d4311bd839e99"
+    },
+    {
+      "relative": "node_version.h",
+      "bytes": 4242,
+      "sha256": "bb880b41f17b217d6598f47bc3df2eac2caf32aa4d090e36623e58b2f4cbf2b1"
+    },
+    {
+      "relative": "uv.h",
+      "bytes": 71889,
+      "sha256": "7262275e50a1bf5820072946868905c00aa536465f2cfdcd79dc652bc53d048d"
+    },
+    {
+      "relative": "v8-array-buffer.h",
+      "bytes": 18018,
+      "sha256": "100c296b235cb34bd7313569796a1411e8bc5f184f2e3c4564280753d41fd8a3"
+    },
+    {
+      "relative": "v8-callbacks.h",
+      "bytes": 16993,
+      "sha256": "df80fbd76ad6bcda6e2943b885478a855173ae6b1d3d82c8eba7fa2c63218eee"
+    },
+    {
+      "relative": "v8-container.h",
+      "bytes": 5959,
+      "sha256": "30c8fce13776a8b02e0268f55ba604a0cc359f28b91bcda84c07e7d87343e1e6"
+    },
+    {
+      "relative": "v8-context.h",
+      "bytes": 18184,
+      "sha256": "973848a3c318c73a9410ecd7059153169bc1742dbf06cc11eee3a59979329c62"
+    },
+    {
+      "relative": "v8-cppgc.h",
+      "bytes": 7641,
+      "sha256": "947fb30ccc86d5175a0b0fd5ffd997c7e190281e4275c942593cbde7faf8005b"
+    },
+    {
+      "relative": "v8-data.h",
+      "bytes": 1623,
+      "sha256": "a4c68b87c1e94d2e4548aa6ec8968e622b2a4791b1494d0dc0c0795f1ceb0ed2"
+    },
+    {
+      "relative": "v8-date.h",
+      "bytes": 1218,
+      "sha256": "fd36597d1c76bee2403dcef8083bb64e65f2dea351eda931c8aa167cf2710c98"
+    },
+    {
+      "relative": "v8-debug.h",
+      "bytes": 5161,
+      "sha256": "912cb74df5410390c81919cdd9b77ae5bcbd8479202d506e1236fe8f6eb6d969"
+    },
+    {
+      "relative": "v8-embedder-heap.h",
+      "bytes": 2775,
+      "sha256": "6cef9d55bb20874fd5ec8e47e4a7f49c4cf3b61488c76c48e7aa12eccc86848a"
+    },
+    {
+      "relative": "v8-embedder-state-scope.h",
+      "bytes": 1493,
+      "sha256": "8ac9da5d0502946981ecadec567a9e6658bb97591da5e585a3247cc7ccf924c3"
+    },
+    {
+      "relative": "v8-exception.h",
+      "bytes": 7589,
+      "sha256": "bce4530cf9e7a374270c490cfefb3e720417e7ded06c06c4e59c07950358be44"
+    },
+    {
+      "relative": "v8-extension.h",
+      "bytes": 1870,
+      "sha256": "ad2783655342544e49ad5323e04aefd112facbf5f6630d2f3050fbee1da4bcd0"
+    },
+    {
+      "relative": "v8-external.h",
+      "bytes": 924,
+      "sha256": "234042362502bc29d2e5fa652b3ca50aeff60bbacbb045a3e9e4ca10b3bb59fd"
+    },
+    {
+      "relative": "v8-forward.h",
+      "bytes": 1688,
+      "sha256": "13a977a548417301d77359e6116a9a06a27d3b60cdeefed2614bf832aa95fc37"
+    },
+    {
+      "relative": "v8-function-callback.h",
+      "bytes": 19648,
+      "sha256": "25c3dce24a9b58933c17367dacdf81e7b61c920ec4e6387d39b55c6e4cec1b5e"
+    },
+    {
+      "relative": "v8-function.h",
+      "bytes": 4530,
+      "sha256": "04b9832bee9ac16019894b4bee98862400bfd2e9ec560e8b52e5774e3a2026ee"
+    },
+    {
+      "relative": "v8-handle-base.h",
+      "bytes": 4404,
+      "sha256": "355418f07967eba8790ffa8ccf659a4bea58d1637ec0287c2bf6ce7efb934195"
+    },
+    {
+      "relative": "v8-initialization.h",
+      "bytes": 10478,
+      "sha256": "61bd9579d84ac44f28d9c6a39a37320b04cce1e8126e42edc5d566a1dd847a95"
+    },
+    {
+      "relative": "v8-internal.h",
+      "bytes": 58594,
+      "sha256": "c4315f9fcb8e218cb088fed754e7b975ff02ec459b464a002944dc000f48b715"
+    },
+    {
+      "relative": "v8-isolate.h",
+      "bytes": 64906,
+      "sha256": "a042cd3f78b6c79a7938d437105da4c470146402338b33610e2fa35857131595"
+    },
+    {
+      "relative": "v8-json.h",
+      "bytes": 1356,
+      "sha256": "7ac22ac74ebac312a5901478e398ef1d3a29f0ef56accb6d6736d47e0dbb4cdc"
+    },
+    {
+      "relative": "v8-local-handle.h",
+      "bytes": 24162,
+      "sha256": "3552928bda38c10525a5f5a44efabb443cc80d87dbe1ae3c01175c0155581c8d"
+    },
+    {
+      "relative": "v8-locker.h",
+      "bytes": 3956,
+      "sha256": "a3f67133e57b85f46482e312ec1400ba00cf831fe4fe4556872d270b000a72e9"
+    },
+    {
+      "relative": "v8-maybe.h",
+      "bytes": 4574,
+      "sha256": "2f204c9f94400a75169b3e6b544137fd3fd6a367e833334596ddbf0ca236af99"
+    },
+    {
+      "relative": "v8-memory-span.h",
+      "bytes": 6421,
+      "sha256": "d2c64ab76ea77b22880701d974bab77c0f436beaed876156b47797bc99cbd724"
+    },
+    {
+      "relative": "v8-message.h",
+      "bytes": 7418,
+      "sha256": "c9c4b48df947e1fd17ff29a2f52a293f01e3de1b527135a6e2cea702b430a6b3"
+    },
+    {
+      "relative": "v8-microtask-queue.h",
+      "bytes": 5069,
+      "sha256": "eed97d7dbff52838ddff338ce3454c2c2b1f59afbf2bf368d045e092a77054c1"
+    },
+    {
+      "relative": "v8-microtask.h",
+      "bytes": 861,
+      "sha256": "e055cf06808240053f30672c424716db7d87cd15029a1dbd1cf2a2f9a3b3dc3b"
+    },
+    {
+      "relative": "v8-object.h",
+      "bytes": 30261,
+      "sha256": "2b1afb28ceb2207e83d90cd404d7774600a01ffb357b4c42f306f70a6e20688d"
+    },
+    {
+      "relative": "v8-persistent-handle.h",
+      "bytes": 18082,
+      "sha256": "0079e7f9fcaadf96f36679471ba8feb60d84215d313c5513126eb34a9772b069"
+    },
+    {
+      "relative": "v8-platform.h",
+      "bytes": 49052,
+      "sha256": "5ae8f13a9ea08098d08ccac5657b790963db9094de887027ea458b229a3e9c8c"
+    },
+    {
+      "relative": "v8-primitive-object.h",
+      "bytes": 2591,
+      "sha256": "d9c187b42f7ee96ec20ad4d9ac91a9a1eed3efc227a831736bba362f9c2b22ba"
+    },
+    {
+      "relative": "v8-primitive.h",
+      "bytes": 28358,
+      "sha256": "aafdf63efc5457a6b6d6ba10c20da756fe0ee18da625aeb39ae7de89ba78ad55"
+    },
+    {
+      "relative": "v8-profiler.h",
+      "bytes": 42101,
+      "sha256": "02a7a7fe85a0164252d70ec523fcc65d8b3e7a5c1b6b6488b54eaa49292f4097"
+    },
+    {
+      "relative": "v8-promise.h",
+      "bytes": 5294,
+      "sha256": "1a9076b3f6b2b093a43f864693be944514612e9ecff70aed0b88cc5979d1a9a1"
+    },
+    {
+      "relative": "v8-proxy.h",
+      "bytes": 1255,
+      "sha256": "3abc802421cacf3078e30032ff53dd5d462317ea21760cd1b10abd7591dbcbd4"
+    },
+    {
+      "relative": "v8-regexp.h",
+      "bytes": 3171,
+      "sha256": "55087b09662735d457e46fbb137689019d9a086be1b80cda7157e9d6aa1c176f"
+    },
+    {
+      "relative": "v8-script.h",
+      "bytes": 31327,
+      "sha256": "e726d02432f97207171d4923f2d3b5de4cf1398ec9ab8e496c445b3dee553f96"
+    },
+    {
+      "relative": "v8-snapshot.h",
+      "bytes": 10389,
+      "sha256": "4492711e1a38aeaa2d9912500a8c92fb2f188f0d1f0843c81059d64fe7245c91"
+    },
+    {
+      "relative": "v8-source-location.h",
+      "bytes": 2597,
+      "sha256": "cdb965b501c5cf1ecd36c12260374b8f056710a951224f4a70de5ac5d3128965"
+    },
+    {
+      "relative": "v8-statistics.h",
+      "bytes": 7627,
+      "sha256": "f9547cff9044e7a8a518287ff20867a29a2c198a87ec070fd8b252825d997dac"
+    },
+    {
+      "relative": "v8-template.h",
+      "bytes": 51569,
+      "sha256": "43ccff0df922d435b8c578efcb8d5f7de73c6fc5ec1e1ef7ccf193937bf7a900"
+    },
+    {
+      "relative": "v8-traced-handle.h",
+      "bytes": 12700,
+      "sha256": "1f2aa040baac2a377dadef4e50bd65df097ba4d357b54e100d1d4af9b53c3822"
+    },
+    {
+      "relative": "v8-typed-array.h",
+      "bytes": 11571,
+      "sha256": "913d24870b014092fcf12f53b802a3dd9ce683914daa51a9ceaa181c59d2be3d"
+    },
+    {
+      "relative": "v8-unwinder.h",
+      "bytes": 4751,
+      "sha256": "90642a49905eab7602f42dbf1f980eca622d59f4b7a0c4c8f1087fdd3b082aae"
+    },
+    {
+      "relative": "v8-value-serializer.h",
+      "bytes": 10815,
+      "sha256": "bc1d30d03ee47dd548b3ce30609a66fc47d252b3454603dffa28a3a9c1dd1cb6"
+    },
+    {
+      "relative": "v8-value.h",
+      "bytes": 17107,
+      "sha256": "48363e6b7c242e4e063bce716c080d753979a635b3f6470a22619f51ee766435"
+    },
+    {
+      "relative": "v8-version.h",
+      "bytes": 773,
+      "sha256": "351125bc04b07c186f6b8e31212659dbb3db933efb586602440d2da0c21edc8d"
+    },
+    {
+      "relative": "v8-wasm.h",
+      "bytes": 6148,
+      "sha256": "c28824961b318737e94490f27eba7dfdb12a5fae07374e3a00f9a6b8d54f07c6"
+    },
+    {
+      "relative": "v8-weak-callback-info.h",
+      "bytes": 2471,
+      "sha256": "feb2147ad1b24f5583eb57b834c92d2c17b16945037800d72ee56824e401fc7f"
+    },
+    {
+      "relative": "v8.h",
+      "bytes": 3775,
+      "sha256": "f3414d24207fb94f61ea6c8cd5bed49bf2fab599d23d543b159f61f06e8a6670"
+    },
+    {
+      "relative": "v8config.h",
+      "bytes": 33641,
+      "sha256": "ca4a58147b983ff936288144ce544949d579d40a1dd5a4eece209d502f8f4576"
+    },
+    {
+      "relative": "zconf.h",
+      "bytes": 17177,
+      "sha256": "b19b1776ac39673c2d213c9e83e0d5f1f2936dabee9dbed3676ff1efb4aa71bf"
+    },
+    {
+      "relative": "zlib.h",
+      "bytes": 97418,
+      "sha256": "d6e12754edb0c019107c7560902c741eab10c15ced7e5f249e642b82c007c0bf"
+    }
+  ],
+  "output": {
+    "relative": "apps/wallet-desktop/native/original-auth-identity.node",
+    "bytes": 861192,
+    "sha256": "7a6000b893566892d054ba32862e47b928eefdd86ede456e3742f64fcda1ff9c"
+  },
+  "readbackOnly": true,
+  "appSigned": false,
+  "nativeQualified": false,
+  "registrationAccepted": false,
+  "existingComponentEvidence": {
+    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/FINAL_NATIVE_COMPONENT_HANDOFF.json",
+    "bytes": 20471,
+    "sha256": "a7becbeb58828d2c584113e4f5b2b400de5b16471c0c6934ba5c2d1c8f6bab0a"
+  }
+}

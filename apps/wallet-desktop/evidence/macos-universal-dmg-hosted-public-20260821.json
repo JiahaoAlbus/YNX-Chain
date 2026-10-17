@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "productId": "wallet-desktop",
+  "platform": "macos-universal-dmg",
+  "ownerSourceCommit": "6583c3fb83feb1ccd0106014b637c5ce6a2b1d8e",
+  "ownerLifecycleEvidenceCommit": "8183774c0f8bbb4a9d7e7997d2090b84d3c3bf29",
+  "websiteSourceCommit": "efe79b5c9bcfa2619c138abc7521ee17b7cbfd7d",
+  "vercelDeploymentId": "dpl_6tygndEdR6GS53fUNRKexV9ha9DF",
+  "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+  "artifact": {
+    "name": "ynx-wallet-desktop-0.1.1-universal.dmg",
+    "bytes": 236661996,
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "minimumOS": "macOS 12.0 metadata; clean macOS 12 host not tested",
+    "signingClass": "unsigned-testnet-preview-dmg; contained main executable linker-ad-hoc only"
+  },
+  "publicVerification": {
+    "httpStatus": 200,
+    "contentType": "application/x-apple-diskimage",
+    "contentDisposition": "attachment",
+    "contentLength": 236661996,
+    "immutableCache": true,
+    "fullDownloadSha256Verified": true,
+    "liveHeadRecheckedAt": "2026-08-21T12:17:27Z"
+  },
+  "releaseTruth": {
+    "downloadHosted": true,
+    "deployedPublic": true,
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "storeReleased": false,
+    "accountReadVerified": false,
+    "balanceReadVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6583c3fb83feb1ccd0106014b637c5ce6a2b1d8e",
+  "artifact": {
+    "name": "ynx-wallet-desktop-0.1.1-universal.dmg",
+    "version": "0.1.1",
+    "sha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "bytes": 236661996,
+    "minimumOS": "macOS 12.0",
+    "architectures": ["x86_64", "arm64"],
+    "signingClass": "unsigned-testnet-preview-dmg; contained main executable linker-ad-hoc only"
+  },
+  "host": {
+    "os": "macOS 27.0 (26A5416b)",
+    "installationScope": "isolated temporary installation root",
+    "cleanMinimumOSHost": false
+  },
+  "steps": [
+    {"name": "dmg-verify", "passed": true, "directResult": "hdiutil verify passed; CRC32 C1E5F9DE"},
+    {"name": "dmg-mount", "passed": true, "directResult": "read-only mounted application bundle version 0.1.1"},
+    {"name": "install", "passed": true, "directResult": "ditto copied the mounted application into an isolated installation root"},
+    {"name": "upgrade-0.1.0-to-0.1.1", "passed": true, "directResult": "installed version changed from 0.1.0 to 0.1.1 and launched"},
+    {"name": "cold-launch", "passed": true, "directResult": "process and visible window titled YNX Wallet Testnet Preview; clean TERM exit"},
+    {"name": "second-launch", "passed": true, "directResult": "same installed 0.1.1 app recorded launches=2 with a visible window; clean TERM exit"},
+    {"name": "canonical-testnet", "passed": true, "directResult": "installed app POSTed eth_chainId to https://rpc.ynxweb4.com/evm and received exact 0x1917"},
+    {"name": "localhost-fail-closed", "passed": true, "directResult": "installed app rejected https://127.0.0.1:1 before fetch with RPC_ENDPOINT_REJECTED"},
+    {"name": "rollback", "passed": true, "directResult": "restored 0.1.0, confirmed version, launched visible shell and proved canonical 0x1917"},
+    {"name": "reupgrade", "passed": true, "directResult": "restored 0.1.1, confirmed version, launched visible shell and proved canonical 0x1917"},
+    {"name": "uninstall", "passed": true, "directResult": "removed the application from the isolated install target while preserving a recoverable test backup"}
+  ],
+  "packagedRuntime": {
+    "asarFileCount": 8,
+    "canonicalRpcPresent": true,
+    "chainIdPresent": true,
+    "walletAuthSourceDigestPresent": true,
+    "legacyEvmEndpointPresent": false,
+    "localhostPresent": false,
+    "loopbackIpv4Present": false,
+    "atsAllowsArbitraryLoads": false,
+    "atsAllowsLocalNetworking": false,
+    "atsExceptionDomainsPresent": false
+  },
+  "truthBoundary": {
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "accountCreated": false,
+    "balanceClaimed": false,
+    "signingEnabled": false,
+    "transactionCreated": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "storeReleased": false
+  }
+}

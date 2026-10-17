@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "66d80a362f232453f13e63022bcff622fc851a1b",
+  "scope": "Owned Desktop camera controller lifetime serialization; no Native App, shared SDK/Auth, release identity or account data changes",
+  "originalCounterexample": {
+    "review": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/recovery-20261004/native671786-desktop-camera-independent-review",
+    "reviewSHA256": "cbbc7cf9624c78db7e8a93297877220c86bb6589aeb0914510c3295070fd1a48",
+    "localRedLog": "/tmp/ynx-wallet-camera-serialization-20261004-9CanqM/original-restart-probe.log",
+    "result": "1 FAIL; peak2 pending2 starts2 stopped1 applied0. Outstanding controller/IPC requests, not evidence of concurrent native codec CPU execution.",
+    "preservation": "Original reviewer probe body retained with only owned import-path adaptation; prior original77 and implementation22PASS/1FAIL records remain unchanged. Real frame codec QA is separate evidence, not P2 closure."
+  },
+  "repair": "One controller-wide capture/decode slot remains occupied until actual async completion, even after Stop/restart. Only latest waiting intent is retained. Completion wakes only a live current waiter; retired results never reach original recipient parser. Stop and expiry remove waiter and tracks, but never pretend to cancel an unresolved request.",
+  "verification": {
+    "originalProbe": "PASS peak1 pending1 starts2 stopped1 applied0",
+    "selectedTests": "90/90 PASS fail0 skip0 exit0; previous77 plus12 restart tests plus1 mounted renderer restart test",
+    "cases": "20 restarts, retired resolution/rejection, pending capture, Stop/restart, six context invalidations, unresolved request at timeout, original mounted renderer IPC lifecycle; original permission, locales and recipient guards retained",
+    "syntax": "node --check recipient-camera-ui.mjs exit0",
+    "whitespace": "git diff --check exit0",
+    "logs": "/tmp/ynx-wallet-camera-serialization-20261004-9CanqM"
+  },
+  "limits": "A never-settling retired request intentionally blocks new frame dispatch until it actually settles; acquisition/track cleanup and the latest intent's normal60-second timeout still operate. This does not cancel OS permission prompts or revoke persistent OS grants. Tests use SDK-free public controlled ports, not actual Wallet Main/full SDK boot.",
+  "notRun": ["Independent successor whole-source review", "Real Electron permission callback/device QA", "Physical camera and OS permission dialog", "Complete current shared SDK admission", "Original checksum producer runtime", "Current-source signed release/install/preserving upgrade", "Canonical Pay/private signing/settlement", "MONSTER"],
+  "next": "Freeze complete owned source plus red/green evidence for Root independent review and routing to sole release owner A; do not claim independent P2 closure yet.",
+  "overallGoal": "NOT_COMPLETED"
+}

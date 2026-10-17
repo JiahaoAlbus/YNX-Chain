@@ -1,0 +1,49 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
+const root=process.env.WALLET_UI_ROOT??new URL('../src/',import.meta.url).href;
+import {createPasswordVaultUI} from '../src/password-vault-ui.mjs';import {createMnemonicImportUI} from '../src/mnemonic-ui.mjs';import {setWalletCopy} from '../src/wallet-locale.mjs';
+const renderer=fs.readFileSync(new URL('renderer.js',root),'utf8'),tick=()=>new Promise(r=>setImmediate(r));
+const deferred=()=>{let resolve,reject;return {promise:new Promise((yes,no)=>{resolve=yes;reject=no}),resolve:v=>resolve(v),reject:e=>reject(e)}};
+function fixture(){
+ const nodes=new Map(),events=new Map(),reads=[],renders=[],calls=[];
+ const status={initialized:true,passwordConfigured:true,account:'PUBLIC-A',ynxAccount:'PUBLIC-YNX-A',accounts:[{account:'PUBLIC-A',ynxAccount:'PUBLIC-YNX-A',state:'protected'}]};
+ let doc,context;
+ class Node{
+  constructor(id=''){this.id=id;this.value='';this.children=[];this.handlers={};this.files=[];this.open=false;this.hidden=false;this.disabled=false;this.dataset={};this.ownerDocument=doc;this.textContent='';this.attributes={}}
+  set id(v){this._id=v;if(v)nodes.set(v,this)}get id(){return this._id}
+  addEventListener(e,fn){this.handlers[e]=fn}
+  emit(e){const event={target:this,preventDefault(){}};for(const fn of events.get(e)??[])fn(event);return this.handlers[e]?.(event)}
+  append(...n){this.children.push(...n)}replaceChildren(...n){this.children=n}
+  setAttribute(k,v){this.attributes[k]=v}focus(){}showModal(){this.open=true}close(){this.open=false}
+  cloneNode(){const n=new Node();n._id=this.id;n.disabled=this.disabled;return n}
+  replaceWith(n){nodes.set(this.id,n)}
+ }
+ const get=id=>{id=id.replace(/^#/,'');return nodes.get(id)??new Node(id)};
+ const fields=['local-password','local-confirm','recovery-value','recovery-file','recovery-backup-password','recovery-current-password','recovery-new-password','recovery-confirm'];
+ doc={documentElement:{},visibilityState:'visible',defaultView:{addEventListener(){}},querySelector:s=>s==='dialog[open]'?[...nodes.values()].find(n=>['password-sheet','recovery-sheet','import-sheet'].includes(n.id)&&n.open)??null:get(s),querySelectorAll:s=>{
+  if(s==='[data-custody-cancel]')return [get('cancel-custody')];
+  if(s.includes('#password-sheet input'))return fields.map(get);
+  if(s.includes('#password-form input'))return [...fields,'commit-recovery','submit-password','recovery-kind','recovery-account','recovery-password-mode'].map(get);
+  if(s.includes('#import-form'))return [...nodes.values()].filter(n=>n.id.startsWith('import-'));
+  return[];
+ },addEventListener:(e,fn)=>{const list=events.get(e)??[];list.push(fn);events.set(e,list)},createElement:()=>new Node(),createTextNode:text=>({textContent:text})};
+ const api={unlock:async input=>{calls.push({kind:'PUBLIC-unlock-stub',empty:input.password===''});context.keyState={...context.keyState,locked:false};return {ok:true}},accountStatus:()=>{const read=deferred();reads.push(read);return read.promise}};
+ context={document:doc,window:{ynxWallet:api},accountState:status,activeAccount:'PUBLIC-A',keyState:{account:'PUBLIC-A',revision:1,locked:true,authenticating:false,unlockAvailable:true},accountViewRevision:0,accountSecurityIntent:0,pendingImportOperation:null,
+  clearAssetBalance(){},clearTransactionResolution(){},invalidateWalletConnectSessions(){},clearInvoiceInput(){},mnemonicUI:{invalidate(){}},contractUI:{clear(){}},invalidatePaymentInput(){},receiveShareUI:{invalidate(){}},transactionHistoryUI:{clear(){},refresh(){}},receiveCodeUI:{clear(){},refresh(){calls.push({kind:'PUBLIC-receive'})}},refreshTransactions(){},refreshAssets(){},setView(){},nativeAccountLabel:v=>v,transferReview:null,copyUI:setWalletCopy,showAccountError(){},multichainUI:{render(){}},beginAccountOperation(){throw Error('Not exercised')},finishAccountOperation(){},showAccountError(){}};
+ for(const [name,id] of Object.entries({accountTitle:'account-title',accountDetail:'account-detail',accountShort:'account-short',signingShort:'signing-short',createAccount:'create-account',addAccount:'add-account',accountList:'account-list'}))context[name]=get(id);
+ const start=renderer.indexOf('function renderAccount(payload)'),end=renderer.indexOf('// Private renderer ownership only',start),keyStart=renderer.indexOf('function renderKeyDetail()'),keyEnd=renderer.indexOf('function renderKeyState(',keyStart);
+ assert(start>=0&&end>start&&keyStart>=0&&keyEnd>keyStart);
+ vm.runInNewContext(renderer.slice(start,end)+'\n'+renderer.slice(keyStart,keyEnd),context);
+ const original=context.renderAccount;context.renderAccount=payload=>{renders.push(payload);original(payload)};
+ const editor=createMnemonicImportUI({document:doc,getState:()=>context.keyState,getAccount:()=>context.activeAccount});context.mnemonicImportUI=editor;
+ const ui=createPasswordVaultUI({api,document:doc,getKeyState:()=>context.keyState,getAccountStatus:()=>context.accountState,renderAccount:context.renderAccount});context.passwordUI=ui;
+ const begin=async()=>{get('unlock-wallet').emit('click');const pending=get('password-form').emit('submit');await tick();assert.equal(get('password-sheet').open,false);assert.equal(reads.length,1);return {pending}};
+ const draft=()=>{get('open-import').emit('click');assert.equal(get('import-sheet').open,true);get('import-word-1').value='PUBLIC_DRAFT_MARKER';get('import-word-1').emit('input');get('import-editor-result').textContent='PUBLIC new error';get('unlock-result').textContent='PUBLIC newer view'};
+ return {get,context,api,ui,editor,reads,renders,calls,status,begin,draft};
+}
+test('R56 normal unlock public status still reaches original selected account and Receive/Send fields',async()=>{const f=fixture(),{pending}=await f.begin();f.reads[0].resolve({ok:true,value:f.status});await pending;assert.equal(f.renders.length,1);assert.equal(f.context.activeAccount,'PUBLIC-A');assert.equal(f.get('receive-address').value,'PUBLIC-YNX-A');assert.equal(f.get('receive-evm-address').value,'PUBLIC-A');assert.equal(f.get('open-send').disabled,false);assert.equal(f.get('assets').hidden,false)});
+test('R56 normal unlock error permits explicit same-view retry without a second engine',async()=>{const f=fixture();f.api.unlock=async()=>({ok:false,error:{message:'PUBLIC denied'}});f.get('unlock-wallet').emit('click');const failed=f.get('password-form').emit('submit');await tick();f.reads[0].resolve({ok:true,value:f.status});await failed;assert.equal(f.get('password-sheet').open,true);assert.equal(f.get('password-result').textContent,'PUBLIC denied');assert.equal(f.get('submit-password').disabled,false);f.api.unlock=async()=>{f.context.keyState={...f.context.keyState,locked:false};return {ok:true}};const retried=f.get('password-form').emit('submit');await tick();f.reads[1].resolve({ok:true,value:f.status});await retried;assert.equal(f.get('password-sheet').open,false);assert.equal(f.context.activeAccount,'PUBLIC-A');assert.equal(f.get('open-send').disabled,false)});
+test('R56 cancel and reopen leaves the new dialog owned while an older read rejects',async()=>{const f=fixture(),{pending}=await f.begin();f.api.lock=async()=>{f.context.keyState={...f.context.keyState,locked:true,revision:2};return f.context.keyState};f.get('cancel-custody').emit('click');f.get('unlock-wallet').emit('click');f.get('password-result').textContent='PUBLIC new dialog error';f.get('local-password').value='PUBLIC_UI_MARKER';f.reads[0].reject(Error('PUBLIC retired read'));await pending;assert.equal(f.get('password-sheet').open,true);assert.equal(f.get('password-result').textContent,'PUBLIC new dialog error');assert.equal(f.get('local-password').value,'PUBLIC_UI_MARKER');assert.equal(f.get('submit-password').disabled,false);f.ui.cancel()});
+test('R56 a later actor and key revision retain their own public status',async()=>{const f=fixture(),{pending}=await f.begin(),next={...f.status,account:'PUBLIC-B',ynxAccount:'PUBLIC-YNX-B',accounts:[{account:'PUBLIC-B',ynxAccount:'PUBLIC-YNX-B',state:'protected'}]};f.context.keyState={...f.context.keyState,account:'PUBLIC-B',revision:2};f.context.renderAccount({ok:true,value:next});f.get('unlock-result').textContent='PUBLIC actor B';const count=f.renders.length;f.reads[0].resolve({ok:true,value:f.status});await pending;assert.equal(f.context.activeAccount,'PUBLIC-B');assert.equal(f.renders.length,count);assert.equal(f.get('receive-address').value,'PUBLIC-YNX-B');assert.equal(f.get('unlock-result').textContent,'PUBLIC actor B')});
+for(const mode of ['new-import','close-reopen'])test('R56 old unlock status success cannot clear newer import draft: '+mode,async()=>{const f=fixture(),{pending}=await f.begin();f.draft();if(mode==='close-reopen'){f.get('import-close').emit('click');f.draft()}f.reads[0].resolve({ok:true,value:f.status});await pending;assert.equal(f.get('import-word-1').value,'PUBLIC_DRAFT_MARKER');assert.equal(f.get('import-sheet').open,true);assert.equal(f.get('import-editor-result').textContent,'PUBLIC new error');assert.equal(f.renders.length,0)});
+test('R56 old unlock status rejection cannot replace newer UI error after input',async()=>{const f=fixture(),{pending}=await f.begin();f.draft();f.reads[0].reject(Error('PUBLIC old status failure'));await pending;assert.equal(f.get('unlock-result').textContent,'PUBLIC newer view');assert.equal(f.get('import-word-1').value,'PUBLIC_DRAFT_MARKER')});
+test('R56 a newer public account event owns status against older same-key-revision read',async()=>{const f=fixture(),{pending}=await f.begin(),newStatus={...f.status,accounts:[...f.status.accounts,{account:'PUBLIC-B',ynxAccount:'PUBLIC-YNX-B',state:'recovery-required'}]};f.context.renderAccount({ok:true,value:newStatus});const count=f.renders.length;f.reads[0].resolve({ok:true,value:f.status});await pending;assert.equal(f.context.accountState,newStatus);assert.equal(f.renders.length,count)});

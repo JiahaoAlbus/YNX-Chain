@@ -1,0 +1,3 @@
+# These authority bytes are hashed and packaged unchanged on every platform.
+packages/wallet-auth/src/product-session-v2.js text eol=lf
+packages/wallet-auth/product-session-registry.json text eol=lf
