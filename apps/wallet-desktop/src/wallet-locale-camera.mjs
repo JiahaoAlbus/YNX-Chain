@@ -13,4 +13,19 @@ ru:"Включить камеру|Остановить камеру|Открыт
 ar:"بدء الكاميرا|إيقاف الكاميرا|جارٍ فتح الكاميرا…|وجّه الكاميرا إلى رمز استلام YNX.|الكاميرا غير متاحة. استخدم صورة QR أو الصق رابط استلام.|تم إيقاف الكاميرا.|تُعالج الصور على هذا الجهاز فقط. يملأ المسح المستلم فقط.",
 id:"Mulai kamera|Hentikan kamera|Membuka kamera…|Arahkan kamera ke kode penerimaan YNX.|Kamera tidak tersedia. Gunakan gambar QR atau tempel tautan penerimaan.|Kamera dihentikan.|Gambar diproses di perangkat ini. Pemindaian hanya mengisi penerima.",
 };
-export const CAMERA_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>[locale,Object.freeze(Object.fromEntries(keys.map((key,index)=>[key,row.split("|")[index]])))])));
+const familyKeys=['Point the camera at a {family} receiving code. Verify the selected network.','Camera unavailable. Use a QR image or enter the address.'];
+const familyRows={
+en:familyKeys,
+'zh-Hans':['将相机对准 {family} 收款码，并核对所选网络。','相机不可用。请选择二维码图片或输入地址。'],
+'zh-Hant':['將相機對準 {family} 收款碼，並核對所選網路。','相機無法使用。請選擇二維碼圖片或輸入位址。'],
+ja:['{family} の受取コードにカメラを向け、選択したネットワークを確認してください。','カメラを利用できません。QR 画像を使うか、アドレスを入力してください。'],
+ko:['{family} 수취 코드에 카메라를 맞추고 선택한 네트워크를 확인하세요.','카메라를 사용할 수 없습니다. QR 이미지나 주소 입력을 사용하세요.'],
+es:['Apunta al código de recepción {family}. Verifica la red seleccionada.','Cámara no disponible. Usa una imagen QR o introduce la dirección.'],
+fr:['Visez un code de réception {family}. Vérifiez le réseau sélectionné.','Caméra indisponible. Utilisez une image QR ou saisissez l’adresse.'],
+de:['Kamera auf einen {family}-Empfangscode richten. Gewähltes Netzwerk prüfen.','Kamera nicht verfügbar. QR-Bild verwenden oder Adresse eingeben.'],
+pt:['Aponte para um código de recebimento {family}. Verifique a rede selecionada.','Câmera indisponível. Use uma imagem QR ou introduza o endereço.'],
+ru:['Наведите камеру на код получения {family}. Проверьте выбранную сеть.','Камера недоступна. Используйте QR-изображение или введите адрес.'],
+ar:['وجّه الكاميرا إلى رمز استلام {family}. تحقق من الشبكة المحددة.','الكاميرا غير متاحة. استخدم صورة QR أو أدخل العنوان.'],
+id:['Arahkan kamera ke kode penerimaan {family}. Periksa jaringan yang dipilih.','Kamera tidak tersedia. Gunakan gambar QR atau masukkan alamat.']
+};
+export const CAMERA_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>[locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,row.split("|")[index]])),...Object.fromEntries(familyKeys.map((key,index)=>[key,familyRows[locale][index]]))})])));

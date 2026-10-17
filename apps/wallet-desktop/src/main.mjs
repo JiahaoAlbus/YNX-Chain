@@ -39,7 +39,7 @@ import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { loadPublicWalletConnectConfig } from "./walletconnect-public-config.mjs";
 import { WalletConnectRequestInbox } from "./walletconnect-request-inbox.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
-import { createReceiveCode, createBitcoinReceiveCode } from "./receive-code.mjs";
+import { createReceiveCode, createBitcoinReceiveCode, createEVMReceiveCode } from "./receive-code.mjs";
 import { NativeContractClient } from "./native-contract.mjs";
 import { createNativeContractService } from "./native-contract-service.mjs";
 import { WalletPayInvoiceClient } from "./wallet-pay-invoice-reference.mjs";
@@ -47,7 +47,7 @@ import { createInvoiceReferenceService } from "./wallet-invoice-reference-servic
 import { decodeInvoiceReferenceQR } from "./wallet-invoice-reference-qr.mjs";
 import {createDesktopPayService,installDesktopPayIPC} from "./wallet-pay-service.mjs";
 import {DesktopNativePayChain} from "./native-pay-chain.mjs";
-import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
+import { parsePaymentRecipient, decodePaymentRecipientQR, decodeEVMRecipientQR, decodeFamilyRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 // AppImage launchers may add --no-sandbox on hosts without user namespaces.
@@ -388,7 +388,14 @@ async function authorizationFailure(stageCode, action, error) {
 }
 
 handleWalletIPC("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
-handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
+handleWalletIPC("wallet:import-account", async (_event, input) => {
+  let importView=null;
+  const response=await safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input),({before,after})=>{
+    // Public error-display checkpoint only. Never return imported key/words.
+    if(['private-key','recovery-phrase','encrypted-json'].includes(input?.kind))importView={kind:input.kind,account:before.account,revision:before.revision,retiredRevision:after.revision};
+  }));
+  return importView?{...response,importView}:response;
+});
 handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
 handleWalletIPC("wallet:native-contract", (_event, input) => safeIPC(() => readNativeContract(input)));
 handleWalletIPC("wallet:invoice-reference",(_event,reference)=>safeIPC(()=>readInvoiceReference(reference)));
@@ -448,24 +455,44 @@ handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
 handleWalletIPC("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
 handleWalletIPC("wallet:prepare-mnemonic-account", (_event,input) => sensitiveIPC(() => walletAuthority.vault.prepareMnemonicAccount(input)));
 handleWalletIPC("wallet:cancel-mnemonic-account", () => safeIPC(() => {walletAuthority.vault.cancelMnemonicAccount();return {cancelled:true}}));
-handleWalletIPC("wallet:commit-mnemonic-account", (_event,input) => safeIPC(async()=>{
-  const commit=walletAuthority.vault.consumeMnemonicCommit(input,true);
-  let result;
-  try{result=await changeActiveAccount(commit)}finally{commit.dispose()}
-  const review=await authorizationController.refreshAccount();
-  if(review?.acceptedForReview)mainWindow?.webContents.send("wallet:authorization-request",review);
-  return result;
-}));
+handleWalletIPC("wallet:commit-mnemonic-account", async (_event,input) => {
+  let creationView=null;
+  const response=await safeIPC(async()=>{
+    const commit=walletAuthority.vault.consumeMnemonicCommit(input,true);
+    let result;
+    try{result=await changeActiveAccount(commit,({before,after})=>{
+      // Public error-display binding only; never return confirmation words.
+      if(typeof input?.id==='string'&&input.id.length<=128)creationView={id:input.id,account:before.account,revision:before.revision,retiredRevision:after.revision};
+    })}finally{commit.dispose()}
+    const review=await authorizationController.refreshAccount();
+    if(review?.acceptedForReview)mainWindow?.webContents.send("wallet:authorization-request",review);
+    return result;
+  });
+  return creationView?{...response,creationView}:response;
+});
 handleWalletIPC("wallet:recovery-phrase", (_event,password) => sensitiveIPC(() => walletAuthority.vault.recoveryPhrase(password)));
 handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => typeof expectedAccount==='string'
   ? safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus()))
-  : sensitiveIPC(() => {if(!familyAccounts||!familyRead)throw new Error('Wallet is starting.');return createBitcoinReceiveCode(expectedAccount,{readAccount:value=>familyAccounts.account(value),readNetworks:()=>familyRead.snapshot(),getContext:()=>familyRead.getContext()});}));
+  : sensitiveIPC(() => {if(Object.getOwnPropertyDescriptor(expectedAccount??{},'family')?.value==='evm'){if(!multichain)throw new Error('Wallet is starting.');return createEVMReceiveCode(expectedAccount,{readSnapshot:()=>multichain.snapshot(),getContext:()=>({...keyAccess.status(),networkEpoch:multichain.epoch})});}if(!familyAccounts||!familyRead)throw new Error('Wallet is starting.');return createBitcoinReceiveCode(expectedAccount,{readAccount:value=>familyAccounts.account(value),readNetworks:()=>familyRead.snapshot(),getContext:()=>familyRead.getContext()});}));
 handleWalletIPC("wallet:payment-recipient", (_event, input) => safeIPC(() => parsePaymentRecipient(input)));
 handleWalletIPC("wallet:payment-qr", (_event, input) => safeIPC(() => {
   if (!(input?.bytes instanceof ArrayBuffer) || input.bytes.byteLength > 10 * 1024 * 1024) throw new Error("Invalid QR image");
-  return decodePaymentRecipientQR({ bytes: Buffer.from(input.bytes), mimeType: input.mimeType, createImage: bytes => nativeImage.createFromBuffer(bytes) });
+  const image={ bytes: Buffer.from(input.bytes), mimeType: input.mimeType, createImage: bytes => nativeImage.createFromBuffer(bytes) };
+  if(input.target==='bitcoin'||input.target==='tron'){
+    if(!familyRead||!familyRecovery)throw Error('Wallet is starting.');
+    return familyRead.gate.run(()=>decodeFamilyRecipientQR(image,{expected:{family:input.target,account:input.account,revision:input.revision,network:input.network,configRevision:input.configRevision},readNetworks:()=>familyRead.snapshot(),getContext:()=>familyRead.getContext(),getSecurity:()=>keyAccess.status(),readRecords:()=>familyRecovery.list({family:input.target,network:input.network})}));
+  }
+  if(input.target==='evm'){if(!multichain)throw Error('Wallet is starting.');return decodeEVMRecipientQR(image,{expected:{account:input.account,revision:input.revision,networkId:input.networkId,configRevision:input.configRevision},readSnapshot:()=>multichain.snapshot(),getContext:()=>({...keyAccess.status(),networkEpoch:multichain.epoch})})}
+  return decodePaymentRecipientQR(image);
 }));
-handleWalletIPC("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
+handleWalletIPC("wallet:select-account", async (_event, account) => {
+  let selectionView=null;
+  const result=await safeIPC(()=>changeActiveAccount(()=>walletAuthority.selectAccount(account),({before,after})=>{
+    // Public display ownership only, never a key/session or an authorization.
+    if(typeof account==='string'&&account.length<=128)selectionView={account:before.account,target:account,revision:before.revision,retiredRevision:after.revision};
+  }));
+  return selectionView?{...result,selectionView}:result;
+});
 handleWalletIPC("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
 handleWalletIPC("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
 handleWalletIPC("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
@@ -579,15 +606,17 @@ async function handleCallback(rawValue) {
   await recordEvidence(await rpcStatus(), mainWindow);
 }
 
-async function changeActiveAccount(change) {
+async function changeActiveAccount(change, onInvalidated) {
   if (accountChangeInProgress || walletConnectProposalActions.size) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
   keyAccess.assertUnlocked();
   accountChangeInProgress = true;
+  const displayBefore=onInvalidated?keyAccess.status():null;
   keyAccess.cancelOperations();
   const invalidatedAuthorizationId = authorizationController.pending?.id;
   if (authorizationController.cancel()) mainWindow?.webContents.send("wallet:authorization-error", { acceptedForReview: false, code: "ACCOUNT_CHANGED", requestId: invalidatedAuthorizationId, callbackEmitted: false, authorityGranted: false });
   accountChangeInProgress = true;
   try {
+    onInvalidated?.({before:displayBefore,after:keyAccess.status()});
     nativeWallet?.clear();
     for (const entry of walletConnectInbox.pending()) { walletConnectInbox.finish(entry.key); await terminateWalletConnectReview(entry, "ACCOUNT_CHANGED"); }
     const proposals = [...walletConnectProposalAccounts.keys()];
@@ -873,3 +902,4 @@ function safeFailureCategory(error) {
 }
 function boundedText(value, fallback) { return typeof value === "string" && value.length <= 512 ? value : fallback; }
 function boundedArray(value) { return Array.isArray(value) && value.length <= 64 ? value.filter(item => typeof item === "string" && item.length <= 128) : []; }
+

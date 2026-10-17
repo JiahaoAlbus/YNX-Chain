@@ -37,10 +37,15 @@ const receiveCodeUI = createReceiveCodeUI({
 document.querySelector("#download-receiving-png")?.addEventListener("click",()=>receiveCodeUI.exportPNG());
 const transferAttemptUI=createTransferAttemptUI({node:document.querySelector("#transfer-attempt-status"),getAccount:()=>activeAccount,request:account=>window.ynxWallet.transferAttempts?.(account)});
 window.ynxWallet.onTransferAttempt?.(record=>transferAttemptUI.receive(record));
+let receivingClipboardWrites=Promise.resolve();
+function writeReceivingClipboard(value,isCurrent=()=>true){
+  const pending=receivingClipboardWrites.catch(()=>{}).then(async()=>{if(!isCurrent())return false;await navigator.clipboard.writeText(value);return true});
+  receivingClipboardWrites=pending;return pending;
+}
 const receiveShareUI=createReceiveShareUI({
   getContext:()=>({open:document.querySelector("#receive-sheet").open,account:accountState?.ynxAccount,keyRevision:keyState.revision}),
   requestCode:account=>window.ynxWallet.receiveCode(account),
-  writeClipboard:value=>navigator.clipboard.writeText(value),
+  writeClipboard:writeReceivingClipboard,
   selectAddress:()=>document.querySelector("#receive-address").select(),
   report:value=>{copyUI(document.querySelector("#receive-status"),value)},
 });
@@ -364,7 +369,8 @@ const signingShort = document.querySelector("#signing-short");
 const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
-const mnemonicUI=createMnemonicUI({document,api:window.ynxWallet,getState:()=>keyState,getAccount:()=>activeAccount,onAccount:renderAccount});
+const mnemonicUI=createMnemonicUI({document,api:window.ynxWallet,getState:()=>keyState,getAccount:()=>activeAccount,onAccount:renderAccount,
+  getView:()=>[accountViewRevision,accountOperationIntent].join(':'),onCommitFailure:result=>showAccountError(accountDetail,result.error)});
 const mnemonicImportUI=createMnemonicImportUI({document,getState:()=>keyState,getAccount:()=>activeAccount});
 const mnemonicBackupButton=document.createElement('button');mnemonicBackupButton.id='show-recovery-phrase';mnemonicBackupButton.type='button';copyUI(mnemonicBackupButton,'Show recovery phrase');
 document.querySelector('#backup-section').insertAdjacentElement('beforebegin',mnemonicBackupButton);
@@ -451,27 +457,56 @@ function renderAccount(payload) {
     copyUI(button,item.account === status.account ? item.state === "recovery-required" ? "{account} · active · restore from backup" : "{account} · active" : item.state === "recovery-required" ? "Switch to {account} · restore from backup" : "Switch to {account}",{account:item.ynxAccount});
     button.disabled = keyState.locked || item.account === status.account;
     button.addEventListener("click", async () => {
-      const operation = beginAccountOperation(button);
-      button.disabled = true;
+      if(keyState.locked||keyState.authenticating||item.account===activeAccount||accountSelectionPendingCurrent())return;
+      const operation = beginAccountOperation(button,"select");operation.target=item.account;
+      pendingAccountSelection=operation;renderAccountSelectionControls();
       try {
         const result = await window.ynxWallet.selectAccount(item.account);
-        if(!accountOperationCurrent(operation))return;
+        if(!accountOperationCurrent(operation)&&!selectionFeedbackCurrent(operation,result))return;
         if (!result.ok) showAccountError(accountDetail,result.error);
         else renderAccount(result);
       } catch {if(accountOperationCurrent(operation))copyUI(accountDetail,"Wallet did not finish. Reopen the current Wallet before continuing.");}
-      finally {finishAccountOperation(operation,item.account===activeAccount);}
+      finally {
+        const owned=pendingAccountSelection===operation;if(owned)pendingAccountSelection=null;
+        finishAccountOperation(operation,item.account===activeAccount);
+        if(owned&&operation.view===accountViewRevision&&operation.account===activeAccount)renderAccountSelectionControls();
+      }
     });
     accountList.append(button);
   }
 }
 // Private renderer ownership only: never a key/signing authorization context.
-let accountSecurityIntent=0,pendingImportOperation=null;
+let accountSecurityIntent=0,pendingImportOperation=null,pendingAccountSelection=null,accountOperationIntent=0;
 const accountOperationOwners=new WeakMap();
 function beginAccountOperation(control,kind="account"){
-  const operation={control,view:accountViewRevision,security:accountSecurityIntent,revision:keyState.revision,kind,commit:null};
+  const operation={control,view:accountViewRevision,security:accountSecurityIntent,revision:keyState.revision,kind,commit:null,account:activeAccount,intent:++accountOperationIntent};
   accountOperationOwners.set(control,operation);if(kind==="import")pendingImportOperation=operation;return operation;
 }
 function accountOperationCurrent(operation){return accountOperationOwners.get(operation.control)===operation&&operation.view===accountViewRevision&&operation.security===accountSecurityIntent&&operation.revision===keyState.revision;}
+function accountSelectionPendingCurrent(){const operation=pendingAccountSelection;return !!operation&&accountOperationOwners.get(operation.control)===operation&&operation.intent===accountOperationIntent&&operation.view===accountViewRevision&&operation.account===activeAccount;}
+function renderAccountSelectionControls(){for(const button of accountList.children)button.disabled=keyState.locked||keyState.authenticating||button.dataset.account===activeAccount||accountSelectionPendingCurrent();}
+function selectionFeedbackCurrent(operation,result){
+  const checkpoint=result?.selectionView;
+  // Admit only this trusted Main receipt's exact own invalidation for ERROR
+  // display. Never rebase success, authority, account status or another action.
+  return result?.ok===false&&accountSelectionPendingCurrent()&&pendingAccountSelection===operation&&
+    operation.account===keyState.account&&!keyState.locked&&!keyState.authenticating&&
+    checkpoint?.account===operation.account&&checkpoint.target===operation.target&&
+    checkpoint.revision===operation.revision&&checkpoint.retiredRevision===operation.revision+1&&
+    keyState.revision===checkpoint.retiredRevision&&accountSecurityIntent===operation.security+1;
+}
+function importFeedbackCurrent(operation,result){
+  const checkpoint=result?.importView;
+  // Only the original Main cancellation may retire this exact failed import's
+  // public notice. This never revives secrets, success or an operation grant.
+  return result?.ok===false&&pendingImportOperation===operation&&
+    accountOperationOwners.get(operation.control)===operation&&operation.intent===accountOperationIntent&&
+    operation.view===accountViewRevision&&operation.account===activeAccount&&operation.account===keyState.account&&
+    !keyState.locked&&!keyState.authenticating&&checkpoint?.kind===operation.format&&
+    checkpoint.account===operation.account&&checkpoint.revision===operation.revision&&
+    checkpoint.retiredRevision===operation.revision+1&&keyState.revision===checkpoint.retiredRevision&&
+    accountSecurityIntent===operation.security+1;
+}
 function currentImportCommit(operation,result){
   const commit=operation.commit;
   return accountOperationOwners.get(operation.control)===operation&&commit&&result.ok&&result.value.account===commit.account&&activeAccount===commit.account&&keyState.account===commit.account&&keyState.locked&&!keyState.authenticating&&accountViewRevision===commit.view&&accountSecurityIntent===commit.security&&keyState.revision===commit.revision;
@@ -926,6 +961,7 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
   const operation=beginAccountOperation(button,"import");
   const output = document.querySelector("#import-result");
   const kind = document.querySelector("#import-kind").value;
+  operation.format=kind;
   let value = editor?editor.value():document.querySelector("#import-value").value;
   let password = document.querySelector("#import-password").value;
   const selectedFile=document.querySelector("#import-file").files?.[0];
@@ -948,6 +984,9 @@ document.querySelector("#import-form").addEventListener("submit", async event =>
       // IPC receipt. Acknowledge that exact current commit without rendering its
       // older status a second time; intervening views/unlocks own their notice.
       if(currentImportCommit(operation,result))copyUI(output,"Account imported. Save a backup and keep it safe.");
+      else if(importFeedbackCurrent(operation,result)){
+        if(!renderPermissionError(output,result.error))output.textContent=errorText(result);
+      }
       return;
     }
     if(result.ok)copyUI(output,"Account imported. Save a backup and keep it safe.");else if(!renderPermissionError(output,result.error))output.textContent=errorText(result);
@@ -1139,7 +1178,7 @@ function renderKeyState(state) {
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   copyUI(signingShort,state.locked ? "Locked" : "Approval required");
-  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) {const owner=accountOperationOwners.get(element);element.disabled = state.locked || element.dataset.account === activeAccount || !!(owner&&accountOperationCurrent(owner)&&(owner.kind!=="transfer"||owner.draft===paymentDraftRevision));}
+  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) {const owner=accountOperationOwners.get(element);element.disabled = state.locked || element.dataset.account === activeAccount || !!(element.dataset.account&&accountSelectionPendingCurrent()) || !!(owner&&accountOperationCurrent(owner)&&(owner.kind!=="transfer"||owner.draft===paymentDraftRevision));}
   if(typeof mnemonicImportUI!=="undefined")mnemonicImportUI.render();
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
@@ -1167,7 +1206,8 @@ if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(stat
 else renderKeyState(keyState);
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
 mountDesktopPayUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.ynxAccount??null,keyRevision:keyState.revision,locked:keyState.locked})});
-multichainUI=createMultichainUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
+multichainUI=createMultichainUI({document,api:window.ynxWallet,writeClipboard:writeReceivingClipboard,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
 familyUI=createFamilyUI({document,api:window.ynxWallet,getContext:()=>({account:accountState?.account??null,revision:keyState.revision,locked:keyState.locked||keyState.authenticating})});
 window.addEventListener('blur',()=>familyUI.invalidate());
 window.addEventListener('blur',()=>multichainUI.invalidate());
+

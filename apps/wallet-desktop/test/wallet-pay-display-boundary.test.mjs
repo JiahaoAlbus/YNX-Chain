@@ -18,6 +18,16 @@ function harness(){
   const ui=createDesktopPayUI({api,getContext:()=>({open:true,account,keyRevision:1,locked:false}),render:value=>views.push(value)});
   return {ui,views,calls,status:value=>status=value,response:value=>response=value};
 }
+test('R51 mounted history owns its account, window and epoch through final list rendering',async()=>{
+ for(const mode of ['normal','account','close','reopen','error-retry']){
+  const make=()=>({open:false,value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false;this.emit('close')},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}}),nodes=new Map(),get=s=>{if(!nodes.has(s))nodes.set(s,make());return nodes.get(s)},context={account,keyRevision:1,locked:false};let notify=()=>{},historyCalls=0,actions=0;
+  const change=()=>{if(mode==='account'){context.account='PUBLIC-successor';context.keyRevision++;notify()}else if(mode==='close'||mode==='reopen'){get('#protected-pay-sheet').close();if(mode==='reopen')get('#open-protected-pay').emit('click')}};
+  const api={payCancel:async()=>({ok:true}),payStatus:async()=>({ok:true,value:{available:true,paymentAuthorized:false}}),payRestore:async()=>({ok:true,value:{kind:'original',original:null}}),payHistory:()=>{historyCalls++;if(mode==='error-retry'&&historyCalls===1)return Promise.reject(Error('PUBLIC history unavailable'));const result=Promise.resolve({ok:true,value:{account,records:[archived()],nextCursor:null}});if(!['normal','error-retry'].includes(mode))result.then(()=>queueMicrotask(change));return result},payAction:async()=>{actions++;throw Error('Unexpected payment action')},onSecurityState:fn=>{notify=fn},onAccountStatus:fn=>{notify=fn}};
+  mountDesktopPayUI({document:{querySelector:s=>fileInputDOM(get(s),next=>nodes.set(s,next)),createElement:make},api,getContext:()=>({...context})});get('#open-protected-pay').emit('click');await new Promise(r=>setImmediate(r));await get('#protected-pay-history').emit('click');await new Promise(r=>setImmediate(r));
+  const history=get('#protected-pay-history-list');if(mode==='error-retry'){assert.equal(history.children.length,0);assert.match(get('#protected-pay-status').textContent,/Pay could not be verified/);assert.equal(get('#protected-pay-history').disabled,false);await get('#protected-pay-history').emit('click')}
+  assert.equal(history.children.length,['normal','error-retry'].includes(mode)?1:0,mode);if(['normal','error-retry'].includes(mode))assert.match(history.children[0].textContent,/Merchant/);assert.equal(actions,0);assert.equal(historyCalls,mode==='error-retry'?2:1);get('#protected-pay-sheet').close();
+ }
+});
 for(const kind of ['full','native-only','unknown'])test(`r5 mounted Pay ${kind} exposes only the genuine save-capable original`,async()=>{
  const make=()=>({open:false,value:'',hidden:false,disabled:false,textContent:'',children:[],listeners:new Map(),addEventListener(type,fn){this.listeners.set(type,fn)},emit(type,event={}){return this.listeners.get(type)?.(event)},showModal(){this.open=true},close(){this.open=false},focus(){},replaceChildren(){this.children=[]},append(...items){this.children.push(...items)}}),nodes=new Map(),get=s=>{if(!nodes.has(s))nodes.set(s,make());return nodes.get(s)};
  const flags={status:'transfer_unconfirmed',checkpointVerified:false,settlementVerified:false,settlementAttempted:false,broadcastAttempted:false,consensusFinality:false},retention={scope:'operation-memory',durable:false,originalCause:null,storageCause:{name:'Error',code:null,message:'QA_SAVE'}},full={...archived(),...flags};
@@ -127,3 +137,4 @@ test("mounted Pay QR accepts only detached literal success and never reviews or 
   }
   assert.equal(reads,0);
 });
+

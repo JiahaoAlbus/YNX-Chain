@@ -18,7 +18,7 @@ export function createReceiveShareUI({getContext,requestCode,writeClipboard,repo
       const pending=writes.catch(()=>{}).then(async()=>{
         if(!live())return false;
         writeAttempted=true;
-        await writeClipboard(kind==="link"?uri:before.account);return true;
+        await writeClipboard(kind==="link"?uri:before.account,live);return true;
       });
       writes=pending;
       const copied=await pending;

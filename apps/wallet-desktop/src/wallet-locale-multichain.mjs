@@ -62,4 +62,12 @@ const originalRows={
  ar:['نتيجة التوقيع غير معروفة. احتفظ بالسجل الأصلي. لا توقّع مجددًا ولا ترسل معاملة بديلة.','تعذر التحقق من سجلات المعاملات الأصلية. حدّثها قبل إعداد تحويل آخر.','هناك معاملة أصلية غير محسومة. احتفظ بتقدمها وتحقق من نتيجتها الأصلية قبل إنشاء تحويل آخر.'],
  id:['Hasil tanda tangan tidak diketahui. Simpan catatan asli. Jangan tanda tangani ulang atau kirim transaksi pengganti.','Catatan transaksi asli tidak dapat diverifikasi. Muat ulang sebelum menyiapkan transfer lain.','Transaksi asli belum terselesaikan. Pertahankan progresnya dan periksa hasil asli sebelum membuat transfer lain.']
 };
-export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value)||presetRows[locale]?.length!==presetKeys.length||originalRows[locale]?.length!==originalKeys.length||originalRows[locale].some(value=>!value))throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(presetKeys.map((key,index)=>[key,presetRows[locale][index]])),...Object.fromEntries(originalKeys.map((key,index)=>[key,originalRows[locale][index]]))})]})));
+const receiveCopyKey='EVM address copied. Verify the network before sending.';
+const receiveCopyRows={
+en:receiveCopyKey,'zh-Hans':'EVM 地址已复制。发送前请核对网络。','zh-Hant':'EVM 位址已複製。傳送前請核對網路。',
+ja:'EVM アドレスをコピーしました。送信前にネットワークを確認してください。',ko:'EVM 주소를 복사했습니다. 보내기 전에 네트워크를 확인하세요.',
+es:'Dirección EVM copiada. Verifica la red antes de enviar.',fr:'Adresse EVM copiée. Vérifiez le réseau avant tout envoi.',
+de:'EVM-Adresse kopiert. Netzwerk vor dem Senden prüfen.',pt:'Endereço EVM copiado. Verifique a rede antes de enviar.',
+ru:'Адрес EVM скопирован. Проверьте сеть перед отправкой.',ar:'تم نسخ عنوان EVM. تحقق من الشبكة قبل الإرسال.',
+id:'Alamat EVM disalin. Periksa jaringan sebelum mengirim.'};
+export const MULTICHAIN_COPY=Object.freeze(Object.fromEntries(Object.entries(rows).map(([locale,row])=>{const values=row.split('|');if(values.length!==keys.length||values.some(value=>!value)||presetRows[locale]?.length!==presetKeys.length||originalRows[locale]?.length!==originalKeys.length||originalRows[locale].some(value=>!value))throw Error('Incomplete multichain locale '+locale);return [locale,Object.freeze({...Object.fromEntries(keys.map((key,index)=>[key,values[index]])),...Object.fromEntries(presetKeys.map((key,index)=>[key,presetRows[locale][index]])),...Object.fromEntries(originalKeys.map((key,index)=>[key,originalRows[locale][index]])),[receiveCopyKey]:receiveCopyRows[locale]})]})));

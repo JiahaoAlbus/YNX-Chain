@@ -1,5 +1,6 @@
 import QRCode from "qrcode";
 import { evmAddressFromYNX } from "@ynx-chain/wallet-auth";
+import {chainQuantity} from './multichain-config.mjs';
 
 const fail = () => { throw Object.assign(new Error("The receiving account could not be verified. Reopen Receive from your selected account."), { code: "RECEIVE_ACCOUNT_UNAVAILABLE" }); };
 
@@ -17,6 +18,14 @@ export async function createReceiveCode(expectedAccount, readAccountStatus) {
   return { account: expectedAccount, chainId: "ynx_6423-1", asset: "YNXT", uri, size: modules.size, modules: Array.from(modules.data) };
 }
 
+export async function createEVMReceiveCode(input,{readSnapshot,getContext}){
+  const fields=['family','account','revision','networkId','configRevision','chainId','genesis','rpcUrl'],expected=Object.fromEntries(fields.map(key=>[key,bitcoinField(input,key)]));
+  if(Object.keys(input).length!==fields.length||expected.family!=='evm'||!/^0x[a-f0-9]{40}$/.test(expected.account)||/^0x0{40}$/.test(expected.account)||!Number.isSafeInteger(expected.revision)||!Number.isSafeInteger(expected.configRevision)||typeof expected.networkId!=='string'||!expected.networkId||chainQuantity(expected.chainId)!==expected.chainId||!/^0x[a-f0-9]{64}$/.test(expected.genesis)||typeof expected.rpcUrl!=='string'||!expected.rpcUrl.startsWith('https://'))throw Error('EVM_RECEIVE_INVALID');
+  const initialEpoch=getContext().networkEpoch;
+  const verify=async()=>{const frame=await readSnapshot(),current=getContext(),network=frame.networks.find(n=>n.id===expected.networkId);if(current.locked||current.authenticating||current.changing||current.revision!==expected.revision||current.networkEpoch!==initialEpoch||frame.account!==expected.account||frame.selected!==expected.networkId||frame.revision!==expected.configRevision||!network||network.chainId!==expected.chainId||network.genesis!==expected.genesis||network.rpcUrl!==expected.rpcUrl)throw Error('EVM_RECEIVE_CHANGED');};
+  await verify();const {modules}=QRCode.create(expected.account,{errorCorrectionLevel:'M'});await verify();
+  return {...expected,payload:expected.account,networkVerified:false,size:modules.size,modules:Array.from(modules.data)};
+}
 function bitcoinField(object,key){const d=object&&typeof object==='object'&&Object.getOwnPropertyDescriptor(object,key);if(!d||!Object.hasOwn(d,'value'))throw Error('BTC_RECEIVE_INVALID');return d.value;}
 function bitcoinReceiveNetwork(snapshot,network){
   const revision=bitcoinField(snapshot,'revision'),networks=bitcoinField(snapshot,'networks');

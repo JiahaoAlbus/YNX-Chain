@@ -21,14 +21,19 @@ export function renderRecoveryOutcome(node,remoteCleanupUnconfirmed,doc=node.own
 export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, renderAccount, document: doc = document }) {
   const $ = selector => doc.querySelector(selector), passwordSheet = $("#password-sheet"), recoverySheet = $("#recovery-sheet");
   let generation = 0, viewIntent = 0, mode = "unlock", previewId = null, reviewedRecovery = null, busy = false;
+  // Public status is a view read, not permission to erase a later user draft.
+  // Capture only event occurrence; never inspect input/credential contents.
+  let publicViewRevision=0;
+  for(const type of ['click','keydown','input','change'])doc.addEventListener?.(type,()=>{publicViewRevision++},true);
   const recoveryFile=createRecoveryFileInput({document:doc,getContext:()=>({open:recoverySheet.open,generation,revision:getKeyState().revision,locked:getKeyState().locked,authenticating:getKeyState().authenticating,busy,account:$("#recovery-account").value,kind:$("#recovery-kind").value,mode:$("#recovery-password-mode").value})});
   const message = result => result?.error?.message ?? "Wallet could not complete this operation. It remains locked.";
   const showError = (node,result) => {if(!renderPermissionError(node,result?.error))node.textContent=message(result)};
   const clear = () => { recoveryFile.invalidate();for (const field of doc.querySelectorAll('#password-sheet input,#recovery-sheet input')) field.value = ""; };
   async function refreshPublicStatus(accept = () => true, acceptError = accept) {
-    const revision = getKeyState().revision, intent = viewIntent;
-    try { const status = await api.accountStatus(); if (revision === getKeyState().revision && intent === viewIntent && accept(status)) renderAccount(status); }
-    catch { if (revision === getKeyState().revision && intent === viewIntent && acceptError()) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
+    const before={...getKeyState()},intent=viewIntent,view=publicViewRevision,accountStatus=getAccountStatus();
+    const live=()=>{const current=getKeyState();return view===publicViewRevision&&intent===viewIntent&&accountStatus===getAccountStatus()&&before.revision===current.revision&&before.account===current.account&&before.locked===current.locked&&before.authenticating===current.authenticating};
+    try { const status = await api.accountStatus(); if (live() && accept(status)) renderAccount(status); }
+    catch { if (live() && acceptError()) $("#unlock-result").textContent = "The current Wallet could not be read. Keep its files and reopen Wallet before continuing."; }
   }
   function cancel({ explicit = false } = {}) { if (explicit) viewIntent++; generation++; previewId = null; reviewedRecovery = null; busy = false; clear(); passwordSheet.close(); recoverySheet.close(); }
   function render() {
@@ -72,20 +77,36 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
   $("#password-form").addEventListener("submit", async event => {
     event.preventDefault(); if (busy) return;
     const token = generation, intent = viewIntent, operation = mode;
+    const feedbackOwner=operation==="unlock"?{view:publicViewRevision,status:getAccountStatus(),state:{...getKeyState()}}:null;
+    let result=null;
+    const ownsFeedback=()=>{
+      if(intent!==viewIntent)return false;
+      if(!feedbackOwner)return true; // Setup/recovery custody ownership is unchanged.
+      const state=getKeyState(),before=feedbackOwner.state;
+      if(feedbackOwner.view!==publicViewRevision||feedbackOwner.status!==getAccountStatus()||state.authenticating)return false;
+      if(state.account===before.account&&state.revision===before.revision)return true;
+      // The original failed unlock itself locks once. Admit its own error, not
+      // a later manual lock or account/security journey with a similar epoch.
+      if(result?.ok===false)return state.account===before.account&&state.revision===before.revision+1&&state.locked&&state.lockReason==="unlock-failed";
+      // An original successful unlock may reconcile a changed disk selection.
+      // Its returned public state must match exactly; this grants no authority.
+      return result?.ok===true&&state.revision===before.revision+1&&!state.locked&&
+        result.value?.account===state.account&&result.value.revision===state.revision&&result.value.locked===state.locked;
+    };
     let password = $("#local-password").value, confirmation = $("#local-confirm").value;
     if (operation !== "unlock" && password !== confirmation) { setWalletCopy($("#password-result"),"The two passwords do not match."); return; }
     clear(); setBusy(true);
     try {
-      const result = operation === "unlock" ? await api.unlock({ password }) : await api.setupPassword({ password, confirmation, migrateLegacy: operation === "migrate" });
-      if (intent !== viewIntent) return;
+      result = operation === "unlock" ? await api.unlock({ password }) : await api.setupPassword({ password, confirmation, migrateLegacy: operation === "migrate" });
+      if (!ownsFeedback()) return;
       // A successful state change may itself invalidate the UI generation; no old
       // finally may clear credentials entered in a newly opened dialog.
       if (result.ok) {
         if (token === generation) passwordSheet.close();
         setWalletCopy($("#unlock-result"),operation === "unlock" ? getKeyState().locked ? "The unlock attempt finished, but Wallet is now locked." : "Wallet unlocked. Review each request before approving." : "Password protection is saved. Unlock with your local password to continue.");
       } else { if (token === generation) showError($("#password-result"),result); showError($("#unlock-result"),result); }
-    } catch { if (token === generation) setWalletCopy($("#password-result"),"Wallet did not finish. Reopen the current Wallet before continuing."); }
-    finally { password = null; confirmation = null; if (intent === viewIntent) await refreshPublicStatus(); if (token === generation) setBusy(false); }
+    } catch { if (token === generation&&ownsFeedback()) setWalletCopy($("#password-result"),"Wallet did not finish. Reopen the current Wallet before continuing."); }
+    finally { password = null; confirmation = null; if (ownsFeedback()) await refreshPublicStatus(); if (token === generation) setBusy(false); }
   });
   $("#recover-wallet").addEventListener("click", async () => {
     if (busy) return;

@@ -38,6 +38,11 @@ function paintReceiveModules(canvas,size,source){
   }
 }
 
+export function drawEVMReceiveCode(canvas,code,expected){
+  for(const key of ['family','account','revision','networkId','configRevision','chainId','genesis','rpcUrl'])if(ownValue(code,key)!==expected[key])throw Error('EVM_RECEIVE_INVALID');
+  if(expected.family!=='evm'||!/^0x[a-f0-9]{40}$/.test(expected.account)||ownValue(code,'payload')!==expected.account||ownValue(code,'networkVerified')!==false)throw Error('EVM_RECEIVE_INVALID');
+  paintReceiveModules(canvas,ownValue(code,'size'),ownValue(code,'modules'));
+}
 export function drawBitcoinReceiveCode(canvas,code,expected){
   for(const key of ['family','network','vaultAccount','address','revision','configRevision','rpcUrl','genesis'])if(ownValue(code,key)!==expected[key])throw Error('BTC_RECEIVE_INVALID');
   const path=`m/84'/${expected.network==='mainnet'?0:1}'/0'/0/0`;
