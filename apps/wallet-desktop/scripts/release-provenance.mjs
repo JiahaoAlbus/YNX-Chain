@@ -32,7 +32,14 @@ export const PACKAGED_RELOCATION_RULES = Object.freeze([
     {kind:"from",from:"../../../apps/wallet-desktop/src/password-wallet-vault.mjs",to:"../../../apps/wallet-desktop/src/password-wallet-vault.mjs",count:1},
     {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
   {sourcePath:"packages/wallet-auth/src/original-wallet-service-private-dispatch.js",packedPath:"code/packages/wallet-auth/src/original-wallet-service-private-dispatch.js",operands:[
-    {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]}
+    {kind:"url",from:"../../../apps/wallet-desktop/native/original-auth-identity.node",to:"../../../apps/wallet-desktop/native/original-auth-identity.node",count:1}]},
+  ...['original-host-terminal-journal.js','original-ide-admission-parent-delivery.js'].map(file=>({sourcePath:`packages/wallet-auth/src/${file}`,packedPath:`code/packages/wallet-auth/src/${file}`,operands:[
+    {kind:'url',from:'../../../apps/wallet-desktop/native/original-auth-identity.node',to:'../../../apps/wallet-desktop/native/original-auth-identity.node',count:1}]})),
+  // This existing SDK daemon is explicitly unconfigured. Its separate optional
+  // IO module is NOT the Wallet authority module; preserve its URL unchanged,
+  // do not synthesize a substitute or claim that the service is supplied.
+  {sourcePath:'packages/wallet-auth/src/original-auth-identity-source-current.js',packedPath:'code/packages/wallet-auth/src/original-auth-identity-source-current.js',unavailableNativeAsset:'code/apps/wallet-desktop/native/original-source-current-dirfd.node',operands:[
+    {kind:'url',from:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',to:'../../../apps/wallet-desktop/native/original-source-current-dirfd.node',count:1}]}
 ].map(rule=>Object.freeze({...rule,operands:Object.freeze(rule.operands.map(Object.freeze))})));
 const escapeRE = text => text.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
 const repositoryOperand = /(?:from\s*|new\s+URL\s*\(\s*)["']\.\.\/\.\.\/\.\.\/(?:packages\/wallet-auth|apps\/wallet-desktop)\//;
@@ -177,6 +184,10 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if(receipt.schemaVersion!==2||receipt.recipe!==RELOCATION_VERSION||receipt.sourceCommit!==expected.sourceCommit||!isDeepStrictEqual(receipt.files,publicRelocationRows(plan))||typeof receipt.metadataInputBase64!=='string') throw new Error("Packaged relocation receipt differs from source recipe");
   ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'));
   if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
+  const unavailableOptionalRuntimeAssets=PACKAGED_RELOCATION_RULES.filter(row=>row.unavailableNativeAsset).map(row=>{
+    if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
+    return {declaredBy:row.sourcePath,path:row.unavailableNativeAsset,packaged:false,capability:'NOT_SUPPLIED'};
+  });
   if(!isDeepStrictEqual(desktopAsarHeaderIntegrity(resources,cwd),receipt.asarHeaderIntegrity)) throw new Error("Relocated ASAR header integrity differs");
   let macAsarIntegrityVerified=false;
   if(path.basename(resources)==="Resources"&&path.basename(path.dirname(resources))==="Contents"){
@@ -236,6 +247,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   }
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,
+    unavailableOptionalRuntimeAssets,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,
     typeDeclarationExclusionReason: "TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
     asarSHA256: digest(readFileSync(archive)), files: verified };
