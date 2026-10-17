@@ -84,8 +84,8 @@ class NativeWalletController {
       if (runtime) await runtime.endNativeOperation().catch(() => {});
       if (this.runtime === runtime) this.runtime = undefined;
       if (epoch === this.epoch) {
-        const missing = error.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
-        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error.code === 'string' ? error.code : undefined, message: error.message || 'Wallet operation failed.' });
+        const missing = error?.code === 'WALLET_SERVICE_ADMISSION_NOT_SUPPLIED', paused = error?.code === 'WALLET_ONLINE_ADMISSION_PAUSED';
+        this.publish({ phase: missing ? 'dependency-missing' : paused ? 'paused' : 'error', serviceConfiguration: missing ? 'not-supplied' : paused ? 'paused' : 'unverified', busy: false, awaitingCallback: false, sessionCurrent: false, failureCode: typeof error?.code === 'string' ? error.code : undefined, message: error?.message || 'Wallet operation failed.' });
       }
     }).finally(() => {
       if (this.inFlight !== operation) return;
