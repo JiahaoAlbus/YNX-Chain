@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
   preparePQTransfer:input=>ipcRenderer.invoke('wallet:pq-transfer-review',input),
+  preparePQMigration:input=>ipcRenderer.invoke('wallet:pq-migration-review',input),
   originalAdmissionStatus:()=>ipcRenderer.invoke('wallet:original-admission-status'),
   originalAdmissionReview:()=>ipcRenderer.invoke('wallet:original-admission-review'),
   originalAdmissionConfirm:reviewId=>ipcRenderer.invoke('wallet:original-admission-confirm',reviewId),

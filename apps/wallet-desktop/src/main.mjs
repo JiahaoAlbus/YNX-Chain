@@ -420,6 +420,11 @@ handleWalletIPC('wallet:pq-transfer-review',(_event,input)=>sensitiveIPC(async()
   keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
   return {requestId:response.request.id,submitted:false};
 }));
+handleWalletIPC('wallet:pq-migration-review',(_event,input)=>sensitiveIPC(async()=>{
+  const response=await walletAuthority.requestPQMigration(input);
+  keyAccess.current().assert();mainWindow?.webContents.send('wallet:provider-request',response.request);
+  return {requestId:response.request.id,submitted:false};
+}));
 handleWalletIPC("wallet:transaction-history", (_event, cursor) => safeIPC(async () => {
   const account = (await walletAuthority.accountStatus()).account;
   const page = await walletAuthority.transactionSender.submissions.history(account, cursor ?? null);

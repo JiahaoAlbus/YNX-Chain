@@ -5,8 +5,9 @@ import { providerError } from "./desktop-wallet-vault.mjs";
 import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 import { CENTRAL_BROWSER_METHOD, parseCentralSignIn, signCentralSignIn } from "./central-browser-sign-in.mjs";
 import {PermissionEpoch,bindPermissionGuard} from "./permission-lease.mjs";
-import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding} from '@ynx-chain/wallet-auth/pq-wallet-policy';
-import {signPQWalletNativeTransfer} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import {inspectPQWalletActionPolicy,planPQNativeTransfer,assertPQAuthorizationCurrent,pqRegisteredPublicBinding,planPQAccountMigration,preparePQClassicMigrationAuthorization,preparePQClassicMigrationProof,preparePQReviewedMigrationTransport} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+import {signPQWalletNativeTransfer,createPQWalletMigrationPossession} from '@ynx-chain/wallet-auth/pq-wallet-key-backup';
+import {pqPublicBindingToRegistrationKeys} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
 import {createPQOriginalRecord} from './wallet-pq-intent-record.mjs';
 import {retainPQPolicyResource} from './wallet-pq-policy-owner.mjs';
 
@@ -56,15 +57,17 @@ export class DesktopWalletAuthority {
     void pass.then(()=>this.#pqInFlight.delete(pass),()=>this.#pqInFlight.delete(pass));return pass;
   }
   requestPQTransfer(input){return this.#trackPQ(()=>this.#preparePQTransfer(input));}
-  async #preparePQTransfer(input){
-    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).sort().join()!=='amount,to'||Object.values(Object.getOwnPropertyDescriptors(input)).some(d=>!Object.hasOwn(d,'value')))throw providerError(-32602,'PQ_TRANSFER_INPUT_INVALID','Enter only recipient and whole-YNXT amount.');
-    const to=normalizeAccount(typeof input.to==='string'&&input.to.startsWith('ynx1')?evmAddressFromYNX(input.to):input.to);if(typeof input.amount!=='string'||! /^[1-9][0-9]{0,18}$/.test(input.amount))throw providerError(-32602,'PQ_TRANSFER_INPUT_INVALID','Use a canonical whole-YNXT amount.');
+  requestPQMigration(input){return this.#trackPQ(()=>this.#preparePQTransfer(input,true));}
+  async #preparePQTransfer(input,migration=false){
+    if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).sort().join()!==(migration?'activateAt':'amount,to')||Object.values(Object.getOwnPropertyDescriptors(input)).some(d=>!Object.hasOwn(d,'value')))throw providerError(-32602,'PQ_TRANSFER_INPUT_INVALID','Supply only the fields for this exact review.');
+    const to=migration?null:normalizeAccount(typeof input.to==='string'&&input.to.startsWith('ynx1')?evmAddressFromYNX(input.to):input.to);
+    if(migration?typeof input.activateAt!=='string'||! /^[1-9][0-9]{0,19}$/.test(input.activateAt):typeof input.amount!=='string'||! /^[1-9][0-9]{0,18}$/.test(input.amount))throw providerError(-32602,'PQ_TRANSFER_INPUT_INVALID','Use canonical integer values.');
     const guard=this.vault.authorization.current(),permission=this.permissions.authorizationLease('ynx-wallet:local-pq');guard.assert();permission.assert();
     if(!this.#pqPolicySource||!this.#pqPolicyRecognized||!this.#pqNetworkId)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Trusted current transaction policy is not supplied. Nothing was signed or sent.');
     this.#pruneExpired();if(this.#pqOwners.size)throw providerError(4100,'PQ_POLICY_RESOURCE_UNRESOLVED','Finish the original policy review and cleanup first.');
     const status=await this.vault.status();guard.assert();permission.assert();if(!status.initialized||status.account!==guard.account)throw providerError(4100,'ACCOUNT_CHANGED','Review the original selected account.');
     let resource;
-    try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation:'transfer',at:this.clock().toISOString()});}
+    try{resource=await this.#pqPolicySource({networkId:this.#pqNetworkId,nativeChainId:'6423',owner:status.account,operation:migration?'migration':'transfer',at:this.clock().toISOString()});}
     catch(error){
       // Auth's failed initialization throws an original partial, even though
       // it is NOT branded successful supply. Capture before any live check.
@@ -76,16 +79,20 @@ export class DesktopWalletAuthority {
     const owner=retainPQPolicyResource(resource,{networkId:this.#pqNetworkId,account:status.account,now:this.clock});this.#pqOwners.add(owner);
     try{
     guard.assert();permission.assert();if(this.#pqPolicyRecognized(resource)!==true)throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original transaction policy is not recognized.');const {snapshot,expiresAt}=owner.read();
-    const policy=inspectPQWalletActionPolicy(snapshot,'pq-native-transfer');if(policy.owner!==status.account)throw providerError(4100,'ACCOUNT_CHANGED','The policy belongs to another account.');
-    const plan=planPQNativeTransfer(snapshot,{chainId:policy.chainId,nativeChainId:policy.nativeChainId,from:status.account,to,amount:input.amount,fee:'1',nonce:policy.nextNonce});
+    const policy=inspectPQWalletActionPolicy(snapshot,migration?'pq-account-migration':'pq-native-transfer');if(policy.owner!==status.account)throw providerError(4100,'ACCOUNT_CHANGED','The policy belongs to another account.');
+    // The current one-pair Vault cannot safely overwrite an active pair for
+    // rotation. Refuse explicitly rather than using a classic fallback.
+    if(migration&&policy.mode!=='legacy')throw providerError(4100,'PQ_ROTATION_PROPOSAL_SLOT_REQUIRED','An independent protected proposed-pair slot is required for active PQ rotation.');
+    const proposal=migration?await this.vault.readPQProposalBinding(this.#pqNetworkId):null;guard.assert();permission.assert();owner.assert();
+    const plan=migration?planPQAccountMigration(snapshot,{...pqPublicBindingToRegistrationKeys(proposal),priorRevision:policy.policyRevision,newRevision:(BigInt(policy.policyRevision)+1n).toString(),ledgerNonce:policy.nextNonce,activateAt:input.activateAt}):planPQNativeTransfer(snapshot,{chainId:policy.chainId,nativeChainId:policy.nativeChainId,from:status.account,to,amount:input.amount,fee:'1',nonce:policy.nextNonce});
     this.#pruneExpired();if(this.pending.size>=MAX_PENDING_REQUESTS)throw providerError(4200,'PENDING_REQUEST_LIMIT','Finish or cancel pending reviews first.');
-    const pending=deepFreeze({id:this.requestId(),origin:'ynx-wallet:local-pq',method:'ynx_signPQNativeTransfer',params:[],createdAt:this.clock().toISOString(),review:{title:'Sign PQ transfer locally',account:status.account,...plan.transfer,policyRevision:plan.policy.policyRevision,expiresAt,warning:'Sign and save this exact transfer locally only. This does not submit a transaction, grant future signing permission or prove chain confirmation.'}});
+    const pending=deepFreeze({id:this.requestId(),origin:'ynx-wallet:local-pq',method:migration?'ynx_signPQMigration':'ynx_signPQNativeTransfer',params:[],createdAt:this.clock().toISOString(),review:{title:migration?'Sign initial PQ migration locally':'Sign PQ transfer locally',account:status.account,...(migration?{activationHeight:plan.intent.activateAt,newRevision:plan.intent.newRevision,nonce:plan.intent.ledgerNonce,fee:'1',newPublicKeys:proposal}:plan.transfer),policyRevision:plan.policy.policyRevision,expiresAt,warning:'Sign and save this exact operation locally only. This does not submit, activate a migration, grant future signing permission or prove chain confirmation.'}});
     let cancelled=false;const lease=Object.freeze({assert:()=>{permission.assert();guard.assert();if(cancelled||this.clock().getTime()-Date.parse(pending.createdAt)>=APPROVAL_TTL_MS)throw providerError(4100,'REQUEST_EXPIRED','Review this transfer again.');}});
     // The first lifecycle lease ends after preparation. Approval uses its own
     // current original lease, bound to the same security generation below.
     const securityRevision=this.vault.authorization.status().revision;
     const approvalPermission=Object.freeze({assert:()=>{permission.assert();owner.assert();if(cancelled||this.vault.authorization.status().revision!==securityRevision||this.clock().getTime()-Date.parse(pending.createdAt)>=APPROVAL_TTL_MS)throw providerError(4100,'REQUEST_EXPIRED','Review this transfer again.');}});
-    lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
+    lease.assert();this.#pqReviews.set(pending,{snapshot,plan,owner,proposal});this.#reviewLeases.set(pending,{lease:approvalPermission,permission,cancel:()=>{if(cancelled)return false;cancelled=true;void this.#closePQ(owner,providerError(4001,'USER_REJECTED_REQUEST','Review cancelled.')).catch(()=>{});return true;}});this.pending.set(pending.id,pending);
     return Object.freeze({status:'approval-required',request:pending});
     }catch(error){try{await this.#closePQ(owner,error);}catch{}throw error;}
   }
@@ -219,6 +226,26 @@ export class DesktopWalletAuthority {
     }
     guard.assert();
     switch (pending.method) {
+      case 'ynx_signPQMigration': {
+        const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
+        if(!reviewed||!store||typeof this.vault.withPQKeys!=='function')throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original policy, Vault and journal are required.');
+        const {snapshot:refreshed}=await reviewed.owner.recheck();guard.assert();assertPQAuthorizationCurrent(reviewed.snapshot,refreshed);
+        const plan=planPQAccountMigration(refreshed,reviewed.plan.intent),authorization=preparePQClassicMigrationAuthorization(refreshed,plan.intent);
+        guard.assert();await store.reserveOriginal(status.account,'pq-migration');let hash;
+        try{
+          guard.assert();const classic=await this.vault.withSecret((secret,identity)=>{
+            guard.assert();assertReviewedAccount(identity.account,status.account);const signer=walletForSecret(secret),signature=signer.signingKey.sign(authorization.digest);
+            return preparePQClassicMigrationProof(refreshed,plan.intent,{publicKey:signer.signingKey.compressedPublicKey,r:signature.r,s:signature.s});
+          },permission);
+          guard.assert();await this.vault.withPQKeys(reviewed.proposal,handle=>{
+            guard.assert();const newKeyWholeProof=createPQWalletMigrationPossession(handle,plan.intent);
+            const {request}=preparePQReviewedMigrationTransport(refreshed,{intent:plan.intent,...classic,currentPQMember:new Uint8Array(0),newKeyWholeProof});
+            const original=createPQOriginalRecord({account:status.account,kind:'pq-migration',operationId:pending.id,request});
+            store.captureOriginal(status.account,original,'pq-migration');hash=original.hash;guard.assert();
+          },permission);
+          guard.assert();const saved=await store.saveOriginal(status.account,hash,()=>guard.assert());guard.assert();return success(saved);
+        }catch(error){store.originalFailed(status.account,error);throw error;}
+      }
       case 'ynx_signPQNativeTransfer': {
         const reviewed=this.#pqReviews.get(pending),store=this.transactionSender?.submissions?.intentStore;
         if(!reviewed||!store||typeof this.vault.withPQKeys!=='function')throw providerError(4100,'PQ_AUTHORIZATION_SOURCE_NOT_SUPPLIED','Original policy, Vault and journal are required.');
