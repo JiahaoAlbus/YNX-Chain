@@ -124,6 +124,38 @@ export class PasswordWalletVault {
     const original=await this.readPQKeys({operationId,publicBinding});
     return receipt?.version===1&&receipt.account===original.account&&receipt.operationId===original.operationId&&receipt.recordDigest===original.recordDigest;
   }
+  /** Original-main callback only. Expected keys must come from the trusted
+   * reviewed registration, not backup metadata. Never expose this via IPC. */
+  async withPQKeys(expectedBinding,action,permission){
+    if(typeof action!=='function')fail('PQ_KEY_CALLBACK_REQUIRED','Original main key operation is required.');
+    const sdk=this.#pqRequired(),guard=bindPermissionGuard(this.authorization.current(),permission);
+    if(this.pqCleanupUnresolved())fail('PQ_KEY_CLEANUP_UNRESOLVED','Resolve the original cleanup before another key acquisition.');
+    const security=this.authorization.status(),current=await this.#readUnlocked(guard),account=current.vault.activeAccount;
+    if(guard.account!==account||expectedBinding?.owner!==account)throw cancelled();
+    const record=current.vault.pqKeyRecords?.find(r=>r.account===account);
+    if(!record)fail('PASSWORD_VAULT_PQ_ORIGINAL_REQUIRED','Restore the original dual-key backup first.');
+    sdk.assertPQPublicBindingMatches(record.binding,expectedBinding);
+    let payload,handle,retired=false,failed=false,cause,cleanupFailed=false,cleanupCause,result,debt;
+    const retire=()=>{
+      if(!handle||retired)return;retired=true;
+      try{if(sdk.destroyPQWalletKeyHandle(handle)!==true)fail('PQ_KEY_CLEANUP_UNRESOLVED','Dual-key cleanup is unconfirmed.');}
+      catch(error){cleanupFailed=true;cleanupCause=error;debt={handle,firstCause:cause,firstCausePresent:failed,cleanupCause:error};this.#pqRecoveryDebt.add(debt);}
+    };
+    const unsubscribe=this.authorization.subscribe(state=>{if(state.locked||state.account!==account||state.revision!==security.revision)retire();});
+    try{
+      guard.assert();payload=await decryptPasswordVaultPQRecord(current.vault,account,current.session,options(guard));
+      // Capture the actual returned handle before a post-await fence can fail.
+      handle=await sdk.restorePQWalletKeyHandle(payload.wire,payload.credential,expectedBinding);
+      guard.assert();sdk.assertPQPublicBindingMatches(sdk.readPQWalletKeyPublic(handle),expectedBinding);
+      await this.files.assertCurrent(current.snapshot.digest,guard);guard.assert();
+      // The producer must retain its signed result before returning; a late
+      // lock can reject UI success, but cannot be allowed to hide that result.
+      result=await action(handle,expectedBinding,guard);guard.assert();
+    }catch(error){failed=true;cause=error;}
+    finally{retire();unsubscribe();payload?.wire.fill(0);if(payload)payload.credential=null;}
+    if(debt&&failed){debt.firstCause=cause;debt.firstCausePresent=true;}
+    if(failed)throw cause;if(cleanupFailed)throw cleanupCause;return result;
+  }
   authorizer() { return Object.freeze({ available: () => true, method: "local-password-encrypted-vault", inProcess: true, authenticate: (input, guard) => this.authenticate(input, guard), invalidate: () => this.lock() }); }
   lock() { closePasswordVaultSession(this.#session); this.#session = null; this.#digest = null; this.cancelRecovery(); this.cancelMnemonicAccount(); }
   cancelMnemonicAccount() {this.#mnemonicEpoch++;const draft=this.#mnemonicDraft;this.#mnemonicDraft=null;if(draft){clearTimeout(draft.timer);draft.phrase=null;draft.secretHex=null;draft.entropyHex=null;}}

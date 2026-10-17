@@ -13,11 +13,13 @@ import {parsePasswordVault,unlockPasswordVault,closePasswordVaultSession,decrypt
 import * as keySDK from '../../../packages/wallet-auth/src/pq-wallet-key-backup.js';
 import * as backupSDK from '../../../packages/wallet-auth/src/pq-wallet-backup.js';
 import * as contractSDK from '../../../packages/wallet-auth/src/pq-wallet-contract.js';
+import {pqPublicBindingToRegistrationKeys,decodePQTransferRequest} from '@ynx-chain/wallet-auth/pq-wallet-authorization';
+import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 const SDK=Object.freeze({...keySDK,...backupSDK,...contractSDK}),PASSWORD='isolated-PQ-app-fixture-password',SECRET='1'.padStart(64,'0'),CHAIN='a'.repeat(64);
-async function fixture(t){
+async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
  const lifecycle=new DesktopKeyLifecycle();lifecycle.setFocused(true);
- const vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK:SDK,randomSecret:()=>SECRET});lifecycle.authorizer=vault.authorizer();
+ const vault=new PasswordWalletVault({filePath,authorization:lifecycle,pqSDK,randomSecret:()=>SECRET});lifecycle.authorizer=vault.authorizer();
  t.after(async()=>{lifecycle.lock();await fs.rm(directory,{recursive:true,force:true});});
  await lifecycle.custody(g=>vault.setup({password:PASSWORD,confirmation:PASSWORD},g));await lifecycle.unlock({password:PASSWORD});
  const status=await lifecycle.run(()=>vault.createAccount());lifecycle.setAccount(status.account);await lifecycle.unlock({password:PASSWORD});
@@ -114,4 +116,23 @@ test('App authenticated malformed private payload never exposes parser plaintext
   try{await assert.rejects(decryptPasswordVaultPQRecord(malformed,f.account,session),e=>e.code==='PASSWORD_VAULT_INVALID'&&e.data.code===e.code&&!e.message.includes('TEST_PRIVATE_PAYLOAD_DO_NOT_LOG')&&!(e instanceof SyntaxError));}
   finally{closePasswordVaultSession(session);bytes.fill(0);}
  }
+});
+function syntheticTransfer(f){
+ const keys=pqPublicBindingToRegistrationKeys(f.binding),snapshot=parsePQAccountAuthorization({owner:f.account,executionHeight:'30',ledgerNonce:'9007199254740993',algorithmVersion:'YNX-BATCH/v0.1',enabled:true,policyVersion:'YNX-ACCOUNT-POLICY/v1',networkId:CHAIN,enableAt:'10',activeRevision:'1',records:[{algorithmVersion:keys.algorithmVersion,owner:f.account,pkA:keys.pkA,pkB:keys.pkB,revision:'1',registeredAt:'10',activeFrom:'20',ledgerNonce:'1'}]},{chainId:CHAIN,nativeChainId:'6423',owner:f.account});
+ return {snapshot,transfer:{chainId:CHAIN,nativeChainId:'6423',from:f.account,to:'0x'+'2'.repeat(40),amount:'3',fee:'1',nonce:'9007199254740994'}};
+}
+test('original Vault typed-sign caller restores only the matching pair and retires its temporary handle',async t=>{
+ const f=await fixture(t),{snapshot,transfer}=syntheticTransfer(f);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));let selected;
+ const result=await f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,(handle,binding,guard)=>{guard.assert();selected=handle;assert.deepEqual(binding,f.binding);return SDK.signPQWalletNativeTransfer(handle,transfer,snapshot);}));
+ assert.equal(decodePQTransferRequest(result.body).transfer.nonce,transfer.nonce);assert.equal(SDK.readPQWalletKeyCleanupOutcome(selected).cleanupComplete,true);assert.throws(()=>SDK.readPQWalletKeyPublic(selected),{code:'PQ_KEY_HANDLE_UNAVAILABLE'});
+});
+test('original Vault lock after typed signing retains producer result but refuses unlocked success',async t=>{
+ const f=await fixture(t),{snapshot,transfer}=syntheticTransfer(f);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));let retained,selected;
+ await assert.rejects(f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,handle=>{selected=handle;retained=SDK.signPQWalletNativeTransfer(handle,transfer,snapshot);f.lifecycle.lock();assert.equal(SDK.readPQWalletKeyCleanupOutcome(handle).cleanupComplete,true);return retained;})));
+ assert.equal(decodePQTransferRequest(retained.body).transfer.from,f.account);assert.equal(SDK.readPQWalletKeyCleanupOutcome(selected).cleanupComplete,true);
+});
+test('original Vault captures and retires a restored handle returned after a lock before callback',async t=>{
+ let armed=false,lock=()=>{},late,actions=0;const sdk={...SDK,restorePQWalletKeyHandle:async(...args)=>{const handle=await SDK.restorePQWalletKeyHandle(...args);if(armed){late=handle;lock();}return handle;}};
+ const f=await fixture(t,sdk);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-sign-source'}));lock=()=>f.lifecycle.lock();armed=true;
+ await assert.rejects(f.lifecycle.run(()=>f.vault.withPQKeys(f.binding,()=>{actions++;})));assert.equal(actions,0);assert.equal(SDK.readPQWalletKeyCleanupOutcome(late).cleanupComplete,true);
 });
