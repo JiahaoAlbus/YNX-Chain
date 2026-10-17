@@ -11,7 +11,7 @@ import (
 
 func TestFixtureIsBoundedSignedAndNeverReusesDirectory(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "network")
-	if err := run(root, 257, true, 31656, 31757, 31858); err == nil {
+	if err := run(root, consensus.EphemeralWorkloadMaxTransactions+1, true, 31656, 31757, 31858); err == nil {
 		t.Fatal("unbounded count accepted")
 	}
 	if err := run(root, 2, false, 31656, 31757, 31858); err == nil {

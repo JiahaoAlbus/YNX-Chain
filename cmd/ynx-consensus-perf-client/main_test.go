@@ -50,6 +50,29 @@ func TestEndpointAndWorkloadBounds(t *testing.T) {
 	}
 }
 
+func TestExpandedDecoderBoundIsFinite(t *testing.T) {
+	// These are decoder-only byte fixtures, not signed/accepted transactions.
+	input := transactionInput{Transactions: make([]string, maxTransactions)}
+	for i := range input.Transactions {
+		input.Transactions[i] = base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("decoder-bound-fixture-%d", i)))
+	}
+	data, err := json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if txs, err := decodeTransactions(data); err != nil || len(txs) != maxTransactions {
+		t.Fatal("new bounded decoder ceiling failed", err)
+	}
+	input.Transactions = append(input.Transactions, base64.StdEncoding.EncodeToString([]byte("one-too-many")))
+	data, err = json.Marshal(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := decodeTransactions(data); err == nil {
+		t.Fatal("decoder accepted beyond hard ceiling")
+	}
+}
+
 func confirmationFixture(t *testing.T, powers []int64, signers int) (consensus.EphemeralNetworkManifest, *cmttypes.ValidatorSet, *coretypes.ResultValidators, *coretypes.ResultCommit, *coretypes.ResultTx, cmttypes.Tx) {
 	t.Helper()
 	m := consensus.EphemeralNetworkManifest{Version: consensus.EphemeralNetworkVersion, Purpose: "local-ephemeral", ChainID: "ynx_6423-1", GenesisHash: strings.Repeat("ab", 32)}

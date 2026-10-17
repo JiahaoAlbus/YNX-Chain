@@ -97,10 +97,16 @@ func TestInterarrivalRateAndUnverifiedAcceptanceStaySeparate(t *testing.T) {
 	if s.CheckTxResponses != 1 || s.CheckTxUnverified != 1 || s.CheckTxAccepted != 0 || s.FinalSubmitted != 0 || s.SubmissionUnknown != 1 || s.SteadyStateEffectiveTPS != nil {
 		t.Fatalf("unverified response inflated success: %+v", s)
 	}
-	for _, bad := range []float64{-1, 257, math.NaN(), math.Inf(1)} {
+	for _, bad := range []float64{-1, float64(maxTransactions + 1), math.NaN(), math.Inf(1)} {
 		o := options{manifest: "m", transactions: "t", concurrency: 1, observers: 1, offeredRate: bad, timeout: time.Second, poll: 100 * time.Millisecond}
 		if validateOptions(o) == nil {
 			t.Fatalf("invalid offered rate accepted: %v", bad)
+		}
+	}
+	for _, rate := range []float64{1000, 2048} {
+		o := options{manifest: "m", transactions: "t", concurrency: 4, observers: 4, offeredRate: rate, timeout: 10 * time.Second, poll: 100 * time.Millisecond}
+		if err := validateOptions(o); err != nil {
+			t.Fatalf("valid bounded rate %v rejected: %v", rate, err)
 		}
 	}
 }

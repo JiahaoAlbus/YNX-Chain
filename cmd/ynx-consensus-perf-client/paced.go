@@ -39,7 +39,7 @@ func waitUntil(ctx context.Context, target time.Time) bool {
 }
 
 // Submission and observation have separate bounded worker pools. All queues
-// are bounded by the <=256 input transactions. An unknown submission outcome
+// are bounded by maxTransactions input transactions. An unknown submission outcome
 // never enters observation as an accepted transaction and is never retried.
 func runPacedTransactions(ctx context.Context, o options, started time.Time, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, time.Time)) pacedStatistics {
 	type job struct {

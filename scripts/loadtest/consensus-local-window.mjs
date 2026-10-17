@@ -16,9 +16,10 @@ const { values } = parseArgs({ options: {
 } });
 const count = Number(values.count);
 if (process.platform !== 'darwin') throw Error('this launcher requires the macOS proc_pidtaskinfo resource probe');
-if (!Number.isInteger(count) || count < 1 || count > 256) throw Error('count must be 1..256');
+// Match consensus.EphemeralWorkloadMaxTransactions; resource caps do not grow.
+if (!Number.isInteger(count) || count < 1 || count > 2048) throw Error('count must be 1..2048');
 const offeredRate = Number(values['offered-rate']);
-if (!Number.isFinite(offeredRate) || offeredRate < 0 || offeredRate > 256) throw Error('offered-rate must be in 0..256');
+if (!Number.isFinite(offeredRate) || offeredRate < 0 || offeredRate > 2048) throw Error('offered-rate must be in 0..2048');
 if (offeredRate > 0 && (count - 1) / offeredRate >= 10) throw Error('offering span does not fit the full 10-second client deadline');
 if (!values['bin-dir'] || !values['comet-bin']) throw Error('prebuilt --bin-dir and --comet-bin are required');
 const bin = path.resolve(values['bin-dir']);
@@ -30,13 +31,21 @@ const commands = {
   host: path.join(bin, 'ynx-consensus-perf-host'),
 };
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
-const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 128 * 1024 * 1024, rssBytes: 2 * 1024 ** 3, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1 };
+const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1 };
 if (!values.execute) {
   console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
 const parent = path.resolve(values['work-parent']);
+// Check the nearest existing ancestor before creating any directory.
+let diskAncestor = parent;
+while (!fs.existsSync(diskAncestor)) diskAncestor = path.dirname(diskAncestor);
+function freeDiskBytes() {
+  const info = fs.statfsSync(diskAncestor);
+  return Number(info.bavail) * Number(info.bsize);
+}
+if (freeDiskBytes() < caps.freeDiskFloorBytes + caps.rootDiskReserveBytes + caps.dataBytes) throw Error('fresh free disk below floor plus Root reserve and maximum data delta');
 fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
 const work = fs.mkdtempSync(path.join(parent, 'window-'));
 const network = path.join(work, 'network');
@@ -61,6 +70,7 @@ process.on('SIGTERM', () => onSignal('SIGTERM'));
 
 function requireActive() {
   if (firstCause) throw Error(firstCause);
+  if (freeDiskBytes() < caps.freeDiskFloorBytes) throw Error('free disk below configured floor');
   if (Date.now() - started >= caps.activeMs) throw Error('active deadline reached');
 }
 
@@ -148,7 +158,7 @@ function sampleResources(full) {
   if (full) hostSamples.push({ sampledAt: new Date().toISOString(), ...sample });
   peakRSSBytes = Math.max(peakRSSBytes, sample.rssWithControlReserveBytes);
   peakThreadsWithControlReserve = Math.max(peakThreadsWithControlReserve, sample.threadsWithControlReserve);
-  if (sample.rssWithControlReserveBytes > caps.rssBytes) throw Error('owned/control RSS with sampler reserve exceeded 2 GiB');
+  if (sample.rssWithControlReserveBytes > caps.rssBytes) throw Error(`owned/control RSS with sampler reserve exceeded ${caps.rssBytes} bytes`);
   if (sample.threadsWithControlReserve > caps.threadsWithControlReserve) throw Error('owned/control kernel thread count with reserve exceeded 320');
   if (full && !sample.forkProbe?.available) throw Error(`ordinary fork probe unavailable: ${JSON.stringify(sample.forkProbe)}`);
 }
@@ -164,7 +174,7 @@ try {
       sampleResources(full);
       const size = directoryBytes(work);
       peakDataBytes = Math.max(peakDataBytes, size);
-      if (size > caps.dataBytes) fail('local output/data exceeded 128 MiB');
+      if (size > caps.dataBytes) fail(`local output/data exceeded ${caps.dataBytes} bytes`);
     } catch (error) { fail(error.message); }
   }, 250);
   await waitExit(launch('fixture', commands.fixture, ['-ephemeral', '-output', network, '-count', String(count)]));
@@ -202,7 +212,7 @@ try {
   await Promise.race([Promise.all(children.map(c => c.closed)), delay(Math.max(1, caps.cleanupMs - (Date.now() - stopStarted)), undefined, { ref: false })]);
   const finalDataBytes = directoryBytes(work);
   peakDataBytes = Math.max(peakDataBytes, finalDataBytes);
-  if (finalDataBytes > caps.dataBytes) fail('final local output/data exceeded 128 MiB');
+  if (finalDataBytes > caps.dataBytes) fail(`final local output/data exceeded ${caps.dataBytes} bytes`);
   const processReceipt = children.map(({ name, pid, exitCode, signal, exited }) => {
     let groupGone = false;
     if (pid) { try { process.kill(-pid, 0); } catch (error) { groupGone = error.code === 'ESRCH'; } }

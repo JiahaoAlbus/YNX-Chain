@@ -35,7 +35,7 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 )
 
-const maxTransactions = 256
+const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 
 type options struct {
 	manifest, transactions, output string
@@ -171,7 +171,7 @@ func main() {
 	flag.StringVar(&o.output, "output", "", "optional new JSON output file; existing files are never overwritten")
 	flag.IntVar(&o.concurrency, "concurrency", 2, "maximum concurrent submit-and-observe workers (1..4)")
 	flag.IntVar(&o.observers, "observers", 4, "confirmation workers for paced mode (1..4)")
-	flag.Float64Var(&o.offeredRate, "offered-rate", 0, "paced offers per second (0=legacy closed loop; positive at most 256)")
+	flag.Float64Var(&o.offeredRate, "offered-rate", 0, fmt.Sprintf("paced offers per second (0=legacy closed loop; positive at most %d)", maxTransactions))
 	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup and workload timeout (positive, at most 30s)")
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.Parse()
@@ -192,8 +192,8 @@ func validateOptions(o options) error {
 	if o.concurrency < 1 || o.concurrency > 4 {
 		return errors.New("concurrency must be in 1..4")
 	}
-	if math.IsNaN(o.offeredRate) || math.IsInf(o.offeredRate, 0) || o.offeredRate < 0 || o.offeredRate > 256 {
-		return errors.New("offered-rate must be finite in 0..256")
+	if math.IsNaN(o.offeredRate) || math.IsInf(o.offeredRate, 0) || o.offeredRate < 0 || o.offeredRate > maxTransactions {
+		return fmt.Errorf("offered-rate must be finite in 0..%d", maxTransactions)
 	}
 	if o.offeredRate > 0 && (o.observers < 1 || o.observers > 4) {
 		return errors.New("paced observer count must be in 1..4")
@@ -249,7 +249,7 @@ func decodeTransactions(data []byte) ([]cmttypes.Tx, error) {
 		return nil, err
 	}
 	if len(input.Transactions) < 1 || len(input.Transactions) > maxTransactions {
-		return nil, errors.New("transactions must contain 1..256 entries")
+		return nil, fmt.Errorf("transactions must contain 1..%d entries", maxTransactions)
 	}
 	txs := make([]cmttypes.Tx, len(input.Transactions))
 	seen := map[string]bool{}
