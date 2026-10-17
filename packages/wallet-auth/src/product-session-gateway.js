@@ -7,14 +7,16 @@ import { assertProductSessionControlOwnerAdmission, parseProductSessionControlCa
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
+import {readAccountPolicyObservation,assertSessionAccountPolicy} from './product-session-account-private.js';
 import { verifyWalletSessionControlProof, walletSessionControlReplayKey, walletSessionControlReplayExpiry, walletSessionControlClockAnchor, walletSessionControlClockAnchorTime, walletSessionControlClockFloor, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS } from "./wallet-session-control.js";
 
 const INPUT_FIELDS = ["requestId", "method", "path", "body", "proof", "networkAvailable"];
 const IDEMPOTENT_PATHS = new Set(["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]);
 
 export class ProductSessionGatewayKernel {
-  #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes; #capacityPolicy;
-  constructor(registryInput, tokenFactory, snapshot, capacityPolicy) {
+  #accountContext; #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes; #capacityPolicy;
+  constructor(registryInput, tokenFactory, snapshot, capacityPolicy, accountContext = null) {
+    this.#accountContext = accountContext;
     this.#capacityPolicy = parseProductSessionControlCapacityPolicy(capacityPolicy);
     this.#registry = parseProductSessionRegistry(registryInput);
     if (typeof tokenFactory !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session Gateway requires a cryptographic challenge source");
@@ -25,7 +27,7 @@ export class ProductSessionGatewayKernel {
     this.#controlIntents = parsed.schemaVersion === 3 ? [...parsed.controlIntents] : null;
     this.#deviceScopes = parsed.schemaVersion === 3 ? [...parsed.authority.revokedDeviceScopes] : [];
     const legacy = parsed.schemaVersion === 3 ? projectProductSessionControlSnapshotV2(parsed) : parsed;
-    this.#authority = new ProductSessionAuthority(this.#registry, legacy.authority);
+    this.#authority = new ProductSessionAuthority(this.#registry, legacy.authority, this.#accountContext);
     this.#proofs = [...parsed.consumedProofs]; this.#idempotency = [...parsed.idempotency]; this.#audit = [...parsed.audit];
   }
 
@@ -97,7 +99,7 @@ export class ProductSessionGatewayKernel {
       this.#record(requestId, request.path, "ok", null, result?.preparedReceipt?.intentDigest ?? result?.sessionBinding ?? result?.session?.sessionBinding ?? result?.revoked ?? result?.challenge ?? "none", instant);
       return completed;
     } catch (error) {
-      this.#authority = new ProductSessionAuthority(this.#registry, beforeAuthority);
+      this.#authority = new ProductSessionAuthority(this.#registry, beforeAuthority, this.#accountContext);
       this.#controlIntents = beforeIntents; this.#deviceScopes = beforeScopes;
       this.#proofs = beforeProofs;
       this.#idempotency = beforeIdempotency;
@@ -112,10 +114,17 @@ export class ProductSessionGatewayKernel {
     return this.#controlIntents === null ? Object.freeze(base) : Object.freeze({ ...base, schemaVersion: 3, authority: Object.freeze({ ...base.authority, schemaVersion: 3, revokedDeviceScopes: Object.freeze([...this.#deviceScopes]) }), controlIntents: Object.freeze([...this.#controlIntents]) });
   }
 
+  #assertAccountPolicy(subject,at) {
+    const context=this.#accountContext;
+    if(context?.observation==null){if(context?.required||subject.version==='3')fail('ACCOUNT_POLICY_SOURCE_NOT_SUPPLIED','Original policy resource is required');return;}
+    assertSessionAccountPolicy(subject,readAccountPolicyObservation(context.observation,subject.account,at));
+  }
+
   #assertCachedResponseUsable(cached, request, at) {
     const approval = this.#controlIntents === null
-      ? parseProductSessionApproval(this.#registry, request.body.request, request.body.approval, at)
-      : assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at);
+      ? parseProductSessionApproval(this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null)
+      : assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
+    this.#assertAccountPolicy(approval,at);
     const snapshot = this.#authority.snapshot();
     if (snapshot.revokedDevices.includes(deviceBinding(approval, approval.account)) || snapshot.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
     const result = JSON.parse(cached.responseBody).result;
@@ -150,7 +159,7 @@ export class ProductSessionGatewayKernel {
       exactFields(request.body, ["request", "approval"], "Product Session Gateway challenge body");
       if (this.#controlIntents !== null) {
         const snapshot = this.snapshot();
-        const approval = assertProductSessionControlApprovalAllowed(snapshot, this.#registry, request.body.request, request.body.approval, at);
+        const approval = assertProductSessionControlApprovalAllowed(snapshot, this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
         assertProductSessionControlOwnerAdmission(snapshot, approval.account, this.#capacityPolicy);
       }
       return this.#authority.issueChallenge({ request: request.body.request, approval: request.body.approval, challenge: this.#tokens() }, at);
@@ -158,7 +167,7 @@ export class ProductSessionGatewayKernel {
     if (request.path === "/v2/product-sessions/complete") {
       if (request.proof !== null) fail("UNEXPECTED_PROOF", "Session completion does not accept an existing Product Session proof");
       exactFields(request.body, ["request", "approval", "completion"], "Product Session Gateway completion body");
-      if (this.#controlIntents !== null) assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at);
+      if (this.#controlIntents !== null) assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at, this.#accountContext?.verifiedApproval ?? null);
       return this.#authority.complete(request.body, at);
     }
     if (request.path === "/v2/product-sessions/introspect") {
@@ -179,6 +188,9 @@ export class ProductSessionGatewayKernel {
   #verifyOwner(request, at) {
     if (request.walletControlProof == null) fail("PROOF_REQUIRED", "Wallet account owner proof is required");
     const proof = verifyWalletSessionControlProof(request.walletControlProof, { method: request.method, path: request.path, bodyDigest: httpBodyDigest(canonicalJSON(request.body)) }, at);
+    // Existing global account-control proof is classic. An active PQ account
+    // cannot use it as a fallback. Device-bound session revocation is separate.
+    this.#assertAccountPolicy({version:'2',account:proof.account},at);
     const replayKey = walletSessionControlReplayKey(proof);
     const controlRecords = this.#proofs.filter(value => walletSessionControlReplayExpiry(value) !== null);
     if (controlRecords.some(value => value.slice(28) === replayKey.slice(28))) fail("REPLAY", "Wallet session control nonce was already consumed");
@@ -193,7 +205,7 @@ export class ProductSessionGatewayKernel {
     const intent = parseProductSessionControlIntent({ account: proof.account, operation: request.path.endsWith("/revoke-all") ? "account-logout" : "device-logout", body: request.body });
     const before = this.snapshot(), prepared = prepareProductSessionControlIntent(before, intent, at, undefined, this.#capacityPolicy);
     const candidate = assertProductSessionControlPlanBase(prepared, before, this.#capacityPolicy);
-    this.#authority = new ProductSessionAuthority(this.#registry, projectProductSessionControlSnapshotV2(candidate).authority);
+    this.#authority = new ProductSessionAuthority(this.#registry, projectProductSessionControlSnapshotV2(candidate).authority, this.#accountContext);
     this.#deviceScopes = [...candidate.authority.revokedDeviceScopes];
     this.#controlIntents = [...candidate.controlIntents];
     if (needsAnchor) this.#proofs.push(walletSessionControlClockAnchor(at));
