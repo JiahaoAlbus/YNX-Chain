@@ -65,6 +65,7 @@ var requestValidityRules = []RequestValidityRule{
 }
 
 type Devnet struct {
+	pqBatches                map[string]PQBatchProof
 	accountPolicy            *ynxauth.State
 	mu                       sync.RWMutex
 	persistenceMu            sync.Mutex
@@ -266,6 +267,7 @@ func NormalizeValidatorPeers(peers []ValidatorPeer) ([]ValidatorPeer, error) {
 }
 
 type devnetSnapshot struct {
+	PQBatches        map[string]PQBatchProof               `json:"pqBatches,omitempty"`
 	AccountPolicy    *ynxauth.State                        `json:"accountPolicy,omitempty"`
 	Version          int                                   `json:"version"`
 	SavedAt          time.Time                             `json:"savedAt"`
@@ -477,6 +479,10 @@ func NewDevnetWithValidatorsAndPeers(cfg NetworkConfig, validators []Validator, 
 	d.blocks = append(d.blocks, Block{
 		Height: 0, Hash: hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID)), Time: time.Now().UTC(), Validator: normalized[0].Address,
 	})
+	// Apply the same metadata defaults before the first checkpoint as on
+	// recovery. Otherwise a pending-only ledger changes at its first restart
+	// (notably validator PeerStatus), even when no transaction is re-executed.
+	d.ensureStateDefaults()
 	return d
 }
 
@@ -1083,39 +1089,51 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 	if err := d.verifyPQTransferLocked(input); err != nil {
 		return Transaction{}, false, err
 	}
+	tx, undo, err := d.applySignedTransferLocked(input, ethereumTransfer)
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	tx, err = d.persistTransferLocked(tx, undo)
+	return tx, false, err
+}
+
+// applySignedTransferLocked runs business rules after its caller authenticates
+// under d.mu. Only native admission and private PQ admission call this helper.
+// It does not accept an externally supplied verification flag or persist state.
+func (d *Devnet) applySignedTransferLocked(input SignedTransferInput, ethereumTransfer *ethnative.Transfer) (Transaction, transferUndo, error) {
 	sender, ok := d.accounts[input.From]
 	if !ok {
-		return Transaction{}, false, errors.New("signed transaction sender account does not exist")
+		return Transaction{}, transferUndo{}, errors.New("signed transaction sender account does not exist")
 	}
 	if sender.Nonce == math.MaxUint64 {
-		return Transaction{}, false, errors.New("signed transaction sender nonce is exhausted")
+		return Transaction{}, transferUndo{}, errors.New("signed transaction sender nonce is exhausted")
 	}
 	if input.Nonce != sender.Nonce+1 {
-		return Transaction{}, false, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", input.Nonce, sender.Nonce+1)
+		return Transaction{}, transferUndo{}, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", input.Nonce, sender.Nonce+1)
 	}
 	if input.Amount > math.MaxInt64-input.Fee || sender.Balance < input.Amount+input.Fee {
-		return Transaction{}, false, errors.New("insufficient YNXT balance for amount and fee")
+		return Transaction{}, transferUndo{}, errors.New("insufficient YNXT balance for amount and fee")
 	}
 	if ethereumTransfer != nil {
 		if _, exists := d.contracts[input.To]; exists {
-			return Transaction{}, false, errors.New("native Ethereum adapter does not execute contracts")
+			return Transaction{}, transferUndo{}, errors.New("native Ethereum adapter does not execute contracts")
 		}
 		budget := new(big.Int).Add(ethereumTransfer.Value, new(big.Int).Mul(new(big.Int).SetUint64(ethereumTransfer.Gas), ethereumTransfer.GasPrice))
 		if ethnative.Wei(sender.Balance).Cmp(budget) < 0 {
-			return Transaction{}, false, errors.New("insufficient funds for value plus gas budget")
+			return Transaction{}, transferUndo{}, errors.New("insufficient funds for value plus gas budget")
 		}
 	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
-		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
+		return Transaction{}, transferUndo{}, errors.New("sender bandwidth usage is exhausted")
 	}
 	validator := d.nextValidatorAddressLocked()
 	if err := d.validateTransferCreditsLocked(input.From, input.To, validator, input.Amount, input.Fee); err != nil {
-		return Transaction{}, false, err
+		return Transaction{}, transferUndo{}, err
 	}
 	receiver := d.accountReadOnly(input.To)
 	flows, err := d.planLotMovementLocked(sender, receiver, input.Amount)
 	if err != nil {
-		return Transaction{}, false, err
+		return Transaction{}, transferUndo{}, err
 	}
 	undo := d.transferUndoLocked(input.From, input.To, validator, flows)
 	receiver = d.account(input.To)
@@ -1137,8 +1155,7 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		tx.Memo = pqTransferMemo + hex.EncodeToString(input.PQMember)
 	}
 	d.pending = append(d.pending, tx)
-	tx, err = d.persistTransferLocked(tx, undo)
-	return tx, false, err
+	return tx, undo, nil
 }
 
 func (d *Devnet) validateTransferCreditsLocked(from, to, validator string, amount, fee int64) error {
@@ -3060,13 +3077,11 @@ func (d *Devnet) nextValidatorAddressLocked() string {
 
 func (d *Devnet) ensureValidatorAccountsLocked() {
 	for _, validator := range d.validators {
-		account := d.account(validator.Address)
-		if account.Staked == 0 {
-			account.Staked = validator.VotingPower * 10_000_000
+		if _, exists := d.accounts[validator.Address]; !exists {
+			d.accounts[validator.Address] = &Account{Address: validator.Address, Balance: 10_000_000, Staked: validator.VotingPower * 10_000_000, Lots: map[string]int64{}}
 		}
-		if account.Balance == 0 {
-			account.Balance = 10_000_000
-		}
+		// Zero balance/stake in an existing account is ledger state, not a
+		// missing configuration value. Restart must never mint funds or stake.
 	}
 }
 

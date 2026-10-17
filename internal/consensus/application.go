@@ -13,12 +13,13 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
 )
 
 const (
 	ApplicationName      = "ynx-chain-abci"
-	ApplicationVersion   = 14
+	ApplicationVersion   = 15
 	CodeInvalidTx        = 2
 	CodeInvalidNonce     = 3
 	CodeInsufficientYNXT = 4
@@ -41,6 +42,10 @@ type transactionError struct {
 }
 
 type executionState struct {
+	legacyResourceSponsor      *LegacyResourceSponsor
+	traceLots                  map[string]chain.TrustTraceLot
+	accountPolicy              *ynxauth.State
+	pqHistory                  []PQCommittedAuthorization
 	accounts                   []chain.ConsensusAccount
 	feeEvents                  []BFTFeeEvent
 	nativeTransfers            []BFTNativeTransfer
@@ -85,9 +90,17 @@ type executionState struct {
 }
 
 type transactionExecution struct {
-	typeName string
-	hash     string
-	event    abcitypes.Event
+	resultData []byte
+	typeName   string
+	hash       string
+	event      abcitypes.Event
+}
+
+func executionResultData(tx transactionExecution, payload []byte) []byte {
+	if tx.resultData != nil {
+		return tx.resultData
+	}
+	return []byte(SignedTransactionHash(payload))
 }
 
 func (e *transactionError) Error() string { return e.err.Error() }
@@ -107,6 +120,9 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 	if err := state.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
+	if err := validateMigrationExecutionClosure(state); err != nil {
+		return nil, err
+	}
 	payload, err := state.CanonicalJSON()
 	if err != nil {
 		return nil, err
@@ -118,6 +134,9 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 	committed, err := loadCommittedState(strings.TrimSpace(statePath), migration)
 	if err != nil {
 		return nil, err
+	}
+	if err := committed.Validate(migration); err != nil {
+		return nil, fmt.Errorf("validate imported or restored application state: %w", err)
 	}
 	feeRecipient := ""
 	for _, validator := range migration.Validators {
@@ -193,7 +212,24 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
+	if queryLegacySponsor(response, req.Path, a.committed) {
+		return response, nil
+	}
 	switch {
+	case req.Path == "/migration/compatibility":
+		response.Value, _ = json.Marshal(MigrationExecutionBlockers(a.migration))
+		return response, nil
+	case req.Path == "/account-policy":
+		response.Value, _ = json.Marshal(a.committed.AccountPolicy)
+		return response, nil
+	case strings.HasPrefix(req.Path, "/migration/transactions/"):
+		tx, ok := sourceHistoryTransaction(a.migration, strings.TrimPrefix(req.Path, "/migration/transactions/"))
+		if !ok {
+			response.Code, response.Log = 1, "source transaction not found"
+			return response, nil
+		}
+		response.Value, _ = json.Marshal(tx)
+		return response, nil
 	case req.Path == "/migration":
 		payload, err := a.migration.CanonicalJSON()
 		if err != nil {
@@ -438,16 +474,23 @@ func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) 
 	a.mu.RLock()
 	defer a.mu.RUnlock()
 	state := a.cloneExecutionState()
-	_, tx, err := a.applyTransaction(state, req.Tx, 0, time.Time{})
+	_, tx, err := a.applyTransaction(state, req.Tx, a.committed.Height+1, time.Time{})
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error()}, nil
 	}
-	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: []byte(SignedTransactionHash(req.Tx)), GasWanted: 1, GasUsed: 1, Info: tx.typeName}, nil
+	return &abcitypes.ResponseCheckTx{Code: abcitypes.CodeTypeOK, Data: executionResultData(tx, req.Tx), GasWanted: 1, GasUsed: 1, Info: tx.typeName}, nil
 }
 
 func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestPrepareProposal) (*abcitypes.ResponsePrepareProposal, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
+	height := req.Height
+	if height == 0 {
+		height = a.committed.Height + 1
+	}
+	if height != a.committed.Height+1 {
+		return nil, errors.New("proposal height must follow committed state")
+	}
 	state := a.cloneExecutionState()
 	selected := make([][]byte, 0, len(req.Txs))
 	var selectedBytes int64
@@ -455,7 +498,7 @@ func (a *Application) PrepareProposal(_ context.Context, req *abcitypes.RequestP
 		if req.MaxTxBytes > 0 && selectedBytes+int64(len(payload)) > req.MaxTxBytes {
 			continue
 		}
-		next, _, err := a.applyTransaction(state, payload, req.Height, req.Time)
+		next, _, err := a.applyTransaction(state, payload, height, req.Time)
 		if err != nil {
 			continue
 		}
@@ -472,9 +515,13 @@ func (a *Application) ProcessProposal(_ context.Context, req *abcitypes.RequestP
 	if req.Height != 0 && req.Height != a.committed.Height+1 {
 		return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 	}
+	height := req.Height
+	if height == 0 {
+		height = a.committed.Height + 1
+	}
 	state := a.cloneExecutionState()
 	for _, payload := range req.Txs {
-		next, _, err := a.applyTransaction(state, payload, req.Height, req.Time)
+		next, _, err := a.applyTransaction(state, payload, height, req.Time)
 		if err != nil {
 			return &abcitypes.ResponseProcessProposal{Status: abcitypes.ResponseProcessProposal_REJECT}, nil
 		}
@@ -507,7 +554,7 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 		}
 		results[i] = &abcitypes.ExecTxResult{
 			Code:    abcitypes.CodeTypeOK,
-			Data:    []byte(SignedTransactionHash(payload)),
+			Data:    executionResultData(tx, payload),
 			GasUsed: 1,
 			Log:     tx.typeName,
 			Events:  events,
@@ -541,7 +588,11 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 
 func (a *Application) cloneExecutionState() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
+		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
+		traceLots:             cloneTraceLots(a.committed.TraceLots),
+		accountPolicy:         cloneConsensusAccountPolicy(a.committed.AccountPolicy),
+		pqHistory:             append([]PQCommittedAuthorization(nil), a.committed.PQHistory...),
+		accounts:              cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), paySettlements: append([]BFTPaySettlement(nil), a.committed.PaySettlements...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
@@ -556,6 +607,9 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	kind, err := TransactionEnvelopeType(payload)
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	if kind == PQTransferType || kind == PQMigrationType {
+		return a.applyPQTransaction(state, payload, height, blockTime)
 	}
 	if kind == SignedActionType {
 		next, execution, err := a.applyApplicationAction(state, payload, height, blockTime)
@@ -575,12 +629,20 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
+	if err := requireConsensusLegacy(state.accountPolicy, tx.From, height); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
+	}
+	return a.applyAuthorizedTransfer(state, tx, SignedTransactionHash(payload), height, blockTime)
+}
+
+func (a *Application) applyAuthorizedTransfer(state executionState, tx SignedTransaction, transactionHash string, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
+	state.accounts = cloneAccounts(state.accounts)
 	accounts := state.accounts
 	senderIndex, ok := accountIndex(accounts, tx.From)
 	if !ok {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("signed transaction sender account does not exist"))
 	}
-	sender := accounts[senderIndex]
+	sender := cloneAccounts([]chain.ConsensusAccount{accounts[senderIndex]})[0]
 	if sender.Nonce == math.MaxUint64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("signed transaction sender nonce is exhausted"))
 	}
@@ -602,14 +664,23 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Amount); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
 	}
+	state.traceLots = cloneTraceLots(state.traceLots)
+	for lotID, oldAmount := range sender.Lots {
+		if accounts[senderIndex].Lots[lotID] < oldAmount {
+			if lot, ok := state.traceLots[lotID]; ok {
+				lot.LastInbound = transactionHash
+				state.traceLots[lotID] = lot
+			}
+		}
+	}
 	accounts[senderIndex].Balance -= tx.Amount + tx.Fee
 	accounts[senderIndex].Nonce++
 	accounts[senderIndex].ResourceUsage.BandwidthUsed++
 	accounts[receiverIndex].Balance += tx.Amount
 	accounts[feeIndex].Balance += tx.Fee
 	state.accounts = accounts
-	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
-	receipt := BFTNativeTransfer{TransactionHash: SignedTransactionHash(payload), From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: height, CommittedAt: blockTime.UTC()}
+	state.feeEvents = append(state.feeEvents, newCurrentFeeEvent(transactionHash, tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
+	receipt := BFTNativeTransfer{TransactionHash: transactionHash, From: tx.From, To: tx.To, Amount: tx.Amount, Fee: tx.Fee, BlockHeight: height, CommittedAt: blockTime.UTC()}
 	state.nativeTransfers = insertPayRecord(state.nativeTransfers, receipt, func(v BFTNativeTransfer) string { return v.TransactionHash })
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
 }
@@ -622,13 +693,12 @@ func (a *Application) applyApplicationAction(state executionState, payload []byt
 	if err := tx.Verify(a.migration.Network.ChainID); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	if height > 0 && blockTime.IsZero() {
-		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("application action requires deterministic block time"))
+	if err := requireConsensusLegacy(state.accountPolicy, tx.Signer, height); err != nil {
+		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
 	validationOnly := blockTime.IsZero()
 	if validationOnly {
 		blockTime = time.Unix(1, 0).UTC()
-		height = 1
 	} else {
 		blockTime = blockTime.UTC()
 	}

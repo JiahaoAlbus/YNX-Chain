@@ -159,10 +159,15 @@ func TestPQHTTPMigrationTransferAndAllLegacyEntrypoints(t *testing.T) {
 		ActivationHeight uint64 `json:"activationHeight,string"`
 		Revision         uint64 `json:"revision,string"`
 		ExecutionHeight  uint64 `json:"executionHeight,string"`
+		WireHash         string
+		DecimalFields    map[string]string
 	}
 	apiPQDecode(t, apiPQRequest(t, f.h, http.MethodPost, route+"/migrate", "application/octet-stream", migration, http.StatusOK), &admitted)
 	if admitted.Replayed || admitted.Transaction.Hash == "" || admitted.Status != "registered_pending_activation" || admitted.ActivationHeight != 2 || admitted.Revision != 1 || admitted.ExecutionHeight != 1 {
 		t.Fatal("migration response overstated activation or lost transaction")
+	}
+	if admitted.WireHash != admitted.Transaction.Hash || admitted.DecimalFields["amount"] != "0" || admitted.DecimalFields["fee"] != "1" || admitted.DecimalFields["nonce"] != "1" || admitted.DecimalFields["executionHeight"] != "1" || admitted.DecimalFields["revision"] != "1" || admitted.DecimalFields["activationHeight"] != "2" {
+		t.Fatal("migration receipt omitted canonical decimal and raw wire binding")
 	}
 	migrationHash := admitted.Transaction.Hash
 	apiPQDecode(t, apiPQRequest(t, f.h, http.MethodGet, route, "", nil, http.StatusOK), &registration)
@@ -181,6 +186,9 @@ func TestPQHTTPMigrationTransferAndAllLegacyEntrypoints(t *testing.T) {
 	apiPQDecode(t, apiPQRequest(t, f.h, http.MethodPost, "/transactions/pq/broadcast", "application/octet-stream", wire, http.StatusOK), &admitted)
 	if admitted.Replayed || admitted.Transaction.Nonce != 2 || admitted.Transaction.From != f.owner || admitted.Status != "accepted" {
 		t.Fatal("PQ-only API transfer failed")
+	}
+	if admitted.WireHash != admitted.Transaction.Hash || admitted.DecimalFields["amount"] != "2" || admitted.DecimalFields["fee"] != "1" || admitted.DecimalFields["nonce"] != "2" || admitted.DecimalFields["executionHeight"] != "2" {
+		t.Fatal("PQ transfer receipt omitted canonical decimal and raw wire binding")
 	}
 	txHash := admitted.Transaction.Hash
 	sender, _ := f.d.Account(f.owner)

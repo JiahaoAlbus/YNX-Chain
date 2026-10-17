@@ -239,7 +239,18 @@ func buildBFTResourceAnalytics(migration chain.ConsensusMigrationState, state Co
 		}
 	}
 	result.SponsorshipCount = len(state.ResourceSponsorships)
+	values := make([]chain.ResourceSponsorship, 0, len(state.ResourceSponsorships))
 	for _, value := range state.ResourceSponsorships {
+		values = append(values, value.ResourceSponsorship)
+	}
+	if source := state.LegacyResourceSponsor; source != nil {
+		result.TruthfulStatus = "committed_bft_with_anchored_source_state"
+		result.SponsorshipCount += len(source.Sponsors)
+		for _, value := range source.Sponsors {
+			values = append(values, value)
+		}
+	}
+	for _, value := range values {
 		switch value.ResourceType {
 		case "bandwidth":
 			result.SponsoredResources.Bandwidth += value.Amount

@@ -314,7 +314,12 @@ func buildExecutionTrustTrace(state executionState, subject string) chain.TrustT
 		}
 		sort.Strings(ids)
 		for _, id := range ids {
-			lots = append(lots, chain.TrustTraceLot{LotID: id, Amount: state.accounts[index].Lots[id], Origin: "committed-chain-lineage"})
+			lot, ok := state.traceLots[id]
+			if !ok {
+				lot = chain.TrustTraceLot{LotID: id, Origin: "committed-chain-lineage"}
+			}
+			lot.Amount = state.accounts[index].Lots[id]
+			lots = append(lots, lot)
 		}
 	}
 	labels := chainLabelsForSubject(state.trustLabels, subject)
@@ -329,7 +334,7 @@ func buildExecutionTrustTrace(state executionState, subject string) chain.TrustT
 }
 
 func buildBFTTrustTrace(state CommittedState, subject string) chain.TrustTrace {
-	return buildExecutionTrustTrace(executionState{accounts: state.Accounts, trustLabels: state.TrustLabels}, subject)
+	return buildExecutionTrustTrace(executionState{accounts: state.Accounts, trustLabels: state.TrustLabels, traceLots: state.TraceLots}, subject)
 }
 
 func trustPacketJSONHash(packet chain.EvidencePacket) string {

@@ -59,8 +59,10 @@ func main() {
 		SquareURL: envOrDefault("YNX_APP_GATEWAY_SQUARE_URL", "http://127.0.0.1:6436"), SquareAPIKey: os.Getenv("YNX_APP_GATEWAY_SQUARE_API_KEY"),
 		SocialURL: envOrDefault("YNX_APP_GATEWAY_SOCIAL_URL", "http://127.0.0.1:6491"), SocialAPIKey: os.Getenv("YNX_APP_GATEWAY_SOCIAL_API_KEY"),
 		PayURL: envOrDefault("YNX_APP_GATEWAY_PAY_URL", "http://127.0.0.1:6430"), PayAPIKey: os.Getenv("YNX_APP_GATEWAY_PAY_API_KEY"),
-		WalletURL:      envOrDefault("YNX_APP_GATEWAY_WALLET_URL", "http://127.0.0.1:6439"),
-		AllowedOrigins: splitCSV(os.Getenv("YNX_APP_GATEWAY_ALLOWED_ORIGINS")), MaxBodyBytes: maxBody, MaxResponseBytes: maxResponse,
+		WalletURL:              envOrDefault("YNX_APP_GATEWAY_WALLET_URL", "http://127.0.0.1:6439"),
+		AccountPolicyURL:       strings.TrimSpace(os.Getenv("YNX_APP_GATEWAY_ACCOUNT_POLICY_URL")),
+		AccountPolicyNetworkID: strings.TrimSpace(os.Getenv("YNX_APP_GATEWAY_ACCOUNT_POLICY_NETWORK_ID")),
+		AllowedOrigins:         splitCSV(os.Getenv("YNX_APP_GATEWAY_ALLOWED_ORIGINS")), MaxBodyBytes: maxBody, MaxResponseBytes: maxResponse,
 		RateLimitMax: rateMax, RateLimitWindow: rateWindow, StatePath: envOrDefault("YNX_APP_GATEWAY_STATE_PATH", "/var/lib/ynx-chain/app-gateway/state.json"),
 		ChainID: chainID, ChallengeTTL: challengeTTL, SessionTTL: sessionTTL, RemoteDeployed: envBool("YNX_APP_GATEWAY_DEPLOY_ENABLED"),
 	}
@@ -68,7 +70,7 @@ func main() {
 		if err := appgateway.ValidateConfig(cfg); err != nil {
 			log.Fatal(err)
 		}
-		fmt.Println("ynx-app-gatewayd config check passed; ynx1 ownership challenges, persistent hashed sessions, exact browser allowlists, and the bounded native-mobile client enabled; public deployment not implied")
+		fmt.Println("ynx-app-gatewayd config syntax passed; classic sessions require a reachable explicitly pinned Core account policy; PQ app sessions unsupported; public deployment not implied")
 		return
 	}
 	gateway, err := appgateway.New(cfg)

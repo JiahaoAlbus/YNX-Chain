@@ -127,6 +127,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
 	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("POST /transactions/pq/broadcast", s.handlePQTransfer)
+	s.mux.HandleFunc("POST /transactions/pq/batches/broadcast", s.handlePQBatch)
 	s.mux.HandleFunc("GET /accounts/{address}/authorization", s.handleAccountAuthorization)
 	s.mux.HandleFunc("POST /accounts/{address}/authorization/migrate", s.handleAccountMigration)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)

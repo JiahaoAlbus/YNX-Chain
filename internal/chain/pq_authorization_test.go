@@ -198,15 +198,15 @@ func TestPQAccountMigrationActivationTransferAndRestart(t *testing.T) {
 		t.Fatal("new certificate replayed a consumed nonce")
 	}
 	assertModuleState(t, f.d, before)
-	// The cryptographic protocol accepts N=2, but this production standalone
-	// endpoint currently admits N=1 only until atomic full-batch admission ships.
-	multi := f.batchMember(t, 3, 1, 2)
+	// A larger certificate remains valid cryptographically; business replay
+	// protection is independent of the certificate's batch size.
+	multi := f.batchMember(t, 2, 1, 2)
 	validMulti, err := ynxbatch.DecodeMember(multi)
 	pqMust(t, err)
 	policy, height = f.d.AccountAuthorization(f.owner)
 	pqMust(t, policy.VerifyMember(f.owner, ynxauth.TransactionPurpose, validMulti.Message, multi, height))
-	if _, _, err = f.d.SubmitPQTransfer(multi); err == nil || !strings.Contains(err.Error(), "one-member certificate") {
-		t.Fatalf("standalone endpoint must reject a valid multi-member certificate: %v", err)
+	if _, _, err = f.d.SubmitPQTransfer(multi); err == nil || !strings.Contains(err.Error(), "nonce") {
+		t.Fatalf("standalone endpoint must reject an already consumed nonce: %v", err)
 	}
 	assertModuleState(t, f.d, before)
 	validNext := f.member(t, 3, 1)

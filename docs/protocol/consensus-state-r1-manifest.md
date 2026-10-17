@@ -1,0 +1,20 @@
+# A-stage source checkpoint
+
+Source only; no Go compilation or tests run. These SHA-256 values were read before editing the A-stage files for the resource sponsor adapter. `gofmt` and `git diff --check` had exited 0. Python manifest generation exited 137 without output; this manifest uses the successful `shasum -a 256` output instead.
+
+```text
+5455ad9447865c9da070219f68008e3a1a8b7c757e7a042e3fc10abf83531ed1  internal/chain/consensus_migration.go
+aca7d9a6c8a47c62d855c39076f17ab55dc563c7e3b3687090ae93d1f0c7d4a5  internal/chain/consensus_migration_runtime.go
+4b3b0de6b77cfbc6e877d8c646a4eb66457632587e24207c90f98a2bbd545a80  internal/chain/consensus_migration_runtime_test.go
+2c9e924d0beeb0c5ab7950f2f8e454de1da90b3d15356b6950600e685c4cd4c7  internal/consensus/application.go
+4c337526cabfd7467ad44fa341c1e4e69c8e6459873565174affc01ddc644eb0  internal/consensus/state.go
+8c98499c4047081a0f84d323192794054833f7a9dbfc2ab0f239cfe06b9a2e8b  internal/consensus/action_transaction.go
+5f2dbb60bc380f7ec75f662101b08199fb1796a7724d3878eec08f2e392b286e  internal/consensus/trust_application.go
+657266ed84f4f6f6246167d331a407b7b82f5183c8f9cb9ad0984e6cb673f92c  internal/consensus/account_policy.go
+63035b4a514cbe17a4320923d600f966d88fbddd48c7951e80a060e25c1a807f  internal/consensus/account_policy_test.go
+35522d77ada32b2767814ffa8ff854df0cac806552ec4f0fd014ea6ae5ff75b2  internal/consensus/migration_runtime.go
+9057daee223278227f498a1ccfbcb4b35a91022f04abc6a87ba5cb16aceb01e8  internal/consensus/migration_runtime_test.go
+c20e4daf22a8639bbc13b98e04c3e98aeb23a3cc3fb1e43dd6eb1cce8dbf63fb  internal/consensus/fee_state_test.go
+dc1c1ae3104d510d34a2b191cc5091419de29f713388a79fc8540c8f1911b12f  internal/consensus/dex_action_test.go
+53b6070f0ab64ae9dccedf2ef4a4bfe77fdba65b5265d86f88d29965790d7c83  docs/protocol/consensus-state-bridge-r1.md
+```

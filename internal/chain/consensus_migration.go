@@ -10,30 +10,36 @@ import (
 	"math"
 	"sort"
 	"strings"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
 )
 
-const ConsensusMigrationVersion = 1
+const ConsensusMigrationVersion = 2
+const LegacyConsensusMigrationVersion = 1
 
 const ConsensusPubKeyTypeEd25519 = "tendermint/PubKeyEd25519"
 
 // ConsensusMigrationState is the deterministic application-state boundary used
 // to move the current runtime into a BFT engine without hashing peer operations.
 type ConsensusMigrationState struct {
-	Version          int                  `json:"version"`
-	SourceFormat     string               `json:"sourceFormat"`
-	Network          NetworkConfig        `json:"network"`
-	Height           uint64               `json:"height"`
-	LastBlockHash    string               `json:"lastBlockHash"`
-	Accounts         []ConsensusAccount   `json:"accounts"`
-	Validators       []ConsensusValidator `json:"validators"`
-	DexAssets        []NativeDexAsset     `json:"dexAssets,omitempty"`
-	DexBalances      []NativeDexBalance   `json:"dexBalances,omitempty"`
-	DexPools         []NativeDexPool      `json:"dexPools,omitempty"`
-	DexEvents        []NativeDexEvent     `json:"dexEvents,omitempty"`
-	ResourcePolicy   ResourceMarketPolicy `json:"resourcePolicy"`
-	LiquidSupplyYNXT int64                `json:"liquidSupplyYnxt"`
-	StakedSupplyYNXT int64                `json:"stakedSupplyYnxt"`
-	StateHash        string               `json:"stateHash"`
+	OriginalGenesisHash string                 `json:"originalGenesisHash,omitempty"`
+	AccountPolicy       *ynxauth.State         `json:"accountPolicy,omitempty"`
+	Runtime             *ConsensusRuntimeState `json:"runtime,omitempty"`
+	Version             int                    `json:"version"`
+	SourceFormat        string                 `json:"sourceFormat"`
+	Network             NetworkConfig          `json:"network"`
+	Height              uint64                 `json:"height"`
+	LastBlockHash       string                 `json:"lastBlockHash"`
+	Accounts            []ConsensusAccount     `json:"accounts"`
+	Validators          []ConsensusValidator   `json:"validators"`
+	DexAssets           []NativeDexAsset       `json:"dexAssets,omitempty"`
+	DexBalances         []NativeDexBalance     `json:"dexBalances,omitempty"`
+	DexPools            []NativeDexPool        `json:"dexPools,omitempty"`
+	DexEvents           []NativeDexEvent       `json:"dexEvents,omitempty"`
+	ResourcePolicy      ResourceMarketPolicy   `json:"resourcePolicy"`
+	LiquidSupplyYNXT    int64                  `json:"liquidSupplyYnxt"`
+	StakedSupplyYNXT    int64                  `json:"stakedSupplyYnxt"`
+	StateHash           string                 `json:"stateHash"`
 }
 
 type ConsensusAccount struct {
@@ -67,6 +73,16 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 	defer d.mu.RUnlock()
 	if len(d.blocks) == 0 {
 		return ConsensusMigrationState{}, errors.New("cannot export consensus state without a committed block")
+	}
+	if len(d.pending) != 0 {
+		return ConsensusMigrationState{}, errors.New("consensus cutover requires pending transactions to be committed; admission has already applied their effects")
+	}
+	if len(d.uncertainTransactions) != 0 || d.lastPersistenceError != "" {
+		return ConsensusMigrationState{}, errors.New("consensus cutover requires every uncertain checkpoint to be reconciled")
+	}
+	runtime, err := d.exportConsensusRuntimeLocked()
+	if err != nil {
+		return ConsensusMigrationState{}, err
 	}
 
 	accounts := make([]ConsensusAccount, 0, len(d.accounts))
@@ -136,20 +152,23 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 
 	latest := d.blocks[len(d.blocks)-1]
 	state := ConsensusMigrationState{
-		Version:          ConsensusMigrationVersion,
-		SourceFormat:     "ynx-devnet-state-v1",
-		Network:          d.cfg,
-		Height:           latest.Height,
-		LastBlockHash:    latest.Hash,
-		Accounts:         accounts,
-		Validators:       validators,
-		DexAssets:        dexAssets,
-		DexBalances:      dexBalances,
-		DexPools:         dexPools,
-		DexEvents:        dexEvents,
-		ResourcePolicy:   d.resourcePolicy,
-		LiquidSupplyYNXT: liquidSupply,
-		StakedSupplyYNXT: stakedSupply,
+		Version:             ConsensusMigrationVersion,
+		SourceFormat:        "ynx-authoritative-producer-v2",
+		OriginalGenesisHash: d.blocks[0].Hash,
+		AccountPolicy:       cloneAccountPolicy(d.accountPolicy),
+		Runtime:             &runtime,
+		Network:             d.cfg,
+		Height:              latest.Height,
+		LastBlockHash:       latest.Hash,
+		Accounts:            accounts,
+		Validators:          validators,
+		DexAssets:           dexAssets,
+		DexBalances:         dexBalances,
+		DexPools:            dexPools,
+		DexEvents:           dexEvents,
+		ResourcePolicy:      d.resourcePolicy,
+		LiquidSupplyYNXT:    liquidSupply,
+		StakedSupplyYNXT:    stakedSupply,
 	}
 	hash, err := state.calculateHash()
 	if err != nil {
@@ -163,11 +182,14 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 }
 
 func (s ConsensusMigrationState) Validate() error {
-	if s.Version != ConsensusMigrationVersion {
+	if s.Version != ConsensusMigrationVersion && s.Version != LegacyConsensusMigrationVersion {
 		return fmt.Errorf("unsupported consensus migration version %d", s.Version)
 	}
-	if s.SourceFormat != "ynx-devnet-state-v1" {
+	if (s.Version == LegacyConsensusMigrationVersion && s.SourceFormat != "ynx-devnet-state-v1") || (s.Version == ConsensusMigrationVersion && s.SourceFormat != "ynx-authoritative-producer-v2") {
 		return fmt.Errorf("unsupported consensus source format %q", s.SourceFormat)
+	}
+	if err := s.validateRuntimeBoundary(); err != nil {
+		return err
 	}
 	if s.Network.ChainID <= 0 || strings.TrimSpace(s.Network.Slug) == "" {
 		return errors.New("consensus migration network identity is incomplete")
@@ -175,7 +197,7 @@ func (s ConsensusMigrationState) Validate() error {
 	if s.Network.NativeCurrencySymbol != "YNXT" {
 		return fmt.Errorf("consensus migration native symbol must be YNXT, got %q", s.Network.NativeCurrencySymbol)
 	}
-	if s.Height == 0 || strings.TrimSpace(s.LastBlockHash) == "" {
+	if s.Height == 0 || s.Height >= math.MaxInt64 || strings.TrimSpace(s.LastBlockHash) == "" {
 		return errors.New("consensus migration requires a non-genesis committed block")
 	}
 	if len(s.Accounts) == 0 {

@@ -388,7 +388,7 @@ func DecodeSignedApplicationAction(payload []byte) (SignedApplicationAction, err
 }
 
 func TransactionEnvelopeType(payload []byte) (string, error) {
-	if len(payload) == 0 || len(payload) > MaxSignedActionSize {
+	if len(payload) == 0 || len(payload) > MaxPQTransactionBytes {
 		return "", errors.New("transaction envelope size is invalid")
 	}
 	var envelope struct {
@@ -397,8 +397,11 @@ func TransactionEnvelopeType(payload []byte) (string, error) {
 	if err := json.Unmarshal(payload, &envelope); err != nil {
 		return "", errors.New("transaction envelope is not JSON")
 	}
-	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType {
+	if envelope.Type != SignedTransactionType && envelope.Type != SignedActionType && envelope.Type != PQTransferType && envelope.Type != PQMigrationType {
 		return "", fmt.Errorf("unsupported transaction envelope type %q", envelope.Type)
+	}
+	if envelope.Type != PQTransferType && envelope.Type != PQMigrationType && len(payload) > MaxSignedActionSize {
+		return "", errors.New("legacy transaction envelope size is invalid")
 	}
 	return envelope.Type, nil
 }

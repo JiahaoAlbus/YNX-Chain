@@ -41,7 +41,7 @@ func validateAccountPolicyShape(state *ynxauth.State, network []byte) error {
 func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 	switch snapshot.Version {
 	case legacyDevnetSnapshotVersion, devnetSnapshotVersion:
-		if snapshot.AccountPolicy != nil {
+		if snapshot.AccountPolicy != nil || len(snapshot.PQBatches) != 0 {
 			return errors.New("legacy snapshot must not contain account policy")
 		}
 	case pqDevnetSnapshotVersion:
@@ -65,6 +65,10 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 	}
 	proofs := make(map[registrationID]uint64)
 	validateTransaction := func(tx Transaction, height uint64) error {
+		if strings.HasPrefix(tx.Memo, pqBatchMemo) {
+			// Complete shared batch coverage is checked once below.
+			return nil
+		}
 		if err := validateHistoricalPQTransaction(tx, snapshot.AccountPolicy, height, snapshot.Config.ChainID); err != nil {
 			return err
 		}
@@ -115,7 +119,7 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 			}
 		}
 	}
-	return nil
+	return validatePQBatchSnapshot(snapshot)
 }
 
 func equalAccountPolicyRecord(a, b ynxauth.Record) bool {
@@ -176,6 +180,9 @@ func (d *Devnet) commitReplicationSnapshot(snapshot devnetSnapshot, expectedHeig
 		return errors.New("local chain advanced before replication persistence")
 	}
 	if err := validateAccountPolicyContinuation(d.accountPolicy, snapshot.AccountPolicy); err != nil {
+		return err
+	}
+	if err := validatePQBatchContinuation(d.pqBatches, snapshot.PQBatches); err != nil {
 		return err
 	}
 	persistErr := d.persistPreparedSnapshot(snapshot)

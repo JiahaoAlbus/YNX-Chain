@@ -101,14 +101,35 @@ func (d *Devnet) AccountAuthorization(owner string) (*ynxauth.State, uint64) {
 }
 
 func (d *Devnet) AccountAuthorizationSnapshot(owner string) (*ynxauth.State, uint64, uint64) {
+	view := d.AccountAuthorizationDetails(owner)
+	return view.State, view.ExecutionHeight, view.LedgerNonce
+}
+
+type AccountAuthorizationDetail struct {
+	State                                         *ynxauth.State
+	ExecutionHeight, LedgerNonce, CommittedHeight uint64
+	CommittedBlockHash                            string
+	CheckpointStatus, CheckpointIntegrity         string
+}
+
+// AccountAuthorizationDetails returns next-execution policy and committed tip
+// from one lock. The producer tip is not a BFT finality or light-client proof.
+func (d *Devnet) AccountAuthorizationDetails(owner string) AccountAuthorizationDetail {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	nonce := uint64(0)
+	tip := d.blocks[len(d.blocks)-1]
+	view := AccountAuthorizationDetail{ExecutionHeight: d.accountExecutionHeightLocked(), CommittedHeight: tip.Height, CommittedBlockHash: tip.Hash}
+	view.CheckpointStatus = "uncertain"
+	if d.dataDir == "" {
+		view.CheckpointStatus = "memory_only"
+	} else if cp := d.durableCheckpoint.Load(); cp != nil && cp.height == tip.Height && cp.hash == tip.Hash && cp.integrity != "" && d.lastPersistenceError == "" {
+		view.CheckpointStatus, view.CheckpointIntegrity = "durable", cp.integrity
+	}
 	if a := d.accounts[owner]; a != nil {
-		nonce = a.Nonce
+		view.LedgerNonce = a.Nonce
 	}
 	if d.accountPolicy == nil {
-		return nil, d.accountExecutionHeightLocked(), nonce
+		return view
 	}
 	s := d.accountPolicy.Clone()
 	out := s.Records[:0]
@@ -118,7 +139,23 @@ func (d *Devnet) AccountAuthorizationSnapshot(owner string) (*ynxauth.State, uin
 		}
 	}
 	s.Records = out
-	return &s, d.accountExecutionHeightLocked(), nonce
+	view.State = &s
+	return view
+}
+
+// PQTransactionExecutionHeight observes either the mined transaction or its
+// pending execution height atomically, avoiding a racy tip query in API receipts.
+func (d *Devnet) PQTransactionExecutionHeight(hash string) (uint64, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	tx, ok := d.transactionLocked(hash)
+	if !ok {
+		return 0, false
+	}
+	if tx.BlockNum != 0 {
+		return tx.BlockNum, true
+	}
+	return d.accountExecutionHeightLocked(), true
 }
 
 func (d *Devnet) verifyPQTransferLocked(input SignedTransferInput) error {
@@ -131,9 +168,6 @@ func (d *Devnet) verifyPQTransferLocked(input SignedTransferInput) error {
 	m, err := ynxbatch.DecodeMember(input.PQMember)
 	if err != nil {
 		return err
-	}
-	if m.Certificate.N != 1 {
-		return errors.New("standalone transfer requires a one-member certificate; full batch admission is not enabled")
 	}
 	t, err := ynxauth.DecodeTransfer(m.Message)
 	if err != nil {

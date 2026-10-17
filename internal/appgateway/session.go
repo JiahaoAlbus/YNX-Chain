@@ -133,6 +133,9 @@ func (g *Gateway) CreateChallenge(origin string, req ChallengeRequest) (Challeng
 	if err != nil {
 		return ChallengeResponse{}, fmt.Errorf("%w: invalid native account", ErrInvalidSessionRequest)
 	}
+	if err := g.requireClassicAccountPolicy(canonicalAddress); err != nil {
+		return ChallengeResponse{}, err
+	}
 	id, err := randomText(g.cfg.Random, 16)
 	if err != nil {
 		return ChallengeResponse{}, err
@@ -170,6 +173,13 @@ func (g *Gateway) VerifyChallenge(origin, challengeID string, req VerifyChalleng
 	challenge, ok := g.state.Challenges[challengeID]
 	now := g.cfg.Now().UTC().Truncate(time.Second)
 	if !ok || challenge.Status != "pending" || challenge.Origin != origin || !now.Before(challenge.ExpiresAt) {
+		return SessionResponse{}, ErrSessionUnauthorized
+	}
+	if err := g.requireClassicAccountPolicy(challenge.CanonicalAddress); err != nil {
+		return SessionResponse{}, err
+	}
+	now = g.cfg.Now().UTC().Truncate(time.Second)
+	if !now.Before(challenge.ExpiresAt) {
 		return SessionResponse{}, ErrSessionUnauthorized
 	}
 	response, err := challengeResponse(g.cfg.ChainID, challenge)
@@ -210,6 +220,10 @@ func (g *Gateway) VerifyChallenge(origin, challengeID string, req VerifyChalleng
 }
 
 func (g *Gateway) AuthenticateSession(origin, token, deviceID string) (AppSession, error) {
+	return g.authenticateSession(origin, token, deviceID, true)
+}
+
+func (g *Gateway) authenticateSession(origin, token, deviceID string, requirePolicy bool) (AppSession, error) {
 	origin = strings.TrimSpace(origin)
 	token = strings.TrimSpace(token)
 	deviceID = strings.TrimSpace(deviceID)
@@ -226,6 +240,14 @@ func (g *Gateway) AuthenticateSession(origin, token, deviceID string) (AppSessio
 			if session.Status != "active" || session.Origin != origin || session.DeviceID != deviceID || !now.Before(session.ExpiresAt) {
 				return AppSession{}, ErrSessionUnauthorized
 			}
+			if requirePolicy {
+				if err := g.requireClassicAccountPolicy(session.CanonicalAddress); err != nil {
+					return AppSession{}, err
+				}
+				if !g.cfg.Now().UTC().Before(session.ExpiresAt) {
+					return AppSession{}, ErrSessionUnauthorized
+				}
+			}
 			return session, nil
 		}
 	}
@@ -233,7 +255,8 @@ func (g *Gateway) AuthenticateSession(origin, token, deviceID string) (AppSessio
 }
 
 func (g *Gateway) RevokeSession(origin, token, deviceID string) error {
-	session, err := g.AuthenticateSession(origin, token, deviceID)
+	// Token-bound cleanup remains available when account policy blocks use.
+	session, err := g.authenticateSession(origin, token, deviceID, false)
 	if err != nil {
 		return err
 	}

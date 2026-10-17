@@ -165,6 +165,8 @@ func TestCommittedStateMigratesVersion8WithoutInventingDEXRecords(t *testing.T) 
 		t.Fatal(err)
 	}
 	legacy := initialCommittedState(migration)
+	migration = legacyMigrationForTest(t, migration)
+	legacy = initialCommittedState(migration)
 	legacy.Version = 8
 	legacy.DexAssets, legacy.DexBalances, legacy.DexPools, legacy.DexEvents = nil, nil, nil, nil
 	legacy.Initialized = true

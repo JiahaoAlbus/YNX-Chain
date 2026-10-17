@@ -637,7 +637,7 @@ func sealDevnetSnapshot(snapshot devnetSnapshot) (devnetSnapshot, error) {
 }
 
 func validateDevnetSnapshotIntegrity(snapshot devnetSnapshot) error {
-	if snapshot.Version < pqDevnetSnapshotVersion && snapshot.AccountPolicy != nil {
+	if snapshot.Version < pqDevnetSnapshotVersion && (snapshot.AccountPolicy != nil || len(snapshot.PQBatches) != 0) {
 		return errors.New("legacy snapshot must not contain account policy")
 	}
 	if snapshot.Version == pqDevnetSnapshotVersion && snapshot.AccountPolicy == nil {
@@ -724,6 +724,7 @@ func (w *jsonBodyWriter) Finish() error {
 
 func (d *Devnet) snapshotLocked() devnetSnapshot {
 	snapshot := devnetSnapshot{Version: devnetSnapshotVersion, SavedAt: time.Now().UTC(), Config: d.cfg, Blocks: d.blocks, Pending: d.pending, Accounts: d.accounts, Validators: d.validators, Peers: d.validatorPeers, PeerSyncs: d.validatorPeerSyncs, Lots: d.lots, PayIntents: d.payIntents, Invoices: d.invoices, Refunds: d.refunds, PaySettlements: d.paySettlements, Webhooks: d.webhookSignatures, PayEvents: d.payEvents, RiskLabels: d.riskLabels, Evidence: d.evidencePackets, Governance: d.governanceRequests, Appeals: d.trustAppeals, Tracking: d.trackingReviews, AIPerms: d.aiPermissions, AIActions: d.aiActions, Transp: d.transparencyEntries, Delegation: d.resourceDelegations, Rentals: d.resourceRentals, Income: d.resourceIncome, Policy: d.resourcePolicy, Pools: d.resourcePools, Sponsors: d.resourceSponsorships, SponsorIDs: d.resourceSponsorIdem, ActionRefs: d.resourceActionRefs, SponsorLog: d.resourceSponsorAudit, Contracts: d.contracts, DexAssets: d.dexAssets, DexBalances: d.dexBalances, DexPools: d.dexPools, DexEvents: d.dexEvents}
+	snapshot.PQBatches = clonePQBatches(d.pqBatches)
 	snapshot.AccountPolicy = cloneAccountPolicy(d.accountPolicy)
 	if snapshot.AccountPolicy != nil {
 		snapshot.Version = pqDevnetSnapshotVersion
@@ -733,6 +734,7 @@ func (d *Devnet) snapshotLocked() devnetSnapshot {
 }
 
 func (d *Devnet) applySnapshotLocked(snapshot devnetSnapshot) {
+	d.pqBatches = clonePQBatches(snapshot.PQBatches)
 	d.accountPolicy = cloneAccountPolicy(snapshot.AccountPolicy)
 	d.blocks, d.pending, d.accounts, d.validators, d.validatorPeers, d.validatorPeerSyncs, d.lots, d.payIntents = snapshot.Blocks, snapshot.Pending, snapshot.Accounts, snapshot.Validators, snapshot.Peers, snapshot.PeerSyncs, snapshot.Lots, snapshot.PayIntents
 	d.invoices, d.refunds, d.paySettlements, d.webhookSignatures, d.payEvents = snapshot.Invoices, snapshot.Refunds, snapshot.PaySettlements, snapshot.Webhooks, snapshot.PayEvents

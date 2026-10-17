@@ -97,17 +97,31 @@ jobs:
           go-version-file: go.mod
           cache: true
       - name: Record exact candidate identity
+        id: identity
         run: |
           git rev-parse HEAD
           go version
           git status --porcelain
       - name: Verify pure dual-PQ protocol and account authorization
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s ./internal/ynxbatch ./internal/ynxauth ./internal/ynxconsensusauth
       - name: Verify native ledger and HTTP PQ integration
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=180s -run '^TestPQ' ./internal/chain ./internal/api
       - name: Compile production entry points
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^$' ./cmd/ynx-chaind ./cmd/ynx-app-gatewayd ./internal/consensus ./internal/appgateway ./internal/paygateway
+      - name: Verify complete state bridge and sponsor continuity
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: |
+          go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
+          go test -p 1 -count=1 -timeout=180s -run '^(TestMigratedSponsor|TestResourceSponsor|TestABCIAccountPolicy|TestABCIPQEnvelope|TestMigration)' ./internal/consensus
+      - name: Verify account session policy and merchant ownership
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: go test -p 1 -count=1 -timeout=180s ./internal/appgateway ./internal/paygateway
       - name: Emit public inverse interop fixture
+        id: interop
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         env:
           YNX_BATCH_INTEROP_OUT: /tmp/ynx-go-public-interop.json
         run: |
@@ -115,6 +129,7 @@ jobs:
           test -s "$YNX_BATCH_INTEROP_OUT"
           sha256sum "$YNX_BATCH_INTEROP_OUT"
       - name: Upload public signature fixture
+        if: ${{ !cancelled() && steps.interop.outcome == 'success' }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ynx-pq-public-go-interop-${{ github.sha }}

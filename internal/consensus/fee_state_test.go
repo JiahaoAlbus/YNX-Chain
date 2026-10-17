@@ -18,6 +18,8 @@ func TestCommittedStateMigratesVersion13WithoutInventingFeeHistory(t *testing.T)
 		t.Fatal(err)
 	}
 	legacy := initialCommittedState(migration)
+	migration = legacyMigrationForTest(t, migration)
+	legacy = initialCommittedState(migration)
 	legacy.Version = 13
 	legacy.FeeEvents = nil
 	legacy.AppHash = migration.StateHash
