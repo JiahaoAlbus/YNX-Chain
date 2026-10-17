@@ -34,6 +34,7 @@ function watchCloseEditors(shell) {
 
 const guardedClosePrototypes = new WeakSet();
 const saveCloseActions = new WeakSet();
+const closeVetoPermissions = new WeakMap();
 function installCloseSaveGuardOn(prototype) {
   if (!prototype || guardedClosePrototypes.has(prototype) || typeof prototype.onWillStop !== 'function') return;
   const original = prototype.onWillStop;
@@ -81,8 +82,9 @@ class NativeWindowClose {
     const close = async requestId => {
       const current = () => this.target.__ynxLocalWorkbenchClose === close;
       if (typeof requestId !== 'string' || !/^[a-f0-9-]{36}$/.test(requestId)) return;
-      if (!this.pendingClose) this.pendingClose = (async () => {
+      if (!this.pendingClose) {
         const previousAllowVetoes = this.windows.allowVetoes;
+        this.pendingClose = (async () => {
         let committed = false;
         let editors;
         try {
@@ -148,9 +150,17 @@ class NativeWindowClose {
           if (!committed && typeof previousAllowVetoes === 'boolean') this.windows.allowVetoes = previousAllowVetoes;
           if (cleanupFailed) return false;
         }
-      })();
+        })();
+        // Duplicate requests inherit the permission of this exact operation.
+        closeVetoPermissions.set(this.pendingClose, previousAllowVetoes);
+      }
       const pending = this.pendingClose;
       const accepted = await pending;
+      // A microtask may replace the callback after the inner finally completed.
+      if (accepted === true && !current()) {
+        const previousAllowVetoes = closeVetoPermissions.get(pending);
+        if (typeof previousAllowVetoes === 'boolean') this.windows.allowVetoes = previousAllowVetoes;
+      }
       if (this.pendingClose === pending) this.pendingClose = undefined;
       this.target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'close-result', requestId, accepted: accepted === true && current() });
     };
