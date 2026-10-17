@@ -28,17 +28,20 @@ const (
 
 type Application struct {
 	abcitypes.BaseApplication
-	mu                 sync.RWMutex
-	migration          chain.ConsensusMigrationState
-	committed          CommittedState
-	pending            *CommittedState
-	statePath          string
-	journal            *snapshotJournal // explicit opt-in; default atomic JSON remains unchanged
-	feeRecipient       string
-	snapshotExports    map[uint64]stateSyncSnapshotExport
-	snapshotRestore    *stateSyncSnapshotRestore
-	commitTimings      *commitTimings // nil outside the opt-in local performance probe
-	nativeVerification nativeVerificationCache
+	mu                       sync.RWMutex
+	migration                chain.ConsensusMigrationState
+	committed                CommittedState
+	pending                  *CommittedState
+	statePath                string
+	journal                  *snapshotJournal // explicit opt-in; default atomic JSON remains unchanged
+	blockJournal             *blockJournal
+	pendingBlockRequest      []byte
+	pendingBlockResponseHash string
+	feeRecipient             string
+	snapshotExports          map[uint64]stateSyncSnapshotExport
+	snapshotRestore          *stateSyncSnapshotRestore
+	commitTimings            *commitTimings // nil outside the opt-in local performance probe
+	nativeVerification       nativeVerificationCache
 }
 
 type transactionError struct {
@@ -184,10 +187,31 @@ func NewJournaledApplication(state chain.ConsensusMigrationState, path string) (
 }
 
 func (a *Application) persistState(state CommittedState, timings *commitTimings) error {
+	if a.blockJournal != nil {
+		return a.blockJournal.replaceCheckpoint(state, a.migration)
+	}
 	if a.journal != nil {
 		return a.journal.save(state, a.migration, timings)
 	}
 	return saveCommittedStateWithTimings(a.statePath, state, a.migration, timings)
+}
+
+// NewBlockJournaledApplication uses an explicit V2 checkpoint/block format.
+// V1 journals and atomic JSON files are not converted or overwritten.
+func NewBlockJournaledApplication(state chain.ConsensusMigrationState, path string) (*Application, error) {
+	if strings.TrimSpace(path) == "" {
+		return nil, errors.New("block journal requires an explicit path")
+	}
+	a, err := NewPersistentApplication(state, "")
+	if err != nil {
+		return nil, err
+	}
+	j, committed, err := openBlockJournal(path, a.migration)
+	if err != nil {
+		return nil, err
+	}
+	a.blockJournal, a.committed, a.statePath = j, committed, path
+	return a, nil
 }
 
 func (a *Application) Info(context.Context, *abcitypes.RequestInfo) (*abcitypes.ResponseInfo, error) {
@@ -610,6 +634,22 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if req.Height != a.committed.Height+1 {
 		return nil, fmt.Errorf("finalize height %d must immediately follow committed height %d", req.Height, a.committed.Height)
 	}
+	var ownedRequest []byte
+	if a.blockJournal != nil {
+		var err error
+		ownedRequest, err = req.Marshal()
+		if err != nil {
+			return nil, err
+		}
+		if len(ownedRequest) > blockJournalMaxRequest {
+			return nil, errors.New("FinalizeBlock request exceeds block-journal bound")
+		}
+		var owned abcitypes.RequestFinalizeBlock
+		if err := owned.Unmarshal(ownedRequest); err != nil {
+			return nil, err
+		}
+		req = &owned
+	}
 	state := a.cloneExecutionState()
 	results := make([]*abcitypes.ExecTxResult, len(req.Txs))
 	for i, payload := range req.Txs {
@@ -635,12 +675,20 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
-	a.pending = &pending
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
 		return nil, err
 	}
-	return &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}, nil
+	response := &abcitypes.ResponseFinalizeBlock{TxResults: results, AppHash: appHash}
+	if a.blockJournal != nil {
+		hash, err := finalizeResponseHash(response)
+		if err != nil {
+			return nil, err
+		}
+		a.pendingBlockRequest, a.pendingBlockResponseHash = ownedRequest, hash
+	}
+	a.pending = &pending
+	return response, nil
 }
 
 func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcitypes.ResponseCommit, error) {
@@ -649,11 +697,19 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
 	}
-	if err := a.persistState(*a.pending, a.commitTimings); err != nil {
+	var err error
+	if a.blockJournal != nil {
+		err = a.blockJournal.saveBlock(a.committed, *a.pending, a.pendingBlockRequest, a.pendingBlockResponseHash, a.migration, a.commitTimings)
+	} else {
+		err = a.persistState(*a.pending, a.commitTimings)
+	}
+	if err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
 	}
 	a.committed = *a.pending
 	a.pending = nil
+	a.pendingBlockRequest = nil
+	a.pendingBlockResponseHash = ""
 	return &abcitypes.ResponseCommit{RetainHeight: 0}, nil
 }
 

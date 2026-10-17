@@ -202,6 +202,8 @@ func (a *Application) ApplySnapshotChunk(_ context.Context, req *abcitypes.Reque
 	}
 	a.committed = state
 	a.pending = nil
+	a.pendingBlockRequest = nil
+	a.pendingBlockResponseHash = ""
 	a.snapshotRestore = nil
 	if a.snapshotExports != nil {
 		delete(a.snapshotExports, uint64(state.Height))

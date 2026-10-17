@@ -53,7 +53,10 @@ func TestABCITransferPerformance(t *testing.T) {
 	layout := os.Getenv("YNX_CHAIN_PERF_LAYOUT")
 	constructor := NewPersistentApplication
 	phaseCount := 8
-	if layout == "snapshot-journal" {
+	if layout == "block-journal" {
+		constructor = NewBlockJournaledApplication
+		phaseCount = 7
+	} else if layout == "snapshot-journal" {
 		constructor = NewJournaledApplication
 		phaseCount = 7
 	} else if layout != "" && layout != "atomic-json" {
@@ -174,6 +177,14 @@ func TestABCITransferPerformance(t *testing.T) {
 			return nil
 		}
 	}
+	if storageProbe && app.blockJournal != nil {
+		app.blockJournal.io.fault = func(stage string) error {
+			if stage == "compaction_synced" {
+				sampleStorage(stage)
+			}
+			return nil
+		}
+	}
 	sampleStorage("setup")
 	// Transactions use independent senders within a block: CheckTx currently
 	// checks committed nonce, not speculative mempool nonce.
@@ -263,7 +274,9 @@ func TestABCITransferPerformance(t *testing.T) {
 	}
 	elapsed := time.Since(start)
 	runtime.ReadMemStats(&after)
+	restartStarted := time.Now()
 	restarted, err := constructor(migration, statePath)
+	restartDuration := time.Since(restartStarted)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -288,8 +301,12 @@ func TestABCITransferPerformance(t *testing.T) {
 	}
 	storageBytes := len(stored)
 	journalCompactions := 0
-	if app.journal != nil {
-		journalCompactions = app.journal.compactions
+	if app.journal != nil || app.blockJournal != nil {
+		if app.blockJournal != nil {
+			journalCompactions = app.blockJournal.io.compactions
+		} else {
+			journalCompactions = app.journal.compactions
+		}
 		stored, err = encodeCommittedStateJSON(restarted.committed)
 		if err != nil {
 			t.Fatal(err)
@@ -323,8 +340,10 @@ func TestABCITransferPerformance(t *testing.T) {
 	report := map[string]any{
 		"storage_probe_enabled": storageProbe, "peak_owned_store_accounted_bytes": peakStorageBytes, "storage_samples": storageSamples,
 		"native_signature_cache": app.nativeVerification.stats(),
+		"restart_seconds":        restartDuration.Seconds(),
 		"storage_layout":         layout, "storage_bytes": storageBytes, "journal_compactions": journalCompactions,
 		"journal_retention_target_bytes": snapshotJournalTargetBytes,
+		"block_checkpoint_interval":      blockJournalCheckpointBlocks,
 		"schema":                         2, "measurement": "single_process_abci_application_stages_not_network_tps_or_finality",
 		"label": os.Getenv("YNX_CHAIN_PERF_LABEL"), "commit_stages": commitSummaries, "snapshot_bytes_written": snapshotBytesWritten,
 		"go_version": runtime.Version(), "goos": runtime.GOOS, "goarch": runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0),
@@ -336,6 +355,12 @@ func TestABCITransferPerformance(t *testing.T) {
 		"snapshot_bytes": len(stored), "migration_hash": migration.StateHash, "block_app_hashes": hashes,
 		"rpc_submit_tps": nil, "mempool_accept_tps": nil, "consensus_inclusion_tps": nil, "inclusion_latency": nil, "finality_latency": nil,
 		"restart_full_state_equal": true, "replay_rejected_after_restart": true,
+	}
+	if app.blockJournal != nil {
+		report["snapshot_bytes_written"] = app.blockJournal.checkpointBytesWritten
+		report["checkpoint_payload_bytes_written"] = app.blockJournal.checkpointBytesWritten
+		report["delta_payload_bytes_written"] = snapshotBytesWritten
+		report["recovery_replayed_blocks"] = restarted.blockJournal.blocks
 	}
 	result, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
