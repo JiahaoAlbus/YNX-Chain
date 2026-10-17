@@ -525,7 +525,8 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 func (a *Application) CheckTx(_ context.Context, req *abcitypes.RequestCheckTx) (*abcitypes.ResponseCheckTx, error) {
 	a.mu.RLock()
 	defer a.mu.RUnlock()
-	state := a.cloneExecutionState()
+	state := a.committedExecutionStateView()
+	// applyTransaction owns the rollback clone; avoid cloning all state twice.
 	_, tx, err := a.applyTransaction(state, req.Tx, 0, time.Time{})
 	if err != nil {
 		return &abcitypes.ResponseCheckTx{Code: transactionCode(err), Log: err.Error()}, nil
@@ -629,15 +630,22 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 }
 
 func (a *Application) cloneExecutionState() executionState {
+	return cloneExecutionStateValue(a.committedExecutionStateView())
+}
+
+// committedExecutionStateView borrows immutable committed records. The caller
+// must hold a.mu while using it. applyTransaction isolates every supported
+// transaction before mutation; callers that mutate state directly must clone.
+func (a *Application) committedExecutionStateView() executionState {
 	return executionState{
-		accounts: cloneAccounts(a.committed.Accounts), feeEvents: feeEventJournal{base: a.committed.FeeEvents}, strategyMandates: cloneStrategyMandates(a.committed.StrategyMandates), strategyVaults: cloneStrategyVaults(a.committed.StrategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), a.committed.AssetAuditEvents...), smartAccounts: cloneSmartAccounts(a.committed.SmartAccounts), paymasters: clonePaymasters(a.committed.Paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), a.committed.UserOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), a.committed.StakeDelegations...), unbondings: cloneUnbondings(a.committed.Unbondings), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
-		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
-		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
-		resourcePools: cloneBFTResourcePools(a.committed.ResourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), a.committed.ResourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(a.committed.ResourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), a.committed.ResourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), a.committed.ResourceSponsorAudit...),
-		governanceRequests: cloneGovernanceRequests(a.committed.GovernanceRequests), trustAppeals: cloneTrustAppeals(a.committed.TrustAppeals), trustCorrections: append([]BFTTrustCorrection(nil), a.committed.TrustCorrections...), trustLabels: cloneTrustLabels(a.committed.TrustLabels), trustEvidence: cloneTrustEvidence(a.committed.TrustEvidence), trackingReviews: cloneTrackingReviews(a.committed.TrackingReviews), transparency: cloneTransparencyEntries(a.committed.Transparency),
-		contracts: cloneBFTContracts(a.committed.Contracts), evmReceipts: cloneBFTEVMReceipts(a.committed.EVMReceipts), evmLogs: cloneBFTEVMLogs(a.committed.EVMLogs), ideIdempotency: append([]BFTIDEIdempotency(nil), a.committed.IDEIdempotency...),
-		governanceExecutions: append([]BFTGovernanceExecution(nil), a.committed.GovernanceExecutions...), governanceExecutionAudit: append([]BFTGovernanceExecutionAudit(nil), a.committed.GovernanceExecutionAudit...),
-		dexAssets: append([]BFTDexAsset(nil), a.committed.DexAssets...), dexBalances: append([]BFTDexBalance(nil), a.committed.DexBalances...), dexPools: cloneDexPools(a.committed.DexPools), dexEvents: append([]BFTDexEvent(nil), a.committed.DexEvents...),
+		accounts: a.committed.Accounts, feeEvents: feeEventJournal{base: a.committed.FeeEvents}, strategyMandates: a.committed.StrategyMandates, strategyVaults: a.committed.StrategyVaults, assetAuditEvents: a.committed.AssetAuditEvents, smartAccounts: a.committed.SmartAccounts, paymasters: a.committed.Paymasters, userOperationEvents: a.committed.UserOperationEvents, stakeDelegations: a.committed.StakeDelegations, unbondings: a.committed.Unbondings, permissions: a.committed.AIPermissions, actions: a.committed.AIActions, auditEvents: a.committed.AIAuditEvents,
+		payIntents: a.committed.PayIntents, payInvoices: a.committed.PayInvoices, payRefunds: a.committed.PayRefunds, payWebhooks: a.committed.PayWebhooks, payEvents: a.committed.PayEvents, payIdempotency: a.committed.PayIdempotency,
+		resourceQuotes: a.committed.ResourceQuotes, resourceDelegations: a.committed.ResourceDelegations, resourceRentals: a.committed.ResourceRentals, resourceIncome: a.committed.ResourceIncome, resourceEvents: a.committed.ResourceEvents, resourceIdempotency: a.committed.ResourceIdempotency,
+		resourcePools: a.committed.ResourcePools, resourceSponsorships: a.committed.ResourceSponsorships, resourceSponsorIdempotency: a.committed.ResourceSponsorIdempotency, resourceSponsorActionRefs: a.committed.ResourceSponsorActionRefs, resourceSponsorAudit: a.committed.ResourceSponsorAudit,
+		governanceRequests: a.committed.GovernanceRequests, trustAppeals: a.committed.TrustAppeals, trustCorrections: a.committed.TrustCorrections, trustLabels: a.committed.TrustLabels, trustEvidence: a.committed.TrustEvidence, trackingReviews: a.committed.TrackingReviews, transparency: a.committed.Transparency,
+		contracts: a.committed.Contracts, evmReceipts: a.committed.EVMReceipts, evmLogs: a.committed.EVMLogs, ideIdempotency: a.committed.IDEIdempotency,
+		governanceExecutions: a.committed.GovernanceExecutions, governanceExecutionAudit: a.committed.GovernanceExecutionAudit,
+		dexAssets: a.committed.DexAssets, dexBalances: a.committed.DexBalances, dexPools: a.committed.DexPools, dexEvents: a.committed.DexEvents,
 	}
 }
 

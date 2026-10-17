@@ -84,6 +84,9 @@ func TestFeeJournalMixedTransactionsPreserveOrderAndRestart(t *testing.T) {
 	userOperation := signedAssetAction(t, bundlerKey, ActionUserOperationExecute, UserOperationExecutePayload{Operation: operation}, 1)
 	txs := [][]byte{nativeRaw, nativeRaw, ethereumRaw, action, userOperation}
 	before, _ := json.Marshal(app.committed)
+	for _, payload := range txs {
+		assertCheckTxMatchesIsolatedExecution(t, app, payload)
+	}
 	proposal, err := app.PrepareProposal(ctx, &abcitypes.RequestPrepareProposal{Height: height, Time: blockTime, MaxTxBytes: 1 << 20, Txs: txs})
 	if err != nil || len(proposal.Txs) != 4 {
 		t.Fatalf("mixed proposal did not omit duplicate: %+v %v", proposal, err)
