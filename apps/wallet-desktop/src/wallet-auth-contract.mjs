@@ -7,6 +7,8 @@ import { parseProductSessionRegistry, YNX_EVM_CHAIN_ID as SHARED_EVM_CHAIN_ID, Y
 const reviewedProtocolSources = Object.freeze({
   "7435a65bedac4fc6abd7d36a07cb8ab4c4ab957841475a36819a43b442b67130": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
   "96d27a2a18c538725278db45675cf96a1ccc3f3d0f5af14b9950dd6334594a41": "1d4201b1a462dfd7b879fa810d2e3bd43a8642b1",
+  // Exact SDK R3 frozen source receipt, not chain/Source admission.
+  "8d1c4f1d0b64c8d61bdee964ebf062e2c7067920745fbce6a620a2b8c3849ded": "0ec5ce5d9a65649dd8f8f4b591c2beaf2d003bfc",
 });
 const sourceSha256 = createHash("sha256").update(readFileSync(new URL("./product-session-v2.js", import.meta.resolve("@ynx-chain/wallet-auth")))).digest("hex");
 const sourceCommit = reviewedProtocolSources[sourceSha256];
