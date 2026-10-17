@@ -6,6 +6,7 @@
 #import <unistd.h>
 #import <errno.h>
 #import "ynx-wallet-admission-parent.h"
+#import "original-ide-parent-supplier.h"
 
 // This is a fixed ORIGINAL protected supplier link, never a renderer factory,
 // ENV-selected module, command-line flag or selected public key. The original
@@ -88,11 +89,13 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
     @synchronized(self){if(_retired)return;_retired=YES;if(_monitor){dispatch_source_cancel(_monitor);_monitor=nil;}
         // Shut down only our retained duplicate, never a possibly recycled
         // descriptor obtained from a retired supplier's getter.
+        BOOL retirementFailed=NO;
+        if(_parent){@try{YNXOriginalRetireIDEAdmissionParent(_parent);}@catch(id failure){retirementFailed=YES;if(!_admissionCleanupFailure)_admissionCleanupFailure=failure;_cleanupComplete=NO;}}
         if(_channelDescriptor>=0){shutdown(_channelDescriptor,SHUT_RDWR);close(_channelDescriptor);_channelDescriptor=-1;}
-        if(_parent&&!_cleanupSelected){_cleanupSelected=YES;@try{[_parent close];_cleanupComplete=YES;_parent=nil;}@catch(id error){_admissionCleanupFailure=error;_cleanupComplete=NO;fprintf(stderr,"YNX_WALLET_PARENT_CLEANUP_INCOMPLETE\n");}}
+        if(_parent&&!_cleanupSelected){_cleanupSelected=YES;@try{[_parent close];_cleanupComplete=!retirementFailed;if(!retirementFailed)_parent=nil;}@catch(id error){if(!_admissionCleanupFailure)_admissionCleanupFailure=error;_cleanupComplete=NO;fprintf(stderr,"YNX_WALLET_PARENT_CLEANUP_INCOMPLETE\n");}}
         NSError *debtError=nil;
         if(!YNXFinishIDEAdmissionAcquireCleanup(_acquireOutcome,&debtError)){
-            _cleanupComplete=NO;_admissionCleanupFailure=debtError;
+            _cleanupComplete=NO;if(!_admissionCleanupFailure)_admissionCleanupFailure=debtError;
         }}
 }
 - (BOOL)finishAdmissionCleanup { @synchronized(self){return _cleanupComplete&&YNXFinishIDEAdmissionAcquireCleanup(_acquireOutcome,nil);} }
@@ -151,7 +154,14 @@ static YNXIDEAdmissionAcquireOutcome *YNXAcquireWalletAdmissionOutcome(NSURL *re
     if([self.standardInput isKindOfClass:NSPipe.class])[[self.standardInput fileHandleForReading] closeFile];
     // Failed post-launch authority retires ONLY the capability. The owned local
     // backend still runs local coding; no unrelated window/process is killed.
-    if(![self current:nil])[self retireAdmission];
+    NSError *adoptionFailure=nil;
+    BOOL adopted=NO;
+    @try{adopted=YNXOriginalAdoptIDEAdmissionChild(_parent,_pid,&adoptionFailure);}
+    @catch(id failure){if(!_admissionFirstFailure)_admissionFirstFailure=failure;}
+    if(!adopted){
+        if(!_admissionFirstFailure)_admissionFirstFailure=adoptionFailure?:YNXAdmissionLaunchError();
+        [self retireAdmission];
+    }else if(![self current:nil])[self retireAdmission];
     __weak typeof(self) weakSelf=self;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_UTILITY,0),^{typeof(self) owner=weakSelf;if(!owner)return;int status=0;pid_t waited;siginfo_t info;int observed;
         // Keep the exited owned child unreaped until signalling is fenced under
