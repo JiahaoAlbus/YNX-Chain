@@ -71,10 +71,11 @@ func TestNativeTransferBranchesPreserveAccountsAndFeeHistory(t *testing.T) {
 			first := apply(3)
 			firstBefore := cloneExecutionStateValue(first)
 			second := apply(7)
-			if !reflect.DeepEqual(state, before) || !reflect.DeepEqual(first, firstBefore) {
+			if !reflect.DeepEqual(state, before) || !reflect.DeepEqual(cloneExecutionStateValue(first), firstBefore) {
 				t.Fatal("successful branch changed its input or sibling state")
 			}
 			for i, next := range []executionState{first, second} {
+				next = cloneExecutionStateValue(next) // inspect the canonical account/lot state
 				amount := []int64{3, 7}[i]
 				si, _ := accountIndex(next.accounts, sender)
 				ri, _ := accountIndex(next.accounts, receiver)

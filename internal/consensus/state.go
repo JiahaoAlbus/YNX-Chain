@@ -197,7 +197,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		MigrationStateHash:         migration.StateHash,
 		Initialized:                true,
 		Height:                     height,
-		Accounts:                   cloneAccounts(execution.accounts),
+		Accounts:                   cloneExecutionAccounts(execution),
 		FeeEvents:                  execution.feeEvents.events(),
 		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
 		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),

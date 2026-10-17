@@ -47,6 +47,7 @@ type transactionError struct {
 
 type executionState struct {
 	accounts                   []chain.ConsensusAccount
+	nativeAccounts             *nativeDelta[nativeAccountValue]
 	feeEvents                  feeEventJournal
 	strategyMandates           []assetauth.StrategyMandate
 	strategyVaults             []assetauth.StrategyVault
@@ -676,77 +677,56 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	accounts := state.accounts
-	senderIndex, ok := accountIndex(accounts, tx.From)
+	sender, ok := nativeAccountAt(state, tx.From)
 	if !ok {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("signed transaction sender account does not exist"))
 	}
-	sender := accounts[senderIndex]
-	if sender.Nonce == math.MaxUint64 {
+	if sender.account.Nonce == math.MaxUint64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, errors.New("signed transaction sender nonce is exhausted"))
 	}
-	expectedNonce := sender.Nonce + 1
+	expectedNonce := sender.account.Nonce + 1
 	if tx.Nonce != expectedNonce {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidNonce, fmt.Errorf("signed transaction nonce %d must equal next account nonce %d", tx.Nonce, expectedNonce))
 	}
-	if tx.Amount > math.MaxInt64-tx.Fee || sender.Balance < tx.Amount+tx.Fee {
+	if tx.Amount > math.MaxInt64-tx.Fee || sender.account.Balance < tx.Amount+tx.Fee {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, errors.New("insufficient YNXT balance for amount and fee"))
 	}
-	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+	if sender.account.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, errors.New("sender bandwidth usage overflow"))
 	}
-	// Native transfers only change these accounts and append a fee event.
-	// Isolate them before either lot movement: even the fee movement can fail
-	// after the amount has moved. Other application records remain read-only.
-	state = cloneNativeTransferState(state, tx.From, tx.To, a.feeRecipient)
-	accounts = state.accounts
-	accounts, _ = ensureAccount(accounts, tx.To)
-	accounts, _ = ensureAccount(accounts, a.feeRecipient)
-	senderIndex, _ = accountIndex(accounts, tx.From)
-	receiverIndex, _ := accountIndex(accounts, tx.To)
-	feeIndex, _ := accountIndex(accounts, a.feeRecipient)
-	if err := moveTraceableLots(&accounts[senderIndex], &accounts[receiverIndex], tx.Amount); err != nil {
+	// Only publish immutable account/lot update paths after both movements
+	// succeed. Distinct local records preserve all fee-recipient aliases.
+	working := [3]nativeAccountValue{sender}
+	count := 1
+	local := func(address string) *nativeAccountValue {
+		for i := 0; i < count; i++ {
+			if working[i].account.Address == address {
+				return &working[i]
+			}
+		}
+		value, _ := nativeAccountAt(state, address)
+		working[count] = value
+		count++
+		return &working[count-1]
+	}
+	from := &working[0]
+	to, fee := local(tx.To), local(a.feeRecipient)
+	if err := moveNativeLots(from, to, tx.Amount); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
 	}
-	if err := moveTraceableLots(&accounts[senderIndex], &accounts[feeIndex], tx.Fee); err != nil {
+	if err := moveNativeLots(from, fee, tx.Fee); err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInsufficientYNXT, err)
 	}
-	accounts[senderIndex].Balance -= tx.Amount + tx.Fee
-	accounts[senderIndex].Nonce++
-	accounts[senderIndex].ResourceUsage.BandwidthUsed++
-	accounts[receiverIndex].Balance += tx.Amount
-	accounts[feeIndex].Balance += tx.Fee
-	state.accounts = accounts
+	from.account.Balance -= tx.Amount + tx.Fee
+	from.account.Nonce++
+	from.account.ResourceUsage.BandwidthUsed++
+	to.account.Balance += tx.Amount
+	fee.account.Balance += tx.Fee
+	for i := 0; i < count; i++ {
+		state.nativeAccounts = deltaPut(state.nativeAccounts, working[i].account.Address, working[i])
+	}
 	state.feeEvents = state.feeEvents.append(newCurrentFeeEvent(SignedTransactionHash(payload), tx.Type, tx.From, a.feeRecipient, tx.Fee, height, blockTime))
 	return state, transactionExecution{typeName: tx.Type, event: abcitypes.Event{Type: "ynx.transfer", Attributes: []abcitypes.EventAttribute{{Key: "sender", Value: tx.From, Index: true}, {Key: "recipient", Value: tx.To, Index: true}, {Key: "amount", Value: fmt.Sprint(tx.Amount), Index: true}}}}, nil
-}
-
-func cloneNativeTransferState(state executionState, addresses ...string) executionState {
-	// Copy the slice because ensureAccount may insert and shift its elements.
-	// Lots is the only reference field in ConsensusAccount; clone it for each
-	// unique account this transaction can modify, including aliased fee payees.
-	state.accounts = append([]chain.ConsensusAccount(nil), state.accounts...)
-	for i, address := range addresses {
-		duplicate := false
-		for _, previous := range addresses[:i] {
-			if previous == address {
-				duplicate = true
-				break
-			}
-		}
-		if duplicate {
-			continue
-		}
-		if index, exists := accountIndex(state.accounts, address); exists {
-			lots := state.accounts[index].Lots
-			state.accounts[index].Lots = make(map[string]int64, len(lots))
-			for id, amount := range lots {
-				state.accounts[index].Lots[id] = amount
-			}
-		}
-	}
-	// Fee history and pending nodes are immutable and safe to share.
-	return state
 }
 
 func (a *Application) applyEthereumValueTransfer(state executionState, payload []byte, height int64, blockTime time.Time) (executionState, transactionExecution, error) {
@@ -828,7 +808,7 @@ func (a *Application) applyEthereumValueTransfer(state executionState, payload [
 
 func cloneExecutionStateValue(state executionState) executionState {
 	return executionState{
-		accounts: cloneAccounts(state.accounts), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
+		accounts: cloneExecutionAccounts(state), feeEvents: state.feeEvents, strategyMandates: cloneStrategyMandates(state.strategyMandates), strategyVaults: cloneStrategyVaults(state.strategyVaults), assetAuditEvents: append([]BFTAssetAuditEvent(nil), state.assetAuditEvents...), smartAccounts: cloneSmartAccounts(state.smartAccounts), paymasters: clonePaymasters(state.paymasters), userOperationEvents: append([]BFTUserOperationEvent(nil), state.userOperationEvents...), stakeDelegations: append([]BFTStakeDelegation(nil), state.stakeDelegations...), unbondings: cloneUnbondings(state.unbondings), permissions: cloneAIPermissions(state.permissions), actions: cloneAIActions(state.actions), auditEvents: append([]BFTAIAuditEvent(nil), state.auditEvents...),
 		payIntents: append([]BFTPayIntent(nil), state.payIntents...), payInvoices: append([]BFTPayInvoice(nil), state.payInvoices...), payRefunds: append([]BFTPayRefund(nil), state.payRefunds...), payWebhooks: append([]BFTPayWebhook(nil), state.payWebhooks...), payEvents: append([]BFTPayEvent(nil), state.payEvents...), payIdempotency: append([]BFTPayIdempotency(nil), state.payIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), state.resourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), state.resourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), state.resourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), state.resourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), state.resourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), state.resourceIdempotency...),
 		resourcePools: cloneBFTResourcePools(state.resourcePools), resourceSponsorships: append([]BFTResourceSponsorship(nil), state.resourceSponsorships...), resourceSponsorIdempotency: cloneBFTResourceSponsorIdempotency(state.resourceSponsorIdempotency), resourceSponsorActionRefs: append([]BFTResourceSponsorActionRef(nil), state.resourceSponsorActionRefs...), resourceSponsorAudit: append([]BFTResourceSponsorAudit(nil), state.resourceSponsorAudit...),
