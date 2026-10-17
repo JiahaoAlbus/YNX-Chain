@@ -1,0 +1,11 @@
+# Performance source versus production reference
+
+Root identifies65efa82e06158f9616172144c3c9efdd8088f227 as the chaind production reference. That commit exists locally; this document does not independently establish the runtime deployment. The performance worktree at9f1a01549 and this reference diverge at2a78ace0a647b73dd2961fae3361189116453a7d. Across chaind, chain, api and consensus directories, production→performance differs in119 files (+11,152/−9,161 lines). These counts include additions on both branches and must not be used as a proposed integration patch.
+
+A concrete conflict is internal/consensus/pay_application.go: the production reference contains invoice settlement and refund completion cases, payout address, native transfer claims and expanded audit fields missing from the performance tree. Replacing this file or its state model would lose business behavior and invalidate broad state-equivalence claims. Production also has faucet authority, HTTP shutdown, transfer durability and native DEX/migration code absent here.
+
+[Selective optimization commits, exact conflict paths and required invariants](evidence/production-port-boundary-20261018.json) are provided to Root for the existing production upgrade owner. Fee history, sparse state, signature facts and journal optimizations must be adapted to the complete production schema and exercised with its mutation, rollback, hash and restart tests. The performance tree is not a production replacement. No source switch, merge, deployment or existing data conversion was performed.
+
+The four-node fixture uses the actual internal/consensus implementation through cmd/ynx-abci, with fresh isolated test state and keys. cmd/ynx-chaind instead uses the persistent devnet path and timed StartWithPause. The BFT candidate package and gateway are separate source paths. Sharing a chainId is not proof of shared deployed source or execution mode.
+
+The frozen before/cached images stay unchanged to retain the planned controlled comparison. Their historical measured gains cannot be inherited by65efa or the production upgrade branch without a selective port and actual retest. Current native pressure remains2; no offline replay, new Go test or after network was started in this turn.
