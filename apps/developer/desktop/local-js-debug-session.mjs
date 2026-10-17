@@ -109,13 +109,17 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           }
           if(message.op!=='start')throw Error('Invalid JavaScript debug request');
           entry=launches.get(message.launchId);if(!entry||entry.phase!=='prepared')throw Error('JavaScript launch request expired or was replayed');
-          let cwd=await realpath(message.cwd);
-          if(workspaceProof){await assertWorkspacePathIdentity(workspaceProof);const alias=workspaceProof.paths.find(path=>inside(path,cwd));if(alias)cwd=join(context.workspace,relative(alias,cwd));}
-          if(!inside(context.workspace,cwd))throw Error('JavaScript target working directory is outside its project');await canonical(cwd,true);
+          // Path and IPC validation yield. The requester can disconnect, or
+          // cancellation/stop can retire this exact entry during any await.
+          // Never let a late continuation recreate its process or timer.
+          const assertStartCurrent=()=>{if(stopped||faulted||socket.destroyed||entry.stopping||launches.get(entry.id)!==entry||entry.phase!=='prepared')throw Error('JavaScript launch request was cancelled or retired');};
+          assertStartCurrent();let cwd=await realpath(message.cwd);assertStartCurrent();
+          if(workspaceProof){await assertWorkspacePathIdentity(workspaceProof);assertStartCurrent();const alias=workspaceProof.paths.find(path=>inside(path,cwd));if(alias)cwd=join(context.workspace,relative(alias,cwd));}
+          if(!inside(context.workspace,cwd))throw Error('JavaScript target working directory is outside its project');await canonical(cwd,true);assertStartCurrent();
           if(!Array.isArray(message.args)||message.args.length>1024||message.args.some(x=>typeof x!=='string'||x.includes('\0'))||Buffer.byteLength(JSON.stringify(message.args))>128*1024)throw Error('Invalid JavaScript target arguments');
           const env=message.env;if(!env||typeof env!=='object'||Array.isArray(env)||Object.keys(env).length>256||Object.entries(env).some(([k,v])=>!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)||typeof v!=='string'||v.includes('\0')||v.length>65536))throw Error('Invalid JavaScript target environment');
           if(message.args.some(x=>/^--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|$)/.test(x))||/(?:^|\s)--(?:inspect(?:-brk|-wait|-port)?|debug(?:-brk|-port)?)(?:=|\s|$)/.test(env.NODE_OPTIONS||''))throw Error('A user-specified Inspector endpoint conflicts with supervised local debugging');
-          if(!entry.noDebug){const options=JSON.parse((env.VSCODE_INSPECTOR_OPTIONS||'').split(':::').reverse().find(value=>value)||'null');if(!options||typeof options.inspectorIpc!=='string'||!inside(context.ipcTemporary,options.inspectorIpc)||!String(env.NODE_OPTIONS||'').includes(join(extension,'src/bootloader.js')))throw Error('The official JavaScript bootloader is required');const socketStat=await lstat(options.inspectorIpc);if(await realpath(options.inspectorIpc)!==options.inspectorIpc||socketStat.isSymbolicLink()||!socketStat.isSocket()||socketStat.uid!==process.getuid())throw Error('Official Inspector IPC is not an owned socket');}
+          if(!entry.noDebug){const options=JSON.parse((env.VSCODE_INSPECTOR_OPTIONS||'').split(':::').reverse().find(value=>value)||'null');if(!options||typeof options.inspectorIpc!=='string'||!inside(context.ipcTemporary,options.inspectorIpc)||!String(env.NODE_OPTIONS||'').includes(join(extension,'src/bootloader.js')))throw Error('The official JavaScript bootloader is required');const socketStat=await lstat(options.inspectorIpc);assertStartCurrent();const inspectorPath=await realpath(options.inspectorIpc);assertStartCurrent();if(inspectorPath!==options.inspectorIpc||socketStat.isSymbolicLink()||!socketStat.isSocket()||socketStat.uid!==process.getuid())throw Error('Official Inspector IPC is not an owned socket');}
           const targetEnv={...env};
           if(entry.noDebug){
             // The official adapter injects its bootloader even for noDebug.
@@ -130,7 +134,8 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           }else{const parts=env.VSCODE_INSPECTOR_OPTIONS.split(':::');const last=parts.findLastIndex(value=>value);const options=JSON.parse(parts[last]);options.execPath=join(resolve(process.execPath,'..'),'local-js-debug-launcher.sh');parts[last]=JSON.stringify(options);targetEnv.VSCODE_INSPECTOR_OPTIONS=parts.join(':::');}
           for(const key of Object.keys(targetEnv))if(key.startsWith('YNX_JS_DEBUG_')||key==='YNX_JS_ORIGINAL_NODE_OPTIONS')delete targetEnv[key];
           for(const key of ['TMPDIR','TMP','TEMP','XDG_RUNTIME_DIR'])targetEnv[key]=context.ipcTemporary;
-          for(const proof of pathIdentities)await assertWorkspacePathIdentity(proof);
+          for(const proof of pathIdentities){await assertWorkspacePathIdentity(proof);assertStartCurrent();}
+          assertStartCurrent();
           clearTimeout(entry.timer);entry.phase='running';entry.timer=setTimeout(()=>retire(entry).catch(warn),deadlineMs);entry.timer.unref();
           entry.targetArgs=[...(entry.noDebug?[]:[`--inspect=127.0.0.1:${entry.port}`]),...message.args];entry.targetEnv=targetEnv;entry.targetCwd=cwd;
           const guardianEnv={...targetEnv,YNX_JS_DEBUG_SOCKET:path,YNX_JS_DEBUG_CREDENTIAL:credential,YNX_JS_DEBUG_LAUNCH:entry.id,YNX_LOCAL_PROJECT_ID:context.id};delete guardianEnv.NODE_OPTIONS;delete guardianEnv.VSCODE_INSPECTOR_OPTIONS;
