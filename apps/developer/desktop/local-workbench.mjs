@@ -254,6 +254,17 @@ export async function prepareLocalPlugins({ runtime, context, lifecycle = false 
 
 export function isSupportedLocalNodeVersion(version) { return version === 'v26.7.0' || version === 'v24.19.0'; }
 export async function startLocalWorkbench({ payload, supportRoot, projectDirectory, node = process.execPath, lockHelper, goToolchain, walletAdmission, aiTools = null, port = 0, log = process.stderr, readinessTimeoutMs = 30000 }) {
+  const startupOrigin = performance.now();
+  let phaseOrigin = startupOrigin;
+  const startupPhase = phase => {
+    const now = performance.now();
+    const entry = { phase, elapsedMs: Math.round(now - startupOrigin), stepMs: Math.round(now - phaseOrigin) };
+    phaseOrigin = now;
+    // Fixed phase names and durations only: never include workspace paths,
+    // account data or tool configuration. Diagnostics cannot qualify readiness
+    // or replace an original startup/cleanup failure.
+    try { log.write(`YNX_LOCAL_STARTUP_PHASE ${JSON.stringify(entry)}\n`); } catch {}
+  };
   if (process.platform !== 'darwin') throw Error('Local workbench currently requires macOS.');
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw Error('Local workbench port must be an integer between 0 and 65535.');
   await regular(node);
@@ -261,12 +272,15 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   await regular(lockHelper);
   const version = await inspectBundledNodeVersion(node);
   if (!isSupportedLocalNodeVersion(version)) throw Error('The sealed macOS workbench requires an exact reviewed bundled Node runtime.');
+  startupPhase('node-version-verified');
   const runtime = await prepareLocalRuntime({ payload, supportRoot });
   if (runtime.distribution.requiredNodeVersion !== version) throw Error('Bundled Node version does not match the workbench build.');
+  startupPhase('sealed-runtime-verified');
   const context = await localProjectContext({ supportRoot, projectDirectory });
   if (goToolchain !== undefined) await admitLocalGoReadScope(goToolchain, context);
   const ipc = await createLocalIpcSession(context);
   context.ipcTemporary = ipc.path;
+  startupPhase('project-and-ipc-prepared');
   let debugSupervisor, jsDebugSupervisor, pluginCopy;
   try {
   const reserve = createServer(); await new Promise((ok, fail) => { reserve.once('error', fail); reserve.listen(port, '127.0.0.1', ok); });
@@ -276,14 +290,17 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
   const python = await inspectTrustedLocalPython();
   if (!git) log.write('YNX_LOCAL_GIT_UNAVAILABLE: No supported trusted local Git installation is available.\n');
   const gitConfig = await prepareLocalGitConfig(context);
+  startupPhase('local-toolchains-inspected');
   pluginCopy = await prepareLocalPlugins({ runtime, context, lifecycle: true }).catch(error => {
     if (error.code === 'ENOSPC' || error.code === 'YNX_PLUGIN_COPY_SPACE') error.pluginPreparationSpace = true;
     throw error;
   });
   const plugins = pluginCopy.plugins;
+  startupPhase('private-plugins-prepared');
   const pathIdentityHelper = join(dirname(lockHelper), 'workspace-path-identity');
   const pathIdentities = await localWorkbenchPathIdentities({ helper: pathIdentityHelper, node, lockHelper, runtime, context, git, goToolchain });
   const policy = localWorkbenchSandboxPolicy({ node, lockHelper, runtime, context, port, git, goToolchain, pathIdentities });
+  startupPhase('sandbox-paths-verified');
   debugSupervisor = await createDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy,
     pathIdentities, pathIdentityHelper, warn: error => log.write(`YNX_LOCAL_DEBUG_CLEANUP_FAILED: ${error.message}\n`), env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, goToolchain }) });
   jsDebugSupervisor = await createJsDebugSessionSupervisor({ context, plugins, runtime, basePolicy: policy, pathIdentities, warn: error => log.write(`YNX_LOCAL_JS_DEBUG_CLEANUP_FAILED: ${error.message}\n`) });
@@ -292,12 +309,14 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
     expectedIdentity: workspaceProof?.identity, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof),
   });
   for (const proof of pathIdentities) await assertWorkspacePathIdentity(proof);
+  startupPhase('debug-and-launch-fences-ready');
   pluginCopy.beginLaunch();
   await ipc.beginLaunch();
   const child = spawn('/usr/bin/sandbox-exec', ['-p', policy, lockHelper, context.profile, node, join(runtime.root, 'lib/backend/main.js'), context.workspace, '--hostname', '127.0.0.1', '--port', String(port), '--plugins', `local-dir:${plugins}`], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe', 'pipe'], cwd: context.workspace,
     env: localWorkbenchEnvironment({ node, runtime, context, plugins, git, gitConfig, clangd, python, debugSupervisor, jsDebugSupervisor, goToolchain }),
   });
+  child.once('spawn', () => startupPhase('backend-process-spawned'));
   const admissionPipe = admissionChannel.serveAdmission(child.stdio[3], walletAdmission || { assertCurrent() { throw admissionChannel.missing(); } });
   const aiHost = createLocalAIToolsHost(context, { client: aiTools, assertPathCurrent: () => assertWorkspacePathIdentity(workspaceProof) });
   const aiPipe = localAIChannel.serve(child.stdio[7], aiHost);
@@ -366,7 +385,7 @@ export async function startLocalWorkbench({ payload, supportRoot, projectDirecto
         if (!failure && exitCode === 73) error.code = 'YNX_LOCAL_PROJECT_ALREADY_OPEN';
         throw error;
       }
-      try { const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(1000) }); if (response.ok) return { ...runtime, ...context, url, port, pid: child.pid, stop, exited }; } catch {}
+      try { const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(1000) }); if (response.ok) { startupPhase('backend-http-ready'); return { ...runtime, ...context, url, port, pid: child.pid, stop, exited }; } } catch {}
       await new Promise(ok => setTimeout(ok, 150));
     }
     throw Error('Local workbench did not become ready. Project and profile were retained.');
