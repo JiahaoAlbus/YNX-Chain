@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { verifyPackagedLocalImports } from './verify-packaged-local-imports.mjs';
-import { verifyIdentityAdmissionSource } from './package-identity-admission-source.mjs';
+import { verifyCanonicalIdentityAdmissionSource } from './package-identity-admission-source.mjs';
 
 const developer = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -22,13 +22,13 @@ async function packagedFixture() {
       || line.startsWith('cp runtime/ynx-workbench/lib/')
       || line.startsWith('cp runtime/ynx-workbench/package.json ')
       || line.startsWith('cp package.json package-lock.json ')
-      || line.startsWith('node scripts/package-identity-admission-source.mjs ')
+      || (line.startsWith('node scripts/package-identity-admission-source.mjs ') && !line.includes(' --'))
       || line.startsWith('cp -R services ') || line.startsWith('cp -R protocol '));
     assert.ok(commands.some(line => line.includes('wallet-admission-startup.mjs')));
     assert.ok(commands.some(line => line.includes('wallet-admission-delivery.mjs')));
     assert.ok(commands.some(line => line.includes('wallet-admission-channel.js')));
     assert.ok(commands.some(line => line.startsWith('node scripts/package-identity-admission-source.mjs ')));
-    for (const command of commands) execFileSync('/bin/bash', ['-c', command], { cwd: developer, env: { ...process.env, app }, stdio: 'pipe' });
+    for (const command of commands) execFileSync('/bin/bash', ['-c', command], { cwd: developer, env: { ...process.env, app, PATH: dirname(process.execPath) + ":" + process.env.PATH }, stdio: 'pipe' });
     return { fixture, root };
   } catch (error) {
     await rm(fixture, { recursive: true, force: true });
@@ -36,17 +36,17 @@ async function packagedFixture() {
   }
 }
 
-test('actual package copy commands retain the startup and launcher admission dependency graph', async () => {
+test('actual package source-copy commands retain the startup and launcher admission dependency graph', async () => {
   const { fixture, root } = await packagedFixture();
   try {
     assert.ok((await verifyPackagedLocalImports(root)).relativeModules > 2);
     const channel = await import(pathToFileURL(join(root, 'runtime/ynx-workbench/lib/wallet-admission-channel.js')));
     assert.equal(typeof channel.default.serveAdmission, 'function');
-    assert.equal((await verifyIdentityAdmissionSource(join(root, 'vendor/identity-admission'))).files.length, 36);
+    assert.equal((await verifyCanonicalIdentityAdmissionSource(join(root, '../../packages/wallet-auth'))).files.length, 168);
     for (const path of ['desktop/wallet-admission-startup.mjs', 'desktop/wallet-admission-delivery.mjs', 'runtime/ynx-workbench/lib/wallet-admission-channel.js', 'runtime/ynx-workbench/lib/wallet-admission-protocol.js', 'runtime/ynx-workbench/package.json',
-      'vendor/identity-admission/scripts/ynx-ide-service-admission-supplier.mjs',
-      'vendor/identity-admission/scripts/original-ide-service-admission-native-selection.mjs',
-      'vendor/identity-admission/src/original-ide-service-admission-startup.js']) {
+      '../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs',
+      '../../packages/wallet-auth/scripts/original-ide-service-admission-native-selection.mjs',
+      '../../packages/wallet-auth/src/original-ide-service-admission-startup.js']) {
       const file = join(root, path), retained = file + '.retained';
       await rename(file, retained);
       await assert.rejects(verifyPackagedLocalImports(root));

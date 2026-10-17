@@ -2,13 +2,13 @@
 // The retained fixed null selection does not configure or grant admission.
 // Only Resources/server.mjs supplies its own location; the supplier compares
 // configured targets with independently approved original owner material.
-import * as supplier from '../vendor/identity-admission/scripts/ynx-ide-service-admission-supplier.mjs';
+import * as supplier from '../../../packages/wallet-auth/scripts/ynx-ide-service-admission-supplier.mjs';
 import { openOriginalParentDelivery } from './wallet-admission-delivery.mjs';
 export async function openBundledWalletAdmission(runningBackendModuleURL) {
   let delivery;
   try { delivery = await openOriginalParentDelivery({ supplier, runningBackendModuleURL,
     async validateInstalled(selection, actualEntry) {
-      const { prepareOriginalIDEServiceAdmissionStartup } = await import('../vendor/identity-admission/src/original-ide-service-admission-startup.js');
+      const { prepareOriginalIDEServiceAdmissionStartup } = await import('../../../packages/wallet-auth/src/original-ide-service-admission-startup.js');
       return prepareOriginalIDEServiceAdmissionStartup(selection, actualEntry, () => new Date());
     },
   }); } catch (error) {

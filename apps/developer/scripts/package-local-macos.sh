@@ -88,7 +88,10 @@ branding_root="$root/branding"
 node scripts/package-macos-branding.mjs assets "$branding_root"
 cp "$branding_root/YNXDeveloper.icns" "$branding_root/installer-background.png" "$branding_root/branding-manifest.json" "$app/Contents/Resources/"
 branding_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/branding-manifest.json" | awk '{print $1}')
-/usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" desktop/macos/main.m desktop/macos/ynx-wallet-admission-parent.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
+# Keep the mature shell in Objective-C; the original parent supplier is ObjC++.
+# The old refusal implementation defines the same ABI and must not be linked.
+/usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" -c desktop/macos/main.m -o "$root/main.o"
+/usr/bin/clang++ -std=c++17 -fobjc-arc -mmacosx-version-min="$macos_min_version" -I"$repo_root/packages/wallet-auth/native" -Idesktop/macos "$root/main.o" desktop/macos/original-ide-parent-supplier.mm "$repo_root/packages/wallet-auth/native/original-auth-identity-source-authority.mm" "$repo_root/packages/wallet-auth/native/original-auth-identity-joint-owner.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-source-binding.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-kernel.mm" "$repo_root/packages/wallet-auth/native/original-ide-parent-observation.mm" -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit -lbsm
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 if [[ -n "$local_node_runtime" ]]; then
   /usr/libexec/PlistBuddy -c "Set LSMinimumSystemVersion $macos_min_version" "$app/Contents/Info.plist"
@@ -107,7 +110,8 @@ cp desktop/native-tools-client.mjs desktop/local-ai-tools-host.mjs desktop/admit
 cp desktop/marketplace-catalog-policy.mjs desktop/marketplace-catalog-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/marketplace-artifact-policy.mjs desktop/marketplace-artifact-transport.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
 cp desktop/chain-public-reader.mjs "$app/Contents/Resources/code/apps/developer/desktop/"
-node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code/apps/developer/vendor/identity-admission"
+node scripts/package-identity-admission-source.mjs "$app/Contents/Resources/code"
+node scripts/package-identity-admission-source.mjs --copy-native "$app/Contents/Resources/code"
 mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
@@ -304,7 +308,9 @@ NODE
 if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs seal "$app/Contents/Resources"
 fi
+node scripts/package-identity-admission-source.mjs --seal-native "$app/Contents/Resources"
 /usr/bin/codesign --force --deep --sign - "$app"
+node scripts/package-identity-admission-source.mjs --verify-native "$app/Contents/Resources"
 if [[ -n "$local_node_runtime" ]]; then
   node scripts/package-node-pty-distribution.mjs verify "$app/Contents/Resources"
 fi
