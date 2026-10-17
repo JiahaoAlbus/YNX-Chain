@@ -153,6 +153,12 @@ const LocalWorkspaceContextApi = Symbol('YNXLocalWorkspaceContextApi');
 const nativeFilePicker = require('./native-file-picker');
 const NativeFileURI = require('@theia/core/lib/common/uri').default;
 let nativeFilePickerEditors;
+require('./native-file-keybindings').install({
+  WorkspaceContribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
+  SymbolContribution: require('@theia/monaco/lib/browser/workspace-symbol-command').WorkspaceSymbolCommand,
+  commands: require('@theia/workspace/lib/browser/workspace-commands').WorkspaceCommands,
+  target: window,
+});
 nativeFilePicker.install({
   Contribution: require('@theia/workspace/lib/browser/workspace-frontend-contribution').WorkspaceFrontendContribution,
   URI: NativeFileURI, open: require('@theia/core/lib/browser').open,
