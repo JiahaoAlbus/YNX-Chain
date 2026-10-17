@@ -7,6 +7,7 @@ import { createRequire } from "node:module";
 import { isDeepStrictEqual } from "node:util";
 import { Readable } from "node:stream";
 import {canonicalArchivePlan,canonicalPackedPath,canonicalSourcePath,CANONICAL_MAIN,CANONICAL_APP_METADATA,NATIVE_CANONICAL,NATIVE_RECEIPT,SDK_ALIAS,verifyCanonicalNativeReceipt} from './canonical-package.mjs';
+import {walletAuthDependencyPlan,verifyPackagedWalletAuthDependencies} from './wallet-auth-dependencies.mjs';
 
 const projectDir = fileURLToPath(new URL("..", import.meta.url));
 const git = (cwd, ...args) => execFileSync("git", args, { cwd, encoding: "utf8", maxBuffer: 16 * 1024 * 1024 }).trim();
@@ -91,8 +92,8 @@ function archiveInventory(asar, archive) {
     return {path:name,type:"file",unpacked:!!info.unpacked,executable:!!info.executable,physicalMode,bytes:b.length,sha256:digest(b)};
   }).sort((a,b)=>a.path.localeCompare(b.path,'en'));
 }
-function ensureUnchangedMembers(before, after, plan, metadataInput) {
-  const expected=canonicalArchivePlan(before,metadataInput).after;
+function ensureUnchangedMembers(before, after, plan, metadataInput,dependencies) {
+  const expected=canonicalArchivePlan(before,metadataInput,dependencies.rows).after;
   if(!isDeepStrictEqual(after,expected))throw new Error('Canonical packaging changed unexpected archive members');
   for(const row of plan){const found=after.find(item=>item.path===row.packedPath);if(!found||found.type!=='file'||found.bytes!==row.emittedBytes||found.sha256!==row.emittedSHA256)throw new Error('Canonical source input differs: '+row.sourcePath);}
 }
@@ -105,7 +106,7 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   asar.uncache(archive);
   const metadata=JSON.parse(asar.extractFile(archive,"package.json").toString("utf8"));
   const expected=desktopReleaseIdentity(cwd,metadata.version),plan=relocationPlan(cwd,expected);
-  const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),canonical=canonicalArchivePlan(before,metadataInput);
+  const before=archiveInventory(asar,archive),metadataInput=asar.extractFile(archive,'package.json'),dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit),canonical=canonicalArchivePlan(before,metadataInput,dependencies.rows);
   for(const row of plan){
     const rawPath=row.sourcePath.startsWith('apps/wallet-desktop/')?row.sourcePath.slice('apps/wallet-desktop/'.length):SDK_ALIAS+'/'+row.sourcePath.slice('packages/wallet-auth/'.length);
     const info=asar.statFile(archive,path.normalize(rawPath),false);
@@ -115,7 +116,9 @@ export async function writeRelocatedArchive(resources, cwd, output) {
   const streams=canonical.after.map(row=>{
     if(row.type==="directory") return {path:row.path,type:row.type,unpacked:row.unpacked};
     if(row.type==="link") return {path:row.path,type:row.type,unpacked:row.unpacked,symlink:path.posix.relative(path.posix.dirname(row.path),row.link),stat:{mode:0o777}};
-    const bytes=row.path==='package.json'?canonical.metadata:row.path===CANONICAL_APP_METADATA?canonical.appMetadata:asar.extractFile(archive,path.normalize(originals.get(row.path)),false);
+    const canonicalAlias=row.path.startsWith(SDK_ALIAS+'/')?'code/packages/wallet-auth'+row.path.slice(SDK_ALIAS.length):null;
+    const input=canonicalAlias??row.path;
+    const bytes=row.path==='package.json'?canonical.metadata:row.path===CANONICAL_APP_METADATA?canonical.appMetadata:dependencies.contents.get(input)??asar.extractFile(archive,path.normalize(originals.get(input)),false);
     return {path:row.path,type:"file",unpacked:row.unpacked,stat:{mode:row.physicalMode??(row.executable?0o755:0o644),size:bytes.length},streamGenerator:()=>Readable.from([bytes])};
   });
   await asar.createPackageFromStreams(output,streams);
@@ -129,19 +132,20 @@ export function relocateDesktopPackage(resources, cwd=projectDir) {
   const expected=desktopReleaseIdentity(cwd,metadata.version),plan=relocationPlan(cwd,expected);
   const before=archiveInventory(asar,archive);
   const metadataInput=asar.extractFile(archive,'package.json');
+  const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
   const temporary=mkdtempSync(path.join(resources,".ynx-relocation-")),output=path.join(temporary,"app.asar");
   const nativeBefore=path.join(archive+'.unpacked','native/original-auth-identity.node'),nativeAfter=path.join(archive+'.unpacked',NATIVE_CANONICAL),backup=path.join(temporary,'original.asar');
   let nativeMoved=false,archiveMoved=false,replacement=false;
   try{
     execFileSync(process.execPath,[fileURLToPath(import.meta.url),"--relocate-data-child",resources,cwd,output],{maxBuffer:16*1024*1024,stdio:"pipe"});
     const after=archiveInventory(asar,output);
-    ensureUnchangedMembers(before,after,plan,metadataInput);
+    ensureUnchangedMembers(before,after,plan,metadataInput,dependencies);
     // Only packed operands change; retain the original unpacked tree, not a
     // newly copied native artifact. Verify again against that retained tree.
     mkdirSync(path.dirname(nativeAfter),{recursive:true});renameSync(nativeBefore,nativeAfter);nativeMoved=true;
     renameSync(archive,backup);archiveMoved=true;renameSync(output,archive);replacement=true;asar.uncache(archive);
     if(!isDeepStrictEqual(archiveInventory(asar,archive),after)) throw new Error("Retained unpacked tree differs");
-    const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
+    const receipt={schemaVersion:2,recipe:RELOCATION_VERSION,sourceCommit:expected.sourceCommit,files:publicRelocationRows(plan),sdkDependencies:dependencies.public,metadataInputBase64:metadataInput.toString('base64'),before,after,asarHeaderIntegrity:desktopAsarHeaderIntegrity(resources,cwd)};
     writeFileSync(path.join(resources,PACKAGED_RELOCATION_RECEIPT),JSON.stringify(receipt,null,2)+"\n");
     return receipt;
   }catch(cause){
@@ -180,9 +184,11 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const actual = JSON.parse(readFileSync(path.join(resources, "ynx-wallet-build-identity.json"), "utf8"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
   const plan=relocationPlan(cwd,expected);
+  const dependencies=walletAuthDependencyPlan(cwd,expected.sourceCommit);
   const receipt=JSON.parse(readFileSync(path.join(resources,PACKAGED_RELOCATION_RECEIPT),"utf8"));
   if(receipt.schemaVersion!==2||receipt.recipe!==RELOCATION_VERSION||receipt.sourceCommit!==expected.sourceCommit||!isDeepStrictEqual(receipt.files,publicRelocationRows(plan))||typeof receipt.metadataInputBase64!=='string') throw new Error("Packaged relocation receipt differs from source recipe");
-  ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'));
+  if(!isDeepStrictEqual(receipt.sdkDependencies,dependencies.public))throw Error('Packaged SDK dependency receipt differs from fixed source inputs');
+  ensureUnchangedMembers(receipt.before,receipt.after,plan,Buffer.from(receipt.metadataInputBase64,'base64'),dependencies);
   if(!isDeepStrictEqual(archiveInventory(asar,archive),receipt.after)) throw new Error("Packaged archive differs from relocation receipt");
   const unavailableOptionalRuntimeAssets=PACKAGED_RELOCATION_RULES.filter(row=>row.unavailableNativeAsset).map(row=>{
     if(receipt.after.some(member=>member.path===row.unavailableNativeAsset))throw Error('Unreviewed optional source-current Native module');
@@ -198,6 +204,8 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   }
   const root = git(cwd, "rev-parse", "--show-toplevel");
   const sourceMetadata=JSON.parse(execFileSync("git",["show",`${expected.sourceCommit}:apps/wallet-desktop/package.json`],{cwd:root,encoding:"utf8",maxBuffer:16*1024*1024}));
+  const sdkMetadata=JSON.parse(execFileSync('git',['show',`${expected.sourceCommit}:packages/wallet-auth/package.json`],{cwd:root,maxBuffer:16*1024*1024}));
+  const sdkRuntimeDependencies=verifyPackagedWalletAuthDependencies(asar,archive,dependencies,sdkMetadata);
   const nativeInputs=git(root,'ls-tree','-r','--name-only',expected.sourceCommit,'apps/wallet-desktop/native','packages/wallet-auth/native').split('\n').filter(name=>/\/native\/[^/]+\.(?:h|mm|mjs)$/.test(name));
   const nativeReceiptBytes=asar.extractFile(archive,NATIVE_RECEIPT),nativeReceipt=JSON.parse(nativeReceiptBytes.toString('utf8'));
   const localNative=path.join(cwd,'native/original-auth-identity.node'),localReceipt=path.join(cwd,'native/original-auth-identity-build.json'),nativeBytes=asar.extractFile(archive,NATIVE_CANONICAL);
@@ -248,6 +256,7 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", runtimePackageMetadataVerified:true,verifiedRuntimePackageFields:[...RUNTIME_PACKAGE_FIELDS], excludedTypeDeclarations,
     canonicalLayoutVerified:true,sourceOperandsUnchanged:true,nativeModuleBuild,
     unavailableOptionalRuntimeAssets,
+    sdkRuntimeDependenciesVerified:true,sdkRuntimeDependencies,
     staticPathRelocationVerified:true,staticPathRelocation:receipt.files,macAsarIntegrityVerified,
     typeDeclarationExclusionReason: "TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
     asarSHA256: digest(readFileSync(archive)), files: verified };

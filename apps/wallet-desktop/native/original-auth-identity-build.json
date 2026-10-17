@@ -6,7 +6,7 @@
     "output": "repository-root",
     "headers": "pinned-header-root"
   },
-  "sourceRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source",
+  "sourceRoot": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source",
   "headerRoot": "/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node",
   "napiVersion": 8,
   "headerVersion": "22.13.1",
@@ -14,7 +14,7 @@
   "architectures": [
     "arm64"
   ],
-  "commandsKind": "normal-build-plan",
+  "commandsKind": "executed-normal-build",
   "commands": [
     {
       "tool": "/usr/bin/clang++",
@@ -25,9 +25,10 @@
         "-undefined",
         "dynamic_lookup",
         "-DNAPI_VERSION=8",
+        "-DNODE_GYP_MODULE_NAME=original_auth_identity",
         "-mmacosx-version-min=13.0",
         "-I/Users/huangjiahao/Library/Caches/node-gyp/22.13.1/include/node",
-        "-I/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native",
+        "-I/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native",
         "-framework",
         "Foundation",
         "-framework",
@@ -35,14 +36,14 @@
         "-lbsm",
         "-arch",
         "arm64",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/packages/wallet-auth/native/original-ide-parent-node.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/apps/wallet-desktop/native/original-auth-identity-node.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native/original-auth-identity-source-authority.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native/original-auth-identity-joint-owner.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native/original-ide-parent-source-binding.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native/original-ide-parent-kernel.mm",
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/packages/wallet-auth/native/original-ide-parent-node.mm",
         "-o",
-        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/source/apps/wallet-desktop/native/original-auth-identity.node"
+        "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r23-native-r6a-component-20261018/source/apps/wallet-desktop/native/original-auth-identity.node"
       ]
     }
   ],
@@ -79,8 +80,8 @@
     },
     {
       "relative": "packages/wallet-auth/native/original-auth-identity-source-authority.mm",
-      "bytes": 16913,
-      "sha256": "3d38f2384b4c17ab59755e3bb20c6cd69e91ba106edcec8fdb9e311bfa6a57fe"
+      "bytes": 17320,
+      "sha256": "c7225b0b94bb03e9384fb081a1b330382eee7649b288c1c43510fbf596e64763"
     },
     {
       "relative": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
@@ -149,18 +150,23 @@
     },
     {
       "relative": "packages/wallet-auth/native/original-ide-parent-source-binding.mm",
-      "bytes": 6521,
-      "sha256": "7535ddab40c43ed717aec7466feec63fa886e51b1671a0dd1e05364ba5286e38"
+      "bytes": 6825,
+      "sha256": "f36716748efe6e84f65c20c740d6bd3a5e666ebc921c8b29bed27f6458c39e65"
     },
     {
       "relative": "packages/wallet-auth/native/original-ide-parent-transport.h",
-      "bytes": 2271,
-      "sha256": "cd8df5682e8bec39032a68b6ea3d0bf6a3b0324bc5b1f15d9c47eb3605bb3e4a"
+      "bytes": 2582,
+      "sha256": "61e09fa9532328e5d654dac18f335304103a87ac05abe98a1c9aea831057753c"
     },
     {
       "relative": "packages/wallet-auth/native/original-ide-public-originals.h",
       "bytes": 736,
       "sha256": "9bbc4e7630e59d71bc038b3924f0ed0810e2433ec86bad854d671ec2a7d9edb9"
+    },
+    {
+      "relative": "packages/wallet-auth/native/original-source-verifier-io.h",
+      "bytes": 2993,
+      "sha256": "5f9865eb1b5e9dc3621bf9a0622dab6d121d74778844943117d2472e8083ed8b"
     }
   ],
   "headers": [
@@ -482,16 +488,11 @@
   ],
   "output": {
     "relative": "apps/wallet-desktop/native/original-auth-identity.node",
-    "bytes": 861192,
-    "sha256": "7a6000b893566892d054ba32862e47b928eefdd86ede456e3742f64fcda1ff9c"
+    "bytes": 902872,
+    "sha256": "596a8cb69d82aea6398dfa38853436c9d0683036a2a636e957fa7db86bd172dc"
   },
-  "readbackOnly": true,
+  "readbackOnly": false,
   "appSigned": false,
   "nativeQualified": false,
-  "registrationAccepted": false,
-  "existingComponentEvidence": {
-    "path": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r20-native-v2-full-matching-20261017/FINAL_NATIVE_COMPONENT_HANDOFF.json",
-    "bytes": 20471,
-    "sha256": "a7becbeb58828d2c584113e4f5b2b400de5b16471c0c6934ba5c2d1c8f6bab0a"
-  }
+  "registrationAccepted": false
 }

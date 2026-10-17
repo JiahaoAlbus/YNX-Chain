@@ -33,7 +33,7 @@ const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
 /** Closed path-only packaging, never source operand rewriting. The sole SDK
  * alias is a link to the canonical copy; the Native module has one unpacked
  * canonical path. The archive contains no second implementation. */
-export function canonicalArchivePlan(before,metadataBytes){
+export function canonicalArchivePlan(before,metadataBytes,dependencyRows=[]){
  if(before.some(row=>row.path==='code'||row.path.startsWith('code/')))throw Error('Canonical packaging already applied or foreign code tree');
  const native=before.filter(row=>row.path.endsWith('/original-auth-identity.node'));
  if(native.length!==1||native[0].path!=='native/original-auth-identity.node'||native[0].type!=='file'||!native[0].unpacked)throw Error('Exactly one original unpacked Native module required');
@@ -51,7 +51,17 @@ export function canonicalArchivePlan(before,metadataBytes){
   if(rows.has(target))throw Error('Duplicate canonical archive member: '+target);
   rows.set(target,next);
  }
- rows.set(SDK_ALIAS,{path:SDK_ALIAS,type:'link',link:SDK_CANONICAL,unpacked:false});
+ for(const row of dependencyRows){const previous=rows.get(row.path);if(previous&&(previous.type!=='file'||previous.unpacked||previous.executable||previous.bytes!==row.bytes||previous.sha256!==row.sha256))throw Error('Conflicting canonical SDK dependency input: '+row.path);rows.set(row.path,{...row});}
+ // Native ESM's package-json reader cannot traverse an ASAR directory link.
+ // Keep normal directories and exact regular package descriptors; every code
+ // file alias realpaths to the sole canonical implementation/cache identity.
+ rows.set(SDK_ALIAS,{path:SDK_ALIAS,type:'directory',unpacked:false});
+ for(const row of [...rows.values()].filter(r=>r.path.startsWith(SDK_CANONICAL+'/'))){
+  const alias=SDK_ALIAS+row.path.slice(SDK_CANONICAL.length);
+  if(row.type==='directory')rows.set(alias,{path:alias,type:'directory',unpacked:false});
+  else if(row.type==='file'&&path.posix.basename(row.path)==='package.json')rows.set(alias,{...row,path:alias,unpacked:false,executable:false,physicalMode:null});
+  else rows.set(alias,{path:alias,type:'link',link:row.path,unpacked:false});
+ }
  // Retain the app's original package scope at its repository-relative root.
  // Conditional imports/exports and relative package targets keep their normal
  // meaning there; only Electron's outer launcher selects canonical main.
@@ -88,7 +98,7 @@ export function verifyCanonicalNativeReceipt(receipt,moduleBytes,expectedInputs,
  const compilers=receipt.commands.filter(c=>c.tool==='/usr/bin/clang++');if(compilers.length!==arches.length||receipt.commands.length!==(arches.length===2?3:1))bad();
  const sourceRel=['apps/wallet-desktop/native/original-auth-identity-node.mm',...['original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-node.mm'].map(n=>'packages/wallet-auth/native/'+n)];
  for(let i=0;i<compilers.length;i++){
-  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security','-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
+  const expected=['-std=c++17','-fobjc-arc','-dynamiclib','-undefined','dynamic_lookup','-DNAPI_VERSION=8','-DNODE_GYP_MODULE_NAME=original_auth_identity','-mmacosx-version-min=13.0','-I'+receipt.headerRoot,'-I'+path.join(receipt.sourceRoot,'packages/wallet-auth/native'),'-framework','Foundation','-framework','Security','-lbsm','-arch',arches[i],...sourceRel.map(p=>path.join(receipt.sourceRoot,p)),'-o',path.join(receipt.sourceRoot,receipt.output.relative)+(arches.length===2?'.'+(arches[i]==='x86_64'?'x64':arches[i]):'')];
   if(JSON.stringify(compilers[i].argv)!==JSON.stringify(expected))bad();
  }
  if(arches.length===2){const output=path.join(receipt.sourceRoot,receipt.output.relative),last=receipt.commands[2];if(last.tool!=='/usr/bin/lipo'||JSON.stringify(last.argv)!==JSON.stringify(['-create',output+'.arm64',output+'.x64','-output',output]))bad();}

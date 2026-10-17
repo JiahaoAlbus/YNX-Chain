@@ -7,9 +7,10 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
-import {originalAuthNativeBuildPlan,captureOriginalAuthNativeBuildReceipt} from '../scripts/build-original-auth-identity-native.mjs';
+import {originalAuthNativeBuildPlan,captureOriginalAuthNativeBuildReceipt,originalAuthNativeInputPins} from '../scripts/build-original-auth-identity-native.mjs';
 import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES,relocateDesktopPackage,verifyDesktopPackage,desktopReleaseIdentity,PACKAGED_RELOCATION_RECEIPT,desktopAsarHeaderIntegrity} from '../scripts/release-provenance.mjs';
 import {canonicalArchivePlan,CANONICAL_MAIN,NATIVE_CANONICAL,SDK_ALIAS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
+import {walletAuthDependencyPlan} from '../scripts/wallet-auth-dependencies.mjs';
 test('normal builder metadata selects canonical entry before its post-afterPack sanity check',()=>{
  const pkg=JSON.parse(readFileSync(new URL('../package.json',import.meta.url)));assert.equal(pkg.main,'src/main.mjs');assert.equal(pkg.build.extraMetadata.main,CANONICAL_MAIN);
 });
@@ -17,12 +18,23 @@ test('Native normal build has the six Auth-frozen units and libbsm for every arc
  for(const arch of ['arm64','x64','universal']){
   const p=originalAuthNativeBuildPlan(arch,'/PUBLIC/headers');
   assert.deepEqual(p.sources.map(s=>s.split('/').pop()),['original-auth-identity-node.mm','original-auth-identity-source-authority.mm','original-auth-identity-joint-owner.mm','original-ide-parent-source-binding.mm','original-ide-parent-kernel.mm','original-ide-parent-node.mm']);
-  for(const c of p.commands.filter(c=>c.tool.endsWith('clang++'))){assert.equal(c.argv.filter(a=>a==='-lbsm').length,1);assert.ok(c.argv.includes('-mmacosx-version-min=13.0'));assert.equal(p.sources.filter(s=>c.argv.includes(s)).length,6);}
+  for(const c of p.commands.filter(c=>c.tool.endsWith('clang++'))){assert.equal(c.argv.filter(a=>a==='-lbsm').length,1);assert.equal(c.argv.filter(a=>a==='-DNODE_GYP_MODULE_NAME=original_auth_identity').length,1);assert.ok(c.argv.includes('-mmacosx-version-min=13.0'));assert.equal(p.sources.filter(s=>c.argv.includes(s)).length,6);}
  }
+});
+test('R23 Native input snapshot retains exact original Node closure plus new IO header, not IDE inputs',()=>{
+ const nativeRoot=process.env.PROVENANCE_NATIVE_SOURCE_ROOT??path.resolve(new URL('../',import.meta.url).pathname,'../..');
+ const headers=new URL('./fixtures/node-22.13.1/',import.meta.url).pathname.replace(/\/$/,''),plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
+ const mapped={...plan,output:plan.output.replace(planRoot,nativeRoot),sources:plan.sources.map(p=>p.replace(planRoot,nativeRoot))};
+ const pins=originalAuthNativeInputPins(mapped,headers).inputFiles,receipt=JSON.parse(readFileSync(nativeRoot+'/apps/wallet-desktop/native/original-auth-identity-build.json'));
+ assert.deepEqual(pins,receipt.inputFiles);assert.equal(pins.length,24);
+ const names=pins.map(p=>p.relative);assert.ok(names.includes('packages/wallet-auth/native/original-source-verifier-io.h'));assert.ok(names.includes('packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs'));assert.ok(names.includes('packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs'));assert.equal(names.some(p=>p.startsWith('apps/developer/')),false);
+ assert.equal(plan.sources.length,6);
 });
 
 const project=new URL('../',import.meta.url).pathname,require=createRequire(new URL('../package.json',import.meta.url)),asar=require('@electron/asar'),asarCLI=require.resolve('@electron/asar/bin/asar.js');
 const sdkRuntime=process.env.PROVENANCE_SDK_SOURCE??path.resolve(project,'../../packages/wallet-auth/src');
+const dependencyRoot=process.env.PROVENANCE_SDK_DEPENDENCY_ROOT??path.resolve(project,'../../packages/wallet-auth/node_modules');
+const dependencyManifestBytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),dependencyManifest=JSON.parse(dependencyManifestBytes);
 const additionalNativeOperands=[['original-auth-identity-source-current.js','original-source-current-dirfd.node'],['original-host-terminal-journal.js','original-auth-identity.node'],['original-ide-admission-parent-delivery.js','original-auth-identity.node']];
 for(const [file,module] of additionalNativeOperands)test('R22 actual SDK reference remains exact: '+file,()=>{
  const source=readFileSync(path.join(sdkRuntime,file)),result=relocateDesktopRuntimeSource('packages/wallet-auth/src/'+file,source);assert.deepEqual(result.bytes,source);assert.equal(result.operands.length,1);assert.equal(result.operands[0].from,'../../../apps/wallet-desktop/native/'+module);assert.equal(result.operands[0].count,1);
@@ -36,7 +48,8 @@ test('R22 actual entire SDK runtime closure has no unlisted repository operands'
 function fixture(t,{runtimeMetadata={},includeRegistry=true}={}){
  const root=mkdtempSync(path.join(tmpdir(),'ynx-canonical-public-')),app=path.join(root,'apps/wallet-desktop'),stage=path.join(root,'raw'),resources=path.join(root,'resources');
  t.after(()=>rmSync(root,{recursive:true,force:true}));
- const files={'apps/wallet-desktop/package.json':JSON.stringify({name:'public-wallet-fixture',version:'0.6.10',type:'module',main:'src/main.mjs',...runtimeMetadata}),'packages/wallet-auth/package.json':JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',main:'src/index.js'}),'packages/wallet-auth/src/index.js':'export const PUBLIC_ONLY=true;\n','packages/wallet-auth/product-session-registry.json':'{"PUBLIC":true}\n','apps/wallet-desktop/native/original-auth-identity.node':'PUBLIC DATA - NOT A NATIVE MODULE\n'};
+ const files={'apps/wallet-desktop/package.json':JSON.stringify({name:'public-wallet-fixture',version:'0.6.10',type:'module',main:'src/main.mjs',...runtimeMetadata}),'packages/wallet-auth/package.json':JSON.stringify({name:'@ynx-chain/wallet-auth',type:'module',main:'src/index.js',dependencies:dependencyManifest.versions}),'packages/wallet-auth/src/index.js':'export const PUBLIC_ONLY=true;\n','packages/wallet-auth/product-session-registry.json':'{"PUBLIC":true}\n','apps/wallet-desktop/native/original-auth-identity.node':'PUBLIC DATA - NOT A NATIVE MODULE\n','apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json':dependencyManifestBytes};
+ for(const row of dependencyManifest.files)files['packages/wallet-auth/node_modules/'+row.path]=readFileSync(path.join(dependencyRoot,row.path));
  if(!includeRegistry)delete files['packages/wallet-auth/product-session-registry.json'];
  const headers=path.join(root,'PUBLIC-headers');mkdirSync(headers);for(const p of PINNED_NODE_HEADER_PINS)copyFileSync(new URL('./fixtures/node-22.13.1/'+p.relative,import.meta.url),path.join(headers,p.relative));
  const plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
@@ -46,7 +59,7 @@ function fixture(t,{runtimeMetadata={},includeRegistry=true}={}){
  files['packages/wallet-auth/src/index.d.ts']='export declare const PUBLIC_ONLY:boolean;\n';
  for(const [name,body] of Object.entries(files)){
   const file=path.join(root,name);mkdirSync(path.dirname(file),{recursive:true});writeFileSync(file,body);
-  if(name.endsWith('.d.ts'))continue;
+  if(name.endsWith('.d.ts')||name.startsWith('packages/wallet-auth/node_modules/')||name.startsWith('apps/wallet-desktop/scripts/'))continue;
   const raw=name.startsWith('apps/wallet-desktop/')?name.slice('apps/wallet-desktop/'.length):SDK_ALIAS+'/'+name.slice('packages/wallet-auth/'.length),target=path.join(stage,raw);
   mkdirSync(path.dirname(target),{recursive:true});writeFileSync(target,name==='apps/wallet-desktop/package.json'?JSON.stringify({...JSON.parse(body),main:CANONICAL_MAIN}):body);if(name.endsWith('.node'))chmodSync(target,0o755);
  }
@@ -132,7 +145,9 @@ test('actual PUBLIC ASAR becomes canonical source closure with one SDK alias and
  assert.deepEqual(readFileSync(path.join(f.archive+'.unpacked',NATIVE_CANONICAL)),nativeBefore);
  const result=verifyDesktopPackage(f.resources,f.app);assert.equal(result.packagedSourceVerified,true);assert.equal(result.runtimePackageMetadataVerified,true);assert.equal(result.installedRuntimeVerified,false);
  const names=asar.listPackage(f.archive).map(p=>p.replace(/^\//,''));assert.equal(names.filter(p=>p.endsWith('/original-auth-identity.node')).length,1);assert.equal(names.some(p=>p.startsWith('src/')||p.startsWith('native/')),false);
- assert.equal(asar.statFile(f.archive,SDK_ALIAS,false).link,'code/packages/wallet-auth');
+ assert.ok(asar.statFile(f.archive,SDK_ALIAS,false).files);
+ assert.ok(!asar.statFile(f.archive,SDK_ALIAS+'/package.json',false).link);
+ assert.equal(asar.statFile(f.archive,SDK_ALIAS+'/src/index.js',false).link,'code/packages/wallet-auth/src/index.js');
  assert.equal(JSON.parse(asar.extractFile(f.archive,'package.json')).main,CANONICAL_MAIN);
  for(const rule of PACKAGED_RELOCATION_RULES){
   const body=asar.extractFile(f.archive,rule.packedPath);assert.deepEqual(body,Buffer.from(f.files[rule.sourcePath]));
@@ -140,8 +155,16 @@ test('actual PUBLIC ASAR becomes canonical source closure with one SDK alias and
  }
  const extracted=path.join(f.root,'extracted');asar.extractAll(f.archive,extracted);
  const fromMain=createRequire(path.join(extracted,CANONICAL_MAIN));assert.equal(fromMain.resolve('@ynx-chain/wallet-auth'),realpathSync(path.join(extracted,'code/packages/wallet-auth/src/index.js')));
+ assert.equal(result.sdkRuntimeDependencies.filesVerified,211);
+ for(const name of ['curves','hashes'])assert.equal(JSON.parse(asar.extractFile(f.archive,'code/packages/wallet-auth/node_modules/@noble/'+name+'/package.json')).version,'2.2.0');
  assert.equal(f.git('status','--porcelain','--untracked-files=no'),'');
  const canonicalBytes=readFileSync(f.archive);assert.throws(()=>relocateDesktopPackage(f.resources,f.app),/already applied|foreign code tree/);assert.deepEqual(readFileSync(f.archive),canonicalBytes);
+});
+test('R23 altered or missing fixed SDK dependency input cannot fall back to old app dependencies',t=>{
+ const f=fixture(t),file=path.join(f.root,'packages/wallet-auth/node_modules/@noble/hashes/package.json');writeFileSync(file,'{"name":"@noble/hashes","version":"1.8.0"}');assert.throws(()=>walletAuthDependencyPlan(f.app,f.git('rev-parse','HEAD')),/SDK_RUNTIME_DEPENDENCY_INPUT/);
+});
+test('R23 regular alias descriptors and canonical nested dependency bytes stay receipt-bound',t=>{
+ const f=fixture(t);relocateDesktopPackage(f.resources,f.app);const file=path.join(f.resources,PACKAGED_RELOCATION_RECEIPT),receipt=JSON.parse(readFileSync(file));receipt.sdkDependencies.files[0].sha256='0'.repeat(64);writeFileSync(file,JSON.stringify(receipt));assert.throws(()=>verifyDesktopPackage(f.resources,f.app),/dependency receipt differs/);
 });
 test('R22 optional SourceCurrent module stays absent and is never replaced by Wallet Native',t=>{
  const f=fixture(t);relocateDesktopPackage(f.resources,f.app);const result=verifyDesktopPackage(f.resources,f.app);
