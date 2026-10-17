@@ -575,6 +575,9 @@ func (a *Application) FinalizeBlock(_ context.Context, req *abcitypes.RequestFin
 	if err != nil {
 		return nil, fmt.Errorf("seal finalized YNX state: %w", err)
 	}
+	if err := validateConsensusPQContinuation(a.committed, pending); err != nil {
+		return nil, err
+	}
 	a.pending = &pending
 	appHash, err := hex.DecodeString(pending.AppHash)
 	if err != nil {
@@ -588,6 +591,9 @@ func (a *Application) Commit(context.Context, *abcitypes.RequestCommit) (*abcity
 	defer a.mu.Unlock()
 	if a.pending == nil {
 		return nil, errors.New("cannot commit without finalized state")
+	}
+	if err := validateConsensusPQContinuation(a.committed, *a.pending); err != nil {
+		return nil, err
 	}
 	if err := saveCommittedState(a.statePath, *a.pending, a.migration); err != nil {
 		return nil, fmt.Errorf("persist finalized YNX state: %w", err)
@@ -604,7 +610,7 @@ func (a *Application) cloneExecutionState() executionState {
 		legacyResourceSponsor: cloneLegacyResourceSponsor(a.committed.LegacyResourceSponsor),
 		traceLots:             cloneTraceLots(a.committed.TraceLots),
 		accountPolicy:         cloneConsensusAccountPolicy(a.committed.AccountPolicy),
-		pqHistory:             append([]PQCommittedAuthorization(nil), a.committed.PQHistory...),
+		pqHistory:             clonePQHistory(a.committed.PQHistory),
 		accounts:              cloneAccounts(a.committed.Accounts), feeEvents: append([]BFTFeeEvent(nil), a.committed.FeeEvents...), nativeTransfers: append([]BFTNativeTransfer(nil), a.committed.NativeTransfers...), permissions: cloneAIPermissions(a.committed.AIPermissions), actions: cloneAIActions(a.committed.AIActions), auditEvents: append([]BFTAIAuditEvent(nil), a.committed.AIAuditEvents...),
 		payIntents: append([]BFTPayIntent(nil), a.committed.PayIntents...), payInvoices: append([]BFTPayInvoice(nil), a.committed.PayInvoices...), paySettlements: append([]BFTPaySettlement(nil), a.committed.PaySettlements...), payRefunds: append([]BFTPayRefund(nil), a.committed.PayRefunds...), payWebhooks: append([]BFTPayWebhook(nil), a.committed.PayWebhooks...), payEvents: append([]BFTPayEvent(nil), a.committed.PayEvents...), payIdempotency: append([]BFTPayIdempotency(nil), a.committed.PayIdempotency...),
 		resourceQuotes: append([]BFTResourceQuote(nil), a.committed.ResourceQuotes...), resourceDelegations: append([]BFTResourceDelegation(nil), a.committed.ResourceDelegations...), resourceRentals: append([]BFTResourceRental(nil), a.committed.ResourceRentals...), resourceIncome: append([]BFTResourceIncome(nil), a.committed.ResourceIncome...), resourceEvents: append([]BFTResourceEvent(nil), a.committed.ResourceEvents...), resourceIdempotency: append([]BFTResourceIdempotency(nil), a.committed.ResourceIdempotency...),
@@ -621,7 +627,7 @@ func (a *Application) applyTransaction(state executionState, payload []byte, hei
 	if err != nil {
 		return executionState{}, transactionExecution{}, invalidTransaction(CodeInvalidTx, err)
 	}
-	if kind == PQTransferType || kind == PQMigrationType {
+	if kind == PQTransferType || kind == PQMigrationType || kind == PQRevocationType {
 		return a.applyPQTransaction(state, payload, height, blockTime)
 	}
 	if kind == SignedActionType {

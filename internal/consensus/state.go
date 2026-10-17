@@ -212,7 +212,7 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		LegacyResourceSponsor:      cloneLegacyResourceSponsor(execution.legacyResourceSponsor),
 		TraceLots:                  cloneTraceLots(execution.traceLots),
 		AccountPolicy:              cloneConsensusAccountPolicy(execution.accountPolicy),
-		PQHistory:                  append([]PQCommittedAuthorization(nil), execution.pqHistory...),
+		PQHistory:                  clonePQHistory(execution.pqHistory),
 		Version:                    CommittedStateVersion,
 		ChainID:                    migration.Network.ChainID,
 		MigrationStateHash:         migration.StateHash,

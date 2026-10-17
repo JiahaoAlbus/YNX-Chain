@@ -139,6 +139,9 @@ func validateAccountPolicySnapshot(snapshot devnetSnapshot) error {
 	if err := validatePQBatchSnapshot(snapshot); err != nil {
 		return err
 	}
+	if err := validatePQSourceHistoryMetadata(snapshot); err != nil {
+		return err
+	}
 	return validatePQActionSnapshot(snapshot)
 }
 

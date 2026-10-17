@@ -280,6 +280,11 @@ func (d *Devnet) SubmitAccountMigration(wire []byte) (Transaction, bool, error) 
 // Historical PQ envelopes retain their complete signed bytes. This is separate
 // from current account policy; a key rotation cannot invalidate old history.
 func validateHistoricalPQTransaction(tx Transaction, state *ynxauth.State, height uint64, chainID int64) error {
+	if isPQSourceHistory(tx) {
+		if err := validatePQUnsignedExecutionMetadata(tx); err != nil {
+			return err
+		}
+	}
 	if strings.HasPrefix(tx.Memo, pqRevocationMemo) {
 		return validateHistoricalPQRevocation(tx, state, height)
 	}

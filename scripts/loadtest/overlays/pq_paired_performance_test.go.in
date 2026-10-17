@@ -1,0 +1,415 @@
+package chain
+
+import (
+	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"os"
+	"path/filepath"
+	"reflect"
+	"runtime"
+	"sort"
+	"strconv"
+	"testing"
+	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxauth"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ynxbatch"
+)
+
+// This overlay consumes the protocol owner's existing QA fixture and disk
+// reader. It never installs a provider or implements a replacement signer.
+type pqPairTiming struct {
+	Mode                         string   `json:"mode"`
+	Members                      int      `json:"members"`
+	SubmitNs                     int64    `json:"submitNs"`
+	SubmitWallNs                 int64    `json:"submitWallNs"`
+	SigningPreparationNs         int64    `json:"sharedSigningPreparationNs"`
+	RequestCheckpointNs          []int64  `json:"requestCheckpointNs"`
+	MemberOfferToCheckpointNs    []int64  `json:"memberOfferToCheckpointNs"`
+	MemberHashes                 []string `json:"memberHashes"`
+	PendingSnapshotBytes         int64    `json:"pendingSnapshotBytes"`
+	PendingSnapshotSHA256        string   `json:"pendingSnapshotSha256"`
+	BlockSnapshotBytes           int64    `json:"blockSnapshotBytes"`
+	BlockSnapshotSHA256          string   `json:"blockSnapshotSha256"`
+	ManualProduceBlockNs         int64    `json:"manualProduceBlockNs"`
+	ColdRestoreNs                int64    `json:"coldRestoreNs"`
+	CheckpointPointerTransitions int      `json:"checkpointPointerTransitions"`
+	LocalBlockCheckpointMembers  int      `json:"localBlockCheckpointMembers"`
+	ColdRestoredMembers          int      `json:"coldRestoredMembers"`
+	Projection                   []byte   `json:"-"`
+}
+
+func pqPairDigest(raw []byte) string { sum := sha256.Sum256(raw); return hex.EncodeToString(sum[:]) }
+
+func pqPairWrite(t *testing.T, name string, raw []byte) {
+	t.Helper()
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	pqMust(t, err)
+	_, err = f.Write(raw)
+	if err != nil {
+		_ = f.Close()
+		t.Fatal(err)
+	}
+	err = f.Sync()
+	if err != nil {
+		_ = f.Close()
+		t.Fatal(err)
+	}
+	pqMust(t, f.Close())
+}
+
+func pqPairBudget(t *testing.T, dirs []string) {
+	t.Helper()
+	var total int64
+	for _, dir := range dirs {
+		pqMust(t, filepath.WalkDir(dir, func(name string, e fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if e.IsDir() {
+				return nil
+			}
+			info, err := e.Info()
+			if err != nil {
+				return err
+			}
+			if !info.Mode().IsRegular() {
+				return fmt.Errorf("nonregular private benchmark artifact")
+			}
+			total += info.Size()
+			return nil
+		}))
+	}
+	if total > 32<<20 {
+		t.Fatalf("private case artifacts exceed32MiB: %d", total)
+	}
+}
+
+func pqPairProjection(t *testing.T, d *Devnet) []byte {
+	t.Helper()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	s := d.snapshotLocked()
+	s.SavedAt = time.Time{}
+	s.StateIntegrity = ""
+	// Different proof layouts, transaction IDs and wall-clock block identities
+	// are intentional. Keep all other production module/account/resource state.
+	s.Blocks = nil
+	s.Pending = nil
+	s.PQBatches = nil
+	raw, err := json.Marshal(s)
+	pqMust(t, err)
+	return raw
+}
+
+func pqPairRun(t *testing.T, f *pqLedgerFixture, mode string, whole []byte, members [][]byte, seed []byte, output string, dirs *[]string, signNs int64) pqPairTiming {
+	t.Helper()
+	dir := t.TempDir()
+	*dirs = append(*dirs, dir)
+	d, err := NewPersistentDevnet(f.d.cfg, dir)
+	pqMust(t, err)
+	applied, err := d.ApplyReplicationSnapshotJSON(seed, false)
+	pqMust(t, err)
+	if !applied.Applied || !bytes.Equal(pqPairProjection(t, d), pqPairProjection(t, f.d)) {
+		t.Fatal("isolated clone differs from activated fixture")
+	}
+	n := len(members)
+	owner, _ := d.Account(f.owner)
+	recipient, _ := d.Account(f.to)
+	if recipient.Address == "" {
+		recipient.Address = f.to
+		recipient.Lots = map[string]int64{}
+	}
+	feeAddress := d.nextValidatorAddressLocked()
+	fee, _ := d.Account(feeAddress)
+	if feeAddress == f.owner || feeAddress == f.to || owner.Nonce != 1 || owner.Balance < int64(2*n) || len(d.pending) != 0 {
+		t.Fatal("invalid funded/policy clone")
+	}
+	r := pqPairTiming{Mode: mode, Members: n, SigningPreparationNs: signNs}
+	prior := d.durableCheckpoint.Load()
+	if prior == nil {
+		t.Fatal("no initial checkpoint")
+	}
+	started := time.Now()
+	if mode == "whole" {
+		request := time.Now()
+		out, e := d.SubmitPQBatch(whole)
+		elapsed := time.Since(request).Nanoseconds()
+		r.SubmitWallNs = time.Since(started).Nanoseconds()
+		r.SubmitNs = elapsed
+		pqMust(t, e)
+		if out.Status != "durable" || out.Replayed || out.BatchHash != pqBatchHash(whole) || len(out.Results) != n {
+			t.Fatal("whole did not return original durable admissions")
+		}
+		r.RequestCheckpointNs = []int64{elapsed}
+		for i, row := range out.Results {
+			hash, e := PQBatchTransactionHash(out.BatchHash, uint32(i))
+			pqMust(t, e)
+			if row.Index != uint32(i) || row.Outcome != "admitted" || row.TransactionHash != hash || row.Error != "" {
+				t.Fatalf("whole member%d rejected or identity changed", i)
+			}
+			r.MemberHashes = append(r.MemberHashes, hash)
+			r.MemberOfferToCheckpointNs = append(r.MemberOfferToCheckpointNs, r.SubmitWallNs)
+		}
+		if d.durableCheckpoint.Load() != prior {
+			r.CheckpointPointerTransitions++
+		}
+	} else {
+		for i, wire := range members {
+			request := time.Now()
+			tx, replayed, e := d.SubmitPQTransfer(wire)
+			elapsed := time.Since(request).Nanoseconds()
+			observed := time.Since(started).Nanoseconds()
+			pqMust(t, e)
+			if replayed || tx.Hash == "" || tx.Nonce != uint64(i+2) {
+				t.Fatalf("standalone member%d not originally admitted", i)
+			}
+			r.MemberHashes = append(r.MemberHashes, tx.Hash)
+			r.RequestCheckpointNs = append(r.RequestCheckpointNs, elapsed)
+			r.MemberOfferToCheckpointNs = append(r.MemberOfferToCheckpointNs, observed)
+			r.SubmitNs += elapsed
+			next := d.durableCheckpoint.Load()
+			if next != prior {
+				r.CheckpointPointerTransitions++
+			}
+			prior = next
+		}
+		r.SubmitWallNs = time.Since(started).Nanoseconds()
+	}
+	if len(d.pending) != n || len(r.MemberHashes) != n || r.SubmitNs <= 0 {
+		t.Fatal("incomplete measured member set")
+	}
+	if (mode == "whole" && r.CheckpointPointerTransitions != 1) || (mode == "members" && r.CheckpointPointerTransitions != n) {
+		t.Fatal("unexpected completed-checkpoint transitions (not filesystem write counts)")
+	}
+	ownerLots := map[string]int64{}
+	for k, v := range owner.Lots {
+		ownerLots[k] = v
+	}
+	recipientLots := map[string]int64{}
+	for k, v := range recipient.Lots {
+		recipientLots[k] = v
+	}
+	seen := map[string]bool{}
+	for i, hash := range r.MemberHashes {
+		if mode == "members" && hash != "0x"+pqPairDigest(members[i]) {
+			t.Fatal("standalone original signed member identity differs")
+		}
+		if seen[hash] {
+			t.Fatal("duplicate business identity")
+		}
+		seen[hash] = true
+		tx, proof, ok := d.TransactionWithDurability(hash)
+		if !ok || tx.Type != "transfer" || tx.From != f.owner || tx.To != f.to || tx.Amount != 1 || tx.Fee != 1 || tx.Nonce != uint64(i+2) || tx.BlockNum != 0 || tx.BlockHash != "" || proof.Status != "pending_durable" || proof.SnapshotIntegrity == "" {
+			t.Fatalf("member%d lacks exact pending checkpoint proof", i)
+		}
+		var moved int64
+		for _, flow := range tx.LotFlows {
+			if flow.From != f.owner || flow.To != f.to || flow.Amount <= 0 || ownerLots[flow.LotID] < flow.Amount {
+				t.Fatal("invalid provenance")
+			}
+			ownerLots[flow.LotID] -= flow.Amount
+			recipientLots[flow.LotID] += flow.Amount
+			moved += flow.Amount
+		}
+		if moved != 1 {
+			t.Fatal("member lot movement is not amount1")
+		}
+	}
+	wantOwner, wantRecipient, wantFee := owner, recipient, fee
+	wantOwner.Balance -= int64(2 * n)
+	wantOwner.Nonce = uint64(n + 1)
+	wantOwner.ResourceUsage.BandwidthUsed += int64(n)
+	wantOwner.Lots = ownerLots
+	wantRecipient.Balance += int64(n)
+	wantRecipient.Lots = recipientLots
+	wantFee.Balance += int64(n)
+	for address, want := range map[string]Account{f.owner: wantOwner, f.to: wantRecipient, feeAddress: wantFee} {
+		got, ok := d.Account(address)
+		if !ok || !reflect.DeepEqual(got, want) {
+			t.Fatalf("exact balance/nonce/fee/resources/lots differ for%s", address)
+		}
+	}
+	pending := pqBatchSuccessDiskSnapshot(t, d)
+	pqMust(t, validateAccountPolicySnapshot(pending))
+	diskCP, e := checkpointForSnapshot(pending)
+	pqMust(t, e)
+	if !reflect.DeepEqual(diskCP, d.durableCheckpoint.Load()) {
+		t.Fatal("disk does not reproduce complete pending checkpoint")
+	}
+	raw, e := os.ReadFile(d.snapshotPath())
+	pqMust(t, e)
+	r.PendingSnapshotBytes = int64(len(raw))
+	r.PendingSnapshotSHA256 = pqPairDigest(raw)
+	r.Projection = pqPairProjection(t, d)
+	pqPairBudget(t, *dirs)
+	beforeReplay := moduleBusinessState(t, d)
+	checkpoint := d.durableCheckpoint.Load()
+	if mode == "whole" {
+		out, e := d.SubmitPQBatch(whole)
+		pqMust(t, e)
+		if !out.Replayed || out.Status != "durable" {
+			t.Fatal("whole replay not recognized")
+		}
+	} else {
+		for _, wire := range members {
+			_, replayed, e := d.SubmitPQTransfer(wire)
+			pqMust(t, e)
+			if !replayed {
+				t.Fatal("standalone replay not recognized")
+			}
+		}
+	}
+	assertModuleState(t, d, beforeReplay)
+	if checkpoint != d.durableCheckpoint.Load() {
+		t.Fatal("exact replay created a new checkpoint")
+	}
+	blockStart := time.Now()
+	block := d.ProduceBlock()
+	r.ManualProduceBlockNs = time.Since(blockStart).Nanoseconds()
+	if len(block.Transactions) != n || len(d.pending) != 0 {
+		t.Fatal("manual devnet block omitted members")
+	}
+	pqBatchSuccessDiskSnapshot(t, d)
+	wantCold := moduleBusinessState(t, d)
+	restoreStart := time.Now()
+	cold, e := NewPersistentDevnet(d.cfg, d.dataDir)
+	r.ColdRestoreNs = time.Since(restoreStart).Nanoseconds()
+	pqMust(t, e)
+	assertModuleState(t, cold, wantCold)
+	for i, hash := range r.MemberHashes {
+		tx, proof, ok := cold.TransactionWithDurability(hash)
+		if !ok || tx.Hash != block.Transactions[i].Hash || tx.BlockNum != block.Height || tx.BlockHash != block.Hash || proof.Status != "durable" || len(proof.FeesThroughTransaction) != i+1 {
+			t.Fatal("cold local block proof incomplete")
+		}
+		for _, fee := range proof.FeesThroughTransaction {
+			if fee != 1 {
+				t.Fatal("cold fee inputs changed")
+			}
+		}
+	}
+	r.LocalBlockCheckpointMembers = n
+	r.ColdRestoredMembers = n
+	coldState := moduleBusinessState(t, cold)
+	coldCheckpoint := cold.durableCheckpoint.Load()
+	if mode == "whole" {
+		out, e := cold.SubmitPQBatch(whole)
+		pqMust(t, e)
+		if !out.Replayed || out.Status != "durable" {
+			t.Fatal("cold whole replay not recognized")
+		}
+	} else {
+		for _, wire := range members {
+			_, replayed, e := cold.SubmitPQTransfer(wire)
+			pqMust(t, e)
+			if !replayed {
+				t.Fatal("cold member replay not recognized")
+			}
+		}
+	}
+	assertModuleState(t, cold, coldState)
+	if cold.durableCheckpoint.Load() != coldCheckpoint {
+		t.Fatal("cold replay created a new checkpoint")
+	}
+	raw, e = os.ReadFile(d.snapshotPath())
+	pqMust(t, e)
+	r.BlockSnapshotBytes = int64(len(raw))
+	r.BlockSnapshotSHA256 = pqPairDigest(raw)
+	pqPairWrite(t, output+"."+mode+".snapshot.json", raw)
+	pqPairBudget(t, *dirs)
+	return r
+}
+
+// Exactly one bounded paired case per invocation. Signing/migration/setup,
+// validation, replay and cold recovery are never hidden inside SubmitNs.
+func TestPQPairedPersistentPerformance(t *testing.T) {
+	output := os.Getenv("YNX_PQ_PAIR_OUTPUT")
+	if output == "" {
+		t.Skip("explicit isolated paired benchmark output required")
+	}
+	n, err := strconv.Atoi(os.Getenv("YNX_PQ_PAIR_N"))
+	pqMust(t, err)
+	if n != 1 && n != 16 && n != 64 {
+		t.Fatal("first profile permits only N1/16/64")
+	}
+	trial, err := strconv.Atoi(os.Getenv("YNX_PQ_PAIR_TRIAL"))
+	pqMust(t, err)
+	if trial < 1 || trial > 3 {
+		t.Fatal("one trial1..3 required")
+	}
+	commit := os.Getenv("YNX_PQ_PAIR_SOURCE_COMMIT")
+	commitBytes, err := hex.DecodeString(commit)
+	pqMust(t, err)
+	if len(commitBytes) != 20 || hex.EncodeToString(commitBytes) != commit {
+		t.Fatal("full frozen source commit required")
+	}
+	if !filepath.IsAbs(output) {
+		t.Fatal("absolute exclusive output required")
+	}
+	if _, err = os.Lstat(output); !os.IsNotExist(err) {
+		t.Fatal("preserve existing result")
+	}
+	if !t.Run(fmt.Sprintf("N%d_trial%d", n, trial), func(t *testing.T) {
+		f := newPQLedger(t)
+		funded, _ := f.d.Account(f.owner)
+		if funded.Balance < int64(2*n+1) {
+			t.Fatal("success fixture must fund distinct amounts/fees plus migration")
+		}
+		f.activate(t)
+		seed, err := f.d.ReplicationSnapshotJSON()
+		pqMust(t, err)
+		signStart := time.Now()
+		messages := make([][]byte, n)
+		for i := range messages {
+			messages[i], err = f.batchTransfer(uint64(i+2), 1).SigningBytes()
+			pqMust(t, err)
+		}
+		signed, err := ynxbatch.BatchSign(f.key, ynxbatch.Metadata{ChainID: f.network, Owner: f.owner, Purpose: ynxauth.TransactionPurpose}, messages, ynxbatch.SignOptions{Optimized: true})
+		pqMust(t, err)
+		defer signed.Discard()
+		whole, err := signed.WholeWire()
+		pqMust(t, err)
+		members := make([][]byte, n)
+		for i := range members {
+			member, e := ynxbatch.Extract(signed, uint32(i))
+			pqMust(t, e)
+			members[i], err = ynxbatch.EncodeMember(member)
+			pqMust(t, err)
+		}
+		signNs := time.Since(signStart).Nanoseconds()
+		var memberWireBytes int
+		for _, wire := range members {
+			memberWireBytes += len(wire)
+		}
+		dirs := []string{f.d.dataDir, filepath.Dir(output)}
+		order := []string{"members", "whole"}
+		if trial%2 == 0 {
+			order = []string{"whole", "members"}
+		}
+		results := make([]pqPairTiming, 0, 2)
+		for _, mode := range order {
+			results = append(results, pqPairRun(t, f, mode, whole, members, seed, output, &dirs, signNs))
+		}
+		if !bytes.Equal(results[0].Projection, results[1].Projection) {
+			t.Fatal("paired complete business projections differ")
+		}
+		summaries := map[string]any{}
+		for _, r := range results {
+			sorted := append([]int64(nil), r.MemberOfferToCheckpointNs...)
+			sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+			percentile := func(p int) int64 { return sorted[(len(sorted)*p+99)/100-1] }
+			summaries[r.Mode] = map[string]any{"serverCallLocalCheckpointMembersPerSecond": float64(n) * 1e9 / float64(r.SubmitNs), "submissionLoopMembersPerSecond": float64(n) * 1e9 / float64(r.SubmitWallNs), "offerToLocalCheckpointNs": map[string]int64{"p50": percentile(50), "p95": percentile(95), "p99": percentile(99)}, "samples": n}
+		}
+		report := map[string]any{"schema": 1, "kind": "isolated-single-producer-PQ-paired-component", "sourceCommit": os.Getenv("YNX_PQ_PAIR_SOURCE_COMMIT"), "goVersion": runtime.Version(), "platform": runtime.GOOS + "/" + runtime.GOARCH, "gomaxprocs": runtime.GOMAXPROCS(0), "n": n, "trial": trial, "order": order, "sharedWholeSha256": pqPairDigest(whole), "wholeWireBytes": len(whole), "standaloneWireBytes": memberWireBytes, "results": results, "summary": summaries, "businessProjectionEqual": true, "bftFinalCommits": nil, "consensusFinalityLatency": nil, "interpretation": "Finite component measurement, not sustained capacity or BFT. Distinct real PQ members use one signed Whole and identical activated-state clones. Whole/member history identities differ. SubmitNs excludes common signing/setup, assertions, replay and cold recovery; signing time is separate. Whole per-member observations share one request and are correlated. Manually produced local blocks and local durable checkpoints are separate from consensus finality."}
+		raw, err := json.MarshalIndent(report, "", "  ")
+		pqMust(t, err)
+		pqPairWrite(t, output, append(raw, '\n'))
+		pqPairBudget(t, dirs)
+	}) {
+		t.Fatal("paired component case failed; no successful performance qualification")
+	}
+}
