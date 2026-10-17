@@ -1,4 +1,6 @@
-# Same-control four-node comparison: prepared, not executed
+# Same-control four-node comparison: frozen controls
+
+The before variant has since completed; see [its measured result](SAME_CONTROL_BEFORE_20261018.md). The cached variant remains unexecuted.
 
 The matched comparison is frozen at
 artifacts/chain-performance-20261017/same-control-comparison-pyU7WH.

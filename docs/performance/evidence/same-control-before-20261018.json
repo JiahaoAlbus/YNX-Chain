@@ -1,0 +1,220 @@
+{
+  "schema": 1,
+  "kind": "matched-four-node-before-only",
+  "window": "artifacts/chain-network-performance/window-eEfGE7",
+  "sourceHead": "eaf297600",
+  "clientSource": "fff2ff67",
+  "host": "Apple M4, 10 logical CPUs, 24 GiB RAM, darwin/arm64, Go1.25.7",
+  "sources": {
+    "window-receipt.json": {
+      "bytes": 125060,
+      "sha256": "bfe265a2bdbcd96185672bf72c9fa8384220a79c60511bc3642cc2ba26067ae2"
+    },
+    "transactions-result.json": {
+      "bytes": 2950379,
+      "sha256": "5afd182240f0376b4db717afa0f73f41cedfad10202ee7588a8978b695cae4db"
+    },
+    "independent-cleanup.json": {
+      "bytes": 10963,
+      "sha256": "9c190e5b39eed034ea3f1b494394ec61ab1de5080980570ede28d17576a8f3cf"
+    },
+    "derived-offer-final.json": {
+      "bytes": 265,
+      "sha256": "b45a1b2030e6dcc6e8258928776d30629a5ea229a5eb3b66b5a6eb624dc21112"
+    }
+  },
+  "configuration": {
+    "count": 256,
+    "rounds": 4,
+    "configuredOfferedRate": 512,
+    "stateLayout": "block-journal",
+    "senderMode": "ready-pool",
+    "inclusionMode": "block-scan",
+    "terminalStream": false,
+    "reuseResultSlots": false,
+    "gomaxprocs": 1,
+    "gogc": 100,
+    "gomemlimit": "off"
+  },
+  "summary": {
+    "input": 1024,
+    "offered": 1024,
+    "submitted": 1024,
+    "checkTxResponses": 1024,
+    "checkTxAccepted": 1024,
+    "checkTxRejected": 0,
+    "checkTxUnverifiedResponses": 0,
+    "includedCodeZero": 1024,
+    "effectiveBusinessIncluded": 1024,
+    "executionFailed": 0,
+    "quorumConfirmed": 1024,
+    "finalSubmitted": 1024,
+    "submissionUnknown": 0,
+    "timedOut": 0,
+    "observationFailed": 0,
+    "notSubmitted": 0,
+    "errorOccurrences": 8079,
+    "measurementWindowSeconds": 7.552927125,
+    "rpcSubmissionsPerMeasurementSecond": 135.5765762138212,
+    "checkTxAcceptedPerMeasurementSecond": 135.5765762138212,
+    "codeZeroIncludedPerMeasurementSecond": 135.5765762138212,
+    "effectiveBusinessIncludedPerMeasurementSecond": 135.5765762138212,
+    "quorumConfirmedPerMeasurementSecond": 135.5765762138212,
+    "finalSubmittedPerMeasurementSecond": 135.5765762138212,
+    "offeredEventSpanSeconds": 5.682254041,
+    "offeredInterarrivalRate": 180.03418935841273,
+    "submissionEventSpanSeconds": 5.806387792,
+    "submissionInterarrivalRate": 176.18526985219316,
+    "steadyStateEffectiveTPS": null,
+    "validInclusionBlocks": {
+      "blocks": [
+        {
+          "height": 4,
+          "signedBlockTime": "2026-10-17T16:47:43.408442Z",
+          "blockHash": "3B48A8BAA395EAD184267CFEFBD02A2AC63B836FC3E2BFCD3AD7886950290E3D",
+          "observedValidWorkloadTransactions": 256,
+          "merkleProofTotalTransactions": 256,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 5,
+          "signedBlockTime": "2026-10-17T16:47:44.314785Z",
+          "blockHash": "176EB0CE00C32A0477A8B5B47F1C0A365CB419C04F0DA0A81A070E5F44897E24",
+          "observedValidWorkloadTransactions": 50,
+          "merkleProofTotalTransactions": 50,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 6,
+          "signedBlockTime": "2026-10-17T16:47:45.176558Z",
+          "blockHash": "1F97B58D1EA9C6DD56179EACC854A8840D6C31586AA06DB3F619F5A74A93E664",
+          "observedValidWorkloadTransactions": 200,
+          "merkleProofTotalTransactions": 200,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 7,
+          "signedBlockTime": "2026-10-17T16:47:45.92218Z",
+          "blockHash": "352B1466524EF03D22BB20C0E8F8C979C0F4B11CF232E963168A43801A9B97CC",
+          "observedValidWorkloadTransactions": 56,
+          "merkleProofTotalTransactions": 56,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 8,
+          "signedBlockTime": "2026-10-17T16:47:46.768643Z",
+          "blockHash": "F0996BD8D0A27B7C23EA6ACFEBB3DDD5632FEE2EAE6A6865BB09EB4A014C2F1C",
+          "observedValidWorkloadTransactions": 239,
+          "merkleProofTotalTransactions": 239,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 9,
+          "signedBlockTime": "2026-10-17T16:47:47.541638Z",
+          "blockHash": "8979FA2A44DD7A830BF03ACBD6BD2C5C0581DB0D25CBD96B637BD7DC2956BEBD",
+          "observedValidWorkloadTransactions": 17,
+          "merkleProofTotalTransactions": 17,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 10,
+          "signedBlockTime": "2026-10-17T16:47:48.499102Z",
+          "blockHash": "9977C1DF3AA7FA0CEE6C016CC3625317045BE58CF3DD140AA1C8824CA2D01646",
+          "observedValidWorkloadTransactions": 180,
+          "merkleProofTotalTransactions": 180,
+          "allBlockTransactionsObservedValid": true
+        },
+        {
+          "height": 11,
+          "signedBlockTime": "2026-10-17T16:47:49.352446Z",
+          "blockHash": "CD1CEC008384DBE7C2A0C85902D6DE6AE912F4C72337F753D8D32EA8F1BC2BF7",
+          "observedValidWorkloadTransactions": 26,
+          "merkleProofTotalTransactions": 26,
+          "allBlockTransactionsObservedValid": true
+        }
+      ],
+      "completeObservedBlockCoverage": true,
+      "activeOfferInteriorIntervals": 0,
+      "activeOfferInteriorTransactions": 0,
+      "activeOfferInteriorSeconds": 0,
+      "activeOfferInteriorEffectiveTPS": null,
+      "interpretation": "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."
+    },
+    "submissionQueueDelayMs": {
+      "samples": 1024,
+      "p50": 68.415542,
+      "p95": 344.27158299999996,
+      "p99": 370.154167
+    },
+    "checkTxLatencyMs": {
+      "samples": 1024,
+      "p50": 9.014125,
+      "p95": 43.397583000000004,
+      "p99": 73.88312499999999
+    },
+    "inclusionLatencyMs": {
+      "samples": 1024,
+      "p50": 950.890708,
+      "p95": 1365.555417,
+      "p99": 1454.530417
+    },
+    "effectiveBusinessInclusionLatencyMs": {
+      "samples": 1024,
+      "p50": 950.890708,
+      "p95": 1365.555417,
+      "p99": 1454.530417
+    },
+    "confirmationLatencyMs": {
+      "samples": 1024,
+      "p50": 1176.174834,
+      "p95": 1767.879958,
+      "p99": 1851.966167
+    }
+  },
+  "durableReadback": {
+    "attempts": 29,
+    "bytesHashed": 10593751,
+    "snapshotValidations": 23,
+    "snapshotCacheHits": 1,
+    "transactionVerifications": 1024,
+    "blockJournalReplayedBlocks": 149,
+    "blockJournalReplayedTransactionInputs": 15384
+  },
+  "groupedObservation": {
+    "transactionQueries": 0,
+    "commitQueries": 41,
+    "validatorQueries": 41,
+    "quorumVerifications": 41,
+    "durableBatches": 29,
+    "largestDurableBatch": 64,
+    "publishedInfoQueries": 23,
+    "blockQueries": 204,
+    "blockResultsQueries": 41,
+    "scannedBlocks": 39,
+    "cachedConfirmationHits": 29,
+    "peakCachedBlockBytesPerScanner": 949677
+  },
+  "offerToFinalMs": {
+    "samples": 1024,
+    "p50": 1321.3000000000002,
+    "p95": 1809.345292,
+    "p99": 1868.018625,
+    "method": "Each original monotonic queue span plus original monotonic final span, then nearest-rank percentiles; no UTC subtraction or sum of independent percentiles"
+  },
+  "resources": {
+    "elapsedMs": 11986,
+    "cleanupMs": 102,
+    "firstCause": null,
+    "peakRSSBytes": 551845888,
+    "peakDataBytes": 22335488,
+    "peakThreadsWithControlReserve": 72,
+    "allGroupsGone": true
+  },
+  "limitations": [
+    "Before only; cached variant not run",
+    "7.552927125 second workload; no steady or 10-minute throughput qualification",
+    "Four stopped-node full replay and balance/nonce checks pending separate granted offline run",
+    "Historical replay input count is not new business throughput",
+    "Local isolated loopback fixtures; not public chain performance"
+  ]
+}
