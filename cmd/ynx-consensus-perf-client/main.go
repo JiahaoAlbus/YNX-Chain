@@ -35,11 +35,13 @@ import (
 	cmttypes "github.com/cometbft/cometbft/types"
 )
 
-const maxTransactions = 64
+const maxTransactions = 256
 
 type options struct {
 	manifest, transactions, output string
 	concurrency                    int
+	observers                      int
+	offeredRate                    float64
 	timeout, poll                  time.Duration
 }
 
@@ -56,12 +58,17 @@ type errorObservation struct {
 }
 
 type transactionResult struct {
+	offerMonotonic           time.Time
+	submitMonotonic          time.Time
 	Index                    int                `json:"index"`
 	Hash                     string             `json:"hash"`
 	Endpoint                 string             `json:"endpoint"`
 	Bytes                    int                `json:"bytes"`
 	Status                   string             `json:"status"`
 	SubmittedAt              *time.Time         `json:"submittedAt,omitempty"`
+	ScheduledAt              *time.Time         `json:"scheduledAt,omitempty"`
+	OfferedAt                *time.Time         `json:"offeredAt,omitempty"`
+	QueueDelayMs             *float64           `json:"queueDelayMs,omitempty"`
 	CheckTxObservedAt        *time.Time         `json:"checkTxObservedAt,omitempty"`
 	IncludedObservedAt       *time.Time         `json:"includedObservedAt,omitempty"`
 	ConfirmedObservedAt      *time.Time         `json:"confirmedObservedAt,omitempty"`
@@ -69,10 +76,13 @@ type transactionResult struct {
 	InclusionMs              *float64           `json:"inclusionMs,omitempty"`
 	ConfirmationMs           *float64           `json:"confirmationMs,omitempty"`
 	CheckTxCode              *uint32            `json:"checkTxCode,omitempty"`
+	CheckTxIdentityVerified  bool               `json:"checkTxIdentityVerified"`
 	ExecutionCode            *uint32            `json:"executionCode,omitempty"`
 	CheckTxLog               string             `json:"checkTxLog,omitempty"`
 	ExecutionLog             string             `json:"executionLog,omitempty"`
 	Height                   int64              `json:"height,omitempty"`
+	BlockTxIndex             uint32             `json:"blockTxIndex"`
+	BlockTime                *time.Time         `json:"blockTime,omitempty"`
 	BlockHash                string             `json:"blockHash,omitempty"`
 	HeaderAppHash            string             `json:"headerAppHash,omitempty"`
 	QuorumVerified           bool               `json:"quorumVerified"`
@@ -91,29 +101,37 @@ type percentiles struct {
 }
 
 type summary struct {
-	Input                    int         `json:"input"`
-	Submitted                int         `json:"submitted"`
-	CheckTxResponses         int         `json:"checkTxResponses"`
-	CheckTxAccepted          int         `json:"checkTxAccepted"`
-	CheckTxRejected          int         `json:"checkTxRejected"`
-	IncludedCodeZero         int         `json:"includedCodeZero"`
-	ExecutionFailed          int         `json:"executionFailed"`
-	QuorumConfirmed          int         `json:"quorumConfirmed"`
-	FinalSubmitted           int         `json:"finalSubmitted"`
-	SubmissionUnknown        int         `json:"submissionUnknown"`
-	TimedOut                 int         `json:"timedOut"`
-	ObservationFailed        int         `json:"observationFailed"`
-	NotSubmitted             int         `json:"notSubmitted"`
-	ErrorOccurrences         int         `json:"errorOccurrences"`
-	MeasurementWindowSeconds float64     `json:"measurementWindowSeconds"`
-	SubmissionRate           float64     `json:"rpcSubmissionsPerMeasurementSecond"`
-	AcceptanceRate           float64     `json:"checkTxAcceptedPerMeasurementSecond"`
-	InclusionRate            float64     `json:"codeZeroIncludedPerMeasurementSecond"`
-	ConfirmationRate         float64     `json:"quorumConfirmedPerMeasurementSecond"`
-	FinalSubmissionRate      float64     `json:"finalSubmittedPerMeasurementSecond"`
-	CheckTxLatency           percentiles `json:"checkTxLatencyMs"`
-	InclusionLatency         percentiles `json:"inclusionLatencyMs"`
-	ConfirmationLatency      percentiles `json:"confirmationLatencyMs"`
+	Input                      int         `json:"input"`
+	Offered                    int         `json:"offered"`
+	Submitted                  int         `json:"submitted"`
+	CheckTxResponses           int         `json:"checkTxResponses"`
+	CheckTxAccepted            int         `json:"checkTxAccepted"`
+	CheckTxRejected            int         `json:"checkTxRejected"`
+	CheckTxUnverified          int         `json:"checkTxUnverifiedResponses"`
+	IncludedCodeZero           int         `json:"includedCodeZero"`
+	ExecutionFailed            int         `json:"executionFailed"`
+	QuorumConfirmed            int         `json:"quorumConfirmed"`
+	FinalSubmitted             int         `json:"finalSubmitted"`
+	SubmissionUnknown          int         `json:"submissionUnknown"`
+	TimedOut                   int         `json:"timedOut"`
+	ObservationFailed          int         `json:"observationFailed"`
+	NotSubmitted               int         `json:"notSubmitted"`
+	ErrorOccurrences           int         `json:"errorOccurrences"`
+	MeasurementWindowSeconds   float64     `json:"measurementWindowSeconds"`
+	SubmissionRate             float64     `json:"rpcSubmissionsPerMeasurementSecond"`
+	AcceptanceRate             float64     `json:"checkTxAcceptedPerMeasurementSecond"`
+	InclusionRate              float64     `json:"codeZeroIncludedPerMeasurementSecond"`
+	ConfirmationRate           float64     `json:"quorumConfirmedPerMeasurementSecond"`
+	FinalSubmissionRate        float64     `json:"finalSubmittedPerMeasurementSecond"`
+	OfferedEventSpanSeconds    float64     `json:"offeredEventSpanSeconds"`
+	OfferedEventSpanRate       *float64    `json:"offeredInterarrivalRate"`
+	SubmissionEventSpanSeconds float64     `json:"submissionEventSpanSeconds"`
+	SubmissionEventSpanRate    *float64    `json:"submissionInterarrivalRate"`
+	SteadyStateEffectiveTPS    *float64    `json:"steadyStateEffectiveTPS"`
+	QueueDelay                 percentiles `json:"submissionQueueDelayMs"`
+	CheckTxLatency             percentiles `json:"checkTxLatencyMs"`
+	InclusionLatency           percentiles `json:"inclusionLatencyMs"`
+	ConfirmationLatency        percentiles `json:"confirmationLatencyMs"`
 }
 
 type report struct {
@@ -123,6 +141,10 @@ type report struct {
 	GenesisSHA256        string              `json:"genesisSha256"`
 	Endpoints            []string            `json:"endpoints"`
 	Concurrency          int                 `json:"concurrency"`
+	OfferedRate          float64             `json:"configuredOfferedRate"`
+	ObserverConcurrency  int                 `json:"observerConcurrency"`
+	LoadMode             string              `json:"loadMode"`
+	LoadQueues           pacedStatistics     `json:"loadQueues"`
 	TimeoutMs            int64               `json:"timeoutMs"`
 	PollMs               int64               `json:"pollMs"`
 	StartedAt            time.Time           `json:"startedAt"`
@@ -143,6 +165,8 @@ func main() {
 	flag.StringVar(&o.transactions, "transactions", "", "JSON file containing transactions: [base64 raw signed transaction]")
 	flag.StringVar(&o.output, "output", "", "optional new JSON output file; existing files are never overwritten")
 	flag.IntVar(&o.concurrency, "concurrency", 2, "maximum concurrent submit-and-observe workers (1..4)")
+	flag.IntVar(&o.observers, "observers", 4, "confirmation workers for paced mode (1..4)")
+	flag.Float64Var(&o.offeredRate, "offered-rate", 0, "paced offers per second (0=legacy closed loop; positive at most 256)")
 	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup and workload timeout (positive, at most 30s)")
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.Parse()
@@ -162,6 +186,12 @@ func validateOptions(o options) error {
 	}
 	if o.concurrency < 1 || o.concurrency > 4 {
 		return errors.New("concurrency must be in 1..4")
+	}
+	if math.IsNaN(o.offeredRate) || math.IsInf(o.offeredRate, 0) || o.offeredRate < 0 || o.offeredRate > 256 {
+		return errors.New("offered-rate must be finite in 0..256")
+	}
+	if o.offeredRate > 0 && (o.observers < 1 || o.observers > 4) {
+		return errors.New("paced observer count must be in 1..4")
 	}
 	if o.timeout <= 0 || o.timeout > 30*time.Second {
 		return errors.New("overall timeout must be positive and at most 30s")
@@ -214,7 +244,7 @@ func decodeTransactions(data []byte) ([]cmttypes.Tx, error) {
 		return nil, err
 	}
 	if len(input.Transactions) < 1 || len(input.Transactions) > maxTransactions {
-		return nil, errors.New("transactions must contain 1..64 entries")
+		return nil, errors.New("transactions must contain 1..256 entries")
 	}
 	txs := make([]cmttypes.Tx, len(input.Transactions))
 	seen := map[string]bool{}
@@ -421,19 +451,28 @@ func addError(list *[]errorObservation, stage string, err error) {
 }
 
 func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult) {
+	started, accepted := submitTransaction(ctx, client, raw, result)
+	if !accepted {
+		return
+	}
+	observeAcceptedTransaction(ctx, o, m, migration, trusted, client, statePath, raw, result, started)
+}
+
+func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.Tx, result *transactionResult) (time.Time, bool) {
 	if ctx.Err() != nil {
 		result.Status = "not_submitted"
 		addError(&result.Errors, "before_submission", ctx.Err())
-		return
+		return time.Time{}, false
 	}
 	start := time.Now()
+	result.submitMonotonic = start
 	submitted := start.UTC()
 	result.SubmittedAt = &submitted
 	broadcast, err := client.BroadcastTxSync(ctx, raw)
 	if err != nil {
 		result.Status = "submission_unknown"
 		addError(&result.Errors, "broadcast_tx_sync", err)
-		return
+		return start, false
 	}
 	now := time.Now().UTC()
 	elapsed := time.Since(start).Seconds() * 1000
@@ -442,12 +481,17 @@ func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNet
 	if !bytes.Equal(broadcast.Hash, raw.Hash()) {
 		result.Status = "submission_unknown"
 		addError(&result.Errors, "broadcast_identity", errors.New("broadcast hash differs from submitted bytes"))
-		return
+		return start, false
 	}
+	result.CheckTxIdentityVerified = true
 	if broadcast.Code != 0 {
 		result.Status = "checktx_rejected"
-		return
+		return start, false
 	}
+	return start, true
+}
+
+func observeAcceptedTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult, start time.Time) {
 	var included *coretypes.ResultTx
 	ticker := time.NewTicker(o.poll)
 	defer ticker.Stop()
@@ -467,6 +511,7 @@ func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNet
 				return
 			} else {
 				result.ExecutionCode, result.ExecutionLog, result.Height = &queried.TxResult.Code, queried.TxResult.Log, queried.Height
+				result.BlockTxIndex = queried.Index
 				if queried.TxResult.Code != 0 {
 					result.Status = "execution_failed"
 					return
@@ -513,6 +558,8 @@ func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNet
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
 					result.BlockHash = fmt.Sprintf("%X", commit.Commit.BlockID.Hash)
 					result.HeaderAppHash = fmt.Sprintf("%X", commit.Header.AppHash)
+					blockTime := commit.Header.Time.UTC()
+					result.BlockTime = &blockTime
 					return
 				}
 			}
@@ -539,13 +586,30 @@ func distribution(values []float64) percentiles {
 func summarize(results []transactionResult, seconds float64) summary {
 	s := summary{Input: len(results), MeasurementWindowSeconds: seconds}
 	var check, inclusion, confirmation []float64
+	var offered, submissions []time.Time
+	var queue []float64
 	for _, r := range results {
+		if r.OfferedAt != nil {
+			s.Offered++
+			if r.offerMonotonic.IsZero() {
+				offered = append(offered, *r.OfferedAt)
+			} else {
+				offered = append(offered, r.offerMonotonic)
+			}
+		}
 		if r.SubmittedAt != nil {
 			s.Submitted++
+			if r.submitMonotonic.IsZero() {
+				submissions = append(submissions, *r.SubmittedAt)
+			} else {
+				submissions = append(submissions, r.submitMonotonic)
+			}
 		}
 		if r.CheckTxCode != nil {
 			s.CheckTxResponses++
-			if *r.CheckTxCode == 0 {
+			if !r.CheckTxIdentityVerified {
+				s.CheckTxUnverified++
+			} else if *r.CheckTxCode == 0 {
 				s.CheckTxAccepted++
 			} else {
 				s.CheckTxRejected++
@@ -585,6 +649,9 @@ func summarize(results []transactionResult, seconds float64) summary {
 		if r.ConfirmationMs != nil {
 			confirmation = append(confirmation, *r.ConfirmationMs)
 		}
+		if r.QueueDelayMs != nil {
+			queue = append(queue, *r.QueueDelayMs)
+		}
 	}
 	if seconds > 0 {
 		s.SubmissionRate = float64(s.Submitted) / seconds
@@ -594,6 +661,9 @@ func summarize(results []transactionResult, seconds float64) summary {
 		s.FinalSubmissionRate = float64(s.FinalSubmitted) / seconds
 	}
 	s.CheckTxLatency, s.InclusionLatency, s.ConfirmationLatency = distribution(check), distribution(inclusion), distribution(confirmation)
+	s.QueueDelay = distribution(queue)
+	s.OfferedEventSpanSeconds, s.OfferedEventSpanRate = eventSpanRate(offered)
+	s.SubmissionEventSpanSeconds, s.SubmissionEventSpanRate = eventSpanRate(submissions)
 	return s
 }
 
@@ -614,10 +684,11 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 2, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
-		"A bounded smoke measurement, not sustained TPS capacity or public-network evidence. Concurrency limits entire submit-and-observe lifetimes.",
+	r := report{SchemaVersion: 3, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
+		"Configured offered rate, measured offered/submission interarrival rates, queue delay and full-window final-submission throughput are separate. Interarrival rate uses (event count - 1)/(last - first); steady-state effective TPS remains null for this short bounded probe.",
 		"Code-zero execution is reported by local tx RPC. Confirmation independently verifies weighted CometBFT commit signatures and transaction Merkle inclusion against the signed header; this is not a cryptographic proof of the RPC execution result.",
 		"Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
@@ -653,6 +724,9 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
+		if o.offeredRate > 0 && float64(len(txs)-1)/o.offeredRate >= o.timeout.Seconds() {
+			return errors.New("planned offering span cannot fit the complete configured timeout")
+		}
 		r.Transactions = make([]transactionResult, len(txs))
 		for i, tx := range txs {
 			r.Transactions[i] = transactionResult{Index: i, Hash: fmt.Sprintf("%X", tx.Hash()), Endpoint: m.Nodes[i%4].RPCURL, Bytes: len(tx), Status: "not_submitted", Errors: []errorObservation{}}
@@ -681,22 +755,34 @@ func execute(o options) error {
 		started := time.Now()
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
-		jobs := make(chan int, len(txs))
-		for i := range txs {
-			jobs <- i
+		if o.offeredRate > 0 {
+			r.LoadMode = "paced_submission_and_observation"
+			r.LoadQueues = runPacedTransactions(ctx, o, started, r.Transactions,
+				func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &r.Transactions[i]) },
+				func(i int, start time.Time) {
+					observeAcceptedTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i], start)
+				})
+		} else {
+			jobs := make(chan int, len(txs))
+			for i := range txs {
+				jobs <- i
+			}
+			close(jobs)
+			var wg sync.WaitGroup
+			for worker := 0; worker < o.concurrency; worker++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					for i := range jobs {
+						r.Transactions[i].offerMonotonic = time.Now()
+						offered := r.Transactions[i].offerMonotonic.UTC()
+						r.Transactions[i].OfferedAt = &offered
+						observeTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i])
+					}
+				}()
+			}
+			wg.Wait()
 		}
-		close(jobs)
-		var wg sync.WaitGroup
-		for worker := 0; worker < o.concurrency; worker++ {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				for i := range jobs {
-					observeTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i])
-				}
-			}()
-		}
-		wg.Wait()
 		r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
 		if r.Summary.FinalSubmitted != len(txs) {
 			return errors.New("bounded run incomplete: inspect per-transaction outcomes; no submission will be retried")

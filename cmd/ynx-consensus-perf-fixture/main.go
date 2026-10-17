@@ -17,7 +17,7 @@ import (
 
 func main() {
 	output := flag.String("output", "", "new local-only network directory; must not exist")
-	count := flag.Int("count", 32, "independent signed native transfers (1..64)")
+	count := flag.Int("count", 32, "independent signed native transfers (1..256)")
 	ephemeral := flag.Bool("ephemeral", false, "required: all generated data is disposable local test data")
 	p2p := flag.Int("base-p2p-port", 31656, "first loopback P2P port")
 	rpc := flag.Int("base-rpc-port", 31757, "first loopback RPC port")
@@ -30,8 +30,8 @@ func main() {
 }
 
 func run(output string, count int, ephemeral bool, p2p, rpc, abci int) error {
-	if !ephemeral || output == "" || count < 1 || count > 64 {
-		return errors.New("require -ephemeral, a new -output directory and -count in 1..64")
+	if !ephemeral || output == "" || count < 1 || count > 256 {
+		return errors.New("require -ephemeral, a new -output directory and -count in 1..256")
 	}
 	if _, err := os.Stat(output); !os.IsNotExist(err) {
 		return errors.New("output must be a new directory; existing data is never reused")

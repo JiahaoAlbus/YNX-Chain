@@ -140,8 +140,8 @@ func TestFinalSubmissionRequiresDurableEvidenceAndHonestCounts(t *testing.T) {
 	at := time.Now()
 	latency := 5.0
 	results := []transactionResult{
-		{SubmittedAt: &at, CheckTxCode: &zero, ExecutionCode: &zero, IncludedObservedAt: &at, InclusionMs: &latency, QuorumVerified: true, TransactionProofVerified: true, Status: "timeout"},
-		{SubmittedAt: &at, CheckTxCode: &zero, ExecutionCode: &zero, IncludedObservedAt: &at, ConfirmedObservedAt: &at, ConfirmationMs: &latency, QuorumVerified: true, TransactionProofVerified: true, DurableStateVerified: true},
+		{SubmittedAt: &at, CheckTxCode: &zero, CheckTxIdentityVerified: true, ExecutionCode: &zero, IncludedObservedAt: &at, InclusionMs: &latency, QuorumVerified: true, TransactionProofVerified: true, Status: "timeout"},
+		{SubmittedAt: &at, CheckTxCode: &zero, CheckTxIdentityVerified: true, ExecutionCode: &zero, IncludedObservedAt: &at, ConfirmedObservedAt: &at, ConfirmationMs: &latency, QuorumVerified: true, TransactionProofVerified: true, DurableStateVerified: true},
 		{SubmittedAt: &at, Status: "submission_unknown"},
 		{Status: "not_submitted"},
 	}
