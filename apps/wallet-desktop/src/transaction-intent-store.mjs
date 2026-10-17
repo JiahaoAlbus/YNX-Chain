@@ -11,6 +11,7 @@ import { CANONICAL_RPC_URL, LEGACY_RPC_URL } from "./rpc.mjs";
 import {canonicalJSON,evmAddressFromYNX} from "@ynx-chain/wallet-auth";
 import {assertDesktopSignedPayStorage,parseDesktopSignedPayRecord} from "./wallet-pay-record.mjs";
 import {assertDesktopPayProgress,assertDesktopPayEvidence,parseDesktopPaySettlement} from "./wallet-pay-settlement.mjs";
+import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -46,13 +47,13 @@ export function assertIntentReceipt(intent, receipt, capabilities = intent.capab
   catch { throw invalid(); }
 }
 function parseState(data) {
-  if (!data || ![1, 2, 3, 4, 5].includes(data.schemaVersion)) throw invalid();
+  if (!data || ![1, 2, 3, 4, 5, 6].includes(data.schemaVersion)) throw invalid();
   const legacy = data.schemaVersion === 1;
   const signed = data.schemaVersion >= 3;
-  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
-  if(data.schemaVersion===5){
+  if (Object.keys(data).sort().join() !== (legacy ? "records,rejections,schemaVersion" : data.schemaVersion===6 ? "payHistory,payProgress,pqOriginals,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===5 ? "payHistory,payProgress,preparations,records,rejections,resolutions,schemaVersion,signedPayments" : data.schemaVersion===4 ? "payHistory,payProgress,records,rejections,resolutions,schemaVersion,signedPayments" : signed ? "records,rejections,resolutions,schemaVersion,signedPayments" : "records,rejections,resolutions,schemaVersion") || !Array.isArray(data.records) || !Array.isArray(data.rejections) || data.records.length > 1024 || data.rejections.length > 1024 || !legacy && (!Array.isArray(data.resolutions) || data.resolutions.length > 1024)) throw invalid();
+  if(data.schemaVersion>=5){
     if(!Array.isArray(data.preparations)||data.preparations.length>ORIGINAL_OWNER_LIMIT||new Set(data.preparations.map(x=>x.account)).size!==data.preparations.length)throw invalid();
-    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!["native","pay"].includes(marker.kind))throw invalid();
+    for(const marker of data.preparations)if(!marker||Object.keys(marker).sort().join()!=="account,kind"||!ACCOUNT.test(marker.account??"")||!['native','pay',...(data.schemaVersion===6?PQ_ORIGINAL_KINDS:[])].includes(marker.kind))throw invalid();
   }
   if(signed){
     if(!Array.isArray(data.signedPayments)||data.signedPayments.length>1024)throw invalid();
@@ -69,6 +70,11 @@ function parseState(data) {
       new Set([...data.payProgress,...data.payHistory].map(entry=>canonicalJSON([entry.record.account,entry.record.invoice.id]))).size!==data.payProgress.length+data.payHistory.length)throw invalid();
   }
   data.records.forEach(record => validateIntent(record, legacy));
+  if(data.schemaVersion===6){
+    if(!Array.isArray(data.pqOriginals)||data.pqOriginals.length>ORIGINAL_OWNER_LIMIT)throw invalid();
+    try{data.pqOriginals.forEach(parsePQOriginalRecord);}catch{throw invalid();}
+    if(new Set(data.pqOriginals.map(r=>r.account)).size!==data.pqOriginals.length||new Set(data.pqOriginals.map(r=>r.hash)).size!==data.pqOriginals.length||data.pqOriginals.some(r=>data.records.some(x=>x.account===r.account)||data.signedPayments.some(x=>evmAddressFromYNX(x.account)===r.account)||data.preparations.some(x=>x.account===r.account)))throw invalid();
+  }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
   if (legacy) {
@@ -98,23 +104,26 @@ export class FileTransactionIntentStore {
   localOriginal(account){return owner(this).get(account)??null}
   async unresolvedPreparation(account){return (await this.#read()).preparations?.find(x=>x.account===account)??null}
   async assertNoPreparation(account){
-    if(owner(this).has(account)||(await this.#read()).preparations?.some(x=>x.account===account))throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","An original signing operation remains unresolved. Do not sign or send a replacement.");
+    const state=await this.#read();if(owner(this).has(account)||state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account))throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","An original signing operation remains unresolved. Do not sign or send a replacement.");
   }
   async reserveOriginal(account,kind){
-    if(!ACCOUNT.test(account??"")||!["native","pay"].includes(kind))throw invalid();
+    if(!ACCOUNT.test(account??"")||!["native","pay",...PQ_ORIGINAL_KINDS].includes(kind))throw invalid();
     const slots=owner(this);if(slots.has(account)||slots.size>=ORIGINAL_OWNER_LIMIT)throw capabilityError("TRANSACTION_SIGNING_RESULT_UNKNOWN","Original operation capacity or account conflict; nothing new was signed.");
-    const slot={account,kind,native:null,pay:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false};slots.set(account,slot);
+    const slot={account,kind,native:null,pay:null,pq:null,originalCause:null,storageCause:null,originalCausePresent:false,storageCausePresent:false};slots.set(account,slot);
     try{await this.#mutate(async()=>{
       const state=paySuccessor(await this.#read());
-      if(state.preparations?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
-      await this.#write({...state,schemaVersion:5,preparations:[...(state.preparations??[]),{account,kind}]});
+      if(state.preparations?.some(x=>x.account===account)||state.pqOriginals?.some(x=>x.account===account)||state.records.some(x=>x.account===account)||state.signedPayments.some(x=>evmAddressFromYNX(x.account)===account)||(state.preparations?.length??0)>=ORIGINAL_OWNER_LIMIT)throw invalid();
+      const pq=PQ_ORIGINAL_KINDS.includes(kind);
+      if(pq&&Buffer.byteLength(JSON.stringify(state))+PQ_ORIGINAL_RESERVE_BYTES*(1+(state.preparations??[]).filter(x=>PQ_ORIGINAL_KINDS.includes(x.kind)).length)>PRIVATE_FILE_MAX_BYTES)throw invalid();
+      await this.#write({...state,schemaVersion:pq?6:Math.max(5,state.schemaVersion),...(pq?{pqOriginals:state.pqOriginals??[]}:{}),preparations:[...(state.preparations??[]),{account,kind}]});
     });return slot}catch(error){slots.delete(account);throw error}
   }
   captureOriginal(account,value,kind){
     const slot=owner(this).get(account);if(!slot)throw invalid();
-    const captured=freezePublic(JSON.parse(JSON.stringify(value)));
-    if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
-    else{if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
+    const captured=PQ_ORIGINAL_KINDS.includes(kind)?parsePQOriginalRecord(value):freezePublic(JSON.parse(JSON.stringify(value)));
+    if(PQ_ORIGINAL_KINDS.includes(kind)){const parsed=parsePQOriginalRecord(captured);if(parsed.kind!==kind||parsed.account!==account||slot.kind!==kind||slot.pq&&canonicalJSON(slot.pq)!==canonicalJSON(parsed))throw invalid();slot.pq=parsed;}
+    else if(kind==="pay"){assertDesktopSignedPayStorage(captured);if(evmAddressFromYNX(captured.account)!==account||slot.kind!=="pay")throw invalid();if(slot.pay&&canonicalJSON(slot.pay)!==canonicalJSON(captured))throw invalid();slot.pay=Object.freeze(captured)}
+    else{if(kind!=='native'||PQ_ORIGINAL_KINDS.includes(slot.kind))throw invalid();if(slot.native&&canonicalJSON(slot.native)!==canonicalJSON(captured))throw invalid();slot.native=Object.freeze(captured)}
     return slot;
   }
   originalFailed(account,error,{storage=false}={}){
@@ -133,10 +142,13 @@ export class FileTransactionIntentStore {
   async saveOriginal(account,hash,guard,{policy}={}){
     if(typeof guard!=="function"||!ACCOUNT.test(account??"")||!/^0x[0-9a-f]{64}$/.test(hash??""))throw invalid();
     guard();const slot=owner(this).get(account);
+    if(PQ_ORIGINAL_KINDS.includes(slot?.kind))return this.#savePQOriginal(account,hash,guard);
     if(!slot)return this.#mutate(async()=>{
       guard();const state=await this.#read();guard();
       if(state.preparations?.some(x=>x.account===account))throw invalid();
       const native=state.records.find(x=>x.account===account&&x.hash===hash),pay=state.signedPayments?.find(x=>evmAddressFromYNX(x.account)===account&&x.transfer.hash===hash);
+      const pq=state.pqOriginals?.find(x=>x.account===account&&x.hash===hash);
+      if(pq){parsePQOriginalRecord(pq);guard();return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});}
       if(!native&&!pay)throw invalid();
       // Legacy reads may retain hash-only intents. They cannot prove custody
       // of a complete signed original, even for an idempotent save request.
@@ -188,6 +200,38 @@ export class FileTransactionIntentStore {
         current();this.originalSaved(account);
         return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
       }catch(error){this.originalFailed(account,error);throw error}
+    });
+  }
+  async #savePQOriginal(account,hash,guard){
+    return this.#mutate(async()=>{
+      guard();const slot=owner(this).get(account);
+      if(!PQ_ORIGINAL_KINDS.includes(slot?.kind)||!slot.pq||slot.pq.hash!==hash)throw invalid();
+      if(slot.pqSaveAttempted)throw capabilityError('PQ_ORIGINAL_RECONCILE_REQUIRED','Read back this same original; do not repeat its save or signature.');
+      const current=()=>{guard();if(owner(this).get(account)!==slot)throw invalid();};
+      try{
+        const state=await this.#read();current();
+        if(state.schemaVersion!==6||!state.preparations.some(x=>x.account===account&&x.kind===slot.kind)||state.pqOriginals.some(x=>x.account===account))throw invalid();
+        const original=parsePQOriginalRecord(slot.pq);
+        const next={...state,pqOriginals:[...state.pqOriginals,original],preparations:state.preparations.filter(x=>x.account!==account)};
+        current();slot.pqSaveAttempted=true;await this.#write(next);current();
+        const readback=await this.#read();current();
+        if(!readback.pqOriginals?.some(x=>canonicalJSON(x)===canonicalJSON(original))||readback.preparations?.some(x=>x.account===account))throw invalid();
+        this.originalSaved(account);return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
+      }catch(error){this.originalFailed(account,error,{storage:true});throw error;}
+    });
+  }
+  async readPQOriginals(account,guard){
+    if(!ACCOUNT.test(account??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
+    return (state.pqOriginals??[]).filter(x=>x.account===account).map(parsePQOriginalRecord);
+  }
+  async reconcilePQOriginal(account,hash,guard){
+    if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();
+    return this.#mutate(async()=>{
+      guard();const slot=owner(this).get(account),state=await this.#read();guard();
+      const actual=state.pqOriginals?.find(x=>x.account===account&&x.hash===hash);
+      if(!actual||state.preparations?.some(x=>x.account===account)||slot&&(!slot.pq||canonicalJSON(slot.pq)!==canonicalJSON(actual)))throw invalid();
+      parsePQOriginalRecord(actual);guard();if(slot&&owner(this).get(account)!==slot)throw invalid();
+      if(slot)this.originalSaved(account);return Object.freeze({account,hash,savedLocally:true,submitted:false,confirmed:false});
     });
   }
   async snapshot() { return (await this.#read()).records; }
@@ -299,6 +343,7 @@ export class FileTransactionIntentStore {
     if (intent.raw === null) throw invalid(); // Only the explicit V1 read can yield a no-raw pending entry.
     return this.#mutate(async () => {
       const state = await this.#read(), prior = state.records.find(item => item.account === intent.account);
+      if(state.pqOriginals?.some(x=>x.account===intent.account)||state.preparations?.some(x=>x.account===intent.account&&PQ_ORIGINAL_KINDS.includes(x.kind)))throw capabilityError('TRANSACTION_SIGNING_RESULT_UNKNOWN','An original PQ operation is unresolved. Do not send a replacement.');
       if((state.signedPayments??[]).some(record=>evmAddressFromYNX(record.account)===intent.account))throw capabilityError("PAY_SIGNED_ORIGINAL_REQUIRES_REVIEW","The retained signed Pay original must be reviewed before another broadcast.");
       if (prior) {
         const { attempts, ...original } = prior;
