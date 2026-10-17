@@ -75,6 +75,10 @@ using the active-policy signing path. An old mnemonic cannot recover PQ authorit
   `algorithmVersion` (`legacy` or `YNX-BATCH/v0.1`), and `records`. When enabled,
   also `policyVersion`, lowercase raw-genesis `networkId`, decimal-string
   `enableAt`; active accounts include decimal-string `activeRevision`.
+  `policyVersion` is exactly `YNX-ACCOUNT-POLICY/v1`. `enabled` means configuration
+  is installed, not that admission height has arrived: admission additionally
+  requires `executionHeight >= enableAt`. Records contain history and pending
+  revisions. Active policy is the largest revision with `activeFrom <= executionHeight`.
 - Each record has `algorithmVersion`, `owner`, complete `pkA`/`pkB` lowercase hex,
   and decimal-string `revision`, `registeredAt`, `activeFrom`, `ledgerNonce`.
 - `POST /accounts/{canonicalAddress}/authorization/migrate`, content type
