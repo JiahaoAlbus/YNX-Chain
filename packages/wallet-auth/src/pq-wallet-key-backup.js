@@ -6,6 +6,7 @@ import {sealPQWalletBackup, openPQWalletBackup} from './pq-wallet-backup.js';
 import {encodePQNativeTransfer, encodePQRegistrationIntent, normalizePQRegistrationIntent,
   preparePQTransferTransport} from './pq-wallet-authorization.js';
 import {planPQNativeTransfer, planPQAccountMigration} from './pq-wallet-policy.js';
+import {capturePQSessionSigningPlan} from './product-session-account-private.js';
 
 // Protected main only. A key-custody handle never asserts migration, active
 // registration, signing approval, a product session, or transaction authority.
@@ -140,4 +141,14 @@ export function signPQWalletCurrentMigration(handle, value, snapshot) {
   if (plan.policy.mode !== 'pq' || !active) throw pqError('PQ_ACTIVE_CURRENT_KEY_REQUIRED');
   signingBinding(state, {chainId: plan.policy.chainId, owner: plan.policy.owner}, active.pkA, active.pkB);
   return signOne(handle, state, encodePQRegistrationIntent(plan.intent), 'ACCOUNT-MIGRATION', false);
+}
+
+// Fixed typed account approval, using the original main-only review plan.
+// No generic message signing callback and no classic account co-signature.
+export function signPQWalletProductSessionApproval(handle, reviewPlan, at=new Date()) {
+  const state=live(handle),plan=capturePQSessionSigningPlan(reviewPlan,at),a=plan.unsigned.accountAuthorization;
+  signingBinding(state,{chainId:a.networkId,owner:a.canonicalOwner},a.pkA,a.pkB);
+  const wire=signOne(handle,state,plan.message,plan.purpose,false);
+  capturePQSessionSigningPlan(reviewPlan,at);live(handle);
+  return Object.freeze({...plan.unsigned,walletProof:wire.toString('base64url')});
 }

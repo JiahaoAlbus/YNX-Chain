@@ -160,10 +160,10 @@ export function observeDurableProductSessionControlIntent(durableInput, intentIn
 }
 
 /** Admission guard used before issue, complete, and cached success. */
-export function assertProductSessionControlApprovalAllowed(input, registry, request, approval, at) {
+export function assertProductSessionControlApprovalAllowed(input, registry, request, approval, at, verifiedPQApproval = null) {
   const state = parseProductSessionControlSnapshot(input);
   checkedInstant(state, at);
-  const verified = parseProductSessionApproval(registry, request, approval, at);
+  const verified = parseProductSessionApproval(registry, request, approval, at, verifiedPQApproval);
   if (recordRevoked(state, verified)) fail("SESSION_REVOKED", "Wallet approval predates the account or product device logout");
   return verified;
 }

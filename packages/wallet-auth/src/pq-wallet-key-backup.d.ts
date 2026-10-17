@@ -1,4 +1,5 @@
 import type {PQPublicBinding} from './pq-wallet-contract.js';
+import type {PQProductSessionSigningPlan,PQProductSessionApproval} from './product-session-pq-approval.js';
 import type {PQAuthorizationSnapshot} from './pq-wallet-policy.js';
 import type {PQNativeTransferInput, PQRegistrationIntentInput, PQTransportRequest} from './pq-wallet-authorization.js';
 declare const custody: unique symbol;
@@ -22,3 +23,6 @@ export function signPQWalletNativeTransfer(handle: PQWalletKeyHandle, transfer: 
 export function createPQWalletMigrationPossession(handle: PQWalletKeyHandle, intent: PQRegistrationIntentInput): Uint8Array;
 /** Active OLD pair only, Member ACCOUNT-MIGRATION. No classic fallback. */
 export function signPQWalletCurrentMigration(handle: PQWalletKeyHandle, intent: PQRegistrationIntentInput, snapshot: PQAuthorizationSnapshot): Uint8Array;
+/** Protected main only, within original pending review/keyAccess/permission guards.
+ * No generic raw signer, classic fallback, RPC effect or new permission engine. */
+export function signPQWalletProductSessionApproval(handle:PQWalletKeyHandle,reviewPlan:PQProductSessionSigningPlan,at?:Date):PQProductSessionApproval;
