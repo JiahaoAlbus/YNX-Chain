@@ -72,3 +72,36 @@ counters. Invalid input leaves the prior decoder prefix unchanged, permitting
 read-only reinspection of the original valid bytes without any dispatch or
 resubmission. Added counterexamples cover changed status/fixture, truncation,
 missing or duplicated rows, segment replay and out-of-order segments.
+
+## First light-test admission and owned-process correction
+
+The first scheduled light-test preflight terminated before Go was started:
+`go: null`, first cause `400MiB control/owned RSS cap`, 12 ms. Direct tool
+execution made PID 1093 (the shared Codex app-server, 1,074,511,872 bytes) the
+Node launcher's parent. The wrapper incorrectly included that shared process in
+this job's cap. Launcher RSS was 51,380,224 bytes; the measured 1,129,463,808-byte
+total therefore does **not** represent Go test memory or required job capacity.
+The native probe completed successfully. Both original owned PIDs/groups were
+independently absent afterwards. The original failed receipt is preserved in
+[evidence](evidence/terminal-stream-light-admission-failure-20261017.json).
+
+The corrected source wrapper is `scripts/loadtest/consensus-light-window.mjs`.
+It defaults to prepare-only, requires an explicit new receipt path and execute
+flag, and still needs a fresh Root window. It watches only its own launcher,
+all members of the actual Go process group, and recursive PPID descendants
+(including compilers that change group). Shared ancestors are recorded as
+excluded, not mixed into the job cap. The existing native sampler/fork-child
+reserve and 400 MiB cap remain; more than 16 watched identities, invalid process
+inventory or monitoring failure stop the window instead of truncating coverage.
+
+The scope helper and existing async-probe tests passed **11/11**, 395.429 ms,
+without Go or network nodes. Syntax and prepare-only checks passed. These Node
+controller tests do not satisfy the pending Go terminal-stream regression.
+The corrected wrapper has **not** been executed; Root queued its test after the
+next Wallet full-package window. No automatic retry occurred.
+
+```
+# Only inside a fresh explicitly scheduled slot:
+node scripts/loadtest/consensus-light-window.mjs --execute \
+  --output artifacts/chain-performance-20261017/terminal-stream-light-owned-result.json
+```
