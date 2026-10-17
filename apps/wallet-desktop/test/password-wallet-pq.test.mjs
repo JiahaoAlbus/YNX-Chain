@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import * as fs from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import path from 'node:path';
+import {webcrypto} from 'node:crypto';
+import {canonicalJSON} from '../../../packages/wallet-auth/src/canonical.js';
 import {DesktopKeyLifecycle} from '../src/key-lifecycle.mjs';
 import {PasswordWalletVault} from '../src/password-wallet-vault.mjs';
 import {createDualPQKeyPreparation} from '../src/wallet-pq-key-preparation.mjs';
@@ -82,4 +84,34 @@ test('App PQ record prevents an old private recovery key from silently discardin
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'TEST-operation'}));const before=await fs.readFile(f.filePath,'utf8');f.lifecycle.lock();
  await assert.rejects(f.lifecycle.custody(guard=>f.vault.prepareRecovery({account:f.account,kind:'private-key',value:SECRET,resetPassword:true,newPassword:'new isolated PQ password',confirmation:'new isolated PQ password'},guard)),e=>e?.data?.code==='PQ_INDEPENDENT_BACKUP_REQUIRED');
  assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
+
+// Test-only corruption with the isolated fixture password: authenticate both
+// envelopes so the test reaches private payload parsing, not just GCM rejection.
+async function authenticatedMalformedPQ(vault,plaintext){
+ const output=structuredClone(vault),encode=v=>Buffer.from(canonicalJSON(v));
+ const base=await webcrypto.subtle.importKey('raw',Buffer.from(PASSWORD),'PBKDF2',false,['deriveKey']);
+ const wrapper=await webcrypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:Buffer.from(vault.passwordWrap.kdf.salt,'base64url'),iterations:600000},base,{name:'AES-GCM',length:256},false,['decrypt']);
+ const wrapAAD={domain:'YNX_DESKTOP_PASSWORD_WRAP_V3',schemaVersion:3,cryptoSuite:vault.cryptoSuite,vaultId:vault.vaultId,kdf:vault.passwordWrap.kdf};
+ const decrypt=(key,cipher,aad)=>webcrypto.subtle.decrypt({name:'AES-GCM',iv:Buffer.from(cipher.iv,'base64url'),additionalData:encode(aad),tagLength:128},key,Buffer.from(cipher.ciphertext,'base64url'));
+ const raw=await decrypt(wrapper,vault.passwordWrap.cipher,wrapAAD);let key;
+ try{key=await webcrypto.subtle.importKey('raw',raw,'AES-GCM',false,['encrypt','decrypt']);}finally{new Uint8Array(raw).fill(0);}
+ const {catalogCipher,...header}=vault;
+ const catalog=new Uint8Array(await decrypt(key,catalogCipher,{domain:'YNX_DESKTOP_ACCOUNT_CATALOG_V3',...header}));
+ async function encrypted(bytes,aad){const iv=webcrypto.getRandomValues(new Uint8Array(12));return {name:'AES-GCM',iv:Buffer.from(iv).toString('base64url'),ciphertext:Buffer.from(await webcrypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:encode(aad),tagLength:128},key,bytes)).toString('base64url')};}
+ try{
+  const record=output.pqKeyRecords[0];record.bytes=plaintext.length;
+  const {cipher,...metadata}=record;record.cipher=await encrypted(plaintext,{domain:'YNX_DESKTOP_DUAL_PQ_KEYS_V1',vaultId:output.vaultId,...metadata});
+  const {catalogCipher:oldCatalog,...nextHeader}=output;
+  output.catalogCipher=await encrypted(catalog,{domain:'YNX_DESKTOP_ACCOUNT_CATALOG_V3',...nextHeader});return output;
+ }finally{catalog.fill(0);}
+}
+test('App authenticated malformed private payload never exposes parser plaintext in an error',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'TEST-operation'}));
+ const vault=parsePasswordVault(await fs.readFile(f.filePath,'utf8'));
+ for(const bytes of [Buffer.from('{"TEST_PRIVATE_PAYLOAD_DO_NOT_LOG":'),Buffer.from([0xff,0xfe,0xfd])]){
+  const malformed=await authenticatedMalformedPQ(vault,bytes),session=await unlockPasswordVault(malformed,PASSWORD);
+  try{await assert.rejects(decryptPasswordVaultPQRecord(malformed,f.account,session),e=>e.code==='PASSWORD_VAULT_INVALID'&&e.data.code===e.code&&!e.message.includes('TEST_PRIVATE_PAYLOAD_DO_NOT_LOG')&&!(e instanceof SyntaxError));}
+  finally{closePasswordVaultSession(session);bytes.fill(0);}
+ }
 });
