@@ -82,6 +82,27 @@ function publicRenderer(api={}){
 }
 const ticks=async(n=12)=>{for(let i=0;i<n;i++)await Promise.resolve();};
 const exitTicks=async()=>{await ticks();await new Promise(setImmediate);};
+test('Wallet supplier intake preserves only known missing-original codes in normal entry status',async()=>{
+ for(const code of ['AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED','AUTH_IDENTITY_ORIGINAL_PROFILE_NOT_SUPPLIED','ADMISSION_SUMMARY_NOT_SUPPLIED','WALLET_SERVICE_ADMISSION_NOT_SUPPLIED']){
+  const f=publicEntry({open:async()=>{throw Object.assign(Error('PRIVATE supplier detail must not cross IPC'),{code});}});
+  await assert.rejects(f.entry.review(),{code:'ADMISSION_REVIEW_UNAVAILABLE'});
+  assert.equal(f.entry.status().unavailableReason,code);assert.equal(f.reviews(),0);assert.equal(JSON.stringify(f.entry.status()).includes('PRIVATE'),false);
+  f.state.locked=true;f.entry.securityChanged();assert.equal(f.entry.status().unavailableReason,null);
+ }
+});
+test('Wallet supplier intake never reads error getters or projects arbitrary supplier errors',async()=>{
+ for(const error of [{code:'PRIVATE_UNRECOGNIZED_DETAIL'},Object.defineProperty({},'code',{get(){throw Error('GETTER_MUST_NOT_RUN');}}),new Proxy({},{getOwnPropertyDescriptor(){throw Error('TRAP_MUST_NOT_ESCAPE');}}),null,false]){
+  const f=publicEntry({open:async()=>{throw error;}});await assert.rejects(f.entry.review(),{code:'ADMISSION_REVIEW_UNAVAILABLE'});assert.equal(f.entry.status().unavailableReason,null);assert.equal(f.reviews(),0);
+ }
+});
+test('Wallet normal renderer retains specific missing-original feedback after failed Review and never hides UNKNOWN',async()=>{
+ const r=publicRenderer({originalAdmissionReview:async()=>({ok:false})});
+ r.renderOriginalAdmission({revision:1,phase:'cancelled',unavailableReason:'AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED',hasReview:false,recovery:{state:'read'}});
+ assert.match(r.nodes.get('#original-admission-status').textContent,/protected authorization originals are not configured/);
+ await r.originalAdmissionAction('originalAdmissionReview');assert.match(r.nodes.get('#original-admission-status').textContent,/protected authorization originals are not configured/);
+ r.renderOriginalAdmission({revision:2,phase:'unknown',unavailableReason:'AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED',hasReview:false,recovery:{state:'read'}});
+ assert.match(r.nodes.get('#original-admission-status').textContent,/Outcome unknown/);assert.doesNotMatch(r.nodes.get('#original-admission-status').textContent,/originals are not configured/);
+});
 test('R13 PUBLIC normal controller custody callback ends with original local live fence',async()=>{
  for(const reason of ['cancel','expiry']){
   let time=1000,phase='',spawns=0;const state={account:'PUBLIC-A',revision:1,focused:true,locked:false,unlockExpiresAt:2000},executor={applicationId:'PUBLIC-app',consumerManifestDigest:'PUBLIC-digest',instanceId:'PUBLIC-instance',currentReference:'PUBLIC-ref'},raw={expiresAtMs:2000,expectedRequest:executor};

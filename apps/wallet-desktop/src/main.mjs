@@ -112,7 +112,13 @@ const originalAdmission = createOriginalAdmissionController({
 // Vault or a renderer-supplied provider. Controller's effect machinery is kept.
 function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,openSupply,closeSupply,readSummary,setSupply,selectionUnresolved,notify,now=Date.now}){
   let epoch=0,viewRevision=0,preparing=false,reading=false,recovery={state:'not-read',records:null,runtimeRecords:null,unresolved:null},selected=null,cleanupDebt=false,firstCause=null,firstCausePresent=false;
-  const entered=new Set();let selectionClose=null,shuttingDown=false,shutdownPass=null;
+  const entered=new Set();let selectionClose=null,shuttingDown=false,shutdownPass=null,unavailableReason=null;
+  function publicSupplyFailure(cause){
+    // Only fixed public codes, never supplier messages, paths or accessors.
+    let descriptor;try{descriptor=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'code'):null;}catch{return null;}
+    const code=descriptor&&Object.hasOwn(descriptor,'value')?descriptor.value:null;
+    return ['AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED','AUTH_IDENTITY_ORIGINAL_PROFILE_NOT_SUPPLIED','ADMISSION_SUMMARY_NOT_SUPPLIED','WALLET_SERVICE_ADMISSION_NOT_SUPPLIED'].includes(code)?code:null;
+  }
   function operation(action){
     if(shuttingDown)return Promise.reject(error('ADMISSION_SHUTDOWN_ENTERED'));
     const pass=Promise.resolve().then(()=>{if(shuttingDown)throw error('ADMISSION_SHUTDOWN_ENTERED');return action();});entered.add(pass);
@@ -122,7 +128,7 @@ function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,o
   const context=()=>({...keyAccess.status(),focused:getWindow()?.isFocused()===true,changing:accountChangeInProgress});
   const retain=e=>{if(!firstCausePresent){firstCause=e;firstCausePresent=true;}};
   function unresolved(){const s=controller.status();return s.busy||s.hasReview||s.outcomeUnknown||s.ownerRetained||s.publicationRetained&&!['acknowledged','retired'].includes(s.phase)||s.cleanupIncomplete||cleanupDebt||selectionUnresolved();}
-  function status(){const c=context(),s=controller.status();return Object.freeze({...s,revision:viewRevision,account:c.account,securityRevision:c.revision,locked:c.locked,preparing,recovery,cleanupIncomplete:s.cleanupIncomplete||cleanupDebt||selectionUnresolved(),canPrepareReview:!shuttingDown&&!c.locked&&!c.authenticating&&c.focused&&!c.changing&&!preparing&&!reading&&!unresolved()&&recovery.unresolved!==true});}
+  function status(){const c=context(),s=controller.status();return Object.freeze({...s,unavailableReason,revision:viewRevision,account:c.account,securityRevision:c.revision,locked:c.locked,preparing,recovery,cleanupIncomplete:s.cleanupIncomplete||cleanupDebt||selectionUnresolved(),canPrepareReview:!shuttingDown&&!c.locked&&!c.authenticating&&c.focused&&!c.changing&&!preparing&&!reading&&!unresolved()&&recovery.unresolved!==true});}
   function emit(){viewRevision++;try{notify(status());}catch{}return status();}
   function fence(c,token,guard){guard.assert();const next=context(),at=now();if(!Number.isSafeInteger(at)||!Number.isSafeInteger(c.unlockExpiresAt)||at>=c.unlockExpiresAt||epoch!==token||next.locked||next.authenticating||!next.focused||next.changing||next.account!==c.account||next.revision!==c.revision||next.unlockExpiresAt!==c.unlockExpiresAt)throw error('ADMISSION_PREPARATION_RETIRED');}
   function releaseSelection(){
@@ -143,7 +149,7 @@ function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,o
     if(preparing||reading||unresolved())throw error('ADMISSION_OPERATION_UNRESOLVED');
     const c=context(),token=epoch;
     if(c.locked||c.authenticating||!c.focused||c.changing)throw error('WALLET_LOCKED');
-    preparing=true;emit();
+    unavailableReason=null;preparing=true;emit();
     try{
       await keyAccess.run(async guard=>{
         fence(c,token,guard);
@@ -157,13 +163,13 @@ function createOriginalAdmissionEntry({controller,keyAccess,getVault,getWindow,o
         if(!acquired){setSupply(null);throw error('WALLET_SERVICE_ADMISSION_NOT_SUPPLIED');}
         setSupply(acquired);controller.review();fence(c,token,guard);
       });
-    }catch(e){retain(e);controller.cancel();try{await releaseSelection();}catch{}emit();throw error('ADMISSION_REVIEW_UNAVAILABLE');}
+    }catch(e){retain(e);unavailableReason=publicSupplyFailure(e);controller.cancel();try{await releaseSelection();}catch{}emit();throw error('ADMISSION_REVIEW_UNAVAILABLE');}
     finally{preparing=false;emit();}
     return status();
   }
   async function releaseIdleSelection(){const s=controller.status();if(!preparing&&!s.busy&&!s.ownerRetained&&!s.cleanupIncomplete)try{await releaseSelection();}catch{}emit();}
   async function cancel(){epoch++;controller.cancel();emit();await releaseIdleSelection();return status();}
-  function securityChanged(){epoch++;controller.cancel();recovery={state:'locked',records:null,runtimeRecords:null,unresolved:null};emit();void releaseIdleSelection();}
+  function securityChanged(){epoch++;unavailableReason=null;controller.cancel();recovery={state:'locked',records:null,runtimeRecords:null,unresolved:null};emit();void releaseIdleSelection();}
   async function confirm(id){
     if(preparing||reading||cleanupDebt||selectionUnresolved()||recovery.unresolved===true||recovery.state!=='read')throw error('ADMISSION_OPERATION_UNRESOLVED');
     try{await controller.confirm(id);}finally{await releaseIdleSelection();emit();}

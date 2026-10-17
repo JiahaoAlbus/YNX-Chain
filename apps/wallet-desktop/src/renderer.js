@@ -90,14 +90,21 @@ function renderOriginalAdmission(payload){
     }
   }
   const suffix=recovery?.state==='read'?'':recovery?.state==='locked'?' 状态查询需解锁 / Unlock for protected status readback.':' 受保护的恢复查询尚不可用，不能确定是否有记录 / Protected recovery readback unavailable; record inventory is unknown.';
-  document.querySelector('#original-admission-status').textContent=(state.preparing?'正在准备本次审查 / Preparing this review…':copy[state.phase]??copy.failed)+suffix;
+  const missingSupply={
+    AUTH_IDENTITY_IDE_EXTERNAL_ORIGINALS_NOT_PROTECTED:'原生接口已具备，但合法授权原件尚未配置；未签名、未激活 / Native interface present; protected authorization originals are not configured. Nothing signed or activated.',
+    AUTH_IDENTITY_ORIGINAL_PROFILE_NOT_SUPPLIED:'尚未提供原授权配置；不会用临时配置代替 / Original authorization profile not supplied; no substitute profile will be used.',
+    ADMISSION_SUMMARY_NOT_SUPPLIED:'受保护记录查询不可用；不能判断是否已有操作 / Protected record readback unavailable; existing operation state is unknown.',
+    WALLET_SERVICE_ADMISSION_NOT_SUPPLIED:'服务授权来源尚未就绪；不会自动重试 / Original service authorization source unavailable; no automatic retry.',
+  };
+  const supplyMessage=Object.hasOwn(missingSupply,state.unavailableReason)?missingSupply[state.unavailableReason]:null;
+  document.querySelector('#original-admission-status').textContent=(state.phase==='unknown'?copy.unknown:state.preparing?'正在准备本次审查 / Preparing this review…':supplyMessage??copy[state.phase]??copy.failed)+suffix;
   document.querySelector('#original-admission-review').disabled=(state.canPrepareReview===undefined?!state.available:!state.canPrepareReview)||state.busy||state.preparing||state.outcomeUnknown||state.cleanupIncomplete||recovery?.unresolved===true||keyState.locked;
   const approve=document.querySelector('#original-admission-approve');approve.hidden=!state.hasReview;approve.disabled=state.busy||keyState.locked||state.phase!=='review';
   document.querySelector('#original-admission-cancel').hidden=!state.hasReview&&!state.busy;
 }
 async function originalAdmissionAction(method,arg){
   const selectedSecurity=admissionSecurityTuple(keyState);
-  try{const result=await window.ynxWallet[method](arg);if(selectedSecurity!==admissionSecurityTuple(keyState))return;if(result?.ok)renderOriginalAdmission(result);else if(originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='操作未完成；不会自动重试 / Operation incomplete; no automatic retry.';}
+  try{const result=await window.ynxWallet[method](arg);if(selectedSecurity!==admissionSecurityTuple(keyState))return;if(result?.ok)renderOriginalAdmission(result);else if(originalAdmissionState.phase!=='unknown'){if(originalAdmissionState.unavailableReason)renderOriginalAdmission(originalAdmissionState);else document.querySelector('#original-admission-status').textContent='操作未完成；不会自动重试 / Operation incomplete; no automatic retry.';}}
   catch{if(selectedSecurity===admissionSecurityTuple(keyState)&&originalAdmissionState.phase!=='unknown')document.querySelector('#original-admission-status').textContent='交付通道不可用 / Delivery channel unavailable.';}
 }
 function updateOriginalAdmissionSecurity(previous,state){
