@@ -76,11 +76,12 @@ func runSenderRounds(ctx context.Context, rounds int, txs []cmttypes.Tx, pool *e
 }
 
 type ephemeralSenderPool struct {
-	root      string
-	keys      []*secp256k1.PrivateKey
-	templates []consensus.SignedTransaction
-	pending   []cmttypes.Tx
-	stopped   bool
+	root                                       string
+	keys                                       []*secp256k1.PrivateKey
+	templates                                  []consensus.SignedTransaction
+	pending                                    []cmttypes.Tx
+	stopped                                    bool
+	manifestSHA256, migrationHash, genesisHash string
 }
 
 // loadSenderPool accepts only fixture-local, manifest-bound, newly funded keys.
@@ -128,7 +129,7 @@ func loadSenderPool(manifestPath string, manifestRaw []byte, m consensus.Ephemer
 	for _, account := range migration.Accounts {
 		accounts[account.Address] = account
 	}
-	p := &ephemeralSenderPool{root: filepath.Dir(manifestPath), pending: make([]cmttypes.Tx, len(txs))}
+	p := &ephemeralSenderPool{root: filepath.Dir(manifestPath), pending: make([]cmttypes.Tx, len(txs)), manifestSHA256: bundle.ManifestSHA256, migrationHash: bundle.MigrationStateHash, genesisHash: bundle.GenesisHash}
 	seen := map[string]bool{}
 	for i, secret := range bundle.Senders {
 		keyRaw, err := hex.DecodeString(secret.PrivateKey)

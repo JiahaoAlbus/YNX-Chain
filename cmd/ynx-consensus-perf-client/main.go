@@ -41,6 +41,7 @@ type options struct {
 	manifest, transactions, output string
 	concurrency                    int
 	rounds                         int
+	senderMode                     string
 	observers                      int
 	offeredRate                    float64
 	timeout, poll                  time.Duration
@@ -163,6 +164,8 @@ type report struct {
 	LoadQueues           pacedStatistics         `json:"loadQueues"`
 	DurableReadback      durableReaderStats      `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats `json:"groupedObservation"`
+	SenderMode           string                  `json:"senderMode"`
+	ReadySenders         readySenderStats        `json:"readySenders"`
 	TimeoutMs            int64                   `json:"timeoutMs"`
 	PollMs               int64                   `json:"pollMs"`
 	StartedAt            time.Time               `json:"startedAt"`
@@ -188,6 +191,7 @@ func main() {
 	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup and workload timeout (positive, at most 30s)")
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.IntVar(&o.rounds, "rounds", 1, "bounded rounds using retained fixture senders (1..32; total transactions at most 2048); each round waits for durable finality")
+	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -200,6 +204,12 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.senderMode != "" && o.senderMode != "rounds" && o.senderMode != "ready-pool" {
+		return errors.New("unsupported sender mode")
+	}
+	if o.senderMode == "ready-pool" && (o.rounds < 2 || o.offeredRate <= 0 || o.output == "") {
+		return errors.New("ready-pool requires paced submission, 2..32 nonce cycles and a new durable output")
+	}
 	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
 		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
 	}
@@ -740,6 +750,9 @@ func summarize(results []transactionResult, seconds float64) summary {
 }
 
 func execute(o options) error {
+	if o.senderMode == "" {
+		o.senderMode = "rounds"
+	}
 	if o.rounds == 0 {
 		o.rounds = 1
 	}
@@ -759,7 +772,7 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 8, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 9, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
@@ -857,7 +870,7 @@ func execute(o options) error {
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
 		var roundErr error
-		r.RoundsCompleted, roundErr = runSenderRounds(ctx, o.rounds, txs, pool, r.Transactions, func(txs []cmttypes.Tx, results []transactionResult) {
+		runRound := func(txs []cmttypes.Tx, results []transactionResult) {
 			for i := range results {
 				results[i].Endpoint = m.Nodes[i%4].RPCURL
 			}
@@ -907,9 +920,58 @@ func execute(o options) error {
 				}
 				wg.Wait()
 			}
-		})
+		}
+		r.SenderMode = o.senderMode
+		if o.senderMode == "ready-pool" {
+			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"
+			for i, text := range r.Interpretation {
+				if strings.HasPrefix(text, "Repeated rounds use") {
+					r.Interpretation[i] = "Ready-pool mode waits only for each account's own verified finality. UNKNOWN/failed accounts are quarantined; signing, durable input journaling and idle sender waits are included. This bounded finite pool is not sustained capacity."
+				}
+			}
+			allTxs := make([]cmttypes.Tx, len(r.Transactions))
+			for i := range r.Transactions {
+				r.Transactions[i].Endpoint = m.Nodes[i%4].RPCURL
+			}
+			workerStats := make([]groupedObservationStats, o.observers)
+			r.ReadySenders, roundErr = runReadySenderPool(ctx, o, pool, allTxs, r.Transactions,
+				func(i int) (time.Time, bool) {
+					return submitTransaction(ctx, clients[i%4], allTxs[i], &r.Transactions[i])
+				},
+				func(worker int, queue <-chan acceptedObservation, terminal func(int)) {
+					observationClients := make([]observationClient, len(clients))
+					for i, client := range clients {
+						observationClients[i] = client
+					}
+					observer := &groupedObserver{manifest: m, trusted: trusted, reader: reader, clients: observationClients, txs: allTxs, results: r.Transactions, included: map[int]*coretypes.ResultTx{}}
+					runGroupedObservationLoop(ctx, o.poll, queue, func(int) {}, func(pending []acceptedObservation) []acceptedObservation {
+						remaining := observer.step(ctx, pending)
+						keep := make(map[int]bool, len(remaining))
+						for _, job := range remaining {
+							keep[job.index] = true
+						}
+						for _, job := range pending {
+							if !keep[job.index] {
+								terminal(job.index)
+							}
+						}
+						return remaining
+					})
+					workerStats[worker] = observer.stats
+				})
+			for _, stats := range workerStats {
+				r.GroupedObservation.add(stats)
+			}
+			r.RoundsCompleted = r.ReadySenders.RoundsCompleted
+			r.LoadQueues = r.ReadySenders.Queues
+		} else {
+			r.RoundsCompleted, roundErr = runSenderRounds(ctx, o.rounds, txs, pool, r.Transactions, runRound)
+		}
 
 		r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
+		if o.senderMode == "ready-pool" {
+			r.Summary.InclusionBlocks.Interpretation = "Finite per-account ready pool without whole-round barriers. Full block observations retained; interior/steady TPS withheld until continuous-load coverage is qualified. Full workload rate includes signing, journal Sync, waits and drain."
+		}
 		if roundErr != nil {
 			return roundErr
 		}

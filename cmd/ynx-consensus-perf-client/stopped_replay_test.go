@@ -41,7 +41,7 @@ func TestStoppedNetworkReplay(t *testing.T) {
 	}
 	manifestPath := filepath.Join(work, "network", "network-manifest.json")
 	var m consensus.EphemeralNetworkManifest
-	read(manifestPath, &m)
+	manifestRaw := read(manifestPath, &m)
 	if err := validateManifest(m); err != nil {
 		t.Fatal(err)
 	}
@@ -79,13 +79,30 @@ func TestStoppedNetworkReplay(t *testing.T) {
 			t.Fatal("incomplete bounded sender rounds")
 		}
 		initial := txs
+		var readyInputs []cmttypes.Tx
+		if result.SenderMode == "ready-pool" {
+			data, err := readBounded(filepath.Join(work, "network", readySenderJournalName), 8<<20)
+			if err != nil {
+				t.Fatal(err)
+			}
+			recovered, err := decodeReadySenderJournal(context.Background(), data, manifestRaw, m, initial, result.RoundsRequested)
+			if err != nil || recovered.IncompleteTail || recovered.Records != len(result.Transactions) {
+				t.Fatal("incomplete ready sender identity journal", err)
+			}
+			readyInputs = recovered.Transactions
+		}
 		txs = make([]cmttypes.Tx, 0, len(result.Transactions))
 		for round := 1; round <= result.RoundsRequested; round++ {
 			var journal struct {
 				Round        int
 				Transactions []cmttypes.Tx
 			}
-			read(filepath.Join(work, "network", fmt.Sprintf("sender-round-%02d.signed.json", round)), &journal)
+			if result.SenderMode == "ready-pool" {
+				journal.Round = round
+				journal.Transactions = readyInputs[(round-1)*len(initial) : round*len(initial)]
+			} else {
+				read(filepath.Join(work, "network", fmt.Sprintf("sender-round-%02d.signed.json", round)), &journal)
+			}
 			if journal.Round != round || len(journal.Transactions) != len(initial) {
 				t.Fatal("invalid signed round journal")
 			}
