@@ -3,6 +3,7 @@ import { assertSameCapabilities, assertCompatibleIntentCapabilities, capabilityE
 import { parseDurabilityModel, parseDurabilityProof, validateDurableReceipt } from "./transaction-durability.mjs";
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
 import {originalRetention} from "./transaction-intent-store.mjs";
+import {parsePQReadResponse} from './wallet-pq-submission-evidence.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/;
 const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
@@ -13,7 +14,27 @@ export class TransactionSubmissions {
   #records = new Map();
   #busy = new Set();
   #savedOnly = new Map();
-  constructor({ provider, capabilities, verifyChain, intentStore }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; }
+  constructor({ provider, capabilities, verifyChain, intentStore, pqReadOriginal = null }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; this.pqReadOriginal = pqReadOriginal; }
+  // Main-owned fixed producer transport only. This is a read observation,
+  // never a broadcast, retry capability or journal-resolution operation.
+  async checkPQ(hash, account, guard) {
+    if (!HASH.test(hash ?? '') || !/^0x[0-9a-f]{40}$/.test(account ?? '') || guard?.account !== account || typeof guard?.assert !== 'function') throw failure('PQ_READ_BINDING_REQUIRED', 'Unlock the original account before checking this PQ original.');
+    guard.assert();
+    return this.#exclusive(account, async () => {
+      guard.assert();
+      if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
+      const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());
+      guard.assert();
+      const original = originals.find(row => row.hash === hash && row.account === account);
+      if (!original) throw failure('TRANSACTION_INTENT_REQUIRED', 'A matching retained PQ original is required.');
+      // Only the hash leaves custody. Replayable wire bytes stay in main.
+      const response = await this.pqReadOriginal(hash);
+      guard.assert();
+      const observation = parsePQReadResponse(original, response?.status, response?.text);
+      guard.assert();
+      return observation;
+    });
+  }
   async #intents() {
     if (!this.intentStore) throw failure("TRANSACTION_JOURNAL_UNAVAILABLE", "A durable transaction journal is required before signing or broadcasting.");
     return this.intentStore.snapshot();

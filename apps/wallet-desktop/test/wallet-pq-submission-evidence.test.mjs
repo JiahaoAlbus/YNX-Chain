@@ -5,6 +5,7 @@ import {pqPublicBindingToRegistrationKeys,encodePQMigrationRequest,preparePQMigr
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {createPQOriginalRecord} from '../src/wallet-pq-intent-record.mjs';
 import {parsePQSubmissionResponse,parsePQReadResponse} from '../src/wallet-pq-submission-evidence.mjs';
+import {TransactionSubmissions} from '../src/transaction-submissions.mjs';
 // Actual fresh QA crypto with explicit synthetic policy/HTTP bodies. No node,
 // real funds, network writes or claimed source recognition is exercised here.
 const owner='0x'+'11'.repeat(20),network={chainId:'71'.repeat(32),owner},nonce='18446744073709551615',amount='9223372036854775806';
@@ -60,4 +61,23 @@ test('wrong hash, unsafe decimal DTO, old EVM receipt, wrong wire memo and final
 });
 test('malformed JSON diagnostics and bounded parsing never expose response text as an error',()=>{
  for(const text of ['{"PRIVATE_QA_DO_NOT_ECHO":','x'.repeat(8*1024*1024+1)])assert.throws(()=>parsePQReadResponse(transfer,200,text),error=>error.code==='PQ_RESPONSE_INVALID'&&!error.message.includes('PRIVATE_QA_DO_NOT_ECHO')&&!(error instanceof SyntaxError));
+});
+test('original submissions owner checks PQ by hash only, without clearing or falling through to EVM transport',async()=>{
+ let reads=0,checks=0;
+ const guard={account:owner,assert(){checks++;}};
+ const submissions=new TransactionSubmissions({intentStore:{async readPQOriginals(account,current){assert.equal(account,owner);current();return [transfer];}},provider:{send(){assert.fail('PQ read must not use an EVM receipt or broadcast');}},pqReadOriginal:async(...args)=>{reads++;assert.deepEqual(args,[transfer.hash]);return {status:200,text:JSON.stringify(read(transfer))};}});
+ const result=await submissions.checkPQ(transfer.hash,owner,guard);
+ assert.equal(reads,1);assert.ok(checks>=5);assert.equal(result.outcome,'pending-local-durable');assert.equal(result.clearsOriginal,false);assert.equal(result.retryAuthorized,false);assert.equal('wire' in result,false);
+ await assert.rejects(submissions.checkPQ(h('00'),owner,guard),error=>error.data?.code==='TRANSACTION_INTENT_REQUIRED');assert.equal(reads,1);
+});
+test('PQ original check fails closed before source wiring and discards a late result after lock',async()=>{
+ const guard={account:owner,assert(){}};
+ await assert.rejects(new TransactionSubmissions({}).checkPQ(transfer.hash,owner,guard),error=>error.data?.code==='PQ_READ_SOURCE_UNAVAILABLE');
+ let locked=false,release,started;const entered=new Promise(resolve=>{started=resolve;});
+ const submissions=new TransactionSubmissions({intentStore:{async readPQOriginals(){return [transfer];}},pqReadOriginal:()=>{started();return new Promise(resolve=>{release=resolve;});}});
+ const activeGuard={account:owner,assert(){if(locked)throw Object.assign(new Error('QA lock'),{code:'WALLET_LOCKED'});}};
+ const pending=submissions.checkPQ(transfer.hash,owner,activeGuard);await entered;
+ await assert.rejects(submissions.checkPQ(transfer.hash,owner,activeGuard),error=>error.data?.code==='TRANSACTION_CHECK_IN_PROGRESS');
+ locked=true;release({status:200,text:JSON.stringify(read(transfer))});await assert.rejects(pending,{code:'WALLET_LOCKED'});
+ locked=false;await assert.rejects(submissions.checkPQ(h('00'),owner,activeGuard),error=>error.data?.code==='TRANSACTION_INTENT_REQUIRED');
 });
