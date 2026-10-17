@@ -22,7 +22,7 @@ Transfer HTTP 200 is `{transaction, wireHash, decimalFields, replayed, status:"a
 
 `transaction` retains the existing native Transaction JSON schema, including numeric amount/fee/nonce/blockNumber and full original history memo. Its numbers are compatibility fields, not a safe JavaScript source of large integer values. `decimalFields` contains decimal **strings** for amount, fee, nonce and executionHeight when the original transaction is present. Migration additionally contains revision and activationHeight; its top-level activationHeight, revision and executionHeight are also decimal strings.
 
-Migration status is `registered_pending_activation`, `active` or `superseded`. It describes the account's **next execution** policy. `active` does not prove that the activation height is already committed. Use the account authorization route's separate committed fields for that distinction.
+Under v1, migration status is `registered_pending_activation`, `active` or `superseded`. When the terminal-revocation extension is present, an identical historical migration replay instead reports `revocation_pending` or `revoked` for a tombstoned owner; see `PQ_HTTP_REVOCATION_CONTRACT_R1.md`. Unknown states must fail closed. This status describes the account's **next execution** policy. `active` does not prove that the activation height is already committed. Use the account authorization route's separate committed fields for that distinction.
 
 HTTP 503 after uncertain persistence is:
 

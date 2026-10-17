@@ -219,6 +219,20 @@ func (d *Devnet) commitReplicationSnapshot(snapshot devnetSnapshot, expectedHeig
 	if err := validatePQBatchContinuation(d.pqBatches, snapshot.PQBatches); err != nil {
 		return err
 	}
+	// Peer observations belong to this node. Persist the same local observations
+	// that remain in memory below; otherwise full-snapshot replication writes the
+	// producer's observations to disk and silently replaces ours after restart.
+	// Resolve them under this final lock, including for preassembled batch state.
+	// Preserve the accepted snapshot version and every authoritative business field.
+	snapshot.Peers = copyValidatorPeers(d.validatorPeers)
+	snapshot.PeerSyncs = copyValidatorPeerSyncs(d.validatorPeerSyncs)
+	if snapshot.Version != legacyDevnetSnapshotVersion {
+		integrity, err := devnetSnapshotIntegrity(snapshot)
+		if err != nil {
+			return fmt.Errorf("seal replication with local peer observations: %w", err)
+		}
+		snapshot.StateIntegrity = integrity
+	}
 	persistErr := d.persistPreparedSnapshot(snapshot)
 	d.recordPersistenceErrorLocked(persistErr)
 	if persistErr != nil && !errors.Is(persistErr, ErrSnapshotDurabilityUncertain) {

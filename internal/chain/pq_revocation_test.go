@@ -454,6 +454,11 @@ func TestPQRevocationReplicationUpgradeCannotEraseTerminalHistory(t *testing.T) 
 		t.Run(name, func(t *testing.T) {
 			destination, err := NewPersistentDevnet(f.d.cfg, t.TempDir())
 			pqMust(t, err)
+			localPeers := copyValidatorPeers(destination.validatorPeers)
+			localSyncs := copyValidatorPeerSyncs(destination.validatorPeerSyncs)
+			if reflect.DeepEqual(localPeers, f.d.validatorPeers) {
+				t.Fatal("fixture must distinguish source block-production observations from local peers")
+			}
 			_, err = destination.ApplyReplicationSnapshotJSON(v1, false)
 			pqMust(t, err)
 			var result ReplicationApplyResult
@@ -475,6 +480,9 @@ func TestPQRevocationReplicationUpgradeCannotEraseTerminalHistory(t *testing.T) 
 			if got, found := destination.Transaction(tx.Hash); !found || got.Memo != tx.Memo || got.Nonce != 2 {
 				t.Fatal("replication lost the original revocation wire or nonce")
 			}
+			if !reflect.DeepEqual(destination.validatorPeers, localPeers) || !reflect.DeepEqual(destination.validatorPeerSyncs, localSyncs) {
+				t.Fatal("replication replaced this node's peer observations")
+			}
 			before := moduleBusinessState(t, destination)
 			if _, err := destination.ApplyReplicationSnapshotJSON(v1, true); err == nil {
 				t.Fatal("authoritative rebase erased terminal history")
@@ -482,6 +490,9 @@ func TestPQRevocationReplicationUpgradeCannotEraseTerminalHistory(t *testing.T) 
 			assertModuleState(t, destination, before)
 			restored, err := NewPersistentDevnet(destination.cfg, destination.dataDir)
 			pqMust(t, err)
+			if !reflect.DeepEqual(restored.validatorPeers, localPeers) || !reflect.DeepEqual(restored.validatorPeerSyncs, localSyncs) {
+				t.Fatalf("cold replication checkpoint changed local peers: got=%+v want=%+v", restored.validatorPeers, localPeers)
+			}
 			assertModuleState(t, restored, before)
 			if replay, done, err := restored.SubmitAccountRevocation(wire); err != nil || !done || replay.Hash != tx.Hash {
 				t.Fatal("replicated original wire failed cold idempotent reconciliation")
