@@ -769,11 +769,10 @@ func saveCommittedStateWithTimings(path string, state CommittedState, migration 
 		return err
 	}
 	started = timings.mark("validate", started)
-	payload, err := json.MarshalIndent(state, "", "  ")
+	payload, err := encodeCommittedStateJSON(state)
 	if err != nil {
 		return fmt.Errorf("encode committed state: %w", err)
 	}
-	payload = append(payload, '\n')
 	if timings != nil {
 		timings.bytes = len(payload)
 	}
