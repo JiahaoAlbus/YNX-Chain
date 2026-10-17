@@ -31,6 +31,11 @@ async function startNative(target) {
   await this.measure('revealShell', () => revealNativeShell.call(this, host, target), 'Replace loading indicator with ready workbench UI (animation)', false);
   this.registerEventListeners();
   this.stateService.state = 'ready';
+  // A navigation/HTTP receipt is not a restored workbench. Notify Cocoa only
+  // after layout, initial-file contributions and the real shell reveal finish.
+  const documentId = target.crypto.randomUUID();
+  Object.defineProperty(target, '__ynxNativePresentationDocument', { value: documentId, configurable: true });
+  target.webkit.messageHandlers.ynxLocalWorkbench.postMessage({ action: 'workbench-ready', documentId });
   this.settlementContext?.armAllSettled();
   startup.then(idToken => this.backendStopwatch.stop(idToken, 'Frontend application startup sequence completed (async work may still be pending)', []));
 }

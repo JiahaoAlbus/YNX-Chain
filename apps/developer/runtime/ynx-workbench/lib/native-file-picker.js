@@ -78,7 +78,11 @@ class NativeInitialFile {
     if (!uri) return;
     await this.workspace.ready;
     try { await this.editors.open(new this.URI(uri), { mode: 'activate' }); }
-    catch { await this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.')); }
+    catch {
+      // A notification is not a startup authorization step. Its promise waits
+      // for dismissal, which is impossible while the native window is hidden.
+      try { Promise.resolve(this.messages.error(this.localize('nativeInitialOpenFailed', 'The selected file could not be opened. Your project was preserved.'))).catch(() => {}); } catch {}
+    }
   }
 }
 // Native panels select a destination; the existing saveable still owns the

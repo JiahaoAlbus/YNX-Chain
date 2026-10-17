@@ -657,6 +657,10 @@ static NSString *YNXDesktopTitle(NSString *label) {
 @property(nonatomic) BOOL recordSelectedWorkspace;
 @property(nonatomic) BOOL recentWorkspaceRecorded;
 @property(nonatomic) BOOL localEditorDocumentLoaded;
+@property(nonatomic) BOOL localWindowPresented;
+@property(nonatomic) NSTimeInterval localPresentationStarted;
+@property(nonatomic) NSUInteger localPresentationGeneration;
+@property(nonatomic,strong) NSTimer *localPresentationDeadline;
 @property(nonatomic) BOOL localStartupFailed;
 @property(nonatomic) NSUInteger localReadyGeneration;
 @property(nonatomic) NSTimeInterval localReadyStarted;
@@ -694,6 +698,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     [self beginWorkspaceRestore];
 }
 - (void)beginLocalWorkbench {
+    _localPresentationStarted=NSProcessInfo.processInfo.systemUptime;
     _localLocale=YNXLocalStoredLocale([NSUserDefaults.standardUserDefaults objectForKey:@"YNXDeveloperDisplayLocale"]);
     NSDictionary *environment=NSProcessInfo.processInfo.environment;
     _localTerminalTraceEnabled=[environment[@"YNX_IDE_TERMINAL_UI_TRACE"] isEqual:@"1"];
@@ -759,19 +764,40 @@ static NSString *YNXDesktopTitle(NSString *label) {
     NSString *folderName=project.length?project.lastPathComponent:@"Workspace";
     _window.title=[NSString stringWithFormat:@"YNX Developer — %@",folderName];_window.contentView=_webView;_window.delegate=self;
     if(![_window setFrameUsingName:@"YNXDeveloperLocalWorkbenchMainWindow"])[_window center];
-    [_window setFrameAutosaveName:@"YNXDeveloperLocalWorkbenchMainWindow"];[_webView layoutSubtreeIfNeeded];[_window makeKeyAndOrderFront:nil];[_window makeFirstResponder:_webView];
-    // The pre-run activation request has no window yet. Activate once after
-    // launch has built the visible editor; WebKit can pause drawing frames in
-    // an inactive or occluded application.
-    dispatch_async(dispatch_get_main_queue(),^{
-        // A user-opened window also needs activation when its executable was
-        // launched directly without another application's cooperative yield.
-        [NSApp activateIgnoringOtherApps:YES];
-        [self.window makeKeyAndOrderFront:nil];[self.webView layoutSubtreeIfNeeded];[self.window displayIfNeeded];
-    });
-    [_webView loadHTMLString:YNXLocalStatusPage(@"Opening YNX Developer…",@"Your local workspace is being opened.") baseURL:nil];
+    [_window setFrameAutosaveName:@"YNXDeveloperLocalWorkbenchMainWindow"];[_webView layoutSubtreeIfNeeded];
+    // Load the real editor offscreen. Do not present a placeholder or empty
+    // window while its server, restored files and shell are still starting.
+    __weak typeof(self) weakPresentationOwner=self;
+    _localPresentationDeadline=[NSTimer scheduledTimerWithTimeInterval:YNXLocalReadinessBudget repeats:NO block:^(NSTimer *timer){
+        typeof(self) owner=weakPresentationOwner;if(!owner||owner.localWindowPresented)return;
+        [owner showFailure:[NSString stringWithFormat:@"The workbench could not finish restoring its layout and files. Your saved projects were preserved. Log: %@",owner.serverLogURL.path?:@"unavailable"]];
+    }];
     if(explicit&&!YNXCanonicalLocalDirectory(explicit)){[self showFailure:@"The selected local folder is unavailable. Existing projects and recent-folder records were preserved."];return;}
-    if([self launchServer])[self loadWhenReady:0];else[self showFailure:[NSString stringWithFormat:@"The bundled local workbench could not start. Log: %@",_serverLogURL.path?:@"unavailable"]];
+    if([self launchServer]){[self recordLocalPresentation:@"backend-spawned"];[self loadWhenReady:0];}else[self showFailure:[NSString stringWithFormat:@"The bundled local workbench could not start. Log: %@",_serverLogURL.path?:@"unavailable"]];
+}
+- (void)recordLocalPresentation:(NSString *)phase {
+    if(!_serverLog)return;
+    NSDictionary *event=@{@"phase":phase,@"elapsedMs":@((NSProcessInfo.processInfo.systemUptime-_localPresentationStarted)*1000),@"timestampMs":@(NSDate.date.timeIntervalSince1970*1000),@"windowVisible":@(_window.isVisible)};
+    NSData *json=[NSJSONSerialization dataWithJSONObject:event options:0 error:nil];
+    @try{[_serverLog writeData:[[NSString stringWithFormat:@"YNX_NATIVE_PRESENTATION %@\n",[[NSString alloc]initWithData:json encoding:NSUTF8StringEncoding]] dataUsingEncoding:NSUTF8StringEncoding]];}@catch(id ignored){}
+}
+- (void)presentLocalWindow {
+    if(_localWindowPresented)return;
+    _localWindowPresented=YES;[_localPresentationDeadline invalidate];_localPresentationDeadline=nil;
+    [NSApp activateIgnoringOtherApps:YES];[_webView layoutSubtreeIfNeeded];
+    [_window makeKeyAndOrderFront:nil];[_window makeFirstResponder:_webView];[_window displayIfNeeded];
+    [self recordLocalPresentation:_localStartupFailed?@"failure-visible":@"first-visible"];
+    [self synchronizeLocalWindowVisibility];
+}
+- (void)acceptLocalWorkbenchPresentation:(NSDictionary *)body {
+    NSString *document=body[@"documentId"];
+    if(body.count!=2||![document isKindOfClass:NSString.class]||![[NSUUID alloc]initWithUUIDString:document]||_localStartupFailed||!_localReadyComplete||!_server.running||!YNXLocalEditorDocumentURL(_webView.URL,_port))return;
+    NSUInteger generation=_localPresentationGeneration;YNXWalletAdmissionBackendTask *server=_server;
+    [_webView callAsyncJavaScript:@"return window.__ynxNativePresentationDocument===documentId && typeof window.__ynxLocalWorkbenchCommand==='function';"
+      arguments:@{@"documentId":document} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id current,NSError *error){
+        if(error||![current isEqual:@YES]||generation!=self.localPresentationGeneration||server!=self.server||!server.running||self.localStartupFailed||self.localCloseRequest||!YNXLocalEditorDocumentURL(self.webView.URL,self.port))return;
+        [self recordLocalPresentation:@"workbench-ready"];self.localCommandDocumentReady=YES;[self presentLocalWindow];
+    }];
 }
 - (void)applicationDidBecomeActive:(NSNotification *)note {
     if(!_localWorkbenchMode||!_window)return;
@@ -812,7 +838,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
 - (void)windowDidBecomeKey:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)windowDidResignKey:(NSNotification *)note { if(note.object==_window)[self updateLocalWindowVisibility]; }
 - (void)webView:(WKWebView *)view didFinishNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView)_localCommandDocumentReady=YNXLocalEditorDocumentURL(view.URL,_port);
+    // Navigation completion alone cannot expose or authorize the unfinished UI.
     if(_localWorkbenchMode&&view==_webView)[self updateLocalWindowVisibility];
     if(_localWorkbenchMode&&view==_webView&&YNXLocalEditorDocumentURL(view.URL,_port))_localEditorDocumentLoaded=YES;
     if(!_localWorkbenchMode||!_recordSelectedWorkspace||_recentWorkspaceRecorded||view!=_webView||!_server.running||![view.URL.absoluteString hasPrefix:[YNXOrigin(_port) stringByAppendingString:@"/"]]||!YNXCanonicalLocalDirectory(_localWorkspace)||!YNXPrivateLocalDirectory(_localSupportRoot))return;
@@ -828,7 +854,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
 }
 - (void)webView:(WKWebView *)view didStartProvisionalNavigation:(WKNavigation *)navigation {
-    if(_localWorkbenchMode&&view==_webView){[self cancelLocalOriginalServices];[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
+    if(_localWorkbenchMode&&view==_webView){_localPresentationGeneration++;[self cancelLocalOriginalServices];[self cancelLocalFileSelection:NO];[self cancelLocalGoSelection];[self cancelLocalTrashConsent];_localCommandDocumentReady=NO;[_pendingLocalCommands removeAllObjects];_localWalletGeneration++;[_localWalletBridge endUserOperation];if(_localWalletConsent){[_window endSheet:_localWalletConsent.window returnCode:NSModalResponseCancel];_localWalletConsent=nil;}}
 }
 - (void)webView:(WKWebView *)view didCommitNavigation:(WKNavigation *)navigation {
     // Preserve a workbench document as soon as loading commits: restored draft
@@ -1239,7 +1265,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
                 [self.serverLog writeData:[line dataUsingEncoding:NSUTF8StringEncoding]];
             }
             YNXLocalReadinessDecision state=YNXLocalReadinessState(generation,self.localReadyGeneration,self.localStartupFailed,self.localReadyComplete,child.running,elapsed,YNXLocalReadinessResponse(response,error,self.port),receipt);
-            if(state==YNXLocalReadinessLoad){self.localReadyComplete=YES;[self.webView loadRequest:[NSURLRequest requestWithURL:url]];return;}
+            if(state==YNXLocalReadinessLoad){self.localReadyComplete=YES;[self recordLocalPresentation:@"backend-ready"];[self.webView loadRequest:[NSURLRequest requestWithURL:url]];return;}
             if(state==YNXLocalReadinessFail){[self showFailure:[NSString stringWithFormat:@"The local workbench could not finish starting. Log: %@",self.serverLogURL.path?:@"unavailable"]];return;}
             if(state==YNXLocalReadinessWait)dispatch_after(dispatch_time(DISPATCH_TIME_NOW,250*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self pollLocalReadiness:generation attempt:attempt+1];});
         });
@@ -1257,10 +1283,11 @@ static NSString *YNXDesktopTitle(NSString *label) {
 }
 - (void)showLocalProjectAlreadyOpen {
     [self cancelLocalReadiness];
-    _localStartupFailed=YES;
+    _localStartupFailed=YES;[self presentLocalWindow];
     [_webView loadHTMLString:YNXLocalStatusPage(YNXLocalMenuLabel(@"Project already open",_localLocale),YNXLocalMenuLabel(@"This project is already open in another YNX Developer window. Continue in that window, or use File → Open Folder… to choose a different project. Your files and running terminal were preserved.",_localLocale)) baseURL:nil];
 }
 - (void)showFailure:(NSString *)message {
+    if(_localWorkbenchMode){if(!_localWindowPresented)_localStartupFailed=YES;[self presentLocalWindow];}
     if(_localWorkbenchMode&&_localEditorDocumentLoaded){NSAlert *alert=[NSAlert new];alert.messageText=@"The local workbench encountered a problem";alert.informativeText=message;[alert beginSheetModalForWindow:_window completionHandler:nil];return;}
     if(_localWorkbenchMode){[self cancelLocalReadiness];_localStartupFailed=YES;[self stopUnopenedLocalServer];[_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer could not open",message) baseURL:nil];return;}
     [_webView loadHTMLString:YNXLocalStatusPage(@"YNX Developer Testnet Preview",[NSString stringWithFormat:@"%@ No project, Wallet key, or deployment was changed.",message]) baseURL:nil];
@@ -1599,6 +1626,9 @@ static NSString *YNXDesktopTitle(NSString *label) {
     }
     if(!_localWorkbenchMode||![message.name isEqualToString:@"ynxLocalWorkbench"]||!YNXTrustedMessage(message,_webView,_port))return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    if([body[@"action"] isEqual:@"workbench-ready"]){
+        if(YNXLocalEditorDocumentURL(message.frameInfo.request.URL,_port))[self acceptLocalWorkbenchPresentation:body];return;
+    }
     if([body[@"action"] isEqual:@"terminal-ui-trace"]){
         static NSUInteger terminalTraceCount=0;
         if(!_localTerminalTraceEnabled||terminalTraceCount>=300||body.count!=24||
@@ -1680,7 +1710,7 @@ static NSString *YNXDesktopTitle(NSString *label) {
     if(_localWorkbenchMode&&sender==_window){[NSApp terminate:nil];return NO;}
     return YES;
 }
-- (void)applicationWillTerminate:(NSNotification *)note{[self cancelLocalOriginalServices];[_localOriginalServicePoll invalidate];[self invalidateLocalTrashBoundary];[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];[self finishLocalWalletAdmissionCleanup];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag)[_window makeKeyAndOrderFront:nil];return YES;}
+- (void)applicationWillTerminate:(NSNotification *)note{[_localPresentationDeadline invalidate];_localPresentationDeadline=nil;[self cancelLocalOriginalServices];[_localOriginalServicePoll invalidate];[self invalidateLocalTrashBoundary];[NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self name:NSWorkspaceActiveSpaceDidChangeNotification object:nil];[self cancelLocalFileSelection:YES];[self cancelLocalGoSelection];[self.localGoInput.fileHandleForWriting closeFile];[self cancelLocalTrashConsent];[self cancelLocalReadiness];[self finishLocalWalletAdmissionCleanup];if(_server.running){[_server terminate];[_server waitUntilExit];}[_serverLog closeFile];} - (BOOL)applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)sender{return YES;} - (BOOL)applicationShouldHandleReopen:(NSApplication *)sender hasVisibleWindows:(BOOL)flag{if(!flag&&(!_localWorkbenchMode||_localWindowPresented))[_window makeKeyAndOrderFront:nil];return YES;}
 @end
 
 int main(int argc,const char *argv[]){@autoreleasepool{if(argc>=3&&!strcmp(argv[1],"--self-test")){NSURL *resources=[NSURL fileURLWithPath:@(argv[2])];BOOL web=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/frontend/dist/index.html"]path]],gateway=[NSFileManager.defaultManager fileExistsAtPath:[[resources URLByAppendingPathComponent:@"code/apps/developer/services/gateway/src/server.mjs"]path]],node=[NSFileManager.defaultManager isExecutableFileAtPath:[[resources URLByAppendingPathComponent:@"runtime/node"]path]];if(!web||!gateway||!node)return 2;if(!YNXWalletStorageSelfTest())return 4;NSDictionary *availability=YNXWalletAvailability();NSTask *task=[NSTask new];task.executableURL=[resources URLByAppendingPathComponent:@"runtime/node"];task.arguments=@[@"--version"];task.standardOutput=[NSPipe pipe];NSError *error=nil;if(![task launchAndReturnError:&error])return 3;[task waitUntilExit];printf("YNX Developer YNX Code resources, bundled runtime and Keychain session storage OK\n");printf("YNX Wallet scheme state: installed=%s schemeRegistered=%s\n",[availability[@"installed"] boolValue]?"true":"false",[availability[@"schemeRegistered"] boolValue]?"true":"false");return task.terminationStatus;}NSApplication *app=NSApplication.sharedApplication;YNXAppDelegate *delegate=[YNXAppDelegate new];app.delegate=delegate;[app setActivationPolicy:NSApplicationActivationPolicyRegular];[app activateIgnoringOtherApps:YES];[app run];}return 0;}
