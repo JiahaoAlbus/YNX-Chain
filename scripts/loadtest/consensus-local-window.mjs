@@ -3,7 +3,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import net from 'node:net';
-import { spawn, spawnSync } from 'node:child_process';
+import { spawn } from 'node:child_process';
+import { createNativeResourceProbe } from './native-resource-probe.mjs';
 import { parseArgs } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 
@@ -77,6 +78,7 @@ const hostSamples = [];
 const probeFailures = [];
 let lastResourceSample;
 let monitor;
+const resourceProbe = createNativeResourceProbe(commands.host);
 const fail = reason => { if (!firstCause) firstCause = String(reason); };
 const deadline = setTimeout(() => fail('active window exceeded 45 seconds'), caps.activeMs);
 const onSignal = signal => fail(`launcher received ${signal}`);
@@ -152,14 +154,16 @@ function signalGroup(record, signal) {
   try { process.kill(-record.pid, signal); } catch (error) { if (error.code !== 'ESRCH') fail(`${record.name} cleanup: ${error.message}`); }
 }
 
-function sampleResources(full) {
+async function sampleResources(full) {
   const live = children.filter(c => c.pid && !c.exited);
   peakLongLivedChildren = Math.max(peakLongLivedChildren, live.length);
   const watched = [...new Set([process.pid, process.ppid, ...live.map(c => c.pid)])];
-  const result = spawnSync(commands.host, [...(full ? ['--full'] : []), ...watched.map(String)], { encoding: 'utf8', timeout: 1500, maxBuffer: 1024 * 1024 });
-  if (result.error || result.signal || result.status !== 0) {
-    probeFailures.push({ sampledAt: new Date().toISOString(), error: result.error?.message, status: result.status, signal: result.signal, stdout: result.stdout?.slice(0,65536), stderr: result.stderr?.slice(0,65536) });
-    throw Error(`native resource probe failed: ${result.error ?? result.signal ?? result.status}`);
+  let result;
+  try {
+    result = await resourceProbe.run([...(full ? ['--full'] : []), ...watched.map(String)]);
+  } catch (error) {
+    probeFailures.push({ ...resourceProbe.records.at(-1), sampledAt: new Date().toISOString() });
+    throw error;
   }
   let sample;
   try { sample = JSON.parse(result.stdout); }
@@ -180,17 +184,19 @@ function sampleResources(full) {
 
 try {
   for (const base of [31656, 31757, 31858]) for (let offset = 0; offset < 4; offset++) await portFree(base + offset);
-  sampleResources(true);
+  await sampleResources(true);
   lastFullHostSample = Date.now();
-  monitor = setInterval(() => {
+  monitor = setInterval(async () => {
+    if (stopping || resourceProbe.busy) return;
     try {
       const full = Date.now() - lastFullHostSample >= caps.fullHostSampleMs;
       if (full) lastFullHostSample = Date.now();
-      sampleResources(full);
+      await sampleResources(full);
+      if (stopping) return;
       const size = directoryBytes(work);
       peakDataBytes = Math.max(peakDataBytes, size);
       if (size > caps.dataBytes) fail(`local output/data exceeded ${caps.dataBytes} bytes`);
-    } catch (error) { fail(error.message); }
+    } catch (error) { if (!stopping) fail(error.message); }
   }, 250);
   await waitExit(launch('fixture', commands.fixture, ['-ephemeral', '-output', network, '-count', String(count), ...(rounds > 1 ? ['-retain-ephemeral-senders'] : [])]));
   const manifestPath = path.join(network, 'network-manifest.json');
@@ -221,10 +227,12 @@ try {
   clearTimeout(deadline);
   clearInterval(monitor);
   const stopStarted = Date.now();
+  const probeStopped = resourceProbe.stop();
   for (const child of children.filter(c => !c.exited)) signalGroup(child, 'SIGINT');
   while (children.some(c => !c.exited) && Date.now() - stopStarted < 12000) await delay(100);
   for (const child of children.filter(c => !c.exited)) signalGroup(child, 'SIGKILL');
   await Promise.race([Promise.all(children.map(c => c.closed)), delay(Math.max(1, caps.cleanupMs - (Date.now() - stopStarted)), undefined, { ref: false })]);
+  await probeStopped;
   const finalDataBytes = directoryBytes(work);
   peakDataBytes = Math.max(peakDataBytes, finalDataBytes);
   if (finalDataBytes > caps.dataBytes) fail(`final local output/data exceeded ${caps.dataBytes} bytes`);
@@ -235,7 +243,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 3, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 4, startedAt: new Date(started).toISOString(), work, caps, count, rounds, senderMode, inclusionMode, stateLayout, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, probes: resourceProbe.records, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone) && resourceProbe.records.every(p => p.exited && p.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;
