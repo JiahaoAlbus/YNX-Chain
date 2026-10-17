@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "measurement": "warm durable readback of same retained real32 final-block transactions; not business TPS or live grouped scheduling",
+  "state": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/abci-run-3560683502/state.json",
+  "migration": "/Users/huangjiahao/.codex/worktrees/chain-performance-20261017/YNX Chain/artifacts/chain-performance-20261017/local-performance-migration.json",
+  "go": "go1.25.7 darwin/arm64",
+  "gomaxprocs": 1,
+  "command": "go test -p 1 ./cmd/ynx-consensus-perf-client -run ^$ -bench ^BenchmarkDurableBlockBatch$ -benchtime=150ms -count=3",
+  "single": [
+    {
+      "ns": 14330782,
+      "bytesHashed": 20531744,
+      "signatureVerifications": 32,
+      "allocatedBytes": 200704,
+      "allocations": 2144
+    },
+    {
+      "ns": 13398083,
+      "bytesHashed": 20531744,
+      "signatureVerifications": 32,
+      "allocatedBytes": 200714,
+      "allocations": 2144
+    },
+    {
+      "ns": 13038680,
+      "bytesHashed": 20531744,
+      "signatureVerifications": 32,
+      "allocatedBytes": 200714,
+      "allocations": 2144
+    }
+  ],
+  "batch": [
+    {
+      "ns": 3969303,
+      "bytesHashed": 641617,
+      "signatureVerifications": 32,
+      "allocatedBytes": 129146,
+      "allocations": 1434
+    },
+    {
+      "ns": 3628633,
+      "bytesHashed": 641617,
+      "signatureVerifications": 32,
+      "allocatedBytes": 129147,
+      "allocations": 1434
+    },
+    {
+      "ns": 3774200,
+      "bytesHashed": 641617,
+      "signatureVerifications": 32,
+      "allocatedBytes": 129147,
+      "allocations": 1434
+    }
+  ],
+  "qualification": "each batch hashes all current store bytes once and verifies all32 signatures plus actual fee/nonces; cache prewarmed; checkpoint/tail changes require replay; current live observer still calls batches of size1"
+}

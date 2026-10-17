@@ -17,7 +17,7 @@ const { values } = parseArgs({ options: {
   'offered-rate': { type: 'string', default: '0' },
 } });
 const stateLayout=values['state-layout'];
-if(!['atomic-json','snapshot-journal'].includes(stateLayout))throw Error('unsupported state-layout');
+if(!['atomic-json','snapshot-journal','block-journal'].includes(stateLayout))throw Error('unsupported state-layout');
 const count = Number(values.count);
 if (process.platform !== 'darwin') throw Error('this launcher requires the macOS proc_pidtaskinfo resource probe');
 // Match consensus.EphemeralWorkloadMaxTransactions; resource caps do not grow.
@@ -190,7 +190,7 @@ try {
   for (const node of manifest.nodes) {
     if (!node.home.startsWith(network + path.sep) || !node.abciStatePath.startsWith(network + path.sep) || !/^tcp:\/\/127\.0\.0\.1:\d+$/.test(node.abciListen) || !/^http:\/\/127\.0\.0\.1:\d+$/.test(node.rpcUrl)) throw Error('fixture escaped local scope');
   }
-  for (const [index, node] of manifest.nodes.entries()) launch(`abci-${index}`, commands.app, ['-listen', node.abciListen, '-migration-state', manifest.migrationPath, '-state', node.abciStatePath, ...(stateLayout==='snapshot-journal'?['-state-layout','snapshot-journal']:[])], true);
+  for (const [index, node] of manifest.nodes.entries()) launch(`abci-${index}`, commands.app, ['-listen', node.abciListen, '-migration-state', manifest.migrationPath, '-state', node.abciStatePath, ...(stateLayout!=='atomic-json'?['-state-layout',stateLayout]:[])], true);
   await delay(300);
   for (const [index, node] of manifest.nodes.entries()) launch(`comet-${index}`, commands.comet, ['start', '--home', node.home], true);
   for (const node of manifest.nodes) {

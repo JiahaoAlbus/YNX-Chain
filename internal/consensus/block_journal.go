@@ -37,6 +37,7 @@ type blockJournal struct {
 	blocks                 int
 	checkpointBytesWritten int64
 	appHash                string
+	replayedTxInputs       int
 }
 
 func finalizeResponseHash(response *abci.ResponseFinalizeBlock) (string, error) {
@@ -59,6 +60,10 @@ func blockJournalFrame(payload []byte) []byte {
 }
 
 func readBlockJournalFrame(r io.Reader) ([]byte, int64, bool, error) {
+	return readBlockJournalFrameLimit(r, blockJournalMaxFrame)
+}
+
+func readBlockJournalFrameLimit(r io.Reader, limit uint64) ([]byte, int64, bool, error) {
 	header := make([]byte, snapshotJournalHeader)
 	n, err := io.ReadFull(r, header)
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -72,8 +77,24 @@ func readBlockJournalFrame(r io.Reader) ([]byte, int64, bool, error) {
 		return nil, 0, false, errors.New("block journal length checksum mismatch")
 	}
 	length := binary.BigEndian.Uint64(header[:8])
-	if length == 0 || length > blockJournalMaxFrame {
+	if length == 0 || length > limit {
 		return nil, 0, false, errors.New("block journal frame exceeds bounds")
+	}
+	// A valid length checksum is not permission to allocate absent tail bytes.
+	// Both file recovery and pure byte readback provide a known remaining size.
+	available := int64(-1)
+	if bounded, ok := r.(interface{ Len() int }); ok {
+		available = int64(bounded.Len())
+	}
+	if section, ok := r.(*io.SectionReader); ok {
+		position, err := section.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		available = section.Size() - position
+	}
+	if available >= 0 && uint64(available) < length {
+		return nil, 0, true, nil
 	}
 	payload := make([]byte, int(length))
 	if _, err := io.ReadFull(r, payload); err == io.EOF || err == io.ErrUnexpectedEOF {
@@ -104,7 +125,11 @@ func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.Consen
 		if err := ctx.Err(); err != nil {
 			return CommittedState{}, err
 		}
-		payload, frameBytes, _, err := readBlockJournalFrame(r)
+		limit := uint64(blockJournalMaxFrame)
+		if j.io.records > 0 {
+			limit = 2 * blockJournalMaxRequest
+		}
+		payload, frameBytes, _, err := readBlockJournalFrameLimit(r, limit)
 		if err != nil {
 			return CommittedState{}, err
 		}
@@ -134,6 +159,7 @@ func replayBlockJournal(ctx context.Context, r io.Reader, migration chain.Consen
 			if err := req.Unmarshal(record.Request); err != nil {
 				return CommittedState{}, err
 			}
+			j.replayedTxInputs += len(req.Txs)
 			response, err := replay.FinalizeBlock(ctx, &req)
 			if err != nil {
 				return CommittedState{}, err
@@ -221,7 +247,7 @@ func openBlockJournal(path string, migration chain.ConsensusMigrationState) (*bl
 	if info.Size() > int64(blockJournalMaxFrame+blockJournalCheckpointBlocks*(2*blockJournalMaxRequest+snapshotJournalHeader)+len(j.io.header)) {
 		return nil, CommittedState{}, errors.New("block journal file exceeds bounded checkpoint/tail capacity")
 	}
-	state, err := replayBlockJournal(context.Background(), f, migration, j)
+	state, err := replayBlockJournal(context.Background(), io.NewSectionReader(f, 0, info.Size()), migration, j)
 	if err != nil {
 		return nil, CommittedState{}, err
 	}

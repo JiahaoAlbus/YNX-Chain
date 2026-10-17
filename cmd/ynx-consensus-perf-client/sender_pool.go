@@ -236,7 +236,7 @@ func verifySenderRound(txs []cmttypes.Tx, results []transactionResult) error {
 		return errors.New("sender round result count mismatch")
 	}
 	for i, r := range results {
-		if r.DurableStoreFormat == "snapshot-journal" && (!r.DurableInfoVerified || r.DurableInfoHeight < r.DurableStateHeight) {
+		if isJournalLayout(r.DurableStoreFormat) && (!r.DurableInfoVerified || r.DurableInfoHeight < r.DurableStateHeight) {
 			return errors.New("journal sender round lacks published committed height")
 		}
 		if r.Hash != fmt.Sprintf("%X", txs[i].Hash()) || r.Status != "confirmed" || !r.CheckTxIdentityVerified || r.CheckTxCode == nil || *r.CheckTxCode != 0 || r.ExecutionCode == nil || *r.ExecutionCode != 0 || !r.QuorumVerified || !r.TransactionProofVerified || !r.DurableStateVerified || r.ConfirmedObservedAt == nil || r.Height <= 0 || r.DurableStateHeight < r.Height || r.DurableSnapshotSHA256 == "" {

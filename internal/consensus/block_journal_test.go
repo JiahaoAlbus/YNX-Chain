@@ -3,12 +3,15 @@ package consensus
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 	"time"
 
@@ -72,6 +75,18 @@ func TestBlockJournalOwnsRequestsAndMatchesAtomicAcrossCheckpoints(t *testing.T)
 		loaded, err := NewBlockJournaledApplication(migration, path)
 		if err != nil || !journalStateEqual(t, loaded.committed, atomic.committed) {
 			t.Fatal("checkpoint/delta replay differs", nonce, err)
+		}
+		stored, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		decoded, err := DecodeBlockJournal(context.Background(), stored, migration)
+		if err != nil || decoded.IncompleteTail || decoded.CompleteBytes != len(stored) || decoded.ReplayedBlocks != loaded.blockJournal.blocks || !journalStateEqual(t, decoded.State, loaded.committed) {
+			t.Fatal("read-only V2 replay differs from node recovery", err)
+		}
+		afterDecode, _ := os.ReadFile(path)
+		if !bytes.Equal(stored, afterDecode) {
+			t.Fatal("pure decoder modified store")
 		}
 		check, err := loaded.CheckTx(context.Background(), &abci.RequestCheckTx{Tx: original})
 		if err != nil || check.Code != CodeInvalidNonce {
@@ -241,6 +256,23 @@ func TestBlockJournalFrameLengthChecksumIsEnforced(t *testing.T) {
 	header[7] ^= 1
 	if _, _, _, err := readBlockJournalFrame(bytes.NewReader(append(header, []byte("fixture")...))); err == nil {
 		t.Fatal("length corruption accepted")
+	}
+}
+
+func TestBlockJournalAbsentLargeTailDoesNotAllocateDeclaredPayload(t *testing.T) {
+	header := make([]byte, snapshotJournalHeader)
+	binary.BigEndian.PutUint64(header[:8], blockJournalMaxFrame)
+	sum := sha256.Sum256(header[:8])
+	copy(header[8:40], sum[:])
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	payload, _, partial, err := readBlockJournalFrame(bytes.NewReader(header))
+	runtime.ReadMemStats(&after)
+	if err != nil || payload != nil || !partial || after.TotalAlloc-before.TotalAlloc > 1<<20 {
+		t.Fatal("absent payload consumed declared checkpoint memory", err, after.TotalAlloc-before.TotalAlloc)
+	}
+	if _, _, _, err := readBlockJournalFrameLimit(bytes.NewReader(header), 2*blockJournalMaxRequest); err == nil {
+		t.Fatal("delta frame accepted checkpoint-sized length")
 	}
 }
 

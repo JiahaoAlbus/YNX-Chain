@@ -30,10 +30,10 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
       assert.equal(plan.caps.rootDiskReserveBytes, 425 * 1024 ** 2);
       assert.equal(fs.existsSync(work), false);
     }
-	for (const layout of ['snapshot-journal','unsafe-layout']) {
+	for (const layout of ['snapshot-journal','block-journal','unsafe-layout']) {
 		const r=spawnSync(process.execPath,[runner,'--count','32','--rounds','2','--offered-rate','128','--state-layout',layout,'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work],{encoding:'utf8',timeout:5000});
-		assert.equal(r.status===0,layout==='snapshot-journal',r.stderr);
-		if(r.status===0){const plan=JSON.parse(r.stdout);assert.equal(plan.stateLayout,'snapshot-journal');assert.equal(plan.totalTransactions,64);assert.equal(plan.caps.dataBytes,32*1024**2);assert.equal(plan.caps.rssBytes,1024**3);}
+		assert.equal(r.status===0,['snapshot-journal','block-journal'].includes(layout),r.stderr);
+		if(r.status===0){const plan=JSON.parse(r.stdout);assert.equal(plan.stateLayout,layout);assert.equal(plan.totalTransactions,64);assert.equal(plan.caps.dataBytes,32*1024**2);assert.equal(plan.caps.rssBytes,1024**3);}
 		assert.equal(fs.existsSync(work),false);
 	}
     for (const [count, rate] of [[0, 1], [2049, 1000], [1.5, 1], [32, 'NaN'], [32, 2049], [2048, 1]]) {

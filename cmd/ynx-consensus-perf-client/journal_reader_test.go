@@ -18,10 +18,18 @@ import (
 )
 
 func journalReaderFixture(t *testing.T) (*consensus.Application, chain.ConsensusMigrationState, string, cmttypes.Tx, int64) {
+	return durableJournalFixture(t, "snapshot-journal")
+}
+
+func durableJournalFixture(t *testing.T, layout string) (*consensus.Application, chain.ConsensusMigrationState, string, cmttypes.Tx, int64) {
 	t.Helper()
 	_, migration, atomicPath, raw, height := durableReaderFixture(t)
 	path := atomicPath + ".journal"
-	app, err := consensus.NewJournaledApplication(migration, path)
+	constructor := consensus.NewJournaledApplication
+	if layout == "block-journal" {
+		constructor = consensus.NewBlockJournaledApplication
+	}
+	app, err := constructor(migration, path)
 	if err != nil {
 		t.Fatal(err)
 	}

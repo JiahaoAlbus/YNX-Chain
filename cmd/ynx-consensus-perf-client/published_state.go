@@ -23,3 +23,7 @@ func verifyJournalPublishedState(state durableEvidence, info *coretypes.ResultAB
 	}
 	return nil
 }
+
+func isJournalLayout(layout string) bool {
+	return layout == "snapshot-journal" || layout == "block-journal"
+}

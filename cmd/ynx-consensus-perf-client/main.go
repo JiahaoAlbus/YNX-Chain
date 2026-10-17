@@ -565,7 +565,7 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					blockTime := commit.Header.Time.UTC()
 					result.BlockTime = &blockTime
 					state, err := reader.verify(ctx, statePath, raw, height)
-					if err == nil && state.StoreFormat == "snapshot-journal" {
+					if err == nil && isJournalLayout(state.StoreFormat) {
 						published, infoErr := client.ABCIInfo(ctx)
 						if infoErr != nil {
 							err = fmt.Errorf("%w: journal published-state query: %v", errDurableNotReady, infoErr)
@@ -677,7 +677,7 @@ func summarize(results []transactionResult, seconds float64) summary {
 		}
 		if r.QuorumVerified && r.TransactionProofVerified {
 			s.QuorumConfirmed++
-			if r.ConfirmedObservedAt != nil && r.DurableStateVerified && (r.DurableStoreFormat != "snapshot-journal" || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight)) {
+			if r.ConfirmedObservedAt != nil && r.DurableStateVerified && (!isJournalLayout(r.DurableStoreFormat) || (r.DurableInfoVerified && r.DurableInfoHeight >= r.DurableStateHeight)) {
 				s.FinalSubmitted++
 			}
 		}
@@ -742,7 +742,7 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 6, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 7, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",

@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
@@ -35,6 +36,8 @@ type durableReaderStats struct {
 	SnapshotValidations      uint64 `json:"snapshotValidations"`
 	SnapshotCacheHits        uint64 `json:"snapshotCacheHits"`
 	TransactionVerifications uint64 `json:"transactionVerifications"`
+	BlockReplayBlocks        uint64 `json:"blockJournalReplayedBlocks"`
+	BlockReplayTxInputs      uint64 `json:"blockJournalReplayedTransactionInputs"`
 }
 
 type durableFeeKey struct {
@@ -98,19 +101,77 @@ func (r *durableReader) stats() durableReaderStats {
 		total.SnapshotValidations += s.SnapshotValidations
 		total.SnapshotCacheHits += s.SnapshotCacheHits
 		total.TransactionVerifications += s.TransactionVerifications
+		total.BlockReplayBlocks += s.BlockReplayBlocks
+		total.BlockReplayTxInputs += s.BlockReplayTxInputs
 	}
 	return total
 }
 
+type durableBatchEvidence struct {
+	Evidence     durableEvidence
+	Transactions int
+	ObservedAt   time.Time
+}
+
 func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx, height int64) (durableEvidence, error) {
-	var evidence durableEvidence
+	batch, err := r.verifyBlockBatch(ctx, path, []cmttypes.Tx{raw}, height)
+	if err != nil {
+		return durableEvidence{}, err
+	}
+	return batch.Evidence, nil
+}
+
+// One fresh current-file observation for one node/block. No evidence escapes
+// until every unique native transaction passes signature and fee/nonce checks.
+func (r *durableReader) verifyBlockBatch(ctx context.Context, path string, raws []cmttypes.Tx, height int64) (durableBatchEvidence, error) {
+	var batch durableBatchEvidence
+	if err := ctx.Err(); err != nil {
+		return batch, err
+	}
+	if height <= 0 || len(raws) == 0 || len(raws) > maxTransactions {
+		return batch, errors.New("invalid bounded block readback batch")
+	}
+	seen := make(map[[sha256.Size]byte]struct{}, len(raws))
+	totalBytes := 0
+	for _, raw := range raws {
+		totalBytes += len(raw)
+		if totalBytes > 8<<20 {
+			return batch, errors.New("block readback batch exceeds byte bound")
+		}
+		hash := sha256.Sum256(raw)
+		if _, ok := seen[hash]; ok {
+			return batch, errors.New("duplicate transaction in readback batch")
+		}
+		seen[hash] = struct{}{}
+	}
 	slot := r.slots[path]
 	if slot == nil {
-		return evidence, errors.New("durable path outside the fixed manifest set")
+		return batch, errors.New("durable path outside the fixed manifest set")
 	}
 	slot.mu.Lock()
 	defer slot.mu.Unlock()
 	slot.stats.Attempts++
+	evidence, err := r.loadSnapshotLocked(ctx, path, slot)
+	if err != nil {
+		return batch, err
+	}
+	for i, raw := range raws {
+		if err := r.verifyTransactionLocked(ctx, slot, raw, height); err != nil {
+			return batch, fmt.Errorf("block readback transaction %d: %w", i, err)
+		}
+	}
+	if err := ctx.Err(); err != nil {
+		return batch, err
+	}
+	observed := time.Now()
+	if deadline, ok := ctx.Deadline(); ok && !observed.Before(deadline) {
+		return batch, context.DeadlineExceeded
+	}
+	return durableBatchEvidence{Evidence: evidence, Transactions: len(raws), ObservedAt: observed}, nil
+}
+
+func (r *durableReader) loadSnapshotLocked(ctx context.Context, path string, slot *durableSnapshotSlot) (durableEvidence, error) {
+	var evidence durableEvidence
 	if err := ctx.Err(); err != nil {
 		return evidence, err
 	}
@@ -132,7 +193,7 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 	}()
 	var prefix [64]byte
 	n, _ := f.ReadAt(prefix[:], 0)
-	journal := consensus.IsSnapshotJournal(prefix[:n])
+	journal := (consensus.IsSnapshotJournal(prefix[:n]) || consensus.IsBlockJournal(prefix[:n]))
 	if journal {
 		release, err = consensus.LockSnapshotJournalRead(path)
 		if errors.Is(err, consensus.ErrSnapshotJournalBusy) {
@@ -199,10 +260,10 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 		if len(data) > durableSnapshotLimit || sha256.Sum256(data) != digest {
 			return evidence, errors.New("durable state changed during readback")
 		}
-		if journal && !consensus.IsSnapshotJournal(data) {
+		if journal && !(consensus.IsSnapshotJournal(data) || consensus.IsBlockJournal(data)) {
 			return evidence, errors.New("journal layout changed during readback")
 		}
-		if !journal && consensus.IsSnapshotJournal(data) {
+		if !journal && (consensus.IsSnapshotJournal(data) || consensus.IsBlockJournal(data)) {
 			return evidence, errors.New("journal readback requires writer synchronization")
 		}
 		if release != nil {
@@ -214,6 +275,8 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 		if err != nil {
 			return evidence, err
 		}
+		slot.stats.BlockReplayBlocks += uint64(decoded.replayedBlocks)
+		slot.stats.BlockReplayTxInputs += uint64(decoded.replayedTxInputs)
 		state := decoded.state
 
 		if err := ctx.Err(); err != nil {
@@ -242,38 +305,55 @@ func (r *durableReader) verify(ctx context.Context, path string, raw cmttypes.Tx
 		release = nil
 	}
 	state := slot.state
-	if !state.Initialized || state.Height < height {
+	if !state.Initialized {
 		return evidence, errDurableNotReady
-	}
-	tx, err := consensus.DecodeSignedTransaction(raw)
-	if err != nil {
-		return evidence, fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
-	}
-	if err := tx.Verify(r.migration.Network.ChainID); err != nil {
-		return evidence, err
-	}
-	slot.stats.TransactionVerifications++
-	key := durableFeeKey{hash: consensus.SignedTransactionHash(raw), payer: tx.From, kind: consensus.SignedTransactionType, height: height, fee: tx.Fee}
-	if _, ok := slot.fees[key]; !ok || slot.nonces[tx.From] < tx.Nonce {
-		return evidence, errors.New("transaction fee/nonce absent from validated local durable state")
-	}
-	if err := ctx.Err(); err != nil {
-		return evidence, err
 	}
 	return durableEvidence{Height: state.Height, AppHash: state.AppHash, SnapshotSHA256: hex.EncodeToString(slot.snapshotDigest[:]), SnapshotCacheHit: hit, StoreSHA256: hex.EncodeToString(digest[:]), StoreFormat: slot.format, JournalCompleteBytes: slot.journalCompleteBytes, JournalIncompleteTail: slot.journalIncompleteTail}, nil
 }
 
+func (r *durableReader) verifyTransactionLocked(ctx context.Context, slot *durableSnapshotSlot, raw cmttypes.Tx, height int64) error {
+	state := slot.state
+
+	if !state.Initialized || state.Height < height {
+		return errDurableNotReady
+	}
+	tx, err := consensus.DecodeSignedTransaction(raw)
+	if err != nil {
+		return fmt.Errorf("bounded fixture must use native signed transfers: %w", err)
+	}
+	if err := tx.Verify(r.migration.Network.ChainID); err != nil {
+		return err
+	}
+	slot.stats.TransactionVerifications++
+	key := durableFeeKey{hash: consensus.SignedTransactionHash(raw), payer: tx.From, kind: consensus.SignedTransactionType, height: height, fee: tx.Fee}
+	if _, ok := slot.fees[key]; !ok || slot.nonces[tx.From] < tx.Nonce {
+		return errors.New("transaction fee/nonce absent from validated local durable state")
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
 type decodedDurableSnapshot struct {
-	state          consensus.CommittedState
-	payload        []byte
-	format         string
-	completeBytes  int
-	incompleteTail bool
+	state            consensus.CommittedState
+	payload          []byte
+	format           string
+	completeBytes    int
+	incompleteTail   bool
+	replayedBlocks   int
+	replayedTxInputs int
 }
 
 func decodeDurableSnapshot(ctx context.Context, data []byte, migration chain.ConsensusMigrationState) (decodedDurableSnapshot, error) {
 	var decoded decodedDurableSnapshot
-	if consensus.IsSnapshotJournal(data) {
+	if consensus.IsBlockJournal(data) {
+		journal, err := consensus.DecodeBlockJournal(ctx, data, migration)
+		if err != nil {
+			return decoded, err
+		}
+		decoded = decodedDurableSnapshot{state: journal.State, payload: journal.SnapshotJSON, format: "block-journal", completeBytes: journal.CompleteBytes, incompleteTail: journal.IncompleteTail, replayedBlocks: journal.ReplayedBlocks, replayedTxInputs: journal.ReplayedTransactionInputs}
+	} else if consensus.IsSnapshotJournal(data) {
 		journal, err := consensus.DecodeSnapshotJournal(ctx, data, migration)
 		if errors.Is(err, consensus.ErrSnapshotJournalEmpty) {
 			return decoded, errDurableNotReady
