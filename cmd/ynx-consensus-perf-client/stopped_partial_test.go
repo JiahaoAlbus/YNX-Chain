@@ -45,6 +45,7 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	var receipt struct {
 		AllGroupsGone bool
 		FirstCause    *string
+		partialWindowPlan
 	}
 	read(filepath.Join(work, "window-receipt.json"), &receipt)
 	if !receipt.AllGroupsGone || receipt.FirstCause == nil {
@@ -67,25 +68,28 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var observed report
-	reportRaw := read(filepath.Join(work, "transactions-result.json"), &observed)
-	if observed.SenderMode != "ready-pool" {
-		t.Fatal("requires ready pool identity journal")
-	}
 	initial, err := decodeTransactions(read(filepath.Join(work, "network", "transactions.json"), nil))
 	if err != nil {
 		t.Fatal(err)
 	}
+	observed, reportRaw, observationPresent, err := readPartialObservation(filepath.Join(work, "transactions-result.json"), receipt.partialWindowPlan, len(initial))
+	if err != nil {
+		t.Fatal(err)
+	}
+	rounds := observed.RoundsRequested
+	if !observationPresent {
+		rounds = receipt.Rounds
+	}
 	journalRaw := read(filepath.Join(work, "network", readySenderJournalName), nil)
-	recovered, err := decodeReadySenderJournal(context.Background(), journalRaw, manifestRaw, m, initial, observed.RoundsRequested)
+	recovered, err := decodeReadySenderJournal(context.Background(), journalRaw, manifestRaw, m, initial, rounds)
 	if err != nil {
 		t.Fatal(err)
 	}
 	var terminalPrefix *terminalPrefixReadback
 	var terminalEvidenceError string
 	var reportedRows []terminalReportedObservation
-	if observed.RetentionMode != "" {
-		if observed.SchemaVersion != 12 || observed.RetentionMode != "latest_per_account_slots" || len(observed.Transactions) != len(initial) {
+	if !observationPresent || observed.RetentionMode != "" {
+		if observationPresent && (observed.SchemaVersion != 12 || observed.RetentionMode != "latest_per_account_slots" || len(observed.Transactions) != len(initial)) {
 			t.Fatal("invalid partial slot report")
 		}
 		sum := sha256.Sum256(manifestRaw)
@@ -97,7 +101,11 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 			terminalEvidenceError = prefixErr.Error()
 		}
 		terminalPrefix = &prefix
-		reportedRows, err = mergeTerminalPrefixAndLatest(prefix.Rows, observed.Transactions, len(initial), recovered.Transactions)
+		latest := observed.Transactions
+		if !observationPresent {
+			latest = make([]transactionResult, len(initial))
+		}
+		reportedRows, err = mergeTerminalPrefixAndLatest(prefix.Rows, latest, len(initial), recovered.Transactions)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -274,10 +282,15 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 			transactions = append(transactions, rows[fmt.Sprintf("%X", raw.Hash())])
 		}
 	}
-	sum := sha256.Sum256(reportRaw)
+	observationSHA256 := ""
+	if observationPresent {
+		sum := sha256.Sum256(reportRaw)
+		observationSHA256 = hex.EncodeToString(sum[:])
+	}
 	output := struct {
 		Schema                int                     `json:"schema"`
 		VerifiedAt            time.Time               `json:"verifiedAt"`
+		ObservationPresent    bool                    `json:"observationPresent"`
 		ObservationSHA256     string                  `json:"observationSha256"`
 		SignedRecords         int                     `json:"signedRecords"`
 		JournalIncompleteTail bool                    `json:"journalIncompleteTail"`
@@ -286,7 +299,7 @@ func TestStoppedPartialNetworkReconciliation(t *testing.T) {
 		TerminalPrefix        *terminalPrefixReadback `json:"terminalPrefix,omitempty"`
 		TerminalEvidenceError string                  `json:"terminalEvidenceError,omitempty"`
 		Interpretation        string                  `json:"interpretation"`
-	}{2, time.Now().UTC(), hex.EncodeToString(sum[:]), recovered.Records, recovered.IncompleteTail, nodes, transactions, terminalPrefix, terminalEvidenceError, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Missing terminal evidence leaves signed-intent outcomes unknown, never unsubmitted by inference. A sealed terminal prefix is a structural observation record, not an observed writer Sync or consensus proof. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
+	}{3, time.Now().UTC(), observationPresent, observationSHA256, recovered.Records, recovered.IncompleteTail, nodes, transactions, terminalPrefix, terminalEvidenceError, "Read-only authenticated replay through each node's actual durable height only. Original ACK/status/latency and partial-run TPS remain unchanged. Missing terminal evidence leaves signed-intent outcomes unknown, never unsubmitted by inference. A sealed terminal prefix is a structural observation record, not an observed writer Sync or consensus proof. Absence is not retry authorization; blocks above durable height are not promoted to persisted results."}
 	encoded, e := json.MarshalIndent(output, "", "  ")
 	if e != nil {
 		t.Fatal(e)
