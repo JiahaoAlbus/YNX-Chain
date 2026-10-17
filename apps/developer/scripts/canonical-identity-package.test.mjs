@@ -16,6 +16,9 @@ test('canonical package retains original SDK relative topology and detects chang
     const loadPath=new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',new URL('file://'+join(sdk,'src/original-ide-admission-parent-delivery.js')));
     assert.equal(loadPath.pathname,join(code,'apps/wallet-desktop/native/original-auth-identity.node'));
     await packager.verifyCanonicalIdentityAdmissionSource(sdk);
+    await mkdir(join(sdk,'unexpected-empty'));
+    await assert.rejects(packager.verifyCanonicalIdentityAdmissionSource(sdk),/inventory differs/);
+    await rm(join(sdk,'unexpected-empty'),{recursive:true});
     const leaf=join(sdk,'src/original-ide-admission-parent-delivery.js');
     await writeFile(leaf,(await readFile(leaf,'utf8'))+'\n// changed\n');
     await assert.rejects(packager.verifyCanonicalIdentityAdmissionSource(sdk),/differs/);
@@ -37,7 +40,7 @@ test('PUBLIC build receipt validation requires the exact six-unit Native closure
     'packages/wallet-auth/native/original-ide-parent-node.mm'];
   const record={schemaVersion:1,kind:'YNX_WALLET_ORIGINAL_NATIVE_BUILD',napiVersion:8,
     headerVersion:'22.13.1',minimumSystemVersion:'13.0',appSigned:false,nativeQualified:false,
-    registrationAccepted:false,architectures:['arm64'],sourceRoot:'/PUBLIC/source',
+    registrationAccepted:false,readbackOnly:true,commandsKind:'normal-build-plan',architectures:['arm64'],sourceRoot:'/PUBLIC/source',existingComponentEvidence:{path:'/PUBLIC/actual-compile-evidence.json',bytes:10,sha256:'3'.repeat(64)},
     commands:[{tool:'/usr/bin/clang++',argv:['-std=c++17','-fobjc-arc','-dynamiclib','-DNAPI_VERSION=8','-mmacosx-version-min=13.0','-lbsm','Foundation','Security',...sourceNames.map(p=>'/PUBLIC/source/'+p)]}],
     relativeBases:{inputFiles:'repository-root',output:'repository-root',headers:'pinned-header-root'},
     headerRoot:'/PUBLIC/headers',headers:['node_api.h','node_api_types.h','js_native_api.h','js_native_api_types.h','node_version.h'].map(relative=>{const pin=inputs.node22HeaderPins.find(x=>x.path===relative);return{relative,bytes:pin.bytes,sha256:pin.sha256};}),
@@ -45,8 +48,8 @@ test('PUBLIC build receipt validation requires the exact six-unit Native closure
     output:{relative:'apps/wallet-desktop/native/original-auth-identity.node',bytes:4,sha256:'0'.repeat(64)}};
   assert.equal(packager.validateCanonicalNativeBuildReceipt(record,inputs,'arm64'),record);
   for(const change of [r=>r.nativeQualified=true,r=>r.inputFiles.pop(),r=>r.inputFiles[0].sha256='1'.repeat(64),
-    r=>r.output.relative='vendor/identity-admission/original-auth-identity.node',r=>r.relativeBases.inputFiles='app-root',r=>r.architectures=['x64'],r=>r.headers[0].sha256='2'.repeat(64),r=>r.commands[0].argv.pop()]){
+    r=>r.output.relative='vendor/identity-admission/original-auth-identity.node',r=>r.relativeBases.inputFiles='app-root',r=>r.architectures=['x64'],r=>r.headers[0].sha256='2'.repeat(64),r=>r.commands[0].argv.pop(),r=>r.commandsKind='executed-normal-build',r=>delete r.existingComponentEvidence]){
     const altered=structuredClone(record);change(altered);
-    assert.throws(()=>packager.validateCanonicalNativeBuildReceipt(altered,inputs,'arm64'),/differs/);
+    assert.throws(()=>packager.validateCanonicalNativeBuildReceipt(altered,inputs,'arm64'),/differs|required/);
   }
 });

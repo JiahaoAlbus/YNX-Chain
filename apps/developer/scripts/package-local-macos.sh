@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 repo_root=$(/usr/bin/git -C "$PWD" rev-parse --show-toplevel)
-tracked_changes=$(/usr/bin/git -C "$repo_root" status --porcelain --untracked-files=no -- apps/developer packages/developer-client)
+tracked_changes=$(/usr/bin/git -C "$repo_root" status --porcelain --untracked-files=no -- apps/developer packages/developer-client packages/wallet-auth apps/wallet-desktop/native)
 if [[ -n "$tracked_changes" ]]; then
   echo "Refusing to package tracked Developer changes that are not committed." >&2
   printf '%s\n' "$tracked_changes" >&2

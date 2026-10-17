@@ -2038,6 +2038,16 @@
       "path": "packages/wallet-auth/native/original-host-dirfd-journal.h",
       "bytes": 8863,
       "sha256": "7a30fb0c7d13a316b4946424a62eb8fbb3055e7356ac9bc8feabd8dac8bbc857"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-joint-owner.test.mjs",
+      "bytes": 1838,
+      "sha256": "370effa29fff4cdd69947d8abc51b05fc0aa75c18a7a4b37c41a6fea2a55504e"
+    },
+    {
+      "path": "packages/wallet-auth/native/original-auth-identity-source-authority.test.mjs",
+      "bytes": 8851,
+      "sha256": "682cece63881c53efc358fd1698d59c97ab27ecd5c29f8485d42a62c82e5c21e"
     }
   ],
   "node22HeaderPins": [
