@@ -4,7 +4,7 @@
   "inputs": [
     {
       "path": "frontend/src/wallet/product-session-v2.ts",
-      "sha256": "5d923f1c1836915795ea3125495d1bda560b23acb569679eb651d8dbe142c29c"
+      "sha256": "aa79befdf1d14d2fcd0ae9e64dc413a2792dfe9b37725e65230d02c4ed372e97"
     },
     {
       "path": "frontend/src/wallet/resource-approval-return.ts",
@@ -375,5 +375,5 @@
   ],
   "noticeSha256": "fa0512cf786c1a12bac9a8fd274fbebe246673507023e26e4f3fdc9ba17a76e7",
   "bundleFile": "lib/native-wallet-sdk.generated.js",
-  "bundleSha256": "dbd20b2df3e7e522dca22bec84e5e0b592779547816111a48557c74fbb91bf45"
+  "bundleSha256": "78d7d07490678fa980ec17b3858225e7eed3a97522a8050bf5ab24eb94645f83"
 }

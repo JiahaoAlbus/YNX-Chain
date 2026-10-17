@@ -22,6 +22,7 @@ __export(ynx_native_wallet_consumer_entry_exports, {
   DEVELOPER_WALLET_V2_SOURCE: () => DEVELOPER_WALLET_V2_SOURCE,
   beginDeveloperWalletV2Connection: () => beginDeveloperWalletV2Connection,
   captureResourceOperation: () => captureResourceOperation,
+  classifyDeveloperWalletV2Return: () => classifyDeveloperWalletV2Return,
   createDeveloperWalletV2Runtime: () => createDeveloperWalletV2Runtime,
   enterDeveloperWalletV2Guest: () => enterDeveloperWalletV2Guest,
   inspectDeveloperWalletV2Runtime: () => inspectDeveloperWalletV2Runtime,
@@ -6445,16 +6446,21 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
   }
   let pendingOperation;
   let expirationTimer;
-  const releaseNativeOperation = async () => {
-    if (!active) return;
+  let nativeRelease;
+  const releaseNativeOperation = () => {
+    if (nativeRelease) return nativeRelease;
+    if (!active) return Promise.resolve();
     active = false;
     clearTimeout(expirationTimer);
-    try {
-      await bridge.endConnection();
-    } finally {
-      if (explicitNativeOwner === owner) explicitNativeOwner = null;
-      finishNativeOperation();
-    }
+    nativeRelease = Promise.resolve().then(async () => {
+      try {
+        await bridge.endConnection();
+      } finally {
+        if (explicitNativeOwner === owner) explicitNativeOwner = null;
+        finishNativeOperation();
+      }
+    });
+    return nativeRelease;
   };
   const endNativeOperation = async () => {
     if (active && pendingOperation) sdk.setNetworkAvailable(false);
@@ -6602,6 +6608,18 @@ async function createNativeRuntime(bridge, grantedDevice, owner, journal) {
     });
   }, 3e5);
   return Object.freeze({ connection, source: DEVELOPER_WALLET_V2_SOURCE, endNativeOperation, finished });
+}
+function classifyDeveloperWalletV2Return(runtime, callbackURL) {
+  const request = runtime.connection.current?.request;
+  if (!request) return "pending";
+  try {
+    const target = request.callback;
+    const url2 = new URL(callbackURL), nonce = url2.searchParams.getAll("nonce"), state2 = url2.searchParams.getAll("state");
+    url2.search = "";
+    return typeof target === "string" && url2.toString() === target && nonce.length === 1 && state2.length === 1 && nonce[0] === request.nonce && state2[0] === request.state ? "current" : "mismatch";
+  } catch {
+    return "mismatch";
+  }
 }
 async function inspectDeveloperWalletV2Runtime() {
   try {
