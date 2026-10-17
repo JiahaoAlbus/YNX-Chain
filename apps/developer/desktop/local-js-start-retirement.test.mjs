@@ -66,7 +66,7 @@ for (const holdAt of ['realpath', 'first-proof', 'canonical', 'last-proof']) {
   });
 }
 test('closed requester and stopped/faulted supervisor cannot dispatch late process creation', async () => {
-  for (const invalidate of [f => { f.owner.socket.destroyed = true; }, f => f.owner.stop(), f => f.owner.fault()]) {
+  for (const invalidate of [f => { f.owner.socket.destroyed = true; }, f => { f.owner.socket.writableEnded = true; }, f => { f.owner.socket.readableEnded = true; }, f => f.owner.stop(), f => f.owner.fault()]) {
     const f = await fixture('canonical'), pending = f.owner.start(f.message);
     await f.entered.promise; invalidate(f); f.held.release();
     const error = await pending.then(() => null, error => error);

@@ -221,10 +221,13 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
       const timer = setTimeout(() => { send({ kind: 'error', message: 'Local debug session reached its two-hour limit' }); socket.end(); stop().catch(reportCleanup); }, lifetimeMs);
       session = { id: randomUUID(), ports: allocation.ports, stop }; sessions.add(session);
       preparing--;
+      const assertSessionCurrent=()=>{if(terminated||stopped||faulted||socket.destroyed||socket.writableEnded||socket.readableEnded||!sessions.has(session))throw Error('Debug session was cancelled or retired');};
       try {
+        assertSessionCurrent();
         await allocation.release();
-        for (const proof of [...pathIdentities, ...(bootstrapProof ? [bootstrapProof] : [])]) await assertWorkspacePathIdentity(proof);
-        if (socket.destroyed || stopped) throw Error('Debug session was cancelled before spawn');
+        assertSessionCurrent();
+        for (const proof of [...pathIdentities, ...(bootstrapProof ? [bootstrapProof] : [])]) { await assertWorkspacePathIdentity(proof); assertSessionCurrent(); }
+        assertSessionCurrent();
         child = spawn('/usr/bin/sandbox-exec', ['-p', policy, data.command, ...data.flags, bootstrap, JSON.stringify({ debugpy: data.debugpy, ports: allocation.ports, args: data.args })], { env: data.env, cwd: data.cwd, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
         childDone = new Promise(ok => child.once('close', ok));
         child.once('error', fail);
@@ -238,7 +241,7 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
         child.stderr.on('data', chunk => send({ kind: 'stderr', data: chunk.toString() }));
         child.once('close', (code, signal) => { send({ kind: 'exit', code, signal }); socket.end(); stop().catch(reportCleanup); });
         session.receive = async message => {
-          if (terminated) throw Error('Debug session has ended');
+          assertSessionCurrent();
           if (message.op === 'dap') {
             const dap = message.message;
             if (!dap || typeof dap !== 'object') throw Error('Invalid debug protocol message');
@@ -246,9 +249,9 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
               if (launch || dap.command !== 'launch') throw Error('This supervisor admits one local launch');
               const args = dap.arguments || {};
               if (args.console === 'externalTerminal' || args.sudo || args.debugAdapterHost && !['127.0.0.1', 'localhost'].includes(args.debugAdapterHost)) throw Error('Only local internal/integrated Python launch is supported');
-              if (args.cwd) await within(args.cwd);
+              if (args.cwd) { await within(args.cwd); assertSessionCurrent(); }
               if (args.program) {
-                const p = await realpath(resolve(args.cwd || data.cwd, args.program)); await canonical(p);
+                const p = await realpath(resolve(args.cwd || data.cwd, args.program)); assertSessionCurrent(); await canonical(p); assertSessionCurrent();
                 if (!inside(context.workspace, p) && !inside(plugins, p)) throw Error('Python program is outside this project');
                 // Resolve relative launch entries against their actual cwd, as
                 // the normal VS Code provider does. Never rewrite launch.json.
@@ -256,17 +259,19 @@ export async function createDebugSessionSupervisor({ context, plugins, runtime, 
               }
               environment(data.env, args.env); launch = args;
             }
+            assertSessionCurrent();
             if (!child.stdin.write(encodeDap(dap)) && child.stdin.writableLength > MAX_FRAME) throw Error('Debug adapter input exceeded buffer bound');
           } else if (message.op === 'terminal') {
             if (!launch || !reverse || terminal || message.requestSeq !== reverse.seq || reverse.arguments?.kind !== 'integrated' || reverse.arguments?.argsCanBeInterpretedByShell) throw Error('Terminal request is not bound to this debug launch');
             const request = reverse.arguments, args = request.args;
             if (!Array.isArray(args) || args.length < 5 || args.length > 1024 || args.some(a => typeof a !== 'string' || a.includes('\0'))) throw Error('Invalid Python launcher argv');
-            const command = await interpreter(args[0]);
+            const command = await interpreter(args[0]); assertSessionCurrent();
             const at = args.indexOf(join(data.debugpy, 'launcher'));
             if (at < 1 || args.slice(1, at).some(a => !['-E', '-s', '-S', '-u', '-B', '-I'].includes(a)) || args[at + 1] !== String(allocation.ports[2]) || args[at + 2] !== '--') throw Error('Terminal command is not the pinned session launcher');
-            const cwd = await within(request.cwd || launch.cwd || context.workspace);
+            const cwd = await within(request.cwd || launch.cwd || context.workspace); assertSessionCurrent();
             const terminalEnv = environment(data.env, request.env);
-            for (const proof of [...pathIdentities, ...(bootstrapProof ? [bootstrapProof] : [])]) await assertWorkspacePathIdentity(proof);
+            for (const proof of [...pathIdentities, ...(bootstrapProof ? [bootstrapProof] : [])]) { await assertWorkspacePathIdentity(proof); assertSessionCurrent(); }
+            assertSessionCurrent();
             terminal = pty.spawn('/usr/bin/sandbox-exec', ['-p', policy, command, ...args.slice(1)], { name: 'xterm-256color', cols: 80, rows: 24, cwd, env: terminalEnv });
             terminal.onData(data => send({ kind: 'terminalData', data }));
             terminal.onExit(exit => { terminalEnded = true; send({ kind: 'terminalExit', ...exit }); });

@@ -112,7 +112,7 @@ export async function createJsDebugSessionSupervisor({ context, plugins, runtime
           // Path and IPC validation yield. The requester can disconnect, or
           // cancellation/stop can retire this exact entry during any await.
           // Never let a late continuation recreate its process or timer.
-          const assertStartCurrent=()=>{if(stopped||faulted||socket.destroyed||entry.stopping||launches.get(entry.id)!==entry||entry.phase!=='prepared')throw Error('JavaScript launch request was cancelled or retired');};
+          const assertStartCurrent=()=>{if(stopped||faulted||socket.destroyed||socket.writableEnded||socket.readableEnded||entry.stopping||launches.get(entry.id)!==entry||entry.phase!=='prepared')throw Error('JavaScript launch request was cancelled or retired');};
           assertStartCurrent();let cwd=await realpath(message.cwd);assertStartCurrent();
           if(workspaceProof){await assertWorkspacePathIdentity(workspaceProof);assertStartCurrent();const alias=workspaceProof.paths.find(path=>inside(path,cwd));if(alias)cwd=join(context.workspace,relative(alias,cwd));}
           if(!inside(context.workspace,cwd))throw Error('JavaScript target working directory is outside its project');await canonical(cwd,true);assertStartCurrent();
