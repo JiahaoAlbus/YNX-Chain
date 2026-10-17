@@ -17,6 +17,8 @@ import { WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_PROOF_HEADER, wall
 import {createCentralBrowserSessionRegistry} from './central-browser-session-registry.js';
 import {CentralBrowserSessionStore} from './central-browser-session-store.js';
 import {CentralBrowserSessionAuthority,CentralBrowserSessionNodeRoutes} from './central-browser-session.js';
+import {OriginalHostTerminalJournal} from './original-host-terminal-journal.js';
+import {handleOriginalAuthSourceCurrent} from './original-auth-identity-source-current.js';
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 // Actual same-process Host inventory, not registration or readiness authority.
@@ -75,6 +77,8 @@ export class ProductSessionGatewayNodeHost {
   #handler; #now; #origins; #registry; #stateIdentity; #statePath; #tokens; #central; #originalRuntimeHandler;
   #originalRuntimeListener; #originalRuntimeServer;
   #privateTransactions=new Map(); #privateActive=null; #privateFailurePresent=false; #privateFirstCause;
+  #privateTerminalJournal; #privateTerminalOriginal; #privateRetainedOwners=new WeakMap();
+  #authSourceCurrent=null;
 
   reserveOriginalWalletServicePrivateTransaction(input,retained,association){
     if(this.#privateFailurePresent)throw this.#privateFirstCause;
@@ -82,12 +86,13 @@ export class ProductSessionGatewayNodeHost {
     const captured=privateInput(input),bound=privateAssociation(association);
     if(!retained||types.isProxy(retained))fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Original retained slot unavailable');
     const slot=Object.getOwnPropertyDescriptor(retained,'result');if(!slot||!Object.hasOwn(slot,'value')||slot.writable!==true||slot.value!==null)fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Result slot already used');
+    if(this.#privateRetainedOwners.has(retained))fail('ORIGINAL_PRIVATE_CUSTODY_INVALID','Original retained slot already selected');
     const key=captured.operation+':'+captured.phase+':'+captured.requestId;
     if(this.#privateTransactions.has(key))fail('ORIGINAL_PRIVATE_ALREADY_ENTERED','Original intent already selected');
     if(this.#privateTransactions.size>=64)fail('ORIGINAL_PRIVATE_CAPACITY','Original transaction capacity');
     this.#assertStateIdentity();
     const owner=Object.freeze({}),record={host:this,owner,key,input:captured,inputRaw:canonicalJSON(captured),association:bound,associationRaw:canonicalJSON(bound),retained,result:null,resultRaw:null,entered:false,completed:false,unknown:false,firstPresent:false,firstCause:undefined,closed:false,before:null,after:null};
-    originalPrivateTransactions.set(owner,record);this.#privateTransactions.set(key,owner);return owner;
+    originalPrivateTransactions.set(owner,record);this.#privateTransactions.set(key,owner);this.#privateRetainedOwners.set(retained,owner);return owner;
   }
   #privateOwned(owner){const r=originalPrivateTransactions.get(owner);if(!r||r.host!==this||this.#privateTransactions.get(r.key)!==owner)fail('ORIGINAL_PRIVATE_TRANSACTION_OWNER_REQUIRED','Original Host owner required');return r;}
   #privateFail(record,cause){if(!record.firstPresent){record.firstPresent=true;record.firstCause=cause;}record.unknown=true;if(!this.#privateFailurePresent){this.#privateFailurePresent=true;this.#privateFirstCause=cause;}return record.firstCause;}
@@ -104,10 +109,15 @@ export class ProductSessionGatewayNodeHost {
     r.entered=true;r.unknown=true;this.#privateActive=owner;
     try{
       this.#assertStateIdentity();r.before=Object.freeze({...this.#stateIdentity});
+      if(!this.#privateTerminalJournal||!this.#privateTerminalOriginal)fail('HOST_DIRFD_ORIGINAL_OWNER_REQUIRED','Original Native terminal owner is absent');
+      r.terminalClaim=this.#privateTerminalJournal.reserve(r.input,r.association,r.before.digest);
       const result=this.#executeOriginalWalletServicePrivateRequest(r.input,r.retained,r.association,r);
       this.#assertStateIdentity();
       if(snapshotDigest(this.#handler.snapshot())!==this.#stateIdentity.digest)fail('STATE_TAMPERED','Original kernel readback differs');
-      r.after=Object.freeze({...this.#stateIdentity});r.completed=true;r.unknown=false;
+      r.after=Object.freeze({...this.#stateIdentity});
+      this.#privateTerminalJournal.commit(r.terminalClaim,result,r.after.digest);
+      this.#privateTerminalJournal.assertTerminal(r.terminalClaim,result);
+      r.completed=true;r.unknown=false;
       this.assertOriginalWalletServicePrivateTransactionReadback(owner,r.input,result);return result;
     }catch(cause){throw this.#privateFail(r,cause);}finally{this.#privateActive=null;}
   }
@@ -125,8 +135,32 @@ export class ProductSessionGatewayNodeHost {
   originalWalletServicePrivateTransactionOutcome(owner){const r=this.#privateOwned(owner);return Object.freeze({result:r.result,entered:r.entered,completed:r.completed,unknown:r.unknown,firstCausePresent:r.firstPresent,firstCause:r.firstCause,closed:r.closed,nativeTerminal:false});}
   closeOriginalWalletServicePrivateTransaction(owner){const r=this.#privateOwned(owner);if(this.#privateActive===owner)fail('ORIGINAL_PRIVATE_TRANSACTION_INFLIGHT','Original transaction is active');r.closed=true;return undefined;}
 
+  // Additive to R9 transaction custody: this is called once by the original
+  // factory after admission, never a public provider/DTO grant installer.
+  bindOriginalWalletServicePrivateTerminal(original){
+    if(this.#privateTerminalJournal||this.#privateTransactions.size)fail('HOST_DIRFD_ALREADY_SELECTED','Original journal cannot be rebound');
+    this.#privateTerminalOriginal=original;
+    this.#privateTerminalJournal=new OriginalHostTerminalJournal(this.#statePath,original);
+    this.#privateTerminalJournal.open(); // retain partial before readiness
+    return undefined;
+  }
+  assertOriginalWalletServicePrivateTerminal(input,retained,resultDigest,association){
+    const owner=this.#privateRetainedOwners.get(retained),r=this.#privateOwned(owner);
+    try{
+      this.assertOriginalWalletServicePrivateTransactionReadback(owner,input,r.result);
+      if(canonicalJSON(privateAssociation(association))!==r.associationRaw||typeof resultDigest!=='string'||!/^[a-f0-9]{64}$/.test(resultDigest)||createHash('sha256').update(privateResultRaw(r.result)).digest('hex')!==resultDigest||!r.terminalClaim||!this.#privateTerminalJournal)fail('ORIGINAL_PRIVATE_TERMINAL_INVALID','Original durable result binding differs');
+      this.#privateTerminalJournal.assertTerminal(r.terminalClaim,r.result);
+      this.assertOriginalWalletServicePrivateTransactionReadback(owner,input,r.result);
+      return undefined;
+    }catch(cause){throw this.#privateFail(r,cause);}
+  }
+  retireOriginalWalletServicePrivateTerminal(){return this.#privateTerminalJournal?.retire();}
+  joinOriginalWalletServicePrivateTerminal(){return this.#privateTerminalJournal?.join();}
+  closeOriginalWalletServicePrivateTerminal(){return this.#privateTerminalJournal?.close();}
+
   constructor(registryInput, options) {
-    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[])],"Product Session Gateway Node host options");
+    exactFields(options,["now","statePath","tokenFactory",...(Object.hasOwn(options,'centralBrowser')?["centralBrowser"]:[]),...(Object.hasOwn(options,'centralBackend')?["centralBackend"]:[]),...(Object.hasOwn(options,'centralOIDC')?["centralOIDC"]:[]),...(Object.hasOwn(options,'businessRevalidation')?["businessRevalidation"]:[]),...(Object.hasOwn(options,'centralBrowserEcosystem')?["centralBrowserEcosystem"]:[]),...(Object.hasOwn(options,'privateBusinessRevalidation')?["privateBusinessRevalidation"]:[]),...(Object.hasOwn(options,'privateBackendRegistrations')?["privateBackendRegistrations"]:[]),...(Object.hasOwn(options,'authIdentitySourceCurrent')?['authIdentitySourceCurrent']:[])],"Product Session Gateway Node host options");
+    this.#authSourceCurrent=options.authIdentitySourceCurrent??null;
     if(Object.hasOwn(options,'centralBackend')){if(options.centralBrowser!==true)fail("INVALID_HOST","Confidential clients require explicit central adoption");exactFields(options.centralBackend,["backendClients","familySealKey"],"Confidential client host dependencies");}
     if(Object.hasOwn(options,'centralOIDC')&&options.centralBrowser!==true)fail('INVALID_HOST','OIDC requires explicit Central adoption');
     if(Object.hasOwn(options,'centralBrowser')&&typeof options.centralBrowser!=='boolean')fail('INVALID_HOST','Central browser adoption must be explicit');
@@ -196,6 +230,9 @@ export class ProductSessionGatewayNodeHost {
     if(typeof emitEvent!=='function')fail('INVALID_HOST','Original event sink is absent');
     const dispatch=async(request,response)=>{
       const path=new URL(request.url,'http://127.0.0.1').pathname;
+      // The real v2 daemon uses THIS listener, not gatewayd's v3 pre-router.
+      // Forward only the fixed Source-current route into the owning handler.
+      if(path==='/v1/auth-identity/source-current')return productHandler(request,response);
       if(central&&CentralBrowserSessionNodeRoutes.prototype.handles.call(central,path)){
         let body='';if(request.method==='POST'){let size=0;const chunks=[];for await(const chunk of request){size+=chunk.length;if(size>16384)throw new Error('Central browser body exceeds policy');chunks.push(chunk);}body=Buffer.concat(chunks).toString('utf8');}
         const result=CentralBrowserSessionNodeRoutes.prototype.handle.call(central,{method:request.method,url:request.url,headers:request.headers,body});response.writeHead(result.status,result.headers);response.end(result.body);return;
@@ -232,6 +269,13 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
+        if(new URL(request.url,'http://127.0.0.1').pathname==='/v1/auth-identity/source-current'){
+          if(!this.#authSourceCurrent){response.writeHead(503,{'content-type':'application/json','cache-control':'no-store'});response.end('{"error":"AUTH_SOURCE_CURRENT_SERVICE_NOT_CONFIGURED"}');return;}
+          // This existing original producer handler owns the private branding
+          // check; neither a marker nor a public arithmetic kernel can mount.
+          const result=handleOriginalAuthSourceCurrent(this.#authSourceCurrent,request.method,request.url,this.#now().getTime());
+          response.writeHead(result.status,result.headers);response.end(result.body);return;
+        }
         const browserPath=this.#central?new URL(request.url,'http://127.0.0.1').pathname:null;
         const route=this.#central?.handles(browserPath)?browserPath:pathname(request.url);
         if(this.#central?.handles(route)){

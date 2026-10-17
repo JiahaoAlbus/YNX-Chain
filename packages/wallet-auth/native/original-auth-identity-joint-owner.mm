@@ -82,11 +82,10 @@ static NSData *YNXAuthReadHeld(int fd,struct stat expected,NSError **error) {
 }
 - (BOOL)assertIndependentNativePurposeAdmission:(NSError **)error {
  if(![self assertOriginalCurrent:error])return NO;
- // File custody is now implementing CODE. Authentic original Source/Identity
- // administration, Native-purpose approval and enforcing head/floor/revoke
- // still need the same Auth source-authority primitive, NOT a new signed domain.
- // Never parse OS-owned bytes or a claimed flag as independent authorization.
- return [self fail:@"AUTH_IDENTITY_SOURCE_AUTHORITY_NATIVE_PURPOSE_CODE_NOT_IMPLEMENTED" error:error];
+ // This object is raw custody only, NOT the Source-authority verifier.
+ // Authentication is YNXAuthIdentitySourceAuthority's separate original
+ // contract. Never promote a held file or this legacy method to admission.
+ return [self fail:@"AUTH_IDENTITY_RAW_CUSTODY_IS_NOT_NATIVE_AUTHORITY" error:error];
 }
 - (BOOL)nativeQualified {return NO;}
 - (BOOL)cleanupComplete {@synchronized(self){return _cleanupComplete;}}

@@ -34,7 +34,11 @@ function fixture({late=false,persistFail=false,clock=1000,floor=0,cleanupFail=fa
  const association={account:'PUBLIC_ACCOUNT',clientId:'public-client',productId:'developer',platform:'macos',applicationId:'PUBLIC_APPLICATION',deviceId:'PUBLIC_DEVICE'};
  const initial={authority:{sessions:[{sessionBinding:'PUBLIC_BINDING',...association}]},revision:0};
  const envelope={schemaVersion:1,snapshotDigest:hash(JSON.stringify(initial)),snapshot:initial};writes.set('/PUBLIC/state',JSON.stringify(envelope));
- const context={URL,Buffer,Date,types,process:{pid:1,getuid:()=>1},isAbsolute:p=>p.startsWith('/'),dirname:()=>'/PUBLIC',constants:{O_RDONLY:1,O_NOFOLLOW:2,O_WRONLY:4,O_CREAT:8,O_EXCL:16},
+ const context={URL,Buffer,Date,types,
+  // New Host journal boundary is a lexical PUBLIC standin; real IO is covered
+  // by the separate combined caller integration controls, not these fixtures.
+  OriginalHostTerminalJournal:class {open(){}reserve(){return Object.freeze({PUBLIC:true});}commit(){}assertTerminal(){}retire(){}join(){}close(){}},
+  process:{pid:1,getuid:()=>1},isAbsolute:p=>p.startsWith('/'),dirname:()=>'/PUBLIC',constants:{O_RDONLY:1,O_NOFOLLOW:2,O_WRONLY:4,O_CREAT:8,O_EXCL:16},
   canonicalJSON:JSON.stringify,exactFields:(v,keys)=>{assert.deepEqual(Object.keys(v).sort(),[...keys].sort());},WalletAuthError:class extends Error{constructor(code,message){super(message);this.code=code;}},
   createHash:()=>({value:'',update(v){this.value+=v;return this;},digest(){return hash(this.value);}}),randomUUID:()=> 'PUBLIC_TEMP',parseProductSessionRegistry:v=>v,
   openSync:p=>{const fd=next++;fds.set(fd,p);return fd;},closeSync:fd=>fds.delete(fd),readFileSync:fd=>writes.get(fds.get(fd)),writeFileSync:(fd,b)=>{writes.set(fds.get(fd),b);},mkdirSync(){},fchmodSync(){},chmodSync(){},fsyncSync(){},
@@ -132,7 +136,7 @@ function daemonFixture(f,{emitClose=false,privateJoin=null}={}){
  server.on('request',()=>{});server.listening=true;
  server.listen=(_p,_a,callback)=>{onListen=callback;};server.close=callback=>{stops++;server.listening=false;if(emitClose)server.emit('close');callback();};
  if(privateJoin)f.context.PUBLIC_NATIVE.join=()=>privateJoin;
- Object.assign(f.context,{server,productHost:f.host,PUBLIC_BORROW:f.original,createOriginalWalletServicePrivateDispatch:f.context.factory,
+ Object.assign(f.context,{server,productHost:f.host,originalAuthSourceCurrent:null,PUBLIC_BORROW:f.original,createOriginalWalletServicePrivateDispatch:f.context.factory,
   beginOriginalWalletServicePrivateDispatchAcquisition:f.context.api.begin,closeOriginalWalletServicePrivateDispatchAcquisition:f.context.api.closeAcquisition,originalWalletServicePrivateDispatchAcquisitionStatus:f.context.api.statusAcquisition,
   createOriginalWalletRuntimeObserverLifetime:()=>({...f.runtime,afterListen(){},retire(){},join:async()=>undefined,close:async()=>{runtimeCloses++;}}),emitEvent:event=>f.events.push(event),port:1,address:'127.0.0.1',build:null,remoteDeployed:false});
  f.context.process={on:(signal,callback)=>signals.set(signal,callback),exit(){exits++;}};
