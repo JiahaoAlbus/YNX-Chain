@@ -91,6 +91,8 @@ type transactionResult struct {
 	DurableStateVerified     bool               `json:"durableStateVerified"`
 	DurableStateHeight       int64              `json:"durableStateHeight,omitempty"`
 	DurableStateAppHash      string             `json:"durableStateAppHash,omitempty"`
+	DurableSnapshotSHA256    string             `json:"durableSnapshotSha256,omitempty"`
+	DurableSnapshotCacheHit  bool               `json:"durableSnapshotCacheHit"`
 	Errors                   []errorObservation `json:"errors"`
 }
 
@@ -147,6 +149,7 @@ type report struct {
 	ObserverConcurrency  int                 `json:"observerConcurrency"`
 	LoadMode             string              `json:"loadMode"`
 	LoadQueues           pacedStatistics     `json:"loadQueues"`
+	DurableReadback      durableReaderStats  `json:"durableReadback"`
 	TimeoutMs            int64               `json:"timeoutMs"`
 	PollMs               int64               `json:"pollMs"`
 	StartedAt            time.Time           `json:"startedAt"`
@@ -452,12 +455,12 @@ func addError(list *[]errorObservation, stage string, err error) {
 	*list = append(*list, errorObservation{Stage: stage, Message: message, Count: 1, FirstAt: now, LastAt: now})
 }
 
-func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult) {
+func observeTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, reader *durableReader, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult) {
 	started, accepted := submitTransaction(ctx, client, raw, result)
 	if !accepted {
 		return
 	}
-	observeAcceptedTransaction(ctx, o, m, migration, trusted, client, statePath, raw, result, started)
+	observeAcceptedTransaction(ctx, o, m, reader, trusted, client, statePath, raw, result, started)
 }
 
 func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.Tx, result *transactionResult) (time.Time, bool) {
@@ -493,7 +496,7 @@ func submitTransaction(ctx context.Context, client *rpchttp.HTTP, raw cmttypes.T
 	return start, true
 }
 
-func observeAcceptedTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, migration chain.ConsensusMigrationState, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult, start time.Time) {
+func observeAcceptedTransaction(ctx context.Context, o options, m consensus.EphemeralNetworkManifest, reader *durableReader, trusted *cmttypes.ValidatorSet, client *rpchttp.HTTP, statePath string, raw cmttypes.Tx, result *transactionResult, start time.Time) {
 	var included *coretypes.ResultTx
 	ticker := time.NewTicker(o.poll)
 	defer ticker.Stop()
@@ -545,8 +548,13 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 					result.HeaderAppHash = fmt.Sprintf("%X", commit.Header.AppHash)
 					blockTime := commit.Header.Time.UTC()
 					result.BlockTime = &blockTime
-					state, err := verifyDurableExecution(statePath, migration, raw, height)
+					state, err := reader.verify(ctx, statePath, raw, height)
 					if err != nil {
+						if ctx.Err() != nil {
+							result.Status = "timeout"
+							addError(&result.Errors, "observation_deadline", ctx.Err())
+							return
+						}
 						addError(&result.Errors, "local_durable_readback", err)
 						if !errors.Is(err, errDurableNotReady) {
 							result.Status = "observation_failed"
@@ -558,11 +566,23 @@ func observeAcceptedTransaction(ctx context.Context, o options, m consensus.Ephe
 						}
 						continue
 					}
-					now := time.Now().UTC()
-					elapsed := time.Since(start).Seconds() * 1000
+					observed := time.Now()
+					deadline, hasDeadline := ctx.Deadline()
+					if ctx.Err() != nil || (hasDeadline && !observed.Before(deadline)) {
+						result.Status = "timeout"
+						err := ctx.Err()
+						if err == nil {
+							err = context.DeadlineExceeded
+						}
+						addError(&result.Errors, "observation_deadline", err)
+						return
+					}
+					now := observed.UTC()
+					elapsed := observed.Sub(start).Seconds() * 1000
 					result.ConfirmedObservedAt, result.ConfirmationMs = &now, &elapsed
 					result.Status, result.QuorumVerified, result.TransactionProofVerified = "confirmed", true, true
 					result.DurableStateVerified, result.DurableStateHeight, result.DurableStateAppHash = true, state.Height, state.AppHash
+					result.DurableSnapshotSHA256, result.DurableSnapshotCacheHit = state.SnapshotSHA256, state.SnapshotCacheHit
 					return
 				}
 			}
@@ -688,13 +708,14 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 3, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 4, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
 		"Configured offered rate, measured offered/submission interarrival rates, queue delay and full-window final-submission throughput are separate. Interarrival rate uses (event count - 1)/(last - first); steady-state effective TPS remains null for this short bounded probe.",
 		"Code-zero execution is reported by local tx RPC. Confirmation independently verifies weighted CometBFT commit signatures and transaction Merkle inclusion against the signed header; this is not a cryptographic proof of the RPC execution result.",
 		"Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
+		"Every durable observation freshly streams and hashes the current file. Only identical bytes reuse whole-snapshot validation; transaction signatures and matching fee/nonce are still checked. Snapshot size remains bounded at16MiB; this client is not yet a ten-minute high-history load driver.",
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
 	}}
 	runErr := func() error {
@@ -716,6 +737,15 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
+		paths := make([]string, 0, len(m.Nodes))
+		for _, node := range m.Nodes {
+			paths = append(paths, node.ABCIStatePath)
+		}
+		reader, err := newDurableReader(migration, paths)
+		if err != nil {
+			return err
+		}
+		defer func() { r.DurableReadback = reader.stats() }()
 		r.ChainID, r.GenesisSHA256 = m.ChainID, m.GenesisHash
 		for _, n := range m.Nodes {
 			r.Endpoints = append(r.Endpoints, n.RPCURL)
@@ -764,7 +794,7 @@ func execute(o options) error {
 			r.LoadQueues = runPacedTransactions(ctx, o, started, r.Transactions,
 				func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &r.Transactions[i]) },
 				func(i int, start time.Time) {
-					observeAcceptedTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i], start)
+					observeAcceptedTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i], start)
 				})
 		} else {
 			r.ObserverConcurrency = 0 // closed-loop workers observe their own submissions
@@ -782,7 +812,7 @@ func execute(o options) error {
 						r.Transactions[i].offerMonotonic = time.Now()
 						offered := r.Transactions[i].offerMonotonic.UTC()
 						r.Transactions[i].OfferedAt = &offered
-						observeTransaction(ctx, o, m, migration, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i])
+						observeTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i])
 					}
 				}()
 			}
