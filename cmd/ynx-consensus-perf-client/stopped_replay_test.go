@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -72,11 +74,41 @@ func TestStoppedNetworkReplay(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if result.RoundsRequested > 1 {
+		if result.RoundsRequested > 32 || len(txs)*result.RoundsRequested > maxTransactions || result.RoundsCompleted != result.RoundsRequested || len(result.Transactions) != len(txs)*result.RoundsRequested {
+			t.Fatal("incomplete bounded sender rounds")
+		}
+		initial := txs
+		txs = make([]cmttypes.Tx, 0, len(result.Transactions))
+		for round := 1; round <= result.RoundsRequested; round++ {
+			var journal struct {
+				Round        int
+				Transactions []cmttypes.Tx
+			}
+			read(filepath.Join(work, "network", fmt.Sprintf("sender-round-%02d.signed.json", round)), &journal)
+			if journal.Round != round || len(journal.Transactions) != len(initial) {
+				t.Fatal("invalid signed round journal")
+			}
+			for i, raw := range journal.Transactions {
+				tx, err := consensus.DecodeSignedTransaction(raw)
+				base, baseErr := consensus.DecodeSignedTransaction(initial[i])
+				observed := result.Transactions[(round-1)*len(initial)+i]
+				reported, reportErr := base64.StdEncoding.DecodeString(observed.SignedTransaction)
+				if err != nil || baseErr != nil || reportErr != nil || tx.Verify(migration.Network.ChainID) != nil || tx.From != base.From || tx.To != base.To || tx.Amount != base.Amount || tx.Fee != base.Fee || tx.Nonce != uint64(round) || !bytes.Equal(raw, reported) || observed.Round != round {
+					t.Fatal("round payload differs from signed fixture or report")
+				}
+				txs = append(txs, raw)
+			}
+		}
+	}
 	if result.Summary.FinalSubmitted != len(txs) {
 		t.Fatal("incomplete final submission count")
 	}
 	expected := map[string]bool{}
 	for _, tx := range txs {
+		if expected[hex.EncodeToString(tx.Hash())] {
+			t.Fatal("duplicate signed workload transaction")
+		}
 		expected[hex.EncodeToString(tx.Hash())] = true
 	}
 	type proof struct {

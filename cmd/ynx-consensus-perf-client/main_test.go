@@ -48,6 +48,19 @@ func TestEndpointAndWorkloadBounds(t *testing.T) {
 	if validateOptions(o) == nil {
 		t.Fatal("unbounded timeout accepted")
 	}
+	o.timeout = 10 * time.Second
+	o.rounds = 2
+	if validateOptions(o) == nil {
+		t.Fatal("repeated driver without durable report destination accepted")
+	}
+	o.output = "new-result.json"
+	if err := validateOptions(o); err != nil {
+		t.Fatal(err)
+	}
+	o.rounds = 33
+	if validateOptions(o) == nil {
+		t.Fatal("unbounded round count accepted")
+	}
 }
 
 func TestExpandedDecoderBoundIsFinite(t *testing.T) {

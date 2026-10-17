@@ -34,5 +34,11 @@ test('expanded plans remain prepare-only and do not expand resource budgets', { 
       assert.notEqual(r.status, 0);
       assert.equal(fs.existsSync(work), false);
     }
+	for (const [count,rounds,rate,ok] of [[32,2,128,true],[64,4,128,true],[64,32,1000,true],[65,32,1000,false],[32,33,128,false],[32,0,128,false],[256,8,128,false]]) {
+		const r=spawnSync(process.execPath,[runner,'--count',String(count),'--rounds',String(rounds),'--offered-rate',String(rate),'--bin-dir',root,'--comet-bin',path.join(root,'cometbft'),'--work-parent',work],{encoding:'utf8',timeout:5000});
+		assert.equal(r.status===0,ok,r.stderr);
+		if(ok){const plan=JSON.parse(r.stdout);assert.equal(plan.rounds,rounds);assert.equal(plan.totalTransactions,count*rounds);assert.equal(plan.caps.clientTimeout,'10s');assert.equal(plan.caps.rssBytes,1024**3);assert.equal(plan.caps.dataBytes,32*1024**2);}
+		assert.equal(fs.existsSync(work),false);
+	}
   } finally { fs.rmSync(root, { recursive: true }); }
 });

@@ -12,15 +12,18 @@ const { values } = parseArgs({ options: {
   'bin-dir': { type: 'string' }, 'comet-bin': { type: 'string' },
   'work-parent': { type: 'string', default: 'artifacts/chain-network-performance' },
   count: { type: 'string', default: '32' },
+  rounds: { type: 'string', default: '1' },
   'offered-rate': { type: 'string', default: '0' },
 } });
 const count = Number(values.count);
 if (process.platform !== 'darwin') throw Error('this launcher requires the macOS proc_pidtaskinfo resource probe');
 // Match consensus.EphemeralWorkloadMaxTransactions; resource caps do not grow.
 if (!Number.isInteger(count) || count < 1 || count > 2048) throw Error('count must be 1..2048');
+const rounds = Number(values.rounds);
+if (!Number.isInteger(rounds) || rounds < 1 || rounds > 32 || count * rounds > 2048) throw Error('rounds must be 1..32 and total count at most 2048');
 const offeredRate = Number(values['offered-rate']);
 if (!Number.isFinite(offeredRate) || offeredRate < 0 || offeredRate > 2048) throw Error('offered-rate must be in 0..2048');
-if (offeredRate > 0 && (count - 1) / offeredRate >= 10) throw Error('offering span does not fit the full 10-second client deadline');
+if (offeredRate > 0 && rounds * (count - 1) / offeredRate >= 10) throw Error('offering span does not fit the full 10-second client deadline');
 if (!values['bin-dir'] || !values['comet-bin']) throw Error('prebuilt --bin-dir and --comet-bin are required');
 const bin = path.resolve(values['bin-dir']);
 const commands = {
@@ -33,7 +36,7 @@ const commands = {
 for (const command of Object.values(commands)) fs.accessSync(command, fs.constants.X_OK);
 const caps = { activeMs: 45000, cleanupMs: 15000, dataBytes: 32 * 1024 * 1024, rssBytes: 1024 ** 3, freeDiskFloorBytes: 1024 ** 3, rootDiskReserveBytes: 425 * 1024 ** 2, longLivedChildren: 9, threadsWithControlReserve: 320, fullHostSampleMs: 1000, logBytesPerProcess: 1024 * 1024, clientTimeout: '10s', clientConcurrency: 4, clientObservers: 4, gomaxprocs: 1 };
 if (!values.execute) {
-  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
+  console.log(JSON.stringify({ status: 'prepared_only_no_processes_started', commands, count, rounds, totalTransactions: count * rounds, offeredRate, caps, ports: { p2p: 31656, rpc: 31757, abci: 31858 } }, null, 2));
   process.exit(0);
 }
 
@@ -177,7 +180,7 @@ try {
       if (size > caps.dataBytes) fail(`local output/data exceeded ${caps.dataBytes} bytes`);
     } catch (error) { fail(error.message); }
   }, 250);
-  await waitExit(launch('fixture', commands.fixture, ['-ephemeral', '-output', network, '-count', String(count)]));
+  await waitExit(launch('fixture', commands.fixture, ['-ephemeral', '-output', network, '-count', String(count), ...(rounds > 1 ? ['-retain-ephemeral-senders'] : [])]));
   const manifestPath = path.join(network, 'network-manifest.json');
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   if (manifest.nodes.length !== 4 || !manifest.purpose.includes('local-ephemeral')) throw Error('not a local four-validator fixture');
@@ -198,7 +201,7 @@ try {
       await delay(100);
     }
   }
-  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate)]));
+  await waitExit(launch('client', commands.client, ['-manifest', manifestPath, '-transactions', path.join(network, 'transactions.json'), '-output', path.join(work, 'transactions-result.json'), '-timeout', caps.clientTimeout, '-concurrency', String(caps.clientConcurrency), '-observers', String(caps.clientObservers), '-offered-rate', String(offeredRate), '-rounds', String(rounds)]));
 } catch (error) {
   fail(error.message);
 } finally {
@@ -220,7 +223,7 @@ try {
     if (!exited || !groupGone) fail(`${name} process/group did not fully exit`);
     return { name, pid, exitCode, signal, exited, groupGone };
   });
-  const receipt = { schema: 3, startedAt: new Date(started).toISOString(), work, caps, count, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
+  const receipt = { schema: 3, startedAt: new Date(started).toISOString(), work, caps, count, rounds, totalTransactions: count * rounds, offeredRate, elapsedMs: Date.now() - started, cleanupMs: Date.now() - stopStarted, firstCause, peakRSSBytes, rssScope: 'kernel task info: launcher, parent, live children plus sampler and conservative fork-child reserve', peakDataBytes, peakThreadsWithControlReserve, peakLongLivedChildren, hostSamples, probeFailures, lastResourceSample, processes: processReceipt, allGroupsGone: processReceipt.every(c => c.exited && c.groupGone), resultPath: path.join(work, 'transactions-result.json') };
   fs.writeFileSync(path.join(work, 'window-receipt.json'), JSON.stringify(receipt, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   console.log(JSON.stringify(receipt, null, 2));
   process.exitCode = firstCause ? 1 : 0;

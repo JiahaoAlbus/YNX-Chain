@@ -20,6 +20,11 @@ func TestInclusionIntervalsExcludeEdgesGapsAndUnverifiedTransactions(t *testing.
 	if s.ActiveOfferInteriorIntervals != 2 || s.ActiveOfferInteriorTransactions != 4 || s.ActiveOfferInteriorSeconds != 2 || s.ActiveOfferInteriorTPS == nil || *s.ActiveOfferInteriorTPS != 2 {
 		t.Fatalf("wrong complete interior rate: %+v", s)
 	}
+	results[len(results)-1].Round = 2
+	if multiple := summarizeBlocks(results); multiple.ActiveOfferInteriorTPS != nil || multiple.ActiveOfferInteriorIntervals != 0 || !multiple.CompleteObservedBlockCoverage || len(multiple.Blocks) != 4 {
+		t.Fatal("round barriers invented continuous offered throughput")
+	}
+	results[len(results)-1].Round = 1
 	results[2].TransactionProofVerified = false
 	s = summarizeBlocks(results)
 	if s.ActiveOfferInteriorTPS != nil {

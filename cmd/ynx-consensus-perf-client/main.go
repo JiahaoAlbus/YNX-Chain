@@ -40,6 +40,7 @@ const maxTransactions = consensus.EphemeralWorkloadMaxTransactions
 type options struct {
 	manifest, transactions, output string
 	concurrency                    int
+	rounds                         int
 	observers                      int
 	offeredRate                    float64
 	timeout, poll                  time.Duration
@@ -61,6 +62,8 @@ type transactionResult struct {
 	offerMonotonic           time.Time
 	submitMonotonic          time.Time
 	Index                    int                `json:"index"`
+	Round                    int                `json:"round,omitempty"`
+	SignedTransaction        string             `json:"signedTransaction,omitempty"`
 	Hash                     string             `json:"hash"`
 	Endpoint                 string             `json:"endpoint"`
 	Bytes                    int                `json:"bytes"`
@@ -140,6 +143,8 @@ type summary struct {
 
 type report struct {
 	SchemaVersion        int                 `json:"schemaVersion"`
+	RoundsRequested      int                 `json:"roundsRequested"`
+	RoundsCompleted      int                 `json:"roundsCompleted"`
 	Kind                 string              `json:"kind"`
 	ChainID              string              `json:"chainId"`
 	GenesisSHA256        string              `json:"genesisSha256"`
@@ -174,6 +179,7 @@ func main() {
 	flag.Float64Var(&o.offeredRate, "offered-rate", 0, fmt.Sprintf("paced offers per second (0=legacy closed loop; positive at most %d)", maxTransactions))
 	flag.DurationVar(&o.timeout, "timeout", 20*time.Second, "overall setup and workload timeout (positive, at most 30s)")
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
+	flag.IntVar(&o.rounds, "rounds", 1, "bounded rounds using retained fixture senders (1..32; total transactions at most 2048); each round waits for durable finality")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		fmt.Fprintln(os.Stderr, "unexpected positional arguments")
@@ -186,6 +192,9 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	if o.rounds < 0 || o.rounds > 32 || (o.rounds > 1 && o.output == "") {
+		return errors.New("rounds must be 1..32 and repeated runs require a new output file")
+	}
 	if o.manifest == "" || o.transactions == "" {
 		return errors.New("-manifest and -transactions are required")
 	}
@@ -692,6 +701,9 @@ func summarize(results []transactionResult, seconds float64) summary {
 }
 
 func execute(o options) error {
+	if o.rounds == 0 {
+		o.rounds = 1
+	}
 	if err := validateOptions(o); err != nil {
 		return err
 	}
@@ -708,7 +720,7 @@ func execute(o options) error {
 		output = f
 		defer output.Close()
 	}
-	r := report{SchemaVersion: 4, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
+	r := report{SchemaVersion: 5, RoundsRequested: o.rounds, Kind: "bounded-local-four-validator-transaction-observation", StartedAt: time.Now().UTC(), Concurrency: o.concurrency, OfferedRate: o.offeredRate, ObserverConcurrency: o.observers, LoadMode: "closed_loop", TimeoutMs: o.timeout.Milliseconds(), PollMs: o.poll.Milliseconds(), GoVersion: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, GOMAXPROCS: runtime.GOMAXPROCS(0), SetupErrors: []errorObservation{}, Interpretation: []string{
 		"A bounded probe, not sustained TPS capacity or public-network evidence. Paced mode separates submit/observation pools; closed-loop mode limits entire lifetimes.",
 		"Latencies use the client monotonic clock from each submission start to first observed response; polling and RPC overhead are included. Percentiles exclude unobserved stages; all non-success counts remain explicit.",
 		"Rates share the complete workload window (submission plus observation/drain), excluding setup. Empty blocks, votes, rejected and failed executions are not effective transaction inclusions.",
@@ -717,12 +729,14 @@ func execute(o options) error {
 		"Final submission additionally reads and validates that node's persisted application state and matching native transaction fee/nonce. Header AppHash at transaction height authenticates prior application state; the local disk readback is separate evidence, not authenticated by that same-height header. Restart and all-node convergence are separate checks.",
 		"Every durable observation freshly streams and hashes the current file. Only identical bytes reuse whole-snapshot validation; transaction signatures and matching fee/nonce are still checked. Snapshot size remains bounded at16MiB; this client is not yet a ten-minute high-history load driver.",
 		"Submission transport errors retain unknown outcome and are never automatically retried. Repeated identical observation errors retain counts and first/last timestamps.",
+		"Repeated rounds use only manifest-bound ephemeral fixture senders, wait for the entire prior round to finish, and stop on any non-final result. Barriers and signing are included in full-window throughput; the offered-rate setting applies within each round, not continuously across barriers. Public signed envelopes are retained for read-only outcome recovery. The claim is never automatically removed or resumed.",
 	}}
 	runErr := func() error {
 		data, err := readBounded(o.manifest, 1024*1024)
 		if err != nil {
 			return err
 		}
+		manifestRaw := append([]byte(nil), data...)
 		var m consensus.EphemeralNetworkManifest
 		if err := strictJSON(data, &m); err != nil {
 			return err
@@ -758,12 +772,25 @@ func execute(o options) error {
 		if err != nil {
 			return err
 		}
-		if o.offeredRate > 0 && float64(len(txs)-1)/o.offeredRate >= o.timeout.Seconds() {
+		if o.offeredRate > 0 && float64(o.rounds*(len(txs)-1))/o.offeredRate >= o.timeout.Seconds() {
 			return errors.New("planned offering span cannot fit the complete configured timeout")
 		}
-		r.Transactions = make([]transactionResult, len(txs))
-		for i, tx := range txs {
-			r.Transactions[i] = transactionResult{Index: i, Hash: fmt.Sprintf("%X", tx.Hash()), Endpoint: m.Nodes[i%4].RPCURL, Bytes: len(tx), Status: "not_submitted", Errors: []errorObservation{}}
+		if len(txs)*o.rounds > maxTransactions {
+			return errors.New("total round transactions exceed bounded input limit")
+		}
+		var pool *ephemeralSenderPool
+		if o.rounds > 1 {
+			pool, err = loadSenderPool(o.manifest, manifestRaw, m, migration, txs, o.rounds)
+			if err != nil {
+				return err
+			}
+			if err := claimSenderPool(o.manifest); err != nil {
+				return err
+			}
+		}
+		r.Transactions = make([]transactionResult, len(txs)*o.rounds)
+		for i := range r.Transactions {
+			r.Transactions[i] = transactionResult{Index: i, Round: i/len(txs) + 1, Status: "not_submitted", Errors: []errorObservation{}}
 		}
 		trusted, err := loadTrustedValidators(m)
 		if err != nil {
@@ -789,37 +816,54 @@ func execute(o options) error {
 		started := time.Now()
 		at := started.UTC()
 		r.MeasurementStartedAt = &at
-		if o.offeredRate > 0 {
-			r.LoadMode = "paced_submission_and_observation"
-			r.LoadQueues = runPacedTransactions(ctx, o, started, r.Transactions,
-				func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &r.Transactions[i]) },
-				func(i int, start time.Time) {
-					observeAcceptedTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i], start)
-				})
-		} else {
-			r.ObserverConcurrency = 0 // closed-loop workers observe their own submissions
-			jobs := make(chan int, len(txs))
-			for i := range txs {
-				jobs <- i
+		var roundErr error
+		r.RoundsCompleted, roundErr = runSenderRounds(ctx, o.rounds, txs, pool, r.Transactions, func(txs []cmttypes.Tx, results []transactionResult) {
+			for i := range results {
+				results[i].Endpoint = m.Nodes[i%4].RPCURL
 			}
-			close(jobs)
-			var wg sync.WaitGroup
-			for worker := 0; worker < o.concurrency; worker++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					for i := range jobs {
-						r.Transactions[i].offerMonotonic = time.Now()
-						offered := r.Transactions[i].offerMonotonic.UTC()
-						r.Transactions[i].OfferedAt = &offered
-						observeTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &r.Transactions[i])
-					}
-				}()
+			roundStarted := time.Now()
+			if o.offeredRate > 0 {
+				r.LoadMode = "paced_submission_and_observation"
+				roundQueues := runPacedTransactions(ctx, o, roundStarted, results,
+					func(i int) (time.Time, bool) { return submitTransaction(ctx, clients[i%4], txs[i], &results[i]) },
+					func(i int, start time.Time) {
+						observeAcceptedTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &results[i], start)
+					})
+				if roundQueues.PeakAwaitingSubmission > r.LoadQueues.PeakAwaitingSubmission {
+					r.LoadQueues.PeakAwaitingSubmission = roundQueues.PeakAwaitingSubmission
+				}
+				if roundQueues.PeakAwaitingObservation > r.LoadQueues.PeakAwaitingObservation {
+					r.LoadQueues.PeakAwaitingObservation = roundQueues.PeakAwaitingObservation
+				}
+			} else {
+				r.ObserverConcurrency = 0 // closed-loop workers observe their own submissions
+				jobs := make(chan int, len(txs))
+				for i := range txs {
+					jobs <- i
+				}
+				close(jobs)
+				var wg sync.WaitGroup
+				for worker := 0; worker < o.concurrency; worker++ {
+					wg.Add(1)
+					go func() {
+						defer wg.Done()
+						for i := range jobs {
+							results[i].offerMonotonic = time.Now()
+							offered := results[i].offerMonotonic.UTC()
+							results[i].OfferedAt = &offered
+							observeTransaction(ctx, o, m, reader, trusted, clients[i%4], m.Nodes[i%4].ABCIStatePath, txs[i], &results[i])
+						}
+					}()
+				}
+				wg.Wait()
 			}
-			wg.Wait()
-		}
+		})
+
 		r.Summary = summarize(r.Transactions, time.Since(started).Seconds())
-		if r.Summary.FinalSubmitted != len(txs) {
+		if roundErr != nil {
+			return roundErr
+		}
+		if r.Summary.FinalSubmitted != len(r.Transactions) {
 			return errors.New("bounded run incomplete: inspect per-transaction outcomes; no submission will be retried")
 		}
 		return nil

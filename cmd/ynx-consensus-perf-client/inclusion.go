@@ -64,6 +64,12 @@ func summarizeBlocks(results []transactionResult) blockStatistics {
 			s.CompleteObservedBlockCoverage = false
 		}
 	}
+	for _, r := range results {
+		if r.Round > 1 {
+			s.Interpretation = "Repeated rounds contain finality barriers. Full block observations are retained, but active-offer interior TPS is withheld; full-window throughput includes all barriers and drain. This is not sustained capacity."
+			return s
+		}
+	}
 	for i := 1; i < len(s.Blocks)-1; i++ {
 		previous, current := s.Blocks[i-1], s.Blocks[i]
 		if !previous.Complete || !current.Complete || current.Height != previous.Height+1 || firstOffer.IsZero() || previous.Time.Before(firstOffer) || current.Time.After(lastOffer) {
