@@ -11,3 +11,6 @@ test('stopped replay uses only the retained binary and exact two tests',()=>{
 test('stopped window rejects external paths, nested paths and empty mode',()=>{
   for(const w of ['/tmp/window-eEfGE7','/work/artifacts/chain-network-performance/window-eEfGE7/network',''])assert.throws(()=>lightCommand('/work',w));
 });
+test('native compile is fixed clang only and cannot combine replay',()=>{
+  const p=lightCommand('/work',undefined,true);assert.equal(p.mode,'native_compile');assert.equal(p.args[2],'/usr/bin/clang');assert.ok(p.args.includes('-Werror'));assert.match(p.args.at(-1),/ynx-consensus-perf-host-owned-v2$/);assert.throws(()=>lightCommand('/work','/work/artifacts/chain-network-performance/window-eEfGE7',true));
+});

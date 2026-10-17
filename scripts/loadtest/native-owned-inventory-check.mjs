@@ -10,13 +10,17 @@ import {validateNativeResourceSample} from './native-resource-sample.mjs';
 import {ownedProcessSet,ownedProcessSetFromNative} from './owned-process-set.mjs';
 
 // One private stable process family; no Go, ports, application state or UI.
-if(process.argv[2]==='--worker'){
+export function assertControlledWorkerExit(job) {
+  if(job?.exited!==true||job.code!==0||job.signal!==null)throw Error(`private family worker exit is not qualified: ${JSON.stringify(job)}`);
+}
+const isMain=process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url);
+if(isMain&&process.argv[2]==='--worker'){
   if(!process.send)throw Error('private worker requires parent IPC');
   const children=[];
   let closing=false;
   const stop=async()=>{
     if(closing)return;closing=true;
-    for(const c of children)try{process.kill(c.group ? -c.pid : c.pid,'SIGTERM')}catch(e){if(e.code!=='ESRCH')process.exitCode=1}
+    for(const c of children)try{process.kill(c.group ? -c.pid : c.pid,'SIGTERM')}catch(e){if(e.code!=='ESRCH'){console.error('private worker cleanup: '+e.message);process.exitCode=1}}
     await Promise.all(children.map(c=>c.closed));if(process.connected)process.disconnect();
   };
   process.on('SIGTERM',stop);process.on('disconnect',stop);
@@ -30,10 +34,11 @@ if(process.argv[2]==='--worker'){
     }
     process.send({type:'ready'});
   }catch(e){process.send({type:'error',message:e.message});await stop()}
-}else{
+}else if(isMain){
   const args=process.argv.slice(2),value=key=>{const i=args.indexOf(key);return i<0?undefined:args[i+1]};
   const binary=path.resolve(value('--binary')??'artifacts/chain-performance-20261017/ynx-consensus-perf-host-owned-v2');
   const caps={activeMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024,threadsWithControlReserve:320,probeMs:1500,probeBytes:1024*1024};
+  if(value('--active-ms')!==undefined){const active=Number(value('--active-ms'));if(!Number.isInteger(active)||active<1||active>caps.activeMs)throw Error('active time can only be reduced');caps.activeMs=active;}
   if(!args.includes('--execute')){
     console.log(JSON.stringify({status:'prepared_only_no_processes_started',binary,caps,requires:'fresh Root tiny-native grant; new binary SHA via --sha256; exclusive --output; native pressure1; stable owned family/ps differential and cleanup'}));
   }else{
@@ -60,8 +65,9 @@ if(process.argv[2]==='--worker'){
       result.preflight=JSON.parse(first.stdout);
       charge(result.preflight);
       validateNativeResourceSample(result.preflight,process.pid,{expectedPIDs:[process.pid]});
-      job=spawn(process.execPath,[fileURLToPath(import.meta.url),'--worker'],{detached:true,stdio:['ignore','ignore','ignore','ipc']});
-      result.job={pid:job.pid??null,exited:false};
+      job=spawn(process.execPath,[fileURLToPath(import.meta.url),'--worker'],{detached:true,stdio:['ignore','ignore','pipe','ipc']});
+      result.job={pid:job.pid??null,exited:false,stderr:''};
+      job.stderr.on('data',data=>{if(Buffer.byteLength(result.job.stderr)+data.length>65536){fail('private worker stderr bound');signal(-job.pid,'SIGTERM')}else result.job.stderr+=data.toString()});
       jobClosed=new Promise(resolve=>job.once('close',(code,signal)=>{Object.assign(result.job,{exited:true,code,signal});resolve()}));
       await new Promise((resolve,reject)=>{
         const timeout=setTimeout(()=>reject(Error('private family readiness deadline')),3000);
@@ -103,6 +109,7 @@ if(process.argv[2]==='--worker'){
       result.childrenGone=result.children.every(c=>gone(c.pid)&&(!c.group||gone(-c.pid)));
       if(!result.groupGone||!result.childrenGone)fail('owned cleanup incomplete');
       if(jobClosed&&result.groupGone)await Promise.race([jobClosed,delay(500)]);
+      if(job?.pid)try{assertControlledWorkerExit(result.job)}catch(e){fail(e.message)}
       result.elapsedMs=Date.now()-started;
       fs.writeFileSync(output,JSON.stringify(result,null,2)+'\n',{flag:'wx',mode:0o600});
       console.log(JSON.stringify({firstCause:result.firstCause,launcher:result.launcher,job:result.job,children:result.children,peakRSS:result.peakRSS,peakThreads:result.peakThreads,groupGone:result.groupGone,childrenGone:result.childrenGone,elapsedMs:result.elapsedMs}));

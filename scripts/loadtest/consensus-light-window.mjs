@@ -9,8 +9,8 @@ import {promisify} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
 import {lightCommand} from './consensus-light-plan.mjs';
-const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'}}});
-const plan=lightCommand(process.cwd(),values['stopped-window']);
+const {values}=parseArgs({options:{execute:{type:'boolean',default:false},output:{type:'string'},'stopped-window':{type:'string'},'native-compile':{type:'boolean',default:false}}});
+const plan=lightCommand(process.cwd(),values['stopped-window'],values['native-compile']);
 if(!values.execute){console.log(JSON.stringify({status:'prepared_only_no_processes_started',plan,caps:{totalMs:45000,cleanupMs:15000,ownedRSSBytes:400*1024*1024},requires:'fresh Root grant and --execute --output NEW_FILE'}));process.exit(0)}
 if(process.platform!=='darwin'||!values.output)throw Error('macOS and a new explicit --output required');
 const output=path.resolve(values.output);if(fs.existsSync(output))throw Error('receipt path already exists; preserve original');
@@ -38,6 +38,7 @@ async function sample(initial=false){
  if(initial){const {stdout}=await exec('/usr/bin/vm_stat',[],{timeout:1500,killSignal:'SIGKILL',maxBuffer:65536});const free=Number(stdout.match(/Pages free:\s+(\d+)/)?.[1])*Number(stdout.match(/page size of (\d+)/)?.[1]);result.vmStat={sampledAt:new Date().toISOString(),raw:stdout,freePageBytes:Number.isFinite(free)?free:null,interpretation:'Diagnostic free pages only, not available bytes; admission uses native memoryPressure dispatch level and actual owned RSS cap'}}
 }
 try{
+ if(plan.mode==='native_compile'&&fs.existsSync(plan.args.at(-1)))throw Error('preserve existing native candidate binary');
  if(plan.mode==='stopped_replay'){
   if(fs.realpathSync(plan.window)!==plan.window||fs.realpathSync(plan.binary)!==plan.binary)throw Error('stopped inputs must not be symlinks');
   const h=createHash('sha256');for await(const chunk of fs.createReadStream(plan.binary))h.update(chunk);if(h.digest('hex')!==plan.binarySHA256)throw Error('retained test binary digest mismatch');

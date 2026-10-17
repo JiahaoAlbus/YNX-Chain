@@ -1,7 +1,11 @@
 import path from 'node:path';
 
-export function lightCommand(root, stoppedWindow) {
+export function lightCommand(root, stoppedWindow, nativeCompile = false) {
   const env={GOMAXPROCS:'1',GOGC:'50',GOMEMLIMIT:'160MiB'};
+  if(nativeCompile){
+    if(stoppedWindow!==undefined)throw Error('native compile and stopped replay are exclusive');
+    return {mode:'native_compile',command:'nice',args:['-n','10','/usr/bin/clang','-std=c11','-Wall','-Wextra','-Werror','-O2','scripts/loadtest/darwin-process-snapshot.c','-o',path.join(root,'artifacts/chain-performance-20261017/ynx-consensus-perf-host-owned-v2')],env};
+  }
   if(stoppedWindow===undefined)return {mode:'focused_go',command:'nice',args:['-n','10','/opt/homebrew/bin/go','test','-p','1','./cmd/ynx-consensus-perf-client','-run','TestTerminalStream|TestReadySender','-count=1','-timeout=45s'],env};
   const window=path.resolve(stoppedWindow);
   const relative=path.relative(path.join(root,'artifacts/chain-network-performance'),window);
