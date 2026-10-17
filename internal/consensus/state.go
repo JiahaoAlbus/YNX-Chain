@@ -1,8 +1,6 @@
 package consensus
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -408,7 +406,15 @@ func (s CommittedState) calculateHash() (string, error) {
 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
-	doc := committedStateHashDocument{
+	value, err := hashCommittedStateDocument(s.hashDocument(domain, version))
+	if err != nil {
+		return "", fmt.Errorf("encode committed state hash document: %w", err)
+	}
+	return value, nil
+}
+
+func (s CommittedState) hashDocument(domain string, version int) committedStateHashDocument {
+	return committedStateHashDocument{
 		Domain:                     domain,
 		Version:                    version,
 		ChainID:                    s.ChainID,
@@ -461,12 +467,6 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		DexPools:                   s.DexPools,
 		DexEvents:                  s.DexEvents,
 	}
-	payload, err := json.Marshal(doc)
-	if err != nil {
-		return "", fmt.Errorf("encode committed state hash document: %w", err)
-	}
-	sum := sha256.Sum256(payload)
-	return hex.EncodeToString(sum[:]), nil
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
