@@ -122,7 +122,7 @@ export class OriginalHostTerminalJournal {
   this.#entered++;let s;
   try{
    const prior=[...this.#firstEnters.values()].find(s=>s.raw===raw);if(prior){if(prior.firstCausePresent)throw prior.firstCause;fail('FIRST_ENTER_ALREADY_CAPTURED');}
-   this.#current();const input=firstEnterRequest(raw),key=sha(canonicalJSON({requestId:input.requestId,operation:input.operation,phase:input.phase}));
+   this.#current();if([...this.#records.values()].some(row=>!row.terminal))fail('HOST_TERMINAL_PREVIOUS_UNKNOWN');const input=firstEnterRequest(raw),key=sha(canonicalJSON({requestId:input.requestId,operation:input.operation,phase:input.phase}));
    if(this.#firstEnters.has(key)||this.#records.has(key)||this.#coldCount+new Set([...this.#records.keys(),...this.#firstEnters.keys()]).size>=64)fail('FIRST_ENTER_ALREADY_CAPTURED');
    s={raw,input,key,owner:null,methods:null,captureEntered:false,active:1,retired:false,unknown:true,accepted:false,acceptSelected:false,challenge:null,firstCausePresent:false,firstCause:undefined,cleanupCausePresent:false,cleanupCause:undefined,cleanupComplete:false,closeConfirmed:false,current:()=>this.#current(),remember:cause=>this.#remember(cause)};
    s.client=firstEnterClient(s);this.#firstEnters.set(key,s); // Reserve before partial Native capture.
