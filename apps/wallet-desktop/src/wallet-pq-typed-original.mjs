@@ -1,6 +1,7 @@
 import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
 import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
 import {inspectPQReviewedTypedTransportOriginal} from './features/pq-transaction/typed-action-reviewed-transport.mjs';
+import {inspectPQReviewedTypedActionQuery} from './features/pq-transaction/typed-action-query.mjs';
 import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
 import {encodePQActionTransportData} from '@ynx-chain/wallet-auth/pq-action-transport';
 import {createHash} from 'node:crypto';
@@ -37,4 +38,18 @@ export function pqTypedOriginalSummary(value){
    status:'pq-signed-unsubmitted',outcome:'original-verified-locally',signatureVerified:true,classicWitnessValidationRequired:result.classicWitnessValidationRequired,
    networkQueryPerformed:false,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetryExact:false,canRetry:false,clearsOriginal:false,consensusFinality:false});
  }catch{fail()}
+}
+
+// Main-only private original adapter. No journal mutation, submission or retry.
+export async function observePQTypedOriginalQuery(value,readOriginal,assertCurrent){
+ if(typeof readOriginal!=='function'||typeof assertCurrent!=='function')fail();
+ assertCurrent();
+ const saved=parsePQTypedOriginalRecord(value),summary=pqTypedOriginalSummary(saved),t=saved.typed;
+ const network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
+ const original={reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:{account:saved.account,networkId:t.networkId},memberHash:t.memberHash,transportHash:saved.hash};
+ const raw=Buffer.from(saved.wire,'base64url');
+ const response=await readOriginal(t.review,raw,original,assertCurrent);
+ assertCurrent();const observed=inspectPQReviewedTypedActionQuery(t.review,raw,original,response);assertCurrent();
+ const outcome={committed:'typed-commit-observed',rejected:'typed-rejection-observed',unknown:'typed-outcome-unknown'}[observed.observedStatus];
+ return Object.freeze({...summary,outcome,networkQueryPerformed:true});
 }

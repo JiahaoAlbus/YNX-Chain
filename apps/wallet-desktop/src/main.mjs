@@ -1,3 +1,4 @@
+import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
 import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
 import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer} from './wallet-pq-verifier-assets.mjs';
@@ -906,7 +907,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     pqNetworkId:PQ_CANONICAL_NETWORK_ID,
     vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
-    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, intentStore:originalTransactionIntentStore })
+    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, pqReadTypedOriginal:createPQTypedActionNodeReader().readOriginal, intentStore:originalTransactionIntentStore })
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });

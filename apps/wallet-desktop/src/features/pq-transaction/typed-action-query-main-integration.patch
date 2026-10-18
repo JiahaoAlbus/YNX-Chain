@@ -1,0 +1,129 @@
+diff --git a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+index 4485fd7..67c40b3 100644
+--- a/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
++++ b/apps/wallet-desktop/src/wallet-pq-typed-original.mjs
+@@ -1,6 +1,7 @@
+ import {exactPQRecord} from '@ynx-chain/wallet-auth/pq-wallet-contract';
+ import {parsePQAccountAuthorization} from '@ynx-chain/wallet-auth/pq-wallet-policy';
+ import {inspectPQReviewedTypedTransportOriginal} from './features/pq-transaction/typed-action-reviewed-transport.mjs';
++import {inspectPQReviewedTypedActionQuery} from './features/pq-transaction/typed-action-query.mjs';
+ import {PRIVATE_FILE_MAX_BYTES} from './bounded-private-file-read.mjs';
+ const fail=()=>{throw Object.assign(new Error('Keep the original typed PQ record; its retained inputs could not be verified.'),{code:'PQ_TYPED_ORIGINAL_INVALID'})};
+ const freeze=value=>{if(value&&typeof value==='object'){for(const child of Object.values(value))freeze(child);Object.freeze(value)}return value};
+@@ -30,3 +31,17 @@ export function pqTypedOriginalSummary(value){
+    networkQueryPerformed:false,dataOnly:true,nativeAdmission:false,permissionGranted:false,submitted:false,canRetryExact:false,canRetry:false,clearsOriginal:false,consensusFinality:false});
+  }catch{fail()}
+ }
++
++// Main-only private original adapter. No journal mutation, submission or retry.
++export async function observePQTypedOriginalQuery(value,readOriginal,assertCurrent){
++ if(typeof readOriginal!=='function'||typeof assertCurrent!=='function')fail();
++ assertCurrent();
++ const saved=parsePQTypedOriginalRecord(value),summary=pqTypedOriginalSummary(saved),t=saved.typed;
++ const network={owner:saved.account,chainId:t.networkId,nativeChainId:'6423'};
++ const original={reviewSnapshot:parsePQAccountAuthorization(t.reviewSnapshot,network),signingSnapshot:parsePQAccountAuthorization(t.signingSnapshot,network),selectedBinding:{account:saved.account,networkId:t.networkId},memberHash:t.memberHash,transportHash:saved.hash};
++ const raw=Buffer.from(saved.wire,'base64url');
++ const response=await readOriginal(t.review,raw,original,assertCurrent);
++ assertCurrent();const observed=inspectPQReviewedTypedActionQuery(t.review,raw,original,response);assertCurrent();
++ const outcome={committed:'typed-commit-observed',rejected:'typed-rejection-observed',unknown:'typed-outcome-unknown'}[observed.observedStatus];
++ return Object.freeze({...summary,outcome,networkQueryPerformed:true});
++}
+diff --git a/apps/wallet-desktop/src/transaction-submissions.mjs b/apps/wallet-desktop/src/transaction-submissions.mjs
+index 72648a3..c8e31fa 100644
+--- a/apps/wallet-desktop/src/transaction-submissions.mjs
++++ b/apps/wallet-desktop/src/transaction-submissions.mjs
+@@ -5,6 +5,7 @@ import { CANONICAL_RPC_URL } from "./rpc.mjs";
+ import {originalRetention} from "./transaction-intent-store.mjs";
+ import {parsePQReadResponse} from './wallet-pq-submission-evidence.mjs';
+ import {PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
++import {observePQTypedOriginalQuery} from './wallet-pq-typed-original.mjs';
+
+ const HASH = /^0x[0-9a-f]{64}$/;
+ const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
+@@ -15,7 +16,7 @@ export class TransactionSubmissions {
+   #records = new Map();
+   #busy = new Set();
+   #savedOnly = new Map();
+-  constructor({ provider, capabilities, verifyChain, intentStore, pqReadOriginal = null }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; this.pqReadOriginal = pqReadOriginal; }
++  constructor({ provider, capabilities, verifyChain, intentStore, pqReadOriginal = null, pqReadTypedOriginal = null }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; this.pqReadOriginal = pqReadOriginal; this.pqReadTypedOriginal = pqReadTypedOriginal; }
+   // Main-owned fixed producer transport only. This is a read observation,
+   // never a broadcast, retry capability or journal-resolution operation.
+   async checkPQ(hash, account, guard) {
+@@ -24,7 +25,13 @@ export class TransactionSubmissions {
+     return this.#exclusive(account, async () => {
+       guard.assert();
+       const typed=await this.intentStore?.inspectPQTypedOriginal?.(account,hash,()=>guard.assert());
+-      guard.assert();if(typed)return typed;
++      guard.assert();if(typed){
++        if(typeof this.pqReadTypedOriginal!=='function'||typeof this.intentStore?.readPQOriginals!=='function')throw failure('PQ_READ_SOURCE_UNAVAILABLE','The original typed read channel is unavailable. Keep the original.');
++        const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();
++        const saved=originals.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
++        if(!saved)throw failure('TRANSACTION_INTENT_REQUIRED','The retained original typed record is required.');
++        const result=await observePQTypedOriginalQuery(saved,this.pqReadTypedOriginal,()=>guard.assert());guard.assert();return result;
++      }
+       if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
+       const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());
+       guard.assert();
+diff --git a/apps/wallet-desktop/src/canonical-transaction-sender.mjs b/apps/wallet-desktop/src/canonical-transaction-sender.mjs
+index a13bbd4..3d7ec16 100644
+--- a/apps/wallet-desktop/src/canonical-transaction-sender.mjs
++++ b/apps/wallet-desktop/src/canonical-transaction-sender.mjs
+@@ -8,11 +8,11 @@ import { TransactionSubmissions } from "./transaction-submissions.mjs";
+ export class CanonicalTransactionSender {
+   #prepared = new WeakSet();
+   #quotes = new WeakMap();
+-  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch, intentStore, pqReadOriginal = null } = {}) {
++  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch, intentStore, pqReadOriginal = null, pqReadTypedOriginal = null } = {}) {
+     if (rpcUrl !== CANONICAL_RPC_URL) throw Object.assign(new Error("Only the frozen canonical RPC is accepted"), { code: "RPC_ENDPOINT_REJECTED" });
+     this.provider = new CanonicalJsonRpcProvider(fetchImpl);
+     this.network = network ?? new CanonicalAccountNetwork({ fetchImpl });
+-    this.submissions = new TransactionSubmissions({ provider: this.provider, capabilities: () => this.#capabilities(), verifyChain: () => this.network.verifyChain(), intentStore, pqReadOriginal });
++    this.submissions = new TransactionSubmissions({ provider: this.provider, capabilities: () => this.#capabilities(), verifyChain: () => this.network.verifyChain(), intentStore, pqReadOriginal, pqReadTypedOriginal });
+   }
+   async prepare(account, input) {
+     try {
+diff --git a/apps/wallet-desktop/src/main.mjs b/apps/wallet-desktop/src/main.mjs
+index ad839e0..1ea3b20 100644
+--- a/apps/wallet-desktop/src/main.mjs
++++ b/apps/wallet-desktop/src/main.mjs
+@@ -1,3 +1,4 @@
++import {createPQTypedActionNodeReader} from './features/pq-transaction/typed-action-query-node.mjs';
+ import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+ import {recordRPCMetadataFailure} from './rpc-metadata-failure-record.mjs';
+ import {createPackagedPQFinalityVerifier,createPackagedPQHostProducer} from './wallet-pq-verifier-assets.mjs';
+@@ -901,7 +902,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
+     pqNetworkId:PQ_CANONICAL_NETWORK_ID,
+     vault: passwordVault,
+     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
+-    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, intentStore:originalTransactionIntentStore })
++    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), pqReadOriginal:readOriginalTransaction, pqReadTypedOriginal:createPQTypedActionNodeReader().readOriginal, intentStore:originalTransactionIntentStore })
+   });
+   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
+   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork, onTransferAttempt: record => { mainWindow?.webContents.send("wallet:transfer-attempt",record); } });
+diff --git a/apps/wallet-desktop/src/transaction-resolution-display.mjs b/apps/wallet-desktop/src/transaction-resolution-display.mjs
+index 44d1de7..1b65bd9 100644
+--- a/apps/wallet-desktop/src/transaction-resolution-display.mjs
++++ b/apps/wallet-desktop/src/transaction-resolution-display.mjs
+@@ -55,7 +55,8 @@ export function projectPQOriginalObservation(response,{account,hash,kind}){
+   if(kind==='pq-typed-action'){
+     const row=values(value,['account','kind','operationId','hash','memberHash','networkId','actionKind','nonce','reviewExecutionHeight','executionHeight','status','outcome','signatureVerified','classicWitnessValidationRequired','networkQueryPerformed','dataOnly','nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality']);
+     const decimal=v=>typeof v==='string'&&/^[1-9][0-9]{0,19}$/.test(v)&&BigInt(v)<=18446744073709551615n;
+-    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||row.outcome!=='original-verified-locally'||row.status!=='pq-signed-unsubmitted'||row.signatureVerified!==true||row.dataOnly!==true||typeof row.classicWitnessValidationRequired!=='boolean'||!HASH.test(row.memberHash??'')||!/^[0-9a-f]{64}$/.test(row.networkId??'')||!/^[A-Za-z0-9_-]{1,128}$/.test(row.operationId??'')||!/^[a-z_]{1,64}$/.test(row.actionKind??'')||![row.nonce,row.reviewExecutionHeight,row.executionHeight].every(decimal)||['networkQueryPerformed','nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound local typed original');
++    const networkObservation=['typed-commit-observed','typed-rejection-observed','typed-outcome-unknown'].includes(row.outcome);
++    if(envelope.ok!==true||row.account!==account||row.hash!==hash||row.kind!==kind||(!networkObservation&&row.outcome!=='original-verified-locally')||row.networkQueryPerformed!==networkObservation||row.status!=='pq-signed-unsubmitted'||row.signatureVerified!==true||row.dataOnly!==true||typeof row.classicWitnessValidationRequired!=='boolean'||!HASH.test(row.memberHash??'')||!/^[0-9a-f]{64}$/.test(row.networkId??'')||!/^[A-Za-z0-9_-]{1,128}$/.test(row.operationId??'')||!/^[a-z_]{1,64}$/.test(row.actionKind??'')||![row.nonce,row.reviewExecutionHeight,row.executionHeight].every(decimal)||['nativeAdmission','permissionGranted','submitted','canRetryExact','canRetry','clearsOriginal','consensusFinality'].some(k=>row[k]!==false))throw Error('Unbound local typed original');
+     return Object.freeze({outcome:row.outcome});
+   }
+   const row=values(value,['account','hash','kind','outcome','retryAuthorized','clearsOriginal','consensusFinality',...(Object.hasOwn(value??{},'decimalFields')?['decimalFields']:[]),...(Object.hasOwn(value??{},'durability')?['durability']:[])]);
+diff --git a/apps/wallet-desktop/src/renderer.js b/apps/wallet-desktop/src/renderer.js
+index 0f36faa..212934b 100644
+--- a/apps/wallet-desktop/src/renderer.js
++++ b/apps/wallet-desktop/src/renderer.js
+@@ -908,7 +908,7 @@ async function refreshTransactions() {
+             if(busy||!current()||keyState.locked)return;busy=true;check.disabled=true;
+             const action=++transactionActionRevision,keyRevision=keyState.revision,live=()=>current()&&action===transactionActionRevision&&keyRevision===keyState.revision&&!keyState.locked;
+             try{const response=await window.ynxWallet.pqTransactionStatus(record.hash);if(!live())return;const observed=projectPQOriginalObservation(response,{account,hash:record.hash,kind:record.kind});
+-              if(!live())return;document.querySelector('#transaction-resolution-result').textContent=observed?({'original-verified-locally':'本地原操作、双签名及原始快照已核对；未查询链上状态，不代表已提交或最终确认。 / Original action, both signatures and original snapshots verified locally. No chain query, submission or finality claim.','pending-local-durable':'原件已存在于节点本地快照，尚未入块。原件保留，不重试。 / Pending in the local snapshot; original retained, no retry.','local-inclusion-durable':'原件已在节点本地快照中入块，不代表共识最终性；原件保留。 / Local durable inclusion, not consensus finality; original retained.','not-found-observed':'该节点当前未找到原件，不证明未发生；保留 UNKNOWN，不重签或重发。 / Not found at this producer; UNKNOWN retained, no replacement signature or send.','outcome-unknown':'原件结果仍未知；保留原件，不重签或重发。 / Outcome unknown; original retained, no replacement signature or send.'}[observed.outcome]):'可信原件查询未供给或被拒绝；记录保留，不自动重试。 / Trusted lookup unavailable or refused; original retained, no automatic retry.';
++              if(!live())return;document.querySelector('#transaction-resolution-result').textContent=observed?({'typed-commit-observed':'节点报告原交易已执行；独立最终性尚未核验，原件保留。 / Node reports execution; independent finality unverified, original retained.','typed-rejection-observed':'节点报告原交易执行失败；独立证明尚未核验，原件保留，不重签或重发。 / Node reports rejection; independent proof unverified, original retained without re-sign or send.','typed-outcome-unknown':'节点尚不能确认原交易结果；保留 UNKNOWN，不重签或重发。 / Node cannot confirm the original outcome; UNKNOWN retained, no re-sign or send.','original-verified-locally':'本地原操作、双签名及原始快照已核对；未查询链上状态，不代表已提交或最终确认。 / Original action, both signatures and original snapshots verified locally. No chain query, submission or finality claim.','pending-local-durable':'原件已存在于节点本地快照，尚未入块。原件保留，不重试。 / Pending in the local snapshot; original retained, no retry.','local-inclusion-durable':'原件已在节点本地快照中入块，不代表共识最终性；原件保留。 / Local durable inclusion, not consensus finality; original retained.','not-found-observed':'该节点当前未找到原件，不证明未发生；保留 UNKNOWN，不重签或重发。 / Not found at this producer; UNKNOWN retained, no replacement signature or send.','outcome-unknown':'原件结果仍未知；保留原件，不重签或重发。 / Outcome unknown; original retained, no replacement signature or send.'}[observed.outcome]):'可信原件查询未供给或被拒绝；记录保留，不自动重试。 / Trusted lookup unavailable or refused; original retained, no automatic retry.';
+             }catch{if(live())document.querySelector('#transaction-resolution-result').textContent='无法核实原件结果；记录保留，不重签或重发。 / Original outcome unverified; retained without re-signing or sending.';}
+             finally{busy=false;if(current())check.disabled=keyState.locked;}
+           });row.append(check);

@@ -16,7 +16,7 @@ import {TransactionSubmissions} from './transaction-submissions.mjs';
 import {parsePQTypedOriginalRecord} from './wallet-pq-typed-original.mjs';
 import {projectPendingTransactions,projectPQOriginalObservation} from './transaction-resolution-display.mjs';
 const sha=b=>'0x'+createHash('sha256').update(b).digest('hex'),copy=x=>JSON.parse(JSON.stringify(x));
-let handle,record;
+let handle,record,memberBytes;
 before(async()=>{
  const input=JSON.parse(readFileSync(new URL('./features/pq-transaction/fixtures/typed-action-public-inputs.json',import.meta.url))).rows.find(row=>row.kind==='resource_delegation_create');
  handle=await createPQWalletKeyHandle({owner:input.owner,chainId:input.chainId});
@@ -25,6 +25,7 @@ before(async()=>{
  const signingDTO={...reviewDTO,executionHeight:'9007199254740994'},network={owner:input.owner,chainId:input.chainId,nativeChainId:'6423'},selected={account:input.owner,networkId:input.chainId},now=1800000000000;
  const review=preparePQTypedActionReview(parsePQAccountAuthorization(reviewDTO,network),input,{...selected,operationId:'main-journal-controlled-1',createdAt:new Date(now).toISOString(),expiresAt:new Date(now+60000).toISOString()});
  const member=signPQReviewedTypedAction(review,parsePQAccountAuthorization(signingDTO,network),handle,selected,now),raw=encodePQActionTransportData({member,originals:[]});
+ memberBytes=Buffer.from(member);
  record={version:2,account:input.owner,kind:'pq-typed-action',operationId:review.operationId,hash:sha(raw),wire:Buffer.from(raw).toString('base64url'),status:'signed-unsubmitted',typed:{networkId:input.chainId,memberHash:sha(member),review:copy(review),reviewSnapshot:reviewDTO,signingSnapshot:signingDTO}};
 });
 after(()=>{if(handle)destroyPQWalletKeyHandle(handle)});
@@ -35,7 +36,7 @@ test('normal Main journal retains exact typed raw/review/two snapshots and cold 
  let network=0;const submissions=new TransactionSubmissions({intentStore:cold,pqReadOriginal:async()=>{network++;throw Error('typed local read must not use legacy HTTP contract')}}),guard={account,assert(){}};
  const list=await submissions.list(account);assert.equal(list[0].kind,record.kind);assert.equal(list[0].canRetryExact,false);
  assert.equal(projectPendingTransactions({ok:true,value:list},account)[0].kind,record.kind);
- const observed=await submissions.checkPQ(record.hash,account,guard);assert.equal(observed.operationId,record.operationId);assert.equal(observed.memberHash,record.typed.memberHash);assert.equal(observed.nonce,record.typed.review.action.nonce);assert.equal(observed.signatureVerified,true);assert.equal(observed.networkQueryPerformed,false);assert.equal(network,0);
+ const observed=await cold.inspectPQTypedOriginal(account,record.hash,()=>guard.assert());assert.equal(observed.operationId,record.operationId);assert.equal(observed.memberHash,record.typed.memberHash);assert.equal(observed.nonce,record.typed.review.action.nonce);assert.equal(observed.signatureVerified,true);assert.equal(observed.networkQueryPerformed,false);assert.equal(network,0);
  for(const field of ['permissionGranted','submitted','canRetry','clearsOriginal','consensusFinality'])assert.equal(observed[field],false);
  assert.deepEqual(projectPQOriginalObservation({ok:true,value:observed},{account,hash:record.hash,kind:record.kind}),{outcome:'original-verified-locally'});
  for(const key of ['permissionGranted','submitted','networkQueryPerformed','consensusFinality'])assert.throws(()=>projectPQOriginalObservation({ok:true,value:{...observed,[key]:true}},{account,hash:record.hash,kind:record.kind}));
@@ -43,7 +44,7 @@ test('normal Main journal retains exact typed raw/review/two snapshots and cold 
  const child=spawnSync(process.execPath,['--input-type=module','-e',`
   import{readFileSync}from'node:fs';import{FileTransactionIntentStore}from'./src/transaction-intent-store.mjs';import{TransactionSubmissions}from'./src/transaction-submissions.mjs';
   const p=JSON.parse(readFileSync(0,'utf8')),store=new FileTransactionIntentStore({filePath:p.filePath}),query=new TransactionSubmissions({intentStore:store});
-  console.log(JSON.stringify(await query.checkPQ(p.hash,p.account,{account:p.account,assert(){}})));
+  console.log(JSON.stringify(await store.inspectPQTypedOriginal(p.account,p.hash,()=>{})));
  `],{cwd:new URL('../',import.meta.url),input:JSON.stringify({filePath:f.filePath,account,hash:record.hash}),encoding:'utf8',timeout:30000,maxBuffer:65536});
  assert.equal(child.status,0,child.stderr);assert.deepEqual(JSON.parse(child.stdout),observed);
 });
@@ -100,4 +101,57 @@ test('typed pre-sign reservation persists exact output budget and rejects an ove
  await assert.rejects(f.store.reserveOriginal(other,record.kind,{reserveBytes:350000}));
  assert.equal(f.store.localOriginal(other),null);assert.equal(await f.store.unresolvedPreparation(other),null);
  assert.deepEqual(await new FileTransactionIntentStore({filePath:f.filePath}).unresolvedPreparation(record.account),{account:record.account,kind:record.kind,maxBytes:budget});
+});
+function nodeResponse(status='unknown'){
+ const path='/transactions/pq/actions/'+record.hash,action=record.typed.review.action;
+ const base={type:'',status:'unknown',committed:false,source:'comet-rpc',nativeTransactionHash:'',abciTransactionHash:record.hash,executionHeight:'0',amount:'0',fee:'0',nonce:'0',readbackUrl:'',abciReadbackUrl:path,error:'controlled unknown'};
+ if(status!=='unknown')Object.assign(base,{type:action.kind,status,committed:status==='committed',nativeTransactionHash:record.typed.memberHash,wire:memberBytes.toString('base64'),transport:Buffer.from(record.wire,'base64url').toString('base64'),executionHeight:'9007199254740995',cometIndex:17,from:record.account,fee:action.fee,nonce:action.nonce,readbackUrl:'/transactions/pq/actions/originals/'+record.typed.memberHash});
+ if(status==='committed'){delete base.error;base.effects={controlled:true};base.amount=action.payload.amountYNXT;base.to=action.payload.beneficiary;}
+ return {method:'GET',requestPath:path,status:status==='unknown'?202:200,contentType:'application/json',cacheControl:'no-store',body:Buffer.from(JSON.stringify(base))};
+}
+test('actual Main checkPQ reads retained original under cold store and projects three node observations without resolving custody',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const before=await fs.readFile(f.filePath,'utf8'),cold=new FileTransactionIntentStore({filePath:f.filePath});let reads=0,legacy=0;
+ for(const [status,outcome] of [['committed','typed-commit-observed'],['rejected','typed-rejection-observed'],['unknown','typed-outcome-unknown']]){
+  const query=new TransactionSubmissions({intentStore:cold,pqReadOriginal:async()=>{legacy++;throw Error('wrong transport')},pqReadTypedOriginal:async(review,raw,original,assertCurrent)=>{
+   reads++;assertCurrent();assert.deepEqual(review,record.typed.review);assert.equal(Buffer.from(raw).toString('base64url'),record.wire);assert.equal(original.memberHash,record.typed.memberHash);assert.equal(original.transportHash,record.hash);return nodeResponse(status);
+  }});
+  const observed=await query.checkPQ(record.hash,record.account,{account:record.account,assert(){}});assert.equal(observed.outcome,outcome);assert.equal(observed.networkQueryPerformed,true);
+  for(const key of ['submitted','canRetry','clearsOriginal','consensusFinality','permissionGranted'])assert.equal(observed[key],false);
+  assert.deepEqual(projectPQOriginalObservation({ok:true,value:observed},{account:record.account,hash:record.hash,kind:record.kind}),{outcome});
+  assert.equal(await fs.readFile(f.filePath,'utf8'),before);await assert.rejects(cold.reserveOriginal(record.account,record.kind));
+ }
+ assert.equal(reads,3);assert.equal(legacy,0);
+});
+test('actual Main typed query suppresses an in-flight late-lock result, preserving exact journal',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const before=await fs.readFile(f.filePath,'utf8');let live=true,release,entered;
+ const started=new Promise(resolve=>{entered=resolve}),query=new TransactionSubmissions({intentStore:f.store,pqReadTypedOriginal:()=>new Promise(resolve=>{release=()=>resolve(nodeResponse());entered();})});
+ const pending=query.checkPQ(record.hash,record.account,{account:record.account,assert(){if(!live)throw Error('QA_LOCKED_DURING_QUERY')}}),rejected=assert.rejects(pending,/QA_LOCKED_DURING_QUERY/);
+ await started;live=false;release();await rejected;assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
+test('actual Main typed query refuses unavailable reader or mismatched node original without legacy fallback or disk changes',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const before=await fs.readFile(f.filePath,'utf8'),guard={account:record.account,assert(){}};
+ const absent=new TransactionSubmissions({intentStore:f.store});await assert.rejects(absent.checkPQ(record.hash,record.account,guard),e=>e.data?.code==='PQ_READ_SOURCE_UNAVAILABLE');
+ const swapped=new TransactionSubmissions({intentStore:f.store,pqReadTypedOriginal:async()=>({...nodeResponse(),requestPath:'/transactions/pq/actions/0x'+'ab'.repeat(32)})});
+ await assert.rejects(swapped.checkPQ(record.hash,record.account,guard));assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
+test('node query after actual save lost acknowledgement neither clears held first cause nor repeats write',async t=>{
+ const f=await setup(t);let armed=false,writes=0;
+ const store=new FileTransactionIntentStore({filePath:f.filePath,io:{...fs,rename:async(...args)=>{await fs.rename(...args);if(armed){writes++;throw false}}}});
+ await store.reserveOriginal(record.account,record.kind);store.captureOriginal(record.account,record,record.kind);armed=true;await assert.rejects(store.saveOriginal(record.account,record.hash,()=>{}));
+ const held=store.localOriginal(record.account),before=await fs.readFile(f.filePath,'utf8'),query=new TransactionSubmissions({intentStore:store,pqReadTypedOriginal:async()=>nodeResponse()});
+ const first=held.storageCause,observed=await query.checkPQ(record.hash,record.account,{account:record.account,assert(){}});assert.equal(observed.outcome,'typed-outcome-unknown');assert.equal(store.localOriginal(record.account),held);assert.equal(held.storageCausePresent,true);assert.equal(held.storageCause,first);assert.equal(first.cause,false);assert.equal(writes,1);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
+});
+test('actual Main typed node query works after fresh process restart using only retained private original',async t=>{
+ const f=await setup(t);await f.store.reserveOriginal(record.account,record.kind);f.store.captureOriginal(record.account,record,record.kind);await f.store.saveOriginal(record.account,record.hash,()=>{});
+ const before=await fs.readFile(f.filePath,'utf8'),response=nodeResponse();
+ const child=spawnSync(process.execPath,['--input-type=module','-e',`
+  import{readFileSync}from'node:fs';import{FileTransactionIntentStore}from'./src/transaction-intent-store.mjs';import{TransactionSubmissions}from'./src/transaction-submissions.mjs';
+  const p=JSON.parse(readFileSync(0,'utf8')),store=new FileTransactionIntentStore({filePath:p.filePath});let reads=0;
+  const query=new TransactionSubmissions({intentStore:store,pqReadTypedOriginal:async(review,raw,original,guard)=>{reads++;guard();return{...p.response,body:Buffer.from(p.body,'base64')}}});
+  const observed=await query.checkPQ(p.hash,p.account,{account:p.account,assert(){}});console.log(JSON.stringify({observed,reads}));
+ `],{cwd:new URL('../',import.meta.url),input:JSON.stringify({filePath:f.filePath,hash:record.hash,account:record.account,response:{...response,body:undefined},body:response.body.toString('base64')}),encoding:'utf8',timeout:30000,maxBuffer:65536});
+ assert.equal(child.status,0,child.stderr);const output=JSON.parse(child.stdout);assert.equal(output.reads,1);assert.equal(output.observed.outcome,'typed-outcome-unknown');assert.equal(output.observed.memberHash,record.typed.memberHash);assert.equal(output.observed.hash,record.hash);assert.equal(output.observed.consensusFinality,false);assert.equal(output.observed.canRetry,false);assert.equal(await fs.readFile(f.filePath,'utf8'),before);
 });

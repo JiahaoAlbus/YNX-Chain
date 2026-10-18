@@ -1,0 +1,140 @@
+{
+  "kind": "PQ_REVIEWED_TYPED_ACTION_HTTP_OBSERVATION",
+  "policy": "/Users/huangjiahao/Desktop/YNX Chain/docs/engineering/YNX_EXECUTION_POLICY.md",
+  "ownerContract": "/Volumes/西部数据/YNX-large-work/wallet-feature-integration-20261018/OWNER_CONTRACT.md",
+  "baseline": {
+    "commit": "aeebd399714dba7569630784ad459d9722ed2fb6",
+    "tree": "91d97f3aaf98464096fe20f277d22a2f55c1f9ba",
+    "modifiedExistingOwnedFile": "apps/wallet-desktop/src/features/pq-transaction/node-transport.mjs",
+    "mainIntegrationBase": "e421266cfa03d57598103a0cfa82a4d9b33e8fce"
+  },
+  "platform": "Node/Electron Main only; no Android or browser parity claim",
+  "api": {
+    "decode": "decodePQTypedActionQueryResponse(response:PQTypedActionHTTPResponse):PQTypedActionDecodedResponse",
+    "inspect": "inspectPQReviewedTypedActionQuery(archivedReview:unknown,rawTransport:Uint8Array,original:PQReviewedTypedTransportOriginal,response:PQTypedActionHTTPResponse):PQTypedActionQueryObservation",
+    "reader": "createPQTypedActionNodeReader(): {readOriginal(review:unknown,rawTransport:Uint8Array,original:PQReviewedTypedTransportOriginal,assertCurrent:()=>void):Promise<PQTypedActionHTTPResponse>}",
+    "declarations": [
+      "typed-action-query.d.mts",
+      "typed-action-query-node.d.mts"
+    ],
+    "closedHTTPInput": "Exactly {method:GET,requestPath,status,contentType,cacheControl,body:Uint8Array}; own enumerable data properties only, no extras/proxies/getters; fatal UTF-8, no BOM; copies fixed non-shared and non-resizable original byte view",
+    "originalInput": "Original aeeb review plus exact raw transport and both complete original SDK public snapshots, selected account/network, memberHash and transportHash; no replacement with latest consumed policy",
+    "output": "Exact declarations are authoritative. Frozen public DATA binds operation/account/network/digest/action/nonce/original H values/both hashes and reports node-observed status, H and Comet index; omits raw/effects/logs/to/amount from normal observation",
+    "invariantFlags": {
+      "dataOnly": true,
+      "observationOnly": true,
+      "effectsVerified": false,
+      "proofVerification": "not-performed",
+      "independentFinality": false,
+      "nativeAdmission": false,
+      "permissionGranted": false,
+      "submitted": false,
+      "canRetry": false,
+      "clearsOriginal": false,
+      "consensusFinality": false
+    },
+    "errors": [
+      "PQ_TYPED_QUERY_RESPONSE_INVALID",
+      "PQ_TYPED_QUERY_HTTP_STATUS",
+      "PQ_TYPED_QUERY_BINDING_MISMATCH",
+      "Original aeeb/SDK and Node transport error codes propagate"
+    ],
+    "effectsOnFailure": "Keep original review, snapshots, custody, journal, UNKNOWN and first cause. No retry, replacement signature, send or record clearing."
+  },
+  "producer": {
+    "sourceCommit": "fd8b8dcf7dda9823a439db04b1e33e2375014568",
+    "routes": [
+      "GET /transactions/pq/actions/originals/{nativeHash}",
+      "GET /transactions/pq/actions/{abciHash}"
+    ],
+    "HTTP200": "Committed or rejected indexed DATA; native original route cannot return indexed rejection, which its actual producer converts to 202 unknown",
+    "HTTP202": "Early or enriched unknown DATA, H zero and no effects/index; no not-found or retry inference",
+    "headers": "application/json with optional charset=utf-8; exact no-store. Node transport refuses nonidentity content encoding and all redirect/fallback paths",
+    "numericPolicy": "Root cometIndex is canonical uint32 JSON number; executionHeight/fee/nonce are canonical uint64 decimal strings, amount is signed int64 decimal string; nested effect numeric tokens rejected",
+    "schema": "Closed original PQActionView, duplicate decoded JSON keys and prototype keys rejected, complete standard-base64 bytes hash checked, original request path and both hashes bound",
+    "budgets": {
+      "bodyBytes": 8388608,
+      "depth": 32,
+      "nodes": 131072,
+      "memberBytes": 131072,
+      "transportBytes": 25165824
+    },
+    "fixture": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-query-20261019/source/apps/wallet-desktop/src/features/pq-transaction/fixtures/typed-action-query-fd8-http.json.gz",
+      "bytes": 1093353,
+      "sha256": "f268e536d42f5810896e74c411be5971a01c92d1403f7664087dc98b6dfc9351"
+    },
+    "originalFixture": {
+      "path": "/Volumes/西部数据/YNX-large-work/protocol/staking-originals-fd8-39165250907/ynx-pq-staking-originals-public-interop.json",
+      "bytes": 3022392,
+      "sha256": "6243aaecb56f4c0c78efeaf7b5ba1143ca4b9d60417ba7694dff5c179e300aea"
+    },
+    "fixtureProvenance": "Exact responseBody base64 bytes from original fd8 http[2,3,5,6]; actual ABCI executor and HTTP with mock Comet; N2/index1, not live RPC/BFT/Source/Auth. Normal aeeb observation refuses this N2 fixture.",
+    "fixtureCI": {
+      "id": "39165250907",
+      "gatewayPassed": true,
+      "wholeRun": "cancelled"
+    },
+    "sdkQueryContractNote": {
+      "path": "/Volumes/西部数据/YNX-large-work/wallet-pq-typed-query-20261019/evidence/SDK332_TYPED_QUERY_CONTRACT_NOTE.json",
+      "bytes": 5894,
+      "sha256": "5a3b778c70597c86422809a9219c8a679fa707674b3796a8dd18e2a75781d89b"
+    },
+    "sdkTypedQueryOrFinalityCallee": false
+  },
+  "composition": [
+    "Reuse aeeb inspectPQReviewedTypedTransportOriginal before inspecting response or doing I/O. Preserve full original SDK dual-AND validation and normal N1/index0, original review H and signing H separately.",
+    "Reuse existing PQTransactionNodeTransportKernel and NORMAL_OPERATOR origin/SPKI/build/network pins unchanged. Read-only facade exposes only readOriginal; never POST, caller URLs, wire transmission, retry or fallback.",
+    "GET status, genesis, typed ABCI hash path, status under original total deadline. Required Main current guard covers starts and await boundaries; post-health/late-lock/timeout failure suppresses observation.",
+    "Reuse original stream abort/close/timeout/late-response cleanup and first cause. Legacy transfer/finality APIs and byte caps remain unchanged.",
+    "Body identity binds original action, owner, fee, nonce, Member and transport exact bytes and both hashes; indexed H cannot precede original signing H. Member index zero is not Comet index.",
+    "No claim of actual network activity from the pure observer. Only Main adapter sets networkQueryPerformed after its actual read callback succeeds."
+  ],
+  "validation": {
+    "newPureTests": 12,
+    "newNodeTests": 6,
+    "affectedLegacyTransportTests": 19,
+    "allFail": 0,
+    "allSkip": 0,
+    "strictTypesExit": 0,
+    "initialPure": {
+      "pass": 10,
+      "fail": 2,
+      "productionDefect": "Native original route wrongly accepted HTTP200 rejected; retained RED, fixed exact route semantics, final PASS",
+      "testConstructionError": "N2 test manually omitted action payload fields and received PQ_SCHEMA_INVALID; corrected test to use original f160 action reader, without production relaxation"
+    },
+    "actualColdChild": "Serialized review, both snapshots, original bytes and HTTP bytes are read in a new child process using original SDK snapshot parser; no WeakMap live review grant",
+    "syntheticControls": "One ephemeral normal N1 SDK sign per suite, handles destroyed. N1 response and event/TLS option transport controls are synthetic. No real account, actual TLS handshake, actual node network or BFT acceptance inferred.",
+    "checks": "CI entry patch applies; Main six-file proposal applies against saved e421 baseline and each resulting module parses. Main runtime/journal tests belong to original Main integration.",
+    "oldTyped7Original10Transport9Mobile25SDKGroupsRerun": false,
+    "build": false,
+    "GUI": false,
+    "Native": false,
+    "actualNetwork": false
+  },
+  "mainIntegration": {
+    "patch": "typed-action-query-main-integration.patch",
+    "applied": false,
+    "files": 6,
+    "base": "e421266cfa03d57598103a0cfa82a4d9b33e8fce",
+    "behavior": "Use Main private original record plus both original SDK-parsed public snapshots; inject GET-only reader into existing sender/checkPQ branch under original exclusive/guard. Return bounded observations for commit/rejection/unknown while preserving all false permission/retry/clear/finality flags and original signed-unsubmitted custody.",
+    "next": "Original Main applies owned leaf delta and exact proposal to its successor, wires supplied CI entry, validates journal/lock/cold-restart/display behavior; original A owns package/install/release."
+  },
+  "ci": {
+    "patch": "typed-action-query-ci.patch",
+    "destination": "apps/wallet-desktop/test/pq-typed-action-query.test.mjs",
+    "applied": false,
+    "importsBothNewSuites": true
+  },
+  "proofDependency": {
+    "state": "Original Protocol has uncommitted typed proof collector source candidate; runtime and fixed response evidence not supplied for this component",
+    "observedSource": "/Users/huangjiahao/.codex/worktrees/ynx-typed-action-finality/YNX Chain",
+    "observedBase": "ea5cefae477d8f66e9058be832a5608b2fd480f1",
+    "routes": [
+      "GET /transactions/pq/actions/originals/{nativeHash}/pq-finality-proof",
+      "GET /transactions/pq/actions/{abciHash}/pq-finality-proof"
+    ],
+    "boundary": "Status decoder intentionally rejects proof fields. Proof collection and actual original independent Host trust/context plus original CLI verified outcome are separate required work; HTTP200 or CLI exit0 cannot imply execution success or finality."
+  },
+  "status": "已验证未部署: owned source and focused controls only. Main integration, original CI activation, compatible package, normal install, real node read, independent Host proof and user flow remain separate gates."
+}

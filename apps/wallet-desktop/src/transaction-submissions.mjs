@@ -5,6 +5,7 @@ import { CANONICAL_RPC_URL } from "./rpc.mjs";
 import {originalRetention} from "./transaction-intent-store.mjs";
 import {parsePQReadResponse} from './wallet-pq-submission-evidence.mjs';
 import {PQ_ORIGINAL_KINDS} from './wallet-pq-intent-record.mjs';
+import {observePQTypedOriginalQuery} from './wallet-pq-typed-original.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/;
 const failure = (code, message, data = {}) => Object.assign(capabilityError(code, message), { data: { code, ...data } });
@@ -15,7 +16,7 @@ export class TransactionSubmissions {
   #records = new Map();
   #busy = new Set();
   #savedOnly = new Map();
-  constructor({ provider, capabilities, verifyChain, intentStore, pqReadOriginal = null }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; this.pqReadOriginal = pqReadOriginal; }
+  constructor({ provider, capabilities, verifyChain, intentStore, pqReadOriginal = null, pqReadTypedOriginal = null }) { this.provider = provider; this.capabilities = capabilities; this.verifyChain = verifyChain; this.intentStore = intentStore; this.pqReadOriginal = pqReadOriginal; this.pqReadTypedOriginal = pqReadTypedOriginal; }
   // Main-owned fixed producer transport only. This is a read observation,
   // never a broadcast, retry capability or journal-resolution operation.
   async checkPQ(hash, account, guard) {
@@ -24,7 +25,13 @@ export class TransactionSubmissions {
     return this.#exclusive(account, async () => {
       guard.assert();
       const typed=await this.intentStore?.inspectPQTypedOriginal?.(account,hash,()=>guard.assert());
-      guard.assert();if(typed)return typed;
+      guard.assert();if(typed){
+        if(typeof this.pqReadTypedOriginal!=='function'||typeof this.intentStore?.readPQOriginals!=='function')throw failure('PQ_READ_SOURCE_UNAVAILABLE','The original typed read channel is unavailable. Keep the original.');
+        const originals=await this.intentStore.readPQOriginals(account,()=>guard.assert());guard.assert();
+        const saved=originals.find(row=>row.account===account&&row.hash===hash&&row.kind==='pq-typed-action');
+        if(!saved)throw failure('TRANSACTION_INTENT_REQUIRED','The retained original typed record is required.');
+        const result=await observePQTypedOriginalQuery(saved,this.pqReadTypedOriginal,()=>guard.assert());guard.assert();return result;
+      }
       if (typeof this.intentStore?.readPQOriginals !== 'function' || typeof this.pqReadOriginal !== 'function') throw failure('PQ_READ_SOURCE_UNAVAILABLE', 'The fixed PQ producer read channel is not available. Preserve the original.');
       const originals = await this.intentStore.readPQOriginals(account, () => guard.assert());
       guard.assert();

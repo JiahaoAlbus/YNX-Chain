@@ -1,0 +1,8 @@
+diff --git a/apps/wallet-desktop/test/pq-typed-action-query.test.mjs b/apps/wallet-desktop/test/pq-typed-action-query.test.mjs
+new file mode 100644
+--- /dev/null
++++ b/apps/wallet-desktop/test/pq-typed-action-query.test.mjs
+@@ -0,0 +1,3 @@
++// Matching SDK332 typed query observation; no network or production grant.
++import '../src/features/pq-transaction/typed-action-query.test.mjs';
++import '../src/features/pq-transaction/typed-action-query-node.test.mjs';
