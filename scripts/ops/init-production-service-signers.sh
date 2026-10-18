@@ -30,7 +30,13 @@ trap 'rm -rf "$work"' EXIT
 go build -trimpath -o "$work/ynx-consensus-account-key" ./cmd/ynx-consensus-account-key
 
 mode_of() {
-  stat -f %Lp "$1" 2>/dev/null || stat -c %a "$1"
+  # A failed GNU `stat -f` can still emit filesystem data for a later operand.
+  # Select one dialect so the exact mode assertion sees only permission bits.
+  case "$(uname -s)" in
+    Linux) stat -c '%a' -- "$1" ;;
+    Darwin) stat -f '%Lp' "$1" ;;
+    *) echo "unsupported stat platform for exact signer permissions" >&2; return 1 ;;
+  esac
 }
 
 purpose_for() {

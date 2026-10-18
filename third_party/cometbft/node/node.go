@@ -84,6 +84,8 @@ type Node struct {
 	ownedDatabases    *nodeOwnedDatabases
 	prometheusSrv     *http.Server
 	pprofSrv          *http.Server
+
+	proofSourceConsumer proofSourceConsumerLifetime // optional read-only consumer, joined before closing stores
 }
 
 // Option sets a parameter for the node.
@@ -564,9 +566,13 @@ func newNodeWithContextAndAuthority(ctx context.Context,
 
 // OnStart starts the Node. It implements service.Service.
 func (n *Node) OnStart() (startErr error) {
+	if err := n.proofSourceConsumer.start(); err != nil {
+		return err
+	}
 	n.heightHalt.start()
 	defer func() {
 		if startErr != nil {
+			_ = n.proofSourceConsumer.retireAndJoin()
 			n.heightHalt.close()
 		}
 	}()
@@ -639,6 +645,11 @@ func (n *Node) OnStart() (startErr error) {
 // OnStop stops the Node. It implements service.Service.
 func (n *Node) OnStop() {
 	n.BaseService.OnStop()
+	// BaseService closes Quit only AFTER OnStop. Retire/join readers here,
+	// before any original store can close, including non-operator Stop callers.
+	if err := n.proofSourceConsumer.retireAndJoin(); err != nil {
+		n.Logger.Error("Read-only proof source retired with an incomplete outcome; original attempt retained")
+	}
 	n.heightHalt.close()
 
 	n.Logger.Info("Stopping Node")

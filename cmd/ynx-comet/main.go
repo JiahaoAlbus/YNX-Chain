@@ -37,10 +37,12 @@ type pqOptions struct {
 	runtimePlan, runtimePlanHash                                      string
 	stateLayout                                                       string
 	heightHaltControl, heightHaltPlanHash, heightHaltSessionID        string
+	proofLivePolicy, proofLivePolicyHash                              string
+	proofLiveBind                                                     func(*consensus.Application) error
 }
 
 func (p pqOptions) enabled() bool {
-	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured()
+	return p.migration != "" || p.state != "" || p.genesisHash != "" || p.originalGenesisHash != "" || p.migrationHash != "" || p.schedule != "" || p.scheduleHash != "" || p.binding != "" || p.vault != "" || p.recoveryFD != -1 || p.remote() || p.runtimeConfigured() || p.applicationLayout() != "atomic-json" || p.heightHaltConfigured() || p.proofLiveConfigured()
 }
 
 func (p pqOptions) remote() bool {
@@ -58,6 +60,9 @@ func (p pqOptions) operatorFiles(config *cfg.Config) consensus.PQOperatorFiles {
 }
 
 func (p pqOptions) validate() error {
+	if err := p.validateProofHostLive(); err != nil {
+		return err
+	}
 	if err := p.validateHeightHalt(); err != nil {
 		return err
 	}
@@ -223,6 +228,11 @@ func constructPQNode(config *cfg.Config, logger log.Logger, options pqOptions) (
 	if err != nil {
 		return nil, nil, err
 	}
+	if options.proofLiveBind != nil {
+		if err = options.proofLiveBind(app); err != nil {
+			return nil, nil, err
+		}
+	}
 	registry, err := consensus.NewPQCommittedSignerRegistry(app, bootstrap)
 	if err != nil {
 		return nil, nil, err
@@ -269,6 +279,11 @@ func constructRemotePQNode(ctx context.Context, config *cfg.Config, logger log.L
 	if err != nil {
 		return nil, nil, err
 	}
+	if options.proofLiveBind != nil {
+		if err = options.proofLiveBind(app); err != nil {
+			return nil, nil, err
+		}
+	}
 	conn, pin, err := consensus.DialPQRemoteConnection(ctx, options.transport())
 	if err != nil {
 		return nil, nil, err
@@ -305,6 +320,16 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	defer stop()
 	var node *nm.Node
 	var custody io.Closer
+	var liveApp *consensus.Application
+	if options.proofLiveConfigured() {
+		options.proofLiveBind = func(app *consensus.Application) error {
+			if liveApp != nil || app == nil {
+				return errors.New("live source requires exactly one original owning application")
+			}
+			liveApp = app
+			return nil
+		}
+	}
 	if options.remote() {
 		node, custody, err = constructRemotePQNode(ctx, config, logger, options)
 	} else {
@@ -325,6 +350,16 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, closePQCustody(custody)) }()
+	live, err := prepareOperatorProofHostLive(node, liveApp, options)
+	if err != nil {
+		_ = closePQCustody(custody)
+		node.OnStop()
+		_ = node.ProxyApp().Stop()
+		return err
+	}
+	if live != nil {
+		defer func() { _ = live.Close() }()
+	}
 	if err := configureOperatorHeightHalt(node, options); err != nil {
 		_ = closePQCustody(custody)
 		node.OnStop()
@@ -338,6 +373,14 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, node.ProxyApp().Stop()) }()
+	var liveDone <-chan struct{}
+	if live != nil {
+		if err = live.Start(ctx); err != nil {
+			_ = live.Close()
+			return errors.Join(err, node.Stop())
+		}
+		liveDone = live.Done()
+	}
 	var remoteDone <-chan struct{}
 	var heightHaltDone <-chan struct{}
 	if options.heightHaltConfigured() {
@@ -347,13 +390,32 @@ func runPQNode(command *cobra.Command, options pqOptions) (result error) {
 	if isRemote {
 		remoteDone = remote.Done()
 	}
-	select {
-	case <-ctx.Done():
-	case <-node.Quit():
-	case <-remoteDone:
-		result = remote.Err()
-	case <-heightHaltDone:
-		_, result = node.HeightHaltResult()
+waitForStop:
+	for {
+		select {
+		case <-ctx.Done():
+			break waitForStop
+		case <-node.Quit():
+			break waitForStop
+		case <-remoteDone:
+			result = remote.Err()
+			break waitForStop
+		case <-heightHaltDone:
+			_, result = node.HeightHaltResult()
+			break waitForStop
+		case <-liveDone:
+			if live.Err() != nil {
+				logger.Error("live proof DATA capture refused or UNKNOWN; original attempt retained")
+			} else {
+				logger.Info("live proof DATA capture completed or retired; no Native authority granted")
+			}
+			liveDone = nil
+		}
+	}
+	// Retire and join the DATA reader before normal Node.Stop closes its DBs.
+	// A source failure never stops consensus and never replays its request.
+	if live != nil {
+		_ = live.Close()
 	}
 	if options.remote() {
 		_ = custody.Close()
@@ -378,6 +440,7 @@ func main() {
 	root.AddCommand(newInspectOperatorCheckpointCommand(), newEncodeValidatorRegistrationCommand(), newApproveFirstValidatorRegistrationCommand())
 	root.AddCommand(newRequestHeightHaltCommand())
 	root.AddCommand(newExportProofHostSourceCommand())
+	root.AddCommand(newRequestProofHostSourceCommand())
 	root.AddCommand(commands.GenValidatorCmd, commands.InitFilesCmd, commands.LightCmd, commands.ReplayCmd, commands.ReplayConsoleCmd, commands.ResetAllCmd, commands.ResetPrivValidatorCmd, commands.ResetStateCmd, commands.ShowValidatorCmd, commands.TestnetFilesCmd, commands.ShowNodeIDCmd, commands.ReIndexEventCmd, commands.GenNodeKeyCmd, commands.VersionCmd, commands.RollbackStateCmd, commands.CompactGoLevelDBCmd, commands.InspectCmd, debug.DebugCmd, cli.NewCompletionCmd(root, true))
 	start := commands.NewRunNodeCmd(nm.DefaultNewNode)
 	// These protected maintenance controls are part of the independently pinned
@@ -386,6 +449,7 @@ func main() {
 	options := pqOptions{recoveryFD: -1}
 	f := start.Flags()
 	registerHeightHaltFlags(f, &options)
+	registerProofHostLiveFlags(f, &options)
 	f.StringVar(&options.runtimePlan, "runtime-upgrade-plan", "", "canonical independently pinned old-runtime upgrade plan")
 	f.StringVar(&options.runtimePlanHash, "runtime-upgrade-plan-hash", "", "independent exact runtime upgrade plan hash")
 	f.StringVar(&options.migration, "migration-state", "", "original validated key-bound migration JSON")

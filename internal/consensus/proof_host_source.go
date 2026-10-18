@@ -4,6 +4,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
@@ -425,12 +426,20 @@ func holdProofHostCapturedState(captured *pqEngineStateRead) (*proofHostOriginal
 }
 
 type proofHostInputs struct {
+	ctx       context.Context
 	plan      ProofHostSourcePlan
 	migration chain.ConsensusMigrationState
 	bootstrap *ConsensusBootstrap
 	engine    *PQEngineAuthorization
 	runtime   *RuntimeUpgradeAuthorization
 	originals map[string]*proofHostOriginal
+}
+
+func (in *proofHostInputs) contextErr() error {
+	if in.ctx != nil {
+		return in.ctx.Err()
+	}
+	return nil
 }
 
 func loadProofHostInputs(raw []byte, pin string) (_ *proofHostInputs, resultErr error) {
@@ -535,6 +544,9 @@ func proofHostDirectory(path string) error {
 
 func (in *proofHostInputs) bundle(output string, state []byte, trusted []byte, proof PQTransactionProofRequest) (ProofHostSourceExport, error) {
 	var out ProofHostSourceExport
+	if err := in.contextErr(); err != nil {
+		return out, err
+	}
 	if err := proofHostDirectory(output); err != nil {
 		return out, err
 	}
@@ -569,6 +581,9 @@ func (in *proofHostInputs) bundle(output string, state []byte, trusted []byte, p
 	out = ProofHostSourceExport{Version: "YNX-PROOF-HOST-SOURCE-EXPORT/v1", SourceID: p.SourceID, Epoch: p.Epoch, SourcePath: filepath.Join(output, "host-source.json"), SourceSHA256: proofHostSHA(source), OperationID: p.OperationID, Account: p.Account, NetworkID: p.NetworkID, OriginalHash: p.OriginalHash, NativeWireHash: p.ExpectedTransaction.NativeWireHash, TransactionHash: p.ExpectedTransaction.TransactionHash, Files: files, Proof: rawProof, SourceReadOnly: true, LedgerProofVerified: true}
 	if err = in.unchanged(); err != nil {
 		return ProofHostSourceExport{}, fmt.Errorf("publication source changed: %w", err)
+	}
+	if err = in.contextErr(); err != nil {
+		return ProofHostSourceExport{}, err
 	}
 	return out, nil
 }

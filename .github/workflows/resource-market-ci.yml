@@ -134,7 +134,7 @@ jobs:
   verify:
     # Frozen protocol refs have their own fail-closed identity gate below;
     # they must never fall through into unrelated product build/test jobs.
-    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-')
+    if: github.ref != 'refs/heads/codex/ynx-pq-public-upgrade' && github.ref != 'refs/heads/codex/ynx-pq-perf-integration' && !startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') && !(github.event_name == 'workflow_dispatch' && inputs.consensus_remote_e2e_retained_history)
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -188,7 +188,7 @@ jobs:
           compression-level: 6
 
   focused-go:
-    if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-'))
+    if: ((github.ref == 'refs/heads/codex/ynx-pq-public-upgrade' || github.ref == 'refs/heads/codex/ynx-pq-perf-integration') && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == github.sha))) || (github.event_name == 'workflow_dispatch' && (startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') || inputs.consensus_remote_e2e_retained_history))
     concurrency:
       group: ynx-pq-fixed-source-refs/heads/codex/ynx-pq-public-upgrade
       cancel-in-progress: false
@@ -237,14 +237,14 @@ jobs:
           bash scripts/verify/pq-remote-window-entry-check.sh
           if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
             test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
-            if [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* ]]; then
+            if [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* || "$YNX_ENTRY_REMOTE_RETAINED" == 'true' ]]; then
               bash scripts/ops/validate-pq-remote-window-entry.sh \
                 "$YNX_ENTRY_EVENT" "$YNX_ENTRY_REF" "$YNX_ENTRY_GITHUB_SHA" "$YNX_ENTRY_CANDIDATE_SHA" \
                 "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" \
                 "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
             fi
             YNX_WINDOW_SELECTIONS=0
-            for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.consensus_remote_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
+            for YNX_WINDOW_SELECTED in "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"; do
               case "$YNX_WINDOW_SELECTED" in
                 true) YNX_WINDOW_SELECTIONS=$((YNX_WINDOW_SELECTIONS + 1)) ;;
                 false|'') ;;
@@ -278,7 +278,7 @@ jobs:
           cp third_party/cometbft/node/node.go "$YNX_DB_CASE/fixed-node.go"
           trap 'cp "$YNX_DB_CASE/fixed-node.go" third_party/cometbft/node/node.go' EXIT
           git show 359766879bdb1fa10114394c58ab287c5b8996ae:third_party/cometbft/node/node.go > "$YNX_DB_CASE/original-node.go"
-          # Retain the exact original and supply only the new optional field
+          # Retain the exact original and supply only the new optional fields
           # needed by separate current API leaves to compile against it. Nil
           # never starts maintenance work; original close logic stays broken.
           python3 -B - "$YNX_DB_CASE/original-node.go" <<'PY'
@@ -286,11 +286,12 @@ jobs:
           source = pathlib.Path(sys.argv[1])
           raw = source.read_bytes()
           anchor = b'type Node struct {\n'
-          if raw.count(anchor) != 1 or b'heightHalt *heightHaltControl' in raw:
+          if raw.count(anchor) != 1 or b'heightHalt *heightHaltControl' in raw or b'proofSourceConsumer proofSourceConsumerLifetime' in raw:
               raise RuntimeError('unexpected frozen original node API')
           with source.with_name('original-node-upstream.go').open('xb') as saved:
               saved.write(raw)
-          field = b'\theightHalt *heightHaltControl // optional API only; nil in original DB regression\n'
+          field = (b'\theightHalt *heightHaltControl // optional API only; nil in original DB regression\n'
+              b'\tproofSourceConsumer proofSourceConsumerLifetime // optional API only; zero value in original DB regression\n')
           source.write_bytes(raw.replace(anchor, anchor + field, 1))
           PY
           cp "$YNX_DB_CASE/original-node.go" third_party/cometbft/node/node.go
@@ -303,7 +304,7 @@ jobs:
           cat "$YNX_DB_CASE/original-red.log"
           test "$YNX_DB_RED_STATUS" -ne 0
           grep -F 'tx_index underlying Close calls = 0, want exactly one' "$YNX_DB_CASE/original-red.log"
-          go test -p 1 -count=1 -timeout=60s -run '^(TestNodeOwnedDatabase|TestIndexerOwnedDatabase)' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/state/txindex
+          go test -p 1 -count=1 -timeout=60s -run '^(TestNodeOwnedDatabase|TestIndexerOwnedDatabase|TestProofSourceConsumer)' github.com/cometbft/cometbft/node github.com/cometbft/cometbft/state/txindex
       - name: Verify real profile state transition and historical store without starting nodes
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^TestYNXProfileActualStateUpdateHeaderAndHistoricalStore$' github.com/cometbft/cometbft/state
@@ -1338,6 +1339,7 @@ jobs:
           test "$(grep -c 'PUBLIC_BFT_FINAL_SNAPSHOT_PARTIAL_ERASED' "$YNX_OLD_SNAPSHOT_LOG")" -eq 1
           bash scripts/verify/public-bft-production-driver-check.sh --snapshot-only
           bash scripts/verify/owner-handover-check.sh
+          bash scripts/verify/production-service-signer-ceremony-check.sh
           bash scripts/verify/production-custody-review-check.sh
           bash scripts/verify/public-bft-production-candidate-check.sh
           # Original transaction-order fixtures replace the external driver;
@@ -1674,7 +1676,7 @@ jobs:
           if read(plan_path, 48 << 20) != plan_raw or read(Path(metadata['requestPath']), 128 << 20) != request_raw:
               raise RuntimeError('normal source delivery changed original pinned plan/request')
           receipt = dict(version='YNX-PROOF-HOST-SOURCE-CLI-INTEROP/v1', commit=os.environ['GITHUB_SHA'], runId=os.environ['GITHUB_RUN_ID'],
-              metadataSHA256=sha(metadata_raw), sourcePlanSHA256=metadata['sourcePlanSHA256'], runtimeSOURCEsha256=sha(runtime_raw),
+              metadataSHA256=sha(metadata_raw), sourcePlanSHA256=metadata['sourcePlanSHA256'], requestSHA256=sha(request_raw), runtimeSOURCEsha256=sha(runtime_raw),
               binaryPins=binary_pins, deliveryManifestSHA256=delivery['manifestSHA256'], sourceSHA256=delivery['sourceSHA256'],
               sourceFingerprint=fingerprint, cases=observations, syntheticOnly=True, normalCLIExecuted=True,
               originalDeliveredBytesUnchanged=True, transactionProofVerified=True, nativeRootAuthorized=False,
@@ -1690,6 +1692,7 @@ jobs:
           name: ynx-pq-proof-host-source-public-delivery-${{ github.sha }}
           path: |
             ${{ runner.temp }}/ynx-proof-host-source-public/delivery
+            ${{ runner.temp }}/ynx-proof-host-source-public/request.json
             ${{ runner.temp }}/ynx-proof-host-source-cli-public-receipt.json
           if-no-files-found: error
           retention-days: 7

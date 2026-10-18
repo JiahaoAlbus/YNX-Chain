@@ -4,6 +4,7 @@ package consensus
 
 import (
 	"bytes"
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -220,6 +221,9 @@ func (in *proofHostInputs) capture(l proofHostLedger, output string, now time.Ti
 		}
 	}()
 	p := in.plan
+	if err = in.contextErr(); err != nil {
+		return out, err
+	}
 	expected, _ := p.ExpectedTransaction.expectation()
 	actual, err := l.load()
 	if err != nil {
@@ -263,6 +267,9 @@ func (in *proofHostInputs) capture(l proofHostLedger, output string, now time.Ti
 	}
 	if state.Height != actual.LastBlockHeight || state.AppHash != p.EngineAppHash || !state.Initialized {
 		return out, errors.New("original application is not the exact engine committed checkpoint")
+	}
+	if err = in.contextErr(); err != nil {
+		return out, err
 	}
 	version, err := runtimeStateApplicationVersion(state, in.runtime)
 	if err != nil || version != actual.Version.Consensus.App {
@@ -335,6 +342,9 @@ func (in *proofHostInputs) capture(l proofHostLedger, output string, now time.Ti
 	trust.TrustedLightBlock = trusted
 	trust.Now = now
 	if _, err = VerifyPQTransactionProof(trust, expected, proof); err != nil {
+		return out, err
+	}
+	if err = in.contextErr(); err != nil {
 		return out, err
 	}
 	if stateBytes == nil {
@@ -508,13 +518,21 @@ func ExportStoppedProofHostSource(rawPlan []byte, planSHA256, output string, now
 // The hosting operator must hold the actual Node and its original Application;
 // request/RPC data cannot implement this source callback or supply authority.
 func ExportNodeProofHostSource(n *node.Node, app *Application, rawPlan []byte, planSHA256, output string, now time.Time) (out ProofHostSourceExport, err error) {
+	return exportNodeProofHostSourceContext(context.Background(), n, app, rawPlan, planSHA256, output, now)
+}
+
+func exportNodeProofHostSourceContext(ctx context.Context, n *node.Node, app *Application, rawPlan []byte, planSHA256, output string, now time.Time) (out ProofHostSourceExport, err error) {
 	if n == nil || app == nil {
 		return ProofHostSourceExport{}, errors.New("actual original node and application required")
+	}
+	if err = ctx.Err(); err != nil {
+		return out, err
 	}
 	in, err := loadProofHostInputs(rawPlan, planSHA256)
 	if err != nil {
 		return ProofHostSourceExport{}, err
 	}
+	in.ctx = ctx
 	defer func() {
 		err = errors.Join(err, in.close())
 		if err != nil {
@@ -532,6 +550,9 @@ func ExportNodeProofHostSource(n *node.Node, app *Application, rawPlan []byte, p
 		return ProofHostSourceExport{}, err
 	}
 	load := func() (sm.State, error) {
+		if err := ctx.Err(); err != nil {
+			return sm.State{}, err
+		}
 		s, err := view.LoadState()
 		if err != nil {
 			return sm.State{}, err
