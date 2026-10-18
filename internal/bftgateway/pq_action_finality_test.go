@@ -566,7 +566,7 @@ func TestGatewayPQActionFinalityRetainsCompiledContractTransport(t *testing.T) {
 		t.Fatal("actual migration failed")
 	}
 	before := gatewayRevocationPolicy(t, f, f.owner)
-	wire := gatewayActionWire(t, f, ynxauth.ActionContractDeploy, deploy, 2, 1, 2)
+	wire := gatewayActionWire(t, f, ynxauth.ActionContractDeploy, deploy, 2, ynxauth.ContractDeployFee, 2)
 	raw, err := consensus.EncodePQContractTransaction(wire, source, &material)
 	if err != nil {
 		t.Fatal(err)
