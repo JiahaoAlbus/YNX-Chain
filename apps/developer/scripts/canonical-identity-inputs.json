@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sdkCommit": "01d34dec80db7cf3b512e2aa9f70d7dd63575b86",
-  "sdkTree": "29dae52112f59f3b5f1d5be673ee8063b1608225",
+  "sdkCommit": "f9d8ec4fcbee12f75df2d6276c1e7c5a27bebc98",
+  "sdkTree": "3cfd0f4eee8dc083402e9470e017273339533670",
   "nativeSourceManifestSha256": "72d15273a6e5f41f2bbd74d702ad9ab412e161a611525690944d9a548f464160",
   "sourceOnly": true,
   "files": [
@@ -253,7 +253,7 @@
     {
       "path": "package.json",
       "bytes": 9246,
-      "sha256": "c9c747323744f92f55dce17082f7e48dca1d709a57d6ca76e8a2de03cfa7bae0"
+      "sha256": "ea46b3629ef526f1815c3f1be03e6592508b4a1ed98653defb1081b612a86f88"
     },
     {
       "path": "product-session-registry.json",
@@ -667,8 +667,8 @@
     },
     {
       "path": "src/original-ide-admission-parent-delivery.js",
-      "bytes": 22487,
-      "sha256": "5515910747c1ad964c5064d3b941b10fb523fdcb74978bf646fcc996a88e6962"
+      "bytes": 22531,
+      "sha256": "1235de33effb0454f65b6c99e72b76ee5b1ddf286dd177a5de3623cccf433af5"
     },
     {
       "path": "src/original-ide-parent-host.d.ts",
@@ -15094,11 +15094,11 @@
       "sha256": "7b5958e1695a0ff79061c1067c4cdd6561eb4d9262dd9c836e33fec41332ace0"
     }
   ],
-  "predecessorManifestSha256": "7d432d27539a5bd511acc4006420281ab76544bcac44d0e5b7d3bb313a195d4d",
+  "predecessorManifestSha256": "c1b7ba5b460fb6243ee2366bcbc2599659a0917b850c91816905abfd73992249",
   "supplierPins": {
-    "sdkReadback": "74afbde2c0d0e6d0f0a9309e2d399a231226c054a7bb736a4ea9e82dc5112a4e",
+    "sdkReadback": "0f0d285581bec5ce8bdc51365fa4817850718c6aa19b7fbdb111028ebfe5a714",
     "nativeIntake": "534805f3e82c0069785b2bc059d9ef1af64fa1af578eb801fe1f913d612cd1f3",
-    "runtimeManifest": "5299c06749401ce9c867f4ff57391118c570b35f82ddf0a536fc107e06843aa9"
+    "runtimeManifest": "76d31bde076cf50fa185ba64375254e8ec72d4aee9f014e4404cb30200cc83f6"
   },
   "nativeBuildInputs": [
     {

@@ -11,7 +11,7 @@ test('normal selection validates independent exact SDK and complete R51, without
  assert.equal(sdk.sdkCommit,inputs.sdkCommit);assert.equal(sdk.files.length,243);
  assert.equal(sdk.dependencies.length,316);assert.equal(native.sourceLeaves,41);assert.equal(native.buildInputLeaves,35);
  assert.equal(native.nativeQualified,false);assert.equal(native.registrationAccepted,false);
- assert.equal(inputs.predecessorManifestSha256,'7d432d27539a5bd511acc4006420281ab76544bcac44d0e5b7d3bb313a195d4d');
+ assert.equal(inputs.predecessorManifestSha256,'c1b7ba5b460fb6243ee2366bcbc2599659a0917b850c91816905abfd73992249');
  assert.ok(inputs.nativeSourceUpdates.every(x=>Object.hasOwn(x,'parentSha256')));
 });
 test('wrong SDK bytes, missing source and a symlink are refused on the selected SDK path',async()=>{
