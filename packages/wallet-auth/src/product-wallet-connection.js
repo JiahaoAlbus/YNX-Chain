@@ -13,6 +13,21 @@ const CONFIG_FIELDS = [
 ];
 export const PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN = "https://wallet-auth.ynxweb4.com";
 
+// Same fixed normal transport as the original product factory. This is only a
+// narrow caller, never service/Source/Native qualification or a signing engine.
+// The existing Wallet journal owns once-only publish and UNKNOWN reconciliation.
+export function createProductWalletReturnPublisher(config){
+  exactFields(config,['gatewayTimeoutMs'],'Normal Wallet publication configuration');
+  if(typeof globalThis.fetch!=='function')throw new WalletAuthError('INVALID_GATEWAY','Normal publication requires the platform HTTPS transport');
+  const inapplicable=()=>{throw new WalletAuthError('PUBLISHER_CAPABILITY_NOT_APPLICABLE','Publication transport does not attest Wallet installation');};
+  const gateway=new ProductSessionGatewayFetchAdapter({endpoint:PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN,fetch:globalThis.fetch.bind(globalThis),walletInstalled:inapplicable,schemeRegistered:inapplicable,timeoutMs:config.gatewayTimeoutMs});
+  return Object.freeze({
+    currentTime:input=>gateway.currentTime(input),
+    publishReturn:input=>gateway.publishReturn(input),
+    publicationOutcome:input=>gateway.publicationOutcome(input),
+  });
+}
+
 /**
  * Constructs the only supported product-facing Wallet connection surface.
  * Product code supplies capabilities, never a callback, origin, route or Session.

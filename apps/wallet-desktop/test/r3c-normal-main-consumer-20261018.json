@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "state": "MATCHING_SDK_R3C_NORMAL_MAIN_CONSUMER_FROZEN_NOT_BUILT_INSTALLED_OR_ADMITTED",
+  "baseAppCommit": "ef83c99ab3da85cf13b2bdce0ff9d72d224ab8d9",
+  "sdk": {
+    "commit": "41010c4ff801bd334917ca9feb483190fe041bce",
+    "tree": "dccdac33177566dcf2d794cb9055adfc4bcb027b",
+    "version": "1.3.0-pq.3.3",
+    "handoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3c-20261018/SDK_PQ_R3C_HANDOFF.json",
+    "handoffBytes": 18896,
+    "handoffSHA256": "9061bc3a9b34e24d486f7e26c43342d1d3ca7043c74d42e30693111ebf77c9ac",
+    "archive": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3c-20261018/artifacts/ynx-chain-wallet-auth-1.3.0-pq.3.3.tgz",
+    "archiveBytes": 727198,
+    "archiveSHA256": "a870d6774b3e8434548f02bb9df29347aa86dc3cd9ed92e39b027e73370d78fc",
+    "exactDeltaFilesCopied": 24,
+    "independentlyComparedActualArchiveFiles": 212,
+    "newRuntimeDependencies": [],
+    "protocolModuleUnchangedSHA256": "460b4e514ae748de5d73defa932c3aa840cb4cd50b5525a6eda1e8461e423544",
+    "protocolModuleHistoricalSourceReceiptPreserved": "b164a68376ad784bfd5f83513611f6a4ee008070"
+  },
+  "runtimeManifest": {
+    "path": "scripts/wallet-auth-runtime-dependencies.json",
+    "bytes": 52466,
+    "sha256": "ebebb1f050e68e4551e5a6c38857dcfdb1261905afdcdefa3ec6169bd60942d8",
+    "exactExistingRuntimeFiles": 316,
+    "providerSHA256": "401eca733083c2ac67998295c54f09f0553760b99eaf0adf9ef1e1a85b4cbd0b",
+    "regeneratedBy": "scripts/pin-pq-runtime-dependencies.mjs",
+    "network": false,
+    "installScripts": false
+  },
+  "normalMain": {
+    "module": "@ynx-chain/wallet-auth/product-wallet-connection",
+    "factory": "createProductWalletReturnPublisher({gatewayTimeoutMs:15000})",
+    "callee": "Original DesktopWalletAuthority sessionReturnClient",
+    "originalSourceAndJournalRetained": true,
+    "rendererEndpointOrProviderInjection": false,
+    "NativeFallbackOrNewHost": false,
+    "AppTsxBlobUnchanged": "ce53b7ddd99b187caf96b596cdb99cc2501ff3cc",
+    "sourceLinkedLockMetadata": "Desktop and mobile file dependency version, dependencies and existing optional PQ peer match exact SDK; this does not attest npm ci or installation"
+  },
+  "actualRuntime": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r24-normal-install-qa-20261018/installed-r24/YNX Wallet.app/Contents/MacOS/YNX Wallet",
+  "red": {"files": ["test/wallet-session-publisher-main.test.mjs"], "exitCode": 1, "tests": 2, "fail": 2, "causes": ["Old SDK factory export undefined", "Normal main constructor did not install publisher"]},
+  "actualPasses": [
+    {"files": ["test/password-wallet-pq.test.mjs", "test/callback-policy.test.mjs", "test/callback-ui-gate.test.mjs", "test/wallet-session-return-boundary.test.mjs", "test/wallet-session-recovery-ui.test.mjs", "test/wallet-session-publisher-main.test.mjs"], "exitCode": 0, "tests": 88, "fail": 0, "durationMs": 38269.376375},
+    {"files": ["test/wallet-session-publisher-main.test.mjs"], "includesAdditionalLockMetadataControl": true, "exitCode": 0, "tests": 3, "fail": 0, "durationMs": 44.632167},
+    {"mobileFiles": ["apps/wallet/src/protocol/authorizationAudit.test.ts", "apps/wallet/src/protocol/productSessionController.test.ts"], "tsx": "4.23.1", "tsconfig": "apps/wallet/tsconfig.protocol-qa.json", "exitCode": 0, "tests": 33, "fail": 0, "durationMs": 412.224417},
+    {"mobileTypecheck": "apps/wallet/tsconfig.protocol-typecheck.json", "typescript": "6.0.3", "exitCode": 0},
+    {"syntaxCheck": "src/main.mjs", "exitCode": 0}
+  ],
+  "inspectionCorrections": ["Initial directory inventory encountered supplier QA node_modules symlink. Switched to actual pinned tar entries and compared all 212 bytes against local source; no dependency symlink is treated as package evidence.", "Fixed-HTTPS test initially omitted canonical JSON, x-request-id and no-store response headers and was correctly refused. Only the controlled reply fixture was corrected, not SDK guards."],
+  "evidenceLimits": ["Actual same-copy SDK normal factory and envelope/DTO parser, QA dual cryptography, original Vault and filesystem are exercised", "HTTPS replies, producer policy and UI are controlled fixtures, not public Auth admission or native GUI", "Whole-App build/package/install/upgrade and source-bound registered publisher deployment remain to be verified by original A/Root", "Native private four-op small-reference remains unsupported and no fallback was added", "Real external business input and MONSTER were not executed", "User accounts, keys, mnemonic and existing backups were not touched"]
+}

@@ -1,4 +1,5 @@
 import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 import {createOriginalAdmissionController} from './original-admission-controller.mjs';
 import {openOriginalAdmissionSupply,closeOriginalAdmissionSupply,readOriginalAdmissionSummary,originalAdmissionSelectionUnresolved} from './original-admission-supply.mjs';
 import {MultiConfigStore} from './multichain-config.mjs';
@@ -738,6 +739,9 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   familyBitcoinSubmission = new FamilyBitcoinSubmission({networks:familyRead.networks,journal:familyRecovery.journal,getContext:familyContext,gate:familyOperationGate});
   keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
+    // The existing SDK owns the fixed normal HTTPS caller. No renderer URL,
+    // fake provider, second Host or private Native-op substitute is accepted.
+    sessionReturnClient:createProductWalletReturnPublisher({gatewayTimeoutMs:15000}),
     // Auth's fixed normal factory enforces pinned node/build/genesis. Its
     // undeployed or unhealthy query is a refusal, never a substitute policy.
     pqPolicySource:acquireOriginalWalletTransactionPolicy,

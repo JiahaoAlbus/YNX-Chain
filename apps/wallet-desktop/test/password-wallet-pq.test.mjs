@@ -27,6 +27,7 @@ import {DesktopAuthorizationController} from '../src/callback-policy.mjs';
 import {PRODUCT_SESSION_REGISTRY} from '../src/wallet-auth-contract.mjs';
 import {captureProductSessionAccountPolicy} from '@ynx-chain/wallet-auth/product-session-account-policy';
 import {verifyPQProductSessionApproval} from '@ynx-chain/wallet-auth/product-session-pq-approval';
+import {createProductWalletReturnPublisher} from '@ynx-chain/wallet-auth/product-wallet-connection';
 const SDK=Object.freeze({...keySDK,...backupSDK,...contractSDK}),PASSWORD='isolated-PQ-app-fixture-password',SECRET='1'.padStart(64,'0'),CHAIN='a'.repeat(64);
 async function fixture(t,pqSDK=SDK){
  const directory=await fs.mkdtemp(path.join(tmpdir(),'ynx-app-pq-vault-')),filePath=path.join(directory,'wallet-vault-v3.json');
@@ -388,6 +389,32 @@ test('normal read-only recovery exposes bounded local summaries and reads expire
  const metadata=await f.lifecycle.run(()=>cold.readCanonicalPublicationOutcome(digest));assert.equal(metadata.state,'pending');assert.equal(metadata.expired,true);assert.equal(metadata.retryAuthorized,false);assert.equal(metadata.callbackEmitted,false);assert.equal(metadata.productSessionCreated,false);assert.equal('callbackUrl' in metadata,false);assert.equal('approval' in metadata,false);assert.equal(publications,1);assert.equal(reads,1);
  const store=fresh.options.transactionSender.submissions.intentStore;assert.equal((await store.sessionRecoverySummaries('0x'+'2'.repeat(40),()=>{})).length,0);
  f.lifecycle.lock();await assert.rejects(cold.canonicalPublicationRecords());await assert.rejects(cold.readCanonicalPublicationOutcome(digest));assert.equal(reads,1);
+});
+test('R3c normal fixed SDK HTTP caller drives actual App journal and cold recovery after lost publication ACK',async t=>{
+ const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));
+ const s=sessionQA(f),originalFetch=globalThis.fetch;let published,publicationId,publishes=0,reads=0,signs=0;
+ const keys=f.vault.withPQKeys.bind(f.vault);f.vault.withPQKeys=(...args)=>{signs++;return keys(...args);};
+ t.after(()=>{globalThis.fetch=originalFetch;});
+ // Controlled HTTPS replies exercise the actual fixed factory and its strict
+ // envelope/DTO parser. They do NOT attest a deployed Source or public Auth.
+ globalThis.fetch=async(url,init)=>{
+  assert.equal(new URL(url).origin,'https://wallet-auth.ynxweb4.com');assert.equal(init.method,'POST');assert.equal(init.redirect,'error');assert.equal(init.cache,'no-store');assert.equal(init.credentials,'omit');
+  const body=JSON.parse(init.body),id=init.headers['x-request-id'];
+  if(new URL(url).pathname==='/v2/product-sessions/returns'){
+   publishes++;assert.deepEqual(Object.keys(body).sort(),['approval','request']);assert.equal(body.approval.version,'3');published=body;publicationId=id;throw new TypeError('QA_NORMAL_PUBLICATION_ACK_LOST');
+  }
+  assert.equal(new URL(url).pathname,'/v2/product-sessions/returns/outcome');reads++;
+  assert.deepEqual(Object.keys(body).sort(),['approval','publicationRequestId','request','selector']);assert.equal(body.selector,'YNX-PRODUCT-SESSION-PUBLICATION/v1');assert.equal(body.publicationRequestId,publicationId);assert.deepEqual(body.request,published.request);assert.deepEqual(body.approval,published.approval);
+  const result={state:'pending',reference:'ynxpsr1_'+'r'.repeat(43),expiresAt:body.request.expiresAt,account:body.approval.account,requestDigest:body.approval.requestDigest,approvalDigest:productSessionApprovalDigest(body.approval),retryAuthorized:false};
+  return new Response(canonicalJSON({ok:true,requestId:id,schemaVersion:2,result}),{headers:{'content-type':'application/json','x-request-id':id,'cache-control':'no-store'}});
+ };
+ const client=createProductWalletReturnPublisher({gatewayTimeoutMs:15000});
+ await assert.rejects(f.lifecycle.run(()=>new DesktopWalletAuthority({...s.options,sessionReturnClient:client}).approveCanonicalAuthorization(s.request,s.at.toISOString(),f.account)),e=>e.code==='NETWORK_UNAVAILABLE');
+ const fresh=sessionQA(f),cold=new DesktopWalletAuthority({...fresh.options,sessionReturnClient:createProductWalletReturnPublisher({gatewayTimeoutMs:15000})});
+ const recovered=await f.lifecycle.run(()=>cold.reconcileCanonicalAuthorization(s.request,f.account));
+ assert.equal(recovered.approval.walletProof,published.approval.walletProof);assert.ok(recovered.callbackUrl.length<=4096);assert.equal(new URL(recovered.callbackUrl).searchParams.get('result'),'reference');
+ assert.equal(publishes,1);assert.equal(reads,1);assert.equal(signs,1);
+ const state=JSON.parse(await fs.readFile(fresh.options.transactionSender.submissions.intentStore.filePath,'utf8'));assert.equal(state.schemaVersion,8);assert.equal(state.sessionPublications[0].status,'reference-ready');assert.equal(state.sessionOriginals[0].deliveryAttempted,false);
 });
 test('normal committed-policy session caller uses actual registered PQ pair and original verified-cap callback without classic signing',async t=>{
  const f=await fixture(t);await f.lifecycle.run(()=>f.vault.savePQKeys({handle:f.handle,publicBinding:f.binding,operationId:'QA-session-pair'}));const s=sessionQA(f),authority=new DesktopWalletAuthority(s.options);
