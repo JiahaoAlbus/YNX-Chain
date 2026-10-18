@@ -4,25 +4,19 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { toYNXAddress } from "../../sdk/js/index.js";
-import { assertNoSecretFields, inventoryCore, normalizeRecord, readRestricted, serviceRoles, sha256, validateInventory, validatorRoles } from "../verify/lib/owner-handover.mjs";
+import { assertNoSecretFields, inventoryCore, normalizeRecord, readRestricted, serviceRoles, sha256, validateInventory, validatorRoles, isSingleAppCustody, singleAppCustodyProfile } from "../verify/lib/owner-handover.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const requiredEnv = ["YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST", "YNX_OWNER_HANDOVER_SERVICE_SIGNER_MANIFEST", "YNX_OWNER_HANDOVER_SERVICE_SIGNER_STATUS"];
+// This selects a public, default-false draft only. The normal cutover still
+// requires the independent protected approval and reviewed exact source pins.
+const singleApp = isSingleAppCustody(Object.hasOwn(process.env, "YNX_OWNER_HANDOVER_CUSTODY_PROFILE") ? { custodyProfile: process.env.YNX_OWNER_HANDOVER_CUSTODY_PROFILE } : {});
+const requiredEnv = ["YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST", ...(singleApp
+  ? ["YNX_OWNER_HANDOVER_OPERATOR_PLAN_SHA256", "YNX_OWNER_HANDOVER_RUNTIME_MANIFEST_SHA256"]
+  : ["YNX_OWNER_HANDOVER_SERVICE_SIGNER_MANIFEST", "YNX_OWNER_HANDOVER_SERVICE_SIGNER_STATUS"])];
 for (const name of requiredEnv) if (!process.env[name]) throw new Error(`${name} is required`);
 const validatorPath = path.resolve(process.env.YNX_OWNER_HANDOVER_VALIDATOR_MANIFEST);
-const servicePath = path.resolve(process.env.YNX_OWNER_HANDOVER_SERVICE_SIGNER_MANIFEST);
-const statusPath = path.resolve(process.env.YNX_OWNER_HANDOVER_SERVICE_SIGNER_STATUS);
-const catalogPath = path.resolve(process.env.YNX_OWNER_HANDOVER_OPERATIONAL_CATALOG || path.join(repoRoot, "docs/custody/OWNER_HANDOVER_OPERATIONAL_ACCOUNTS.json"));
-
 const validatorSource = readRestricted(validatorPath, "validator public manifest");
-const serviceSource = readRestricted(servicePath, "service signer public manifest");
-const statusSource = readRestricted(statusPath, "service signer ceremony status");
-const catalogRaw = fs.readFileSync(catalogPath);
-const catalog = JSON.parse(catalogRaw);
 assertNoSecretFields(validatorSource.value, "validator public manifest");
-assertNoSecretFields(serviceSource.value, "service signer public manifest");
-assertNoSecretFields(statusSource.value, "service signer status");
-assertNoSecretFields(catalog, "operational account catalog");
 
 const validators = validatorSource.value;
 if (validators.version !== 1 || validators.purpose !== "ynx-production-bft-candidate-public-keys-only" || validators.chainId !== "ynx_6423-1" || !Array.isArray(validators.validators) || validators.validators.length !== 4) throw new Error("validator public manifest identity is invalid");
@@ -49,13 +43,25 @@ const validatorRecords = validatorRoles.map((role, index) => {
 });
 if (new Set(validatorRecords.map((record) => record.publicIdentity)).size !== 4 || new Set(validatorRecords.map((record) => record.secondaryPublicIdentity)).size !== 4) throw new Error("validator public identities must be distinct");
 
+let serviceRecords = [], operationalRecords = [], sources;
+if (singleApp) {
+  for (const name of requiredEnv.slice(1)) if (!/^[0-9a-f]{64}$/.test(process.env[name]) || /^0{64}$/.test(process.env[name])) throw new Error(`${name} must be an independent nonzero lowercase SHA256`);
+  sources = { validatorManifestSha256: sha256(validatorSource.raw), operatorPlanSha256: process.env.YNX_OWNER_HANDOVER_OPERATOR_PLAN_SHA256, runtimeManifestSha256: process.env.YNX_OWNER_HANDOVER_RUNTIME_MANIFEST_SHA256 };
+} else {
+const serviceSource = readRestricted(path.resolve(process.env.YNX_OWNER_HANDOVER_SERVICE_SIGNER_MANIFEST), "service signer public manifest");
+const statusSource = readRestricted(path.resolve(process.env.YNX_OWNER_HANDOVER_SERVICE_SIGNER_STATUS), "service signer ceremony status");
+const catalogRaw = fs.readFileSync(path.resolve(process.env.YNX_OWNER_HANDOVER_OPERATIONAL_CATALOG || path.join(repoRoot, "docs/custody/OWNER_HANDOVER_OPERATIONAL_ACCOUNTS.json")));
+const catalog = JSON.parse(catalogRaw);
+assertNoSecretFields(serviceSource.value, "service signer public manifest");
+assertNoSecretFields(statusSource.value, "service signer status");
+assertNoSecretFields(catalog, "operational account catalog");
 const serviceManifest = serviceSource.value;
 const serviceStatus = statusSource.value;
 if (serviceManifest.schemaVersion !== 1 || serviceManifest.purpose !== "ynx-production-service-signer-public-manifest" || !Array.isArray(serviceManifest.records) || serviceManifest.records.length !== 5) throw new Error("service signer public manifest identity is invalid");
 const serviceManifestSha256 = sha256(serviceSource.raw);
 if (serviceStatus.schemaVersion !== 1 || serviceStatus.purpose !== "ynx-production-service-signer-ceremony-status" || serviceStatus.publicManifestSha256 !== serviceManifestSha256 || serviceStatus.signerCount !== 5 || serviceStatus.distinctAddressesVerified !== true || serviceStatus.ownerLocalKeysModeRestricted !== true || serviceStatus.ownerDesignatedRecoveryCopyMatched !== true) throw new Error("service signer ceremony status is invalid");
 for (const field of ["remoteSignerInstallCompleted", "offlineRecoveryVerified", "ownerHandoverVerified", "rotationProcedureVerified", "independentCustodyReviewVerified"]) if (serviceStatus[field] !== false) throw new Error(`source service signer status ${field} must remain false until external evidence exists`);
-const serviceRecords = serviceRoles.map((role, index) => {
+serviceRecords = serviceRoles.map((role, index) => {
   const record = serviceManifest.records[index];
   if (record?.role !== role || record.purpose !== `ynx-production-${role}-signer` || !/^0x[0-9a-f]{40}$/.test(record.address || "")) throw new Error(`service signer ${role} public identity is invalid`);
   return normalizeRecord({
@@ -79,7 +85,9 @@ const serviceRecords = serviceRoles.map((role, index) => {
 if (new Set(serviceRecords.map((record) => record.publicIdentity)).size !== 5) throw new Error("service signer public identities must be distinct");
 
 if (catalog.schemaVersion !== 1 || catalog.purpose !== "ynx-owner-handover-operational-account-catalog" || !Array.isArray(catalog.records) || catalog.records.length === 0) throw new Error("operational account catalog identity is invalid");
-const operationalRecords = catalog.records.map(normalizeRecord);
+operationalRecords = catalog.records.map(normalizeRecord);
+sources = { validatorManifestSha256: sha256(validatorSource.raw), serviceSignerManifestSha256: serviceManifestSha256, serviceSignerStatusSha256: sha256(statusSource.raw), operationalCatalogSha256: sha256(catalogRaw) };
+}
 const records = [...validatorRecords, ...serviceRecords, ...operationalRecords];
 const commit = execFileSync("git", ["rev-parse", "--short=12", "HEAD"], { cwd: repoRoot, encoding: "utf8" }).trim();
 const generatedAt = new Date().toISOString();
@@ -92,21 +100,17 @@ const readiness = {
   offlineRecoveryVerified: false,
   ownerHandoverVerified: false,
   rotationProcedureVerified: false,
-  remoteServiceSignerInstallCompleted: false,
+  ...(!singleApp ? { remoteServiceSignerInstallCompleted: false } : {}),
   independentCustodyReviewVerified: false,
   publicBFTReady: false,
 };
 const inventory = {
+  ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
   schemaVersion: 1,
   purpose: "ynx-owner-handover-public-inventory",
   commit,
   generatedAt,
-  sources: {
-    validatorManifestSha256: sha256(validatorSource.raw),
-    serviceSignerManifestSha256: serviceManifestSha256,
-    serviceSignerStatusSha256: sha256(statusSource.raw),
-    operationalCatalogSha256: sha256(catalogRaw),
-  },
+  sources,
   records,
   readiness,
 };
@@ -117,14 +121,16 @@ const packetId = process.env.YNX_OWNER_HANDOVER_PACKET_ID || `owner-handover-${c
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{7,127}$/.test(packetId)) throw new Error("YNX_OWNER_HANDOVER_PACKET_ID is invalid");
 const outputRoot = path.resolve(process.env.YNX_OWNER_HANDOVER_OUTPUT_DIR || path.join(repoRoot, "tmp/owner-handover"), packetId);
 if (fs.existsSync(outputRoot)) throw new Error(`owner handover packet already exists: ${outputRoot}`);
-fs.mkdirSync(outputRoot, { recursive: true, mode: 0o700 });
+fs.mkdirSync(path.dirname(outputRoot), { recursive: true, mode: 0o700 });
+fs.mkdirSync(outputRoot, { mode: 0o700 });
 fs.chmodSync(outputRoot, 0o700);
 const inventoryPath = path.join(outputRoot, "inventory.json");
-fs.writeFileSync(inventoryPath, `${JSON.stringify(inventory, null, 2)}\n`, { mode: 0o600 });
+fs.writeFileSync(inventoryPath, `${JSON.stringify(inventory, null, 2)}\n`, { flag: "wx", mode: 0o600 });
 fs.chmodSync(inventoryPath, 0o600);
 const inventoryFileSha256 = sha256(fs.readFileSync(inventoryPath));
 const requiredIds = records.filter((record) => record.handoverRequired).map((record) => record.id);
 const receipt = {
+  ...(singleApp ? { custodyProfile: singleAppCustodyProfile } : {}),
   schemaVersion: 1,
   action: "ynx-owner-custody-handover",
   receiptId: `pending-${packetId}`,
@@ -138,18 +144,18 @@ const receipt = {
   handoverRequiredIds: requiredIds,
   allIdentitiesClassified: readiness.unknownOwnershipCount === 0,
   validatorRecoveryVerified: false,
-  serviceSignerOfflineRecoveryVerified: false,
+  ...(!singleApp ? { serviceSignerOfflineRecoveryVerified: false } : {}),
   ownerHandoverVerified: false,
   rotationProcedureVerified: false,
   validatorRecoveryEvidence: "",
-  serviceSignerRecoveryEvidence: "",
+  ...(!singleApp ? { serviceSignerRecoveryEvidence: "" } : {}),
   ownerHandoverEvidence: "",
   rotationProcedureEvidence: "",
   acknowledgedAt: "",
   expiresAt: "",
 };
 const receiptPath = path.join(outputRoot, "receipt.template.json");
-fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
+fs.writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { flag: "wx", mode: 0o600 });
 fs.chmodSync(receiptPath, 0o600);
 const requestPath = path.join(outputRoot, "HANDOVER_REQUEST.md");
 const request = `# Owner Custody Handover Request
@@ -161,9 +167,7 @@ This packet contains public identities, status classifications, and hashes only.
 - Inventory file SHA-256: \`${inventoryFileSha256}\`
 - Records: ${records.length} total; ${requiredIds.length} require owner handover
 - Production validators: 4
-- Future BFT service signers: 5
-- Authoritative \`ynx_faucet\`: runtime state account with no mnemonic/private key
-- Public address proof account: funded smoke-only test identity, not a secure production wallet
+${singleApp ? `- Custody profile: ${singleAppCustodyProfile}\n- Operator plan SHA-256: ${sources.operatorPlanSha256}\n- Runtime manifest SHA-256: ${sources.runtimeManifestSha256}\n- Service-signer custody: outside this four-validator draft; no service recovery assertion` : "- Future BFT service signers: 5\n- Authoritative `ynx_faucet`: runtime state account with no mnemonic/private key\n- Public address proof account: funded smoke-only test identity, not a secure production wallet"}
 - Public BFT ready: false
 
 The owner and independent reviewer must be different people. Keep evidence fields as compact non-secret references. Set recovery, handover, and rotation assertions to true only after observing the corresponding external procedure. A same-volume staging copy is not offline recovery.
@@ -174,7 +178,7 @@ Validate a completed mode-0600 receipt with:
 
 Validation emits exact receipt and inventory hashes. It does not install signers, move funds, or authorize freeze, pause, ingress, candidate start, or BFT cutover.
 `;
-fs.writeFileSync(requestPath, request, { mode: 0o600 });
+fs.writeFileSync(requestPath, request, { flag: "wx", mode: 0o600 });
 fs.chmodSync(requestPath, 0o600);
 
 console.log(`owner handover inventory: ${inventoryPath}`);

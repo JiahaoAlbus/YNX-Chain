@@ -1001,7 +1001,13 @@ collect_role() {
   services="$(public_bft_preflight_services "$kind")"
   candidate_port_pattern=':(27656|27757|27858)$'
   if [[ "$kind" == "full" ]]; then
-    candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'
+    if [[ "$services" == ynx-chaind ]]; then
+      # A full host gets this exact service set only from the revalidated
+      # protected single-App profile above; draft/env flags cannot select it.
+      candidate_port_pattern=':(27620|27656|27757|27858)$'
+    else
+      candidate_port_pattern=':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'
+    fi
   fi
   custody_command="$(node scripts/verify/public-bft-candidate-binding.mjs --operator-preflight "$candidate_operator_plan" "$candidate_operator_pin" "$role" fresh)"
   ynx_ops_ssh "$role" "$user" "$host" "$key" "curl -fsS http://127.0.0.1:6420/status" >"$role_dir/status.json"

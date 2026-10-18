@@ -172,6 +172,17 @@ let selected=spawnSync('bash',[shell],{env,encoding:'utf8'});assert.equal(select
 fs.writeFileSync(path.join(transaction,'approval.json'),JSON.stringify({...value,operatorPlanSha256:'f'.repeat(64)})+'\n');
 selected=spawnSync('bash',[shell],{env,encoding:'utf8'});assert.notEqual(selected.status,0);assert.equal(selected.stdout,'');
 selected=spawnSync('bash',[shell],{env:{...env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:'',PUBLIC_BFT_CUSTODY_PROFILE:profile},encoding:'utf8'});assert.equal(selected.status,0);assert.equal(selected.stdout,'legacy-full-services');
+// Exercise the real collect_role command builder. The transport records the
+// command without executing curl/systemctl/ss; the unrelated key preflight is
+// an explicit public fixture stub. Original approval validation remains real.
+const collect=driver.match(/^collect_role\(\) \{\n[\s\S]*?^\}/m)?.[0];assert.ok(collect);
+const collectShell=path.join(dir,'collect.sh'),commands=path.join(dir,'commands.txt');
+fs.writeFileSync(path.join(transaction,'approval.json'),projected.stdout,{mode:0o600});
+const fullServices='ynx-chaind ynx-indexerd ynx-explorerd ynx-faucetd ynx-ai-gatewayd ynx-payd ynx-trustd ynx-resourced';
+fs.writeFileSync(collectShell,`set -euo pipefail\ncd ${q(project)}\ncommit=${q(commit)}\nrelease=${q(release)}\nroot=${q(path.join(dir,'collect-evidence'))}\ncandidate_operator_plan=/public-fixture/operator-plan.json\ncandidate_operator_pin=${q('c'.repeat(64))}\nynx_ops_services_for_kind(){ if [[ "$1" == full ]]; then printf '%s' ${q(fullServices)}; else printf ynx-chaind; fi; }\nnode(){ if [[ "$1" == scripts/verify/public-bft-candidate-binding.mjs && "$2" == --operator-preflight ]]; then printf true; else ${q(process.execPath)} "$@"; fi; }\nynx_ops_ssh(){ printf '%s\\n' "$5" >> "$CALLER_COMMANDS"; }\n${body}\n${collect}\ncollect_role primary fixture-user fixture-host fixture-key full\n`,{mode:0o700});
+let collected=spawnSync('bash',[collectShell],{env:{...env,CALLER_COMMANDS:commands},encoding:'utf8'});assert.equal(collected.status,0,collected.stderr);
+let command=fs.readFileSync(commands,'utf8');assert.ok(command.includes('for service in ynx-chaind;'));assert.ok(command.includes(':(27620|27656|27757|27858)$'));assert.ok(command.includes('ynx-consensus-overlay.service'));assert.equal(/2762[6-9]|2763[0-2]|ynx-ai-gatewayd|ynx-payd|ynx-trustd/.test(command),false,'scoped collect still depends on paused candidate services/ports');
+const legacyCommands=path.join(dir,'legacy-commands.txt');collected=spawnSync('bash',[collectShell],{env:{...env,PUBLIC_BFT_CUTOVER_TRANSACTION_DIR:'',PUBLIC_BFT_CUSTODY_PROFILE:profile,CALLER_COMMANDS:legacyCommands},encoding:'utf8'});assert.equal(collected.status,0,collected.stderr);command=fs.readFileSync(legacyCommands,'utf8');assert.ok(command.includes(`for service in ${fullServices};`));assert.ok(command.includes(':(27620|27626|27627|27628|27629|27630|27631|27632|27656|27757|27858)$'));
 oldPaths.forEach((p,i)=>assert.deepEqual(fs.readFileSync(p),originals[i],'original full-profile custody changed'));
 console.log('SINGLE_APP_CUSTODY_CHAIN_VALIDATED: four original identities, exact pins/profile, separate reviewers, no fabricated service recovery, original full profile preserved');
 NODE
