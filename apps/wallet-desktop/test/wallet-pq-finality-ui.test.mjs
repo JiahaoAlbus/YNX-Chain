@@ -39,3 +39,10 @@ test('same-original verification DATA is never painted as finality or a send',as
 test('explicit verifier error is displayed distinctly without declaring transaction failure or authorizing retry',async()=>{
  const f=fixture(true);f.reply(async()=>({ok:true,value:{account,hash,status:'verifier-error-data',rawStored:true,consensusFinality:false,independentFinality:false,canRetry:false,clearsOriginal:false}}));await f.buttons[3].click();assert.match(f.messages.at(-1),/Proof verification returned an error/);assert.match(f.messages.at(-1),/does not establish transaction failure/);assert.deepEqual(f.calls,[['verify',hash]]);
 });
+test('cold recovery distinguishes bound verifier errors, incomplete runs and unverified evidence without querying again',async()=>{
+ const f=fixture(true);f.reply(async()=>({ok:true,value:{...restored(),records:[{...value(),nativeGrant:false,status:'verifier-error-data'},{...value(),nativeGrant:false,status:'verifier-incomplete'},{status:'evidence-unverified'}]}}));await f.buttons[1].click();
+ assert.match(f.messages.at(-1),/Saved verifier errors: 1/);assert.match(f.messages.at(-1),/Incomplete verifier runs: 1/);assert.match(f.messages.at(-1),/Unverified local records: 1/);assert.match(f.messages.at(-1),/not independently verified/);assert.deepEqual(f.calls,[['restore',hash]]);
+});
+test('foreign or permission-inflated cold verifier records are unverified warnings, not trusted saved outcomes',async()=>{
+ for(const change of [{hash:'0x'+'3'.repeat(64)},{account:'0x'+'4'.repeat(40)},{canRetry:true},{nativeGrant:true}]){const f=fixture(true);f.reply(async()=>({ok:true,value:{...restored(),records:[{...value(),status:'verifier-error-data',nativeGrant:false,...change}]}}));await f.buttons[1].click();assert.doesNotMatch(f.messages.at(-1),/Saved verifier errors: 1/);assert.match(f.messages.at(-1),/Unverified local records: 1/);assert.deepEqual(f.calls,[['restore',hash]]);}
+});

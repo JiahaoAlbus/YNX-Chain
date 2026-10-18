@@ -19,8 +19,16 @@ export function appendPQFinalityActions({row,record,api,getKeyState,isCurrent,on
     const v=response?.value;
     if(response?.ok!==true){onResult(response?.error?.code==='PQ_HOST_SOURCE_NOT_SUPPLIED'?'原 Host 信任材料尚未供给，校验未启用；已取得的资料与原交易保留。没有签名或发送。 / Original Host source not supplied; verification unavailable. Evidence and original retained; no sign or send.':'核验资料操作未确认；请保留记录，先读取本地资料。没有重签或发送。 / Evidence operation unconfirmed. Preserve originals and read local evidence before another query. No re-sign or send.');return;}
     if(action==='restore'){
-     if(!base(v)||v.hash!==record.hash||!Array.isArray(v.records)||!Number.isSafeInteger(v.unreadable)||v.unreadable<0||typeof v.heldLocally!=='boolean'){onResult('本地资料尚未核实；原交易保留。 / Local evidence unverified; original retained.');return;}
-     held=v.heldLocally;uncertain=held;onResult(notice+(v.unreadable?' 部分本地记录不可读，请保留。 / Some local records are unreadable; preserve them.':''));
+     if(!base(v)||v.hash!==record.hash||!Array.isArray(v.records)||v.records.length>1024||!Number.isSafeInteger(v.unreadable)||v.unreadable<0||typeof v.heldLocally!=='boolean'){onResult('本地资料尚未核实；原交易保留。 / Local evidence unverified; original retained.');return;}
+     let errors=0,incomplete=0,unverified=v.unreadable;
+     for(const saved of v.records){
+      if(!base(saved)||saved.hash!==record.hash||['verifier-error-data','verifier-incomplete'].includes(saved.status)&&saved.nativeGrant!==false){unverified++;continue;}
+      if(saved.status==='verifier-error-data')errors++;
+      else if(saved.status==='verifier-incomplete')incomplete++;
+      else if(!['verifier-result-data','collected','pending','unavailable'].includes(saved.status))unverified++;
+     }
+     const summary=(errors?` 已保存的校验错误：${errors}。 / Saved verifier errors: ${errors}.`:'')+(incomplete?` 未完成的校验：${incomplete}。 / Incomplete verifier runs: ${incomplete}.`:'')+(unverified?` 未核实的本地记录：${unverified}，请保留。 / Unverified local records: ${unverified}; preserve them.`:'');
+     held=v.heldLocally;uncertain=held;onResult(notice+summary);
     }else if(action==='verify'||action==='save'&&v?.saved===true){
      if(!base(v)||v.hash!==record.hash||action==='verify'&&(v.rawStored!==true||!['verifier-result-data','verifier-error-data'].includes(v.status))){onResult('资料回执未绑定原交易；原记录保留。 / Evidence acknowledgement unbound; original retained.');return;}
      held=false;uncertain=false;onResult(action==='verify'&&v.status==='verifier-error-data'?'证明校验返回错误，已保留原始结果；这不证明交易失败，未授予重试、重签或发送权限。 / Proof verification returned an error; original evidence retained. This does not establish transaction failure or authorize retry, signing or sending.':notice);
