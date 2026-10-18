@@ -44,6 +44,11 @@ on:
         required: false
         default: false
         type: boolean
+      consensus_e2e:
+        description: Run the separately authorized bounded four-validator transition once
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -233,6 +238,59 @@ jobs:
       - name: Verify shared Wallet policy and Chain payment authorization regressions
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: go test -p 1 -count=1 -timeout=90s -run '^(TestClassicSession.*|TestAccountPolicyConfigRequiresExplicitExactOriginAndNetwork|TestBFTPaySerializesNonceAndReturnsZeroFeeIdempotentReplay|TestBFTPayRejectsInconsistentCommittedResponse|TestMerchantBindingRejectsForeignIntentAndInvoiceWithoutEffects|TestMerchantBindingRejectsMissingUntrustedOrUnavailableOriginal)$' ./internal/appgateway ./internal/paygateway
+      - name: Verify Linux window controls without starting a node
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        run: python3 -B scripts/loadtest/test_pq_paired_linux_window.py
+      - name: Run the authorized bounded four-validator transition
+        id: pqnetwork
+        if: ${{ success() && github.event_name == 'workflow_dispatch' && inputs.consensus_e2e && inputs.candidate_sha == github.sha && !inputs.paired_n1 }}
+        timeout-minutes: 3
+        run: |
+          YNX_E2E_CASE="$RUNNER_TEMP/ynx-pq-network-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          YNX_E2E_BUILD="$YNX_E2E_CASE.build"
+          export YNX_E2E_CASE YNX_E2E_BUILD
+          umask 077
+          mkdir "$YNX_E2E_CASE" "$YNX_E2E_BUILD"
+          go test -p 1 -c -o "$YNX_E2E_BUILD/consensus.test" ./internal/consensus
+          python3 -B - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          source = Path(os.environ['GITHUB_WORKSPACE']).resolve()
+          case = Path(os.environ['YNX_E2E_CASE']).resolve()
+          binary = Path(os.environ['YNX_E2E_BUILD']).resolve() / 'consensus.test'
+          leaf = 'internal/consensus/pq_network_e2e_test.go'
+          def digest(path):
+              h = hashlib.sha256()
+              with open(path, 'rb') as f:
+                  for chunk in iter(lambda: f.read(65536), b''):
+                      h.update(chunk)
+              return h.hexdigest()
+          plan = dict(profile='consensus-e2e', sourceRoot=str(source),
+              commit=os.environ['GITHUB_SHA'], executionAuthorized=False,
+              workingDirectory=str(source / 'internal/consensus'),
+              command=[str(binary), '-test.run=^TestPQNetworkFourValidatorOriginalStateTransitionAndRestart$',
+                  '-test.count=1', '-test.timeout=120s', '-test.v'],
+              environment=dict(GOMAXPROCS='2', GOGC='50', GOMEMLIMIT='1536MiB',
+                  YNX_PQ_NETWORK_E2E='authorized-four-node-window'),
+              sourcePins={leaf: dict(sha256=digest(source / leaf))},
+              binaryPin=dict(path=str(binary), sha256=digest(binary)))
+          with open(case / 'prepared.json', 'x', encoding='utf8') as f:
+              json.dump(plan, f, separators=(',', ':'))
+              f.write('\n')
+          PY
+          python3 -B scripts/loadtest/pq-paired-linux-window.py --consensus-e2e --prepared "$YNX_E2E_CASE/prepared.json" --receipt "$YNX_E2E_CASE.receipt.json" --execute
+      - name: Preserve only public network-test logs and guard receipt
+        if: ${{ always() && (steps.pqnetwork.outcome == 'success' || steps.pqnetwork.outcome == 'failure') }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ynx-pq-network-e2e-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}.receipt.json
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/prepared.json
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stdout.log
+            ${{ runner.temp }}/ynx-pq-network-${{ github.run_id }}-${{ github.run_attempt }}/go.stderr.log
+          if-no-files-found: warn
+          retention-days: 7
       # The external client was independently fixed and all 13 functions passed
       # at aa25500; see PERF_SEGMENTED_CLIENT_AA255_NORMAL09_ACTUAL_R1.json.
       # The repaired source is also pinned below for the integration run.

@@ -3,6 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 import json
+import os
 
 spec = importlib.util.spec_from_file_location("pq_linux_guard", Path(__file__).with_name("pq-paired-linux-window.py"))
 guard = importlib.util.module_from_spec(spec)
@@ -16,6 +17,160 @@ def stat_line(pid, parent=1, group=1, start=100, threads=2):
 
 
 class LinuxGuardControls(unittest.TestCase):
+    def e2e_recipe(self, temporary):
+        # Parser/control fixtures only. This fake ELF is NEVER executed and is
+        # not a compiled test, cryptographic result or real network evidence.
+        parent = Path(temporary).resolve()
+        source, case, build = parent / "source", parent / "case", parent / "case.build"
+        (source / "internal/consensus").mkdir(parents=True)
+        original = Path(__file__).resolve().parents[2] / guard.E2E_SOURCE
+        (source / guard.E2E_SOURCE).write_bytes(original.read_bytes())
+        case.mkdir(mode=0o700); build.mkdir(mode=0o700)
+        binary = build / "consensus.test"
+        binary.write_bytes(b"\x7fELFcontrol-only-not-an-executable-test")
+        binary.chmod(0o700)
+        plan = dict(profile="consensus-e2e", sourceRoot=str(source), commit="a" * 40,
+                    executionAuthorized=False, workingDirectory=str(source / "internal/consensus"),
+                    sourcePins={guard.E2E_SOURCE: dict(sha256=guard.E2E_SOURCE_SHA256)},
+                    binaryPin=dict(path=str(binary), sha256=guard.digest(binary)),
+                    command=[str(binary), "-test.run=^" + guard.E2E_TEST + "$", "-test.count=1", "-test.timeout=120s", "-test.v"],
+                    environment=dict(guard.E2E_ENV))
+        prepared = case / "prepared.json"
+        prepared.write_text(json.dumps(plan)); prepared.chmod(0o600)
+        return plan, prepared, source, case, build, binary
+
+    def e2e_output(self):
+        # Synthetic text is used solely to reject malformed acceptance claims.
+        # Success here says nothing about a live validator or test execution.
+        summary = dict(version="ynx-pq-four-node-e2e/v1", syntheticOnly=True,
+                       initialHeight=2, finalHeight=16, blockCount=15, preservedOriginalBlocks=13,
+                       scheduleHash="1" * 64, ordinaryTransferHeight=3, pqTransferHeight=14,
+                       pqTransactionHash="0x" + "2" * 64, nativeReceiptsVerified=True, traceLineageVerified=True,
+                       threeOfFourCommitVerified=True, twoOfFourRejected=True, coldRestartVerified=True,
+                       nodeStopAndHostCloseCompleted=True,
+                       nodes=[dict(index=i, height=16, appHash="3" * 64, blockHash="4" * 64,
+                                   legacyHRS=dict(height=10, round=0, step=3),
+                                   pqHRS=dict(height=16, round=0, step=3)) for i in range(4)])
+        lines = ["=== RUN   " + guard.E2E_TEST,
+                 "    pq_network_e2e_test.go:92: actual Ed25519 network: initial Comet height=2, ordinary transaction height=3, Counter storage=12",
+                 "    pq_network_e2e_test.go:176: independent schedule pin=" + "1" * 64 + " registryHeight=8 P=9 U=10 A=12",
+                 "    pq_network_e2e_test.go:208: actual 3/4 PQ Commit: height=14 ABCI transaction=0x" + "2" * 64,
+                 "    pq_network_e2e_test.go:340: PQ_NETWORK_E2E_SUMMARY " + json.dumps(summary),
+                 "--- PASS: " + guard.E2E_TEST + " (20.00s)", "PASS"]
+        return lines, summary
+
+    def test_consensus_e2e_accepts_only_sole_precompiled_pinned_recipe(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            plan, prepared, source, case, build, binary = self.e2e_recipe(tmp)
+            actual = guard.validate_consensus_e2e_recipe(plan, prepared)
+            self.assertEqual(actual, (source, case, plan["command"], guard.E2E_ENV))
+            self.assertEqual(guard.validate_consensus_e2e_binary(plan, build), binary)
+            self.assertEqual({p.name for p in build.iterdir()}, {"consensus.test"})
+            self.assertEqual({p.name for p in case.iterdir()}, {"prepared.json"})
+            # The paired admission path cannot interpret an E2E plan as N1.
+            with self.assertRaises(RuntimeError): guard.validate_recipe(plan, prepared)
+        self.assertEqual(guard.CAPS, dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
+            ownedRSSBytes=1 << 30, threads=320, ownedProcesses=16, privateBytes=32 << 20,
+            buildBytes=1 << 30, logBytes=1 << 20, diskFloorBytes=1 << 30, rootReserveBytes=425 << 20,
+            compileReserveBytes=1 << 30, availableMemoryFloorBytes=(1 << 30) + (128 << 20), sampleMs=200))
+
+    def test_consensus_e2e_rejects_command_environment_or_pin_expansion(self):
+        mutations = [lambda p:p.update(profile="paired"), lambda p:p.update(executionAuthorized=True),
+                     lambda p:p.update(commit="a" * 39), lambda p:p.update(n=1), lambda p:p.update(trial=1),
+                     lambda p:p.update(workingDirectory=p["sourceRoot"]),
+                     lambda p:p["command"].__setitem__(0, "go"),
+                     lambda p:p["command"].__setitem__(1, "-test.run=" + guard.E2E_TEST),
+                     lambda p:p["command"].__setitem__(2, "-test.count=2"),
+                     lambda p:p["command"].__setitem__(3, "-test.timeout=150s"),
+                     lambda p:p["command"].append("-test.bench=."),
+                     lambda p:p["environment"].update(GOMAXPROCS="4"),
+                     lambda p:p["environment"].pop("YNX_PQ_NETWORK_E2E"),
+                     lambda p:p["environment"].update(GOFLAGS="-race"),
+                     lambda p:p["sourcePins"].clear(),
+                     lambda p:p["sourcePins"][guard.E2E_SOURCE].update(sha256="0" * 64),
+                     lambda p:p["binaryPin"].update(sha256="0" * 64),
+                     lambda p:p["binaryPin"].update(path="/tmp/unowned-consensus.test")]
+        for number, mutate in enumerate(mutations):
+            with self.subTest(number=number), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, *_ = self.e2e_recipe(tmp)
+                mutate(plan)
+                with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+
+    def test_consensus_e2e_preserves_old_artifacts_and_refuses_unsafe_binary(self):
+        for kind in ("old-log", "old-unknown", "old-case-tmp", "old-build-tmp", "old-build-log",
+                     "public-case", "public-build", "public-plan", "not-executable", "writable-binary",
+                     "changed-binary", "script", "binary-symlink", "binary-hardlink", "source-symlink"):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as tmp:
+                plan, prepared, source, case, build, binary = self.e2e_recipe(tmp)
+                if kind == "old-log": (case / "go.stdout.log").write_bytes(b"original")
+                elif kind == "old-unknown": (case / "UNKNOWN").write_bytes(b"retain")
+                elif kind == "old-case-tmp": (case / "tmp").mkdir()
+                elif kind == "old-build-tmp": (build / "tmp").mkdir()
+                elif kind == "old-build-log": (build / "compile.log").write_bytes(b"original")
+                elif kind == "public-case": case.chmod(0o755)
+                elif kind == "public-build": build.chmod(0o755)
+                elif kind == "public-plan": prepared.chmod(0o644)
+                elif kind == "not-executable": binary.chmod(0o600)
+                elif kind == "writable-binary": binary.chmod(0o722)
+                elif kind == "changed-binary": binary.write_bytes(b"\x7fELFdifferent")
+                elif kind == "script":
+                    binary.write_bytes(b"#!/bin/sh\nexit 0\n")
+                    plan["binaryPin"]["sha256"] = guard.digest(binary)
+                elif kind == "binary-symlink":
+                    target = Path(tmp) / "other-elf"; binary.rename(target); binary.symlink_to(target)
+                elif kind == "binary-hardlink": os.link(binary, Path(tmp) / "other-link")
+                elif kind == "source-symlink":
+                    target = Path(tmp) / "other-test"; (source / guard.E2E_SOURCE).rename(target)
+                    (source / guard.E2E_SOURCE).symlink_to(target)
+                before = {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()}
+                with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_recipe(plan, prepared)
+                self.assertEqual(before, {str(p): p.read_bytes() for root in (case, build) for p in root.rglob("*") if p.is_file()})
+
+    def test_consensus_e2e_needs_terminal_and_all_ordered_real_test_markers(self):
+        lines, summary = self.e2e_output()
+        stdout = ("\n".join(lines) + "\n").encode()
+        evidence = guard.validate_consensus_e2e_result(stdout, b"", 0)
+        self.assertEqual(evidence["coldRestart"], summary)
+        for code in (None, True, 1, -9):
+            with self.subTest(code=code), self.assertRaises(RuntimeError):
+                guard.validate_consensus_e2e_result(stdout, b"", code)
+        for index in range(len(lines)):
+            with self.subTest(missing=index), self.assertRaises(RuntimeError):
+                guard.validate_consensus_e2e_result(("\n".join(lines[:index] + lines[index+1:]) + "\n").encode(), b"", 0)
+        for invalid in (stdout + b"--- SKIP: unexpected (0.00s)\n", stdout + b"FAIL\n", stdout + b"panic: failed\n",
+                        stdout + b"late unqualified output\n",
+                        stdout.replace(b"--- PASS:", b"--- SKIP:"), stdout + (lines[4] + "\n").encode(),
+                        stdout.replace(b"registryHeight=8 P=9 U=10 A=12", b"registryHeight=8 P=10 U=10 A=12"),
+                        stdout.replace(b"height=14 ABCI", b"height=11 ABCI"),
+                        ("\n".join(lines[:3] + [lines[4], lines[3]] + lines[5:]) + "\n").encode(),
+                        stdout.replace(b"=== RUN   " + guard.E2E_TEST.encode(), b"=== RUN   OtherTest")):
+            with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_result(invalid, b"", 0)
+        with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_result(stdout, b"fatal error: failed\n", 0)
+
+    def test_consensus_e2e_cold_restart_summary_requires_four_actual_consistent_nodes(self):
+        lines, original = self.e2e_output()
+        mutations = [lambda s:s.update(coldRestartVerified=False), lambda s:s.update(nodeStopAndHostCloseCompleted=False),
+                     lambda s:s.update(syntheticOnly=False), lambda s:s.update(twoOfFourRejected=False),
+                     lambda s:s.update(nativeReceiptsVerified=False), lambda s:s.update(traceLineageVerified=False),
+                     lambda s:s.update(threeOfFourCommitVerified=False), lambda s:s.update(blockCount=49),
+                     lambda s:s.update(finalHeight=15), lambda s:s.update(preservedOriginalBlocks=1),
+                     lambda s:s.update(scheduleHash="0" * 64), lambda s:s.update(pqTransactionHash="0x" + "0" * 64),
+                     lambda s:s.update(initialHeight=True), lambda s:s.update(extra="not-pinned"),
+                     lambda s:s["nodes"].pop(), lambda s:s["nodes"][3].update(index=2),
+                     lambda s:s["nodes"][2].update(appHash="5" * 64),
+                     lambda s:s["nodes"][1].update(blockHash="6" * 64),
+                     lambda s:s["nodes"][0].update(height=15), lambda s:s["nodes"][0].pop("legacyHRS"),
+                     lambda s:s["nodes"][0]["pqHRS"].update(round=-1),
+                     lambda s:s["nodes"][0]["legacyHRS"].update(step=0)]
+        for number, mutate in enumerate(mutations):
+            changed = json.loads(json.dumps(original)); mutate(changed)
+            output = list(lines); output[4] = "    pq_network_e2e_test.go:340: PQ_NETWORK_E2E_SUMMARY " + json.dumps(changed)
+            with self.subTest(number=number), self.assertRaises(RuntimeError):
+                guard.validate_consensus_e2e_result(("\n".join(output) + "\n").encode(), b"", 0)
+        duplicate = list(lines)
+        duplicate[4] = duplicate[4].replace('"coldRestartVerified": true', '"coldRestartVerified": false, "coldRestartVerified": true')
+        with self.assertRaises(RuntimeError): guard.validate_consensus_e2e_result(("\n".join(duplicate)+"\n").encode(), b"", 0)
+
     def test_complete_result_shape_and_retained_bytes_are_required(self):
         # Format-only fake files: never a valid PQ ledger or business acceptance.
         with tempfile.TemporaryDirectory() as tmp:

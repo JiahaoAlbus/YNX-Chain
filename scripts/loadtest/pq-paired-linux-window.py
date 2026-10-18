@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Linux-only, one prepared PQ paired test. Default never launches Go.
+"""Linux-only, one prepared PQ paired test or explicit consensus E2E profile.
+
+Default never launches Go. E2E executes only a separately compiled, pinned test.
 
 Kernel /proc/stat identities + smaps_rollup RSS; no monitor ps subprocess.
 Sampled limits are not a hard cgroup ceiling or an atomic host snapshot.
@@ -26,6 +28,13 @@ CAPS = dict(activeMs=105000, cleanupMs=15000, totalMs=120000,
             diskFloorBytes=1 << 30, rootReserveBytes=425 << 20,
             compileReserveBytes=1 << 30, availableMemoryFloorBytes=(1 << 30) + (128 << 20),
             sampleMs=200)
+
+E2E_TEST = "TestPQNetworkFourValidatorOriginalStateTransitionAndRestart"
+E2E_SOURCE = "internal/consensus/pq_network_e2e_test.go"
+# Updated only with the separately frozen test leaf and normal CI compilation.
+E2E_SOURCE_SHA256 = "39a137c07c29197775913e364b8d4e020f69ab38cd7a0c9779ba0a5fe1161df9"
+E2E_ENV = dict(GOMAXPROCS="2", GOGC="50", GOMEMLIMIT="1536MiB",
+               YNX_PQ_NETWORK_E2E="authorized-four-node-window")
 
 
 def bounded(path, limit=65536):
@@ -181,6 +190,150 @@ def validate_recipe(plan, prepared, case_n=1):
     return source, case, expected, expected_env
 
 
+def validate_consensus_e2e_binary(plan, build):
+    pin = plan.get("binaryPin")
+    binary = build / "consensus.test"
+    if (not isinstance(pin, dict) or set(pin) != {"path", "sha256"}
+            or pin.get("path") != str(binary)
+            or not re.fullmatch(r"[0-9a-f]{64}", pin.get("sha256", ""))):
+        raise RuntimeError("exact precompiled consensus binary pin required")
+    before = binary.lstat()
+    if (not stat.S_ISREG(before.st_mode) or before.st_uid != os.getuid()
+            or before.st_nlink != 1 or before.st_mode & 0o022 or not os.access(binary, os.X_OK)):
+        raise RuntimeError("consensus binary must be an owned regular executable, not an alias")
+    with binary.open("rb") as handle:
+        if handle.read(4) != b"\x7fELF":
+            raise RuntimeError("precompiled Linux consensus.test ELF required; no interpreter command")
+    if digest(binary) != pin["sha256"]:
+        raise RuntimeError("precompiled consensus binary SHA256 mismatch")
+    after = binary.lstat()
+    identity = lambda info: (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_mode)
+    if identity(before) != identity(after):
+        raise RuntimeError("consensus binary changed during verification")
+    return binary
+
+
+def validate_consensus_e2e_recipe(plan, prepared):
+    source = Path(plan["sourceRoot"]).resolve()
+    case = prepared.parent.resolve()
+    build = case.with_name(case.name + ".build")
+    if source == case or source in case.parents or case in source.parents:
+        raise RuntimeError("private CI case must be outside source checkout")
+    if source == build or source in build.parents or build in source.parents:
+        raise RuntimeError("private CI build must be outside source checkout")
+    if (plan.get("profile") != "consensus-e2e" or plan.get("executionAuthorized") is not False
+            or not re.fullmatch(r"[0-9a-f]{40}", plan.get("commit", ""))
+            or any(key in plan for key in ("n", "trial", "overlayPin", "productionMeasurementVersion"))):
+        raise RuntimeError("explicit frozen consensus-e2e recipe required")
+    expected = [str(build / "consensus.test"), "-test.run=^" + E2E_TEST + "$",
+                "-test.count=1", "-test.timeout=120s", "-test.v"]
+    if (plan.get("command") != expected or plan.get("environment") != E2E_ENV
+            or plan.get("workingDirectory") != str(source / "internal/consensus")):
+        raise RuntimeError("consensus E2E command/cwd/environment mismatch")
+    pins = plan.get("sourcePins")
+    if not isinstance(pins, dict) or pins.get(E2E_SOURCE) != {"sha256": E2E_SOURCE_SHA256}:
+        raise RuntimeError("frozen consensus E2E source pin required")
+    test = source / E2E_SOURCE
+    if test.is_symlink() or digest(test) != E2E_SOURCE_SHA256:
+        raise RuntimeError("frozen consensus E2E test source mismatch")
+    for directory in (case, build):
+        info = directory.lstat()
+        if not stat.S_ISDIR(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o700 or info.st_uid != os.getuid():
+            raise RuntimeError("new owned private case/build directories must be mode 0700")
+    info = prepared.lstat()
+    if (prepared.name != "prepared.json" or not stat.S_ISREG(info.st_mode)
+            or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_nlink != 1):
+        raise RuntimeError("owned private prepared.json required")
+    if {p.name for p in case.iterdir()} != {"prepared.json"} or {p.name for p in build.iterdir()} != {"consensus.test"}:
+        raise RuntimeError("preserve prior E2E logs/tmp/UNKNOWN; only fresh prepared case and sole precompiled binary allowed")
+    validate_consensus_e2e_binary(plan, build)
+    return source, case, expected, dict(E2E_ENV)
+
+
+def validate_consensus_e2e_result(stdout, stderr, terminal_code):
+    # These log controls are necessary evidence from the pinned test, not a
+    # substitute for that test's real Comet/cryptographic assertions. Root's
+    # normal CI compilation is the separate provenance boundary for the ELF.
+    if type(terminal_code) is not int or terminal_code != 0:
+        raise RuntimeError("consensus E2E needs actual terminal code zero")
+    text = stdout.decode("utf8", errors="strict")
+    errors_text = stderr.decode("utf8", errors="strict")
+    if re.search(r"(?:--- (?:SKIP|FAIL):|^FAIL(?:\s|$)|^panic:|^fatal error:)", text + "\n" + errors_text, re.M):
+        raise RuntimeError("consensus E2E skip/failure cannot qualify")
+    run = re.findall(r"^=== RUN   (.+)$", text, re.M)
+    passed = re.findall(r"^--- PASS: (\S+) \([0-9]+(?:\.[0-9]+)?s\)$", text, re.M)
+    if (run != [E2E_TEST] or passed != [E2E_TEST] or len(re.findall(r"^PASS$", text, re.M)) != 1
+            or text.splitlines()[-1:] != ["PASS"]):
+        raise RuntimeError("exact sole consensus E2E RUN/PASS markers required")
+    prefix = r"^[ \t]+pq_network_e2e_test\.go:[0-9]+: "
+    patterns = [
+        prefix + r"actual Ed25519 network: initial Comet height=([1-9][0-9]*), ordinary transaction height=([1-9][0-9]*), Counter storage=12$",
+        prefix + r"independent schedule pin=([0-9a-f]{64}) registryHeight=([1-9][0-9]*) P=([1-9][0-9]*) U=([1-9][0-9]*) A=([1-9][0-9]*)$",
+        prefix + r"actual 3/4 PQ Commit: height=([1-9][0-9]*) ABCI transaction=(0x[0-9a-f]{64})$",
+        prefix + r"PQ_NETWORK_E2E_SUMMARY (\{[^\r\n]+\})$",
+    ]
+    found = [list(re.finditer(pattern, text, re.M)) for pattern in patterns]
+    if any(len(matches) != 1 for matches in found):
+        raise RuntimeError("actual Ed/schedule/3of4 PQ/cold-restart evidence markers required exactly once")
+    ed, schedule, pq, final = [matches[0] for matches in found]
+    initial, ordinary = map(int, ed.groups())
+    pin, registry, p, u, a = schedule.groups()
+    registry, p, u, a = map(int, (registry, p, u, a))
+    height, tx_hash = int(pq[1]), pq[2]
+    pass_at = text.index("--- PASS: " + E2E_TEST + " (")
+    if (not ed.start() < schedule.start() < pq.start() < final.start() < pass_at or ordinary < initial or registry < ordinary
+            or p != registry + 1 or a != registry + 4 or u != a - 2 or height < a
+            or pin == "0" * 64 or tx_hash == "0x" + "0" * 64):
+        raise RuntimeError("consensus E2E evidence ordering/heights/identity mismatch")
+    def unique_object(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:
+                raise RuntimeError("duplicate consensus E2E summary field")
+            value[key] = item
+        return value
+    summary = json.loads(final[1], object_pairs_hook=unique_object)
+    flags = ("syntheticOnly", "nativeReceiptsVerified", "traceLineageVerified", "threeOfFourCommitVerified",
+             "twoOfFourRejected", "coldRestartVerified", "nodeStopAndHostCloseCompleted")
+    integers = ("initialHeight", "finalHeight", "blockCount", "preservedOriginalBlocks", "ordinaryTransferHeight", "pqTransferHeight")
+    fields = {"version", "scheduleHash", "pqTransactionHash", "nodes", *flags, *integers}
+    if (set(summary) != fields or summary.get("version") != "ynx-pq-four-node-e2e/v1"
+            or any(summary.get(key) is not True for key in flags)
+            or any(type(summary.get(key)) is not int or not 0 < summary[key] < 1 << 63 for key in integers)
+            or summary["initialHeight"] != initial or summary["ordinaryTransferHeight"] != ordinary
+            or summary["pqTransferHeight"] != height or summary["pqTransactionHash"] != tx_hash
+            or summary["scheduleHash"] != pin or summary["finalHeight"] < height
+            or summary["blockCount"] != summary["finalHeight"] - initial + 1 or summary["blockCount"] > 48
+            or not height - initial + 1 <= summary["preservedOriginalBlocks"] <= summary["blockCount"]):
+        raise RuntimeError("consensus E2E final cold-restart summary does not bind original evidence")
+    nodes = summary["nodes"]
+    if not isinstance(nodes, list) or len(nodes) != 4:
+        raise RuntimeError("four final restarted node records required")
+    common = None
+    for index, node in enumerate(nodes):
+        if (not isinstance(node, dict) or set(node) != {"index", "height", "appHash", "blockHash", "legacyHRS", "pqHRS"}
+                or type(node.get("index")) is not int or node["index"] != index
+                or type(node.get("height")) is not int or node["height"] != summary["finalHeight"]):
+            raise RuntimeError("final node index/height mismatch")
+        for key in ("appHash", "blockHash"):
+            if not isinstance(node[key], str) or not re.fullmatch(r"[0-9a-f]{64}", node[key]) or node[key] == "0" * 64:
+                raise RuntimeError("final node checkpoint hash missing")
+        identity = (node["height"], node["appHash"], node["blockHash"])
+        if common is not None and common != identity:
+            raise RuntimeError("four restarted nodes disagree on final checkpoint")
+        common = identity
+        for key, max_step in (("legacyHRS", 3), ("pqHRS", 4)):
+            hrs = node[key]
+            if (not isinstance(hrs, dict) or set(hrs) != {"height", "round", "step"}
+                    or any(type(hrs[k]) is not int for k in hrs)
+                    or not 0 < hrs["height"] <= summary["finalHeight"] + 1
+                    or not 0 <= hrs["round"] < 1 << 31 or not 1 <= hrs["step"] <= max_step):
+                raise RuntimeError("actual original signer H/R/S missing or out of range")
+    return dict(initialHeight=initial, ordinaryHeight=ordinary, registryHeight=registry,
+                paramsUpdateHeight=p, validatorUpdateHeight=u, activationHeight=a,
+                scheduleSHA256=pin, pqCommitHeight=height, pqTransactionHash=tx_hash, coldRestart=summary)
+
+
 def validate_production_measurement(row, report, plan):
     version = "ynx-pq-batch-measurement-v1"
     m = row.get("wholeMeasurement")
@@ -285,13 +438,15 @@ def validate_result(report, plan, case):
         raise RuntimeError("paired paths did not share one signing preparation")
 
 
-def run(prepared, receipt, case_n=1):
+def run(prepared, receipt, case_n=1, consensus_e2e=False):
     if sys.platform != "linux":
         raise RuntimeError("Linux /proc/smaps_rollup/subreaper required; no macOS substitution")
     started = time.monotonic()
     result = dict(schema=1, kind="single-PQ-paired-Linux-CI-window", launcher=os.getpid(),
                   startedAtUnix=time.time(), caps=CAPS, firstCause=None, samples=[], known={},
                   child=None, cleanupComplete=False, admissionPlatform="Linux, not macOS dispatch1")
+    if consensus_e2e:
+        result["kind"] = "four-validator-PQ-consensus-E2E-Linux-CI-window"
     child = None
     selector = selectors.DefaultSelector()
     logs = {}
@@ -348,12 +503,22 @@ def run(prepared, receipt, case_n=1):
 
     try:
         plan = json.loads(bounded(prepared, 1 << 20))
-        source, case, command, pinned_env = validate_recipe(plan, prepared, case_n=case_n)
+        if consensus_e2e:
+            if case_n != 1:
+                raise RuntimeError("consensus E2E cannot select a paired benchmark case")
+            source, case, command, pinned_env = validate_consensus_e2e_recipe(plan, prepared)
+        else:
+            source, case, command, pinned_env = validate_recipe(plan, prepared, case_n=case_n)
         if receipt.exists() or receipt.is_symlink() or case == receipt.parent or case in receipt.parents:
             raise RuntimeError("new guard receipt must be outside private case")
         result["preparedSHA256"] = digest(prepared)
         result["sourceCommit"] = plan["commit"]
-        result["explicitCaseN"] = case_n
+        if consensus_e2e:
+            result.update(profile="consensus-e2e", testSourceSHA256=E2E_SOURCE_SHA256,
+                          binaryPin=plan["binaryPin"], command=command,
+                          workingDirectory=plan["workingDirectory"], environment=pinned_env)
+        else:
+            result["explicitCaseN"] = case_n
         result["kernel"] = dict(release=os.uname().release, machine=os.uname().machine, logicalCPUs=os.cpu_count())
         def source_check():
             git_env = dict(os.environ, GIT_OPTIONAL_LOCKS="0")
@@ -369,7 +534,14 @@ def run(prepared, receipt, case_n=1):
             if (case / name).exists() or (case / name).is_symlink():
                 raise RuntimeError("preserve prior case artifacts")
         build = case.with_name(case.name + ".build")
-        build.mkdir(mode=0o700)
+        if consensus_e2e:
+            if build == receipt.parent or build in receipt.parents:
+                raise RuntimeError("new guard receipt must be outside monitored build")
+            # Normal CI already compiled this one pinned ELF. Freshness was
+            # checked without rejecting that required pre-existing artifact.
+            validate_consensus_e2e_binary(plan, build)
+        else:
+            build.mkdir(mode=0o700)
         (build / "tmp").mkdir(); (case / "tmp").mkdir()
         if len({os.stat(p).st_dev for p in (source, case, build, Path.home())}) != 1:
             raise RuntimeError("CI source/temp/default cache must share monitored filesystem")
@@ -406,16 +578,22 @@ def run(prepared, receipt, case_n=1):
         sample(True)
         if time.monotonic() - started >= CAPS["activeMs"] / 1000:
             raise RuntimeError("active deadline before Go START")
-        executable = shutil.which("go")
-        if not executable:
-            raise RuntimeError("configured Go executable missing")
-        result["goExecutable"] = dict(path=executable, sha256=digest(executable))
+        if consensus_e2e:
+            executable = str(validate_consensus_e2e_binary(plan, build))
+            working_directory = source / "internal/consensus"
+            result["testExecutable"] = dict(path=executable, sha256=plan["binaryPin"]["sha256"])
+        else:
+            executable = shutil.which("go")
+            if not executable:
+                raise RuntimeError("configured Go executable missing")
+            working_directory = source
+            result["goExecutable"] = dict(path=executable, sha256=digest(executable))
         environment = dict(os.environ)
         environment.pop("YNX_CHAIN_STOPPED_WINDOW", None); environment.pop("YNX_CHAIN_PARTIAL_STOPPED_WINDOW", None)
         environment.update(pinned_env, TMPDIR=str(case / "tmp"), GOTMPDIR=str(build / "tmp"), GOWORK="off", GOTOOLCHAIN="local", GOFLAGS="-mod=readonly")
         for key in ("stdout", "stderr"):
             logs[key] = open(case / ("go." + key + ".log"), "xb", buffering=0)
-        child = subprocess.Popen([executable] + command[1:], cwd=source, env=environment,
+        child = subprocess.Popen([executable] + command[1:], cwd=working_directory, env=environment,
                                  stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
         result["child"] = dict(pid=child.pid, code=None)
         print(json.dumps(dict(stage="START", launcher=os.getpid(), go=child.pid, birthIdentityPending=True)), flush=True)
@@ -448,10 +626,18 @@ def run(prepared, receipt, case_n=1):
             raise RuntimeError("actual Go terminal code " + str(child.returncode))
         sample()  # Complete retired data/log scan, even if Go finished between ticks.
         source_check()
-        # Neither a skipped Go test nor a leftover JSON can qualify success.
-        report = json.loads(bounded(case / "pq-paired-result.json", 1 << 20))
-        validate_result(report, plan, case)
-        result["resultSHA256"] = digest(case / "pq-paired-result.json")
+        # Neither a skipped Go test nor a leftover artifact can qualify success.
+        if consensus_e2e:
+            validate_consensus_e2e_binary(plan, build)
+            result["networkEvidence"] = validate_consensus_e2e_result(
+                bounded(case / "go.stdout.log", CAPS["logBytes"]),
+                bounded(case / "go.stderr.log", CAPS["logBytes"]), child.returncode)
+            result["stdoutSHA256"] = digest(case / "go.stdout.log")
+            result["stderrSHA256"] = digest(case / "go.stderr.log")
+        else:
+            report = json.loads(bounded(case / "pq-paired-result.json", 1 << 20))
+            validate_result(report, plan, case)
+            result["resultSHA256"] = digest(case / "pq-paired-result.json")
     except Exception as error:
         fail(error)
     finally:
@@ -509,6 +695,8 @@ def run(prepared, receipt, case_n=1):
         if result["elapsedMs"] > CAPS["totalMs"]:
             fail("total120s window exceeded")
         result["measurementLimits"] = "Sampled smaps RSS, not hard cgroup enforcement; non-atomic /proc scans; no macOS pressure equivalence. No PASS if telemetry or cleanup is incomplete."
+        if consensus_e2e:
+            result["cleanupPolicy"] = "105s active / 120s total; owned identities receive TERM then KILL after 2s. The remaining budget is not a guaranteed 15s graceful Node.Stop window."
         with open(receipt, "x", encoding="utf8") as handle:
             json.dump(result, handle, indent=2); handle.write("\n"); handle.flush(); os.fsync(handle.fileno())
         print(json.dumps({k: result[k] for k in ("firstCause", "child", "cleanupComplete", "elapsedMs")}), flush=True)
@@ -521,6 +709,7 @@ if __name__ == "__main__":
     parser.add_argument("--case-n", type=int, choices=(1, 16), default=1, help="explicit Root-scheduled case only; does not grant execution or expand budgets")
     parser.add_argument("--receipt", type=Path)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--consensus-e2e", action="store_true", help="explicit separately authorized four-node E2E using only a pinned precompiled consensus.test")
     args = parser.parse_args()
     if not args.execute:
         print(json.dumps(dict(status="prepared_only_no_Go_or_probe_started", supported=sys.platform == "linux", caps=CAPS,
@@ -528,4 +717,4 @@ if __name__ == "__main__":
     elif not args.prepared or not args.receipt:
         parser.error("--prepared and a new --receipt outside case are required")
     else:
-        sys.exit(run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n))
+        sys.exit(run(args.prepared.resolve(), args.receipt.resolve(), case_n=args.case_n, consensus_e2e=args.consensus_e2e))
