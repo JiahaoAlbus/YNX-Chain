@@ -38,7 +38,7 @@ PAIR_CAPS = dict(totalMs=120000, retainedBytes=64 << 20, logBytes=2 << 20,
                  buildBytes=1 << 30, metadataReserveMs=500)
 
 
-def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", observer_phases=False, shared_replay=None):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
@@ -58,6 +58,10 @@ def recipe(transport="socket", profile_name="supply-256x4", pacing="relative", o
     if observer_phases:
         result["observerPhaseTiming"]=True
         result["observerTraceLimits"]=dict(perWorker=256,aggregate=1024,totalsCompleteDespiteTraceCap=True)
+    if shared_replay is not None:
+        if type(shared_replay) is not bool or not observer_phases or (transport,profile_name,pacing)!=("grpc","supply-512x2","bounded-cadence"):
+            raise RuntimeError("shared replay selection requires fixed512x2/grpc/bounded-cadence and observer timing")
+        result["sharedDurableReplay"]=shared_replay
     return result
 
 
@@ -65,7 +69,7 @@ def prepare_shared_replay_pair():
     selected=recipe("grpc","supply-512x2","bounded-cadence",True)
     return dict(schema=1,name="prepared-same-VM-shared-replay-pair",execute=False,
                 executionAuthorized=False,executionAdmitted=False,nodesStarted=False,
-                selected=selected,pairCaps=PAIR_CAPS,
+                selected=selected,pairCaps=PAIR_CAPS,executionRecipe=pair_recipe("independent-shared"),
                 before=dict(observerPhaseTiming=True,sharedDurableReplay=False),
                 after=dict(observerPhaseTiming=True,sharedDurableReplay=True,
                            extraClientArgument="-shared-durable-replay"),
@@ -75,17 +79,18 @@ def prepare_shared_replay_pair():
                 priorActual=dict(runId=39145119313,source="1a071fe7ab021e3e9535ea12395df40b97d968af",
                                  receiptSHA256="5e991c731b053fee329f94c2ef2ea24ac76460a6716f8c1727105f96b494d334",
                                  role="diagnostic only, not the before side of a future pair"),
-                admission="Preparation only. Candidate peak RSS not measured; extra canonical bytes/private decode states are not an RSS bound. Original1GiB RSS/32MiB data caps stay unchanged. Future pair needs actual fresh admission, original wrapper integration and a separate Root grant.",
+                admission="Preparation only. Candidate peak RSS not measured; extra canonical bytes/private decode states are not an RSS bound. Original1GiB RSS/32MiB data caps stay unchanged. Future pair needs actual fresh admission, a separate Root grant through the integrated original pair wrapper.",
                 comparison="Same source/VM/ELFs/caps/profile, observer timing on both sides. Preserve original full business and joint latency/rate guards; finite case never qualifies sustained1000TPS.")
 
 
 PAIR_MODES = {"relative-bounded": ("relative", "bounded-cadence"),
-              "bounded-grouped": ("bounded-cadence", "grouped-cadence4")}
+              "bounded-grouped": ("bounded-cadence", "grouped-cadence4"),
+              "independent-shared": ("independent-replay", "shared-replay")}
 
 
 def pair_modes(comparison):
     if comparison not in PAIR_MODES:
-        raise RuntimeError("only fixed relative-bounded or bounded-grouped pairs allowed")
+        raise RuntimeError("only registered fixed comparison pairs allowed")
     return PAIR_MODES[comparison]
 
 
@@ -123,6 +128,16 @@ def prepare_1000_tier():
 
 def pair_recipe(comparison="relative-bounded"):
     before, after = pair_modes(comparison)
+    if comparison == "independent-shared":
+        return dict(schema=1,kind="fixed-same-VM-shared-replay-pair",execute=False,
+                    requiresSeparateRootGrant=True,nodesStarted=False,pairCaps=PAIR_CAPS,
+                    cases=[recipe("grpc","supply-512x2","bounded-cadence",True,flag) for flag in (False,True)],
+                    order="independent-replay then shared-replay; never concurrent; stop after failed or unclean first case",
+                    binaries="same exact four ELF files, built once before pair runtime",
+                    input=dict(run_linux_supply=True,linux_supply_transport="grpc",linux_supply_profile="supply-512x2",linux_supply_pacing="paired-independent-shared",measure_observer_phases=True),
+                    timing="Original120s total including both guards, all raw receipt fsync, two empty closures and terminal fsync. Each case45s active+15s cleanup, invocation including fsync<=60s; remaining global time may shorten admission only.",
+                    admission="Fresh native MemAvailable/disk/process/thread/RSS/data/log guards unchanged. Candidate canonical clone peak unmeasured; sampled guard may refuse during candidate work. This recipe does not assert admission or a hard RSS bound.",
+                    interpretation="Same current source/VM/ELFs and fixed512x2 profile, timing on both sides; only shared replay flag changes. Two fresh fixtures have different identities/startup order. Actual finite joint rate+latency guards required; no sustained1000TPS inference.")
     return dict(schema=1, kind="fixed-same-VM-pacing-pair" if comparison == "relative-bounded" else "fixed-same-VM-grouping-pair", execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False, pairCaps=PAIR_CAPS,
                 cases=[recipe("grpc", "supply-512x2", mode) for mode in (before, after)],
@@ -264,6 +279,30 @@ def validate_observer_phases(report):
                 interpretation="Original call wall times include server/transport/lock waits; trace may be explicitly capped while totals remain complete. Reader load includes children. Parallel workers and nested scopes are not additive BFT latency.")
 
 
+def validate_shared_replay(report, expected):
+    if type(expected) is not bool or report.get("sharedDurableReplay") is not expected or report.get("observerPhaseTiming") is not True:
+        raise RuntimeError("actual shared replay selection/timing differs")
+    reader=report.get("durableReadback",{})
+    stats=reader.get("sharedReplay")
+    if not expected:
+        if stats is not None:
+            raise RuntimeError("independent replay baseline unexpectedly enabled shared cache")
+        return dict(sharedDurableReplay=False,stats=None)
+    names={"lookups","hits","joins","fullReplays","failures","bypasses","waitNs","cachedCanonicalBytes","canonicalByteLimit","peakFlights"}
+    if not isinstance(stats,dict) or set(stats)!=names or any(type(v) is not int or v<0 for v in stats.values()):
+        raise RuntimeError("shared replay actual bounded counters missing/invalid")
+    if (stats["canonicalByteLimit"]!=16 << 20 or stats["cachedCanonicalBytes"]>16 << 20
+            or not 1<=stats["peakFlights"]<=4 or stats["fullReplays"]<1
+            or stats["failures"]>stats["fullReplays"]
+            or stats["hits"]+stats["joins"]+stats["fullReplays"]>stats["lookups"]
+            or stats["lookups"]!=reader.get("snapshotValidations")):
+        raise RuntimeError("shared replay work counts/retention bound differ")
+    if any(row.get("durableStoreFormat")!="block-journal" for row in report.get("transactions",[])):
+        raise RuntimeError("shared replay comparison requires actual block-journal business readback")
+    return dict(sharedDurableReplay=True,stats=stats,
+                interpretation="Counters describe actual work, not logical replayed history. Clone/flight counts are not a physical RSS bound; original sampled guards still apply. No hit or lower work count alone qualifies performance.")
+
+
 def joint_observation(before, after):
     rates=[row["summary"].get("finalSubmittedPerMeasurementSecond") for row in (before,after)]
     if any(type(v) not in (int,float) or not math.isfinite(v) or v <= 0 for v in rates):
@@ -320,7 +359,11 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
             out = root / (mode+"-actual.json")
             budget.active_case = case
             invoked = time.monotonic()
-            code = run(source, build, case, out, "grpc", "supply-512x2", mode, pair_budget=budget)
+            pace = "bounded-cadence" if comparison == "independent-shared" else mode
+            if comparison == "independent-shared":
+                code = run(source,build,case,out,"grpc","supply-512x2",pace,pair_budget=budget,observer_phases=True,shared_replay=index==1)
+            else:
+                code = run(source, build, case, out, "grpc", "supply-512x2", mode, pair_budget=budget)
             duration = time.monotonic()-invoked
             row = json.loads(native.bounded(out, 4 << 20))
             if result["nodesStarted"] is not True: result["nodesStarted"] = row.get("nodesStarted")
@@ -329,17 +372,23 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                                         firstCause=row.get("firstCause"), summary=row.get("measurement", {}).get("summary")))
             if code != 0 or duration > 60:
                 raise RuntimeError("pair case failed or invocation/fsync exceeded60s: "+str(row.get("firstCause")))
-            pair_case_qualified(row, mode)
-            if comparison == "bounded-grouped":
+            pair_case_qualified(row, pace)
+            if comparison in ("bounded-grouped","independent-shared"):
                 # Read only the already qualified original client result. This
                 # I/O and its hash/quantiles remain inside the same pair budget.
                 client_raw=native.bounded(case/"network/transactions-result.json",16 << 20)
                 if hashlib.sha256(client_raw).hexdigest() != row.get("resultSHA256"):
                     raise RuntimeError("grouping pair raw client result hash differs")
                 client=json.loads(client_raw)
-                validate_report(client,"supply-512x2",mode)
+                validate_report(client,"supply-512x2",pace)
                 result["cases"][-1]["offerLatency"]=offer_latency_readout(client)
                 result["cases"][-1]["nodePhases"]=row["nodePhases"]
+                if comparison == "independent-shared":
+                    phases=validate_observer_phases(client)
+                    shared=validate_shared_replay(client,index==1)
+                    if row.get("observerPhases") != phases or row.get("sharedReplayVerification") != shared or row.get("sharedDurableReplay") is not (index==1):
+                        raise RuntimeError("shared replay receipt differs from actual client timing/selection")
+                    result["cases"][-1].update(observerPhases=phases,sharedReplayVerification=shared,durableReadback=client["durableReadback"])
             result["closureScans"].append(empty_pair_closure(budget))
             if baseline is None:
                 baseline = row
@@ -353,7 +402,7 @@ def run_pair(source, build, root, receipt, comparison="relative-bounded"):
                     raise RuntimeError("pair VM identity differs")
             budget.observe()
         result["casesQualified"] = True
-        if comparison == "bounded-grouped":
+        if comparison in ("bounded-grouped","independent-shared"):
             result["jointObservation"]=joint_observation(*result["cases"])
     except Exception as error:
         result["firstCause"] = str(error)
@@ -557,8 +606,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False):
-    selected = recipe(transport, profile_name, pacing, observer_phases)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative", pair_budget=None, observer_phases=False, shared_replay=None):
+    selected = recipe(transport, profile_name, pacing, observer_phases, shared_replay)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -691,11 +740,13 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         mark("all_nodes_height2")
         output = network / "transactions-result.json"
         mark("client_start")
-        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])))
+        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]+(["-observer-phase-timing"] if observer_phases else [])+(["-shared-durable-replay"] if shared_replay else [])))
         client_report=json.loads(native.bounded(output,16 << 20))
         result["measurement"] = validate_report(client_report, profile_name, pacing)
         if observer_phases:
             result["observerPhases"]=validate_observer_phases(client_report)
+        if shared_replay is not None:
+            result["sharedReplayVerification"]=validate_shared_replay(client_report,shared_replay)
         mark("client_complete")
         result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -792,7 +843,8 @@ if __name__ == "__main__":
         parser.error("nondefault pair-kind requires an explicit pair action")
     if args.prepare_pair or args.execute_pair:
         if (args.prepare_pair and args.execute_pair or args.execute or args.check_runner
-                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative" or args.observer_phases):
+                or args.transport != "grpc" or args.profile != "supply-512x2" or args.pacing != "relative"
+                or args.observer_phases != (args.pair_kind=="independent-shared")):
             parser.error("fixed pair requires explicit grpc/512x2, no individual pacing or other action")
         if args.prepare_pair:
             print(json.dumps(pair_recipe(args.pair_kind), indent=2))

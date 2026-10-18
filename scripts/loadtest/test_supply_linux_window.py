@@ -330,7 +330,7 @@ class SupplySourceTests(unittest.TestCase):
                     profile=supply.recipe("grpc","supply-512x2",mode)["profile"],
                     measurement=dict(summary=report("supply-512x2",mode)["summary"]),nodePhases=[{} for _ in range(4)])
 
-    def mock_pair(self, first_failure=None, mutate_binary=False, fail_after_fsync=False,comparison="relative-bounded",corrupt_result=False):
+    def mock_pair(self, first_failure=None, mutate_binary=False, fail_after_fsync=False,comparison="relative-bounded",corrupt_result=False,replay_fault=None):
         # Synthetic orchestration only: no compiler, fixture, socket or node.
         import hashlib
         with tempfile.TemporaryDirectory() as temp:
@@ -341,7 +341,9 @@ class SupplySourceTests(unittest.TestCase):
                 raw=name.encode();(build/name).write_bytes(raw);binaries[name]=dict(sha256=hashlib.sha256(raw).hexdigest())
             order=[]
             def fake_run(source,build,case,out,transport,profile,mode,**kwargs):
-                order.append(mode);case.mkdir()
+                order.append(("shared-replay" if kwargs.get("shared_replay") else "independent-replay") if comparison=="independent-shared" else mode);case.mkdir()
+                if replay_fault=="rss" and kwargs.get("shared_replay"):
+                    raise RuntimeError("synthetic candidate owned RSS cap exceeded")
                 row=self.pair_row(mode)
                 row.update(sourceCommit="a"*40,sourceTree="b"*40,internalTree="c"*40,compiler="synthetic-unit",
                            binaries=binaries,environment=supply.ENV,host=dict(uname=list(supply.platform.uname()),cpuCount=supply.os.cpu_count()))
@@ -349,8 +351,19 @@ class SupplySourceTests(unittest.TestCase):
                 if first_failure=="error":row["firstCause"]="synthetic deadline";code=1
                 if first_failure=="cleanup":row["cleanupComplete"]=False
                 if first_failure=="unknown":row["measurement"]["summary"]["submissionUnknown"]=4
-                if comparison=="bounded-grouped":
+                if comparison in ("bounded-grouped","independent-shared"):
                     client=report("supply-512x2",mode)
+                    if comparison=="independent-shared":
+                        self.assertTrue(kwargs["observer_phases"])
+                        self.assertIsInstance(kwargs["shared_replay"],bool)
+                        timed=self.observer_report()
+                        client.update(observerPhaseTiming=True,sharedDurableReplay=kwargs["shared_replay"],groupedObservation=timed["groupedObservation"],durableReadback=timed["durableReadback"])
+                        client["durableReadback"].update(snapshotValidations=1,blockJournalReplayedBlocks=1,blockJournalReplayedTransactionInputs=1024)
+                        for tx in client["transactions"]:tx["durableStoreFormat"]="block-journal"
+                        if kwargs["shared_replay"]:
+                            client["durableReadback"]["sharedReplay"]=dict(lookups=1,hits=0,joins=0,fullReplays=1,failures=0,bypasses=0,waitNs=0,cachedCanonicalBytes=100,canonicalByteLimit=16 << 20,peakFlights=1)
+                        row.update(observerPhaseTiming=True,sharedDurableReplay=kwargs["shared_replay"],observerPhases=supply.validate_observer_phases(client),sharedReplayVerification=supply.validate_shared_replay(client,kwargs["shared_replay"]))
+                        if replay_fault=="selection":row["sharedDurableReplay"]=not kwargs["shared_replay"]
                     network=case/"network";network.mkdir()
                     encoded=json.dumps(client).encode();(network/"transactions-result.json").write_bytes(encoded)
                     row["resultSHA256"]=hashlib.sha256(encoded).hexdigest() if not corrupt_result else "0"*64
@@ -485,6 +498,60 @@ class SupplySourceTests(unittest.TestCase):
             if change=="oversize_trace":row["groupedObservation"]["phases"]["trace"]*=1025
             if change=="missing_opt_in":row["observerPhaseTiming"]=False
             with self.subTest(change=change),self.assertRaises(RuntimeError):supply.validate_observer_phases(row)
+
+    def test_shared_replay_integrated_pair_has_one_difference_and_old_recipes_stay_pinned(self):
+        import hashlib
+        pins={"relative-bounded":"d13f9f6bcbc2051cef78b9b46041bde79d713de810bad98efdedc0287c4f7dc7",
+              "bounded-grouped":"f474659891e8d4ac20d5cdf023cb8a3f31f7e55f151689c8dc125369fe72b874"}
+        for kind,pin in pins.items():
+            self.assertEqual(hashlib.sha256((json.dumps(supply.pair_recipe(kind),indent=2)+"\n").encode()).hexdigest(),pin)
+        pair=supply.pair_recipe("independent-shared")
+        before,after=pair["cases"]
+        self.assertFalse(before["sharedDurableReplay"])
+        self.assertTrue(after["sharedDurableReplay"])
+        self.assertEqual({k:v for k,v in before.items() if k!="sharedDurableReplay"},{k:v for k,v in after.items() if k!="sharedDurableReplay"})
+        self.assertTrue(before["observerPhaseTiming"])
+        self.assertEqual(pair["pairCaps"],supply.PAIR_CAPS)
+        self.assertTrue(pair["input"]["measure_observer_phases"])
+        denied=subprocess.run([sys.executable,"-B",str(FILE),"--prepare-pair","--pair-kind","independent-shared","--transport","grpc","--profile","supply-512x2"],capture_output=True,text=True,timeout=5)
+        self.assertEqual(denied.returncode,2)
+        for args in (("grpc","supply-512x2","bounded-cadence",False,True),("socket","supply-256x4","relative",True,True)):
+            with self.assertRaises(RuntimeError):supply.recipe(*args)
+
+    def test_shared_replay_pair_preserves_serial_closure_identity_and_terminal_guards(self):
+        code,order,row=self.mock_pair(comparison="independent-shared")
+        self.assertEqual(code,0)
+        self.assertEqual(order,["independent-replay","empty","shared-replay","empty"])
+        self.assertFalse(row["cases"][0]["sharedReplayVerification"]["sharedDurableReplay"])
+        self.assertTrue(row["cases"][1]["sharedReplayVerification"]["sharedDurableReplay"])
+        self.assertIn("observerPhases",row["cases"][0])
+        self.assertFalse(row["jointObservation"]["sustainedTPSQualified"])
+        for kwargs in (dict(first_failure="unknown"),dict(first_failure="cleanup"),dict(corrupt_result=True),dict(replay_fault="selection")):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="independent-shared",**kwargs)
+                self.assertEqual(code,1)
+                self.assertEqual(order,["independent-replay"])
+                self.assertFalse(row["_terminal"]["qualified"])
+        for kwargs in (dict(mutate_binary=True),dict(replay_fault="rss"),dict(fail_after_fsync=True)):
+            with self.subTest(kwargs=kwargs):
+                code,order,row=self.mock_pair(comparison="independent-shared",**kwargs)
+                self.assertEqual(code,1)
+                self.assertFalse(row["_terminal"]["qualified"])
+        self.assertIn("after receipt fsync",row["_terminal"]["firstCause"])
+
+    def test_shared_replay_actual_counter_and_retention_forgery_refused(self):
+        row=self.observer_report()
+        row.update(sharedDurableReplay=True)
+        row["durableReadback"].update(snapshotValidations=1,sharedReplay=dict(lookups=1,hits=0,joins=0,fullReplays=1,failures=0,bypasses=0,waitNs=0,cachedCanonicalBytes=100,canonicalByteLimit=16 << 20,peakFlights=1))
+        for tx in row["transactions"]:tx["durableStoreFormat"]="block-journal"
+        supply.validate_shared_replay(row,True)
+        import copy
+        for field,value in (("peakFlights",5),("cachedCanonicalBytes",(16 << 20)+1),("lookups",2),("canonicalByteLimit",32 << 20),("fullReplays",0),("hits",1),("failures",2),("waitNs",-1)):
+            changed=copy.deepcopy(row);changed["durableReadback"]["sharedReplay"][field]=value
+            with self.subTest(field=field),self.assertRaises(RuntimeError):supply.validate_shared_replay(changed,True)
+        with self.assertRaises(RuntimeError):supply.validate_shared_replay(row,False)
+        row["sharedDurableReplay"]=False
+        with self.assertRaises(RuntimeError):supply.validate_shared_replay(row,False)
 
     def test_shared_replay_pair_is_only_prepared_and_preserves_original_caps(self):
         plan=supply.prepare_shared_replay_pair()
