@@ -24,6 +24,7 @@ function install(prototype, options = {}) {
         !isAbsolute(env.THEIA_APP_PROJECT_PATH || '') || typeof session.id !== 'string' || !session.id)
       throw Error('C/C++ cleanup requires its original private runtime and session');
     let adapter, pending, acknowledged = false, childClosed = false, observedChild, helperInFlight = false, failed = false;
+    let stopping = false, closeHeld = false, helperConfirmed = false, publishClose;
     const onObservedClose = () => { childClosed = true; };
     const dispose = () => { protocol?.dispose(); observedChild?.removeListener('close', onObservedClose); };
     let protocol;
@@ -33,6 +34,16 @@ function install(prototype, options = {}) {
       if (!child || typeof stop !== 'function' || !Number.isSafeInteger(child.pid) || child.pid <= 1 || typeof child.once !== 'function')
         throw Error('C/C++ launch did not return its original process adapter');
       observedChild = child; child.once('close', onObservedClose);
+      const handleClosed = adapter.handleClosed;
+      if (typeof handleClosed !== 'function') throw Error('The original C/C++ adapter close contract is unavailable');
+      adapter.handleClosed = function () {
+        if (stopping) { closeHeld = true; return; }
+        return handleClosed.call(this);
+      };
+      publishClose = () => {
+        stopping = false;
+        if (closeHeld) { closeHeld = false; handleClosed.call(adapter); }
+      };
       protocol = adapter.onMessageReceived(raw => {
         try { const message = JSON.parse(raw); if (message.type === 'response' && message.command === 'disconnect' && message.success === true) acknowledged = true; }
         catch { /* The original transport handles malformed DAP messages. */ }
@@ -40,15 +51,16 @@ function install(prototype, options = {}) {
       adapter.stop = function () {
         if (pending) return pending;
         failed = false;
+        stopping = true;
         pending = (async () => {
           if (child.exitCode !== null || child.signalCode !== null) {
-            if (!acknowledged) throw Error('C/C++ adapter exited before owned cleanup was confirmed');
+            if (!acknowledged && !helperConfirmed) throw Error('C/C++ adapter exited before owned cleanup was confirmed');
             if (!childClosed) await new Promise((resolve, reject) => {
               const closed = () => { clearTimeout(timer); resolve(); };
               const timer = setTimeout(() => { child.removeListener('close', closed); reject(Error('C/C++ adapter streams did not close')); }, options.timeoutMs ?? 6000);
               child.once('close', closed);
             });
-            child.stdin?.end(); dispose(); return;
+            child.stdin?.end(); dispose(); publishClose(); return;
           }
           await new Promise((resolve, reject) => {
             let closed = false, helperDone = false, settled = false;
@@ -70,13 +82,14 @@ function install(prototype, options = {}) {
                   helperInFlight = false;
                   if (failed) pending = undefined;
                   if (error) { finish(true, error); return; }
+                  helperConfirmed = true;
                   helperDone = true; finish(false);
                 });
             } catch (error) { helperInFlight = false; finish(true, error); }
           });
           // The child has exited. The retained stop() calls kill() even after
           // exit, so never issue a second PID signal after confirmed cleanup.
-          child.stdin?.end(); dispose();
+          child.stdin?.end(); dispose(); publishClose();
         })();
         pending.catch(() => { failed = true; if (!helperInFlight) pending = undefined; });
         return pending;

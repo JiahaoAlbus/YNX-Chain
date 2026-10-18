@@ -45,6 +45,30 @@ test('helper success alone cannot claim that the adapter process exited', async 
   f.calls[0][3](null); await Promise.resolve(); assert.equal(f.child.kills, 0);
   f.close(); await pending; assert.equal(f.child.kills, 0);
 });
+test('retained close notification cannot remove the session before helper cleanup is confirmed', async () => {
+  const f = fixture(), adapter = await f.create(); let notifications = 0;
+  adapter.onClose(() => notifications++);
+  const pending = adapter.stop(); f.child.stdout.emit('close'); f.close();
+  assert.equal(notifications, 0, 'Theia would retire the session before its owned cleanup result');
+  f.calls[0][3](null); await pending; assert.equal(notifications, 1);
+});
+test('failed helper after stream close retains UNKNOWN instead of emitting a successful close', async () => {
+  const f = fixture(), adapter = await f.create(); let notifications = 0;
+  adapter.onClose(() => notifications++);
+  const pending = adapter.stop(); f.child.stdout.emit('close'); f.close();
+  const error = Error('TEST_ONLY_INCOMPLETE_TREE'); f.calls[0][3](error);
+  await assert.rejects(pending, value => value === error); assert.equal(notifications, 0);
+  await assert.rejects(adapter.stop(), /before owned cleanup was confirmed/);
+  assert.equal(f.calls.length, 1); assert.equal(notifications, 0);
+});
+test('late successful helper requires a new explicit stop before publishing held close', async () => {
+  const f = fixture(), adapter = await f.create(); let notifications = 0;
+  adapter.onClose(() => notifications++);
+  const pending = adapter.stop(); f.child.stdout.emit('close'); f.close();
+  await assert.rejects(pending, /exit was not confirmed/); f.calls[0][3](null);
+  await Promise.resolve(); assert.equal(notifications, 0); assert.equal(f.child.kills, 0);
+  await adapter.stop(); assert.equal(notifications, 1); assert.equal(f.calls.length, 1);
+});
 test('helper failure retains exact cause and live adapter for an explicit same-handle retry', async () => {
   const error = Error('TEST_ONLY_HELPER_FAILURE'), f = fixture(), adapter = await f.create();
   const first = adapter.stop(); f.calls[0][3](error); await assert.rejects(first, value => value === error);
