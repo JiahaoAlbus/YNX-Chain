@@ -81,17 +81,14 @@ func newLegacyTrustFixture(t *testing.T) legacyTrustFixture {
 	return f
 }
 
-// This explicit harness exercises real shared transaction dispatch, sealing,
-// validation and persistence. It is deliberately NOT a normal-node startup:
-// the unresolved source reviewer capability still blocks that constructor.
+// Use the normal factory as well as shared dispatch, sealing and persistence.
+// Construction preserves the source; it does not grant the unresolved reviewer
+// capability, which remains fenced independently of new signer-bound claims.
 func legacyTrustHarness(t *testing.T, f legacyTrustFixture) *Application {
 	t.Helper()
-	a := &Application{migration: f.m, committed: initialCommittedState(f.m), pqCertificateCache: chain.NewPQCertificateCache()}
-	for _, v := range f.m.Validators {
-		if v.Active {
-			a.feeRecipient = v.Address
-			break
-		}
+	a, err := NewApplication(f.m)
+	if err != nil {
+		t.Fatal(err)
 	}
 	if a.feeRecipient == "" || a.feeRecipient == f.owner {
 		t.Fatal("fixture requires distinct actual fee recipient")
@@ -126,11 +123,15 @@ func TestLegacyTrustSourcePreservesOriginalsAndBlocksNormalActivation(t *testing
 		t.Fatal("unproven reviewer authority was reported executable")
 	}
 	path := filepath.Join(t.TempDir(), "blocked.json")
-	if _, err = NewPersistentApplication(f.m, path); err == nil {
-		t.Fatal("unresolved source reviewer authority enabled normal application")
+	app, err := NewPersistentApplication(f.m, path)
+	if err != nil || !reflect.DeepEqual(app.committed.LegacyTrustSource, source) {
+		t.Fatal("normal factory did not preserve original Trust history", err)
+	}
+	if err = validateMigrationExecutionClosure(f.m); err == nil || !strings.Contains(err.Error(), "trust_governance(") {
+		t.Fatal("source preservation granted unresolved reviewer authority", err)
 	}
 	if _, err = os.Stat(path); !os.IsNotExist(err) {
-		t.Fatalf("blocked constructor wrote state: %v", err)
+		t.Fatalf("read-only constructor wrote uncommitted state: %v", err)
 	}
 	copy := cloneLegacyTrustSource(source)
 	entry := copy.Records.Governance[f.request.ID]
@@ -466,8 +467,8 @@ func TestLegacyTrustSourceHistoricalPolicyAndTamperColdControls(t *testing.T) {
 	}
 }
 
-// The source-reviewer blocker is intentionally unchanged. This is an isolated
-// candidate using the real shared dispatcher and persistence, not activation.
+// The source-reviewer blocker is intentionally unchanged. Newly signed
+// advisory evidence uses the normal factory, dispatcher and persistence.
 func TestLegacyTrustSourceNewEvidenceUsesOriginalAndBFTLabels(t *testing.T) {
 	f := newLegacyTrustFixture(t)
 	a := legacyTrustHarness(t, f)
@@ -549,7 +550,7 @@ func TestLegacyTrustSourceNewEvidenceUsesOriginalAndBFTLabels(t *testing.T) {
 	if !bytes.Equal(sealedJSON, coldJSON) || !reflect.DeepEqual(cold.LegacyTrustSource, original) || !reflect.DeepEqual(cold.TrustEvidence[0].Labels, want) {
 		t.Fatal("cold read lost complete new evidence or altered original source")
 	}
-	a.committed = cold // Isolated harness: no normal constructor was enabled.
+	a.committed = cold // Read back the same fully validated committed candidate.
 	var readback BFTTrustEvidence
 	queryJSON(t, a, "/trust/evidence/"+packet.ID, &readback)
 	if !reflect.DeepEqual(readback.Labels, want) || readback.JSONHash != packet.JSONHash || readback.TxHash != packet.TxHash {

@@ -44,8 +44,15 @@ func TestMigrationExecutionClosureRefusesBusinessErasure(t *testing.T) {
 	if len(blockers) == 0 || blockers[0].Module != "pay" {
 		t.Fatalf("missing source compatibility blocker: %+v", blockers)
 	}
-	if _, err := NewApplication(m); err == nil || !strings.Contains(err.Error(), "pay(") {
-		t.Fatalf("source Pay state was silently initialized empty: %v", err)
+	if err := validateMigrationExecutionClosure(m); err == nil || !strings.Contains(err.Error(), "pay(") {
+		t.Fatalf("unresolved source Pay authority was reported fully executable: %v", err)
+	}
+	app, err := NewApplication(m)
+	if err != nil {
+		t.Fatal("strictly preserved Pay records blocked unrelated Chain initialization", err)
+	}
+	if app.committed.LegacyPaySource == nil || len(app.committed.LegacyPaySource.Intents) != len(m.Runtime.PayIntents) || len(app.committed.PayIntents) != 0 {
+		t.Fatal("source Pay state was silently initialized empty or assigned BFT authority")
 	}
 }
 

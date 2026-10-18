@@ -199,7 +199,7 @@ func newPersistentApplicationWithAuthorization(state chain.ConsensusMigrationSta
 	if err := state.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
-	if err := validateMigrationExecutionClosure(state); err != nil {
+	if err := validateMigrationPreservationClosure(state); err != nil {
 		return nil, err
 	}
 	payload, err := state.CanonicalJSON()

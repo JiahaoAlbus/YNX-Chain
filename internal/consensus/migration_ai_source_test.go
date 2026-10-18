@@ -212,22 +212,25 @@ func TestLegacyAISourceRejectsTamperingAndInventedBFTAuthority(t *testing.T) {
 func TestLegacyAISourceCandidatePersistenceAndActivationFence(t *testing.T) {
 	f := newLegacyAISourceFixture(t)
 	path := filepath.Join(t.TempDir(), "candidate-state.json")
-	if _, err := NewPersistentApplication(f.m, path); err == nil || !strings.Contains(err.Error(), "ai(") {
-		t.Fatal("normal constructor bypassed unresolved source authority", err)
+	a, err := NewPersistentApplication(f.m, path)
+	if err != nil {
+		t.Fatal("normal constructor refused strictly preserved source", err)
+	}
+	if err := validateMigrationExecutionClosure(f.m); err == nil || !strings.Contains(err.Error(), "ai(") {
+		t.Fatal("source preservation cleared unresolved execution authority", err)
 	}
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
-		t.Fatal("refused constructor wrote candidate state", err)
+		t.Fatal("read-only constructor wrote an uncommitted state", err)
 	}
-	state := initialCommittedState(f.m)
+	state := a.committed
 	if err := state.Validate(f.m); err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(state.LegacyAISource, migrationAISource(f.m)) || !accountsEqual(state.Accounts, f.m.Accounts) {
 		t.Fatal("candidate projection changed source history or ledger")
 	}
-	// This is a candidate callee test, explicitly not constructor activation.
-	// Use the real state view/seal path without starting an application or node.
-	a := &Application{migration: f.m, committed: state}
+	// Normal construction preserves records, but does not activate their
+	// missing principal authority. Exercise the real pre-fee dispatcher fence.
 	oldApproval := mustTrustAction(t, deterministicPrivateKey(211), ActionAIProposalApprove,
 		AIActionDecisionPayload{ActionID: f.canonicalPending, PermissionID: f.permission, Approver: "reviewer"}, 1)
 	beforeCandidate := mustJSON(t, a.committed)
@@ -312,8 +315,12 @@ func TestLegacyAISourceCandidatePersistenceAndActivationFence(t *testing.T) {
 	if _, err := loadCommittedState(tamperedPath, f.m); err == nil {
 		t.Fatal("rehash accepted removal of the complete source segment")
 	}
-	if _, err := NewPersistentApplication(f.m, path); err == nil {
-		t.Fatal("a saved candidate self-authorized normal activation")
+	restarted, err := NewPersistentApplication(f.m, path)
+	if err != nil || !bytes.Equal(mustJSON(t, restarted.committed), mustJSON(t, cold)) {
+		t.Fatal("normal restart did not preserve complete committed source", err)
+	}
+	if _, _, err := restarted.applyTransaction(restarted.committedExecutionStateView(), oldApproval, cold.Height+1, time.Now().UTC()); err == nil || !strings.Contains(err.Error(), "source AI") {
+		t.Fatal("cold recovery self-authorized the unsigned source principal", err)
 	}
 
 	// Query the validated candidate through the actual dispatcher; this carries

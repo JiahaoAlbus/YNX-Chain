@@ -311,6 +311,38 @@ jobs:
         run: |
           go test -p 1 -count=1 -timeout=180s -run '^(TestConsensusMigration|TestConsensusSponsor)' ./internal/chain
           YNX_PQ_NETWORK_E2E='' go test -p 1 -count=1 -timeout=180s ./internal/consensus
+      - name: Reproduce source-authority initialization coupling and verify independent execution
+        if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
+        timeout-minutes: 4
+        run: |
+          YNX_PRESERVE_CASE="$RUNNER_TEMP/ynx-migration-preservation-$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT"
+          umask 077
+          mkdir "$YNX_PRESERVE_CASE"
+          cp internal/consensus/application.go "$YNX_PRESERVE_CASE/fixed-application.go"
+          cp internal/consensus/runtime_upgrade.go "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go"
+          trap 'cp "$YNX_PRESERVE_CASE/fixed-application.go" internal/consensus/application.go; cp "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go" internal/consensus/runtime_upgrade.go' EXIT
+          # Restore only the original admission calls, retaining current types
+          # and test fixtures. A compile failure cannot count as the counterexample.
+          python3 -B - <<'PY'
+          from pathlib import Path
+          for name, arg in (('application.go', 'state'), ('runtime_upgrade.go', 'migration')):
+              path = Path('internal/consensus') / name
+              text = path.read_text()
+              fixed = f'validateMigrationPreservationClosure({arg})'
+              assert text.count(fixed) == 1
+              path.write_text(text.replace(fixed, f'validateMigrationExecutionClosure({arg})'))
+          PY
+          set +e
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestMigrationPreservationFactoryKeepsSourceAndIndependentExecution$' ./internal/consensus > "$YNX_PRESERVE_CASE/original-red.log" 2>&1
+          YNX_PRESERVE_RED_STATUS=$?
+          set -e
+          cp "$YNX_PRESERVE_CASE/fixed-application.go" internal/consensus/application.go
+          cp "$YNX_PRESERVE_CASE/fixed-runtime-upgrade.go" internal/consensus/runtime_upgrade.go
+          trap - EXIT
+          cat "$YNX_PRESERVE_CASE/original-red.log"
+          test "$YNX_PRESERVE_RED_STATUS" -ne 0
+          grep -F 'MIGRATION_PRESERVATION_FACTORY_BLOCKED' "$YNX_PRESERVE_CASE/original-red.log"
+          go test -p 1 -count=1 -timeout=90s -v -run '^TestMigrationPreservation' ./internal/consensus
       - name: Reproduce Ethereum mutable-lot provenance counterexamples and verify cold recovery
         if: ${{ !cancelled() && steps.identity.outcome == 'success' }}
         run: |

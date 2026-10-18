@@ -15,42 +15,69 @@ type MigrationModuleBlocker struct {
 	Reason  string `json:"reason"`
 }
 
+type migrationBlockerClass uint8
+
+const (
+	migrationBlockingFailure migrationBlockerClass = iota
+	migrationValidatedSourceAuthorityGap
+)
+
+// Classification is internal admission metadata, never part of the public
+// compatibility JSON or committed state. Zero and unknown classes block.
+type classifiedMigrationBlocker struct {
+	blocker        MigrationModuleBlocker
+	classification migrationBlockerClass
+}
+
 // MigrationExecutionBlockers is an explicit executor compatibility manifest.
 // A preserved source document is not evidence that an ABCI module can safely
 // operate on it. Missing authority, code or quote provenance must never be
 // replaced by fabricated BFT metadata or by empty initial module slices.
 func MigrationExecutionBlockers(m chain.ConsensusMigrationState) []MigrationModuleBlocker {
 	var blockers []MigrationModuleBlocker
+	for _, value := range collectMigrationExecutionBlockers(m) {
+		blockers = append(blockers, value.blocker)
+	}
+	return blockers
+}
+
+func collectMigrationExecutionBlockers(m chain.ConsensusMigrationState) []classifiedMigrationBlocker {
+	var blockers []classifiedMigrationBlocker
 	if m.Runtime == nil {
-		return []MigrationModuleBlocker{{Module: "source_runtime", Records: 1, Reason: "account-only migration does not prove complete business state or absence of account policy"}}
+		return []classifiedMigrationBlocker{{blocker: MigrationModuleBlocker{Module: "source_runtime", Records: 1, Reason: "account-only migration does not prove complete business state or absence of account policy"}}}
 	}
 	r := m.Runtime
 	add := func(module string, n int, reason string) {
 		if n > 0 {
-			blockers = append(blockers, MigrationModuleBlocker{module, n, reason})
+			blockers = append(blockers, classifiedMigrationBlocker{blocker: MigrationModuleBlocker{module, n, reason}})
 		}
 	}
 	// Exercise the actual source adapters even when missing authority prevents
 	// activation. The offline command must distinguish a corrupt source closure
 	// from records which are preserved correctly but cannot yet grant a signer.
-	addSource := func(module string, n int, reason string, validate func() error) {
+	// Only these explicit authority-gap call sites may receive the exceptional
+	// class, and only after their complete original source validation succeeds.
+	// A later ordinary blocker with the same module name stays blocking.
+	addSourceAuthorityGap := func(module string, n int, reason string, validate func() error) {
 		if n == 0 {
 			return
 		}
 		status := "source preservation validation passed; "
+		classification := migrationValidatedSourceAuthorityGap
 		if err := validate(); err != nil {
 			status = "source preservation validation failed: " + err.Error() + "; "
+			classification = migrationBlockingFailure
 		}
-		add(module, n, status+reason)
+		blockers = append(blockers, classifiedMigrationBlocker{blocker: MigrationModuleBlocker{module, n, status + reason}, classification: classification})
 	}
 	projection := CommittedState{Version: CommittedStateVersion, Height: int64(m.Height), ChainID: m.Network.ChainID, MigrationStateHash: m.StateHash}
-	addSource("pay", len(r.PayIntents)+len(r.Invoices)+len(r.Refunds)+len(r.PaySettlements)+len(r.Webhooks)+len(r.PayEvents), "independent source merchant binding and original webhook secret custody have not been established for this migration", func() error {
+	addSourceAuthorityGap("pay", len(r.PayIntents)+len(r.Invoices)+len(r.Refunds)+len(r.PaySettlements)+len(r.Webhooks)+len(r.PayEvents), "independent source merchant binding and original webhook secret custody have not been established for this migration", func() error {
 		return validateLegacyPaySource(migrationPaySource(m), projection, m)
 	})
-	addSource("ai", len(r.AIPerms)+len(r.AIActions), "source permissions have no signed principal or transaction; cannot create BFT signer authority during import", func() error {
+	addSourceAuthorityGap("ai", len(r.AIPerms)+len(r.AIActions), "source permissions have no signed principal or transaction; cannot create BFT signer authority during import", func() error {
 		return validateLegacyAISource(migrationAISource(m), projection, m)
 	})
-	addSource("trust_governance", len(r.RiskLabels)+len(r.Evidence)+len(r.Governance)+len(r.Appeals)+len(r.Tracking)+len(r.Transp), "independently authenticated source reviewer/role binding is missing; original text identities cannot authorize review or resolution", func() error {
+	addSourceAuthorityGap("trust_governance", len(r.RiskLabels)+len(r.Evidence)+len(r.Governance)+len(r.Appeals)+len(r.Tracking)+len(r.Transp), "independently authenticated source reviewer/role binding is missing; original text identities cannot authorize review or resolution", func() error {
 		source, err := migrationTrustSource(m)
 		if err != nil {
 			return err
@@ -63,7 +90,9 @@ func MigrationExecutionBlockers(m chain.ConsensusMigrationState) []MigrationModu
 	if err := validateSourceSponsorReplayCoverage(migrationResourceSponsor(m), m); err != nil {
 		add("resource_sponsor", 1, err.Error())
 	}
-	blockers = append(blockers, migrationContractBlockers(m)...)
+	for _, blocker := range migrationContractBlockers(m) {
+		blockers = append(blockers, classifiedMigrationBlocker{blocker: blocker})
+	}
 	return blockers
 }
 

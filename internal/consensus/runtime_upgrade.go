@@ -107,7 +107,7 @@ func NewRuntimeUpgradeAuthorization(rawCanonicalJSON []byte, expectedPlanHash st
 	if err := migration.Validate(); err != nil {
 		return nil, err
 	}
-	if err := validateMigrationExecutionClosure(migration); err != nil {
+	if err := validateMigrationPreservationClosure(migration); err != nil {
 		return nil, err
 	}
 	if err := bootstrap.matchesMigration(migration); err != nil {
