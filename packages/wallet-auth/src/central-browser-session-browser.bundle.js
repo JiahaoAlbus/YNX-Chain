@@ -28086,7 +28086,7 @@ ${item.productId}`));
       revision++;
       approve.disabled = true;
       clearPairQR();
-      if (pair) void pair.cancel();
+      if (pair) void cancelPair();
       retireHosted();
     });
     let providers = [], selected = null, pending = null, revision = 0, cancelled = false, hosted = null, hostedPending = null, hostedProvider = null;
@@ -28100,7 +28100,7 @@ ${item.productId}`));
       status.textContent = t(value);
     };
     const failure2 = (error, phase) => {
-      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CLIENTS_MISMATCH", "SSO_PROFILE_REPLAY", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
+      const known = /* @__PURE__ */ new Set(["YNX_PAIR_TIMEOUT", "YNX_PAIR_CLEANUP_UNCONFIRMED", "YNX_PAIR_CANCELLED", "YNX_PAIR_CONFIGURATION_INVALID", "YNX_PAIR_SESSION_EXPIRED", "YNX_PAIR_PEER_INVALID", "YNX_PAIR_NAMESPACE_INVALID", "YNX_PAIR_CHAIN_INVALID", "YNX_PAIR_SESSION_SELECTION_REQUIRED", "YNX_PAIR_METHOD_NOT_APPROVED", "YNX_PAIR_CONTEXT_CHANGED", "SSO_CLIENTS_MISMATCH", "SSO_PROFILE_REPLAY", "SSO_CONTEXT_CHANGED", "SSO_CHALLENGE_EXPIRED", "SSO_REQUEST_TIMEOUT", "SSO_CSRF_MISMATCH", "SSO_TRANSACTION_EXPIRED", "SSO_LOGIN_REQUIRED", "SSO_REQUEST_FAILED", "PROVIDER_WRONG_CHAIN", "HOSTED_POPUP_BLOCKED", "HOSTED_POPUP_CLOSED", "HOSTED_REQUEST_TIMEOUT", "HOSTED_REQUEST_EXPIRED_OR_RELOADED", "HOSTED_DISCONNECTED", "HOSTED_ORIGIN_UNREGISTERED", "HOSTED_METHOD_INVALID", "HOSTED_REQUEST_FAILED"]);
       const raw = typeof error?.code === "string" ? error.code : typeof error?.message === "string" ? error.message : "";
       for (const stage of ["INITIALIZATION", "RELAY", "APPROVAL", "REQUEST", "CLEANUP"]) for (const suffix of ["TIMEOUT", "UNAVAILABLE"]) known.add(`YNX_PAIR_${stage}_${suffix}`);
       known.add("YNX_PAIR_TRANSPORT_DRAINING");
@@ -28129,7 +28129,25 @@ ${item.productId}`));
     pairOpen.hidden = true;
     pairRegion.append(pairLabel, pairCanvas, pairOpen);
     picker.after(pairButton, pairRegion);
-    let pair = null, pairPending = null, pairProvider = null;
+    let pair = null, pairPending = null, pairProvider = null, pairCleanupBlocked = false;
+    const pairCleanupStatus = document.createElement("p");
+    pairCleanupStatus.id = "pair-cleanup-status";
+    pairCleanupStatus.hidden = true;
+    pairRegion.after(pairCleanupStatus);
+    const pairCleanupUnknown = () => {
+      pairCleanupBlocked = true;
+      pairButton.disabled = true;
+      status.dataset.pairCleanup = "unconfirmed";
+      pairCleanupStatus.hidden = false;
+      pairCleanupStatus.textContent = t("Mobile Wallet cleanup is not confirmed. This page will not retry that connection. You can choose another wallet or return without using this approval.");
+    };
+    const cancelPair = async () => {
+      try {
+        await pair?.cancel();
+      } catch {
+        pairCleanupUnknown();
+      }
+    };
     const clearPairQR = () => {
       pairRegion.hidden = true;
       pairCanvas.width = pairCanvas.height = 0;
@@ -28202,6 +28220,7 @@ ${item.productId}`));
         message("Finish or cancel your current request before opening another connection.");
         return;
       }
+      if (pairCleanupBlocked) return;
       const epoch = ++revision;
       selected = null;
       approve.disabled = true;
@@ -28209,12 +28228,15 @@ ${item.productId}`));
       pairButton.setAttribute("aria-busy", "true");
       clearPairQR();
       message("Opening a mobile Wallet connection. No sign-in signature has been requested.");
-      pair ??= new WalletConnectDAppConnection({ origin: location.origin, methods: ["ynx_requestCentralBrowserSignIn"], deadlineMs: Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())) });
+      if (!pair) {
+        pair = new WalletConnectDAppConnection({ origin: location.origin, methods: ["ynx_requestCentralBrowserSignIn"], deadlineMs: Math.max(1, Math.min(3e4, Date.parse(challenge.expiresAt) - Date.now())) });
+        pair.on("cancelUnconfirmed", pairCleanupUnknown);
+      }
       const pairStage = (event) => {
         if (epoch === revision && !cancelled) status.dataset.phase = event.stage === "initialization" ? "pair-initialize" : event.stage === "approval" ? "pair-approval" : "pair-connect";
       };
       pair.on("stage", pairStage);
-      pairPending = (async () => {
+      const task = (async () => {
         status.dataset.phase = "pair-initialize";
         delete status.dataset.errorCode;
         const provider = await pair.connect({ restore: true, onURI: (uri) => {
@@ -28231,7 +28253,7 @@ ${item.productId}`));
           message("Scan this temporary QR in YNX Wallet and approve the connection.");
         } });
         if (epoch !== revision || cancelled) {
-          await pair.cancel();
+          await cancelPair();
           throw new Error("SSO_CONTEXT_CHANGED");
         }
         clearPairQR();
@@ -28241,19 +28263,21 @@ ${item.productId}`));
         approve.disabled = false;
         message("Mobile Wallet connected. Continue to review browser sign-in on the same Wallet session.");
       })().catch((error) => {
+        if (error?.cleanupError?.code === "YNX_PAIR_CLEANUP_UNCONFIRMED" || error?.code === "YNX_PAIR_CLEANUP_UNCONFIRMED") pairCleanupUnknown();
         if (epoch === revision && !cancelled) {
           clearPairQR();
           const code2 = failure2(error, status.dataset.phase);
-          message(code2 === "YNX_PAIR_TRANSPORT_DRAINING" ? "The previous network attempt is still finishing. Choose another wallet, or retry after it ends." : /^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code2) ? "The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted." : "Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.");
+          message(pairCleanupBlocked ? "Mobile connection did not finish. Its cleanup is not confirmed. Choose another wallet or return without using this approval." : code2 === "YNX_PAIR_TRANSPORT_DRAINING" ? "The previous network attempt is still finishing. Choose another wallet, or retry after it ends." : /^YNX_PAIR_(RELAY|INITIALIZATION)_/.test(code2) ? "The connection service could not be reached. Check your network, then retry or choose another wallet. No browser sign-in was granted." : "Mobile connection did not finish. Retry or cancel; no browser sign-in was granted.");
         }
       }).finally(() => {
         pair.removeListener?.("stage", pairStage);
-        if (epoch === revision) {
+        if (pairPending === task) {
           pairPending = null;
-          pairButton.disabled = cancelled;
+          pairButton.disabled = cancelled || pairCleanupBlocked;
           pairButton.removeAttribute("aria-busy");
         }
       });
+      pairPending = task;
     });
     const request = async (path, input) => {
       const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 1e4);
@@ -28367,10 +28391,10 @@ ${item.productId}`));
       revision++;
       if (pairPending) {
         pairPending = null;
-        pairButton.disabled = cancelled;
+        pairButton.disabled = cancelled || pairCleanupBlocked;
         pairButton.removeAttribute("aria-busy");
         clearPairQR();
-        void pair.cancel();
+        void cancelPair();
       }
       if (hosted) retireHosted();
       approve.disabled = !selected || cancelled;
@@ -28498,7 +28522,7 @@ ${item.productId}`));
       cancel.disabled = true;
       message("Cancelling this sign-in request\u2026");
       clearPairQR();
-      if (pair) void pair.cancel();
+      if (pair) void cancelPair();
       retireHosted();
       try {
         const result = await request("cancel", { challengeId: challenge.challengeId });

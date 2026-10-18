@@ -19,6 +19,6 @@ function visit(relative){
 for(const [name,version] of Object.entries(versions)){const metadata=JSON.parse(readFileSync(path.join(supplier,name,'package.json')));if(metadata.name!==name||metadata.version!==version)throw Error('DEPENDENCY_VERSION');visit(name);}
 if(files.length!==316)throw Error('DEPENDENCY_COUNT_CHANGED');
 files.sort((a,b)=>a.path.localeCompare(b.path,'en'));
-const manifest={schemaVersion:2,sdkCommit:'c9a869ccfb553776ab751ef474408a73a85214ee',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files,profile:'Same 316 IDE/PQ dependency bytes as SDK3.9, read back from SDK3.10 clean119 install. Not the complete WalletConnect dependency closure.'};
+const manifest={schemaVersion:2,sdkCommit:'5139d585f1022f1caedd0af9c610ef24f2dc10df',provider:{version:versions['@ynx/batch-v01-candidate'],bytes:archive.length,sha256:sha(archive)},versions,files,profile:'Same 316 IDE/PQ runtime bytes verified under the reused original clean119 dependency closure. Not complete WalletConnect runtime; dependency versions unchanged from SDK3.10.'};
 writeFileSync(path.join(root,'apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json'),JSON.stringify(manifest,null,2)+'\n');
 console.log(JSON.stringify({runtimeFiles:files.length,providerSHA256:sha(archive),network:false,scriptsExecuted:false}));

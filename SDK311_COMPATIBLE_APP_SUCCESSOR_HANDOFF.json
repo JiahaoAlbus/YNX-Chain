@@ -1,0 +1,58 @@
+{
+  "state": "FORMAL_SDK311_EXACT_SOURCE_INTEGRATED_NOT_NEW_PACKAGE_OR_USER_FLOW_ACCEPTANCE",
+  "baseCommit": "18e986f6755832cdcf33f912eff52cb45c5f7c70",
+  "sourceDirectory": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r33-payload-consumer-20261018",
+  "sdk": {
+    "version": "1.3.0-pq.3.11",
+    "sourceCommit": "5139d585f1022f1caedd0af9c610ef24f2dc10df",
+    "sourceTree": "4420715a15d85bd1fe5a5cfe2ccba92b93d4f1b6",
+    "formalHandoff": "/Users/huangjiahao/ynx-wallet-pq-sdk-r3k-20261018/SDK_PQ_R3K_HANDOFF.json",
+    "handoffBytes": 9689,
+    "handoffSha256": "20590925b54b12bade1b962e8a9ff7ada597a36bc205d14c73bda1a780af2aa8",
+    "archiveBytes": 932843,
+    "archiveSha256": "3665c69524987f53d761cbccb8e650178d416c6e368af3f856c0daf1a14e6983",
+    "verifiedDirectReferences": 8,
+    "exactSupplierBeforeAfterDelta": 10,
+    "allPackedMembersMatchTarGitAndLocal": 243,
+    "intake": "Every BEFORE pin verified before any copy; copy exact blobs from frozen supplier5139, not mutable working files; no supplier implementation authored by Wallet",
+    "supplierCIReused": "39102368396 success110PASS0fail0skip, all3typeclosures0; new7browser+16cold controls; not rerun",
+    "normalCentralBrowserBlob": {"bytes": 1147977, "sha256": "8837f6b3f9bf6e6bd71c91419032f929955b1f3bbc87f042e5d9d807cd73b2bf"},
+    "addressClassUnchangedFromSDK310": {"bytes": 20063, "sha256": "d660bd60db81d15b4db83b112aad9d49e7b687da531ce8c4429a7ad7a375d8c0"},
+    "oldAddressCombinationReused": "c432 actual3PASS of same byte-identical SDK address factory+Wallet controller; not rerun; not a real Relay or package acceptance"
+  },
+  "dependencySelection": {
+    "fullSDKLock": "packages/wallet-auth/package-lock.json",
+    "fullSDKLockBytes": 68086,
+    "fullSDKLockSha256": "aec24b790d50fe5667f74bb3ecc002bcdf31ba42bb4680eec627b7c7b56fb679",
+    "supplierFullInstallRoot": "/Users/huangjiahao/.codex/worktrees/wallet-browser-cleanup-recovery/YNX Chain/packages/wallet-auth/node_modules",
+    "fullSDKPackages": 119,
+    "versionsUnchangedFromSDK310": true,
+    "PQManifest": "apps/wallet-desktop/scripts/wallet-auth-runtime-dependencies.json",
+    "PQManifestBytes": 52656,
+    "PQManifestSha256": "0aa139e4ca112cfa7d67a915390abd67319a6bc69aff6751d5384c1dcd7c15d8",
+    "generatedManifestEqualsSupplier": true,
+    "require": "SDK full exact119 closure with its nested Noble1.x; direct PQ316 is not WC runtime. App qrcode1.5.4 exact29-package locked closure; no ambient tool/dependency fallback. Both App package-lock local file versions updated to3.11.",
+    "localFullInstallPerformed": false
+  },
+  "includedWalletSource": ["c432 formal SDK310 partial initialization UNKNOWN protection and exact3controlled App combination", "18e reviewed bilingual HTML translate=no and explicit address aria-label, RED1 to affected2PASS", "Earlier normal receive PNG/scan/Pay/history/contracts and lock/UNKNOWN protections preserved"],
+  "nativeBoundary": {
+    "actualCurrentModule": "Existing original A33 unchanged, not replaced by an invented R44",
+    "A33ModuleSha256": "0ebfb6277f5c6bc40609404978624d192defe86fd465003ebfc9baff35b9eef7",
+    "A33ReceiptSha256": "445c0b0ab02a9e8321e6406dfab7669d995f4b1522bfc1e1c3e409fae2e4433c",
+    "coldSDK": "New strict13field DATA-only reader is supplied source, not wired into an App pretending to have an authorized callee. Missing R44 methods must refuse IDE_COLD_IMPLEMENTATION_NOT_SUPPLIED; no old-parent fallback, no grants/effect replay.",
+    "next": "Original Auth R44 NAPI+R42 header requires A's exact matching native component/source receipt before normal cold-reader availability can be claimed. Original canonical request bytes and lawful authority remain separately required. No synthetic cold caller or profile added."
+  },
+  "normalBuildRecipe": {
+    "owner": "Sole original A via Root",
+    "selection": "Keep c432/310 if already frozen; no hot replacement. If no build has started, Root/A may select this final compatible successor once, including18e markup, avoiding serial rebuilds. Existing R3/V3 untouched.",
+    "browserArgvAfterPinnedNode": ["apps/wallet-desktop/scripts/build-wallet-connection-page.mjs", "NEW_ABSOLUTE_CANONICAL_OUTPUT_DIRECTORY"],
+    "browserSource": "Include actual App src/walletconnect-address-consumer.mjs and src/walletconnect-address-page.mjs plus web-connect assets. Preserve local SDK public export and selected esbuild0.25.9/Core/SignClient2.23.10 resolution; preserve App QR closure.",
+    "publication": "Same existing Wallet origin /connect/ only, original V3 explicit trailing-slash strict CSP/no-store, old40 assets and /hosted/ retained. New bundle uses new receipt and normal HTTP gate, not old R3 hashes.",
+    "macArgvAfterPinnedNodeFromDesktopCwd": ["scripts/build-mac.mjs", "arm64", "--config.electronDist=/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r65-normal-mac-matching-20261017/electron-dist", "--config.npmRebuild=false"],
+    "mac": "Canonical source/dependency/package/mount/import/signature readback through existing A workflow; do not substitute source PASS for install. R44 component integration is a separately matched native closure, never overlay an installed App.",
+    "capacity": "Local readonly df during intake655804KiB available; no local heavy App/browser rebuild or full install started. Original A schedules only on fresh safe capacity. Source work did not wait on disk."
+  },
+  "realGUISeparate": "/Users/huangjiahao/.ynx-build-capacity-20261011/wallet-r3e-4bc-normal-install-qa-20261018/NORMAL_PUBLIC_CONNECT_CANCEL_STAGE_20261018.json: old4bc/SDK3.5 and publicR3/SDK39 normal Connect to Relay then Cancel, no QR/review; not this successor",
+  "preserved": ["Original dirty d386 App.tsx/receivePNG", "A unfrozen startup assets and shared protocols", "Frozen c432 and R3/V3 artifacts/receipts", "Native module and all accounts/keys/mnemonics/history/UNKNOWN"],
+  "notClaimed": ["New source browser/App package built, installed or deployed", "R44 native availability", "Real Relay, pairing, address approval or login", "Remote cleanup confirmed", "Native admission or qualified reclaim", "MONSTER", "Signatures or transactions", "Android, Windows or Linux acceptance"]
+}
