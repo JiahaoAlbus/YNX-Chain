@@ -2,9 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES} from '../scripts/release-provenance.mjs';
 const name='packages/wallet-auth/src/original-ide-admission-parent-delivery.js';
-const source=readFileSync('/Volumes/Data/Users/huangjiahao/ynx-wallet-source-staging-20261018/sdk318-XZkuzQ/package/src/original-ide-admission-parent-delivery.js');
+// Same checkout by default; isolated consumers must supply their exact frozen
+// SDK source directory explicitly. No node_modules or ambient SDK fallback.
+const sdkSource=process.env.PROVENANCE_SDK_SOURCE??fileURLToPath(new URL('../../../packages/wallet-auth/src/',import.meta.url));
+const source=readFileSync(path.join(sdkSource,'original-ide-admission-parent-delivery.js'));
+assert.equal(source.length,22531,'SDK318 source byte pin');
+assert.equal(createHash('sha256').update(source).digest('hex'),'1235de33effb0454f65b6c99e72b76ee5b1ddf286dd177a5de3623cccf433af5','SDK318 source SHA256 pin');
 const operand='../../../apps/wallet-desktop/native/original-auth-identity.node';
 test('SDK318 pinned parent and cold Native URLs are both preserved',()=>{
  assert.equal(source.length,22531);
