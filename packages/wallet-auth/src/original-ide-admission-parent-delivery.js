@@ -232,7 +232,7 @@ function assertColdEntry(actualEntryURL){
 /** Discover only the original Native callback table. This is not Source
  * admission and never constructs/asserts/closes an operation owner. Native
  * independently checks the real Node entry and owns all qualification. */
-export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
+function originalIdentityNativeModule(actualEntryURL){
  assertColdEntry(actualEntryURL);
  const target=fileURLToPath(new URL('../../../apps/wallet-desktop/native/original-auth-identity.node',import.meta.url));
  let resolved;
@@ -243,10 +243,23 @@ export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
  if(resolved!==target)return null;
  // Load outside the missing-target catch: addon or transitive dependency
  // failures, including MODULE_NOT_FOUND, preserve the original first cause.
- const native=requireNative(resolved);
+ return requireNative(resolved);
+}
+export function acquireOriginalIDENativeAuthBinding(actualEntryURL){
+ const native=originalIdentityNativeModule(actualEntryURL);
  if(typeof native?.getOriginalIDENativeAuthBinding!=='function')return null;
  const binding=native.getOriginalIDENativeAuthBinding(actualEntryURL);
  if(!binding||typeof binding!=='object'||['receiveOriginalIDEIdentity','recoverOriginalIDEIdentity','acquireOriginalIDEProtectedKeyCall'].some(name=>typeof binding[name]!=='function'))return null;
+ return binding;
+}
+/** Backend-only recognition of the SAME original fixed Native peer table.
+ * No peer owner is constructed here. The original IDE private closure supplies
+ * its retained R91 owner to this table only after call.begin has captured it. */
+export function acquireOriginalIDEIdentityPeerBinding(actualEntryURL){
+ const native=originalIdentityNativeModule(actualEntryURL);
+ if(typeof native?.getOriginalIDEIdentityPeerBinding!=='function')return null;
+ const binding=native.getOriginalIDEIdentityPeerBinding(actualEntryURL);
+ if(!binding||typeof binding!=='object'||typeof binding.acquireOriginalIDEIdentityPeerChannel!=='function')return null;
  return binding;
 }
 /** Fixed Native cold reader only. Null startup selection is never a grant and

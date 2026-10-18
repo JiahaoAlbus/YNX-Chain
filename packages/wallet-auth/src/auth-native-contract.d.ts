@@ -55,3 +55,27 @@ export interface OriginalAuthIDENativeBinding {
  readonly recoverOriginalIDEIdentity:(actualEntryURL:string)=>OriginalIDEIdentityRecoveryOwner;
  readonly acquireOriginalIDEProtectedKeyCall:(actualEntryURL:string,invocationOriginal:string)=>OriginalIDEProtectedKeyCallOwner;
 }
+
+/** Original R102 NAPI peer: only Native validates the SAME R91 request owner,
+ * process/kernel/Source and fixed inherited endpoint. No descriptor or PID API. */
+declare const originalIdentityPeerOwner:unique symbol;
+export interface OriginalIDEIdentityPeerStatus {
+ readonly ready:boolean;readonly retired:boolean;readonly busy:number;
+ readonly closed:boolean;readonly selectedReturnBytes:number;
+ readonly firstCause:string|null;readonly dataOnly:true;readonly nativeAdmission:false;
+}
+export type OriginalIDEIdentityPeerReturn=Readonly<
+ {decision:'approve';requestId:string;purpose:string;proof:Uint8Array}|
+ {decision:'reject';requestId:string;purpose:string;proof:null}>;
+export interface OriginalIDEIdentityPeerOwner {
+ readonly [originalIdentityPeerOwner]:true;
+ current():undefined;
+ /** Always exactly three arguments, even when invocation is absent. */
+ sendRequest(kind:'receive'|'recover'|'keyCall',requestOriginal:string,invocationOriginal:string|undefined):Promise<undefined>;
+ receiveReturn():Promise<OriginalIDEIdentityPeerReturn>;
+ retire():undefined;join():undefined;close():undefined;
+ status():Readonly<OriginalIDEIdentityPeerStatus>;
+}
+export interface OriginalAuthIDEIdentityPeerBinding {
+ readonly acquireOriginalIDEIdentityPeerChannel:(actualEntryURL:string,sameRequestOwner:OriginalIDEIdentityReceiveOwner|OriginalIDEIdentityRecoveryOwner|OriginalIDEProtectedKeyCallOwner)=>OriginalIDEIdentityPeerOwner;
+}
