@@ -68,6 +68,7 @@ jobs:
           scripts/loadtest/native-resource-probe.test.mjs
           scripts/loadtest/owned-process-race.test.mjs
           scripts/loadtest/same-control-readback.test.mjs
+          scripts/verify/perf-v13-integration-check.test.mjs
       - name: Prepare matched Commit probe dependencies
         env:
           GOMAXPROCS: "1"
@@ -109,7 +110,8 @@ jobs:
           go test -p 1 ./cmd/ynx-consensus-perf-client
           -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*)$'
           -count=1 -timeout=45s -v
-      - run: make integration-contract-check
+      - name: Verify fixed unpublished performance V13 integration contract
+        run: make integration-contract-perf-v13-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan
