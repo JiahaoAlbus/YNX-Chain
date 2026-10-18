@@ -1,0 +1,29 @@
+{
+  "schema": "ynx-perf-anchor-order-qualification/v1",
+  "version": "1.13.0-source-candidate.7",
+  "profile": "perf-state-v13-anchor-order",
+  "sourceCommit": "b3c0b8b2e9349ec73b4aa8d0e613ed7e517582d3",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "measuredRuntimeCommit": "3008845b6b4135b8f968fe4365722588be00f1b0",
+  "parentFixedSource": "2b5c51d3baca54a88510bb9d461807f957063249",
+  "parentCandidate": "perf-state-v13-seal-compact-default",
+  "stateVersion": 13,
+  "applicationVersion": 19,
+  "appHashDomain": "YNX_ABCI_STATE_V13",
+  "runtimeChanges": "two boolean short-circuit operand orderings only; full semantic validation and full AppHash retained",
+  "evidenceSHA256": "075d99372ca80eb3ea0d68479d8188aa745fa1919f7b41823c83d9bd585ee47d",
+  "evidenceRun": 39129340679,
+  "evidenceWholeRunConclusion": "failure",
+  "evidenceFailedGate": "Verify fixed unpublished compact-default V13 integration contract",
+  "fullGoSourcePassed": true,
+  "validationCostMeasured": true,
+  "normalMatchingCIVerified": false,
+  "deployed": false,
+  "nodeCutover": false,
+  "businessTPS": null,
+  "networkFinalityMeasured": false,
+  "originalSupplyCandidateUnchanged": {
+    "sourceCommit": "599fa7eebf5aa4f1472fe80a1d308e6915600a02",
+    "internalTree": "db59fb367d5c7382756ba8f6ebc2d50e5d9639fc"
+  }
+}

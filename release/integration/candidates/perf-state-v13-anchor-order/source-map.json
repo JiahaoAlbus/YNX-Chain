@@ -1,0 +1,148 @@
+{
+  "schema": "ynx-anchor-order-source-map/v1",
+  "sourceCommit": "b3c0b8b2e9349ec73b4aa8d0e613ed7e517582d3",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "parentFixedSource": "2b5c51d3baca54a88510bb9d461807f957063249",
+  "files": {
+    "chain-metadata/ynx-testnet.json": {
+      "bytes": 495,
+      "sha256": "89974444dc6e8eae51b4c9455cfb9522fc1ebbf1d3ff9bcf2dde1592d628ae23"
+    },
+    "cmd/ynx-consensus-lab/main.go": {
+      "bytes": 5143,
+      "sha256": "b7344e1e4b7a4b55d872d2b9d6b55bc65b68424fb581b4ae118866a21dfd7722"
+    },
+    "cmd/ynx-consensus-tx/main.go": {
+      "bytes": 8094,
+      "sha256": "ec1f1d4aef4060031bf1f46b0e2389109fcf51a807ac5867e7eccee0e12a4dba"
+    },
+    "docs/integration/CHAIN_CORE_CROSS_PRODUCT_TEST_VECTORS.json": {
+      "bytes": 27853,
+      "sha256": "5b0afae37b4f575c9f7239b98fb70293e9e2fd73306ab519784ed6df162b512f"
+    },
+    "docs/performance/evidence/anchor-order-validation-ci-39129340679-actual.json": {
+      "bytes": 2572,
+      "sha256": "075d99372ca80eb3ea0d68479d8188aa745fa1919f7b41823c83d9bd585ee47d"
+    },
+    "docs/performance/evidence/compact-fee-witness-ci-39120302554-actual.json": {
+      "bytes": 6791,
+      "sha256": "5131341e157e91ff9e9a8ccd88483b4c75dd5ef7c8ffa1dd2f45dd1f58129f39"
+    },
+    "docs/performance/evidence/seal-guarded-phases-ci-39118758324-actual.json": {
+      "bytes": 6069,
+      "sha256": "cb4a57a0bb8d2ef6d9586aa3ad97f57fb526b78cfa71e679661420d44908bdfc"
+    },
+    "docs/performance/fixtures/state-hash-real-1024-migration.json": {
+      "bytes": 73707,
+      "sha256": "8a73a627990a7719ca54fdc1afc3e05a29758db7070e9d7f3cd1e859579621c1"
+    },
+    "docs/performance/fixtures/state-hash-real-1024.json": {
+      "bytes": 812656,
+      "sha256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56"
+    },
+    "docs/performance/fixtures/state-hash-real-1024.manifest.json": {
+      "bytes": 763,
+      "sha256": "509e2aee7c49aa3e722c9f525393ae73c5c8d35575b071b2751caee00b1d2574"
+    },
+    "internal/bftgateway/evm.go": {
+      "bytes": 49922,
+      "sha256": "da457381f7c69649e17197340c01a21f778af0b0048a73c2841af08e62cfc296"
+    },
+    "internal/bftgateway/gateway.go": {
+      "bytes": 62535,
+      "sha256": "89e82291c37e61e0a98be7fee51d4fe4147be581bffdb7e386316c44fb9ba3e0"
+    },
+    "internal/bftgateway/quant.go": {
+      "bytes": 12064,
+      "sha256": "b7140c39a7bda2727a384642c6fa4514ec8c8cd9b2d0263dd0b2b443d841c427"
+    },
+    "internal/bundler/server.go": {
+      "bytes": 11267,
+      "sha256": "4e4374c42c6d302d23cf4756e96f8c4c75e78dad19117f57035fa147d735972e"
+    },
+    "internal/consensus/application.go": {
+      "bytes": 59578,
+      "sha256": "38b813c45e43027749e90e2d70c418c4df5088336527ec11290443cad79fb4a9"
+    },
+    "internal/consensus/asset_authorization_action.go": {
+      "bytes": 20071,
+      "sha256": "9e56435a89acf84ac1ee01786729d445d5b64a2ccc51406d2a4e7f98afcb91da"
+    },
+    "internal/consensus/dex_action_test.go": {
+      "bytes": 6153,
+      "sha256": "94e732b37079937d11227491539a3cf1242ba71899932614401bdd1136fa40c2"
+    },
+    "internal/consensus/ethereum_transaction.go": {
+      "bytes": 38590,
+      "sha256": "805d1fb81108fa11712da030d5c5d4927945684e46789c1568c67afd30e9b372"
+    },
+    "internal/consensus/snapshot.go": {
+      "bytes": 12082,
+      "sha256": "ab66012def82732e627ce06e0f64e251680cdf08d818fac6d7563ccd02de644f"
+    },
+    "internal/consensus/snapshot_test.go": {
+      "bytes": 15443,
+      "sha256": "6b20ce2185da1080697a056e632b7938717342fd7301a5393200e7732227e613"
+    },
+    "internal/consensus/state.go": {
+      "bytes": 47664,
+      "sha256": "39ce250dcf476e3d6fe353390cfb6f663e511b9b1c7c1b3dcb0e5fc880f96ad3"
+    },
+    "internal/consensus/state_anchor_cost_test.go": {
+      "bytes": 2962,
+      "sha256": "3792aa5da89faa98f997752fd6250108e94ccece82e3ae89ed9d0eb326c028ce"
+    },
+    "internal/consensus/state_hash_json.go": {
+      "bytes": 6324,
+      "sha256": "e7ce66dcc0f39806551457db8230c7465b496ecebf493906ba8124549ad185f2"
+    },
+    "internal/consensus/state_hash_json_test.go": {
+      "bytes": 4086,
+      "sha256": "538765ec155c523a12c75995671128f196fbc7d8e79c277ddd7e6bf249fc48d4"
+    },
+    "internal/consensus/state_hash_streaming_test.go": {
+      "bytes": 6897,
+      "sha256": "9efb3a7a6f1700e0bb898207e74177ebc3eeec126dbfeb9461ae5ffecfad464b"
+    },
+    "internal/consensus/state_seal_guard.go": {
+      "bytes": 6652,
+      "sha256": "3978ef1246d4048689d98d66b1421809d88465d9cb799e58395f36f928e3df37"
+    },
+    "internal/consensus/state_seal_guard_test.go": {
+      "bytes": 14735,
+      "sha256": "5834e00ae567d5f92333b60a7d05c9f13134b934f2d49bef6fb52f1fa10ee476"
+    },
+    "internal/consensus/state_seal_large_history_test.go": {
+      "bytes": 6619,
+      "sha256": "42dc99d97b41e19115e8d807e641c2650026a62013367e58f1ab0ce5da8e898e"
+    },
+    "release/chain-core/product-release.json": {
+      "bytes": 5167,
+      "sha256": "9cc7f13945b325db8e0ae403166de4fdadbf32ce65ee97b38fbc971932db7fcd"
+    },
+    "release/integration/chain-core-contract.json": {
+      "bytes": 12496,
+      "sha256": "df00c4cf5d32e82fa120048c4ee83d6b6ea077e6d311f53c0dbe396e50edf676"
+    },
+    "scripts/verify/bft-evm-fee-history-check.sh": {
+      "bytes": 1189,
+      "sha256": "af97aab1563748614630b682eb59e37bfff91100efcb38476de8c20df57d33ca"
+    },
+    "scripts/verify/consensus-eip1559-commit-check.sh": {
+      "bytes": 24352,
+      "sha256": "7fb907de7cb92cbf155a8825a956986b70b66d78c98a8782adb540aa7a4252d7"
+    },
+    "scripts/verify/consensus-fee-history-check.sh": {
+      "bytes": 2127,
+      "sha256": "b5a3e4be0246077d4d84afc7fac71247ab6a0aecd0cdfa5843b27e01022af75a"
+    },
+    "scripts/verify/consensus-quorum-check.sh": {
+      "bytes": 26755,
+      "sha256": "1c3fb95cb52df6d653eaee95223b3a6fde51b9f04d12609747e81fef92ed8e28"
+    },
+    "scripts/verify/integration-contract-check.mjs": {
+      "bytes": 26588,
+      "sha256": "299486844e0d17929cd7cc9c043c28fb192172d6f8cab91f260f49e48e627ac3"
+    }
+  }
+}

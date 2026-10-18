@@ -457,6 +457,9 @@ integration-contract-perf-v13-seal-guarded-check:
 integration-contract-perf-v13-seal-compact-default-check:
 	node ./scripts/verify/perf-v13-seal-compact-default-integration-check.mjs
 
+integration-contract-perf-v13-anchor-order-check:
+	node ./scripts/verify/perf-v13-anchor-order-integration-check.mjs
+
 integration-contract-check:
 	node ./scripts/verify/integration-contract-check.mjs
 

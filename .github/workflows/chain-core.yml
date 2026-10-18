@@ -23,6 +23,7 @@ on:
       - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
       - "scripts/verify/perf-v13-seal-guarded-integration-check*.mjs"
       - "scripts/verify/perf-v13-seal-compact-default-integration-check*.mjs"
+      - "scripts/verify/perf-v13-anchor-order-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   pull_request:
     branches:
@@ -45,9 +46,14 @@ on:
       - "scripts/verify/perf-v13-borrowed-recovery-integration-check*.mjs"
       - "scripts/verify/perf-v13-seal-guarded-integration-check*.mjs"
       - "scripts/verify/perf-v13-seal-compact-default-integration-check*.mjs"
+      - "scripts/verify/perf-v13-anchor-order-integration-check*.mjs"
       - "scripts/verify/streambft-candidate-check.sh"
   workflow_dispatch:
     inputs:
+      measure_anchor_validation:
+        description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
+        type: boolean
+        default: false
       measure_state_hash_encoding:
         description: "Compare original and chunked canonical encoders on the retained real 1024-transfer state"
         type: boolean
@@ -125,8 +131,9 @@ jobs:
         run: |
           set -o pipefail
           go test -p 1 ./internal/consensus -run '^TestSeal' -count=1 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/seal-phases-and-safety.log"
-      - name: Measure full validation with retained real state and anchor ordering
+      - name: Verify anchor ordering and explicitly selected full validation cost
         env:
+          YNX_MEASURE_ANCHOR_VALIDATION: ${{ inputs.measure_anchor_validation && '1' || '0' }}
           GOMAXPROCS: "1"
           GOGC: "50"
           GOMEMLIMIT: "160MiB"
@@ -136,7 +143,11 @@ jobs:
           GOWORK: "off"
         run: |
           set -o pipefail
-          go test -p 1 ./internal/consensus -run '^TestStateAnchorRecordShortCircuitPreservesValidation$' -bench '^BenchmarkStateAnchorComparison$' -benchtime=200ms -count=3 -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/anchor-validation-cost.log"
+          anchor_args=(-count=1)
+          if [[ "$YNX_MEASURE_ANCHOR_VALIDATION" == "1" ]]; then
+            anchor_args=(-bench '^BenchmarkStateAnchorComparison$' -benchtime=200ms -count=3)
+          fi
+          go test -p 1 ./internal/consensus -run '^TestStateAnchorRecordShortCircuitPreservesValidation$' "${anchor_args[@]}" -timeout=45s -v 2>&1 | tee "$RUNNER_TEMP/ynx-commit-storage-pair/anchor-validation-cost.log"
       - name: Retain actual matched Commit evidence even on failure
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -170,6 +181,8 @@ jobs:
           release/integration/candidates/perf-state-v13-seal-guarded/check.test.mjs
           scripts/verify/perf-v13-seal-compact-default-integration-check.test.mjs
           release/integration/candidates/perf-state-v13-seal-compact-default/check.test.mjs
+          scripts/verify/perf-v13-anchor-order-integration-check.test.mjs
+          release/integration/candidates/perf-state-v13-anchor-order/check.test.mjs
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
@@ -247,8 +260,8 @@ jobs:
             ${{ runner.temp }}/ynx-real-fee-history/result.json
           if-no-files-found: error
           retention-days: 90
-      - name: Verify fixed unpublished compact-default V13 integration contract
-        run: make integration-contract-perf-v13-seal-compact-default-check
+      - name: Verify fixed unpublished anchor-order V13 integration contract
+        run: make integration-contract-perf-v13-anchor-order-check
       - run: make chain-core-release-check
       - run: make no-placeholder-check
       - run: make secret-scan

@@ -1,0 +1,87 @@
+{
+  "sourceCommit": "3008845b6b4135b8f968fe4365722588be00f1b0",
+  "internalTree": "cfbd76d52a6e22ebfae809699a37b6c039cb20f5",
+  "runId": 39129340679,
+  "runConclusion": "failure",
+  "failedSteps": [
+    "Verify fixed unpublished compact-default V13 integration contract"
+  ],
+  "fullGoAndNewCounterexamples": "success",
+  "matchedMeasurement": "success",
+  "scope": "same actual retained1024state and migration, full semantic checks and complete current-state hash in both modes, one process three200ms samples per mode",
+  "samples": {
+    "legacy_anchor_first": [
+      {
+        "iterations": 76,
+        "nsPerOp": 3545268.0,
+        "bytesPerOp": 574914.0,
+        "allocsPerOp": 6694.0
+      },
+      {
+        "iterations": 78,
+        "nsPerOp": 3586086.0,
+        "bytesPerOp": 574916.0,
+        "allocsPerOp": 6694.0
+      },
+      {
+        "iterations": 80,
+        "nsPerOp": 3585227.0,
+        "bytesPerOp": 574914.0,
+        "allocsPerOp": 6694.0
+      }
+    ],
+    "records_first": [
+      {
+        "iterations": 87,
+        "nsPerOp": 3001239.0,
+        "bytesPerOp": 374522.0,
+        "allocsPerOp": 4897.0
+      },
+      {
+        "iterations": 91,
+        "nsPerOp": 3021820.0,
+        "bytesPerOp": 374523.0,
+        "allocsPerOp": 4897.0
+      },
+      {
+        "iterations": 91,
+        "nsPerOp": 2977594.0,
+        "bytesPerOp": 374520.0,
+        "allocsPerOp": 4897.0
+      }
+    ]
+  },
+  "medians": {
+    "legacy_anchor_first": {
+      "nsPerOp": 3585227.0,
+      "bytesPerOp": 574914.0,
+      "allocsPerOp": 6694.0
+    },
+    "records_first": {
+      "nsPerOp": 3001239.0,
+      "bytesPerOp": 374522.0,
+      "allocsPerOp": 4897.0
+    }
+  },
+  "recordsFirstChangePercent": {
+    "nsPerOp": -16.288731508493047,
+    "bytesPerOp": -34.85599585329284,
+    "allocsPerOp": -26.84493576337018
+  },
+  "fixtureSHA256": "ea203b08c94178ec0132b71f3ec16d731de8e44595f6fd742e331b41d80caf56",
+  "migrationSHA256": "8a73a627990a7719ca54fdc1afc3e05a29758db7070e9d7f3cd1e859579621c1",
+  "gomaxprocs": 1,
+  "gogc": 50,
+  "goMemoryTarget": "160MiB",
+  "rawLogBytes": 480622,
+  "rawLogSHA256": "d269b01a40e90575b19ad0c6092a685d17e683c669885233c4538983a774cd70",
+  "businessTPS": null,
+  "networkInclusion": null,
+  "networkFinality": null,
+  "limits": [
+    "Short sequential samples, no isolated network/pipeline/sustained result.",
+    "Bytes/op are total allocations, not peakRSS.",
+    "Old SDK6 exact source identity remains rejecting; no release/deployment qualification claimed.",
+    "Original frozen Supply case remains source599fa/internaldb59."
+  ]
+}
