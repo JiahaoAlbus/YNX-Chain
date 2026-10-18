@@ -20,6 +20,7 @@ on:
       - 'scripts/ops/validate-private-consensus-copy.py'
       - 'scripts/ops/test_validate_private_consensus_copy.py'
       - 'scripts/ops/validate-pq-remote-signer-process.py'
+      - 'scripts/ops/validate-pq-remote-window-entry.sh'
       - 'scripts/ops/test_validate_pq_remote_signer_process.py'
       - 'scripts/ops/ynx-consensus-pq-remote-signer*'
       - 'scripts/deploy/deploy-consensus-candidate.sh'
@@ -40,6 +41,7 @@ on:
       - 'scripts/verify/public-bft-candidate-binding.mjs'
       - 'scripts/verify/public-bft-production-candidate-check.sh'
       - 'scripts/verify/public-bft-production-driver-check.sh'
+      - 'scripts/verify/pq-remote-window-entry-check.sh'
       - 'scripts/verify/lib/owner-handover.mjs'
       - 'scripts/verify/validate-owner-handover-receipt.mjs'
       - 'scripts/verify/validate-production-custody-review.mjs'
@@ -215,6 +217,16 @@ jobs:
           cache: true
       - name: Record exact candidate identity
         id: identity
+        env:
+          YNX_ENTRY_EVENT: ${{ github.event_name }}
+          YNX_ENTRY_REF: ${{ github.ref }}
+          YNX_ENTRY_GITHUB_SHA: ${{ github.sha }}
+          YNX_ENTRY_CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          YNX_ENTRY_REMOTE_RETAINED: ${{ inputs.consensus_remote_e2e_retained_history }}
+          YNX_ENTRY_PAIRED: ${{ inputs.paired_n1 }}
+          YNX_ENTRY_LOCAL: ${{ inputs.consensus_e2e }}
+          YNX_ENTRY_LOCAL_RETAINED: ${{ inputs.consensus_e2e_retained_history }}
+          YNX_ENTRY_REMOTE_PROCESS: ${{ inputs.remote_signer_process }}
         run: |
           git rev-parse HEAD
           test "$(git rev-parse HEAD)" = '${{ github.sha }}'
@@ -222,15 +234,14 @@ jobs:
           git merge-base --is-ancestor aa97f102fc72ee89ef3c61b6125256b288694b39 HEAD
           go version
           git status --porcelain
-          if [ '${{ github.event_name }}' = 'workflow_dispatch' ]; then
-            test '${{ inputs.candidate_sha }}' = '${{ github.sha }}'
-            if [ '${{ startsWith(github.ref, 'refs/heads/codex/ynx-pq-remote-') }}' = 'true' ]; then
-              # This frozen-ref entry is exclusively the new remote retained
-              # case. Invalid mode combinations stop before any tests/builds.
-              test '${{ inputs.consensus_remote_e2e_retained_history }}' = 'true'
-              for YNX_OTHER_WINDOW in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
-                case "$YNX_OTHER_WINDOW" in false|'') ;; *) exit 1 ;; esac
-              done
+          bash scripts/verify/pq-remote-window-entry-check.sh
+          if [ "$YNX_ENTRY_EVENT" = 'workflow_dispatch' ]; then
+            test "$YNX_ENTRY_CANDIDATE_SHA" = "$YNX_ENTRY_GITHUB_SHA"
+            if [[ "$YNX_ENTRY_REF" == refs/heads/codex/ynx-pq-remote-* ]]; then
+              bash scripts/ops/validate-pq-remote-window-entry.sh \
+                "$YNX_ENTRY_EVENT" "$YNX_ENTRY_REF" "$YNX_ENTRY_GITHUB_SHA" "$YNX_ENTRY_CANDIDATE_SHA" \
+                "$YNX_ENTRY_REMOTE_RETAINED" "$YNX_ENTRY_PAIRED" "$YNX_ENTRY_LOCAL" \
+                "$YNX_ENTRY_LOCAL_RETAINED" "$YNX_ENTRY_REMOTE_PROCESS"
             fi
             YNX_WINDOW_SELECTIONS=0
             for YNX_WINDOW_SELECTED in '${{ inputs.paired_n1 }}' '${{ inputs.consensus_e2e }}' '${{ inputs.consensus_e2e_retained_history }}' '${{ inputs.consensus_remote_e2e_retained_history }}' '${{ inputs.remote_signer_process }}'; do
