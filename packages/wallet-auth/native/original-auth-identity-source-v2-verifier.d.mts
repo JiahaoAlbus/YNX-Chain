@@ -74,3 +74,13 @@ export function selectOriginalAuthSourceAlgorithm(subject:PQAuthorizationSnapsho
  * execution heights and key versions. Native provenance remains separate. */
 export function verifyOriginalAuthSourceProfileV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,atMs:number):Readonly<OriginalAuthSourceV2ProfileData>;
 export function verifyOriginalAuthSourceCurrentV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2CurrentData>;
+
+/** Historical baseline DATA only; expired/terminal heads never grant current
+ * admission. Native retains terminal status and must fetch fresh nonce current.
+ * Pass only the five Previous fields onward, retaining observed H separately
+ * from the historical signed statementExecutionHeight. */
+export interface OriginalAuthSourceV2TransitionData extends Omit<OriginalAuthSourceV2CurrentData,'status'> {
+ readonly status:'active'|'revoked'|'retired';readonly historical:true;
+ readonly statementExecutionHeight:string;
+}
+export function verifyOriginalAuthSourceTransitionV2(rootRaw:string,enrollmentRaw:string,profileRaw:string,currentRaw:string,policy:OriginalAuthSourceV2Policy,registrations:OriginalAuthSourceV2Registrations,expectedNonce:string,previous:OriginalAuthSourceV2Previous,atMs:number):Readonly<OriginalAuthSourceV2TransitionData>;
