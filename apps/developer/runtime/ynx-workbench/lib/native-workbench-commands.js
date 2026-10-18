@@ -41,7 +41,11 @@ class NativeWorkbenchCommands {
       bridge.postMessage(result);
     };
     this.target.__ynxLocalWorkbenchCommand = this.dispatch;
-    bridge.postMessage({ action: 'locale', locale: this.locale === 'zh-cn' ? 'zh-cn' : 'en' });
+    let locale='en';
+    if(typeof this.locale==='string'&&this.locale.length<=63&&/^[a-z]{2,8}(?:-[a-z0-9]{1,8})*$/i.test(this.locale)){
+      try{if(Intl.getCanonicalLocales(this.locale).length===1)locale=this.locale;}catch{}
+    }
+    bridge.postMessage({ action: 'locale', locale });
   }
   onStop() { if (this.target.__ynxLocalWorkbenchCommand === this.dispatch) delete this.target.__ynxLocalWorkbenchCommand; }
 }

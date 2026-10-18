@@ -147,10 +147,7 @@ static BOOL YNXLocalCommandResult(id value,NSDictionary *pending) {
     return YES;
 }
 static BOOL YNXLocalOpenFolderPayload(id value) {return [value isKindOfClass:NSDictionary.class]&&[value count]==1&&[@[@"open-folder",@"new-project"] containsObject:value[@"action"]];}
-static BOOL YNXLocalLocalePayload(id value) {
-    return [value isKindOfClass:NSDictionary.class]&&[value count]==2&&[value[@"action"] isEqual:@"locale"]&&[value[@"locale"] isKindOfClass:NSString.class]&&[@[@"zh-cn",@"en"] containsObject:value[@"locale"]];
-}
-static NSString *YNXLocalStoredLocale(id value) {return [value isKindOfClass:NSString.class]&&[@[@"en",@"zh-cn"] containsObject:value]?value:@"en";}
+#import "ynx-native-display-locale.h"
 static NSString *YNXLocalMenuLabel(NSString *label,NSString *locale) {
     if(![locale isEqual:@"zh-cn"])return label;
     static NSDictionary *labels;static dispatch_once_t once;dispatch_once(&once,^{labels=@{
