@@ -42,6 +42,7 @@ type options struct {
 	concurrency                    int
 	rounds                         int
 	senderMode                     string
+	pacingMode                     string
 	inclusionMode                  string
 	observers                      int
 	offeredRate                    float64
@@ -179,6 +180,7 @@ type report struct {
 	DurableReadback      durableReaderStats       `json:"durableReadback"`
 	GroupedObservation   groupedObservationStats  `json:"groupedObservation"`
 	SenderMode           string                   `json:"senderMode"`
+	PacingMode           string                   `json:"pacingMode"`
 	InclusionMode        string                   `json:"inclusionMode"`
 	ReadySenders         readySenderStats         `json:"readySenders"`
 	RetentionMode        string                   `json:"retentionMode,omitempty"`
@@ -210,6 +212,7 @@ func main() {
 	flag.DurationVar(&o.poll, "poll", 100*time.Millisecond, "transaction observation interval (50ms..1s)")
 	flag.IntVar(&o.rounds, "rounds", 1, "retained fixture nonce cycles (default 1..32 and <=2048 transactions; explicit streaming scope has separate limits)")
 	flag.StringVar(&o.senderMode, "sender-mode", "rounds", "sender scheduling: rounds or ready-pool (one in-flight nonce per account)")
+	flag.StringVar(&o.pacingMode, "pacing-mode", "relative", "ready-pool pacing: relative or explicit bounded-cadence (at most four-offer catch-up)")
 	flag.StringVar(&o.inclusionMode, "inclusion-mode", "tx-query", "inclusion discovery: tx-query or block-scan (paced, four observers)")
 	flag.BoolVar(&o.terminalStream, "terminal-stream", false, "retain segmented terminal evidence beside output (ready-pool only; existing run limits unchanged)")
 	flag.BoolVar(&o.segmentedIntents, "segmented-intents", false, "durable signed-input segments; requires ready-pool, terminal-stream and slot reuse; finite caps unchanged")
@@ -230,6 +233,13 @@ func main() {
 }
 
 func validateOptions(o options) error {
+	mode, modeErr := normalizeReadyPacingMode(o.pacingMode)
+	if modeErr != nil {
+		return modeErr
+	}
+	if mode == "bounded-cadence" && o.senderMode != "ready-pool" {
+		return errors.New("bounded cadence requires ready-pool")
+	}
 	limits, err := workloadLimits(o)
 	if err != nil {
 		return err
@@ -815,6 +825,9 @@ func qualifiedBusinessFinal(r transactionResult) bool {
 }
 
 func execute(o options) error {
+	if o.pacingMode == "" {
+		o.pacingMode = "relative"
+	}
 	if o.inclusionMode == "" {
 		o.inclusionMode = "tx-query"
 	}
@@ -1031,6 +1044,10 @@ func execute(o options) error {
 			}
 		}
 		r.SenderMode = o.senderMode
+		r.PacingMode = o.pacingMode
+		if o.pacingMode == "bounded-cadence" {
+			r.Interpretation = append(r.Interpretation, "Explicit bounded-cadence ready-pool offers compensate short wake jitter with at most four-offer catch-up. Long stalls drop missed cadence slots. Decision counters describe scheduled targets; effective TPS still requires the original signed business and finality gates.")
+		}
 		r.InclusionMode = o.inclusionMode
 		if o.senderMode == "ready-pool" {
 			r.LoadMode = "paced_ready_sender_pool_and_grouped_observation"

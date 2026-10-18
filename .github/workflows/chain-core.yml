@@ -68,6 +68,13 @@ on:
           - supply-256x4
           - supply-512x2
         default: supply-256x4
+      linux_supply_pacing:
+        description: "Explicit bounded short-jitter compensation for512x2 only; relative remains default"
+        type: choice
+        options:
+          - relative
+          - bounded-cadence
+        default: relative
       measure_anchor_validation:
         description: "Compare full Validate anchor ordering on retained actual1024state; no network workload"
         type: boolean
@@ -206,7 +213,7 @@ jobs:
       - name: Verify ready-sender Commit phases and bounded event timeline
         run: >-
           go test -p 1 ./cmd/ynx-consensus-perf-client
-          -run '^(TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
+          -run '^(TestReadyPacing.*|TestReadySenderFastAccountAdvancesBeforeSlowPeer|TestReadySenderSegmentedIntentBarrierAndRecovery|TestReadyTimeline.*|TestReadySenderCumulative.*|TestTerminalStreamReadback.*|TestEndpointAndWorkloadBounds|TestStreamingWorkload.*)$'
           -count=1 -timeout=45s -v
       - name: Verify opt-in node phase timings against real durable execution
         run: go test -p 1 ./cmd/ynx-abci -run '^TestPhaseTiming' -count=1 -timeout=45s -v
@@ -298,16 +305,17 @@ jobs:
           GOWORK: "off"
           YNX_SUPPLY_TRANSPORT: ${{ inputs.linux_supply_transport }}
           YNX_SUPPLY_PROFILE: ${{ inputs.linux_supply_profile }}
+          YNX_SUPPLY_PACING: ${{ inputs.linux_supply_pacing }}
         run: |
           set -o pipefail
           mkdir "$RUNNER_TEMP/ynx-linux-supply-build" "$RUNNER_TEMP/ynx-linux-supply-evidence"
-          python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" > "$RUNNER_TEMP/ynx-linux-supply-evidence/recipe.json"
           python3 -B scripts/loadtest/supply-linux-window.py --check-runner --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-preflight" > "$RUNNER_TEMP/ynx-linux-supply-evidence/preflight.json"
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-abci" ./cmd/ynx-abci
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/cometbft" github.com/cometbft/cometbft/cmd/cometbft
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-fixture" ./cmd/ynx-consensus-perf-fixture
           go build -p 1 -trimpath -o "$RUNNER_TEMP/ynx-linux-supply-build/ynx-consensus-perf-client" ./cmd/ynx-consensus-perf-client
-          python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
+          python3 -B scripts/loadtest/supply-linux-window.py --execute --transport "$YNX_SUPPLY_TRANSPORT" --profile "$YNX_SUPPLY_PROFILE" --pacing "$YNX_SUPPLY_PACING" --source "$GITHUB_WORKSPACE" --build "$RUNNER_TEMP/ynx-linux-supply-build" --case "$RUNNER_TEMP/ynx-linux-supply-case" --receipt "$RUNNER_TEMP/ynx-linux-supply-evidence/actual.json"
       - name: Preserve isolated Linux Supply raw evidence including failure
         if: always() && github.event_name == 'workflow_dispatch' && inputs.run_linux_supply
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

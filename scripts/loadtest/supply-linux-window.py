@@ -34,15 +34,18 @@ ENV = dict(GOMAXPROCS="1", GOGC="100", GOMEMLIMIT="off")
 BINARIES = ("ynx-abci", "cometbft", "ynx-consensus-perf-fixture", "ynx-consensus-perf-client")
 
 
-def recipe(transport="socket", profile_name="supply-256x4"):
+def recipe(transport="socket", profile_name="supply-256x4", pacing="relative"):
     if transport not in ("socket", "grpc"):
         raise RuntimeError("only existing socket/grpc ABCI transports allowed")
     if profile_name not in PROFILES:
         raise RuntimeError("only fixed 256x4 or 512x2 Supply profiles allowed")
     if profile_name == "supply-512x2" and transport != "grpc":
         raise RuntimeError("the new 512x2 profile is explicitly gRPC only")
-    profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else ""))
-    return dict(schema=1, profile=profile, abciTransport=transport, environment=ENV, execute=False,
+    if pacing not in ("relative", "bounded-cadence") or pacing == "bounded-cadence" and profile_name != "supply-512x2":
+        raise RuntimeError("bounded cadence is explicit fixed512x2/gRPC only")
+    profile = dict(PROFILES[profile_name], name=profile_name + ("-grpc" if transport == "grpc" else "") + ("-bounded-cadence" if pacing == "bounded-cadence" else ""))
+    return dict(schema=1, profile=profile, abciTransport=transport, pacingMode=pacing,
+                pacingCatchupOfferLimit=4 if pacing == "bounded-cadence" else 1, environment=ENV, execute=False,
                 requiresSeparateRootGrant=True, nodesStarted=False,
                 platform="Linux native /proc; not macOS pressure1",
                 comparison="Independent private CI case; no Darwin before/after multiplier",
@@ -108,11 +111,11 @@ def validate_manifest(m, root):
     return m
 
 
-def validate_report(report, profile_name="supply-256x4"):
-    profile = recipe("grpc", profile_name)["profile"]
+def validate_report(report, profile_name="supply-256x4", pacing="relative"):
+    profile = recipe("grpc", profile_name, pacing)["profile"]
     if (report.get("roundsCompleted") != profile["rounds"] or report.get("roundsRequested") != profile["rounds"] or report.get("senderMode") != "ready-pool"
             or report.get("inclusionMode") != "block-scan" or report.get("configuredOfferedRate") != 512
-            or report.get("setupErrors")):
+            or report.get("pacingMode") != pacing or report.get("setupErrors")):
         raise RuntimeError("fixed Supply workload incomplete")
     s = report["summary"]
     for key in ("input", "offered", "submitted", "checkTxAccepted", "includedCodeZero",
@@ -145,6 +148,11 @@ def validate_report(report, profile_name="supply-256x4"):
             or any(type(supply.get(k)) is not int or supply[k] < 0 for k in ("pacingPositiveRemainingNs", "pacingWakeLatenessNs", "pacingMaxWakeLatenessNs"))
             or supply["pacingMaxWakeLatenessNs"] > supply["pacingWakeLatenessNs"]):
         raise RuntimeError("pacing scheduled/wake timing coverage missing")
+    decisions = [supply.get(k) for k in ("pacingCatchupTargets", "pacingCadenceResets")]
+    if (any(type(v) is not int or v < 0 for v in decisions) or sum(decisions) > 1024
+            or type(supply.get("pacingPeakCatchupTargets")) is not int or not 0 <= supply["pacingPeakCatchupTargets"] <= 3
+            or pacing == "relative" and (any(decisions) or supply["pacingPeakCatchupTargets"] != 0)):
+        raise RuntimeError("pacing decision counters differ from selected mode")
     transactions = report.get("transactions", [])
     if len(transactions) != 1024 or {t.get("index") for t in transactions} != set(range(1024)):
         raise RuntimeError("complete per-transaction evidence required")
@@ -214,8 +222,8 @@ class NoRedirect(HTTPRedirectHandler):
         raise RuntimeError("fixture RPC redirect refused")
 
 
-def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4"):
-    selected = recipe(transport, profile_name)
+def run(source, build, case, receipt, transport="socket", profile_name="supply-256x4", pacing="relative"):
+    selected = recipe(transport, profile_name, pacing)
     profile = selected["profile"]
     if sys.platform != "linux" or platform.machine() != "x86_64":
         raise RuntimeError("native Linux amd64 runner required; no Darwin pressure substitution")
@@ -344,8 +352,8 @@ def run(source, build, case, receipt, transport="socket", profile_name="supply-2
         mark("all_nodes_height2")
         output = network / "transactions-result.json"
         mark("client_start")
-        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan"]))
-        result["measurement"] = validate_report(json.loads(native.bounded(output, 16 << 20)), profile_name)
+        wait(spawn("client", [str(build / BINARIES[3]), "-manifest", str(manifest_path), "-transactions", str(network / "transactions.json"), "-output", str(output), "-timeout", "10s", "-concurrency", "4", "-observers", "4", "-offered-rate", "512", "-rounds", str(profile["rounds"]), "-sender-mode", "ready-pool", "-inclusion-mode", "block-scan", "-pacing-mode", pacing]))
+        result["measurement"] = validate_report(json.loads(native.bounded(output, 16 << 20)), profile_name, pacing)
         mark("client_complete")
         result["resultSHA256"] = native.digest(output)
     except Exception as error:
@@ -413,6 +421,7 @@ if __name__ == "__main__":
     parser.add_argument("--execute", action="store_true")
     parser.add_argument("--transport", choices=("socket", "grpc"), default="socket")
     parser.add_argument("--profile", choices=tuple(PROFILES), default="supply-256x4")
+    parser.add_argument("--pacing", choices=("relative", "bounded-cadence"), default="relative")
     parser.add_argument("--check-runner", action="store_true")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--build", type=Path)
@@ -424,8 +433,8 @@ if __name__ == "__main__":
             parser.error("check-runner requires build/new case and excludes execute")
         print(json.dumps(preflight(args.build, args.case), indent=2))
     elif not args.execute:
-        print(json.dumps(recipe(args.transport, args.profile), indent=2))
+        print(json.dumps(recipe(args.transport, args.profile, args.pacing), indent=2))
     else:
         if not all((args.source, args.build, args.case, args.receipt)):
             parser.error("execute requires exact source/build/new case/new receipt")
-        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile))
+        sys.exit(run(args.source, args.build, args.case, args.receipt, args.transport, args.profile, args.pacing))

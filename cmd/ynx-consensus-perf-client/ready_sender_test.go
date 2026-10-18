@@ -33,9 +33,14 @@ func readyResults(count int) []transactionResult {
 func TestReadySenderFastAccountAdvancesBeforeSlowPeer(t *testing.T) {
 	t.Run("full_history", func(t *testing.T) { testReadySenderFastAccount(t, false) })
 	t.Run("reused_slots", func(t *testing.T) { testReadySenderFastAccount(t, true) })
+	t.Run("bounded_cadence", func(t *testing.T) { testReadySenderPacing(t, false, "bounded-cadence") })
 }
 
 func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...bool) {
+	testReadySenderPacing(t, reuseSlots, "relative", segmentOption...)
+}
+
+func testReadySenderPacing(t *testing.T, reuseSlots bool, pacingMode string, segmentOption ...bool) {
 	segmented := len(segmentOption) > 0 && segmentOption[0]
 	path, manifest, m, migration, initial := senderFixture(t)
 	p, err := loadSenderPool(path, manifest, m, migration, initial, 2)
@@ -70,7 +75,7 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	var finalizeNs, commitNs int64
 	var finalizeCalls, commitCalls int
 	controllerStarted := time.Now()
-	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
+	stats, err := runReadySenderPool(ctx, options{rounds: 2, offeredRate: 2048, concurrency: 4, observers: 4, pacingMode: pacingMode, terminalSink: stream.append, reuseResultSlots: reuseSlots, segmentedIntents: segmented}, p, txs, results,
 		func(index int) (time.Time, bool) {
 			var data []byte
 			var readErr error
@@ -179,6 +184,9 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	if stats.Supply.PacingFutureTargetAttempts+stats.Supply.PacingAlreadyDueAttempts != 6 || stats.Supply.PacingPositiveRemainingNs < 0 || stats.Supply.PacingWakeLatenessNs < stats.Supply.PacingMaxWakeLatenessNs || stats.Supply.PacingMaxWakeLatenessNs < 0 {
 		t.Fatalf("actual pacing timing partition invalid: %+v", stats.Supply)
 	}
+	if stats.Supply.PacingPeakCatchupTargets >= readyPacingBurstLimit || pacingMode == "relative" && (stats.Supply.PacingCatchupTargets != 0 || stats.Supply.PacingCadenceResets != 0 || stats.Supply.PacingPeakCatchupTargets != 0) {
+		t.Fatalf("pacing escaped selected catch-up policy: %+v", stats.Supply)
+	}
 	if segmented {
 		recovered, readErr := readReadySenderIntents(context.Background(), p.root, manifest, m, initial, 2, stats.IntentSegments)
 		if readErr != nil || recovered.Records != 6 || recovered.IncompleteTail {
@@ -255,6 +263,9 @@ func testReadySenderFastAccount(t *testing.T, reuseSlots bool, segmentOption ...
 	}
 	if segmented {
 		mode = "segmented-reused-slots"
+	}
+	if pacingMode == "bounded-cadence" {
+		mode += "-bounded-cadence"
 	}
 	phase, err := json.Marshal(struct {
 		Schema               string           `json:"schema"`

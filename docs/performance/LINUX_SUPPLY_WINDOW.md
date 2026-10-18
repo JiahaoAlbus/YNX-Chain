@@ -234,3 +234,56 @@ unchanged persistent restart/nonce checks. No signature, execution, finality gat
 durable-before-dispatch barrier, pacing interval, catch-up-burst restriction or
 worker/queue budget is changed. Until the new CI executes this revision, new Go
 partition assertions are unverified. This section authorizes no new network case.
+
+## Actual512x2 and bounded cadence candidate
+
+Root scheduled b5ee43175 once: run39136701047 completed SUCCESS with all1024
+transactions accepted, effectively included and qualified final; zero UNKNOWN,
+timeout, missing submission, CheckTx rejection or failed execution. Runtime8.552s,
+cleanup complete, full workload6.117692551s, effective/final167.3833707/s versus
+configured512/s; actual offered214.5008127/s. Inclusion P50/P95/P99 is
+1045.470330/1452.402900/1652.136777ms; offer-to-final is
+1260.528546/1606.583772/1745.046004ms. All7022 observation errors are pending
+`block_scan_wait`, retained in the raw report. This finite case is not1000TPS.
+
+The actual wait partition is decisive: supply wait0, failure wait0, final drain
+1346.192240ms. Pacing wait4494.919199ms, positive target remaining1955.254813ms,
+successful future-wake lateness2539.657031ms, maximum61.774800ms. That lateness
+includes Go scheduling/wrapper overhead, not only OS timer latency. Signature
+time64.186ms, encoding143.134ms and journal append44.248ms are smaller here.
+Four nodes each completed8durable Commits, mean4.715–6.677ms. Peak RSS566603776B,
+62threads,20670276private bytes. CPU AMD EPYC7763/4CPU and Go1.25.14 match the
+prior gRPC model/compiler, but actual VM, account shape and client instrumentation
+differ: no pure-code causal multiplier. Full evidence:
+`evidence/linux-supply-512x2-ci-39136701047-actual.json`.
+
+An opt-in `bounded-cadence` candidate now targets that measured wake drift.
+`relative` remains the original default `now+interval` policy. The new mode
+advances from the previous target through short jitter, permitting no more than
+three immediately due successor targets (four offers including the late waking
+offer). Lag >=4intervals or exhaustion of that consecutive-target budget resets
+the next target to `now+interval`; missed slots from long pauses are dropped.
+No transaction is retried, skipped into an effective count, or re-signed because
+of the timer. Existing signed-journal barriers, one in-flight nonce, worker/queue
+limits, submission hash checks, BFT/Merkle/fee/nonce and durable-publication gates
+remain in the same production paths.
+
+The CLI records `pacingMode`, catch-up target decisions, cadence resets and peak
+consecutive catch-up targets. The wrapper requires the selected mode to match
+the actual report and peak <=3successor targets; relative-mode counters must be0.
+Only explicit512x2/gRPC accepts the new mode. The original workflow adds the choice
+`linux_supply_pacing`, default `relative`; `run_linux_supply` stays defaultfalse.
+Prepare-only example, **not a START authorization**:
+
+```sh
+python3 -B scripts/loadtest/supply-linux-window.py --transport grpc --profile supply-512x2 --pacing bounded-cadence
+```
+
+Virtual-clock tests cover the repeated2.5ms wake-jitter schedule counterexample,
+exact unchanged relative scheduling, long-stall reset, independent four-offer
+budget, unknown/overflow plan rejection and opt-in scope. These are scheduling
+correctness tests, not simulated capacity evidence. The original six-real-signed
+execution/persistent-restart/slow-peer regression also runs the candidate mode.
+All new Go tests are selected by the original CI ready-sender gate; their result
+and network effect remain unverified until actual execution. This candidate does
+not authorize an additional network run or extend the current resource caps.

@@ -189,6 +189,9 @@ type readySupplyStats struct {
 	PacingPositiveRemainingNs     int64 `json:"pacingPositiveRemainingNs"`
 	PacingWakeLatenessNs          int64 `json:"pacingWakeLatenessNs"`
 	PacingMaxWakeLatenessNs       int64 `json:"pacingMaxWakeLatenessNs"`
+	PacingCatchupTargets          int   `json:"pacingCatchupTargets"`
+	PacingCadenceResets           int   `json:"pacingCadenceResets"`
+	PacingPeakCatchupTargets      int   `json:"pacingPeakCatchupTargets"`
 	DispatchAttempts              int   `json:"dispatchAttempts"`
 	DispatchNs                    int64 `json:"dispatchNs"`
 	SignAttempts                  int   `json:"signAttempts"`
@@ -222,12 +225,19 @@ type readySenderStats struct {
 // There is one reserved/in-flight nonce per sender, with no whole-round barrier.
 // Unknown/rejected/failed/timed-out senders are quarantined while peers continue.
 func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, txs []cmttypes.Tx, results []transactionResult, submit func(int) (time.Time, bool), observe func(int, <-chan acceptedObservation, func(int))) (stats readySenderStats, runErr error) {
+	if _, err := normalizeReadyPacingMode(o.pacingMode); err != nil {
+		return stats, err
+	}
 	limits, limitErr := workloadLimits(o)
 	if limitErr != nil {
 		return stats, limitErr
 	}
-	if p == nil || p.stopped || o.rounds < 2 || o.rounds > limits.rounds || o.offeredRate <= 0 || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 || len(p.pending) == 0 || len(p.pending) > maxTransactions || len(txs) != len(results) || o.rounds > limits.records/len(p.pending) {
+	if p == nil || p.stopped || o.rounds < 2 || o.rounds > limits.rounds || !(o.offeredRate > 0) || o.offeredRate > maxTransactions || o.observers < 1 || o.observers > 4 || o.concurrency < 1 || o.concurrency > 4 || len(p.pending) == 0 || len(p.pending) > maxTransactions || len(txs) != len(results) || o.rounds > limits.records/len(p.pending) {
 		return stats, errors.New("invalid bounded ready sender plan")
+	}
+	pacer, pacingErr := newReadyOfferPacer(o.pacingMode, time.Time{}, time.Duration(float64(time.Second)/o.offeredRate))
+	if pacingErr != nil {
+		return stats, pacingErr
 	}
 	if o.streamingWorkload && (o.evidenceBudget == nil || o.evidenceBudget.LimitBytes != o.evidenceByteBudget || o.evidenceBudget.Poisoned) {
 		return stats, errors.New("streaming workload lacks shared evidence budget")
@@ -400,8 +410,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			ready = append(ready, sender)
 		}
 	}
-	nextOffer := time.Now()
-	interval := time.Duration(float64(time.Second) / o.offeredRate)
+	pacer.target = time.Now()
 	for len(ready) > 0 || active > 0 {
 		// Recycle completed senders promptly, even while other initial accounts
 		// are still being offered. No first-round/global readiness barrier.
@@ -519,6 +528,7 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			}
 			p.pending[e.Sender], p.templates[e.Sender] = e.Transaction, template
 			paceStarted := time.Now()
+			nextOffer := pacer.target
 			futureTarget := nextOffer.After(paceStarted)
 			if remaining := nextOffer.Sub(paceStarted).Nanoseconds(); remaining > 0 {
 				stats.Supply.PacingFutureTargetAttempts++
@@ -557,8 +567,16 @@ func runReadySenderPool(ctx context.Context, o options, p *ephemeralSenderPool, 
 			jobs <- index
 			stats.Supply.DispatchAttempts++
 			stats.Supply.DispatchNs += time.Since(dispatchStarted).Nanoseconds()
-			// A stalled account cannot cause a catch-up burst when it returns.
-			nextOffer = now.Add(interval)
+			catchup, reset := pacer.advance(now)
+			if catchup {
+				stats.Supply.PacingCatchupTargets++
+			}
+			if reset {
+				stats.Supply.PacingCadenceResets++
+			}
+			if pacer.catchups > stats.Supply.PacingPeakCatchupTargets {
+				stats.Supply.PacingPeakCatchupTargets = pacer.catchups
+			}
 		}
 	}
 	stopSubmitting()

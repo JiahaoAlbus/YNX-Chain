@@ -22,7 +22,7 @@ def manifest(root):
                          rpcUrl=f"http://127.0.0.1:{31800+i}", abciListen=f"tcp://127.0.0.1:{31900+i}") for i in range(4)])
 
 
-def report(profile="supply-256x4"):
+def report(profile="supply-256x4", pacing="relative"):
     counts = dict.fromkeys(("input", "offered", "submitted", "checkTxAccepted", "includedCodeZero",
                            "effectiveBusinessIncluded", "quorumConfirmed", "finalSubmitted"), 1024)
     counts.update(dict.fromkeys(("checkTxRejected", "checkTxUnverifiedResponses", "executionFailed", "submissionUnknown",
@@ -37,7 +37,8 @@ def report(profile="supply-256x4"):
                   completionDrainWaitAttempts=0, completionDrainWaitNs=0,
                   completionFailureWaitAttempts=0, completionFailureWaitNs=0,
                   pacingFutureTargetAttempts=1, pacingAlreadyDueAttempts=0,
-                  pacingPositiveRemainingNs=50, pacingWakeLatenessNs=50, pacingMaxWakeLatenessNs=50)
+                  pacingPositiveRemainingNs=50, pacingWakeLatenessNs=50, pacingMaxWakeLatenessNs=50,
+                  pacingCatchupTargets=0, pacingCadenceResets=0, pacingPeakCatchupTargets=0)
     rounds = 4
     if profile == "supply-512x2":
         rounds = 2
@@ -46,7 +47,7 @@ def report(profile="supply-256x4"):
               quorumVerified=True, transactionProofVerified=True, durableStateVerified=True,
               durableInfoVerified=True, height=2, durableStateHeight=2, durableInfoHeight=2,
               durableSnapshotSha256="a"*64, confirmedObservedAt="2026-10-18T00:00:00Z")
-    return dict(roundsRequested=rounds, roundsCompleted=rounds, senderMode="ready-pool", inclusionMode="block-scan", configuredOfferedRate=512,
+    return dict(roundsRequested=rounds, roundsCompleted=rounds, pacingMode=pacing, senderMode="ready-pool", inclusionMode="block-scan", configuredOfferedRate=512,
                 setupErrors=[], summary=counts, readySenders=dict(supply=phases),
                 transactions=[dict(tx, index=i) for i in range(1024)])
 
@@ -216,6 +217,28 @@ class SupplySourceTests(unittest.TestCase):
         del row["readySenders"]["supply"]["completionDrainWaitNs"]
         with self.assertRaises(RuntimeError):
             supply.validate_report(row, "supply-512x2")
+
+    def test_bounded_cadence_is_explicit_and_has_no_resource_override(self):
+        old = supply.recipe("grpc", "supply-512x2")
+        candidate = supply.recipe("grpc", "supply-512x2", "bounded-cadence")
+        self.assertEqual(old["pacingMode"], "relative")
+        self.assertEqual(candidate["pacingCatchupOfferLimit"], 4)
+        self.assertEqual(old["environment"], candidate["environment"])
+        for key in old["profile"]:
+            if key != "name": self.assertEqual(old["profile"][key], candidate["profile"][key])
+        for profile, pacing in (("supply-256x4", "bounded-cadence"), ("supply-512x2", "unbounded")):
+            with self.assertRaises(RuntimeError):
+                supply.recipe("grpc", profile, pacing)
+
+    def test_selected_pacing_must_match_actual_report_and_burst_cap(self):
+        row = report("supply-512x2", "bounded-cadence")
+        row["readySenders"]["supply"].update(pacingCatchupTargets=1, pacingPeakCatchupTargets=1)
+        supply.validate_report(row, "supply-512x2", "bounded-cadence")
+        with self.assertRaises(RuntimeError):
+            supply.validate_report(row, "supply-512x2", "relative")
+        row["readySenders"]["supply"]["pacingPeakCatchupTargets"] = 4
+        with self.assertRaises(RuntimeError):
+            supply.validate_report(row, "supply-512x2", "bounded-cadence")
 
 
 if __name__ == "__main__":
