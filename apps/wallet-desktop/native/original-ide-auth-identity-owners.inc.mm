@@ -45,15 +45,18 @@ static bool IDEIdentityEffectComplete(id<YNXOriginalIDEIdentityPrivateEffect>e){
 }
 static bool IDEIdentityJoin(IDEIdentityRequestOwner*h){
  if(h->entered||h->peerChildren)return false;NSError*error=nil;
- if(h->effect&&![h->effect join:&error])return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_EFFECT_JOIN_PENDING"));
- if(h->source&&![h->source join:&error])return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_JOIN_PENDING"));return true;
+ if(h->effect&&(![h->effect join:&error]||error))return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_EFFECT_JOIN_PENDING"));
+ if(h->source&&(![h->source join:&error]||error))return IDEIdentityFail(h,IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_JOIN_PENDING"));return true;
 }
 static bool IDEIdentityClose(IDEIdentityRequestOwner*h){
  if(h->closeSelected)return h->cleanupComplete;if(h->entered)return false;
  h->retired=true;@try{[h->effect retire];[h->source retire];if(!IDEIdentityJoin(h))return false;
   h->closeSelected=true;bool done=true;NSError*error=nil;
-  if(h->effect&&![h->effect close:&error]){done=false;h->closeFirst=IDEIdentityCode(error,"AUTH_IDENTITY_EFFECT_CLOSE_UNKNOWN");}
-  error=nil;if(h->source&&![h->source close:&error]){done=false;if(h->closeFirst.empty())h->closeFirst=IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN");}
+  if(h->effect&&(![h->effect close:&error]||error)){
+   h->closeFirst=IDEIdentityCode(error,"AUTH_IDENTITY_EFFECT_CLOSE_UNKNOWN");
+   IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);return false;
+  }
+  error=nil;if(h->source&&(![h->source close:&error]||error)){done=false;if(h->closeFirst.empty())h->closeFirst=IDEIdentityCode(error,"AUTH_IDENTITY_SOURCE_CLOSE_UNKNOWN");}
   h->cleanupComplete=done;if(done){h->effect=nil;h->source=nil;}else{IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);}return done;
  }@catch(NSException*){if(h->closeFirst.empty())h->closeFirst="AUTH_IDENTITY_CLOSE_EXCEPTION";h->closeSelected=true;IDEIdentityFail(h,h->closeFirst);ideIdentityDebt.insert(h);return false;}
 }
