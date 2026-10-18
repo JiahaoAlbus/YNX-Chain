@@ -1,0 +1,35 @@
+{
+  "kind": "guarded-phase-reader-source-controls",
+  "tests": {
+    "red": 2,
+    "finalPassed": 16,
+    "finalFailed": 0,
+    "fixtures": "unsigned JSON shapes only; guard fields are synthetic, not actual kernel/Go evidence"
+  },
+  "source": [
+    {
+      "path": "scripts/loadtest/pq-batch-receipt.mjs",
+      "bytes": 14155,
+      "sha256": "830747a644c4a027b1f7e72b34825f7e2b36bd89fca1ae7ac75c13a510b7cfaa"
+    },
+    {
+      "path": "scripts/loadtest/pq-batch-receipt.test.mjs",
+      "bytes": 13870,
+      "sha256": "6e504aeb47a0ad034d6a144c67f2b1a48b42b8a4f8123d6705e9205cf05ed3c2"
+    }
+  ],
+  "measuredOverlaySourceDelivery": {
+    "ref": "refs/heads/codex/chain-performance-20261017",
+    "before": "27f9515035ecd66cf4df050042c72cdd8fddfd97",
+    "fixedCommit": "b654bb57156138310a2e14f12dd9180596f98e05",
+    "ancestorExit": 0,
+    "pushExit": 0,
+    "freshRemoteReadback": "b654bb57156138310a2e14f12dd9180596f98e05",
+    "force": false,
+    "patchBytes": 29305,
+    "patchSHA256": "6516cfa6719375450cff0c94de428c5b2e4a88045346d19a3536e5c94ff1a60d"
+  },
+  "newGoResult": false,
+  "newPairResult": false,
+  "newBusinessTPS": false
+}

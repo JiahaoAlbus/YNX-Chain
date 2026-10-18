@@ -65,3 +65,40 @@ segmented implementation is excluded from this PASS. Its next exact checkout
 and nine-function selector are in
 `evidence/segmented-client-freeze-27f9515-20261018.json`; source publication and
 one subsequent normal correctness run remain coordinated by Root.
+
+## Read the original guarded pair without reconstructing a receipt by hand
+
+`readGuardedPQPairedPhases(originalResultBuffer, guardReceipt)` checks the raw
+result SHA against the completed guard, matching source/case, both original
+member paths and the exact application member hashes. It consumes the existing
+production measurement qualifier and emits one row per phase with exact
+nanosecond strings and attempt/completion/error counters. It also rejects a
+production total longer than its outer API interval. It does not sum nested
+phases or convert component intervals into a sustained throughput claim.
+
+Both the result and guard must come from the approved original run. Matching
+hashes and fields establish self-consistency, not authentication of the artifact
+origin or a new ledger/consensus proof. The output keeps effective inclusion,
+final commits, sustained TPS and consensus finality null. Old Run10 output has
+no production measurements and cannot be silently promoted into this table.
+
+Two new controls actually failed before the reader existed. All sixteen receipt
+controls now pass, including stale digest, failed child/guard, missing cleanup,
+changed source/case and a changed member identity with a recomputed report hash.
+Fixtures remain unsigned format-only. No new Go or pair was run for this reader.
+
+## Source handoff availability
+
+The exact six-file measured-overlay patch is retained under
+`artifacts/chain-performance-20261017/measured-api-handoff-b654bb5/` with its
+before/after/source/observed-target pins. It is 29,305 bytes, SHA256
+`6516cfa6719375450cff0c94de428c5b2e4a88045346d19a3536e5c94ff1a60d`.
+The target's six leaves matched all expected before pins when captured. Only
+its original owner applies the patch; no target file was modified here.
+
+After Root's next source-delivery instruction, a fresh remote read returned
+27f9515, the independent ancestor check returned0, and normal exact-commit push
+of b654bb57156138310a2e14f12dd9180596f98e05 completed0. A subsequent ls-remote
+returned that same full SHA. This enables the original CI to read only the six
+frozen overlay/preparation/guard files, while its nine-function client job still
+checks out 27f9515 separately. It is source supply, not a compile/pair result.

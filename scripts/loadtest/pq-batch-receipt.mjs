@@ -85,3 +85,28 @@ export function qualifyPQBatchMeasurement(m,receipt){
  }
  return {wireHash:m.wireHash,executionHeight:m.executionHeight,status:receipt.status,replayed:receipt.replayed,phaseDurationsNs:durations,phaseCounters:counters,phaseDurationsAreInclusive:true,fileWrites:Object.fromEntries(['snapshotFile','markerFile'].map(name=>[name,{writeCalls:persistence[name].writeCalls,bytesWritten:persistence[name].bytesWritten}])),verifierSignatureChecks:m.verifierSignatureChecks,publishedLocalCheckpoint:published===null?null:{...published},verifiedEffectiveInclusions:null,verifiedFinalCommits:null,interpretation:'Bound server measurement fields only. Nanoseconds remain exact decimal strings; parent and child phases overlap and must not be summed. Published checkpoint height can precede pending transaction execution height. Local checkpoints are separate from block inclusion and BFT finality.'};
 }
+
+// Read the original result bytes with their completed guard receipt. This is a
+// self-consistency check, not authentication of an artifact's origin. Retrieve
+// both from the approved run; no formatted field becomes consensus evidence.
+export function readGuardedPQPairedPhases(raw,guard){
+  if(!Buffer.isBuffer(raw)||raw.length<1||raw.length>1024*1024||!guard||guard.firstCause!==null||guard.child?.code!==0||guard.cleanupComplete!==true||!Array.isArray(guard.emptyOwnedScans)||guard.emptyOwnedScans.length!==2||guard.resultSHA256!==hash(raw).slice(2))throw Error('original result digest or completed guard missing');
+  const r=JSON.parse(raw.toString('utf8'));
+  if(r.schema!==1||r.kind!=='isolated-single-producer-PQ-paired-component'||!['1','16'].includes(String(r.n))||!Number.isInteger(r.n)||r.trial!==1||r.gomaxprocs!==1||!/^([0-9a-f]{40})$/.test(r.sourceCommit??'')||r.sourceCommit!==guard.sourceCommit||guard.explicitCaseN!==r.n||r.businessProjectionEqual!==true||r.bftFinalCommits!==null||r.consensusFinalityLatency!==null||r.productionMeasurementVersion!=='ynx-pq-batch-measurement-v1'||!/^[0-9a-f]{64}$/.test(r.sharedWholeSha256??'')||JSON.stringify(r.order)!=='["members","whole"]'||!Array.isArray(r.results)||r.results.length!==2)throw Error('measured pair identity or evidence layers mismatch');
+  for(let i=0;i<2;i++){
+    const row=r.results[i];
+    if(!row||row.mode!==r.order[i]||['members','localBlockCheckpointMembers','coldRestoredMembers'].some(k=>row[k]!==r.n)||row.cloneLocalPeersPreserved!==true||row.checkpointPointerTransitions!==(i===0?r.n:1)||!Array.isArray(row.memberHashes)||row.memberHashes.length!==r.n||row.memberHashes.some(h=>!canonicalHash(h))||new Set(row.memberHashes).size!==r.n)throw Error('pair member/checkpoint fields missing');
+    for(const key of ['submitNs','submitWallNs','sharedSigningPreparationNs','manualProduceBlockNs','coldRestoreNs'])if(!Number.isSafeInteger(row[key])||row[key]<1||row[key]>120000000000)throw Error('bounded pair timing missing');
+    if(row.submitWallNs<row.submitNs)throw Error('pair API timing exceeds its wall interval');
+  }
+  const whole=r.results[1],m=whole.wholeMeasurement,batchHash='0x'+r.sharedWholeSha256;
+  if(r.results[0].sharedSigningPreparationNs!==whole.sharedSigningPreparationNs||r.results[0].wholeMeasurement!=null||!m||m.wireHash!==batchHash||m.result?.status!=='durable'||m.result.replayed!==false||!Array.isArray(m.result.results)||m.result.results.length!==r.n)throw Error('original measured Whole result missing');
+  const members=m.result.results.map((row,index)=>{
+    const expected=pqBatchMemberHash(batchHash,index);
+    if(row.index!==index||row.outcome!=='admitted'||row.transactionHash!==expected||whole.memberHashes[index]!==expected||(row.error??'')!=='')throw Error('Whole member hash differs from original batch identity');
+    return {index,outcome:row.outcome,transactionHash:row.transactionHash,error:row.error??''};
+  });
+  const q=qualifyPQBatchMeasurement(m,{batchHash,executionHeight:m.executionHeight,status:m.result.status,replayed:m.result.replayed,members,serverReportedAdmitted:r.n,serverReportedRejected:0});
+  if(q.publishedLocalCheckpoint===null||BigInt(q.phaseDurationsNs.total)>BigInt(whole.submitNs))throw Error('measured API interval or published checkpoint missing');
+  return {kind:'guard-bound-local-production-phase-fields',sourceCommit:r.sourceCommit,n:r.n,trial:r.trial,goVersion:r.goVersion??null,platform:r.platform??null,gomaxprocs:r.gomaxprocs,outerWholeApiNs:String(whole.submitNs),memberSubmissionLoopNs:String(r.results[0].submitWallNs),sharedSigningPreparationNs:String(whole.sharedSigningPreparationNs),executionHeight:q.executionHeight,publishedLocalCheckpoint:q.publishedLocalCheckpoint,fileWrites:q.fileWrites,phases:Object.entries(q.phaseDurationsNs).map(([phase,durationNs])=>({phase,...q.phaseCounters[phase],durationNs})),phaseDurationsAreInclusive:true,verifiedEffectiveInclusions:null,verifiedFinalCommits:null,sustainedBusinessTPS:null,consensusFinalityLatency:null,interpretation:'Guard/result field consistency only; original run provenance and Go execution evidence remain required. Whole includes instrumentation; members do not. Parent/child timings overlap. Pending local checkpoint, manual block and cold restore are separate from BFT. No hardware-qualified speedup or sustained TPS inferred.'};
+}

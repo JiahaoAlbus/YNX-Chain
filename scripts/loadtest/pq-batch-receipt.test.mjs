@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {pqBatchMemberHash,classifyPQBatchReceipt,createPQReceiptCounter,qualifyPQBatchMeasurement} from './pq-batch-receipt.mjs';
+import {pqBatchMemberHash,classifyPQBatchReceipt,createPQReceiptCounter,qualifyPQBatchMeasurement,readGuardedPQPairedPhases} from './pq-batch-receipt.mjs';
 
 // Parser fixtures only: no valid PQ signature or business acceptance is implied.
 function fixture(){
@@ -108,4 +108,22 @@ test('successful snapshot sync followed by failed marker never qualifies a publi
 });
 test('malformed and mismatched measurement fields fail before use',()=>{
  for(const mutate of [f=>f.m.wireHash='0x'+'0'.repeat(64),f=>f.m.executionHeight='3',f=>f.m.result.status='memory',f=>f.m.result.results[1].transactionHash='0x'+'0'.repeat(64),f=>f.m.total.durationNs=1,f=>f.m.total.durationNs='-1',f=>f.m.total.durationNs='9223372036854775808',f=>f.m.total.completed=0,f=>f.m.verifierSignatureChecks=9007199254740992,f=>f.m.persistence.published.snapshotIntegrity='other',f=>f.m.memberAdmitted=4,f=>f.m.persistence.markerFile.bytesWritten=9007199254740992]){const f=measurementFixture();mutate(f);assert.throws(()=>qualifyPQBatchMeasurement(f.m,classifyPQBatchReceipt(f.wire,f.response,f.expected)));}
+});
+
+function guardedPairFixture(){
+ const f=measurementFixture(),h=f.response.batchHash;
+ f.m.total.durationNs='1000000';f.m.memberAdmitted=1;f.m.memberRejected=0;f.m.memberExecution=f.phase(1,1,0,'100');
+ f.m.result.results=[{index:0,outcome:'admitted',transactionHash:pqBatchMemberHash(h,0)}];
+ const common={members:1,localBlockCheckpointMembers:1,coldRestoredMembers:1,cloneLocalPeersPreserved:true,checkpointPointerTransitions:1,submitNs:2000000,submitWallNs:2100000,sharedSigningPreparationNs:1000,manualProduceBlockNs:1000,coldRestoreNs:1000};
+ const report={schema:1,kind:'isolated-single-producer-PQ-paired-component',sourceCommit:'a'.repeat(40),n:1,trial:1,gomaxprocs:1,order:['members','whole'],businessProjectionEqual:true,bftFinalCommits:null,consensusFinalityLatency:null,sharedWholeSha256:h.slice(2),productionMeasurementVersion:f.m.version,results:[{...common,mode:'members',memberHashes:['0x'+'5'.repeat(64)]},{...common,mode:'whole',memberHashes:[pqBatchMemberHash(h,0)],wholeMeasurement:f.m}]};
+ const raw=Buffer.from(JSON.stringify(report));
+ const guard={sourceCommit:report.sourceCommit,explicitCaseN:1,firstCause:null,child:{code:0},cleanupComplete:true,emptyOwnedScans:[{},{}],resultSHA256:createHash('sha256').update(raw).digest('hex')};
+ return {raw,guard,report};
+}
+test('guard-bound phase table retains exact inclusive ns and withholds finality or TPS',()=>{const f=guardedPairFixture();const q=readGuardedPQPairedPhases(f.raw,f.guard);
+ assert.equal(q.phases.find(p=>p.phase==='total').durationNs,'1000000');assert.equal(q.phaseDurationsAreInclusive,true);assert.equal(q.verifiedFinalCommits,null);assert.equal(q.sustainedBusinessTPS,null);assert.equal(q.publishedLocalCheckpoint.height,'1');assert.equal(q.executionHeight,'2');
+});
+test('stale result digest failed guard missing cleanup and changed Whole identities refuse the table',()=>{assert.equal(typeof readGuardedPQPairedPhases,'function');
+ for(const mutate of [f=>f.guard.resultSHA256='0'.repeat(64),f=>f.guard.firstCause='limit',f=>f.guard.child.code=1,f=>f.guard.emptyOwnedScans=[],f=>f.guard.cleanupComplete=false,f=>f.guard.sourceCommit='b'.repeat(40),f=>f.guard.explicitCaseN=16]){const f=guardedPairFixture();mutate(f);assert.throws(()=>readGuardedPQPairedPhases(f.raw,f.guard));}
+ const f=guardedPairFixture();f.report.results[1].memberHashes=['0x'+'0'.repeat(64)];f.raw=Buffer.from(JSON.stringify(f.report));f.guard.resultSHA256=createHash('sha256').update(f.raw).digest('hex');assert.throws(()=>readGuardedPQPairedPhases(f.raw,f.guard));
 });
