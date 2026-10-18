@@ -23,7 +23,7 @@ function install(prototype, options = {}) {
     if (dirname(env.TMPDIR) !== '/private/tmp/yi-' + uid || !/^[a-f0-9]{8}-[A-Za-z0-9]{6}$/.test(basename(env.TMPDIR)) ||
         !isAbsolute(env.THEIA_APP_PROJECT_PATH || '') || typeof session.id !== 'string' || !session.id)
       throw Error('C/C++ cleanup requires its original private runtime and session');
-    let adapter, pending, acknowledged = false, childClosed = false, observedChild;
+    let adapter, pending, acknowledged = false, childClosed = false, observedChild, helperInFlight = false, failed = false;
     const onObservedClose = () => { childClosed = true; };
     const dispose = () => { protocol?.dispose(); observedChild?.removeListener('close', onObservedClose); };
     let protocol;
@@ -39,6 +39,7 @@ function install(prototype, options = {}) {
       });
       adapter.stop = function () {
         if (pending) return pending;
+        failed = false;
         pending = (async () => {
           if (child.exitCode !== null || child.signalCode !== null) {
             if (!acknowledged) throw Error('C/C++ adapter exited before owned cleanup was confirmed');
@@ -63,18 +64,21 @@ function install(prototype, options = {}) {
             // captured/reaped its descendants. Killing the root first or using
             // a persisted PID can orphan a pending macOS debugserver.
             try {
+              helperInFlight = true;
               runHelper(join(env.THEIA_APP_PROJECT_PATH, 'lib/backend/ynx-process-tree'), [String(child.pid), '--force'],
                 { timeout: options.helperTimeoutMs ?? 4000, maxBuffer: 65536 }, error => {
+                  helperInFlight = false;
+                  if (failed) pending = undefined;
                   if (error) { finish(true, error); return; }
                   helperDone = true; finish(false);
                 });
-            } catch (error) { finish(true, error); }
+            } catch (error) { helperInFlight = false; finish(true, error); }
           });
           // The child has exited. The retained stop() calls kill() even after
           // exit, so never issue a second PID signal after confirmed cleanup.
           child.stdin?.end(); dispose();
         })();
-        pending.catch(() => { pending = undefined; }); // Explicit retry retains this exact live child, never another session.
+        pending.catch(() => { failed = true; if (!helperInFlight) pending = undefined; });
         return pending;
       };
       return adapter;

@@ -62,6 +62,8 @@ test('falsy synchronous helper failures are not converted into successful cleanu
 test('cleanup timeout and late callback cannot invoke the old root-only stop', async () => {
   const f = fixture(), adapter = await f.create(), pending = adapter.stop();
   f.close(); await assert.rejects(pending, /exit was not confirmed/);
+  assert.equal(adapter.stop(), pending, 'a timeout must not dispatch another helper while the first helper is still in flight');
+  assert.equal(f.calls.length, 1);
   f.calls[0][3](null); await Promise.resolve(); assert.equal(f.child.kills, 0);
 });
 test('exited unacknowledged handle is UNKNOWN and never re-used as a PID command', async () => {
