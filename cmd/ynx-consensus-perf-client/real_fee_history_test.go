@@ -48,6 +48,7 @@ func TestStreamingWorkloadActualFeeHistoryReadback(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(directory, "result.json"), append(raw, '\n'), 0600); err != nil {
 			t.Error(err)
 		}
+		t.Logf("actual_fee_history_result %s", raw)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 210*time.Second)
 	defer cancel()
@@ -217,6 +218,13 @@ func TestStreamingWorkloadActualFeeHistoryReadback(t *testing.T) {
 		t.Fatal("explicit reader failed actual history", err)
 	}
 	report["largeReadbackNs"] = time.Since(readStart).Nanoseconds()
+	report["coldReadbackStats"] = reader.stats()
+	warmStart := time.Now()
+	warmEvidence, err := reader.verifyBlockBatch(ctx, statePath, last, height)
+	if err != nil || !warmEvidence.Evidence.SnapshotCacheHit || warmEvidence.Evidence.AppHash != evidence.Evidence.AppHash || warmEvidence.Evidence.StoreSHA256 != evidence.Evidence.StoreSHA256 || warmEvidence.Transactions != evidence.Transactions {
+		t.Fatal("fresh-byte warm readback differs from complete cold evidence", err)
+	}
+	report["warmReadbackNs"] = time.Since(warmStart).Nanoseconds()
 	report["readbackStats"] = reader.stats()
 	report["readbackEvidence"] = evidence
 	store, err := os.ReadFile(statePath)
