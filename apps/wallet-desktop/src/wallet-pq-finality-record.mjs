@@ -8,7 +8,11 @@ const fields=['account','operationId','kind','transactionType','nativeTransactio
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const closed=(v,keys)=>{if(types.isProxy(v))fail();exactData(v,keys,'PQ_FINALITY_RECORD_INVALID');};
 const decimal=(v,max)=>{if(typeof v!=='string'||!/^(0|[1-9][0-9]{0,18})$/.test(v)||BigInt(v)>max)fail();return BigInt(v);};
-export const pqFinalityRecordIdentity=row=>sha(Buffer.from(JSON.stringify([row.account,row.hash,row.operationId,row.networkId,row.target])));
+const statementFields=['chainId','headerHeight','blockHash','stateHeight','stateAppHash'];
+const referenceNames=['context','stdin','stdout','stderr','manifest'];
+export const pqFinalityRecordIdentity=row=>sha(Buffer.from(JSON.stringify([row.account,row.hash,row.operationId,row.networkId,statementFields.map(k=>row.target.block[k]),statementFields.map(k=>row.target.successor[k]),row.target.index])));
+export const pqFinalityRecordGeneration=row=>sha(Buffer.from(JSON.stringify([pqFinalityRecordIdentity(row),referenceNames.map(name=>['eventId','attemptId','kind','bytes','sha256'].map(k=>row.references[name][k]))])));
+export const pqFinalityRecordsConflict=(a,b)=>pqFinalityRecordIdentity(a)===pqFinalityRecordIdentity(b)&&a.observation.status==='verifier-result-data'&&b.observation.status==='verifier-result-data'&&JSON.stringify(fields.map(k=>a.observation[k]))!==JSON.stringify(fields.map(k=>b.observation[k]));
 /** Compact private journal DATA. Original signed bytes remain in pqOriginals;
  * full context/stdin/stdout stay in immutable evidence, not this 1 MiB journal.
  * Parsing or cold recovery cannot establish Source, authorization or finality.

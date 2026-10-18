@@ -15,7 +15,7 @@ import {parsePQOriginalRecord,PQ_ORIGINAL_RESERVE_BYTES,PQ_ORIGINAL_KINDS} from 
 import {parseSessionOriginal,SESSION_ORIGINAL_RESERVE_BYTES,sessionOriginalCause} from './wallet-session-original.mjs';
 import {parseSessionPublication,sessionPublicationIdentity} from './wallet-session-publication.mjs';
 import {initialPQProgress,parsePQProgress,capturePQProgressResult,mergePQProgressResult,pqProgressCause,pqProgressCoreEqual,pqSavedCustodyResult,PQ_PROGRESS_RESPONSE_BYTES} from './wallet-pq-progress.mjs';
-import {parsePQFinalityRecord,pqFinalityRecordIdentity} from './wallet-pq-finality-record.mjs';
+import {parsePQFinalityRecord,pqFinalityRecordGeneration,pqFinalityRecordsConflict} from './wallet-pq-finality-record.mjs';
 
 const HASH = /^0x[0-9a-f]{64}$/, ACCOUNT = /^0x[0-9a-f]{40}$/;
 const quantity = value => typeof value === "string" && value.length <= 128 && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value);
@@ -96,7 +96,7 @@ function parseState(data) {
   }
   if(data.schemaVersion===10){
     if(!Array.isArray(data.pqFinalityObservations)||data.pqFinalityObservations.length>64)throw invalid();
-    try{for(const row of data.pqFinalityObservations)parsePQFinalityRecord(row,data.pqOriginals.find(r=>r.account===row.account&&r.hash===row.hash));if(new Set(data.pqFinalityObservations.map(pqFinalityRecordIdentity)).size!==data.pqFinalityObservations.length)throw invalid();}catch{throw invalid();}
+    try{for(const row of data.pqFinalityObservations)parsePQFinalityRecord(row,data.pqOriginals.find(r=>r.account===row.account&&r.hash===row.hash));if(new Set(data.pqFinalityObservations.map(pqFinalityRecordGeneration)).size!==data.pqFinalityObservations.length||data.pqFinalityObservations.some((r,i)=>data.pqFinalityObservations.slice(0,i).some(p=>pqFinalityRecordsConflict(p,r))))throw invalid();}catch{throw invalid();}
   }
   for (const entry of data.rejections) { if (!entry || Object.keys(entry).sort().join() !== "intent,proof") throw invalid(); validateIntent(entry.intent, legacy); validateRejection(entry.proof, legacy ? entry.proof?.rpcOrigin : entry.intent.origin); if (entry.intent.attempts !== 1) throw invalid(); }
   if (new Set(data.records.map(record => record.hash)).size !== data.records.length || new Set(data.records.map(record => record.account)).size !== data.records.length) throw invalid();
@@ -441,16 +441,20 @@ export class FileTransactionIntentStore {
   /** Private DATA adoption only. No signature/broadcast, original removal or
    * consensus-finality transition. Exact target includes both headers/index. */
   savePQFinalityObservation(original,input){
-    const row=parsePQFinalityRecord(input,original),key=pqFinalityRecordIdentity(row);
+    const row=parsePQFinalityRecord(input,original),key=pqFinalityRecordGeneration(row);
     const held=this.#pqFinalityResults.get(key);if(held){if(held.stored&&canonicalJSON({...held.row,storageCause:null})===canonicalJSON({...row,storageCause:null}))return this.#persistPQFinalityObservation(key,held);throw capabilityError('PQ_FINALITY_LOCAL_SAVE_REQUIRED','Save or reconcile the same held observation locally; do not run the verifier again.');}
     if(this.#pqFinalityResults.size>=64)throw invalid();const slot={row,stored:false,firstPresent:false,first:undefined};this.#pqFinalityResults.set(key,slot);
     return this.#persistPQFinalityObservation(key,slot);
   }
   #persistPQFinalityObservation(key,slot){
+    // A fresh durability observation can fail even for a previously saved row.
+    // Reserve the debt before queued IO; a failure must remain flushable.
+    slot.stored=false;
     return this.#mutate(async()=>{
       try{
         const state=await this.#read(),original=state.pqOriginals?.find(r=>r.account===slot.row.account&&r.hash===slot.row.hash);let row=parsePQFinalityRecord(slot.row,original);
-        const existing=state.pqFinalityObservations??[],prior=existing.find(r=>pqFinalityRecordIdentity(r)===key);
+        const existing=state.pqFinalityObservations??[],prior=existing.find(r=>pqFinalityRecordGeneration(r)===key);
+        if(existing.some(r=>pqFinalityRecordsConflict(r,row)))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Preserve both evidence generations; contradictory verified outcomes cannot replace the same target.');
         if(prior){
           const core=r=>canonicalJSON({...r,storageCause:null});if(core(prior)!==core(row))throw capabilityError('PQ_FINALITY_TARGET_CONFLICT','Preserve both evidence generations; a different observation cannot overwrite the same target.');
           row={...row,storageCause:prior.storageCause??row.storageCause};if(canonicalJSON(prior)===canonicalJSON(row)){slot.row=row;slot.stored=true;return Object.freeze({stored:true,changed:false,independentFinality:false,consensusFinality:false,nativeGrant:false,canRetry:false,clearsOriginal:false});}
@@ -463,9 +467,9 @@ export class FileTransactionIntentStore {
       }catch(cause){if(!slot.firstPresent){slot.firstPresent=true;slot.first=cause;let value=cause;const d=cause&&typeof cause==='object'?Object.getOwnPropertyDescriptor(cause,'cause'):null;if(d&&Object.hasOwn(d,'value'))value=d.value;slot.row={...slot.row,storageCause:pqProgressCause(value)};}throw cause;}
     });
   }
-  flushPQFinalityObservation(account,hash,targetIdentity,guard){
-    if(typeof guard!=='function')throw invalid();guard();const slot=this.#pqFinalityResults.get(targetIdentity);if(!slot||slot.row.account!==account||slot.row.hash!==hash||slot.stored)throw invalid();
-    return this.#persistPQFinalityObservation(targetIdentity,slot);
+  flushPQFinalityObservation(account,hash,generationIdentity,guard){
+    if(typeof guard!=='function')throw invalid();guard();const slot=this.#pqFinalityResults.get(generationIdentity);if(!slot||slot.row.account!==account||slot.row.hash!==hash||slot.stored)throw invalid();
+    return this.#persistPQFinalityObservation(generationIdentity,slot);
   }
   async readPQFinalityObservations(account,hash,guard){
     if(!ACCOUNT.test(account??'')||!HASH.test(hash??'')||typeof guard!=='function')throw invalid();guard();const state=await this.#read();guard();
@@ -578,7 +582,7 @@ export class FileTransactionIntentStore {
     });
   }
   async #read(filePath = this.filePath) {
-    let handle, failed = false, stage = "probe";
+    let handle, failed = false, stage = "probe", failure;
     try {
       await this.filePolicy.available(filePath);
       stage = "open";
@@ -588,8 +592,8 @@ export class FileTransactionIntentStore {
       if (!stat.isFile() || stat.size > PRIVATE_FILE_MAX_BYTES) throw invalid();
       await this.filePolicy.assertPrivate(filePath, stat);
       return structuredClone(parseState(JSON.parse(await readBoundedPrivateFile(handle))));
-    } catch (error) { failed = true; if (error?.code === "ENOENT" && stage === "open" && !handle && filePath === this.filePath) return empty(); throw invalid(); }
-    finally { try { await handle?.close(); } catch { if (!failed) throw invalid(); } }
+    } catch (error) { failed = true; if (error?.code === "ENOENT" && stage === "open" && !handle && filePath === this.filePath) return empty(); failure=invalid();Object.defineProperty(failure,'cause',{value:error});throw failure; }
+    finally { try { await handle?.close(); } catch (cleanupCause) { if (failure)Object.defineProperty(failure,'cleanupCause',{value:cleanupCause});else if (!failed){const error=invalid();Object.defineProperty(error,'cause',{value:cleanupCause});throw error;} } }
   }
   async add(intent, { retry = false } = {}) {
     validateIntent({ ...intent, attempts: 1 });
