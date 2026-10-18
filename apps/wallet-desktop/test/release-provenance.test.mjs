@@ -7,6 +7,7 @@ import {execFileSync,spawnSync} from 'node:child_process';
 import {createRequire} from 'node:module';
 import {runInNewContext} from 'node:vm';
 import {createHash} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {originalAuthNativeBuildPlan,captureOriginalAuthNativeBuildReceipt,originalAuthNativeInputPins} from '../scripts/build-original-auth-identity-native.mjs';
 import {relocateDesktopRuntimeSource,PACKAGED_RELOCATION_RULES,relocateDesktopPackage,verifyDesktopPackage,desktopReleaseIdentity,PACKAGED_RELOCATION_RECEIPT,desktopAsarHeaderIntegrity,declaredSDKRuntimeSources} from '../scripts/release-provenance.mjs';
 import {canonicalArchivePlan,CANONICAL_MAIN,NATIVE_CANONICAL,SDK_ALIAS,verifyCanonicalNativeReceipt,PINNED_NODE_HEADER_PINS} from '../scripts/canonical-package.mjs';
@@ -33,8 +34,8 @@ test('Native normal build has the six Auth-frozen units and libbsm for every arc
  }
 });
 test('R23 Native input snapshot retains exact original Node closure plus new IO header, not IDE inputs',()=>{
- const nativeRoot=process.env.PROVENANCE_NATIVE_SOURCE_ROOT??path.resolve(new URL('../',import.meta.url).pathname,'../..');
- const headers=new URL('./fixtures/node-22.13.1/',import.meta.url).pathname.replace(/\/$/,''),plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
+ const nativeRoot=process.env.PROVENANCE_NATIVE_SOURCE_ROOT??path.resolve(fileURLToPath(new URL('../',import.meta.url)),'../..');
+ const headers=fileURLToPath(new URL('./fixtures/node-22.13.1/',import.meta.url)).replace(/\/$/,''),plan=originalAuthNativeBuildPlan('arm64',headers),planRoot=path.resolve(path.dirname(plan.output),'../../..');
  const mapped={...plan,output:plan.output.replace(planRoot,nativeRoot),sources:plan.sources.map(p=>p.replace(planRoot,nativeRoot))};
  const pins=originalAuthNativeInputPins(mapped,headers).inputFiles,receipt=JSON.parse(readFileSync(nativeRoot+'/apps/wallet-desktop/native/original-auth-identity-build.json'));
  assert.deepEqual(pins,receipt.inputFiles);assert.equal(pins.length,24);
@@ -42,7 +43,7 @@ test('R23 Native input snapshot retains exact original Node closure plus new IO 
  assert.equal(plan.sources.length,6);
 });
 
-const project=new URL('../',import.meta.url).pathname,require=createRequire(new URL('../package.json',import.meta.url)),asar=require('@electron/asar'),asarCLI=require.resolve('@electron/asar/bin/asar.js');
+const project=fileURLToPath(new URL('../',import.meta.url)),require=createRequire(new URL('../package.json',import.meta.url)),asar=require('@electron/asar'),asarCLI=require.resolve('@electron/asar/bin/asar.js');
 const sdkRuntime=process.env.PROVENANCE_SDK_SOURCE??path.resolve(project,'../../packages/wallet-auth/src');
 const dependencyRoot=process.env.PROVENANCE_SDK_DEPENDENCY_ROOT??path.resolve(project,'../../packages/wallet-auth/node_modules');
 const dependencyManifestBytes=readFileSync(new URL('../scripts/wallet-auth-runtime-dependencies.json',import.meta.url)),dependencyManifest=JSON.parse(dependencyManifestBytes);
