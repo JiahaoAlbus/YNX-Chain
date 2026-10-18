@@ -56,7 +56,11 @@ test("Linux real curl preserves body and header metadata through Node pipes", {s
   assert.equal(failure.time_connect,0);
   assert.equal(failure.time_appconnect,0);
   assert.equal(failure.time_total,0);
-  assert.match(failure.errormsg,/Failed to open \/dev\/stderr/i);
+  // curl's structured errormsg contains CURLE_WRITE_ERROR's generic text;
+  // it does not repeat the destination filename from its header writer.
+  // Keep the exact real error and exit code rather than inventing that field.
+  assert.equal(failure.errormsg,"Failed writing received data to disk/application");
+  assert.match(rejected.stderr,/curl: \(23\)/);
   assert.equal(fs.readFileSync(filename,"utf8"),body);
   assert.deepEqual(fs.readdirSync(directory),["body.json"]);
   t.diagnostic("CURL_HEADER_FD_REOPEN_REPRODUCED legacyExit23=true transferNotStarted=true fixedExactBody=true rawHeaderFiles=0 networkRequests=0");
