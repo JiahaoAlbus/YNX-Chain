@@ -1,10 +1,12 @@
 // Pure request policy for review. No network access or IPC is enabled here.
+import readme from '../runtime/ynx-workbench/lib/marketplace-readme.js';
 const paths = { search: '/api/-/search', query: '/api/v2/-/query' };
 const searchKeys = new Set(['query', 'category', 'size', 'offset', 'sortOrder', 'sortBy', 'includeAllVersions']);
 const queryKeys = new Set(['namespaceName', 'extensionName', 'extensionVersion', 'extensionId', 'extensionUuid', 'namespaceUuid', 'includeAllVersions', 'targetPlatform', 'size', 'offset']);
 export const catalogLimits = Object.freeze({ maxBytes: 4 * 1024 * 1024, timeoutMs: 15000, maxUrlBytes: 2048 });
 
 export function catalogRequest(operation, options = {}) {
+  if (operation === 'readme') return Object.freeze({ url: readme.readmeURL(options), method: 'GET', redirect: 'error', credentials: 'omit', headers: Object.freeze({ Accept: 'text/markdown, text/plain;q=0.9' }), maxBytes: readme.MAX_README_BYTES });
   if (!Object.hasOwn(paths, operation) || !options || typeof options !== 'object' || Array.isArray(options)) throw Error('Unsupported catalog request.');
   const allowed = operation === 'search' ? searchKeys : queryKeys;
   const url = new URL(paths[operation], 'https://open-vsx.org');

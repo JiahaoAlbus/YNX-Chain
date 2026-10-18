@@ -2,7 +2,7 @@
 const { markFailure } = require('./marketplace-diagnostics');
 
 // Pace ordinary UI fan-out before the unchanged session capability. No new
-// operations, destination, permission, provider retries or quota are added.
+// destinations, permissions, provider retries or quota are added.
 function scheduleCatalog(client) {
   const queue = []; let active = 0, retired = false, timer, lastStart = -Infinity;
   const reject = category => markFailure(category);
@@ -24,7 +24,7 @@ function scheduleCatalog(client) {
   return {
     request(operation, options = {}) {
       if (retired) return Promise.reject(reject('CHANNEL_UNAVAILABLE'));
-      if (!['search', 'query'].includes(operation)) return Promise.reject(reject('POLICY'));
+      if (!['search', 'query', 'readme'].includes(operation)) return Promise.reject(reject('POLICY'));
       if (queue.length + active >= 64) return Promise.reject(reject('QUOTA'));
       let captured;
       try {

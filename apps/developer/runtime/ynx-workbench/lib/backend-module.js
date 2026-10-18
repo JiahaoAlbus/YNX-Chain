@@ -41,6 +41,7 @@ module.exports.default = new ContainerModule((bind, unbind, isBound, rebind) => 
       query: options => catalog.request('query', options),
     }));
     bind(BackendApplicationContribution).toConstantValue({ onStop: () => catalog.close() });
+    require('./marketplace-readme').installReadmeTransport(require('@theia/vsx-registry/lib/node/vsx-registry-service-impl').VSXRegistryServiceImpl.prototype, catalog);
     const artifacts = require('./marketplace-artifact-channel').inheritedArtifacts();
     const { VSXExtensionResolver } = require('@theia/vsx-registry/lib/node/vsx-extension-resolver');
     rebind(VSXExtensionResolver).to(require('./marketplace-extension-resolver').artifactResolverClass(VSXExtensionResolver, artifacts)).inSingletonScope();

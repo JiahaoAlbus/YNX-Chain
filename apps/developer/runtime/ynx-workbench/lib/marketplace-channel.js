@@ -31,7 +31,7 @@ function serveCatalog(stream, catalog) {
   let retired = false, lastId = 0, windowStart = Date.now(), count = 0;
   const active = new Map();
   const channel = wire(stream, message => {
-    if (!message || Object.keys(message).sort().join(',') !== 'id,operation,options' || !Number.isSafeInteger(message.id) || message.id <= lastId || !['search', 'query'].includes(message.operation)) throw unavailable();
+    if (!message || Object.keys(message).sort().join(',') !== 'id,operation,options' || !Number.isSafeInteger(message.id) || message.id <= lastId || !['search', 'query', 'readme'].includes(message.operation)) throw unavailable();
     lastId = message.id;
     if (Date.now() - windowStart >= 1000) { windowStart = Date.now(); count = 0; }
     if (active.size >= 4 || ++count > 8) { channel.send({ id: message.id, ok: false, error: failureEnvelope(unavailable('QUOTA')) }); return; }
@@ -59,7 +59,7 @@ function catalogClient(stream, timeoutMs = 16000) {
   }, reason => { retired = true; for (const request of pending.values()) { clearTimeout(request.timer); request.reject(reason); } pending.clear(); });
   return {
     request(operation, options = {}) {
-      if (retired || !['search', 'query'].includes(operation) || !Number.isSafeInteger(sequence + 1)) return Promise.reject(unavailable());
+      if (retired || !['search', 'query', 'readme'].includes(operation) || !Number.isSafeInteger(sequence + 1)) return Promise.reject(unavailable());
       if (pending.size >= 4) return Promise.reject(unavailable('QUOTA'));
       return new Promise((resolve, reject) => {
         const id = ++sequence;

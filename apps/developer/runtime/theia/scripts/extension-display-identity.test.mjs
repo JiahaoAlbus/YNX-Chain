@@ -8,11 +8,22 @@ class VSXExtension {
   get verified() { return this.metadata.verified; }
   async enable() { this.enableCalls = (this.enableCalls || 0) + 1; }
   async disable() { if (this.disableFailure) throw this.disableFailure; return 'disabled'; }
+  doInstall() { return this.runTask('Installing', async () => { if (this.installFailure) throw this.installFailure; return 'installed'; }); }
 }
 vm.runInNewContext(readFileSync(new URL('../../ynx-workbench/lib/extension-lifecycle.js', import.meta.url), 'utf8'), {
-  module, require: id => id.endsWith('/vsx-extension') ? { VSXExtension } : { injectable: () => value => value },
+  module, require: id => id.endsWith('/vsx-extension') ? { VSXExtension } : { injectable: () => value => value, inject: () => () => {}, MessageService: class {} },
 });
 const { YnxVSXExtension, extensionDisplayName } = module.exports;
+test('failed install reports a visible notification without waiting for dismissal or replacing its first cause', async () => {
+  const extension = new YnxVSXExtension(), notices = [], failure = Error('original deployment failure');
+  extension.ynxMessages = { error: text => { notices.push(text); return new Promise(() => {}); } };
+  extension.installFailure = failure;
+  await assert.rejects(extension.doInstall({ version: '1.2.3' }), error => error === failure);
+  assert.equal(notices.length, 1); assert.match(notices[0], /installation failed/i);
+  assert.equal(extension._currentTask, undefined);
+  extension.installFailure = undefined; assert.equal(await extension.doInstall({ version: '1.2.3' }), 'installed');
+  assert.equal(notices.length, 1);
+});
 test('failed disable preserves required host reload until a successful disable', async () => {
   const extension = new YnxVSXExtension(); extension.needsHostReload = true;
   extension.disableFailure = Error('host disable refused');

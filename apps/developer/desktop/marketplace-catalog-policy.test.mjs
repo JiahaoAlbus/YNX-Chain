@@ -10,6 +10,13 @@ test('catalog accepts framework search/query and fixes destination, method and c
     assert.deepEqual(request.headers, { Accept: 'application/json' });
   }
 });
+test('selected readme is a bounded fixed-origin capability, never an arbitrary URL request', () => {
+  const selection = { namespace: 'openai', name: 'chatgpt', version: '26.5908.31748', targetPlatform: 'darwin-arm64', filename: 'readme.md' };
+  const request = catalogRequest('readme', selection);
+  assert.equal(request.url, 'https://open-vsx.org/api/openai/chatgpt/darwin-arm64/26.5908.31748/file/readme.md');
+  assert.equal(request.maxBytes, 512 * 1024);
+  for (const value of [{ ...selection, url: 'https://other.example' }, { ...selection, filename: 'package.json' }, { ...selection, filename: '../readme.md' }, { ...selection, targetPlatform: 'other' }, { ...selection, name: 'chatgpt/escape' }]) assert.throws(() => catalogRequest('readme', value));
+});
 
 test('catalog refuses arbitrary destinations, methods, headers and unbounded inputs', () => {
   for (const operation of ['download', 'install', '__proto__', 'constructor', 'https://example.org']) assert.throws(() => catalogRequest(operation));

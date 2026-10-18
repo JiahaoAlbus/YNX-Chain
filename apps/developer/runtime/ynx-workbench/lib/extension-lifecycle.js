@@ -1,4 +1,5 @@
-const { injectable } = require('@theia/core/shared/inversify');
+const { injectable, inject } = require('@theia/core/shared/inversify');
+const { MessageService } = require('@theia/core/lib/common/message-service');
 const { VSXExtension } = require('@theia/vsx-registry/lib/browser/vsx-extension');
 
 // Presentation only. Package IDs, publishers, verification and legal notices
@@ -22,6 +23,16 @@ class YnxVSXExtension extends VSXExtension {
     const version = options?.version || this.version;
     if (!version) return Promise.reject(Error('Select an extension version before installation.'));
     return super.install({ ...options, version });
+  }
+  async doInstall(options) {
+    try { return await super.doInstall(options); }
+    catch (cause) {
+      // The standard card event only resets its button in finally(). Report
+      // the actual rejected installation explicitly, without serializing an
+      // arbitrary provider error or making dismissal a retry/cleanup gate.
+      try { Promise.resolve(this.ynxMessages.error('Extension installation failed. Check the IDE connection diagnostics and extension compatibility, then retry.')).catch(() => {}); } catch {}
+      throw cause;
+    }
   }
   runTask(name, task) {
     if (this._currentTask) return Promise.reject('busy');
@@ -52,4 +63,5 @@ class YnxVSXExtension extends VSXExtension {
   }
 }
 injectable()(YnxVSXExtension);
+inject(MessageService)(YnxVSXExtension.prototype, 'ynxMessages');
 module.exports = { YnxVSXExtension, extensionDisplayName };

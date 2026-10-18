@@ -20,6 +20,8 @@ node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs s
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
 node --test desktop/wallet-identity-v2-caller.test.mjs desktop/wallet-identity-v2-startup.test.mjs
+node --test desktop/marketplace-artifact-download.test.mjs desktop/marketplace-catalog-policy.test.mjs desktop/marketplace-catalog-transport.test.mjs desktop/marketplace-readme.test.mjs desktop/marketplace-channel.test.mjs
+node --test runtime/theia/scripts/extension-display-identity.test.mjs
 node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/verify-packaged-local-imports.test.mjs
 node --test scripts/solidity-current-file-route.test.mjs
@@ -129,6 +131,7 @@ mkdir -p "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib"
 cp runtime/ynx-workbench/package.json "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/"
 cp runtime/ynx-workbench/lib/wallet-admission-channel.js runtime/ynx-workbench/lib/wallet-admission-protocol.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/marketplace-channel.js runtime/ynx-workbench/lib/marketplace-diagnostics.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
+cp runtime/ynx-workbench/lib/marketplace-readme.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/marketplace-artifact-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/chain-public-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
 cp runtime/ynx-workbench/lib/local-ai-tools-channel.js "$app/Contents/Resources/code/apps/developer/runtime/ynx-workbench/lib/"
