@@ -19,6 +19,7 @@ canonical_native_root=$(node scripts/package-identity-admission-source.mjs --nat
 node --test --test-concurrency=1 scripts/canonical-identity-selection.test.mjs scripts/canonical-identity-package.test.mjs
 node --test scripts/admit-derived-native.test.mjs
 node --test scripts/normal-macos-build-layout.test.mjs scripts/verify-normal-macos-release.test.mjs
+node --test scripts/normal-local-workspace-aliases.test.mjs
 node --test scripts/bundle-composed-core.test.mjs
 runtime_checkpoint="$source_commit"
 # One deployment target for the native shell, bundle declaration and all bundled

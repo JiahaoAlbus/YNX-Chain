@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { join, resolve, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { LOCAL_WORKSPACE_ALIASES, declareLocalWorkspaceAliases, verifyLocalWorkspaceAliases } from './normal-local-workspace-aliases.mjs';
 export const NORMAL_ROLES = Object.freeze({
   'workbench-dependencies': 'build/theia-node-modules',
   'workbench-plugins': 'build/plugin-inputs',
@@ -105,7 +106,8 @@ export function normalMacPlan({ source, inputs, work, nativeMode = 'derived-remo
     { name: 'normal-core-package', tool: node, argv: [join(dev, 'runtime/theia/scripts/package-runtime.mjs'), core, plugins, cpp], cwd: source },
     { name: 'normal-native-app-dmg', tool: '/bin/bash', argv: [join(dev, 'scripts/package-local-macos.sh')], cwd: source },
   ];
-  return { nativeMode, mappings, commands, env, node, npm, output, core, privateBin,
+  return { nativeMode, sourceRoot: source, typescriptRoot: role('typescript-runtime'),
+    localWorkspaceAliases: local ? LOCAL_WORKSPACE_ALIASES : [], mappings, commands, env, node, npm, output, core, privateBin,
     toolBindings: [{ name: 'node', tool: node, argv: [] }, { name: 'npm', tool: node, argv: [npm] }],
     checkpoints: [local ? 'Reuse only the exact original R51 component through the unchanged canonical guard. No new Native compile/load claim. The original Mac packager builds the IDE shell freshly.' : 'Original A binds fresh component under work/component and calls strict derived admission before relocation.',
       'Owned workbench build regenerates its consumer; original A commits only admitted component2pins/normal consumer3paths before final App package.',
@@ -117,6 +119,7 @@ export function normalMacPlan({ source, inputs, work, nativeMode = 'derived-remo
 }
 
 export async function materializeNormalMacInputs(plan) {
+  const workspace = plan.nativeMode === 'canonical-local' ? await declareLocalWorkspaceAliases(plan.sourceRoot, plan.typescriptRoot) : undefined;
   for (const row of plan.mappings) {
     try { await lstat(row.to); throw Error('Refusing to merge a normal input target: ' + row.to); }
     catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -125,6 +128,7 @@ export async function materializeNormalMacInputs(plan) {
     if (!from.isDirectory() || from.isSymbolicLink() || from.dev !== parent.dev) throw Error('Normal source/destination must share the admitted build volume');
     execFileSync('/bin/cp', ['-cR', row.from, row.to], { env: { ...process.env, COPYFILE_DISABLE: '1' }, stdio: 'pipe' });
   }
+  if (workspace) await verifyLocalWorkspaceAliases(workspace, { source: plan.sourceRoot, typescriptRoot: plan.typescriptRoot });
   if (plan.toolBindings) {
     await mkdir(plan.privateBin, { mode: 0o700 });
     const quote = s => "'" + s.replaceAll("'", "'\\''") + "'";
