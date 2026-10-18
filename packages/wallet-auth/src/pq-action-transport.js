@@ -21,14 +21,18 @@ function record(value,keys){
   if(actual.length!==keys.length||actual.some(k=>!keys.includes(k))||keys.some(k=>!ds[k]||!Object.hasOwn(ds[k],'value')))fail();
   return Object.fromEntries(keys.map(k=>[k,ds[k].value]));
 }
-function originalCopies(input){
-  if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype||input.length>Math.floor(PQ_ACTION_TRANSPORT_MAX_BYTES/6))fail();
-  const ds=Object.getOwnPropertyDescriptors(input);
-  if(Reflect.ownKeys(ds).length!==input.length+1)fail();
-  const out=[];let size=0;
-  for(let i=0;i<input.length;i++){
-    if(!ds[i]||!Object.hasOwn(ds[i],'value'))fail();
-    const copy=bytes(ds[i].value,PQ_ACTION_ORIGINAL_MAX_BYTES);
+function originalCopies(input,baseSize){
+  if(!Array.isArray(input)||Object.getPrototypeOf(input)!==Array.prototype)fail();
+  const length=Object.getOwnPropertyDescriptor(input,'length')?.value;
+  // Even a one-byte original takes four base64 bytes, quotes and a comma.
+  if(!Number.isSafeInteger(length)||length<0||baseSize+(length?',"originals":[]'.length+length*7-1:0)>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();
+  const out=[];let size=baseSize+(length?',"originals":[]'.length:0);
+  for(let i=0;i<length;i++){
+    // Inspect only the next element. Never allocate a descriptor object for a
+    // potentially million-entry caller array, and never invoke its getters.
+    const d=Object.getOwnPropertyDescriptor(input,String(i));
+    if(!d||!Object.hasOwn(d,'value'))fail();
+    const copy=bytes(d.value,PQ_ACTION_ORIGINAL_MAX_BYTES);
     size+=4*Math.ceil(copy.length/3)+2+(i?1:0);
     if(size>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();
     out.push(copy);
@@ -65,7 +69,8 @@ function encode(member,originals){
   const raw=te.encode(JSON.stringify(out));if(raw.length>PQ_ACTION_TRANSPORT_MAX_BYTES)fail();return raw;
 }
 export function encodePQActionTransportData(value){
-  const input=record(value,['member','originals']);return encode(bytes(input.member,PQ_ACTION_MEMBER_MAX_BYTES),originalCopies(input.originals));
+  const input=record(value,['member','originals']),member=bytes(input.member,PQ_ACTION_MEMBER_MAX_BYTES);
+  return encode(member,originalCopies(input.originals,JSON.stringify({version:1,type:'pq_action',wireHex:''}).length+2*member.length));
 }
 export function decodePQActionTransportData(value){
   const raw=bytes(value,PQ_ACTION_TRANSPORT_MAX_BYTES);let text,input;

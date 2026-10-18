@@ -61,3 +61,9 @@ test('semantic adapter refuses originals for non-staking Member before any signa
   const member=encodeMember({...original,message:Buffer.from(encodePQNativeAction(other))});
   assert.throws(()=>preparePQNativeActionTransportData(snapshot(),{member,originals}),{code:'PQ_ACTION_ORIGINALS_KIND_INVALID'});
 });
+test('oversized originals count refuses before allocating or enumerating millions of descriptors',()=>{
+  let enumerations=0;
+  const huge=new Proxy(new Array(3600000),{ownKeys(){enumerations++;throw Error('bulk descriptors must not be allocated');}});
+  assert.throws(()=>encodePQActionTransportData({member:wire,originals:huge}),{code:'PQ_ACTION_TRANSPORT_INVALID'});
+  assert.equal(enumerations,0);
+});
