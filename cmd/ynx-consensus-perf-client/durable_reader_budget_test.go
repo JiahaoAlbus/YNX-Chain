@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
@@ -77,6 +78,18 @@ func paddedCheckpointFixture(t *testing.T) (chain.ConsensusMigrationState, strin
 	if err := os.WriteFile(path, data, 0600); err != nil {
 		t.Fatal(err)
 	}
+	checkpoint, err := consensus.NewBlockJournaledApplication(migration, path)
+	if err != nil {
+		t.Fatal("normal backend failed to open valid padded checkpoint", err)
+	}
+	info, err := checkpoint.Info(context.Background(), nil)
+	if err != nil || info.LastBlockHeight != height {
+		t.Fatal("normal backend checkpoint height differs", err)
+	}
+	after, err := os.ReadFile(path)
+	if err != nil || !bytes.Equal(after, data) {
+		t.Fatal("normal open altered complete checkpoint", err)
+	}
 	return migration, path, tx, height, data
 }
 func TestStreamingWorkloadReaderCrossesByteLimitAndEvictsWithoutStaleFallback(t *testing.T) {
@@ -85,11 +98,14 @@ func TestStreamingWorkloadReaderCrossesByteLimitAndEvictsWithoutStaleFallback(t 
 	if err := os.WriteFile(second, data, 0600); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := consensus.NewBlockJournaledApplication(migration, second); err != nil {
+		t.Fatal("normal second-store lock setup failed", err)
+	}
 	legacy, err := newDurableReader(migration, []string{first})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := legacy.verify(context.Background(), first, tx, height); err == nil {
+	if _, err := legacy.verify(context.Background(), first, tx, height); err == nil || !strings.Contains(err.Error(), "size limit") {
 		t.Fatal("legacy 16MiB cap expanded")
 	}
 	reader, err := newDurableReaderWithLimits(migration, []string{first, second}, 32<<20, 32<<20)
@@ -125,6 +141,12 @@ func TestStreamingWorkloadReaderCrossesByteLimitAndEvictsWithoutStaleFallback(t 
 	actual, err := os.ReadFile(first)
 	if err != nil || len(actual) != len(data)-1 {
 		t.Fatal("reader repaired truncated input", err)
+	}
+	if err := os.Rename(second+".read.lock", second+".read.lock.saved"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reader.verify(context.Background(), second, tx, height); err == nil || !strings.Contains(err.Error(), "read.lock") {
+		t.Fatal("missing normal writer lease was bypassed", err)
 	}
 	t.Logf("synthetic_padding_actual_native_state input_bytes=%d cache_budget=%d evictions=%d; one real transfer, no history capacity/TPS claim", len(data), stats.ReaderBudget.CacheInputByteBudget, reader.stats().ReaderBudget.Evictions)
 }

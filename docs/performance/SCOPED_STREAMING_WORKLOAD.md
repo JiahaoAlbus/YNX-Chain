@@ -50,8 +50,24 @@ Its quorum observations are synthetic inputs to the controller interface, not
 network evidence. Other controls cover funding, old/new scope separation,
 UNKNOWN, partial writes, stream identity substitution and plan exclusivity.
 
-Live history limits remain independent. This source change does not enlarge the
-durable reader's 16MiB store bound or supply a qualified ten-minute resource case.
-A matching client binary, gradual four-node trials, large-history readback and
-fresh Root scheduling/resource coverage are still required. Steady-state TPS is
-not automatically asserted by selecting the profile or completing a record count.
+Default durable reads remain limited to 16MiB. The explicit streaming profile can
+select `-durable-store-byte-limit` from 16 to 512MiB, coupled with an explicit
+`-durable-cache-byte-budget` up to 2GiB. The cache budget counts the actual input
+bytes represented by retained validated states, not physical RSS. Large-mode
+capture/decode is serialized. LRU eviction clears the old state and fee/nonce
+indexes; every later use still hashes the current file and runs the original
+decoder, state validation and transaction checks. A failed current read cannot
+return an evicted or older cached result. The selected limits enter the durable
+public plan and the reader reports its encoded-input occupancy and evictions.
+
+Raw capture, reconstructed state, indexes and decoder temporaries can coexist in
+RAM. An input-byte budget is not a heap/RSS ceiling; the externally scheduled
+window must still enforce its separate observed RSS and allocated-disk budgets.
+This does not change the storage backends' own frame/payload limits.
+
+The large-reader source controls use a valid V2 checkpoint around one real
+executed transfer, enlarged with synthetic JSON whitespace. They test the byte
+boundary and eviction logic, not actual large-history throughput. A matching
+client binary, gradual four-node trials, real history and fresh Root resource
+coverage are still required. Steady-state TPS is not automatically asserted by
+selecting the profile or completing a record count.
